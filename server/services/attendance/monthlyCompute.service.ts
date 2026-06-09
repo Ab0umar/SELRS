@@ -1,24 +1,28 @@
-import { getDb } from '../../db';
-import { attendanceDaily, attendanceEmployees, attendanceMonthlyReport } from '../../../drizzle/schema';
-import { eq, and, gte, lte } from 'drizzle-orm';
+import { getDb } from "../../db";
+import {
+  attendanceDaily,
+  attendanceEmployees,
+  attendanceMonthlyReport,
+} from "../../../drizzle/schema";
+import { eq, and, gte, lte } from "drizzle-orm";
 
 export class MonthlyComputeService {
   static getYearMonth(date: Date): string {
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, "0");
     return `${year}-${month}`;
   }
 
   static getMonthRange(year: number, month: number): [string, string] {
-    const mm = String(month).padStart(2, '0');
+    const mm = String(month).padStart(2, "0");
     const lastDay = new Date(year, month, 0).getDate();
-    const dd = String(lastDay).padStart(2, '0');
+    const dd = String(lastDay).padStart(2, "0");
     return [`${year}-${mm}-01`, `${year}-${mm}-${dd}`];
   }
 
   static async buildMonthly(year: number, month: number): Promise<any[]> {
     const db = await getDb();
-    if (!db) throw new Error('Database not available');
+    if (!db) throw new Error("Database not available");
 
     const [dateFrom, dateTo] = this.getMonthRange(year, month);
 
@@ -28,8 +32,8 @@ export class MonthlyComputeService {
       .where(
         and(
           gte(attendanceDaily.workDate, dateFrom as any),
-          lte(attendanceDaily.workDate, dateTo as any)
-        )
+          lte(attendanceDaily.workDate, dateTo as any),
+        ),
       );
 
     // Group by empCd
@@ -59,13 +63,17 @@ export class MonthlyComputeService {
       const agg = grouped.get(key)!;
       agg.totalDays++;
 
-      if (d.status === 'present' || d.status === 'partial' || d.status === 'missing_checkout') {
+      if (
+        d.status === "present" ||
+        d.status === "partial" ||
+        d.status === "missing_checkout"
+      ) {
         agg.presentDays++;
-      } else if (d.status === 'absent') {
+      } else if (d.status === "absent") {
         agg.absentDays++;
-      } else if (d.status === 'leave') {
+      } else if (d.status === "leave") {
         agg.leaveDays++;
-      } else if (d.status === 'holiday') {
+      } else if (d.status === "holiday") {
         agg.holidayDays++;
       }
 
@@ -83,7 +91,7 @@ export class MonthlyComputeService {
 
   static async enrichMonthly(monthly: any[]): Promise<any[]> {
     const db = await getDb();
-    if (!db) throw new Error('Database not available');
+    if (!db) throw new Error("Database not available");
 
     const enriched = [];
 
@@ -99,7 +107,7 @@ export class MonthlyComputeService {
       enriched.push({
         ...m,
         empCd: m.empCd,
-        empName: emp?.fullName || 'UNKNOWN',
+        empName: emp?.fullName || "UNKNOWN",
         department: emp?.department || null,
         yyyymm: m.yyyymm,
         totalDays: m.totalDays,
@@ -178,16 +186,22 @@ export class MonthlyComputeService {
       .sort((a, b) => a.empName.localeCompare(b.empName));
   }
 
-  static async saveMonthlyReports(year: number, month: number): Promise<number> {
+  static async saveMonthlyReports(
+    year: number,
+    month: number,
+  ): Promise<number> {
     const db = await getDb();
-    if (!db) throw new Error('Database not available');
+    if (!db) throw new Error("Database not available");
 
     const monthly = await this.buildMonthly(year, month);
     const now = new Date();
     let savedCount = 0;
 
     for (const m of monthly) {
-      const [saveFrom, saveTo] = MonthlyComputeService.getMonthRange(year, month);
+      const [saveFrom, saveTo] = MonthlyComputeService.getMonthRange(
+        year,
+        month,
+      );
       const allDailyRecords = await db
         .select()
         .from(attendanceDaily)
@@ -195,17 +209,26 @@ export class MonthlyComputeService {
           and(
             eq(attendanceDaily.empCd, m.empCd),
             gte(attendanceDaily.workDate, saveFrom as any),
-            lte(attendanceDaily.workDate, saveTo as any)
-          )
+            lte(attendanceDaily.workDate, saveTo as any),
+          ),
         );
 
-      const partialDays = allDailyRecords.filter((d) => d.status === 'partial').length;
-      const missingCheckoutDays = allDailyRecords.filter((d) => d.status === 'missing_checkout').length;
+      const partialDays = allDailyRecords.filter(
+        (d) => d.status === "partial",
+      ).length;
+      const missingCheckoutDays = allDailyRecords.filter(
+        (d) => d.status === "missing_checkout",
+      ).length;
       // Recalculate presentDays to include partial + missing_checkout
       m.presentDays = allDailyRecords.filter(
-        (d) => d.status === 'present' || d.status === 'partial' || d.status === 'missing_checkout'
+        (d) =>
+          d.status === "present" ||
+          d.status === "partial" ||
+          d.status === "missing_checkout",
       ).length;
-      m.absentDays = allDailyRecords.filter((d) => d.status === 'absent').length;
+      m.absentDays = allDailyRecords.filter(
+        (d) => d.status === "absent",
+      ).length;
 
       await db
         .insert(attendanceMonthlyReport)

@@ -79,12 +79,22 @@ export function OperationTotals({
           <span className="text-sm font-bold">حسابات العمليات</span>
           <div className="flex gap-1 print:hidden">
             {onPrint && (
-              <Button variant="outline" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={onPrint}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1 px-2 text-xs"
+                onClick={onPrint}
+              >
                 <Printer className="h-3.5 w-3.5" /> طباعة
               </Button>
             )}
             {onSaveJpg && (
-              <Button variant="outline" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={onSaveJpg}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1 px-2 text-xs"
+                onClick={onSaveJpg}
+              >
                 <ImageDown className="h-3.5 w-3.5" /> JPG
               </Button>
             )}

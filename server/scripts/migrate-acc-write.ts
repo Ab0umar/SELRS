@@ -4,7 +4,10 @@ import { sql } from "drizzle-orm";
 import { getDb } from "../db";
 
 const db = await getDb();
-if (!db) { console.error("no db"); process.exit(1); }
+if (!db) {
+  console.error("no db");
+  process.exit(1);
+}
 
 const stmts = [
   // Allow NULL accessId so app-created rows don't need an Access ID
@@ -25,7 +28,10 @@ for (const s of stmts) {
     console.log("OK:", s.slice(0, 60));
   } catch (e: any) {
     // column already exists / already nullable — safe to skip
-    if (e.message?.includes("Duplicate column") || e.message?.includes("already exists")) {
+    if (
+      e.message?.includes("Duplicate column") ||
+      e.message?.includes("already exists")
+    ) {
       console.log("skip (already done):", s.slice(0, 60));
     } else {
       console.error("FAIL:", s.slice(0, 60), "—", e.message);

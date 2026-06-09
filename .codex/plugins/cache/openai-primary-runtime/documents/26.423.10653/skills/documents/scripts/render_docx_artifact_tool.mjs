@@ -39,7 +39,7 @@ function parseArgs(argv) {
 
   if (!args.inputPath) {
     throw new Error(
-      "usage: render_docx_artifact_tool.mjs <input.docx> --output_dir <out>"
+      "usage: render_docx_artifact_tool.mjs <input.docx> --output_dir <out>",
     );
   }
   if (!args.outputDir) {
@@ -48,7 +48,7 @@ function parseArgs(argv) {
   }
   if (!args.artifactToolPackage) {
     throw new Error(
-      "--artifact_tool_package is required unless ARTIFACT_TOOL_PACKAGE_DIR is set."
+      "--artifact_tool_package is required unless ARTIFACT_TOOL_PACKAGE_DIR is set.",
     );
   }
   if (!Number.isFinite(args.scale) || args.scale <= 0) {
@@ -77,7 +77,7 @@ async function importArtifactTool(artifactToolPackage) {
 function createCanvas(width, height) {
   if (typeof OffscreenCanvas === "undefined") {
     throw new Error(
-      "OffscreenCanvas is unavailable. artifact-tool DOCX rendering needs skia-canvas."
+      "OffscreenCanvas is unavailable. artifact-tool DOCX rendering needs skia-canvas.",
     );
   }
   const canvas = new OffscreenCanvas(width, height);
@@ -114,11 +114,11 @@ async function renderDocumentPages({
   if (pages.length === 0) {
     const placeholder = createCanvas(
       Math.max(1, Math.ceil(800 * scale)),
-      Math.max(1, Math.ceil(1000 * scale))
+      Math.max(1, Math.ceil(1000 * scale)),
     );
     const outputPath = path.join(outputDir, pageFileName(0));
     const buffer = await blobToBuffer(
-      await placeholder.canvas.convertToBlob({ type: "image/png" })
+      await placeholder.canvas.convertToBlob({ type: "image/png" }),
     );
     await fs.writeFile(outputPath, buffer);
     return { pagePaths: [outputPath], pageCount: 0 };
@@ -141,7 +141,7 @@ async function renderDocumentPages({
 
     const outputPath = path.join(outputDir, pageFileName(pageIndex));
     const buffer = await blobToBuffer(
-      await canvas.convertToBlob({ type: "image/png" })
+      await canvas.convertToBlob({ type: "image/png" }),
     );
     await fs.writeFile(outputPath, buffer);
     pagePaths.push(outputPath);
@@ -154,7 +154,7 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   const artifactTool = await importArtifactTool(args.artifactToolPackage);
   const model = await artifactTool.DocumentFile.importDocx(
-    await artifactTool.FileBlob.load(args.inputPath)
+    await artifactTool.FileBlob.load(args.inputPath),
   );
   const result = await renderDocumentPages({
     model,
@@ -179,15 +179,15 @@ async function main() {
           pagePaths: result.pagePaths,
         },
         null,
-        2
+        2,
       ),
-      "utf8"
+      "utf8",
     );
   }
 
   if (args.verbose) {
     console.log(
-      `artifact-tool rendered ${result.pagePaths.length} page image(s).`
+      `artifact-tool rendered ${result.pagePaths.length} page image(s).`,
     );
   }
   console.log(`Pages rendered to ${args.outputDir}`);
@@ -195,7 +195,7 @@ async function main() {
 
 main().catch((error) => {
   console.error(
-    error instanceof Error ? error.stack || error.message : String(error)
+    error instanceof Error ? error.stack || error.message : String(error),
   );
   process.exit(1);
 });

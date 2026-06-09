@@ -5,6 +5,9 @@ import { buildDailyRevenueSql } from "./sqlBuilders";
 
 export async function getDailyRevenue(input: DailyRevenueInput) {
   const query = buildDailyRevenueSql(input);
-  const rows = await mssqlQuery<Record<string, unknown>>(query.sql, query.params);
+  const rows = await mssqlQuery<Record<string, unknown>>(
+    query.sql,
+    query.params,
+  );
   return mapDailyRevenueRows(rows);
 }

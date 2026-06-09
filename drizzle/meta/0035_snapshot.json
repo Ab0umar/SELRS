@@ -76,9 +76,7 @@
       "indexes": {
         "accAdvances_accessId": {
           "name": "accAdvances_accessId",
-          "columns": [
-            "accessId"
-          ],
+          "columns": ["accessId"],
           "isUnique": false
         }
       },
@@ -86,9 +84,7 @@
       "compositePrimaryKeys": {
         "accAdvances_id": {
           "name": "accAdvances_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -146,9 +142,7 @@
       "indexes": {
         "accCategories_accessId": {
           "name": "accCategories_accessId",
-          "columns": [
-            "accessId"
-          ],
+          "columns": ["accessId"],
           "isUnique": true
         }
       },
@@ -156,9 +150,7 @@
       "compositePrimaryKeys": {
         "accCategories_id": {
           "name": "accCategories_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -201,9 +193,7 @@
       "indexes": {
         "accEmployees_accessId": {
           "name": "accEmployees_accessId",
-          "columns": [
-            "accessId"
-          ],
+          "columns": ["accessId"],
           "isUnique": true
         }
       },
@@ -211,9 +201,7 @@
       "compositePrimaryKeys": {
         "accEmployees_id": {
           "name": "accEmployees_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -291,9 +279,7 @@
       "indexes": {
         "accHome_accessId": {
           "name": "accHome_accessId",
-          "columns": [
-            "accessId"
-          ],
+          "columns": ["accessId"],
           "isUnique": false
         }
       },
@@ -301,9 +287,7 @@
       "compositePrimaryKeys": {
         "accHome_id": {
           "name": "accHome_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -381,9 +365,7 @@
       "indexes": {
         "accInstapay_accessId": {
           "name": "accInstapay_accessId",
-          "columns": [
-            "accessId"
-          ],
+          "columns": ["accessId"],
           "isUnique": false
         }
       },
@@ -391,9 +373,7 @@
       "compositePrimaryKeys": {
         "accInstapay_id": {
           "name": "accInstapay_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -471,9 +451,7 @@
       "indexes": {
         "accLedger_accessId": {
           "name": "accLedger_accessId",
-          "columns": [
-            "accessId"
-          ],
+          "columns": ["accessId"],
           "isUnique": false
         }
       },
@@ -481,9 +459,7 @@
       "compositePrimaryKeys": {
         "accLedger_id": {
           "name": "accLedger_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -568,9 +544,7 @@
       "indexes": {
         "accLoans_accessId": {
           "name": "accLoans_accessId",
-          "columns": [
-            "accessId"
-          ],
+          "columns": ["accessId"],
           "isUnique": false
         }
       },
@@ -578,9 +552,7 @@
       "compositePrimaryKeys": {
         "accLoans_id": {
           "name": "accLoans_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -651,9 +623,7 @@
       "indexes": {
         "accSaadany_accessId": {
           "name": "accSaadany_accessId",
-          "columns": [
-            "accessId"
-          ],
+          "columns": ["accessId"],
           "isUnique": true
         }
       },
@@ -661,9 +631,7 @@
       "compositePrimaryKeys": {
         "accSaadany_id": {
           "name": "accSaadany_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -759,12 +727,8 @@
           "name": "afterRefractionData_examinationId_examinations_id_fk",
           "tableFrom": "afterRefractionData",
           "tableTo": "examinations",
-          "columnsFrom": [
-            "examinationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["examinationId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -772,9 +736,7 @@
       "compositePrimaryKeys": {
         "afterRefractionData_id": {
           "name": "afterRefractionData_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -863,9 +825,7 @@
       "compositePrimaryKeys": {
         "appointments_id": {
           "name": "appointments_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -966,17 +926,12 @@
       "indexes": {
         "idx_date_status": {
           "name": "idx_date_status",
-          "columns": [
-            "work_date",
-            "status"
-          ],
+          "columns": ["work_date", "status"],
           "isUnique": false
         },
         "idx_inside_now": {
           "name": "idx_inside_now",
-          "columns": [
-            "inside_now"
-          ],
+          "columns": ["inside_now"],
           "isUnique": false
         }
       },
@@ -984,10 +939,7 @@
       "compositePrimaryKeys": {
         "attendance_daily_emp_cd_work_date_pk": {
           "name": "attendance_daily_emp_cd_work_date_pk",
-          "columns": [
-            "emp_cd",
-            "work_date"
-          ]
+          "columns": ["emp_cd", "work_date"]
         }
       },
       "uniqueConstraints": {},
@@ -1074,9 +1026,7 @@
       "compositePrimaryKeys": {
         "attendance_device_settings_id": {
           "name": "attendance_device_settings_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -1187,16 +1137,12 @@
       "indexes": {
         "idx_active": {
           "name": "idx_active",
-          "columns": [
-            "active"
-          ],
+          "columns": ["active"],
           "isUnique": false
         },
         "idx_dept": {
           "name": "idx_dept",
-          "columns": [
-            "department"
-          ],
+          "columns": ["department"],
           "isUnique": false
         }
       },
@@ -1204,9 +1150,7 @@
       "compositePrimaryKeys": {
         "attendance_employees_emp_cd": {
           "name": "attendance_employees_emp_cd",
-          "columns": [
-            "emp_cd"
-          ]
+          "columns": ["emp_cd"]
         }
       },
       "uniqueConstraints": {},
@@ -1260,9 +1204,7 @@
       "compositePrimaryKeys": {
         "attendance_holidays_date": {
           "name": "attendance_holidays_date",
-          "columns": [
-            "date"
-          ]
+          "columns": ["date"]
         }
       },
       "uniqueConstraints": {},
@@ -1329,10 +1271,7 @@
       "indexes": {
         "uq_leave_bal_emp_year": {
           "name": "uq_leave_bal_emp_year",
-          "columns": [
-            "emp_cd",
-            "year"
-          ],
+          "columns": ["emp_cd", "year"],
           "isUnique": true
         }
       },
@@ -1340,9 +1279,7 @@
       "compositePrimaryKeys": {
         "attendance_leave_balances_id": {
           "name": "attendance_leave_balances_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -1422,10 +1359,7 @@
       "indexes": {
         "idx_emp_from": {
           "name": "idx_emp_from",
-          "columns": [
-            "emp_cd",
-            "date_from"
-          ],
+          "columns": ["emp_cd", "date_from"],
           "isUnique": false
         }
       },
@@ -1433,9 +1367,7 @@
       "compositePrimaryKeys": {
         "attendance_leaves_id": {
           "name": "attendance_leaves_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -1494,9 +1426,7 @@
       "compositePrimaryKeys": {
         "attendance_logs_id": {
           "name": "attendance_logs_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -1642,10 +1572,7 @@
       "indexes": {
         "idx_year_month": {
           "name": "idx_year_month",
-          "columns": [
-            "year",
-            "month"
-          ],
+          "columns": ["year", "month"],
           "isUnique": false
         }
       },
@@ -1653,11 +1580,7 @@
       "compositePrimaryKeys": {
         "attendance_monthly_report_emp_cd_year_month_pk": {
           "name": "attendance_monthly_report_emp_cd_year_month_pk",
-          "columns": [
-            "emp_cd",
-            "year",
-            "month"
-          ]
+          "columns": ["emp_cd", "year", "month"]
         }
       },
       "uniqueConstraints": {},
@@ -1737,10 +1660,7 @@
       "indexes": {
         "idx_perm_emp_date": {
           "name": "idx_perm_emp_date",
-          "columns": [
-            "emp_cd",
-            "date"
-          ],
+          "columns": ["emp_cd", "date"],
           "isUnique": false
         }
       },
@@ -1748,9 +1668,7 @@
       "compositePrimaryKeys": {
         "attendance_permissions_id": {
           "name": "attendance_permissions_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -1842,33 +1760,22 @@
       "indexes": {
         "uq_punch": {
           "name": "uq_punch",
-          "columns": [
-            "emp_cd",
-            "punch_at",
-            "source_row_id"
-          ],
+          "columns": ["emp_cd", "punch_at", "source_row_id"],
           "isUnique": true
         },
         "idx_emp_time": {
           "name": "idx_emp_time",
-          "columns": [
-            "emp_cd",
-            "punch_at"
-          ],
+          "columns": ["emp_cd", "punch_at"],
           "isUnique": false
         },
         "idx_punch_at": {
           "name": "idx_punch_at",
-          "columns": [
-            "punch_at"
-          ],
+          "columns": ["punch_at"],
           "isUnique": false
         },
         "idx_source": {
           "name": "idx_source",
-          "columns": [
-            "source"
-          ],
+          "columns": ["source"],
           "isUnique": false
         }
       },
@@ -1876,9 +1783,7 @@
       "compositePrimaryKeys": {
         "attendance_punches_id": {
           "name": "attendance_punches_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -1951,10 +1856,7 @@
       "indexes": {
         "idx_emp_from": {
           "name": "idx_emp_from",
-          "columns": [
-            "emp_cd",
-            "effective_from"
-          ],
+          "columns": ["emp_cd", "effective_from"],
           "isUnique": false
         }
       },
@@ -1962,9 +1864,7 @@
       "compositePrimaryKeys": {
         "attendance_shift_assignments_id": {
           "name": "attendance_shift_assignments_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -2072,9 +1972,7 @@
       "indexes": {
         "idx_request_emp": {
           "name": "idx_request_emp",
-          "columns": [
-            "emp_cd"
-          ],
+          "columns": ["emp_cd"],
           "isUnique": false
         }
       },
@@ -2082,9 +1980,7 @@
       "compositePrimaryKeys": {
         "attendance_shift_change_requests_id": {
           "name": "attendance_shift_change_requests_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -2140,10 +2036,7 @@
       "indexes": {
         "idx_cycle_emp_from": {
           "name": "idx_cycle_emp_from",
-          "columns": [
-            "emp_cd",
-            "effective_from"
-          ],
+          "columns": ["emp_cd", "effective_from"],
           "isUnique": false
         }
       },
@@ -2151,9 +2044,7 @@
       "compositePrimaryKeys": {
         "attendance_shift_cycle_assignments_id": {
           "name": "attendance_shift_cycle_assignments_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -2194,17 +2085,12 @@
       "indexes": {
         "uq_cycle_slot": {
           "name": "uq_cycle_slot",
-          "columns": [
-            "cycle_id",
-            "slot_index"
-          ],
+          "columns": ["cycle_id", "slot_index"],
           "isUnique": true
         },
         "idx_cycle_id": {
           "name": "idx_cycle_id",
-          "columns": [
-            "cycle_id"
-          ],
+          "columns": ["cycle_id"],
           "isUnique": false
         }
       },
@@ -2212,9 +2098,7 @@
       "compositePrimaryKeys": {
         "attendance_shift_cycle_slots_id": {
           "name": "attendance_shift_cycle_slots_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -2274,9 +2158,7 @@
       "compositePrimaryKeys": {
         "attendance_shift_cycles_id": {
           "name": "attendance_shift_cycles_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -2398,9 +2280,7 @@
       "indexes": {
         "idx_active": {
           "name": "idx_active",
-          "columns": [
-            "active"
-          ],
+          "columns": ["active"],
           "isUnique": false
         }
       },
@@ -2408,9 +2288,7 @@
       "compositePrimaryKeys": {
         "attendance_shifts_id": {
           "name": "attendance_shifts_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -2518,16 +2396,12 @@
       "indexes": {
         "idx_started": {
           "name": "idx_started",
-          "columns": [
-            "started_at"
-          ],
+          "columns": ["started_at"],
           "isUnique": false
         },
         "idx_status": {
           "name": "idx_status",
-          "columns": [
-            "status"
-          ],
+          "columns": ["status"],
           "isUnique": false
         }
       },
@@ -2535,9 +2409,7 @@
       "compositePrimaryKeys": {
         "attendance_sync_runs_id": {
           "name": "attendance_sync_runs_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -2602,9 +2474,7 @@
       "compositePrimaryKeys": {
         "auditLog_id": {
           "name": "auditLog_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -2742,12 +2612,8 @@
           "name": "autorefractometryData_examinationId_examinations_id_fk",
           "tableFrom": "autorefractometryData",
           "tableTo": "examinations",
-          "columnsFrom": [
-            "examinationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["examinationId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2755,9 +2621,7 @@
       "compositePrimaryKeys": {
         "autorefractometryData_id": {
           "name": "autorefractometryData_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -2815,9 +2679,7 @@
       "compositePrimaryKeys": {
         "booking_closures_id": {
           "name": "booking_closures_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -2869,9 +2731,7 @@
       "indexes": {
         "idx_booking_schedule_type": {
           "name": "idx_booking_schedule_type",
-          "columns": [
-            "bookingType"
-          ],
+          "columns": ["bookingType"],
           "isUnique": true
         }
       },
@@ -2879,9 +2739,7 @@
       "compositePrimaryKeys": {
         "booking_schedule_config_id": {
           "name": "booking_schedule_config_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -2939,9 +2797,7 @@
       "compositePrimaryKeys": {
         "consentForms_id": {
           "name": "consentForms_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -3001,9 +2857,7 @@
       "compositePrimaryKeys": {
         "diseases_id": {
           "name": "diseases_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -3126,9 +2980,7 @@
       "compositePrimaryKeys": {
         "doctorReports_id": {
           "name": "doctorReports_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -3205,9 +3057,7 @@
       "compositePrimaryKeys": {
         "doctors_id": {
           "name": "doctors_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -3258,17 +3108,13 @@
       "compositePrimaryKeys": {
         "employee_attendance_mapping_id": {
           "name": "employee_attendance_mapping_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "employee_attendance_mapping_machineUserId_unique": {
           "name": "employee_attendance_mapping_machineUserId_unique",
-          "columns": [
-            "machineUserId"
-          ]
+          "columns": ["machineUserId"]
         }
       },
       "checkConstraint": {}
@@ -3382,9 +3228,7 @@
       "indexes": {
         "ux_exam_checklist": {
           "name": "ux_exam_checklist",
-          "columns": [
-            "examinationId"
-          ],
+          "columns": ["examinationId"],
           "isUnique": true
         }
       },
@@ -3393,12 +3237,8 @@
           "name": "examination_checklist_items_examinationId_examinations_id_fk",
           "tableFrom": "examination_checklist_items",
           "tableTo": "examinations",
-          "columnsFrom": [
-            "examinationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["examinationId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3406,9 +3246,7 @@
       "compositePrimaryKeys": {
         "examination_checklist_items_id": {
           "name": "examination_checklist_items_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -3601,9 +3439,7 @@
       "compositePrimaryKeys": {
         "examinations_id": {
           "name": "examinations_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -3652,10 +3488,7 @@
       "indexes": {
         "idx_ext_dr_log_doctor": {
           "name": "idx_ext_dr_log_doctor",
-          "columns": [
-            "external_doctor_id",
-            "created_at"
-          ],
+          "columns": ["external_doctor_id", "created_at"],
           "isUnique": false
         }
       },
@@ -3663,9 +3496,7 @@
       "compositePrimaryKeys": {
         "external_doctor_access_logs_id": {
           "name": "external_doctor_access_logs_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -3722,17 +3553,12 @@
       "indexes": {
         "idx_ext_dr_ref_doctor_patient": {
           "name": "idx_ext_dr_ref_doctor_patient",
-          "columns": [
-            "external_doctor_id",
-            "patient_code"
-          ],
+          "columns": ["external_doctor_id", "patient_code"],
           "isUnique": false
         },
         "idx_ext_dr_ref_patient": {
           "name": "idx_ext_dr_ref_patient",
-          "columns": [
-            "patient_code"
-          ],
+          "columns": ["patient_code"],
           "isUnique": false
         }
       },
@@ -3740,9 +3566,7 @@
       "compositePrimaryKeys": {
         "external_doctor_referrals_id": {
           "name": "external_doctor_referrals_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -3831,17 +3655,13 @@
       "compositePrimaryKeys": {
         "external_doctors_id": {
           "name": "external_doctors_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "external_doctors_username_unique": {
           "name": "external_doctors_username_unique",
-          "columns": [
-            "username"
-          ]
+          "columns": ["username"]
         }
       },
       "checkConstraint": {}
@@ -3991,10 +3811,7 @@
       "indexes": {
         "idx_followup_sheet_table": {
           "name": "idx_followup_sheet_table",
-          "columns": [
-            "followupSheetId",
-            "tableIndex"
-          ],
+          "columns": ["followupSheetId", "tableIndex"],
           "isUnique": false
         }
       },
@@ -4002,9 +3819,7 @@
       "compositePrimaryKeys": {
         "followupItems_id": {
           "name": "followupItems_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -4063,10 +3878,7 @@
       "indexes": {
         "idx_followup_patient_type": {
           "name": "idx_followup_patient_type",
-          "columns": [
-            "patientId",
-            "sheetType"
-          ],
+          "columns": ["patientId", "sheetType"],
           "isUnique": false
         }
       },
@@ -4074,9 +3886,7 @@
       "compositePrimaryKeys": {
         "followupSheets_id": {
           "name": "followupSheets_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -4214,12 +4024,8 @@
           "name": "glassesRecords_examinationId_examinations_id_fk",
           "tableFrom": "glassesRecords",
           "tableTo": "examinations",
-          "columnsFrom": [
-            "examinationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["examinationId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4227,9 +4033,7 @@
       "compositePrimaryKeys": {
         "glassesRecords_id": {
           "name": "glassesRecords_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -4336,9 +4140,7 @@
       "compositePrimaryKeys": {
         "marketing_brand_profile_id": {
           "name": "marketing_brand_profile_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -4402,16 +4204,12 @@
       "indexes": {
         "idx_marketing_logs_post": {
           "name": "idx_marketing_logs_post",
-          "columns": [
-            "post_id"
-          ],
+          "columns": ["post_id"],
           "isUnique": false
         },
         "idx_marketing_logs_created": {
           "name": "idx_marketing_logs_created",
-          "columns": [
-            "createdAt"
-          ],
+          "columns": ["createdAt"],
           "isUnique": false
         }
       },
@@ -4419,9 +4217,7 @@
       "compositePrimaryKeys": {
         "marketing_logs_id": {
           "name": "marketing_logs_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -4565,23 +4361,17 @@
       "indexes": {
         "idx_marketing_posts_status": {
           "name": "idx_marketing_posts_status",
-          "columns": [
-            "status"
-          ],
+          "columns": ["status"],
           "isUnique": false
         },
         "idx_marketing_posts_day": {
           "name": "idx_marketing_posts_day",
-          "columns": [
-            "post_day"
-          ],
+          "columns": ["post_day"],
           "isUnique": false
         },
         "idx_marketing_posts_created": {
           "name": "idx_marketing_posts_created",
-          "columns": [
-            "createdAt"
-          ],
+          "columns": ["createdAt"],
           "isUnique": false
         }
       },
@@ -4589,9 +4379,7 @@
       "compositePrimaryKeys": {
         "marketing_posts_id": {
           "name": "marketing_posts_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -4682,9 +4470,7 @@
       "indexes": {
         "idx_ref_designs_created": {
           "name": "idx_ref_designs_created",
-          "columns": [
-            "createdAt"
-          ],
+          "columns": ["createdAt"],
           "isUnique": false
         }
       },
@@ -4692,9 +4478,7 @@
       "compositePrimaryKeys": {
         "marketing_reference_designs_id": {
           "name": "marketing_reference_designs_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -4831,9 +4615,7 @@
       "compositePrimaryKeys": {
         "marketing_settings_id": {
           "name": "marketing_settings_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -4940,9 +4722,7 @@
       "compositePrimaryKeys": {
         "medicalHistoryChecklist_id": {
           "name": "medicalHistoryChecklist_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -5044,9 +4824,7 @@
       "compositePrimaryKeys": {
         "medications_id": {
           "name": "medications_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -5125,9 +4903,7 @@
       "indexes": {
         "idx_operation_booking_date": {
           "name": "idx_operation_booking_date",
-          "columns": [
-            "bookingDate"
-          ],
+          "columns": ["bookingDate"],
           "isUnique": false
         }
       },
@@ -5135,9 +4911,7 @@
       "compositePrimaryKeys": {
         "operationBookings_id": {
           "name": "operationBookings_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -5250,10 +5024,7 @@
       "indexes": {
         "idx_operation_list_number": {
           "name": "idx_operation_list_number",
-          "columns": [
-            "listId",
-            "number"
-          ],
+          "columns": ["listId", "number"],
           "isUnique": false
         }
       },
@@ -5261,9 +5032,7 @@
       "compositePrimaryKeys": {
         "operationListItems_id": {
           "name": "operationListItems_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -5337,9 +5106,7 @@
       "compositePrimaryKeys": {
         "operationLists_id": {
           "name": "operationLists_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -5492,9 +5259,7 @@
       "compositePrimaryKeys": {
         "patient_import_staging_id": {
           "name": "patient_import_staging_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -5552,11 +5317,7 @@
       "indexes": {
         "idx_patient_page_updated": {
           "name": "idx_patient_page_updated",
-          "columns": [
-            "patientId",
-            "page",
-            "updatedAt"
-          ],
+          "columns": ["patientId", "page", "updatedAt"],
           "isUnique": false
         }
       },
@@ -5564,9 +5325,7 @@
       "compositePrimaryKeys": {
         "patientPageStates_id": {
           "name": "patientPageStates_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -5667,23 +5426,17 @@
       "indexes": {
         "idx_portal_booking_patient": {
           "name": "idx_portal_booking_patient",
-          "columns": [
-            "patientId"
-          ],
+          "columns": ["patientId"],
           "isUnique": false
         },
         "idx_portal_booking_date": {
           "name": "idx_portal_booking_date",
-          "columns": [
-            "requestedDate"
-          ],
+          "columns": ["requestedDate"],
           "isUnique": false
         },
         "idx_portal_booking_status": {
           "name": "idx_portal_booking_status",
-          "columns": [
-            "status"
-          ],
+          "columns": ["status"],
           "isUnique": false
         }
       },
@@ -5691,9 +5444,7 @@
       "compositePrimaryKeys": {
         "patient_portal_bookings_id": {
           "name": "patient_portal_bookings_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -5758,9 +5509,7 @@
       "indexes": {
         "idx_portal_otp_phone": {
           "name": "idx_portal_otp_phone",
-          "columns": [
-            "phone"
-          ],
+          "columns": ["phone"],
           "isUnique": false
         }
       },
@@ -5768,9 +5517,7 @@
       "compositePrimaryKeys": {
         "patient_portal_otps_id": {
           "name": "patient_portal_otps_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -5826,16 +5573,12 @@
       "indexes": {
         "idx_portal_session_token": {
           "name": "idx_portal_session_token",
-          "columns": [
-            "token"
-          ],
+          "columns": ["token"],
           "isUnique": true
         },
         "idx_portal_session_patient": {
           "name": "idx_portal_session_patient",
-          "columns": [
-            "patientId"
-          ],
+          "columns": ["patientId"],
           "isUnique": false
         }
       },
@@ -5843,9 +5586,7 @@
       "compositePrimaryKeys": {
         "patient_portal_sessions_id": {
           "name": "patient_portal_sessions_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -5925,19 +5666,12 @@
       "indexes": {
         "idx_patient_service_date": {
           "name": "idx_patient_service_date",
-          "columns": [
-            "patientId",
-            "serviceCode",
-            "serviceDate"
-          ],
+          "columns": ["patientId", "serviceCode", "serviceDate"],
           "isUnique": false
         },
         "idx_service_source_updated": {
           "name": "idx_service_source_updated",
-          "columns": [
-            "source",
-            "updatedAt"
-          ],
+          "columns": ["source", "updatedAt"],
           "isUnique": false
         }
       },
@@ -5945,17 +5679,13 @@
       "compositePrimaryKeys": {
         "patientServiceEntries_id": {
           "name": "patientServiceEntries_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "patientServiceEntries_sourceRef_unique": {
           "name": "patientServiceEntries_sourceRef_unique",
-          "columns": [
-            "sourceRef"
-          ]
+          "columns": ["sourceRef"]
         }
       },
       "checkConstraint": {}
@@ -6151,17 +5881,13 @@
       "compositePrimaryKeys": {
         "patients_id": {
           "name": "patients_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "patients_patientCode_unique": {
           "name": "patients_patientCode_unique",
-          "columns": [
-            "patientCode"
-          ]
+          "columns": ["patientCode"]
         }
       },
       "checkConstraint": {}
@@ -6367,9 +6093,7 @@
       "compositePrimaryKeys": {
         "pentacamResults_id": {
           "name": "pentacamResults_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -6443,9 +6167,7 @@
       "compositePrimaryKeys": {
         "postOpFollowups_id": {
           "name": "postOpFollowups_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -6517,9 +6239,7 @@
       "compositePrimaryKeys": {
         "prescriptionItems_id": {
           "name": "prescriptionItems_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -6594,9 +6314,7 @@
       "compositePrimaryKeys": {
         "prescriptions_id": {
           "name": "prescriptions_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -6698,19 +6416,12 @@
       "indexes": {
         "idx_push_device_user_device": {
           "name": "idx_push_device_user_device",
-          "columns": [
-            "userId",
-            "deviceId"
-          ],
+          "columns": ["userId", "deviceId"],
           "isUnique": false
         },
         "idx_push_device_active_user": {
           "name": "idx_push_device_active_user",
-          "columns": [
-            "userId",
-            "disabledAt",
-            "lastSeenAt"
-          ],
+          "columns": ["userId", "disabledAt", "lastSeenAt"],
           "isUnique": false
         }
       },
@@ -6718,9 +6429,7 @@
       "compositePrimaryKeys": {
         "push_device_registrations_id": {
           "name": "push_device_registrations_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -6792,11 +6501,7 @@
       "indexes": {
         "idx_advance_emp_month": {
           "name": "idx_advance_emp_month",
-          "columns": [
-            "emp_cd",
-            "year",
-            "month"
-          ],
+          "columns": ["emp_cd", "year", "month"],
           "isUnique": false
         }
       },
@@ -6804,9 +6509,7 @@
       "compositePrimaryKeys": {
         "salary_advances_id": {
           "name": "salary_advances_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -6934,9 +6637,7 @@
       "indexes": {
         "idx_salary_emp": {
           "name": "idx_salary_emp",
-          "columns": [
-            "emp_cd"
-          ],
+          "columns": ["emp_cd"],
           "isUnique": false
         }
       },
@@ -6944,9 +6645,7 @@
       "compositePrimaryKeys": {
         "salary_basics_id": {
           "name": "salary_basics_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -7144,11 +6843,7 @@
       "indexes": {
         "uq_pool_year_month_section": {
           "name": "uq_pool_year_month_section",
-          "columns": [
-            "year",
-            "month",
-            "section"
-          ],
+          "columns": ["year", "month", "section"],
           "isUnique": true
         }
       },
@@ -7156,9 +6851,7 @@
       "compositePrimaryKeys": {
         "salary_commission_pools_id": {
           "name": "salary_commission_pools_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -7196,9 +6889,7 @@
       "compositePrimaryKeys": {
         "salary_config_key": {
           "name": "salary_config_key",
-          "columns": [
-            "key"
-          ]
+          "columns": ["key"]
         }
       },
       "uniqueConstraints": {},
@@ -7249,9 +6940,7 @@
       "compositePrimaryKeys": {
         "salary_holidays_id": {
           "name": "salary_holidays_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -7521,20 +7210,12 @@
       "indexes": {
         "uq_payroll_emp_month_section": {
           "name": "uq_payroll_emp_month_section",
-          "columns": [
-            "emp_cd",
-            "year",
-            "month",
-            "section"
-          ],
+          "columns": ["emp_cd", "year", "month", "section"],
           "isUnique": true
         },
         "idx_payroll_year_month": {
           "name": "idx_payroll_year_month",
-          "columns": [
-            "year",
-            "month"
-          ],
+          "columns": ["year", "month"],
           "isUnique": false
         }
       },
@@ -7542,9 +7223,7 @@
       "compositePrimaryKeys": {
         "salary_payroll_id": {
           "name": "salary_payroll_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -7616,11 +7295,7 @@
       "indexes": {
         "idx_penalty_emp_month": {
           "name": "idx_penalty_emp_month",
-          "columns": [
-            "emp_cd",
-            "year",
-            "month"
-          ],
+          "columns": ["emp_cd", "year", "month"],
           "isUnique": false
         }
       },
@@ -7628,9 +7303,7 @@
       "compositePrimaryKeys": {
         "salary_penalties_id": {
           "name": "salary_penalties_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -7686,17 +7359,12 @@
       "indexes": {
         "uq_raise_emp_year": {
           "name": "uq_raise_emp_year",
-          "columns": [
-            "emp_cd",
-            "year"
-          ],
+          "columns": ["emp_cd", "year"],
           "isUnique": true
         },
         "idx_raise_emp": {
           "name": "idx_raise_emp",
-          "columns": [
-            "emp_cd"
-          ],
+          "columns": ["emp_cd"],
           "isUnique": false
         }
       },
@@ -7704,9 +7372,7 @@
       "compositePrimaryKeys": {
         "salary_raise_history_id": {
           "name": "salary_raise_history_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -7811,17 +7477,13 @@
       "compositePrimaryKeys": {
         "services_id": {
           "name": "services_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "services_code_unique": {
           "name": "services_code_unique",
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "checkConstraint": {}
@@ -7880,9 +7542,7 @@
       "compositePrimaryKeys": {
         "sheet_entries_id": {
           "name": "sheet_entries_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -7960,11 +7620,7 @@
       "indexes": {
         "uq_staff_date_shift": {
           "name": "uq_staff_date_shift",
-          "columns": [
-            "staff_id",
-            "work_date",
-            "shift_name"
-          ],
+          "columns": ["staff_id", "work_date", "shift_name"],
           "isUnique": true
         }
       },
@@ -7972,9 +7628,7 @@
       "compositePrimaryKeys": {
         "shift_attendance_id": {
           "name": "shift_attendance_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -8057,9 +7711,7 @@
       "compositePrimaryKeys": {
         "shift_staff_id": {
           "name": "shift_staff_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -8095,11 +7747,7 @@
       "compositePrimaryKeys": {
         "shift_staff_cycle_staff_id_day_of_week_shift_name_pk": {
           "name": "shift_staff_cycle_staff_id_day_of_week_shift_name_pk",
-          "columns": [
-            "staff_id",
-            "day_of_week",
-            "shift_name"
-          ]
+          "columns": ["staff_id", "day_of_week", "shift_name"]
         }
       },
       "uniqueConstraints": {},
@@ -8189,17 +7837,13 @@
       "compositePrimaryKeys": {
         "stock_items_id": {
           "name": "stock_items_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "stock_items_itemCode_unique": {
           "name": "stock_items_itemCode_unique",
-          "columns": [
-            "itemCode"
-          ]
+          "columns": ["itemCode"]
         }
       },
       "checkConstraint": {}
@@ -8277,9 +7921,7 @@
       "compositePrimaryKeys": {
         "stock_transactions_id": {
           "name": "stock_transactions_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -8369,9 +8011,7 @@
       "compositePrimaryKeys": {
         "surgeries_id": {
           "name": "surgeries_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -8424,17 +8064,13 @@
       "compositePrimaryKeys": {
         "systemSettings_id": {
           "name": "systemSettings_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "systemSettings_key_unique": {
           "name": "systemSettings_key_unique",
-          "columns": [
-            "key"
-          ]
+          "columns": ["key"]
         }
       },
       "checkConstraint": {}
@@ -8477,9 +8113,7 @@
       "compositePrimaryKeys": {
         "testFavorites_id": {
           "name": "testFavorites_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -8530,9 +8164,7 @@
       "compositePrimaryKeys": {
         "testRequestItems_id": {
           "name": "testRequestItems_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -8601,9 +8233,7 @@
       "compositePrimaryKeys": {
         "testRequests_id": {
           "name": "testRequests_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -8706,9 +8336,7 @@
       "compositePrimaryKeys": {
         "tests_id": {
           "name": "tests_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -8768,9 +8396,7 @@
       "compositePrimaryKeys": {
         "userPageStates_id": {
           "name": "userPageStates_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -8807,10 +8433,7 @@
       "compositePrimaryKeys": {
         "user_permissions_userId_pageId_pk": {
           "name": "user_permissions_userId_pageId_pk",
-          "columns": [
-            "userId",
-            "pageId"
-          ]
+          "columns": ["userId", "pageId"]
         }
       },
       "uniqueConstraints": {},
@@ -8916,17 +8539,13 @@
       "compositePrimaryKeys": {
         "users_id": {
           "name": "users_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "users_username_unique": {
           "name": "users_username_unique",
-          "columns": [
-            "username"
-          ]
+          "columns": ["username"]
         }
       },
       "checkConstraint": {}
@@ -9004,9 +8623,7 @@
       "indexes": {
         "idx_visit_schedule_requests_visitDate": {
           "name": "idx_visit_schedule_requests_visitDate",
-          "columns": [
-            "visitDate"
-          ],
+          "columns": ["visitDate"],
           "isUnique": false
         }
       },
@@ -9014,9 +8631,7 @@
       "compositePrimaryKeys": {
         "visit_schedule_requests_id": {
           "name": "visit_schedule_requests_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -9141,9 +8756,7 @@
       "compositePrimaryKeys": {
         "visits_id": {
           "name": "visits_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},

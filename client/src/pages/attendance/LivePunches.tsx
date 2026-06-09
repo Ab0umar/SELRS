@@ -1,16 +1,22 @@
-import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Wifi, WifiOff, ArrowRightFromLine, ArrowLeftFromLine, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Wifi,
+  WifiOff,
+  ArrowRightFromLine,
+  ArrowLeftFromLine,
+  AlertCircle,
+} from "lucide-react";
 
-const tRPC = require('@/lib/trpc').trpc as any;
+const tRPC = require("@/lib/trpc").trpc as any;
 
 interface LivePunch {
   empCd: string;
   timestamp: Date;
-  direction: 'in' | 'out' | 'unknown';
+  direction: "in" | "out" | "unknown";
   deviceId: string;
 }
 
@@ -19,12 +25,18 @@ export default function LivePunches() {
   const [isMonitoring, setIsMonitoring] = useState(true);
 
   // Poll for recent punches
-  const { data: punchesData, isLoading, refetch } = useQuery({
-    queryKey: ['recentPunches'],
+  const {
+    data: punchesData,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["recentPunches"],
     queryFn: async () => {
       const result = await tRPC.attendance.rawPunches.query({
         limit: 50,
-        fromDate: new Date(Date.now() - 1000 * 60 * 5).toISOString().split('T')[0], // Last 5 minutes
+        fromDate: new Date(Date.now() - 1000 * 60 * 5)
+          .toISOString()
+          .split("T")[0], // Last 5 minutes
       });
       return result.punches || [];
     },
@@ -38,7 +50,7 @@ export default function LivePunches() {
         empCd: p.empCd,
         timestamp: new Date(p.punchAt),
         direction: p.direction,
-        deviceId: p.deviceId || 'unknown',
+        deviceId: p.deviceId || "unknown",
       }));
       setPunches(formatted);
     }
@@ -46,7 +58,7 @@ export default function LivePunches() {
 
   // Device status
   const { data: deviceStatus } = useQuery({
-    queryKey: ['deviceStatus'],
+    queryKey: ["deviceStatus"],
     queryFn: () => tRPC.attendance.deviceStatus.query(),
     refetchInterval: 5000,
   });
@@ -64,10 +76,17 @@ export default function LivePunches() {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Live Punch Feed</h1>
         <div className="flex gap-2">
-          <Button variant={isMonitoring ? 'default' : 'outline'} onClick={toggleMonitoring}>
-            {isMonitoring ? 'Monitoring Active' : 'Monitoring Paused'}
+          <Button
+            variant={isMonitoring ? "default" : "outline"}
+            onClick={toggleMonitoring}
+          >
+            {isMonitoring ? "Monitoring Active" : "Monitoring Paused"}
           </Button>
-          <Button variant="outline" onClick={clearPunches} disabled={punches.length === 0}>
+          <Button
+            variant="outline"
+            onClick={clearPunches}
+            disabled={punches.length === 0}
+          >
             Clear Feed
           </Button>
         </div>
@@ -94,7 +113,9 @@ export default function LivePunches() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-gray-600">Status</p>
-              <p className="font-medium">{deviceStatus?.connected ? 'Connected' : 'Disconnected'}</p>
+              <p className="font-medium">
+                {deviceStatus?.connected ? "Connected" : "Disconnected"}
+              </p>
             </div>
             <div>
               <p className="text-gray-600">Punches Received</p>
@@ -105,18 +126,23 @@ export default function LivePunches() {
               <p className="font-mono text-xs">
                 {deviceStatus?.lastPunch
                   ? new Date(deviceStatus.lastPunch).toLocaleTimeString()
-                  : 'Never'}
+                  : "Never"}
               </p>
             </div>
             <div>
               <p className="text-gray-600">Uptime</p>
-              <p className="font-mono text-xs">{(deviceStatus?.uptime ?? 0) / 60 | 0}m {(deviceStatus?.uptime ?? 0) % 60}s</p>
+              <p className="font-mono text-xs">
+                {((deviceStatus?.uptime ?? 0) / 60) | 0}m{" "}
+                {(deviceStatus?.uptime ?? 0) % 60}s
+              </p>
             </div>
           </div>
           {deviceStatus?.connectionError && (
             <Alert variant="destructive" className="mt-4">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{deviceStatus.connectionError}</AlertDescription>
+              <AlertDescription>
+                {deviceStatus.connectionError}
+              </AlertDescription>
             </Alert>
           )}
         </CardContent>
@@ -127,7 +153,9 @@ export default function LivePunches() {
         <CardHeader>
           <CardTitle>
             Recent Punches ({punches.length})
-            {isLoading && <span className="text-xs text-gray-500 ml-2">Refreshing...</span>}
+            {isLoading && (
+              <span className="text-xs text-gray-500 ml-2">Refreshing...</span>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -143,16 +171,18 @@ export default function LivePunches() {
                   className="flex items-center gap-3 p-3 bg-gray-50 rounded border"
                 >
                   <div className="flex-shrink-0">
-                    {punch.direction === 'in' ? (
+                    {punch.direction === "in" ? (
                       <ArrowRightFromLine className="w-5 h-5 text-success" />
-                    ) : punch.direction === 'out' ? (
+                    ) : punch.direction === "out" ? (
                       <ArrowLeftFromLine className="w-5 h-5 text-primary" />
                     ) : (
                       <AlertCircle className="w-5 h-5 text-warning" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-mono font-semibold text-sm">{punch.empCd}</div>
+                    <div className="font-mono font-semibold text-sm">
+                      {punch.empCd}
+                    </div>
                     <div className="text-xs text-gray-600">
                       {punch.timestamp.toLocaleTimeString()}
                     </div>
@@ -161,7 +191,9 @@ export default function LivePunches() {
                     <div className="text-xs font-medium capitalize text-gray-600">
                       {punch.direction}
                     </div>
-                    <div className="text-xs text-gray-500">{punch.deviceId}</div>
+                    <div className="text-xs text-gray-500">
+                      {punch.deviceId}
+                    </div>
                   </div>
                 </div>
               ))}

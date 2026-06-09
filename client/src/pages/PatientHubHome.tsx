@@ -35,7 +35,10 @@ function loadRecent(): RecentPatient[] {
 function saveRecent(entry: RecentPatient) {
   try {
     const prev = loadRecent().filter((r) => r.id !== entry.id);
-    sessionStorage.setItem(RECENT_KEY, JSON.stringify([entry, ...prev].slice(0, MAX_RECENT)));
+    sessionStorage.setItem(
+      RECENT_KEY,
+      JSON.stringify([entry, ...prev].slice(0, MAX_RECENT)),
+    );
   } catch {
     /* ignore */
   }
@@ -94,11 +97,16 @@ export default function PatientHubHome({ visitDate }: PatientHubHomeProps) {
     };
     saveRecent(entry);
     setRecent(loadRecent());
-    navigate(`/patient-hub/brief/${patient.id}?visitDate=${encodeURIComponent(visitDate)}`);
+    navigate(
+      `/patient-hub/brief/${patient.id}?visitDate=${encodeURIComponent(visitDate)}`,
+    );
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center px-4 py-10 sm:py-14" dir="rtl">
+    <div
+      className="flex min-h-0 flex-1 flex-col items-center px-4 py-10 sm:py-14"
+      dir="rtl"
+    >
       <div className="w-full max-w-xl">
         {/* Search input — no floating dropdown, results appear inline below */}
         <div className="relative">
@@ -124,7 +132,9 @@ export default function PatientHubHome({ visitDate }: PatientHubHomeProps) {
         {showResults && (
           <div className="mt-1.5 overflow-hidden rounded-xl border border-border bg-background shadow-sm">
             {searchQuery.isFetching && results.length === 0 && (
-              <p className="px-4 py-3.5 text-sm text-muted-foreground">جاري البحث...</p>
+              <p className="px-4 py-3.5 text-sm text-muted-foreground">
+                جاري البحث...
+              </p>
             )}
             {!searchQuery.isFetching && results.length === 0 && (
               <p className="px-4 py-3.5 text-sm text-muted-foreground">
@@ -148,14 +158,22 @@ export default function PatientHubHome({ visitDate }: PatientHubHomeProps) {
                   {patient.fullName.trim()[0] ?? "م"}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">{patient.fullName}</p>
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {patient.fullName}
+                  </p>
                   {patient.phone && (
-                    <p className="mt-0.5 text-xs tabular-nums text-muted-foreground" dir="ltr">
+                    <p
+                      className="mt-0.5 text-xs tabular-nums text-muted-foreground"
+                      dir="ltr"
+                    >
                       {formatPhone(patient.phone)}
                     </p>
                   )}
                 </div>
-                <span className="shrink-0 font-mono text-xs text-muted-foreground/70" dir="ltr">
+                <span
+                  className="shrink-0 font-mono text-xs text-muted-foreground/70"
+                  dir="ltr"
+                >
                   {patient.patientCode ?? "—"}
                 </span>
               </button>
@@ -190,12 +208,17 @@ export default function PatientHubHome({ visitDate }: PatientHubHomeProps) {
                     {r.name.trim()[0] ?? "م"}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">{r.name}</p>
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {r.name}
+                    </p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {formatArabicDate(r.lastVisit)}
                     </p>
                   </div>
-                  <span className="shrink-0 font-mono text-xs text-muted-foreground/70" dir="ltr">
+                  <span
+                    className="shrink-0 font-mono text-xs text-muted-foreground/70"
+                    dir="ltr"
+                  >
                     {r.code}
                   </span>
                 </button>

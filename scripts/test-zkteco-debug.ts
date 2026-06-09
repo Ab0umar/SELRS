@@ -5,8 +5,8 @@
  * Shows raw TCP communication for troubleshooting
  */
 
-import * as net from 'net';
-import { createHash } from 'crypto';
+import * as net from "net";
+import { createHash } from "crypto";
 
 async function testRawConnection(ip: string, port: number) {
   console.log(`\n🔍 Raw TCP Debug Test`);
@@ -17,57 +17,65 @@ async function testRawConnection(ip: string, port: number) {
     const socket = net.createConnection({ host: ip, port, timeout: 5000 });
     let responseReceived = false;
 
-    socket.on('connect', () => {
+    socket.on("connect", () => {
       console.log(`✓ TCP connected\n`);
 
       // Test 1: Send simple command byte sequence
       console.log(`[TEST 1] Sending basic status query...`);
       const statusCmd = Buffer.from([0xaa, 0xbb, 0x00, 0x00]);
-      console.log(`  → Sending: ${statusCmd.toString('hex').toUpperCase()}`);
+      console.log(`  → Sending: ${statusCmd.toString("hex").toUpperCase()}`);
       socket.write(statusCmd);
     });
 
-    socket.on('data', (data) => {
+    socket.on("data", (data) => {
       responseReceived = true;
       console.log(`\n✓ Received response:`);
       console.log(`  Length: ${data.length} bytes`);
-      console.log(`  Hex: ${data.toString('hex').toUpperCase()}`);
-      console.log(`  ASCII: ${data.toString('ascii').replace(/[^\x20-\x7E]/g, '.')}\n`);
+      console.log(`  Hex: ${data.toString("hex").toUpperCase()}`);
+      console.log(
+        `  ASCII: ${data.toString("ascii").replace(/[^\x20-\x7E]/g, ".")}\n`,
+      );
 
       // Try to parse as simple buffer
       if (data.length >= 2) {
         console.log(`  Parsed:`);
-        console.log(`    [0-1] (CMD): 0x${data.readUInt16LE(0).toString(16).toUpperCase().padStart(4, '0')}`);
+        console.log(
+          `    [0-1] (CMD): 0x${data.readUInt16LE(0).toString(16).toUpperCase().padStart(4, "0")}`,
+        );
         if (data.length >= 4) {
-          console.log(`    [2-3] (CRC): 0x${data.readUInt16LE(2).toString(16).toUpperCase().padStart(4, '0')}`);
+          console.log(
+            `    [2-3] (CRC): 0x${data.readUInt16LE(2).toString(16).toUpperCase().padStart(4, "0")}`,
+          );
         }
         if (data.length >= 8) {
-          console.log(`    [4-7] (SessionID): 0x${data.readUInt32LE(4).toString(16).toUpperCase().padStart(8, '0')}`);
+          console.log(
+            `    [4-7] (SessionID): 0x${data.readUInt32LE(4).toString(16).toUpperCase().padStart(8, "0")}`,
+          );
         }
       }
 
       // Now test ZKTeco protocol command
       console.log(`\n[TEST 2] Sending proper ZKTeco CMD_CONNECT (0x03E8)...`);
-      const zktecoCmdBuf = createZKTecoCommand(0x03E8);
-      console.log(`  → Sending: ${zktecoCmdBuf.toString('hex').toUpperCase()}`);
+      const zktecoCmdBuf = createZKTecoCommand(0x03e8);
+      console.log(`  → Sending: ${zktecoCmdBuf.toString("hex").toUpperCase()}`);
       socket.write(zktecoCmdBuf);
     });
 
-    socket.on('error', (err) => {
+    socket.on("error", (err) => {
       console.log(`✗ Error: ${err.message}`);
       reject(err);
     });
 
-    socket.on('timeout', () => {
+    socket.on("timeout", () => {
       console.log(`✗ Timeout after 5000ms`);
       if (!responseReceived) {
         console.log(`  (No data received - device may not be responding)\n`);
       }
       socket.destroy();
-      reject(new Error('Timeout'));
+      reject(new Error("Timeout"));
     });
 
-    socket.on('close', () => {
+    socket.on("close", () => {
       console.log(`Connection closed`);
       resolve();
     });
@@ -123,13 +131,13 @@ function calculateCRC16(data: Buffer): number {
 }
 
 async function main() {
-  const ip = process.argv[2] || '192.168.0.10';
-  const port = parseInt(process.argv[3] || '5005', 10);
+  const ip = process.argv[2] || "192.168.0.10";
+  const port = parseInt(process.argv[3] || "5005", 10);
 
   try {
     await testRawConnection(ip, port);
   } catch (error) {
-    if (error instanceof Error && error.message !== 'Timeout') {
+    if (error instanceof Error && error.message !== "Timeout") {
       console.error(`\n✗ Failed: ${error.message}\n`);
       process.exit(1);
     }

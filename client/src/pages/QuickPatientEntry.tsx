@@ -7,7 +7,9 @@ export default function QuickPatientEntry() {
 
   return (
     <div className="min-h-screen selrs-page-bg p-6" dir="rtl">
-      <QuickPatientEntryForm initialPatientId={initialPatientId > 0 ? initialPatientId : undefined} />
+      <QuickPatientEntryForm
+        initialPatientId={initialPatientId > 0 ? initialPatientId : undefined}
+      />
     </div>
   );
 }

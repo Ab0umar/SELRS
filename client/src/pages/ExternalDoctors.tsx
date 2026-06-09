@@ -1,9 +1,23 @@
 import { useState } from "react";
-import { Eye, EyeOff, KeyRound, Pencil, PlusCircle, UserCheck, UserX } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  KeyRound,
+  Pencil,
+  PlusCircle,
+  UserCheck,
+  UserX,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Link } from "wouter";
@@ -19,8 +33,15 @@ type Doctor = {
   createdAt: Date;
 };
 
-function DoctorCodeSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const { data: internalDoctors } = trpc.externalDoctors.listInternalDoctors.useQuery();
+function DoctorCodeSelect({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const { data: internalDoctors } =
+    trpc.externalDoctors.listInternalDoctors.useQuery();
   return (
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger>
@@ -48,26 +69,44 @@ function CreateDoctorForm({ onDone }: { onDone: () => void }) {
   const [showPw, setShowPw] = useState(false);
 
   const create = trpc.externalDoctors.createDoctor.useMutation({
-    onSuccess: () => { toast.success("Doctor created"); onDone(); },
+    onSuccess: () => {
+      toast.success("Doctor created");
+      onDone();
+    },
     onError: (e) => toast.error(e.message),
   });
 
-  const resolvedCode = doctorCode === "__none__" ? undefined : doctorCode || undefined;
+  const resolvedCode =
+    doctorCode === "__none__" ? undefined : doctorCode || undefined;
 
   return (
     <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
       <h3 className="font-semibold text-foreground">Create External Doctor</h3>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Full Name *</label>
-          <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Dr. Ahmed Mohamed" />
+          <label className="text-xs font-medium text-muted-foreground">
+            Full Name *
+          </label>
+          <Input
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            placeholder="Dr. Ahmed Mohamed"
+          />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Username *</label>
-          <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="dr.ahmed" />
+          <label className="text-xs font-medium text-muted-foreground">
+            Username *
+          </label>
+          <Input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="dr.ahmed"
+          />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Password *</label>
+          <label className="text-xs font-medium text-muted-foreground">
+            Password *
+          </label>
           <div className="relative">
             <Input
               type={showPw ? "text" : "password"}
@@ -81,20 +120,39 @@ function CreateDoctorForm({ onDone }: { onDone: () => void }) {
               onClick={() => setShowPw((v) => !v)}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground"
             >
-              {showPw ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              {showPw ? (
+                <EyeOff className="size-4" />
+              ) : (
+                <Eye className="size-4" />
+              )}
             </button>
           </div>
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Email</label>
-          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="doctor@clinic.com" />
+          <label className="text-xs font-medium text-muted-foreground">
+            Email
+          </label>
+          <Input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="doctor@clinic.com"
+          />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Phone</label>
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="01XXXXXXXXX" />
+          <label className="text-xs font-medium text-muted-foreground">
+            Phone
+          </label>
+          <Input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="01XXXXXXXXX"
+          />
         </div>
         <div className="space-y-1 sm:col-span-2">
-          <label className="text-xs font-medium text-muted-foreground">Internal Doctor Mapping</label>
+          <label className="text-xs font-medium text-muted-foreground">
+            Internal Doctor Mapping
+          </label>
           <DoctorCodeSelect value={doctorCode} onChange={setDoctorCode} />
         </div>
       </div>
@@ -102,21 +160,41 @@ function CreateDoctorForm({ onDone }: { onDone: () => void }) {
         <Button
           size="sm"
           disabled={create.isPending || !username || !password || !fullName}
-          onClick={() => create.mutate({ username, password, fullName, email: email || undefined, phone: phone || undefined, doctorCode: resolvedCode })}
+          onClick={() =>
+            create.mutate({
+              username,
+              password,
+              fullName,
+              email: email || undefined,
+              phone: phone || undefined,
+              doctorCode: resolvedCode,
+            })
+          }
         >
           {create.isPending ? "Creating..." : "Create"}
         </Button>
-        <Button size="sm" variant="ghost" onClick={onDone}>Cancel</Button>
+        <Button size="sm" variant="ghost" onClick={onDone}>
+          Cancel
+        </Button>
       </div>
     </div>
   );
 }
 
-function ResetPasswordForm({ doctorId, onDone }: { doctorId: number; onDone: () => void }) {
+function ResetPasswordForm({
+  doctorId,
+  onDone,
+}: {
+  doctorId: number;
+  onDone: () => void;
+}) {
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const reset = trpc.externalDoctors.resetPassword.useMutation({
-    onSuccess: () => { toast.success("Password reset"); onDone(); },
+    onSuccess: () => {
+      toast.success("Password reset");
+      onDone();
+    },
     onError: (e) => toast.error(e.message),
   });
   return (
@@ -129,35 +207,74 @@ function ResetPasswordForm({ doctorId, onDone }: { doctorId: number; onDone: () 
           placeholder="New password"
           className="pr-9 text-xs h-8"
         />
-        <button type="button" onClick={() => setShowPw((v) => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">
+        <button
+          type="button"
+          onClick={() => setShowPw((v) => !v)}
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground"
+        >
           {showPw ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
         </button>
       </div>
-      <Button size="sm" className="h-8 text-xs" disabled={reset.isPending || !password} onClick={() => reset.mutate({ id: doctorId, newPassword: password })}>
+      <Button
+        size="sm"
+        className="h-8 text-xs"
+        disabled={reset.isPending || !password}
+        onClick={() => reset.mutate({ id: doctorId, newPassword: password })}
+      >
         {reset.isPending ? "..." : "Reset"}
       </Button>
-      <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={onDone}>Cancel</Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-8 text-xs"
+        onClick={onDone}
+      >
+        Cancel
+      </Button>
     </div>
   );
 }
 
-function EditDoctorCodeForm({ doc, onDone }: { doc: Doctor; onDone: () => void }) {
+function EditDoctorCodeForm({
+  doc,
+  onDone,
+}: {
+  doc: Doctor;
+  onDone: () => void;
+}) {
   const [doctorCode, setDoctorCode] = useState(doc.doctorCode ?? "");
   const update = trpc.externalDoctors.updateDoctor.useMutation({
-    onSuccess: () => { toast.success("Doctor code updated"); onDone(); },
+    onSuccess: () => {
+      toast.success("Doctor code updated");
+      onDone();
+    },
     onError: (e) => toast.error(e.message),
   });
   const resolvedCode = doctorCode === "__none__" ? null : doctorCode || null;
   return (
     <div className="mt-2 flex items-end gap-2">
       <div className="flex-1 space-y-1">
-        <label className="text-xs font-medium text-muted-foreground">Internal Doctor Mapping</label>
+        <label className="text-xs font-medium text-muted-foreground">
+          Internal Doctor Mapping
+        </label>
         <DoctorCodeSelect value={doctorCode} onChange={setDoctorCode} />
       </div>
-      <Button size="sm" className="h-9 text-xs" disabled={update.isPending} onClick={() => update.mutate({ id: doc.id, doctorCode: resolvedCode })}>
+      <Button
+        size="sm"
+        className="h-9 text-xs"
+        disabled={update.isPending}
+        onClick={() => update.mutate({ id: doc.id, doctorCode: resolvedCode })}
+      >
         {update.isPending ? "..." : "Save"}
       </Button>
-      <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={onDone}>Cancel</Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-9 text-xs"
+        onClick={onDone}
+      >
+        Cancel
+      </Button>
     </div>
   );
 }
@@ -167,9 +284,12 @@ export default function ExternalDoctors() {
   const [resetingId, setResetingId] = useState<number | null>(null);
   const [editingCodeId, setEditingCodeId] = useState<number | null>(null);
 
-  const { data, isLoading, refetch } = trpc.externalDoctors.listDoctors.useQuery();
+  const { data, isLoading, refetch } =
+    trpc.externalDoctors.listDoctors.useQuery();
   const toggleActive = trpc.externalDoctors.updateDoctor.useMutation({
-    onSuccess: () => { void refetch(); },
+    onSuccess: () => {
+      void refetch();
+    },
     onError: (e) => toast.error(e.message),
   });
 
@@ -178,25 +298,44 @@ export default function ExternalDoctors() {
       <div className="mx-auto max-w-4xl space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">External Doctors</h1>
-            <p className="text-sm text-muted-foreground">Manage external doctor portal accounts</p>
+            <h1 className="text-2xl font-bold text-foreground">
+              External Doctors
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Manage external doctor portal accounts
+            </p>
           </div>
           <div className="flex gap-2">
             <Button asChild variant="outline" size="sm">
-              <Link href="/admin-hub/external-doctors/referrals">Referrals</Link>
+              <Link href="/admin-hub/external-doctors/referrals">
+                Referrals
+              </Link>
             </Button>
-            <Button size="sm" className="gap-2" onClick={() => setCreating((v) => !v)}>
+            <Button
+              size="sm"
+              className="gap-2"
+              onClick={() => setCreating((v) => !v)}
+            >
               <PlusCircle className="size-4" />
               Add Doctor
             </Button>
           </div>
         </div>
 
-        {creating && <CreateDoctorForm onDone={() => { setCreating(false); void refetch(); }} />}
+        {creating && (
+          <CreateDoctorForm
+            onDone={() => {
+              setCreating(false);
+              void refetch();
+            }}
+          />
+        )}
 
         {isLoading && (
           <div className="space-y-3">
-            {[1, 2, 3].map((n) => <div key={n} className="h-16 animate-pulse rounded-xl bg-muted" />)}
+            {[1, 2, 3].map((n) => (
+              <div key={n} className="h-16 animate-pulse rounded-xl bg-muted" />
+            ))}
           </div>
         )}
 
@@ -209,20 +348,40 @@ export default function ExternalDoctors() {
         {data && data.length > 0 && (
           <div className="space-y-2">
             {(data as Doctor[]).map((doc) => (
-              <div key={doc.id} className="rounded-xl border border-border bg-card p-4">
+              <div
+                key={doc.id}
+                className="rounded-xl border border-border bg-card p-4"
+              >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="font-semibold text-foreground">{doc.fullName}</p>
-                      <Badge variant={doc.isActive ? "default" : "secondary"} className="text-[10px]">
+                      <p className="font-semibold text-foreground">
+                        {doc.fullName}
+                      </p>
+                      <Badge
+                        variant={doc.isActive ? "default" : "secondary"}
+                        className="text-[10px]"
+                      >
                         {doc.isActive ? "Active" : "Inactive"}
                       </Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground font-mono">@{doc.username}</p>
-                    {doc.email && <p className="text-xs text-muted-foreground">{doc.email}</p>}
-                    {doc.phone && <p className="text-xs text-muted-foreground">{doc.phone}</p>}
+                    <p className="text-xs text-muted-foreground font-mono">
+                      @{doc.username}
+                    </p>
+                    {doc.email && (
+                      <p className="text-xs text-muted-foreground">
+                        {doc.email}
+                      </p>
+                    )}
+                    {doc.phone && (
+                      <p className="text-xs text-muted-foreground">
+                        {doc.phone}
+                      </p>
+                    )}
                     {doc.doctorCode && (
-                      <p className="text-xs text-primary font-mono">Mapped: {doc.doctorCode}</p>
+                      <p className="text-xs text-primary font-mono">
+                        Mapped: {doc.doctorCode}
+                      </p>
                     )}
                   </div>
                   <div className="flex gap-2">
@@ -230,7 +389,11 @@ export default function ExternalDoctors() {
                       size="sm"
                       variant="outline"
                       className="gap-1.5 text-xs"
-                      onClick={() => setEditingCodeId(editingCodeId === doc.id ? null : doc.id)}
+                      onClick={() =>
+                        setEditingCodeId(
+                          editingCodeId === doc.id ? null : doc.id,
+                        )
+                      }
                     >
                       <Pencil className="size-3.5" />
                       Map Dr
@@ -239,7 +402,9 @@ export default function ExternalDoctors() {
                       size="sm"
                       variant="outline"
                       className="gap-1.5 text-xs"
-                      onClick={() => setResetingId(resetingId === doc.id ? null : doc.id)}
+                      onClick={() =>
+                        setResetingId(resetingId === doc.id ? null : doc.id)
+                      }
                     >
                       <KeyRound className="size-3.5" />
                       Reset PW
@@ -248,18 +413,36 @@ export default function ExternalDoctors() {
                       size="sm"
                       variant="outline"
                       className="gap-1.5 text-xs"
-                      onClick={() => toggleActive.mutate({ id: doc.id, isActive: !doc.isActive })}
+                      onClick={() =>
+                        toggleActive.mutate({
+                          id: doc.id,
+                          isActive: !doc.isActive,
+                        })
+                      }
                     >
-                      {doc.isActive ? <UserX className="size-3.5" /> : <UserCheck className="size-3.5" />}
+                      {doc.isActive ? (
+                        <UserX className="size-3.5" />
+                      ) : (
+                        <UserCheck className="size-3.5" />
+                      )}
                       {doc.isActive ? "Deactivate" : "Activate"}
                     </Button>
                   </div>
                 </div>
                 {editingCodeId === doc.id && (
-                  <EditDoctorCodeForm doc={doc} onDone={() => { setEditingCodeId(null); void refetch(); }} />
+                  <EditDoctorCodeForm
+                    doc={doc}
+                    onDone={() => {
+                      setEditingCodeId(null);
+                      void refetch();
+                    }}
+                  />
                 )}
                 {resetingId === doc.id && (
-                  <ResetPasswordForm doctorId={doc.id} onDone={() => setResetingId(null)} />
+                  <ResetPasswordForm
+                    doctorId={doc.id}
+                    onDone={() => setResetingId(null)}
+                  />
                 )}
               </div>
             ))}

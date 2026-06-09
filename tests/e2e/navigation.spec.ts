@@ -13,7 +13,9 @@ const password =
   "";
 
 async function getAuthenticatedContext(request: any, browser: any) {
-  const candidates = Array.from(new Set([password, `${password}_e2e`])).filter(Boolean);
+  const candidates = Array.from(new Set([password, `${password}_e2e`])).filter(
+    Boolean,
+  );
   let activePassword = "";
   let res: any = null;
   for (const candidate of candidates) {
@@ -26,26 +28,39 @@ async function getAuthenticatedContext(request: any, browser: any) {
       break;
     }
   }
-  expect(Boolean(res), `login should return 200 (tried: ${candidates.join(", ")})`).toBe(true);
+  expect(
+    Boolean(res),
+    `login should return 200 (tried: ${candidates.join(", ")})`,
+  ).toBe(true);
   const meRes = await request.get(`${baseURL}/api/auth/me`);
   if (meRes.status() === 200) {
     const me = await meRes.json();
     if (Boolean(me?.user?.mustChangePassword)) {
-      const nextPassword = activePassword === password ? `${password}_e2e` : password;
-      const changeRes = await request.post(`${baseURL}/api/trpc/auth.changePassword`, {
-        data: {
-          json: {
-            currentPassword: activePassword,
-            newPassword: nextPassword,
+      const nextPassword =
+        activePassword === password ? `${password}_e2e` : password;
+      const changeRes = await request.post(
+        `${baseURL}/api/trpc/auth.changePassword`,
+        {
+          data: {
+            json: {
+              currentPassword: activePassword,
+              newPassword: nextPassword,
+            },
           },
         },
-      });
-      expect(changeRes.status(), "forced changePassword should return 200").toBe(200);
+      );
+      expect(
+        changeRes.status(),
+        "forced changePassword should return 200",
+      ).toBe(200);
       activePassword = nextPassword;
       res = await request.post(`${baseURL}/api/auth/login`, {
         data: { username, password: activePassword },
       });
-      expect(res.status(), "login after forced password change should return 200").toBe(200);
+      expect(
+        res.status(),
+        "login after forced password change should return 200",
+      ).toBe(200);
     }
   }
   const storageState = await request.storageState();
@@ -56,7 +71,10 @@ async function getAuthenticatedContext(request: any, browser: any) {
 }
 
 test.describe("navigation reliability", () => {
-  test.skip(!username || !password, "Set SMOKE_USER/SMOKE_PASS (or ADMIN_USER/ADMIN_PASS)");
+  test.skip(
+    !username || !password,
+    "Set SMOKE_USER/SMOKE_PASS (or ADMIN_USER/ADMIN_PASS)",
+  );
 
   test("home and sign-out buttons work", async ({ request, browser }) => {
     const context = await getAuthenticatedContext(request, browser);
@@ -64,15 +82,22 @@ test.describe("navigation reliability", () => {
     await page.goto("/patients");
     await expect(page).toHaveURL(/\/patients/);
 
-    const homeByText = page.getByRole("button", { name: /الصفحة الرئيسية|ط§ظ„طµظپط­ط© ط§ظ„ط±ط¦ظٹط³ظٹط©/ });
+    const homeByText = page.getByRole("button", {
+      name: /الصفحة الرئيسية|ط§ظ„طµظپط­ط© ط§ظ„ط±ط¦ظٹط³ظٹط©/,
+    });
     if (await homeByText.count()) {
       await homeByText.first().click();
     } else {
-      await page.locator("button:has(.lucide-home), button:has(.lucide-house)").first().click();
+      await page
+        .locator("button:has(.lucide-home), button:has(.lucide-house)")
+        .first()
+        .click();
     }
     await expect(page).toHaveURL(/\/dashboard/);
 
-    const signoutByText = page.getByRole("button", { name: /تسجيل الخروج|طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬/ });
+    const signoutByText = page.getByRole("button", {
+      name: /تسجيل الخروج|طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬/,
+    });
     if (await signoutByText.count()) {
       await signoutByText.first().click();
     } else {
@@ -82,7 +107,10 @@ test.describe("navigation reliability", () => {
     await context.close();
   });
 
-  test("legacy surgery sheet route redirects to operation route", async ({ request, browser }) => {
+  test("legacy surgery sheet route redirects to operation route", async ({
+    request,
+    browser,
+  }) => {
     const context = await getAuthenticatedContext(request, browser);
     const page = await context.newPage();
     await page.goto("/sheets/surgery/1");

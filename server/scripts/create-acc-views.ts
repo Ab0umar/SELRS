@@ -6,7 +6,7 @@ import { getDb } from "../db";
 
 const views: { name: string; ddl: string }[] = [
   {
-    name: "accView_Advances",   // سلف_T
+    name: "accView_Advances", // سلف_T
     ddl: `CREATE OR REPLACE VIEW accView_Advances AS
       SELECT
         TRIM(e.name)                                        AS employee,
@@ -19,7 +19,7 @@ const views: { name: string; ddl: string }[] = [
       GROUP BY TRIM(e.name)`,
   },
   {
-    name: "accView_Loans",      // القرض_T
+    name: "accView_Loans", // القرض_T
     ddl: `CREATE OR REPLACE VIEW accView_Loans AS
       SELECT
         TRIM(name)                                          AS name,
@@ -32,7 +32,7 @@ const views: { name: string; ddl: string }[] = [
       HAVING remaining != 0`,
   },
   {
-    name: "accView_Home",       // البيت_T
+    name: "accView_Home", // البيت_T
     ddl: `CREATE OR REPLACE VIEW accView_Home AS
       SELECT
         SUM(IFNULL(inAmount,  0)) AS totalIn,
@@ -50,7 +50,7 @@ const views: { name: string; ddl: string }[] = [
       FROM accInstapay`,
   },
   {
-    name: "accView_Saadany",    // د_السعدني summary
+    name: "accView_Saadany", // د_السعدني summary
     ddl: `CREATE OR REPLACE VIEW accView_Saadany AS
       SELECT
         ABS(SUM(IFNULL(withdrawals, 0))) AS totalWithdrawals,
@@ -59,7 +59,7 @@ const views: { name: string; ddl: string }[] = [
       FROM accSaadany`,
   },
   {
-    name: "accView_Ledger",     // All _T — ledger ordered with running balance already stored
+    name: "accView_Ledger", // All _T — ledger ordered with running balance already stored
     ddl: `CREATE OR REPLACE VIEW accView_Ledger AS
       SELECT
         id, accessId, txDate, income, expense, balance, total, notes
@@ -67,7 +67,7 @@ const views: { name: string; ddl: string }[] = [
       ORDER BY txDate, accessId`,
   },
   {
-    name: "accView_Comprehensive",  // اجمالي شامل
+    name: "accView_Comprehensive", // اجمالي شامل
     ddl: `CREATE OR REPLACE VIEW accView_Comprehensive AS
       SELECT 'الخزنة'    AS account, SUM(IFNULL(income,0))      AS totalIn, SUM(IFNULL(expense,0))    AS totalOut FROM accLedger
       UNION ALL
@@ -80,7 +80,10 @@ const views: { name: string; ddl: string }[] = [
 ];
 
 const db = await getDb();
-if (!db) { console.error("DB unavailable"); process.exit(1); }
+if (!db) {
+  console.error("DB unavailable");
+  process.exit(1);
+}
 
 for (const v of views) {
   await db.execute(sql.raw(v.ddl));

@@ -220,7 +220,9 @@ export default function ShiftManagement() {
                     <input
                       type="checkbox"
                       checked={form.allowOT}
-                      onChange={(e) => setForm({ ...form, allowOT: e.target.checked })}
+                      onChange={(e) =>
+                        setForm({ ...form, allowOT: e.target.checked })
+                      }
                       className="h-4 w-4 accent-primary"
                     />
                     تفعيل الإضافي
@@ -292,7 +294,9 @@ export default function ShiftManagement() {
                     <div>استراحة: {s.breakMinutes} د</div>
                     <div>سماح حضور: {s.graceLateMin} د</div>
                     <div>سماح انصراف: {s.graceEarlyMin} د</div>
-                    <div>وقت إضافي: {(s.allowOT ?? false) ? "مفعّل" : "معطّل"}</div>
+                    <div>
+                      وقت إضافي: {(s.allowOT ?? false) ? "مفعّل" : "معطّل"}
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <span

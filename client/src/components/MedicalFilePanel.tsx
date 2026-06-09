@@ -106,7 +106,10 @@ export default function MedicalFilePanel({
         os: { s: "----", c: "----", axis: "", ucva: "", bcva: "" },
       },
       iop: { od: "", os: "" },
-      after: { od: { s: "----", c: "----", axis: "" }, os: { s: "----", c: "----", axis: "" } },
+      after: {
+        od: { s: "----", c: "----", axis: "" },
+        os: { s: "----", c: "----", axis: "" },
+      },
     },
     glasses: {
       od: { s: "----", c: "----", axis: "", pd: "", bcva: "" },
@@ -1551,7 +1554,10 @@ export default function MedicalFilePanel({
             <button
               key={sec}
               type="button"
-              onClick={() => { setActiveMedicalTab(sec); if (sec === "plan") setPlanEverActive(true); }}
+              onClick={() => {
+                setActiveMedicalTab(sec);
+                if (sec === "plan") setPlanEverActive(true);
+              }}
               className={cn(
                 "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
                 activeMedicalTab === sec
@@ -1570,47 +1576,51 @@ export default function MedicalFilePanel({
           dir="rtl"
         >
           <div className={activeMedicalTab !== "data" ? "hidden" : undefined}>
-              {examinations && examinations.length > 1 && (
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="text-muted-foreground">تاريخ الزيارة</span>
-                  <Select
-                    value={String(selectedExaminationId || "")}
-                    onValueChange={(val) =>
-                      setSelectedExaminationId(Number(val))
-                    }
-                  >
-                    <SelectTrigger className="h-7 flex-1 text-xs max-w-[200px]">
-                      <SelectValue placeholder="اختر زيارة" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {examinations.map((exam: any) => (
-                        <SelectItem key={exam.id} value={String(exam.id)}>
-                          {new Date(exam.createdAt).toLocaleDateString("ar-EG")}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <div className="flex items-center justify-end gap-2">
-                <span className="text-xs font-medium text-muted-foreground">عرض القياسات</span>
-                <Select value={autorefSectionTab} onValueChange={setAutorefSectionTab}>
-                  <SelectTrigger className="h-7 w-[180px] text-xs">
-                    <SelectValue placeholder="الكل" />
+            {examinations && examinations.length > 1 && (
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-muted-foreground">تاريخ الزيارة</span>
+                <Select
+                  value={String(selectedExaminationId || "")}
+                  onValueChange={(val) => setSelectedExaminationId(Number(val))}
+                >
+                  <SelectTrigger className="h-7 flex-1 text-xs max-w-[200px]">
+                    <SelectValue placeholder="اختر زيارة" />
                   </SelectTrigger>
                   <SelectContent>
-                    {MEASUREMENT_VIEWS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
+                    {examinations.map((exam: any) => (
+                      <SelectItem key={exam.id} value={String(exam.id)}>
+                        {new Date(exam.createdAt).toLocaleDateString("ar-EG")}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+            )}
 
-              {/* AutoRef | IOP */}
-              {(autorefSectionTab === "all" || autorefSectionTab === "autoref") && (
+            <div className="flex items-center justify-end gap-2">
+              <span className="text-xs font-medium text-muted-foreground">
+                عرض القياسات
+              </span>
+              <Select
+                value={autorefSectionTab}
+                onValueChange={setAutorefSectionTab}
+              >
+                <SelectTrigger className="h-7 w-[180px] text-xs">
+                  <SelectValue placeholder="الكل" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MEASUREMENT_VIEWS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* AutoRef | IOP */}
+            {(autorefSectionTab === "all" ||
+              autorefSectionTab === "autoref") && (
               <div>
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                   AutoRef | IOP
@@ -1987,10 +1997,10 @@ export default function MedicalFilePanel({
                   ))}
                 </div>
               </div>
-              )}
+            )}
 
-              {/* After Refraction */}
-              {(autorefSectionTab === "all" || autorefSectionTab === "after") && (
+            {/* After Refraction */}
+            {(autorefSectionTab === "all" || autorefSectionTab === "after") && (
               <div>
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                   After Refraction
@@ -2212,10 +2222,11 @@ export default function MedicalFilePanel({
                   ))}
                 </div>
               </div>
-              )}
+            )}
 
-              {/* Glasses / Refraction */}
-              {(autorefSectionTab === "all" || autorefSectionTab === "refraction") && (
+            {/* Glasses / Refraction */}
+            {(autorefSectionTab === "all" ||
+              autorefSectionTab === "refraction") && (
               <div>
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                   Refraction
@@ -2510,10 +2521,11 @@ export default function MedicalFilePanel({
                   ))}
                 </div>
               </div>
-              )}
+            )}
 
-              {/* Pentacam */}
-              {(autorefSectionTab === "all" || autorefSectionTab === "pentacam") && (
+            {/* Pentacam */}
+            {(autorefSectionTab === "all" ||
+              autorefSectionTab === "pentacam") && (
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -2646,10 +2658,11 @@ export default function MedicalFilePanel({
                   ))}
                 </div>
               </div>
-              )}
+            )}
 
-              {/* Fundus (collapsible) */}
-              {(autorefSectionTab === "all" || autorefSectionTab === "fundus") && (
+            {/* Fundus (collapsible) */}
+            {(autorefSectionTab === "all" ||
+              autorefSectionTab === "fundus") && (
               <div>
                 <button
                   type="button"
@@ -2928,8 +2941,8 @@ export default function MedicalFilePanel({
                   </>
                 )}
               </div>
-              )}
-            </div>
+            )}
+          </div>
 
           {planEverActive && (
             <div className={activeMedicalTab !== "plan" ? "hidden" : undefined}>

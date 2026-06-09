@@ -21,19 +21,32 @@ export default function ExaminationForm() {
       <main className="container mx-auto px-4 py-8">
         <form ref={form.formRef} onSubmit={form.handleSubmit} dir="rtl">
           <ExaminationFormHeader form={form} />
-          <Tabs defaultValue="patient-info" persistKey="examination-form" className="w-full">
+          <Tabs
+            defaultValue="patient-info"
+            persistKey="examination-form"
+            className="w-full"
+          >
             <TabsList className="mb-4 flex h-auto w-full gap-2 overflow-x-auto whitespace-nowrap rounded-3xl border border-border/80 bg-background/90 p-2 shadow-sm">
               <div className="flex items-center gap-2 px-2 text-xs font-bold uppercase tracking-[0.24em] text-muted-foreground">
                 <Stethoscope className="h-4 w-4" />
                 Sections
               </div>
-              <TabsTrigger value="pentacam" className="flex-1 min-w-[120px] whitespace-normal text-center">
+              <TabsTrigger
+                value="pentacam"
+                className="flex-1 min-w-[120px] whitespace-normal text-center"
+              >
                 البنتاكام
               </TabsTrigger>
-              <TabsTrigger value="auto-air" className="flex-1 min-w-[180px] whitespace-normal text-center">
+              <TabsTrigger
+                value="auto-air"
+                className="flex-1 min-w-[180px] whitespace-normal text-center"
+              >
                 الأوتوريفراكشن / الإيرباف
               </TabsTrigger>
-              <TabsTrigger value="patient-info" className="flex-1 min-w-[120px] whitespace-normal text-center">
+              <TabsTrigger
+                value="patient-info"
+                className="flex-1 min-w-[120px] whitespace-normal text-center"
+              >
                 بيانات المريض
               </TabsTrigger>
             </TabsList>
@@ -44,7 +57,11 @@ export default function ExaminationForm() {
           </Tabs>
 
           <div className="mt-8 flex gap-4">
-            <Button type="submit" disabled={form.loading} className="bg-primary hover:bg-primary/90">
+            <Button
+              type="submit"
+              disabled={form.loading}
+              className="bg-primary hover:bg-primary/90"
+            >
               <Save className="mr-2 h-4 w-4" />
               {form.loading ? " ..." : " "}
             </Button>
@@ -57,4 +74,3 @@ export default function ExaminationForm() {
     </div>
   );
 }
-

@@ -15,10 +15,12 @@ export async function publishPostToFacebook(
   accessToken: string,
   message: string,
   imageUrl: string | null,
-  appOrigin: string
+  appOrigin: string,
 ): Promise<{ fbPostId: string }> {
   if (imageUrl) {
-    const fullImageUrl = imageUrl.startsWith("http") ? imageUrl : `${appOrigin}${imageUrl}`;
+    const fullImageUrl = imageUrl.startsWith("http")
+      ? imageUrl
+      : `${appOrigin}${imageUrl}`;
     const params = new URLSearchParams({
       access_token: accessToken,
       url: fullImageUrl,
@@ -46,7 +48,10 @@ export async function publishPostToFacebook(
     method: "POST",
     body: params,
   });
-  const data = (await res.json()) as { id?: string; error?: { message: string } };
+  const data = (await res.json()) as {
+    id?: string;
+    error?: { message: string };
+  };
   if (!res.ok || data.error) {
     throw new Error(data.error?.message ?? "Facebook feed post failed");
   }

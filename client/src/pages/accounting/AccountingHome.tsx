@@ -172,11 +172,15 @@ export default function AccountingHome() {
   const [notes, setNotes] = useState("");
   const [saved, setSaved] = useState(false);
   const [notesFocused, setNotesFocused] = useState(false);
-  const [activeTab, setActiveTab] = useState<"cashbook" | "service">("cashbook");
+  const [activeTab, setActiveTab] = useState<"cashbook" | "service">(
+    "cashbook",
+  );
   const [moreQuickLinksOpen, setMoreQuickLinksOpen] = useState(false);
   const [servicePat, setServicePat] = useState("");
   const [serviceDocCode, setServiceDocCode] = useState("");
-  const [serviceLines, setServiceLines] = useState([{ svcCode: "", qty: "1", discount: "", price: "" }]);
+  const [serviceLines, setServiceLines] = useState([
+    { svcCode: "", qty: "1", discount: "", price: "" },
+  ]);
   const [serviceSaved, setServiceSaved] = useState(false);
   const [deletingTrNo, setDeletingTrNo] = useState<string | null>(null);
   const [editingReceipt, setEditingReceipt] = useState<{
@@ -221,7 +225,10 @@ export default function AccountingHome() {
   });
 
   const syncAccMut = trpc.accounting.triggerAccSync.useMutation();
-  const [syncResult, setSyncResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [syncResult, setSyncResult] = useState<{
+    ok: boolean;
+    msg: string;
+  } | null>(null);
 
   const handleAccSync = async () => {
     setSyncResult(null);
@@ -234,7 +241,10 @@ export default function AccountingHome() {
       ]);
       setSyncResult({ ok: true, msg: "تمت المزامنة بنجاح" });
     } catch (e: any) {
-      setSyncResult({ ok: false, msg: e?.message?.slice(0, 120) ?? "فشلت المزامنة" });
+      setSyncResult({
+        ok: false,
+        msg: e?.message?.slice(0, 120) ?? "فشلت المزامنة",
+      });
     }
     setTimeout(() => setSyncResult(null), 4000);
   };
@@ -252,8 +262,14 @@ export default function AccountingHome() {
     },
   });
 
-  const catalogServices = useMemo(() => catalogQ.data?.services ?? [], [catalogQ.data]);
-  const catalogDoctors = useMemo(() => catalogQ.data?.doctors ?? [], [catalogQ.data]);
+  const catalogServices = useMemo(
+    () => catalogQ.data?.services ?? [],
+    [catalogQ.data],
+  );
+  const catalogDoctors = useMemo(
+    () => catalogQ.data?.doctors ?? [],
+    [catalogQ.data],
+  );
   const canSaveService = useMemo(
     () =>
       servicePat.trim().length > 0 &&
@@ -262,8 +278,18 @@ export default function AccountingHome() {
     [servicePat, serviceLines, addServicesMut.isPending],
   );
 
-  function updateServiceLine(idx: number, patch: Partial<{ svcCode: string; qty: string; discount: string; price: string }>) {
-    setServiceLines((prev) => prev.map((l, i) => (i === idx ? { ...l, ...patch } : l)));
+  function updateServiceLine(
+    idx: number,
+    patch: Partial<{
+      svcCode: string;
+      qty: string;
+      discount: string;
+      price: string;
+    }>,
+  ) {
+    setServiceLines((prev) =>
+      prev.map((l, i) => (i === idx ? { ...l, ...patch } : l)),
+    );
   }
 
   async function handleQuickAddService() {
@@ -272,7 +298,8 @@ export default function AccountingHome() {
       .filter((l) => l.svcCode.trim())
       .map((l) => ({
         serviceCode: l.svcCode.trim(),
-        serviceName: catalogServices.find((s) => s.code === l.svcCode)?.name ?? "",
+        serviceName:
+          catalogServices.find((s) => s.code === l.svcCode)?.name ?? "",
         quantity: Math.max(1, Math.trunc(Number(l.qty) || 1)),
         discount: l.discount !== "" ? parseFloat(l.discount) : undefined,
         price: l.price !== "" ? parseFloat(l.price) : undefined,
@@ -306,7 +333,10 @@ export default function AccountingHome() {
 
   const s = summaryQuery.data;
   const cashbook = cashbookSummaryQuery.data;
-  const receipts = useMemo(() => activityQuery.data ?? [], [activityQuery.data]);
+  const receipts = useMemo(
+    () => activityQuery.data ?? [],
+    [activityQuery.data],
+  );
   const cats = useMemo(() => categoriesQ.data ?? [], [categoriesQ.data]);
   const hasSummaryError = summaryQuery.isError || cashbookSummaryQuery.isError;
   const refreshSummary = useMemo(
@@ -346,24 +376,32 @@ export default function AccountingHome() {
                   aria-label="تاريخ العرض"
                   value={viewDate}
                   max={today}
-                  onChange={(e) => e.target.value && setViewDate(e.target.value)}
+                  onChange={(e) =>
+                    e.target.value && setViewDate(e.target.value)
+                  }
                   className="rounded-lg border border-border bg-background px-2 py-1 text-xs tabular-nums outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
                 />
                 {[
                   {
                     href: "/accounting/daily-revenue",
                     label: isToday ? "إيراد اليوم" : "إيراد اليوم المحدد",
-                    val: summaryQuery.isLoading ? "..." : formatMoneyAr(s?.totalRevenueToday ?? 0),
+                    val: summaryQuery.isLoading
+                      ? "..."
+                      : formatMoneyAr(s?.totalRevenueToday ?? 0),
                   },
                   {
                     href: "/accounting/receipts",
                     label: isToday ? "إيصالات اليوم" : "إيصالات اليوم المحدد",
-                    val: summaryQuery.isLoading ? "..." : formatCountAr(s?.totalReceiptsToday ?? 0),
+                    val: summaryQuery.isLoading
+                      ? "..."
+                      : formatCountAr(s?.totalReceiptsToday ?? 0),
                   },
                   {
                     href: "/accounting/cashbook",
                     label: "رصيد الخزنة",
-                    val: cashbookSummaryQuery.isLoading ? "..." : formatMoneyAr(cashbook?.currentBalance ?? 0),
+                    val: cashbookSummaryQuery.isLoading
+                      ? "..."
+                      : formatMoneyAr(cashbook?.currentBalance ?? 0),
                   },
                 ].map((m) => (
                   <a
@@ -386,17 +424,23 @@ export default function AccountingHome() {
                 {
                   href: "/accounting/daily-revenue",
                   label: isToday ? "إيراد اليوم" : "الإيراد",
-                  val: summaryQuery.isLoading ? "..." : formatMoneyAr(s?.totalRevenueToday ?? 0),
+                  val: summaryQuery.isLoading
+                    ? "..."
+                    : formatMoneyAr(s?.totalRevenueToday ?? 0),
                 },
                 {
                   href: "/accounting/receipts",
                   label: isToday ? "إيصالات اليوم" : "الإيصالات",
-                  val: summaryQuery.isLoading ? "..." : formatCountAr(s?.totalReceiptsToday ?? 0),
+                  val: summaryQuery.isLoading
+                    ? "..."
+                    : formatCountAr(s?.totalReceiptsToday ?? 0),
                 },
                 {
                   href: "/accounting/cashbook",
                   label: "الخزنة",
-                  val: cashbookSummaryQuery.isLoading ? "..." : formatMoneyAr(cashbook?.currentBalance ?? 0),
+                  val: cashbookSummaryQuery.isLoading
+                    ? "..."
+                    : formatMoneyAr(cashbook?.currentBalance ?? 0),
                 },
               ].map((m) => (
                 <a
@@ -419,16 +463,16 @@ export default function AccountingHome() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("cashbook")}
-                      className={cn(
-                        "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors",
-                        activeTab === "cashbook"
-                          ? "bg-foreground text-background"
-                          : "border border-border text-muted-foreground hover:border-border",
-                      )}
-                    >
-                      <Wallet className="h-3 w-3" />
-                      قيد خزنة
-                    </button>
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors",
+                    activeTab === "cashbook"
+                      ? "bg-foreground text-background"
+                      : "border border-border text-muted-foreground hover:border-border",
+                  )}
+                >
+                  <Wallet className="h-3 w-3" />
+                  قيد خزنة
+                </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab("service")}
@@ -458,13 +502,25 @@ export default function AccountingHome() {
                     disabled={syncAccMut.isPending}
                     className="mr-auto flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:border-muted-foreground hover:text-foreground disabled:opacity-50"
                   >
-                    <RefreshCw className={cn("h-3 w-3", syncAccMut.isPending && "animate-spin")} />
-                    {syncAccMut.isPending ? "جارٍ المزامنة..." : "مزامنة الخزنة"}
+                    <RefreshCw
+                      className={cn(
+                        "h-3 w-3",
+                        syncAccMut.isPending && "animate-spin",
+                      )}
+                    />
+                    {syncAccMut.isPending
+                      ? "جارٍ المزامنة..."
+                      : "مزامنة الخزنة"}
                   </button>
                 )}
               </div>
               {syncResult && (
-                <p className={cn("text-xs font-medium", syncResult.ok ? "text-success" : "text-destructive")}>
+                <p
+                  className={cn(
+                    "text-xs font-medium",
+                    syncResult.ok ? "text-success" : "text-destructive",
+                  )}
+                >
                   {syncResult.msg}
                 </p>
               )}
@@ -595,7 +651,10 @@ export default function AccountingHome() {
                 <div className="flex flex-col gap-1.5">
                   {/* Patient + Doctor (shared) */}
                   <div className="flex items-center gap-3">
-                    <label htmlFor="qk-svc-pat" className="w-16 shrink-0 text-xs font-medium text-muted-foreground">
+                    <label
+                      htmlFor="qk-svc-pat"
+                      className="w-16 shrink-0 text-xs font-medium text-muted-foreground"
+                    >
                       المريض
                     </label>
                     <div className="flex flex-1 items-center gap-2">
@@ -612,13 +671,17 @@ export default function AccountingHome() {
                         <span className="text-xs text-muted-foreground">
                           {servicePatLookup.isFetching
                             ? "..."
-                            : servicePatLookup.data?.patientName ?? "غير موجود"}
+                            : (servicePatLookup.data?.patientName ??
+                              "غير موجود")}
                         </span>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <label htmlFor="qk-svc-doctor" className="w-16 shrink-0 text-xs font-medium text-muted-foreground">
+                    <label
+                      htmlFor="qk-svc-doctor"
+                      className="w-16 shrink-0 text-xs font-medium text-muted-foreground"
+                    >
                       الدكتور
                     </label>
                     <select
@@ -638,7 +701,9 @@ export default function AccountingHome() {
                   {/* Service lines */}
                   <div className="flex flex-col gap-1">
                     {serviceLines.map((line, idx) => {
-                      const info = catalogServices.find((s) => s.code === line.svcCode);
+                      const info = catalogServices.find(
+                        (s) => s.code === line.svcCode,
+                      );
                       return (
                         <div key={idx} className="flex items-center gap-1.5">
                           <select
@@ -646,10 +711,15 @@ export default function AccountingHome() {
                             value={line.svcCode}
                             onChange={(e) => {
                               const code = e.target.value;
-                              const svcInfo = catalogServices.find((s) => s.code === code);
+                              const svcInfo = catalogServices.find(
+                                (s) => s.code === code,
+                              );
                               updateServiceLine(idx, {
                                 svcCode: code,
-                                price: svcInfo && line.price === "" ? String(svcInfo.price ?? "") : line.price,
+                                price:
+                                  svcInfo && line.price === ""
+                                    ? String(svcInfo.price ?? "")
+                                    : line.price,
                               });
                             }}
                             className="min-w-0 flex-1 rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
@@ -667,8 +737,12 @@ export default function AccountingHome() {
                             step="0.01"
                             aria-label="السعر"
                             value={line.price}
-                            onChange={(e) => updateServiceLine(idx, { price: e.target.value })}
-                            placeholder={info ? String(info.price ?? "سعر") : "سعر"}
+                            onChange={(e) =>
+                              updateServiceLine(idx, { price: e.target.value })
+                            }
+                            placeholder={
+                              info ? String(info.price ?? "سعر") : "سعر"
+                            }
                             className="w-20 rounded-lg border border-border bg-background px-2 py-1.5 text-sm tabular-nums outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
                           />
                           <input
@@ -677,7 +751,9 @@ export default function AccountingHome() {
                             step="1"
                             aria-label="العدد"
                             value={line.qty}
-                            onChange={(e) => updateServiceLine(idx, { qty: e.target.value })}
+                            onChange={(e) =>
+                              updateServiceLine(idx, { qty: e.target.value })
+                            }
                             className="w-14 rounded-lg border border-border bg-background px-2 py-1.5 text-sm tabular-nums outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
                           />
                           <input
@@ -686,7 +762,11 @@ export default function AccountingHome() {
                             step="0.01"
                             aria-label="الخصم"
                             value={line.discount}
-                            onChange={(e) => updateServiceLine(idx, { discount: e.target.value })}
+                            onChange={(e) =>
+                              updateServiceLine(idx, {
+                                discount: e.target.value,
+                              })
+                            }
                             placeholder="خصم"
                             className="w-16 rounded-lg border border-border bg-background px-2 py-1.5 text-sm tabular-nums outline-none focus:border-warning focus:ring-1 focus:ring-warning/20"
                           />
@@ -694,7 +774,11 @@ export default function AccountingHome() {
                             <button
                               type="button"
                               aria-label="حذف السطر"
-                              onClick={() => setServiceLines((prev) => prev.filter((_, i) => i !== idx))}
+                              onClick={() =>
+                                setServiceLines((prev) =>
+                                  prev.filter((_, i) => i !== idx),
+                                )
+                              }
                               className="shrink-0 rounded-full p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                             >
                               <X className="h-3.5 w-3.5" />
@@ -706,7 +790,12 @@ export default function AccountingHome() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setServiceLines((prev) => [...prev, { svcCode: "", qty: "1", discount: "", price: "" }])}
+                    onClick={() =>
+                      setServiceLines((prev) => [
+                        ...prev,
+                        { svcCode: "", qty: "1", discount: "", price: "" },
+                      ])
+                    }
                     className="self-start rounded-full border border-dashed border-ring/30 px-3 py-0.5 text-xs font-medium text-card-foreground hover:border-ring hover:bg-primary/5"
                   >
                     + خدمة
@@ -717,30 +806,49 @@ export default function AccountingHome() {
                     let gross = 0;
                     let disc = 0;
                     for (const l of filled) {
-                      const info = catalogServices.find((s) => s.code === l.svcCode);
-                      const price = l.price !== "" ? parseFloat(l.price) : (info?.price ?? 0);
+                      const info = catalogServices.find(
+                        (s) => s.code === l.svcCode,
+                      );
+                      const price =
+                        l.price !== ""
+                          ? parseFloat(l.price)
+                          : (info?.price ?? 0);
                       const qty = Math.max(1, Math.trunc(Number(l.qty) || 1));
                       gross += (Number.isFinite(price) ? price : 0) * qty;
-                      disc += l.discount !== "" && Number.isFinite(parseFloat(l.discount)) ? parseFloat(l.discount) : 0;
+                      disc +=
+                        l.discount !== "" &&
+                        Number.isFinite(parseFloat(l.discount))
+                          ? parseFloat(l.discount)
+                          : 0;
                     }
                     const net = Math.max(0, gross - disc);
                     return (
                       <div className="flex items-center gap-3 rounded-xl bg-muted px-3 py-2 text-xs">
-                        <span className="text-muted-foreground">ما يخص المريض</span>
-                        <span className="font-semibold tabular-nums text-foreground">{formatMoneyAr(gross)}</span>
+                        <span className="text-muted-foreground">
+                          ما يخص المريض
+                        </span>
+                        <span className="font-semibold tabular-nums text-foreground">
+                          {formatMoneyAr(gross)}
+                        </span>
                         {disc > 0 && (
                           <>
                             <span className="text-muted-foreground">خصم</span>
-                            <span className="tabular-nums text-warning">{formatMoneyAr(disc)}</span>
+                            <span className="tabular-nums text-warning">
+                              {formatMoneyAr(disc)}
+                            </span>
                           </>
                         )}
                         <span className="text-muted-foreground">الإجمالي</span>
-                        <span className="font-bold tabular-nums text-success">{formatMoneyAr(net)}</span>
+                        <span className="font-bold tabular-nums text-success">
+                          {formatMoneyAr(net)}
+                        </span>
                       </div>
                     );
                   })()}
                   {addServicesMut.error && (
-                    <p className="text-xs text-destructive">{addServicesMut.error.message}</p>
+                    <p className="text-xs text-destructive">
+                      {addServicesMut.error.message}
+                    </p>
                   )}
                   <div className="flex justify-start pt-0.5">
                     <button
@@ -806,478 +914,588 @@ export default function AccountingHome() {
         {activityEverVisible && (
           <section className="w-full overflow-hidden rounded-lg border border-border bg-background">
             <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-            <div>
-              <h2 className="text-sm font-bold text-foreground">
-                {isToday ? "حركات اليوم" : `حركات ${viewDate}`}
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                إيصالات ودفعيات القسم 15{isToday ? "" : ` — ${viewDate}`}.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              {activityQuery.isFetching && !activityQuery.isLoading ? (
-                <RefreshCw className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
-              ) : null}
-              <span className="rounded-full bg-muted text-muted-foreground">
-                {activityQuery.isLoading
-                  ? "..."
-                  : formatCountAr(receipts.length)}
-              </span>
-            </div>
-          </div>
-
-          {activityQuery.isLoading ? (
-            <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
-              <Loader className="h-4 w-4 animate-spin" />
-              جاري التحميل...
-            </div>
-          ) : activityQuery.isError ? (
-            <div className="flex flex-col items-center gap-3 py-16 text-sm text-muted-foreground">
-              <span>تعذر تحميل الحركات</span>
-              <button
-                type="button"
-                className="text-primary hover:underline"
-                onClick={() => activityQuery.refetch()}
-              >
-                إعادة المحاولة
-              </button>
-            </div>
-          ) : receipts.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-16 text-sm text-muted-foreground">
-              <FileText className="h-6 w-6 text-muted-foreground" />
-              <span>لا توجد حركات مسجلة اليوم</span>
-              <span className="text-xs text-muted-foreground">
-                ستظهر الإيصالات هنا تلقائيًا عندما يبدأ القسم بالحركة
-              </span>
-            </div>
-          ) : (
-            <>
-              <div className="grid gap-3 sm:hidden">
-                {receipts.map((r) => {
-                  const href = `/accounting/receipts/${r.sectionCode}/${r.trTy}/${r.trNo}`;
-                  const remaining = r.total - r.discount - r.paidValue;
-                  const balanceTone =
-                    remaining > 0
-                      ? "bg-warning/10 text-warning ring-warning/15"
-                      : "bg-success/10 text-success ring-success/20";
-                  const isDeleting = deletingTrNo === r.trNo;
-                  const isEditing = editingReceipt?.trNo === r.trNo;
-                  return (
-                    <div
-                      key={`${r.trTy}-${r.trNo}`}
-                      className={cn(
-                        "rounded-2xl border bg-background p-4 shadow-sm",
-                        isDeleting ? "border-destructive/30 bg-destructive/10" : "border-border",
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <Link href={href} className="min-w-0 flex-1 no-underline">
-                          <div className="flex items-center gap-2">
-                            <div className="text-xs font-medium text-muted-foreground">
-                              {formatTime(r.transactionDate)}
-                            </div>
-                            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
-                              إيصال
-                            </span>
-                          </div>
-                          <div className="mt-1 text-base font-semibold leading-snug text-foreground">
-                            {r.patientName || "—"}
-                          </div>
-                        </Link>
-                        <span
-                          className={cn(
-                            "rounded-full px-3 py-1 text-xs font-semibold ring-1",
-                            balanceTone,
-                          )}
-                        >
-                          {r.trNo}
-                        </span>
-                      </div>
-                      <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                        <div className="rounded-xl bg-muted px-3 py-2">
-                          <div className="text-xs text-muted-foreground">الكود</div>
-                          <div className="mt-1 font-semibold tabular-nums text-foreground">
-                            {r.patientCode || "—"}
-                          </div>
-                        </div>
-                        <div className="rounded-xl bg-muted px-3 py-2">
-                          <div className="text-xs text-muted-foreground">ما يخص المريض</div>
-                          <div className="mt-1 font-semibold tabular-nums text-foreground">
-                            {formatMoneyAr(r.total)}
-                          </div>
-                        </div>
-                        <div className="col-span-2 rounded-xl bg-success/10 px-3 py-2">
-                          <div className="text-xs text-success">المدفوع</div>
-                          <div className="mt-1 flex items-end justify-between gap-3">
-                            <div className="font-semibold tabular-nums text-success">
-                              {formatMoneyAr(r.paidValue)}
-                            </div>
-                            <div
-                              className={cn(
-                                "rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1",
-                                balanceTone,
-                              )}
-                            >
-                              {remaining > 0 ? "متبقي" : "مسدد"}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      {isEditing && (
-                        <form
-                          onSubmit={async (e) => {
-                            e.preventDefault();
-                            if (!editingReceipt) return;
-                            await updateReceiptMut.mutateAsync({
-                              patientCode: editingReceipt.patientCode,
-                              trNo: Number(editingReceipt.trNo),
-                              paidAmount: editingReceipt.paidAmount !== "" ? parseFloat(editingReceipt.paidAmount) : undefined,
-                              discount: editingReceipt.discount !== "" ? parseFloat(editingReceipt.discount) : undefined,
-                            });
-                          }}
-                          className="mt-3 flex flex-wrap gap-2 border-t border-primary/20 pt-3"
-                        >
-                          <div className="flex items-center gap-2">
-                            <label className="text-xs font-medium text-muted-foreground">المدفوع</label>
-                            <input
-                              type="number" min="0" step="0.01"
-                              value={editingReceipt?.paidAmount ?? ""}
-                              onChange={(e) => setEditingReceipt((p) => p ? { ...p, paidAmount: e.target.value } : null)}
-                              className="w-28 rounded-lg border border-ring/30 bg-background px-2.5 py-1 text-sm tabular-nums outline-none focus:border-ring"
-                            />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <label className="text-xs font-medium text-muted-foreground">الخصم</label>
-                            <input
-                              type="number" min="0" step="0.01"
-                              value={editingReceipt?.discount ?? ""}
-                              onChange={(e) => setEditingReceipt((p) => p ? { ...p, discount: e.target.value } : null)}
-                              className="w-24 rounded-lg border border-ring/30 bg-background px-2.5 py-1 text-sm tabular-nums outline-none focus:border-ring"
-                            />
-                          </div>
-                          <div className="flex gap-1.5">
-                            <button type="submit" disabled={updateReceiptMut.isPending}
-                              className="rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-                              {updateReceiptMut.isPending ? "..." : "حفظ"}
-                            </button>
-                            <button type="button" onClick={() => setEditingReceipt(null)}
-                              className="rounded-lg border border-border px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted">
-                              إلغاء
-                            </button>
-                          </div>
-                        </form>
-                      )}
-                      <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
-                        {isDeleting ? (
-                          <>
-                            <button
-                              type="button"
-                              disabled={deleteReceiptMut.isPending}
-                              onClick={() => deleteReceiptMut.mutate({ patientCode: r.patientCode, trNo: Number(r.trNo) })}
-                              className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive disabled:opacity-50"
-                            >
-                              {deleteReceiptMut.isPending ? "..." : "تأكيد الحذف"}
-                            </button>
-                            <button type="button" onClick={() => setDeletingTrNo(null)}
-                              className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground">
-                              إلغاء
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => setEditingReceipt(isEditing ? null : { trNo: r.trNo, patientCode: r.patientCode, paidAmount: String(r.paidValue ?? ""), discount: String(r.discount ?? "") })}
-                              className={cn("rounded-full p-1.5 transition-colors", isEditing ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted text-muted-foreground")}
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                            <button type="button" onClick={() => setDeletingTrNo(r.trNo)}
-                              className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive">
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-                <div className="rounded-2xl border border-border bg-muted p-4 text-xs font-semibold text-muted-foreground">
-                  {formatCountAr(receipts.length)} إيصال
-                </div>
+              <div>
+                <h2 className="text-sm font-bold text-foreground">
+                  {isToday ? "حركات اليوم" : `حركات ${viewDate}`}
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  إيصالات ودفعيات القسم 15{isToday ? "" : ` — ${viewDate}`}.
+                </p>
               </div>
-              <div className="hidden overflow-x-auto sm:block">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-muted text-xs font-semibold text-muted-foreground">
-                      <th scope="col" className="w-20 px-3 py-2.5 text-right">
-                        الوقت
-                      </th>
-                      <th scope="col" className="w-24 px-3 py-2.5 text-right">
-                        الإيصال
-                      </th>
-                      <th scope="col" className="px-3 py-2.5 text-right">
-                        المريض
-                      </th>
-                      <th
-                        scope="col"
-                        className="hidden w-20 px-3 py-2.5 text-right sm:table-cell"
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                {activityQuery.isFetching && !activityQuery.isLoading ? (
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                ) : null}
+                <span className="rounded-full bg-muted text-muted-foreground">
+                  {activityQuery.isLoading
+                    ? "..."
+                    : formatCountAr(receipts.length)}
+                </span>
+              </div>
+            </div>
+
+            {activityQuery.isLoading ? (
+              <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
+                <Loader className="h-4 w-4 animate-spin" />
+                جاري التحميل...
+              </div>
+            ) : activityQuery.isError ? (
+              <div className="flex flex-col items-center gap-3 py-16 text-sm text-muted-foreground">
+                <span>تعذر تحميل الحركات</span>
+                <button
+                  type="button"
+                  className="text-primary hover:underline"
+                  onClick={() => activityQuery.refetch()}
+                >
+                  إعادة المحاولة
+                </button>
+              </div>
+            ) : receipts.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-16 text-sm text-muted-foreground">
+                <FileText className="h-6 w-6 text-muted-foreground" />
+                <span>لا توجد حركات مسجلة اليوم</span>
+                <span className="text-xs text-muted-foreground">
+                  ستظهر الإيصالات هنا تلقائيًا عندما يبدأ القسم بالحركة
+                </span>
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-3 sm:hidden">
+                  {receipts.map((r) => {
+                    const href = `/accounting/receipts/${r.sectionCode}/${r.trTy}/${r.trNo}`;
+                    const remaining = r.total - r.discount - r.paidValue;
+                    const balanceTone =
+                      remaining > 0
+                        ? "bg-warning/10 text-warning ring-warning/15"
+                        : "bg-success/10 text-success ring-success/20";
+                    const isDeleting = deletingTrNo === r.trNo;
+                    const isEditing = editingReceipt?.trNo === r.trNo;
+                    return (
+                      <div
+                        key={`${r.trTy}-${r.trNo}`}
+                        className={cn(
+                          "rounded-2xl border bg-background p-4 shadow-sm",
+                          isDeleting
+                            ? "border-destructive/30 bg-destructive/10"
+                            : "border-border",
+                        )}
                       >
-                        الكود
-                      </th>
-                      <th
-                        scope="col"
-                        className="hidden w-28 px-3 py-2.5 text-left sm:table-cell"
-                        dir="ltr"
-                      >
-                        ما يخص المريض
-                      </th>
-                      <th
-                        scope="col"
-                        className="w-28 px-3 py-2.5 text-left"
-                        dir="ltr"
-                      >
-                        المدفوع
-                      </th>
-                      <th scope="col" className="w-32 px-3 py-2.5 text-center">
-                        إجراءات
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {receipts.map((r) => {
-                      const remaining = r.total - r.discount - r.paidValue;
-                      const href = `/accounting/receipts/${r.sectionCode}/${r.trTy}/${r.trNo}`;
-                      const isDeleting = deletingTrNo === r.trNo;
-                      const isEditing = editingReceipt?.trNo === r.trNo;
-                      return (
-                        <Fragment key={`${r.trTy}-${r.trNo}`}>
-                          <tr
+                        <div className="flex items-start justify-between gap-3">
+                          <Link
+                            href={href}
+                            className="min-w-0 flex-1 no-underline"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="text-xs font-medium text-muted-foreground">
+                                {formatTime(r.transactionDate)}
+                              </div>
+                              <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+                                إيصال
+                              </span>
+                            </div>
+                            <div className="mt-1 text-base font-semibold leading-snug text-foreground">
+                              {r.patientName || "—"}
+                            </div>
+                          </Link>
+                          <span
                             className={cn(
-                              "transition-colors hover:bg-muted",
-                              isDeleting && "bg-destructive/10",
-                              isEditing && "bg-primary/40",
+                              "rounded-full px-3 py-1 text-xs font-semibold ring-1",
+                              balanceTone,
                             )}
                           >
-                            <td
-                              className="whitespace-nowrap px-3 py-2 tabular-nums text-muted-foreground"
-                              dir="ltr"
-                            >
-                              {formatTime(r.transactionDate)}
-                            </td>
-                            <td
-                              className="px-3 py-2 font-semibold tabular-nums text-foreground"
-                              dir="ltr"
-                            >
-                              {r.trNo}
-                            </td>
-                            <td className="truncate px-3 py-2 text-foreground">
-                              {r.patientName || "—"}
-                            </td>
-                            <td
-                              className="hidden px-3 py-2 tabular-nums text-muted-foreground sm:table-cell"
-                              dir="ltr"
-                            >
+                            {r.trNo}
+                          </span>
+                        </div>
+                        <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                          <div className="rounded-xl bg-muted px-3 py-2">
+                            <div className="text-xs text-muted-foreground">
+                              الكود
+                            </div>
+                            <div className="mt-1 font-semibold tabular-nums text-foreground">
                               {r.patientCode || "—"}
-                            </td>
-                            <td
-                              className={cn(
-                                "hidden px-3 py-2 tabular-nums sm:table-cell",
-                                remaining > 0 && "font-semibold text-foreground",
-                              )}
-                              dir="ltr"
-                            >
+                            </div>
+                          </div>
+                          <div className="rounded-xl bg-muted px-3 py-2">
+                            <div className="text-xs text-muted-foreground">
+                              ما يخص المريض
+                            </div>
+                            <div className="mt-1 font-semibold tabular-nums text-foreground">
                               {formatMoneyAr(r.total)}
-                            </td>
-                            <td
-                              className={cn(
-                                "px-3 py-2 tabular-nums font-medium",
-                                remaining <= 0 ? "text-success" : "text-warning",
-                              )}
-                              dir="ltr"
-                            >
-                              {formatMoneyAr(r.paidValue)}
-                            </td>
-                            <td className="px-3 py-2">
-                              <div className="flex items-center justify-center gap-1">
-                                {!isDeleting && (
-                                  <Link
-                                    href={href}
-                                    aria-label={`فتح الإيصال ${r.trNo}`}
-                                    className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs font-semibold text-card-foreground transition-colors hover:border-ring/30 hover:bg-primary/5"
-                                  >
-                                    عرض
-                                    <ArrowUpRight className="h-3 w-3" />
-                                  </Link>
-                                )}
-                                {!isDeleting && (
-                                  <button
-                                    type="button"
-                                    title="تعديل"
-                                    onClick={() =>
-                                      setEditingReceipt(
-                                        isEditing
-                                          ? null
-                                          : {
-                                              trNo: r.trNo,
-                                              patientCode: r.patientCode,
-                                              paidAmount: String(r.paidValue ?? ""),
-                                              discount: String(r.discount ?? ""),
-                                            },
-                                      )
-                                    }
-                                    className={cn(
-                                      "rounded-full p-1.5 transition-colors",
-                                      isEditing
-                                        ? "bg-primary text-primary-foreground"
-                                        : "text-muted-foreground hover:bg-muted text-muted-foreground",
-                                    )}
-                                  >
-                                    <Pencil className="h-3 w-3" />
-                                  </button>
-                                )}
-                                {isDeleting ? (
-                                  <div className="flex items-center gap-1">
-                                    <button
-                                      type="button"
-                                      disabled={deleteReceiptMut.isPending}
-                                      onClick={() =>
-                                        deleteReceiptMut.mutate({
-                                          patientCode: r.patientCode,
-                                          trNo: Number(r.trNo),
-                                        })
-                                      }
-                                      className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive disabled:opacity-50"
-                                    >
-                                      {deleteReceiptMut.isPending ? "..." : "تأكيد"}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setDeletingTrNo(null)}
-                                      className="rounded-full p-1.5 text-muted-foreground hover:bg-muted text-muted-foreground"
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    title="حذف"
-                                    onClick={() => setDeletingTrNo(r.trNo)}
-                                    className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </button>
-                                )}
+                            </div>
+                          </div>
+                          <div className="col-span-2 rounded-xl bg-success/10 px-3 py-2">
+                            <div className="text-xs text-success">المدفوع</div>
+                            <div className="mt-1 flex items-end justify-between gap-3">
+                              <div className="font-semibold tabular-nums text-success">
+                                {formatMoneyAr(r.paidValue)}
                               </div>
-                            </td>
-                          </tr>
-                          {isEditing && (
-                            <tr className="bg-primary/50">
-                              <td colSpan={7} className="px-4 py-3">
-                                <form
-                                  onSubmit={async (e) => {
-                                    e.preventDefault();
-                                    if (!editingReceipt) return;
-                                    await updateReceiptMut.mutateAsync({
-                                      patientCode: editingReceipt.patientCode,
-                                      trNo: Number(editingReceipt.trNo),
-                                      paidAmount: editingReceipt.paidAmount !== "" ? parseFloat(editingReceipt.paidAmount) : undefined,
-                                      discount: editingReceipt.discount !== "" ? parseFloat(editingReceipt.discount) : undefined,
-                                    });
-                                  }}
-                                  className="flex flex-wrap items-center gap-3"
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <label className="text-xs font-medium text-muted-foreground">المدفوع</label>
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      step="0.01"
-                                      value={editingReceipt?.paidAmount ?? ""}
-                                      onChange={(e) =>
-                                        setEditingReceipt((prev) =>
-                                          prev ? { ...prev, paidAmount: e.target.value } : null,
-                                        )
-                                      }
-                                      className="w-28 rounded-lg border border-ring/30 bg-background px-2.5 py-1 text-sm tabular-nums outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
-                                    />
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <label className="text-xs font-medium text-muted-foreground">الخصم</label>
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      step="0.01"
-                                      value={editingReceipt?.discount ?? ""}
-                                      onChange={(e) =>
-                                        setEditingReceipt((prev) =>
-                                          prev ? { ...prev, discount: e.target.value } : null,
-                                        )
-                                      }
-                                      className="w-24 rounded-lg border border-ring/30 bg-background px-2.5 py-1 text-sm tabular-nums outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
-                                    />
-                                  </div>
-                                  {updateReceiptMut.error && (
-                                    <span className="text-xs text-destructive">{updateReceiptMut.error.message}</span>
-                                  )}
-                                  <div className="flex gap-1.5">
-                                    <button
-                                      type="submit"
-                                      disabled={updateReceiptMut.isPending}
-                                      className="rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                              <div
+                                className={cn(
+                                  "rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1",
+                                  balanceTone,
+                                )}
+                              >
+                                {remaining > 0 ? "متبقي" : "مسدد"}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        {isEditing && (
+                          <form
+                            onSubmit={async (e) => {
+                              e.preventDefault();
+                              if (!editingReceipt) return;
+                              await updateReceiptMut.mutateAsync({
+                                patientCode: editingReceipt.patientCode,
+                                trNo: Number(editingReceipt.trNo),
+                                paidAmount:
+                                  editingReceipt.paidAmount !== ""
+                                    ? parseFloat(editingReceipt.paidAmount)
+                                    : undefined,
+                                discount:
+                                  editingReceipt.discount !== ""
+                                    ? parseFloat(editingReceipt.discount)
+                                    : undefined,
+                              });
+                            }}
+                            className="mt-3 flex flex-wrap gap-2 border-t border-primary/20 pt-3"
+                          >
+                            <div className="flex items-center gap-2">
+                              <label className="text-xs font-medium text-muted-foreground">
+                                المدفوع
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={editingReceipt?.paidAmount ?? ""}
+                                onChange={(e) =>
+                                  setEditingReceipt((p) =>
+                                    p
+                                      ? { ...p, paidAmount: e.target.value }
+                                      : null,
+                                  )
+                                }
+                                className="w-28 rounded-lg border border-ring/30 bg-background px-2.5 py-1 text-sm tabular-nums outline-none focus:border-ring"
+                              />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <label className="text-xs font-medium text-muted-foreground">
+                                الخصم
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={editingReceipt?.discount ?? ""}
+                                onChange={(e) =>
+                                  setEditingReceipt((p) =>
+                                    p
+                                      ? { ...p, discount: e.target.value }
+                                      : null,
+                                  )
+                                }
+                                className="w-24 rounded-lg border border-ring/30 bg-background px-2.5 py-1 text-sm tabular-nums outline-none focus:border-ring"
+                              />
+                            </div>
+                            <div className="flex gap-1.5">
+                              <button
+                                type="submit"
+                                disabled={updateReceiptMut.isPending}
+                                className="rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                              >
+                                {updateReceiptMut.isPending ? "..." : "حفظ"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingReceipt(null)}
+                                className="rounded-lg border border-border px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted"
+                              >
+                                إلغاء
+                              </button>
+                            </div>
+                          </form>
+                        )}
+                        <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
+                          {isDeleting ? (
+                            <>
+                              <button
+                                type="button"
+                                disabled={deleteReceiptMut.isPending}
+                                onClick={() =>
+                                  deleteReceiptMut.mutate({
+                                    patientCode: r.patientCode,
+                                    trNo: Number(r.trNo),
+                                  })
+                                }
+                                className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive disabled:opacity-50"
+                              >
+                                {deleteReceiptMut.isPending
+                                  ? "..."
+                                  : "تأكيد الحذف"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDeletingTrNo(null)}
+                                className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground"
+                              >
+                                إلغاء
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setEditingReceipt(
+                                    isEditing
+                                      ? null
+                                      : {
+                                          trNo: r.trNo,
+                                          patientCode: r.patientCode,
+                                          paidAmount: String(r.paidValue ?? ""),
+                                          discount: String(r.discount ?? ""),
+                                        },
+                                  )
+                                }
+                                className={cn(
+                                  "rounded-full p-1.5 transition-colors",
+                                  isEditing
+                                    ? "bg-primary text-primary-foreground"
+                                    : "text-muted-foreground hover:bg-muted text-muted-foreground",
+                                )}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDeletingTrNo(r.trNo)}
+                                className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="rounded-2xl border border-border bg-muted p-4 text-xs font-semibold text-muted-foreground">
+                    {formatCountAr(receipts.length)} إيصال
+                  </div>
+                </div>
+                <div className="hidden overflow-x-auto sm:block">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-muted text-xs font-semibold text-muted-foreground">
+                        <th scope="col" className="w-20 px-3 py-2.5 text-right">
+                          الوقت
+                        </th>
+                        <th scope="col" className="w-24 px-3 py-2.5 text-right">
+                          الإيصال
+                        </th>
+                        <th scope="col" className="px-3 py-2.5 text-right">
+                          المريض
+                        </th>
+                        <th
+                          scope="col"
+                          className="hidden w-20 px-3 py-2.5 text-right sm:table-cell"
+                        >
+                          الكود
+                        </th>
+                        <th
+                          scope="col"
+                          className="hidden w-28 px-3 py-2.5 text-left sm:table-cell"
+                          dir="ltr"
+                        >
+                          ما يخص المريض
+                        </th>
+                        <th
+                          scope="col"
+                          className="w-28 px-3 py-2.5 text-left"
+                          dir="ltr"
+                        >
+                          المدفوع
+                        </th>
+                        <th
+                          scope="col"
+                          className="w-32 px-3 py-2.5 text-center"
+                        >
+                          إجراءات
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {receipts.map((r) => {
+                        const remaining = r.total - r.discount - r.paidValue;
+                        const href = `/accounting/receipts/${r.sectionCode}/${r.trTy}/${r.trNo}`;
+                        const isDeleting = deletingTrNo === r.trNo;
+                        const isEditing = editingReceipt?.trNo === r.trNo;
+                        return (
+                          <Fragment key={`${r.trTy}-${r.trNo}`}>
+                            <tr
+                              className={cn(
+                                "transition-colors hover:bg-muted",
+                                isDeleting && "bg-destructive/10",
+                                isEditing && "bg-primary/40",
+                              )}
+                            >
+                              <td
+                                className="whitespace-nowrap px-3 py-2 tabular-nums text-muted-foreground"
+                                dir="ltr"
+                              >
+                                {formatTime(r.transactionDate)}
+                              </td>
+                              <td
+                                className="px-3 py-2 font-semibold tabular-nums text-foreground"
+                                dir="ltr"
+                              >
+                                {r.trNo}
+                              </td>
+                              <td className="truncate px-3 py-2 text-foreground">
+                                {r.patientName || "—"}
+                              </td>
+                              <td
+                                className="hidden px-3 py-2 tabular-nums text-muted-foreground sm:table-cell"
+                                dir="ltr"
+                              >
+                                {r.patientCode || "—"}
+                              </td>
+                              <td
+                                className={cn(
+                                  "hidden px-3 py-2 tabular-nums sm:table-cell",
+                                  remaining > 0 &&
+                                    "font-semibold text-foreground",
+                                )}
+                                dir="ltr"
+                              >
+                                {formatMoneyAr(r.total)}
+                              </td>
+                              <td
+                                className={cn(
+                                  "px-3 py-2 tabular-nums font-medium",
+                                  remaining <= 0
+                                    ? "text-success"
+                                    : "text-warning",
+                                )}
+                                dir="ltr"
+                              >
+                                {formatMoneyAr(r.paidValue)}
+                              </td>
+                              <td className="px-3 py-2">
+                                <div className="flex items-center justify-center gap-1">
+                                  {!isDeleting && (
+                                    <Link
+                                      href={href}
+                                      aria-label={`فتح الإيصال ${r.trNo}`}
+                                      className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs font-semibold text-card-foreground transition-colors hover:border-ring/30 hover:bg-primary/5"
                                     >
-                                      {updateReceiptMut.isPending ? "..." : "حفظ"}
-                                    </button>
+                                      عرض
+                                      <ArrowUpRight className="h-3 w-3" />
+                                    </Link>
+                                  )}
+                                  {!isDeleting && (
                                     <button
                                       type="button"
-                                      onClick={() => setEditingReceipt(null)}
-                                      className="rounded-lg border border-border px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted"
+                                      title="تعديل"
+                                      onClick={() =>
+                                        setEditingReceipt(
+                                          isEditing
+                                            ? null
+                                            : {
+                                                trNo: r.trNo,
+                                                patientCode: r.patientCode,
+                                                paidAmount: String(
+                                                  r.paidValue ?? "",
+                                                ),
+                                                discount: String(
+                                                  r.discount ?? "",
+                                                ),
+                                              },
+                                        )
+                                      }
+                                      className={cn(
+                                        "rounded-full p-1.5 transition-colors",
+                                        isEditing
+                                          ? "bg-primary text-primary-foreground"
+                                          : "text-muted-foreground hover:bg-muted text-muted-foreground",
+                                      )}
                                     >
-                                      إلغاء
+                                      <Pencil className="h-3 w-3" />
                                     </button>
-                                  </div>
-                                </form>
+                                  )}
+                                  {isDeleting ? (
+                                    <div className="flex items-center gap-1">
+                                      <button
+                                        type="button"
+                                        disabled={deleteReceiptMut.isPending}
+                                        onClick={() =>
+                                          deleteReceiptMut.mutate({
+                                            patientCode: r.patientCode,
+                                            trNo: Number(r.trNo),
+                                          })
+                                        }
+                                        className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive disabled:opacity-50"
+                                      >
+                                        {deleteReceiptMut.isPending
+                                          ? "..."
+                                          : "تأكيد"}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setDeletingTrNo(null)}
+                                        className="rounded-full p-1.5 text-muted-foreground hover:bg-muted text-muted-foreground"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      title="حذف"
+                                      onClick={() => setDeletingTrNo(r.trNo)}
+                                      className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  )}
+                                </div>
                               </td>
                             </tr>
+                            {isEditing && (
+                              <tr className="bg-primary/50">
+                                <td colSpan={7} className="px-4 py-3">
+                                  <form
+                                    onSubmit={async (e) => {
+                                      e.preventDefault();
+                                      if (!editingReceipt) return;
+                                      await updateReceiptMut.mutateAsync({
+                                        patientCode: editingReceipt.patientCode,
+                                        trNo: Number(editingReceipt.trNo),
+                                        paidAmount:
+                                          editingReceipt.paidAmount !== ""
+                                            ? parseFloat(
+                                                editingReceipt.paidAmount,
+                                              )
+                                            : undefined,
+                                        discount:
+                                          editingReceipt.discount !== ""
+                                            ? parseFloat(
+                                                editingReceipt.discount,
+                                              )
+                                            : undefined,
+                                      });
+                                    }}
+                                    className="flex flex-wrap items-center gap-3"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <label className="text-xs font-medium text-muted-foreground">
+                                        المدفوع
+                                      </label>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={editingReceipt?.paidAmount ?? ""}
+                                        onChange={(e) =>
+                                          setEditingReceipt((prev) =>
+                                            prev
+                                              ? {
+                                                  ...prev,
+                                                  paidAmount: e.target.value,
+                                                }
+                                              : null,
+                                          )
+                                        }
+                                        className="w-28 rounded-lg border border-ring/30 bg-background px-2.5 py-1 text-sm tabular-nums outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
+                                      />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <label className="text-xs font-medium text-muted-foreground">
+                                        الخصم
+                                      </label>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={editingReceipt?.discount ?? ""}
+                                        onChange={(e) =>
+                                          setEditingReceipt((prev) =>
+                                            prev
+                                              ? {
+                                                  ...prev,
+                                                  discount: e.target.value,
+                                                }
+                                              : null,
+                                          )
+                                        }
+                                        className="w-24 rounded-lg border border-ring/30 bg-background px-2.5 py-1 text-sm tabular-nums outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
+                                      />
+                                    </div>
+                                    {updateReceiptMut.error && (
+                                      <span className="text-xs text-destructive">
+                                        {updateReceiptMut.error.message}
+                                      </span>
+                                    )}
+                                    <div className="flex gap-1.5">
+                                      <button
+                                        type="submit"
+                                        disabled={updateReceiptMut.isPending}
+                                        className="rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                                      >
+                                        {updateReceiptMut.isPending
+                                          ? "..."
+                                          : "حفظ"}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditingReceipt(null)}
+                                        className="rounded-lg border border-border px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted"
+                                      >
+                                        إلغاء
+                                      </button>
+                                    </div>
+                                  </form>
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t border-border bg-muted/80">
+                        <td
+                          colSpan={3}
+                          className="px-3 py-2.5 text-xs font-semibold text-muted-foreground"
+                        >
+                          {formatCountAr(receipts.length)} إيصال
+                        </td>
+                        <td className="hidden px-3 py-2.5 sm:table-cell" />
+                        <td
+                          className="hidden px-3 py-2.5 text-left tabular-nums font-bold text-foreground sm:table-cell"
+                          dir="ltr"
+                        >
+                          {formatMoneyAr(
+                            receipts.reduce((a, r) => a + r.total, 0),
                           )}
-                        </Fragment>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t border-border bg-muted/80">
-                      <td
-                        colSpan={3}
-                        className="px-3 py-2.5 text-xs font-semibold text-muted-foreground"
-                      >
-                        {formatCountAr(receipts.length)} إيصال
-                      </td>
-                      <td className="hidden px-3 py-2.5 sm:table-cell" />
-                      <td
-                        className="hidden px-3 py-2.5 text-left tabular-nums font-bold text-foreground sm:table-cell"
-                        dir="ltr"
-                      >
-                        {formatMoneyAr(
-                          receipts.reduce((a, r) => a + r.total, 0),
-                        )}
-                      </td>
-                      <td
-                        className="px-3 py-2.5 text-left tabular-nums font-bold text-success"
-                        dir="ltr"
-                      >
-                        {formatMoneyAr(
-                          receipts.reduce((a, r) => a + r.paidValue, 0),
-                        )}
-                      </td>
-                      <td />
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </>
-          )}
-        </section>
+                        </td>
+                        <td
+                          className="px-3 py-2.5 text-left tabular-nums font-bold text-success"
+                          dir="ltr"
+                        >
+                          {formatMoneyAr(
+                            receipts.reduce((a, r) => a + r.paidValue, 0),
+                          )}
+                        </td>
+                        <td />
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </>
+            )}
+          </section>
         )}
       </div>
     </AccountingShell>

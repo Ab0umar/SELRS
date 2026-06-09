@@ -13,7 +13,9 @@ export function AppShellFooter() {
     >
       <div className="mx-auto flex w-full max-w-[1600px] flex-row items-center justify-between gap-3 text-[11px] leading-snug text-muted-foreground">
         <span className="min-w-0 truncate text-left">{BRAND_FOOTER_EN}</span>
-        <span className="shrink-0 font-mono tabular-nums text-foreground/80">{ver}</span>
+        <span className="shrink-0 font-mono tabular-nums text-foreground/80">
+          {ver}
+        </span>
       </div>
     </footer>
   );

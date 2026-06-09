@@ -98,7 +98,8 @@ titlePageConcept:
   audiencePromise: "Why this audience should keep reading"
   coverThesis: "The single idea the cover must land"
   chosenArchetype: "editorial masthead | monumental statement | full-bleed image | artifact cover | typographic poster | one-number market cover | map/field cover | quote-as-title | premium report cover"
-  rejectedCliches: ["generic dashboard opener", "hero plus card rail", "metric-card grid"]
+  rejectedCliches:
+    ["generic dashboard opener", "hero plus card rail", "metric-card grid"]
   dominantElement: "The one visual/type/data element that owns the page"
   supportingElement: "Optional secondary element that stays clearly subordinate"
   typographyMove: "Scale, measure, alignment, rhythm, and contrast"
@@ -877,14 +878,28 @@ slide.compose(
     padding={layout.safeArea}
   >
     <column name="title-stack" width={fill} height={hug} gap={layout.titleGap}>
-      <paragraph name="slide-title" width={wrap(layout.titleMeasure)} style={styles.title}>
+      <paragraph
+        name="slide-title"
+        width={wrap(layout.titleMeasure)}
+        style={styles.title}
+      >
         {title}
       </paragraph>
-      <paragraph name="slide-subtitle" width={wrap(layout.subtitleMeasure)} style={styles.subtitle}>
+      <paragraph
+        name="slide-subtitle"
+        width={wrap(layout.subtitleMeasure)}
+        style={styles.subtitle}
+      >
         {subtitle}
       </paragraph>
     </column>
-    <grid name="body-grid" width={fill} height={fill} columns={[fr(7), fr(5)]} columnGap={layout.columnGap}>
+    <grid
+      name="body-grid"
+      width={fill}
+      height={fill}
+      columns={[fr(7), fr(5)]}
+      columnGap={layout.columnGap}
+    >
       {primaryRegion}
       {supportRegion}
     </grid>
@@ -903,18 +918,41 @@ const cover = titlePageConcept;
 slide.compose(
   <box name="cover-stage" width={fill} height={fill} style={styles.coverStage}>
     {cover.dominantElement}
-    <column name="cover-type-lockup" width={wrap(layout.coverTitleMeasure)} height={hug} gap={layout.coverTitleGap}>
-      <paragraph name="cover-eyebrow" width={hug} style={styles.coverEyebrow}>{eyebrow}</paragraph>
-      <paragraph name="cover-title" width={wrap(layout.coverTitleMeasure)} style={styles.coverTitle}>
+    <column
+      name="cover-type-lockup"
+      width={wrap(layout.coverTitleMeasure)}
+      height={hug}
+      gap={layout.coverTitleGap}
+    >
+      <paragraph name="cover-eyebrow" width={hug} style={styles.coverEyebrow}>
+        {eyebrow}
+      </paragraph>
+      <paragraph
+        name="cover-title"
+        width={wrap(layout.coverTitleMeasure)}
+        style={styles.coverTitle}
+      >
         {headline}
       </paragraph>
-      <paragraph name="cover-promise" width={wrap(layout.coverPromiseMeasure)} style={styles.coverPromise}>
+      <paragraph
+        name="cover-promise"
+        width={wrap(layout.coverPromiseMeasure)}
+        style={styles.coverPromise}
+      >
         {audiencePromise}
       </paragraph>
     </column>
-    <row name="cover-meta" width={fill} height={hug} justify="between" align="end">
+    <row
+      name="cover-meta"
+      width={fill}
+      height={hug}
+      justify="between"
+      align="end"
+    >
       {logoLockup}
-      <paragraph name="cover-date" width={hug} style={styles.coverMeta}>{dateOrContext}</paragraph>
+      <paragraph name="cover-date" width={hug} style={styles.coverMeta}>
+        {dateOrContext}
+      </paragraph>
     </row>
   </box>,
 );

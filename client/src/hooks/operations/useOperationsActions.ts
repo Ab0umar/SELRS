@@ -14,7 +14,14 @@ import {
 import { trpc } from "@/lib/trpc";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { type OperationsState } from "./useOperations";
-import { type AccountsAdjustments, type ListData, type SavedSummary, sanitizePayment, toDateInputValue, toHindi } from "./operationsShared";
+import {
+  type AccountsAdjustments,
+  type ListData,
+  type SavedSummary,
+  sanitizePayment,
+  toDateInputValue,
+  toHindi,
+} from "./operationsShared";
 
 export function useOperationsActions(operations: OperationsState) {
   const utils = trpc.useUtils();
@@ -28,28 +35,39 @@ export function useOperationsActions(operations: OperationsState) {
       toast.error(getTrpcErrorMessage(error, "فشل حفظ القائمة"));
     },
   });
-  const deleteListByIdMutation = trpc.medical.deleteOperationListById.useMutation({
-    onSuccess: async () => {
-      await utils.medical.getTodayOperationLists.invalidate();
-      toast.success("تم حذف القائمة من السجل");
-      operations.historyQuery.refetch();
-    },
-    onError: (error) => {
-      toast.error(getTrpcErrorMessage(error, "فشل حذف القائمة من السجل"));
-    },
-  });
+  const deleteListByIdMutation =
+    trpc.medical.deleteOperationListById.useMutation({
+      onSuccess: async () => {
+        await utils.medical.getTodayOperationLists.invalidate();
+        toast.success("تم حذف القائمة من السجل");
+        operations.historyQuery.refetch();
+      },
+      onError: (error) => {
+        toast.error(getTrpcErrorMessage(error, "فشل حذف القائمة من السجل"));
+      },
+    });
   const saveUserStateMutation = trpc.medical.saveUserPageState.useMutation();
 
   const lastSavedRef = useRef("");
-  const lastSaveAttemptRef = useRef<{ snapshot: string; at: number }>({ snapshot: "", at: 0 });
+  const lastSaveAttemptRef = useRef<{ snapshot: string; at: number }>({
+    snapshot: "",
+    at: 0,
+  });
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleAccountsAdjustmentInputChange = (key: keyof AccountsAdjustments, rawValue: string) => {
+  const handleAccountsAdjustmentInputChange = (
+    key: keyof AccountsAdjustments,
+    rawValue: string,
+  ) => {
     operations.setAccountsAdjustmentInputsByTab((prev) => ({
       ...prev,
       [operations.activeTab]: {
-        ...(prev[operations.activeTab] ?? { radiology: "0", external: "0", cashbox: "0" }),
+        ...(prev[operations.activeTab] ?? {
+          radiology: "0",
+          external: "0",
+          cashbox: "0",
+        }),
         [key]: rawValue,
       },
     }));
@@ -60,18 +78,28 @@ export function useOperationsActions(operations: OperationsState) {
     operations.setAccountsAdjustmentsByTab((prev) => ({
       ...prev,
       [operations.activeTab]: {
-        ...(prev[operations.activeTab] ?? { radiology: 0, external: 0, cashbox: 0 }),
+        ...(prev[operations.activeTab] ?? {
+          radiology: 0,
+          external: 0,
+          cashbox: 0,
+        }),
         [key]: parsed,
       },
     }));
   };
 
-  const handleAccountsAdjustmentInputBlur = (key: keyof AccountsAdjustments) => {
+  const handleAccountsAdjustmentInputBlur = (
+    key: keyof AccountsAdjustments,
+  ) => {
     const numericValue = Number(operations.accountsAdjustments[key] ?? 0);
     operations.setAccountsAdjustmentInputsByTab((prev) => ({
       ...prev,
       [operations.activeTab]: {
-        ...(prev[operations.activeTab] ?? { radiology: "0", external: "0", cashbox: "0" }),
+        ...(prev[operations.activeTab] ?? {
+          radiology: "0",
+          external: "0",
+          cashbox: "0",
+        }),
         [key]: String(Number.isFinite(numericValue) ? numericValue : 0),
       },
     }));
@@ -95,17 +123,18 @@ export function useOperationsActions(operations: OperationsState) {
         <td>${toHindi(values.remainingAmount.toFixed(2))}</td>
       </tr>`;
         })
-        .join("") || `<tr><td colspan="8" style="padding:10px;text-align:center;color:#888;">لا توجد حالات</td></tr>`;
+        .join("") ||
+      `<tr><td colspan="8" style="padding:10px;text-align:center;color:#888;">لا توجد حالات</td></tr>`;
     const extraRows = operations.showSawafAdjustments
       ? `
         <tr><td colspan="5"></td><td style="font-weight:700;">الاشعه</td><td colspan="2">${toHindi(
-          operations.accountsAdjustments.radiology.toFixed(2)
+          operations.accountsAdjustments.radiology.toFixed(2),
         )}</td></tr>
         <tr><td colspan="5"></td><td style="font-weight:700;">خارجي</td><td colspan="2">${toHindi(
-          operations.accountsAdjustments.external.toFixed(2)
+          operations.accountsAdjustments.external.toFixed(2),
         )}</td></tr>
         <tr><td colspan="5"></td><td style="font-weight:700;">الصندوق</td><td colspan="2">${toHindi(
-          operations.accountsAdjustments.cashbox.toFixed(2)
+          operations.accountsAdjustments.cashbox.toFixed(2),
         )}</td></tr>
         <tr style="font-weight:700;background:#f5f5f5;">
           <td colspan="5">إجمالي (الاشعه + خارجي + الصندوق)</td>
@@ -124,8 +153,20 @@ export function useOperationsActions(operations: OperationsState) {
       </div>
       <table style="width:100%;border-collapse:collapse;table-layout:fixed;font-family:Tahoma,Arial,sans-serif;">
         <thead><tr>
-          ${["اسم المريض", "نوع العملية", "المبلغ", "نوع الخصم", "الخصم", "المدفوع", "حساب المركز (من الدكتور)", "المتبقي (حساب الدكتور)"]
-            .map((header) => `<th style="border:1px solid #444;padding:${cellPad};background:#d1d5db;font-weight:bold;font-size:${headSize};text-align:center;">${header}</th>`)
+          ${[
+            "اسم المريض",
+            "نوع العملية",
+            "المبلغ",
+            "نوع الخصم",
+            "الخصم",
+            "المدفوع",
+            "حساب المركز (من الدكتور)",
+            "المتبقي (حساب الدكتور)",
+          ]
+            .map(
+              (header) =>
+                `<th style="border:1px solid #444;padding:${cellPad};background:#d1d5db;font-weight:bold;font-size:${headSize};text-align:center;">${header}</th>`,
+            )
             .join("")}
         </tr></thead>
         <tbody style="font-size:${bodySize};">
@@ -144,11 +185,13 @@ export function useOperationsActions(operations: OperationsState) {
   };
 
   const buildOperationsPrintContent = () => {
-    if (operations.viewMode === "accounts") return buildAccountsPrintContent(false);
+    if (operations.viewMode === "accounts")
+      return buildAccountsPrintContent(false);
     const hindiDate = toHindi(operations.exportDateLabel.replace(/-/g, "/"));
     const hindiTime = toHindi(operations.exportTimeLabel);
     const hasCataract =
-      operations.operationType === "Cataract" || operations.currentList.some((row) => row.operation === "Cataract");
+      operations.operationType === "Cataract" ||
+      operations.currentList.some((row) => row.operation === "Cataract");
     const colSpan = hasCataract ? 10 : 9;
     const cols = [
       { key: "#", w: "4%" },
@@ -177,10 +220,22 @@ export function useOperationsActions(operations: OperationsState) {
       <td>${appointment.center ? "✓" : ""}</td>
       <td>${appointment.payment}</td>
       <td>${appointment.code ?? ""}</td>
-    </tr>`
+    </tr>`,
         )
-        .join("") || `<tr><td colspan="${colSpan}" style="padding:10px;text-align:center;color:#888;">لا توجد حالات</td></tr>`;
-    const headers = ["#", "اسم المريض", "الهاتف", "الطبيب", "العملية", "العين", ...(hasCataract ? ["المستشفى"] : []), "مركز", "دفع", "الكود"];
+        .join("") ||
+      `<tr><td colspan="${colSpan}" style="padding:10px;text-align:center;color:#888;">لا توجد حالات</td></tr>`;
+    const headers = [
+      "#",
+      "اسم المريض",
+      "الهاتف",
+      "الطبيب",
+      "العملية",
+      "العين",
+      ...(hasCataract ? ["المستشفى"] : []),
+      "مركز",
+      "دفع",
+      "الكود",
+    ];
     return `
       <div dir="rtl" style="font-size:14px;font-weight:700;margin-bottom:10px;text-align:center;font-family:Tahoma,Arial,sans-serif;">
         التاريخ: ${hindiDate} &nbsp;|&nbsp; الساعة: ${hindiTime} &nbsp;|&nbsp; الطبيب: ${operations.exportDoctorLabel}
@@ -191,7 +246,7 @@ export function useOperationsActions(operations: OperationsState) {
           ${headers
             .map(
               (header) =>
-                `<th style="border:1px solid #444;padding:6px 6px;background:#d1d5db;font-weight:bold;font-size:12pt;text-align:center;white-space:nowrap;line-height:1.2;font-family:Tahoma,Arial,sans-serif;vertical-align:middle;height:44px;">${header}</th>`
+                `<th style="border:1px solid #444;padding:6px 6px;background:#d1d5db;font-weight:bold;font-size:12pt;text-align:center;white-space:nowrap;line-height:1.2;font-family:Tahoma,Arial,sans-serif;vertical-align:middle;height:44px;">${header}</th>`,
             )
             .join("")}
         </tr></thead>
@@ -218,7 +273,10 @@ export function useOperationsActions(operations: OperationsState) {
 </html>`);
     printWindow.document.close();
     printWindow.focus();
-    setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 300);
   };
 
   const saveAccountsJpg = async () => {
@@ -232,7 +290,10 @@ export function useOperationsActions(operations: OperationsState) {
       document.body.appendChild(captureRoot);
       try {
         await new Promise((resolve) => setTimeout(resolve, 120));
-        const blob = await captureElementAsJpg({ element: captureRoot, quality: 0.92 });
+        const blob = await captureElementAsJpg({
+          element: captureRoot,
+          quality: 0.92,
+        });
         if (!blob) throw new Error("toBlob failed");
         saveBlobInBrowser(blob, buildExportFileName());
         toast.success("تم حفظ الصورة JPG");
@@ -245,7 +306,10 @@ export function useOperationsActions(operations: OperationsState) {
   };
 
   const handlePrint = () => {
-    const content = operations.viewMode === "accounts" ? buildAccountsPrintContent(true) : buildOperationsPrintContent();
+    const content =
+      operations.viewMode === "accounts"
+        ? buildAccountsPrintContent(true)
+        : buildOperationsPrintContent();
     const printWindow = window.open("", "_blank", "width=1280,height=900");
     if (!printWindow) return;
     printWindow.document.write(`<!DOCTYPE html>
@@ -262,7 +326,10 @@ export function useOperationsActions(operations: OperationsState) {
 </html>`);
     printWindow.document.close();
     printWindow.focus();
-    setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 300);
   };
 
   const captureOperationsAsJpg = async (): Promise<Blob> => {
@@ -275,7 +342,10 @@ export function useOperationsActions(operations: OperationsState) {
     document.body.appendChild(captureRoot);
     try {
       await new Promise((resolve) => setTimeout(resolve, 120));
-      const blob = await captureElementAsJpg({ element: captureRoot, quality: 0.92 });
+      const blob = await captureElementAsJpg({
+        element: captureRoot,
+        quality: 0.92,
+      });
       if (!blob) throw new Error("toBlob failed");
       return blob;
     } finally {
@@ -283,7 +353,8 @@ export function useOperationsActions(operations: OperationsState) {
     }
   };
 
-  const buildExportFileName = () => `operations-${operations.activeTab}-${new Date().toISOString().replace(/[:.]/g, "-")}.jpg`;
+  const buildExportFileName = () =>
+    `operations-${operations.activeTab}-${new Date().toISOString().replace(/[:.]/g, "-")}.jpg`;
 
   const saveBlobInBrowser = (blob: Blob, fileName: string) => {
     const url = URL.createObjectURL(blob);
@@ -351,7 +422,10 @@ export function useOperationsActions(operations: OperationsState) {
       }
       if (navigator.share) {
         const file = new File([blob], fileName, { type: "image/jpeg" });
-        const canShareFiles = typeof (navigator as any).canShare === "function" ? (navigator as any).canShare({ files: [file] }) : true;
+        const canShareFiles =
+          typeof (navigator as any).canShare === "function"
+            ? (navigator as any).canShare({ files: [file] })
+            : true;
         if (canShareFiles) {
           await navigator.share({ title: "Operations", files: [file] });
           return;
@@ -374,7 +448,7 @@ export function useOperationsActions(operations: OperationsState) {
       (row) =>
         row.patientId === patient.id ||
         (!!patient.patientCode && row.code === patient.patientCode) ||
-        (!!patient.phone && row.phone === patient.phone)
+        (!!patient.phone && row.phone === patient.phone),
     );
     if (exists) {
       toast.error("هذه الحالة موجودة بالفعل في القائمة");
@@ -387,7 +461,10 @@ export function useOperationsActions(operations: OperationsState) {
       name: patient.fullName ?? "",
       phone: patient.phone ?? "",
       doctor: operations.doctorName,
-      operation: operations.operationType === "" ? operations.operationTypeOther : operations.operationType,
+      operation:
+        operations.operationType === ""
+          ? operations.operationTypeOther
+          : operations.operationType,
       eye: "",
       center: false,
       payment: "",
@@ -399,7 +476,11 @@ export function useOperationsActions(operations: OperationsState) {
       discountType: "amount",
       discountValue: 0,
     };
-    const defaults = getPricingDefaults(operations.activeTab, row, operations.pricingConfig);
+    const defaults = getPricingDefaults(
+      operations.activeTab,
+      row,
+      operations.pricingConfig,
+    );
     row.amount = defaults.amount;
     row.doctorAmount = defaults.doctorAmount;
     operations.setLists({
@@ -413,25 +494,40 @@ export function useOperationsActions(operations: OperationsState) {
     if (!operations.canManageList) return;
     operations.setLists({
       ...operations.lists,
-      [operations.activeTab]: operations.currentList.filter((appointment) => appointment.id !== id),
+      [operations.activeTab]: operations.currentList.filter(
+        (appointment) => appointment.id !== id,
+      ),
     });
     toast.success("تم حذف الصف من القائمة");
   };
 
-  const handleUpdateRow = (id: number, field: keyof ListData | string, value: any) => {
+  const handleUpdateRow = (
+    id: number,
+    field: keyof ListData | string,
+    value: any,
+  ) => {
     if (!operations.canManageList) return;
     operations.setLists({
       ...operations.lists,
       [operations.activeTab]: operations.currentList.map((appointment) => {
         if (appointment.id !== id) return appointment;
         const updated = { ...appointment, [field]: value } as ListData;
-        if (field === "amount" || field === "discountType" || field === "discountValue") {
+        if (
+          field === "amount" ||
+          field === "discountType" ||
+          field === "discountValue"
+        ) {
           const amountFromRow = Number(updated.amount ?? 0);
           const rawDiscount = Number(updated.discountValue ?? 0);
-          const normalizedDiscount = Number.isFinite(rawDiscount) ? Math.max(rawDiscount, 0) : 0;
+          const normalizedDiscount = Number.isFinite(rawDiscount)
+            ? Math.max(rawDiscount, 0)
+            : 0;
           const discount =
             updated.discountType === "percent"
-              ? Math.min(amountFromRow, (amountFromRow * Math.min(normalizedDiscount, 100)) / 100)
+              ? Math.min(
+                  amountFromRow,
+                  (amountFromRow * Math.min(normalizedDiscount, 100)) / 100,
+                )
               : Math.min(amountFromRow, normalizedDiscount);
           updated.paidAmount = Math.max(amountFromRow - discount, 0);
         }
@@ -450,14 +546,22 @@ export function useOperationsActions(operations: OperationsState) {
       toast.error("القائمة فارغة. أضف حالة واحدة على الأقل قبل الحفظ");
       return;
     }
-    const receiptNumbers = operations.currentList.map((row) => String(row.number ?? "").trim()).filter((value) => value.length > 0);
-    const duplicateReceipt = receiptNumbers.find((value, index) => receiptNumbers.indexOf(value) !== index);
+    const receiptNumbers = operations.currentList
+      .map((row) => String(row.number ?? "").trim())
+      .filter((value) => value.length > 0);
+    const duplicateReceipt = receiptNumbers.find(
+      (value, index) => receiptNumbers.indexOf(value) !== index,
+    );
     if (duplicateReceipt) {
       toast.error(`رقم الإيصال مكرر: ${duplicateReceipt}`);
       return;
     }
-    const patientCodes = operations.currentList.map((row) => String(row.code ?? "").trim()).filter((value) => value.length > 0);
-    const duplicateCode = patientCodes.find((value, index) => patientCodes.indexOf(value) !== index);
+    const patientCodes = operations.currentList
+      .map((row) => String(row.code ?? "").trim())
+      .filter((value) => value.length > 0);
+    const duplicateCode = patientCodes.find(
+      (value, index) => patientCodes.indexOf(value) !== index,
+    );
     if (duplicateCode) {
       toast.error(`كود المريض مكرر: ${duplicateCode}`);
       return;
@@ -488,7 +592,10 @@ export function useOperationsActions(operations: OperationsState) {
     };
     const snapshot = JSON.stringify(payload);
     const now = Date.now();
-    if (lastSaveAttemptRef.current.snapshot === snapshot && now - lastSaveAttemptRef.current.at < 2000) {
+    if (
+      lastSaveAttemptRef.current.snapshot === snapshot &&
+      now - lastSaveAttemptRef.current.at < 2000
+    ) {
       return;
     }
     lastSaveAttemptRef.current = { snapshot, at: now };
@@ -504,9 +611,21 @@ export function useOperationsActions(operations: OperationsState) {
       if (next.some((item) => item.key === key)) return prev;
       const updated = {
         ...prev,
-        [operations.activeTab]: [...next, { key, date: String(operations.listDate), names, items: operations.currentList, operationType: operations.operationType || null }],
+        [operations.activeTab]: [
+          ...next,
+          {
+            key,
+            date: String(operations.listDate),
+            names,
+            items: operations.currentList,
+            operationType: operations.operationType || null,
+          },
+        ],
       };
-      localStorage.setItem("appointments_saved_summaries", JSON.stringify(updated));
+      localStorage.setItem(
+        "appointments_saved_summaries",
+        JSON.stringify(updated),
+      );
       return updated;
     });
     operations.historyQuery.refetch();
@@ -536,12 +655,21 @@ export function useOperationsActions(operations: OperationsState) {
           code: row.code ?? "",
           amount: Number(row.amount ?? 0),
           paidAmount: Number(row.paidAmount ?? 0),
-          doctorAmount: row.doctorAmount === null || row.doctorAmount === undefined ? null : Number(row.doctorAmount),
-          discountType: (row.discountType === "percent" ? "percent" : "amount") as "amount" | "percent",
+          doctorAmount:
+            row.doctorAmount === null || row.doctorAmount === undefined
+              ? null
+              : Number(row.doctorAmount),
+          discountType: (row.discountType === "percent"
+            ? "percent"
+            : "amount") as "amount" | "percent",
           discountValue: Number(row.discountValue ?? 0),
           notes: row.notes ?? undefined,
         };
-        const defaults = getPricingDefaults(operations.activeTab, mapped, operations.pricingConfig);
+        const defaults = getPricingDefaults(
+          operations.activeTab,
+          mapped,
+          operations.pricingConfig,
+        );
         return {
           ...mapped,
           amount: mapped.amount > 0 ? mapped.amount : defaults.amount,
@@ -556,9 +684,14 @@ export function useOperationsActions(operations: OperationsState) {
     operations.setSavedSummariesByTab((prev) => {
       const updated = {
         ...prev,
-        [operations.activeTab]: (prev[operations.activeTab] ?? []).filter((item) => item.key !== key),
+        [operations.activeTab]: (prev[operations.activeTab] ?? []).filter(
+          (item) => item.key !== key,
+        ),
       };
-      localStorage.setItem("appointments_saved_summaries", JSON.stringify(updated));
+      localStorage.setItem(
+        "appointments_saved_summaries",
+        JSON.stringify(updated),
+      );
       return updated;
     });
   };
@@ -598,7 +731,11 @@ export function useOperationsActions(operations: OperationsState) {
     autoSaveTimerRef.current = setTimeout(async () => {
       try {
         const now = Date.now();
-        if (lastSaveAttemptRef.current.snapshot === snapshot && now - lastSaveAttemptRef.current.at < 2000) return;
+        if (
+          lastSaveAttemptRef.current.snapshot === snapshot &&
+          now - lastSaveAttemptRef.current.at < 2000
+        )
+          return;
         lastSaveAttemptRef.current = { snapshot, at: now };
         await saveListMutation.mutateAsync(payload);
         lastSavedRef.current = snapshot;
@@ -610,7 +747,19 @@ export function useOperationsActions(operations: OperationsState) {
     return () => {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     };
-  }, [operations.autoSaveEnabled, operations.activeTab, operations.listDate, operations.operationType, operations.doctorName, operations.listTime, operations.currentList, operations.selectedListId, operations.canManageList, operations.historyQuery, saveListMutation]);
+  }, [
+    operations.autoSaveEnabled,
+    operations.activeTab,
+    operations.listDate,
+    operations.operationType,
+    operations.doctorName,
+    operations.listTime,
+    operations.currentList,
+    operations.selectedListId,
+    operations.canManageList,
+    operations.historyQuery,
+    saveListMutation,
+  ]);
 
   useEffect(() => {
     const payload = {
@@ -660,7 +809,9 @@ export function useOperationsActions(operations: OperationsState) {
   useEffect(() => {
     const data = operations.listByIdQuery.data as any;
     if (!data || !data.id) return;
-    operations.setActiveTab(normalizeTabKey(data.doctorTab ?? operations.activeTab));
+    operations.setActiveTab(
+      normalizeTabKey(data.doctorTab ?? operations.activeTab),
+    );
     operations.setListDate(toDateInputValue(data.listDate));
     operations.setDoctorName(normalizeDoctorName(data.doctorName ?? ""));
     operations.setOperationType(data.operationType ?? "");
@@ -687,11 +838,29 @@ export function useOperationsActions(operations: OperationsState) {
         discountValue: 0,
       }))
       .map((row: ListData) => {
-        const defaults = getPricingDefaults(tabKey, row, operations.pricingConfig);
-        return { ...row, amount: defaults.amount, doctorAmount: defaults.doctorAmount };
+        const defaults = getPricingDefaults(
+          tabKey,
+          row,
+          operations.pricingConfig,
+        );
+        return {
+          ...row,
+          amount: defaults.amount,
+          doctorAmount: defaults.doctorAmount,
+        };
       });
     operations.setLists((prev) => ({ ...prev, [tabKey]: items }));
-  }, [operations.activeTab, operations.listByIdQuery.data, operations.pricingConfig, operations.setActiveTab, operations.setDoctorName, operations.setListDate, operations.setListTime, operations.setLists, operations.setOperationType]);
+  }, [
+    operations.activeTab,
+    operations.listByIdQuery.data,
+    operations.pricingConfig,
+    operations.setActiveTab,
+    operations.setDoctorName,
+    operations.setListDate,
+    operations.setListTime,
+    operations.setLists,
+    operations.setOperationType,
+  ]);
 
   return {
     buildAccountsPrintContent,

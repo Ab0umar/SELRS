@@ -7,7 +7,7 @@
 ```ts
 export interface AttendanceSource {
   /** Logical adapter name; stored in attendance_sync_runs.source */
-  readonly name: 'access' | 'tcp';
+  readonly name: "access" | "tcp";
 
   /** Cheap reachability probe. MUST NOT throw; returns false on any error. */
   isReachable(): Promise<boolean>;
@@ -29,15 +29,15 @@ export interface AttendanceSource {
 }
 
 export type RawPunchOrQuarantine =
-  | { kind: 'punch'; row: RawPunch }
-  | { kind: 'quarantine'; reason: string; rowRef: string };
+  | { kind: "punch"; row: RawPunch }
+  | { kind: "quarantine"; reason: string; rowRef: string };
 
 export interface RawPunch {
   empCd: string;
-  punchAt: Date;                          // facility-local; engine validates not >24h in future
-  direction?: 'in' | 'out' | 'unknown';   // hint only (R4)
+  punchAt: Date; // facility-local; engine validates not >24h in future
+  direction?: "in" | "out" | "unknown"; // hint only (R4)
   deviceId?: string;
-  sourceRowId: string;                    // stable per-row identity in the source
+  sourceRowId: string; // stable per-row identity in the source
 }
 
 export interface RawEmployee {
@@ -49,14 +49,14 @@ export interface RawEmployee {
 
 ## Adapter responsibilities
 
-| Responsibility | accessDbAdapter (Phase 1) | tcpDeviceAdapter (Phase 3) |
-|---|---|---|
-| Open source | Open `.mdb` via `mdb-reader` (optionally after copy-to-temp). | Open TCP socket to device. |
-| Stream punches | Read table rows where `time >= sinceLocal`. | Pull SDK records, optionally subscribe to push events. |
-| Stream employees | Read employee table. | Pull device user list. |
-| Recover on lock | Retry after copy-first, else surface `isReachable()=false`. | N/A (connection-level). |
-| Sanitize timestamps | Reject `punchAt > now + 24h` → quarantine. | Same. |
-| Close | Delete temp copy if used. | Close socket. |
+| Responsibility      | accessDbAdapter (Phase 1)                                     | tcpDeviceAdapter (Phase 3)                             |
+| ------------------- | ------------------------------------------------------------- | ------------------------------------------------------ |
+| Open source         | Open `.mdb` via `mdb-reader` (optionally after copy-to-temp). | Open TCP socket to device.                             |
+| Stream punches      | Read table rows where `time >= sinceLocal`.                   | Pull SDK records, optionally subscribe to push events. |
+| Stream employees    | Read employee table.                                          | Pull device user list.                                 |
+| Recover on lock     | Retry after copy-first, else surface `isReachable()=false`.   | N/A (connection-level).                                |
+| Sanitize timestamps | Reject `punchAt > now + 24h` → quarantine.                    | Same.                                                  |
+| Close               | Delete temp copy if used.                                     | Close socket.                                          |
 
 ## Sync engine guarantees (what the engine does, not the adapter)
 
@@ -76,10 +76,13 @@ Adapters MUST NOT touch any `attendance_*` table directly. They are pure data so
 ```ts
 // server/services/attendance/sources/sourceFactory.ts
 export function createAttendanceSource(env = process.env): AttendanceSource {
-  switch (env.ATTENDANCE_SOURCE ?? 'access') {
-    case 'access': return new AccessDbAdapter(/* config from env */);
-    case 'tcp':    throw new Error('tcp adapter not implemented in Phase 1');
-    default:       throw new Error(`unknown ATTENDANCE_SOURCE: ${env.ATTENDANCE_SOURCE}`);
+  switch (env.ATTENDANCE_SOURCE ?? "access") {
+    case "access":
+      return new AccessDbAdapter(/* config from env */);
+    case "tcp":
+      throw new Error("tcp adapter not implemented in Phase 1");
+    default:
+      throw new Error(`unknown ATTENDANCE_SOURCE: ${env.ATTENDANCE_SOURCE}`);
   }
 }
 ```

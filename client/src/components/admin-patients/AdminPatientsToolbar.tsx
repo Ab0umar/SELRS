@@ -1,11 +1,27 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ImportDialog } from "./ImportDialog";
 import { SearchBar } from "@/components/shared/SearchBar";
-import { Calendar, ChevronDown, ChevronUp, Eye, Loader2, Save } from "lucide-react";
-import { type ImportPreviewRow, type SheetTypeChoice } from "@/hooks/admin-patients/adminPatientsShared";
+import {
+  Calendar,
+  ChevronDown,
+  ChevronUp,
+  Eye,
+  Loader2,
+  Save,
+} from "lucide-react";
+import {
+  type ImportPreviewRow,
+  type SheetTypeChoice,
+} from "@/hooks/admin-patients/adminPatientsShared";
 
 type AdminPatientsToolbarProps = {
   dateFrom: string;
@@ -77,9 +93,14 @@ export function AdminPatientsToolbar({
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   return (
-    <div className="space-y-4 rounded-xl border border-border bg-card p-4 shadow-sm" dir="rtl">
+    <div
+      className="space-y-4 rounded-xl border border-border bg-card p-4 shadow-sm"
+      dir="rtl"
+    >
       <div className="flex items-center justify-between gap-2">
-        <div className="text-sm font-semibold text-foreground">الفلاتر والإجراءات</div>
+        <div className="text-sm font-semibold text-foreground">
+          الفلاتر والإجراءات
+        </div>
         <Button
           type="button"
           variant="outline"
@@ -87,7 +108,11 @@ export function AdminPatientsToolbar({
           className="gap-2 rounded-lg"
           onClick={() => setFiltersOpen((prev) => !prev)}
         >
-          {filtersOpen ? <ChevronUp className="h-4 w-4" aria-hidden /> : <ChevronDown className="h-4 w-4" aria-hidden />}
+          {filtersOpen ? (
+            <ChevronUp className="h-4 w-4" aria-hidden />
+          ) : (
+            <ChevronDown className="h-4 w-4" aria-hidden />
+          )}
           {filtersOpen ? "إغلاق الفلاتر" : "فتح الفلاتر"}
         </Button>
       </div>
@@ -102,7 +127,10 @@ export function AdminPatientsToolbar({
               className="min-w-0 w-full flex-1 md:min-w-[220px]"
             />
             <Select value={doctorFilter} onValueChange={onDoctorFilterChange}>
-              <SelectTrigger className="min-w-0 w-full max-w-full flex-1 rounded-lg sm:min-w-[140px]" aria-label="تصفية حسب الطبيب">
+              <SelectTrigger
+                className="min-w-0 w-full max-w-full flex-1 rounded-lg sm:min-w-[140px]"
+                aria-label="تصفية حسب الطبيب"
+              >
                 <SelectValue placeholder="كل الأطباء" />
               </SelectTrigger>
               <SelectContent>
@@ -114,8 +142,16 @@ export function AdminPatientsToolbar({
                 ))}
               </SelectContent>
             </Select>
-            <Select value={serviceTypeFilter} onValueChange={(value) => onServiceTypeFilterChange(value as "all" | SheetTypeChoice)}>
-              <SelectTrigger className="min-w-0 w-full max-w-full flex-1 rounded-lg sm:min-w-[130px]" aria-label="تصفية حسب نوع الخدمة">
+            <Select
+              value={serviceTypeFilter}
+              onValueChange={(value) =>
+                onServiceTypeFilterChange(value as "all" | SheetTypeChoice)
+              }
+            >
+              <SelectTrigger
+                className="min-w-0 w-full max-w-full flex-1 rounded-lg sm:min-w-[130px]"
+                aria-label="تصفية حسب نوع الخدمة"
+              >
                 <SelectValue placeholder="كل الأنواع" />
               </SelectTrigger>
               <SelectContent>
@@ -131,8 +167,16 @@ export function AdminPatientsToolbar({
                 <SelectItem value="pentacam_ex_c">Pentacam Ex.C</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={locationFilter} onValueChange={(value) => onLocationFilterChange(value as "all" | "center" | "external")}>
-              <SelectTrigger className="min-w-0 w-full max-w-full flex-1 rounded-lg sm:min-w-[120px]" aria-label="تصفية حسب المكان">
+            <Select
+              value={locationFilter}
+              onValueChange={(value) =>
+                onLocationFilterChange(value as "all" | "center" | "external")
+              }
+            >
+              <SelectTrigger
+                className="min-w-0 w-full max-w-full flex-1 rounded-lg sm:min-w-[120px]"
+                aria-label="تصفية حسب المكان"
+              >
                 <SelectValue placeholder="كل الأماكن" />
               </SelectTrigger>
               <SelectContent>
@@ -143,12 +187,17 @@ export function AdminPatientsToolbar({
             </Select>
             <span className="text-sm text-muted-foreground">من:</span>
             <div className="relative w-full max-w-full sm:w-auto">
-              <Calendar className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 opacity-40" aria-hidden />
+              <Calendar
+                className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 opacity-40"
+                aria-hidden
+              />
               <Input
                 type="text"
                 value={dateFrom}
                 onChange={(event) => onDateFromChange(event.target.value)}
-                onBlur={(event) => onDateFromChange(normalizeTypedDateInput(event.target.value))}
+                onBlur={(event) =>
+                  onDateFromChange(normalizeTypedDateInput(event.target.value))
+                }
                 className="w-full max-w-full pl-9 sm:w-[110px] md:w-[120px]"
                 placeholder="تاريخ"
                 dir="ltr"
@@ -157,12 +206,17 @@ export function AdminPatientsToolbar({
             </div>
             <span className="text-sm text-muted-foreground">إلى:</span>
             <div className="relative w-full max-w-full sm:w-auto">
-              <Calendar className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 opacity-40" aria-hidden />
+              <Calendar
+                className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 opacity-40"
+                aria-hidden
+              />
               <Input
                 type="text"
                 value={dateTo}
                 onChange={(event) => onDateToChange(event.target.value)}
-                onBlur={(event) => onDateToChange(normalizeTypedDateInput(event.target.value))}
+                onBlur={(event) =>
+                  onDateToChange(normalizeTypedDateInput(event.target.value))
+                }
                 className="w-full max-w-full pl-9 sm:w-[110px] md:w-[120px]"
                 placeholder="تاريخ"
                 dir="ltr"
@@ -176,10 +230,17 @@ export function AdminPatientsToolbar({
               disabled={Boolean(applyFiltersPending)}
               onClick={() => void Promise.resolve(onApplyFilters())}
             >
-              {applyFiltersPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+              {applyFiltersPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : null}
               {applyFiltersPending ? "جاري التطبيق…" : "تطبيق"}
             </Button>
-            <Button variant="outline" className="gap-2 rounded-lg" onClick={onSaveAll} disabled={isSavePending}>
+            <Button
+              variant="outline"
+              className="gap-2 rounded-lg"
+              onClick={onSaveAll}
+              disabled={isSavePending}
+            >
               <Save className="h-4 w-4 text-primary" aria-hidden />
               حفظ الكل
             </Button>
@@ -190,7 +251,11 @@ export function AdminPatientsToolbar({
               importPreviewRows={importPreviewRows}
               importSummary={importSummary}
               trigger={
-                <Button variant="outline" type="button" className="gap-2 rounded-lg">
+                <Button
+                  variant="outline"
+                  type="button"
+                  className="gap-2 rounded-lg"
+                >
                   <Eye className="h-4 w-4" aria-hidden />
                   معاينة
                 </Button>
@@ -201,12 +266,21 @@ export function AdminPatientsToolbar({
               onImportFile={onImportFile}
               onOpenChange={onImportOpenChange}
             />
-            <Button variant="destructive" className="gap-2 rounded-lg" onClick={onDeleteAll} disabled={isDeleteAllPending}>
+            <Button
+              variant="destructive"
+              className="gap-2 rounded-lg"
+              onClick={onDeleteAll}
+              disabled={isDeleteAllPending}
+            >
               حذف الكل
             </Button>
           </div>
 
-          {showDoctorRecords ? <div className="text-xs font-medium text-primary">عرض خاص بسجل طبيب — قد تظهر أكثر من 50 سجلاً</div> : null}
+          {showDoctorRecords ? (
+            <div className="text-xs font-medium text-primary">
+              عرض خاص بسجل طبيب — قد تظهر أكثر من 50 سجلاً
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

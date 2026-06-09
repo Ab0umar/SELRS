@@ -4,12 +4,26 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { getTrpcErrorMessage, cn } from "@/lib/utils";
-import { Activity, Archive, Bell, BellOff, MonitorSmartphone, Syringe, Users, Wifi } from "lucide-react";
+import {
+  Activity,
+  Archive,
+  Bell,
+  BellOff,
+  MonitorSmartphone,
+  Syringe,
+  Users,
+  Wifi,
+} from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -37,10 +51,22 @@ type UserRecord = {
 // ─── Defaults & parser ───────────────────────────────────────────────────────
 
 const DEFAULT: NotifSettings = {
-  patients:   { enabled: true,  inApp: true,  push: false, local: false },
-  operations: { enabled: false, inApp: false, push: false, local: false, userIds: [] },
-  attendance: { enabled: true,  inApp: true,  push: false, local: false, managerId: null },
-  stockroom:  { enabled: false, inApp: false, push: false, local: false },
+  patients: { enabled: true, inApp: true, push: false, local: false },
+  operations: {
+    enabled: false,
+    inApp: false,
+    push: false,
+    local: false,
+    userIds: [],
+  },
+  attendance: {
+    enabled: true,
+    inApp: true,
+    push: false,
+    local: false,
+    managerId: null,
+  },
+  stockroom: { enabled: false, inApp: false, push: false, local: false },
 };
 
 function parseCat(raw: unknown, def: CategoryChannels): CategoryChannels {
@@ -48,9 +74,9 @@ function parseCat(raw: unknown, def: CategoryChannels): CategoryChannels {
   const r = raw as Record<string, unknown>;
   return {
     enabled: typeof r.enabled === "boolean" ? r.enabled : def.enabled,
-    inApp:   typeof r.inApp   === "boolean" ? r.inApp   : def.inApp,
-    push:    typeof r.push    === "boolean" ? r.push    : def.push,
-    local:   typeof r.local   === "boolean" ? r.local   : def.local,
+    inApp: typeof r.inApp === "boolean" ? r.inApp : def.inApp,
+    push: typeof r.push === "boolean" ? r.push : def.push,
+    local: typeof r.local === "boolean" ? r.local : def.local,
   };
 }
 
@@ -61,7 +87,9 @@ function parseSettings(raw: unknown): NotifSettings {
   if (r.patients && typeof r.patients === "object") {
     const opsRaw = r.operations as Record<string, unknown> | undefined;
     const userIds = Array.isArray(opsRaw?.userIds)
-      ? (opsRaw!.userIds as unknown[]).map(Number).filter((n) => Number.isFinite(n))
+      ? (opsRaw!.userIds as unknown[])
+          .map(Number)
+          .filter((n) => Number.isFinite(n))
       : [];
     const attnRaw = r.attendance as Record<string, unknown> | undefined;
     const managerId =
@@ -69,28 +97,39 @@ function parseSettings(raw: unknown): NotifSettings {
         ? Number(attnRaw.managerId)
         : null;
     return {
-      patients:   parseCat(r.patients, DEFAULT.patients),
+      patients: parseCat(r.patients, DEFAULT.patients),
       operations: { ...parseCat(r.operations, DEFAULT.operations), userIds },
       attendance: { ...parseCat(r.attendance, DEFAULT.attendance), managerId },
-      stockroom:  parseCat(r.stockroom, DEFAULT.stockroom),
+      stockroom: parseCat(r.stockroom, DEFAULT.stockroom),
     };
   }
 
   // v1 flat backward-compat
   const legacyUserIds = Array.isArray(r.operationsPushUserIds)
-    ? (r.operationsPushUserIds as unknown[]).map(Number).filter((n) => Number.isFinite(n))
+    ? (r.operationsPushUserIds as unknown[])
+        .map(Number)
+        .filter((n) => Number.isFinite(n))
     : [];
-  const legacyOpsPush = typeof r.operationsPushEnabled === "boolean" ? r.operationsPushEnabled : false;
+  const legacyOpsPush =
+    typeof r.operationsPushEnabled === "boolean"
+      ? r.operationsPushEnabled
+      : false;
   return {
     patients: {
       ...DEFAULT.patients,
-      inApp: typeof r.manualPatientInAppEnabled === "boolean"
-        ? r.manualPatientInAppEnabled
-        : DEFAULT.patients.inApp,
+      inApp:
+        typeof r.manualPatientInAppEnabled === "boolean"
+          ? r.manualPatientInAppEnabled
+          : DEFAULT.patients.inApp,
     },
-    operations: { ...DEFAULT.operations, enabled: legacyOpsPush, push: legacyOpsPush, userIds: legacyUserIds },
+    operations: {
+      ...DEFAULT.operations,
+      enabled: legacyOpsPush,
+      push: legacyOpsPush,
+      userIds: legacyUserIds,
+    },
     attendance: DEFAULT.attendance,
-    stockroom:  DEFAULT.stockroom,
+    stockroom: DEFAULT.stockroom,
   };
 }
 
@@ -98,8 +137,8 @@ function parseSettings(raw: unknown): NotifSettings {
 
 const CHANNEL_META = {
   inApp: { label: "داخل التطبيق", icon: MonitorSmartphone },
-  push:  { label: "إشعار خارجي (Push)",  icon: Wifi },
-  local: { label: "إشعار محلي",  icon: Bell },
+  push: { label: "إشعار خارجي (Push)", icon: Wifi },
+  local: { label: "إشعار محلي", icon: Bell },
 } as const;
 
 type ChannelKey = keyof typeof CHANNEL_META;
@@ -180,17 +219,28 @@ function CategorySection({
     <div className="rounded-xl border border-border bg-card">
       {/* Header */}
       <div className="flex items-start gap-3 p-4">
-        <div className={cn(
-          "mt-0.5 rounded-lg p-2 transition-colors",
-          channels.enabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
-        )}>
+        <div
+          className={cn(
+            "mt-0.5 rounded-lg p-2 transition-colors",
+            channels.enabled
+              ? "bg-primary/10 text-primary"
+              : "bg-muted text-muted-foreground",
+          )}
+        >
           <Icon className="size-4 shrink-0" strokeWidth={1.8} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className={cn("text-sm font-semibold leading-tight", !channels.enabled && "text-muted-foreground")}>
+          <p
+            className={cn(
+              "text-sm font-semibold leading-tight",
+              !channels.enabled && "text-muted-foreground",
+            )}
+          >
             {title}
           </p>
-          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{description}</p>
+          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+            {description}
+          </p>
         </div>
         <Switch
           checked={channels.enabled}
@@ -199,10 +249,12 @@ function CategorySection({
       </div>
 
       {/* Body */}
-      <div className={cn(
-        "border-t border-border px-4 pb-4 pt-3 space-y-0 transition-opacity",
-        bodyDimmed && "opacity-40 pointer-events-none select-none",
-      )}>
+      <div
+        className={cn(
+          "border-t border-border px-4 pb-4 pt-3 space-y-0 transition-opacity",
+          bodyDimmed && "opacity-40 pointer-events-none select-none",
+        )}
+      >
         {/* Channels */}
         <div className="space-y-0 divide-y divide-border/60">
           {(["inApp", "push", "local"] as ChannelKey[]).map((ch) => (
@@ -212,14 +264,20 @@ function CategorySection({
               value={channels[ch]}
               onChange={(v) => onChannelChange({ [ch]: v })}
               disabled={ch === "push" && !fcmConfigured}
-              disabledReason={ch === "push" && !fcmConfigured ? "خدمة FCM غير مُفعَّلة" : undefined}
+              disabledReason={
+                ch === "push" && !fcmConfigured
+                  ? "خدمة FCM غير مُفعَّلة"
+                  : undefined
+              }
             />
           ))}
         </div>
 
         {/* Audience */}
         <div className="pt-3">
-          <p className="text-xs font-medium text-muted-foreground mb-2">المستقبلون</p>
+          <p className="text-xs font-medium text-muted-foreground mb-2">
+            المستقبلون
+          </p>
           {audience}
         </div>
       </div>
@@ -246,7 +304,11 @@ function UserMultiPicker({
   );
 
   const toggle = (id: number) => {
-    onChange(selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id]);
+    onChange(
+      selected.includes(id)
+        ? selected.filter((x) => x !== id)
+        : [...selected, id],
+    );
   };
 
   return (
@@ -260,7 +322,9 @@ function UserMultiPicker({
       />
       <div className="max-h-48 overflow-y-auto rounded-lg border border-border divide-y divide-border/60 bg-background">
         {filtered.length === 0 ? (
-          <p className="py-4 text-center text-xs text-muted-foreground">لا توجد نتائج</p>
+          <p className="py-4 text-center text-xs text-muted-foreground">
+            لا توجد نتائج
+          </p>
         ) : (
           filtered.map((u) => {
             const active = selected.includes(u.id);
@@ -271,22 +335,40 @@ function UserMultiPicker({
                 onClick={() => toggle(u.id)}
                 className={cn(
                   "flex w-full items-center gap-2.5 px-3 py-2 text-start text-sm transition-colors",
-                  active ? "bg-primary/5 text-primary" : "hover:bg-muted/60 text-foreground",
+                  active
+                    ? "bg-primary/5 text-primary"
+                    : "hover:bg-muted/60 text-foreground",
                 )}
               >
-                <span className={cn(
-                  "size-4 shrink-0 rounded-sm border transition-colors",
-                  active ? "border-primary bg-primary" : "border-muted-foreground/40",
-                )}>
+                <span
+                  className={cn(
+                    "size-4 shrink-0 rounded-sm border transition-colors",
+                    active
+                      ? "border-primary bg-primary"
+                      : "border-muted-foreground/40",
+                  )}
+                >
                   {active && (
-                    <svg viewBox="0 0 12 12" className="size-full p-0.5 text-primary-foreground" fill="none">
-                      <polyline points="2,6 5,9 10,3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <svg
+                      viewBox="0 0 12 12"
+                      className="size-full p-0.5 text-primary-foreground"
+                      fill="none"
+                    >
+                      <polyline
+                        points="2,6 5,9 10,3"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                   )}
                 </span>
                 <span className="flex-1 truncate">{u.name}</span>
                 {u.role && (
-                  <span className="shrink-0 text-xs text-muted-foreground">{u.role}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {u.role}
+                  </span>
                 )}
               </button>
             );
@@ -294,7 +376,9 @@ function UserMultiPicker({
         )}
       </div>
       {selected.length > 0 && (
-        <p className="text-xs text-muted-foreground">{selected.length} مستخدم مختار</p>
+        <p className="text-xs text-muted-foreground">
+          {selected.length} مستخدم مختار
+        </p>
       )}
     </div>
   );
@@ -350,7 +434,10 @@ function UserSinglePicker({
         {selected && (
           <button
             type="button"
-            onClick={() => { setOpen(true); setQ(""); }}
+            onClick={() => {
+              setOpen(true);
+              setQ("");
+            }}
             className="text-xs text-muted-foreground hover:text-foreground"
           >
             تغيير
@@ -373,7 +460,11 @@ function UserSinglePicker({
       <div className="max-h-40 overflow-y-auto rounded-lg border border-border divide-y divide-border/60 bg-background">
         <button
           type="button"
-          onClick={() => { onChange(null); setOpen(false); setQ(""); }}
+          onClick={() => {
+            onChange(null);
+            setOpen(false);
+            setQ("");
+          }}
           className="flex w-full items-center gap-2 px-3 py-2 text-start text-xs text-muted-foreground hover:bg-muted/60"
         >
           <BellOff className="size-3.5 shrink-0" />
@@ -383,14 +474,24 @@ function UserSinglePicker({
           <button
             key={u.id}
             type="button"
-            onClick={() => { onChange(u.id); setOpen(false); setQ(""); }}
+            onClick={() => {
+              onChange(u.id);
+              setOpen(false);
+              setQ("");
+            }}
             className={cn(
               "flex w-full items-center gap-2.5 px-3 py-2 text-start text-sm transition-colors",
-              u.id === value ? "bg-primary/5 text-primary" : "hover:bg-muted/60",
+              u.id === value
+                ? "bg-primary/5 text-primary"
+                : "hover:bg-muted/60",
             )}
           >
             <span className="flex-1 truncate">{u.name}</span>
-            {u.role && <span className="shrink-0 text-xs text-muted-foreground">{u.role}</span>}
+            {u.role && (
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {u.role}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -424,8 +525,11 @@ export default function AdminNotificationSettings() {
   const [settings, setSettings] = useState<NotifSettings>(DEFAULT);
   const [savedSettings, setSavedSettings] = useState<NotifSettings>(DEFAULT);
   const [initialized, setInitialized] = useState(false);
-  const [browserPermission, setBrowserPermission] = useState<NotificationPermission | "unsupported">(() => {
-    if (typeof window === "undefined" || !("Notification" in window)) return "unsupported";
+  const [browserPermission, setBrowserPermission] = useState<
+    NotificationPermission | "unsupported"
+  >(() => {
+    if (typeof window === "undefined" || !("Notification" in window))
+      return "unsupported";
     return Notification.permission;
   });
 
@@ -442,7 +546,8 @@ export default function AdminNotificationSettings() {
   };
 
   const fcmConfigured = metaQuery.data?.fcmConfigured ?? true;
-  const users: UserRecord[] = (usersQuery.data as UserRecord[] | undefined) ?? [];
+  const users: UserRecord[] =
+    (usersQuery.data as UserRecord[] | undefined) ?? [];
 
   useEffect(() => {
     if (settingsQuery.data !== undefined && !initialized) {
@@ -490,7 +595,9 @@ export default function AdminNotificationSettings() {
   return (
     <div className="mx-auto max-w-2xl space-y-6 py-6 px-1" dir="rtl">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">إعدادات الإشعارات</h1>
+        <h1 className="text-xl font-semibold tracking-tight">
+          إعدادات الإشعارات
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           التحكم في كيفية إرسال الإشعارات لكل فئة عبر القنوات المختلفة.
         </p>
@@ -499,33 +606,41 @@ export default function AdminNotificationSettings() {
       <Separator />
 
       {/* Browser notification permission banner */}
-      {anyLocalEnabled && browserPermission !== "unsupported" && browserPermission !== "granted" && (
-        <div className={cn(
-          "flex items-start gap-3 rounded-xl border px-4 py-3",
-          browserPermission === "denied"
-            ? "border-destructive/30 bg-destructive/5"
-            : "border-warning/30 bg-warning/5"
-        )}>
-          <Bell className="mt-0.5 size-4 shrink-0 text-warning" />
-          <div className="flex-1 min-w-0 space-y-1">
-            <p className="text-sm font-medium text-foreground">
-              {browserPermission === "denied"
-                ? "الإشعارات المحلية محجوبة من المتصفح"
-                : "الإشعارات المحلية تحتاج إذن المتصفح"}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {browserPermission === "denied"
-                ? "افتح إعدادات المتصفح وأذن الإشعارات لهذا الموقع يدوياً."
-                : "اسمح للمتصفح بإظهار الإشعارات حتى تعمل قناة الإشعارات المحلية."}
-            </p>
+      {anyLocalEnabled &&
+        browserPermission !== "unsupported" &&
+        browserPermission !== "granted" && (
+          <div
+            className={cn(
+              "flex items-start gap-3 rounded-xl border px-4 py-3",
+              browserPermission === "denied"
+                ? "border-destructive/30 bg-destructive/5"
+                : "border-warning/30 bg-warning/5",
+            )}
+          >
+            <Bell className="mt-0.5 size-4 shrink-0 text-warning" />
+            <div className="flex-1 min-w-0 space-y-1">
+              <p className="text-sm font-medium text-foreground">
+                {browserPermission === "denied"
+                  ? "الإشعارات المحلية محجوبة من المتصفح"
+                  : "الإشعارات المحلية تحتاج إذن المتصفح"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {browserPermission === "denied"
+                  ? "افتح إعدادات المتصفح وأذن الإشعارات لهذا الموقع يدوياً."
+                  : "اسمح للمتصفح بإظهار الإشعارات حتى تعمل قناة الإشعارات المحلية."}
+              </p>
+            </div>
+            {browserPermission === "default" && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={requestBrowserPermission}
+              >
+                اسمح
+              </Button>
+            )}
           </div>
-          {browserPermission === "default" && (
-            <Button size="sm" variant="outline" onClick={requestBrowserPermission}>
-              اسمح
-            </Button>
-          )}
-        </div>
-      )}
+        )}
 
       {/* Patients */}
       <CategorySection
@@ -574,7 +689,8 @@ export default function AdminNotificationSettings() {
               <Badge variant="outline" className="text-xs font-normal gap-1">
                 <Activity className="size-3" />
                 {settings.attendance.managerId
-                  ? (users.find((u) => u.id === settings.attendance.managerId)?.name ?? "مدير مخصص")
+                  ? (users.find((u) => u.id === settings.attendance.managerId)
+                      ?.name ?? "مدير مخصص")
                   : "الأدمن / المديرون"}
               </Badge>
             </div>

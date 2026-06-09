@@ -112,50 +112,50 @@ const ALL_MODULES: HubModuleCard[] = [
     icon: HeartPulse,
     iconWrap: "bg-secondary/[0.07] text-secondary",
   },
-  { 
-    href: "/admin-hub/data-source-audit", 
+  {
+    href: "/admin-hub/data-source-audit",
     title: "تدقيق مصدر البيانات",
     description: "مراجعة وتدقيق مصدر البيانات للسجلات.",
     icon: FileSearch,
     iconWrap: "bg-muted text-muted-foreground",
   },
-  { 
-    href: "/admin-hub/settings", 
+  {
+    href: "/admin-hub/settings",
     title: "الإعدادات العامة",
     description: "ضبط إعدادات النظام والتسعير.",
     icon: Settings,
     iconWrap: "bg-muted text-muted-foreground",
   },
-  { 
-    href: "/admin-hub/api-tools", 
+  {
+    href: "/admin-hub/api-tools",
     title: "أدوات API",
     description: "أدوات للمطورين لفحص tRPC.",
     icon: Plug,
     iconWrap: "bg-muted text-muted-foreground",
   },
-  { 
-    href: "/admin-hub/tests", 
+  {
+    href: "/admin-hub/tests",
     title: "التحاليل",
     description: "إدارة قائمة التحاليل والفحوصات المخبرية.",
     icon: TestTube2,
     iconWrap: "bg-muted text-muted-foreground",
   },
-  { 
-    href: "/admin-hub/card-visibility", 
+  {
+    href: "/admin-hub/card-visibility",
     title: "ظهور الكروت",
     description: "التحكم في الكروت التي تظهر في الداشبورد.",
     icon: Eye,
     iconWrap: "bg-muted text-muted-foreground",
   },
-  { 
-    href: "/admin-hub/notifications", 
+  {
+    href: "/admin-hub/notifications",
     title: "إخطارات التطبيق",
     description: "إدارة إعدادات الإخطارات داخل التطبيق.",
     icon: Bell,
     iconWrap: "bg-muted text-muted-foreground",
   },
-  { 
-    href: "/admin-hub/forms", 
+  {
+    href: "/admin-hub/forms",
     title: "مركز النماذج",
     description: "إدارة، تصميم، ونسخ النماذج والشيتات.",
     icon: Layers,
@@ -240,7 +240,6 @@ const ALL_MODULES: HubModuleCard[] = [
   },
 ];
 
-
 export default function AdminHubShell() {
   const [location] = useLocation();
 
@@ -250,50 +249,100 @@ export default function AdminHubShell() {
     if (isHubHome) return null;
     const parts = location.split("/").filter(Boolean);
     const crumbs = [{ label: "مركز الإدارة", href: "/admin-hub" }];
-    
+
     if (parts.length > 1) {
       const moduleName = parts[1];
-      const found = ALL_MODULES.find(m => m.href.includes(moduleName));
+      const found = ALL_MODULES.find((m) => m.href.includes(moduleName));
       if (found) {
         crumbs.push({ label: found.title, href: found.href });
       }
     }
-    
+
     return crumbs;
   };
 
   const renderComponent = () => {
     if (isHubHome) return null;
-    if (location === "/admin-hub/users" || location === "/admin/users") return <AdminUsers />;
-    if (location === "/admin-hub/migrations" || location === "/admin/migrations") return <AdminMigrations />;
-    if (location === "/admin-hub/api-tools" || location === "/admin/api-tools") return <AdminApiTools />;
-    if (location === "/admin-hub/status" || location === "/admin/status") return <AdminStatus />;
-    if (location === "/admin-hub/card-visibility" || location === "/admin/card-visibility") return <AdminCardVisibility />;
-    if (location === "/admin-hub/settings/pricing-rules" || location === "/admin/settings/pricing-rules") {
+    if (location === "/admin-hub/users" || location === "/admin/users")
+      return <AdminUsers />;
+    if (
+      location === "/admin-hub/migrations" ||
+      location === "/admin/migrations"
+    )
+      return <AdminMigrations />;
+    if (location === "/admin-hub/api-tools" || location === "/admin/api-tools")
+      return <AdminApiTools />;
+    if (location === "/admin-hub/status" || location === "/admin/status")
+      return <AdminStatus />;
+    if (
+      location === "/admin-hub/card-visibility" ||
+      location === "/admin/card-visibility"
+    )
+      return <AdminCardVisibility />;
+    if (
+      location === "/admin-hub/settings/pricing-rules" ||
+      location === "/admin/settings/pricing-rules"
+    ) {
       return <AdminSettings pricingOnly />;
     }
-    if (location === "/admin-hub/settings" || location === "/admin/settings") return <AdminSettings />;
-    if (location === "/admin-hub/permissions" || location === "/admin/permissions") return <AdminPermissions />;
-    if (location === "/admin-hub/forms" || location === "/admin/forms") return <AdminFormsHub />;
-    if (location === "/admin-hub/sheets" || location === "/admin/sheets") return <AdminSheets />;
-    if (location === "/admin-hub/sheet-designer" || location === "/admin/sheet-designer") return <AdminSheetDesigner />;
-    if (location === "/admin-hub/sheet-copies" || location === "/admin/sheet-copies") return <AdminSheetCopies />;
-    if (location === "/admin-hub/doctors" || location === "/admin/doctors") return <AdminDoctors />;
-    if (location === "/admin-hub/pentacam-failed" || location === "/admin/pentacam-failed") return <AdminPentacamFailed />;
-    if (location === "/admin-hub/services" || location === "/admin/services") return <AdminServices />;
-    if (location === "/admin-hub/tests" || location === "/admin/tests") return <TestsManagement />;
+    if (location === "/admin-hub/settings" || location === "/admin/settings")
+      return <AdminSettings />;
+    if (
+      location === "/admin-hub/permissions" ||
+      location === "/admin/permissions"
+    )
+      return <AdminPermissions />;
+    if (location === "/admin-hub/forms" || location === "/admin/forms")
+      return <AdminFormsHub />;
+    if (location === "/admin-hub/sheets" || location === "/admin/sheets")
+      return <AdminSheets />;
+    if (
+      location === "/admin-hub/sheet-designer" ||
+      location === "/admin/sheet-designer"
+    )
+      return <AdminSheetDesigner />;
+    if (
+      location === "/admin-hub/sheet-copies" ||
+      location === "/admin/sheet-copies"
+    )
+      return <AdminSheetCopies />;
+    if (location === "/admin-hub/doctors" || location === "/admin/doctors")
+      return <AdminDoctors />;
+    if (
+      location === "/admin-hub/pentacam-failed" ||
+      location === "/admin/pentacam-failed"
+    )
+      return <AdminPentacamFailed />;
+    if (location === "/admin-hub/services" || location === "/admin/services")
+      return <AdminServices />;
+    if (location === "/admin-hub/tests" || location === "/admin/tests")
+      return <TestsManagement />;
     if (location === "/admin-hub/diagnostics") return <AdminDiagnostics />;
-    if (location === "/admin-hub/data-source-audit" || location === "/admin/data-source-audit") return <AdminDataSourceAudit />;
-    if (location === "/admin-hub/notifications" || location === "/admin/notifications") return <AdminNotificationSettings />;
-    if (location === "/admin-hub/patients" || location === "/admin/patients") return <AdminPatients />;
-    if (location === "/admin-hub/portal-bookings") return <AdminPortalBookings />;
+    if (
+      location === "/admin-hub/data-source-audit" ||
+      location === "/admin/data-source-audit"
+    )
+      return <AdminDataSourceAudit />;
+    if (
+      location === "/admin-hub/notifications" ||
+      location === "/admin/notifications"
+    )
+      return <AdminNotificationSettings />;
+    if (location === "/admin-hub/patients" || location === "/admin/patients")
+      return <AdminPatients />;
+    if (location === "/admin-hub/portal-bookings")
+      return <AdminPortalBookings />;
     if (location === "/admin-hub/external-doctors") return <ExternalDoctors />;
-    if (location === "/admin-hub/external-doctors/referrals") return <ExternalDoctorReferrals />;
+    if (location === "/admin-hub/external-doctors/referrals")
+      return <ExternalDoctorReferrals />;
 
     return (
       <div className="rounded-xl border border-border/80 bg-card p-6 text-right text-sm text-muted-foreground">
         المسار غير معروف. ارجع إلى{" "}
-        <Link href="/admin-hub" className="font-semibold text-primary underline-offset-4 hover:underline">
+        <Link
+          href="/admin-hub"
+          className="font-semibold text-primary underline-offset-4 hover:underline"
+        >
           مركز الإدارة
         </Link>
         .
@@ -318,8 +367,12 @@ export default function AdminHubShell() {
                 <Wrench className="h-5 w-5" />
               </div>
               <div className="space-y-0.5">
-                <div className="font-bold text-foreground">التشخيص والإصلاح</div>
-                <p className="text-xs text-success/70">أدوات فحص وإصلاح البيانات المتقدمة للمشرفين التقنيين.</p>
+                <div className="font-bold text-foreground">
+                  التشخيص والإصلاح
+                </div>
+                <p className="text-xs text-success/70">
+                  أدوات فحص وإصلاح البيانات المتقدمة للمشرفين التقنيين.
+                </p>
               </div>
             </div>
             <ArrowRight className="h-4 w-4 text-success/70 rotate-180 transition-transform group-hover:-translate-x-1" />
@@ -369,17 +422,22 @@ export default function AdminHubShell() {
   const crumbs = getBreadcrumbs();
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-4 px-4 py-4 sm:px-6 pb-10 text-right" dir="rtl">
+    <div
+      className="mx-auto w-full max-w-[1440px] space-y-4 px-4 py-4 sm:px-6 pb-10 text-right"
+      dir="rtl"
+    >
       {crumbs && (
         <nav className="flex items-center gap-1.5 text-xs text-muted-foreground/80 mb-2">
           {crumbs.map((crumb, i) => (
             <span key={crumb.href} className="flex items-center gap-1.5">
               {i > 0 && <span className="opacity-40">/</span>}
-              <Link 
-                href={crumb.href} 
+              <Link
+                href={crumb.href}
                 className={cn(
                   "transition-colors hover:text-primary",
-                  i === crumbs.length - 1 ? "font-bold text-foreground pointer-events-none" : "underline-offset-4 hover:underline"
+                  i === crumbs.length - 1
+                    ? "font-bold text-foreground pointer-events-none"
+                    : "underline-offset-4 hover:underline",
                 )}
               >
                 {crumb.label}
@@ -390,9 +448,7 @@ export default function AdminHubShell() {
       )}
 
       {isHubHome ? <HubLanding /> : null}
-      <div className={cn(!isHubHome && "pt-2")}>
-        {renderComponent()}
-      </div>
+      <div className={cn(!isHubHome && "pt-2")}>{renderComponent()}</div>
     </div>
   );
 }

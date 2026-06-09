@@ -1,12 +1,11 @@
-
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import {
   FileHeart,
   FolderOpen,
@@ -17,175 +16,189 @@ import {
   Pill,
   FlaskConical,
   FileText,
-} from 'lucide-react'
-import { useLocation } from 'wouter'
-import { routeMap, serviceTypeLabels, type PageKey } from '@/lib/dashboard-data'
-import { patientNavPathForPageKey, patientSheetPathByServiceType } from '@/lib/patientNavPaths'
-import { cn } from '@/lib/utils'
+} from "lucide-react";
+import { useLocation } from "wouter";
+import {
+  routeMap,
+  serviceTypeLabels,
+  type PageKey,
+} from "@/lib/dashboard-data";
+import {
+  patientNavPathForPageKey,
+  patientSheetPathByServiceType,
+} from "@/lib/patientNavPaths";
+import { cn } from "@/lib/utils";
 
 /* ═══════════════════════════════════════════
    Menu items definition
    ═══════════════════════════════════════════ */
 interface MenuItemDef {
-  label: string
-  icon: React.ComponentType<{ className?: string }>
-  semantic: 'success' | 'info' | 'warning' | 'error'
-  group: 'records' | 'exams' | 'treatment' | 'reports'
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  semantic: "success" | "info" | "warning" | "error";
+  group: "records" | "exams" | "treatment" | "reports";
   /** If set, this item opens the medical file panel instead of navigating */
-  medicalFile?: true
+  medicalFile?: true;
   /** If set, this item dynamically routes based on serviceType */
-  dynamicSheet?: true
+  dynamicSheet?: true;
   /** Static navigation page key */
-  page?: PageKey
+  page?: PageKey;
 }
 
 const menuItems: MenuItemDef[] = [
   // Group 1: Medical Records
   {
-    label: 'الملف الطبي',
+    label: "الملف الطبي",
     icon: FileHeart,
-    semantic: 'success',
-    group: 'records',
+    semantic: "success",
+    group: "records",
     medicalFile: true,
   },
   {
-    label: 'الملف المجمع',
+    label: "الملف المجمع",
     icon: FolderOpen,
-    semantic: 'info',
-    group: 'records',
-    page: 'patient-details',
+    semantic: "info",
+    group: "records",
+    page: "patient-details",
   },
   {
-    label: 'الملف الشامل',
+    label: "الملف الشامل",
     icon: FileSpreadsheet,
-    semantic: 'info',
-    group: 'records',
-    page: 'patient-summary',
+    semantic: "info",
+    group: "records",
+    page: "patient-summary",
   },
   // Group 2: Exams & Measurements
   {
-    label: 'قياس و فحص',
+    label: "قياس و فحص",
     icon: Eye,
-    semantic: 'warning',
-    group: 'exams',
-    page: 'patient-details',
+    semantic: "warning",
+    group: "exams",
+    page: "patient-details",
   },
   {
-    label: 'الشيت',
+    label: "الشيت",
     icon: ClipboardList,
-    semantic: 'warning',
-    group: 'exams',
+    semantic: "warning",
+    group: "exams",
     dynamicSheet: true,
   },
   {
-    label: 'بنتاكام',
+    label: "بنتاكام",
     icon: CircleDot,
-    semantic: 'warning',
-    group: 'exams',
-    page: 'pentacam-sheet',
+    semantic: "warning",
+    group: "exams",
+    page: "pentacam-sheet",
   },
   // Group 3: Treatment & Tests
   {
-    label: 'الروشته',
+    label: "الروشته",
     icon: Pill,
-    semantic: 'error',
-    group: 'treatment',
-    page: 'write-prescription',
+    semantic: "error",
+    group: "treatment",
+    page: "write-prescription",
   },
   {
-    label: 'تحاليل و اشعه',
+    label: "تحاليل و اشعه",
     icon: FlaskConical,
-    semantic: 'error',
-    group: 'treatment',
-    page: 'request-tests',
+    semantic: "error",
+    group: "treatment",
+    page: "request-tests",
   },
   // Group 4: Reports
   {
-    label: 'تشخيص/تقرير',
+    label: "تشخيص/تقرير",
     icon: FileText,
-    semantic: 'info',
-    group: 'reports',
-    page: 'medical-reports',
+    semantic: "info",
+    group: "reports",
+    page: "medical-reports",
   },
-]
+];
 
 const semanticColors = {
   success: {
-    text: 'text-card-foreground',
-    bg: 'hover:bg-success/10',
-    border: 'border-success/20',
+    text: "text-card-foreground",
+    bg: "hover:bg-success/10",
+    border: "border-success/20",
   },
   info: {
-    text: 'text-info',
-    bg: 'hover:bg-info/10',
-    border: 'border-info/20',
+    text: "text-info",
+    bg: "hover:bg-info/10",
+    border: "border-info/20",
   },
   warning: {
-    text: 'text-card-foreground',
-    bg: 'hover:bg-warning/10',
-    border: 'border-warning/20',
+    text: "text-card-foreground",
+    bg: "hover:bg-warning/10",
+    border: "border-warning/20",
   },
   error: {
-    text: 'text-error',
-    bg: 'hover:bg-error/10',
-    border: 'border-error/20',
+    text: "text-error",
+    bg: "hover:bg-error/10",
+    border: "border-error/20",
   },
-}
+};
 
 const groupLabels = {
-  records: 'الملفات الطبية',
-  exams: 'الفحوصات والقياسات',
-  treatment: 'العلاج والتحاليل',
-  reports: 'التقارير',
-}
+  records: "الملفات الطبية",
+  exams: "الفحوصات والقياسات",
+  treatment: "العلاج والتحاليل",
+  reports: "التقارير",
+};
 
 /* ═══════════════════════════════════════════
    Props
    ═══════════════════════════════════════════ */
 export interface PatientActionMenuProps {
-  open: boolean
-  onClose: () => void
+  open: boolean;
+  onClose: () => void;
   patient: {
-    id: number
-    patientName: string
-    serviceType: string
-    doctorName?: string
-  } | null
+    id: number;
+    patientName: string;
+    serviceType: string;
+    doctorName?: string;
+  } | null;
   /** Called when "الملف الطبي" is clicked */
-  onOpenMedicalFile?: () => void
+  onOpenMedicalFile?: () => void;
 }
 
 /* ═══════════════════════════════════════════
    Component
    ═══════════════════════════════════════════ */
-export function PatientActionMenu({ open, onClose, patient, onOpenMedicalFile }: PatientActionMenuProps) {
-  const [, setLocation] = useLocation()
+export function PatientActionMenu({
+  open,
+  onClose,
+  patient,
+  onOpenMedicalFile,
+}: PatientActionMenuProps) {
+  const [, setLocation] = useLocation();
 
-  if (!patient) return null
+  if (!patient) return null;
 
   const handleAction = (item: MenuItemDef) => {
     // Close menu first
-    onClose()
+    onClose();
 
     if (item.medicalFile) {
-      onOpenMedicalFile?.()
-      return
+      onOpenMedicalFile?.();
+      return;
     }
 
     if (item.dynamicSheet) {
-      setLocation(patientSheetPathByServiceType(patient.serviceType, patient.id))
-      return
+      setLocation(
+        patientSheetPathByServiceType(patient.serviceType, patient.id),
+      );
+      return;
     }
 
     if (item.page) {
-      const scoped = patientNavPathForPageKey(item.page, patient.id)
+      const scoped = patientNavPathForPageKey(item.page, patient.id);
       if (scoped) {
-        setLocation(scoped)
-        return
+        setLocation(scoped);
+        return;
       }
-      setLocation(routeMap[item.page as keyof typeof routeMap])
+      setLocation(routeMap[item.page as keyof typeof routeMap]);
     }
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -198,7 +211,10 @@ export function PatientActionMenu({ open, onClose, patient, onOpenMedicalFile }:
           <DialogTitle className="text-base font-semibold">
             ملفات المريض
             {patient.patientName && (
-              <span className="text-muted-foreground font-normal"> — {patient.patientName}</span>
+              <span className="text-muted-foreground font-normal">
+                {" "}
+                — {patient.patientName}
+              </span>
             )}
           </DialogTitle>
           <DialogDescription className="sr-only">
@@ -219,47 +235,49 @@ export function PatientActionMenu({ open, onClose, patient, onOpenMedicalFile }:
 
         {/* Menu Groups */}
         <div className="px-4 pb-5 space-y-4">
-          {(Object.keys(groupLabels) as Array<keyof typeof groupLabels>).map((groupKey) => {
-            const groupItems = menuItems.filter((item) => item.group === groupKey)
-            if (groupItems.length === 0) return null
+          {(Object.keys(groupLabels) as Array<keyof typeof groupLabels>).map(
+            (groupKey) => {
+              const groupItems = menuItems.filter(
+                (item) => item.group === groupKey,
+              );
+              if (groupItems.length === 0) return null;
 
-            return (
-              <div key={groupKey}>
-                {/* Group Header */}
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                  {groupLabels[groupKey]}
-                </h3>
-                {/* Group Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {groupItems.map((item) => {
-                    const Icon = item.icon
-                    const colors = semanticColors[item.semantic]
-                    return (
-                      <Button
-                        key={item.label}
-                        type="button"
-                        variant="outline"
-                        className={cn(
-                          'h-auto py-3 px-3 gap-2.5 justify-start text-xs font-medium transition-colors border',
-                          colors.text,
-                          colors.bg,
-                          colors.border
-                        )}
-                        onClick={() => handleAction(item)}
-                      >
-                        <Icon className="h-4 w-4 shrink-0" />
-                        <span>{item.label}</span>
-                      </Button>
-                    )
-                  })}
+              return (
+                <div key={groupKey}>
+                  {/* Group Header */}
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                    {groupLabels[groupKey]}
+                  </h3>
+                  {/* Group Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {groupItems.map((item) => {
+                      const Icon = item.icon;
+                      const colors = semanticColors[item.semantic];
+                      return (
+                        <Button
+                          key={item.label}
+                          type="button"
+                          variant="outline"
+                          className={cn(
+                            "h-auto py-3 px-3 gap-2.5 justify-start text-xs font-medium transition-colors border",
+                            colors.text,
+                            colors.bg,
+                            colors.border,
+                          )}
+                          onClick={() => handleAction(item)}
+                        >
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <span>{item.label}</span>
+                        </Button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )
-          })}
+              );
+            },
+          )}
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
-
-

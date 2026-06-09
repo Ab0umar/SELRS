@@ -1,19 +1,35 @@
-import { RefreshCw, Stethoscope, ShieldAlert, BadgeInfo } from "lucide-react";
+import {
+  RefreshCw,
+  Stethoscope,
+  ShieldAlert,
+  BadgeInfo,
+  Glasses,
+  Pill,
+  ScanLine,
+  CalendarDays,
+  UserRound,
+  Phone,
+  MapPin,
+  Calendar,
+} from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import PatientLayout from "./PatientLayout";
+import { Link } from "wouter";
 import {
   PortalEmptyState,
   PortalLoadingRows,
-  PortalMetric,
   PortalPanel,
-  PortalShell,
   formatArabicDate,
 } from "./portal-ui";
 
 const GENDER_LABEL: Record<string, string> = { male: "ذكر", female: "أنثى" };
-const STATUS_LABEL: Record<string, string> = { new: "جديد", followup: "متابعة", archived: "محفوظ" };
+const STATUS_LABEL: Record<string, string> = {
+  new: "جديد",
+  followup: "متابعة",
+  archived: "محفوظ",
+};
 const SERVICE_LABEL: Record<string, string> = {
   consultant: "استشاري",
   specialist: "أخصائي",
@@ -22,25 +38,38 @@ const SERVICE_LABEL: Record<string, string> = {
   external: "خارجي",
 };
 
-function DetailItem({ label, value }: { label: string; value?: string | number | null }) {
+function DetailItem({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value?: string | number | null;
+  icon?: any;
+}) {
   if (value === null || value === undefined || value === "") return null;
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-border py-3 last:border-0 last:pb-0">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-medium text-foreground text-left">{String(value)}</span>
+    <div className="flex items-center justify-between gap-4 border-b border-[#f0f5fa] py-3.5 last:border-0 last:pb-0">
+      <div className="flex items-center gap-2">
+        {Icon && <Icon className="size-4 text-muted-foreground" />}
+        <span className="text-sm font-semibold text-muted-foreground">
+          {label}
+        </span>
+      </div>
+      <span className="text-sm font-bold text-foreground text-left">
+        {String(value)}
+      </span>
     </div>
   );
 }
 
 export default function PatientFile() {
-  const { data, isLoading, error, refetch } = trpc.patientPortal.getMyProfile.useQuery();
+  const { data, isLoading, error, refetch } =
+    trpc.patientPortal.getMyProfile.useQuery();
 
   return (
     <PatientLayout>
-      <PortalShell
-        title="ملفي الطبي"
-        subtitle="ملخص واضح للبيانات الأساسية، ثم التاريخ المرضي والهوية الطبية في بطاقات منفصلة."
-      >
+      <div className="space-y-6">
         {isLoading && <PortalLoadingRows rows={3} />}
 
         {error && (
@@ -49,7 +78,10 @@ export default function PatientFile() {
             title="تعذر تحميل الملف"
             description={error.message}
             action={
-              <Button onClick={() => void refetch()} className="gap-2">
+              <Button
+                onClick={() => void refetch()}
+                className="gap-2 cursor-pointer"
+              >
                 <RefreshCw className="size-4" />
                 إعادة المحاولة
               </Button>
@@ -58,86 +90,241 @@ export default function PatientFile() {
         )}
 
         {data && (
-          <div className="space-y-4">
-            <div className="overflow-hidden rounded-[2rem] border border-[#dbe7f4] bg-white shadow-[0_12px_36px_rgba(28,64,104,0.06)]">
-              <div className="bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.24),transparent_28%),radial-gradient(circle_at_top_right,rgba(255,255,255,0.24),transparent_28%),linear-gradient(180deg,#002A63_0%,#0F4E93_38%,#DDEAF7_79%,#F8FAFC_100%)] px-4 pb-6 pt-5 text-white sm:px-6 sm:pb-8 lg:px-10 lg:pb-10">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="space-y-2">
+          <>
+            {/* Friendly Top Welcome greeting */}
+            <div className="space-y-1">
+              <h2 className="text-xl font-bold text-primary">
+                أهلاً بك، {data.fullName.split(" ")[0]} 👋
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                مرحباً بك في بوابتك الطبية الإلكترونية لمتابعة ملفك وحجوزاتك.
+              </p>
+            </div>
+
+            {/* Premium Passport-Style Patient Profile Card */}
+            <div className="rounded-2xl border border-[#dbe7f4] bg-white p-5 shadow-xs">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                {/* Profile Photo/Initial Badge and core status */}
+                <div className="flex items-center gap-4">
+                  <div className="size-16 shrink-0 bg-[#003D82] text-white font-bold text-xl rounded-2xl flex items-center justify-center shadow-xs">
+                    {data.fullName.trim().charAt(0)}
+                  </div>
+                  <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="text-xl font-semibold text-white">{data.fullName}</h2>
-                      <Badge variant="outline" className="border-white/40 bg-white/12 text-white">
-                        {data.patientCode}
-                      </Badge>
+                      <h3 className="text-lg font-bold text-foreground">
+                        {data.fullName}
+                      </h3>
                       {data.status && (
-                        <Badge variant="secondary" className="bg-secondary text-secondary-foreground">
+                        <Badge className="bg-secondary/15 text-secondary border-0 hover:bg-secondary/20 font-bold px-2.5 py-0.5 rounded-lg text-[10px]">
                           {STATUS_LABEL[data.status] ?? data.status}
                         </Badge>
                       )}
                     </div>
-                    <p className="max-w-2xl text-sm leading-6 text-white/90">
-                      {data.serviceType ? `الخدمة: ${SERVICE_LABEL[data.serviceType] ?? data.serviceType}` : "الملف الطبي الرئيسي للمريض."}
+                    <p className="text-xs text-muted-foreground leading-none">
+                      كود المريض:{" "}
+                      <span className="font-bold text-[#003D82] font-mono">
+                        {data.patientCode}
+                      </span>
                     </p>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    <PortalMetric label="الجنس" value={data.gender ? GENDER_LABEL[data.gender] ?? data.gender : "غير محدد"} tone="neutral" />
-                    <PortalMetric label="العمر" value={data.age ? `${data.age} سنة` : "غير محدد"} tone="blue" />
-                    <PortalMetric label="الزيارة الأخيرة" value={formatArabicDate(data.lastVisit)} tone="orange" />
-                    <PortalMetric label="الحالة" value={data.status ? STATUS_LABEL[data.status] ?? data.status : "غير محدد"} tone="neutral" />
+                </div>
+
+                {/* Info parameters stamps */}
+                <div className="grid grid-cols-3 gap-2 w-full md:w-auto md:min-w-[360px]">
+                  <div className="bg-[#F4F8FB] border border-[#e2edf7] rounded-xl p-2.5 text-center">
+                    <p className="text-[10px] font-semibold text-muted-foreground">
+                      الجنس
+                    </p>
+                    <p className="text-xs font-bold text-foreground mt-0.5">
+                      {data.gender
+                        ? (GENDER_LABEL[data.gender] ?? data.gender)
+                        : "غير محدد"}
+                    </p>
+                  </div>
+                  <div className="bg-[#F4F8FB] border border-[#e2edf7] rounded-xl p-2.5 text-center">
+                    <p className="text-[10px] font-semibold text-muted-foreground">
+                      العمر
+                    </p>
+                    <p className="text-xs font-bold text-foreground mt-0.5">
+                      {data.age ? `${data.age} سنة` : "غير محدد"}
+                    </p>
+                  </div>
+                  <div className="bg-[#F4F8FB] border border-[#e2edf7] rounded-xl p-2.5 text-center">
+                    <p className="text-[10px] font-semibold text-muted-foreground">
+                      آخر زيارة
+                    </p>
+                    <p className="text-xs font-bold text-foreground mt-0.5">
+                      {formatArabicDate(data.lastVisit)}
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-[1fr]">
-              <PortalPanel
-                title="البيانات الأساسية"
-                description="معلومات الاتصال والهوية في موضع واحد، مع أولوية للقراءة السريعة."
-              >
-                <div className="space-y-0.5">
-                  <DetailItem label="تاريخ الميلاد" value={formatArabicDate(data.dateOfBirth)} />
-                  <DetailItem label="رقم الموبايل" value={data.phone} />
-                  <DetailItem label="العنوان" value={data.address} />
-                  <DetailItem label="آخر زيارة" value={formatArabicDate(data.lastVisit)} />
-                </div>
-              </PortalPanel>
+            {/* Quick Actions Grid for Patients */}
+            <div className="space-y-2.5">
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                الوصول السريع للخدمات
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
+                <Link href="/my/refraction">
+                  <div className="bg-white border border-[#dbe7f4] rounded-2xl p-4 text-center space-y-3 shadow-xs hover:border-primary/30 transition-all duration-200 cursor-pointer h-full flex flex-col justify-center items-center">
+                    <div className="size-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                      <Glasses className="size-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-foreground">
+                        مقاس النظارة
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        آخر قياسات البصر
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+
+                <Link href="/my/prescription">
+                  <div className="bg-white border border-[#dbe7f4] rounded-2xl p-4 text-center space-y-3 shadow-xs hover:border-primary/30 transition-all duration-200 cursor-pointer h-full flex flex-col justify-center items-center">
+                    <div className="size-11 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
+                      <Pill className="size-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-foreground">
+                        روشتاتي الدوائية
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        العلاجات والجرعات
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+
+                <Link href="/my/scans">
+                  <div className="bg-white border border-[#dbe7f4] rounded-2xl p-4 text-center space-y-3 shadow-xs hover:border-primary/30 transition-all duration-200 cursor-pointer h-full flex flex-col justify-center items-center">
+                    <div className="size-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                      <ScanLine className="size-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-foreground">
+                        الأشعة والفحوصات
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        تقارير وصور العين
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+
+                <Link href="/my/book">
+                  <div className="bg-white border border-[#dbe7f4] rounded-2xl p-4 text-center space-y-3 shadow-xs hover:border-primary/30 transition-all duration-200 cursor-pointer h-full flex flex-col justify-center items-center">
+                    <div className="size-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                      <CalendarDays className="size-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-foreground">
+                        حجز موعد جديد
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        اختيار موعد بالعيادة
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+
+                <Link href="/my/bookings" className="col-span-2 md:col-span-1">
+                  <div className="bg-white border border-[#dbe7f4] rounded-2xl p-4 text-center space-y-3 shadow-xs hover:border-primary/30 transition-all duration-200 cursor-pointer h-full flex flex-col justify-center items-center">
+                    <div className="size-11 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center mx-auto">
+                      <UserRound className="size-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-foreground">
+                        مواعيدي السابقة
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        قائمة الحجوزات وحالتها
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              </div>
             </div>
 
-            {(data.medicalHistory || data.allergies) ? (
-              <PortalPanel
-                title="التاريخ المرضي"
-                description="المعلومات التي يحتاجها المريض ومقدم الخدمة عند الرجوع للملف."
-              >
-                <div className="grid gap-4 lg:grid-cols-2">
-                  <div className="rounded-xl border border-border bg-background p-4">
-                    <div className="mb-2 flex items-center gap-2">
-                      <Stethoscope className="size-4 text-primary" />
-                      <p className="text-sm font-semibold text-foreground">الأمراض السابقة</p>
+            {/* Medical details page blocks */}
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Contact details */}
+              <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
+                <div className="border-b border-[#f0f5fa] pb-2">
+                  <h4 className="text-sm font-bold text-foreground">
+                    البيانات الشخصية والاتصال
+                  </h4>
+                  <p className="text-[10px] text-muted-foreground">
+                    المسجلة في استقبال المركز
+                  </p>
+                </div>
+                <div className="space-y-0.5">
+                  <DetailItem
+                    label="تاريخ الميلاد"
+                    value={formatArabicDate(data.dateOfBirth)}
+                    icon={Calendar}
+                  />
+                  <DetailItem
+                    label="رقم الموبايل"
+                    value={data.phone}
+                    icon={Phone}
+                  />
+                  <DetailItem
+                    label="العنوان"
+                    value={data.address}
+                    icon={MapPin}
+                  />
+                  <DetailItem
+                    label="فئة الخدمة"
+                    value={
+                      data.serviceType
+                        ? (SERVICE_LABEL[data.serviceType] ?? data.serviceType)
+                        : null
+                    }
+                    icon={BadgeInfo}
+                  />
+                </div>
+              </div>
+
+              {/* Medical History */}
+              <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
+                <div className="border-b border-[#f0f5fa] pb-2">
+                  <h4 className="text-sm font-bold text-foreground">
+                    التاريخ المرضي والحساسية
+                  </h4>
+                  <p className="text-[10px] text-muted-foreground">
+                    معلومات طبية هامة لسلامتك
+                  </p>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="rounded-xl border border-[#dbe7f4] bg-[#F4F8FB]/40 p-4 space-y-2">
+                    <div className="flex items-center gap-1.5 font-bold text-xs text-primary">
+                      <Stethoscope className="size-4" />
+                      <span>الأمراض السابقة</span>
                     </div>
-                    <p className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground">
-                      {data.medicalHistory || "لا توجد بيانات مسجلة"}
+                    <p className="text-xs leading-6 text-muted-foreground whitespace-pre-wrap">
+                      {data.medicalHistory || "لا توجد أمراض مسجلة"}
                     </p>
                   </div>
-                  <div className="rounded-xl border border-border bg-background p-4">
-                    <div className="mb-2 flex items-center gap-2">
-                      <ShieldAlert className="size-4 text-secondary" />
-                      <p className="text-sm font-semibold text-foreground">الحساسية</p>
+
+                  <div className="rounded-xl border border-[#dbe7f4] bg-[#F4F8FB]/40 p-4 space-y-2">
+                    <div className="flex items-center gap-1.5 font-bold text-xs text-secondary">
+                      <ShieldAlert className="size-4" />
+                      <span>حالات الحساسية</span>
                     </div>
-                    <p className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground">
+                    <p className="text-xs leading-6 text-muted-foreground whitespace-pre-wrap">
                       {data.allergies || "لا توجد حساسية مسجلة"}
                     </p>
                   </div>
                 </div>
-              </PortalPanel>
-            ) : (
-              <PortalEmptyState
-                icon={<BadgeInfo className="size-5" />}
-                title="لا توجد ملاحظات مرضية مسجلة"
-                description="يمكنك متابعة الاستقبال إذا كانت هناك بيانات تحتاج إلى استكمال."
-              />
-            )}
-          </div>
+              </div>
+            </div>
+          </>
         )}
-      </PortalShell>
+      </div>
     </PatientLayout>
   );
 }

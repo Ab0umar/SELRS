@@ -1,12 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronDown, ChevronUp, FolderCog, Printer, RefreshCw, ScanSearch } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  FolderCog,
+  Printer,
+  RefreshCw,
+  ScanSearch,
+} from "lucide-react";
 import { toast } from "sonner";
 import { getApiUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { getTrpcErrorMessage } from "@/lib/utils";
-import AuthenticatedImage, { prefetchAuthenticatedImage } from "@/components/AuthenticatedImage";
+import AuthenticatedImage, {
+  prefetchAuthenticatedImage,
+} from "@/components/AuthenticatedImage";
 import PentacamThumbnail from "@/components/PentacamThumbnail";
 
 type LocalExportItem = {
@@ -36,7 +45,9 @@ function openPentacamPdfView(items: LocalExportItem[], title: string) {
   const imageMarkup = items
     .map((item) => {
       const assetUrl = buildPentacamAssetUrl(item);
-      const safeName = String(item.name ?? "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const safeName = String(item.name ?? "")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
       return `
         <section class="page">
           <div class="label">${safeName}</div>
@@ -130,10 +141,16 @@ type MismatchedLinkItem = {
 
 function extractNameHintFromPentacamFile(fileName: string): string {
   const stem = String(fileName ?? "").replace(/\.[^.]+$/, "");
-  return stem.replace(/_(OD|OS)_\d{8}_\d{6}_.+$/i, "").replace(/_/g, " ").trim();
+  return stem
+    .replace(/_(OD|OS)_\d{8}_\d{6}_.+$/i, "")
+    .replace(/_/g, " ")
+    .trim();
 }
 
-export default function LocalPentacamExportsPanel({ patientId, active = true }: LocalPentacamExportsPanelProps) {
+export default function LocalPentacamExportsPanel({
+  patientId,
+  active = true,
+}: LocalPentacamExportsPanelProps) {
   const PAGE_SIZE = 24;
   const [items, setItems] = useState<LocalExportItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -144,22 +161,38 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [lastAutoWireSignature, setLastAutoWireSignature] = useState("");
-  const [unmatchedSuggestions, setUnmatchedSuggestions] = useState<UnmatchedSuggestion[]>([]);
-  const [manualSearchTermByFile, setManualSearchTermByFile] = useState<Record<string, string>>({});
-  const [manualSearchResultsByFile, setManualSearchResultsByFile] = useState<Record<string, PatientSearchResult[]>>({});
-  const [manualSearchLoadingByFile, setManualSearchLoadingByFile] = useState<Record<string, boolean>>({});
-  const [mismatchedLinks, setMismatchedLinks] = useState<MismatchedLinkItem[]>([]);
+  const [unmatchedSuggestions, setUnmatchedSuggestions] = useState<
+    UnmatchedSuggestion[]
+  >([]);
+  const [manualSearchTermByFile, setManualSearchTermByFile] = useState<
+    Record<string, string>
+  >({});
+  const [manualSearchResultsByFile, setManualSearchResultsByFile] = useState<
+    Record<string, PatientSearchResult[]>
+  >({});
+  const [manualSearchLoadingByFile, setManualSearchLoadingByFile] = useState<
+    Record<string, boolean>
+  >({});
+  const [mismatchedLinks, setMismatchedLinks] = useState<MismatchedLinkItem[]>(
+    [],
+  );
   const [mismatchLoading, setMismatchLoading] = useState(false);
   const [expanded, setExpanded] = useState(true);
   const targetPatientId = Number(patientId ?? 0);
   const utils = trpc.useUtils();
   const importMutation = trpc.medical.importLocalPentacamExports.useMutation();
-  const autoImportMutation = trpc.medical.autoImportLocalPentacamExports.useMutation();
-  const unmatchedSuggestionsMutation = trpc.medical.getUnmatchedLocalPentacamSuggestions.useMutation();
-  const searchPentacamPatientsMutation = trpc.medical.searchPentacamPatients.useMutation();
-  const mismatchedLinksMutation = trpc.medical.getMismatchedLocalPentacamLinks.useMutation();
-  const unlinkMismatchedMutation = trpc.medical.unlinkMismatchedLocalPentacamLinks.useMutation();
-  const reassignLinkMutation = trpc.medical.reassignLocalPentacamLink.useMutation();
+  const autoImportMutation =
+    trpc.medical.autoImportLocalPentacamExports.useMutation();
+  const unmatchedSuggestionsMutation =
+    trpc.medical.getUnmatchedLocalPentacamSuggestions.useMutation();
+  const searchPentacamPatientsMutation =
+    trpc.medical.searchPentacamPatients.useMutation();
+  const mismatchedLinksMutation =
+    trpc.medical.getMismatchedLocalPentacamLinks.useMutation();
+  const unlinkMismatchedMutation =
+    trpc.medical.unlinkMismatchedLocalPentacamLinks.useMutation();
+  const reassignLinkMutation =
+    trpc.medical.reassignLocalPentacamLink.useMutation();
 
   const hasItems = useMemo(() => items.length > 0, [items.length]);
   const filteredItems = useMemo(() => {
@@ -187,23 +220,34 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
       return true;
     });
   }, [items, nameFilter, dateFrom, dateTo]);
-  const visibleItems = useMemo(() => filteredItems.slice(0, visibleCount), [filteredItems, visibleCount]);
+  const visibleItems = useMemo(
+    () => filteredItems.slice(0, visibleCount),
+    [filteredItems, visibleCount],
+  );
   const selectedNames = useMemo(
     () =>
       Object.entries(selected)
         .filter(([, isChecked]) => Boolean(isChecked))
         .map(([name]) => name),
-    [selected]
+    [selected],
   );
   const selectedItems = useMemo(
     () => filteredItems.filter((item) => Boolean(selected[item.name])),
-    [filteredItems, selected]
+    [filteredItems, selected],
   );
-  const canImport = targetPatientId > 0 && selectedNames.length > 0 && !importMutation.isPending;
-  const canAutoImport = filteredItems.length > 0 && !autoImportMutation.isPending;
+  const canImport =
+    targetPatientId > 0 &&
+    selectedNames.length > 0 &&
+    !importMutation.isPending;
+  const canAutoImport =
+    filteredItems.length > 0 && !autoImportMutation.isPending;
   const autoWireSignature = useMemo(
-    () => items.map((item) => item.name).sort().join("|"),
-    [items]
+    () =>
+      items
+        .map((item) => item.name)
+        .sort()
+        .join("|"),
+    [items],
   );
 
   useEffect(() => {
@@ -213,7 +257,11 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
   }, [visibleItems]);
 
   async function autoImportByBatches(fileNames: string[]) {
-    const unique = Array.from(new Set(fileNames.map((name) => String(name ?? "").trim()).filter(Boolean)));
+    const unique = Array.from(
+      new Set(
+        fileNames.map((name) => String(name ?? "").trim()).filter(Boolean),
+      ),
+    );
     const batchSize = 1000;
     let imported = 0;
     let alreadyLinked = 0;
@@ -237,11 +285,22 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
         }
       }
     }
-    return { imported, alreadyLinked, unmatched, skipped, missing, unresolvedFiles: Array.from(new Set(unresolvedFiles)) };
+    return {
+      imported,
+      alreadyLinked,
+      unmatched,
+      skipped,
+      missing,
+      unresolvedFiles: Array.from(new Set(unresolvedFiles)),
+    };
   }
 
   async function loadUnmatchedSuggestions(fileNames: string[]) {
-    const unique = Array.from(new Set(fileNames.map((value) => String(value ?? "").trim()).filter(Boolean)));
+    const unique = Array.from(
+      new Set(
+        fileNames.map((value) => String(value ?? "").trim()).filter(Boolean),
+      ),
+    );
     if (unique.length === 0) {
       setUnmatchedSuggestions([]);
       return;
@@ -251,17 +310,22 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
         fileNames: unique.slice(0, 2000),
         limitPerFile: 3,
       });
-      const rows = Array.isArray(result?.suggestions) ? (result.suggestions as UnmatchedSuggestion[]) : [];
+      const rows = Array.isArray(result?.suggestions)
+        ? (result.suggestions as UnmatchedSuggestion[])
+        : [];
       setUnmatchedSuggestions(rows);
       setManualSearchTermByFile((prev) => {
         const next = { ...prev };
         for (const row of rows) {
-          if (!next[row.fileName]) next[row.fileName] = extractNameHintFromPentacamFile(row.fileName);
+          if (!next[row.fileName])
+            next[row.fileName] = extractNameHintFromPentacamFile(row.fileName);
         }
         return next;
       });
     } catch (error: unknown) {
-      toast.error(getTrpcErrorMessage(error, "Failed to load unmatched suggestions."));
+      toast.error(
+        getTrpcErrorMessage(error, "Failed to load unmatched suggestions."),
+      );
     }
   }
 
@@ -270,8 +334,14 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
     if (!query) return;
     setManualSearchLoadingByFile((prev) => ({ ...prev, [fileName]: true }));
     try {
-      const rows = await searchPentacamPatientsMutation.mutateAsync({ searchTerm: query, limit: 10 });
-      setManualSearchResultsByFile((prev) => ({ ...prev, [fileName]: Array.isArray(rows) ? rows : [] }));
+      const rows = await searchPentacamPatientsMutation.mutateAsync({
+        searchTerm: query,
+        limit: 10,
+      });
+      setManualSearchResultsByFile((prev) => ({
+        ...prev,
+        [fileName]: Array.isArray(rows) ? rows : [],
+      }));
     } catch (error: unknown) {
       toast.error(getTrpcErrorMessage(error, "Patient search failed."));
     } finally {
@@ -287,14 +357,19 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
       });
       if (Number(result.imported ?? 0) > 0) {
         toast.success(`Linked ${fileName}`);
-        setUnmatchedSuggestions((prev) => prev.filter((entry) => entry.fileName !== fileName));
+        setUnmatchedSuggestions((prev) =>
+          prev.filter((entry) => entry.fileName !== fileName),
+        );
         setManualSearchResultsByFile((prev) => {
           const next = { ...prev };
           delete next[fileName];
           return next;
         });
         if (targetPatientId > 0) {
-          await utils.medical.getPentacamFilesByPatient.invalidate({ patientId: targetPatientId, limit: 100 });
+          await utils.medical.getPentacamFilesByPatient.invalidate({
+            patientId: targetPatientId,
+            limit: 100,
+          });
         }
       } else {
         toast.info(`No change for ${fileName} (already linked or missing).`);
@@ -307,11 +382,17 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
   async function loadMismatchedLinks() {
     setMismatchLoading(true);
     try {
-      const result = await mismatchedLinksMutation.mutateAsync({ limit: 80000 });
-      const rows = Array.isArray((result as any)?.rows) ? ((result as any).rows as MismatchedLinkItem[]) : [];
+      const result = await mismatchedLinksMutation.mutateAsync({
+        limit: 80000,
+      });
+      const rows = Array.isArray((result as any)?.rows)
+        ? ((result as any).rows as MismatchedLinkItem[])
+        : [];
       setMismatchedLinks(rows);
     } catch (error: unknown) {
-      toast.error(getTrpcErrorMessage(error, "Failed to scan mismatched links."));
+      toast.error(
+        getTrpcErrorMessage(error, "Failed to scan mismatched links."),
+      );
     } finally {
       setMismatchLoading(false);
     }
@@ -319,14 +400,24 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
 
   async function unlinkObviousMismatches() {
     try {
-      const result = await unlinkMismatchedMutation.mutateAsync({ obviousOnly: true, limit: 80000 });
-      toast.success(`Unlinked ${Number((result as any)?.deleted ?? 0)} mismatched link(s).`);
+      const result = await unlinkMismatchedMutation.mutateAsync({
+        obviousOnly: true,
+        limit: 80000,
+      });
+      toast.success(
+        `Unlinked ${Number((result as any)?.deleted ?? 0)} mismatched link(s).`,
+      );
       await loadMismatchedLinks();
       if (targetPatientId > 0) {
-        await utils.medical.getPentacamFilesByPatient.invalidate({ patientId: targetPatientId, limit: 100 });
+        await utils.medical.getPentacamFilesByPatient.invalidate({
+          patientId: targetPatientId,
+          limit: 100,
+        });
       }
     } catch (error: unknown) {
-      toast.error(getTrpcErrorMessage(error, "Failed to unlink mismatched links."));
+      toast.error(
+        getTrpcErrorMessage(error, "Failed to unlink mismatched links."),
+      );
     }
   }
 
@@ -336,24 +427,36 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
       toast.success(`Reassigned result #${resultId} to patient ${patientId}.`);
       await loadMismatchedLinks();
       if (targetPatientId > 0) {
-        await utils.medical.getPentacamFilesByPatient.invalidate({ patientId: targetPatientId, limit: 100 });
+        await utils.medical.getPentacamFilesByPatient.invalidate({
+          patientId: targetPatientId,
+          limit: 100,
+        });
       }
     } catch (error: unknown) {
       toast.error(getTrpcErrorMessage(error, "Failed to reassign link."));
     }
   }
 
-
   async function loadExports() {
     if (!active) return;
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(getApiUrl("/api/pentacam/exports?limit=100000"), { credentials: "include" });
-      const contentType = String(response.headers.get("content-type") ?? "").toLowerCase();
+      const response = await fetch(
+        getApiUrl("/api/pentacam/exports?limit=100000"),
+        { credentials: "include" },
+      );
+      const contentType = String(
+        response.headers.get("content-type") ?? "",
+      ).toLowerCase();
       if (!contentType.includes("application/json")) {
-        const preview = (await response.text()).slice(0, 160).replace(/\s+/g, " ").trim();
-        throw new Error(`Expected JSON from /api/pentacam/exports but received ${contentType || "unknown"}: ${preview}`);
+        const preview = (await response.text())
+          .slice(0, 160)
+          .replace(/\s+/g, " ")
+          .trim();
+        throw new Error(
+          `Expected JSON from /api/pentacam/exports but received ${contentType || "unknown"}: ${preview}`,
+        );
       }
       const json = (await response.json()) as ApiResponse;
       if (!json.ok) {
@@ -375,7 +478,9 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
     } catch (err: any) {
       setItems([]);
       setSelected({});
-      setError(String(err?.message || "Could not load local Pentacam exports."));
+      setError(
+        String(err?.message || "Could not load local Pentacam exports."),
+      );
     } finally {
       setLoading(false);
     }
@@ -390,7 +495,8 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
     try {
       const result = await autoImportByBatches(names);
       const parts = [`Newly linked: ${result.imported}`];
-      if (result.alreadyLinked > 0) parts.push(`already linked: ${result.alreadyLinked}`);
+      if (result.alreadyLinked > 0)
+        parts.push(`already linked: ${result.alreadyLinked}`);
       if (result.unmatched > 0) parts.push(`unmatched: ${result.unmatched}`);
       if (result.skipped > 0) parts.push(`skipped: ${result.skipped}`);
       toast.success(parts.join(" · "));
@@ -400,10 +506,15 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
         setUnmatchedSuggestions([]);
       }
       if (targetPatientId > 0) {
-        await utils.medical.getPentacamFilesByPatient.invalidate({ patientId: targetPatientId, limit: 100 });
+        await utils.medical.getPentacamFilesByPatient.invalidate({
+          patientId: targetPatientId,
+          limit: 100,
+        });
       }
     } catch (error: unknown) {
-      toast.error(getTrpcErrorMessage(error, "Failed to auto-link Pentacam exports."));
+      toast.error(
+        getTrpcErrorMessage(error, "Failed to auto-link Pentacam exports."),
+      );
     }
   }
 
@@ -416,7 +527,8 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
     try {
       const result = await autoImportByBatches(names);
       const parts = [`Newly linked: ${result.imported}`];
-      if (result.alreadyLinked > 0) parts.push(`already linked: ${result.alreadyLinked}`);
+      if (result.alreadyLinked > 0)
+        parts.push(`already linked: ${result.alreadyLinked}`);
       if (result.unmatched > 0) parts.push(`unmatched: ${result.unmatched}`);
       if (result.skipped > 0) parts.push(`skipped: ${result.skipped}`);
       toast.success(parts.join(" · "));
@@ -426,10 +538,15 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
         setUnmatchedSuggestions([]);
       }
       if (targetPatientId > 0) {
-        await utils.medical.getPentacamFilesByPatient.invalidate({ patientId: targetPatientId, limit: 100 });
+        await utils.medical.getPentacamFilesByPatient.invalidate({
+          patientId: targetPatientId,
+          limit: 100,
+        });
       }
     } catch (error: unknown) {
-      toast.error(getTrpcErrorMessage(error, "Failed to auto-link Pentacam exports."));
+      toast.error(
+        getTrpcErrorMessage(error, "Failed to auto-link Pentacam exports."),
+      );
     }
   }
   async function importSelected() {
@@ -446,10 +563,17 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
         patientId: targetPatientId,
         fileNames: selectedNames,
       });
-      toast.success(`Imported ${result.imported}, skipped ${result.skipped}, missing ${result.missing}.`);
-      await utils.medical.getPentacamFilesByPatient.invalidate({ patientId: targetPatientId, limit: 100 });
+      toast.success(
+        `Imported ${result.imported}, skipped ${result.skipped}, missing ${result.missing}.`,
+      );
+      await utils.medical.getPentacamFilesByPatient.invalidate({
+        patientId: targetPatientId,
+        limit: 100,
+      });
     } catch (error: unknown) {
-      toast.error(getTrpcErrorMessage(error, "Failed to import Pentacam exports."));
+      toast.error(
+        getTrpcErrorMessage(error, "Failed to import Pentacam exports."),
+      );
     }
   }
 
@@ -460,13 +584,19 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
     }
     const opened = openPentacamPdfView(
       selectedItems,
-      selectedItems.length === 1 ? selectedItems[0].name : `Pentacam_${selectedItems.length}_images`
+      selectedItems.length === 1
+        ? selectedItems[0].name
+        : `Pentacam_${selectedItems.length}_images`,
     );
     if (!opened) {
       toast.error("Could not open the print view.");
       return;
     }
-    toast.success(selectedItems.length === 1 ? "Print view opened." : `Print view opened for ${selectedItems.length} images.`);
+    toast.success(
+      selectedItems.length === 1
+        ? "Print view opened."
+        : `Print view opened for ${selectedItems.length} images.`,
+    );
   }
 
   useEffect(() => {
@@ -487,7 +617,9 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
               Pentacam Intake
             </div>
             <div>
-              <CardTitle className="text-base text-foreground">Local Pentacam Exports</CardTitle>
+              <CardTitle className="text-base text-foreground">
+                Local Pentacam Exports
+              </CardTitle>
               <div className="mt-1 text-sm text-muted-foreground">
                 Review and import Pentacam images from the local export folder.
               </div>
@@ -503,7 +635,8 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
                 Selected: {selectedNames.length}
               </span>
               <span className="rounded-full border border-border bg-muted px-3 py-1">
-                Patient: {targetPatientId > 0 ? `#${targetPatientId}` : "not selected"}
+                Patient:{" "}
+                {targetPatientId > 0 ? `#${targetPatientId}` : "not selected"}
               </span>
             </div>
           </div>
@@ -516,7 +649,11 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
               title={expanded ? "Collapse" : "Expand"}
               className="gap-2 border-border bg-background"
             >
-              {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              {expanded ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
               {expanded ? "Collapse" : "Expand"}
             </Button>
             <Button
@@ -539,7 +676,9 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
               className="gap-2 border-border bg-background"
             >
               <ScanSearch className="h-4 w-4" />
-              {autoImportMutation.isPending ? "Auto-linking..." : `Auto-wire ALL (${items.length})`}
+              {autoImportMutation.isPending
+                ? "Auto-linking..."
+                : `Auto-wire ALL (${items.length})`}
             </Button>
             <Button
               type="button"
@@ -550,7 +689,9 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
               className="gap-2 border-border bg-background"
             >
               <ScanSearch className="h-4 w-4" />
-              {autoImportMutation.isPending ? "Auto-linking..." : `Auto-wire filtered (${filteredItems.length})`}
+              {autoImportMutation.isPending
+                ? "Auto-linking..."
+                : `Auto-wire filtered (${filteredItems.length})`}
             </Button>
             <Button
               type="button"
@@ -559,254 +700,334 @@ export default function LocalPentacamExportsPanel({ patientId, active = true }: 
               disabled={!canImport}
               className="bg-foreground text-primary-foreground hover:bg-muted/80"
             >
-              {importMutation.isPending ? "Saving..." : `Save Selected (${selectedNames.length})`}
+              {importMutation.isPending
+                ? "Saving..."
+                : `Save Selected (${selectedNames.length})`}
             </Button>
-            <Button type="button" variant="outline" size="sm" onClick={loadExports} disabled={loading} className="gap-2 border-border bg-background">
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={loadExports}
+              disabled={loading}
+              className="gap-2 border-border bg-background"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+              />
               Refresh
             </Button>
           </div>
         </div>
       </CardHeader>
-      {expanded ? <CardContent>
-        {targetPatientId <= 0 ? (
-          <div className="mb-3 rounded-2xl border border-warning/50 bg-warning/10/80 px-4 py-3 text-sm text-warning">
-            Select a patient above, then choose images and click import.
+      {expanded ? (
+        <CardContent>
+          {targetPatientId <= 0 ? (
+            <div className="mb-3 rounded-2xl border border-warning/50 bg-warning/10/80 px-4 py-3 text-sm text-warning">
+              Select a patient above, then choose images and click import.
+            </div>
+          ) : null}
+          <div className="mb-4 grid grid-cols-1 gap-2 rounded-2xl border border-border bg-muted/70 p-3 sm:grid-cols-3">
+            <input
+              type="text"
+              value={nameFilter}
+              onChange={(e) => setNameFilter(e.target.value)}
+              placeholder="Filter by name/code/file"
+              className="h-9 rounded border px-2 text-sm"
+            />
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="h-9 rounded border px-2 text-sm"
+            />
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="h-9 rounded border px-2 text-sm"
+            />
           </div>
-        ) : null}
-        <div className="mb-4 grid grid-cols-1 gap-2 rounded-2xl border border-border bg-muted/70 p-3 sm:grid-cols-3">
-          <input
-            type="text"
-            value={nameFilter}
-            onChange={(e) => setNameFilter(e.target.value)}
-            placeholder="Filter by name/code/file"
-            className="h-9 rounded border px-2 text-sm"
-          />
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="h-9 rounded border px-2 text-sm"
-          />
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="h-9 rounded border px-2 text-sm"
-          />
-        </div>
-        {hasItems ? (
-          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              const next: Record<string, boolean> = {};
-              for (const item of visibleItems) next[item.name] = true;
-              setSelected(next);
-            }}
-          >
-              Select visible
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setSelected({})}
-            >
-              Clear
-            </Button>
-            <div className="text-xs text-muted-foreground sm:ml-auto">
-              Showing {Math.min(visibleCount, filteredItems.length)} of {filteredItems.length} (total {items.length})
-            </div>
-          </div>
-        ) : null}
-        {!hasItems && !error ? (
-          <div className="text-sm text-muted-foreground">No exported files found in the `Pentacam` folder.</div>
-        ) : null}
-        {error ? <div className="rounded-xl border border-destructive/30 bg-destructive text-destructive-foreground">{error}</div> : null}
-        {unmatchedSuggestions.length > 0 ? (
-          <div className="mb-4 space-y-2 rounded-2xl border border-border bg-muted/70 p-3">
-            <div className="text-sm font-medium">
-              Unmatched Suggestions ({unmatchedSuggestions.length}) - Manual linking only
-            </div>
-            <div className="space-y-2 max-h-72 overflow-auto pr-1">
-              {unmatchedSuggestions.map((entry) => (
-                <div key={entry.fileName} className="rounded border p-2 text-xs space-y-2">
-                  <div className="break-all font-medium">{entry.fileName}</div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={manualSearchTermByFile[entry.fileName] ?? ""}
-                      onChange={(e) =>
-                        setManualSearchTermByFile((prev) => ({ ...prev, [entry.fileName]: e.target.value }))
-                      }
-                      placeholder="Search patient Arabic/English"
-                      className="h-8 rounded border px-2 text-xs w-full"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => searchPatientsForFile(entry.fileName)}
-                      disabled={Boolean(manualSearchLoadingByFile[entry.fileName])}
-                    >
-                      {manualSearchLoadingByFile[entry.fileName] ? "Searching..." : "Search"}
-                    </Button>
-                  </div>
-                  {Array.isArray(manualSearchResultsByFile[entry.fileName]) &&
-                  manualSearchResultsByFile[entry.fileName].length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {manualSearchResultsByFile[entry.fileName].map((row) => (
-                        <Button
-                          key={`${entry.fileName}-manual-${row.patientId}`}
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => linkSuggestion(entry.fileName, row.patientId)}
-                          disabled={importMutation.isPending}
-                        >
-                          {row.patientCode} {row.fullName}
-                        </Button>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
-        <div className="mb-4 space-y-2 rounded-2xl border border-border bg-muted/70 p-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="text-sm font-medium">
-              Mismatched Existing Links ({mismatchedLinks.length})
-            </div>
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={loadMismatchedLinks} disabled={mismatchLoading}>
-                {mismatchLoading ? "Scanning..." : "Scan mismatches"}
+          {hasItems ? (
+            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const next: Record<string, boolean> = {};
+                  for (const item of visibleItems) next[item.name] = true;
+                  setSelected(next);
+                }}
+              >
+                Select visible
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={unlinkObviousMismatches}
-                disabled={unlinkMismatchedMutation.isPending}
+                onClick={() => setSelected({})}
               >
-                {unlinkMismatchedMutation.isPending ? "Unlinking..." : "Unlink obvious"}
+                Clear
               </Button>
+              <div className="text-xs text-muted-foreground sm:ml-auto">
+                Showing {Math.min(visibleCount, filteredItems.length)} of{" "}
+                {filteredItems.length} (total {items.length})
+              </div>
             </div>
-          </div>
-          {mismatchedLinks.length > 0 ? (
-            <div className="space-y-2 max-h-72 overflow-auto pr-1">
-              {mismatchedLinks.map((row) => (
-                <div key={`mismatch-${row.resultId}`} className="rounded border p-2 text-xs space-y-1">
-                  <div className="break-all font-medium">#{row.resultId} - {row.fileName}</div>
-                  <div className="text-muted-foreground">
-                    current: {row.currentPatientCode || row.currentPatientId} {row.currentPatientName}
-                  </div>
-                  <div className="text-muted-foreground">codes: {row.codeCandidates.join(", ")}</div>
-                  {row.kind === "obvious" && row.suggestedPatientId ? (
-                    <div className="flex flex-wrap gap-2">
+          ) : null}
+          {!hasItems && !error ? (
+            <div className="text-sm text-muted-foreground">
+              No exported files found in the `Pentacam` folder.
+            </div>
+          ) : null}
+          {error ? (
+            <div className="rounded-xl border border-destructive/30 bg-destructive text-destructive-foreground">
+              {error}
+            </div>
+          ) : null}
+          {unmatchedSuggestions.length > 0 ? (
+            <div className="mb-4 space-y-2 rounded-2xl border border-border bg-muted/70 p-3">
+              <div className="text-sm font-medium">
+                Unmatched Suggestions ({unmatchedSuggestions.length}) - Manual
+                linking only
+              </div>
+              <div className="space-y-2 max-h-72 overflow-auto pr-1">
+                {unmatchedSuggestions.map((entry) => (
+                  <div
+                    key={entry.fileName}
+                    className="rounded border p-2 text-xs space-y-2"
+                  >
+                    <div className="break-all font-medium">
+                      {entry.fileName}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={manualSearchTermByFile[entry.fileName] ?? ""}
+                        onChange={(e) =>
+                          setManualSearchTermByFile((prev) => ({
+                            ...prev,
+                            [entry.fileName]: e.target.value,
+                          }))
+                        }
+                        placeholder="Search patient Arabic/English"
+                        className="h-8 rounded border px-2 text-xs w-full"
+                      />
                       <Button
                         type="button"
-                        size="sm"
                         variant="outline"
-                        onClick={() => reassignMismatch(row.resultId, Number(row.suggestedPatientId))}
-                        disabled={reassignLinkMutation.isPending}
-                      >
-                        Reassign to {row.suggestedPatientCode} {row.suggestedPatientName}
-                      </Button>
-                      <Button
-                        type="button"
                         size="sm"
-                        variant="outline"
-                        onClick={async () => {
-                          await unlinkMismatchedMutation.mutateAsync({ resultIds: [row.resultId] });
-                          await loadMismatchedLinks();
-                        }}
-                        disabled={unlinkMismatchedMutation.isPending}
+                        onClick={() => searchPatientsForFile(entry.fileName)}
+                        disabled={Boolean(
+                          manualSearchLoadingByFile[entry.fileName],
+                        )}
                       >
-                        Unlink
+                        {manualSearchLoadingByFile[entry.fileName]
+                          ? "Searching..."
+                          : "Search"}
                       </Button>
                     </div>
-                  ) : (
-                    <div className="text-warning">Ambiguous: manual decision required.</div>
-                  )}
+                    {Array.isArray(manualSearchResultsByFile[entry.fileName]) &&
+                    manualSearchResultsByFile[entry.fileName].length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {manualSearchResultsByFile[entry.fileName].map(
+                          (row) => (
+                            <Button
+                              key={`${entry.fileName}-manual-${row.patientId}`}
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                linkSuggestion(entry.fileName, row.patientId)
+                              }
+                              disabled={importMutation.isPending}
+                            >
+                              {row.patientCode} {row.fullName}
+                            </Button>
+                          ),
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          <div className="mb-4 space-y-2 rounded-2xl border border-border bg-muted/70 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-sm font-medium">
+                Mismatched Existing Links ({mismatchedLinks.length})
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={loadMismatchedLinks}
+                  disabled={mismatchLoading}
+                >
+                  {mismatchLoading ? "Scanning..." : "Scan mismatches"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={unlinkObviousMismatches}
+                  disabled={unlinkMismatchedMutation.isPending}
+                >
+                  {unlinkMismatchedMutation.isPending
+                    ? "Unlinking..."
+                    : "Unlink obvious"}
+                </Button>
+              </div>
+            </div>
+            {mismatchedLinks.length > 0 ? (
+              <div className="space-y-2 max-h-72 overflow-auto pr-1">
+                {mismatchedLinks.map((row) => (
+                  <div
+                    key={`mismatch-${row.resultId}`}
+                    className="rounded border p-2 text-xs space-y-1"
+                  >
+                    <div className="break-all font-medium">
+                      #{row.resultId} - {row.fileName}
+                    </div>
+                    <div className="text-muted-foreground">
+                      current: {row.currentPatientCode || row.currentPatientId}{" "}
+                      {row.currentPatientName}
+                    </div>
+                    <div className="text-muted-foreground">
+                      codes: {row.codeCandidates.join(", ")}
+                    </div>
+                    {row.kind === "obvious" && row.suggestedPatientId ? (
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            reassignMismatch(
+                              row.resultId,
+                              Number(row.suggestedPatientId),
+                            )
+                          }
+                          disabled={reassignLinkMutation.isPending}
+                        >
+                          Reassign to {row.suggestedPatientCode}{" "}
+                          {row.suggestedPatientName}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={async () => {
+                            await unlinkMismatchedMutation.mutateAsync({
+                              resultIds: [row.resultId],
+                            });
+                            await loadMismatchedLinks();
+                          }}
+                          disabled={unlinkMismatchedMutation.isPending}
+                        >
+                          Unlink
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="text-warning">
+                        Ambiguous: manual decision required.
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground">
+                Run scan to load mismatched linked files.
+              </div>
+            )}
+          </div>
+          {hasItems ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {visibleItems.map((item, index) => (
+                <div
+                  key={`${item.name}-${item.mtime}`}
+                  className="space-y-2 rounded-2xl border border-border bg-background p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:bg-primary/5"
+                >
+                  <label className="flex items-center gap-2 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(selected[item.name])}
+                      onChange={(e) =>
+                        setSelected((prev) => ({
+                          ...prev,
+                          [item.name]: e.target.checked,
+                        }))
+                      }
+                    />
+                    Select
+                  </label>
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" size="sm" asChild>
+                      <a
+                        href={buildPentacamAssetUrl(item)}
+                        target="_blank"
+                        rel="noreferrer"
+                        download={item.name}
+                      >
+                        Download
+                      </a>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const opened = openPentacamPdfView([item], item.name);
+                        if (!opened) {
+                          toast.error("Could not open the PDF view.");
+                        }
+                      }}
+                    >
+                      PDF
+                    </Button>
+                  </div>
+                  <a
+                    href={buildPentacamAssetUrl(item)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block"
+                  >
+                    <PentacamThumbnail
+                      src={buildPentacamAssetUrl(item)}
+                      alt={item.name}
+                      className="h-24 w-full rounded-xl border border-border object-cover"
+                      loading={index < 12 ? "eager" : "lazy"}
+                    />
+                  </a>
+                  <div className="text-xs break-all">{item.name}</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {formatDate(item.mtime)}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {formatSize(item.size)}
+                  </div>
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="text-xs text-muted-foreground">Run scan to load mismatched linked files.</div>
-          )}
-        </div>
-        {hasItems ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {visibleItems.map((item, index) => (
-              <div
-                key={`${item.name}-${item.mtime}`}
-                className="space-y-2 rounded-2xl border border-border bg-background p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:bg-primary/5"
+          ) : null}
+          {filteredItems.length > visibleCount ? (
+            <div className="mt-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
               >
-                <label className="flex items-center gap-2 text-xs">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(selected[item.name])}
-                    onChange={(e) => setSelected((prev) => ({ ...prev, [item.name]: e.target.checked }))}
-                  />
-                  Select
-                </label>
-                <div className="flex gap-2">
-                  <Button type="button" variant="outline" size="sm" asChild>
-                    <a href={buildPentacamAssetUrl(item)} target="_blank" rel="noreferrer" download={item.name}>
-                      Download
-                    </a>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const opened = openPentacamPdfView([item], item.name);
-                      if (!opened) {
-                        toast.error("Could not open the PDF view.");
-                      }
-                    }}
-                  >
-                    PDF
-                  </Button>
-                </div>
-                <a href={buildPentacamAssetUrl(item)} target="_blank" rel="noreferrer" className="block">
-                  <PentacamThumbnail
-                    src={buildPentacamAssetUrl(item)}
-                    alt={item.name}
-                    className="h-24 w-full rounded-xl border border-border object-cover"
-                    loading={index < 12 ? "eager" : "lazy"}
-                  />
-                </a>
-                <div className="text-xs break-all">{item.name}</div>
-                <div className="text-[11px] text-muted-foreground">{formatDate(item.mtime)}</div>
-                <div className="text-[11px] text-muted-foreground">{formatSize(item.size)}</div>
-              </div>
-            ))}
-          </div>
-        ) : null}
-        {filteredItems.length > visibleCount ? (
-          <div className="mt-3">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
-            >
-              Load more
-            </Button>
-          </div>
-        ) : null}
-      </CardContent> : null}
+                Load more
+              </Button>
+            </div>
+          ) : null}
+        </CardContent>
+      ) : null}
     </Card>
   );
 }
-
-
-
-

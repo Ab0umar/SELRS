@@ -63,7 +63,7 @@ export class ZKTecoDevice extends EventEmitter {
           this.isConnected = true;
           this.emit("connected");
           resolve(true);
-        }
+        },
       );
 
       this.socket.on("data", (data: Buffer) => this.handleResponse(data));
@@ -118,9 +118,7 @@ export class ZKTecoDevice extends EventEmitter {
    * Download all punch records from device
    * Returns array of punch records since lastSync
    */
-  async getPunchRecords(
-    lastSyncTime?: Date
-  ): Promise<PunchRecord[]> {
+  async getPunchRecords(lastSyncTime?: Date): Promise<PunchRecord[]> {
     const records: PunchRecord[] = [];
 
     try {
@@ -176,9 +174,7 @@ export class ZKTecoDevice extends EventEmitter {
   /**
    * Get employee list from device
    */
-  async getEmployees(): Promise<
-    Array<{ empNo: string; name: string }>
-  > {
+  async getEmployees(): Promise<Array<{ empNo: string; name: string }>> {
     try {
       const cmd = this.buildCommand(21); // CMD_GETUSERINFO
       const response = await this.sendCommand(cmd);
@@ -229,10 +225,7 @@ export class ZKTecoDevice extends EventEmitter {
    * Build ZKTeco command packet
    * Format: [CMD(2)] [CRC(2)] [SESSION_ID(4)] [RESERVED(4)] [COMMAND_DATA]
    */
-  private buildCommand(
-    commandId: number,
-    data?: Buffer
-  ): Buffer {
+  private buildCommand(commandId: number, data?: Buffer): Buffer {
     const cmdBuf = Buffer.alloc(8 + (data?.length || 0));
 
     // Command ID (little-endian short)
@@ -268,9 +261,7 @@ export class ZKTecoDevice extends EventEmitter {
       }
 
       const timeout = setTimeout(() => {
-        const index = this.commandQueue.findIndex(
-          (q) => q.command === command
-        );
+        const index = this.commandQueue.findIndex((q) => q.command === command);
         if (index >= 0) {
           this.commandQueue.splice(index, 1);
         }
@@ -330,7 +321,7 @@ export class ZKTecoDevice extends EventEmitter {
  */
 export async function testZKTecoConnection(
   ip: string,
-  port: number = 5005
+  port: number = 5005,
 ): Promise<boolean> {
   const device = new ZKTecoDevice({ ip, port, timeout: 5000 });
 

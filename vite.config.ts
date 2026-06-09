@@ -2,7 +2,12 @@ import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { defineConfig, type Plugin, type PluginOption, type ViteDevServer } from "vite";
+import {
+  defineConfig,
+  type Plugin,
+  type PluginOption,
+  type ViteDevServer,
+} from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 
 // =============================================================================
@@ -153,8 +158,15 @@ function vitePluginManusDebugCollector(): Plugin {
 
 const APP_VERSION = process.env.npm_package_version ?? "unknown";
 const BUILD_TIME = new Date().toISOString();
-const ANDROID_GOOGLE_SERVICES_JSON = path.join(PROJECT_ROOT, "android", "app", "google-services.json");
-const hasAndroidGoogleServicesJson = fs.existsSync(ANDROID_GOOGLE_SERVICES_JSON);
+const ANDROID_GOOGLE_SERVICES_JSON = path.join(
+  PROJECT_ROOT,
+  "android",
+  "app",
+  "google-services.json",
+);
+const hasAndroidGoogleServicesJson = fs.existsSync(
+  ANDROID_GOOGLE_SERVICES_JSON,
+);
 
 export default defineConfig(({ mode }) => {
   const isProd = mode === "production";
@@ -193,23 +205,43 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             if (!id.includes("node_modules")) return undefined;
-            if (id.includes("/react/") || id.includes("/react-dom/") || id.includes("/scheduler/") || id.includes("/wouter/")) {
+            if (
+              id.includes("/react/") ||
+              id.includes("/react-dom/") ||
+              id.includes("/scheduler/") ||
+              id.includes("/wouter/")
+            ) {
               return "react-core";
             }
-            if (id.includes("@tanstack/react-query") || id.includes("@trpc") || id.includes("superjson") || id.includes("zod")) {
+            if (
+              id.includes("@tanstack/react-query") ||
+              id.includes("@trpc") ||
+              id.includes("superjson") ||
+              id.includes("zod")
+            ) {
               return "data-core";
             }
             if (id.includes("@radix-ui")) return "radix-ui";
             if (id.includes("lucide-react")) return "icons";
-            if (id.includes("framer-motion") || id.includes("embla-carousel-react")) return "motion";
+            if (
+              id.includes("framer-motion") ||
+              id.includes("embla-carousel-react")
+            )
+              return "motion";
             if (id.includes("recharts")) return "charts";
             if (id.includes("xlsx")) return "excel";
             if (id.includes("pdf-lib")) return "pdf-lib";
             if (id.includes("html2canvas")) return "html2canvas";
             if (id.includes("@aws-sdk")) return "aws-sdk";
-            if (id.includes("@hookform") || id.includes("react-hook-form")) return "forms";
+            if (id.includes("@hookform") || id.includes("react-hook-form"))
+              return "forms";
             if (id.includes("date-fns")) return "date-utils";
-            if (id.includes("sonner") || id.includes("cmdk") || id.includes("vaul")) return "ui-misc";
+            if (
+              id.includes("sonner") ||
+              id.includes("cmdk") ||
+              id.includes("vaul")
+            )
+              return "ui-misc";
             return "vendor";
           },
         },

@@ -74,7 +74,10 @@ function parseCsvLine(line: string, delimiter = ";"): string[] {
 }
 
 function loadCsv(filePath: string): string[][] {
-  const raw = fs.readFileSync(filePath, "utf-8").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const raw = fs
+    .readFileSync(filePath, "utf-8")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n");
   return raw
     .split("\n")
     .filter((line) => line.trim().length > 0)
@@ -124,13 +127,20 @@ function receiptDateToIso(raw: string): string | null {
 
 const TOLERANCE = 0.01;
 
-function withinTolerance(expected: number, actual: number, label: string): { pass: boolean; delta: number } {
+function withinTolerance(
+  expected: number,
+  actual: number,
+  label: string,
+): { pass: boolean; delta: number } {
   const delta = Math.abs(expected - actual);
   return { pass: delta <= TOLERANCE, delta };
 }
 
 function fmt(n: number): string {
-  return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return n.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -166,7 +176,9 @@ function loadDailyRevenue(fixturePath: string): DailyRevenueLegacyRow[] {
   }));
 }
 
-function loadDailyRevenueShift(fixturePath: string): (DailyRevenueLegacyRow & { shift: number })[] {
+function loadDailyRevenueShift(
+  fixturePath: string,
+): (DailyRevenueLegacyRow & { shift: number })[] {
   const rows = loadCsv(fixturePath);
   return rows.map((r) => ({
     date: r[0],
@@ -326,9 +338,14 @@ function loadServiceRevenue(fixturePath: string): ServiceRevenueLegacyRow[] {
 // MSSQL queries (direct, reusing the existing pool)
 // ---------------------------------------------------------------------------
 
-async function runMssqlQuery<T>(sql: string, params: Record<string, unknown>): Promise<T[]> {
-  const { createMssqlPool } = await import("../../server/integrations/mssqlPatients");
-  const { mssqlQuery } = await import("../../server/services/accounting/mssqlAccounting");
+async function runMssqlQuery<T>(
+  sql: string,
+  params: Record<string, unknown>,
+): Promise<T[]> {
+  const { createMssqlPool } =
+    await import("../../server/integrations/mssqlPatients");
+  const { mssqlQuery } =
+    await import("../../server/services/accounting/mssqlAccounting");
   return mssqlQuery<T>(sql, params);
 }
 
@@ -350,12 +367,24 @@ async function checkDailyRevenue() {
       totalPaid: acc.totalPaid + r.totalPaid,
       netAfterDiscount: acc.netAfterDiscount + r.netAfterDiscount,
     }),
-    { totalReceipts: 0, totalGross: 0, totalDiscount: 0, totalCash: 0, totalPaid: 0, netAfterDiscount: 0 },
+    {
+      totalReceipts: 0,
+      totalGross: 0,
+      totalDiscount: 0,
+      totalCash: 0,
+      totalPaid: 0,
+      netAfterDiscount: 0,
+    },
   );
 
   // Query the API service directly
-  const { getDailyRevenue } = await import("../../server/services/accounting/dailyRevenue.service");
-  const result = await getDailyRevenue({ fromDate: "2026-04-01", toDate: "2026-04-30", sectionCode: 15 });
+  const { getDailyRevenue } =
+    await import("../../server/services/accounting/dailyRevenue.service");
+  const result = await getDailyRevenue({
+    fromDate: "2026-04-01",
+    toDate: "2026-04-30",
+    sectionCode: 15,
+  });
 
   // Legacy CSV column mapping analysis (verified by summing fixture data):
   //   col[2] = gross (matches API totalGross)
@@ -365,9 +394,21 @@ async function checkDailyRevenue() {
   //   col[6] = always 0
   // API: totalPaid = SUM(s.PA_VL) = gross, netAfterDiscount = gross - discount
   const comparisons = [
-    { label: "totalGross", expected: legacyTotals.totalGross, actual: result.totals.totalGross },
-    { label: "totalDiscount", expected: legacyTotals.totalDiscount, actual: result.totals.totalDiscount },
-    { label: "netAfterDiscount", expected: legacyTotals.totalPaid, actual: result.totals.netAfterDiscount },
+    {
+      label: "totalGross",
+      expected: legacyTotals.totalGross,
+      actual: result.totals.totalGross,
+    },
+    {
+      label: "totalDiscount",
+      expected: legacyTotals.totalDiscount,
+      actual: result.totals.totalDiscount,
+    },
+    {
+      label: "netAfterDiscount",
+      expected: legacyTotals.totalPaid,
+      actual: result.totals.netAfterDiscount,
+    },
   ];
 
   let allPass = true;
@@ -384,7 +425,9 @@ async function checkDailyRevenue() {
   for (const c of comparisons) {
     const { pass, delta } = withinTolerance(c.expected, c.actual, c.label);
     if (!pass) allPass = false;
-    lines.push(`| ${c.label} | ${fmt(c.expected)} | ${fmt(c.actual)} | ${delta.toFixed(4)} | ${pass ? "PASS" : "**FAIL**"} |`);
+    lines.push(
+      `| ${c.label} | ${fmt(c.expected)} | ${fmt(c.actual)} | ${delta.toFixed(4)} | ${pass ? "PASS" : "**FAIL**"} |`,
+    );
   }
 
   lines.push("");
@@ -393,7 +436,15 @@ async function checkDailyRevenue() {
 
   // Per-date comparison
   const apiByDate = new Map(result.rows.map((r) => [r.date, r]));
-  const legacyDates = legacy.filter((r) => r.date !== "2026-04-02" && r.date !== "2026-04-03" && r.date !== "2026-04-10" && r.date !== "2026-04-13" && r.date !== "2026-04-17" && r.date !== "2026-04-24");
+  const legacyDates = legacy.filter(
+    (r) =>
+      r.date !== "2026-04-02" &&
+      r.date !== "2026-04-03" &&
+      r.date !== "2026-04-10" &&
+      r.date !== "2026-04-13" &&
+      r.date !== "2026-04-17" &&
+      r.date !== "2026-04-24",
+  );
   lines.push("## Per-Date Detail (sample)");
   lines.push("");
   lines.push("| Date | Legacy Gross | API Gross | Delta | Status |");
@@ -404,15 +455,23 @@ async function checkDailyRevenue() {
   for (const lr of legacyDates) {
     const ar = apiByDate.get(lr.date);
     if (!ar) {
-      lines.push(`| ${lr.date} | ${fmt(lr.totalGross)} | (missing) | - | **MISS** |`);
+      lines.push(
+        `| ${lr.date} | ${fmt(lr.totalGross)} | (missing) | - | **MISS** |`,
+      );
       dateMismatchCount++;
       continue;
     }
-    const { pass, delta } = withinTolerance(lr.totalGross, ar.totalGross, lr.date);
+    const { pass, delta } = withinTolerance(
+      lr.totalGross,
+      ar.totalGross,
+      lr.date,
+    );
     if (!pass) allPass = false;
     if (pass) dateMatchCount++;
     else dateMismatchCount++;
-    lines.push(`| ${lr.date} | ${fmt(lr.totalGross)} | ${fmt(ar.totalGross)} | ${delta.toFixed(4)} | ${pass ? "PASS" : "**FAIL**"} |`);
+    lines.push(
+      `| ${lr.date} | ${fmt(lr.totalGross)} | ${fmt(ar.totalGross)} | ${delta.toFixed(4)} | ${pass ? "PASS" : "**FAIL**"} |`,
+    );
   }
 
   lines.push("");
@@ -435,10 +494,23 @@ async function checkServiceRevenue() {
   const legacyRows = loadServiceRevenue(fixturePath);
 
   // Group legacy by doctor code
-  const legacyByDoctor = new Map<string, { rowCount: number; totalGross: number; totalDiscount: number; totalPaid: number }>();
+  const legacyByDoctor = new Map<
+    string,
+    {
+      rowCount: number;
+      totalGross: number;
+      totalDiscount: number;
+      totalPaid: number;
+    }
+  >();
   for (const r of legacyRows) {
     const key = r.srvBy1 || "EMPTY";
-    const existing = legacyByDoctor.get(key) ?? { rowCount: 0, totalGross: 0, totalDiscount: 0, totalPaid: 0 };
+    const existing = legacyByDoctor.get(key) ?? {
+      rowCount: 0,
+      totalGross: 0,
+      totalDiscount: 0,
+      totalPaid: 0,
+    };
     existing.rowCount += 1;
     existing.totalGross += r.lineGross;
     existing.totalDiscount += r.discVl;
@@ -446,7 +518,12 @@ async function checkServiceRevenue() {
     legacyByDoctor.set(key, existing);
   }
 
-  const legacyGrand = { rowCount: 0, totalGross: 0, totalDiscount: 0, totalPaid: 0 };
+  const legacyGrand = {
+    rowCount: 0,
+    totalGross: 0,
+    totalDiscount: 0,
+    totalPaid: 0,
+  };
   for (const v of legacyByDoctor.values()) {
     legacyGrand.rowCount += v.rowCount;
     legacyGrand.totalGross += v.totalGross;
@@ -455,11 +532,20 @@ async function checkServiceRevenue() {
   }
 
   // Query API — may fail if SQL has reserved-word issues
-  let result: Awaited<ReturnType<typeof import("../../server/services/accounting/lasikRevenue.service").getServiceRevenue>>;
+  let result: Awaited<
+    ReturnType<
+      typeof import("../../server/services/accounting/lasikRevenue.service").getServiceRevenue
+    >
+  >;
   let queryError: string | null = null;
   try {
-    const { getServiceRevenue } = await import("../../server/services/accounting/lasikRevenue.service");
-    result = await getServiceRevenue({ fromDate: "2026-04-01", toDate: "2026-04-30", sectionCode: 15 });
+    const { getServiceRevenue } =
+      await import("../../server/services/accounting/lasikRevenue.service");
+    result = await getServiceRevenue({
+      fromDate: "2026-04-01",
+      toDate: "2026-04-30",
+      sectionCode: 15,
+    });
   } catch (e) {
     queryError = e instanceof Error ? e.message : String(e);
   }
@@ -480,7 +566,9 @@ async function checkServiceRevenue() {
     lines.push("");
     lines.push("### Context");
     lines.push("");
-    lines.push("The `getServiceRevenue` call failed before totals could be compared.");
+    lines.push(
+      "The `getServiceRevenue` call failed before totals could be compared.",
+    );
     lines.push("");
     lines.push("### Legacy Fixture Summary (unverified)");
     lines.push("");
@@ -503,16 +591,34 @@ async function checkServiceRevenue() {
   lines.push("|--------|--------|-----|-------|--------|");
 
   const grandComparisons = [
-    { label: "rowCount", expected: legacyGrand.rowCount, actual: result.grandTotal.rowCount },
-    { label: "totalGross", expected: legacyGrand.totalGross, actual: result.grandTotal.totalGross },
-    { label: "totalDiscount", expected: legacyGrand.totalDiscount, actual: result.grandTotal.totalDiscount },
-    { label: "totalPaid", expected: legacyGrand.totalPaid, actual: result.grandTotal.totalPaid },
+    {
+      label: "rowCount",
+      expected: legacyGrand.rowCount,
+      actual: result.grandTotal.rowCount,
+    },
+    {
+      label: "totalGross",
+      expected: legacyGrand.totalGross,
+      actual: result.grandTotal.totalGross,
+    },
+    {
+      label: "totalDiscount",
+      expected: legacyGrand.totalDiscount,
+      actual: result.grandTotal.totalDiscount,
+    },
+    {
+      label: "totalPaid",
+      expected: legacyGrand.totalPaid,
+      actual: result.grandTotal.totalPaid,
+    },
   ];
 
   for (const c of grandComparisons) {
     const { pass, delta } = withinTolerance(c.expected, c.actual, c.label);
     if (!pass) allPass = false;
-    lines.push(`| ${c.label} | ${fmt(c.expected)} | ${fmt(c.actual)} | ${delta.toFixed(4)} | ${pass ? "PASS" : "**FAIL**"} |`);
+    lines.push(
+      `| ${c.label} | ${fmt(c.expected)} | ${fmt(c.actual)} | ${delta.toFixed(4)} | ${pass ? "PASS" : "**FAIL**"} |`,
+    );
   }
 
   lines.push("");
@@ -534,7 +640,9 @@ async function checkReceiptsInquiry() {
   const legacy = loadReceiptsInquiry(fixturePath);
 
   const usesArabicOpExport = legacy.some((r) => r.status === "سارى");
-  const activeReceipts = usesArabicOpExport ? legacy.filter((r) => r.status === "سارى") : legacy;
+  const activeReceipts = usesArabicOpExport
+    ? legacy.filter((r) => r.status === "سارى")
+    : legacy;
 
   const aprilReceipts = activeReceipts.filter((r) => {
     if (!r.date) return false;
@@ -548,7 +656,8 @@ async function checkReceiptsInquiry() {
   const legacyDiscount = aprilReceipts.reduce((sum, r) => sum + r.discount, 0);
   const legacyPaid = aprilReceipts.reduce((sum, r) => sum + r.patientShare, 0);
 
-  const { getReceiptsInquiry } = await import("../../server/services/accounting/receiptsInquiry.service");
+  const { getReceiptsInquiry } =
+    await import("../../server/services/accounting/receiptsInquiry.service");
   const result = await getReceiptsInquiry({
     fromDate: "2026-04-01",
     toDate: "2026-04-30",
@@ -575,7 +684,9 @@ async function checkReceiptsInquiry() {
 
   const rowCountDelta = Math.abs(legacyRowCount - apiRowCount);
   const rowCountPass = rowCountDelta === 0;
-  lines.push(`| rowCount | ${legacyRowCount} | ${apiRowCount} | ${rowCountDelta} | ${rowCountPass ? "PASS" : "**FAIL**"} |`);
+  lines.push(
+    `| rowCount | ${legacyRowCount} | ${apiRowCount} | ${rowCountDelta} | ${rowCountPass ? "PASS" : "**FAIL**"} |`,
+  );
 
   lines.push("");
   lines.push("## Totals");
@@ -594,16 +705,24 @@ async function checkReceiptsInquiry() {
   for (const c of comparisons) {
     const { pass, delta } = withinTolerance(c.expected, c.actual, c.label);
     if (!pass) allPass = false;
-    lines.push(`| ${c.label} | ${fmt(c.expected)} | ${fmt(c.actual)} | ${delta.toFixed(4)} | ${pass ? "PASS" : "**FAIL**"} |`);
+    lines.push(
+      `| ${c.label} | ${fmt(c.expected)} | ${fmt(c.actual)} | ${delta.toFixed(4)} | ${pass ? "PASS" : "**FAIL**"} |`,
+    );
   }
 
   lines.push("");
   lines.push("## Notes");
   lines.push("");
-  lines.push("- **Total** column = receipt header **`h.TOTL`** (`total` / `totalValue`), not `PA_VL`.");
+  lines.push(
+    "- **Total** column = receipt header **`h.TOTL`** (`total` / `totalValue`), not `PA_VL`.",
+  );
   lines.push("- **paidValue** = **`h.PA_VL`** on the header row.");
-  lines.push("- **Header-only receipts** (no `PAPAT_SRV` lines) are excluded from the JOIN — same as API.");
-  lines.push("- Arabic OP exports: only rows with حالة الايصال = سارى; dates parsed as DD/MM/YYYY (not string-sorted).");
+  lines.push(
+    "- **Header-only receipts** (no `PAPAT_SRV` lines) are excluded from the JOIN — same as API.",
+  );
+  lines.push(
+    "- Arabic OP exports: only rows with حالة الايصال = سارى; dates parsed as DD/MM/YYYY (not string-sorted).",
+  );
   lines.push("");
   lines.push(`**Verdict: ${allPass ? "PASS" : "FAIL"}**`);
   lines.push("");
@@ -620,7 +739,8 @@ function isoDateOnlyFromUnknown(value: unknown): string | null {
   const text = typeof value === "string" ? value.trim() : "";
   if (!text) return null;
   const parsed = Date.parse(text);
-  if (Number.isFinite(parsed)) return new Date(parsed).toISOString().slice(0, 10);
+  if (Number.isFinite(parsed))
+    return new Date(parsed).toISOString().slice(0, 10);
   return text.length >= 10 ? text.slice(0, 10) : null;
 }
 
@@ -631,7 +751,8 @@ function isoDateOnlyFromUnknown(value: unknown): string | null {
  * Override patient code: `ACCOUNTING_PARITY_PATIENT_CODE`.
  */
 async function checkPatientLasikSummarySample() {
-  const patientCode = process.env.ACCOUNTING_PARITY_PATIENT_CODE?.trim() || "1354";
+  const patientCode =
+    process.env.ACCOUNTING_PARITY_PATIENT_CODE?.trim() || "1354";
   const sectionCode = 15;
 
   const legacyTotalsSql = `
@@ -656,11 +777,19 @@ WHERE h.SEC_CD = @secCd
   const lines: string[] = [];
   lines.push("# Patient Account Parity — Single Sample");
   lines.push("");
-  lines.push("**Procedure:** `accounting.patientLasikSummary` (`getPatientLasikSummary`).");
+  lines.push(
+    "**Procedure:** `accounting.patientLasikSummary` (`getPatientLasikSummary`).",
+  );
   lines.push("");
-  lines.push("**Legacy OP export:** Not available in-repo for this sample. **Legacy-equivalent source:**");
-  lines.push("aggregated `SELECT` over `PAJRNRCVH` INNER JOIN `PAPAT_SRV` with the same predicates as");
-  lines.push("`buildPatientLasikSummarySql` (Lasik section, non-cancelled header/lines, one `PAT_CD`).");
+  lines.push(
+    "**Legacy OP export:** Not available in-repo for this sample. **Legacy-equivalent source:**",
+  );
+  lines.push(
+    "aggregated `SELECT` over `PAJRNRCVH` INNER JOIN `PAPAT_SRV` with the same predicates as",
+  );
+  lines.push(
+    "`buildPatientLasikSummarySql` (Lasik section, non-cancelled header/lines, one `PAT_CD`).",
+  );
   lines.push("");
   lines.push("## Parameters");
   lines.push("");
@@ -668,7 +797,9 @@ WHERE h.SEC_CD = @secCd
   lines.push("|-------|-------|");
   lines.push(`| patientCode | \`${patientCode}\` |`);
   lines.push(`| sectionCode | \`${sectionCode}\` |`);
-  lines.push("| fromDate / toDate | *(none — full Lasik ledger for patient)* |");
+  lines.push(
+    "| fromDate / toDate | *(none — full Lasik ledger for patient)* |",
+  );
   lines.push("");
   lines.push("## Legacy-equivalent totals query (MSSQL)");
   lines.push("");
@@ -676,7 +807,9 @@ WHERE h.SEC_CD = @secCd
   lines.push(legacyTotalsSql);
   lines.push("```");
   lines.push("");
-  lines.push("Bindings: `@secCd` = section code (15), `@patientCode` = sample patient.");
+  lines.push(
+    "Bindings: `@secCd` = section code (15), `@patientCode` = sample patient.",
+  );
   lines.push("");
   lines.push("## Comparison");
   lines.push("");
@@ -684,11 +817,14 @@ WHERE h.SEC_CD = @secCd
   lines.push("|--------|-----|------------|-------|--------|");
 
   let queryError: string | null = null;
-  let api: Awaited<ReturnType<typeof import("../../server/services/accounting/lasikPatientAccounting.service").getPatientLasikSummary>>;
+  let api: Awaited<
+    ReturnType<
+      typeof import("../../server/services/accounting/lasikPatientAccounting.service").getPatientLasikSummary
+    >
+  >;
   try {
-    const { getPatientLasikSummary } = await import(
-      "../../server/services/accounting/lasikPatientAccounting.service"
-    );
+    const { getPatientLasikSummary } =
+      await import("../../server/services/accounting/lasikPatientAccounting.service");
     api = await getPatientLasikSummary({ patientCode, sectionCode });
   } catch (e) {
     queryError = e instanceof Error ? e.message : String(e);
@@ -697,8 +833,12 @@ WHERE h.SEC_CD = @secCd
   type LegRow = Record<string, unknown>;
   let leg: LegRow | undefined;
   try {
-    const { mssqlQuery } = await import("../../server/services/accounting/mssqlAccounting");
-    const rows = await mssqlQuery<LegRow>(legacyTotalsSql, { secCd: sectionCode, patientCode });
+    const { mssqlQuery } =
+      await import("../../server/services/accounting/mssqlAccounting");
+    const rows = await mssqlQuery<LegRow>(legacyTotalsSql, {
+      secCd: sectionCode,
+      patientCode,
+    });
     leg = rows[0];
   } catch (e) {
     queryError = queryError ?? (e instanceof Error ? e.message : String(e));
@@ -708,7 +848,9 @@ WHERE h.SEC_CD = @secCd
     lines.push("");
     lines.push("## ERROR");
     lines.push("");
-    lines.push(`\`${queryError ?? (!api ? "API returned no data" : "No legacy row returned")}\``);
+    lines.push(
+      `\`${queryError ?? (!api ? "API returned no data" : "No legacy row returned")}\``,
+    );
     lines.push("");
     lines.push("**Verdict: ERROR**");
     lines.push("");
@@ -726,7 +868,9 @@ WHERE h.SEC_CD = @secCd
   const t = api.totals;
   const apiReceipts = t.totalReceipts;
   const apiServices = t.totalServices;
-  const apiLast = t.lastTransactionDate ? isoDateOnlyFromUnknown(t.lastTransactionDate) : null;
+  const apiLast = t.lastTransactionDate
+    ? isoDateOnlyFromUnknown(t.lastTransactionDate)
+    : null;
 
   let allPass = true;
   const pushRow = (
@@ -737,7 +881,9 @@ WHERE h.SEC_CD = @secCd
     deltaNote: string,
   ) => {
     if (!pass) allPass = false;
-    lines.push(`| ${label} | ${apiVal} | ${legVal} | ${deltaNote} | ${pass ? "PASS" : "**FAIL**"} |`);
+    lines.push(
+      `| ${label} | ${apiVal} | ${legVal} | ${deltaNote} | ${pass ? "PASS" : "**FAIL**"} |`,
+    );
   };
 
   pushRow(
@@ -747,19 +893,57 @@ WHERE h.SEC_CD = @secCd
     String(api.patientCode).trim() === String(patientCode).trim(),
     "—",
   );
-  pushRow("receipt count", apiReceipts, receiptCountLegacy, apiReceipts === receiptCountLegacy, "—");
-  pushRow("service count", apiServices, serviceCountLegacy, apiServices === serviceCountLegacy, "—");
+  pushRow(
+    "receipt count",
+    apiReceipts,
+    receiptCountLegacy,
+    apiReceipts === receiptCountLegacy,
+    "—",
+  );
+  pushRow(
+    "service count",
+    apiServices,
+    serviceCountLegacy,
+    apiServices === serviceCountLegacy,
+    "—",
+  );
 
   const g = withinTolerance(totalGrossLegacy, t.totalGross, "totalGross");
-  pushRow("totalGross", fmt(t.totalGross), fmt(totalGrossLegacy), g.pass, g.delta.toFixed(4));
+  pushRow(
+    "totalGross",
+    fmt(t.totalGross),
+    fmt(totalGrossLegacy),
+    g.pass,
+    g.delta.toFixed(4),
+  );
 
-  const d = withinTolerance(totalDiscountLegacy, t.totalDiscount, "totalDiscount");
-  pushRow("totalDiscount", fmt(t.totalDiscount), fmt(totalDiscountLegacy), d.pass, d.delta.toFixed(4));
+  const d = withinTolerance(
+    totalDiscountLegacy,
+    t.totalDiscount,
+    "totalDiscount",
+  );
+  pushRow(
+    "totalDiscount",
+    fmt(t.totalDiscount),
+    fmt(totalDiscountLegacy),
+    d.pass,
+    d.delta.toFixed(4),
+  );
 
   const p = withinTolerance(totalPaidLegacy, t.totalPaid, "totalPaid");
-  pushRow("totalPaid / patient amount", fmt(t.totalPaid), fmt(totalPaidLegacy), p.pass, p.delta.toFixed(4));
+  pushRow(
+    "totalPaid / patient amount",
+    fmt(t.totalPaid),
+    fmt(totalPaidLegacy),
+    p.pass,
+    p.delta.toFixed(4),
+  );
 
-  const tp = withinTolerance(totalPaidLegacy, t.totalPatientAmount, "totalPatientAmount");
+  const tp = withinTolerance(
+    totalPaidLegacy,
+    t.totalPatientAmount,
+    "totalPatientAmount",
+  );
   pushRow(
     "totalPatientAmount (API mirrors totalPaid)",
     fmt(t.totalPatientAmount),
@@ -768,7 +952,11 @@ WHERE h.SEC_CD = @secCd
     tp.delta.toFixed(4),
   );
 
-  const c = withinTolerance(totalCompanyLegacy, t.totalCompanyAmount, "totalCompanyAmount");
+  const c = withinTolerance(
+    totalCompanyLegacy,
+    t.totalCompanyAmount,
+    "totalCompanyAmount",
+  );
   pushRow(
     "totalCompanyAmount",
     fmt(t.totalCompanyAmount),
@@ -809,7 +997,11 @@ async function main() {
     if (dr) {
       const artifactPath = path.join(OUTPUT_DIR, "daily-revenue-2026-04.md");
       fs.writeFileSync(artifactPath, dr.markdown, "utf-8");
-      results.push({ name: "Daily Revenue", verdict: dr.verdict, artifact: artifactPath });
+      results.push({
+        name: "Daily Revenue",
+        verdict: dr.verdict,
+        artifact: artifactPath,
+      });
       console.log(`  → ${dr.verdict}`);
     } else {
       console.log("  → PENDING (fixture missing)");
@@ -828,11 +1020,19 @@ async function main() {
     if (sr) {
       const artifactPath = path.join(OUTPUT_DIR, "service-revenue-2026-04.md");
       fs.writeFileSync(artifactPath, sr.markdown, "utf-8");
-      results.push({ name: "Service Revenue", verdict: sr.verdict, artifact: artifactPath });
+      results.push({
+        name: "Service Revenue",
+        verdict: sr.verdict,
+        artifact: artifactPath,
+      });
       console.log(`  → ${sr.verdict}`);
     } else {
       console.log("  → PENDING (fixture missing)");
-      results.push({ name: "Service Revenue", verdict: "PENDING", artifact: "" });
+      results.push({
+        name: "Service Revenue",
+        verdict: "PENDING",
+        artifact: "",
+      });
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -856,7 +1056,11 @@ async function main() {
       "---",
     ];
     fs.writeFileSync(artifactPath, errorLines.join("\n"), "utf-8");
-    results.push({ name: "Service Revenue", verdict: "ERROR", artifact: artifactPath });
+    results.push({
+      name: "Service Revenue",
+      verdict: "ERROR",
+      artifact: artifactPath,
+    });
   }
 
   // Receipts Inquiry
@@ -866,11 +1070,19 @@ async function main() {
     if (ri) {
       const artifactPath = path.join(OUTPUT_DIR, "receipts-inquiry-2026-04.md");
       fs.writeFileSync(artifactPath, ri.markdown, "utf-8");
-      results.push({ name: "Receipts Inquiry", verdict: ri.verdict, artifact: artifactPath });
+      results.push({
+        name: "Receipts Inquiry",
+        verdict: ri.verdict,
+        artifact: artifactPath,
+      });
       console.log(`  → ${ri.verdict}`);
     } else {
       console.log("  → PENDING (fixture missing)");
-      results.push({ name: "Receipts Inquiry", verdict: "PENDING", artifact: "" });
+      results.push({
+        name: "Receipts Inquiry",
+        verdict: "PENDING",
+        artifact: "",
+      });
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -884,7 +1096,11 @@ async function main() {
     const pa = await checkPatientLasikSummarySample();
     const artifactPath = path.join(OUTPUT_DIR, "patient-account-sample.md");
     fs.writeFileSync(artifactPath, pa.markdown, "utf-8");
-    results.push({ name: "Patient Lasik Summary", verdict: pa.verdict, artifact: artifactPath });
+    results.push({
+      name: "Patient Lasik Summary",
+      verdict: pa.verdict,
+      artifact: artifactPath,
+    });
     console.log(`  → ${pa.verdict}`);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -901,13 +1117,19 @@ async function main() {
       "",
     ].join("\n");
     fs.writeFileSync(artifactPath, errMd, "utf-8");
-    results.push({ name: "Patient Lasik Summary", verdict: "ERROR", artifact: artifactPath });
+    results.push({
+      name: "Patient Lasik Summary",
+      verdict: "ERROR",
+      artifact: artifactPath,
+    });
   }
 
   // Summary
   console.log("\n=== Summary ===\n");
   for (const r of results) {
-    console.log(`  ${r.name}: ${r.verdict}${r.artifact ? ` → ${r.artifact}` : ""}`);
+    console.log(
+      `  ${r.name}: ${r.verdict}${r.artifact ? ` → ${r.artifact}` : ""}`,
+    );
   }
 
   const hasFail = results.some((r) => r.verdict === "FAIL");
@@ -917,7 +1139,9 @@ async function main() {
   if (hasFail || hasError) {
     console.log("\n⚠ FAIL/ERROR detected — write SCOPE-CHANGE-REQUEST.md.");
     const scopePath = path.join(OUTPUT_DIR, "SCOPE-CHANGE-REQUEST.md");
-    const failing = results.filter((r) => r.verdict === "FAIL" || r.verdict === "ERROR");
+    const failing = results.filter(
+      (r) => r.verdict === "FAIL" || r.verdict === "ERROR",
+    );
     const scopeContent = [
       "# Scope Change Request — Parity Failures",
       "",
@@ -926,7 +1150,10 @@ async function main() {
       "",
       "## Failing / Error Reports",
       "",
-      ...failing.map((r) => `- **${r.name}**: ${r.verdict} — see ${r.artifact || "(query failed)"}`),
+      ...failing.map(
+        (r) =>
+          `- **${r.name}**: ${r.verdict} — see ${r.artifact || "(query failed)"}`,
+      ),
       "",
       "## Required Action",
       "",
@@ -943,7 +1170,9 @@ async function main() {
     fs.writeFileSync(scopePath, scopeContent.join("\n"), "utf-8");
     console.log(`  → ${scopePath} written.`);
   } else if (hasPending) {
-    console.log("\n⏳ PENDING — some fixtures missing. Write PENDING-FIXTURES.md.");
+    console.log(
+      "\n⏳ PENDING — some fixtures missing. Write PENDING-FIXTURES.md.",
+    );
     const pendingPath = path.join(OUTPUT_DIR, "PENDING-FIXTURES.md");
     const pending = results.filter((r) => r.verdict === "PENDING");
     const pendingContent = [
@@ -953,7 +1182,10 @@ async function main() {
       "",
       "The following reports cannot be verified because fixtures are missing:",
       "",
-      ...pending.map((r) => `- **${r.name}**: fixture CSV not found under specs/parity/fixtures/`),
+      ...pending.map(
+        (r) =>
+          `- **${r.name}**: fixture CSV not found under specs/parity/fixtures/`,
+      ),
       "",
       "## Required Action",
       "",

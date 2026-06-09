@@ -290,7 +290,7 @@ export default function Permissions() {
             </div>
           ) : (
             <div className="overflow-x-auto" dir="rtl">
-        <table dir="rtl" className="min-w-[50rem] w-full text-sm">
+              <table dir="rtl" className="min-w-[50rem] w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th className="text-right py-3 px-4">الموظف</th>

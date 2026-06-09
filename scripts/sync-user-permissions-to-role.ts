@@ -17,8 +17,8 @@ async function main() {
         usersUpdated: updated,
       },
       null,
-      2
-    )
+      2,
+    ),
   );
 }
 
@@ -26,4 +26,3 @@ main().catch((error) => {
   console.error("[sync-user-permissions-to-role] Failed:", error);
   process.exit(1);
 });
-

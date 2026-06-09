@@ -1,132 +1,218 @@
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Check, X, RefreshCw, Trash2 } from "lucide-react";
+import { Plus, Pencil, Check, X, RefreshCw, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 
 const TYPE_LABEL: Record<string, string> = { doctor: "طبيب", tech: "فني" };
-const DAYS_AR = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
-const DAYS_SHORT = ["ح","ن","ث","ر","خ","ج","س"];
+const DAYS_AR = [
+  "الأحد",
+  "الاثنين",
+  "الثلاثاء",
+  "الأربعاء",
+  "الخميس",
+  "الجمعة",
+  "السبت",
+];
+const DAYS_SHORT = ["ح", "ن", "ث", "ر", "خ", "ج", "س"];
 // dow: 0=Sunday … 6=Saturday
 const PRESET_SAT_WED = [6, 0, 1, 2, 3]; // السبت→الأربعاء
 const PRESET_SUN_THU = [0, 1, 2, 3, 4]; // الأحد→الخميس
 
-interface StaffForm { name: string; type: "doctor" | "tech"; ratePerShift: string; active: boolean; empCd: string; userId: number | null; }
-const EMPTY: StaffForm = { name: "", type: "doctor", ratePerShift: "", active: true, empCd: "", userId: null };
+interface StaffForm {
+  name: string;
+  type: "doctor" | "tech";
+  ratePerShift: string;
+  active: boolean;
+  empCd: string;
+  userId: number | null;
+}
+const EMPTY: StaffForm = {
+  name: "",
+  type: "doctor",
+  ratePerShift: "",
+  active: true,
+  empCd: "",
+  userId: null,
+};
 
-// dayOfWeek → set of active shiftNames (kept for reference)
-type CycleMap = Record<number, string[]>;
+function buildDayShifts(sc: any[]): Map<number, Set<string>> {
+  const map = new Map<number, Set<string>>();
+  for (const c of sc) {
+    if (!map.has(c.dayOfWeek)) map.set(c.dayOfWeek, new Set());
+    map.get(c.dayOfWeek)!.add(c.shiftName);
+  }
+  return map;
+}
 
-
-function CycleEditor({ staffId, cycles, onSaved }: { staffId: number; cycles: any[]; onSaved: () => void }) {
+function CycleEditor({
+  staffId,
+  cycles,
+  onSaved,
+}: {
+  staffId: number;
+  cycles: any[];
+  onSaved: () => void;
+}) {
   const staffCycles = cycles.filter((c: any) => c.staffId === staffId);
 
-  // Derive initial shift type from saved data (default Morning)
-  const savedShift = staffCycles[0]?.shiftName === "Night" ? "Night" : "Morning";
-  const savedDays = new Set<number>(staffCycles.map((c: any) => c.dayOfWeek));
-
-  const [shiftType, setShiftType] = useState<"Morning" | "Night">(savedShift);
-  const [days, setDays] = useState<Set<number>>(savedDays);
+  const [dayShifts, setDayShifts] = useState<Map<number, Set<string>>>(() =>
+    buildDayShifts(staffCycles),
+  );
 
   useEffect(() => {
-    const sc = cycles.filter((c: any) => c.staffId === staffId);
-    setShiftType(sc[0]?.shiftName === "Night" ? "Night" : "Morning");
-    setDays(new Set<number>(sc.map((c: any) => c.dayOfWeek)));
+    setDayShifts(
+      buildDayShifts(cycles.filter((c: any) => c.staffId === staffId)),
+    );
   }, [cycles, staffId]);
 
   const saveMut = (trpc as any).salary.setStaffCycle.useMutation({
-    onSuccess: () => { onSaved(); toast.success("تم حفظ أيام الدوام"); },
+    onSuccess: () => {
+      onSaved();
+      toast.success("تم حفظ أيام الدوام");
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
-  function toggleDay(dow: number) {
-    setDays(d => {
-      const n = new Set(d);
-      n.has(dow) ? n.delete(dow) : n.add(dow);
-      return n;
+  function toggleShift(dow: number, shiftName: "Morning" | "Night") {
+    setDayShifts((prev) => {
+      const next = new Map(prev);
+      const shifts = new Set(next.get(dow) ?? []);
+      shifts.has(shiftName) ? shifts.delete(shiftName) : shifts.add(shiftName);
+      if (shifts.size === 0) next.delete(dow);
+      else next.set(dow, shifts);
+      return next;
     });
   }
 
-  function applyPreset(preset: number[]) {
-    setDays(new Set(preset));
+  function applyPreset(dows: number[], shiftName: "Morning" | "Night") {
+    setDayShifts((prev) => {
+      const next = new Map(prev);
+      for (const dow of dows) {
+        const shifts = new Set(next.get(dow) ?? []);
+        shifts.add(shiftName);
+        next.set(dow, shifts);
+      }
+      return next;
+    });
   }
 
   function save() {
-    const cycle = Array.from(days).map(dow => ({ dayOfWeek: dow, shiftName: shiftType }));
+    const cycle: { dayOfWeek: number; shiftName: string }[] = [];
+    for (const [dow, shifts] of dayShifts) {
+      for (const sh of shifts) cycle.push({ dayOfWeek: dow, shiftName: sh });
+    }
     saveMut.mutate({ staffId, cycle });
   }
 
+  const totalAssignments = Array.from(dayShifts.values()).reduce(
+    (s, set) => s + set.size,
+    0,
+  );
+
   return (
     <div className="px-4 pb-4 pt-2 space-y-3" dir="rtl">
-      {/* Shift type */}
       <div>
-        <p className="mb-1.5 text-xs font-semibold text-muted-foreground">نوع الوردية</p>
-        <div className="flex gap-2">
-          {(["Morning", "Night"] as const).map(s => (
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-xs font-semibold text-muted-foreground">
+            توزيع الورديات
+          </p>
+          <div className="flex gap-1 flex-wrap justify-end">
             <button
-              key={s}
               type="button"
-              onClick={() => setShiftType(s)}
-              className={`flex-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                shiftType === s
-                  ? s === "Morning"
-                    ? "border-orange-400 bg-orange-500/10 text-orange-700"
-                    : "border-blue-400 bg-blue-500/10 text-blue-700"
-                  : "border-border bg-background text-muted-foreground hover:bg-muted/50"
-              }`}
+              onClick={() => applyPreset(PRESET_SAT_WED, "Morning")}
+              className="rounded px-1.5 py-0.5 text-[10px] font-medium border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors"
             >
-              {s === "Morning" ? "☀ صباحي" : "🌙 مسائي"}
+              س→ر ☀
             </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Day selection */}
-      <div>
-        <div className="mb-1.5 flex items-center justify-between">
-          <p className="text-xs font-semibold text-muted-foreground">أيام الدوام</p>
-          <div className="flex gap-1.5">
-            <button type="button" onClick={() => applyPreset(PRESET_SAT_WED)}
-              className="rounded px-2 py-0.5 text-[10px] font-medium border border-border bg-background hover:bg-muted/60 transition-colors">
-              س→ر
+            <button
+              type="button"
+              onClick={() => applyPreset(PRESET_SUN_THU, "Morning")}
+              className="rounded px-1.5 py-0.5 text-[10px] font-medium border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors"
+            >
+              ح→خ ☀
             </button>
-            <button type="button" onClick={() => applyPreset(PRESET_SUN_THU)}
-              className="rounded px-2 py-0.5 text-[10px] font-medium border border-border bg-background hover:bg-muted/60 transition-colors">
-              ح→خ
+            <button
+              type="button"
+              onClick={() => applyPreset(PRESET_SAT_WED, "Night")}
+              className="rounded px-1.5 py-0.5 text-[10px] font-medium border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+            >
+              س→ر 🌙
             </button>
-            <button type="button" onClick={() => setDays(new Set())}
-              className="rounded px-2 py-0.5 text-[10px] font-medium border border-border bg-background hover:bg-muted/60 text-destructive transition-colors">
+            <button
+              type="button"
+              onClick={() => applyPreset(PRESET_SUN_THU, "Night")}
+              className="rounded px-1.5 py-0.5 text-[10px] font-medium border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+            >
+              ح→خ 🌙
+            </button>
+            <button
+              type="button"
+              onClick={() => setDayShifts(new Map())}
+              className="rounded px-1.5 py-0.5 text-[10px] font-medium border border-border bg-background hover:bg-muted/60 text-destructive transition-colors"
+            >
               مسح
             </button>
           </div>
         </div>
+
         <div className="flex gap-1.5 flex-wrap">
           {DAYS_AR.map((name, dow) => {
-            const active = days.has(dow);
             const isFri = dow === 5;
+            const shifts = dayShifts.get(dow) ?? new Set<string>();
+            const hasMorning = shifts.has("Morning");
+            const hasNight = shifts.has("Night");
             return (
-              <button
+              <div
                 key={dow}
-                type="button"
-                onClick={() => !isFri && toggleDay(dow)}
-                title={isFri ? "الجمعة إجازة" : name}
-                className={`flex flex-col items-center rounded-lg border px-2.5 py-2 text-center transition-colors ${
+                className={`flex flex-col items-center rounded-lg border px-2 py-1.5 gap-1 min-w-[44px] ${
                   isFri
-                    ? "border-dashed border-border/40 bg-muted/20 cursor-not-allowed opacity-40"
-                    : active
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border bg-background text-muted-foreground hover:bg-muted/50"
+                    ? "border-dashed border-border/40 bg-muted/20 opacity-40"
+                    : hasMorning || hasNight
+                      ? "border-primary/30 bg-primary/5"
+                      : "border-border bg-background"
                 }`}
               >
                 <span className="text-xs font-bold">{DAYS_SHORT[dow]}</span>
-                <span className="text-[9px] leading-tight mt-0.5 opacity-70">{name}</span>
-              </button>
+                <span className="text-[9px] text-muted-foreground leading-tight">
+                  {name}
+                </span>
+                {!isFri && (
+                  <div className="flex gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => toggleShift(dow, "Morning")}
+                      title="صباحي"
+                      className={`rounded px-1 py-0.5 text-[11px] leading-none transition-colors ${
+                        hasMorning
+                          ? "bg-orange-500/20 text-orange-700 ring-1 ring-orange-400/50"
+                          : "bg-muted/40 text-muted-foreground hover:bg-orange-500/10 hover:text-orange-600"
+                      }`}
+                    >
+                      ☀
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleShift(dow, "Night")}
+                      title="مسائي"
+                      className={`rounded px-1 py-0.5 text-[11px] leading-none transition-colors ${
+                        hasNight
+                          ? "bg-blue-500/20 text-blue-700 ring-1 ring-blue-400/50"
+                          : "bg-muted/40 text-muted-foreground hover:bg-blue-500/10 hover:text-blue-600"
+                      }`}
+                    >
+                      🌙
+                    </button>
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
-        {days.size > 0 && (
+
+        {totalAssignments > 0 && (
           <p className="mt-1.5 text-[10px] text-muted-foreground">
-            {Array.from(days).sort((a,b)=>a-b).map(d => DAYS_AR[d]).join(" ، ")} — {days.size} أيام
+            {totalAssignments} وردية على {dayShifts.size} أيام
           </p>
         )}
       </div>
@@ -135,7 +221,7 @@ function CycleEditor({ staffId, cycles, onSaved }: { staffId: number; cycles: an
         <button
           type="button"
           onClick={save}
-          disabled={saveMut.isPending || days.size === 0}
+          disabled={saveMut.isPending || totalAssignments === 0}
           className="flex-1 rounded-lg border border-primary bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
         >
           {saveMut.isPending ? "جاري الحفظ…" : "حفظ"}
@@ -145,13 +231,16 @@ function CycleEditor({ staffId, cycles, onSaved }: { staffId: number; cycles: an
   );
 }
 
-
 export default function ShiftStaff() {
   const [adding, setAdding] = useState(false);
   const [addForm, setAddForm] = useState<StaffForm>(EMPTY);
   const [editId, setEditId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<StaffForm>(EMPTY);
   const [cycleId, setCycleId] = useState<number | null>(null);
+  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+  const toggleRow = (id: number) => {
+    setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const staffQ = (trpc as any).salary.listShiftStaff.useQuery();
   const cyclesQ = (trpc as any).salary.getStaffCycles.useQuery();
@@ -163,43 +252,83 @@ export default function ShiftStaff() {
   const employees: any[] = employeesQ.data ?? [];
 
   const addMut = (trpc as any).salary.addShiftStaff.useMutation({
-    onSuccess: () => { staffQ.refetch(); setAdding(false); setAddForm(EMPTY); toast.success("Staff added"); },
+    onSuccess: () => {
+      staffQ.refetch();
+      setAdding(false);
+      setAddForm(EMPTY);
+      toast.success("Staff added");
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
   const updateMut = (trpc as any).salary.updateShiftStaff.useMutation({
-    onSuccess: () => { staffQ.refetch(); setEditId(null); toast.success("Saved"); },
+    onSuccess: () => {
+      staffQ.refetch();
+      setEditId(null);
+      toast.success("Saved");
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
   const deleteMut = (trpc as any).salary.deleteShiftStaff.useMutation({
-    onSuccess: () => { staffQ.refetch(); cyclesQ.refetch(); toast.success("Deleted"); },
+    onSuccess: () => {
+      staffQ.refetch();
+      cyclesQ.refetch();
+      toast.success("Deleted");
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
   function submitAdd() {
     const rate = parseFloat(addForm.ratePerShift);
-    if (!addForm.name.trim() || isNaN(rate)) { toast.error("Fill all fields"); return; }
-    addMut.mutate({ name: addForm.name.trim(), type: addForm.type, ratePerShift: rate, empCd: addForm.empCd || undefined });
+    if (!addForm.name.trim() || isNaN(rate)) {
+      toast.error("Fill all fields");
+      return;
+    }
+    addMut.mutate({
+      name: addForm.name.trim(),
+      type: addForm.type,
+      ratePerShift: rate,
+      empCd: addForm.empCd || undefined,
+    });
   }
 
   function startEdit(s: any) {
-    setEditId(s.id); setCycleId(null);
-    setEditForm({ name: s.name, type: s.type, ratePerShift: String(s.ratePerShift), active: s.active, empCd: s.empCd ?? "", userId: s.userId ?? null });
+    setEditId(s.id);
+    setCycleId(null);
+    setEditForm({
+      name: s.name,
+      type: s.type,
+      ratePerShift: String(s.ratePerShift),
+      active: s.active,
+      empCd: s.empCd ?? "",
+      userId: s.userId ?? null,
+    });
   }
 
   function submitEdit(id: number) {
     const rate = parseFloat(editForm.ratePerShift);
-    if (!editForm.name.trim() || isNaN(rate)) { toast.error("Fill all fields"); return; }
-    updateMut.mutate({ id, name: editForm.name.trim(), type: editForm.type, ratePerShift: rate, active: editForm.active, empCd: editForm.empCd || undefined, userId: editForm.userId });
+    if (!editForm.name.trim() || isNaN(rate)) {
+      toast.error("Fill all fields");
+      return;
+    }
+    updateMut.mutate({
+      id,
+      name: editForm.name.trim(),
+      type: editForm.type,
+      ratePerShift: rate,
+      active: editForm.active,
+      empCd: editForm.empCd || undefined,
+      userId: editForm.userId,
+    });
   }
 
   function hasCycle(id: number) {
     return cycles.some((c: any) => c.staffId === id);
   }
 
-  const doctors = staff.filter(s => s.type === "doctor");
-  const techs = staff.filter(s => s.type === "tech");
+  const doctors = staff.filter((s) => s.type === "doctor");
+  const techs = staff.filter((s) => s.type === "tech");
 
   function renderRow(s: any) {
     const isEditing = editId === s.id;
@@ -210,88 +339,174 @@ export default function ShiftStaff() {
         {isEditing ? (
           <tr className="border-b border-border/50 bg-muted/10">
             <td className="px-4 py-2">
-              <input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
-                className="w-full rounded border border-input bg-background px-2 py-1 text-sm" />
+              <input
+                value={editForm.name}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, name: e.target.value }))
+                }
+                className="w-full rounded border border-input bg-background px-2 py-1 text-sm"
+              />
             </td>
             <td className="px-4 py-2">
-              <select value={editForm.type} onChange={e => setEditForm(f => ({ ...f, type: e.target.value as any }))}
-                className="rounded border border-input bg-background px-2 py-1 text-sm">
+              <select
+                value={editForm.type}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, type: e.target.value as any }))
+                }
+                className="rounded border border-input bg-background px-2 py-1 text-sm"
+              >
                 <option value="doctor">Doctor</option>
                 <option value="tech">Technician</option>
               </select>
             </td>
             <td className="px-4 py-2">
-              <input type="number" min={0} step={0.01} value={editForm.ratePerShift}
-                onChange={e => setEditForm(f => ({ ...f, ratePerShift: e.target.value }))}
-                className="w-28 rounded border border-input bg-background px-2 py-1 text-sm text-right" />
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                value={editForm.ratePerShift}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, ratePerShift: e.target.value }))
+                }
+                className="w-28 rounded border border-input bg-background px-2 py-1 text-sm text-right"
+              />
             </td>
             <td className="px-4 py-2">
-              <select value={editForm.empCd} onChange={e => setEditForm(f => ({ ...f, empCd: e.target.value }))}
-                className="rounded border border-input bg-background px-2 py-1 text-sm w-40">
+              <select
+                value={editForm.empCd}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, empCd: e.target.value }))
+                }
+                className="rounded border border-input bg-background px-2 py-1 text-sm w-40"
+              >
                 <option value="">— None —</option>
                 {employees.map((e: any) => (
-                  <option key={e.empCd} value={e.empCd}>{e.fullName} ({e.empCd})</option>
+                  <option key={e.empCd} value={e.empCd}>
+                    {e.fullName} ({e.empCd})
+                  </option>
                 ))}
               </select>
             </td>
             <td className="px-4 py-2">
-              <select value={editForm.userId ?? ""} onChange={e => setEditForm(f => ({ ...f, userId: e.target.value ? parseInt(e.target.value) : null }))}
-                className="rounded border border-input bg-background px-2 py-1 text-sm w-40">
+              <select
+                value={editForm.userId ?? ""}
+                onChange={(e) =>
+                  setEditForm((f) => ({
+                    ...f,
+                    userId: e.target.value ? parseInt(e.target.value) : null,
+                  }))
+                }
+                className="rounded border border-input bg-background px-2 py-1 text-sm w-40"
+              >
                 <option value="">— No account —</option>
                 {usersList.map((u: any) => (
-                  <option key={u.id} value={u.id}>{u.name ?? u.username} ({u.role})</option>
+                  <option key={u.id} value={u.id}>
+                    {u.name ?? u.username} ({u.role})
+                  </option>
                 ))}
               </select>
             </td>
             <td className="px-4 py-2">
-              <select value={editForm.active ? "1" : "0"} onChange={e => setEditForm(f => ({ ...f, active: e.target.value === "1" }))}
-                className="rounded border border-input bg-background px-2 py-1 text-sm">
+              <select
+                value={editForm.active ? "1" : "0"}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, active: e.target.value === "1" }))
+                }
+                className="rounded border border-input bg-background px-2 py-1 text-sm"
+              >
                 <option value="1">Active</option>
                 <option value="0">Inactive</option>
               </select>
             </td>
             <td className="px-4 py-2">
               <div className="flex gap-1">
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => submitEdit(s.id)} disabled={updateMut.isPending}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => submitEdit(s.id)}
+                  disabled={updateMut.isPending}
+                >
                   <Check size={14} className="text-green-600" />
                 </Button>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setEditId(null)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => setEditId(null)}
+                >
                   <X size={14} />
                 </Button>
               </div>
             </td>
           </tr>
         ) : (
-          <tr className={`border-b border-border/50 hover:bg-muted/20 ${!s.active ? "opacity-50" : ""}`}>
+          <tr
+            className={`border-b border-border/50 hover:bg-muted/20 ${!s.active ? "opacity-50" : ""}`}
+          >
             <td className="px-4 py-3 font-medium">{s.name}</td>
-            <td className="px-4 py-3 text-muted-foreground text-sm">{TYPE_LABEL[s.type]}</td>
-            <td className="px-4 py-3 text-right tabular-nums">{Number(s.ratePerShift).toLocaleString("en-EG", { minimumFractionDigits: 2 })} EGP</td>
-            <td className="px-4 py-3 text-sm text-muted-foreground">
-              {s.empCd
-                ? (employees.find((e: any) => e.empCd === s.empCd)?.fullName ?? s.empCd)
-                : <span className="text-xs italic">Manual</span>}
+            <td className="px-4 py-3 text-muted-foreground text-sm">
+              {TYPE_LABEL[s.type]}
+            </td>
+            <td className="px-4 py-3 text-right tabular-nums">
+              {Number(s.ratePerShift).toLocaleString("en-EG", {
+                minimumFractionDigits: 2,
+              })}{" "}
+              EGP
             </td>
             <td className="px-4 py-3 text-sm text-muted-foreground">
-              {s.userId
-                ? (usersList.find((u: any) => u.id === s.userId)?.name ?? `#${s.userId}`)
-                : <span className="text-xs italic text-muted-foreground/50">—</span>}
+              {s.empCd ? (
+                (employees.find((e: any) => e.empCd === s.empCd)?.fullName ??
+                s.empCd)
+              ) : (
+                <span className="text-xs italic">Manual</span>
+              )}
+            </td>
+            <td className="px-4 py-3 text-sm text-muted-foreground">
+              {s.userId ? (
+                (usersList.find((u: any) => u.id === s.userId)?.name ??
+                `#${s.userId}`)
+              ) : (
+                <span className="text-xs italic text-muted-foreground/50">
+                  —
+                </span>
+              )}
             </td>
             <td className="px-4 py-3">
-              <span className={`rounded px-2 py-0.5 text-xs font-semibold ${s.active ? "bg-green-500/10 text-green-600" : "bg-muted text-muted-foreground"}`}>
+              <span
+                className={`rounded px-2 py-0.5 text-xs font-semibold ${s.active ? "bg-green-500/10 text-green-600" : "bg-muted text-muted-foreground"}`}
+              >
                 {s.active ? "Active" : "Inactive"}
               </span>
             </td>
             <td className="px-4 py-2">
               <div className="flex gap-1">
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => startEdit(s)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => startEdit(s)}
+                >
                   <Pencil size={14} />
                 </Button>
-                <Button variant="ghost" size="sm" className={`h-8 w-8 p-0 ${hasCycle(s.id) ? "text-primary" : "text-muted-foreground"}`}
-                  onClick={() => setCycleId(showCycle ? null : s.id)} title="Set shift cycle">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`h-8 w-8 p-0 ${hasCycle(s.id) ? "text-primary" : "text-muted-foreground"}`}
+                  onClick={() => setCycleId(showCycle ? null : s.id)}
+                  title="Set shift cycle"
+                >
                   <RefreshCw size={14} />
                 </Button>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0"
-                  onClick={() => { if (confirm(`Delete ${s.name}?`)) deleteMut.mutate({ id: s.id }); }}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => {
+                    if (confirm(`Delete ${s.name}?`))
+                      deleteMut.mutate({ id: s.id });
+                  }}
+                >
                   <Trash2 size={14} className="text-destructive" />
                 </Button>
               </div>
@@ -301,11 +516,241 @@ export default function ShiftStaff() {
         {showCycle && (
           <tr className="border-b border-border/50 bg-primary/5">
             <td colSpan={5} className="p-0">
-              <CycleEditor staffId={s.id} cycles={cycles} onSaved={() => { cyclesQ.refetch(); setCycleId(null); }} />
+              <CycleEditor
+                staffId={s.id}
+                cycles={cycles}
+                onSaved={() => {
+                  cyclesQ.refetch();
+                  setCycleId(null);
+                }}
+              />
             </td>
           </tr>
         )}
       </tbody>
+    );
+  }
+
+  function renderMobileCard(s: any) {
+    const isEditing = editId === s.id;
+    const isExpanded = !!expandedRows[s.id];
+    const showCycle = cycleId === s.id;
+
+    if (isEditing) {
+      return (
+        <div key={s.id} className="p-4 bg-card hover:bg-slate-50/20 transition-colors space-y-3">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-foreground">الاسم</label>
+            <input
+              value={editForm.name}
+              onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-foreground">النوع</label>
+            <select
+              value={editForm.type}
+              onChange={(e) => setEditForm({ ...editForm, type: e.target.value as any })}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none"
+            >
+              <option value="doctor">طبيب</option>
+              <option value="tech">فني</option>
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-foreground">قيمة الشفت</label>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              value={editForm.ratePerShift}
+              onChange={(e) => setEditForm({ ...editForm, ratePerShift: e.target.value })}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-foreground">ربط الحضور</label>
+            <select
+              value={editForm.empCd}
+              onChange={(e) => setEditForm({ ...editForm, empCd: e.target.value })}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none"
+            >
+              <option value="">Manual</option>
+              {employees.map((e: any) => (
+                <option key={e.empCd} value={e.empCd}>
+                  {e.fullName}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-foreground">حساب المستخدم</label>
+            <select
+              value={editForm.userId ?? ""}
+              onChange={(e) =>
+                setEditForm({
+                  ...editForm,
+                  userId: e.target.value ? Number(e.target.value) : null,
+                })
+              }
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none"
+            >
+              <option value="">—</option>
+              {usersList.map((u: any) => (
+                <option key={u.id} value={u.id}>
+                  {u.name ?? u.username}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id={`edit-active-${s.id}`}
+              checked={editForm.active}
+              onChange={(e) => setEditForm({ ...editForm, active: e.target.checked })}
+              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <label htmlFor={`edit-active-${s.id}`} className="text-xs font-bold text-foreground">
+              نشط ومتاح في الشفتات
+            </label>
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={updateMut.isPending}
+              onClick={() => submitEdit(s.id)}
+              className="h-9 px-3 border-border text-green-600 gap-1 flex-1 font-semibold"
+            >
+              <Check size={14} />
+              <span>حفظ</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditId(null)}
+              className="h-9 px-3 border-border gap-1 flex-1 font-semibold"
+            >
+              <X size={14} />
+              <span>إلغاء</span>
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div key={s.id} className={`p-4 bg-card hover:bg-slate-50/20 transition-colors ${!s.active ? "opacity-50" : ""}`}>
+        <div
+          className="flex items-center justify-between cursor-pointer"
+          onClick={() => toggleRow(s.id)}
+        >
+          <div className="space-y-1">
+            <div className="font-bold text-sm text-foreground">
+              {s.name}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              النوع: {TYPE_LABEL[s.type]}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="text-left">
+              <div className="text-[10px] font-bold text-muted-foreground uppercase">قيمة الشفت</div>
+              <div className="text-sm font-semibold text-foreground tabular-nums">
+                {Number(s.ratePerShift).toLocaleString("en-EG", { minimumFractionDigits: 2 })} EGP
+              </div>
+            </div>
+            {isExpanded ? (
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
+        </div>
+
+        {isExpanded && (
+          <div className="mt-4 pt-4 border-t border-border/40 space-y-3 text-xs">
+            <div className="space-y-2">
+              <div className="flex justify-between border-b border-border/20 pb-1">
+                <span className="text-muted-foreground">ربط الحضور:</span>
+                <span className="font-semibold text-foreground">
+                  {s.empCd ? (
+                    (employees.find((e: any) => e.empCd === s.empCd)?.fullName ?? s.empCd)
+                  ) : (
+                    <span className="text-xs italic text-muted-foreground/50">Manual</span>
+                  )}
+                </span>
+              </div>
+              <div className="flex justify-between border-b border-border/20 pb-1">
+                <span className="text-muted-foreground">حساب المستخدم:</span>
+                <span className="font-semibold text-foreground">
+                  {s.userId ? (
+                    (usersList.find((u: any) => u.id === s.userId)?.name ?? `#${s.userId}`)
+                  ) : (
+                    <span className="text-xs italic text-muted-foreground/50">—</span>
+                  )}
+                </span>
+              </div>
+              <div className="flex justify-between border-b border-border/20 pb-1">
+                <span className="text-muted-foreground">الحالة:</span>
+                <span
+                  className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${s.active ? "bg-green-50 text-green-700 ring-1 ring-green-600/10" : "bg-gray-50 text-gray-600 ring-1 ring-gray-500/10"}`}
+                >
+                  {s.active ? "نشط" : "غير نشط"}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => startEdit(s)}
+                className="h-9 px-3 border-border hover:bg-blue-50/30 text-blue-600 gap-1"
+              >
+                <Pencil size={14} />
+                <span>تعديل</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCycleId(showCycle ? null : s.id)}
+                className={`h-9 px-3 border-border gap-1 ${hasCycle(s.id) ? "text-primary border-primary/30 bg-primary/5 hover:bg-primary/10" : "text-muted-foreground hover:bg-muted/30"}`}
+              >
+                <RefreshCw size={14} />
+                <span>الدورة</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (confirm(`Delete ${s.name}?`))
+                    deleteMut.mutate({ id: s.id });
+                }}
+                className="h-9 px-3 border-border hover:bg-red-50 text-red-600 gap-1"
+              >
+                <Trash2 size={14} className="text-destructive" />
+                <span>حذف</span>
+              </Button>
+            </div>
+
+            {showCycle && (
+              <div className="mt-4 pt-4 border-t border-border/40 bg-primary/5 rounded-lg p-3">
+                <CycleEditor
+                  staffId={s.id}
+                  cycles={cycles}
+                  onSaved={() => {
+                    cyclesQ.refetch();
+                    setCycleId(null);
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     );
   }
 
@@ -314,7 +759,9 @@ export default function ShiftStaff() {
     return (
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-muted-foreground">{title}</h3>
-        <div className="rounded-md border overflow-hidden">
+        
+        {/* Desktop Table View */}
+        <div className="hidden lg:block rounded-md border overflow-hidden">
           <table className="w-full text-sm" dir="rtl">
             <thead className="bg-muted/40">
               <tr>
@@ -322,13 +769,20 @@ export default function ShiftStaff() {
                 <th className="px-4 py-2 text-right font-medium">النوع</th>
                 <th className="px-4 py-2 text-right font-medium">قيمة الشفت</th>
                 <th className="px-4 py-2 text-right font-medium">ربط الحضور</th>
-                <th className="px-4 py-2 text-right font-medium">حساب المستخدم</th>
+                <th className="px-4 py-2 text-right font-medium">
+                  حساب المستخدم
+                </th>
                 <th className="px-4 py-2 text-right font-medium">الحالة</th>
                 <th className="px-4 py-2" />
               </tr>
             </thead>
             {rows.map(renderRow)}
           </table>
+        </div>
+
+        {/* Mobile Cards View */}
+        <div className="block lg:hidden rounded-md border overflow-hidden divide-y divide-border/65">
+          {rows.map(renderMobileCard)}
         </div>
       </div>
     );
@@ -349,32 +803,69 @@ export default function ShiftStaff() {
         <div className="rounded-md border p-4 space-y-3 bg-muted/10">
           <h3 className="text-sm font-semibold">عضو شفت جديد</h3>
           <div className="flex flex-wrap gap-3">
-            <input placeholder="الاسم الكامل" value={addForm.name}
-              onChange={e => setAddForm(f => ({ ...f, name: e.target.value }))}
-              className="flex-1 min-w-40 rounded border border-input bg-background px-3 py-1.5 text-sm" />
-            <select value={addForm.type} onChange={e => setAddForm(f => ({ ...f, type: e.target.value as any }))}
-              className="rounded border border-input bg-background px-3 py-1.5 text-sm">
+            <input
+              placeholder="الاسم الكامل"
+              value={addForm.name}
+              onChange={(e) =>
+                setAddForm((f) => ({ ...f, name: e.target.value }))
+              }
+              className="flex-1 min-w-40 rounded border border-input bg-background px-3 py-1.5 text-sm"
+            />
+            <select
+              value={addForm.type}
+              onChange={(e) =>
+                setAddForm((f) => ({ ...f, type: e.target.value as any }))
+              }
+              className="rounded border border-input bg-background px-3 py-1.5 text-sm"
+            >
               <option value="doctor">طبيب</option>
               <option value="tech">فني</option>
             </select>
             <div className="relative">
-              <input type="number" min={0} step={0.01} placeholder="قيمة الشفت"
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                placeholder="قيمة الشفت"
                 value={addForm.ratePerShift}
-                onChange={e => setAddForm(f => ({ ...f, ratePerShift: e.target.value }))}
-                className="w-40 rounded border border-input bg-background px-3 py-1.5 text-sm pr-12" />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">ج.م</span>
+                onChange={(e) =>
+                  setAddForm((f) => ({ ...f, ratePerShift: e.target.value }))
+                }
+                className="w-40 rounded border border-input bg-background px-3 py-1.5 text-sm pr-12"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                ج.م
+              </span>
             </div>
-            <select value={addForm.empCd} onChange={e => setAddForm(f => ({ ...f, empCd: e.target.value }))}
-              className="rounded border border-input bg-background px-3 py-1.5 text-sm">
+            <select
+              value={addForm.empCd}
+              onChange={(e) =>
+                setAddForm((f) => ({ ...f, empCd: e.target.value }))
+              }
+              className="rounded border border-input bg-background px-3 py-1.5 text-sm"
+            >
               <option value="">ربط الحضور (اختياري)</option>
               {employees.map((e: any) => (
-                <option key={e.empCd} value={e.empCd}>{e.fullName} ({e.empCd})</option>
+                <option key={e.empCd} value={e.empCd}>
+                  {e.fullName} ({e.empCd})
+                </option>
               ))}
             </select>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" onClick={submitAdd} disabled={addMut.isPending}>حفظ</Button>
-            <Button size="sm" variant="ghost" onClick={() => { setAdding(false); setAddForm(EMPTY); }}>إلغاء</Button>
+            <Button size="sm" onClick={submitAdd} disabled={addMut.isPending}>
+              حفظ
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setAdding(false);
+                setAddForm(EMPTY);
+              }}
+            >
+              إلغاء
+            </Button>
           </div>
         </div>
       )}
@@ -385,7 +876,9 @@ export default function ShiftStaff() {
         <div className="space-y-6">
           {renderTable(doctors, "الأطباء")}
           {renderTable(techs, "الفنيون")}
-          {staff.length === 0 && <p className="text-sm text-muted-foreground">لا يوجد طاقم بعد.</p>}
+          {staff.length === 0 && (
+            <p className="text-sm text-muted-foreground">لا يوجد طاقم بعد.</p>
+          )}
         </div>
       )}
     </div>

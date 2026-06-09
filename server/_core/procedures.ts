@@ -1,4 +1,4 @@
-import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG } from '@shared/const';
+import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG } from "@shared/const";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
@@ -19,11 +19,17 @@ export const doctorProcedure = t.procedure.use(
     const { ctx, next } = opts;
 
     if (!ctx.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "User not authenticated",
+      });
     }
 
     if (!["doctor", "admin", "manager"].includes(ctx.user.role)) {
-      throw new TRPCError({ code: "FORBIDDEN", message: "Only doctors can access this resource" });
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Only doctors can access this resource",
+      });
     }
 
     return next({
@@ -41,11 +47,17 @@ export const nurseProcedure = t.procedure.use(
     const { ctx, next } = opts;
 
     if (!ctx.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "User not authenticated",
+      });
     }
 
     if (!["nurse", "admin", "manager"].includes(ctx.user.role)) {
-      throw new TRPCError({ code: "FORBIDDEN", message: "Only nurses can access this resource" });
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Only nurses can access this resource",
+      });
     }
 
     return next({
@@ -63,11 +75,17 @@ export const technicianProcedure = t.procedure.use(
     const { ctx, next } = opts;
 
     if (!ctx.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "User not authenticated",
+      });
     }
 
     if (!["technician", "admin", "manager"].includes(ctx.user.role)) {
-      throw new TRPCError({ code: "FORBIDDEN", message: "Only technicians can access this resource" });
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Only technicians can access this resource",
+      });
     }
 
     return next({
@@ -85,11 +103,17 @@ export const receptionProcedure = t.procedure.use(
     const { ctx, next } = opts;
 
     if (!ctx.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "User not authenticated",
+      });
     }
 
     if (!["reception", "admin", "manager"].includes(ctx.user.role)) {
-      throw new TRPCError({ code: "FORBIDDEN", message: "Only reception staff can access this resource" });
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Only reception staff can access this resource",
+      });
     }
 
     return next({
@@ -107,11 +131,17 @@ export const managerProcedure = t.procedure.use(
     const { ctx, next } = opts;
 
     if (!ctx.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "User not authenticated",
+      });
     }
 
     if (!["manager", "admin", "accountant"].includes(ctx.user.role)) {
-      throw new TRPCError({ code: "FORBIDDEN", message: "Only managers can access this resource" });
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Only managers can access this resource",
+      });
     }
 
     return next({
@@ -129,7 +159,10 @@ export const accountingProcedure = t.procedure.use(
     const { ctx, next } = opts;
 
     if (!ctx.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "User not authenticated",
+      });
     }
 
     if (ctx.user.role === "admin") {
@@ -141,14 +174,22 @@ export const accountingProcedure = t.procedure.use(
       });
     }
 
-    const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+    const permissions = await db.getEffectiveUserPermissions(
+      ctx.user.id,
+      ctx.user.role ?? undefined,
+    );
     const canAccessAccounting = permissions.some((p) => {
-      const clean = String(p ?? "").replace(/:r[w]?$/, "").trim();
+      const clean = String(p ?? "")
+        .replace(/:r[w]?$/, "")
+        .trim();
       return clean === "/accounting" || clean.startsWith("/accounting/");
     });
 
     if (!canAccessAccounting) {
-      throw new TRPCError({ code: "FORBIDDEN", message: "Accounting access required" });
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Accounting access required",
+      });
     }
 
     return next({
@@ -166,11 +207,17 @@ export const adminProcedure = t.procedure.use(
     const { ctx, next } = opts;
 
     if (!ctx.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "User not authenticated",
+      });
     }
 
     if (ctx.user.role !== "admin") {
-      throw new TRPCError({ code: "FORBIDDEN", message: "Only administrators can access this resource" });
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Only administrators can access this resource",
+      });
     }
 
     return next({
@@ -188,11 +235,26 @@ export const medicalStaffProcedure = t.procedure.use(
     const { ctx, next } = opts;
 
     if (!ctx.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "User not authenticated",
+      });
     }
 
-    if (!["doctor", "nurse", "technician", "reception", "manager", "admin"].includes(ctx.user.role)) {
-      throw new TRPCError({ code: "FORBIDDEN", message: "Medical staff access required" });
+    if (
+      ![
+        "doctor",
+        "nurse",
+        "technician",
+        "reception",
+        "manager",
+        "admin",
+      ].includes(ctx.user.role)
+    ) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Medical staff access required",
+      });
     }
 
     return next({
@@ -210,7 +272,10 @@ export const protectedProcedure = t.procedure.use(
     const { ctx, next } = opts;
 
     if (!ctx.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "User not authenticated",
+      });
     }
 
     return next({
@@ -228,7 +293,10 @@ export const attendanceViewerProcedure = t.procedure.use(
     const { ctx, next } = opts;
 
     if (!ctx.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "User not authenticated",
+      });
     }
 
     if (ctx.user.role === "admin" || ctx.user.role === "manager") {
@@ -240,14 +308,22 @@ export const attendanceViewerProcedure = t.procedure.use(
       });
     }
 
-    const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+    const permissions = await db.getEffectiveUserPermissions(
+      ctx.user.id,
+      ctx.user.role ?? undefined,
+    );
     const canAccessAttendance = permissions.some((p) => {
-      const clean = String(p ?? "").replace(/:r[w]?$/, "").trim();
+      const clean = String(p ?? "")
+        .replace(/:r[w]?$/, "")
+        .trim();
       return clean === "/attendance" || clean.startsWith("/attendance/");
     });
 
     if (!canAccessAttendance) {
-      throw new TRPCError({ code: "FORBIDDEN", message: "Attendance view access required" });
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Attendance view access required",
+      });
     }
 
     return next({
@@ -265,7 +341,10 @@ export const attendanceManagerProcedure = t.procedure.use(
     const { ctx, next } = opts;
 
     if (!ctx.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "User not authenticated",
+      });
     }
 
     if (ctx.user.role === "admin" || ctx.user.role === "manager") {
@@ -277,14 +356,22 @@ export const attendanceManagerProcedure = t.procedure.use(
       });
     }
 
-    const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+    const permissions = await db.getEffectiveUserPermissions(
+      ctx.user.id,
+      ctx.user.role ?? undefined,
+    );
     const canManageAttendance = permissions.some((p) => {
-      const clean = String(p ?? "").replace(/:r[w]?$/, "").trim();
+      const clean = String(p ?? "")
+        .replace(/:r[w]?$/, "")
+        .trim();
       return clean === "/attendance" || clean.startsWith("/attendance/");
     });
 
     if (!canManageAttendance) {
-      throw new TRPCError({ code: "FORBIDDEN", message: "Attendance manage access required" });
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Attendance manage access required",
+      });
     }
 
     return next({
@@ -301,7 +388,10 @@ export const patientPortalProcedure = t.procedure.use(
   t.middleware(async (opts) => {
     const { ctx, next } = opts;
     if (!ctx.patientSession) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "Patient not authenticated" });
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "Patient not authenticated",
+      });
     }
     return next({
       ctx: {
@@ -317,7 +407,10 @@ export const doctorPortalProcedure = t.procedure.use(
   t.middleware(async (opts) => {
     const { ctx, next } = opts;
     if (!ctx.doctorSession) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "External doctor not authenticated" });
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "External doctor not authenticated",
+      });
     }
     return next({
       ctx: {
@@ -334,11 +427,17 @@ export const attendanceAdminProcedure = t.procedure.use(
     const { ctx, next } = opts;
 
     if (!ctx.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "User not authenticated",
+      });
     }
 
     if (ctx.user.role !== "admin") {
-      throw new TRPCError({ code: "FORBIDDEN", message: "Only administrators can access this resource" });
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Only administrators can access this resource",
+      });
     }
 
     return next({

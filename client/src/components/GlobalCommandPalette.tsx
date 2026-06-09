@@ -46,12 +46,13 @@ export default function GlobalCommandPalette() {
       enabled: isAuthenticated && query.trim().length >= 2,
       refetchOnWindowFocus: false,
       staleTime: 15000,
-    }
+    },
   );
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      const isShortcut = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k";
+      const isShortcut =
+        (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k";
       if (!isShortcut) return;
       event.preventDefault();
       setOpen((prev) => !prev);
@@ -63,7 +64,8 @@ export default function GlobalCommandPalette() {
   useEffect(() => {
     const onOpen = () => setOpen(true);
     window.addEventListener("selrs:open-command-palette", onOpen);
-    return () => window.removeEventListener("selrs:open-command-palette", onOpen);
+    return () =>
+      window.removeEventListener("selrs:open-command-palette", onOpen);
   }, []);
 
   useEffect(() => {
@@ -75,7 +77,9 @@ export default function GlobalCommandPalette() {
   const quickLinks = useMemo(() => {
     const isAdmin = String(user?.role ?? "").toLowerCase() === "admin";
     const items = [
-      ...(!isAdmin ? [{ label: "لوحة التحكم", path: "/dashboard", icon: LayoutDashboard }] : []),
+      ...(!isAdmin
+        ? [{ label: "لوحة التحكم", path: "/dashboard", icon: LayoutDashboard }]
+        : []),
       { label: "مرضى اليوم", path: "/today", icon: Clock },
       { label: "المرضى", path: "/patients", icon: UserRound },
       { label: "العمليات", path: "/operations", icon: CalendarDays },
@@ -83,10 +87,16 @@ export default function GlobalCommandPalette() {
       { label: "المتابعات", path: "/followups", icon: Repeat },
       { label: "الفحوصات", path: "/examination", icon: Eye },
       { label: "الروشتات", path: "/prescriptions", icon: Pill },
-      ...(!isAdmin ? [{ label: "الملف الطبي", path: "/patient-file", icon: FileText }] : []),
+      ...(!isAdmin
+        ? [{ label: "الملف الطبي", path: "/patient-file", icon: FileText }]
+        : []),
     ];
     if (isAdmin) {
-      items.push({ label: "إعدادات النظام", path: "/admin/settings", icon: Settings });
+      items.push({
+        label: "إعدادات النظام",
+        path: "/admin/settings",
+        icon: Settings,
+      });
     }
     return items;
   }, [user?.role]);
@@ -109,7 +119,9 @@ export default function GlobalCommandPalette() {
       />
       <CommandList>
         <CommandEmpty>
-          {query.trim().length < 2 ? "Type at least 2 characters" : "No results found"}
+          {query.trim().length < 2
+            ? "Type at least 2 characters"
+            : "No results found"}
         </CommandEmpty>
 
         <CommandGroup heading="Quick Actions">
@@ -143,9 +155,14 @@ export default function GlobalCommandPalette() {
               >
                 <UserRound className="h-4 w-4" />
                 <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate">{patient.patientCode} | {patient.fullName}</span>
+                  <span className="truncate">
+                    {patient.patientCode} | {patient.fullName}
+                  </span>
                   <span className="text-xs text-muted-foreground truncate">
-                    {patient.phone || "-"} {patient.treatingDoctor ? `| ${patient.treatingDoctor}` : ""}
+                    {patient.phone || "-"}{" "}
+                    {patient.treatingDoctor
+                      ? `| ${patient.treatingDoctor}`
+                      : ""}
                   </span>
                 </div>
                 <CommandShortcut>Open</CommandShortcut>

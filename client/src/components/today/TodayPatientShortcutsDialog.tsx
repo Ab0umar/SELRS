@@ -26,20 +26,32 @@ import type { PageKey } from "@/lib/dashboard-data";
 import { ScheduleVisitDialog } from "@/components/dashboard/ScheduleVisitDialog";
 
 const semanticColors = {
-  success: { text: "text-card-foreground", bg: "hover:bg-success/10", border: "border-success/20" },
-  info:    { text: "text-info",    bg: "hover:bg-info/10",    border: "border-info/20"    },
-  warning: { text: "text-card-foreground", bg: "hover:bg-warning/10", border: "border-warning/20" },
-  error:   { text: "text-error",   bg: "hover:bg-error/10",   border: "border-error/20"   },
+  success: {
+    text: "text-card-foreground",
+    bg: "hover:bg-success/10",
+    border: "border-success/20",
+  },
+  info: { text: "text-info", bg: "hover:bg-info/10", border: "border-info/20" },
+  warning: {
+    text: "text-card-foreground",
+    bg: "hover:bg-warning/10",
+    border: "border-warning/20",
+  },
+  error: {
+    text: "text-error",
+    bg: "hover:bg-error/10",
+    border: "border-error/20",
+  },
 } as const;
 
 type SemanticType = keyof typeof semanticColors;
 
 const groupLabels = {
   scheduling: "المواعيد",
-  records:    "الملفات الطبية",
-  exams:      "الفحوصات والقياسات",
-  treatment:  "العلاج والتحاليل",
-  reports:    "التقارير",
+  records: "الملفات الطبية",
+  exams: "الفحوصات والقياسات",
+  treatment: "العلاج والتحاليل",
+  reports: "التقارير",
 } as const;
 
 type GroupKey = keyof typeof groupLabels;
@@ -59,15 +71,78 @@ type ShortcutRow = {
 
 function actionsForPatient(patientId: number): ShortcutRow[] {
   return [
-    { key: "schedule", label: "حجز موعد",        path: "",                                      icon: CalendarPlus,  semantic: "info",    group: "scheduling" },
-    { key: "file",     label: "الملف الطبي",      path: p(patientId, "patient-details"),         icon: FileHeart,     semantic: "success", group: "records"    },
-    { key: "summary",  label: "تقرير المريض",     path: p(patientId, "patient-summary"),         icon: FileSpreadsheet, semantic: "info",  group: "records"    },
-    { key: "exam",     label: "القياسات و الفحص", path: p(patientId, "examination-form"),        icon: Eye,           semantic: "warning", group: "exams"      },
-    { key: "ref",      label: "مقاس النظارة",     path: p(patientId, "refraction"),              icon: Glasses,       semantic: "warning", group: "exams"      },
-    { key: "penta",    label: "بنتاكام",          path: p(patientId, "pentacam-sheet"),          icon: CircleDot,     semantic: "warning", group: "exams"      },
-    { key: "rx",       label: "الروشتات",         path: p(patientId, "write-prescription"),      icon: Pill,          semantic: "error",   group: "treatment"  },
-    { key: "tests",    label: "تحاليل و اشعه",   path: p(patientId, "request-tests"),           icon: FlaskConical,  semantic: "error",   group: "treatment"  },
-    { key: "diag",     label: "تشخيص / تقرير",   path: p(patientId, "medical-reports"),         icon: FileText,      semantic: "info",    group: "reports"    },
+    {
+      key: "schedule",
+      label: "حجز موعد",
+      path: "",
+      icon: CalendarPlus,
+      semantic: "info",
+      group: "scheduling",
+    },
+    {
+      key: "file",
+      label: "الملف الطبي",
+      path: p(patientId, "patient-details"),
+      icon: FileHeart,
+      semantic: "success",
+      group: "records",
+    },
+    {
+      key: "summary",
+      label: "تقرير المريض",
+      path: p(patientId, "patient-summary"),
+      icon: FileSpreadsheet,
+      semantic: "info",
+      group: "records",
+    },
+    {
+      key: "exam",
+      label: "القياسات و الفحص",
+      path: p(patientId, "examination-form"),
+      icon: Eye,
+      semantic: "warning",
+      group: "exams",
+    },
+    {
+      key: "ref",
+      label: "مقاس النظارة",
+      path: p(patientId, "refraction"),
+      icon: Glasses,
+      semantic: "warning",
+      group: "exams",
+    },
+    {
+      key: "penta",
+      label: "بنتاكام",
+      path: p(patientId, "pentacam-sheet"),
+      icon: CircleDot,
+      semantic: "warning",
+      group: "exams",
+    },
+    {
+      key: "rx",
+      label: "الروشتات",
+      path: p(patientId, "write-prescription"),
+      icon: Pill,
+      semantic: "error",
+      group: "treatment",
+    },
+    {
+      key: "tests",
+      label: "تحاليل و اشعه",
+      path: p(patientId, "request-tests"),
+      icon: FlaskConical,
+      semantic: "error",
+      group: "treatment",
+    },
+    {
+      key: "diag",
+      label: "تشخيص / تقرير",
+      path: p(patientId, "medical-reports"),
+      icon: FileText,
+      semantic: "info",
+      group: "reports",
+    },
   ];
 }
 
@@ -93,7 +168,9 @@ export function TodayPatientShortcutsDialog({
   const valid = Number.isFinite(patientId) && patientId > 0;
   const allRows = valid ? actionsForPatient(patientId) : [];
   const primaryRow = allRows.find((r) => r.key === "exam");
-  const rows = allRows.filter((r) => r.key !== "exam" && !(readOnly && r.key === "schedule"));
+  const rows = allRows.filter(
+    (r) => r.key !== "exam" && !(readOnly && r.key === "schedule"),
+  );
 
   const handleAction = (item: ShortcutRow) => {
     if (item.key === "schedule") {
@@ -128,7 +205,10 @@ export function TodayPatientShortcutsDialog({
             <DialogTitle className="text-base font-semibold">
               اختصارات المريض
               {patientName && (
-                <span className="text-muted-foreground font-normal"> — {patientName}</span>
+                <span className="text-muted-foreground font-normal">
+                  {" "}
+                  — {patientName}
+                </span>
               )}
             </DialogTitle>
             <DialogDescription className="sr-only">
@@ -139,7 +219,9 @@ export function TodayPatientShortcutsDialog({
           {/* Groups */}
           <div className="px-4 pb-5 space-y-4 overflow-y-auto">
             {!valid ? (
-              <p className="text-center text-sm text-muted-foreground py-4">لا يوجد مريض محدد</p>
+              <p className="text-center text-sm text-muted-foreground py-4">
+                لا يوجد مريض محدد
+              </p>
             ) : primaryRow ? (
               <>
                 {readOnly ? (
@@ -163,8 +245,7 @@ export function TodayPatientShortcutsDialog({
                   <span>{primaryRow.label}</span>
                 </Button>
                 {/* Remaining groups */}
-                {(
-                  Object.keys(groupLabels) as GroupKey[]).map((groupKey) => {
+                {(Object.keys(groupLabels) as GroupKey[]).map((groupKey) => {
                   const groupItems = rows.filter((r) => r.group === groupKey);
                   if (groupItems.length === 0) return null;
                   return (

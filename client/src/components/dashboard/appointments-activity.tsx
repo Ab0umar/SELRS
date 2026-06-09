@@ -5,10 +5,24 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn, getTrpcErrorMessage } from "@/lib/utils";
 import { toast } from "sonner";
-import { Calendar, CalendarPlus, Check, CheckCircle2, Clock, Syringe, Users } from "lucide-react";
+import {
+  Calendar,
+  CalendarPlus,
+  Check,
+  CheckCircle2,
+  Clock,
+  Syringe,
+  Users,
+} from "lucide-react";
 import { queueStatusLabelsAr, serviceTypeLabels } from "@/lib/dashboard-data";
-import { useTodayQueuePatientsMerged, type TodayQueuePatient } from "@/hooks/useTodayQueuePatientsMerged";
-import { PatientMedicalStatusStrip, type PatientMedicalStatus } from "@/components/patients/PatientMedicalStatusBadges";
+import {
+  useTodayQueuePatientsMerged,
+  type TodayQueuePatient,
+} from "@/hooks/useTodayQueuePatientsMerged";
+import {
+  PatientMedicalStatusStrip,
+  type PatientMedicalStatus,
+} from "@/components/patients/PatientMedicalStatusBadges";
 import type { QueueStatus } from "@/lib/dashboard-data";
 import { trpc } from "@/lib/trpc";
 import { TodayPatientShortcutsDialog } from "@/components/today/TodayPatientShortcutsDialog";
@@ -47,7 +61,8 @@ const serviceTypeStyles: Record<string, string> = {
 };
 
 function coercePositiveInt(v: unknown): number | undefined {
-  if (typeof v === "number" && Number.isFinite(v) && v > 0) return Math.trunc(v);
+  if (typeof v === "number" && Number.isFinite(v) && v > 0)
+    return Math.trunc(v);
   if (typeof v === "bigint") {
     const n = Number(v);
     return Number.isFinite(n) && n > 0 ? Math.trunc(n) : undefined;
@@ -101,9 +116,11 @@ export function AppointmentsSection({
   selectedDate?: string;
   onSelectedDateChange?: (date: string) => void;
 } = {}) {
-  const [shortcutPatient, setShortcutPatient] = useState<TodayQueuePatient | null>(null);
+  const [shortcutPatient, setShortcutPatient] =
+    useState<TodayQueuePatient | null>(null);
   /** Same calendar-day default as Operations list (`getLocalDateIso`), not UTC midnight. */
-  const [internalSelectedDate, setInternalSelectedDate] = useState(getLocalDateIso);
+  const [internalSelectedDate, setInternalSelectedDate] =
+    useState(getLocalDateIso);
   const selectedDate = controlledSelectedDate ?? internalSelectedDate;
 
   const setTodayPatientsDate = (ymd: string) => {
@@ -115,7 +132,8 @@ export function AppointmentsSection({
   const [mainTab, setMainTab] = useState<MainTab>("patients");
   const [queueFilter, setQueueFilter] = useState<QueueFilter>("all");
 
-  const { merged, isLoading, byStatus } = useTodayQueuePatientsMerged(selectedDate);
+  const { merged, isLoading, byStatus } =
+    useTodayQueuePatientsMerged(selectedDate);
 
   // ── Portal bookings for the selected date ───────────────────────────────
   const bookingsQuery = (trpc as any).patientPortal.listBookings.useQuery(
@@ -128,7 +146,9 @@ export function AppointmentsSection({
     const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     return ymd === selectedDate;
   });
-  const pendingBookingsCount = bookingsForDate.filter((b: any) => b.status === "pending").length;
+  const pendingBookingsCount = bookingsForDate.filter(
+    (b: any) => b.status === "pending",
+  ).length;
 
   const utils = trpc.useUtils();
   const markVisitTreated = trpc.medical.updateVisitQueueStatus.useMutation({
@@ -158,9 +178,14 @@ export function AppointmentsSection({
 
   const doctorNameByCode = useMemo(() => {
     const map = new Map<string, string>();
-    const doctors = (doctorsDirectoryQuery.data ?? []) as Array<{ code?: string | null; name?: string | null }>;
+    const doctors = (doctorsDirectoryQuery.data ?? []) as Array<{
+      code?: string | null;
+      name?: string | null;
+    }>;
     for (const doctor of doctors) {
-      const code = String(doctor.code ?? "").trim().toLowerCase();
+      const code = String(doctor.code ?? "")
+        .trim()
+        .toLowerCase();
       const name = String(doctor.name ?? "").trim();
       if (code && name) map.set(code, name);
     }
@@ -238,14 +263,19 @@ export function AppointmentsSection({
         return day === selectedDate;
       })
       .sort((a, b) => {
-        const ta = a.appointmentDate ? new Date(a.appointmentDate as string).getTime() : 0;
-        const tb = b.appointmentDate ? new Date(b.appointmentDate as string).getTime() : 0;
+        const ta = a.appointmentDate
+          ? new Date(a.appointmentDate as string).getTime()
+          : 0;
+        const tb = b.appointmentDate
+          ? new Date(b.appointmentDate as string).getTime()
+          : 0;
         return ta - tb;
       });
   }, [appointmentsQuery.data, selectedDate]);
 
   const surgeryTodayCount = useMemo(
-    () => todayAppointments.filter((a) => a.appointmentType === "surgery").length,
+    () =>
+      todayAppointments.filter((a) => a.appointmentType === "surgery").length,
     [todayAppointments],
   );
 
@@ -259,7 +289,13 @@ export function AppointmentsSection({
       clinic: byStatus.clinic.length,
       treated: byStatus.treated.length,
     }),
-    [merged.length, byStatus.checkedIn.length, byStatus.next.length, byStatus.clinic.length, byStatus.treated.length],
+    [
+      merged.length,
+      byStatus.checkedIn.length,
+      byStatus.next.length,
+      byStatus.clinic.length,
+      byStatus.treated.length,
+    ],
   );
 
   const filteredPatients = useMemo(() => {
@@ -267,12 +303,21 @@ export function AppointmentsSection({
     return merged.filter((p) => p.queueStatus === queueFilter);
   }, [queueFilter, merged]);
 
-  const todayPatientIds = useMemo(() => merged.map((p) => p.id).filter(Boolean), [merged]);
+  const todayPatientIds = useMemo(
+    () => merged.map((p) => p.id).filter(Boolean),
+    [merged],
+  );
   const medicalStatusQuery = trpc.medical.getPatientMedicalStatusBatch.useQuery(
     { patientIds: todayPatientIds },
-    { enabled: todayPatientIds.length > 0, staleTime: 120_000, refetchOnWindowFocus: false },
+    {
+      enabled: todayPatientIds.length > 0,
+      staleTime: 120_000,
+      refetchOnWindowFocus: false,
+    },
   );
-  const medicalStatuses = medicalStatusQuery.data as Record<number, PatientMedicalStatus> | undefined;
+  const medicalStatuses = medicalStatusQuery.data as
+    | Record<number, PatientMedicalStatus>
+    | undefined;
 
   return (
     <div className="space-y-4">
@@ -286,10 +331,18 @@ export function AppointmentsSection({
         onOpenMeasurementsMedicalFile={onOpenMeasurementsMedicalFile}
       />
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
-        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4" dir="rtl">
+        <div
+          className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4"
+          dir="rtl"
+        >
           <div className="flex items-center gap-2 text-sm">
-            <Calendar className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-            <span className="font-semibold text-foreground">تاريخ مرضى اليوم</span>
+            <Calendar
+              className="h-4 w-4 shrink-0 text-muted-foreground"
+              aria-hidden
+            />
+            <span className="font-semibold text-foreground">
+              تاريخ مرضى اليوم
+            </span>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <Input
@@ -307,7 +360,9 @@ export function AppointmentsSection({
         </div>
         <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           <span>
-            <span className="font-semibold text-foreground tabular-nums">{merged.length.toLocaleString("ar-EG")}</span>{" "}
+            <span className="font-semibold text-foreground tabular-nums">
+              {merged.length.toLocaleString("ar-EG")}
+            </span>{" "}
             مريض
           </span>
           <span className="text-border">|</span>
@@ -319,7 +374,9 @@ export function AppointmentsSection({
                   ? surgeryTodayCount.toLocaleString("ar-EG")
                   : todayAppointments.length.toLocaleString("ar-EG")}
             </span>{" "}
-            {operationListItemCount > 0 || surgeryTodayCount > 0 ? "عملية" : "موعد"}
+            {operationListItemCount > 0 || surgeryTodayCount > 0
+              ? "عملية"
+              : "موعد"}
           </span>
         </div>
       </div>
@@ -329,7 +386,10 @@ export function AppointmentsSection({
           type="button"
           variant={mainTab === "patients" ? "default" : "ghost"}
           size="sm"
-          className={cn("flex-1 gap-2 rounded-lg sm:flex-none", mainTab === "patients" && "shadow-sm")}
+          className={cn(
+            "flex-1 gap-2 rounded-lg sm:flex-none",
+            mainTab === "patients" && "shadow-sm",
+          )}
           onClick={() => setMainTab("patients")}
         >
           <Users className="h-4 w-4" />
@@ -339,7 +399,10 @@ export function AppointmentsSection({
           type="button"
           variant={mainTab === "operations" ? "default" : "ghost"}
           size="sm"
-          className={cn("flex-1 gap-2 rounded-lg sm:flex-none", mainTab === "operations" && "shadow-sm")}
+          className={cn(
+            "flex-1 gap-2 rounded-lg sm:flex-none",
+            mainTab === "operations" && "shadow-sm",
+          )}
           onClick={() => setMainTab("operations")}
         >
           <Syringe className="h-4 w-4" />
@@ -349,7 +412,10 @@ export function AppointmentsSection({
           type="button"
           variant={mainTab === "bookings" ? "default" : "ghost"}
           size="sm"
-          className={cn("relative flex-1 gap-2 rounded-lg sm:flex-none", mainTab === "bookings" && "shadow-sm")}
+          className={cn(
+            "relative flex-1 gap-2 rounded-lg sm:flex-none",
+            mainTab === "bookings" && "shadow-sm",
+          )}
           onClick={() => setMainTab("bookings")}
         >
           <CalendarPlus className="h-4 w-4" />
@@ -381,14 +447,18 @@ export function AppointmentsSection({
                   )}
                 >
                   {label}{" "}
-                  <span className="tabular-nums opacity-90">({n.toLocaleString("ar-EG")})</span>
+                  <span className="tabular-nums opacity-90">
+                    ({n.toLocaleString("ar-EG")})
+                  </span>
                 </button>
               );
             })}
           </div>
 
           {isLoading ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">جاري التحميل…</p>
+            <p className="py-10 text-center text-sm text-muted-foreground">
+              جاري التحميل…
+            </p>
           ) : filteredPatients.length === 0 ? (
             <div className="flex min-h-[220px] flex-col items-center justify-center px-4 py-12 text-center text-sm text-muted-foreground">
               لا يوجد مرضى في هذه الفئة
@@ -402,7 +472,9 @@ export function AppointmentsSection({
                   medicalStatus={medicalStatuses?.[patient.id]}
                   onSelectPatient={() => setShortcutPatient(patient)}
                   markVisitTreatedPendingVisitId={
-                    markVisitTreated.isPending ? markVisitTreated.variables?.visitId ?? null : null
+                    markVisitTreated.isPending
+                      ? (markVisitTreated.variables?.visitId ?? null)
+                      : null
                   }
                   onMarkVisitTreated={(visitId) => {
                     markVisitTreated.mutate({
@@ -430,7 +502,10 @@ export function AppointmentsSection({
               className="flex min-h-[220px] flex-col items-center justify-center rounded-lg border border-destructive/25 bg-destructive text-destructive-foreground"
               role="alert"
             >
-              {getTrpcErrorMessage(todayOperationListsQuery.error, "تعذر تحميل قائمة العمليات")}
+              {getTrpcErrorMessage(
+                todayOperationListsQuery.error,
+                "تعذر تحميل قائمة العمليات",
+              )}
             </div>
           ) : todayOperationsFlat.length === 0 ? (
             <div className="flex min-h-[220px] flex-col items-center justify-center px-4 py-12 text-center text-sm text-muted-foreground">
@@ -439,7 +514,11 @@ export function AppointmentsSection({
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {todayOperationsFlat.map((row) => (
-                <TodayOperationListItemCard key={row.key} row={row} doctorNameByCode={doctorNameByCode} />
+                <TodayOperationListItemCard
+                  key={row.key}
+                  row={row}
+                  doctorNameByCode={doctorNameByCode}
+                />
               ))}
             </div>
           )}
@@ -460,28 +539,43 @@ export function AppointmentsSection({
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {(bookingsForDate as any[]).map((booking) => {
                 const STATUS_STYLE: Record<string, string> = {
-                  pending:   "border-warning/30 bg-warning/5 text-warning",
+                  pending: "border-warning/30 bg-warning/5 text-warning",
                   confirmed: "border-primary/30 bg-primary/5 text-primary",
-                  cancelled: "border-destructive/30 bg-destructive/5 text-destructive",
+                  cancelled:
+                    "border-destructive/30 bg-destructive/5 text-destructive",
                   completed: "border-border bg-muted/30 text-muted-foreground",
                 };
                 const STATUS_AR: Record<string, string> = {
-                  pending: "قيد المراجعة", confirmed: "مؤكد", cancelled: "ملغي", completed: "مكتمل",
+                  pending: "قيد المراجعة",
+                  confirmed: "مؤكد",
+                  cancelled: "ملغي",
+                  completed: "مكتمل",
                 };
                 const BOOKING_TYPES_AR: Record<string, string> = {
-                  consultant: "كشف استشاري", specialist: "كشف أخصائي",
-                  lasik: "فحوصات الليزك",  external: "أشعة خارجي", followup: "متابعة",
+                  consultant: "كشف استشاري",
+                  specialist: "كشف أخصائي",
+                  lasik: "فحوصات الليزك",
+                  external: "أشعة خارجي",
+                  followup: "متابعة",
                 };
-                const name    = booking.patientName ?? booking.guestName ?? "—";
-                const code    = booking.patientCode ?? (booking.isGuest ? "زائر" : "جديد");
-                const type    = BOOKING_TYPES_AR[booking.bookingType] ?? booking.typeLabel ?? booking.bookingType;
-                const stStyle = STATUS_STYLE[booking.status] ?? STATUS_STYLE.completed;
-                const stAr    = STATUS_AR[booking.status]   ?? booking.status;
+                const name = booking.patientName ?? booking.guestName ?? "—";
+                const code =
+                  booking.patientCode ?? (booking.isGuest ? "زائر" : "جديد");
+                const type =
+                  BOOKING_TYPES_AR[booking.bookingType] ??
+                  booking.typeLabel ??
+                  booking.bookingType;
+                const stStyle =
+                  STATUS_STYLE[booking.status] ?? STATUS_STYLE.completed;
+                const stAr = STATUS_AR[booking.status] ?? booking.status;
                 return (
                   <a
                     key={booking.id}
                     href="/admin-hub/portal-bookings"
-                    onClick={(e) => { e.preventDefault(); window.location.href = "/admin-hub/portal-bookings"; }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.location.href = "/admin-hub/portal-bookings";
+                    }}
                     className={cn(
                       "block rounded-xl border p-3 shadow-sm transition-shadow hover:shadow-md cursor-pointer",
                       stStyle,
@@ -489,15 +583,26 @@ export function AppointmentsSection({
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-foreground">{name}</p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">{code} · {type}</p>
+                        <p className="truncate text-sm font-semibold text-foreground">
+                          {name}
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {code} · {type}
+                        </p>
                       </div>
-                      <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium", stStyle)}>
+                      <span
+                        className={cn(
+                          "shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                          stStyle,
+                        )}
+                      >
                         {stAr}
                       </span>
                     </div>
                     {booking.staffNotes ? (
-                      <p className="mt-2 truncate text-xs text-muted-foreground">{booking.staffNotes}</p>
+                      <p className="mt-2 truncate text-xs text-muted-foreground">
+                        {booking.staffNotes}
+                      </p>
                     ) : null}
                   </a>
                 );
@@ -526,8 +631,11 @@ function QueuePatientCard({
   const st = patient.queueStatus as QueueStatus;
   const visitId = coercePositiveInt((patient as { visitId?: unknown }).visitId);
   const canMarkTreated = st !== "treated" && visitId != null;
-  const markingThis = markVisitTreatedPendingVisitId != null && markVisitTreatedPendingVisitId === visitId;
-  const serviceTypeText = serviceTypeLabels[patient.serviceType ?? ""] ?? patient.serviceType ?? "—";
+  const markingThis =
+    markVisitTreatedPendingVisitId != null &&
+    markVisitTreatedPendingVisitId === visitId;
+  const serviceTypeText =
+    serviceTypeLabels[patient.serviceType ?? ""] ?? patient.serviceType ?? "—";
   const doctorText = String(patient.doctorName ?? "").trim() || "—";
   const timeText = String(patient.checkedInTime ?? "").trim() || "—";
 
@@ -551,53 +659,70 @@ function QueuePatientCard({
     >
       <PatientMedicalStatusStrip status={medicalStatus} />
       <div className="px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
-      <div className="flex items-start justify-between gap-1.5">
-        <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 text-sm font-semibold leading-snug text-foreground">{patient.fullName ?? "—"}</p>
-        </div>
-        <div className="flex shrink-0 flex-col items-end gap-1">
-          {st === "treated" ? (
-            <CheckCircle2 className="h-4 w-4 text-success" aria-hidden />
-          ) : null}
-          <Badge className={cn("max-w-full truncate text-[0.8125rem]", queueStatusStyles[st])}>
-            {queueStatusLabelsAr[st] ?? st}
-          </Badge>
-        </div>
-      </div>
-      <div className="mt-2.5 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 border-t border-border/50 pt-2 text-sm">
-        <span className="text-muted-foreground">الطبيب</span>
-        <span className="text-right text-foreground break-words">{doctorText}</span>
-        <span className="text-muted-foreground">نوع الخدمة</span>
-        <span className="text-right">
-          <Badge variant="outline" className={cn("max-w-full text-[0.8125rem]", serviceTypeStyles[patient.serviceType ?? ""])}>
-            {serviceTypeText}
-          </Badge>
-        </span>
-        <span className="text-muted-foreground">الوقت</span>
-        <span className="text-right text-foreground tabular-nums">{timeText}</span>
-      </div>
-      <div className="mt-2 flex items-center justify-end gap-1.5 text-sm sm:mt-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-1.5">
-          {canMarkTreated ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={markingThis}
-              title="معالج"
-              aria-label={`تسجيل ${patient.fullName ?? "المريض"} كمعالج`}
-              className="h-11 w-11 shrink-0 border-secondary/35 bg-secondary text-secondary-foreground hover:border-secondary/50 hover:bg-secondary/90"
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                if (visitId != null) onMarkVisitTreated(visitId);
-              }}
+        <div className="flex items-start justify-between gap-1.5">
+          <div className="min-w-0 flex-1">
+            <p className="line-clamp-2 text-sm font-semibold leading-snug text-foreground">
+              {patient.fullName ?? "—"}
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            {st === "treated" ? (
+              <CheckCircle2 className="h-4 w-4 text-success" aria-hidden />
+            ) : null}
+            <Badge
+              className={cn(
+                "max-w-full truncate text-[0.8125rem]",
+                queueStatusStyles[st],
+              )}
             >
-              <Check className="h-3.5 w-3.5" aria-hidden />
-            </Button>
-          ) : null}
+              {queueStatusLabelsAr[st] ?? st}
+            </Badge>
+          </div>
         </div>
-      </div>
+        <div className="mt-2.5 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 border-t border-border/50 pt-2 text-sm">
+          <span className="text-muted-foreground">الطبيب</span>
+          <span className="text-right text-foreground break-words">
+            {doctorText}
+          </span>
+          <span className="text-muted-foreground">نوع الخدمة</span>
+          <span className="text-right">
+            <Badge
+              variant="outline"
+              className={cn(
+                "max-w-full text-[0.8125rem]",
+                serviceTypeStyles[patient.serviceType ?? ""],
+              )}
+            >
+              {serviceTypeText}
+            </Badge>
+          </span>
+          <span className="text-muted-foreground">الوقت</span>
+          <span className="text-right text-foreground tabular-nums">
+            {timeText}
+          </span>
+        </div>
+        <div className="mt-2 flex items-center justify-end gap-1.5 text-sm sm:mt-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-1.5">
+            {canMarkTreated ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={markingThis}
+                title="معالج"
+                aria-label={`تسجيل ${patient.fullName ?? "المريض"} كمعالج`}
+                className="h-11 w-11 shrink-0 border-secondary/35 bg-secondary text-secondary-foreground hover:border-secondary/50 hover:bg-secondary/90"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  if (visitId != null) onMarkVisitTreated(visitId);
+                }}
+              >
+                <Check className="h-3.5 w-3.5" aria-hidden />
+              </Button>
+            ) : null}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -644,9 +769,13 @@ function TodayOperationListItemCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold leading-snug">{row.item.name?.trim() || "مريض"}</p>
+          <p className="truncate text-sm font-semibold leading-snug">
+            {row.item.name?.trim() || "مريض"}
+          </p>
           {row.item.code ? (
-            <p className="mt-0.5 text-sm text-muted-foreground">رقم: {row.item.code}</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              رقم: {row.item.code}
+            </p>
           ) : null}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
@@ -655,24 +784,38 @@ function TodayOperationListItemCard({
               مزامنة
             </Badge>
           ) : null}
-          <Badge variant="outline" className="max-w-[9rem] truncate text-[0.8125rem]" title={doctorDisplay}>
+          <Badge
+            variant="outline"
+            className="max-w-[9rem] truncate text-[0.8125rem]"
+            title={doctorDisplay}
+          >
             {doctorDisplay}
           </Badge>
         </div>
       </div>
       <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-        {row.item.doctor ? <p>الطبيب: {row.item.doctor}</p> : row.listDoctorName ? <p>الطبيب: {row.listDoctorName}</p> : null}
+        {row.item.doctor ? (
+          <p>الطبيب: {row.item.doctor}</p>
+        ) : row.listDoctorName ? (
+          <p>الطبيب: {row.listDoctorName}</p>
+        ) : null}
         {row.item.operation ? (
-          <p className="font-medium text-foreground">العملية: {row.item.operation}</p>
+          <p className="font-medium text-foreground">
+            العملية: {row.item.operation}
+          </p>
         ) : row.listOperationType ? (
-          <p className="font-medium text-foreground">نوع القائمة: {row.listOperationType}</p>
+          <p className="font-medium text-foreground">
+            نوع القائمة: {row.listOperationType}
+          </p>
         ) : null}
         {row.item.eye ? <p>العين: {row.item.eye}</p> : null}
         {row.item.hospital ? <p>المستشفى: {row.item.hospital}</p> : null}
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/50 pt-2 text-sm">
         {row.item.payment ? (
-          <Badge className="bg-warning/10 text-[0.8125rem] text-warning">{row.item.payment}</Badge>
+          <Badge className="bg-warning/10 text-[0.8125rem] text-warning">
+            {row.item.payment}
+          </Badge>
         ) : (
           <span />
         )}
@@ -683,8 +826,7 @@ function TodayOperationListItemCard({
           </span>
         ) : (
           <span className="flex items-center gap-1 text-muted-foreground">
-            <Clock className="h-3 w-3 shrink-0" />
-            —
+            <Clock className="h-3 w-3 shrink-0" />—
           </span>
         )}
       </div>

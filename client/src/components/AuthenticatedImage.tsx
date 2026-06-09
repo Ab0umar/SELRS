@@ -40,7 +40,10 @@ function getAuthHeaders() {
   };
 }
 
-async function loadAuthenticatedImage(normalizedSrc: string, headers?: Record<string, string>) {
+async function loadAuthenticatedImage(
+  normalizedSrc: string,
+  headers?: Record<string, string>,
+) {
   const cached = authenticatedImageCache.get(normalizedSrc);
   if (cached?.objectUrl) return cached.objectUrl;
   if (cached?.promise) return cached.promise;
@@ -73,8 +76,11 @@ async function loadAuthenticatedImage(normalizedSrc: string, headers?: Record<st
         return null;
       }
       const mimeType =
-        String((response.headers as Record<string, string> | undefined)?.["content-type"] ?? "").trim() ||
-        guessImageMimeType(normalizedSrc);
+        String(
+          (response.headers as Record<string, string> | undefined)?.[
+            "content-type"
+          ] ?? "",
+        ).trim() || guessImageMimeType(normalizedSrc);
       const copiedBytes = new Uint8Array(bytes.byteLength);
       copiedBytes.set(bytes);
       blob = new Blob([copiedBytes.buffer as ArrayBuffer], { type: mimeType });
@@ -158,7 +164,10 @@ export default function AuthenticatedImage({
 
     const run = async () => {
       try {
-        const objectUrl = await loadAuthenticatedImage(normalizedSrc, authHeaders);
+        const objectUrl = await loadAuthenticatedImage(
+          normalizedSrc,
+          authHeaders,
+        );
         if (!cancelled) {
           setResolvedSrc(objectUrl || normalizedSrc);
         }
@@ -177,5 +186,14 @@ export default function AuthenticatedImage({
     };
   }, [authHeaders, normalizedSrc]);
 
-  return <img src={resolvedSrc || undefined} alt={alt} className={cn(className)} loading={loading} width={width} height={height} />;
+  return (
+    <img
+      src={resolvedSrc || undefined}
+      alt={alt}
+      className={cn(className)}
+      loading={loading}
+      width={width}
+      height={height}
+    />
+  );
 }

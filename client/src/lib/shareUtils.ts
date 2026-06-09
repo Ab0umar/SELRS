@@ -23,7 +23,9 @@ export async function shareContent(options: {
       }
     }
     // Fallback: copy to clipboard
-    const textToCopy = [options.title, options.text, options.url].filter(Boolean).join("\n");
+    const textToCopy = [options.title, options.text, options.url]
+      .filter(Boolean)
+      .join("\n");
     if (textToCopy && navigator.clipboard) {
       await navigator.clipboard.writeText(textToCopy);
       return true;
@@ -59,7 +61,10 @@ export async function shareCurrentPage(title?: string) {
   });
 }
 
-export async function shareMedicalReport(reportId: string, reportTitle: string) {
+export async function shareMedicalReport(
+  reportId: string,
+  reportTitle: string,
+) {
   return shareContent({
     title: `Medical Report: ${reportTitle}`,
     text: `View my medical report: ${reportTitle}`,

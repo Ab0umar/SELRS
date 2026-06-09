@@ -39,7 +39,13 @@ export function StatCard({
 
   const isStringTrend = typeof trend === "string";
   const trendObj = !isStringTrend && trend ? trend : null;
-  const trendDir: "up" | "down" | null = isStringTrend ? trend : trendObj ? (trendObj.positive ? "up" : "down") : null;
+  const trendDir: "up" | "down" | null = isStringTrend
+    ? trend
+    : trendObj
+      ? trendObj.positive
+        ? "up"
+        : "down"
+      : null;
 
   return (
     <div
@@ -60,11 +66,17 @@ export function StatCard({
               iconColor || "bg-primary text-primary-foreground",
             )}
           >
-            {IconComponent ? <IconComponent className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : (icon as ReactNode)}
+            {IconComponent ? (
+              <IconComponent className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            ) : (
+              (icon as ReactNode)
+            )}
           </div>
         ) : null}
       </div>
-      <div className="text-base font-black tabular-nums tracking-tight sm:text-lg">{value}</div>
+      <div className="text-base font-black tabular-nums tracking-tight sm:text-lg">
+        {value}
+      </div>
       {trendDir || change || description ? (
         <div className="flex items-center gap-1.5 mt-1.5">
           {trendDir ? (
@@ -74,12 +86,23 @@ export function StatCard({
                 trendDir === "up" ? "text-secondary" : "text-destructive",
               )}
             >
-              {trendDir === "up" ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+              {trendDir === "up" ? (
+                <TrendingUp className="h-3 w-3" />
+              ) : (
+                <TrendingDown className="h-3 w-3" />
+              )}
               {change ?? (trendObj ? `${trendObj.value}%` : "")}
             </div>
           ) : null}
           {description ? (
-            <span className={cn("text-[10px]", descriptionClassName ?? "text-muted-foreground")}>{description}</span>
+            <span
+              className={cn(
+                "text-[10px]",
+                descriptionClassName ?? "text-muted-foreground",
+              )}
+            >
+              {description}
+            </span>
           ) : null}
         </div>
       ) : null}

@@ -5,7 +5,10 @@
  * Uses FKOldLogPuller.exe to communicate with device
  */
 
-import { FKAttendLogPuller, testFKPuller } from '../server/services/attendance/fkAttendLogPuller';
+import {
+  FKAttendLogPuller,
+  testFKPuller,
+} from "../server/services/attendance/fkAttendLogPuller";
 
 async function main() {
   console.log(`\n🔌 FK Attendance Device Connection Test`);

@@ -455,7 +455,9 @@ export default function AccountingDrSaadany() {
                     <div
                       className={cn(
                         "mt-1 font-semibold tabular-nums",
-                        row.withdrawals ? "text-destructive" : "text-muted-foreground",
+                        row.withdrawals
+                          ? "text-destructive"
+                          : "text-muted-foreground",
                       )}
                     >
                       {row.withdrawals ? fmt(row.withdrawals) : "—"}
@@ -466,7 +468,9 @@ export default function AccountingDrSaadany() {
                     <div
                       className={cn(
                         "mt-1 font-semibold tabular-nums",
-                        row.repayment ? "text-success" : "text-muted-foreground",
+                        row.repayment
+                          ? "text-success"
+                          : "text-muted-foreground",
                       )}
                     >
                       {row.repayment ? fmt(row.repayment) : "—"}
@@ -554,8 +558,7 @@ export default function AccountingDrSaadany() {
                     }}
                     className={cn(
                       "cursor-pointer transition-colors hover:bg-muted/60",
-                      editingId === row.id &&
-                        "bg-muted ring-1 ring-border",
+                      editingId === row.id && "bg-muted ring-1 ring-border",
                     )}
                   >
                     <td className="whitespace-nowrap px-2 py-2 text-[11px] text-muted-foreground sm:px-4 sm:py-2.5 sm:text-xs">

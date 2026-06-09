@@ -10,7 +10,11 @@ type BackButtonProps = {
 };
 
 /** RTL: chevron points toward logical “back” (end). */
-export function BackButton({ href, label = "رجوع", className }: BackButtonProps) {
+export function BackButton({
+  href,
+  label = "رجوع",
+  className,
+}: BackButtonProps) {
   const [, setLocation] = useLocation();
   return (
     <Button

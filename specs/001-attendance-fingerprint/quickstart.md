@@ -43,6 +43,7 @@ SHOW TABLES LIKE 'attendance_%';
 ## 4. Permissions
 
 In `AdminPermissions` (existing UI), grant your admin user:
+
 - `attendance.view`
 - `attendance.manage`
 - `attendance.admin`
@@ -56,9 +57,11 @@ pnpm dev
 ```
 
 On boot you should see in the logs:
+
 ```
 [attendance] scheduler started (biz interval 120000ms, offhours 900000ms)
 ```
+
 If `ATTENDANCE_ENABLED=false` or `ATTENDANCE_ACCESS_PATH` is missing, the scheduler logs `[attendance] disabled` and the app starts normally (server never blocks on attendance source).
 
 ## 6. First sync
@@ -66,6 +69,7 @@ If `ATTENDANCE_ENABLED=false` or `ATTENDANCE_ACCESS_PATH` is missing, the schedu
 Navigate to **/attendance/admin/sync** in the browser. Click **Sync now**.
 
 Expected:
+
 - A new row appears in the sync runs list with `status=ok` (or `partial` if quarantined rows existed).
 - `rows_inserted` matches the sample file's row count.
 - `high_water_mark` is set to the max `punch_at` in the file.
@@ -81,10 +85,12 @@ Navigate to **/attendance**.
 Expected: six cards render — present today, absent today, late today, inside now, missing checkout (yesterday), last sync status. With a sample file containing today's punches, the counts should match the file.
 
 If counts are zero but punches were inserted: the materializer may not have run. Manually trigger:
+
 ```ts
 // via dev console or admin tool
-attendance.recomputeRange({ from: '2026-05-12', to: '2026-05-19' })
+attendance.recomputeRange({ from: "2026-05-12", to: "2026-05-19" });
 ```
+
 or wait for the next sync tick (which auto-recomputes affected dates).
 
 ## 8. Browse raw punches
@@ -98,6 +104,7 @@ or wait for the next sync tick (which auto-recomputes affected dates).
 ## 10. Configure a shift
 
 **/attendance/settings** → Shifts → create:
+
 - Name: "Day"
 - Start: 08:00, End: 17:00
 - Grace late: 5 min, Grace early: 5 min, Break: 30 min
@@ -123,17 +130,18 @@ This is the **mandatory** Phase 1 gate (Constitution Principle VII).
 
 ## 13. Troubleshooting
 
-| Symptom | Likely cause | Fix |
-|---|---|---|
-| Scheduler logs `disabled` | `ATTENDANCE_ENABLED=false` or env missing | Set env, restart. |
-| `status=locked` on every run | Tararus holds an exclusive lock | Ensure `ATTENDANCE_ACCESS_COPY_FIRST=true`. |
-| Unknown employees on dashboard | `emp_cd` not in employee mirror | Go to /attendance/employees → Unknown tab → edit and `active=1`. |
-| Late minutes look wrong on overnight shift | Shift `crosses_midnight=false` | Edit shift, set crosses-midnight=true, recompute affected range. |
-| Dashboard count differs from raw punches | Materializer is stale | Trigger `recomputeRange` manually or wait for nightly. |
+| Symptom                                    | Likely cause                              | Fix                                                              |
+| ------------------------------------------ | ----------------------------------------- | ---------------------------------------------------------------- |
+| Scheduler logs `disabled`                  | `ATTENDANCE_ENABLED=false` or env missing | Set env, restart.                                                |
+| `status=locked` on every run               | Tararus holds an exclusive lock           | Ensure `ATTENDANCE_ACCESS_COPY_FIRST=true`.                      |
+| Unknown employees on dashboard             | `emp_cd` not in employee mirror           | Go to /attendance/employees → Unknown tab → edit and `active=1`. |
+| Late minutes look wrong on overnight shift | Shift `crosses_midnight=false`            | Edit shift, set crosses-midnight=true, recompute affected range. |
+| Dashboard count differs from raw punches   | Materializer is stale                     | Trigger `recomputeRange` manually or wait for nightly.           |
 
 ## 14. Removing the module (rollback)
 
 If Phase 1 is rolled back:
+
 1. Set `ATTENDANCE_ENABLED=false` and restart — UI disappears (route guard) and scheduler stops; tables remain.
 2. To remove tables, drop migration `00XX_add_attendance_tables.sql` and re-run `pnpm db:push`.
 

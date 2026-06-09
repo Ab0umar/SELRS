@@ -81,7 +81,9 @@ function resolvePreviewUrl(raw: string): string {
 export default function AdminPentacamFailed() {
   const [search, setSearch] = useState("");
   const [manualIds, setManualIds] = useState<Record<string, string>>({});
-  const [renamePreview, setRenamePreview] = useState<Record<string, RenamePreviewEntry[]>>({});
+  const [renamePreview, setRenamePreview] = useState<
+    Record<string, RenamePreviewEntry[]>
+  >({});
 
   const filesQuery = trpc.medical.listFailedPentacamFiles.useQuery(undefined, {
     refetchOnWindowFocus: false,
@@ -97,16 +99,19 @@ export default function AdminPentacamFailed() {
       });
       await filesQuery.refetch();
     },
-    onError: (error) => toast.error(getTrpcErrorMessage(error, "Failed to rename file")),
+    onError: (error) =>
+      toast.error(getTrpcErrorMessage(error, "Failed to rename file")),
   });
 
-  const reviewGroupMutation = trpc.medical.reviewFailedPentacamGroup.useMutation({
-    onSuccess: async (result) => {
-      toast.success(`Updated ${result.count} files with ID ${result.idCode}`);
-      await filesQuery.refetch();
-    },
-    onError: (error) => toast.error(getTrpcErrorMessage(error, "Failed to rename group")),
-  });
+  const reviewGroupMutation =
+    trpc.medical.reviewFailedPentacamGroup.useMutation({
+      onSuccess: async (result) => {
+        toast.success(`Updated ${result.count} files with ID ${result.idCode}`);
+        await filesQuery.refetch();
+      },
+      onError: (error) =>
+        toast.error(getTrpcErrorMessage(error, "Failed to rename group")),
+    });
 
   const releaseMutation = trpc.medical.releaseFailedPentacamFile.useMutation({
     onSuccess: async (result) => {
@@ -118,11 +123,13 @@ export default function AdminPentacamFailed() {
       });
       await filesQuery.refetch();
     },
-    onError: (error) => toast.error(getTrpcErrorMessage(error, "Failed to move file")),
+    onError: (error) =>
+      toast.error(getTrpcErrorMessage(error, "Failed to move file")),
   });
 
   const previewMutation = trpc.medical.previewFailedPentacamRename.useMutation({
-    onError: (error) => toast.error(getTrpcErrorMessage(error, "Failed to preview rename")),
+    onError: (error) =>
+      toast.error(getTrpcErrorMessage(error, "Failed to preview rename")),
   });
 
   const retryOcrMutation = trpc.medical.retryFailedPentacamOcr.useMutation({
@@ -131,10 +138,15 @@ export default function AdminPentacamFailed() {
         ...prev,
         [result.fileName]: result.detectedId || prev[result.fileName] || "",
       }));
-      toast.success(result.detectedId ? `OCR detected ${result.detectedId}` : "OCR retry completed with no ID");
+      toast.success(
+        result.detectedId
+          ? `OCR detected ${result.detectedId}`
+          : "OCR retry completed with no ID",
+      );
       await filesQuery.refetch();
     },
-    onError: (error) => toast.error(getTrpcErrorMessage(error, "Failed to retry OCR")),
+    onError: (error) =>
+      toast.error(getTrpcErrorMessage(error, "Failed to retry OCR")),
   });
 
   const rows: FailedPentacamRow[] = filesQuery.data ?? [];
@@ -148,7 +160,8 @@ export default function AdminPentacamFailed() {
           label: row.groupLabel || row.fileName,
           rows: [row],
           suggestions: row.suggestions ?? [],
-          suggestedId: row.detectedId || row.suggestions?.[0]?.patientCode || "",
+          suggestedId:
+            row.detectedId || row.suggestions?.[0]?.patientCode || "",
           latestModifiedAt: row.modifiedAt,
         });
         continue;
@@ -157,7 +170,10 @@ export default function AdminPentacamFailed() {
       if (Date.parse(row.modifiedAt) > Date.parse(existing.latestModifiedAt)) {
         existing.latestModifiedAt = row.modifiedAt;
       }
-      if ((!existing.suggestedId || existing.suggestedId.length < 4) && row.detectedId) {
+      if (
+        (!existing.suggestedId || existing.suggestedId.length < 4) &&
+        row.detectedId
+      ) {
         existing.suggestedId = row.detectedId;
       }
       const merged = [...existing.suggestions];
@@ -175,7 +191,10 @@ export default function AdminPentacamFailed() {
         ...group,
         rows: group.rows.sort((a, b) => a.fileName.localeCompare(b.fileName)),
       }))
-      .sort((a, b) => Date.parse(b.latestModifiedAt) - Date.parse(a.latestModifiedAt));
+      .sort(
+        (a, b) =>
+          Date.parse(b.latestModifiedAt) - Date.parse(a.latestModifiedAt),
+      );
   }, [rows]);
 
   const groupConfidence = (group: FailedPentacamGroup) => {
@@ -186,9 +205,17 @@ export default function AdminPentacamFailed() {
     }
     const top = Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0];
     if (!top) return { label: "No OCR consensus", tone: "muted" as const };
-    if (top[1] === group.rows.length) return { label: `Full match ${top[0]}`, tone: "good" as const };
-    if (top[1] >= Math.max(2, Math.ceil(group.rows.length / 2))) return { label: `Majority ${top[0]} (${top[1]}/${group.rows.length})`, tone: "warn" as const };
-    return { label: `Weak OCR match ${top[0]} (${top[1]}/${group.rows.length})`, tone: "muted" as const };
+    if (top[1] === group.rows.length)
+      return { label: `Full match ${top[0]}`, tone: "good" as const };
+    if (top[1] >= Math.max(2, Math.ceil(group.rows.length / 2)))
+      return {
+        label: `Majority ${top[0]} (${top[1]}/${group.rows.length})`,
+        tone: "warn" as const,
+      };
+    return {
+      label: `Weak OCR match ${top[0]} (${top[1]}/${group.rows.length})`,
+      tone: "muted" as const,
+    };
   };
 
   const badgeClass = (tone: "good" | "warn" | "muted") =>
@@ -198,7 +225,11 @@ export default function AdminPentacamFailed() {
         ? "border-warning bg-warning/10 text-warning"
         : "border-border bg-muted text-muted-foreground";
 
-  const loadPreview = async (key: string, fileNames: string[], idCode: string) => {
+  const loadPreview = async (
+    key: string,
+    fileNames: string[],
+    idCode: string,
+  ) => {
     const result = await previewMutation.mutateAsync({ fileNames, idCode });
     setRenamePreview((prev) => ({
       ...prev,
@@ -211,12 +242,24 @@ export default function AdminPentacamFailed() {
     if (!needle) return groups;
     return groups.filter((group) => {
       if (group.label.toLowerCase().includes(needle)) return true;
-      if (group.suggestions.some((item) => item.patientCode.includes(needle) || item.fullName.toLowerCase().includes(needle))) return true;
-      return group.rows.some((row) => row.fileName.toLowerCase().includes(needle) || row.detectedId.includes(needle));
+      if (
+        group.suggestions.some(
+          (item) =>
+            item.patientCode.includes(needle) ||
+            item.fullName.toLowerCase().includes(needle),
+        )
+      )
+        return true;
+      return group.rows.some(
+        (row) =>
+          row.fileName.toLowerCase().includes(needle) ||
+          row.detectedId.includes(needle),
+      );
     });
   }, [groups, search]);
 
-  const getManualValue = (key: string, fallback: string) => manualIds[key] ?? fallback;
+  const getManualValue = (key: string, fallback: string) =>
+    manualIds[key] ?? fallback;
 
   return (
     <div className="space-y-6">
@@ -227,10 +270,19 @@ export default function AdminPentacamFailed() {
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="text-sm text-muted-foreground">
-              Files are grouped by patient-like base name. Set one ID for the group, apply it to all related files, or fix single files one by one.
+              Files are grouped by patient-like base name. Set one ID for the
+              group, apply it to all related files, or fix single files one by
+              one.
             </div>
-            <Button variant="outline" onClick={() => filesQuery.refetch()} disabled={filesQuery.isFetching} className="gap-2 border-border bg-background">
-              <RefreshCw className={`h-4 w-4 ${filesQuery.isFetching ? "animate-spin" : ""}`} />
+            <Button
+              variant="outline"
+              onClick={() => filesQuery.refetch()}
+              disabled={filesQuery.isFetching}
+              className="gap-2 border-border bg-background"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${filesQuery.isFetching ? "animate-spin" : ""}`}
+              />
               Refresh
             </Button>
           </div>
@@ -241,7 +293,9 @@ export default function AdminPentacamFailed() {
               placeholder="Search by name, file, or patient code"
             />
             <div className="rounded-md border px-3 py-2 text-sm text-muted-foreground">
-              {filesQuery.isLoading ? "Loading..." : `${filteredGroups.length} groups / ${rows.length} files`}
+              {filesQuery.isLoading
+                ? "Loading..."
+                : `${filteredGroups.length} groups / ${rows.length} files`}
             </div>
           </div>
         </CardContent>
@@ -250,7 +304,10 @@ export default function AdminPentacamFailed() {
       {filesQuery.isError ? (
         <Card className="border-destructive/30 bg-destructive/80">
           <CardContent className="py-6 text-sm text-destructive">
-            {getTrpcErrorMessage(filesQuery.error, "Failed to load Pentacam failed files")}
+            {getTrpcErrorMessage(
+              filesQuery.error,
+              "Failed to load Pentacam failed files",
+            )}
           </CardContent>
         </Card>
       ) : null}
@@ -261,14 +318,22 @@ export default function AdminPentacamFailed() {
           const confidence = groupConfidence(group);
           const groupPreview = renamePreview[group.key] ?? [];
           return (
-            <Card key={group.key} className="overflow-hidden border-border/80 bg-background/95 shadow-sm">
+            <Card
+              key={group.key}
+              className="overflow-hidden border-border/80 bg-background/95 shadow-sm"
+            >
               <CardHeader className="space-y-2">
-                <CardTitle className="text-lg">{group.label || group.key}</CardTitle>
+                <CardTitle className="text-lg">
+                  {group.label || group.key}
+                </CardTitle>
                 <div className="flex flex-wrap gap-2 text-xs">
                   <span className="text-muted-foreground">
-                    {group.rows.length} files | latest {new Date(group.latestModifiedAt).toLocaleString()}
+                    {group.rows.length} files | latest{" "}
+                    {new Date(group.latestModifiedAt).toLocaleString()}
                   </span>
-                  <span className={`rounded-full border px-2 py-0.5 ${badgeClass(confidence.tone)}`}>
+                  <span
+                    className={`rounded-full border px-2 py-0.5 ${badgeClass(confidence.tone)}`}
+                  >
                     {confidence.label}
                   </span>
                 </div>
@@ -278,7 +343,10 @@ export default function AdminPentacamFailed() {
                   <div className="space-y-3">
                     <div className="grid gap-3 md:grid-cols-[160px_minmax(0,1fr)_auto]">
                       <div className="rounded-xl border border-border bg-muted/70 px-3 py-2 text-sm">
-                        Suggested ID: <span className="font-semibold">{group.suggestedId || "-"}</span>
+                        Suggested ID:{" "}
+                        <span className="font-semibold">
+                          {group.suggestedId || "-"}
+                        </span>
                       </div>
                       <Input
                         value={groupValue}
@@ -294,8 +362,16 @@ export default function AdminPentacamFailed() {
                         <Button
                           type="button"
                           variant="outline"
-                          onClick={() => loadPreview(group.key, group.rows.map((row) => row.fileName), groupValue)}
-                          disabled={!groupValue.trim() || previewMutation.isPending}
+                          onClick={() =>
+                            loadPreview(
+                              group.key,
+                              group.rows.map((row) => row.fileName),
+                              groupValue,
+                            )
+                          }
+                          disabled={
+                            !groupValue.trim() || previewMutation.isPending
+                          }
                           className="gap-2 border-border bg-background"
                         >
                           <ScanLine className="h-4 w-4" />
@@ -308,7 +384,12 @@ export default function AdminPentacamFailed() {
                               idCode: groupValue,
                             })
                           }
-                          disabled={!groupValue.trim() || reviewMutation.isPending || reviewGroupMutation.isPending || releaseMutation.isPending}
+                          disabled={
+                            !groupValue.trim() ||
+                            reviewMutation.isPending ||
+                            reviewGroupMutation.isPending ||
+                            releaseMutation.isPending
+                          }
                         >
                           Apply To Group
                         </Button>
@@ -317,7 +398,9 @@ export default function AdminPentacamFailed() {
 
                     {group.suggestions.length > 0 ? (
                       <div className="rounded-2xl border border-border bg-muted/70 p-3">
-                        <div className="mb-2 text-sm font-medium">Patient suggestions</div>
+                        <div className="mb-2 text-sm font-medium">
+                          Patient suggestions
+                        </div>
                         <div className="flex flex-wrap gap-2">
                           {group.suggestions.map((suggestion) => (
                             <Button
@@ -345,14 +428,22 @@ export default function AdminPentacamFailed() {
                           Rename preview
                           {groupPreview.some((row) => row.willDuplicate) ? (
                             <span className="ml-2 rounded-full border border-warning bg-warning/10 px-2 py-0.5 text-warning">
-                              {groupPreview.filter((row) => row.willDuplicate).length} duplicates
+                              {
+                                groupPreview.filter((row) => row.willDuplicate)
+                                  .length
+                              }{" "}
+                              duplicates
                             </span>
                           ) : null}
                         </div>
                         <div className="space-y-1">
                           {groupPreview.map((item) => (
-                            <div key={`${group.key}-${item.fileName}`} className="break-all">
-                              {item.willDuplicate ? "dup" : "ok"} | {item.proposedFileName}
+                            <div
+                              key={`${group.key}-${item.fileName}`}
+                              className="break-all"
+                            >
+                              {item.willDuplicate ? "dup" : "ok"} |{" "}
+                              {item.proposedFileName}
                             </div>
                           ))}
                         </div>
@@ -361,21 +452,31 @@ export default function AdminPentacamFailed() {
                   </div>
 
                   <div className="rounded-2xl border border-dashed border-border bg-muted/60 p-3 text-sm text-muted-foreground">
-                    Applying a group ID updates all files in this set and keeps the rest of each file name unchanged.
+                    Applying a group ID updates all files in this set and keeps
+                    the rest of each file name unchanged.
                   </div>
                 </div>
 
                 <div className="grid gap-4 xl:grid-cols-2">
                   {group.rows.map((row) => {
-                    const value = getManualValue(row.fileName, row.detectedId || groupValue);
+                    const value = getManualValue(
+                      row.fileName,
+                      row.detectedId || groupValue,
+                    );
                     const previewUrl = resolvePreviewUrl(row.previewUrl);
                     return (
-                      <Card key={row.fileName} className="overflow-hidden border-dashed border-border bg-muted/30 shadow-none">
+                      <Card
+                        key={row.fileName}
+                        className="overflow-hidden border-dashed border-border bg-muted/30 shadow-none"
+                      >
                         <CardHeader className="space-y-2">
-                          <CardTitle className="break-all text-base">{row.fileName}</CardTitle>
+                          <CardTitle className="break-all text-base">
+                            {row.fileName}
+                          </CardTitle>
                           <div className="flex flex-wrap gap-2 text-xs">
                             <span className="text-muted-foreground">
-                              score {row.score} | {formatFileSize(row.size)} | {new Date(row.modifiedAt).toLocaleString()}
+                              score {row.score} | {formatFileSize(row.size)} |{" "}
+                              {new Date(row.modifiedAt).toLocaleString()}
                             </span>
                             <span className="rounded-full border border-border bg-muted text-muted-foreground">
                               {row.pageType}
@@ -394,7 +495,10 @@ export default function AdminPentacamFailed() {
 
                           <div className="grid gap-3 md:grid-cols-[140px_minmax(0,1fr)]">
                             <div className="rounded-xl border border-border bg-background px-3 py-2 text-sm">
-                              OCR ID: <span className="font-semibold">{row.detectedId || "-"}</span>
+                              OCR ID:{" "}
+                              <span className="font-semibold">
+                                {row.detectedId || "-"}
+                              </span>
                             </div>
                             <Input
                               value={value}
@@ -423,26 +527,45 @@ export default function AdminPentacamFailed() {
                                     }))
                                   }
                                 >
-                                  {suggestion.patientCode} | {suggestion.fullName}
+                                  {suggestion.patientCode} |{" "}
+                                  {suggestion.fullName}
                                 </Button>
                               ))}
                             </div>
                           ) : null}
 
-                              <Textarea value={buildTraceText(row)} readOnly className="min-h-[160px] border-border bg-background font-mono text-xs" />
+                          <Textarea
+                            value={buildTraceText(row)}
+                            readOnly
+                            className="min-h-[160px] border-border bg-background font-mono text-xs"
+                          />
 
                           <div className="flex flex-wrap gap-2">
                             <Button
-                              onClick={() => reviewMutation.mutate({ fileName: row.fileName, idCode: value })}
-                              disabled={!value.trim() || reviewMutation.isPending || reviewGroupMutation.isPending || releaseMutation.isPending}
+                              onClick={() =>
+                                reviewMutation.mutate({
+                                  fileName: row.fileName,
+                                  idCode: value,
+                                })
+                              }
+                              disabled={
+                                !value.trim() ||
+                                reviewMutation.isPending ||
+                                reviewGroupMutation.isPending ||
+                                releaseMutation.isPending
+                              }
                             >
                               Rename One File
                             </Button>
                             <Button
                               type="button"
                               variant="outline"
-                              onClick={() => loadPreview(row.fileName, [row.fileName], value)}
-                              disabled={!value.trim() || previewMutation.isPending}
+                              onClick={() =>
+                                loadPreview(row.fileName, [row.fileName], value)
+                              }
+                              disabled={
+                                !value.trim() || previewMutation.isPending
+                              }
                               className="gap-2 border-border bg-background"
                             >
                               <ScanLine className="h-4 w-4" />
@@ -451,20 +574,40 @@ export default function AdminPentacamFailed() {
                             <Button
                               type="button"
                               variant="outline"
-                              onClick={() => retryOcrMutation.mutate({ fileName: row.fileName })}
-                              disabled={retryOcrMutation.isPending || reviewMutation.isPending || reviewGroupMutation.isPending}
+                              onClick={() =>
+                                retryOcrMutation.mutate({
+                                  fileName: row.fileName,
+                                })
+                              }
+                              disabled={
+                                retryOcrMutation.isPending ||
+                                reviewMutation.isPending ||
+                                reviewGroupMutation.isPending
+                              }
                             >
                               Retry OCR
                             </Button>
                             <Button
                               variant="outline"
-                              onClick={() => releaseMutation.mutate({ fileName: row.fileName })}
-                              disabled={reviewMutation.isPending || reviewGroupMutation.isPending || releaseMutation.isPending}
+                              onClick={() =>
+                                releaseMutation.mutate({
+                                  fileName: row.fileName,
+                                })
+                              }
+                              disabled={
+                                reviewMutation.isPending ||
+                                reviewGroupMutation.isPending ||
+                                releaseMutation.isPending
+                              }
                             >
                               Move As-Is
                             </Button>
                             <Button asChild variant="ghost" className="gap-2">
-                              <a href={previewUrl} target="_blank" rel="noreferrer">
+                              <a
+                                href={previewUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
                                 <EyeOff className="h-4 w-4" />
                                 Open Image
                               </a>
@@ -472,11 +615,17 @@ export default function AdminPentacamFailed() {
                           </div>
                           {(renamePreview[row.fileName] ?? []).length > 0 ? (
                             <div className="rounded-xl border border-border bg-background p-3 text-sm">
-                              {(renamePreview[row.fileName] ?? []).map((item) => (
-                                <div key={`${row.fileName}-${item.proposedFileName}`} className="break-all">
-                                  {item.willDuplicate ? "dup" : "ok"} | {item.proposedFileName}
-                                </div>
-                              ))}
+                              {(renamePreview[row.fileName] ?? []).map(
+                                (item) => (
+                                  <div
+                                    key={`${row.fileName}-${item.proposedFileName}`}
+                                    className="break-all"
+                                  >
+                                    {item.willDuplicate ? "dup" : "ok"} |{" "}
+                                    {item.proposedFileName}
+                                  </div>
+                                ),
+                              )}
                             </div>
                           ) : null}
                         </CardContent>

@@ -22,13 +22,17 @@ export function permissionsToAllowedRoots(permissions: string[]): string[] {
 const ALWAYS_GRANTED = new Set(["/attendance/shift-schedule"]);
 
 /** Same generic path matching as ProtectedRoute (excluding role-specific exceptions). */
-export function pathGrantedByRoots(cleanPath: string, allowedRoots: string[]): boolean {
+export function pathGrantedByRoots(
+  cleanPath: string,
+  allowedRoots: string[],
+): boolean {
   if (ALWAYS_GRANTED.has(cleanPath)) return true;
   if (!allowedRoots.length) return false;
   return allowedRoots.some((permission) => {
     if (!permission) return false;
     if (permission === cleanPath) return true;
-    if (permission !== "/" && cleanPath.startsWith(`${permission}/`)) return true;
+    if (permission !== "/" && cleanPath.startsWith(`${permission}/`))
+      return true;
     if (permission.includes("/:")) {
       const base = permission.split("/:")[0];
       return cleanPath === base || cleanPath.startsWith(`${base}/`);

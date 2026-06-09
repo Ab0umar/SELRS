@@ -5,7 +5,8 @@ export const NATIVE_THEME_KEY = "selrs_theme_v1";
 export const NATIVE_LAST_USERNAME_KEY = "selrs_last_username_v1";
 export const NATIVE_USER_SNAPSHOT_KEY = "selrs_user_snapshot_v1";
 
-const canUseLocalStorage = () => typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+const canUseLocalStorage = () =>
+  typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 
 export const readLocalStorageValue = (key: string) => {
   if (!canUseLocalStorage()) return "";
@@ -59,7 +60,11 @@ export const removeNativeValue = async (key: string) => {
   }
 };
 
-export const saveDurableValue = async (key: string, value: string, localKey = key) => {
+export const saveDurableValue = async (
+  key: string,
+  value: string,
+  localKey = key,
+) => {
   writeLocalStorageValue(localKey, value);
   if (!Capacitor.isNativePlatform()) return;
   await writeNativeValue(key, value);

@@ -32,7 +32,11 @@ type AppNotificationItem = {
   targetUserIds?: number[] | null;
 };
 
-function canCurrentUserSeeNotification(userId: number | undefined, userRole: unknown, item: AppNotificationItem | null | undefined) {
+function canCurrentUserSeeNotification(
+  userId: number | undefined,
+  userRole: unknown,
+  item: AppNotificationItem | null | undefined,
+) {
   if (!item || typeof item !== "object") return false;
 
   // If targetUserIds is specified, only show to those specific users
@@ -41,9 +45,17 @@ function canCurrentUserSeeNotification(userId: number | undefined, userRole: unk
   }
 
   // Otherwise check by role
-  const normalizedRole = String(userRole ?? "").trim().toLowerCase();
+  const normalizedRole = String(userRole ?? "")
+    .trim()
+    .toLowerCase();
   const targetRoles = Array.isArray(item.targetRoles)
-    ? item.targetRoles.map((value) => String(value ?? "").trim().toLowerCase()).filter(Boolean)
+    ? item.targetRoles
+        .map((value) =>
+          String(value ?? "")
+            .trim()
+            .toLowerCase(),
+        )
+        .filter(Boolean)
     : [];
   if (targetRoles.length === 0) return true;
   if (!normalizedRole) return false;
@@ -99,7 +111,7 @@ function savePushRegistrationFingerprint(fingerprint: string) {
     JSON.stringify({
       fingerprint,
       savedAt: new Date().toISOString(),
-    })
+    }),
   );
 }
 
@@ -121,7 +133,7 @@ function PullToRefresh() {
 
     const getScrollTop = () => {
       const main = document.querySelector("main");
-      return main ? main.scrollTop : window.scrollY ?? 0;
+      return main ? main.scrollTop : (window.scrollY ?? 0);
     };
 
     const onTouchStart = (e: TouchEvent) => {
@@ -190,7 +202,10 @@ function PullToRefresh() {
           <Loader2 className="h-4 w-4 animate-spin text-card-foreground" />
         ) : (
           <RefreshCw
-            className={cn("h-4 w-4", ready ? "text-card-foreground" : "text-muted-foreground")}
+            className={cn(
+              "h-4 w-4",
+              ready ? "text-card-foreground" : "text-muted-foreground",
+            )}
             style={{ transform: `rotate(${pullY * 4}deg)` }}
           />
         )}
@@ -211,8 +226,12 @@ function NativeThemeSync() {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
     const isDark = theme === "dark";
-    void StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light }).catch(() => {});
-    void StatusBar.setBackgroundColor({ color: isDark ? NATIVE_THEME_COLORS.dark : NATIVE_THEME_COLORS.light }).catch(() => {});
+    void StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light }).catch(
+      () => {},
+    );
+    void StatusBar.setBackgroundColor({
+      color: isDark ? NATIVE_THEME_COLORS.dark : NATIVE_THEME_COLORS.light,
+    }).catch(() => {});
   }, [theme]);
 
   return null;
@@ -231,7 +250,7 @@ function AppNotificationsBridge() {
       refetchInterval: 15000,
       refetchOnWindowFocus: true,
       staleTime: 5000,
-    }
+    },
   );
 
   useEffect(() => {
@@ -239,7 +258,9 @@ function AppNotificationsBridge() {
     try {
       const raw = window.localStorage.getItem(storageKey);
       const parsed = raw ? (JSON.parse(raw) as unknown) : [];
-      const ids = Array.isArray(parsed) ? parsed.map((value) => String(value ?? "").trim()).filter(Boolean) : [];
+      const ids = Array.isArray(parsed)
+        ? parsed.map((value) => String(value ?? "").trim()).filter(Boolean)
+        : [];
       seenIdsRef.current = new Set(ids);
     } catch {
       seenIdsRef.current = new Set();
@@ -254,7 +275,9 @@ function AppNotificationsBridge() {
     const items = Array.isArray(itemsRaw)
       ? (itemsRaw as AppNotificationItem[])
           .filter((item) => item && typeof item === "object")
-          .filter((item) => canCurrentUserSeeNotification(user?.id, user?.role, item))
+          .filter((item) =>
+            canCurrentUserSeeNotification(user?.id, user?.role, item),
+          )
       : [];
     if (items.length === 0) return;
 
@@ -265,17 +288,18 @@ function AppNotificationsBridge() {
       }
       initializedRef.current = true;
       if (typeof window !== "undefined") {
-        window.localStorage.setItem(storageKey, JSON.stringify(Array.from(seenIdsRef.current).slice(-200)));
+        window.localStorage.setItem(
+          storageKey,
+          JSON.stringify(Array.from(seenIdsRef.current).slice(-200)),
+        );
       }
       return;
     }
 
-    const unseen = [...items]
-      .reverse()
-      .filter((item) => {
-        const id = String(item?.id ?? "").trim();
-        return id && !seenIdsRef.current.has(id);
-      });
+    const unseen = [...items].reverse().filter((item) => {
+      const id = String(item?.id ?? "").trim();
+      return id && !seenIdsRef.current.has(id);
+    });
 
     if (unseen.length === 0) return;
 
@@ -287,23 +311,40 @@ function AppNotificationsBridge() {
       const tone = item.kind ?? "info";
       seenIdsRef.current.add(id);
       if (tone === "success") toast.success(title, { description: message });
-      else if (tone === "warning") toast.warning(title, { description: message });
+      else if (tone === "warning")
+        toast.warning(title, { description: message });
       else if (tone === "error") toast.error(title, { description: message });
       else toast(title, { description: message });
     }
 
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(storageKey, JSON.stringify(Array.from(seenIdsRef.current).slice(-200)));
+      window.localStorage.setItem(
+        storageKey,
+        JSON.stringify(Array.from(seenIdsRef.current).slice(-200)),
+      );
     }
-  }, [isAuthenticated, isNative, notificationsQuery.data, storageKey, user?.id, user?.role]);
+  }, [
+    isAuthenticated,
+    isNative,
+    notificationsQuery.data,
+    storageKey,
+    user?.id,
+    user?.role,
+  ]);
 
   return null;
 }
 
-function NativePushNotificationsBridge({ nativeAppInfo }: { nativeAppInfo: NativeAppInfo | null }) {
+function NativePushNotificationsBridge({
+  nativeAppInfo,
+}: {
+  nativeAppInfo: NativeAppInfo | null;
+}) {
   const { isAuthenticated, user } = useAuth();
-  const registerPushTokenMutation = trpc.medical.registerPushDeviceToken.useMutation();
-  const unregisterPushTokenMutation = trpc.medical.unregisterPushDeviceToken.useMutation();
+  const registerPushTokenMutation =
+    trpc.medical.registerPushDeviceToken.useMutation();
+  const unregisterPushTokenMutation =
+    trpc.medical.unregisterPushDeviceToken.useMutation();
   const listenersReadyRef = useRef(false);
   const inFlightFingerprintRef = useRef("");
   const inFlightRegistrationRef = useRef<Promise<void> | null>(null);
@@ -327,7 +368,12 @@ function NativePushNotificationsBridge({ nativeAppInfo }: { nativeAppInfo: Nativ
         token: value,
         deviceId,
         userId,
-        platform: platform === "ios" ? "ios" : platform === "android" ? "android" : "web",
+        platform:
+          platform === "ios"
+            ? "ios"
+            : platform === "android"
+              ? "android"
+              : "web",
         appVersion: nativeAppInfo?.version ?? "",
         build: nativeAppInfo?.build ?? "",
       });
@@ -338,7 +384,10 @@ function NativePushNotificationsBridge({ nativeAppInfo }: { nativeAppInfo: Nativ
         return;
       }
 
-      if (inFlightFingerprintRef.current === fingerprint && inFlightRegistrationRef.current) {
+      if (
+        inFlightFingerprintRef.current === fingerprint &&
+        inFlightRegistrationRef.current
+      ) {
         await inFlightRegistrationRef.current;
         return;
       }
@@ -349,7 +398,12 @@ function NativePushNotificationsBridge({ nativeAppInfo }: { nativeAppInfo: Nativ
       const registrationPromise = registerPushTokenMutation
         .mutateAsync({
           token: value,
-          platform: platform === "ios" ? "ios" : platform === "android" ? "android" : "web",
+          platform:
+            platform === "ios"
+              ? "ios"
+              : platform === "android"
+                ? "android"
+                : "web",
           deviceId,
           appVersion: nativeAppInfo?.version ?? "",
           build: nativeAppInfo?.build ?? "",
@@ -388,7 +442,10 @@ function NativePushNotificationsBridge({ nativeAppInfo }: { nativeAppInfo: Nativ
         if (!active) return;
         const value = String(token.value ?? "").trim();
         if (!value) return;
-        console.log("[Push] Device token received:", value.substring(0, 20) + "...");
+        console.log(
+          "[Push] Device token received:",
+          value.substring(0, 20) + "...",
+        );
         await registerDeviceToken(value).catch((error) => {
           console.error("[Push] Failed to register device token", error);
         });
@@ -399,18 +456,25 @@ function NativePushNotificationsBridge({ nativeAppInfo }: { nativeAppInfo: Nativ
         toast.error("فشلت تسجيل الإشعارات");
       });
 
-      await PushNotifications.addListener("pushNotificationReceived", (notification) => {
-        const title = String(notification.title ?? "").trim() || "Notification";
-        const body = String(notification.body ?? "").trim();
-        toast(title, { description: body });
-      });
+      await PushNotifications.addListener(
+        "pushNotificationReceived",
+        (notification) => {
+          const title =
+            String(notification.title ?? "").trim() || "Notification";
+          const body = String(notification.body ?? "").trim();
+          toast(title, { description: body });
+        },
+      );
 
-      await PushNotifications.addListener("pushNotificationActionPerformed", (event) => {
-        const path = String(event.notification.data?.path ?? "").trim();
-        if (path.startsWith("/")) {
-          setLocation(path);
-        }
-      });
+      await PushNotifications.addListener(
+        "pushNotificationActionPerformed",
+        (event) => {
+          const path = String(event.notification.data?.path ?? "").trim();
+          if (path.startsWith("/")) {
+            setLocation(path);
+          }
+        },
+      );
     };
 
     const register = async () => {
@@ -423,7 +487,10 @@ function NativePushNotificationsBridge({ nativeAppInfo }: { nativeAppInfo: Nativ
             ? await PushNotifications.requestPermissions()
             : currentPermission;
         if (permission.receive !== "granted") {
-          console.warn("[Push] Notification permission denied", currentPermission);
+          console.warn(
+            "[Push] Notification permission denied",
+            currentPermission,
+          );
           return;
         }
         await PushNotifications.register();
@@ -439,7 +506,13 @@ function NativePushNotificationsBridge({ nativeAppInfo }: { nativeAppInfo: Nativ
       void PushNotifications.removeAllListeners().catch(() => {});
       listenersReadyRef.current = false;
     };
-  }, [isAuthenticated, nativeAppInfo?.build, nativeAppInfo?.version, registerPushTokenMutation, user?.id]);
+  }, [
+    isAuthenticated,
+    nativeAppInfo?.build,
+    nativeAppInfo?.version,
+    registerPushTokenMutation,
+    user?.id,
+  ]);
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
@@ -454,7 +527,11 @@ function NativePushNotificationsBridge({ nativeAppInfo }: { nativeAppInfo: Nativ
   return null;
 }
 
-export default function MobileAppEnhancements({ nativeAppInfo }: { nativeAppInfo: NativeAppInfo | null }) {
+export default function MobileAppEnhancements({
+  nativeAppInfo,
+}: {
+  nativeAppInfo: NativeAppInfo | null;
+}) {
   return (
     <>
       <AppNotificationsBridge />

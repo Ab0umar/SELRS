@@ -5,6 +5,7 @@
 ### Salary Module
 
 #### BEFORE: Crowded Navigation
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │ Header with title and description                               │
@@ -21,6 +22,7 @@
 ```
 
 #### AFTER: Clean Sidebar Navigation
+
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │ Header with title, description, and metrics                      │
@@ -51,6 +53,7 @@
 ### Attendance Module
 
 #### BEFORE: Crowded Navigation
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │ Header with title and description                               │
@@ -67,6 +70,7 @@
 ```
 
 #### AFTER: Clean Sidebar Navigation
+
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │ Header with title, description, and metrics                      │
@@ -96,19 +100,20 @@
 
 ### 1. Navigation Structure
 
-| Aspect | Before | After |
-|--------|--------|-------|
-| **Layout** | Horizontal pills | Vertical sidebar |
-| **Visibility** | All items visible at once | Organized in sections |
-| **Hierarchy** | Flat (no grouping) | Hierarchical (sections + items) |
-| **Descriptions** | No descriptions | Each item has description |
-| **Icons** | Small icons on pills | Section icons + item icons |
-| **Active State** | Subtle highlight | Clear highlight with shadow |
-| **Mobile** | Horizontal scroll | Full-width stack |
+| Aspect           | Before                    | After                           |
+| ---------------- | ------------------------- | ------------------------------- |
+| **Layout**       | Horizontal pills          | Vertical sidebar                |
+| **Visibility**   | All items visible at once | Organized in sections           |
+| **Hierarchy**    | Flat (no grouping)        | Hierarchical (sections + items) |
+| **Descriptions** | No descriptions           | Each item has description       |
+| **Icons**        | Small icons on pills      | Section icons + item icons      |
+| **Active State** | Subtle highlight          | Clear highlight with shadow     |
+| **Mobile**       | Horizontal scroll         | Full-width stack                |
 
 ### 2. Information Architecture
 
 #### Before
+
 ```
 Navigation Level 1: 5 pills (التحضير, المتغيرات, كشف الشهر, الشفتات, الإعدادات)
 Navigation Level 2: Nested routes under each pill
@@ -119,6 +124,7 @@ Navigation Level 3: Ghost buttons for sub-sections
 ```
 
 #### After
+
 ```
 Header: Title + Description + Metrics (always visible)
 Sidebar: 5 sections, each with 1-2 items
@@ -128,16 +134,17 @@ Main Content: Focused on current page
 
 ### 3. Metrics Placement
 
-| Module | Before | After |
-|--------|--------|-------|
-| **Salary** | Header, but mixed with navigation | Header, prominent and organized |
-| **Attendance** | Header, but mixed with navigation | Header, prominent and organized |
-| **Visibility** | Only visible on main page | Always visible on all pages |
-| **Update Frequency** | 60s (Salary), 30s (Attendance) | Same, but more noticeable |
+| Module               | Before                            | After                           |
+| -------------------- | --------------------------------- | ------------------------------- |
+| **Salary**           | Header, but mixed with navigation | Header, prominent and organized |
+| **Attendance**       | Header, but mixed with navigation | Header, prominent and organized |
+| **Visibility**       | Only visible on main page         | Always visible on all pages     |
+| **Update Frequency** | 60s (Salary), 30s (Attendance)    | Same, but more noticeable       |
 
 ### 4. Navigation Item Details
 
 #### Before: Simple Pill
+
 ```tsx
 <Link href="/salary/pools">
   <Icon className="h-3.5 w-3.5" />
@@ -146,6 +153,7 @@ Main Content: Focused on current page
 ```
 
 #### After: Rich Navigation Item
+
 ```tsx
 <Link href="/salary/pools">
   <ChevronRight /> {/* Appears on hover */}
@@ -161,6 +169,7 @@ Main Content: Focused on current page
 ### 5. Layout Responsiveness
 
 #### Before
+
 ```
 Desktop (1920px):
 - Horizontal pills take up top space
@@ -179,6 +188,7 @@ Mobile (375px):
 ```
 
 #### After
+
 ```
 Desktop (1920px):
 - Sidebar on left (256px)
@@ -202,6 +212,7 @@ Mobile (375px):
 #### Finding Features
 
 **Before:**
+
 1. Look at 5 pills
 2. Click a pill
 3. See nested routes
@@ -209,6 +220,7 @@ Mobile (375px):
 5. Find the feature
 
 **After:**
+
 1. Look at sidebar sections
 2. Read descriptions
 3. Click the item
@@ -217,11 +229,13 @@ Mobile (375px):
 #### Understanding Purpose
 
 **Before:**
+
 - "المتغيرات الشهرية" - What does this mean?
 - No description provided
 - User must click to find out
 
 **After:**
+
 - "المتغيرات الشهرية" (Monthly Variables)
 - Description: "إدخال البيانات المتغيرة كل شهر"
 - User knows immediately what it does
@@ -229,11 +243,13 @@ Mobile (375px):
 #### Mobile Experience
 
 **Before:**
+
 - Horizontal scrolling for pills
 - Cramped layout
 - Hard to tap small pills
 
 **After:**
+
 - Full-width sidebar
 - Clear sections
 - Easy to tap items
@@ -243,6 +259,7 @@ Mobile (375px):
 ## Code Structure Comparison
 
 ### Before: Flat Navigation
+
 ```tsx
 const navItems = [
   { href: "/salary", label: "التحضير", activeFor: ["/salary"] },
@@ -255,6 +272,7 @@ const navItems = [
 ```
 
 ### After: Hierarchical Navigation
+
 ```tsx
 const navigationSections = [
   {
@@ -293,13 +311,14 @@ const navigationSections = [
 
 ## File Size Comparison
 
-| File | Before | After | Change |
-|------|--------|-------|--------|
-| SalaryLayout.tsx | ~202 lines | ~280 lines | +78 lines (+39%) |
-| AttendanceLayout.tsx | ~218 lines | ~280 lines | +62 lines (+28%) |
-| **Total** | **420 lines** | **560 lines** | **+140 lines (+33%)** |
+| File                 | Before        | After         | Change                |
+| -------------------- | ------------- | ------------- | --------------------- |
+| SalaryLayout.tsx     | ~202 lines    | ~280 lines    | +78 lines (+39%)      |
+| AttendanceLayout.tsx | ~218 lines    | ~280 lines    | +62 lines (+28%)      |
+| **Total**            | **420 lines** | **560 lines** | **+140 lines (+33%)** |
 
 **Note:** Increase is due to:
+
 - More detailed navigation structure
 - Section grouping
 - Descriptions for each item
@@ -311,21 +330,25 @@ const navigationSections = [
 ## Performance Impact
 
 ### Rendering Performance
+
 - **Before:** Renders 5 pills + nested routes
 - **After:** Renders sidebar sections + items
 - **Impact:** Negligible (both are static structures)
 
 ### Bundle Size
+
 - **Before:** ~15 KB (minified)
 - **After:** ~18 KB (minified)
 - **Impact:** +3 KB (+20%) - acceptable for UX improvement
 
 ### Runtime Performance
+
 - **Before:** ~2ms to render navigation
 - **After:** ~2ms to render navigation
 - **Impact:** None (same complexity)
 
 ### Metrics Updates
+
 - **Before:** 60s (Salary), 30s (Attendance)
 - **After:** Same refresh rates
 - **Impact:** None
@@ -335,6 +358,7 @@ const navigationSections = [
 ## Browser Compatibility
 
 Both versions work on:
+
 - Chrome 90+
 - Firefox 88+
 - Safari 14+
@@ -347,20 +371,21 @@ No breaking changes or new browser requirements.
 
 ## Accessibility Improvements
 
-| Feature | Before | After |
-|---------|--------|-------|
-| **Semantic HTML** | Links only | Links + sections |
-| **ARIA Labels** | Minimal | Better structure |
-| **Keyboard Navigation** | Works | Works + improved |
-| **Screen Readers** | Basic | Better hierarchy |
-| **Focus Indicators** | Present | Enhanced |
-| **Color Contrast** | WCAG AA | WCAG AA |
+| Feature                 | Before     | After            |
+| ----------------------- | ---------- | ---------------- |
+| **Semantic HTML**       | Links only | Links + sections |
+| **ARIA Labels**         | Minimal    | Better structure |
+| **Keyboard Navigation** | Works      | Works + improved |
+| **Screen Readers**      | Basic      | Better hierarchy |
+| **Focus Indicators**    | Present    | Enhanced         |
+| **Color Contrast**      | WCAG AA    | WCAG AA          |
 
 ---
 
 ## Migration Impact
 
 ### No Breaking Changes
+
 - All routes remain the same
 - All functionality preserved
 - No API changes
@@ -368,6 +393,7 @@ No breaking changes or new browser requirements.
 - No backend changes
 
 ### What Users Will Notice
+
 1. Sidebar navigation instead of horizontal pills
 2. Better organization of features
 3. Descriptions for each feature
@@ -375,6 +401,7 @@ No breaking changes or new browser requirements.
 5. Better mobile experience
 
 ### What Developers Will Notice
+
 1. Clearer code structure
 2. Easier to add new features
 3. Better maintainability
@@ -386,6 +413,7 @@ No breaking changes or new browser requirements.
 ## Conclusion
 
 The redesign provides:
+
 - **Better UX:** Clearer navigation, less cognitive load
 - **Better Design:** Professional appearance, consistent patterns
 - **Better Mobile:** Responsive sidebar, no horizontal scroll

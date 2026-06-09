@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { mapDoctorDirectoryRows, mapServiceDirectoryRows } from "../server/scripts/sync-doctors-services-location";
+import {
+  mapDoctorDirectoryRows,
+  mapServiceDirectoryRows,
+} from "../server/scripts/sync-doctors-services-location";
 
 describe("registration lookup sync", () => {
   it("keeps doctor names when mapping MDTEAM rows", () => {

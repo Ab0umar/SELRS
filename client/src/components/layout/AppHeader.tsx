@@ -104,18 +104,29 @@ export function AppHeader({
               className="w-[200px]"
               style={{ direction: "rtl" } satisfies CSSProperties}
             >
-              <DropdownMenuLabel className="text-right">الحساب</DropdownMenuLabel>
+              <DropdownMenuLabel className="text-right">
+                الحساب
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer justify-end gap-2" onClick={() => onProfile()}>
+              <DropdownMenuItem
+                className="cursor-pointer justify-end gap-2"
+                onClick={() => onProfile()}
+              >
                 <User className="h-4 w-4" />
                 الملف الشخصي
               </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer justify-end gap-2" onClick={onHome}>
+              <DropdownMenuItem
+                className="cursor-pointer justify-end gap-2"
+                onClick={onHome}
+              >
                 <Eye className="h-4 w-4" />
                 لوحة التحكم
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer justify-end gap-2" onClick={() => void onLogout()}>
+              <DropdownMenuItem
+                className="cursor-pointer justify-end gap-2"
+                onClick={() => void onLogout()}
+              >
                 <LogOut className="h-4 w-4" />
                 خروج
               </DropdownMenuItem>
@@ -149,7 +160,10 @@ export function AppHeader({
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          <Badge variant="outline" className="inline-flex gap-1.5 whitespace-nowrap py-1 text-[10px] font-normal sm:text-xs">
+          <Badge
+            variant="outline"
+            className="inline-flex gap-1.5 whitespace-nowrap py-1 text-[10px] font-normal sm:text-xs"
+          >
             <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-success/100" />
             {dateStr || "…"}
           </Badge>
@@ -167,7 +181,6 @@ export function AppHeader({
           ) : null}
         </div>
       </div>
-
     </header>
   );
 }

@@ -12,6 +12,7 @@ This document outlines the design and UX for the `QuickPatientEntryForm` compone
 ## 2. Existing UI Analysis
 
 The form is currently composed of several `Card` components:
+
 1.  **Patient & Date Selection**: The user selects a patient and a visit date.
 2.  **Right Eye (OD)**: A card with fields for UCVA, BCVA, S, C, Axis, IOP, and Air Puff.
 3.  **Left Eye (OS)**: A card with the same fields as the right eye.
@@ -30,25 +31,25 @@ To address these issues, the following improvements are proposed.
 
 ### Improvement 1: Collapsible Sections
 
--   The "Right Eye (OD)", "Left Eye (OS)", and "Prescription & Diagnosis" sections should be made collapsible.
--   They can be implemented using an `Accordion` component, with all sections open by default.
--   This will allow users to collapse sections they have already filled out, making the form feel shorter and more manageable.
+- The "Right Eye (OD)", "Left Eye (OS)", and "Prescription & Diagnosis" sections should be made collapsible.
+- They can be implemented using an `Accordion` component, with all sections open by default.
+- This will allow users to collapse sections they have already filled out, making the form feel shorter and more manageable.
 
 ### Improvement 2: Sticky Footer for Actions
 
--   Instead of a full-width button at the bottom, a sticky footer should be added to the page.
--   This footer will contain the "Save" and "Cancel" buttons.
--   This ensures that the primary actions are always visible and accessible, regardless of how far the user has scrolled.
+- Instead of a full-width button at the bottom, a sticky footer should be added to the page.
+- This footer will contain the "Save" and "Cancel" buttons.
+- This ensures that the primary actions are always visible and accessible, regardless of how far the user has scrolled.
 
 ### Improvement 3: Enhanced Layout & Spacing
 
--   **Visual Distinction**: The OD and OS cards are already color-coded, which is good. This should be maintained.
--   **Spacing**: Increase the vertical spacing between the form fields within the OD/OS cards to improve readability. Use the spacing tokens from `DESIGN.md` (e.g., `space-y-4` instead of `space-y-3`).
--   **Input Sizing**: Standardize the input field sizes for a more consistent look.
+- **Visual Distinction**: The OD and OS cards are already color-coded, which is good. This should be maintained.
+- **Spacing**: Increase the vertical spacing between the form fields within the OD/OS cards to improve readability. Use the spacing tokens from `DESIGN.md` (e.g., `space-y-4` instead of `space-y-3`).
+- **Input Sizing**: Standardize the input field sizes for a more consistent look.
 
 ## 5. Revised Component Architecture
 
--   **`QuickPatientEntryForm.tsx`**: This component will be updated to include the `Accordion` for collapsible sections and the new sticky footer.
--   **No Logic Changes**: The underlying form state management and `trpc` mutations will remain the same. This is a UI/UX-focused refactoring.
+- **`QuickPatientEntryForm.tsx`**: This component will be updated to include the `Accordion` for collapsible sections and the new sticky footer.
+- **No Logic Changes**: The underlying form state management and `trpc` mutations will remain the same. This is a UI/UX-focused refactoring.
 
 This shape provides a clear path to improving the usability of the `QuickPatientEntryForm` without altering its core functionality.

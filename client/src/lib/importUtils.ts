@@ -12,7 +12,10 @@ const decodeMojibake = (value: string) => {
 
 const normalizeHeader = (value: string) => {
   const decoded = decodeMojibake(String(value ?? ""));
-  return decoded.trim().toLowerCase().replace(/[\s\-_]+/g, "");
+  return decoded
+    .trim()
+    .toLowerCase()
+    .replace(/[\s\-_]+/g, "");
 };
 
 export const buildRowLookup = (row: Record<string, unknown>) => {
@@ -25,7 +28,10 @@ export const buildRowLookup = (row: Record<string, unknown>) => {
   return lookup;
 };
 
-export const getRowValue = (lookup: Map<string, unknown>, ...keys: string[]) => {
+export const getRowValue = (
+  lookup: Map<string, unknown>,
+  ...keys: string[]
+) => {
   for (const key of keys) {
     const normalized = normalizeHeader(key);
     if (lookup.has(normalized)) return lookup.get(normalized);

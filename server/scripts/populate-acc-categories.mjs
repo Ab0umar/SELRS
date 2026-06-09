@@ -25,7 +25,7 @@ async function main() {
         `INSERT INTO accCategories (name, entity, isPaid)
          VALUES (?, ?, 0)
          ON DUPLICATE KEY UPDATE entity=VALUES(entity)`,
-        [cat.name, cat.entity]
+        [cat.name, cat.entity],
       );
       console.log(`✓ Inserted: ${cat.name} → ${cat.entity}`);
     }

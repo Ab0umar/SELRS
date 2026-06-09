@@ -4,12 +4,18 @@ function SidebarItemSkeleton({ active = false }: { active?: boolean }) {
   return (
     <div
       className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${
-        active ? "border-primary/20 bg-primary/8" : "border-border/60 bg-muted/20"
+        active
+          ? "border-primary/20 bg-primary/8"
+          : "border-border/60 bg-muted/20"
       }`}
     >
-      <Skeleton className={`h-9 w-9 rounded-lg ${active ? "bg-primary/15" : ""}`} />
+      <Skeleton
+        className={`h-9 w-9 rounded-lg ${active ? "bg-primary/15" : ""}`}
+      />
       <div className="min-w-0 flex-1 space-y-2">
-        <Skeleton className={`h-3.5 w-24 rounded-full ${active ? "bg-primary/15" : ""}`} />
+        <Skeleton
+          className={`h-3.5 w-24 rounded-full ${active ? "bg-primary/15" : ""}`}
+        />
         <Skeleton className="h-2.5 w-14 rounded-full" />
       </div>
     </div>
@@ -69,7 +75,10 @@ export function AppShellSkeleton() {
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="rounded-2xl border border-border/60 bg-muted/15 p-3">
+                <div
+                  key={i}
+                  className="rounded-2xl border border-border/60 bg-muted/15 p-3"
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 space-y-2">
                       <Skeleton className="h-3 w-20 rounded-full" />
@@ -94,7 +103,10 @@ export function AppShellSkeleton() {
               </div>
               <div className="space-y-3">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="rounded-2xl border border-border/60 bg-muted/10 p-3 sm:p-4">
+                  <div
+                    key={i}
+                    className="rounded-2xl border border-border/60 bg-muted/10 p-3 sm:p-4"
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 space-y-2">
                         <Skeleton className="h-4 w-28 rounded-full" />

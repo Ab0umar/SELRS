@@ -17,12 +17,20 @@ export type ImportPreviewRow = {
 export function usePatientsActions(
   isAuthenticated: boolean,
   patientsQuery: any,
-  utils: any
+  utils: any,
 ) {
-  const [importDateFormat, setImportDateFormat] = useState<"" | "DMY" | "MDY">("");
+  const [importDateFormat, setImportDateFormat] = useState<"" | "DMY" | "MDY">(
+    "",
+  );
   const [importBatchId, setImportBatchId] = useState("");
-  const [importSummary, setImportSummary] = useState<{ total: number; valid: number; invalid: number } | null>(null);
-  const [importPreviewRows, setImportPreviewRows] = useState<ImportPreviewRow[]>([]);
+  const [importSummary, setImportSummary] = useState<{
+    total: number;
+    valid: number;
+    invalid: number;
+  } | null>(null);
+  const [importPreviewRows, setImportPreviewRows] = useState<
+    ImportPreviewRow[]
+  >([]);
   const [importPreviewOpen, setImportPreviewOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -62,8 +70,10 @@ export function usePatientsActions(
     },
   });
 
-  const savePatientStateMutation = trpc.medical.savePatientPageState.useMutation();
-  const bulkAssignSheetMutation = trpc.medical.bulkAssignSheetTypeToPatients.useMutation();
+  const savePatientStateMutation =
+    trpc.medical.savePatientPageState.useMutation();
+  const bulkAssignSheetMutation =
+    trpc.medical.bulkAssignSheetTypeToPatients.useMutation();
   const stageImportMutation = trpc.medical.stagePatientsImport.useMutation();
   const applyImportMutation = trpc.medical.applyPatientsImport.useMutation();
 
@@ -83,10 +93,12 @@ export function usePatientsActions(
           escapeCsv(r.fullName),
           escapeCsv(r.status),
           escapeCsv((r.errors ?? []).join(" | ")),
-        ].join(",")
+        ].join(","),
       ),
     ];
-    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([lines.join("\n")], {
+      type: "text/csv;charset=utf-8;",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -98,9 +110,13 @@ export function usePatientsActions(
   const applyStagedImport = async () => {
     if (!importBatchId) return;
     try {
-      const applied = await applyImportMutation.mutateAsync({ batchId: importBatchId });
+      const applied = await applyImportMutation.mutateAsync({
+        batchId: importBatchId,
+      });
       if (applied.inserted > 0 || applied.updated > 0) {
-        toast.success(`Import applied. Inserted ${applied.inserted}, updated ${applied.updated}.`);
+        toast.success(
+          `Import applied. Inserted ${applied.inserted}, updated ${applied.updated}.`,
+        );
       }
       if (applied.failed > 0) {
         toast.error(`Apply failed for ${applied.failed} row(s).`);
@@ -112,7 +128,9 @@ export function usePatientsActions(
     }
   };
 
-  const handleImportPatients = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportPatients = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     if (!importDateFormat) {
       toast.error("Choose import date format first (DD/MM/YYYY or MM/DD/YYYY)");
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -137,7 +155,10 @@ export function usePatientsActions(
         const extractDoctorFromSheetName = (sheetName: string) => {
           const raw = normalizeString(sheetName);
           if (!raw) return "";
-          const tokens = raw.split(/[\s_\-|]+/).map((t) => t.trim()).filter(Boolean);
+          const tokens = raw
+            .split(/[\s_\-|]+/)
+            .map((t) => t.trim())
+            .filter(Boolean);
           if (tokens.length === 0) return "";
           const maybeServiceLetter = tokens[0].toUpperCase();
           if (["A", "B", "C", "D"].includes(maybeServiceLetter)) {
@@ -147,8 +168,13 @@ export function usePatientsActions(
         };
         const rowsWithSheetName = workbook.SheetNames.flatMap((name) => {
           const worksheet = workbook.Sheets[name];
-          if (!worksheet) return [] as Array<Record<string, unknown> & { __sheetName: string }>;
-          const rows = XLSX.utils.sheet_to_json(worksheet) as Array<Record<string, unknown>>;
+          if (!worksheet)
+            return [] as Array<
+              Record<string, unknown> & { __sheetName: string }
+            >;
+          const rows = XLSX.utils.sheet_to_json(worksheet) as Array<
+            Record<string, unknown>
+          >;
           return rows.map((row) => ({ ...row, __sheetName: name }));
         });
 
@@ -218,15 +244,28 @@ export function usePatientsActions(
         const parseServiceType = (raw: string) => {
           const v = raw.trim().toLowerCase();
           if (!v) return undefined as any;
-          if (v === "a" || v === "استشاري" || v === "consultant" || v === "1") return "consultant";
-          if (v === "b" || v === "اخصائي" || v === "أخصائي" || v === "specialist") return "specialist";
-          if (v === "c" || v === "فحوصات الليزك" || v === "lasik") return "lasik";
-          if (v === "d" || v === "خارجي" || v === "external" || v === "2") return "external";
+          if (v === "a" || v === "استشاري" || v === "consultant" || v === "1")
+            return "consultant";
+          if (
+            v === "b" ||
+            v === "اخصائي" ||
+            v === "أخصائي" ||
+            v === "specialist"
+          )
+            return "specialist";
+          if (v === "c" || v === "فحوصات الليزك" || v === "lasik")
+            return "lasik";
+          if (v === "d" || v === "خارجي" || v === "external" || v === "2")
+            return "external";
           return undefined as any;
         };
         const readRowValue = (row: any, keys: string[]) => {
           for (const key of keys) {
-            if (row[key] !== undefined && row[key] !== null && String(row[key]).trim() !== "") {
+            if (
+              row[key] !== undefined &&
+              row[key] !== null &&
+              String(row[key]).trim() !== ""
+            ) {
               return row[key];
             }
           }
@@ -242,11 +281,7 @@ export function usePatientsActions(
             row["رقم المريض"] ||
             row["كود المريض"] ||
             "";
-          const fullName =
-            row.fullName ||
-            row.name ||
-            row["اسم المريض"] ||
-            "";
+          const fullName = row.fullName || row.name || row["اسم المريض"] || "";
           const phone =
             row.phone ||
             row["تليفون منزل"] ||
@@ -257,20 +292,25 @@ export function usePatientsActions(
             "";
           const ageRaw = row.age ?? row["السن"];
           const ageNum = (() => {
-            if (ageRaw === null || ageRaw === undefined || ageRaw === "") return undefined;
+            if (ageRaw === null || ageRaw === undefined || ageRaw === "")
+              return undefined;
             const cleaned = String(ageRaw).replace(/[^\d]/g, "");
             if (!cleaned) return undefined;
             const n = Number(cleaned);
             return Number.isFinite(n) ? n : undefined;
           })();
-          const dateOfBirth = normalizeDate(row.dateOfBirth ?? row["تاريخ الميلاد"]);
+          const dateOfBirth = normalizeDate(
+            row.dateOfBirth ?? row["تاريخ الميلاد"],
+          );
           const rawGender = normalizeString(row.gender ?? row["النوع"]);
           const gender =
             rawGender === "ذكر" || rawGender.toLowerCase() === "male"
               ? "male"
-              : rawGender === "أنثى" || rawGender === "انثى" || rawGender.toLowerCase() === "female"
-              ? "female"
-              : "";
+              : rawGender === "أنثى" ||
+                  rawGender === "انثى" ||
+                  rawGender.toLowerCase() === "female"
+                ? "female"
+                : "";
           const nationalId = row.nationalId ?? "";
           const address = row.address ?? row["العنوان"];
           const serviceRaw = normalizeString(
@@ -283,11 +323,14 @@ export function usePatientsActions(
               "Service Type",
               "كود الخدمة",
               "نوع الخدمة",
-            ])
+            ]),
           );
           const legacyServiceRaw = normalizeString(row["رقم الهوية"] || "");
-          const serviceFromSheetName = extractServiceTypeFromSheetName(String(row.__sheetName ?? ""));
-          const resolvedServiceRaw = serviceRaw || legacyServiceRaw || serviceFromSheetName;
+          const serviceFromSheetName = extractServiceTypeFromSheetName(
+            String(row.__sheetName ?? ""),
+          );
+          const resolvedServiceRaw =
+            serviceRaw || legacyServiceRaw || serviceFromSheetName;
           const doctorFromRow = normalizeString(
             readRowValue(row, [
               "doctorCode",
@@ -306,13 +349,18 @@ export function usePatientsActions(
               "كود الدكتور",
               "الطبيب",
               "اسم الطبيب",
-            ])
+            ]),
           );
-          const doctorFromSheetName = extractDoctorFromSheetName(String(row.__sheetName ?? ""));
+          const doctorFromSheetName = extractDoctorFromSheetName(
+            String(row.__sheetName ?? ""),
+          );
           const doctorToken = doctorFromRow || doctorFromSheetName;
-          const lastVisit = normalizeDate(row["تاريخ فتح الملف"] ?? row["تاريخ الملف"]);
+          const lastVisit = normalizeDate(
+            row["تاريخ فتح الملف"] ?? row["تاريخ الملف"],
+          );
           const resolvedServiceType = parseServiceType(resolvedServiceRaw);
-          const locationType = resolvedServiceType === "external" ? "external" : "center";
+          const locationType =
+            resolvedServiceType === "external" ? "external" : "center";
           return {
             patientCode: normalizeCode(patientCode),
             fullName: normalizeString(fullName),
@@ -335,7 +383,9 @@ export function usePatientsActions(
             patientCode: p.patientCode || "",
             fullName: p.fullName || "",
             dateOfBirth: p.dateOfBirth || "",
-            gender: (p.gender === "male" || p.gender === "female" ? p.gender : "") as "" | "male" | "female",
+            gender: (p.gender === "male" || p.gender === "female"
+              ? p.gender
+              : "") as "" | "male" | "female",
             phone: p.phone || "",
             address: p.address || "",
             branch: "examinations" as const,
@@ -344,20 +394,33 @@ export function usePatientsActions(
             doctorCode: String((p as any).doctorToken ?? ""),
             doctorName: String((p as any).doctorToken ?? ""),
           }));
-          const stage = await stageImportMutation.mutateAsync({ rows: stageRows });
-          const preview = await utils.medical.getPatientImportPreview.fetch({ batchId: stage.batchId, limit: 200 });
+          const stage = await stageImportMutation.mutateAsync({
+            rows: stageRows,
+          });
+          const preview = await utils.medical.getPatientImportPreview.fetch({
+            batchId: stage.batchId,
+            limit: 200,
+          });
           setImportBatchId(stage.batchId);
-          setImportSummary({ total: stage.total, valid: stage.valid, invalid: stage.invalid });
+          setImportSummary({
+            total: stage.total,
+            valid: stage.valid,
+            invalid: stage.invalid,
+          });
           setImportPreviewRows((preview as ImportPreviewRow[]) ?? []);
           setImportPreviewOpen(true);
           if (stage.invalid > 0) {
-            toast.error(`Import validation has ${stage.invalid} invalid row(s). Review before apply.`);
+            toast.error(
+              `Import validation has ${stage.invalid} invalid row(s). Review before apply.`,
+            );
           } else {
-            toast.success(`Validation passed for ${stage.valid} row(s). Click Apply to import.`);
+            toast.success(
+              `Validation passed for ${stage.valid} row(s). Click Apply to import.`,
+            );
           }
         };
         runImport().catch((error) =>
-          toast.error(getTrpcErrorMessage(error, "خطأ في استيراد الملف"))
+          toast.error(getTrpcErrorMessage(error, "خطأ في استيراد الملف")),
         );
         if (fileInputRef.current) fileInputRef.current.value = "";
       } catch (error) {
@@ -405,7 +468,7 @@ export function usePatientsActions(
     patientDraft: any,
     selectedDoctorId: string,
     selectedSheetType: string,
-    toLegacyServiceType: (value: string) => any
+    toLegacyServiceType: (value: string) => any,
   ) => {
     if (!patientDraft.fullName.trim()) {
       toast.error("الاسم الكامل مطلوب");
@@ -437,10 +500,10 @@ export function usePatientsActions(
     const selectedDoctor = (await utils.medical.getDoctorDirectory.fetch())
       .filter((doctor: any) => doctor.isActive !== false)
       .find((doctor: any) => String(doctor.id) === String(selectedDoctorId));
-    
+
     const selectedDoctorCode = String(selectedDoctor?.code ?? "").trim();
     const selectedDoctorIdNumeric = Number(selectedDoctorId);
-    
+
     await createPatientMutation.mutateAsync({
       patientCode: patientDraft.patientCode.trim() || undefined,
       fullName: patientDraft.fullName.trim(),
@@ -451,7 +514,9 @@ export function usePatientsActions(
       occupation: patientDraft.occupation.trim(),
       branch: "examinations",
       serviceType: toLegacyServiceType(selectedSheetType || "consultant"),
-      doctorId: Number.isFinite(selectedDoctorIdNumeric) ? selectedDoctorIdNumeric : undefined,
+      doctorId: Number.isFinite(selectedDoctorIdNumeric)
+        ? selectedDoctorIdNumeric
+        : undefined,
       ...(selectedDoctorCode ? { doctorCode: selectedDoctorCode } : {}),
     });
     toast.success("تم إضافة المريض");

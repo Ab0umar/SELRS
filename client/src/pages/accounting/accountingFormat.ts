@@ -7,14 +7,14 @@ export function toArabicDigits(v: unknown): string {
 
 /** Money: format with 2 decimals, using Arabic digits. */
 export function formatMoneyAr(value: number | string): string {
-  const num = typeof value === 'string' ? parseFloat(value) : value;
+  const num = typeof value === "string" ? parseFloat(value) : value;
   if (isNaN(num)) return "—";
   return toArabicDigits(num.toFixed(2));
 }
 
 /** Count: format with 0 decimals, using Arabic digits. */
 export function formatCountAr(value: number | string): string {
-  const num = typeof value === 'string' ? parseInt(value) : value;
+  const num = typeof value === "string" ? parseInt(value) : value;
   if (isNaN(num)) return "٠";
   return toArabicDigits(num.toFixed(0));
 }
@@ -27,13 +27,24 @@ export function formatDateAr(value: string | null | undefined): string {
 
 export function fmt(n: number | null | undefined): string {
   if (n == null) return "—";
-  return n.toLocaleString("ar-EG", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  return n.toLocaleString("ar-EG", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
 }
 
 export function fmtDate(iso: string): string {
   try {
-    return new Date(`${iso}T12:00:00`).toLocaleDateString("ar-EG", { day: "numeric", month: "short", year: "numeric" });
-  } catch { return iso; }
+    return new Date(`${iso}T12:00:00`).toLocaleDateString("ar-EG", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return iso;
+  }
 }
 
-export function todayIso(): string { return new Date().toISOString().split("T")[0]; }
+export function todayIso(): string {
+  return new Date().toISOString().split("T")[0];
+}

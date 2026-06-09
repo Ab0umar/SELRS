@@ -94,9 +94,13 @@ export default function AccServiceDrawer({ open, onClose, onSaved }: Props) {
     })
     .filter((line) => line.serviceCode);
 
-  const totalQuantity = validLines.reduce((sum, line) => sum + line.quantity, 0);
+  const totalQuantity = validLines.reduce(
+    (sum, line) => sum + line.quantity,
+    0,
+  );
   const busy = addServices.isPending;
-  const canSave = patientCode.trim().length > 0 && validLines.length > 0 && !busy;
+  const canSave =
+    patientCode.trim().length > 0 && validLines.length > 0 && !busy;
 
   function updateLine(id: string, patch: Partial<ServiceLine>) {
     setLines((current) =>
@@ -155,7 +159,10 @@ export default function AccServiceDrawer({ open, onClose, onSaved }: Props) {
         <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
           <div className="grid grid-cols-[1fr_auto] items-end gap-3">
             <div className="space-y-1.5">
-              <label htmlFor="acc-service-patient" className="text-xs font-medium text-muted-foreground">
+              <label
+                htmlFor="acc-service-patient"
+                className="text-xs font-medium text-muted-foreground"
+              >
                 كود المريض
               </label>
               <Input
@@ -182,7 +189,10 @@ export default function AccServiceDrawer({ open, onClose, onSaved }: Props) {
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="acc-service-doctor" className="text-xs font-medium text-muted-foreground">
+            <label
+              htmlFor="acc-service-doctor"
+              className="text-xs font-medium text-muted-foreground"
+            >
               الدكتور
             </label>
             <select
@@ -207,7 +217,9 @@ export default function AccServiceDrawer({ open, onClose, onSaved }: Props) {
               </label>
               <button
                 type="button"
-                onClick={() => setLines((current) => [...current, createLine()])}
+                onClick={() =>
+                  setLines((current) => [...current, createLine()])
+                }
                 className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -240,7 +252,8 @@ export default function AccServiceDrawer({ open, onClose, onSaved }: Props) {
                     </select>
                     {service ? (
                       <div className="mt-1 text-[11px] text-muted-foreground">
-                        السعر: {Number(service.price || 0).toLocaleString("ar-EG")}
+                        السعر:{" "}
+                        {Number(service.price || 0).toLocaleString("ar-EG")}
                       </div>
                     ) : null}
                   </div>
@@ -270,7 +283,8 @@ export default function AccServiceDrawer({ open, onClose, onSaved }: Props) {
 
           <div className="rounded-2xl border border-primary/20 bg-primary text-primary-foreground">
             سيتم الحفظ في MySQL وتحديث MSSQL لنفس كود المريض. الإجمالي:{" "}
-            <span className="font-bold tabular-nums">{totalQuantity}</span> خدمة.
+            <span className="font-bold tabular-nums">{totalQuantity}</span>{" "}
+            خدمة.
           </div>
 
           {addServices.error ? (
@@ -282,7 +296,9 @@ export default function AccServiceDrawer({ open, onClose, onSaved }: Props) {
 
         <div className="border-t border-border px-4 py-4 sm:px-5">
           <Button className="w-full" onClick={handleSave} disabled={!canSave}>
-            {busy ? <Loader2 className="ml-2 h-3.5 w-3.5 animate-spin" /> : null}
+            {busy ? (
+              <Loader2 className="ml-2 h-3.5 w-3.5 animate-spin" />
+            ) : null}
             {saved ? "تم الحفظ" : "حفظ الخدمة"}
           </Button>
         </div>

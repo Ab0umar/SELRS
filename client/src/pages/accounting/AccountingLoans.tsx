@@ -23,7 +23,8 @@ import { fmt, fmtDate, todayIso } from "./accountingFormat";
 const PAGE_SIZE = 50;
 
 function remainingTone(value: number | null | undefined) {
-  if ((value ?? 0) > 0) return "text-destructive bg-destructive/10 ring-destructive/20";
+  if ((value ?? 0) > 0)
+    return "text-destructive bg-destructive/10 ring-destructive/20";
   if ((value ?? 0) < 0) return "text-warning bg-warning/10 ring-warning/15";
   return "text-success bg-success/10 ring-success/20";
 }
@@ -177,9 +178,14 @@ export default function AccountingLoans() {
                       label: "المتبقي",
                       val: totalRemaining,
                       cls:
-                        totalRemaining > 0 ? "text-destructive" : "text-primary",
+                        totalRemaining > 0
+                          ? "text-destructive"
+                          : "text-primary",
                       icon: Wallet,
-                      bg: totalRemaining > 0 ? "bg-destructive/10" : "bg-primary/5",
+                      bg:
+                        totalRemaining > 0
+                          ? "bg-destructive/10"
+                          : "bg-primary/5",
                     },
                   ] as const
                 ).map((m) => {
@@ -405,9 +411,7 @@ export default function AccountingLoans() {
                           </div>
                         </div>
                         <div className="rounded-xl bg-success/10 px-3 py-2">
-                          <div className="text-[10px] text-success">
-                            المسدد
-                          </div>
+                          <div className="text-[10px] text-success">المسدد</div>
                           <div className="mt-1 font-semibold tabular-nums text-success">
                             {fmt(row.totalPaid)}
                           </div>
@@ -552,8 +556,13 @@ export default function AccountingLoans() {
             {!tableCollapsed && (
               <div className="border-b border-border px-4 py-3" dir="rtl">
                 <div className="flex h-11 items-center gap-2 rounded-xl border border-border bg-muted px-3 transition-all focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
-                  <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                  <label htmlFor="loans-search" className="sr-only">بحث في القروض</label>
+                  <Search
+                    className="h-4 w-4 shrink-0 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                  <label htmlFor="loans-search" className="sr-only">
+                    بحث في القروض
+                  </label>
                   <input
                     id="loans-search"
                     type="text"
@@ -665,22 +674,20 @@ export default function AccountingLoans() {
 
                       <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                         <div className="rounded-xl bg-primary/5 px-3 py-2">
-                          <div className="text-[10px] text-primary">
-                            المبلغ
-                          </div>
+                          <div className="text-[10px] text-primary">المبلغ</div>
                           <div
                             className={cn(
                               "mt-1 font-semibold tabular-nums",
-                              row.amount ? "text-primary" : "text-muted-foreground",
+                              row.amount
+                                ? "text-primary"
+                                : "text-muted-foreground",
                             )}
                           >
                             {row.amount ? fmt(row.amount) : "—"}
                           </div>
                         </div>
                         <div className="rounded-xl bg-success/10 px-3 py-2">
-                          <div className="text-[10px] text-success">
-                            السداد
-                          </div>
+                          <div className="text-[10px] text-success">السداد</div>
                           <div
                             className={cn(
                               "mt-1 font-semibold tabular-nums",
@@ -718,20 +725,27 @@ export default function AccountingLoans() {
                       <tr className="border-b border-border bg-muted text-xs text-muted-foreground">
                         <th
                           scope="col"
-                          aria-sort={sortDir === "desc" ? "descending" : "ascending"}
+                          aria-sort={
+                            sortDir === "desc" ? "descending" : "ascending"
+                          }
                           className="w-[18%] px-2 py-2 text-right font-medium sm:w-auto sm:px-4 sm:py-2.5"
                         >
                           <button
                             type="button"
                             onClick={() => {
-                              setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+                              setSortDir((d) =>
+                                d === "desc" ? "asc" : "desc",
+                              );
                               setPage(1);
                             }}
                             aria-label={`ترتيب حسب التاريخ ${sortDir === "desc" ? "تصاعدياً" : "تنازلياً"}`}
                             className="flex cursor-pointer select-none items-center gap-1 focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           >
                             التاريخ{" "}
-                            <span className="text-muted-foreground" aria-hidden="true">
+                            <span
+                              className="text-muted-foreground"
+                              aria-hidden="true"
+                            >
                               {sortDir === "desc" ? "↓" : "↑"}
                             </span>
                           </button>
@@ -929,7 +943,7 @@ export default function AccountingLoans() {
                         variant="ghost"
                         className="h-9 w-9"
                         aria-label="الصفحة السابقة"
-                  disabled={page <= 1}
+                        disabled={page <= 1}
                         onClick={() => setPage((p) => p - 1)}
                       >
                         <ChevronRight className="h-4 w-4" />
@@ -939,7 +953,7 @@ export default function AccountingLoans() {
                         variant="ghost"
                         className="h-9 w-9"
                         aria-label="الصفحة التالية"
-                  disabled={page >= totalPages}
+                        disabled={page >= totalPages}
                         onClick={() => setPage((p) => p + 1)}
                       >
                         <ChevronLeft className="h-4 w-4" />

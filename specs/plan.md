@@ -7,15 +7,15 @@
 
 ## 0. Constitution Check
 
-| Principle | Status |
-|---|---|
-| I. Strict Module Separation | PASS — Accounting is a new folder tree; no import into/from Medical. Bridge is `patientCode` only. |
-| II. Service-Based Accounting | PASS — every revenue metric flows from `PAPAT_SRV`/`PAJRNRCVH`. |
-| III. Read-Only Accounting APIs | PASS — all procedures are `protectedProcedure` queries. |
-| IV. Use Existing DBs As-Is | PASS — reuse `createMssqlPool`; no new tables; no schema edits. |
-| V. Legacy Output Parity | PASS — parity artifacts required per report (Task 16). |
-| VI. Spec-Driven, Minimal-Diff | PASS — this plan + spec + tasks precede any implementation. |
-| VII. Do Not Break Medical | PASS — only `server/routers/index.ts` and `client/src/App.tsx` edited in shared surfaces. |
+| Principle                      | Status                                                                                             |
+| ------------------------------ | -------------------------------------------------------------------------------------------------- |
+| I. Strict Module Separation    | PASS — Accounting is a new folder tree; no import into/from Medical. Bridge is `patientCode` only. |
+| II. Service-Based Accounting   | PASS — every revenue metric flows from `PAPAT_SRV`/`PAJRNRCVH`.                                    |
+| III. Read-Only Accounting APIs | PASS — all procedures are `protectedProcedure` queries.                                            |
+| IV. Use Existing DBs As-Is     | PASS — reuse `createMssqlPool`; no new tables; no schema edits.                                    |
+| V. Legacy Output Parity        | PASS — parity artifacts required per report (Task 16).                                             |
+| VI. Spec-Driven, Minimal-Diff  | PASS — this plan + spec + tasks precede any implementation.                                        |
+| VII. Do Not Break Medical      | PASS — only `server/routers/index.ts` and `client/src/App.tsx` edited in shared surfaces.          |
 
 ## 1. Architecture Overview
 
@@ -49,7 +49,7 @@ response → React Query cache → UI.
   `managerProcedure`, `adminProcedure`. Accounting uses `managerProcedure`
   (which already allows `manager`, `admin`, `accountant`).
 - `server/routers/index.ts` composes `appRouter`. Adding `accounting:
-  accountingRouter` is a 2-line edit.
+accountingRouter` is a 2-line edit.
 - `client/src/App.tsx` uses a lazy-route pattern. Accounting routes are
   added using the same pattern; no global reshuffle.
 - `client/src/components/ProtectedRoute.tsx` is treated as a closed black
@@ -116,17 +116,17 @@ shared/
 All procedures are `managerProcedure` (admin/manager/accountant),
 `.query(...)`, zod-validated inputs, superjson-transformed outputs.
 
-| Procedure | Input shape | Output shape |
-|---|---|---|
-| `accounting.dashboardSummary` | `{ sectionCode?: number }` | `DashboardSummaryDTO` |
-| `accounting.dailyRevenue` | `{ fromDate, toDate, sectionCode?, doctorCode? }` | `DailyRevenueRow[]` + totals |
-| `accounting.serviceRevenue` | `{ fromDate, toDate, sectionCode?, doctorCode?, serviceCode? }` | grouped by doctor/service |
-| `accounting.receiptsInquiry` | `{ fromDate?, toDate?, patientCode?, doctorCode?, sectionCode?, trNo?, trTy?, limit? }` | `ReceiptHeaderDTO[]` |
-| `accounting.receiptDetail` | `{ sectionCode, trTy, trNo }` | `{ header, lines[] }` |
-| `accounting.lasikReceipts` | Lasik-pinned alias over receiptsInquiry (`sectionCode=15`) | `ReceiptHeaderDTO[]` |
-| `accounting.lasikServices` | `{ fromDate?, toDate?, patientCode?, serviceCode?, doctorCode?, limit? }` | `ServiceRowDTO[]` |
-| `accounting.lasikRevenueSummary` | `{ fromDate?, toDate?, doctorCode? }` | `RevenueSummaryDTO` |
-| `accounting.patientLasikSummary` | `{ patientCode }` | `PatientSummaryDTO` |
+| Procedure                        | Input shape                                                                             | Output shape                 |
+| -------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------- |
+| `accounting.dashboardSummary`    | `{ sectionCode?: number }`                                                              | `DashboardSummaryDTO`        |
+| `accounting.dailyRevenue`        | `{ fromDate, toDate, sectionCode?, doctorCode? }`                                       | `DailyRevenueRow[]` + totals |
+| `accounting.serviceRevenue`      | `{ fromDate, toDate, sectionCode?, doctorCode?, serviceCode? }`                         | grouped by doctor/service    |
+| `accounting.receiptsInquiry`     | `{ fromDate?, toDate?, patientCode?, doctorCode?, sectionCode?, trNo?, trTy?, limit? }` | `ReceiptHeaderDTO[]`         |
+| `accounting.receiptDetail`       | `{ sectionCode, trTy, trNo }`                                                           | `{ header, lines[] }`        |
+| `accounting.lasikReceipts`       | Lasik-pinned alias over receiptsInquiry (`sectionCode=15`)                              | `ReceiptHeaderDTO[]`         |
+| `accounting.lasikServices`       | `{ fromDate?, toDate?, patientCode?, serviceCode?, doctorCode?, limit? }`               | `ServiceRowDTO[]`            |
+| `accounting.lasikRevenueSummary` | `{ fromDate?, toDate?, doctorCode? }`                                                   | `RevenueSummaryDTO`          |
+| `accounting.patientLasikSummary` | `{ patientCode }`                                                                       | `PatientSummaryDTO`          |
 
 ### 4.3 Query rules
 
@@ -150,7 +150,10 @@ All procedures are `managerProcedure` (admin/manager/accountant),
   strings, no new env vars.
 - Query helper in `mssqlAccounting.ts`:
   ```ts
-  export async function mssqlQuery<T>(sql: string, params: Record<string, unknown>): Promise<T[]>
+  export async function mssqlQuery<T>(
+    sql: string,
+    params: Record<string, unknown>,
+  ): Promise<T[]>;
   ```
   Binds parameters safely, sets `request.arrayRowMode = false`, returns
   `recordset`.
@@ -235,13 +238,13 @@ All routes wrapped by `ProtectedRoute` with `allowedRoles=['admin','manager','ac
 
 ## 8. Testing Strategy
 
-| Level | Tooling | Files |
-|---|---|---|
-| Unit (service SQL builders + mappers) | Vitest | `tests/accounting/sqlBuilders.test.ts`, `tests/accounting/mappers.test.ts` |
-| Integration (service → live MSSQL) | Vitest + `mssql` | `tests/accounting/lasikRevenue.int.test.ts` (marked `describe.skipIf(noMssql)`) |
-| Router (tRPC caller) | Vitest | `tests/accounting/router.test.ts` |
-| Frontend smoke | Playwright | `tests/ui/accounting.spec.ts` (login → each page → print preview opens) |
-| Parity | Script | `scripts/accounting/parity-check.ts` comparing MSSQL totals to legacy CSV exports |
+| Level                                 | Tooling          | Files                                                                             |
+| ------------------------------------- | ---------------- | --------------------------------------------------------------------------------- |
+| Unit (service SQL builders + mappers) | Vitest           | `tests/accounting/sqlBuilders.test.ts`, `tests/accounting/mappers.test.ts`        |
+| Integration (service → live MSSQL)    | Vitest + `mssql` | `tests/accounting/lasikRevenue.int.test.ts` (marked `describe.skipIf(noMssql)`)   |
+| Router (tRPC caller)                  | Vitest           | `tests/accounting/router.test.ts`                                                 |
+| Frontend smoke                        | Playwright       | `tests/ui/accounting.spec.ts` (login → each page → print preview opens)           |
+| Parity                                | Script           | `scripts/accounting/parity-check.ts` comparing MSSQL totals to legacy CSV exports |
 
 `pnpm test` must pass; Playwright tests are optional in CI but required
 before merge of frontend tasks.
@@ -270,15 +273,15 @@ before merge of frontend tasks.
 
 Applied from `PROJECT_PRINCIPLES.md §4`:
 
-| Phase of work | Owner Model | Backup | Tool |
-|---|---|---|---|
-| Specs, plan, tasks, prompts, reviews | Claude | — | Claude (direct) |
-| Multi-file repo edits (backend + frontend wiring) | Cursor | Codex | Cursor |
-| New implementation (services, router, pages) | Codex | Cursor | Codex CLI / Cursor |
-| SQL design, query parity, report aggregation logic | GPT-5 | Claude | ChatGPT / Cursor |
+| Phase of work                                          | Owner Model             | Backup           | Tool                 |
+| ------------------------------------------------------ | ----------------------- | ---------------- | -------------------- |
+| Specs, plan, tasks, prompts, reviews                   | Claude                  | —                | Claude (direct)      |
+| Multi-file repo edits (backend + frontend wiring)      | Cursor                  | Codex            | Cursor               |
+| New implementation (services, router, pages)           | Codex                   | Cursor           | Codex CLI / Cursor   |
+| SQL design, query parity, report aggregation logic     | GPT-5                   | Claude           | ChatGPT / Cursor     |
 | Bulk extraction (legacy `.rtm` fields, prototype data) | GPT-5 mini / GLM / Kimi | OpenRouter cheap | Cursor + cheap model |
-| UI layout proposals and visual alternatives | Gemini | Cursor | Cursor + Gemini |
-| Local lightweight edits when offline | Ollama / Continue | Cursor | Continue |
+| UI layout proposals and visual alternatives            | Gemini                  | Cursor           | Cursor + Gemini      |
+| Local lightweight edits when offline                   | Ollama / Continue       | Cursor           | Continue             |
 
 **Rules enforced by this plan:**
 
@@ -286,8 +289,8 @@ Applied from `PROJECT_PRINCIPLES.md §4`:
 - Cheap models never touch legacy parity checks (Task 16) without a
   Claude review pass.
 - Cursor is the default execution surface inside the repo.
-- Every task prompt ends with *"Follow the project Constitution and
-  Project Principles strictly."*
+- Every task prompt ends with _"Follow the project Constitution and
+  Project Principles strictly."_
 
 ---
 

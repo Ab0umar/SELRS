@@ -15,7 +15,10 @@ import {
 } from "../../drizzle/schema";
 import { generateMarketingContent } from "../services/marketing/contentGenerator.service";
 import { pickTopic, type PostDay } from "../services/marketing/topicRotation";
-import { generateMarketingImage, MarketingImageConfigError } from "../services/marketing/imageGenerator.service";
+import {
+  generateMarketingImage,
+  MarketingImageConfigError,
+} from "../services/marketing/imageGenerator.service";
 import {
   analyzeDesignImage,
   buildBrandProfile,
@@ -23,7 +26,12 @@ import {
 } from "../services/marketing/brandStyleAnalyzer.service";
 import { ENV } from "../_core/env";
 
-async function addLog(postId: number | null, action: string, status: "success" | "error" | "info", message: string) {
+async function addLog(
+  postId: number | null,
+  action: string,
+  status: "success" | "error" | "info",
+  message: string,
+) {
   const db = await getDb();
   if (!db) return;
   await db.insert(marketingLogs).values({ postId, action, status, message });
@@ -40,26 +48,33 @@ function getReferenceDesignDir(): string {
   return path.resolve(
     ENV.marketingImageDir
       ? path.join(ENV.marketingImageDir, "reference-designs")
-      : path.join(process.cwd(), "uploads", "marketing", "reference-designs")
+      : path.join(process.cwd(), "uploads", "marketing", "reference-designs"),
   );
 }
 
 export const marketingRouter = router({
-
   // ─── Posts ────────────────────────────────────────────────
 
   listPosts: adminProcedure
-    .input(z.object({
-      status: z.enum(["draft", "published", "failed", "scheduled", "all"]).default("all"),
-      limit: z.number().int().min(1).max(200).default(50),
-      offset: z.number().int().min(0).default(0),
-    }))
+    .input(
+      z.object({
+        status: z
+          .enum(["draft", "published", "failed", "scheduled", "all"])
+          .default("all"),
+        limit: z.number().int().min(1).max(200).default(50),
+        offset: z.number().int().min(0).default(0),
+      }),
+    )
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const where = input.status !== "all"
-        ? eq(marketingPosts.status, input.status as "draft" | "published" | "failed" | "scheduled")
-        : undefined;
+      const where =
+        input.status !== "all"
+          ? eq(
+              marketingPosts.status,
+              input.status as "draft" | "published" | "failed" | "scheduled",
+            )
+          : undefined;
       const rows = await db
         .select()
         .from(marketingPosts)
@@ -75,25 +90,31 @@ export const marketingRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const [row] = await db.select().from(marketingPosts).where(eq(marketingPosts.id, input.id)).limit(1);
+      const [row] = await db
+        .select()
+        .from(marketingPosts)
+        .where(eq(marketingPosts.id, input.id))
+        .limit(1);
       return row ?? null;
     }),
 
   createPost: adminProcedure
-    .input(z.object({
-      title: z.string().min(1).max(255),
-      content: z.string().optional(),
-      topic: z.string().max(255).optional(),
-      idea: z.string().optional(),
-      cta: z.string().max(500).optional(),
-      hashtags: z.string().optional(),
-      imagePrompt: z.string().optional(),
-      imageUrl: z.string().max(1000).optional(),
-      platform: z.enum(["facebook", "instagram", "both"]).default("facebook"),
-      postDay: z.enum(["saturday", "tuesday", "thursday"]).optional(),
-      status: z.enum(["draft", "scheduled"]).default("draft"),
-      scheduledAt: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        title: z.string().min(1).max(255),
+        content: z.string().optional(),
+        topic: z.string().max(255).optional(),
+        idea: z.string().optional(),
+        cta: z.string().max(500).optional(),
+        hashtags: z.string().optional(),
+        imagePrompt: z.string().optional(),
+        imageUrl: z.string().max(1000).optional(),
+        platform: z.enum(["facebook", "instagram", "both"]).default("facebook"),
+        postDay: z.enum(["saturday", "tuesday", "thursday"]).optional(),
+        status: z.enum(["draft", "scheduled"]).default("draft"),
+        scheduledAt: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
@@ -118,21 +139,23 @@ export const marketingRouter = router({
     }),
 
   updatePost: adminProcedure
-    .input(z.object({
-      id: z.number().int().positive(),
-      title: z.string().min(1).max(255).optional(),
-      content: z.string().optional(),
-      topic: z.string().max(255).optional(),
-      idea: z.string().optional(),
-      cta: z.string().max(500).optional(),
-      hashtags: z.string().optional(),
-      imagePrompt: z.string().optional(),
-      imageUrl: z.string().max(1000).optional(),
-      platform: z.enum(["facebook", "instagram", "both"]).optional(),
-      postDay: z.enum(["saturday", "tuesday", "thursday"]).optional(),
-      status: z.enum(["draft", "scheduled"]).optional(),
-      scheduledAt: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        id: z.number().int().positive(),
+        title: z.string().min(1).max(255).optional(),
+        content: z.string().optional(),
+        topic: z.string().max(255).optional(),
+        idea: z.string().optional(),
+        cta: z.string().max(500).optional(),
+        hashtags: z.string().optional(),
+        imagePrompt: z.string().optional(),
+        imageUrl: z.string().max(1000).optional(),
+        platform: z.enum(["facebook", "instagram", "both"]).optional(),
+        postDay: z.enum(["saturday", "tuesday", "thursday"]).optional(),
+        status: z.enum(["draft", "scheduled"]).optional(),
+        scheduledAt: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
@@ -141,7 +164,10 @@ export const marketingRouter = router({
       if (scheduledAt !== undefined) {
         updates.scheduledAt = scheduledAt ? new Date(scheduledAt) : null;
       }
-      await db.update(marketingPosts).set(updates).where(eq(marketingPosts.id, id));
+      await db
+        .update(marketingPosts)
+        .set(updates)
+        .where(eq(marketingPosts.id, id));
       await addLog(id, "update_post", "info", `Post updated: ${id}`);
       return { ok: true };
     }),
@@ -173,26 +199,43 @@ export const marketingRouter = router({
       const [settings] = await db.select().from(marketingSettings).limit(1);
       let fbResult: string | null = null;
 
-      if (settings?.fbConnected && settings.fbPageId && settings.fbAccessToken) {
+      if (
+        settings?.fbConnected &&
+        settings.fbPageId &&
+        settings.fbAccessToken
+      ) {
         try {
-          const { publishPostToFacebook } = await import("../services/marketing/facebookPublisher.service");
+          const { publishPostToFacebook } =
+            await import("../services/marketing/facebookPublisher.service");
           const message = [
             post.content ?? post.title,
             post.cta ? `\n\n${post.cta}` : "",
             post.hashtags ? `\n\n${post.hashtags}` : "",
-          ].join("").trim();
+          ]
+            .join("")
+            .trim();
           const appOrigin = ENV.fbAppOrigin || "https://selrs.cc";
           const { fbPostId } = await publishPostToFacebook(
             settings.fbPageId,
             settings.fbAccessToken,
             message,
             post.imageUrl ?? null,
-            appOrigin
+            appOrigin,
           );
           fbResult = fbPostId;
-          await addLog(input.id, "publish_post", "success", `Published to Facebook: ${fbPostId}`);
+          await addLog(
+            input.id,
+            "publish_post",
+            "success",
+            `Published to Facebook: ${fbPostId}`,
+          );
         } catch (err) {
-          await addLog(input.id, "publish_post", "error", `Facebook publish failed: ${String(err)}`);
+          await addLog(
+            input.id,
+            "publish_post",
+            "error",
+            `Facebook publish failed: ${String(err)}`,
+          );
           throw new Error(`فشل النشر على Facebook: ${String(err)}`);
         }
       }
@@ -203,16 +246,23 @@ export const marketingRouter = router({
         .where(eq(marketingPosts.id, input.id));
 
       if (!fbResult) {
-        await addLog(input.id, "publish_post", "info", `Post marked published locally (FB not connected)`);
+        await addLog(
+          input.id,
+          "publish_post",
+          "info",
+          `Post marked published locally (FB not connected)`,
+        );
       }
       return { ok: true, fbPostId: fbResult };
     }),
 
   generatePost: adminProcedure
-    .input(z.object({
-      postDay: z.enum(["saturday", "tuesday", "thursday"]),
-      topic: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        postDay: z.enum(["saturday", "tuesday", "thursday"]),
+        topic: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
@@ -235,15 +285,29 @@ export const marketingRouter = router({
       const brandProfile = await getActiveBrandProfile();
 
       // Load clinic name from settings
-      const [settingsRow] = await db.select({ clinicName: marketingSettings.clinicName }).from(marketingSettings).limit(1);
+      const [settingsRow] = await db
+        .select({ clinicName: marketingSettings.clinicName })
+        .from(marketingSettings)
+        .limit(1);
       const clinicName = settingsRow?.clinicName ?? "مركزك لطب العيون";
 
       // Generate AI content
       let generated;
       try {
-        generated = await generateMarketingContent(selectedTopic, day, brandProfile, clinicName, postIndex);
+        generated = await generateMarketingContent(
+          selectedTopic,
+          day,
+          brandProfile,
+          clinicName,
+          postIndex,
+        );
       } catch (err) {
-        await addLog(null, "generate_post", "error", `Content generation failed: ${String(err)}`);
+        await addLog(
+          null,
+          "generate_post",
+          "error",
+          `Content generation failed: ${String(err)}`,
+        );
         throw new Error("فشل توليد المحتوى — يرجى المحاولة مرة أخرى");
       }
 
@@ -262,7 +326,12 @@ export const marketingRouter = router({
       });
       const id = (result as { insertId?: number }).insertId ?? 0;
 
-      await addLog(id, "generate_post", "success", `Generated AI post — topic: ${selectedTopic}`);
+      await addLog(
+        id,
+        "generate_post",
+        "success",
+        `Generated AI post — topic: ${selectedTopic}`,
+      );
 
       return {
         id,
@@ -285,7 +354,11 @@ export const marketingRouter = router({
       if (!db) throw new Error("Database not available");
 
       const [post] = await db
-        .select({ id: marketingPosts.id, imagePrompt: marketingPosts.imagePrompt, status: marketingPosts.status })
+        .select({
+          id: marketingPosts.id,
+          imagePrompt: marketingPosts.imagePrompt,
+          status: marketingPosts.status,
+        })
         .from(marketingPosts)
         .where(eq(marketingPosts.id, input.postId))
         .limit(1);
@@ -293,7 +366,8 @@ export const marketingRouter = router({
       if (!post) throw new Error("Post not found");
 
       const prompt = post.imagePrompt?.trim();
-      if (!prompt) throw new Error("Post has no imagePrompt — generate content first");
+      if (!prompt)
+        throw new Error("Post has no imagePrompt — generate content first");
 
       try {
         const imageUrl = await generateMarketingImage(prompt, input.postId);
@@ -301,7 +375,12 @@ export const marketingRouter = router({
           .update(marketingPosts)
           .set({ imageUrl })
           .where(eq(marketingPosts.id, input.postId));
-        await addLog(input.postId, "generate_image", "success", `Image saved: ${imageUrl}`);
+        await addLog(
+          input.postId,
+          "generate_image",
+          "success",
+          `Image saved: ${imageUrl}`,
+        );
         return { imageUrl };
       } catch (err) {
         const isConfig = err instanceof MarketingImageConfigError;
@@ -309,9 +388,12 @@ export const marketingRouter = router({
           input.postId,
           "generate_image",
           "error",
-          isConfig ? "No image API configured" : String(err)
+          isConfig ? "No image API configured" : String(err),
         );
-        if (isConfig) throw new Error("لم يتم تكوين خدمة توليد الصور — أضف GEMINI_API_KEY في إعدادات الخادم");
+        if (isConfig)
+          throw new Error(
+            "لم يتم تكوين خدمة توليد الصور — أضف GEMINI_API_KEY في إعدادات الخادم",
+          );
         throw err; // surface actual error so it's visible in logs and UI
       }
     }),
@@ -331,14 +413,16 @@ export const marketingRouter = router({
   }),
 
   updateSettings: adminProcedure
-    .input(z.object({
-      clinicName: z.string().min(1).max(255).optional(),
-      autoPublish: z.boolean().optional(),
-      saturdayEnabled: z.boolean().optional(),
-      tuesdayEnabled: z.boolean().optional(),
-      thursdayEnabled: z.boolean().optional(),
-      publishHour: z.number().int().min(0).max(23).optional(),
-    }))
+    .input(
+      z.object({
+        clinicName: z.string().min(1).max(255).optional(),
+        autoPublish: z.boolean().optional(),
+        saturdayEnabled: z.boolean().optional(),
+        tuesdayEnabled: z.boolean().optional(),
+        thursdayEnabled: z.boolean().optional(),
+        publishHour: z.number().int().min(0).max(23).optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
@@ -346,23 +430,35 @@ export const marketingRouter = router({
       if (!existing) {
         await db.insert(marketingSettings).values({ ...input });
       } else {
-        await db.update(marketingSettings).set(input).where(eq(marketingSettings.id, existing.id));
+        await db
+          .update(marketingSettings)
+          .set(input)
+          .where(eq(marketingSettings.id, existing.id));
       }
-      await addLog(null, "update_settings", "info", "Marketing settings updated");
+      await addLog(
+        null,
+        "update_settings",
+        "info",
+        "Marketing settings updated",
+      );
       return { ok: true };
     }),
 
   // ─── Logs ──────────────────────────────────────────────────
 
   getLogs: adminProcedure
-    .input(z.object({
-      postId: z.number().int().positive().optional(),
-      limit: z.number().int().min(1).max(500).default(100),
-    }))
+    .input(
+      z.object({
+        postId: z.number().int().positive().optional(),
+        limit: z.number().int().min(1).max(500).default(100),
+      }),
+    )
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const where = input.postId ? eq(marketingLogs.postId, input.postId) : undefined;
+      const where = input.postId
+        ? eq(marketingLogs.postId, input.postId)
+        : undefined;
       const rows = await db
         .select()
         .from(marketingLogs)
@@ -377,8 +473,16 @@ export const marketingRouter = router({
   dashboardSummary: adminProcedure.query(async () => {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
-    const all = await db.select({ status: marketingPosts.status }).from(marketingPosts);
-    const counts = { draft: 0, published: 0, failed: 0, scheduled: 0, total: all.length };
+    const all = await db
+      .select({ status: marketingPosts.status })
+      .from(marketingPosts);
+    const counts = {
+      draft: 0,
+      published: 0,
+      failed: 0,
+      scheduled: 0,
+      total: all.length,
+    };
     for (const row of all) {
       if (row.status in counts) counts[row.status as keyof typeof counts]++;
     }
@@ -393,12 +497,14 @@ export const marketingRouter = router({
   // ─── Brand Library ────────────────────────────────────────────────────────
 
   uploadReferenceDesign: adminProcedure
-    .input(z.object({
-      filename: z.string().min(1).max(255),
-      mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
-      base64Data: z.string().min(1),
-      fileSize: z.number().int().positive().optional(),
-    }))
+    .input(
+      z.object({
+        filename: z.string().min(1).max(255),
+        mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+        base64Data: z.string().min(1),
+        fileSize: z.number().int().positive().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
@@ -406,7 +512,12 @@ export const marketingRouter = router({
       const dir = getReferenceDesignDir();
       await fs.mkdir(dir, { recursive: true });
 
-      const ext = input.mimeType === "image/png" ? "png" : input.mimeType === "image/webp" ? "webp" : "jpg";
+      const ext =
+        input.mimeType === "image/png"
+          ? "png"
+          : input.mimeType === "image/webp"
+            ? "webp"
+            : "jpg";
       const safeFilename = `${Date.now()}-${nanoid(8)}.${ext}`;
       const filePath = path.join(dir, safeFilename);
       const fileUrl = `/uploads/marketing/reference-designs/${safeFilename}`;
@@ -437,14 +548,24 @@ export const marketingRouter = router({
                 analyzedAt: new Date(),
               })
               .where(eq(marketingReferenceDesigns.id, id));
-            await addLog(null, "analyze_design", "success", `Analyzed design: ${safeFilename}`);
+            await addLog(
+              null,
+              "analyze_design",
+              "success",
+              `Analyzed design: ${safeFilename}`,
+            );
           }
         } catch (err) {
           await addLog(null, "analyze_design", "error", String(err));
         }
       })();
 
-      await addLog(null, "upload_reference_design", "info", `Uploaded: ${input.filename}`);
+      await addLog(
+        null,
+        "upload_reference_design",
+        "info",
+        `Uploaded: ${input.filename}`,
+      );
       return { id, fileUrl };
     }),
 
@@ -471,8 +592,15 @@ export const marketingRouter = router({
       if (row?.filePath) {
         await fs.unlink(row.filePath).catch(() => {});
       }
-      await db.delete(marketingReferenceDesigns).where(eq(marketingReferenceDesigns.id, input.id));
-      await addLog(null, "delete_reference_design", "info", `Deleted design id: ${input.id}`);
+      await db
+        .delete(marketingReferenceDesigns)
+        .where(eq(marketingReferenceDesigns.id, input.id));
+      await addLog(
+        null,
+        "delete_reference_design",
+        "info",
+        `Deleted design id: ${input.id}`,
+      );
       return { ok: true };
     }),
 
@@ -501,7 +629,11 @@ export const marketingRouter = router({
         const pending: typeof designs = [];
         for (const design of designs) {
           if (design.styleAttributes) {
-            try { cached.push(JSON.parse(design.styleAttributes) as StyleAttributes); } catch {}
+            try {
+              cached.push(
+                JSON.parse(design.styleAttributes) as StyleAttributes,
+              );
+            } catch {}
           } else if (design.filePath) {
             pending.push(design);
           }
@@ -513,15 +645,21 @@ export const marketingRouter = router({
           const batch = pending.slice(i, i + BATCH);
           const batchResults = await Promise.all(
             batch.map(async (design) => {
-              const attrs = await analyzeDesignImage(design.filePath!, design.mimeType);
+              const attrs = await analyzeDesignImage(
+                design.filePath!,
+                design.mimeType,
+              );
               if (attrs) {
                 await db
                   .update(marketingReferenceDesigns)
-                  .set({ styleAttributes: JSON.stringify(attrs), analyzedAt: new Date() })
+                  .set({
+                    styleAttributes: JSON.stringify(attrs),
+                    analyzedAt: new Date(),
+                  })
                   .where(eq(marketingReferenceDesigns.id, design.id));
               }
               return attrs;
-            })
+            }),
           );
           newAttrs.push(...batchResults);
         }
@@ -532,24 +670,47 @@ export const marketingRouter = router({
         ];
 
         if (analyses.length === 0) {
-          await addLog(null, "rebuild_brand_profile", "error", "No designs analyzed — check GEMINI_API_KEY");
+          await addLog(
+            null,
+            "rebuild_brand_profile",
+            "error",
+            "No designs analyzed — check GEMINI_API_KEY",
+          );
           return;
         }
 
         const profile = await buildBrandProfile(analyses, designs.length);
         if (!profile) {
-          await addLog(null, "rebuild_brand_profile", "error", "buildBrandProfile returned null");
+          await addLog(
+            null,
+            "rebuild_brand_profile",
+            "error",
+            "buildBrandProfile returned null",
+          );
           return;
         }
 
-        const [existing] = await db.select().from(marketingBrandProfile).limit(1);
+        const [existing] = await db
+          .select()
+          .from(marketingBrandProfile)
+          .limit(1);
         if (existing) {
-          await db.update(marketingBrandProfile).set({ ...profile, builtAt: new Date() }).where(eq(marketingBrandProfile.id, existing.id));
+          await db
+            .update(marketingBrandProfile)
+            .set({ ...profile, builtAt: new Date() })
+            .where(eq(marketingBrandProfile.id, existing.id));
         } else {
-          await db.insert(marketingBrandProfile).values({ ...profile, builtAt: new Date() });
+          await db
+            .insert(marketingBrandProfile)
+            .values({ ...profile, builtAt: new Date() });
         }
 
-        await addLog(null, "rebuild_brand_profile", "success", `Profile built from ${analyses.length} designs`);
+        await addLog(
+          null,
+          "rebuild_brand_profile",
+          "success",
+          `Profile built from ${analyses.length} designs`,
+        );
       } catch (err) {
         await addLog(null, "rebuild_brand_profile", "error", String(err));
       }
@@ -571,7 +732,8 @@ export const marketingRouter = router({
       })
       .from(marketingSettings)
       .limit(1);
-    const { isFbConfigured } = await import("../services/marketing/facebookOAuth.service");
+    const { isFbConfigured } =
+      await import("../services/marketing/facebookOAuth.service");
     return {
       connected: row?.fbConnected ?? false,
       pageId: row?.fbPageId ?? null,
@@ -583,23 +745,39 @@ export const marketingRouter = router({
   getOAuthUrl: adminProcedure.mutation(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
-    const { isFbConfigured, buildOAuthUrl } = await import("../services/marketing/facebookOAuth.service");
+    const { isFbConfigured, buildOAuthUrl } =
+      await import("../services/marketing/facebookOAuth.service");
     if (!isFbConfigured()) {
-      throw new Error("FB_APP_ID و FB_APP_SECRET غير مهيأين — أضفهما في إعدادات الخادم");
+      throw new Error(
+        "FB_APP_ID و FB_APP_SECRET غير مهيأين — أضفهما في إعدادات الخادم",
+      );
     }
 
     const state = randomBytes(24).toString("hex");
-    const [existing] = await db.select({ id: marketingSettings.id }).from(marketingSettings).limit(1);
+    const [existing] = await db
+      .select({ id: marketingSettings.id })
+      .from(marketingSettings)
+      .limit(1);
     if (!existing) {
       await db.insert(marketingSettings).values({ fbOauthState: state });
     } else {
-      await db.update(marketingSettings).set({ fbOauthState: state }).where(eq(marketingSettings.id, existing.id));
+      await db
+        .update(marketingSettings)
+        .set({ fbOauthState: state })
+        .where(eq(marketingSettings.id, existing.id));
     }
 
     const ENV = (await import("../_core/env")).ENV;
-    const redirectUri = ENV.fbRedirectUri || `${ENV.fbAppOrigin || ""}/api/marketing/facebook/callback`;
+    const redirectUri =
+      ENV.fbRedirectUri ||
+      `${ENV.fbAppOrigin || ""}/api/marketing/facebook/callback`;
     const url = buildOAuthUrl(state, redirectUri);
-    await addLog(null, "fb_oauth_start", "info", `OAuth initiated by user ${ctx.user.id}`);
+    await addLog(
+      null,
+      "fb_oauth_start",
+      "info",
+      `OAuth initiated by user ${ctx.user.id}`,
+    );
     return { url };
   }),
 
@@ -612,7 +790,14 @@ export const marketingRouter = router({
       .limit(1);
     if (!row?.fbPendingPages) return [];
     try {
-      const raw = JSON.parse(Buffer.from(row.fbPendingPages, "base64").toString()) as Array<{ id: string; name: string; category?: string; token: string }>;
+      const raw = JSON.parse(
+        Buffer.from(row.fbPendingPages, "base64").toString(),
+      ) as Array<{
+        id: string;
+        name: string;
+        category?: string;
+        token: string;
+      }>;
       return raw.map(({ id, name, category }) => ({ id, name, category }));
     } catch {
       return [];
@@ -625,14 +810,25 @@ export const marketingRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const [row] = await db
-        .select({ id: marketingSettings.id, fbPendingPages: marketingSettings.fbPendingPages })
+        .select({
+          id: marketingSettings.id,
+          fbPendingPages: marketingSettings.fbPendingPages,
+        })
         .from(marketingSettings)
         .limit(1);
-      if (!row?.fbPendingPages) throw new Error("لا توجد صفحات معلقة — ابدأ عملية الربط من جديد");
+      if (!row?.fbPendingPages)
+        throw new Error("لا توجد صفحات معلقة — ابدأ عملية الربط من جديد");
 
-      let pages: Array<{ id: string; name: string; category?: string; token: string }>;
+      let pages: Array<{
+        id: string;
+        name: string;
+        category?: string;
+        token: string;
+      }>;
       try {
-        pages = JSON.parse(Buffer.from(row.fbPendingPages, "base64").toString());
+        pages = JSON.parse(
+          Buffer.from(row.fbPendingPages, "base64").toString(),
+        );
       } catch {
         throw new Error("بيانات الصفحات المعلقة تالفة");
       }
@@ -640,33 +836,52 @@ export const marketingRouter = router({
       const selected = pages.find((p) => p.id === input.pageId);
       if (!selected) throw new Error("الصفحة المحددة غير موجودة في القائمة");
 
-      await db.update(marketingSettings).set({
-        fbPageId: selected.id,
-        fbPageName: selected.name,
-        fbAccessToken: selected.token,
-        fbConnected: true,
-        fbPendingPages: null,
-        fbOauthState: null,
-      }).where(eq(marketingSettings.id, row.id));
+      await db
+        .update(marketingSettings)
+        .set({
+          fbPageId: selected.id,
+          fbPageName: selected.name,
+          fbAccessToken: selected.token,
+          fbConnected: true,
+          fbPendingPages: null,
+          fbOauthState: null,
+        })
+        .where(eq(marketingSettings.id, row.id));
 
-      await addLog(null, "fb_page_selected", "success", `Connected page: ${selected.name} (${selected.id})`);
+      await addLog(
+        null,
+        "fb_page_selected",
+        "success",
+        `Connected page: ${selected.name} (${selected.id})`,
+      );
       return { ok: true, pageName: selected.name };
     }),
 
   disconnectFacebook: adminProcedure.mutation(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
-    const [row] = await db.select({ id: marketingSettings.id }).from(marketingSettings).limit(1);
+    const [row] = await db
+      .select({ id: marketingSettings.id })
+      .from(marketingSettings)
+      .limit(1);
     if (!row) return { ok: true };
-    await db.update(marketingSettings).set({
-      fbPageId: null,
-      fbPageName: null,
-      fbAccessToken: null,
-      fbConnected: false,
-      fbPendingPages: null,
-      fbOauthState: null,
-    }).where(eq(marketingSettings.id, row.id));
-    await addLog(null, "fb_disconnect", "info", `Disconnected by user ${ctx.user.id}`);
+    await db
+      .update(marketingSettings)
+      .set({
+        fbPageId: null,
+        fbPageName: null,
+        fbAccessToken: null,
+        fbConnected: false,
+        fbPendingPages: null,
+        fbOauthState: null,
+      })
+      .where(eq(marketingSettings.id, row.id));
+    await addLog(
+      null,
+      "fb_disconnect",
+      "info",
+      `Disconnected by user ${ctx.user.id}`,
+    );
     return { ok: true };
   }),
 
@@ -686,14 +901,25 @@ export const marketingRouter = router({
       throw new Error("لم يتم ربط صفحة Facebook بعد");
     }
 
-    const { testPageToken } = await import("../services/marketing/facebookOAuth.service");
+    const { testPageToken } =
+      await import("../services/marketing/facebookOAuth.service");
     const result = await testPageToken(row.fbPageId, row.fbAccessToken);
 
     if (result.ok) {
-      await addLog(null, "fb_test_connection", "success", `Connection OK — page: ${result.pageName ?? row.fbPageName}`);
+      await addLog(
+        null,
+        "fb_test_connection",
+        "success",
+        `Connection OK — page: ${result.pageName ?? row.fbPageName}`,
+      );
       return { ok: true, pageName: result.pageName ?? row.fbPageName };
     } else {
-      await addLog(null, "fb_test_connection", "error", `Connection failed: ${result.error}`);
+      await addLog(
+        null,
+        "fb_test_connection",
+        "error",
+        `Connection failed: ${result.error}`,
+      );
       throw new Error(`فشل الاتصال: ${result.error}`);
     }
   }),
@@ -718,7 +944,8 @@ export const marketingRouter = router({
       .from(marketingSettings)
       .limit(1);
 
-    const { getNextScheduledTime } = await import("../services/marketing/scheduler.service");
+    const { getNextScheduledTime } =
+      await import("../services/marketing/scheduler.service");
     const nextRun = settings
       ? getNextScheduledTime({
           saturdayEnabled: settings.saturdayEnabled,
@@ -737,7 +964,9 @@ export const marketingRouter = router({
       publishHour: settings?.publishHour ?? 9,
       lastSchedulerRun: settings?.lastSchedulerRun ?? null,
       schedulerStatus: settings?.schedulerStatus ?? "idle",
-      nextRun: nextRun ? { day: nextRun.day, date: nextRun.date.toISOString() } : null,
+      nextRun: nextRun
+        ? { day: nextRun.day, date: nextRun.date.toISOString() }
+        : null,
     };
   }),
 
@@ -745,10 +974,11 @@ export const marketingRouter = router({
     .input(
       z.object({
         day: z.enum(["saturday", "tuesday", "thursday"]).optional(),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
-      const { runScheduledPost } = await import("../services/marketing/scheduler.service");
+      const { runScheduledPost } =
+        await import("../services/marketing/scheduler.service");
 
       // Determine which day to run
       let day = input.day as "saturday" | "tuesday" | "thursday" | undefined;
@@ -766,7 +996,12 @@ export const marketingRouter = router({
         }
       }
 
-      await addLog(null, "scheduler_manual_trigger", "info", `Manual run triggered by user ${ctx.user.id} for day: ${day}`);
+      await addLog(
+        null,
+        "scheduler_manual_trigger",
+        "info",
+        `Manual run triggered by user ${ctx.user.id} for day: ${day}`,
+      );
       const result = await runScheduledPost(day);
       return result;
     }),

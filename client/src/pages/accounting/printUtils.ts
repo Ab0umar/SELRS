@@ -1,4 +1,9 @@
-import { formatCountAr, formatDateAr, formatMoneyAr, toArabicDigits } from "./accountingFormat";
+import {
+  formatCountAr,
+  formatDateAr,
+  formatMoneyAr,
+  toArabicDigits,
+} from "./accountingFormat";
 
 export type PrintPayload = {
   /** Receipt and other specialized print layouts (optional; omit for default accounting reports). */
@@ -11,7 +16,11 @@ export type PrintPayload = {
     filters?: Record<string, string>;
   };
   groupBy?: string[];
-  columns: { key: string; label: string; align?: "left" | "right" | "center" }[];
+  columns: {
+    key: string;
+    label: string;
+    align?: "left" | "right" | "center";
+  }[];
   rows: Record<string, any>[];
   totals?: { label: string; values: Record<string, number> }[];
   footer?: string;

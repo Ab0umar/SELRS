@@ -3,7 +3,15 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { CalendarDays, CheckCircle2, ImageIcon, Loader2, RefreshCw, Trash2, XCircle } from "lucide-react";
+import {
+  CalendarDays,
+  CheckCircle2,
+  ImageIcon,
+  Loader2,
+  RefreshCw,
+  Trash2,
+  XCircle,
+} from "lucide-react";
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   draft: { label: "مسودة", className: "bg-muted text-muted-foreground" },
@@ -19,7 +27,9 @@ const DAY_LABELS: Record<string, string> = {
 };
 
 export default function PostHistory() {
-  const [filter, setFilter] = useState<"published" | "failed" | "all">("published");
+  const [filter, setFilter] = useState<"published" | "failed" | "all">(
+    "published",
+  );
   const [limit, setLimit] = useState(25);
 
   const utils = trpc.useUtils();
@@ -44,7 +54,12 @@ export default function PostHistory() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-bold text-foreground">سجل المنشورات</h1>
-        <Button size="sm" variant="ghost" aria-label="تحديث القائمة" onClick={() => void utils.marketing.listPosts.invalidate()}>
+        <Button
+          size="sm"
+          variant="ghost"
+          aria-label="تحديث القائمة"
+          onClick={() => void utils.marketing.listPosts.invalidate()}
+        >
           <RefreshCw className="h-4 w-4" />
         </Button>
       </div>
@@ -68,7 +83,11 @@ export default function PostHistory() {
       </div>
 
       {/* Cards grid */}
-      <div className="space-y-4" aria-live="polite" aria-busy={listQuery.isLoading}>
+      <div
+        className="space-y-4"
+        aria-live="polite"
+        aria-busy={listQuery.isLoading}
+      >
         {listQuery.isLoading ? (
           <div className="flex items-center justify-center py-10">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -80,18 +99,32 @@ export default function PostHistory() {
         ) : (
           <>
             {posts.map((post) => {
-              const badge = STATUS_BADGE[post.status] ?? { label: post.status, className: "" };
+              const badge = STATUS_BADGE[post.status] ?? {
+                label: post.status,
+                className: "",
+              };
               return (
-                <div key={post.id} className="rounded-xl border border-border bg-card overflow-hidden">
+                <div
+                  key={post.id}
+                  className="rounded-xl border border-border bg-card overflow-hidden"
+                >
                   {/* Image */}
                   {post.imageUrl ? (
                     <div className="relative h-48 w-full bg-muted">
                       <img
                         src={post.imageUrl}
-                        alt={post.title ?? (post.topic ? `صورة منشور: ${post.topic}` : "صورة منشور تسويقي")}
+                        alt={
+                          post.title ??
+                          (post.topic
+                            ? `صورة منشور: ${post.topic}`
+                            : "صورة منشور تسويقي")
+                        }
                         className="h-full w-full object-cover"
                         loading="lazy"
-                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.display =
+                            "none";
+                        }}
                       />
                     </div>
                   ) : (
@@ -104,27 +137,44 @@ export default function PostHistory() {
                     {/* Header */}
                     <div className="flex items-start gap-3">
                       <div className="mt-0.5 shrink-0">
-                        {post.status === "published"
-                          ? <CheckCircle2 className="h-4 w-4 text-success" />
-                          : post.status === "failed"
-                            ? <XCircle className="h-4 w-4 text-destructive" />
-                            : <CalendarDays className="h-4 w-4 text-muted-foreground" />}
+                        {post.status === "published" ? (
+                          <CheckCircle2 className="h-4 w-4 text-success" />
+                        ) : post.status === "failed" ? (
+                          <XCircle className="h-4 w-4 text-destructive" />
+                        ) : (
+                          <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                        )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-foreground leading-snug">{post.title}</p>
+                        <p className="font-medium text-foreground leading-snug">
+                          {post.title}
+                        </p>
                         <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                           {post.topic && <span>{post.topic}</span>}
-                          {post.postDay && <><span>·</span><span>{DAY_LABELS[post.postDay] ?? post.postDay}</span></>}
+                          {post.postDay && (
+                            <>
+                              <span>·</span>
+                              <span>
+                                {DAY_LABELS[post.postDay] ?? post.postDay}
+                              </span>
+                            </>
+                          )}
                           <span>·</span>
                           <span>
                             {post.publishedAt
-                              ? new Date(post.publishedAt).toLocaleDateString("ar-EG")
-                              : new Date(post.createdAt).toLocaleDateString("ar-EG")}
+                              ? new Date(post.publishedAt).toLocaleDateString(
+                                  "ar-EG",
+                                )
+                              : new Date(post.createdAt).toLocaleDateString(
+                                  "ar-EG",
+                                )}
                           </span>
                         </div>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
-                        <Badge className={`text-xs ${badge.className}`}>{badge.label}</Badge>
+                        <Badge className={`text-xs ${badge.className}`}>
+                          {badge.label}
+                        </Badge>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -140,7 +190,9 @@ export default function PostHistory() {
 
                     {/* Content */}
                     {post.content && (
-                      <p className="line-clamp-2 text-sm text-foreground/75 leading-relaxed">{post.content}</p>
+                      <p className="line-clamp-2 text-sm text-foreground/75 leading-relaxed">
+                        {post.content}
+                      </p>
                     )}
 
                     {/* Hashtags */}
@@ -153,7 +205,11 @@ export default function PostHistory() {
             })}
             {posts.length === limit && (
               <div className="flex justify-center pt-2">
-                <Button size="sm" variant="ghost" onClick={() => setLimit((l) => l + 25)}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setLimit((l) => l + 25)}
+                >
                   عرض المزيد
                 </Button>
               </div>

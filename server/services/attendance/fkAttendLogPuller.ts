@@ -6,10 +6,10 @@
  * We just need to invoke it and parse the CSV output
  */
 
-import { execSync } from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
+import { execSync } from "child_process";
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
 
 export interface FKPunch {
   enrollNo: number;
@@ -36,9 +36,9 @@ export interface FKDeviceConfig {
 
 export class FKAttendLogPuller {
   private static readonly FK_PULLER_PATH =
-    process.env.FK_PULLER_PATH ?? 'D:\\Programs\\fp\\FKOldLogPuller.exe';
+    process.env.FK_PULLER_PATH ?? "D:\\Programs\\fp\\FKOldLogPuller.exe";
   private static readonly DEFAULT_CONFIG: FKDeviceConfig = {
-    ip: '192.168.0.10',
+    ip: "192.168.0.10",
     port: 5005,
     machineNo: 1,
     password: 0,
@@ -50,9 +50,7 @@ export class FKAttendLogPuller {
   /**
    * Pull attendance logs from device
    */
-  static async pullLogs(
-    config?: Partial<FKDeviceConfig>
-  ): Promise<FKPunch[]> {
+  static async pullLogs(config?: Partial<FKDeviceConfig>): Promise<FKPunch[]> {
     const fullConfig = { ...this.DEFAULT_CONFIG, ...config };
 
     // Create temp file for output
@@ -75,7 +73,7 @@ export class FKAttendLogPuller {
       console.log(`[FKAttend] Executing: ${cmd}`);
 
       // Execute the puller
-      const output = execSync(cmd, { encoding: 'utf-8' });
+      const output = execSync(cmd, { encoding: "utf-8" });
       console.log(`[FKAttend] Output:\n${output}`);
 
       // Parse the CSV output
@@ -84,9 +82,7 @@ export class FKAttendLogPuller {
       return punches;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      throw new Error(
-        `Failed to pull logs from device: ${errorMsg}`
-      );
+      throw new Error(`Failed to pull logs from device: ${errorMsg}`);
     } finally {
       // Clean up temp file
       try {
@@ -108,8 +104,8 @@ export class FKAttendLogPuller {
       return [];
     }
 
-    const content = fs.readFileSync(filePath, 'utf-8');
-    const lines = content.trim().split('\n');
+    const content = fs.readFileSync(filePath, "utf-8");
+    const lines = content.trim().split("\n");
 
     const punches: FKPunch[] = [];
 
@@ -119,7 +115,7 @@ export class FKAttendLogPuller {
       if (!line) continue;
 
       try {
-        const parts = line.split(',');
+        const parts = line.split(",");
         if (parts.length < 10) continue;
 
         const punch: FKPunch = {
@@ -152,7 +148,7 @@ export class FKAttendLogPuller {
    * Test device connection
    */
   static async testConnection(
-    config?: Partial<FKDeviceConfig>
+    config?: Partial<FKDeviceConfig>,
   ): Promise<boolean> {
     try {
       const fullConfig = { ...this.DEFAULT_CONFIG, ...config };
@@ -169,12 +165,13 @@ export class FKAttendLogPuller {
         ` --protocol ${fullConfig.protocol}` +
         ` --out "${tempFile}"`;
 
-      const output = execSync(cmd, { encoding: 'utf-8', stdio: 'pipe' });
+      const output = execSync(cmd, { encoding: "utf-8", stdio: "pipe" });
 
       // Check for success indicators
-      const success = output.toLowerCase().includes('done') ||
-                     output.toLowerCase().includes('rows:') ||
-                     output.toLowerCase().includes('handle:');
+      const success =
+        output.toLowerCase().includes("done") ||
+        output.toLowerCase().includes("rows:") ||
+        output.toLowerCase().includes("handle:");
 
       // Clean up
       try {
@@ -211,7 +208,7 @@ export async function testFKPuller() {
   console.log(`\n[FKAttend] Testing device connection...`);
 
   const available = FKAttendLogPuller.isPullerAvailable();
-  console.log(`FKOldLogPuller.exe: ${available ? '✓ Found' : '✗ Not found'}`);
+  console.log(`FKOldLogPuller.exe: ${available ? "✓ Found" : "✗ Not found"}`);
 
   if (!available) {
     console.log(`Expected at: ${FKAttendLogPuller.getPullerPath()}\n`);
@@ -220,7 +217,9 @@ export async function testFKPuller() {
 
   try {
     const connected = await FKAttendLogPuller.testConnection();
-    console.log(`Device connection: ${connected ? '✓ Connected' : '✗ Failed'}\n`);
+    console.log(
+      `Device connection: ${connected ? "✓ Connected" : "✗ Failed"}\n`,
+    );
 
     if (connected) {
       console.log(`[FKAttend] Pulling last 100 logs...`);
@@ -232,8 +231,8 @@ export async function testFKPuller() {
         punches.slice(0, 3).forEach((p) => {
           console.log(
             `  - Emp: ${p.enrollNo}, Time: ${p.timestamp.toISOString()}, Dir: ${
-              p.inOutMode === 1 ? 'IN' : 'OUT'
-            }`
+              p.inOutMode === 1 ? "IN" : "OUT"
+            }`,
           );
         });
       }

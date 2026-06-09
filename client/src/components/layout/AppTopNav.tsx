@@ -26,7 +26,6 @@ import {
   DollarSign,
   KeyRound,
   LayoutDashboard,
-  LayoutGrid,
   LogOut,
   Network,
   Search,
@@ -222,14 +221,6 @@ export function AppTopNav({
         paths: ["/accounting"],
         checkPath: "/accounting",
       },
-      {
-        icon: LayoutGrid,
-        label: "المزيد",
-        path: "#",
-        key: "more",
-        paths: [],
-        checkPath: undefined,
-      },
     ],
     [],
   );
@@ -362,27 +353,16 @@ export function AppTopNav({
                 );
               })
             : mainNavTabs.map((tab) => {
-                const active =
-                  tab.key === "more"
-                    ? false
-                    : tab.paths.some((p) => {
-                        const base = location.split("?")[0];
-                        return base === p || base.startsWith(`${p}/`);
-                      });
+                const active = tab.paths.some((p) => {
+                  const base = location.split("?")[0];
+                  return base === p || base.startsWith(`${p}/`);
+                });
                 const Icon = tab.icon;
                 return (
                   <button
                     key={tab.key}
                     type="button"
-                    onClick={() => {
-                      if (tab.key === "more") {
-                        window.dispatchEvent(
-                          new Event("selrs:open-command-palette"),
-                        );
-                      } else {
-                        onNavigate(tab.path);
-                      }
-                    }}
+                    onClick={() => onNavigate(tab.path)}
                     className={cn(
                       "flex h-full items-center gap-1.5 border-b-2 px-3.5 text-sm transition-colors",
                       active
@@ -400,113 +380,117 @@ export function AppTopNav({
                 );
               })}
 
-          {/* الحسابات dropdown */}
-          {!isAdmin && accountingItems.length > 0 && (
-            <div className="flex h-full items-stretch">
-              <button
-                type="button"
-                onClick={() => onNavigate("/accounting")}
-                className={cn(
-                  "flex h-full items-center border-b-2 px-3 text-sm transition-colors focus-visible:outline-none",
-                  accountingActive
-                    ? "border-b-primary bg-primary text-primary-foreground"
-                    : "border-transparent text-muted-foreground hover:bg-muted text-muted-foreground",
-                )}
-              >
-                <span>الحسابات</span>
-              </button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className={cn(
-                      "flex h-full items-center border-b-2 px-2.5 text-sm transition-colors focus-visible:outline-none",
-                      accountingActive
-                        ? "border-b-primary bg-primary text-primary-foreground"
-                        : "border-transparent text-muted-foreground hover:bg-muted text-muted-foreground",
-                    )}
-                    aria-label="فتح قائمة الحسابات"
-                  >
-                    <ChevronDown
-                      className="h-3.5 w-3.5 opacity-70"
-                      aria-hidden
-                    />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="start"
-                  className="w-52"
-                  style={{ direction: "rtl" } satisfies CSSProperties}
+          {/* الحسابات dropdown — only shown when not already in mainNavTabs */}
+          {!isAdmin &&
+            accountingItems.length > 0 &&
+            !mainNavTabs.some((t) => t.key === "accounting") && (
+              <div className="flex h-full items-stretch">
+                <button
+                  type="button"
+                  onClick={() => onNavigate("/accounting")}
+                  className={cn(
+                    "flex h-full items-center border-b-2 px-3 text-sm transition-colors focus-visible:outline-none",
+                    accountingActive
+                      ? "border-b-primary bg-primary text-primary-foreground"
+                      : "border-transparent text-muted-foreground hover:bg-muted text-muted-foreground",
+                  )}
                 >
-                  {(() => {
-                    const byPath = new Map(
-                      accountingItems.map((i) => [i.path, i]),
-                    );
-                    const pick = (paths: string[]) =>
-                      paths
-                        .map((p) => byPath.get(p))
-                        .filter(Boolean) as typeof accountingItems;
-                    const treasury = pick([
-                      "/accounting/ledger",
-                      "/accounting/daily-revenue",
-                      "/accounting/service-revenue",
-                      "/accounting/receipts",
-                    ]);
-                    const statements = pick([
-                      "/accounting/cashbook",
-                      "/accounting/advances",
-                      "/accounting/instapay",
-                      "/accounting/home-fund",
-                      "/accounting/dr-saadany",
-                    ]);
-                    const loans = pick(["/accounting/loans"]);
-                    const knownPaths = new Set(
-                      [...treasury, ...statements, ...loans].map((i) => i.path),
-                    );
-                    const reports = accountingItems.filter(
-                      (i) => !knownPaths.has(i.path),
-                    );
-                    const labelOverrides: Record<string, string> = {
-                      "/accounting/cashbook": "الخزينة",
-                      "/accounting/advances": "السلف",
-                      "/accounting/home-fund": "البيت",
-                    };
-                    const renderSection = (
-                      label: string,
-                      items: typeof accountingItems,
-                      sep = true,
-                    ) =>
-                      items.length > 0 ? (
+                  <span>الحسابات</span>
+                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className={cn(
+                        "flex h-full items-center border-b-2 px-2.5 text-sm transition-colors focus-visible:outline-none",
+                        accountingActive
+                          ? "border-b-primary bg-primary text-primary-foreground"
+                          : "border-transparent text-muted-foreground hover:bg-muted text-muted-foreground",
+                      )}
+                      aria-label="فتح قائمة الحسابات"
+                    >
+                      <ChevronDown
+                        className="h-3.5 w-3.5 opacity-70"
+                        aria-hidden
+                      />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="start"
+                    className="w-52"
+                    style={{ direction: "rtl" } satisfies CSSProperties}
+                  >
+                    {(() => {
+                      const byPath = new Map(
+                        accountingItems.map((i) => [i.path, i]),
+                      );
+                      const pick = (paths: string[]) =>
+                        paths
+                          .map((p) => byPath.get(p))
+                          .filter(Boolean) as typeof accountingItems;
+                      const treasury = pick([
+                        "/accounting/ledger",
+                        "/accounting/daily-revenue",
+                        "/accounting/service-revenue",
+                        "/accounting/receipts",
+                      ]);
+                      const statements = pick([
+                        "/accounting/cashbook",
+                        "/accounting/advances",
+                        "/accounting/instapay",
+                        "/accounting/home-fund",
+                        "/accounting/dr-saadany",
+                      ]);
+                      const loans = pick(["/accounting/loans"]);
+                      const knownPaths = new Set(
+                        [...treasury, ...statements, ...loans].map(
+                          (i) => i.path,
+                        ),
+                      );
+                      const reports = accountingItems.filter(
+                        (i) => !knownPaths.has(i.path),
+                      );
+                      const labelOverrides: Record<string, string> = {
+                        "/accounting/cashbook": "الخزينة",
+                        "/accounting/advances": "السلف",
+                        "/accounting/home-fund": "البيت",
+                      };
+                      const renderSection = (
+                        label: string,
+                        items: typeof accountingItems,
+                        sep = true,
+                      ) =>
+                        items.length > 0 ? (
+                          <>
+                            {sep && <DropdownMenuSeparator />}
+                            <DropdownMenuLabel className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              {label}
+                            </DropdownMenuLabel>
+                            {items.map((item) => (
+                              <DropdownMenuItem
+                                key={item.path}
+                                className="cursor-pointer gap-2"
+                                onClick={() => onNavigate(item.path)}
+                              >
+                                <item.icon className="h-4 w-4" />
+                                {labelOverrides[item.path] ?? item.label}
+                              </DropdownMenuItem>
+                            ))}
+                          </>
+                        ) : null;
+                      return (
                         <>
-                          {sep && <DropdownMenuSeparator />}
-                          <DropdownMenuLabel className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                            {label}
-                          </DropdownMenuLabel>
-                          {items.map((item) => (
-                            <DropdownMenuItem
-                              key={item.path}
-                              className="cursor-pointer gap-2"
-                              onClick={() => onNavigate(item.path)}
-                            >
-                              <item.icon className="h-4 w-4" />
-                              {labelOverrides[item.path] ?? item.label}
-                            </DropdownMenuItem>
-                          ))}
+                          {renderSection("الخزينة", treasury, false)}
+                          {renderSection("كشف حساب", statements, true)}
+                          {renderSection("صندوق القرض", loans, true)}
+                          {renderSection("تقارير", reports, true)}
                         </>
-                      ) : null;
-                    return (
-                      <>
-                        {renderSection("الخزينة", treasury, false)}
-                        {renderSection("كشف حساب", statements, true)}
-                        {renderSection("صندوق القرض", loans, true)}
-                        {renderSection("تقارير", reports, true)}
-                      </>
-                    );
-                  })()}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          )}
+                      );
+                    })()}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
         </nav>
 
         {/* Spacer */}

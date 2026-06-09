@@ -42,8 +42,24 @@ export interface SavedSummary {
 
 export type ViewMode = "list" | "table" | "accounts" | "history";
 
-export const arabicWeekdays = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
-export const arabicWeekdaysByIndex = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+export const arabicWeekdays = [
+  "الأحد",
+  "الاثنين",
+  "الثلاثاء",
+  "الأربعاء",
+  "الخميس",
+  "الجمعة",
+  "السبت",
+];
+export const arabicWeekdaysByIndex = [
+  "الأحد",
+  "الاثنين",
+  "الثلاثاء",
+  "الأربعاء",
+  "الخميس",
+  "الجمعة",
+  "السبت",
+];
 
 export const getLocalDateIso = () => {
   const now = new Date();
@@ -95,7 +111,8 @@ export const shiftDateToWeekday = (value: string, targetDayIndex: number) => {
   return toDateInputValue(base) || value;
 };
 
-export const toHindi = (value: string) => value.replace(/\d/g, (digit) => "٠١٢٣٤٥٦٧٨٩"[Number(digit)]);
+export const toHindi = (value: string) =>
+  value.replace(/\d/g, (digit) => "٠١٢٣٤٥٦٧٨٩"[Number(digit)]);
 
 export const formatTime12h = (time24: string): string => {
   if (!time24 || time24 === "-") return time24;
@@ -109,5 +126,7 @@ export const formatTime12h = (time24: string): string => {
 
 export const sanitizePayment = (value: unknown) => {
   const text = String(value ?? "");
-  return text === "true" || text === "false" || text === "1" || text === "0" ? "" : text;
+  return text === "true" || text === "false" || text === "1" || text === "0"
+    ? ""
+    : text;
 };

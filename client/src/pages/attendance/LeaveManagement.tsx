@@ -311,7 +311,7 @@ export default function LeaveManagement() {
             </div>
           ) : (
             <div className="overflow-x-auto" dir="rtl">
-        <table dir="rtl" className="min-w-[52rem] w-full text-sm" dir="rtl">
+              <table dir="rtl" className="min-w-[52rem] w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th className="text-right py-3 px-4">الموظف</th>

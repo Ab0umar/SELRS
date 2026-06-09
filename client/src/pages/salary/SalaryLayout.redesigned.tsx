@@ -118,7 +118,7 @@ function isItemActive(pathname: string, activeFor: string[]) {
   return activeFor.some((path) =>
     path === "/salary"
       ? pathname === path
-      : pathname === path || pathname.startsWith(`${path}/`)
+      : pathname === path || pathname.startsWith(`${path}/`),
   );
 }
 
@@ -132,7 +132,7 @@ export default function SalaryLayout({ children }: SalaryLayoutProps) {
   const now = new Date();
   const summaryQ = (trpc as any).salary.monthSummary.useQuery(
     { year: now.getFullYear(), month: now.getMonth() + 1 },
-    { refetchInterval: 60_000, refetchIntervalInBackground: false }
+    { refetchInterval: 60_000, refetchIntervalInBackground: false },
   );
   const summary = summaryQ.data as any;
 
@@ -165,7 +165,10 @@ export default function SalaryLayout({ children }: SalaryLayoutProps) {
   ];
 
   return (
-    <div className="page-layout min-h-screen bg-background text-foreground" dir="rtl">
+    <div
+      className="page-layout min-h-screen bg-background text-foreground"
+      dir="rtl"
+    >
       {/* Header with metrics */}
       <div className="border-b border-primary/15 bg-gradient-to-b from-primary/5 to-transparent">
         <div className="mx-auto w-full px-3 py-4 sm:px-4 lg:px-5">

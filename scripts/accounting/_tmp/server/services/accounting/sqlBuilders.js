@@ -11,67 +11,69 @@ exports.buildLasikRevenueSummarySql = buildLasikRevenueSummarySql;
 exports.buildPatientLasikSummarySql = buildPatientLasikSummarySql;
 const LASIK_SECTION_CODE = 15;
 function cleanParams(params) {
-    return Object.fromEntries(Object.entries(params).filter(([, value]) => value !== undefined));
+  return Object.fromEntries(
+    Object.entries(params).filter(([, value]) => value !== undefined),
+  );
 }
 function dateRangeWhere(input, params) {
-    const where = [];
-    if (input.fromDate) {
-        where.push("h.TR_DT >= @fromDate");
-        params.fromDate = input.fromDate;
-    }
-    if (input.toDate) {
-        where.push("h.TR_DT < DATEADD(day, 1, @toDate)");
-        params.toDate = input.toDate;
-    }
-    return where;
+  const where = [];
+  if (input.fromDate) {
+    where.push("h.TR_DT >= @fromDate");
+    params.fromDate = input.fromDate;
+  }
+  if (input.toDate) {
+    where.push("h.TR_DT < DATEADD(day, 1, @toDate)");
+    params.toDate = input.toDate;
+  }
+  return where;
 }
 function sectionWhere(sectionCode, params) {
-    params.secCd = sectionCode ?? LASIK_SECTION_CODE;
-    return ["h.SEC_CD = @secCd"];
+  params.secCd = sectionCode ?? LASIK_SECTION_CODE;
+  return ["h.SEC_CD = @secCd"];
 }
 function doctorWhere(doctorCode, params) {
-    if (!doctorCode) {
-        return [];
-    }
-    params.doctorCode = doctorCode;
-    return ["s.SRV_BY1 = @doctorCode"];
+  if (!doctorCode) {
+    return [];
+  }
+  params.doctorCode = doctorCode;
+  return ["s.SRV_BY1 = @doctorCode"];
 }
 function patientWhere(patientCode, params) {
-    if (!patientCode) {
-        return [];
-    }
-    params.patientCode = patientCode;
-    return ["h.PAT_CD = @patientCode"];
+  if (!patientCode) {
+    return [];
+  }
+  params.patientCode = patientCode;
+  return ["h.PAT_CD = @patientCode"];
 }
 function serviceWhere(serviceCode, params) {
-    if (!serviceCode) {
-        return [];
-    }
-    params.serviceCode = serviceCode;
-    return ["s.SRV_CD = @serviceCode"];
+  if (!serviceCode) {
+    return [];
+  }
+  params.serviceCode = serviceCode;
+  return ["s.SRV_CD = @serviceCode"];
 }
 function topClause(limit, params) {
-    if (!limit) {
-        return "";
-    }
-    params.limit = limit;
-    return "TOP (@limit) ";
+  if (!limit) {
+    return "";
+  }
+  params.limit = limit;
+  return "TOP (@limit) ";
 }
 function joinedTables() {
-    return `FROM PAJRNRCVH h
+  return `FROM PAJRNRCVH h
 JOIN PAPAT_SRV s
   ON h.SEC_CD = s.SEC_CD
  AND h.TR_TY = s.TR_TY
  AND h.TR_NO = s.TR_NO`;
 }
 function andWhere(where) {
-    return where.length > 0 ? `WHERE ${where.join("\n  AND ")}` : "";
+  return where.length > 0 ? `WHERE ${where.join("\n  AND ")}` : "";
 }
 function buildDashboardSummarySql(input = {}) {
-    const params = cleanParams({
-        secCd: input.sectionCode ?? LASIK_SECTION_CODE,
-    });
-    const sql = `
+  const params = cleanParams({
+    secCd: input.sectionCode ?? LASIK_SECTION_CODE,
+  });
+  const sql = `
 WITH base_rows AS (
   SELECT
     h.TR_TY,
@@ -107,18 +109,18 @@ SELECT
   END) AS totalRevenueThisMonth,
   SUM(paid_value) AS totalPaidInSection
 FROM base_rows`.trim();
-    return { sql, params };
+  return { sql, params };
 }
 function buildDailyRevenueSql(input) {
-    const params = {};
-    const where = [
-        ...dateRangeWhere(input, params),
-        ...sectionWhere(input.sectionCode, params),
-        ...doctorWhere(input.doctorCode, params),
-        "h.CNCL IS NULL",
-        "s.CNCL IS NULL",
-    ];
-    const sql = `
+  const params = {};
+  const where = [
+    ...dateRangeWhere(input, params),
+    ...sectionWhere(input.sectionCode, params),
+    ...doctorWhere(input.doctorCode, params),
+    "h.CNCL IS NULL",
+    "s.CNCL IS NULL",
+  ];
+  const sql = `
 SELECT
   CAST(h.TR_DT AS date) AS trDate,
   COUNT(DISTINCT CONCAT(h.TR_TY, ':', h.TR_NO)) AS totalReceipts,
@@ -131,24 +133,22 @@ ${joinedTables()}
 ${andWhere(where)}
 GROUP BY CAST(h.TR_DT AS date)
 ORDER BY trDate`.trim();
-    return { sql, params: cleanParams(params) };
+  return { sql, params: cleanParams(params) };
 }
 function buildServiceRevenueSql(input) {
-    const params = {};
-    const where = [
-        ...dateRangeWhere(input, params),
-        ...sectionWhere(input.sectionCode, params),
-        ...doctorWhere(input.doctorCode, params),
-        ...serviceWhere(input.serviceCode, params),
-        "s.CNCL IS NULL",
-        "h.CNCL IS NULL",
-    ];
-    // Always include date range to prevent table scans
-    if (!params.fromDate)
-        params.fromDate = '2024-01-01';
-    if (!params.toDate)
-        params.toDate = '2024-01-31';
-    const sql = `
+  const params = {};
+  const where = [
+    ...dateRangeWhere(input, params),
+    ...sectionWhere(input.sectionCode, params),
+    ...doctorWhere(input.doctorCode, params),
+    ...serviceWhere(input.serviceCode, params),
+    "s.CNCL IS NULL",
+    "h.CNCL IS NULL",
+  ];
+  // Always include date range to prevent table scans
+  if (!params.fromDate) params.fromDate = "2024-01-01";
+  if (!params.toDate) params.toDate = "2024-01-31";
+  const sql = `
 SELECT
   ISNULL(s.SRV_BY1, '') AS doctorCode,
   ISNULL(m.PHNM_AR, '') AS doctorName,
@@ -173,26 +173,26 @@ ORDER BY
   ISNULL(s.SRV_BY1, ''),
   ISNULL(c.SRV_NM_AR, ''),
   ISNULL(s.SRV_CD, '')`.trim();
-    return { sql, params: cleanParams(params) };
+  return { sql, params: cleanParams(params) };
 }
 function buildReceiptsInquirySql(input) {
-    const params = {};
-    const where = [
-        ...dateRangeWhere(input, params),
-        ...sectionWhere(input.sectionCode, params),
-        ...patientWhere(input.patientCode, params),
-        ...doctorWhere(input.doctorCode, params),
-    ];
-    if (input.trNo !== undefined) {
-        where.push("h.TR_NO = @trNo");
-        params.trNo = input.trNo;
-    }
-    if (input.trTy !== undefined) {
-        where.push("h.TR_TY = @trTy");
-        params.trTy = input.trTy;
-    }
-    const top = topClause(input.limit, params);
-    const sql = `
+  const params = {};
+  const where = [
+    ...dateRangeWhere(input, params),
+    ...sectionWhere(input.sectionCode, params),
+    ...patientWhere(input.patientCode, params),
+    ...doctorWhere(input.doctorCode, params),
+  ];
+  if (input.trNo !== undefined) {
+    where.push("h.TR_NO = @trNo");
+    params.trNo = input.trNo;
+  }
+  if (input.trTy !== undefined) {
+    where.push("h.TR_TY = @trTy");
+    params.trTy = input.trTy;
+  }
+  const top = topClause(input.limit, params);
+  const sql = `
 SELECT DISTINCT ${top}
   h.SEC_CD AS secCd,
   h.TR_TY AS trTy,
@@ -207,15 +207,15 @@ SELECT DISTINCT ${top}
 ${joinedTables()}
 ${andWhere(where)}
 ORDER BY h.TR_DT DESC, h.TR_NO DESC`.trim();
-    return { sql, params: cleanParams(params) };
+  return { sql, params: cleanParams(params) };
 }
 function buildReceiptDetailSql(input) {
-    const params = cleanParams({
-        secCd: input.sectionCode,
-        trTy: input.trTy,
-        trNo: input.trNo,
-    });
-    const sql = `
+  const params = cleanParams({
+    secCd: input.sectionCode,
+    trTy: input.trTy,
+    trNo: input.trNo,
+  });
+  const sql = `
 SELECT
   1 AS grp,
   h.SEC_CD AS secCd,
@@ -260,26 +260,26 @@ WHERE h.SEC_CD = @secCd
   AND h.TR_TY = @trTy
   AND h.TR_NO = @trNo
 ORDER BY s.SRV_CD`.trim();
-    return { sql, params };
+  return { sql, params };
 }
 function buildLasikReceiptsSql(input) {
-    return buildReceiptsInquirySql({
-        ...input,
-        sectionCode: LASIK_SECTION_CODE,
-    });
+  return buildReceiptsInquirySql({
+    ...input,
+    sectionCode: LASIK_SECTION_CODE,
+  });
 }
 function buildLasikServicesSql(input = {}) {
-    const params = {};
-    const where = [
-        ...dateRangeWhere(input, params),
-        ...sectionWhere(LASIK_SECTION_CODE, params),
-        ...patientWhere(input.patientCode, params),
-        ...doctorWhere(input.doctorCode, params),
-        ...serviceWhere(input.serviceCode, params),
-        "s.CNCL IS NULL",
-    ];
-    const top = topClause(input.limit, params);
-    const sql = `
+  const params = {};
+  const where = [
+    ...dateRangeWhere(input, params),
+    ...sectionWhere(LASIK_SECTION_CODE, params),
+    ...patientWhere(input.patientCode, params),
+    ...doctorWhere(input.doctorCode, params),
+    ...serviceWhere(input.serviceCode, params),
+    "s.CNCL IS NULL",
+  ];
+  const top = topClause(input.limit, params);
+  const sql = `
 SELECT ${top}
   s.PAT_CD AS patientCode,
   s.PAT_NM_AR AS patientName,
@@ -303,18 +303,18 @@ LEFT JOIN SRVCMF c
   ON c.SRV_CD = s.SRV_CD
 ${andWhere(where)}
 ORDER BY h.TR_DT DESC, s.TR_NO DESC, s.SRV_CD`.trim();
-    return { sql, params: cleanParams(params) };
+  return { sql, params: cleanParams(params) };
 }
 function buildLasikRevenueSummarySql(input = {}) {
-    const params = {};
-    const where = [
-        ...dateRangeWhere(input, params),
-        ...sectionWhere(LASIK_SECTION_CODE, params),
-        ...doctorWhere(input.doctorCode, params),
-        "ISNULL(s.SRV_BY1, '') <> ''",
-        "s.CNCL IS NULL",
-    ];
-    const sql = `
+  const params = {};
+  const where = [
+    ...dateRangeWhere(input, params),
+    ...sectionWhere(LASIK_SECTION_CODE, params),
+    ...doctorWhere(input.doctorCode, params),
+    "ISNULL(s.SRV_BY1, '') <> ''",
+    "s.CNCL IS NULL",
+  ];
+  const sql = `
 SELECT
   COUNT_BIG(*) AS rowCount,
   COUNT(DISTINCT s.SRV_BY1) AS doctorCount,
@@ -325,14 +325,14 @@ SELECT
   SUM(ISNULL(s.DISC_VL, 0)) AS totalDiscount
 ${joinedTables()}
 ${andWhere(where)}`.trim();
-    return { sql, params: cleanParams(params) };
+  return { sql, params: cleanParams(params) };
 }
 function buildPatientLasikSummarySql(input) {
-    const params = cleanParams({
-        secCd: LASIK_SECTION_CODE,
-        patientCode: input.patientCode,
-    });
-    const sql = `
+  const params = cleanParams({
+    secCd: LASIK_SECTION_CODE,
+    patientCode: input.patientCode,
+  });
+  const sql = `
 SELECT
   h.SEC_CD AS secCd,
   h.TR_TY AS trTy,
@@ -356,5 +356,5 @@ WHERE h.SEC_CD = @secCd
   AND h.CNCL IS NULL
   AND s.CNCL IS NULL
 ORDER BY h.TR_DT DESC, h.TR_NO DESC, s.SRV_CD`.trim();
-    return { sql, params };
+  return { sql, params };
 }

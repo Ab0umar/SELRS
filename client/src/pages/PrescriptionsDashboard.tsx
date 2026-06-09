@@ -56,17 +56,30 @@ function classifyPrescription(dateInput: unknown): Exclude<RxStatus, "all"> {
 
 function statusBadge(status: Exclude<RxStatus, "all">) {
   if (status === "active") {
-    return <span className="rounded-full bg-success/15 px-2.5 py-1 text-[11px] font-semibold text-success">فعالة</span>;
+    return (
+      <span className="rounded-full bg-success/15 px-2.5 py-1 text-[11px] font-semibold text-success">
+        فعالة
+      </span>
+    );
   }
   if (status === "expired") {
-    return <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">منتهية</span>;
+    return (
+      <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
+        منتهية
+      </span>
+    );
   }
-  return <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">مكتملة</span>;
+  return (
+    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
+      مكتملة
+    </span>
+  );
 }
 
 function toDateLabel(value: string | Date | null | undefined) {
   if (!value) return "—";
-  const normalized = value instanceof Date ? value.toISOString() : String(value);
+  const normalized =
+    value instanceof Date ? value.toISOString() : String(value);
   return formatDateLabel(normalized.split("T")[0] || normalized);
 }
 
@@ -89,12 +102,15 @@ export default function PrescriptionsDashboard() {
       pageSize,
       search,
       statusFilter,
-      locationType: locationFilter === "center" || locationFilter === "external" ? locationFilter : undefined,
+      locationType:
+        locationFilter === "center" || locationFilter === "external"
+          ? locationFilter
+          : undefined,
     },
     {
       enabled: Boolean(isAuthenticated),
       refetchOnWindowFocus: false,
-    }
+    },
   );
 
   const rows = (overviewQuery.data?.rows ?? []) as PrescriptionRow[];
@@ -114,18 +130,34 @@ export default function PrescriptionsDashboard() {
     return { total: rows.length, active, completed, expired };
   }, [rows]);
 
-  const alertRows = useMemo(() => rows.filter((row) => classifyPrescription(row.prescriptionDate) === "expired").slice(0, 5), [rows]);
+  const alertRows = useMemo(
+    () =>
+      rows
+        .filter(
+          (row) => classifyPrescription(row.prescriptionDate) === "expired",
+        )
+        .slice(0, 5),
+    [rows],
+  );
 
   if (!isAuthenticated) return null;
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] px-4 py-4 sm:px-6 lg:px-8" dir="rtl">
+    <div
+      className="mx-auto w-full max-w-[1440px] px-4 py-4 sm:px-6 lg:px-8"
+      dir="rtl"
+    >
       <PageHeader
         title="لوحة الروشتات"
         subtitle="استعراض سريع للوصفات الطبية وحالتها"
         icon={<Pill className="h-5 w-5" />}
         action={
-          <Button type="button" size="sm" className="gap-2" onClick={() => setLocation("/prescription")}>
+          <Button
+            type="button"
+            size="sm"
+            className="gap-2"
+            onClick={() => setLocation("/prescription")}
+          >
             <Plus className="h-4 w-4" />
             <span>روشتة جديدة</span>
           </Button>
@@ -142,30 +174,74 @@ export default function PrescriptionsDashboard() {
         </div>
       ) : null}
 
-      <div className={cn(STAT_CARDS_MOBILE_ROW, "mb-4 gap-2 sm:mb-6 sm:grid sm:grid-cols-4 sm:gap-4")}>
-        <StatCard title="الإجمالي" value={stats.total} icon={Pill} description="الروشتات المتاحة" />
-        <StatCard title="فعالة" value={stats.active} icon={Clock3} description={`آخر ${ACTIVE_DAYS} يومًا`} iconColor="bg-success/15 text-success" />
-        <StatCard title="مكتملة" value={stats.completed} icon={CheckCircle2} description="خارج نافذة النشاط" iconColor="bg-primary/10 text-primary" />
-        <StatCard title="منتهية" value={stats.expired} icon={XCircle} description={`أقدم من ${EXPIRED_AFTER_DAYS} يومًا`} iconColor="bg-muted text-muted-foreground" />
+      <div
+        className={cn(
+          STAT_CARDS_MOBILE_ROW,
+          "mb-4 gap-2 sm:mb-6 sm:grid sm:grid-cols-4 sm:gap-4",
+        )}
+      >
+        <StatCard
+          title="الإجمالي"
+          value={stats.total}
+          icon={Pill}
+          description="الروشتات المتاحة"
+        />
+        <StatCard
+          title="فعالة"
+          value={stats.active}
+          icon={Clock3}
+          description={`آخر ${ACTIVE_DAYS} يومًا`}
+          iconColor="bg-success/15 text-success"
+        />
+        <StatCard
+          title="مكتملة"
+          value={stats.completed}
+          icon={CheckCircle2}
+          description="خارج نافذة النشاط"
+          iconColor="bg-primary/10 text-primary"
+        />
+        <StatCard
+          title="منتهية"
+          value={stats.expired}
+          icon={XCircle}
+          description={`أقدم من ${EXPIRED_AFTER_DAYS} يومًا`}
+          iconColor="bg-muted text-muted-foreground"
+        />
       </div>
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="w-full lg:max-w-md">
-          <SearchBar value={search} onChange={setSearch} placeholder="بحث بالاسم أو الكود أو الطبيب أو الدواء..." />
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="بحث بالاسم أو الكود أو الطبيب أو الدواء..."
+          />
         </div>
         <div className="flex flex-col gap-2 lg:items-end">
-          <FilterBar filters={locationTabs} selected={locationFilter} onSelect={(value) => setLocationFilter(value as LocationType)} />
-          <FilterBar filters={statusTabs} selected={statusFilter} onSelect={(value) => setStatusFilter(value as RxStatus)} />
+          <FilterBar
+            filters={locationTabs}
+            selected={locationFilter}
+            onSelect={(value) => setLocationFilter(value as LocationType)}
+          />
+          <FilterBar
+            filters={statusTabs}
+            selected={statusFilter}
+            onSelect={(value) => setStatusFilter(value as RxStatus)}
+          />
         </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
           {overviewQuery.isLoading ? (
-            <div className="p-12 text-center text-muted-foreground">جاري تحميل الروشتات…</div>
+            <div className="p-12 text-center text-muted-foreground">
+              جاري تحميل الروشتات…
+            </div>
           ) : rows.length === 0 ? (
             <div className="p-12 text-center text-muted-foreground">
-              {total === 0 ? "لا توجد روشتات مسجلة بعد." : "لا توجد روشتات مطابقة للتصفية."}
+              {total === 0
+                ? "لا توجد روشتات مسجلة بعد."
+                : "لا توجد روشتات مطابقة للتصفية."}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -177,38 +253,73 @@ export default function PrescriptionsDashboard() {
                     <th className="px-4 py-3 font-semibold">التاريخ</th>
                     <th className="px-4 py-3 font-semibold">الأدوية</th>
                     <th className="px-4 py-3 font-semibold">الحالة</th>
-                    <th className="w-24 px-4 py-3 text-center font-semibold">إجراء</th>
+                    <th className="w-24 px-4 py-3 text-center font-semibold">
+                      إجراء
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((row) => {
                     const status = classifyPrescription(row.prescriptionDate);
                     const dateLabel = toDateLabel(row.prescriptionDate);
-                    const noteSnippet = String(row.notes ?? "").trim().slice(0, 80);
+                    const noteSnippet = String(row.notes ?? "")
+                      .trim()
+                      .slice(0, 80);
                     return (
-                      <tr key={row.id} className="border-b border-border/70 transition-colors hover:bg-primary/[0.05]">
+                      <tr
+                        key={row.id}
+                        className="border-b border-border/70 transition-colors hover:bg-primary/[0.05]"
+                      >
                         <td className="px-4 py-3 align-top">
-                          <div className="font-semibold">{row.patientName || `مريض #${row.patientId}`}</div>
+                          <div className="font-semibold">
+                            {row.patientName || `مريض #${row.patientId}`}
+                          </div>
                           <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
                             <span dir="ltr">{row.patientCode || "—"}</span>
                             <span>•</span>
-                            <span>{row.locationType === "external" ? "خارجي" : "المركز"}</span>
+                            <span>
+                              {row.locationType === "external"
+                                ? "خارجي"
+                                : "المركز"}
+                            </span>
                           </div>
-                          {noteSnippet ? <div className="mt-2 line-clamp-2 text-xs text-muted-foreground">{noteSnippet}</div> : null}
+                          {noteSnippet ? (
+                            <div className="mt-2 line-clamp-2 text-xs text-muted-foreground">
+                              {noteSnippet}
+                            </div>
+                          ) : null}
                         </td>
-                        <td className="px-4 py-3 align-top text-muted-foreground">{row.doctorName || "—"}</td>
-                        <td className="px-4 py-3 align-top whitespace-nowrap" dir="ltr">
+                        <td className="px-4 py-3 align-top text-muted-foreground">
+                          {row.doctorName || "—"}
+                        </td>
+                        <td
+                          className="px-4 py-3 align-top whitespace-nowrap"
+                          dir="ltr"
+                        >
                           <Badge variant="outline" className="font-normal">
                             {dateLabel}
                           </Badge>
                         </td>
                         <td className="px-4 py-3 align-top">
-                          <span className="font-medium tabular-nums">{row.itemCount}</span>
+                          <span className="font-medium tabular-nums">
+                            {row.itemCount}
+                          </span>
                           <span className="text-muted-foreground"> دواء</span>
                         </td>
-                        <td className="px-4 py-3 align-top">{statusBadge(status)}</td>
+                        <td className="px-4 py-3 align-top">
+                          {statusBadge(status)}
+                        </td>
                         <td className="px-4 py-3 text-center align-top">
-                          <Button type="button" variant="ghost" size="sm" className="h-11 w-11 p-0" aria-label={`فتح وصفة المريض ${row.patientName ?? row.patientId}`} onClick={() => setLocation(`/prescription/${row.patientId}`)}>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-11 w-11 p-0"
+                            aria-label={`فتح وصفة المريض ${row.patientName ?? row.patientId}`}
+                            onClick={() =>
+                              setLocation(`/prescription/${row.patientId}`)
+                            }
+                          >
                             <Eye className="h-4 w-4" />
                           </Button>
                         </td>
@@ -219,31 +330,48 @@ export default function PrescriptionsDashboard() {
               </table>
             </div>
           )}
-          <PaginationBar page={page} pageCount={pageCount} total={total} pageSize={pageSize} onPageChange={setPage} />
+          <PaginationBar
+            page={page}
+            pageCount={pageCount}
+            total={total}
+            pageSize={pageSize}
+            onPageChange={setPage}
+          />
         </section>
 
         <aside className="space-y-4 lg:sticky lg:top-4">
           <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
             <div className="mb-3 text-sm font-semibold">الروشتات المنتهية</div>
             {alertRows.length === 0 ? (
-              <div className="text-sm text-muted-foreground">لا توجد روشتات منتهية ضمن التصفية الحالية.</div>
+              <div className="text-sm text-muted-foreground">
+                لا توجد روشتات منتهية ضمن التصفية الحالية.
+              </div>
             ) : (
               <div className="space-y-3">
                 {alertRows.map((row) => (
                   <button
                     key={row.id}
                     type="button"
-                    onClick={() => setLocation(`/prescription/${row.patientId}`)}
+                    onClick={() =>
+                      setLocation(`/prescription/${row.patientId}`)
+                    }
                     className="w-full rounded-xl border border-border/80 bg-muted/20 p-3 text-right transition-colors hover:bg-muted/40"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="font-semibold">{row.patientName || `مريض #${row.patientId}`}</div>
-                        <div className="mt-1 text-[11px] text-muted-foreground" dir="ltr">
+                        <div className="font-semibold">
+                          {row.patientName || `مريض #${row.patientId}`}
+                        </div>
+                        <div
+                          className="mt-1 text-[11px] text-muted-foreground"
+                          dir="ltr"
+                        >
                           {row.patientCode || "—"}
                         </div>
                       </div>
-                      <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">منتهية</span>
+                      <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
+                        منتهية
+                      </span>
                     </div>
                     <div className="mt-3 text-[11px] text-muted-foreground">
                       {row.itemCount} دواء, {row.doctorName || "—"}

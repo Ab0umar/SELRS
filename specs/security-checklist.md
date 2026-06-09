@@ -20,9 +20,9 @@ This document outlines the security expectations and verification steps for the 
 
 - [ ] **No Secrets in Client-Side Code:** No API keys, secret tokens, or other credentials should be present in the frontend JavaScript bundle.
 - [**Secure Environment Handling:**
-    - [ ] Production secrets (`JWT_SECRET`, database URLs, etc.) must be managed through environment variables (`.env` file).
-    - [ ] The `.env` file must never be committed to the git repository.
-    - [ ] The `.env.example` file should contain placeholders, not real secrets.
+  - [ ] Production secrets (`JWT_SECRET`, database URLs, etc.) must be managed through environment variables (`.env` file).
+  - [ ] The `.env` file must never be committed to the git repository.
+  - [ ] The `.env.example` file should contain placeholders, not real secrets.
 
 ## 4. Auditing & Monitoring
 
@@ -32,10 +32,10 @@ This document outlines the security expectations and verification steps for the 
 ## 5. Production Hardening
 
 - [ ] **Production Headers:** The production web server should be configured to send security-enhancing HTTP headers, such as:
-    - `Strict-Transport-Security` (HSTS)
-    - `X-Content-Type-Options: nosniff`
-    - `X-Frame-Options: DENY`
-    - `Content-Security-Policy` (CSP) - *If feasible for the application.*
+  - `Strict-Transport-Security` (HSTS)
+  - `X-Content-Type-Options: nosniff`
+  - `X-Frame-Options: DENY`
+  - `Content-Security-Policy` (CSP) - _If feasible for the application._
 - [ ] **CORS Configuration:** The `CORS_ALLOWED_ORIGINS` environment variable must be set to a restrictive list of known domains for the production environment.
 
 ## 6. Backup and Recovery
@@ -44,4 +44,5 @@ This document outlines the security expectations and verification steps for the 
 - [ ] **Rollback Plan:** For each deployment, a clear rollback plan must be documented. For code-only changes, this is typically reverting to a previous git tag and redeploying. If a database migration is involved, the rollback plan must account for it.
 
 ---
-*This checklist should be reviewed and updated regularly.*
+
+_This checklist should be reviewed and updated regularly._

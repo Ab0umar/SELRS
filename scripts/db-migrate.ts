@@ -14,7 +14,9 @@ function splitSql(sql: string) {
 
 async function loadMigrationList(migrationsDir: string) {
   const journalPath = path.join(migrationsDir, "meta", "_journal.json");
-  const files = (await fs.readdir(migrationsDir)).filter((f) => f.endsWith(".sql")).sort();
+  const files = (await fs.readdir(migrationsDir))
+    .filter((f) => f.endsWith(".sql"))
+    .sort();
 
   try {
     const raw = await fs.readFile(journalPath, "utf8");
@@ -33,7 +35,7 @@ async function ensureMigrationsTable(conn: mysql.Connection) {
       id int AUTO_INCREMENT PRIMARY KEY,
       name varchar(255) NOT NULL UNIQUE,
       appliedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )`
+    )`,
   );
 }
 
@@ -56,7 +58,7 @@ async function main() {
     await ensureMigrationsTable(conn);
 
     const [rows] = await conn.query<{ name: string }[]>(
-      "SELECT name FROM schema_migrations ORDER BY appliedAt ASC"
+      "SELECT name FROM schema_migrations ORDER BY appliedAt ASC",
     );
     const applied = new Set(rows.map((r) => r.name));
 
@@ -84,7 +86,9 @@ async function main() {
           throw err;
         }
       }
-      await conn.query("INSERT INTO schema_migrations (name) VALUES (?)", [file]);
+      await conn.query("INSERT INTO schema_migrations (name) VALUES (?)", [
+        file,
+      ]);
       appliedCount += 1;
     }
 

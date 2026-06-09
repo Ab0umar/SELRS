@@ -22,7 +22,7 @@ export interface Shift {
 export interface RawPunchRecord {
   id?: number;
   punchAt: Date;
-  direction?: 'in' | 'out' | 'unknown';
+  direction?: "in" | "out" | "unknown";
   source?: string;
 }
 
@@ -47,7 +47,13 @@ export interface DayResult {
   lateMinutes: number;
   earlyLeaveMin: number;
   overtimeMinutes: number;
-  status: 'present' | 'absent' | 'leave' | 'holiday' | 'partial' | 'missing_checkout';
+  status:
+    | "present"
+    | "absent"
+    | "leave"
+    | "holiday"
+    | "partial"
+    | "missing_checkout";
   insideNow: boolean;
   computedAt: Date;
 }
@@ -59,9 +65,15 @@ export interface DayResult {
 export function resolveShift(
   empCd: string,
   date: Date,
-  assignments: Array<{ empCd: string; shiftId: number; effectiveFrom: Date; effectiveTo: Date | null; weekdayMask: number }>,
+  assignments: Array<{
+    empCd: string;
+    shiftId: number;
+    effectiveFrom: Date;
+    effectiveTo: Date | null;
+    weekdayMask: number;
+  }>,
   defaultShiftId: number | null,
-  shiftsById: Map<number, Shift>
+  shiftsById: Map<number, Shift>,
 ): Shift | null {
   const weekday = date.getDay(); // 0 = Sunday
 
@@ -74,7 +86,10 @@ export function resolveShift(
     if (asn.effectiveTo && ymd(asn.effectiveTo) < dateStr) continue;
     if (!(asn.weekdayMask & (1 << weekday))) continue;
 
-    if (!matchingAssignment || ymd(asn.effectiveFrom) > ymd(matchingAssignment.effectiveFrom)) {
+    if (
+      !matchingAssignment ||
+      ymd(asn.effectiveFrom) > ymd(matchingAssignment.effectiveFrom)
+    ) {
       matchingAssignment = asn;
     }
   }
@@ -95,15 +110,18 @@ export function resolveShift(
  * Pair punches chronologically
  * Returns first IN and last OUT, collapsing sub-30s intervals
  */
-export function pairPunches(
-  punches: RawPunchRecord[]
-): { firstIn: Date | null; lastOut: Date | null } {
+export function pairPunches(punches: RawPunchRecord[]): {
+  firstIn: Date | null;
+  lastOut: Date | null;
+} {
   if (!punches.length) {
     return { firstIn: null, lastOut: null };
   }
 
   // Sort by time
-  const sorted = [...punches].sort((a, b) => a.punchAt.getTime() - b.punchAt.getTime());
+  const sorted = [...punches].sort(
+    (a, b) => a.punchAt.getTime() - b.punchAt.getTime(),
+  );
 
   // Collapse punches within 30 seconds
   const collapsed: Date[] = [];
@@ -139,32 +157,32 @@ export function computeDay(ctx: DayContext): DayResult {
     lateMinutes: 0,
     earlyLeaveMin: 0,
     overtimeMinutes: 0,
-    status: 'absent',
+    status: "absent",
     insideNow: false,
     computedAt: ctx.now,
   };
 
   // Override if on approved leave
   if (ctx.leaveApproved) {
-    result.status = 'leave';
+    result.status = "leave";
     return result;
   }
 
   // Override if holiday
   if (ctx.isHoliday) {
-    result.status = 'holiday';
+    result.status = "holiday";
     return result;
   }
 
   // If no shift, can't compute lateness
   if (!ctx.shift) {
     if (ctx.punches.length > 0) {
-      result.status = 'partial';
+      result.status = "partial";
       const paired = pairPunches(ctx.punches);
       result.firstIn = paired.firstIn;
       result.lastOut = paired.lastOut;
       if (paired.firstIn && !paired.lastOut) {
-        result.status = 'missing_checkout';
+        result.status = "missing_checkout";
         result.insideNow = true; // checked in, not yet out
       }
     }
@@ -180,20 +198,25 @@ export function computeDay(ctx: DayContext): DayResult {
   if (!paired.firstIn) {
     if (!ctx.shift.requirePunch) {
       // Auto-present: assume full shift worked
-      result.status = 'present';
+      result.status = "present";
       const shiftStartHmAuto = parseTime(ctx.shift.startTime);
       const shiftEndHmAuto = parseTime(ctx.shift.endTime);
       if (shiftStartHmAuto && shiftEndHmAuto) {
         result.firstIn = buildDateTime(ctx.workDate, shiftStartHmAuto);
         result.lastOut = buildDateTime(ctx.workDate, shiftEndHmAuto);
         if (ctx.shift.crossesMidnight && result.lastOut <= result.firstIn) {
-          result.lastOut = new Date(result.lastOut.getTime() + 24 * 60 * 60 * 1000);
+          result.lastOut = new Date(
+            result.lastOut.getTime() + 24 * 60 * 60 * 1000,
+          );
         }
         const workedMs = result.lastOut.getTime() - result.firstIn.getTime();
-        result.workedMinutes = Math.max(0, Math.round(workedMs / 60_000) - ctx.breakMinutes);
+        result.workedMinutes = Math.max(
+          0,
+          Math.round(workedMs / 60_000) - ctx.breakMinutes,
+        );
       }
     } else {
-      result.status = 'absent';
+      result.status = "absent";
     }
     return result;
   }
@@ -201,10 +224,13 @@ export function computeDay(ctx: DayContext): DayResult {
   // Compute worked minutes
   if (paired.lastOut) {
     const workedMs = paired.lastOut.getTime() - paired.firstIn.getTime();
-    result.workedMinutes = Math.max(0, Math.round(workedMs / 60_000) - ctx.breakMinutes);
+    result.workedMinutes = Math.max(
+      0,
+      Math.round(workedMs / 60_000) - ctx.breakMinutes,
+    );
   } else {
     // Missing checkout
-    result.status = 'missing_checkout';
+    result.status = "missing_checkout";
     result.insideNow = true;
     result.workedMinutes = null;
     return result;
@@ -215,7 +241,7 @@ export function computeDay(ctx: DayContext): DayResult {
   const shiftEndHm = parseTime(ctx.shift.endTime);
 
   if (!shiftStartHm || !shiftEndHm) {
-    result.status = 'partial';
+    result.status = "partial";
     return result;
   }
 
@@ -243,19 +269,29 @@ export function computeDay(ctx: DayContext): DayResult {
   }
 
   // Compute overtime — only if allowOT is enabled for this shift
-  const shiftDurationMin = (shiftEndDt.getTime() - shiftStartDt.getTime()) / 60_000 - ctx.breakMinutes;
-  if (ctx.shift.allowOT && result.workedMinutes && result.workedMinutes > shiftDurationMin) {
-    result.overtimeMinutes = Math.round(result.workedMinutes - shiftDurationMin);
+  const shiftDurationMin =
+    (shiftEndDt.getTime() - shiftStartDt.getTime()) / 60_000 - ctx.breakMinutes;
+  if (
+    ctx.shift.allowOT &&
+    result.workedMinutes &&
+    result.workedMinutes > shiftDurationMin
+  ) {
+    result.overtimeMinutes = Math.round(
+      result.workedMinutes - shiftDurationMin,
+    );
   }
 
   // Determine status
-  result.status = 'present';
+  result.status = "present";
   if (result.lateMinutes > 0 || result.earlyLeaveMin > 0) {
-    result.status = 'partial';
+    result.status = "partial";
   }
 
   // Inside now
-  if (inMs <= ctx.now.getTime() && (!paired.lastOut || paired.lastOut.getTime() > ctx.now.getTime())) {
+  if (
+    inMs <= ctx.now.getTime() &&
+    (!paired.lastOut || paired.lastOut.getTime() > ctx.now.getTime())
+  ) {
     result.insideNow = true;
   }
 
@@ -266,7 +302,7 @@ export function computeDay(ctx: DayContext): DayResult {
 
 export interface ShiftCycle {
   id: number;
-  period: 'day' | 'week' | 'month';
+  period: "day" | "week" | "month";
   anchorDate: Date;
   slots: { slotIndex: number; shiftId: number }[]; // sorted by slotIndex asc
 }
@@ -287,7 +323,7 @@ export function resolveCycleShift(
   date: Date,
   cycleAssignments: CycleAssignment[],
   cyclesById: Map<number, ShiftCycle>,
-  shiftsById: Map<number, Shift>
+  shiftsById: Map<number, Shift>,
 ): Shift | null {
   const dateStr = ymd(date);
   // Find latest active cycle assignment
@@ -303,19 +339,24 @@ export function resolveCycleShift(
   const cycle = cyclesById.get(best.cycleId);
   if (!cycle || !cycle.slots.length) return null;
 
-  const idx = calcCycleSlotIndex(cycle.period, cycle.anchorDate, date, cycle.slots.length);
+  const idx = calcCycleSlotIndex(
+    cycle.period,
+    cycle.anchorDate,
+    date,
+    cycle.slots.length,
+  );
   const slot = cycle.slots.find((s) => s.slotIndex === idx);
   return slot ? (shiftsById.get(slot.shiftId) ?? null) : null;
 }
 
 function calcCycleSlotIndex(
-  period: 'day' | 'week' | 'month',
+  period: "day" | "week" | "month",
   anchorDate: Date,
   workDate: Date,
-  totalSlots: number
+  totalSlots: number,
 ): number {
   // day / week: slot index = day of week (0=Sun … 6=Sat)
-  if (period === 'day' || period === 'week') return workDate.getDay();
+  if (period === "day" || period === "week") return workDate.getDay();
   // month: slot index = day of month (1-31)
   return workDate.getDate();
 }
@@ -324,11 +365,11 @@ function calcCycleSlotIndex(
 
 /** YYYY-MM-DD using local getters — avoids UTC-vs-local shift on DB date strings */
 export function ymd(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function parseTime(hm: string): { h: number; m: number } | null {
-  const [h, m] = hm.split(':').map(Number);
+  const [h, m] = hm.split(":").map(Number);
   if (isNaN(h) || isNaN(m)) return null;
   return { h, m };
 }

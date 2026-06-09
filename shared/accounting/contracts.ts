@@ -10,12 +10,14 @@ const moneySchema = z.number();
 const countSchema = z.number().int().nonnegative();
 
 /** Query filters: MSSQL PAT_CD — strings only (ASCII trim only; keeps leading zeros). Rejects numeric JSON to avoid silent truncation. */
-const accountingPatientCodeOptionalSchema = z.preprocess((val) => {
-  if (val === undefined || val === null) return undefined;
-  if (typeof val !== "string") return undefined;
-  const t = val.trim();
-  return t === "" ? undefined : t;
-}, z.string().min(1)).optional();
+const accountingPatientCodeOptionalSchema = z
+  .preprocess((val) => {
+    if (val === undefined || val === null) return undefined;
+    if (typeof val !== "string") return undefined;
+    const t = val.trim();
+    return t === "" ? undefined : t;
+  }, z.string().min(1))
+  .optional();
 
 export const receiptHeaderSchema = z.object({
   sectionCode: z.number().int(),
@@ -65,7 +67,10 @@ export type MoneyTotals = z.infer<typeof moneyTotalsSchema>;
 
 export const dashboardSummaryInputSchema = z.object({
   sectionCode: z.number().int().optional(),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
 });
 
 export const dashboardSummaryOutputSchema = z.object({
@@ -76,7 +81,9 @@ export const dashboardSummaryOutputSchema = z.object({
 });
 
 export type DashboardSummaryInput = z.infer<typeof dashboardSummaryInputSchema>;
-export type DashboardSummaryOutput = z.infer<typeof dashboardSummaryOutputSchema>;
+export type DashboardSummaryOutput = z.infer<
+  typeof dashboardSummaryOutputSchema
+>;
 
 export const dailyRevenueInputSchema = z.object({
   fromDate: isoDateStringSchema,
@@ -229,8 +236,12 @@ export const lasikRevenueSummaryOutputSchema = z.object({
   netAfterDiscount: moneySchema,
 });
 
-export type LasikRevenueSummaryInput = z.infer<typeof lasikRevenueSummaryInputSchema>;
-export type LasikRevenueSummaryOutput = z.infer<typeof lasikRevenueSummaryOutputSchema>;
+export type LasikRevenueSummaryInput = z.infer<
+  typeof lasikRevenueSummaryInputSchema
+>;
+export type LasikRevenueSummaryOutput = z.infer<
+  typeof lasikRevenueSummaryOutputSchema
+>;
 
 export const patientLasikSummaryInputSchema = z.object({
   patientCode: accountingPatientCodeOptionalSchema,
@@ -260,18 +271,30 @@ export const patientLasikSummaryOutputSchema = z.object({
   totals: patientLasikSummaryTotalsSchema,
 });
 
-export type PatientLasikSummaryInput = z.infer<typeof patientLasikSummaryInputSchema>;
-export type PatientLasikSummaryTotals = z.infer<typeof patientLasikSummaryTotalsSchema>;
-export type PatientLasikSummaryOutput = z.infer<typeof patientLasikSummaryOutputSchema>;
+export type PatientLasikSummaryInput = z.infer<
+  typeof patientLasikSummaryInputSchema
+>;
+export type PatientLasikSummaryTotals = z.infer<
+  typeof patientLasikSummaryTotalsSchema
+>;
+export type PatientLasikSummaryOutput = z.infer<
+  typeof patientLasikSummaryOutputSchema
+>;
 
-export const extendedDashboardSummaryOutputSchema = dashboardSummaryOutputSchema;
+export const extendedDashboardSummaryOutputSchema =
+  dashboardSummaryOutputSchema;
 
-export type ExtendedDashboardSummaryOutput = z.infer<typeof extendedDashboardSummaryOutputSchema>;
+export type ExtendedDashboardSummaryOutput = z.infer<
+  typeof extendedDashboardSummaryOutputSchema
+>;
 
 export const transactionsInputSchema = z.object({
   sectionCode: z.number().int().optional(),
   limit: z.number().int().positive().optional(),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
 });
 
 export type TransactionsInput = z.infer<typeof transactionsInputSchema>;

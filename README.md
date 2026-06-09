@@ -1,14 +1,15 @@
 # SELRS
 
-
 SELRS is a full-stack TypeScript application with a React/Vite frontend and a Node/Express + tRPC backend.
 
 Read first:
+
 - specs/AI_CONTEXT.md
 
 Then follow the project Constitution and Project Principles strictly.
 
 ## Structure
+
 - `client/src`: frontend app
 - `server/_core`: backend core and server entry
 - `server/routers`: API routers
@@ -16,12 +17,14 @@ Then follow the project Constitution and Project Principles strictly.
 - `drizzle`, `scripts`: database and maintenance scripts
 
 ## Run
+
 ```bash
 pnpm install
 pnpm dev
 ```
 
 ## Main Commands
+
 ```bash
 pnpm check
 pnpm test
@@ -31,6 +34,7 @@ pnpm smoke
 ```
 
 ## Database
+
 ```bash
 pnpm db:migrate
 pnpm db:push
@@ -38,6 +42,6 @@ pnpm db:sync-check
 ```
 
 ## AI Notes
+
 - Repo-wide coding instructions for Claude Code live in `CLAUDE.md`.
 - Keep code changes minimal and aligned with existing patterns.
-

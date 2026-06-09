@@ -9,7 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { evaluateMedicalReference, findMedicalReference, medicalReferenceClass, type MedicalReference } from "@/lib/medical-reference";
+import {
+  evaluateMedicalReference,
+  findMedicalReference,
+  medicalReferenceClass,
+  type MedicalReference,
+} from "@/lib/medical-reference";
 import { Activity, AlertTriangle, CheckCircle2, Eye } from "lucide-react";
 
 const filterTabs = [
@@ -31,7 +36,11 @@ function formatVisitDateAr(value: Date | string | null | undefined): string {
   const d = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
   try {
-    return new Intl.DateTimeFormat("ar-EG", { day: "numeric", month: "long", year: "numeric" }).format(d);
+    return new Intl.DateTimeFormat("ar-EG", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(d);
   } catch {
     return d.toLocaleDateString("ar-EG");
   }
@@ -58,13 +67,20 @@ function parseInitialQuery(): {
     const patientRaw = qs.get("patientId");
     const fromDate = qs.get("fromDate") ?? qs.get("date") ?? undefined;
     const toDate = qs.get("toDate") ?? undefined;
-    const visitId = visitRaw != null && visitRaw !== "" ? Number(visitRaw) : undefined;
-    const resultId = resultRaw != null && resultRaw !== "" ? Number(resultRaw) : undefined;
-    const patientId = patientRaw != null && patientRaw !== "" ? Number(patientRaw) : undefined;
+    const visitId =
+      visitRaw != null && visitRaw !== "" ? Number(visitRaw) : undefined;
+    const resultId =
+      resultRaw != null && resultRaw !== "" ? Number(resultRaw) : undefined;
+    const patientId =
+      patientRaw != null && patientRaw !== "" ? Number(patientRaw) : undefined;
     return {
       visitId: Number.isFinite(visitId) ? visitId : undefined,
-      resultId: Number.isFinite(resultId) && (resultId ?? 0) > 0 ? resultId : undefined,
-      patientId: Number.isFinite(patientId) && (patientId ?? 0) > 0 ? patientId : undefined,
+      resultId:
+        Number.isFinite(resultId) && (resultId ?? 0) > 0 ? resultId : undefined,
+      patientId:
+        Number.isFinite(patientId) && (patientId ?? 0) > 0
+          ? patientId
+          : undefined,
       fromDate: fromDate || undefined,
       toDate: toDate || undefined,
     };
@@ -121,7 +137,11 @@ function getPentacamRowAttention(
     reasons.push("بحاجة لتكرار");
   }
 
-  const metrics: Array<{ label: string; value: string | null; reference: MedicalReference | null }> = [
+  const metrics: Array<{
+    label: string;
+    value: string | null;
+    reference: MedicalReference | null;
+  }> = [
     { label: "K1", value: row.k1, reference: refs.k1 },
     { label: "K2", value: row.k2, reference: refs.k2 },
     { label: "Thinnest", value: row.thinnest, reference: refs.thinnest },
@@ -169,26 +189,37 @@ export default function PentacamResultsDashboard({
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [locationFilter, setLocationFilter] = useState<string>("all");
-  const [visitId, setVisitId] = useState<string>(initial.visitId != null ? String(initial.visitId) : "");
-  const [resultId, setResultId] = useState<string>(initial.resultId != null ? String(initial.resultId) : "");
-  const [patientId, setPatientId] = useState<string>(initial.patientId != null ? String(initial.patientId) : "");
+  const [visitId, setVisitId] = useState<string>(
+    initial.visitId != null ? String(initial.visitId) : "",
+  );
+  const [resultId, setResultId] = useState<string>(
+    initial.resultId != null ? String(initial.resultId) : "",
+  );
+  const [patientId, setPatientId] = useState<string>(
+    initial.patientId != null ? String(initial.patientId) : "",
+  );
   const [fromDate, setFromDate] = useState<string>(initial.fromDate ?? "");
   const [toDate, setToDate] = useState<string>(initial.toDate ?? "");
 
   const eyeFilter = useMemo(() => {
-    if (activeFilter === "OD" || activeFilter === "OS") return activeFilter as "OD" | "OS";
+    if (activeFilter === "OD" || activeFilter === "OS")
+      return activeFilter as "OD" | "OS";
     return "all" as const;
   }, [activeFilter]);
 
   const qualityFilter = useMemo(() => {
-    if (activeFilter === "accepted" || activeFilter === "repeat") return activeFilter as "accepted" | "repeat";
+    if (activeFilter === "accepted" || activeFilter === "repeat")
+      return activeFilter as "accepted" | "repeat";
     return "all" as const;
   }, [activeFilter]);
 
   const listInput = useMemo(
     () => ({
       search: search.trim() || undefined,
-      locationType: locationFilter === "center" || locationFilter === "external" ? (locationFilter as "center" | "external") : undefined,
+      locationType:
+        locationFilter === "center" || locationFilter === "external"
+          ? (locationFilter as "center" | "external")
+          : undefined,
       visitId: parsePositiveNumber(visitId),
       resultId: parsePositiveNumber(resultId),
       patientId: parsePositiveNumber(patientId),
@@ -199,7 +230,17 @@ export default function PentacamResultsDashboard({
       limit: 200,
       offset: 0,
     }),
-    [search, locationFilter, visitId, resultId, patientId, fromDate, toDate, eyeFilter, qualityFilter],
+    [
+      search,
+      locationFilter,
+      visitId,
+      resultId,
+      patientId,
+      fromDate,
+      toDate,
+      eyeFilter,
+      qualityFilter,
+    ],
   );
 
   const listQuery = trpc.medical.listPentacamDashboard.useQuery(listInput, {
@@ -208,7 +249,9 @@ export default function PentacamResultsDashboard({
   });
 
   const statsQuery = trpc.medical.getPentacamDashboardStats.useQuery(
-    locationFilter === "center" || locationFilter === "external" ? { locationType: locationFilter as "center" | "external" } : undefined,
+    locationFilter === "center" || locationFilter === "external"
+      ? { locationType: locationFilter as "center" | "external" }
+      : undefined,
     {
       enabled: isAuthenticated,
       refetchOnWindowFocus: false,
@@ -231,7 +274,11 @@ export default function PentacamResultsDashboard({
   }, [embeddedPatientId]);
 
   useEffect(() => {
-    if (hidePageChrome && hubVisitDate && /^\d{4}-\d{2}-\d{2}$/.test(hubVisitDate)) {
+    if (
+      hidePageChrome &&
+      hubVisitDate &&
+      /^\d{4}-\d{2}-\d{2}$/.test(hubVisitDate)
+    ) {
       setFromDate(hubVisitDate);
       setToDate(hubVisitDate);
     }
@@ -248,7 +295,12 @@ export default function PentacamResultsDashboard({
     return {
       k1: findMedicalReference(rows, ["K1", "Pentacam K1", "بنتاكام K1"]),
       k2: findMedicalReference(rows, ["K2", "Pentacam K2", "بنتاكام K2"]),
-      thinnest: findMedicalReference(rows, ["Thinnest", "Thinnest Point", "CCT", "بنتاكام Thinnest"]),
+      thinnest: findMedicalReference(rows, [
+        "Thinnest",
+        "Thinnest Point",
+        "CCT",
+        "بنتاكام Thinnest",
+      ]),
     };
   }, [refsQuery.data]);
 
@@ -288,9 +340,15 @@ export default function PentacamResultsDashboard({
       if (!existing.visitDate) {
         existing.visitDate = entry.row.visitDate;
       }
-      if (existing.attention.severity === "normal" && entry.attention.severity !== "normal") {
+      if (
+        existing.attention.severity === "normal" &&
+        entry.attention.severity !== "normal"
+      ) {
         existing.attention = entry.attention;
-      } else if (existing.attention.severity === "repeat" && entry.attention.severity === "abnormal") {
+      } else if (
+        existing.attention.severity === "repeat" &&
+        entry.attention.severity === "abnormal"
+      ) {
         existing.attention = entry.attention;
       }
       if (entry.attention.severity === "abnormal") {
@@ -303,24 +361,38 @@ export default function PentacamResultsDashboard({
 
   const summaryStats = useMemo(() => {
     const total = rowsWithAttention.length;
-    const abnormal = rowsWithAttention.filter((entry) => entry.attention.severity === "abnormal").length;
-    const repeat = rowsWithAttention.filter((entry) => entry.attention.severity === "repeat").length;
-    const accepted = rowsWithAttention.filter((entry) => entry.attention.severity === "normal").length;
+    const abnormal = rowsWithAttention.filter(
+      (entry) => entry.attention.severity === "abnormal",
+    ).length;
+    const repeat = rowsWithAttention.filter(
+      (entry) => entry.attention.severity === "repeat",
+    ).length;
+    const accepted = rowsWithAttention.filter(
+      (entry) => entry.attention.severity === "normal",
+    ).length;
     return { total, abnormal, repeat, accepted };
   }, [rowsWithAttention]);
 
-  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(() => new Set());
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   const alertRows = useMemo(
     () =>
       rowsWithAttention
         .filter((entry) => entry.attention.severity !== "normal")
-        .filter((entry) => !dismissedAlerts.has(`${entry.row.resultId}-${entry.row.eye}`))
+        .filter(
+          (entry) =>
+            !dismissedAlerts.has(`${entry.row.resultId}-${entry.row.eye}`),
+        )
         .slice(0, 6),
     [rowsWithAttention, dismissedAlerts],
   );
 
-  const visibleRowCount = activeFilter === "all" ? groupedPatientRows.length : rowsWithAttention.length;
+  const visibleRowCount =
+    activeFilter === "all"
+      ? groupedPatientRows.length
+      : rowsWithAttention.length;
 
   const renderEyeCell = (entry: DashboardEntry | undefined) => {
     if (!entry) {
@@ -333,7 +405,9 @@ export default function PentacamResultsDashboard({
           <span
             className={cn(
               "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold",
-              entry.row.eye === "OD" ? "bg-primary text-primary-foreground" : "bg-secondary/15 text-secondary",
+              entry.row.eye === "OD"
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary/15 text-secondary",
             )}
           >
             {entry.row.eye === "OD" ? "RT" : "LT"}
@@ -341,7 +415,9 @@ export default function PentacamResultsDashboard({
           <span
             className={cn(
               "rounded-full px-2 py-0.5 text-[11px] font-semibold",
-              entry.row.quality === "accepted" ? "bg-success/15 text-success" : "bg-warning/20 text-warning/90",
+              entry.row.quality === "accepted"
+                ? "bg-success/15 text-success"
+                : "bg-warning/20 text-warning/90",
             )}
           >
             {entry.row.quality === "accepted" ? "مقبول" : "تكرار"}
@@ -362,12 +438,20 @@ export default function PentacamResultsDashboard({
           </div>
           <div className="flex items-center justify-between gap-2">
             <span>Axis</span>
-            <span className="font-mono text-foreground">{entry.row.axis != null && entry.row.axis !== "" ? `${entry.row.axis}°` : "—"}</span>
+            <span className="font-mono text-foreground">
+              {entry.row.axis != null && entry.row.axis !== ""
+                ? `${entry.row.axis}°`
+                : "—"}
+            </span>
           </div>
           <div className="flex items-center justify-between gap-2">
             <span>Thinnest</span>
             <span className="font-mono text-foreground">
-              <RefValue value={entry.row.thinnest} reference={pentacamRefs.thinnest} suffix=" µm" />
+              <RefValue
+                value={entry.row.thinnest}
+                reference={pentacamRefs.thinnest}
+                suffix=" µm"
+              />
             </span>
           </div>
         </div>
@@ -388,8 +472,15 @@ export default function PentacamResultsDashboard({
     const empty = value == null || value === "";
     return (
       <span
-        className={cn("inline-flex rounded px-1.5 py-0.5", medicalReferenceClass(state))}
-        title={state === "low" || state === "high" ? `خارج الطبيعي: ${reference?.min} - ${reference?.max} ${reference?.unit}` : undefined}
+        className={cn(
+          "inline-flex rounded px-1.5 py-0.5",
+          medicalReferenceClass(state),
+        )}
+        title={
+          state === "low" || state === "high"
+            ? `خارج الطبيعي: ${reference?.min} - ${reference?.max} ${reference?.unit}`
+            : undefined
+        }
       >
         {empty ? "—" : `${value}${suffix}`}
       </span>
@@ -399,11 +490,19 @@ export default function PentacamResultsDashboard({
   if (!isAuthenticated) return null;
 
   return (
-    <div className={cn(hidePageChrome ? "prescription-root bg-background min-h-0" : "bg-muted/30 min-h-screen")}>
+    <div
+      className={cn(
+        hidePageChrome
+          ? "prescription-root bg-background min-h-0"
+          : "bg-muted/30 min-h-screen",
+      )}
+    >
       <div
         className={cn(
           "mx-auto w-full",
-          hidePageChrome ? "max-w-none px-2 pb-4 pt-1" : "container max-w-[1400px] px-3 py-6 sm:px-4 sm:py-8",
+          hidePageChrome
+            ? "max-w-none px-2 pb-4 pt-1"
+            : "container max-w-[1400px] px-3 py-6 sm:px-4 sm:py-8",
         )}
         dir="rtl"
       >
@@ -434,20 +533,44 @@ export default function PentacamResultsDashboard({
                 />
 
                 <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                  <div className={cn("w-full", patientHubReadOnly && "pointer-events-none opacity-60")}>
-                    <FilterBar filters={locationFilterTabs} selected={locationFilter} onSelect={setLocationFilter} className="w-full flex-wrap" />
+                  <div
+                    className={cn(
+                      "w-full",
+                      patientHubReadOnly && "pointer-events-none opacity-60",
+                    )}
+                  >
+                    <FilterBar
+                      filters={locationFilterTabs}
+                      selected={locationFilter}
+                      onSelect={setLocationFilter}
+                      className="w-full flex-wrap"
+                    />
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {statsQuery.isLoading ? "جارٍ تحديث الملخص..." : `${statsQuery.data?.examsToday ?? 0} نتيجة لليوم`}
+                    {statsQuery.isLoading
+                      ? "جارٍ تحديث الملخص..."
+                      : `${statsQuery.data?.examsToday ?? 0} نتيجة لليوم`}
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                  <div className={cn("w-full", patientHubReadOnly && "pointer-events-none opacity-60")}>
-                    <FilterBar filters={filterTabs} selected={activeFilter} onSelect={setActiveFilter} className="w-full flex-wrap" />
+                  <div
+                    className={cn(
+                      "w-full",
+                      patientHubReadOnly && "pointer-events-none opacity-60",
+                    )}
+                  >
+                    <FilterBar
+                      filters={filterTabs}
+                      selected={activeFilter}
+                      onSelect={setActiveFilter}
+                      className="w-full flex-wrap"
+                    />
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {listQuery.isLoading ? "جارٍ تحديث النتائج..." : `${visibleRowCount} نتيجة ظاهرة الآن`}
+                    {listQuery.isLoading
+                      ? "جارٍ تحديث النتائج..."
+                      : `${visibleRowCount} نتيجة ظاهرة الآن`}
                   </div>
                 </div>
 
@@ -455,12 +578,18 @@ export default function PentacamResultsDashboard({
                   <div className="rounded-xl border border-primary/30 bg-primary/10 p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs font-medium text-primary">فحوصات اليوم</p>
+                        <p className="text-xs font-medium text-primary">
+                          فحوصات اليوم
+                        </p>
                         <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">
-                          {statsQuery.isLoading ? "…" : (statsQuery.data?.examsToday ?? 0)}
+                          {statsQuery.isLoading
+                            ? "…"
+                            : (statsQuery.data?.examsToday ?? 0)}
                         </p>
                         <p className="mt-1 text-xs text-primary/70">
-                          {statsQuery.isLoading ? "..." : `${Math.abs(trendDelta)} مقارنة بالأمس`}
+                          {statsQuery.isLoading
+                            ? "..."
+                            : `${Math.abs(trendDelta)} مقارنة بالأمس`}
                         </p>
                       </div>
                       <span className="rounded-full bg-primary p-2 text-primary-foreground">
@@ -472,11 +601,15 @@ export default function PentacamResultsDashboard({
                   <div className="rounded-xl border border-success/30 bg-success/10 p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs font-medium text-success">مقبولة</p>
+                        <p className="text-xs font-medium text-success">
+                          مقبولة
+                        </p>
                         <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">
                           {listQuery.isLoading ? "…" : summaryStats.accepted}
                         </p>
-                        <p className="mt-1 text-xs text-success/70">جاهزة للمراجعة السريعة</p>
+                        <p className="mt-1 text-xs text-success/70">
+                          جاهزة للمراجعة السريعة
+                        </p>
                       </div>
                       <span className="rounded-full bg-success/15 p-2 text-success">
                         <Eye className="h-4 w-4" />
@@ -487,11 +620,15 @@ export default function PentacamResultsDashboard({
                   <div className="rounded-xl border border-warning/50 bg-warning/10 p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs font-medium text-warning-foreground">بحاجة لتكرار</p>
+                        <p className="text-xs font-medium text-warning-foreground">
+                          بحاجة لتكرار
+                        </p>
                         <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">
                           {listQuery.isLoading ? "…" : summaryStats.repeat}
                         </p>
-                        <p className="mt-1 text-xs text-warning-foreground/70">جودة أو اكتمال يحتاج مراجعة</p>
+                        <p className="mt-1 text-xs text-warning-foreground/70">
+                          جودة أو اكتمال يحتاج مراجعة
+                        </p>
                       </div>
                       <span className="rounded-full bg-warning/20 p-2 text-warning-foreground">
                         <AlertTriangle className="h-4 w-4" />
@@ -502,11 +639,15 @@ export default function PentacamResultsDashboard({
                   <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs font-medium text-destructive">شاذة</p>
+                        <p className="text-xs font-medium text-destructive">
+                          شاذة
+                        </p>
                         <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">
                           {listQuery.isLoading ? "…" : summaryStats.abnormal}
                         </p>
-                        <p className="mt-1 text-xs text-destructive/70">قيم خارجة عن المرجع</p>
+                        <p className="mt-1 text-xs text-destructive/70">
+                          قيم خارجة عن المرجع
+                        </p>
                       </div>
                       <span className="rounded-full bg-destructive/15 p-2 text-destructive">
                         <AlertTriangle className="h-4 w-4" />
@@ -517,40 +658,54 @@ export default function PentacamResultsDashboard({
 
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">رقم السجل (ID)</Label>
+                    <Label className="text-xs text-muted-foreground">
+                      رقم السجل (ID)
+                    </Label>
                     <Input
                       dir="ltr"
                       className="h-9 text-sm"
                       placeholder="pentacam result id"
                       value={resultId}
                       disabled={patientHubReadOnly}
-                      onChange={(e) => setResultId(e.target.value.replace(/[^\d]/g, ""))}
+                      onChange={(e) =>
+                        setResultId(e.target.value.replace(/[^\d]/g, ""))
+                      }
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">رقم الزيارة</Label>
+                    <Label className="text-xs text-muted-foreground">
+                      رقم الزيارة
+                    </Label>
                     <Input
                       dir="ltr"
                       className="h-9 text-sm"
                       placeholder="visit id"
                       value={visitId}
                       disabled={patientHubReadOnly}
-                      onChange={(e) => setVisitId(e.target.value.replace(/[^\d]/g, ""))}
+                      onChange={(e) =>
+                        setVisitId(e.target.value.replace(/[^\d]/g, ""))
+                      }
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">المريض</Label>
+                    <Label className="text-xs text-muted-foreground">
+                      المريض
+                    </Label>
                     <Input
                       dir="ltr"
                       className="h-9 text-sm"
                       placeholder="patient id"
                       value={patientId}
                       disabled={patientHubReadOnly}
-                      onChange={(e) => setPatientId(e.target.value.replace(/[^\d]/g, ""))}
+                      onChange={(e) =>
+                        setPatientId(e.target.value.replace(/[^\d]/g, ""))
+                      }
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">من تاريخ</Label>
+                    <Label className="text-xs text-muted-foreground">
+                      من تاريخ
+                    </Label>
                     <Input
                       type="date"
                       className="h-9 text-sm"
@@ -560,7 +715,9 @@ export default function PentacamResultsDashboard({
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">إلى تاريخ</Label>
+                    <Label className="text-xs text-muted-foreground">
+                      إلى تاريخ
+                    </Label>
                     <Input
                       type="date"
                       className="h-9 text-sm"
@@ -602,7 +759,10 @@ export default function PentacamResultsDashboard({
                   <tbody>
                     {listQuery.isLoading ? (
                       <tr>
-                        <td colSpan={activeFilter === "all" ? 7 : 9} className="p-8 text-center text-muted-foreground">
+                        <td
+                          colSpan={activeFilter === "all" ? 7 : 9}
+                          className="p-8 text-center text-muted-foreground"
+                        >
                           جارٍ التحميل...
                         </td>
                       </tr>
@@ -612,7 +772,10 @@ export default function PentacamResultsDashboard({
                           if (groupedPatientRows.length === 0) {
                             return (
                               <tr>
-                                <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                                <td
+                                  colSpan={7}
+                                  className="p-8 text-center text-muted-foreground"
+                                >
                                   لا توجد نتائج مطابقة.
                                 </td>
                               </tr>
@@ -631,13 +794,21 @@ export default function PentacamResultsDashboard({
                                     : "",
                               )}
                             >
-                              <td className="max-w-[220px] p-2.5 font-semibold whitespace-nowrap truncate">{group.patientName}</td>
+                              <td className="max-w-[220px] p-2.5 font-semibold whitespace-nowrap truncate">
+                                {group.patientName}
+                              </td>
                               <td className="max-w-[180px] p-2.5 whitespace-nowrap truncate text-muted-foreground">
                                 {group.doctorName || "—"}
                               </td>
-                              <td className="p-2.5 whitespace-nowrap tabular-nums">{formatVisitDateAr(group.visitDate)}</td>
-                              <td className="p-2.5 align-top">{renderEyeCell(group.entries.OD)}</td>
-                              <td className="p-2.5 align-top">{renderEyeCell(group.entries.OS)}</td>
+                              <td className="p-2.5 whitespace-nowrap tabular-nums">
+                                {formatVisitDateAr(group.visitDate)}
+                              </td>
+                              <td className="p-2.5 align-top">
+                                {renderEyeCell(group.entries.OD)}
+                              </td>
+                              <td className="p-2.5 align-top">
+                                {renderEyeCell(group.entries.OS)}
+                              </td>
                               <td className="p-2.5">
                                 <div className="flex flex-wrap gap-1.5">
                                   <span
@@ -660,12 +831,27 @@ export default function PentacamResultsDashboard({
                               </td>
                               <td className="p-2.5 text-center">
                                 {patientHubReadOnly ? (
-                                  <span className="inline-flex h-8 w-8 items-center justify-center" title={patientHubViewOnlyHint}>
-                                    <Eye className="h-4 w-4 text-muted-foreground/60" aria-hidden />
+                                  <span
+                                    className="inline-flex h-8 w-8 items-center justify-center"
+                                    title={patientHubViewOnlyHint}
+                                  >
+                                    <Eye
+                                      className="h-4 w-4 text-muted-foreground/60"
+                                      aria-hidden
+                                    />
                                   </span>
                                 ) : (
-                                  <Button variant="ghost" size="icon" className="h-11 w-11" asChild title="عرض" aria-label="عرض نتيجة Pentacam">
-                                    <Link href={`/sheets/pentacam/${group.patientId}`}>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-11 w-11"
+                                    asChild
+                                    title="عرض"
+                                    aria-label="عرض نتيجة Pentacam"
+                                  >
+                                    <Link
+                                      href={`/sheets/pentacam/${group.patientId}`}
+                                    >
                                       <Eye className="h-4 w-4" />
                                     </Link>
                                   </Button>
@@ -678,14 +864,18 @@ export default function PentacamResultsDashboard({
                         if (dashboardRows.length === 0) {
                           return (
                             <tr>
-                              <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                              <td
+                                colSpan={9}
+                                className="p-8 text-center text-muted-foreground"
+                              >
                                 لا توجد نتائج مطابقة.
                               </td>
                             </tr>
                           );
                         }
 
-                        return rowsWithAttention.map(({ row, attention }, idx) => (
+                        return rowsWithAttention.map(
+                          ({ row, attention }, idx) => (
                             <tr
                               key={`${row.resultId}-${row.eye}-${idx}`}
                               className={cn(
@@ -697,32 +887,52 @@ export default function PentacamResultsDashboard({
                                     : "hover:bg-primary/50",
                               )}
                             >
-                              <td className="max-w-[220px] p-2.5 font-semibold whitespace-nowrap truncate">{row.patientName}</td>
+                              <td className="max-w-[220px] p-2.5 font-semibold whitespace-nowrap truncate">
+                                {row.patientName}
+                              </td>
                               <td className="max-w-[180px] p-2.5 whitespace-nowrap truncate text-muted-foreground">
                                 {row.doctorName || "—"}
                               </td>
-                              <td className="p-2.5 whitespace-nowrap tabular-nums">{formatVisitDateAr(row.visitDate)}</td>
-                              <td className="p-2.5 font-mono text-xs tabular-nums">
-                                <RefValue value={row.k1} reference={pentacamRefs.k1} />
+                              <td className="p-2.5 whitespace-nowrap tabular-nums">
+                                {formatVisitDateAr(row.visitDate)}
                               </td>
                               <td className="p-2.5 font-mono text-xs tabular-nums">
-                                <RefValue value={row.k2} reference={pentacamRefs.k2} />
+                                <RefValue
+                                  value={row.k1}
+                                  reference={pentacamRefs.k1}
+                                />
                               </td>
                               <td className="p-2.5 font-mono text-xs tabular-nums">
-                                {row.axis != null && row.axis !== "" ? `${row.axis}°` : "—"}
+                                <RefValue
+                                  value={row.k2}
+                                  reference={pentacamRefs.k2}
+                                />
                               </td>
                               <td className="p-2.5 font-mono text-xs tabular-nums">
-                                <RefValue value={row.thinnest} reference={pentacamRefs.thinnest} suffix=" µm" />
+                                {row.axis != null && row.axis !== ""
+                                  ? `${row.axis}°`
+                                  : "—"}
+                              </td>
+                              <td className="p-2.5 font-mono text-xs tabular-nums">
+                                <RefValue
+                                  value={row.thinnest}
+                                  reference={pentacamRefs.thinnest}
+                                  suffix=" µm"
+                                />
                               </td>
                               <td className="p-2.5">
                                 <div className="flex flex-wrap gap-1.5">
                                   <span
                                     className={cn(
                                       "rounded-full px-2 py-0.5 text-xs font-semibold",
-                                      row.quality === "accepted" ? "bg-success/15 text-success" : "bg-warning/20 text-warning/90",
+                                      row.quality === "accepted"
+                                        ? "bg-success/15 text-success"
+                                        : "bg-warning/20 text-warning/90",
                                     )}
                                   >
-                                    {row.quality === "accepted" ? "مقبول" : "يحتاج تكرار"}
+                                    {row.quality === "accepted"
+                                      ? "مقبول"
+                                      : "يحتاج تكرار"}
                                   </span>
                                   {attention.severity === "abnormal" ? (
                                     <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
@@ -733,19 +943,35 @@ export default function PentacamResultsDashboard({
                               </td>
                               <td className="p-2.5 text-center">
                                 {patientHubReadOnly ? (
-                                  <span className="inline-flex h-8 w-8 items-center justify-center" title={patientHubViewOnlyHint}>
-                                    <Eye className="h-4 w-4 text-muted-foreground/60" aria-hidden />
+                                  <span
+                                    className="inline-flex h-8 w-8 items-center justify-center"
+                                    title={patientHubViewOnlyHint}
+                                  >
+                                    <Eye
+                                      className="h-4 w-4 text-muted-foreground/60"
+                                      aria-hidden
+                                    />
                                   </span>
                                 ) : (
-                                  <Button variant="ghost" size="icon" className="h-11 w-11" asChild title="عرض" aria-label="عرض نتيجة Pentacam">
-                                    <Link href={`/sheets/pentacam/${row.patientId}`}>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-11 w-11"
+                                    asChild
+                                    title="عرض"
+                                    aria-label="عرض نتيجة Pentacam"
+                                  >
+                                    <Link
+                                      href={`/sheets/pentacam/${row.patientId}`}
+                                    >
                                       <Eye className="h-4 w-4" />
                                     </Link>
                                   </Button>
                                 )}
                               </td>
                             </tr>
-                        ));
+                          ),
+                        );
                       })()
                     )}
                   </tbody>
@@ -753,30 +979,43 @@ export default function PentacamResultsDashboard({
               </div>
             </div>
 
-            {listQuery.error ? <p className="text-center text-sm text-destructive">{String(listQuery.error.message)}</p> : null}
+            {listQuery.error ? (
+              <p className="text-center text-sm text-destructive">
+                {String(listQuery.error.message)}
+              </p>
+            ) : null}
           </div>
 
           <aside className="space-y-4 lg:sticky lg:top-4 self-start">
             <div className="rounded-xl border bg-card p-4 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-sm font-semibold text-foreground">شريط التنبيه</h2>
+                  <h2 className="text-sm font-semibold text-foreground">
+                    شريط التنبيه
+                  </h2>
                   <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                    الحالات الشاذة أو التي تحتاج تكرار تبقى هنا حتى لا تضيع أثناء التصفح.
+                    الحالات الشاذة أو التي تحتاج تكرار تبقى هنا حتى لا تضيع
+                    أثناء التصفح.
                   </p>
                 </div>
-                <span className="rounded-full bg-primary text-primary-foreground">مراجعة</span>
+                <span className="rounded-full bg-primary text-primary-foreground">
+                  مراجعة
+                </span>
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <div className="rounded-lg border border-warning/50 bg-warning/10 p-3">
-                  <p className="text-[11px] font-medium text-warning-foreground">بحاجة لتكرار</p>
+                  <p className="text-[11px] font-medium text-warning-foreground">
+                    بحاجة لتكرار
+                  </p>
                   <p className="mt-1 text-xl font-semibold tabular-nums text-foreground">
                     {listQuery.isLoading ? "…" : summaryStats.repeat}
                   </p>
                 </div>
                 <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3">
-                  <p className="text-[11px] font-medium text-destructive">شاذة</p>
+                  <p className="text-[11px] font-medium text-destructive">
+                    شاذة
+                  </p>
                   <p className="mt-1 text-xl font-semibold tabular-nums text-foreground">
                     {listQuery.isLoading ? "…" : summaryStats.abnormal}
                   </p>
@@ -786,8 +1025,12 @@ export default function PentacamResultsDashboard({
 
             <div className="rounded-xl border bg-card p-4 shadow-sm">
               <div className="flex items-center justify-between gap-3">
-                <h3 className="text-sm font-semibold text-foreground">القائمة الحرجة</h3>
-                <span className="text-xs text-muted-foreground">{alertRows.length} عناصر</span>
+                <h3 className="text-sm font-semibold text-foreground">
+                  القائمة الحرجة
+                </h3>
+                <span className="text-xs text-muted-foreground">
+                  {alertRows.length} عناصر
+                </span>
               </div>
 
               <div className="mt-4 space-y-3">
@@ -812,25 +1055,34 @@ export default function PentacamResultsDashboard({
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-foreground">{row.patientName}</p>
+                          <p className="truncate text-sm font-semibold text-foreground">
+                            {row.patientName}
+                          </p>
                           <p className="mt-1 text-xs text-muted-foreground">
-                            {row.doctorName || "—"} • {formatVisitDateAr(row.visitDate)}
+                            {row.doctorName || "—"} •{" "}
+                            {formatVisitDateAr(row.visitDate)}
                           </p>
                         </div>
                         <div className="flex shrink-0 items-center gap-1.5">
                           <span
                             className={cn(
                               "rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                              attention.severity === "abnormal" ? "bg-destructive/15 text-destructive" : "bg-warning/20 text-warning-foreground",
+                              attention.severity === "abnormal"
+                                ? "bg-destructive/15 text-destructive"
+                                : "bg-warning/20 text-warning-foreground",
                             )}
                           >
-                            {attention.severity === "abnormal" ? "شاذة" : "تكرار"}
+                            {attention.severity === "abnormal"
+                              ? "شاذة"
+                              : "تكرار"}
                           </span>
                           <button
                             type="button"
                             aria-label="تجاهل التنبيه"
                             onClick={() =>
-                              setDismissedAlerts((prev) => new Set(prev).add(`${row.resultId}-${row.eye}`))
+                              setDismissedAlerts((prev) =>
+                                new Set(prev).add(`${row.resultId}-${row.eye}`),
+                              )
                             }
                             className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground/50 transition-colors hover:bg-success/10 hover:text-success"
                           >
@@ -846,7 +1098,9 @@ export default function PentacamResultsDashboard({
                               key={`${row.resultId}-${row.eye}-${reason}`}
                               className={cn(
                                 "rounded-full px-2 py-0.5 text-[11px] font-medium",
-                                attention.severity === "abnormal" ? "bg-destructive/10 text-destructive" : "bg-warning/20 text-warning/90",
+                                attention.severity === "abnormal"
+                                  ? "bg-destructive/10 text-destructive"
+                                  : "bg-warning/20 text-warning/90",
                               )}
                             >
                               {formatReasonBadge(reason)}
@@ -857,15 +1111,26 @@ export default function PentacamResultsDashboard({
 
                       <div className="mt-3 flex items-center justify-between gap-3">
                         <span className="text-xs text-muted-foreground">
-                          {row.eye === "OD" ? "يمين" : "يسار"} • {row.quality === "accepted" ? "مقبول" : "يحتاج تكرار"}
+                          {row.eye === "OD" ? "يمين" : "يسار"} •{" "}
+                          {row.quality === "accepted" ? "مقبول" : "يحتاج تكرار"}
                         </span>
                         {patientHubReadOnly ? (
-                          <span className="text-xs text-muted-foreground" title={patientHubViewOnlyHint}>
+                          <span
+                            className="text-xs text-muted-foreground"
+                            title={patientHubViewOnlyHint}
+                          >
                             عرض فقط
                           </span>
                         ) : (
-                          <Button variant="ghost" size="sm" className="h-8 px-2" asChild>
-                            <Link href={`/sheets/pentacam/${row.patientId}`}>عرض</Link>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2"
+                            asChild
+                          >
+                            <Link href={`/sheets/pentacam/${row.patientId}`}>
+                              عرض
+                            </Link>
                           </Button>
                         )}
                       </div>

@@ -5,17 +5,17 @@
 
 ## Row Count (EXACT match required)
 
-| Metric | Legacy | API | Delta | Status |
-|--------|--------|-----|-------|--------|
-| rowCount | 547 | 547 | 0 | PASS |
+| Metric   | Legacy | API | Delta | Status |
+| -------- | ------ | --- | ----- | ------ |
+| rowCount | 547    | 547 | 0     | PASS   |
 
 ## Totals
 
-| Metric | Legacy | API | Delta | Status |
-|--------|--------|-----|-------|--------|
-| total | 627,250.00 | 627,250.00 | 0.0000 | PASS |
-| discount | 29,690.00 | 29,690.00 | 0.0000 | PASS |
-| paidValue | 643,325.00 | 643,325.00 | 0.0000 | PASS |
+| Metric    | Legacy     | API        | Delta  | Status |
+| --------- | ---------- | ---------- | ------ | ------ |
+| total     | 627,250.00 | 627,250.00 | 0.0000 | PASS   |
+| discount  | 29,690.00  | 29,690.00  | 0.0000 | PASS   |
+| paidValue | 643,325.00 | 643,325.00 | 0.0000 | PASS   |
 
 ## Notes
 

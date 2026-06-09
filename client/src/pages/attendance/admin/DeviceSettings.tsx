@@ -245,7 +245,10 @@ export default function DeviceSettings() {
         </CardHeader>
         <CardContent className="space-y-4">
           {showSuccess && (
-            <Alert variant="default" className="border-success/30 bg-success/10">
+            <Alert
+              variant="default"
+              className="border-success/30 bg-success/10"
+            >
               <CheckCircle className="h-4 w-4 text-success" />
               <AlertDescription className="text-success">
                 تم حفظ الإعدادات بنجاح
@@ -420,7 +423,6 @@ export default function DeviceSettings() {
           )}
         </CardContent>
       </Card>
-
     </div>
   );
 }

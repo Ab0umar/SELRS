@@ -287,7 +287,10 @@ export function QuickActions({
         onOpenChange={setQuickEntryOpen}
       />
       <ScheduleVisitDialog open={scheduleOpen} onOpenChange={setScheduleOpen} />
-      <AddPortalBookingDialog open={portalBookingOpen} onOpenChange={setPortalBookingOpen} />
+      <AddPortalBookingDialog
+        open={portalBookingOpen}
+        onOpenChange={setPortalBookingOpen}
+      />
       <Dialog
         open={pickPage != null}
         onOpenChange={(o) => !o && setPickPage(null)}

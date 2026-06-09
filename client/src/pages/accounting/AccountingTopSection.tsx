@@ -8,9 +8,19 @@ type AccountingTopSectionProps = {
   className?: string;
 };
 
-export default function AccountingTopSection({ totals, search, aside, className }: AccountingTopSectionProps) {
+export default function AccountingTopSection({
+  totals,
+  search,
+  aside,
+  className,
+}: AccountingTopSectionProps) {
   return (
-    <section className={cn("rounded-[24px] border border-border bg-background p-4 lg:p-5", className)}>
+    <section
+      className={cn(
+        "rounded-[24px] border border-border bg-background p-4 lg:p-5",
+        className,
+      )}
+    >
       <div
         className={cn(
           "grid gap-4",

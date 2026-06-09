@@ -80,12 +80,12 @@ Add a read-only **Accounting module** inside the existing SRV100 web app that:
 
 ### Users / Roles
 
-| Role | Access |
-|---|---|
-| `admin` | Full Accounting read (all screens, all filters, all totals). |
-| `manager` | Full Accounting read (all screens, all filters, all totals). |
-| `accountant` | Full Accounting read. |
-| `doctor`, `nurse`, `technician`, `reception` | No access to Accounting module in Phase 1. |
+| Role                                         | Access                                                       |
+| -------------------------------------------- | ------------------------------------------------------------ |
+| `admin`                                      | Full Accounting read (all screens, all filters, all totals). |
+| `manager`                                    | Full Accounting read (all screens, all filters, all totals). |
+| `accountant`                                 | Full Accounting read.                                        |
+| `doctor`, `nurse`, `technician`, `reception` | No access to Accounting module in Phase 1.                   |
 
 Backend enforcement: `managerProcedure` (already allows `manager`, `admin`,
 `accountant`) for accounting procedures. Frontend enforcement: `ProtectedRoute`
@@ -94,11 +94,11 @@ use its existing role/permission API.
 
 ### Modules Touched
 
-| Module | Change |
-|---|---|
-| Medical | **None** — routes and behavior preserved exactly. |
-| Patient (MySQL) | **Read-only** reference via `patientCode` (= MSSQL `PAT_CD`). No schema change. |
-| Accounting (new) | Full implementation of Phase 1 read-only. |
+| Module                  | Change                                                                            |
+| ----------------------- | --------------------------------------------------------------------------------- |
+| Medical                 | **None** — routes and behavior preserved exactly.                                 |
+| Patient (MySQL)         | **Read-only** reference via `patientCode` (= MSSQL `PAT_CD`). No schema change.   |
+| Accounting (new)        | Full implementation of Phase 1 read-only.                                         |
 | Shared auth/permissions | Reuse existing `protectedProcedure` / `managerProcedure`; reuse `ProtectedRoute`. |
 
 ## 5. System Rules
@@ -177,7 +177,7 @@ use its existing role/permission API.
 - Input: `patientCode` (from URL or inquiry).
 - Output: patient receipts from `PAJRNRCVH`, services from `PAPAT_SRV`,
   totals (`totalReceipts, totalServices, totalGross, totalDiscount,
-  totalPaid, lastTransactionDate`). Uses `accounting.patientLasikSummary`.
+totalPaid, lastTransactionDate`). Uses `accounting.patientLasikSummary`.
 - No MySQL write; no cross-module mutation.
 
 ### FR-7 Doctor Account (`DoctorAccount.tsx`)
@@ -250,13 +250,13 @@ use its existing role/permission API.
 
 For each report, there MUST exist an attached parity artifact:
 
-| Report | Legacy source | Parity artifact |
-|---|---|---|
-| Daily Revenue | `D:\OP\Views\DAY_IN  SQLSRV.txt`, `D:\OP\تقرير الرمد.rtm` | CSV diff for a representative date range |
-| Service Revenue (Doctor→Service) | `D:\OP\اطباء.rtm`, `D:\OP\REPORTS\TRF_DRSRV1.RTM` | Row counts + per-doctor totals match |
-| Receipts Inquiry | `D:\OP\تقرير الرمد.rtm` | One-receipt round-trip: header+lines identical |
-| Service Revenue (by service) | `D:\OP\اطباء.rtm` | Per-service totals match |
-| Patient Account | `D:\OP\طباعة الأدلة\PAPATMF.rtm` | Patient receipts + services totals match OP patient history |
+| Report                           | Legacy source                                             | Parity artifact                                             |
+| -------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------- |
+| Daily Revenue                    | `D:\OP\Views\DAY_IN  SQLSRV.txt`, `D:\OP\تقرير الرمد.rtm` | CSV diff for a representative date range                    |
+| Service Revenue (Doctor→Service) | `D:\OP\اطباء.rtm`, `D:\OP\REPORTS\TRF_DRSRV1.RTM`         | Row counts + per-doctor totals match                        |
+| Receipts Inquiry                 | `D:\OP\تقرير الرمد.rtm`                                   | One-receipt round-trip: header+lines identical              |
+| Service Revenue (by service)     | `D:\OP\اطباء.rtm`                                         | Per-service totals match                                    |
+| Patient Account                  | `D:\OP\طباعة الأدلة\PAPATMF.rtm`                          | Patient receipts + services totals match OP patient history |
 
 Parity check must be runnable via `scripts/accounting/parity-check.ts` (added
 in Task 16). Default comparison range: a full month on `op2026`.

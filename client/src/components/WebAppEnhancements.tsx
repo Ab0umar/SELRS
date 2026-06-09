@@ -4,7 +4,11 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { type NativeAppInfo } from "@/lib/appRuntime";
-import { registerWebPush, unregisterWebPush, getWebPushSubscription } from "@/lib/pushNotifications";
+import {
+  registerWebPush,
+  unregisterWebPush,
+  getWebPushSubscription,
+} from "@/lib/pushNotifications";
 
 const APP_NOTIFICATION_FEED_KEY = "app_notifications_feed_v1";
 const APP_NOTIFICATION_SETTINGS_KEY = "app_notification_settings_v1";
@@ -16,7 +20,9 @@ function isBrowserNotificationSupported() {
   return typeof window !== "undefined" && "Notification" in window;
 }
 
-function getBrowserNotificationPermission(): NotificationPermission | "unsupported" {
+function getBrowserNotificationPermission():
+  | NotificationPermission
+  | "unsupported" {
   if (!isBrowserNotificationSupported()) return "unsupported";
   return Notification.permission;
 }
@@ -33,7 +39,12 @@ function fireBrowserNotification(title: string, body: string) {
   if (!isBrowserNotificationSupported()) return;
   if (Notification.permission !== "granted") return;
   try {
-    new Notification(title, { body, icon: "/favicon.ico", dir: "rtl", lang: "ar" });
+    new Notification(title, {
+      body,
+      icon: "/favicon.ico",
+      dir: "rtl",
+      lang: "ar",
+    });
   } catch {
     // Some browsers block new Notification() outside user gesture — safe to ignore
   }
@@ -49,7 +60,11 @@ type AppNotificationItem = {
   targetUserIds?: number[] | null;
 };
 
-function canCurrentUserSeeNotification(userId: number | undefined, userRole: unknown, item: AppNotificationItem | null | undefined) {
+function canCurrentUserSeeNotification(
+  userId: number | undefined,
+  userRole: unknown,
+  item: AppNotificationItem | null | undefined,
+) {
   if (!item || typeof item !== "object") return false;
 
   // If targetUserIds is specified, only show to those specific users
@@ -58,9 +73,17 @@ function canCurrentUserSeeNotification(userId: number | undefined, userRole: unk
   }
 
   // Otherwise check by role
-  const normalizedRole = String(userRole ?? "").trim().toLowerCase();
+  const normalizedRole = String(userRole ?? "")
+    .trim()
+    .toLowerCase();
   const targetRoles = Array.isArray(item.targetRoles)
-    ? item.targetRoles.map((value) => String(value ?? "").trim().toLowerCase()).filter(Boolean)
+    ? item.targetRoles
+        .map((value) =>
+          String(value ?? "")
+            .trim()
+            .toLowerCase(),
+        )
+        .filter(Boolean)
     : [];
   if (targetRoles.length === 0) return true;
   if (!normalizedRole) return false;
@@ -75,7 +98,7 @@ function useAppNotificationFeed(enabled: boolean) {
       refetchInterval: 15000,
       refetchOnWindowFocus: false,
       staleTime: 5000,
-    }
+    },
   );
 }
 
@@ -87,7 +110,7 @@ function AppNotificationsBridge() {
   const notificationsQuery = useAppNotificationFeed(isAuthenticated);
   const settingsQuery = trpc.medical.getSystemSetting.useQuery(
     { key: APP_NOTIFICATION_SETTINGS_KEY },
-    { enabled: isAuthenticated, staleTime: 60000, refetchOnWindowFocus: false }
+    { enabled: isAuthenticated, staleTime: 60000, refetchOnWindowFocus: false },
   );
 
   const isLocalEnabled = (() => {
@@ -103,7 +126,9 @@ function AppNotificationsBridge() {
     try {
       const raw = window.localStorage.getItem(storageKey);
       const parsed = raw ? (JSON.parse(raw) as unknown) : [];
-      const ids = Array.isArray(parsed) ? parsed.map((value) => String(value ?? "").trim()).filter(Boolean) : [];
+      const ids = Array.isArray(parsed)
+        ? parsed.map((value) => String(value ?? "").trim()).filter(Boolean)
+        : [];
       seenIdsRef.current = new Set(ids);
     } catch {
       seenIdsRef.current = new Set();
@@ -117,7 +142,9 @@ function AppNotificationsBridge() {
     const items = Array.isArray(itemsRaw)
       ? (itemsRaw as AppNotificationItem[])
           .filter((item) => item && typeof item === "object")
-          .filter((item) => canCurrentUserSeeNotification(user?.id, user?.role, item))
+          .filter((item) =>
+            canCurrentUserSeeNotification(user?.id, user?.role, item),
+          )
       : [];
     if (items.length === 0) return;
 
@@ -128,17 +155,18 @@ function AppNotificationsBridge() {
       }
       initializedRef.current = true;
       if (typeof window !== "undefined") {
-        window.localStorage.setItem(storageKey, JSON.stringify(Array.from(seenIdsRef.current).slice(-200)));
+        window.localStorage.setItem(
+          storageKey,
+          JSON.stringify(Array.from(seenIdsRef.current).slice(-200)),
+        );
       }
       return;
     }
 
-    const unseen = [...items]
-      .reverse()
-      .filter((item) => {
-        const id = String(item?.id ?? "").trim();
-        return id && !seenIdsRef.current.has(id);
-      });
+    const unseen = [...items].reverse().filter((item) => {
+      const id = String(item?.id ?? "").trim();
+      return id && !seenIdsRef.current.has(id);
+    });
 
     if (unseen.length === 0) return;
 
@@ -150,7 +178,8 @@ function AppNotificationsBridge() {
       const tone = item.kind ?? "info";
       seenIdsRef.current.add(id);
       if (tone === "success") toast.success(title, { description: message });
-      else if (tone === "warning") toast.warning(title, { description: message });
+      else if (tone === "warning")
+        toast.warning(title, { description: message });
       else if (tone === "error") toast.error(title, { description: message });
       else toast(title, { description: message });
       // Browser local notification (fires if local channel is enabled + permission granted)
@@ -158,9 +187,19 @@ function AppNotificationsBridge() {
     }
 
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(storageKey, JSON.stringify(Array.from(seenIdsRef.current).slice(-200)));
+      window.localStorage.setItem(
+        storageKey,
+        JSON.stringify(Array.from(seenIdsRef.current).slice(-200)),
+      );
     }
-  }, [isAuthenticated, isLocalEnabled, notificationsQuery.data, storageKey, user?.id, user?.role]);
+  }, [
+    isAuthenticated,
+    isLocalEnabled,
+    notificationsQuery.data,
+    storageKey,
+    user?.id,
+    user?.role,
+  ]);
 
   return null;
 }
@@ -174,11 +213,18 @@ function WebPushNotificationBridge() {
   const pushInitializedRef = useRef(false);
 
   useEffect(() => {
-    console.log("[Push] WebPushNotificationBridge mounted,isAuthenticated:", isAuthenticated);
+    console.log(
+      "[Push] WebPushNotificationBridge mounted,isAuthenticated:",
+      isAuthenticated,
+    );
 
     if (!isAuthenticated || pushInitializedRef.current) {
-      console.log("[Push] Skipping - isAuthenticated:", isAuthenticated,
-        "initialized:", pushInitializedRef.current);
+      console.log(
+        "[Push] Skipping - isAuthenticated:",
+        isAuthenticated,
+        "initialized:",
+        pushInitializedRef.current,
+      );
       return;
     }
     pushInitializedRef.current = true;
@@ -188,8 +234,10 @@ function WebPushNotificationBridge() {
       try {
         console.log("[Push] Calling getWebPushSubscription...");
         const subscription = await getWebPushSubscription();
-        console.log("[Push] getWebPushSubscription completed, subscription:", subscription ?
-          "exists" : "none");
+        console.log(
+          "[Push] getWebPushSubscription completed, subscription:",
+          subscription ? "exists" : "none",
+        );
 
         if (!subscription) {
           console.log("[Push] No subscription, registering...");
@@ -198,8 +246,7 @@ function WebPushNotificationBridge() {
 
           if (success) {
             const newSubscription = await getWebPushSubscription();
-            console.log("[Push] New subscription obtained:",
-              !!newSubscription);
+            console.log("[Push] New subscription obtained:", !!newSubscription);
 
             if (newSubscription) {
               console.log("[Push] Registering with server...");
@@ -211,8 +258,10 @@ function WebPushNotificationBridge() {
                 build: "",
               });
               console.log("[Push] Server registration successful");
-              window.localStorage.setItem(PUSH_TOKEN_KEY,
-                JSON.stringify(newSubscription));
+              window.localStorage.setItem(
+                PUSH_TOKEN_KEY,
+                JSON.stringify(newSubscription),
+              );
             }
           }
           return;
@@ -220,8 +269,7 @@ function WebPushNotificationBridge() {
 
         const storedToken = window.localStorage.getItem(PUSH_TOKEN_KEY);
         const currentToken = JSON.stringify(subscription);
-        console.log("[Push] Token mismatch:", storedToken !==
-          currentToken);
+        console.log("[Push] Token mismatch:", storedToken !== currentToken);
 
         if (storedToken === currentToken) {
           console.log("[Push] Token already registered");
@@ -255,7 +303,9 @@ function AppNotificationPanel() {
   const [clearEpoch, setClearEpoch] = useState(0);
   const itemsRaw = (notificationsQuery.data as any)?.value;
   const items = Array.isArray(itemsRaw)
-    ? (itemsRaw as AppNotificationItem[]).filter((item) => canCurrentUserSeeNotification(user?.id, user?.role, item))
+    ? (itemsRaw as AppNotificationItem[]).filter((item) =>
+        canCurrentUserSeeNotification(user?.id, user?.role, item),
+      )
     : [];
   if (!items.length || !isAuthenticated) return null;
 
@@ -289,7 +339,9 @@ function AppNotificationPanel() {
     .slice(0, 3);
 
   const handleClearNotifications = () => {
-    const ids = items.map((item) => String(item?.id ?? "").trim()).filter(Boolean);
+    const ids = items
+      .map((item) => String(item?.id ?? "").trim())
+      .filter(Boolean);
     if (!ids.length) return;
     try {
       window.localStorage.setItem(storageKey, JSON.stringify(ids.slice(-200)));
@@ -301,7 +353,9 @@ function AppNotificationPanel() {
   };
 
   const roleLabel = (item: AppNotificationItem) => {
-    const roleValue = String(((item as any).meta?.role ?? "").toString()).toLowerCase();
+    const roleValue = String(
+      ((item as any).meta?.role ?? "").toString(),
+    ).toLowerCase();
     if (roleValue === "reception") return "استقبال";
     if (roleValue === "nurse") return "تمريض";
     if (roleValue === "technician") return "فني";
@@ -309,10 +363,14 @@ function AppNotificationPanel() {
   };
 
   const toneClass = (kind?: string) => {
-    if (kind === "success") return "border-secondary/40 bg-secondary/10 text-foreground";
-    if (kind === "info") return "border-primary/20 bg-primary/5 text-foreground";
-    if (kind === "warning") return "border-warning/40 bg-warning/10 text-warning";
-    if (kind === "error") return "border-destructive/30 bg-destructive/10 text-destructive";
+    if (kind === "success")
+      return "border-secondary/40 bg-secondary/10 text-foreground";
+    if (kind === "info")
+      return "border-primary/20 bg-primary/5 text-foreground";
+    if (kind === "warning")
+      return "border-warning/40 bg-warning/10 text-warning";
+    if (kind === "error")
+      return "border-destructive/30 bg-destructive/10 text-destructive";
     return "border-border bg-muted text-muted-foreground";
   };
 
@@ -322,14 +380,17 @@ function AppNotificationPanel() {
         <article
           key={item.id}
           className={`group flex flex-col gap-1 rounded-lg border px-3 py-2 text-sm shadow-lg shadow-black/5 transition hover:-translate-y-0.5 ${toneClass(
-            item.kind
+            item.kind,
           )}`}
         >
           <div className="flex items-center justify-between text-xs uppercase tracking-wide text-opacity-80">
             <span>{roleLabel(item)}</span>
             <span className="whitespace-nowrap text-[10px] font-semibold">
               {item.createdAt
-                ? new Date(item.createdAt).toLocaleTimeString("en-EG", { hour: "2-digit", minute: "2-digit" })
+                ? new Date(item.createdAt).toLocaleTimeString("en-EG", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
                 : ""}
             </span>
           </div>
@@ -338,7 +399,12 @@ function AppNotificationPanel() {
         </article>
       ))}
       <div className="flex justify-end">
-        <Button type="button" variant="outline" size="sm" onClick={handleClearNotifications}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleClearNotifications}
+        >
           مسح الإشعارات
         </Button>
       </div>
@@ -346,7 +412,11 @@ function AppNotificationPanel() {
   );
 }
 
-export default function WebAppEnhancements({ nativeAppInfo }: { nativeAppInfo: NativeAppInfo | null }) {
+export default function WebAppEnhancements({
+  nativeAppInfo,
+}: {
+  nativeAppInfo: NativeAppInfo | null;
+}) {
   void nativeAppInfo;
   return (
     <>

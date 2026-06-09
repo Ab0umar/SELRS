@@ -550,7 +550,9 @@ export default function ReceiptsInquiry() {
                           </div>
                         </div>
                         <div className="rounded-xl bg-destructive/10 px-3 py-2">
-                          <div className="text-[10px] text-destructive">الخصم</div>
+                          <div className="text-[10px] text-destructive">
+                            الخصم
+                          </div>
                           <div className="mt-1 font-semibold tabular-nums text-destructive">
                             {formatMoneyAr(row.discount)}
                           </div>

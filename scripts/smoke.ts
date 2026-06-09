@@ -3,8 +3,7 @@ import { URLSearchParams } from "node:url";
 import "dotenv/config";
 
 const baseUrl =
-  process.env.BASE_URL ||
-  `http://127.0.0.1:${process.env.PORT || "4000"}`;
+  process.env.BASE_URL || `http://127.0.0.1:${process.env.PORT || "4000"}`;
 const adminUser =
   process.env.SMOKE_USER ||
   process.env.ADMIN_USER ||
@@ -20,9 +19,10 @@ type CookieJar = { cookie?: string };
 
 function extractCookieFromHeaders(headers: Headers): string | undefined {
   const anyHeaders = headers as unknown as { getSetCookie?: () => string[] };
-  const setCookies = typeof anyHeaders.getSetCookie === "function"
-    ? anyHeaders.getSetCookie()
-    : [];
+  const setCookies =
+    typeof anyHeaders.getSetCookie === "function"
+      ? anyHeaders.getSetCookie()
+      : [];
   const raw = setCookies.length > 0 ? setCookies[0] : headers.get("set-cookie");
   if (!raw) return undefined;
   const first = raw.split(";")[0];
@@ -31,7 +31,12 @@ function extractCookieFromHeaders(headers: Headers): string | undefined {
 
 async function requestJson(
   path: string,
-  options: { method?: string; body?: unknown; jar?: CookieJar; query?: Record<string, string> } = {},
+  options: {
+    method?: string;
+    body?: unknown;
+    jar?: CookieJar;
+    query?: Record<string, string>;
+  } = {},
 ) {
   const method = options.method || "GET";
   const headers: Record<string, string> = {};
@@ -82,7 +87,11 @@ async function requestText(
   }
 
   const text = await res.text();
-  return { status: res.status, text, contentType: res.headers.get("content-type") ?? "" };
+  return {
+    status: res.status,
+    text,
+    contentType: res.headers.get("content-type") ?? "",
+  };
 }
 
 function trpcInput(input: unknown): Record<string, string> {
@@ -99,13 +108,20 @@ async function run() {
 
   const root = await requestText("/", { jar });
   assert.equal(root.status, 200, "frontend root should return 200");
-  assert.ok(root.contentType.includes("text/html"), "frontend should return HTML");
+  assert.ok(
+    root.contentType.includes("text/html"),
+    "frontend should return HTML",
+  );
 
   const health = await requestJson("/api/trpc/system.health", {
     query: trpcInput({ timestamp: Date.now() }),
   });
   assert.equal(health.status, 200, "system.health should return 200");
-  assert.equal(health.json?.result?.data?.json?.ok, true, "system.health ok flag");
+  assert.equal(
+    health.json?.result?.data?.json?.ok,
+    true,
+    "system.health ok flag",
+  );
 
   assert.ok(
     adminUser && adminPass,
@@ -154,96 +170,163 @@ async function run() {
   const patientId = search.json?.result?.data?.json?.[0]?.id;
   assert.ok(patientId, "search should return patient id");
 
-  const getAllPatientsBase = await requestJson("/api/trpc/medical.getAllPatients", {
-    query: trpcInput({ limit: 25 }),
-    jar,
-  });
-  assert.equal(getAllPatientsBase.status, 200, "getAllPatients should return 200");
+  const getAllPatientsBase = await requestJson(
+    "/api/trpc/medical.getAllPatients",
+    {
+      query: trpcInput({ limit: 25 }),
+      jar,
+    },
+  );
+  assert.equal(
+    getAllPatientsBase.status,
+    200,
+    "getAllPatients should return 200",
+  );
 
-  const serviceTypesToProbe = ["consultant", "specialist", "lasik", "external", "surgery"] as const;
+  const serviceTypesToProbe = [
+    "consultant",
+    "specialist",
+    "lasik",
+    "external",
+    "surgery",
+  ] as const;
   for (const serviceType of serviceTypesToProbe) {
     const filtered = await requestJson("/api/trpc/medical.getAllPatients", {
       query: trpcInput({ limit: 25, serviceType }),
       jar,
     });
-    assert.equal(filtered.status, 200, `getAllPatients(${serviceType}) should return 200`);
+    assert.equal(
+      filtered.status,
+      200,
+      `getAllPatients(${serviceType}) should return 200`,
+    );
   }
 
-  const savePageState = await requestJson("/api/trpc/medical.savePatientPageState", {
-    method: "POST",
-    body: {
-      json: {
-        patientId,
-        page: "examination",
-        data: {
-          serviceSheetTypeByCode: {
-            "1513": "pentacam_center",
-            "1514": "surgery_external",
-          },
-        },
-      },
-    },
-    jar,
-  });
-  assert.equal(savePageState.status, 200, "savePatientPageState should return 200");
-
-  const getPageState = await requestJson("/api/trpc/medical.getPatientPageState", {
-    query: trpcInput({ patientId, page: "examination" }),
-    jar,
-  });
-  assert.equal(getPageState.status, 200, "getPatientPageState should return 200");
-  const stateData = getPageState.json?.result?.data?.json?.data ?? {};
-  assert.equal(stateData?.serviceSheetTypeByCode?.["1513"], "pentacam_center", "should persist pentacam_center mapping");
-  assert.equal(stateData?.serviceSheetTypeByCode?.["1514"], "surgery_external", "should persist surgery_external mapping");
-
-  if (hasRole(role, ["admin"])) {
-    const bulkSheet = await requestJson("/api/trpc/medical.bulkAssignSheetTypeToPatients", {
-      method: "POST",
-      body: {
-        json: {
-          patientIds: [patientId],
-          sheetType: "surgery",
-        },
-      },
-      jar,
-    });
-    assert.equal(bulkSheet.status, 200, "bulkAssignSheetTypeToPatients should return 200 for admin");
-  }
-
-  const createAppointment = await requestJson("/api/trpc/medical.createAppointment", {
-    method: "POST",
-    body: {
-      json: {
-        patientId,
-        appointmentDate: new Date().toISOString(),
-        appointmentType: "examination",
-        branch: "examinations",
-      },
-    },
-    jar,
-  });
-  assert.equal(createAppointment.status, 200, "create appointment should return 200");
-
-  const appointmentsByPatient = await requestJson("/api/trpc/medical.getAppointmentsByPatient", {
-    query: trpcInput({ patientId }),
-    jar,
-  });
-  assert.equal(appointmentsByPatient.status, 200, "get appointments should return 200");
-
-  if (hasRole(role, ["doctor", "admin", "manager"])) {
-    const createReport = await requestJson("/api/trpc/medical.createMedicalReport", {
+  const savePageState = await requestJson(
+    "/api/trpc/medical.savePatientPageState",
+    {
       method: "POST",
       body: {
         json: {
           patientId,
-          diagnosis: "Myopia",
-          treatment: "Glasses",
-          recommendations: "Follow-up",
+          page: "examination",
+          data: {
+            serviceSheetTypeByCode: {
+              "1513": "pentacam_center",
+              "1514": "surgery_external",
+            },
+          },
         },
       },
       jar,
-    });
-    assert.equal(createReport.status, 200, "create medical report should return 200");
+    },
+  );
+  assert.equal(
+    savePageState.status,
+    200,
+    "savePatientPageState should return 200",
+  );
+
+  const getPageState = await requestJson(
+    "/api/trpc/medical.getPatientPageState",
+    {
+      query: trpcInput({ patientId, page: "examination" }),
+      jar,
+    },
+  );
+  assert.equal(
+    getPageState.status,
+    200,
+    "getPatientPageState should return 200",
+  );
+  const stateData = getPageState.json?.result?.data?.json?.data ?? {};
+  assert.equal(
+    stateData?.serviceSheetTypeByCode?.["1513"],
+    "pentacam_center",
+    "should persist pentacam_center mapping",
+  );
+  assert.equal(
+    stateData?.serviceSheetTypeByCode?.["1514"],
+    "surgery_external",
+    "should persist surgery_external mapping",
+  );
+
+  if (hasRole(role, ["admin"])) {
+    const bulkSheet = await requestJson(
+      "/api/trpc/medical.bulkAssignSheetTypeToPatients",
+      {
+        method: "POST",
+        body: {
+          json: {
+            patientIds: [patientId],
+            sheetType: "surgery",
+          },
+        },
+        jar,
+      },
+    );
+    assert.equal(
+      bulkSheet.status,
+      200,
+      "bulkAssignSheetTypeToPatients should return 200 for admin",
+    );
+  }
+
+  const createAppointment = await requestJson(
+    "/api/trpc/medical.createAppointment",
+    {
+      method: "POST",
+      body: {
+        json: {
+          patientId,
+          appointmentDate: new Date().toISOString(),
+          appointmentType: "examination",
+          branch: "examinations",
+        },
+      },
+      jar,
+    },
+  );
+  assert.equal(
+    createAppointment.status,
+    200,
+    "create appointment should return 200",
+  );
+
+  const appointmentsByPatient = await requestJson(
+    "/api/trpc/medical.getAppointmentsByPatient",
+    {
+      query: trpcInput({ patientId }),
+      jar,
+    },
+  );
+  assert.equal(
+    appointmentsByPatient.status,
+    200,
+    "get appointments should return 200",
+  );
+
+  if (hasRole(role, ["doctor", "admin", "manager"])) {
+    const createReport = await requestJson(
+      "/api/trpc/medical.createMedicalReport",
+      {
+        method: "POST",
+        body: {
+          json: {
+            patientId,
+            diagnosis: "Myopia",
+            treatment: "Glasses",
+            recommendations: "Follow-up",
+          },
+        },
+        jar,
+      },
+    );
+    assert.equal(
+      createReport.status,
+      200,
+      "create medical report should return 200",
+    );
 
     const createSurgery = await requestJson("/api/trpc/medical.createSurgery", {
       method: "POST",
@@ -258,43 +341,60 @@ async function run() {
     });
     assert.equal(createSurgery.status, 200, "create surgery should return 200");
 
-    const surgeries = await requestJson("/api/trpc/medical.getSurgeriesByPatient", {
-      query: trpcInput({ patientId }),
-      jar,
-    });
+    const surgeries = await requestJson(
+      "/api/trpc/medical.getSurgeriesByPatient",
+      {
+        query: trpcInput({ patientId }),
+        jar,
+      },
+    );
     assert.equal(surgeries.status, 200, "get surgeries should return 200");
   }
 
   if (hasRole(role, ["nurse", "admin", "manager"])) {
-    const createExam = await requestJson("/api/trpc/medical.createExamination", {
-      method: "POST",
-      body: {
-        json: {
-          visitId: 0,
-          patientId,
-          ucvaOD: "20/40",
-          ucvaOS: "20/40",
+    const createExam = await requestJson(
+      "/api/trpc/medical.createExamination",
+      {
+        method: "POST",
+        body: {
+          json: {
+            visitId: 0,
+            patientId,
+            ucvaOD: "20/40",
+            ucvaOS: "20/40",
+          },
         },
+        jar,
       },
-      jar,
-    });
-    assert.equal(createExam.status, 200, "create examination should return 200");
+    );
+    assert.equal(
+      createExam.status,
+      200,
+      "create examination should return 200",
+    );
   }
 
   if (hasRole(role, ["technician", "admin", "manager"])) {
-    const createPentacam = await requestJson("/api/trpc/medical.createPentacamResult", {
-      method: "POST",
-      body: {
-        json: {
-          visitId: 0,
-          patientId,
-          ltK1: 42.5,
-          rtK1: 43.1,
+    const createPentacam = await requestJson(
+      "/api/trpc/medical.createPentacamResult",
+      {
+        method: "POST",
+        body: {
+          json: {
+            visitId: 0,
+            patientId,
+            ltK1: 42.5,
+            rtK1: 43.1,
+          },
         },
+        jar,
       },
-      jar,
-    });
-    assert.equal(createPentacam.status, 200, "create pentacam should return 200");
+    );
+    assert.equal(
+      createPentacam.status,
+      200,
+      "create pentacam should return 200",
+    );
   }
 
   if (hasRole(role, ["manager", "admin"])) {
@@ -314,7 +414,9 @@ async function run() {
 
     const meds = await requestJson("/api/trpc/medical.getMedications", { jar });
     assert.equal(meds.status, 200, "get medications should return 200");
-    const medicationId = meds.json?.result?.data?.json?.find((m: any) => m.name === medName)?.id;
+    const medicationId = meds.json?.result?.data?.json?.find(
+      (m: any) => m.name === medName,
+    )?.id;
     assert.ok(medicationId, "created medication should be present");
 
     const updateMed = await requestJson("/api/trpc/medical.updateMedication", {
@@ -352,7 +454,9 @@ async function run() {
 
     const tests = await requestJson("/api/trpc/medical.getTests", { jar });
     assert.equal(tests.status, 200, "get tests should return 200");
-    const testId = tests.json?.result?.data?.json?.find((t: any) => t.name === testName)?.id;
+    const testId = tests.json?.result?.data?.json?.find(
+      (t: any) => t.name === testName,
+    )?.id;
     assert.ok(testId, "created test should be present");
 
     const updateTest = await requestJson("/api/trpc/medical.updateTest", {

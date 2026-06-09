@@ -23,6 +23,7 @@ Follow-up TODOs: None
 ## Core Principles
 
 ### I. Strict Module Separation (NON-NEGOTIABLE)
+
 The Medical module and the Accounting module MUST remain strictly separated at every
 layer: routes, tRPC routers, database access, permissions, and UI surfaces. Code,
 types, or queries from one module MUST NOT import from the other. Cross-module data
@@ -33,6 +34,7 @@ and read-only. Mixing them risks corrupting clinical workflows or leaking financ
 state into clinical screens.
 
 ### II. Service-Based Accounting Only
+
 The Accounting module is service-based. Service revenue, service counts, and any
 revenue/expense report MUST be derived from service rows in the MSSQL accounting
 database. They MUST NOT be derived from patient identity, doctor identity, or any
@@ -42,6 +44,7 @@ columns in a report, but never as the basis of a revenue calculation.
 is the only way to match legacy outputs.
 
 ### III. Read-Only Accounting APIs
+
 All Accounting tRPC procedures MUST be `protectedProcedure` queries (read-only). Any
 mutation (insert/update/delete against MSSQL accounting) is FORBIDDEN unless an
 explicit, documented constitutional amendment authorizes it for a named scope.
@@ -49,6 +52,7 @@ explicit, documented constitutional amendment authorizes it for a named scope.
 legacy product; writes from this app risk silent data divergence and audit failures.
 
 ### IV. Use Existing Databases As-Is
+
 Schema redesigns, destructive migrations, renamed columns, or replacement of
 encoding/decoding helpers (mojibake handling in `server/db.ts`) are FORBIDDEN.
 New tables MAY be added only when no existing table answers the need AND the addition
@@ -58,6 +62,7 @@ schema are treated as fixed contracts.
 changes invalidate years of legacy data and reports.
 
 ### V. Legacy Output Parity
+
 Every Accounting report MUST be validated against the corresponding output of the
 legacy accounting system before it is considered complete. Acceptance requires a
 documented row-level or total-level comparison on a representative date range.
@@ -66,6 +71,7 @@ Discrepancies MUST be reconciled or explicitly justified in the spec.
 system, regardless of internal correctness.
 
 ### VI. Spec-Driven, Minimal-Diff Execution
+
 No implementation work begins before `/specify`, `/plan`, and `/tasks` are produced
 and reviewed. Each task MUST carry: Owner Model, Backup Model, Tool, Role, Input,
 Output, Prompt, and Acceptance Criteria. Implementations MUST produce the smallest
@@ -75,6 +81,7 @@ satisfy acceptance criteria.
 Medical module.
 
 ### VII. Do Not Break Medical
+
 Any change MUST preserve the current behavior of the Medical module: routes,
 permissions (`ProtectedRoute`, role-based procedures), patient/doctor flows,
 MSSQL patient sync, and existing audit logging. A task that touches shared
@@ -109,7 +116,7 @@ later patch cycle.
   with SQL and report logic. Cheap models (GPT-5 mini, GLM, Kimi) handle bulk text
   extraction. Gemini handles UI alternatives.
 - **Per-task contract:** Every task MUST include the prompt line:
-  *"Follow the project Constitution and Project Principles strictly."*
+  _"Follow the project Constitution and Project Principles strictly."_
 - **Verification gates:**
   - `pnpm check` is REQUIRED for any change touching auth, routing, permissions,
     patient flows, shared types, or tRPC contracts.

@@ -2,9 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PatientMedicalStatusStrip, type PatientMedicalStatus } from "@/components/patients/PatientMedicalStatusBadges";
+import {
+  PatientMedicalStatusStrip,
+  type PatientMedicalStatus,
+} from "@/components/patients/PatientMedicalStatusBadges";
 import { TodayPatientShortcutsDialog } from "@/components/today/TodayPatientShortcutsDialog";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { trpc } from "@/lib/trpc";
@@ -47,7 +54,13 @@ const QUEUE_FILTERS: { value: QueueFilter; label: string }[] = [
 
 const STAGE_META: Record<
   QueueStage,
-  { label: string; icon: LucideIcon; tone: string; softTone: string; accent: string }
+  {
+    label: string;
+    icon: LucideIcon;
+    tone: string;
+    softTone: string;
+    accent: string;
+  }
 > = {
   checkedIn: {
     label: "تسجيل",
@@ -98,7 +111,8 @@ function isYmd(s: string) {
 }
 
 function coercePositiveInt(v: unknown): number | undefined {
-  if (typeof v === "number" && Number.isFinite(v) && v > 0) return Math.trunc(v);
+  if (typeof v === "number" && Number.isFinite(v) && v > 0)
+    return Math.trunc(v);
   if (typeof v === "bigint") {
     const n = Number(v);
     return Number.isFinite(n) && n > 0 ? Math.trunc(n) : undefined;
@@ -137,7 +151,11 @@ function formatWaitLabel(minutes: number) {
   return `${minutes.toLocaleString("ar-EG")} د`;
 }
 
-function getWaitMinutes(patient: TodayQueuePatient, selectedDate: string, nowMs: number) {
+function getWaitMinutes(
+  patient: TodayQueuePatient,
+  selectedDate: string,
+  nowMs: number,
+) {
   const instant = getQueueInstant(patient, selectedDate);
   if (instant == null) return null;
   return Math.max(0, Math.floor((nowMs - instant) / 60000));
@@ -146,7 +164,9 @@ function getWaitMinutes(patient: TodayQueuePatient, selectedDate: string, nowMs:
 function averageWaitLabel(minutes: Array<number | null>) {
   const values = minutes.filter((v): v is number => typeof v === "number");
   if (values.length === 0) return "—";
-  const avg = Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+  const avg = Math.round(
+    values.reduce((sum, value) => sum + value, 0) / values.length,
+  );
   return `${avg.toLocaleString("ar-EG")} د`;
 }
 
@@ -223,12 +243,19 @@ function CompactPatientCard({
   const meta = STAGE_META[st];
   const visitId = coercePositiveInt((patient as { visitId?: unknown }).visitId);
   const canMarkTreated = !isReadOnly && st !== "treated" && visitId != null;
-  const markingThis = markVisitTreatedPendingVisitId != null && markVisitTreatedPendingVisitId === visitId;
+  const markingThis =
+    markVisitTreatedPendingVisitId != null &&
+    markVisitTreatedPendingVisitId === visitId;
   const doctorText = String(patient.doctorName ?? "").trim();
   const serviceText = getServiceLabel(patient.serviceType);
 
   return (
-    <div className={cn("rounded-lg border text-right transition-[border-color,box-shadow]", meta.accent)}>
+    <div
+      className={cn(
+        "rounded-lg border text-right transition-[border-color,box-shadow]",
+        meta.accent,
+      )}
+    >
       <PatientMedicalStatusStrip status={medicalStatus} />
       <button
         type="button"
@@ -290,7 +317,9 @@ function GridPatientCard({
   const meta = STAGE_META[st];
   const visitId = coercePositiveInt((patient as { visitId?: unknown }).visitId);
   const canMarkTreated = !isReadOnly && st !== "treated" && visitId != null;
-  const markingThis = markVisitTreatedPendingVisitId != null && markVisitTreatedPendingVisitId === visitId;
+  const markingThis =
+    markVisitTreatedPendingVisitId != null &&
+    markVisitTreatedPendingVisitId === visitId;
   const doctorText = String(patient.doctorName ?? "").trim() || "—";
   const serviceText = getServiceLabel(patient.serviceType);
   const timeText = String(patient.checkedInTime ?? "").trim() || "—";
@@ -324,20 +353,34 @@ function GridPatientCard({
             {st === "treated" ? (
               <CheckCircle2 className="h-4 w-4 text-success" aria-hidden />
             ) : null}
-            <Badge className={cn("max-w-full truncate text-[10px] sm:text-xs", meta.softTone)}>
+            <Badge
+              className={cn(
+                "max-w-full truncate text-[10px] sm:text-xs",
+                meta.softTone,
+              )}
+            >
               {meta.label}
             </Badge>
           </div>
         </div>
         <div className="mt-2.5 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 border-t border-border/50 pt-2 text-xs">
           <span className="text-muted-foreground">الطبيب</span>
-          <span className="break-words text-right text-foreground">{doctorText}</span>
+          <span className="break-words text-right text-foreground">
+            {doctorText}
+          </span>
           <span className="text-muted-foreground">الخدمة</span>
           <span className="text-right">
-            <Badge variant="outline" className="max-w-full truncate text-[10px]">{serviceText}</Badge>
+            <Badge
+              variant="outline"
+              className="max-w-full truncate text-[10px]"
+            >
+              {serviceText}
+            </Badge>
           </span>
           <span className="text-muted-foreground">الوقت</span>
-          <span className="tabular-nums text-right text-foreground">{timeText}</span>
+          <span className="tabular-nums text-right text-foreground">
+            {timeText}
+          </span>
         </div>
         {canMarkTreated ? (
           <div className="mt-2 flex justify-end sm:mt-3">
@@ -372,9 +415,14 @@ type VisitScheduleRequestRow = {
   service?: string | null;
 };
 
-function formatScheduleRequestDate(value: VisitScheduleRequestRow["visitDate"]) {
+function formatScheduleRequestDate(
+  value: VisitScheduleRequestRow["visitDate"],
+) {
   if (!value) return "—";
-  const text = value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10);
+  const text =
+    value instanceof Date
+      ? value.toISOString().slice(0, 10)
+      : String(value).slice(0, 10);
   return text || "—";
 }
 
@@ -393,13 +441,17 @@ function BookingRequestCard({
   onMoveToCheckedIn?: () => void;
   movingToCheckedIn?: boolean;
 }) {
-  const serviceText = serviceTypeLabels[String(request.service ?? "")] ?? request.service ?? "—";
+  const serviceText =
+    serviceTypeLabels[String(request.service ?? "")] ?? request.service ?? "—";
 
   return (
     <div className="rounded-xl border border-warning/25 bg-warning/5 p-3 text-right shadow-sm">
       <div className="flex items-start gap-2">
         <div className="mt-1 flex shrink-0 flex-col gap-2">
-          <label className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-info/30 bg-background text-card-foreground transition-colors hover:bg-info/10" title="نقل إلى التسجيل">
+          <label
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-info/30 bg-background text-card-foreground transition-colors hover:bg-info/10"
+            title="نقل إلى التسجيل"
+          >
             <input
               type="checkbox"
               className="h-4 w-4 accent-info"
@@ -407,11 +459,15 @@ function BookingRequestCard({
               disabled={movingToCheckedIn || isReadOnly || removing}
               aria-label={`نقل ${request.fullName} إلى التسجيل`}
               onChange={(event) => {
-                if (event.target.checked && onMoveToCheckedIn) onMoveToCheckedIn();
+                if (event.target.checked && onMoveToCheckedIn)
+                  onMoveToCheckedIn();
               }}
             />
           </label>
-          <label className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-warning/30 bg-background text-card-foreground transition-colors hover:bg-warning/10" title="إلغاء">
+          <label
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-warning/30 bg-background text-card-foreground transition-colors hover:bg-warning/10"
+            title="إلغاء"
+          >
             <input
               type="checkbox"
               className="h-4 w-4 accent-primary"
@@ -425,14 +481,23 @@ function BookingRequestCard({
           </label>
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-foreground">{request.fullName || "—"}</p>
+          <p className="truncate text-sm font-semibold text-foreground">
+            {request.fullName || "—"}
+          </p>
           <div className="mt-2 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-xs">
             <span className="text-muted-foreground">الخدمة</span>
             <span className="text-right text-foreground">{serviceText}</span>
             <span className="text-muted-foreground">التاريخ</span>
-            <span className="text-right tabular-nums text-foreground" dir="ltr">{formatScheduleRequestDate(request.visitDate)}</span>
+            <span className="text-right tabular-nums text-foreground" dir="ltr">
+              {formatScheduleRequestDate(request.visitDate)}
+            </span>
             <span className="text-muted-foreground">الهاتف</span>
-            <span className="truncate text-right tabular-nums text-foreground" dir="ltr">{request.phone || "—"}</span>
+            <span
+              className="truncate text-right tabular-nums text-foreground"
+              dir="ltr"
+            >
+              {request.phone || "—"}
+            </span>
           </div>
         </div>
       </div>
@@ -474,7 +539,10 @@ function KanbanColumn({
     [patients, selectedDate, nowMs],
   );
   const avg = useMemo(
-    () => averageWaitLabel(ordered.map((p) => getWaitMinutes(p, selectedDate, nowMs))),
+    () =>
+      averageWaitLabel(
+        ordered.map((p) => getWaitMinutes(p, selectedDate, nowMs)),
+      ),
     [ordered, selectedDate, nowMs],
   );
 
@@ -502,9 +570,13 @@ function KanbanColumn({
             >
               <Icon className="h-3.5 w-3.5" aria-hidden />
             </div>
-            <span className="text-sm font-semibold text-foreground">{meta.label}</span>
+            <span className="text-sm font-semibold text-foreground">
+              {meta.label}
+            </span>
           </div>
-          <Badge className={cn("tabular-nums text-xs font-semibold", meta.softTone)}>
+          <Badge
+            className={cn("tabular-nums text-xs font-semibold", meta.softTone)}
+          >
             {patients.length.toLocaleString("ar-EG")}
           </Badge>
         </div>
@@ -512,7 +584,9 @@ function KanbanColumn({
           <Clock3 className="h-3 w-3 shrink-0" aria-hidden />
           <span>متوسط {avg}</span>
           {isBottleneck ? (
-            <span className={cn("mr-auto font-medium", meta.tone)}>· الأولوية</span>
+            <span className={cn("mr-auto font-medium", meta.tone)}>
+              · الأولوية
+            </span>
           ) : null}
         </div>
       </div>
@@ -534,7 +608,9 @@ function KanbanColumn({
               patient={patient}
               medicalStatus={medicalStatuses?.[patient.id]}
               onSelectPatient={() => onSelectPatient(patient)}
-              onMarkVisitTreated={(visitId) => onMarkVisitTreated(visitId, patient)}
+              onMarkVisitTreated={(visitId) =>
+                onMarkVisitTreated(visitId, patient)
+              }
               markVisitTreatedPendingVisitId={markVisitTreatedPendingVisitId}
               isReadOnly={isReadOnly}
             />
@@ -562,8 +638,10 @@ export function TodayBottleneckBoard({
   selectedDate?: string;
   onSelectedDateChange?: (date: string) => void;
 } = {}) {
-  const [shortcutPatient, setShortcutPatient] = useState<TodayQueuePatient | null>(null);
-  const [internalSelectedDate, setInternalSelectedDate] = useState(getLocalDateIso);
+  const [shortcutPatient, setShortcutPatient] =
+    useState<TodayQueuePatient | null>(null);
+  const [internalSelectedDate, setInternalSelectedDate] =
+    useState(getLocalDateIso);
   const selectedDate = controlledSelectedDate ?? internalSelectedDate;
   const liveDate = getLocalDateIso();
   const isHistoricalDate = selectedDate !== liveDate;
@@ -585,7 +663,8 @@ export function TodayBottleneckBoard({
     else setInternalSelectedDate(ymd);
   };
 
-  const { merged, isLoading, byStatus } = useTodayQueuePatientsMerged(selectedDate);
+  const { merged, isLoading, byStatus } =
+    useTodayQueuePatientsMerged(selectedDate);
   const utils = trpc.useUtils();
 
   const markVisitTreated = trpc.medical.updateVisitQueueStatus.useMutation({
@@ -602,19 +681,21 @@ export function TodayBottleneckBoard({
     { date: selectedDate },
     { staleTime: 60_000, refetchOnWindowFocus: false },
   );
-  const visitScheduleRequestsQuery = trpc.patient.getVisitScheduleRequests.useQuery(
-    { date: selectedDate },
-    { staleTime: 60_000, refetchOnWindowFocus: false },
-  );
-  const removeScheduleRequest = trpc.patient.removeVisitScheduleRequest.useMutation({
-    onSuccess: async () => {
-      await utils.patient.getVisitScheduleRequests.invalidate();
-      toast.success("تم إزالة الحجز");
-    },
-    onError: (error: unknown) => {
-      toast.error(getTrpcErrorMessage(error, "تعذر إزالة الحجز"));
-    },
-  });
+  const visitScheduleRequestsQuery =
+    trpc.patient.getVisitScheduleRequests.useQuery(
+      { date: selectedDate },
+      { staleTime: 60_000, refetchOnWindowFocus: false },
+    );
+  const removeScheduleRequest =
+    trpc.patient.removeVisitScheduleRequest.useMutation({
+      onSuccess: async () => {
+        await utils.patient.getVisitScheduleRequests.invalidate();
+        toast.success("تم إزالة الحجز");
+      },
+      onError: (error: unknown) => {
+        toast.error(getTrpcErrorMessage(error, "تعذر إزالة الحجز"));
+      },
+    });
   const doctorsDirectoryQuery = trpc.medical.getDoctors.useQuery(undefined, {
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
@@ -622,9 +703,14 @@ export function TodayBottleneckBoard({
 
   const doctorNameByCode = useMemo(() => {
     const map = new Map<string, string>();
-    const doctors = (doctorsDirectoryQuery.data ?? []) as Array<{ code?: string | null; name?: string | null }>;
+    const doctors = (doctorsDirectoryQuery.data ?? []) as Array<{
+      code?: string | null;
+      name?: string | null;
+    }>;
     for (const doctor of doctors) {
-      const code = String(doctor.code ?? "").trim().toLowerCase();
+      const code = String(doctor.code ?? "")
+        .trim()
+        .toLowerCase();
       const name = String(doctor.name ?? "").trim();
       if (code && name) map.set(code, name);
     }
@@ -684,12 +770,21 @@ export function TodayBottleneckBoard({
     return out;
   }, [todayOperationListsQuery.data]);
 
-  const todayPatientIds = useMemo(() => merged.map((p) => p.id).filter(Boolean), [merged]);
+  const todayPatientIds = useMemo(
+    () => merged.map((p) => p.id).filter(Boolean),
+    [merged],
+  );
   const medicalStatusQuery = trpc.medical.getPatientMedicalStatusBatch.useQuery(
     { patientIds: todayPatientIds },
-    { enabled: todayPatientIds.length > 0, staleTime: 120_000, refetchOnWindowFocus: false },
+    {
+      enabled: todayPatientIds.length > 0,
+      staleTime: 120_000,
+      refetchOnWindowFocus: false,
+    },
   );
-  const medicalStatuses = medicalStatusQuery.data as Record<number, PatientMedicalStatus> | undefined;
+  const medicalStatuses = medicalStatusQuery.data as
+    | Record<number, PatientMedicalStatus>
+    | undefined;
 
   const counts = useMemo(
     () => ({
@@ -717,12 +812,18 @@ export function TodayBottleneckBoard({
     };
     for (const stage of STAGES) {
       const ordered = sortByWaitDesc(byStatus[stage], selectedDate, nowMs);
-      out[stage] = ordered.length > 0 ? getWaitMinutes(ordered[0], selectedDate, nowMs) : null;
+      out[stage] =
+        ordered.length > 0
+          ? getWaitMinutes(ordered[0], selectedDate, nowMs)
+          : null;
     }
     return out;
   }, [byStatus, nowMs, selectedDate]);
 
-  const bottleneckStage = useMemo(() => getBottleneckStage(counts, waitSnapshot), [counts, waitSnapshot]);
+  const bottleneckStage = useMemo(
+    () => getBottleneckStage(counts, waitSnapshot),
+    [counts, waitSnapshot],
+  );
 
   const filteredPatients = useMemo(() => {
     const source = queueFilter === "bookings" ? [] : byStatus[queueFilter];
@@ -730,10 +831,13 @@ export function TodayBottleneckBoard({
   }, [queueFilter, byStatus, selectedDate, nowMs]);
 
   const markVisitTreatedPendingVisitId = markVisitTreated.isPending
-    ? markVisitTreated.variables?.visitId ?? null
+    ? (markVisitTreated.variables?.visitId ?? null)
     : null;
 
-  const handleMarkVisitTreated = (visitId: number, patient: TodayQueuePatient) => {
+  const handleMarkVisitTreated = (
+    visitId: number,
+    patient: TodayQueuePatient,
+  ) => {
     markVisitTreated.mutate({
       visitId,
       queueStatus: "treated",
@@ -772,8 +876,12 @@ export function TodayBottleneckBoard({
                 aria-label="تغيير تاريخ اليوم"
               >
                 <CalendarDays className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                <span className="hidden sm:inline">{formatDateLongAr(selectedDate)}</span>
-                <span className="sm:hidden tabular-nums" dir="ltr">{selectedDate}</span>
+                <span className="hidden sm:inline">
+                  {formatDateLongAr(selectedDate)}
+                </span>
+                <span className="sm:hidden tabular-nums" dir="ltr">
+                  {selectedDate}
+                </span>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start" dir="rtl">
@@ -792,7 +900,10 @@ export function TodayBottleneckBoard({
           </Popover>
 
           {isHistoricalDate ? (
-            <Badge variant="outline" className="border-border/70 bg-muted/30 text-xs text-muted-foreground">
+            <Badge
+              variant="outline"
+              className="border-border/70 bg-muted/30 text-xs text-muted-foreground"
+            >
               قراءة فقط
             </Badge>
           ) : null}
@@ -889,7 +1000,8 @@ export function TodayBottleneckBoard({
 
         {isHistoricalDate ? (
           <div className="mt-3 rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
-            هذا التاريخ للقراءة فقط. يمكنك مراجعة المرضى والعمليات، لكن إجراءات التسجيل والحجز متوقفة.
+            هذا التاريخ للقراءة فقط. يمكنك مراجعة المرضى والعمليات، لكن إجراءات
+            التسجيل والحجز متوقفة.
           </div>
         ) : null}
       </div>
@@ -920,7 +1032,12 @@ export function TodayBottleneckBoard({
               <div className="flex flex-col gap-2 rounded-lg border border-dashed border-border/70 bg-muted/10 p-3 text-sm text-muted-foreground">
                 <p>إجراءات اليوم المباشرة متوقفة في العرض التاريخي.</p>
                 <div className="flex flex-wrap gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setTodayPatientsDate(liveDate)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setTodayPatientsDate(liveDate)}
+                  >
                     العودة إلى اليوم
                   </Button>
                 </div>
@@ -957,7 +1074,9 @@ export function TodayBottleneckBoard({
                     )}
                   >
                     {label}{" "}
-                    <span className="tabular-nums opacity-90">({n.toLocaleString("ar-EG")})</span>
+                    <span className="tabular-nums opacity-90">
+                      ({n.toLocaleString("ar-EG")})
+                    </span>
                   </button>
                 );
               })}
@@ -985,14 +1104,23 @@ export function TodayBottleneckBoard({
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 xl:grid-cols-5">
-                  {((visitScheduleRequestsQuery.data ?? []) as VisitScheduleRequestRow[]).map((request) => (
+                  {(
+                    (visitScheduleRequestsQuery.data ??
+                      []) as VisitScheduleRequestRow[]
+                  ).map((request) => (
                     <BookingRequestCard
                       key={request.id}
                       request={request}
-                      removing={removeScheduleRequest.isPending && removeScheduleRequest.variables?.requestId === request.id}
+                      removing={
+                        removeScheduleRequest.isPending &&
+                        removeScheduleRequest.variables?.requestId ===
+                          request.id
+                      }
                       movingToCheckedIn={false}
                       isReadOnly={isHistoricalDate}
-                      onRemove={() => removeScheduleRequest.mutate({ requestId: request.id })}
+                      onRemove={() =>
+                        removeScheduleRequest.mutate({ requestId: request.id })
+                      }
                       onMoveToCheckedIn={() => {
                         // TODO: Implement moving schedule request to checked-in status
                         toast.info("سيتم نقل الحجز إلى التسجيل");
@@ -1014,9 +1142,12 @@ export function TodayBottleneckBoard({
                     medicalStatus={medicalStatuses?.[patient.id]}
                     onSelectPatient={() => setShortcutPatient(patient)}
                     onMarkVisitTreated={(visitId) => {
-                      if (!isHistoricalDate) handleMarkVisitTreated(visitId, patient);
+                      if (!isHistoricalDate)
+                        handleMarkVisitTreated(visitId, patient);
                     }}
-                    markVisitTreatedPendingVisitId={markVisitTreatedPendingVisitId}
+                    markVisitTreatedPendingVisitId={
+                      markVisitTreatedPendingVisitId
+                    }
                     isReadOnly={isHistoricalDate}
                   />
                 ))}
@@ -1040,7 +1171,10 @@ export function TodayBottleneckBoard({
               className="flex min-h-[220px] flex-col items-center justify-center rounded-xl border border-destructive/25 bg-destructive text-destructive-foreground"
               role="alert"
             >
-              {getTrpcErrorMessage(todayOperationListsQuery.error, "تعذر تحميل قائمة العمليات")}
+              {getTrpcErrorMessage(
+                todayOperationListsQuery.error,
+                "تعذر تحميل قائمة العمليات",
+              )}
             </div>
           ) : todayOperationsFlat.length === 0 ? (
             <div className="flex min-h-[220px] flex-col items-center justify-center rounded-xl border border-dashed border-border/70 bg-muted/10 px-4 py-12 text-center text-sm text-muted-foreground">
@@ -1049,7 +1183,11 @@ export function TodayBottleneckBoard({
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {todayOperationsFlat.map((row) => (
-                <TodayOperationListItemCard key={row.key} row={row} doctorNameByCode={doctorNameByCode} />
+                <TodayOperationListItemCard
+                  key={row.key}
+                  row={row}
+                  doctorNameByCode={doctorNameByCode}
+                />
               ))}
             </div>
           )}

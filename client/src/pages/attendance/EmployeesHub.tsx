@@ -8,11 +8,32 @@ import UserMappings from "./UserMappings";
 import ScheduleSwap from "./ScheduleSwap";
 
 const BASE_TABS = [
-  { key: "employees", label: "قائمة الموظفين", description: "بيانات الموظفين وحالة الربط" },
-  { key: "leaves", label: "طلبات الإجازة", description: "رصيد وطلبات الإجازات" },
-  { key: "permissions", label: "طلبات الأذون", description: "أذونات الحضور والانصراف" },
-  { key: "shifts", label: "توزيع الورديات", description: "ربط الموظفين بالورديات" },
-  { key: "schedule-swap", label: "تغيير وتبديل المواعيد", description: "تغيير المواعيد (يومي/أسبوعي/شهري) أو تبديل المواعيد بين موظفين" },
+  {
+    key: "employees",
+    label: "قائمة الموظفين",
+    description: "بيانات الموظفين وحالة الربط",
+  },
+  {
+    key: "leaves",
+    label: "طلبات الإجازة",
+    description: "رصيد وطلبات الإجازات",
+  },
+  {
+    key: "permissions",
+    label: "طلبات الأذون",
+    description: "أذونات الحضور والانصراف",
+  },
+  {
+    key: "shifts",
+    label: "توزيع الورديات",
+    description: "ربط الموظفين بالورديات",
+  },
+  {
+    key: "schedule-swap",
+    label: "تغيير وتبديل المواعيد",
+    description:
+      "تغيير المواعيد (يومي/أسبوعي/شهري) أو تبديل المواعيد بين موظفين",
+  },
 ];
 
 export default function EmployeesHub() {

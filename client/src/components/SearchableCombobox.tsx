@@ -1,8 +1,19 @@
 import { useMemo, useState } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 
 export interface SearchableComboboxOption {
@@ -34,7 +45,10 @@ export default function SearchableCombobox({
 }: SearchableComboboxProps) {
   const [open, setOpen] = useState(false);
 
-  const selected = useMemo(() => options.find((opt) => opt.value === value) ?? null, [options, value]);
+  const selected = useMemo(
+    () => options.find((opt) => opt.value === value) ?? null,
+    [options, value],
+  );
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -44,13 +58,19 @@ export default function SearchableCombobox({
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className={cn("w-full justify-between text-xs font-normal", className)}
+          className={cn(
+            "w-full justify-between text-xs font-normal",
+            className,
+          )}
         >
           <span className="truncate">{selected?.label ?? placeholder}</span>
           <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-60" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] p-0"
+        align="start"
+      >
         <Command>
           <CommandInput placeholder={searchPlaceholder} />
           <CommandList>
@@ -65,7 +85,12 @@ export default function SearchableCombobox({
                     setOpen(false);
                   }}
                 >
-                  <Check className={cn("h-4 w-4", value === opt.value ? "opacity-100" : "opacity-0")} />
+                  <Check
+                    className={cn(
+                      "h-4 w-4",
+                      value === opt.value ? "opacity-100" : "opacity-0",
+                    )}
+                  />
                   <span className="truncate">{opt.label}</span>
                 </CommandItem>
               ))}
@@ -76,4 +101,3 @@ export default function SearchableCombobox({
     </Popover>
   );
 }
-

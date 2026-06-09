@@ -1,36 +1,68 @@
-import { z } from 'zod';
-import crypto from 'crypto';
-import { execSync } from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
-import { getDeviceDiagnostics } from '../services/attendance/deviceDiagnostics.service';
-import { FKAttendLogPuller } from '../services/attendance/fkAttendLogPuller';
-import { FKDeviceSyncService, syncFromFKDevice } from '../services/attendance/fkDeviceSyncService';
-import { router, attendanceViewerProcedure, attendanceManagerProcedure, protectedProcedure, adminProcedure } from '../_core/procedures';
-import { DashboardService } from '../services/attendance/dashboard.service';
-import { MonthlyComputeService } from '../services/attendance/monthlyCompute.service';
-import { LeaveManagementService } from '../services/attendance/leaveManagement.service';
-import { PermissionAdjustmentService } from '../services/attendance/permissionAdjustment.service';
-import { AuditLogService } from '../services/attendance/auditLog.service';
-import { DeviceSettingsService } from '../services/attendance/deviceSettings.service';
-import { resetSyncHistory } from '../services/attendance/syncEngine';
-import { initializeDeviceSync, getDeviceSyncEngine } from '../services/attendance/deviceSyncEngine';
-import { ZKTecoDevice } from '../services/attendance/zktecoDevice';
-import { dailyMaterializer } from '../services/attendance/dailyMaterializer';
-import { getDb, getAllUsers } from '../db';
-import { pushAppNotification, getAppNotificationSettings, DEFAULT_APP_NOTIFICATION_SETTINGS } from '../_core/appNotifications';
-import { attendanceSyncRuns, attendancePunches, attendanceDaily, attendanceEmployees, attendanceLeaves, attendanceShifts, attendanceShiftAssignments, attendanceShiftCycles, attendanceShiftCycleSlots, attendanceShiftCycleAssignments, attendanceHolidays, attendanceLeaveBalances, attendancePermissions, employeeAttendanceMapping, attendanceShiftChangeRequests } from '../../drizzle/schema';
-import { isNull } from 'drizzle-orm';
-import { desc, eq, and, or, gte, lte, lt, max, count, sql } from 'drizzle-orm';
+import { z } from "zod";
+import crypto from "crypto";
+import { execSync } from "child_process";
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
+import { getDeviceDiagnostics } from "../services/attendance/deviceDiagnostics.service";
+import { FKAttendLogPuller } from "../services/attendance/fkAttendLogPuller";
+import {
+  FKDeviceSyncService,
+  syncFromFKDevice,
+} from "../services/attendance/fkDeviceSyncService";
+import {
+  router,
+  attendanceViewerProcedure,
+  attendanceManagerProcedure,
+  protectedProcedure,
+  adminProcedure,
+} from "../_core/procedures";
+import { DashboardService } from "../services/attendance/dashboard.service";
+import { MonthlyComputeService } from "../services/attendance/monthlyCompute.service";
+import { LeaveManagementService } from "../services/attendance/leaveManagement.service";
+import { PermissionAdjustmentService } from "../services/attendance/permissionAdjustment.service";
+import { AuditLogService } from "../services/attendance/auditLog.service";
+import { DeviceSettingsService } from "../services/attendance/deviceSettings.service";
+import { resetSyncHistory } from "../services/attendance/syncEngine";
+import {
+  initializeDeviceSync,
+  getDeviceSyncEngine,
+} from "../services/attendance/deviceSyncEngine";
+import { ZKTecoDevice } from "../services/attendance/zktecoDevice";
+import { dailyMaterializer } from "../services/attendance/dailyMaterializer";
+import { getDb, getAllUsers } from "../db";
+import {
+  pushAppNotification,
+  getAppNotificationSettings,
+  DEFAULT_APP_NOTIFICATION_SETTINGS,
+} from "../_core/appNotifications";
+import {
+  attendanceSyncRuns,
+  attendancePunches,
+  attendanceDaily,
+  attendanceEmployees,
+  attendanceLeaves,
+  attendanceShifts,
+  attendanceShiftAssignments,
+  attendanceShiftCycles,
+  attendanceShiftCycleSlots,
+  attendanceShiftCycleAssignments,
+  attendanceHolidays,
+  attendanceLeaveBalances,
+  attendancePermissions,
+  employeeAttendanceMapping,
+  attendanceShiftChangeRequests,
+} from "../../drizzle/schema";
+import { isNull } from "drizzle-orm";
+import { desc, eq, and, or, gte, lte, lt, max, count, sql } from "drizzle-orm";
 
 /** Format a DB date value (Date object or string) as YYYY-MM-DD using local time parts. */
 function fmtDate(d: Date | string | null | undefined): string {
-  if (!d) return '';
-  if (typeof d === 'string') return d.slice(0, 10);
+  if (!d) return "";
+  if (typeof d === "string") return d.slice(0, 10);
   const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
 
@@ -44,9 +76,9 @@ export const attendanceRouter = router({
 
   offTodayList: attendanceViewerProcedure.query(async () => {
     const db = await getDb();
-    if (!db) throw new Error('Database not available');
+    if (!db) throw new Error("Database not available");
     const now = new Date();
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     const rows = await db
       .select({
         empCd: attendanceLeaves.empCd,
@@ -56,8 +88,13 @@ export const attendanceRouter = router({
         approved: attendanceLeaves.approved,
       })
       .from(attendanceLeaves)
-      .leftJoin(attendanceEmployees, eq(attendanceLeaves.empCd, attendanceEmployees.empCd))
-      .where(sql`${attendanceLeaves.dateFrom} <= ${todayStr} AND ${attendanceLeaves.dateTo} >= ${todayStr}`)
+      .leftJoin(
+        attendanceEmployees,
+        eq(attendanceLeaves.empCd, attendanceEmployees.empCd),
+      )
+      .where(
+        sql`${attendanceLeaves.dateFrom} <= ${todayStr} AND ${attendanceLeaves.dateTo} >= ${todayStr}`,
+      )
       .orderBy(attendanceEmployees.fullName);
     return rows.map((r) => ({
       empCd: r.empCd,
@@ -72,7 +109,7 @@ export const attendanceRouter = router({
     .input(z.object({ limit: z.number().int().min(1).max(200).default(50) }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
       const runs = await db
         .select()
@@ -80,7 +117,7 @@ export const attendanceRouter = router({
         .orderBy(desc(attendanceSyncRuns.startedAt))
         .limit(input.limit);
 
-      const current = runs.find((r) => r.status === 'running');
+      const current = runs.find((r) => r.status === "running");
 
       return {
         runs: runs.map((r) => ({
@@ -122,7 +159,7 @@ export const attendanceRouter = router({
     .input(z.object({}).optional())
     .query(async () => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
       const employees = await db
         .select()
@@ -148,11 +185,11 @@ export const attendanceRouter = router({
         toDate: z.string().optional(), // YYYY-MM-DD
         limit: z.number().int().min(1).max(1000).default(500),
         offset: z.number().int().min(0).default(0),
-      })
+      }),
     )
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
       const conditions = [];
 
@@ -181,12 +218,13 @@ export const attendanceRouter = router({
         .limit(input.limit)
         .offset(input.offset);
 
-      const total = conditions.length > 0
-        ? await db
-            .select({ count: attendancePunches.id })
-            .from(attendancePunches)
-            .where(where)
-        : [];
+      const total =
+        conditions.length > 0
+          ? await db
+              .select({ count: attendancePunches.id })
+              .from(attendancePunches)
+              .where(where)
+          : [];
 
       return {
         punches: punches.map((p) => ({
@@ -205,11 +243,11 @@ export const attendanceRouter = router({
     .input(
       z.object({
         date: z.string(), // YYYY-MM-DD
-      })
+      }),
     )
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
       const daily = await db
         .select({
@@ -228,14 +266,17 @@ export const attendanceRouter = router({
           computedAt: attendanceDaily.computedAt,
         })
         .from(attendanceDaily)
-        .leftJoin(attendanceEmployees, eq(attendanceDaily.empCd, attendanceEmployees.empCd))
+        .leftJoin(
+          attendanceEmployees,
+          eq(attendanceDaily.empCd, attendanceEmployees.empCd),
+        )
         .where(eq(attendanceDaily.workDate, input.date as any))
         .orderBy(attendanceDaily.empCd);
 
       return daily.map((d) => ({
         empCd: d.empCd,
         empName: d.empName ?? null,
-        workDate: d.workDate.toISOString().split('T')[0],
+        workDate: d.workDate.toISOString().split("T")[0],
         shiftId: d.shiftId,
         firstIn: d.firstIn?.toISOString() ?? null,
         lastOut: d.lastOut?.toISOString() ?? null,
@@ -255,11 +296,11 @@ export const attendanceRouter = router({
         empCd: z.string(),
         fromDate: z.string(), // YYYY-MM-DD
         toDate: z.string(), // YYYY-MM-DD
-      })
+      }),
     )
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
       const from = new Date(input.fromDate);
       const to = new Date(input.toDate);
@@ -272,14 +313,14 @@ export const attendanceRouter = router({
           and(
             eq(attendanceDaily.empCd, input.empCd),
             gte(attendanceDaily.workDate, from),
-            lte(attendanceDaily.workDate, to)
-          )
+            lte(attendanceDaily.workDate, to),
+          ),
         )
         .orderBy(attendanceDaily.workDate);
 
       return daily.map((d) => ({
         empCd: d.empCd,
-        workDate: d.workDate.toISOString().split('T')[0],
+        workDate: d.workDate.toISOString().split("T")[0],
         shiftId: d.shiftId,
         firstIn: d.firstIn?.toISOString() ?? null,
         lastOut: d.lastOut?.toISOString() ?? null,
@@ -298,10 +339,13 @@ export const attendanceRouter = router({
       z.object({
         year: z.number().int().min(2020).max(2099),
         month: z.number().int().min(1).max(12),
-      })
+      }),
     )
     .query(async ({ input }) => {
-      const monthly = await MonthlyComputeService.generateMonthly(input.year, input.month);
+      const monthly = await MonthlyComputeService.generateMonthly(
+        input.year,
+        input.month,
+      );
       return monthly;
     }),
 
@@ -310,10 +354,13 @@ export const attendanceRouter = router({
       z.object({
         year: z.number().int().min(2020).max(2099),
         month: z.number().int().min(1).max(12),
-      })
+      }),
     )
     .query(async ({ input }) => {
-      const monthly = await MonthlyComputeService.generateMonthly(input.year, input.month);
+      const monthly = await MonthlyComputeService.generateMonthly(
+        input.year,
+        input.month,
+      );
       return MonthlyComputeService.lateReport(monthly);
     }),
 
@@ -322,10 +369,13 @@ export const attendanceRouter = router({
       z.object({
         year: z.number().int().min(2020).max(2099),
         month: z.number().int().min(1).max(12),
-      })
+      }),
     )
     .query(async ({ input }) => {
-      const monthly = await MonthlyComputeService.generateMonthly(input.year, input.month);
+      const monthly = await MonthlyComputeService.generateMonthly(
+        input.year,
+        input.month,
+      );
       return MonthlyComputeService.absentReport(monthly);
     }),
 
@@ -334,10 +384,13 @@ export const attendanceRouter = router({
       z.object({
         year: z.number().int().min(2020).max(2099),
         month: z.number().int().min(1).max(12),
-      })
+      }),
     )
     .query(async ({ input }) => {
-      const monthly = await MonthlyComputeService.generateMonthly(input.year, input.month);
+      const monthly = await MonthlyComputeService.generateMonthly(
+        input.year,
+        input.month,
+      );
       return MonthlyComputeService.otReport(monthly);
     }),
 
@@ -346,10 +399,13 @@ export const attendanceRouter = router({
       z.object({
         year: z.number().int().min(2020).max(2099),
         month: z.number().int().min(1).max(12),
-      })
+      }),
     )
     .query(async ({ input }) => {
-      const monthly = await MonthlyComputeService.generateMonthly(input.year, input.month);
+      const monthly = await MonthlyComputeService.generateMonthly(
+        input.year,
+        input.month,
+      );
       return MonthlyComputeService.summaryReport(monthly);
     }),
 
@@ -358,13 +414,17 @@ export const attendanceRouter = router({
       z.object({
         empCd: z.string(),
         year: z.number().int().min(2020).max(2099).optional(),
-      })
+      }),
     )
     .query(async ({ input }) => {
       const year = input.year || new Date().getFullYear();
       const fromDate = new Date(year, 0, 1);
       const toDate = new Date(year, 11, 31);
-      return LeaveManagementService.getEmployeeLeaves(input.empCd, fromDate, toDate);
+      return LeaveManagementService.getEmployeeLeaves(
+        input.empCd,
+        fromDate,
+        toDate,
+      );
     }),
 
   leaveBalance: attendanceViewerProcedure
@@ -372,7 +432,7 @@ export const attendanceRouter = router({
       z.object({
         empCd: z.string(),
         year: z.number().int().min(2020).max(2099).optional(),
-      })
+      }),
     )
     .query(async ({ input }) => {
       const year = input.year || new Date().getFullYear();
@@ -389,13 +449,13 @@ export const attendanceRouter = router({
         empCd: z.string(),
         dateFrom: z.string(), // YYYY-MM-DD
         dateTo: z.string(), // YYYY-MM-DD
-        type: z.enum(['annual', 'sick', 'unpaid', 'other']),
+        type: z.enum(["annual", "sick", "unpaid", "other"]),
         note: z.string().optional(),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       if (input.dateTo < input.dateFrom) {
-        throw new Error('تاريخ النهاية يجب أن يكون بعد تاريخ البداية');
+        throw new Error("تاريخ النهاية يجب أن يكون بعد تاريخ البداية");
       }
 
       await LeaveManagementService.createLeave({
@@ -410,8 +470,8 @@ export const attendanceRouter = router({
       // Recompute daily records immediately since leave is auto-approved
       await PermissionAdjustmentService.recomputeRange(
         input.empCd,
-        new Date(input.dateFrom + 'T12:00:00'),
-        new Date(input.dateTo + 'T12:00:00'),
+        new Date(input.dateFrom + "T12:00:00"),
+        new Date(input.dateTo + "T12:00:00"),
       );
 
       return { success: true };
@@ -421,7 +481,7 @@ export const attendanceRouter = router({
     .input(z.object({ leaveId: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
       // Get the leave record to know the date range
       const leave = await db
@@ -431,7 +491,7 @@ export const attendanceRouter = router({
         .limit(1);
 
       if (!leave[0]) {
-        throw new Error('Leave record not found');
+        throw new Error("Leave record not found");
       }
 
       // Approve the leave
@@ -440,8 +500,8 @@ export const attendanceRouter = router({
       // Recompute daily records for the leave date range
       await PermissionAdjustmentService.recomputeRange(
         leave[0].empCd,
-        new Date(String(leave[0].dateFrom) + 'T12:00:00'),
-        new Date(String(leave[0].dateTo) + 'T12:00:00'),
+        new Date(String(leave[0].dateFrom) + "T12:00:00"),
+        new Date(String(leave[0].dateTo) + "T12:00:00"),
       );
 
       // Notify the employee whose leave was approved
@@ -451,17 +511,20 @@ export const attendanceRouter = router({
         .where(eq(employeeAttendanceMapping.machineUserId, leave[0].empCd))
         .limit(1);
       if (empMapping[0]?.userId) {
-        const ns = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
+        const ns = await getAppNotificationSettings().catch(
+          () => DEFAULT_APP_NOTIFICATION_SETTINGS,
+        );
         if (ns.attendance.enabled) {
-          const typeAr = String(leave[0].type ?? '') === 'annual' ? 'سنوية' : 'مرضية';
+          const typeAr =
+            String(leave[0].type ?? "") === "annual" ? "سنوية" : "مرضية";
           pushAppNotification({
-            title: 'تمت الموافقة على طلب الإجازة',
+            title: "تمت الموافقة على طلب الإجازة",
             message: `تمت الموافقة على إجازتك ${typeAr} من ${leave[0].dateFrom} إلى ${leave[0].dateTo}`,
-            kind: 'success',
+            kind: "success",
             targetUserIds: [empMapping[0].userId],
-            source: 'attendance',
-            entityType: 'leave_approved',
-            meta: { empCd: leave[0].empCd, path: '/attendance/me' },
+            source: "attendance",
+            entityType: "leave_approved",
+            meta: { empCd: leave[0].empCd, path: "/attendance/me" },
             channels: { inApp: ns.attendance.inApp, push: ns.attendance.push },
           }).catch(() => {});
         }
@@ -478,29 +541,38 @@ export const attendanceRouter = router({
 
   // List all leaves across all employees, filterable by empCd and date range
   listLeaves: attendanceViewerProcedure
-    .input(z.object({
-      empCd: z.string().optional(),
-      from: z.string().optional(),
-      to: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        empCd: z.string().optional(),
+        from: z.string().optional(),
+        to: z.string().optional(),
+      }),
+    )
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
       const conditions: any[] = [];
       if (input.empCd) conditions.push(eq(attendanceLeaves.empCd, input.empCd));
-      if (input.from) conditions.push(gte(attendanceLeaves.dateFrom, input.from as any));
-      if (input.to) conditions.push(lte(attendanceLeaves.dateTo, input.to as any));
-      const rows = await db.select({
-        id: attendanceLeaves.id,
-        empCd: attendanceLeaves.empCd,
-        empName: attendanceEmployees.fullName,
-        dateFrom: attendanceLeaves.dateFrom,
-        dateTo: attendanceLeaves.dateTo,
-        type: attendanceLeaves.type,
-        approved: attendanceLeaves.approved,
-        note: attendanceLeaves.note,
-      }).from(attendanceLeaves)
-        .leftJoin(attendanceEmployees, eq(attendanceLeaves.empCd, attendanceEmployees.empCd))
+      if (input.from)
+        conditions.push(gte(attendanceLeaves.dateFrom, input.from as any));
+      if (input.to)
+        conditions.push(lte(attendanceLeaves.dateTo, input.to as any));
+      const rows = await db
+        .select({
+          id: attendanceLeaves.id,
+          empCd: attendanceLeaves.empCd,
+          empName: attendanceEmployees.fullName,
+          dateFrom: attendanceLeaves.dateFrom,
+          dateTo: attendanceLeaves.dateTo,
+          type: attendanceLeaves.type,
+          approved: attendanceLeaves.approved,
+          note: attendanceLeaves.note,
+        })
+        .from(attendanceLeaves)
+        .leftJoin(
+          attendanceEmployees,
+          eq(attendanceLeaves.empCd, attendanceEmployees.empCd),
+        )
         .where(conditions.length ? and(...conditions) : undefined)
         .orderBy(desc(attendanceLeaves.dateFrom));
       return rows.map((r) => ({
@@ -516,7 +588,7 @@ export const attendanceRouter = router({
         empCd: z.string(),
         fromDate: z.string(), // YYYY-MM-DD
         toDate: z.string(), // YYYY-MM-DD
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const fromDate = new Date(input.fromDate);
@@ -525,7 +597,7 @@ export const attendanceRouter = router({
       const updated = await PermissionAdjustmentService.recomputeRange(
         input.empCd,
         fromDate,
-        toDate
+        toDate,
       );
 
       return { success: true, recordsUpdated: updated };
@@ -537,7 +609,7 @@ export const attendanceRouter = router({
         empCd: z.string(),
         fromDate: z.string(), // YYYY-MM-DD
         toDate: z.string(), // YYYY-MM-DD
-      })
+      }),
     )
     .query(async ({ input }) => {
       const fromDate = new Date(input.fromDate);
@@ -546,7 +618,7 @@ export const attendanceRouter = router({
       return PermissionAdjustmentService.getAdjustmentSummary(
         input.empCd,
         fromDate,
-        toDate
+        toDate,
       );
     }),
 
@@ -565,8 +637,8 @@ export const attendanceRouter = router({
     const stats = AuditLogService.getStats();
 
     return {
-      database: db ? 'healthy' : 'disconnected',
-      auditLog: 'operational',
+      database: db ? "healthy" : "disconnected",
+      auditLog: "operational",
       lastSyncTime: stats.lastSyncRun,
       syncRunsLast24h: stats.syncRunsLast24h,
       errorsLast24h: stats.errorsLast24h,
@@ -581,7 +653,15 @@ export const attendanceRouter = router({
 
   deviceStatus: attendanceViewerProcedure.query(async () => {
     const db = await getDb();
-    if (!db) return { connected: false, lastConnected: null, uptime: 0, lastPunch: null, punchCount: 0, connectionError: null };
+    if (!db)
+      return {
+        connected: false,
+        lastConnected: null,
+        uptime: 0,
+        lastPunch: null,
+        punchCount: 0,
+        connectionError: null,
+      };
 
     const [row] = await db
       .select({ lastPunch: max(attendancePunches.punchAt), total: count() })
@@ -609,56 +689,59 @@ export const attendanceRouter = router({
         port: z.number().int().min(1).max(65535).optional(),
         fallbackToAccess: z.boolean().optional(),
         realTimeSync: z.boolean().optional(),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       return DeviceSettingsService.updateSettings(input);
     }),
 
-  connectDevice: attendanceManagerProcedure
-    .mutation(async () => {
-      const connected = await DeviceSettingsService.connectDevice();
-      AuditLogService.log({
-        action: 'device_connected',
-        details: { success: connected },
-        status: connected ? 'success' : 'error',
-      });
-      return { success: connected };
-    }),
+  connectDevice: attendanceManagerProcedure.mutation(async () => {
+    const connected = await DeviceSettingsService.connectDevice();
+    AuditLogService.log({
+      action: "device_connected",
+      details: { success: connected },
+      status: connected ? "success" : "error",
+    });
+    return { success: connected };
+  }),
 
-  disconnectDevice: attendanceManagerProcedure
-    .mutation(async () => {
-      DeviceSettingsService.disconnectDevice();
-      AuditLogService.log({
-        action: 'device_disconnected',
-        details: {},
-        status: 'success',
-      });
-      return { success: true };
-    }),
+  disconnectDevice: attendanceManagerProcedure.mutation(async () => {
+    DeviceSettingsService.disconnectDevice();
+    AuditLogService.log({
+      action: "device_disconnected",
+      details: {},
+      status: "success",
+    });
+    return { success: true };
+  }),
 
-  resetDeviceConnection: attendanceManagerProcedure
-    .mutation(async () => {
-      DeviceSettingsService.resetDeviceConnection();
-      AuditLogService.log({
-        action: 'device_reset',
-        details: {},
-        status: 'success',
-      });
-      return { success: true };
-    }),
+  resetDeviceConnection: attendanceManagerProcedure.mutation(async () => {
+    DeviceSettingsService.resetDeviceConnection();
+    AuditLogService.log({
+      action: "device_reset",
+      details: {},
+      status: "success",
+    });
+    return { success: true };
+  }),
 
   sendDeviceCommand: attendanceManagerProcedure
-    .input(z.object({
-      hex: z.string()
-        .regex(/^[0-9a-fA-F]+$/, 'hex string contains invalid characters')
-        .max(256, 'hex string too long')
-        .refine(s => s.length % 2 === 0, 'hex string must have even length'),
-    }))
+    .input(
+      z.object({
+        hex: z
+          .string()
+          .regex(/^[0-9a-fA-F]+$/, "hex string contains invalid characters")
+          .max(256, "hex string too long")
+          .refine(
+            (s) => s.length % 2 === 0,
+            "hex string must have even length",
+          ),
+      }),
+    )
     .mutation(async ({ input }) => {
       try {
         const success = DeviceSettingsService.sendDeviceCommandHex(input.hex);
-        return { success, error: success ? undefined : 'Device not connected' };
+        return { success, error: success ? undefined : "Device not connected" };
       } catch (err) {
         return { success: false, error: (err as Error).message };
       }
@@ -671,22 +754,22 @@ export const attendanceRouter = router({
           z.object({
             empCd: z.string(),
             punchAt: z.string(), // ISO timestamp
-            direction: z.enum(['in', 'out', 'unknown']),
+            direction: z.enum(["in", "out", "unknown"]),
             note: z.string().optional(),
-          })
+          }),
         ),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
       const results = [];
 
       for (const punch of input.punches) {
         const punchAt = new Date(punch.punchAt);
         const hashInput = `${punch.empCd}|${punchAt.getTime()}|${punch.direction}`;
-        const hash = crypto.createHash('sha1').update(hashInput).digest('hex');
+        const hash = crypto.createHash("sha1").update(hashInput).digest("hex");
 
         try {
           const existing = await db
@@ -696,7 +779,11 @@ export const attendanceRouter = router({
             .limit(1);
 
           if (existing.length > 0) {
-            results.push({ empCd: punch.empCd, success: false, error: 'Duplicate punch' });
+            results.push({
+              empCd: punch.empCd,
+              success: false,
+              error: "Duplicate punch",
+            });
             continue;
           }
 
@@ -704,7 +791,7 @@ export const attendanceRouter = router({
             empCd: punch.empCd,
             punchAt: punchAt,
             direction: punch.direction,
-            source: 'manual',
+            source: "manual",
             sourceHash: hash,
             note: punch.note,
           });
@@ -731,11 +818,14 @@ export const attendanceRouter = router({
       z.object({
         ip: z.string(),
         port: z.number().int().min(1).max(65535),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const diagnostics = getDeviceDiagnostics();
-      const results = await diagnostics.runFullDiagnostics(input.ip, input.port);
+      const results = await diagnostics.runFullDiagnostics(
+        input.ip,
+        input.port,
+      );
       const report = diagnostics.generateReport();
 
       return {
@@ -750,7 +840,7 @@ export const attendanceRouter = router({
       z.object({
         ip: z.string().regex(/^(\d{1,3}\.){3}\d{1,3}$/, "Invalid IP address"),
         port: z.number().int().min(1).max(65535).default(5005),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const device = new ZKTecoDevice({
@@ -797,22 +887,27 @@ export const attendanceRouter = router({
   pullDeviceLogs: attendanceManagerProcedure
     .input(
       z.object({
-        ip: z.string().regex(/^(\d{1,3}\.){3}\d{1,3}$/, "Invalid IP address").optional(),
+        ip: z
+          .string()
+          .regex(/^(\d{1,3}\.){3}\d{1,3}$/, "Invalid IP address")
+          .optional(),
         port: z.number().int().min(1).max(65535).optional(),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const config = input.ip ? { ip: input.ip, port: input.port } : undefined;
+        const config = input.ip
+          ? { ip: input.ip, port: input.port }
+          : undefined;
         const punches = await FKAttendLogPuller.pullLogs(config);
 
         AuditLogService.log({
-          action: 'device_logs_pulled',
+          action: "device_logs_pulled",
           details: {
             count: punches.length,
-            ip: input.ip || '192.168.0.10',
+            ip: input.ip || "192.168.0.10",
           },
-          status: 'success',
+          status: "success",
         });
 
         return {
@@ -821,15 +916,15 @@ export const attendanceRouter = router({
           sample: punches.slice(0, 3).map((p) => ({
             empNo: p.enrollNo,
             timestamp: p.timestamp.toISOString(),
-            direction: p.inOutMode === 1 ? 'in' : 'out',
+            direction: p.inOutMode === 1 ? "in" : "out",
           })),
         };
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         AuditLogService.log({
-          action: 'device_logs_pulled',
+          action: "device_logs_pulled",
           details: { error: errorMsg },
-          status: 'error',
+          status: "error",
         });
         return {
           success: false,
@@ -841,9 +936,12 @@ export const attendanceRouter = router({
   exportDevicePunches: attendanceManagerProcedure
     .input(
       z.object({
-        ip: z.string().regex(/^(\d{1,3}\.){3}\d{1,3}$/, "Invalid IP address").optional(),
+        ip: z
+          .string()
+          .regex(/^(\d{1,3}\.){3}\d{1,3}$/, "Invalid IP address")
+          .optional(),
         port: z.number().int().min(1).max(65535).optional(),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const config = input.ip ? { ip: input.ip, port: input.port } : undefined;
@@ -854,7 +952,7 @@ export const attendanceRouter = router({
         punches: punches.map((p) => ({
           empNo: p.enrollNo,
           timestamp: p.timestamp.toISOString(),
-          direction: p.inOutMode === 1 ? 'in' : 'out',
+          direction: p.inOutMode === 1 ? "in" : "out",
           year: p.year,
           month: p.month,
           day: p.day,
@@ -868,39 +966,55 @@ export const attendanceRouter = router({
   syncEmployeesFromDevice: attendanceManagerProcedure
     .input(
       z.object({
-        ip: z.string().regex(/^(\d{1,3}\.){3}\d{1,3}$/, "Invalid IP address").optional(),
+        ip: z
+          .string()
+          .regex(/^(\d{1,3}\.){3}\d{1,3}$/, "Invalid IP address")
+          .optional(),
         port: z.number().int().min(1).max(65535).optional(),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const settings = DeviceSettingsService.getSettings();
-      const ip = input.ip || settings.ip || '192.168.0.10';
+      const ip = input.ip || settings.ip || "192.168.0.10";
       const port = input.port || settings.port || 5005;
 
-      const pullerPath = process.env.FK_USER_PULLER_PATH ?? 'D:\\Programs\\fp\\FKUserPuller.exe';
+      const pullerPath =
+        process.env.FK_USER_PULLER_PATH ?? "D:\\Programs\\fp\\FKUserPuller.exe";
       const tempFile = path.join(os.tmpdir(), `fk_users_${Date.now()}.csv`);
 
       try {
         const cmd = `"${pullerPath}" --ip ${ip} --port ${port} --out "${tempFile}"`;
-        const output = execSync(cmd, { encoding: 'utf-8', timeout: 30000 });
-        console.log('[FKUserPuller]', output);
+        const output = execSync(cmd, { encoding: "utf-8", timeout: 30000 });
+        console.log("[FKUserPuller]", output);
 
-        if (!fs.existsSync(tempFile)) throw new Error('لم يُنتج الملف — فحص اتصال الجهاز');
+        if (!fs.existsSync(tempFile))
+          throw new Error("لم يُنتج الملف — فحص اتصال الجهاز");
 
-        const lines = fs.readFileSync(tempFile, 'utf-8').trim().split('\n').slice(1);
+        const lines = fs
+          .readFileSync(tempFile, "utf-8")
+          .trim()
+          .split("\n")
+          .slice(1);
         const employees: { empNo: string; name: string }[] = [];
         for (const line of lines) {
-          const parts = line.trim().split(',');
+          const parts = line.trim().split(",");
           if (!parts[0]?.trim()) continue;
           const empNo = parts[0].trim();
-          const name = (parts[1] ?? '').trim(); // keep empty if device has no name
+          const name = (parts[1] ?? "").trim(); // keep empty if device has no name
           employees.push({ empNo, name });
         }
 
-        if (!employees.length) return { success: true, inserted: 0, updated: 0, total: 0, employees: [] };
+        if (!employees.length)
+          return {
+            success: true,
+            inserted: 0,
+            updated: 0,
+            total: 0,
+            employees: [],
+          };
 
         const db = await getDb();
-        if (!db) throw new Error('DB unavailable');
+        if (!db) throw new Error("DB unavailable");
 
         const now = new Date();
         let inserted = 0;
@@ -910,7 +1024,10 @@ export const attendanceRouter = router({
           const empCd = emp.empNo;
 
           const existing = await db
-            .select({ empCd: attendanceEmployees.empCd, fullName: attendanceEmployees.fullName })
+            .select({
+              empCd: attendanceEmployees.empCd,
+              fullName: attendanceEmployees.fullName,
+            })
             .from(attendanceEmployees)
             .where(eq(attendanceEmployees.empCd, empCd))
             .limit(1);
@@ -918,9 +1035,11 @@ export const attendanceRouter = router({
           if (existing.length) {
             // only update name if device actually provided one and current name is just the ID
             const hasRealName = emp.name && emp.name !== empCd;
-            const currentIsPlaceholder = !existing[0].fullName || existing[0].fullName === empCd;
+            const currentIsPlaceholder =
+              !existing[0].fullName || existing[0].fullName === empCd;
             if (hasRealName && currentIsPlaceholder) {
-              await db.update(attendanceEmployees)
+              await db
+                .update(attendanceEmployees)
                 .set({ fullName: emp.name, updatedAt: now })
                 .where(eq(attendanceEmployees.empCd, empCd));
               updated++;
@@ -938,39 +1057,63 @@ export const attendanceRouter = router({
           }
         }
 
-        AuditLogService.log({ action: 'sync_employees_device', details: { inserted, updated, total: employees.length }, status: 'success' });
+        AuditLogService.log({
+          action: "sync_employees_device",
+          details: { inserted, updated, total: employees.length },
+          status: "success",
+        });
 
-        return { success: true, inserted, updated, total: employees.length, employees };
+        return {
+          success: true,
+          inserted,
+          updated,
+          total: employees.length,
+          employees,
+        };
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        AuditLogService.log({ action: 'sync_employees_device', details: { error: msg }, status: 'error' });
+        AuditLogService.log({
+          action: "sync_employees_device",
+          details: { error: msg },
+          status: "error",
+        });
         throw new Error(msg);
       } finally {
-        try { if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile); } catch { }
+        try {
+          if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
+        } catch {}
       }
     }),
 
   syncFromFKDevice: attendanceManagerProcedure
     .input(
       z.object({
-        ip: z.string().regex(/^(\d{1,3}\.){3}\d{1,3}$/, "Invalid IP address").optional(),
+        ip: z
+          .string()
+          .regex(/^(\d{1,3}\.){3}\d{1,3}$/, "Invalid IP address")
+          .optional(),
         port: z.number().int().min(1).max(65535).optional(),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const deviceConfig = input.ip ? { ip: input.ip, port: input.port } : undefined;
-        const result = await FKDeviceSyncService.syncNow(ctx.user.id, deviceConfig);
+        const deviceConfig = input.ip
+          ? { ip: input.ip, port: input.port }
+          : undefined;
+        const result = await FKDeviceSyncService.syncNow(
+          ctx.user.id,
+          deviceConfig,
+        );
 
         AuditLogService.log({
-          action: 'fk_device_sync',
+          action: "fk_device_sync",
           details: {
             recordsSeen: result.recordsSeen,
             recordsInserted: result.recordsInserted,
             recordsSkipped: result.recordsSkipped,
             duration: result.duration,
           },
-          status: result.success ? 'success' : 'error',
+          status: result.success ? "success" : "error",
         });
 
         return {
@@ -986,9 +1129,9 @@ export const attendanceRouter = router({
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         AuditLogService.log({
-          action: 'fk_device_sync',
+          action: "fk_device_sync",
           details: { error: errorMsg },
-          status: 'error',
+          status: "error",
         });
         return {
           success: false,
@@ -1000,24 +1143,29 @@ export const attendanceRouter = router({
   testFKDeviceConnection: attendanceManagerProcedure
     .input(
       z.object({
-        ip: z.string().regex(/^(\d{1,3}\.){3}\d{1,3}$/, "Invalid IP address").optional(),
+        ip: z
+          .string()
+          .regex(/^(\d{1,3}\.){3}\d{1,3}$/, "Invalid IP address")
+          .optional(),
         port: z.number().int().min(1).max(65535).optional(),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       try {
-        const deviceConfig = input.ip ? { ip: input.ip, port: input.port } : undefined;
+        const deviceConfig = input.ip
+          ? { ip: input.ip, port: input.port }
+          : undefined;
         const connected = await FKAttendLogPuller.testConnection(deviceConfig);
 
         if (connected) {
           return {
             success: true,
-            message: 'Device connected successfully',
+            message: "Device connected successfully",
           };
         } else {
           return {
             success: false,
-            message: 'Device connection test failed',
+            message: "Device connection test failed",
           };
         }
       } catch (error) {
@@ -1043,9 +1191,12 @@ export const attendanceRouter = router({
         await dailyMaterializer.recomputeRange(today, tomorrow);
 
         AuditLogService.log({
-          action: 'manual_sync_triggered',
-          details: { inserted: result.recordsInserted, seen: result.recordsSeen },
-          status: result.success ? 'success' : 'error',
+          action: "manual_sync_triggered",
+          details: {
+            inserted: result.recordsInserted,
+            seen: result.recordsSeen,
+          },
+          status: result.success ? "success" : "error",
         });
         return {
           success: result.success,
@@ -1056,9 +1207,9 @@ export const attendanceRouter = router({
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
         AuditLogService.log({
-          action: 'manual_sync_triggered',
+          action: "manual_sync_triggered",
           details: { error },
-          status: 'error',
+          status: "error",
         });
         return {
           success: false,
@@ -1073,20 +1224,21 @@ export const attendanceRouter = router({
       try {
         await resetSyncHistory();
         AuditLogService.log({
-          action: 'sync_history_reset',
+          action: "sync_history_reset",
           details: { triggeredBy: ctx.user.id },
-          status: 'success',
+          status: "success",
         });
         return {
           success: true,
-          message: 'Sync history cleared. Next sync will import all data from last 2 years.',
+          message:
+            "Sync history cleared. Next sync will import all data from last 2 years.",
         };
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
         AuditLogService.log({
-          action: 'sync_history_reset',
+          action: "sync_history_reset",
           details: { error },
-          status: 'error',
+          status: "error",
         });
         return {
           success: false,
@@ -1102,21 +1254,23 @@ export const attendanceRouter = router({
       try {
         const engine = getDeviceSyncEngine();
         if (!engine) {
-          throw new Error('Device sync not initialized. Configure device IP in settings.');
+          throw new Error(
+            "Device sync not initialized. Configure device IP in settings.",
+          );
         }
 
         const result = await engine.syncNow();
         AuditLogService.log({
-          action: 'device_sync_triggered',
+          action: "device_sync_triggered",
           details: {
             recordsImported: result.recordsImported,
-            recordsSkipped: result.recordsSkipped
+            recordsSkipped: result.recordsSkipped,
           },
-          status: result.status === 'completed' ? 'success' : 'error',
+          status: result.status === "completed" ? "success" : "error",
         });
 
         return {
-          success: result.status === 'completed',
+          success: result.status === "completed",
           status: result.status,
           recordsImported: result.recordsImported,
           recordsSkipped: result.recordsSkipped,
@@ -1126,9 +1280,9 @@ export const attendanceRouter = router({
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
         AuditLogService.log({
-          action: 'device_sync_triggered',
+          action: "device_sync_triggered",
           details: { error },
-          status: 'error',
+          status: "error",
         });
         return {
           success: false,
@@ -1167,11 +1321,13 @@ export const attendanceRouter = router({
   initializeDeviceSync: attendanceManagerProcedure
     .input(
       z.object({
-        deviceIp: z.string().regex(/^(\d{1,3}\.){3}\d{1,3}$/, "Invalid IP address"),
+        deviceIp: z
+          .string()
+          .regex(/^(\d{1,3}\.){3}\d{1,3}$/, "Invalid IP address"),
         devicePort: z.number().int().min(1).max(65535).default(5005),
         enableAutoSync: z.boolean().default(false),
         syncIntervalMinutes: z.number().int().min(5).max(1440).default(60),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       try {
@@ -1183,13 +1339,13 @@ export const attendanceRouter = router({
         });
 
         AuditLogService.log({
-          action: 'device_sync_initialized',
+          action: "device_sync_initialized",
           details: {
             deviceIp: input.deviceIp,
             devicePort: input.devicePort,
             autoSyncEnabled: input.enableAutoSync,
           },
-          status: 'success',
+          status: "success",
         });
 
         return {
@@ -1199,9 +1355,9 @@ export const attendanceRouter = router({
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
         AuditLogService.log({
-          action: 'device_sync_initialized',
+          action: "device_sync_initialized",
           details: { deviceIp: input.deviceIp, error },
-          status: 'error',
+          status: "error",
         });
         return {
           success: false,
@@ -1215,7 +1371,7 @@ export const attendanceRouter = router({
       z.object({
         fromDate: z.string().optional(), // YYYY-MM-DD, defaults to 30 days ago
         toDate: z.string().optional(), // YYYY-MM-DD, defaults to today
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       try {
@@ -1224,17 +1380,26 @@ export const attendanceRouter = router({
           ? new Date(input.fromDate)
           : new Date(toDate.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-        const rowsWritten = await dailyMaterializer.recomputeRange(fromDate, toDate);
+        const rowsWritten = await dailyMaterializer.recomputeRange(
+          fromDate,
+          toDate,
+        );
 
         // Also generate monthly reports for affected months
         const months = new Set<string>();
-        for (let d = new Date(fromDate); d <= toDate; d.setDate(d.getDate() + 1)) {
-          months.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+        for (
+          let d = new Date(fromDate);
+          d <= toDate;
+          d.setDate(d.getDate() + 1)
+        ) {
+          months.add(
+            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+          );
         }
 
         let monthsGenerated = 0;
         for (const month of months) {
-          const [year, monthNum] = month.split('-').map(Number);
+          const [year, monthNum] = month.split("-").map(Number);
           try {
             await MonthlyComputeService.saveMonthlyReports(year, monthNum);
             monthsGenerated++;
@@ -1244,9 +1409,14 @@ export const attendanceRouter = router({
         }
 
         AuditLogService.log({
-          action: 'materialize_daily_triggered',
-          details: { fromDate: fromDate.toISOString(), toDate: toDate.toISOString(), rowsWritten, monthsGenerated },
-          status: 'success',
+          action: "materialize_daily_triggered",
+          details: {
+            fromDate: fromDate.toISOString(),
+            toDate: toDate.toISOString(),
+            rowsWritten,
+            monthsGenerated,
+          },
+          status: "success",
         });
 
         return {
@@ -1258,9 +1428,9 @@ export const attendanceRouter = router({
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
         AuditLogService.log({
-          action: 'materialize_daily_triggered',
+          action: "materialize_daily_triggered",
           details: { error },
-          status: 'error',
+          status: "error",
         });
         return {
           success: false,
@@ -1274,16 +1444,19 @@ export const attendanceRouter = router({
       z.object({
         year: z.number().int().min(2020).max(2099),
         month: z.number().int().min(1).max(12),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       try {
-        const savedCount = await MonthlyComputeService.saveMonthlyReports(input.year, input.month);
+        const savedCount = await MonthlyComputeService.saveMonthlyReports(
+          input.year,
+          input.month,
+        );
 
         AuditLogService.log({
-          action: 'generate_monthly_reports',
+          action: "generate_monthly_reports",
           details: { year: input.year, month: input.month, savedCount },
-          status: 'success',
+          status: "success",
         });
 
         return {
@@ -1296,9 +1469,9 @@ export const attendanceRouter = router({
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
         AuditLogService.log({
-          action: 'generate_monthly_reports',
+          action: "generate_monthly_reports",
           details: { year: input.year, month: input.month, error },
-          status: 'error',
+          status: "error",
         });
         return {
           success: false,
@@ -1310,8 +1483,8 @@ export const attendanceRouter = router({
   healthCheck: attendanceViewerProcedure.query(async () => {
     const db = await getDb();
     return {
-      status: 'ok',
-      database: db ? 'connected' : 'disconnected',
+      status: "ok",
+      database: db ? "connected" : "disconnected",
       timestamp: new Date().toISOString(),
     };
   }),
@@ -1320,23 +1493,23 @@ export const attendanceRouter = router({
     .input(z.object({}).optional())
     .mutation(async () => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
       try {
         // Create default 8am-5pm shift if it doesn't exist
         const existingShifts = await db
           .select()
           .from(attendanceShifts)
-          .where(eq(attendanceShifts.name, 'Default (8AM-5PM)'));
+          .where(eq(attendanceShifts.name, "Default (8AM-5PM)"));
 
         let shiftId: number;
 
         if (existingShifts.length === 0) {
           // Create new shift
           const result = await db.insert(attendanceShifts).values({
-            name: 'Default (8AM-5PM)',
-            startTime: '08:00',
-            endTime: '17:00',
+            name: "Default (8AM-5PM)",
+            startTime: "08:00",
+            endTime: "17:00",
             crossesMidnight: false,
             graceLateMin: 15,
             graceEarlyMin: 15,
@@ -1378,9 +1551,13 @@ export const attendanceRouter = router({
         }
 
         AuditLogService.log({
-          action: 'bootstrap_shifts',
-          details: { shiftId, employeesAssigned: assigned, totalEmployees: employees.length },
-          status: 'success',
+          action: "bootstrap_shifts",
+          details: {
+            shiftId,
+            employeesAssigned: assigned,
+            totalEmployees: employees.length,
+          },
+          status: "success",
         });
 
         return {
@@ -1393,9 +1570,9 @@ export const attendanceRouter = router({
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
         AuditLogService.log({
-          action: 'bootstrap_shifts',
+          action: "bootstrap_shifts",
           details: { error },
-          status: 'error',
+          status: "error",
         });
         return {
           success: false,
@@ -1406,7 +1583,7 @@ export const attendanceRouter = router({
 
   listShifts: attendanceViewerProcedure.query(async () => {
     const db = await getDb();
-    if (!db) throw new Error('Database not available');
+    if (!db) throw new Error("Database not available");
 
     const shifts = await db
       .select()
@@ -1442,11 +1619,11 @@ export const attendanceRouter = router({
         allowOT: z.boolean().default(false),
         breakMinutes: z.number().int().min(0).default(60),
         requirePunch: z.boolean().default(true),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
       try {
         const result = await db.insert(attendanceShifts).values({
@@ -1466,18 +1643,18 @@ export const attendanceRouter = router({
         const shiftId = (result as any).insertId;
 
         AuditLogService.log({
-          action: 'shift_created',
+          action: "shift_created",
           details: { shiftId, name: input.name },
-          status: 'success',
+          status: "success",
         });
 
         return { success: true, shiftId };
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
         AuditLogService.log({
-          action: 'shift_created',
+          action: "shift_created",
           details: { error },
-          status: 'error',
+          status: "error",
         });
         return { success: false, error };
       }
@@ -1488,29 +1665,39 @@ export const attendanceRouter = router({
       z.object({
         id: z.number(),
         name: z.string().min(1).max(64).optional(),
-        startTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
-        endTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+        startTime: z
+          .string()
+          .regex(/^\d{2}:\d{2}$/)
+          .optional(),
+        endTime: z
+          .string()
+          .regex(/^\d{2}:\d{2}$/)
+          .optional(),
         graceLateMin: z.number().int().min(0).optional(),
         graceEarlyMin: z.number().int().min(0).optional(),
         allowOT: z.boolean().optional(),
         breakMinutes: z.number().int().min(0).optional(),
         requirePunch: z.boolean().optional(),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
       try {
         const updateData: any = {};
         if (input.name) updateData.name = input.name;
         if (input.startTime) updateData.startTime = input.startTime;
         if (input.endTime) updateData.endTime = input.endTime;
-        if (input.graceLateMin !== undefined) updateData.graceLateMin = input.graceLateMin;
-        if (input.graceEarlyMin !== undefined) updateData.graceEarlyMin = input.graceEarlyMin;
+        if (input.graceLateMin !== undefined)
+          updateData.graceLateMin = input.graceLateMin;
+        if (input.graceEarlyMin !== undefined)
+          updateData.graceEarlyMin = input.graceEarlyMin;
         if (input.allowOT !== undefined) updateData.allowOT = input.allowOT;
-        if (input.breakMinutes !== undefined) updateData.breakMinutes = input.breakMinutes;
-        if (input.requirePunch !== undefined) updateData.requirePunch = input.requirePunch;
+        if (input.breakMinutes !== undefined)
+          updateData.breakMinutes = input.breakMinutes;
+        if (input.requirePunch !== undefined)
+          updateData.requirePunch = input.requirePunch;
 
         await db
           .update(attendanceShifts)
@@ -1518,9 +1705,9 @@ export const attendanceRouter = router({
           .where(eq(attendanceShifts.id, input.id));
 
         AuditLogService.log({
-          action: 'shift_updated',
+          action: "shift_updated",
           details: { shiftId: input.id, changes: Object.keys(updateData) },
-          status: 'success',
+          status: "success",
         });
 
         return { success: true };
@@ -1534,7 +1721,7 @@ export const attendanceRouter = router({
     .input(z.object({ empCd: z.string().optional() }).optional())
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
       const conditions = [];
       if (input?.empCd) {
@@ -1553,8 +1740,14 @@ export const attendanceRouter = router({
           weekdayMask: attendanceShiftAssignments.weekdayMask,
         })
         .from(attendanceShiftAssignments)
-        .innerJoin(attendanceEmployees, eq(attendanceShiftAssignments.empCd, attendanceEmployees.empCd))
-        .innerJoin(attendanceShifts, eq(attendanceShiftAssignments.shiftId, attendanceShifts.id))
+        .innerJoin(
+          attendanceEmployees,
+          eq(attendanceShiftAssignments.empCd, attendanceEmployees.empCd),
+        )
+        .innerJoin(
+          attendanceShifts,
+          eq(attendanceShiftAssignments.shiftId, attendanceShifts.id),
+        )
         .where(conditions.length > 0 ? and(...(conditions as any)) : undefined)
         .orderBy(attendanceShiftAssignments.empCd);
 
@@ -1564,8 +1757,10 @@ export const attendanceRouter = router({
         empName: a.empName,
         shiftId: a.shiftId,
         shiftName: a.shiftName,
-        effectiveFrom: a.effectiveFrom.toISOString().split('T')[0],
-        effectiveTo: a.effectiveTo ? a.effectiveTo.toISOString().split('T')[0] : null,
+        effectiveFrom: a.effectiveFrom.toISOString().split("T")[0],
+        effectiveTo: a.effectiveTo
+          ? a.effectiveTo.toISOString().split("T")[0]
+          : null,
         weekdayMask: a.weekdayMask,
       }));
     }),
@@ -1578,15 +1773,17 @@ export const attendanceRouter = router({
         effectiveFrom: z.string(), // YYYY-MM-DD
         effectiveTo: z.string().optional(), // YYYY-MM-DD
         weekdayMask: z.number().int().min(0).max(127).default(127),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
       try {
         const effectiveFrom = new Date(input.effectiveFrom);
-        const effectiveTo = input.effectiveTo ? new Date(input.effectiveTo) : null;
+        const effectiveTo = input.effectiveTo
+          ? new Date(input.effectiveTo)
+          : null;
 
         // Check if already assigned (and mark previous as ended if needed)
         const existing = await db
@@ -1595,8 +1792,8 @@ export const attendanceRouter = router({
           .where(
             and(
               eq(attendanceShiftAssignments.empCd, input.empCd),
-              isNull(attendanceShiftAssignments.effectiveTo)
-            )
+              isNull(attendanceShiftAssignments.effectiveTo),
+            ),
           );
 
         if (existing.length > 0) {
@@ -1617,9 +1814,13 @@ export const attendanceRouter = router({
         });
 
         AuditLogService.log({
-          action: 'shift_assigned',
-          details: { empCd: input.empCd, shiftId: input.shiftId, effectiveFrom: input.effectiveFrom },
-          status: 'success',
+          action: "shift_assigned",
+          details: {
+            empCd: input.empCd,
+            shiftId: input.shiftId,
+            effectiveFrom: input.effectiveFrom,
+          },
+          status: "success",
         });
 
         return { success: true };
@@ -1627,6 +1828,28 @@ export const attendanceRouter = router({
         const error = err instanceof Error ? err.message : String(err);
         return { success: false, error };
       }
+    }),
+
+  addShiftAssignment: attendanceManagerProcedure
+    .input(
+      z.object({
+        empCd: z.string(),
+        shiftId: z.number(),
+        effectiveFrom: z.string(),
+        weekdayMask: z.number().int().min(0).max(127).default(127),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      await db.insert(attendanceShiftAssignments).values({
+        empCd: input.empCd,
+        shiftId: input.shiftId,
+        effectiveFrom: new Date(input.effectiveFrom),
+        effectiveTo: null,
+        weekdayMask: input.weekdayMask,
+      });
+      return { success: true };
     }),
 
   updateAssignment: attendanceManagerProcedure
@@ -1637,18 +1860,21 @@ export const attendanceRouter = router({
         effectiveFrom: z.string().optional(),
         effectiveTo: z.string().optional(),
         weekdayMask: z.number().int().optional(),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
       try {
         const updateData: any = {};
         if (input.shiftId !== undefined) updateData.shiftId = input.shiftId;
-        if (input.effectiveFrom) updateData.effectiveFrom = new Date(input.effectiveFrom);
-        if (input.effectiveTo) updateData.effectiveTo = new Date(input.effectiveTo);
-        if (input.weekdayMask !== undefined) updateData.weekdayMask = input.weekdayMask;
+        if (input.effectiveFrom)
+          updateData.effectiveFrom = new Date(input.effectiveFrom);
+        if (input.effectiveTo)
+          updateData.effectiveTo = new Date(input.effectiveTo);
+        if (input.weekdayMask !== undefined)
+          updateData.weekdayMask = input.weekdayMask;
 
         await db
           .update(attendanceShiftAssignments)
@@ -1666,7 +1892,7 @@ export const attendanceRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
       try {
         await db
@@ -1680,26 +1906,82 @@ export const attendanceRouter = router({
       }
     }),
 
-  // ─── Employee Edit / Delete ──────────────────────────────────────────────
-  updateEmployee: attendanceManagerProcedure
-    .input(z.object({
-      empCd: z.string(),
-      fullName: z.string().min(1),
-      department: z.string().optional(),
-      salaryType: z.string().optional(),
-      attendanceCommissionRate: z.number().min(0).max(1).nullable().optional(),
-      active: z.boolean(),
-    }))
+  saveDayShiftAssignments: attendanceManagerProcedure
+    .input(
+      z.object({
+        empCd: z.string(),
+        dayShifts: z.array(
+          z.object({
+            dayOfWeek: z.number().int().min(0).max(6),
+            shiftId: z.number().int().positive(),
+          }),
+        ),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
+
+      await db
+        .delete(attendanceShiftAssignments)
+        .where(
+          and(
+            eq(attendanceShiftAssignments.empCd, input.empCd),
+            isNull(attendanceShiftAssignments.effectiveTo),
+          ),
+        );
+
+      if (input.dayShifts.length === 0) return { success: true };
+
+      const byShift = new Map<number, number[]>();
+      for (const { dayOfWeek, shiftId } of input.dayShifts) {
+        if (!byShift.has(shiftId)) byShift.set(shiftId, []);
+        byShift.get(shiftId)!.push(dayOfWeek);
+      }
+
+      const today = new Date();
+      const rows = Array.from(byShift.entries()).map(([shiftId, days]) => ({
+        empCd: input.empCd,
+        shiftId,
+        effectiveFrom: today,
+        effectiveTo: null as Date | null,
+        weekdayMask: days.reduce((m, d) => m | (1 << d), 0),
+      }));
+
+      await db.insert(attendanceShiftAssignments).values(rows);
+      return { success: true };
+    }),
+
+  // ─── Employee Edit / Delete ──────────────────────────────────────────────
+  updateEmployee: attendanceManagerProcedure
+    .input(
+      z.object({
+        empCd: z.string(),
+        fullName: z.string().min(1),
+        department: z.string().optional(),
+        salaryType: z.string().optional(),
+        attendanceCommissionRate: z
+          .number()
+          .min(0)
+          .max(1)
+          .nullable()
+          .optional(),
+        active: z.boolean(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
       await db
         .update(attendanceEmployees)
         .set({
           fullName: input.fullName,
           department: input.department ?? null,
           salaryType: input.salaryType ?? null,
-          attendanceCommissionRate: input.attendanceCommissionRate != null ? String(input.attendanceCommissionRate) as any : null,
+          attendanceCommissionRate:
+            input.attendanceCommissionRate != null
+              ? (String(input.attendanceCommissionRate) as any)
+              : null,
           active: input.active,
         })
         .where(eq(attendanceEmployees.empCd, input.empCd));
@@ -1710,61 +1992,113 @@ export const attendanceRouter = router({
     .input(z.object({ empCd: z.string() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
-      await db.delete(attendanceEmployees).where(eq(attendanceEmployees.empCd, input.empCd));
+      if (!db) throw new Error("Database not available");
+      await db
+        .delete(attendanceEmployees)
+        .where(eq(attendanceEmployees.empCd, input.empCd));
       return { success: true };
     }),
 
   // ─── Swap Shifts Between Two Employees ──────────────────────────────────
   swapShifts: attendanceManagerProcedure
-    .input(z.object({
-      empCdA: z.string(),
-      empCdB: z.string(),
-      dateFrom: z.string(), // YYYY-MM-DD — start of swap
-      dateTo: z.string(),   // YYYY-MM-DD — last day of swap (inclusive)
-    }))
+    .input(
+      z.object({
+        empCdA: z.string(),
+        empCdB: z.string(),
+        dateFrom: z.string(), // YYYY-MM-DD — start of swap
+        dateTo: z.string(), // YYYY-MM-DD — last day of swap (inclusive)
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
       const [aRows, bRows] = await Promise.all([
-        db.select().from(attendanceShiftAssignments)
-          .where(and(eq(attendanceShiftAssignments.empCd, input.empCdA), isNull(attendanceShiftAssignments.effectiveTo)))
+        db
+          .select()
+          .from(attendanceShiftAssignments)
+          .where(
+            and(
+              eq(attendanceShiftAssignments.empCd, input.empCdA),
+              isNull(attendanceShiftAssignments.effectiveTo),
+            ),
+          )
           .limit(1),
-        db.select().from(attendanceShiftAssignments)
-          .where(and(eq(attendanceShiftAssignments.empCd, input.empCdB), isNull(attendanceShiftAssignments.effectiveTo)))
+        db
+          .select()
+          .from(attendanceShiftAssignments)
+          .where(
+            and(
+              eq(attendanceShiftAssignments.empCd, input.empCdB),
+              isNull(attendanceShiftAssignments.effectiveTo),
+            ),
+          )
           .limit(1),
       ]);
 
       const aRow = aRows[0];
       const bRow = bRows[0];
 
-      if (!aRow) throw new Error('لا توجد وردية نشطة للموظف الأول');
-      if (!bRow) throw new Error('لا توجد وردية نشطة للموظف الثاني');
-      if (aRow.shiftId === bRow.shiftId) throw new Error('الموظفان على نفس الوردية بالفعل');
+      if (!aRow) throw new Error("لا توجد وردية نشطة للموظف الأول");
+      if (!bRow) throw new Error("لا توجد وردية نشطة للموظف الثاني");
+      if (aRow.shiftId === bRow.shiftId)
+        throw new Error("الموظفان على نفس الوردية بالفعل");
 
       const fromDate = new Date(input.dateFrom);
       const toDate = new Date(input.dateTo);
-      const dayBefore = new Date(fromDate); dayBefore.setDate(dayBefore.getDate() - 1);
-      const dayAfter  = new Date(toDate);   dayAfter.setDate(dayAfter.getDate() + 1);
-      const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const dayBefore = new Date(fromDate);
+      dayBefore.setDate(dayBefore.getDate() - 1);
+      const dayAfter = new Date(toDate);
+      dayAfter.setDate(dayAfter.getDate() + 1);
+      const fmt = (d: Date) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
       // Close current open assignments the day before the swap starts
       await Promise.all([
-        db.update(attendanceShiftAssignments).set({ effectiveTo: fmt(dayBefore) as any }).where(eq(attendanceShiftAssignments.id, aRow.id)),
-        db.update(attendanceShiftAssignments).set({ effectiveTo: fmt(dayBefore) as any }).where(eq(attendanceShiftAssignments.id, bRow.id)),
+        db
+          .update(attendanceShiftAssignments)
+          .set({ effectiveTo: fmt(dayBefore) as any })
+          .where(eq(attendanceShiftAssignments.id, aRow.id)),
+        db
+          .update(attendanceShiftAssignments)
+          .set({ effectiveTo: fmt(dayBefore) as any })
+          .where(eq(attendanceShiftAssignments.id, bRow.id)),
       ]);
 
       // Insert swapped temp assignments for the swap period
       await db.insert(attendanceShiftAssignments).values([
-        { empCd: input.empCdA, shiftId: bRow.shiftId, effectiveFrom: input.dateFrom as any, effectiveTo: input.dateTo as any, weekdayMask: aRow.weekdayMask },
-        { empCd: input.empCdB, shiftId: aRow.shiftId, effectiveFrom: input.dateFrom as any, effectiveTo: input.dateTo as any, weekdayMask: bRow.weekdayMask },
+        {
+          empCd: input.empCdA,
+          shiftId: bRow.shiftId,
+          effectiveFrom: input.dateFrom as any,
+          effectiveTo: input.dateTo as any,
+          weekdayMask: aRow.weekdayMask,
+        },
+        {
+          empCd: input.empCdB,
+          shiftId: aRow.shiftId,
+          effectiveFrom: input.dateFrom as any,
+          effectiveTo: input.dateTo as any,
+          weekdayMask: bRow.weekdayMask,
+        },
       ]);
 
       // Restore original shifts starting the day after the swap ends (open-ended)
       await db.insert(attendanceShiftAssignments).values([
-        { empCd: input.empCdA, shiftId: aRow.shiftId, effectiveFrom: fmt(dayAfter) as any, effectiveTo: null, weekdayMask: aRow.weekdayMask },
-        { empCd: input.empCdB, shiftId: bRow.shiftId, effectiveFrom: fmt(dayAfter) as any, effectiveTo: null, weekdayMask: bRow.weekdayMask },
+        {
+          empCd: input.empCdA,
+          shiftId: aRow.shiftId,
+          effectiveFrom: fmt(dayAfter) as any,
+          effectiveTo: null,
+          weekdayMask: aRow.weekdayMask,
+        },
+        {
+          empCd: input.empCdB,
+          shiftId: bRow.shiftId,
+          effectiveFrom: fmt(dayAfter) as any,
+          effectiveTo: null,
+          weekdayMask: bRow.weekdayMask,
+        },
       ]);
 
       return { success: true };
@@ -1772,40 +2106,50 @@ export const attendanceRouter = router({
 
   // ─── Temp Shift Change For Single Employee ───────────────────────────────
   tempChangeShift: attendanceManagerProcedure
-    .input(z.object({
-      empCd: z.string(),
-      newShiftId: z.number().int(),
-      dateFrom: z.string(), // YYYY-MM-DD — first day
-      dateTo: z.string(),   // YYYY-MM-DD — last day (inclusive)
-    }))
+    .input(
+      z.object({
+        empCd: z.string(),
+        newShiftId: z.number().int(),
+        dateFrom: z.string(), // YYYY-MM-DD — first day
+        dateTo: z.string(), // YYYY-MM-DD — last day (inclusive)
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
       const fmt = (d: Date) =>
-        `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-      const fromDate  = new Date(input.dateFrom);
-      const toDate    = new Date(input.dateTo);
-      const dayBefore = new Date(fromDate); dayBefore.setDate(dayBefore.getDate() - 1);
-      const dayAfter  = new Date(toDate);   dayAfter.setDate(dayAfter.getDate() + 1);
+      const fromDate = new Date(input.dateFrom);
+      const toDate = new Date(input.dateTo);
+      const dayBefore = new Date(fromDate);
+      dayBefore.setDate(dayBefore.getDate() - 1);
+      const dayAfter = new Date(toDate);
+      dayAfter.setDate(dayAfter.getDate() + 1);
 
       // Find current active assignment on dateFrom (handles open-ended and dated assignments like 2030-12-31)
-      const existing = await db.select().from(attendanceShiftAssignments)
-        .where(and(
-          eq(attendanceShiftAssignments.empCd, input.empCd),
-          lte(attendanceShiftAssignments.effectiveFrom, fromDate),
-          or(
-            isNull(attendanceShiftAssignments.effectiveTo),
-            gte(attendanceShiftAssignments.effectiveTo, fromDate)
-          )
-        ))
+      const existing = await db
+        .select()
+        .from(attendanceShiftAssignments)
+        .where(
+          and(
+            eq(attendanceShiftAssignments.empCd, input.empCd),
+            lte(attendanceShiftAssignments.effectiveFrom, fromDate),
+            or(
+              isNull(attendanceShiftAssignments.effectiveTo),
+              gte(attendanceShiftAssignments.effectiveTo, fromDate),
+            ),
+          ),
+        )
         .orderBy(desc(attendanceShiftAssignments.effectiveFrom))
         .limit(1);
 
       const curr = existing[0];
-      if (!curr) throw new Error('لا توجد وردية نشطة لهذا الموظف في هذا التاريخ');
-      if (curr.shiftId === input.newShiftId) throw new Error('الموظف على هذه الوردية بالفعل');
+      if (!curr)
+        throw new Error("لا توجد وردية نشطة لهذا الموظف في هذا التاريخ");
+      if (curr.shiftId === input.newShiftId)
+        throw new Error("الموظف على هذه الوردية بالفعل");
 
       const currEffFromStr = fmtDate(curr.effectiveFrom);
 
@@ -1814,17 +2158,20 @@ export const attendanceRouter = router({
         // We delay its start to dayAfter.
         if (curr.effectiveTo && fmtDate(curr.effectiveTo) <= input.dateTo) {
           // If the original assignment ends within/on the swap period, delete it.
-          await db.delete(attendanceShiftAssignments)
+          await db
+            .delete(attendanceShiftAssignments)
             .where(eq(attendanceShiftAssignments.id, curr.id));
         } else {
-          await db.update(attendanceShiftAssignments)
+          await db
+            .update(attendanceShiftAssignments)
             .set({ effectiveFrom: fmt(dayAfter) as any })
             .where(eq(attendanceShiftAssignments.id, curr.id));
         }
       } else {
         // Original assignment starts before dateFrom.
         // Close it the day before the change.
-        await db.update(attendanceShiftAssignments)
+        await db
+          .update(attendanceShiftAssignments)
           .set({ effectiveTo: fmt(dayBefore) as any })
           .where(eq(attendanceShiftAssignments.id, curr.id));
 
@@ -1854,25 +2201,38 @@ export const attendanceRouter = router({
 
   // ─── Bulk Shift Assignment ───────────────────────────────────────────────
   bulkAssignShift: attendanceManagerProcedure
-    .input(z.object({
-      empCds: z.array(z.string()).min(1),
-      shiftId: z.number().int(),
-      effectiveFrom: z.string(),
-      effectiveTo: z.string().optional(),
-      weekdayMask: z.number().int().default(62), // Sun-Thu default (0b0111110)
-    }))
+    .input(
+      z.object({
+        empCds: z.array(z.string()).min(1),
+        shiftId: z.number().int(),
+        effectiveFrom: z.string(),
+        effectiveTo: z.string().optional(),
+        weekdayMask: z.number().int().default(62), // Sun-Thu default (0b0111110)
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
       let inserted = 0;
       for (const empCd of input.empCds) {
-        await db.insert(attendanceShiftAssignments).values({
-          empCd,
-          shiftId: input.shiftId,
-          effectiveFrom: input.effectiveFrom as any,
-          effectiveTo: input.effectiveTo ? input.effectiveTo as any : null,
-          weekdayMask: input.weekdayMask,
-        }).onDuplicateKeyUpdate({ set: { shiftId: input.shiftId, weekdayMask: input.weekdayMask, effectiveTo: input.effectiveTo ? input.effectiveTo as any : null } });
+        await db
+          .insert(attendanceShiftAssignments)
+          .values({
+            empCd,
+            shiftId: input.shiftId,
+            effectiveFrom: input.effectiveFrom as any,
+            effectiveTo: input.effectiveTo ? (input.effectiveTo as any) : null,
+            weekdayMask: input.weekdayMask,
+          })
+          .onDuplicateKeyUpdate({
+            set: {
+              shiftId: input.shiftId,
+              weekdayMask: input.weekdayMask,
+              effectiveTo: input.effectiveTo
+                ? (input.effectiveTo as any)
+                : null,
+            },
+          });
         inserted++;
       }
       return { success: true, inserted };
@@ -1880,19 +2240,31 @@ export const attendanceRouter = router({
 
   // ─── Leave Balance ────────────────────────────────────────────────────────
   setLeaveBalance: attendanceManagerProcedure
-    .input(z.object({
-      empCd: z.string(),
-      year: z.number().int(),
-      annualAllocation: z.number().int().min(0),
-      carryOver: z.number().int().min(0).default(0),
-    }))
+    .input(
+      z.object({
+        empCd: z.string(),
+        year: z.number().int(),
+        annualAllocation: z.number().int().min(0),
+        carryOver: z.number().int().min(0).default(0),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
-      await db.insert(attendanceLeaveBalances).values({
-        empCd: input.empCd, year: input.year,
-        annualAllocation: input.annualAllocation, carryOver: input.carryOver,
-      }).onDuplicateKeyUpdate({ set: { annualAllocation: input.annualAllocation, carryOver: input.carryOver } });
+      if (!db) throw new Error("Database not available");
+      await db
+        .insert(attendanceLeaveBalances)
+        .values({
+          empCd: input.empCd,
+          year: input.year,
+          annualAllocation: input.annualAllocation,
+          carryOver: input.carryOver,
+        })
+        .onDuplicateKeyUpdate({
+          set: {
+            annualAllocation: input.annualAllocation,
+            carryOver: input.carryOver,
+          },
+        });
       return { success: true };
     }),
 
@@ -1900,69 +2272,103 @@ export const attendanceRouter = router({
     .input(z.object({ year: z.number().int().optional() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
       const year = input.year ?? new Date().getFullYear();
-      const balances = await db.select({
-        empCd: attendanceLeaveBalances.empCd,
-        empName: attendanceEmployees.fullName,
-        annualAllocation: attendanceLeaveBalances.annualAllocation,
-        carryOver: attendanceLeaveBalances.carryOver,
-      }).from(attendanceLeaveBalances)
-        .leftJoin(attendanceEmployees, eq(attendanceLeaveBalances.empCd, attendanceEmployees.empCd))
+      const balances = await db
+        .select({
+          empCd: attendanceLeaveBalances.empCd,
+          empName: attendanceEmployees.fullName,
+          annualAllocation: attendanceLeaveBalances.annualAllocation,
+          carryOver: attendanceLeaveBalances.carryOver,
+        })
+        .from(attendanceLeaveBalances)
+        .leftJoin(
+          attendanceEmployees,
+          eq(attendanceLeaveBalances.empCd, attendanceEmployees.empCd),
+        )
         .where(eq(attendanceLeaveBalances.year, year));
 
       // Count used days per employee from approved leaves
-      const mm = String(year).padStart(4, '0');
-      const usedRows = await db.select().from(attendanceLeaves)
-        .where(and(
-          eq(attendanceLeaves.approved, true),
-          gte(attendanceLeaves.dateFrom, `${year}-01-01` as any),
-          lte(attendanceLeaves.dateTo, `${year}-12-31` as any),
-        ));
+      const mm = String(year).padStart(4, "0");
+      const usedRows = await db
+        .select()
+        .from(attendanceLeaves)
+        .where(
+          and(
+            eq(attendanceLeaves.approved, true),
+            gte(attendanceLeaves.dateFrom, `${year}-01-01` as any),
+            lte(attendanceLeaves.dateTo, `${year}-12-31` as any),
+          ),
+        );
 
       return balances.map((b) => {
         const empLeaves = usedRows.filter((l) => l.empCd === b.empCd);
         const usedDays = empLeaves.reduce((acc, l) => {
           const from = new Date(l.dateFrom as any);
           const to = new Date(l.dateTo as any);
-          const days = Math.round((to.getTime() - from.getTime()) / 86400000) + 1;
+          const days =
+            Math.round((to.getTime() - from.getTime()) / 86400000) + 1;
           return acc + days;
         }, 0);
         const total = b.annualAllocation + b.carryOver;
-        return { empCd: b.empCd, empName: b.empName, annualAllocation: b.annualAllocation, carryOver: b.carryOver, total, usedDays, remainingDays: Math.max(0, total - usedDays) };
+        return {
+          empCd: b.empCd,
+          empName: b.empName,
+          annualAllocation: b.annualAllocation,
+          carryOver: b.carryOver,
+          total,
+          usedDays,
+          remainingDays: Math.max(0, total - usedDays),
+        };
       });
     }),
 
   // ─── Permissions (إذن) ────────────────────────────────────────────────────
   listPermissions: attendanceViewerProcedure
-    .input(z.object({ empCd: z.string().optional(), from: z.string().optional(), to: z.string().optional() }))
+    .input(
+      z.object({
+        empCd: z.string().optional(),
+        from: z.string().optional(),
+        to: z.string().optional(),
+      }),
+    )
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
       const conditions: any[] = [];
-      if (input.empCd) conditions.push(eq(attendancePermissions.empCd, input.empCd));
-      if (input.from) conditions.push(gte(attendancePermissions.date, input.from as any));
-      if (input.to) conditions.push(lte(attendancePermissions.date, input.to as any));
-      return db.select().from(attendancePermissions)
+      if (input.empCd)
+        conditions.push(eq(attendancePermissions.empCd, input.empCd));
+      if (input.from)
+        conditions.push(gte(attendancePermissions.date, input.from as any));
+      if (input.to)
+        conditions.push(lte(attendancePermissions.date, input.to as any));
+      return db
+        .select()
+        .from(attendancePermissions)
         .where(conditions.length ? and(...conditions) : undefined)
         .orderBy(desc(attendancePermissions.date));
     }),
 
   createPermission: attendanceManagerProcedure
-    .input(z.object({
-      empCd: z.string(),
-      date: z.string(),
-      type: z.enum(['in', 'out']),
-      durationMinutes: z.number().int().min(1).max(480),
-      note: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        empCd: z.string(),
+        date: z.string(),
+        type: z.enum(["in", "out"]),
+        durationMinutes: z.number().int().min(1).max(480),
+        note: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
       const result = await db.insert(attendancePermissions).values({
-        empCd: input.empCd, date: input.date as any,
-        type: input.type, durationMinutes: input.durationMinutes,
-        approved: true, note: input.note ?? null,
+        empCd: input.empCd,
+        date: input.date as any,
+        type: input.type,
+        durationMinutes: input.durationMinutes,
+        approved: true,
+        note: input.note ?? null,
       });
 
       // Notify the employee that a permission was granted for them
@@ -1972,17 +2378,19 @@ export const attendanceRouter = router({
         .where(eq(employeeAttendanceMapping.machineUserId, input.empCd))
         .limit(1);
       if (empMapping[0]?.userId) {
-        const ns = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
+        const ns = await getAppNotificationSettings().catch(
+          () => DEFAULT_APP_NOTIFICATION_SETTINGS,
+        );
         if (ns.attendance.enabled) {
-          const typeAr = input.type === 'out' ? 'خروج مبكر' : 'دخول متأخر';
+          const typeAr = input.type === "out" ? "خروج مبكر" : "دخول متأخر";
           pushAppNotification({
-            title: 'تم منح إذن',
+            title: "تم منح إذن",
             message: `تمت الموافقة على إذن ${typeAr} — ${input.durationMinutes} دقيقة (${input.date})`,
-            kind: 'success',
+            kind: "success",
             targetUserIds: [empMapping[0].userId],
-            source: 'attendance',
-            entityType: 'permission_granted',
-            meta: { empCd: input.empCd, path: '/attendance/me' },
+            source: "attendance",
+            entityType: "permission_granted",
+            meta: { empCd: input.empCd, path: "/attendance/me" },
             channels: { inApp: ns.attendance.inApp, push: ns.attendance.push },
           }).catch(() => {});
         }
@@ -1995,32 +2403,37 @@ export const attendanceRouter = router({
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
-      const permRows = await db.select().from(attendancePermissions)
+      const permRows = await db
+        .select()
+        .from(attendancePermissions)
         .where(eq(attendancePermissions.id, input.id))
         .limit(1);
       const perm = permRows[0];
-      if (!perm) throw new Error('الإذن غير موجود');
-      if (perm.approved) throw new Error('الإذن معتمد بالفعل');
+      if (!perm) throw new Error("الإذن غير موجود");
+      if (perm.approved) throw new Error("الإذن معتمد بالفعل");
 
       // 1. Mark as approved
-      await db.update(attendancePermissions)
+      await db
+        .update(attendancePermissions)
         .set({ approved: true, updatedAt: new Date() })
         .where(eq(attendancePermissions.id, input.id));
 
       // 2. Recompute daily records immediately to propagate permission
       try {
-        const dateObj = new Date(String(perm.date) + 'T12:00:00');
-        
+        const dateObj = new Date(String(perm.date) + "T12:00:00");
+
         // Recompute daily records (recomputes lateMinutes, earlyLeaveMin, etc.)
-        await dailyMaterializer.recomputeRange(dateObj, dateObj, { empCd: perm.empCd });
+        await dailyMaterializer.recomputeRange(dateObj, dateObj, {
+          empCd: perm.empCd,
+        });
 
         // Update leave/permission status in daily records
         await PermissionAdjustmentService.recomputeRange(
           perm.empCd,
           dateObj,
-          dateObj
+          dateObj,
         );
 
         // Also generate monthly report for the affected month
@@ -2028,7 +2441,10 @@ export const attendanceRouter = router({
         const year = dateObj.getFullYear();
         await MonthlyComputeService.saveMonthlyReports(year, monthNum);
       } catch (err: any) {
-        console.error('Failed to recompute daily/monthly attendance after permission approval:', err);
+        console.error(
+          "Failed to recompute daily/monthly attendance after permission approval:",
+          err,
+        );
       }
 
       // Notify the employee that a permission was approved for them
@@ -2038,18 +2454,20 @@ export const attendanceRouter = router({
         .where(eq(employeeAttendanceMapping.machineUserId, perm.empCd))
         .limit(1);
       if (empMapping[0]?.userId) {
-        const ns = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
+        const ns = await getAppNotificationSettings().catch(
+          () => DEFAULT_APP_NOTIFICATION_SETTINGS,
+        );
         if (ns.attendance.enabled) {
-          const typeAr = perm.type === 'out' ? 'خروج مبكر' : 'دخول متأخر';
+          const typeAr = perm.type === "out" ? "خروج مبكر" : "دخول متأخر";
           pushAppNotification({
-            title: 'تمت الموافقة على إذن',
+            title: "تمت الموافقة على إذن",
             message: `تمت الموافقة على طلب إذن ${typeAr} — ${perm.durationMinutes} دقيقة (${perm.date})`,
-            kind: 'info',
+            kind: "info",
             targetRoles: null,
             targetUserIds: [empMapping[0].userId],
-            source: 'attendance',
-            entityType: 'permission_approved',
-            meta: { path: '/attendance/my' },
+            source: "attendance",
+            entityType: "permission_approved",
+            meta: { path: "/attendance/my" },
             channels: { inApp: ns.attendance.inApp, push: ns.attendance.push },
           }).catch(() => {});
         }
@@ -2062,26 +2480,32 @@ export const attendanceRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
-      const permRows = await db.select().from(attendancePermissions)
+      const permRows = await db
+        .select()
+        .from(attendancePermissions)
         .where(eq(attendancePermissions.id, input.id))
         .limit(1);
       const perm = permRows[0];
 
-      await db.delete(attendancePermissions).where(eq(attendancePermissions.id, input.id));
+      await db
+        .delete(attendancePermissions)
+        .where(eq(attendancePermissions.id, input.id));
 
       if (perm && perm.approved) {
         try {
-          const dateObj = new Date(String(perm.date) + 'T12:00:00');
+          const dateObj = new Date(String(perm.date) + "T12:00:00");
           // Recompute daily records (recomputes lateMinutes, earlyLeaveMin, etc.)
-          await dailyMaterializer.recomputeRange(dateObj, dateObj, { empCd: perm.empCd });
+          await dailyMaterializer.recomputeRange(dateObj, dateObj, {
+            empCd: perm.empCd,
+          });
 
           // Update leave/permission status in daily records
           await PermissionAdjustmentService.recomputeRange(
             perm.empCd,
             dateObj,
-            dateObj
+            dateObj,
           );
 
           // Also generate monthly report for the affected month
@@ -2089,7 +2513,10 @@ export const attendanceRouter = router({
           const year = dateObj.getFullYear();
           await MonthlyComputeService.saveMonthlyReports(year, monthNum);
         } catch (err: any) {
-          console.error('Failed to recompute daily/monthly attendance after permission deletion:', err);
+          console.error(
+            "Failed to recompute daily/monthly attendance after permission deletion:",
+            err,
+          );
         }
       }
 
@@ -2097,32 +2524,60 @@ export const attendanceRouter = router({
     }),
 
   permissionReport: attendanceViewerProcedure
-    .input(z.object({
-      from: z.string(), // YYYY-MM-DD
-      to: z.string(),   // YYYY-MM-DD
-    }))
+    .input(
+      z.object({
+        from: z.string(), // YYYY-MM-DD
+        to: z.string(), // YYYY-MM-DD
+      }),
+    )
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
       const { from, to } = input;
-      const perms = await db.select({
-        empCd: attendancePermissions.empCd,
-        empName: attendanceEmployees.fullName,
-        type: attendancePermissions.type,
-        durationMinutes: attendancePermissions.durationMinutes,
-        date: attendancePermissions.date,
-      }).from(attendancePermissions)
-        .leftJoin(attendanceEmployees, eq(attendancePermissions.empCd, attendanceEmployees.empCd))
-        .where(and(gte(attendancePermissions.date, from as any), lte(attendancePermissions.date, to as any), eq(attendancePermissions.approved, true)));
+      const perms = await db
+        .select({
+          empCd: attendancePermissions.empCd,
+          empName: attendanceEmployees.fullName,
+          type: attendancePermissions.type,
+          durationMinutes: attendancePermissions.durationMinutes,
+          date: attendancePermissions.date,
+        })
+        .from(attendancePermissions)
+        .leftJoin(
+          attendanceEmployees,
+          eq(attendancePermissions.empCd, attendanceEmployees.empCd),
+        )
+        .where(
+          and(
+            gte(attendancePermissions.date, from as any),
+            lte(attendancePermissions.date, to as any),
+            eq(attendancePermissions.approved, true),
+          ),
+        );
 
       const grouped = new Map<string, any>();
       for (const p of perms) {
-        if (!grouped.has(p.empCd)) grouped.set(p.empCd, { empCd: p.empCd, empName: p.empName, inCount: 0, outCount: 0, totalInMins: 0, totalOutMins: 0 });
+        if (!grouped.has(p.empCd))
+          grouped.set(p.empCd, {
+            empCd: p.empCd,
+            empName: p.empName,
+            inCount: 0,
+            outCount: 0,
+            totalInMins: 0,
+            totalOutMins: 0,
+          });
         const agg = grouped.get(p.empCd)!;
-        if (p.type === 'in') { agg.inCount++; agg.totalInMins += p.durationMinutes; }
-        else { agg.outCount++; agg.totalOutMins += p.durationMinutes; }
+        if (p.type === "in") {
+          agg.inCount++;
+          agg.totalInMins += p.durationMinutes;
+        } else {
+          agg.outCount++;
+          agg.totalOutMins += p.durationMinutes;
+        }
       }
-      return Array.from(grouped.values()).sort((a, b) => a.empCd.localeCompare(b.empCd));
+      return Array.from(grouped.values()).sort((a, b) =>
+        a.empCd.localeCompare(b.empCd),
+      );
     }),
 
   // ─── Holidays ─────────────────────────────────────────────────────────────
@@ -2130,27 +2585,49 @@ export const attendanceRouter = router({
     .input(z.object({ year: z.number().int().optional() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
       const year = input.year ?? new Date().getFullYear();
-      const rows = await db.select().from(attendanceHolidays)
-        .where(and(gte(attendanceHolidays.date, `${year}-01-01` as any), lte(attendanceHolidays.date, `${year}-12-31` as any)))
+      const rows = await db
+        .select()
+        .from(attendanceHolidays)
+        .where(
+          and(
+            gte(attendanceHolidays.date, `${year}-01-01` as any),
+            lte(attendanceHolidays.date, `${year}-12-31` as any),
+          ),
+        )
         .orderBy(attendanceHolidays.date);
       return rows.map((h) => ({
-        date: h.date instanceof Date
-          ? `${h.date.getFullYear()}-${String(h.date.getMonth() + 1).padStart(2, '0')}-${String(h.date.getDate()).padStart(2, '0')}`
-          : String(h.date),
+        date:
+          h.date instanceof Date
+            ? `${h.date.getFullYear()}-${String(h.date.getMonth() + 1).padStart(2, "0")}-${String(h.date.getDate()).padStart(2, "0")}`
+            : String(h.date),
         label: h.label,
         paid: h.paid,
       }));
     }),
 
   addHoliday: attendanceManagerProcedure
-    .input(z.object({ date: z.string(), label: z.string(), paid: z.boolean().default(true) }))
+    .input(
+      z.object({
+        date: z.string(),
+        label: z.string(),
+        paid: z.boolean().default(true),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
-      await db.insert(attendanceHolidays).values({ date: input.date as any, label: input.label, paid: input.paid })
-        .onDuplicateKeyUpdate({ set: { label: input.label, paid: input.paid } });
+      if (!db) throw new Error("Database not available");
+      await db
+        .insert(attendanceHolidays)
+        .values({
+          date: input.date as any,
+          label: input.label,
+          paid: input.paid,
+        })
+        .onDuplicateKeyUpdate({
+          set: { label: input.label, paid: input.paid },
+        });
       return { success: true };
     }),
 
@@ -2158,8 +2635,10 @@ export const attendanceRouter = router({
     .input(z.object({ date: z.string() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
-      await db.delete(attendanceHolidays).where(eq(attendanceHolidays.date, input.date as any));
+      if (!db) throw new Error("Database not available");
+      await db
+        .delete(attendanceHolidays)
+        .where(eq(attendanceHolidays.date, input.date as any));
       return { success: true };
     }),
 
@@ -2168,44 +2647,69 @@ export const attendanceRouter = router({
     .input(z.object({ from: z.string(), to: z.string() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
-      const daily = await db.select({
-        empCd: attendanceDaily.empCd,
-        empName: attendanceEmployees.fullName,
-        status: attendanceDaily.status,
-        lateMinutes: attendanceDaily.lateMinutes,
-        earlyLeaveMin: attendanceDaily.earlyLeaveMin,
-        overtimeMinutes: attendanceDaily.overtimeMinutes,
-        workedMinutes: attendanceDaily.workedMinutes,
-      }).from(attendanceDaily)
-        .leftJoin(attendanceEmployees, eq(attendanceDaily.empCd, attendanceEmployees.empCd))
-        .where(and(gte(attendanceDaily.workDate, input.from as any), lte(attendanceDaily.workDate, input.to as any)));
+      if (!db) throw new Error("Database not available");
+      const daily = await db
+        .select({
+          empCd: attendanceDaily.empCd,
+          empName: attendanceEmployees.fullName,
+          status: attendanceDaily.status,
+          lateMinutes: attendanceDaily.lateMinutes,
+          earlyLeaveMin: attendanceDaily.earlyLeaveMin,
+          overtimeMinutes: attendanceDaily.overtimeMinutes,
+          workedMinutes: attendanceDaily.workedMinutes,
+        })
+        .from(attendanceDaily)
+        .leftJoin(
+          attendanceEmployees,
+          eq(attendanceDaily.empCd, attendanceEmployees.empCd),
+        )
+        .where(
+          and(
+            gte(attendanceDaily.workDate, input.from as any),
+            lte(attendanceDaily.workDate, input.to as any),
+          ),
+        );
 
       const grouped = new Map<string, any>();
       for (const d of daily) {
-        if (!grouped.has(d.empCd)) grouped.set(d.empCd, {
-          empCd: d.empCd, empName: d.empName,
-          totalDays: 0, presentDays: 0, absentDays: 0, leaveDays: 0,
-          totalLateMins: 0, totalEarlyMins: 0, totalOTMins: 0, totalWorkedMins: 0,
-        });
+        if (!grouped.has(d.empCd))
+          grouped.set(d.empCd, {
+            empCd: d.empCd,
+            empName: d.empName,
+            totalDays: 0,
+            presentDays: 0,
+            absentDays: 0,
+            leaveDays: 0,
+            totalLateMins: 0,
+            totalEarlyMins: 0,
+            totalOTMins: 0,
+            totalWorkedMins: 0,
+          });
         const a = grouped.get(d.empCd)!;
         a.totalDays++;
-        if (d.status === 'present' || d.status === 'partial' || d.status === 'missing_checkout') a.presentDays++;
-        else if (d.status === 'absent') a.absentDays++;
-        else if (d.status === 'leave') a.leaveDays++;
+        if (
+          d.status === "present" ||
+          d.status === "partial" ||
+          d.status === "missing_checkout"
+        )
+          a.presentDays++;
+        else if (d.status === "absent") a.absentDays++;
+        else if (d.status === "leave") a.leaveDays++;
         a.totalLateMins += d.lateMinutes ?? 0;
         a.totalEarlyMins += d.earlyLeaveMin ?? 0;
         a.totalOTMins += d.overtimeMinutes ?? 0;
         a.totalWorkedMins += d.workedMinutes ?? 0;
       }
-      return Array.from(grouped.values()).sort((a, b) => a.empCd.localeCompare(b.empCd));
+      return Array.from(grouped.values()).sort((a, b) =>
+        a.empCd.localeCompare(b.empCd),
+      );
     }),
 
   // ─── Self-service: employee's own profile ────────────────────────────────
 
   myAttendanceProfile: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) throw new Error('Database not available');
+    if (!db) throw new Error("Database not available");
 
     // Resolve empCd from logged-in user
     const mapping = await db
@@ -2219,22 +2723,29 @@ export const attendanceRouter = router({
     const empCd = mapping[0].machineUserId;
     const year = new Date().getFullYear();
     const now = new Date();
-    const monthStartStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    const monthEndStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    const monthStartStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+    const lastDay = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+    ).getDate();
+    const monthEndStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
     const yearStartStr = `${year}-01-01`;
     const yearEndStr = `${year}-12-31`;
 
     // Annual leave balance
-    const annualLeaves = await db.select().from(attendanceLeaves).where(
-      and(
-        eq(attendanceLeaves.empCd, empCd),
-        eq(attendanceLeaves.type, 'annual'),
-        eq(attendanceLeaves.approved, true),
-        sql`${attendanceLeaves.dateFrom} >= ${yearStartStr}`,
-        sql`${attendanceLeaves.dateTo} <= ${yearEndStr}`,
-      )
-    );
+    const annualLeaves = await db
+      .select()
+      .from(attendanceLeaves)
+      .where(
+        and(
+          eq(attendanceLeaves.empCd, empCd),
+          eq(attendanceLeaves.type, "annual"),
+          eq(attendanceLeaves.approved, true),
+          sql`${attendanceLeaves.dateFrom} >= ${yearStartStr}`,
+          sql`${attendanceLeaves.dateTo} <= ${yearEndStr}`,
+        ),
+      );
     const usedAnnual = annualLeaves.reduce((s, l) => {
       const d1 = new Date(String(l.dateFrom));
       const d2 = new Date(String(l.dateTo));
@@ -2242,15 +2753,18 @@ export const attendanceRouter = router({
     }, 0);
 
     // Sick leaves this year (approved only)
-    const sickLeaves = await db.select().from(attendanceLeaves).where(
-      and(
-        eq(attendanceLeaves.empCd, empCd),
-        eq(attendanceLeaves.type, 'sick'),
-        eq(attendanceLeaves.approved, true),
-        sql`${attendanceLeaves.dateFrom} >= ${yearStartStr}`,
-        sql`${attendanceLeaves.dateTo} <= ${yearEndStr}`,
-      )
-    );
+    const sickLeaves = await db
+      .select()
+      .from(attendanceLeaves)
+      .where(
+        and(
+          eq(attendanceLeaves.empCd, empCd),
+          eq(attendanceLeaves.type, "sick"),
+          eq(attendanceLeaves.approved, true),
+          sql`${attendanceLeaves.dateFrom} >= ${yearStartStr}`,
+          sql`${attendanceLeaves.dateTo} <= ${yearEndStr}`,
+        ),
+      );
     const usedSick = sickLeaves.reduce((s, l) => {
       const d1 = new Date(String(l.dateFrom));
       const d2 = new Date(String(l.dateTo));
@@ -2258,60 +2772,102 @@ export const attendanceRouter = router({
     }, 0);
 
     // Leave balance config (allocation)
-    const balRow = await db.select().from(attendanceLeaveBalances)
-      .where(and(eq(attendanceLeaveBalances.empCd, empCd), eq(attendanceLeaveBalances.year, year)))
+    const balRow = await db
+      .select()
+      .from(attendanceLeaveBalances)
+      .where(
+        and(
+          eq(attendanceLeaveBalances.empCd, empCd),
+          eq(attendanceLeaveBalances.year, year),
+        ),
+      )
       .limit(1);
     const annualAllocation = balRow[0]?.annualAllocation ?? 21;
 
     // Current month daily stats
-    const monthlyDaily = await db.select({
-      lateMins: sql<number>`COALESCE(SUM(${attendanceDaily.lateMinutes}),0)`,
-      earlyMins: sql<number>`COALESCE(SUM(${attendanceDaily.earlyLeaveMin}),0)`,
-    }).from(attendanceDaily).where(
-      and(
-        eq(attendanceDaily.empCd, empCd),
-        sql`${attendanceDaily.workDate} >= ${monthStartStr}`,
-        sql`${attendanceDaily.workDate} <= ${monthEndStr}`,
-      )
-    );
+    const monthlyDaily = await db
+      .select({
+        lateMins: sql<number>`COALESCE(SUM(${attendanceDaily.lateMinutes}),0)`,
+        earlyMins: sql<number>`COALESCE(SUM(${attendanceDaily.earlyLeaveMin}),0)`,
+      })
+      .from(attendanceDaily)
+      .where(
+        and(
+          eq(attendanceDaily.empCd, empCd),
+          sql`${attendanceDaily.workDate} >= ${monthStartStr}`,
+          sql`${attendanceDaily.workDate} <= ${monthEndStr}`,
+        ),
+      );
 
     // Current month permissions
-    const monthPerms = await db.select().from(attendancePermissions).where(
-      and(
-        eq(attendancePermissions.empCd, empCd),
-        eq(attendancePermissions.approved, true),
-        sql`${attendancePermissions.date} >= ${monthStartStr}`,
-        sql`${attendancePermissions.date} <= ${monthEndStr}`,
-      )
-    );
-    const permInMins = monthPerms.filter(p => p.type === 'in').reduce((s, p) => s + p.durationMinutes, 0);
-    const permOutMins = monthPerms.filter(p => p.type === 'out').reduce((s, p) => s + p.durationMinutes, 0);
+    const monthPerms = await db
+      .select()
+      .from(attendancePermissions)
+      .where(
+        and(
+          eq(attendancePermissions.empCd, empCd),
+          eq(attendancePermissions.approved, true),
+          sql`${attendancePermissions.date} >= ${monthStartStr}`,
+          sql`${attendancePermissions.date} <= ${monthEndStr}`,
+        ),
+      );
+    const permInMins = monthPerms
+      .filter((p) => p.type === "in")
+      .reduce((s, p) => s + p.durationMinutes, 0);
+    const permOutMins = monthPerms
+      .filter((p) => p.type === "out")
+      .reduce((s, p) => s + p.durationMinutes, 0);
 
     // Pending leaves (approved: false)
-    const pendingLeaves = await db.select().from(attendanceLeaves).where(
-      and(
-        eq(attendanceLeaves.empCd, empCd),
-        eq(attendanceLeaves.approved, false)
+    const pendingLeaves = await db
+      .select()
+      .from(attendanceLeaves)
+      .where(
+        and(
+          eq(attendanceLeaves.empCd, empCd),
+          eq(attendanceLeaves.approved, false),
+        ),
       )
-    ).orderBy(desc(attendanceLeaves.createdAt));
+      .orderBy(desc(attendanceLeaves.createdAt));
 
     // Pending permissions (approved: false)
-    const pendingPerms = await db.select().from(attendancePermissions).where(
-      and(
-        eq(attendancePermissions.empCd, empCd),
-        eq(attendancePermissions.approved, false)
+    const pendingPerms = await db
+      .select()
+      .from(attendancePermissions)
+      .where(
+        and(
+          eq(attendancePermissions.empCd, empCd),
+          eq(attendancePermissions.approved, false),
+        ),
       )
-    ).orderBy(desc(attendancePermissions.createdAt));
+      .orderBy(desc(attendancePermissions.createdAt));
 
-    const pendingShiftChanges = await db.select().from(attendanceShiftChangeRequests).where(
-      and(eq(attendanceShiftChangeRequests.empCd, empCd), eq(attendanceShiftChangeRequests.status, 'pending'))
-    ).orderBy(desc(attendanceShiftChangeRequests.createdAt));
+    const pendingShiftChanges = await db
+      .select()
+      .from(attendanceShiftChangeRequests)
+      .where(
+        and(
+          eq(attendanceShiftChangeRequests.empCd, empCd),
+          eq(attendanceShiftChangeRequests.status, "pending"),
+        ),
+      )
+      .orderBy(desc(attendanceShiftChangeRequests.createdAt));
 
     return {
       linked: true,
       empCd,
-      leaveBalance: { annualAllocation, usedAnnual, remainingAnnual: Math.max(0, annualAllocation - usedAnnual), usedSick },
-      monthStats: { lateMins: monthlyDaily[0]?.lateMins ?? 0, earlyMins: monthlyDaily[0]?.earlyMins ?? 0, permInMins, permOutMins },
+      leaveBalance: {
+        annualAllocation,
+        usedAnnual,
+        remainingAnnual: Math.max(0, annualAllocation - usedAnnual),
+        usedSick,
+      },
+      monthStats: {
+        lateMins: monthlyDaily[0]?.lateMins ?? 0,
+        earlyMins: monthlyDaily[0]?.earlyMins ?? 0,
+        permInMins,
+        permOutMins,
+      },
       pendingLeaves: pendingLeaves.map((l: any) => ({
         ...l,
         dateFrom: fmtDate(l.dateFrom as any),
@@ -2322,7 +2878,7 @@ export const attendanceRouter = router({
         ...p,
         date: fmtDate(p.date as any),
       })),
-      pendingShiftChanges: pendingShiftChanges.map(s => ({
+      pendingShiftChanges: pendingShiftChanges.map((s) => ({
         ...s,
         dateFrom: fmtDate(s.dateFrom as any),
         dateTo: s.dateTo ? fmtDate(s.dateTo as any) : null,
@@ -2331,58 +2887,71 @@ export const attendanceRouter = router({
   }),
 
   myRequestLeave: protectedProcedure
-    .input(z.object({
-      dateFrom: z.string(),
-      dateTo: z.string(),
-      type: z.enum(['annual', 'sick']),
-      note: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        dateFrom: z.string(),
+        dateTo: z.string(),
+        type: z.enum(["annual", "sick"]),
+        note: z.string().optional(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
-      const mapping = await db.select().from(employeeAttendanceMapping)
-        .where(eq(employeeAttendanceMapping.userId, ctx.user.id)).limit(1);
-      if (!mapping[0]) throw new Error('لم يتم ربط حسابك بسجل موظف');
+      const mapping = await db
+        .select()
+        .from(employeeAttendanceMapping)
+        .where(eq(employeeAttendanceMapping.userId, ctx.user.id))
+        .limit(1);
+      if (!mapping[0]) throw new Error("لم يتم ربط حسابك بسجل موظف");
 
       const dateFrom = input.dateFrom;
-      const dateTo = input.dateTo < input.dateFrom ? input.dateFrom : input.dateTo;
+      const dateTo =
+        input.dateTo < input.dateFrom ? input.dateFrom : input.dateTo;
       const empCd = mapping[0].machineUserId;
       const noteVal = input.note || null;
 
       // Raw SQL insert — bypasses Drizzle date column mapping entirely
       await db.execute(
         sql`INSERT INTO attendance_leaves (emp_cd, date_from, date_to, type, approved, note)
-            VALUES (${empCd}, ${dateFrom}, ${dateTo}, ${input.type}, 0, ${noteVal})`
+            VALUES (${empCd}, ${dateFrom}, ${dateTo}, ${input.type}, 0, ${noteVal})`,
       );
 
       // Read back what was actually stored
       const stored = await db.execute(
         sql`SELECT date_from, date_to FROM attendance_leaves
             WHERE emp_cd = ${empCd}
-            ORDER BY id DESC LIMIT 1`
+            ORDER BY id DESC LIMIT 1`,
       );
       const row = (stored as any)[0]?.[0] ?? {};
       const storedFrom = fmtDate(row.date_from ?? dateFrom);
-      const storedTo   = fmtDate(row.date_to   ?? dateTo);
+      const storedTo = fmtDate(row.date_to ?? dateTo);
 
-      const userName = String(ctx.user.name || ctx.user.username || '');
-      const ns = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
+      const userName = String(ctx.user.name || ctx.user.username || "");
+      const ns = await getAppNotificationSettings().catch(
+        () => DEFAULT_APP_NOTIFICATION_SETTINGS,
+      );
       if (ns.attendance.enabled) {
         const fmtDayMonth = (d: string) => {
           const dt = new Date(`${d}T00:00:00`);
-          const weekday = dt.toLocaleDateString('ar-EG', { timeZone: 'Africa/Cairo', weekday: 'long' });
+          const weekday = dt.toLocaleDateString("ar-EG", {
+            timeZone: "Africa/Cairo",
+            weekday: "long",
+          });
           return `${weekday} ${dt.getDate()}/${dt.getMonth() + 1}`;
         };
         pushAppNotification({
-          title: 'طلب اجازه',
+          title: "طلب اجازه",
           message: `${userName} طلب اجازه من ${fmtDayMonth(dateFrom)} حتي ${fmtDayMonth(dateTo)}`,
-          kind: 'info',
-          targetRoles: ns.attendance.managerId ? null : ['admin', 'manager'],
-          targetUserIds: ns.attendance.managerId ? [ns.attendance.managerId] : null,
-          source: 'attendance',
-          entityType: 'leave_request',
-          meta: { path: '/attendance/employees', empCd },
+          kind: "info",
+          targetRoles: ns.attendance.managerId ? null : ["admin", "manager"],
+          targetUserIds: ns.attendance.managerId
+            ? [ns.attendance.managerId]
+            : null,
+          source: "attendance",
+          entityType: "leave_request",
+          meta: { path: "/attendance/employees", empCd },
           channels: { inApp: ns.attendance.inApp, push: ns.attendance.push },
         }).catch(() => {});
       }
@@ -2391,20 +2960,25 @@ export const attendanceRouter = router({
     }),
 
   myRequestPermission: protectedProcedure
-    .input(z.object({
-      date: z.string(),
-      type: z.enum(['in', 'out']),
-      durationMinutes: z.number().int().min(1).max(480),
-      timeFrom: z.string().optional(),
-      note: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        date: z.string(),
+        type: z.enum(["in", "out"]),
+        durationMinutes: z.number().int().min(1).max(480),
+        timeFrom: z.string().optional(),
+        note: z.string().optional(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
-      const mapping = await db.select().from(employeeAttendanceMapping)
-        .where(eq(employeeAttendanceMapping.userId, ctx.user.id)).limit(1);
-      if (!mapping[0]) throw new Error('لم يتم ربط حسابك بسجل موظف');
+      const mapping = await db
+        .select()
+        .from(employeeAttendanceMapping)
+        .where(eq(employeeAttendanceMapping.userId, ctx.user.id))
+        .limit(1);
+      if (!mapping[0]) throw new Error("لم يتم ربط حسابك بسجل موظف");
 
       await db.insert(attendancePermissions).values({
         empCd: mapping[0].machineUserId,
@@ -2415,37 +2989,52 @@ export const attendanceRouter = router({
         note: input.note ?? null,
       });
 
-      const userName = String(ctx.user.name || ctx.user.username || '');
-      const typeAr = input.type === 'out' ? 'خروج' : 'دخول';
-      const ns = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
+      const userName = String(ctx.user.name || ctx.user.username || "");
+      const typeAr = input.type === "out" ? "خروج" : "دخول";
+      const ns = await getAppNotificationSettings().catch(
+        () => DEFAULT_APP_NOTIFICATION_SETTINGS,
+      );
       if (ns.attendance.enabled) {
         const mins = input.durationMinutes;
-        const durationAr = mins % 60 === 0
-          ? (mins / 60 === 1 ? 'ساعة' : mins / 60 === 2 ? 'ساعتين' : `${mins / 60} ساعات`)
-          : mins < 60
-            ? `${mins} دقيقة`
-            : `${Math.floor(mins / 60)} ساعة ${mins % 60} دقيقة`;
+        const durationAr =
+          mins % 60 === 0
+            ? mins / 60 === 1
+              ? "ساعة"
+              : mins / 60 === 2
+                ? "ساعتين"
+                : `${mins / 60} ساعات`
+            : mins < 60
+              ? `${mins} دقيقة`
+              : `${Math.floor(mins / 60)} ساعة ${mins % 60} دقيقة`;
         const dt = new Date(`${input.date}T00:00:00`);
-        const weekday = dt.toLocaleDateString('ar-EG', { timeZone: 'Africa/Cairo', weekday: 'long' });
+        const weekday = dt.toLocaleDateString("ar-EG", {
+          timeZone: "Africa/Cairo",
+          weekday: "long",
+        });
         const dayMonth = `${dt.getDate()}/${dt.getMonth() + 1}`;
-        let timeRange = '';
+        let timeRange = "";
         if (input.timeFrom) {
-          const [fh, fm] = input.timeFrom.split(':').map(Number);
+          const [fh, fm] = input.timeFrom.split(":").map(Number);
           const toMins = (fh ?? 0) * 60 + (fm ?? 0) + mins;
           const th = Math.floor(toMins / 60) % 24;
           const tm = toMins % 60;
-          const pad = (n: number) => String(n).padStart(2, '0');
+          const pad = (n: number) => String(n).padStart(2, "0");
           timeRange = ` من ${pad(fh ?? 0)}:${pad(fm ?? 0)} حتي ${pad(th)}:${pad(tm)}`;
         }
         pushAppNotification({
-          title: 'طلب اذن',
+          title: "طلب اذن",
           message: `${userName} طلب اذن ${typeAr} لمدة ${durationAr} ${weekday} ${dayMonth}${timeRange}`,
-          kind: 'info',
-          targetRoles: ns.attendance.managerId ? null : ['admin', 'manager'],
-          targetUserIds: ns.attendance.managerId ? [ns.attendance.managerId] : null,
-          source: 'attendance',
-          entityType: 'permission_request',
-          meta: { path: '/attendance/employees', empCd: mapping[0].machineUserId },
+          kind: "info",
+          targetRoles: ns.attendance.managerId ? null : ["admin", "manager"],
+          targetUserIds: ns.attendance.managerId
+            ? [ns.attendance.managerId]
+            : null,
+          source: "attendance",
+          entityType: "permission_request",
+          meta: {
+            path: "/attendance/employees",
+            empCd: mapping[0].machineUserId,
+          },
           channels: { inApp: ns.attendance.inApp, push: ns.attendance.push },
         }).catch(() => {});
       }
@@ -2454,23 +3043,28 @@ export const attendanceRouter = router({
     }),
 
   myRequestShiftChange: protectedProcedure
-    .input(z.object({
-      requestType: z.enum(['daily', 'weekly', 'monthly', 'swap']),
-      newShiftId: z.number().int().optional(),
-      weekdayMask: z.number().int().optional(),
-      cycleId: z.number().int().optional(),
-      swapEmpCd: z.string().optional(),
-      dateFrom: z.string(),
-      dateTo: z.string().optional(),
-      note: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        requestType: z.enum(["daily", "weekly", "monthly", "swap"]),
+        newShiftId: z.number().int().optional(),
+        weekdayMask: z.number().int().optional(),
+        cycleId: z.number().int().optional(),
+        swapEmpCd: z.string().optional(),
+        dateFrom: z.string(),
+        dateTo: z.string().optional(),
+        note: z.string().optional(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
-      const mapping = await db.select().from(employeeAttendanceMapping)
-        .where(eq(employeeAttendanceMapping.userId, ctx.user.id)).limit(1);
-      if (!mapping[0]) throw new Error('لم يتم ربط حسابك بسجل موظف');
+      const mapping = await db
+        .select()
+        .from(employeeAttendanceMapping)
+        .where(eq(employeeAttendanceMapping.userId, ctx.user.id))
+        .limit(1);
+      if (!mapping[0]) throw new Error("لم يتم ربط حسابك بسجل موظف");
 
       const empCd = mapping[0].machineUserId;
 
@@ -2482,24 +3076,35 @@ export const attendanceRouter = router({
         cycleId: input.cycleId || null,
         swapEmpCd: input.swapEmpCd || null,
         dateFrom: input.dateFrom as any,
-        dateTo: input.dateTo ? input.dateTo as any : null,
-        status: 'pending',
+        dateTo: input.dateTo ? (input.dateTo as any) : null,
+        status: "pending",
         note: input.note || null,
       });
 
-      const userName = String(ctx.user.name || ctx.user.username || '');
-      const typeAr = input.requestType === 'daily' ? 'يومي' : input.requestType === 'weekly' ? 'أسبوعي' : input.requestType === 'monthly' ? 'شهري' : 'تبادل مع زميل';
-      const ns = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
+      const userName = String(ctx.user.name || ctx.user.username || "");
+      const typeAr =
+        input.requestType === "daily"
+          ? "يومي"
+          : input.requestType === "weekly"
+            ? "أسبوعي"
+            : input.requestType === "monthly"
+              ? "شهري"
+              : "تبادل مع زميل";
+      const ns = await getAppNotificationSettings().catch(
+        () => DEFAULT_APP_NOTIFICATION_SETTINGS,
+      );
       if (ns.attendance.enabled) {
         pushAppNotification({
-          title: 'طلب تغيير موعد',
+          title: "طلب تغيير موعد",
           message: `${userName} طلب تغيير موعد (${typeAr}) من تاريخ ${input.dateFrom}`,
-          kind: 'info',
-          targetRoles: ns.attendance.managerId ? null : ['admin', 'manager'],
-          targetUserIds: ns.attendance.managerId ? [ns.attendance.managerId] : null,
-          source: 'attendance',
-          entityType: 'schedule_change_request',
-          meta: { path: '/attendance/employees', empCd },
+          kind: "info",
+          targetRoles: ns.attendance.managerId ? null : ["admin", "manager"],
+          targetUserIds: ns.attendance.managerId
+            ? [ns.attendance.managerId]
+            : null,
+          source: "attendance",
+          entityType: "schedule_change_request",
+          meta: { path: "/attendance/employees", empCd },
           channels: { inApp: ns.attendance.inApp, push: ns.attendance.push },
         }).catch(() => {});
       }
@@ -2508,20 +3113,22 @@ export const attendanceRouter = router({
     }),
 
   createShiftChangeRequest: attendanceManagerProcedure
-    .input(z.object({
-      empCd: z.string(),
-      requestType: z.enum(['daily', 'weekly', 'monthly', 'swap']),
-      newShiftId: z.number().int().optional(),
-      weekdayMask: z.number().int().optional(),
-      cycleId: z.number().int().optional(),
-      swapEmpCd: z.string().optional(),
-      dateFrom: z.string(),
-      dateTo: z.string().optional(),
-      note: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        empCd: z.string(),
+        requestType: z.enum(["daily", "weekly", "monthly", "swap"]),
+        newShiftId: z.number().int().optional(),
+        weekdayMask: z.number().int().optional(),
+        cycleId: z.number().int().optional(),
+        swapEmpCd: z.string().optional(),
+        dateFrom: z.string(),
+        dateTo: z.string().optional(),
+        note: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
       await db.insert(attendanceShiftChangeRequests).values({
         empCd: input.empCd,
@@ -2531,8 +3138,8 @@ export const attendanceRouter = router({
         cycleId: input.cycleId || null,
         swapEmpCd: input.swapEmpCd || null,
         dateFrom: input.dateFrom as any,
-        dateTo: input.dateTo ? input.dateTo as any : null,
-        status: 'pending',
+        dateTo: input.dateTo ? (input.dateTo as any) : null,
+        status: "pending",
         note: input.note || null,
       });
 
@@ -2540,13 +3147,17 @@ export const attendanceRouter = router({
     }),
 
   listShiftChangeRequests: attendanceViewerProcedure
-    .input(z.object({
-      empCd: z.string().optional(),
-      status: z.enum(['pending', 'approved', 'rejected']).optional(),
-    }).optional())
+    .input(
+      z
+        .object({
+          empCd: z.string().optional(),
+          status: z.enum(["pending", "approved", "rejected"]).optional(),
+        })
+        .optional(),
+    )
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
       const conditions = [];
       if (input?.empCd) {
@@ -2556,32 +3167,42 @@ export const attendanceRouter = router({
         conditions.push(eq(attendanceShiftChangeRequests.status, input.status));
       }
 
-      const rows = await db.select({
-        id: attendanceShiftChangeRequests.id,
-        empCd: attendanceShiftChangeRequests.empCd,
-        empName: attendanceEmployees.fullName,
-        requestType: attendanceShiftChangeRequests.requestType,
-        newShiftId: attendanceShiftChangeRequests.newShiftId,
-        newShiftName: attendanceShifts.name,
-        weekdayMask: attendanceShiftChangeRequests.weekdayMask,
-        cycleId: attendanceShiftChangeRequests.cycleId,
-        cycleName: attendanceShiftCycles.name,
-        swapEmpCd: attendanceShiftChangeRequests.swapEmpCd,
-        swapEmpName: sql<string>`(SELECT full_name FROM attendance_employees WHERE emp_cd = ${attendanceShiftChangeRequests.swapEmpCd})`,
-        dateFrom: attendanceShiftChangeRequests.dateFrom,
-        dateTo: attendanceShiftChangeRequests.dateTo,
-        status: attendanceShiftChangeRequests.status,
-        note: attendanceShiftChangeRequests.note,
-        createdAt: attendanceShiftChangeRequests.createdAt,
-      })
-      .from(attendanceShiftChangeRequests)
-      .leftJoin(attendanceEmployees, eq(attendanceShiftChangeRequests.empCd, attendanceEmployees.empCd))
-      .leftJoin(attendanceShifts, eq(attendanceShiftChangeRequests.newShiftId, attendanceShifts.id))
-      .leftJoin(attendanceShiftCycles, eq(attendanceShiftChangeRequests.cycleId, attendanceShiftCycles.id))
-      .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(desc(attendanceShiftChangeRequests.createdAt));
+      const rows = await db
+        .select({
+          id: attendanceShiftChangeRequests.id,
+          empCd: attendanceShiftChangeRequests.empCd,
+          empName: attendanceEmployees.fullName,
+          requestType: attendanceShiftChangeRequests.requestType,
+          newShiftId: attendanceShiftChangeRequests.newShiftId,
+          newShiftName: attendanceShifts.name,
+          weekdayMask: attendanceShiftChangeRequests.weekdayMask,
+          cycleId: attendanceShiftChangeRequests.cycleId,
+          cycleName: attendanceShiftCycles.name,
+          swapEmpCd: attendanceShiftChangeRequests.swapEmpCd,
+          swapEmpName: sql<string>`(SELECT full_name FROM attendance_employees WHERE emp_cd = ${attendanceShiftChangeRequests.swapEmpCd})`,
+          dateFrom: attendanceShiftChangeRequests.dateFrom,
+          dateTo: attendanceShiftChangeRequests.dateTo,
+          status: attendanceShiftChangeRequests.status,
+          note: attendanceShiftChangeRequests.note,
+          createdAt: attendanceShiftChangeRequests.createdAt,
+        })
+        .from(attendanceShiftChangeRequests)
+        .leftJoin(
+          attendanceEmployees,
+          eq(attendanceShiftChangeRequests.empCd, attendanceEmployees.empCd),
+        )
+        .leftJoin(
+          attendanceShifts,
+          eq(attendanceShiftChangeRequests.newShiftId, attendanceShifts.id),
+        )
+        .leftJoin(
+          attendanceShiftCycles,
+          eq(attendanceShiftChangeRequests.cycleId, attendanceShiftCycles.id),
+        )
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(desc(attendanceShiftChangeRequests.createdAt));
 
-      return rows.map(r => ({
+      return rows.map((r) => ({
         ...r,
         dateFrom: fmtDate(r.dateFrom as any),
         dateTo: r.dateTo ? fmtDate(r.dateTo as any) : null,
@@ -2590,66 +3211,82 @@ export const attendanceRouter = router({
     }),
 
   approveShiftChangeRequest: attendanceManagerProcedure
-    .input(z.object({
-      requestId: z.number().int(),
-    }))
+    .input(
+      z.object({
+        requestId: z.number().int(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
       // 1. Get the request
-      const reqRows = await db.select().from(attendanceShiftChangeRequests)
+      const reqRows = await db
+        .select()
+        .from(attendanceShiftChangeRequests)
         .where(eq(attendanceShiftChangeRequests.id, input.requestId))
         .limit(1);
       const req = reqRows[0];
-      if (!req) throw new Error('الطلب غير موجود');
-      if (req.status !== 'pending') throw new Error('الطلب تم البت فيه بالفعل');
+      if (!req) throw new Error("الطلب غير موجود");
+      if (req.status !== "pending") throw new Error("الطلب تم البت فيه بالفعل");
 
       const fromDate = new Date(req.dateFrom);
       const toDate = req.dateTo ? new Date(req.dateTo) : new Date(req.dateFrom);
       const dateFromStr = fmtDate(req.dateFrom);
       const dateToStr = fmtDate(req.dateTo || req.dateFrom);
 
-      const dayBefore = new Date(fromDate); dayBefore.setDate(dayBefore.getDate() - 1);
-      const dayAfter  = new Date(toDate);   dayAfter.setDate(dayAfter.getDate() + 1);
+      const dayBefore = new Date(fromDate);
+      dayBefore.setDate(dayBefore.getDate() - 1);
+      const dayAfter = new Date(toDate);
+      dayAfter.setDate(dayAfter.getDate() + 1);
       const fmt = (d: Date) =>
-        `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
       // 2. Execute based on type
-      if (req.requestType === 'daily') {
+      if (req.requestType === "daily") {
         // Daily temporary shift swap
-        if (!req.newShiftId) throw new Error('الطلب غير مكتمل: لم يتم تحديد الوردية الجديدة');
+        if (!req.newShiftId)
+          throw new Error("الطلب غير مكتمل: لم يتم تحديد الوردية الجديدة");
 
         // Reuse our robust temp change logic
-        const existing = await db.select().from(attendanceShiftAssignments)
-          .where(and(
-            eq(attendanceShiftAssignments.empCd, req.empCd),
-            lte(attendanceShiftAssignments.effectiveFrom, fromDate),
-            or(
-              isNull(attendanceShiftAssignments.effectiveTo),
-              gte(attendanceShiftAssignments.effectiveTo, fromDate)
-            )
-          ))
+        const existing = await db
+          .select()
+          .from(attendanceShiftAssignments)
+          .where(
+            and(
+              eq(attendanceShiftAssignments.empCd, req.empCd),
+              lte(attendanceShiftAssignments.effectiveFrom, fromDate),
+              or(
+                isNull(attendanceShiftAssignments.effectiveTo),
+                gte(attendanceShiftAssignments.effectiveTo, fromDate),
+              ),
+            ),
+          )
           .orderBy(desc(attendanceShiftAssignments.effectiveFrom))
           .limit(1);
 
         const curr = existing[0];
-        if (!curr) throw new Error('لا توجد وردية نشطة للموظف في تاريخ البداية');
-        if (curr.shiftId === req.newShiftId) throw new Error('الموظف على هذه الوردية بالفعل');
+        if (!curr)
+          throw new Error("لا توجد وردية نشطة للموظف في تاريخ البداية");
+        if (curr.shiftId === req.newShiftId)
+          throw new Error("الموظف على هذه الوردية بالفعل");
 
         const currEffFromStr = fmtDate(curr.effectiveFrom);
 
         if (currEffFromStr === dateFromStr) {
           if (curr.effectiveTo && fmtDate(curr.effectiveTo) <= dateToStr) {
-            await db.delete(attendanceShiftAssignments)
+            await db
+              .delete(attendanceShiftAssignments)
               .where(eq(attendanceShiftAssignments.id, curr.id));
           } else {
-            await db.update(attendanceShiftAssignments)
+            await db
+              .update(attendanceShiftAssignments)
               .set({ effectiveFrom: fmt(dayAfter) as any })
               .where(eq(attendanceShiftAssignments.id, curr.id));
           }
         } else {
-          await db.update(attendanceShiftAssignments)
+          await db
+            .update(attendanceShiftAssignments)
             .set({ effectiveTo: fmt(dayBefore) as any })
             .where(eq(attendanceShiftAssignments.id, curr.id));
 
@@ -2671,10 +3308,12 @@ export const attendanceRouter = router({
           effectiveTo: req.dateTo as any,
           weekdayMask: curr.weekdayMask,
         });
-
-      } else if (req.requestType === 'weekly') {
+      } else if (req.requestType === "weekly") {
         // Weekly assignment
-        if (!req.newShiftId || !req.weekdayMask) throw new Error('الطلب غير مكتمل: لم يتم تحديد الوردية أو أيام العمل');
+        if (!req.newShiftId || !req.weekdayMask)
+          throw new Error(
+            "الطلب غير مكتمل: لم يتم تحديد الوردية أو أيام العمل",
+          );
 
         // End current open-ended assignment if any
         await db.execute(sql`
@@ -2688,13 +3327,13 @@ export const attendanceRouter = router({
           empCd: req.empCd,
           shiftId: req.newShiftId,
           effectiveFrom: req.dateFrom as any,
-          effectiveTo: req.dateTo ? req.dateTo as any : null,
+          effectiveTo: req.dateTo ? (req.dateTo as any) : null,
           weekdayMask: req.weekdayMask,
         });
-
-      } else if (req.requestType === 'monthly') {
+      } else if (req.requestType === "monthly") {
         // Monthly shift cycle assignment
-        if (!req.cycleId) throw new Error('الطلب غير مكتمل: لم يتم تحديد الدورة');
+        if (!req.cycleId)
+          throw new Error("الطلب غير مكتمل: لم يتم تحديد الدورة");
 
         // End current cycle assignment
         await db.execute(sql`
@@ -2708,54 +3347,84 @@ export const attendanceRouter = router({
           empCd: req.empCd,
           cycleId: req.cycleId,
           effectiveFrom: req.dateFrom as any,
-          effectiveTo: req.dateTo ? req.dateTo as any : null,
+          effectiveTo: req.dateTo ? (req.dateTo as any) : null,
         });
-
-      } else if (req.requestType === 'swap') {
+      } else if (req.requestType === "swap") {
         // Swap shifts between two employees
-        if (!req.swapEmpCd) throw new Error('الطلب غير مكتمل: لم يتم تحديد الموظف الآخر');
+        if (!req.swapEmpCd)
+          throw new Error("الطلب غير مكتمل: لم يتم تحديد الموظف الآخر");
 
         // Find active shift of Employee A
-        const existingA = await db.select().from(attendanceShiftAssignments)
-          .where(and(
-            eq(attendanceShiftAssignments.empCd, req.empCd),
-            lte(attendanceShiftAssignments.effectiveFrom, fromDate),
-            or(
-              isNull(attendanceShiftAssignments.effectiveTo),
-              gte(attendanceShiftAssignments.effectiveTo, fromDate)
-            )
-          ))
+        const existingA = await db
+          .select()
+          .from(attendanceShiftAssignments)
+          .where(
+            and(
+              eq(attendanceShiftAssignments.empCd, req.empCd),
+              lte(attendanceShiftAssignments.effectiveFrom, fromDate),
+              or(
+                isNull(attendanceShiftAssignments.effectiveTo),
+                gte(attendanceShiftAssignments.effectiveTo, fromDate),
+              ),
+            ),
+          )
           .orderBy(desc(attendanceShiftAssignments.effectiveFrom))
           .limit(1);
 
         // Find active shift of Employee B
-        const existingB = await db.select().from(attendanceShiftAssignments)
-          .where(and(
-            eq(attendanceShiftAssignments.empCd, req.swapEmpCd),
-            lte(attendanceShiftAssignments.effectiveFrom, fromDate),
-            or(
-              isNull(attendanceShiftAssignments.effectiveTo),
-              gte(attendanceShiftAssignments.effectiveTo, fromDate)
-            )
-          ))
+        const existingB = await db
+          .select()
+          .from(attendanceShiftAssignments)
+          .where(
+            and(
+              eq(attendanceShiftAssignments.empCd, req.swapEmpCd),
+              lte(attendanceShiftAssignments.effectiveFrom, fromDate),
+              or(
+                isNull(attendanceShiftAssignments.effectiveTo),
+                gte(attendanceShiftAssignments.effectiveTo, fromDate),
+              ),
+            ),
+          )
           .orderBy(desc(attendanceShiftAssignments.effectiveFrom))
           .limit(1);
 
         const aRow = existingA[0];
         const bRow = existingB[0];
-        if (!aRow || !bRow) throw new Error('أحد الموظفين لا توجد لديه وردية نشطة في هذا التاريخ');
-        if (aRow.shiftId === bRow.shiftId) throw new Error('الموظفان على نفس الوردية بالفعل');
+        if (!aRow || !bRow)
+          throw new Error(
+            "أحد الموظفين لا توجد لديه وردية نشطة في هذا التاريخ",
+          );
+        if (aRow.shiftId === bRow.shiftId)
+          throw new Error("الموظفان على نفس الوردية بالفعل");
 
         // Close both assignments the day before
         await Promise.all([
-          db.update(attendanceShiftAssignments).set({ effectiveTo: fmt(dayBefore) as any }).where(eq(attendanceShiftAssignments.id, aRow.id)),
-          db.update(attendanceShiftAssignments).set({ effectiveTo: fmt(dayBefore) as any }).where(eq(attendanceShiftAssignments.id, bRow.id)),
+          db
+            .update(attendanceShiftAssignments)
+            .set({ effectiveTo: fmt(dayBefore) as any })
+            .where(eq(attendanceShiftAssignments.id, aRow.id)),
+          db
+            .update(attendanceShiftAssignments)
+            .set({ effectiveTo: fmt(dayBefore) as any })
+            .where(eq(attendanceShiftAssignments.id, bRow.id)),
         ]);
 
         // Create swapped assignments for the period
         await db.insert(attendanceShiftAssignments).values([
-          { empCd: req.empCd, shiftId: bRow.shiftId, effectiveFrom: req.dateFrom as any, effectiveTo: req.dateTo as any, weekdayMask: aRow.weekdayMask },
-          { empCd: req.swapEmpCd, shiftId: aRow.shiftId, effectiveFrom: req.dateFrom as any, effectiveTo: req.dateTo as any, weekdayMask: bRow.weekdayMask },
+          {
+            empCd: req.empCd,
+            shiftId: bRow.shiftId,
+            effectiveFrom: req.dateFrom as any,
+            effectiveTo: req.dateTo as any,
+            weekdayMask: aRow.weekdayMask,
+          },
+          {
+            empCd: req.swapEmpCd,
+            shiftId: aRow.shiftId,
+            effectiveFrom: req.dateFrom as any,
+            effectiveTo: req.dateTo as any,
+            weekdayMask: bRow.weekdayMask,
+          },
         ]);
 
         // Restore original shifts starting the day after the swap ends
@@ -2780,51 +3449,72 @@ export const attendanceRouter = router({
       }
 
       // 3. Mark request as approved
-      await db.update(attendanceShiftChangeRequests)
-        .set({ status: 'approved', updatedAt: new Date() })
+      await db
+        .update(attendanceShiftChangeRequests)
+        .set({ status: "approved", updatedAt: new Date() })
         .where(eq(attendanceShiftChangeRequests.id, input.requestId));
 
       // 4. Recompute daily attendance & monthly reports immediately to propagate changes
       try {
         const today = new Date();
-        const calcToDate = req.dateTo ? new Date(req.dateTo) : (new Date(fromDate).getTime() > today.getTime() ? new Date(fromDate) : today);
-        
+        const calcToDate = req.dateTo
+          ? new Date(req.dateTo)
+          : new Date(fromDate).getTime() > today.getTime()
+            ? new Date(fromDate)
+            : today;
+
         // Materialize for employee A
-        await dailyMaterializer.recomputeRange(fromDate, calcToDate, { empCd: req.empCd });
+        await dailyMaterializer.recomputeRange(fromDate, calcToDate, {
+          empCd: req.empCd,
+        });
 
         // Materialize for employee B if it's a swap request
-        if (req.requestType === 'swap' && req.swapEmpCd) {
-          await dailyMaterializer.recomputeRange(fromDate, calcToDate, { empCd: req.swapEmpCd });
+        if (req.requestType === "swap" && req.swapEmpCd) {
+          await dailyMaterializer.recomputeRange(fromDate, calcToDate, {
+            empCd: req.swapEmpCd,
+          });
         }
 
         // Also generate monthly reports for affected months
         const months = new Set<string>();
-        for (let d = new Date(fromDate); d <= calcToDate; d.setDate(d.getDate() + 1)) {
-          months.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+        for (
+          let d = new Date(fromDate);
+          d <= calcToDate;
+          d.setDate(d.getDate() + 1)
+        ) {
+          months.add(
+            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+          );
         }
         for (const month of months) {
-          const [year, monthNum] = month.split('-').map(Number);
+          const [year, monthNum] = month.split("-").map(Number);
           await MonthlyComputeService.saveMonthlyReports(year, monthNum);
         }
       } catch (err: any) {
-        console.error('Failed to recompute daily/monthly attendance after shift approval:', err);
+        console.error(
+          "Failed to recompute daily/monthly attendance after shift approval:",
+          err,
+        );
       }
 
       return { success: true };
     }),
 
   rejectShiftChangeRequest: attendanceManagerProcedure
-    .input(z.object({
-      requestId: z.number().int(),
-      note: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        requestId: z.number().int(),
+        note: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
-      await db.update(attendanceShiftChangeRequests)
+      await db
+        .update(attendanceShiftChangeRequests)
         .set({
-          status: 'rejected',
+          status: "rejected",
           note: input.note || null,
           updatedAt: new Date(),
         })
@@ -2836,16 +3526,18 @@ export const attendanceRouter = router({
   // Admin: list all system users with their current empCd mapping
   listUserMappings: adminProcedure.query(async () => {
     const db = await getDb();
-    if (!db) throw new Error('Database not available');
+    if (!db) throw new Error("Database not available");
 
     const allUsers = await getAllUsers();
 
     const mappings = await db.select().from(employeeAttendanceMapping);
-    const byUserId = new Map(mappings.map(m => [m.userId, m]));
+    const byUserId = new Map(mappings.map((m) => [m.userId, m]));
 
     return allUsers
-      .sort((a, b) => (a.name || a.username).localeCompare(b.name || b.username, 'ar'))
-      .map(u => ({
+      .sort((a, b) =>
+        (a.name || a.username).localeCompare(b.name || b.username, "ar"),
+      )
+      .map((u) => ({
         id: u.id,
         username: u.username,
         name: u.name,
@@ -2858,26 +3550,33 @@ export const attendanceRouter = router({
 
   // Admin: set or update empCd for a user (upsert by userId)
   setUserMapping: adminProcedure
-    .input(z.object({
-      userId: z.number().int(),
-      empCd: z.string().max(50).nullable(),
-    }))
+    .input(
+      z.object({
+        userId: z.number().int(),
+        empCd: z.string().max(50).nullable(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
 
       if (!input.empCd) {
         // Remove mapping
-        await db.delete(employeeAttendanceMapping)
+        await db
+          .delete(employeeAttendanceMapping)
           .where(eq(employeeAttendanceMapping.userId, input.userId));
         return { success: true };
       }
 
-      const existing = await db.select().from(employeeAttendanceMapping)
-        .where(eq(employeeAttendanceMapping.userId, input.userId)).limit(1);
+      const existing = await db
+        .select()
+        .from(employeeAttendanceMapping)
+        .where(eq(employeeAttendanceMapping.userId, input.userId))
+        .limit(1);
 
       if (existing[0]) {
-        await db.update(employeeAttendanceMapping)
+        await db
+          .update(employeeAttendanceMapping)
           .set({ machineUserId: input.empCd })
           .where(eq(employeeAttendanceMapping.userId, input.userId));
       } else {
@@ -2891,70 +3590,105 @@ export const attendanceRouter = router({
 
   // ─── Shift Cycles ────────────────────────────────────────────────────────
 
-  listShiftCycles: attendanceManagerProcedure
-    .query(async () => {
-      const db = await getDb();
-      if (!db) throw new Error('Database not available');
-      const cycles = await db.select().from(attendanceShiftCycles);
-      const slots = await db.select().from(attendanceShiftCycleSlots);
-      return cycles.map((c) => ({
-        id: c.id,
-        name: c.name,
-        period: c.period,
-        anchorDate: c.anchorDate instanceof Date
-          ? `${c.anchorDate.getFullYear()}-${String(c.anchorDate.getMonth()+1).padStart(2,'0')}-${String(c.anchorDate.getDate()).padStart(2,'0')}`
+  listShiftCycles: attendanceManagerProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+    const cycles = await db.select().from(attendanceShiftCycles);
+    const slots = await db.select().from(attendanceShiftCycleSlots);
+    return cycles.map((c) => ({
+      id: c.id,
+      name: c.name,
+      period: c.period,
+      anchorDate:
+        c.anchorDate instanceof Date
+          ? `${c.anchorDate.getFullYear()}-${String(c.anchorDate.getMonth() + 1).padStart(2, "0")}-${String(c.anchorDate.getDate()).padStart(2, "0")}`
           : String(c.anchorDate).slice(0, 10),
-        slots: slots
-          .filter((s) => s.cycleId === c.id)
-          .sort((a, b) => a.slotIndex - b.slotIndex)
-          .map((s) => ({ id: s.id, slotIndex: s.slotIndex, shiftId: s.shiftId })),
-      }));
-    }),
+      slots: slots
+        .filter((s) => s.cycleId === c.id)
+        .sort((a, b) => a.slotIndex - b.slotIndex)
+        .map((s) => ({ id: s.id, slotIndex: s.slotIndex, shiftId: s.shiftId })),
+    }));
+  }),
 
   createShiftCycle: attendanceManagerProcedure
-    .input(z.object({
-      name: z.string().min(1).max(100),
-      period: z.enum(['day', 'week', 'month']),
-      anchorDate: z.string(),
-      slots: z.array(z.object({ slotIndex: z.number().int(), shiftId: z.number().int() })).min(1),
-    }))
+    .input(
+      z.object({
+        name: z.string().min(1).max(100),
+        period: z.enum(["day", "week", "month"]),
+        anchorDate: z.string(),
+        slots: z
+          .array(
+            z.object({
+              slotIndex: z.number().int(),
+              shiftId: z.number().int(),
+            }),
+          )
+          .min(1),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
-      const [res] = await db.insert(attendanceShiftCycles).values({
+      if (!db) throw new Error("Database not available");
+      const [res] = (await db.insert(attendanceShiftCycles).values({
         name: input.name,
         period: input.period,
         anchorDate: input.anchorDate as any,
-      }) as any;
+      })) as any;
       const cycleId = res.insertId;
       for (const slot of input.slots) {
-        await db.insert(attendanceShiftCycleSlots).values({ cycleId, slotIndex: slot.slotIndex, shiftId: slot.shiftId });
+        await db
+          .insert(attendanceShiftCycleSlots)
+          .values({
+            cycleId,
+            slotIndex: slot.slotIndex,
+            shiftId: slot.shiftId,
+          });
       }
       return { id: cycleId };
     }),
 
   updateShiftCycle: attendanceManagerProcedure
-    .input(z.object({
-      id: z.number().int(),
-      name: z.string().min(1).max(100).optional(),
-      period: z.enum(['day', 'week', 'month']).optional(),
-      anchorDate: z.string().optional(),
-      slots: z.array(z.object({ slotIndex: z.number().int(), shiftId: z.number().int() })).optional(),
-    }))
+    .input(
+      z.object({
+        id: z.number().int(),
+        name: z.string().min(1).max(100).optional(),
+        period: z.enum(["day", "week", "month"]).optional(),
+        anchorDate: z.string().optional(),
+        slots: z
+          .array(
+            z.object({
+              slotIndex: z.number().int(),
+              shiftId: z.number().int(),
+            }),
+          )
+          .optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
       const updateData: any = {};
       if (input.name) updateData.name = input.name;
       if (input.period) updateData.period = input.period;
       if (input.anchorDate) updateData.anchorDate = input.anchorDate;
       if (Object.keys(updateData).length) {
-        await db.update(attendanceShiftCycles).set(updateData).where(eq(attendanceShiftCycles.id, input.id));
+        await db
+          .update(attendanceShiftCycles)
+          .set(updateData)
+          .where(eq(attendanceShiftCycles.id, input.id));
       }
       if (input.slots) {
-        await db.delete(attendanceShiftCycleSlots).where(eq(attendanceShiftCycleSlots.cycleId, input.id));
+        await db
+          .delete(attendanceShiftCycleSlots)
+          .where(eq(attendanceShiftCycleSlots.cycleId, input.id));
         for (const slot of input.slots) {
-          await db.insert(attendanceShiftCycleSlots).values({ cycleId: input.id, slotIndex: slot.slotIndex, shiftId: slot.shiftId });
+          await db
+            .insert(attendanceShiftCycleSlots)
+            .values({
+              cycleId: input.id,
+              slotIndex: slot.slotIndex,
+              shiftId: slot.shiftId,
+            });
         }
       }
       return { success: true };
@@ -2964,54 +3698,68 @@ export const attendanceRouter = router({
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
-      await db.delete(attendanceShiftCycleSlots).where(eq(attendanceShiftCycleSlots.cycleId, input.id));
-      await db.delete(attendanceShiftCycleAssignments).where(eq(attendanceShiftCycleAssignments.cycleId, input.id));
-      await db.delete(attendanceShiftCycles).where(eq(attendanceShiftCycles.id, input.id));
+      if (!db) throw new Error("Database not available");
+      await db
+        .delete(attendanceShiftCycleSlots)
+        .where(eq(attendanceShiftCycleSlots.cycleId, input.id));
+      await db
+        .delete(attendanceShiftCycleAssignments)
+        .where(eq(attendanceShiftCycleAssignments.cycleId, input.id));
+      await db
+        .delete(attendanceShiftCycles)
+        .where(eq(attendanceShiftCycles.id, input.id));
       return { success: true };
     }),
 
-  listCycleAssignments: attendanceManagerProcedure
-    .query(async () => {
-      const db = await getDb();
-      if (!db) throw new Error('Database not available');
-      const rows = await db
-        .select({
-          id: attendanceShiftCycleAssignments.id,
-          empCd: attendanceShiftCycleAssignments.empCd,
-          cycleId: attendanceShiftCycleAssignments.cycleId,
-          effectiveFrom: attendanceShiftCycleAssignments.effectiveFrom,
-          effectiveTo: attendanceShiftCycleAssignments.effectiveTo,
-          empName: attendanceEmployees.fullName,
-          cycleName: attendanceShiftCycles.name,
-          period: attendanceShiftCycles.period,
-        })
-        .from(attendanceShiftCycleAssignments)
-        .leftJoin(attendanceEmployees, eq(attendanceShiftCycleAssignments.empCd, attendanceEmployees.empCd))
-        .leftJoin(attendanceShiftCycles, eq(attendanceShiftCycleAssignments.cycleId, attendanceShiftCycles.id));
-      return rows.map((r: any) => ({
-        ...r,
-        effectiveFrom: r.effectiveFrom instanceof Date
-          ? `${r.effectiveFrom.getFullYear()}-${String(r.effectiveFrom.getMonth()+1).padStart(2,'0')}-${String(r.effectiveFrom.getDate()).padStart(2,'0')}`
-          : String(r.effectiveFrom ?? '').slice(0, 10),
-        effectiveTo: r.effectiveTo
-          ? (r.effectiveTo instanceof Date
-            ? `${r.effectiveTo.getFullYear()}-${String(r.effectiveTo.getMonth()+1).padStart(2,'0')}-${String(r.effectiveTo.getDate()).padStart(2,'0')}`
-            : String(r.effectiveTo).slice(0, 10))
-          : null,
-      }));
-    }),
+  listCycleAssignments: attendanceManagerProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+    const rows = await db
+      .select({
+        id: attendanceShiftCycleAssignments.id,
+        empCd: attendanceShiftCycleAssignments.empCd,
+        cycleId: attendanceShiftCycleAssignments.cycleId,
+        effectiveFrom: attendanceShiftCycleAssignments.effectiveFrom,
+        effectiveTo: attendanceShiftCycleAssignments.effectiveTo,
+        empName: attendanceEmployees.fullName,
+        cycleName: attendanceShiftCycles.name,
+        period: attendanceShiftCycles.period,
+      })
+      .from(attendanceShiftCycleAssignments)
+      .leftJoin(
+        attendanceEmployees,
+        eq(attendanceShiftCycleAssignments.empCd, attendanceEmployees.empCd),
+      )
+      .leftJoin(
+        attendanceShiftCycles,
+        eq(attendanceShiftCycleAssignments.cycleId, attendanceShiftCycles.id),
+      );
+    return rows.map((r: any) => ({
+      ...r,
+      effectiveFrom:
+        r.effectiveFrom instanceof Date
+          ? `${r.effectiveFrom.getFullYear()}-${String(r.effectiveFrom.getMonth() + 1).padStart(2, "0")}-${String(r.effectiveFrom.getDate()).padStart(2, "0")}`
+          : String(r.effectiveFrom ?? "").slice(0, 10),
+      effectiveTo: r.effectiveTo
+        ? r.effectiveTo instanceof Date
+          ? `${r.effectiveTo.getFullYear()}-${String(r.effectiveTo.getMonth() + 1).padStart(2, "0")}-${String(r.effectiveTo.getDate()).padStart(2, "0")}`
+          : String(r.effectiveTo).slice(0, 10)
+        : null,
+    }));
+  }),
 
   assignCycle: attendanceManagerProcedure
-    .input(z.object({
-      empCds: z.array(z.string()).min(1),
-      cycleId: z.number().int(),
-      effectiveFrom: z.string(),
-      effectiveTo: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        empCds: z.array(z.string()).min(1),
+        cycleId: z.number().int(),
+        effectiveFrom: z.string(),
+        effectiveTo: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
       for (const empCd of input.empCds) {
         await db.execute(sql`
           UPDATE attendance_shift_cycle_assignments
@@ -3022,28 +3770,35 @@ export const attendanceRouter = router({
           empCd,
           cycleId: input.cycleId,
           effectiveFrom: input.effectiveFrom as any,
-          effectiveTo: input.effectiveTo ? input.effectiveTo as any : null,
+          effectiveTo: input.effectiveTo ? (input.effectiveTo as any) : null,
         });
       }
       return { inserted: input.empCds.length };
     }),
 
   updateCycleAssignment: attendanceManagerProcedure
-    .input(z.object({
-      id: z.number().int(),
-      cycleId: z.number().int().optional(),
-      effectiveFrom: z.string().optional(),
-      effectiveTo: z.string().nullable().optional(),
-    }))
+    .input(
+      z.object({
+        id: z.number().int(),
+        cycleId: z.number().int().optional(),
+        effectiveFrom: z.string().optional(),
+        effectiveTo: z.string().nullable().optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new Error("Database not available");
       const upd: any = {};
       if (input.cycleId !== undefined) upd.cycleId = input.cycleId;
-      if (input.effectiveFrom !== undefined) upd.effectiveFrom = input.effectiveFrom as any;
-      if (input.effectiveTo !== undefined) upd.effectiveTo = input.effectiveTo ? input.effectiveTo as any : null;
+      if (input.effectiveFrom !== undefined)
+        upd.effectiveFrom = input.effectiveFrom as any;
+      if (input.effectiveTo !== undefined)
+        upd.effectiveTo = input.effectiveTo ? (input.effectiveTo as any) : null;
       if (Object.keys(upd).length) {
-        await db.update(attendanceShiftCycleAssignments).set(upd).where(eq(attendanceShiftCycleAssignments.id, input.id));
+        await db
+          .update(attendanceShiftCycleAssignments)
+          .set(upd)
+          .where(eq(attendanceShiftCycleAssignments.id, input.id));
       }
       return { success: true };
     }),
@@ -3052,8 +3807,10 @@ export const attendanceRouter = router({
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
-      await db.delete(attendanceShiftCycleAssignments).where(eq(attendanceShiftCycleAssignments.id, input.id));
+      if (!db) throw new Error("Database not available");
+      await db
+        .delete(attendanceShiftCycleAssignments)
+        .where(eq(attendanceShiftCycleAssignments.id, input.id));
       return { success: true };
     }),
 });

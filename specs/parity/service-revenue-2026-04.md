@@ -5,12 +5,12 @@
 
 ## Grand Totals
 
-| Metric | Legacy | API | Delta | Status |
-|--------|--------|-----|-------|--------|
-| rowCount | 492.00 | 492.00 | 0.0000 | PASS |
-| totalGross | 372,675.00 | 372,675.00 | 0.0000 | PASS |
-| totalDiscount | 19,120.00 | 19,120.00 | 0.0000 | PASS |
-| totalPaid | 372,675.00 | 372,675.00 | 0.0000 | PASS |
+| Metric        | Legacy     | API        | Delta  | Status |
+| ------------- | ---------- | ---------- | ------ | ------ |
+| rowCount      | 492.00     | 492.00     | 0.0000 | PASS   |
+| totalGross    | 372,675.00 | 372,675.00 | 0.0000 | PASS   |
+| totalDiscount | 19,120.00  | 19,120.00  | 0.0000 | PASS   |
+| totalPaid     | 372,675.00 | 372,675.00 | 0.0000 | PASS   |
 
 **Verdict: PASS**
 

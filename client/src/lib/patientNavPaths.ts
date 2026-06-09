@@ -20,7 +20,11 @@ const SERVICE_TYPE_TO_SHEET_PAGE_KEY: Record<string, PageKey> = {
 };
 
 const SHEET_PAGE_KEY_TO_PATH: Record<
-  "consultant-sheet" | "specialist-sheet" | "lasik-exam-sheet" | "external-operation-sheet" | "pentacam-sheet",
+  | "consultant-sheet"
+  | "specialist-sheet"
+  | "lasik-exam-sheet"
+  | "external-operation-sheet"
+  | "pentacam-sheet",
   (id: number) => string
 > = {
   "consultant-sheet": (id) => `/sheets/consultant/${id}`,
@@ -30,14 +34,22 @@ const SHEET_PAGE_KEY_TO_PATH: Record<
   "pentacam-sheet": (id) => `/sheets/pentacam/${id}`,
 };
 
-export function patientSheetPathByServiceType(serviceType: string, patientId: number): string {
-  const key = (SERVICE_TYPE_TO_SHEET_PAGE_KEY[serviceType] ?? "consultant-sheet") as keyof typeof SHEET_PAGE_KEY_TO_PATH;
-  const build = SHEET_PAGE_KEY_TO_PATH[key] ?? SHEET_PAGE_KEY_TO_PATH["consultant-sheet"];
+export function patientSheetPathByServiceType(
+  serviceType: string,
+  patientId: number,
+): string {
+  const key = (SERVICE_TYPE_TO_SHEET_PAGE_KEY[serviceType] ??
+    "consultant-sheet") as keyof typeof SHEET_PAGE_KEY_TO_PATH;
+  const build =
+    SHEET_PAGE_KEY_TO_PATH[key] ?? SHEET_PAGE_KEY_TO_PATH["consultant-sheet"];
   return build(patientId);
 }
 
 /** Patient-scoped URL for a `PageKey` used from queues / shortcuts (must match `App.tsx` routes). */
-export function patientNavPathForPageKey(page: PageKey, patientId: number): string | null {
+export function patientNavPathForPageKey(
+  page: PageKey,
+  patientId: number,
+): string | null {
   switch (page) {
     case "examination-form":
       return `/examination/${patientId}`;

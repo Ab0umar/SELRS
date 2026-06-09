@@ -59,4 +59,3 @@ pnpm start
 ## 6) Windows Firewall (LAN access)
 
 Allow inbound TCP on the port you chose (example 5000).
-

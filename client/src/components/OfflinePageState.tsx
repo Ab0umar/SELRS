@@ -33,7 +33,13 @@ export function OfflinePageState({
       <CardContent className="flex flex-col gap-3 text-sm text-warning sm:flex-row sm:items-center sm:justify-between">
         <p className="max-w-2xl leading-6">{body}</p>
         {onRetry ? (
-          <Button type="button" variant="outline" size="sm" onClick={onRetry} className="gap-2 border-warning bg-background/80 hover:bg-background">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onRetry}
+            className="gap-2 border-warning bg-background/80 hover:bg-background"
+          >
             <RefreshCw className="h-4 w-4" />
             {retryLabel}
           </Button>

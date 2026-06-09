@@ -1,6 +1,22 @@
-import { Activity, Archive, Banknote, CalendarDays, Clock, DollarSign, LayoutDashboard, LayoutGrid, Network, Settings, Syringe, Users } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { normalizeNavPath, pathGrantedByRoots } from "@/lib/nav-permission-utils"
+import {
+  Activity,
+  Archive,
+  Banknote,
+  CalendarDays,
+  Clock,
+  DollarSign,
+  LayoutDashboard,
+  LayoutGrid,
+  Network,
+  Settings,
+  Syringe,
+  Users,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  normalizeNavPath,
+  pathGrantedByRoots,
+} from "@/lib/nav-permission-utils";
 
 const staffTabs = [
   {
@@ -13,7 +29,14 @@ const staffTabs = [
     key: "patients",
     label: "مركز المريض",
     icon: Users,
-    paths: ["/patient-hub", "/patients-hub", "/patients", "/new-cases", "/followups", "/visits"],
+    paths: [
+      "/patient-hub",
+      "/patients-hub",
+      "/patients",
+      "/new-cases",
+      "/followups",
+      "/visits",
+    ],
   },
   {
     key: "operations",
@@ -39,7 +62,7 @@ const staffTabs = [
     icon: LayoutGrid,
     paths: [],
   },
-] as const
+] as const;
 
 const adminTabs = [
   {
@@ -52,7 +75,14 @@ const adminTabs = [
     key: "patients",
     label: "مركز المريض",
     icon: Network,
-    paths: ["/patient-hub", "/patients-hub", "/patients", "/new-cases", "/followups", "/visits"],
+    paths: [
+      "/patient-hub",
+      "/patients-hub",
+      "/patients",
+      "/new-cases",
+      "/followups",
+      "/visits",
+    ],
   },
   {
     key: "accounting",
@@ -84,39 +114,52 @@ const adminTabs = [
     icon: LayoutGrid,
     paths: [],
   },
-] as const
+] as const;
 
-type StaffTabKey = (typeof staffTabs)[number]["key"]
-type AdminTabKey = (typeof adminTabs)[number]["key"]
+type StaffTabKey = (typeof staffTabs)[number]["key"];
+type AdminTabKey = (typeof adminTabs)[number]["key"];
 
-function isTabActive(location: string, tab: (typeof staffTabs | typeof adminTabs)[number]): boolean {
-  if (tab.key === "more") return false
-  const base = location.split("?")[0]
-  return tab.paths.some((p) => base === p || base.startsWith(`${p}/`))
+function isTabActive(
+  location: string,
+  tab: (typeof staffTabs | typeof adminTabs)[number],
+): boolean {
+  if (tab.key === "more") return false;
+  const base = location.split("?")[0];
+  return tab.paths.some((p) => base === p || base.startsWith(`${p}/`));
 }
 
 interface AppBottomNavProps {
-  location: string
-  onNavigate: (path: string) => void
-  onOpenMore: () => void
-  moreOpen?: boolean
-  isAdmin?: boolean
-  userRole?: string
-  allowedRoots?: unknown
-  permissionsLoaded?: boolean
+  location: string;
+  onNavigate: (path: string) => void;
+  onOpenMore: () => void;
+  moreOpen?: boolean;
+  isAdmin?: boolean;
+  userRole?: string;
+  allowedRoots?: unknown;
+  permissionsLoaded?: boolean;
 }
 
-export function AppBottomNav({ location, onNavigate, onOpenMore, moreOpen, isAdmin = false, userRole = "", allowedRoots, permissionsLoaded = true }: AppBottomNavProps) {
-  const allTabs = isAdmin ? adminTabs : staffTabs
+export function AppBottomNav({
+  location,
+  onNavigate,
+  onOpenMore,
+  moreOpen,
+  isAdmin = false,
+  userRole = "",
+  allowedRoots,
+  permissionsLoaded = true,
+}: AppBottomNavProps) {
+  const allTabs = isAdmin ? adminTabs : staffTabs;
 
   const tabs = allTabs.filter((tab) => {
-    if (tab.key === "more") return true
-    if (isAdmin) return true
-    if (tab.key === "roster" && !["doctor", "technician"].includes(userRole)) return false
-    if (!permissionsLoaded) return false
-    const cleanPath = normalizeNavPath(tab.paths[0]?.split("?")[0] ?? "")
-    return pathGrantedByRoots(cleanPath, allowedRoots as any)
-  })
+    if (tab.key === "more") return true;
+    if (isAdmin) return true;
+    if (tab.key === "roster" && !["doctor", "technician"].includes(userRole))
+      return false;
+    if (!permissionsLoaded) return false;
+    const cleanPath = normalizeNavPath(tab.paths[0]?.split("?")[0] ?? "");
+    return pathGrantedByRoots(cleanPath, allowedRoots as any);
+  });
 
   return (
     <nav
@@ -127,8 +170,9 @@ export function AppBottomNav({ location, onNavigate, onOpenMore, moreOpen, isAdm
     >
       <div className="flex h-14 items-stretch overflow-x-auto">
         {tabs.map((tab) => {
-          const Icon = tab.icon
-          const active = tab.key === "more" ? moreOpen : isTabActive(location, tab)
+          const Icon = tab.icon;
+          const active =
+            tab.key === "more" ? moreOpen : isTabActive(location, tab);
 
           return (
             <button
@@ -138,7 +182,9 @@ export function AppBottomNav({ location, onNavigate, onOpenMore, moreOpen, isAdm
               aria-current={active ? "page" : undefined}
               className={cn(
                 "relative flex flex-1 flex-col items-center justify-center gap-0.5 transition-colors shrink-0",
-                active ? "text-primary" : "text-muted-foreground/70 hover:text-muted-foreground",
+                active
+                  ? "text-primary"
+                  : "text-muted-foreground/70 hover:text-muted-foreground",
               )}
               onClick={() => {
                 if ((tab as any).key === "more") {
@@ -154,14 +200,22 @@ export function AppBottomNav({ location, onNavigate, onOpenMore, moreOpen, isAdm
                   aria-hidden
                 />
               )}
-              <Icon className="size-5 shrink-0" strokeWidth={active ? 2.2 : 1.8} />
-              <span className={cn("whitespace-nowrap text-[10px] leading-none", active ? "font-semibold" : "font-medium")}>
+              <Icon
+                className="size-5 shrink-0"
+                strokeWidth={active ? 2.2 : 1.8}
+              />
+              <span
+                className={cn(
+                  "whitespace-nowrap text-[10px] leading-none",
+                  active ? "font-semibold" : "font-medium",
+                )}
+              >
                 {tab.label}
               </span>
             </button>
-          )
+          );
         })}
       </div>
     </nav>
-  )
+  );
 }

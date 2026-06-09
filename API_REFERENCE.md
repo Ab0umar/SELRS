@@ -5,6 +5,7 @@
 All APIs use **tRPC** over HTTP with Express.js middleware. Base URL: `http://localhost:4000/trpc/`
 
 **Request Format:**
+
 ```
 POST /trpc/[router].[procedure]?batch=1
 Content-Type: application/json
@@ -19,6 +20,7 @@ Content-Type: application/json
 ## 🔐 Authentication Router (`auth`)
 
 ### 1. `auth.me` (Query)
+
 Get current authenticated user.
 
 ```typescript
@@ -36,6 +38,7 @@ Get current authenticated user.
 ---
 
 ### 2. `auth.updateProfile` (Mutation)
+
 Update user email.
 
 ```typescript
@@ -51,32 +54,38 @@ Update user email.
 ---
 
 ### 3. `auth.changeUsername` (Mutation)
+
 Change username (must be different and unique).
 
 ```typescript
 // Input:
 {
-  username: string  // Min 3, Max 64 chars
+  username: string; // Min 3, Max 64 chars
 }
 
 // Output:
-{ success: true }
+{
+  success: true;
+}
 ```
 
 ---
 
 ### 4. `auth.changePassword` (Mutation)
+
 Change password with current password verification.
 
 ```typescript
 // Input:
 {
   currentPassword: string;
-  newPassword: string;  // Min 6 chars, must differ from current
+  newPassword: string; // Min 6 chars, must differ from current
 }
 
 // Output:
-{ success: true }
+{
+  success: true;
+}
 
 // Errors:
 // - INVALID_CURRENT_PASSWORD
@@ -86,13 +95,16 @@ Change password with current password verification.
 ---
 
 ### 5. `auth.logout` (Mutation)
+
 Clear session cookies.
 
 ```typescript
 // Input: (none)
 
 // Output:
-{ success: true }
+{
+  success: true;
+}
 ```
 
 ---
@@ -100,11 +112,14 @@ Clear session cookies.
 ## ⚙️ System Router (`system`)
 
 ### 1. `system.health` (Query)
+
 Health check endpoint with build information.
 
 ```typescript
 // Input:
-{ timestamp: number }  // Unix timestamp (ms)
+{
+  timestamp: number;
+} // Unix timestamp (ms)
 
 // Output:
 {
@@ -118,6 +133,7 @@ Health check endpoint with build information.
 ---
 
 ### 2. `system.listMigrations` (Query, Admin Only)
+
 List database migrations and their status.
 
 ```typescript
@@ -138,6 +154,7 @@ List database migrations and their status.
 ---
 
 ### 3. `system.applyMigrations` (Mutation, Admin Only)
+
 Apply pending database migrations.
 
 ```typescript
@@ -153,17 +170,20 @@ Apply pending database migrations.
 ---
 
 ### 4. `system.notifyOwner` (Mutation, Admin Only)
+
 Send notification to system owner.
 
 ```typescript
 // Input:
 {
-  title: string;      // Min 1 char
-  content: string;    // Min 1 char
+  title: string; // Min 1 char
+  content: string; // Min 1 char
 }
 
 // Output:
-{ success: boolean }  // Whether notification was delivered
+{
+  success: boolean;
+} // Whether notification was delivered
 ```
 
 ---
@@ -173,6 +193,7 @@ Send notification to system owner.
 ### Patient Management
 
 #### `createPatient` (Mutation, Protected)
+
 ```typescript
 {
   code: string;
@@ -189,6 +210,7 @@ Send notification to system owner.
 ```
 
 #### `updatePatient` (Mutation, Protected)
+
 ```typescript
 {
   id: number;
@@ -201,18 +223,25 @@ Send notification to system owner.
 ```
 
 #### `getPatient` (Query, Protected)
+
 ```typescript
-{ id: number }
+{
+  id: number;
+}
 // Output: Full patient object
 ```
 
 #### `deletePatient` (Mutation, Protected)
+
 ```typescript
-{ id: number }
+{
+  id: number;
+}
 // Output: { success: true }
 ```
 
 #### `searchPatients` (Query, Protected)
+
 ```typescript
 {
   query?: string;
@@ -223,18 +252,23 @@ Send notification to system owner.
 ```
 
 #### `importPatientsFromMssql` (Mutation, Protected)
+
 ```typescript
 { force?: boolean }
 // Output: { imported: number }
 ```
 
 #### `deletePatientFromMssql` (Mutation, Protected)
+
 ```typescript
-{ patientCode: string }
+{
+  patientCode: string;
+}
 // Output: { success: true }
 ```
 
 #### `bulkAssignDoctorToPatients` (Mutation, Protected)
+
 ```typescript
 {
   patientIds: number[];
@@ -244,6 +278,7 @@ Send notification to system owner.
 ```
 
 #### `bulkAssignSheetTypeToPatients` (Mutation, Protected)
+
 ```typescript
 {
   patientIds: number[];
@@ -253,6 +288,7 @@ Send notification to system owner.
 ```
 
 #### `bulkRestorePatients` (Mutation, Protected)
+
 ```typescript
 { patientIds: number[] }
 // Output: { restored: number }
@@ -263,6 +299,7 @@ Send notification to system owner.
 ### Appointments
 
 #### `createAppointment` (Mutation, Protected)
+
 ```typescript
 {
   patientId: number;
@@ -274,18 +311,23 @@ Send notification to system owner.
 ```
 
 #### `getAppointmentsForDate` (Query, Protected)
+
 ```typescript
-{ date: string }  // ISO date
+{
+  date: string;
+} // ISO date
 // Output: Appointment[]
 ```
 
 #### `getUpcomingAppointments` (Query, Protected)
+
 ```typescript
 { limit?: number }
 // Output: Appointment[]
 ```
 
 #### `updateAppointment` (Mutation, Protected)
+
 ```typescript
 {
   id: number;
@@ -297,8 +339,11 @@ Send notification to system owner.
 ```
 
 #### `deleteAppointment` (Mutation, Protected)
+
 ```typescript
-{ id: number }
+{
+  id: number;
+}
 // Output: { success: true }
 ```
 
@@ -307,28 +352,36 @@ Send notification to system owner.
 ### Medical Sheets/Forms
 
 #### `createSheet` (Mutation, Protected)
+
 ```typescript
 {
   patientId: number;
-  sheetType: string;  // "consultant" | "specialist" | "lasik" | "surgery" | "external" | "pentacam" | "radiology"
+  sheetType: string; // "consultant" | "specialist" | "lasik" | "surgery" | "external" | "pentacam" | "radiology"
   data: Record<string, any>;
 }
 // Output: { id: number }
 ```
 
 #### `getSheets` (Query, Protected)
+
 ```typescript
-{ patientId: number }
+{
+  patientId: number;
+}
 // Output: { sheets: Sheet[] }
 ```
 
 #### `getSheetById` (Query, Protected)
+
 ```typescript
-{ id: number }
+{
+  id: number;
+}
 // Output: Full sheet object with data
 ```
 
 #### `updateSheet` (Mutation, Protected)
+
 ```typescript
 {
   id: number;
@@ -338,24 +391,34 @@ Send notification to system owner.
 ```
 
 #### `deleteSheet` (Mutation, Protected)
+
 ```typescript
-{ id: number }
+{
+  id: number;
+}
 // Output: { success: true }
 ```
 
 #### `copySheet` (Mutation, Protected)
+
 ```typescript
-{ id: number }
+{
+  id: number;
+}
 // Output: { newId: number }
 ```
 
 #### `getPentacamExports` (Query, Protected)
+
 ```typescript
-{ patientId: number }
+{
+  patientId: number;
+}
 // Output: { exports: PentacamExport[] }
 ```
 
 #### `autoImportLocalPentacamExports` (Mutation, Doctor/Admin)
+
 ```typescript
 (no input)
 // Output: { imported: number }
@@ -366,6 +429,7 @@ Send notification to system owner.
 ### Examinations
 
 #### `createExamination` (Mutation, Protected)
+
 ```typescript
 {
   patientId: number;
@@ -377,6 +441,7 @@ Send notification to system owner.
 ```
 
 #### `createPatientFromExamination` (Mutation, Doctor)
+
 ```typescript
 {
   examinationId: number;
@@ -388,6 +453,7 @@ Send notification to system owner.
 ```
 
 #### `updateExamination` (Mutation, Protected)
+
 ```typescript
 {
   id: number;
@@ -399,8 +465,11 @@ Send notification to system owner.
 ```
 
 #### `deleteExamination` (Mutation, Protected)
+
 ```typescript
-{ id: number }
+{
+  id: number;
+}
 // Output: { success: true }
 ```
 
@@ -409,6 +478,7 @@ Send notification to system owner.
 ### Prescriptions & Medications
 
 #### `createPrescription` (Mutation, Doctor)
+
 ```typescript
 {
   patientId: number;
@@ -419,6 +489,7 @@ Send notification to system owner.
 ```
 
 #### `createPrescriptionWithItems` (Mutation, Doctor)
+
 ```typescript
 {
   patientId: number;
@@ -433,12 +504,16 @@ Send notification to system owner.
 ```
 
 #### `deletePrescription` (Mutation, Doctor)
+
 ```typescript
-{ id: number }
+{
+  id: number;
+}
 // Output: { success: true }
 ```
 
 #### `createMedication` (Mutation, Admin/Manager)
+
 ```typescript
 {
   name: string;
@@ -449,6 +524,7 @@ Send notification to system owner.
 ```
 
 #### `updateMedication` (Mutation, Admin/Manager)
+
 ```typescript
 {
   id: number;
@@ -460,8 +536,11 @@ Send notification to system owner.
 ```
 
 #### `deleteMedication` (Mutation, Admin)
+
 ```typescript
-{ id: number }
+{
+  id: number;
+}
 // Output: { success: true }
 ```
 
@@ -470,6 +549,7 @@ Send notification to system owner.
 ### Tests & Diagnostics
 
 #### `createTest` (Mutation, Admin)
+
 ```typescript
 {
   name: string;
@@ -480,6 +560,7 @@ Send notification to system owner.
 ```
 
 #### `createTestRequest` (Mutation, Doctor)
+
 ```typescript
 {
   patientId: number;
@@ -490,20 +571,25 @@ Send notification to system owner.
 ```
 
 #### `getTestRequests` (Query, Protected)
+
 ```typescript
 { patientId?: number }
 // Output: TestRequest[]
 ```
 
 #### `getTestFavorites` (Query, Protected)
+
 ```typescript
 (no input)
 // Output: { tests: Test[] }
 ```
 
 #### `deleteTest` (Mutation, Admin)
+
 ```typescript
-{ id: number }
+{
+  id: number;
+}
 // Output: { success: true }
 ```
 
@@ -512,6 +598,7 @@ Send notification to system owner.
 ### Surgeries
 
 #### `createSurgery` (Mutation, Doctor)
+
 ```typescript
 {
   patientId: number;
@@ -523,18 +610,23 @@ Send notification to system owner.
 ```
 
 #### `getSurgeries` (Query, Protected)
+
 ```typescript
 { patientId?: number }
 // Output: Surgery[]
 ```
 
 #### `deleteSurgery` (Mutation, Doctor)
+
 ```typescript
-{ id: number }
+{
+  id: number;
+}
 // Output: { success: true }
 ```
 
 #### `createOperationList` (Mutation, Doctor)
+
 ```typescript
 {
   surgeryDate: string;
@@ -547,6 +639,7 @@ Send notification to system owner.
 ```
 
 #### `createPostOpFollowup` (Mutation, Doctor)
+
 ```typescript
 {
   surgeryId: number;
@@ -561,12 +654,14 @@ Send notification to system owner.
 ### Diseases & Symptoms
 
 #### `getDiseases` (Query, Protected)
+
 ```typescript
 (no input)
 // Output: Disease[]
 ```
 
 #### `createDisease` (Mutation, Admin)
+
 ```typescript
 {
   name: string;
@@ -577,6 +672,7 @@ Send notification to system owner.
 ```
 
 #### `updateDisease` (Mutation, Admin)
+
 ```typescript
 {
   id: number;
@@ -587,20 +683,27 @@ Send notification to system owner.
 ```
 
 #### `deleteDisease` (Mutation, Admin)
+
 ```typescript
-{ id: number }
+{
+  id: number;
+}
 // Output: { success: true }
 ```
 
 #### `getSymptoms` (Query, Protected)
+
 ```typescript
 (no input)
 // Output: Symptom[]
 ```
 
 #### `createSymptom` (Mutation, Admin)
+
 ```typescript
-{ name: string }
+{
+  name: string;
+}
 // Output: { id: number }
 ```
 
@@ -609,12 +712,14 @@ Send notification to system owner.
 ### Doctors
 
 #### `getDoctors` (Query, Protected)
+
 ```typescript
 (no input)
 // Output: Doctor[]
 ```
 
 #### `createDoctor` (Mutation, Admin)
+
 ```typescript
 {
   code: string;
@@ -627,6 +732,7 @@ Send notification to system owner.
 ```
 
 #### `updateDoctor` (Mutation, Admin)
+
 ```typescript
 {
   id: number;
@@ -637,8 +743,11 @@ Send notification to system owner.
 ```
 
 #### `getDoctorsByService` (Query, Protected)
+
 ```typescript
-{ serviceId: number }
+{
+  serviceId: number;
+}
 // Output: Doctor[]
 ```
 
@@ -647,12 +756,14 @@ Send notification to system owner.
 ### Services (Medical Departments)
 
 #### `getServices` (Query, Protected)
+
 ```typescript
 (no input)
 // Output: Service[]
 ```
 
 #### `createService` (Mutation, Admin)
+
 ```typescript
 {
   code: string;
@@ -664,12 +775,16 @@ Send notification to system owner.
 ```
 
 #### `getServicesByType` (Query, Protected)
+
 ```typescript
-{ serviceType: string }
+{
+  serviceType: string;
+}
 // Output: Service[]
 ```
 
 #### `importServicesFromMssql` (Mutation, Admin)
+
 ```typescript
 (no input)
 // Output: { imported: number }
@@ -680,12 +795,14 @@ Send notification to system owner.
 ### Users & Permissions
 
 #### `getUsers` (Query, Admin)
+
 ```typescript
 (no input)
 // Output: User[]
 ```
 
 #### `createUser` (Mutation, Admin)
+
 ```typescript
 {
   username: string;
@@ -697,6 +814,7 @@ Send notification to system owner.
 ```
 
 #### `updateUser` (Mutation, Admin)
+
 ```typescript
 {
   id: number;
@@ -708,12 +826,16 @@ Send notification to system owner.
 ```
 
 #### `deleteUser` (Mutation, Admin)
+
 ```typescript
-{ id: number }
+{
+  id: number;
+}
 // Output: { success: true }
 ```
 
 #### `updateUserPermissions` (Mutation, Admin)
+
 ```typescript
 {
   userId: number;
@@ -723,6 +845,7 @@ Send notification to system owner.
 ```
 
 #### `getEffectivePermissions` (Query, Protected)
+
 ```typescript
 { userId?: number }
 // Output: string[]
@@ -733,6 +856,7 @@ Send notification to system owner.
 ### Medical Reports
 
 #### `createMedicalReport` (Mutation, Doctor)
+
 ```typescript
 {
   patientId: number;
@@ -744,12 +868,16 @@ Send notification to system owner.
 ```
 
 #### `getMedicalReports` (Query, Protected)
+
 ```typescript
-{ patientId: number }
+{
+  patientId: number;
+}
 // Output: MedicalReport[]
 ```
 
 #### `updateMedicalReport` (Mutation, Doctor)
+
 ```typescript
 {
   id: number;
@@ -760,8 +888,11 @@ Send notification to system owner.
 ```
 
 #### `deleteMedicalReport` (Mutation, Doctor)
+
 ```typescript
-{ id: number }
+{
+  id: number;
+}
 // Output: { success: true }
 ```
 
@@ -770,18 +901,23 @@ Send notification to system owner.
 ### System Settings
 
 #### `getSystemSetting` (Query, Protected)
+
 ```typescript
-{ key: string }
+{
+  key: string;
+}
 // Output: any  // Depends on setting key
 ```
 
 Supported keys:
+
 - `appointments_pricing_v1` - Pricing configuration
 - `app_notification_settings_v1` - Notification settings
 - `app_notifications_feed_v1` - Notification feed array
 - `mssql_sync_runtime_v1` - MSSQL sync configuration
 
 #### `updateSystemSetting` (Mutation, Admin)
+
 ```typescript
 {
   key: string;
@@ -791,6 +927,7 @@ Supported keys:
 ```
 
 #### `getMssqlSyncStatus` (Query, Admin)
+
 ```typescript
 (no input)
 // Output: {
@@ -806,14 +943,18 @@ Supported keys:
 ### Template Management
 
 #### `getReadyPrescriptionTemplates` (Query, Protected)
+
 ```typescript
 (no input)
 // Output: ReadyTemplate[]
 ```
 
 #### `importReadyPrescriptionTemplates` (Mutation, Admin)
+
 ```typescript
-{ filePath: string }
+{
+  filePath: string;
+}
 // Output: { imported: number }
 ```
 
@@ -822,18 +963,21 @@ Supported keys:
 ### Directory Import
 
 #### `importDoctorDirectoryFromMssql` (Mutation, Admin)
+
 ```typescript
 (no input)
 // Output: { imported: number }
 ```
 
 #### `importServiceDirectoryFromMssql` (Mutation, Admin)
+
 ```typescript
 (no input)
 // Output: { imported: number }
 ```
 
 #### `syncAllFromMssql` (Mutation, Admin)
+
 ```typescript
 (no input)
 // Output: { patients: number; doctors: number; services: number }
@@ -844,6 +988,7 @@ Supported keys:
 ### Notifications
 
 #### `getAppNotifications` (Query, Protected)
+
 ```typescript
 (no input)
 // Output: {
@@ -857,14 +1002,18 @@ Supported keys:
 ### Active Ingredients
 
 #### `getActiveIngredients` (Query, Admin)
+
 ```typescript
 (no input)
 // Output: ActiveIngredient[]
 ```
 
 #### `createActiveIngredient` (Mutation, Admin)
+
 ```typescript
-{ name: string }
+{
+  name: string;
+}
 // Output: { id: number }
 ```
 
@@ -891,6 +1040,7 @@ All errors follow tRPC standard error format:
 ## Role-Based Access Control
 
 ### Roles:
+
 1. **admin** - Full access to all APIs
 2. **doctor** - Medical procedures, can view patients
 3. **specialist** - Similar to doctor
@@ -905,6 +1055,7 @@ All errors follow tRPC standard error format:
 ## WebSocket Events
 
 ### `broadcastSheetUpdate`
+
 Notifies connected clients when a medical sheet is updated.
 
 ```typescript
@@ -922,6 +1073,7 @@ Notifies connected clients when a medical sheet is updated.
 ## Example Requests
 
 ### Create Patient
+
 ```bash
 curl -X POST http://localhost:4000/trpc/medical.createPatient \
   -H "Content-Type: application/json" \
@@ -936,6 +1088,7 @@ curl -X POST http://localhost:4000/trpc/medical.createPatient \
 ```
 
 ### Search Patients
+
 ```bash
 curl -X POST http://localhost:4000/trpc/medical.searchPatients \
   -H "Content-Type: application/json" \
@@ -949,6 +1102,7 @@ curl -X POST http://localhost:4000/trpc/medical.searchPatients \
 ```
 
 ### Get Health Status
+
 ```bash
 curl -X POST http://localhost:4000/trpc/system.health \
   -H "Content-Type: application/json" \

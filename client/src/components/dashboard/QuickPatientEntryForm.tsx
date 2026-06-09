@@ -14,7 +14,10 @@ export type QuickPatientEntryFormProps = {
   embedded?: boolean;
 };
 
-export function QuickPatientEntryForm({ initialPatientId = 0, embedded = false }: QuickPatientEntryFormProps) {
+export function QuickPatientEntryForm({
+  initialPatientId = 0,
+  embedded = false,
+}: QuickPatientEntryFormProps) {
   const [patientId, setPatientId] = useState(initialPatientId);
 
   useEffect(() => {
@@ -136,7 +139,12 @@ export function QuickPatientEntryForm({ initialPatientId = 0, embedded = false }
           </div>
           <div>
             <Label>تاريخ الزيارة</Label>
-            <Input type="date" value={visitDate} onChange={(e) => setVisitDate(e.target.value)} className="text-right" />
+            <Input
+              type="date"
+              value={visitDate}
+              onChange={(e) => setVisitDate(e.target.value)}
+              className="text-right"
+            />
           </div>
         </CardContent>
       </Card>
@@ -149,34 +157,57 @@ export function QuickPatientEntryForm({ initialPatientId = 0, embedded = false }
           <CardContent className="space-y-3">
             <div>
               <Label>UCVA</Label>
-              <Input value={ucvaOD} onChange={(e) => setUcvaOD(e.target.value)} placeholder="6/6" />
+              <Input
+                value={ucvaOD}
+                onChange={(e) => setUcvaOD(e.target.value)}
+                placeholder="6/6"
+              />
             </div>
             <div>
               <Label>BCVA</Label>
-              <Input value={bcvaOD} onChange={(e) => setBcvaOD(e.target.value)} placeholder="6/6" />
+              <Input
+                value={bcvaOD}
+                onChange={(e) => setBcvaOD(e.target.value)}
+                placeholder="6/6"
+              />
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div>
                 <Label>S</Label>
-                <Input value={sphereOD} onChange={(e) => setSphereOD(e.target.value)} />
+                <Input
+                  value={sphereOD}
+                  onChange={(e) => setSphereOD(e.target.value)}
+                />
               </div>
               <div>
                 <Label>C</Label>
-                <Input value={cylinderOD} onChange={(e) => setCylinderOD(e.target.value)} />
+                <Input
+                  value={cylinderOD}
+                  onChange={(e) => setCylinderOD(e.target.value)}
+                />
               </div>
               <div>
                 <Label>Axis</Label>
-                <Input value={axisOD} onChange={(e) => setAxisOD(e.target.value)} />
+                <Input
+                  value={axisOD}
+                  onChange={(e) => setAxisOD(e.target.value)}
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label>IOP</Label>
-                <Input value={iopOD} onChange={(e) => setIopOD(e.target.value)} />
+                <Input
+                  value={iopOD}
+                  onChange={(e) => setIopOD(e.target.value)}
+                />
               </div>
               <div>
                 <Label>Air Puff</Label>
-                <Input value={airPuffOD} onChange={(e) => setAirPuffOD(e.target.value)} />
+                <Input
+                  value={airPuffOD}
+                  onChange={(e) => setAirPuffOD(e.target.value)}
+                />
               </div>
             </div>
           </CardContent>
@@ -189,34 +220,57 @@ export function QuickPatientEntryForm({ initialPatientId = 0, embedded = false }
           <CardContent className="space-y-3">
             <div>
               <Label>UCVA</Label>
-              <Input value={ucvaOS} onChange={(e) => setUcvaOS(e.target.value)} placeholder="6/6" />
+              <Input
+                value={ucvaOS}
+                onChange={(e) => setUcvaOS(e.target.value)}
+                placeholder="6/6"
+              />
             </div>
             <div>
               <Label>BCVA</Label>
-              <Input value={bcvaOS} onChange={(e) => setBcvaOS(e.target.value)} placeholder="6/6" />
+              <Input
+                value={bcvaOS}
+                onChange={(e) => setBcvaOS(e.target.value)}
+                placeholder="6/6"
+              />
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div>
                 <Label>S</Label>
-                <Input value={sphereOS} onChange={(e) => setSphereOS(e.target.value)} />
+                <Input
+                  value={sphereOS}
+                  onChange={(e) => setSphereOS(e.target.value)}
+                />
               </div>
               <div>
                 <Label>C</Label>
-                <Input value={cylinderOS} onChange={(e) => setCylinderOS(e.target.value)} />
+                <Input
+                  value={cylinderOS}
+                  onChange={(e) => setCylinderOS(e.target.value)}
+                />
               </div>
               <div>
                 <Label>Axis</Label>
-                <Input value={axisOS} onChange={(e) => setAxisOS(e.target.value)} />
+                <Input
+                  value={axisOS}
+                  onChange={(e) => setAxisOS(e.target.value)}
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label>IOP</Label>
-                <Input value={iopOS} onChange={(e) => setIopOS(e.target.value)} />
+                <Input
+                  value={iopOS}
+                  onChange={(e) => setIopOS(e.target.value)}
+                />
               </div>
               <div>
                 <Label>Air Puff</Label>
-                <Input value={airPuffOS} onChange={(e) => setAirPuffOS(e.target.value)} />
+                <Input
+                  value={airPuffOS}
+                  onChange={(e) => setAirPuffOS(e.target.value)}
+                />
               </div>
             </div>
           </CardContent>
@@ -230,16 +284,29 @@ export function QuickPatientEntryForm({ initialPatientId = 0, embedded = false }
         <CardContent className="space-y-4">
           <div>
             <Label>الروشتة</Label>
-            <Input value={prescription} onChange={(e) => setPrescription(e.target.value)} placeholder="الروشتة" />
+            <Input
+              value={prescription}
+              onChange={(e) => setPrescription(e.target.value)}
+              placeholder="الروشتة"
+            />
           </div>
           <div>
             <Label>التشخيص</Label>
-            <Input value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} placeholder="التشخيص" />
+            <Input
+              value={diagnosis}
+              onChange={(e) => setDiagnosis(e.target.value)}
+              placeholder="التشخيص"
+            />
           </div>
         </CardContent>
       </Card>
 
-      <Button onClick={handleSave} disabled={createExamMutation.isPending} className="w-full h-10 text-lg" size="lg">
+      <Button
+        onClick={handleSave}
+        disabled={createExamMutation.isPending}
+        className="w-full h-10 text-lg"
+        size="lg"
+      >
         {createExamMutation.isPending ? "جاري الحفظ..." : "حفظ الفحص"}
       </Button>
     </div>

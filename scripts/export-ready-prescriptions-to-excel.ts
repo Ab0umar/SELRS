@@ -49,4 +49,3 @@ main().catch((error) => {
   console.error("Failed to export ready prescriptions Excel:", error);
   process.exit(1);
 });
-

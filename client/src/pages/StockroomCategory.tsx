@@ -9,7 +9,16 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { Archive, PlusCircle, Search, MinusCircle, List, ArrowDownToLine, ArrowUpFromLine, RefreshCw } from "lucide-react";
+import {
+  Archive,
+  PlusCircle,
+  Search,
+  MinusCircle,
+  List,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  RefreshCw,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -43,9 +52,11 @@ function getStatusClass(status: string) {
 
 export default function StockroomCategory() {
   const categoryTitle = "قطرات العين";
-  
+
   // Queries
-  const itemsQuery = trpc.stockroom.getItems.useQuery({ category: categoryTitle });
+  const itemsQuery = trpc.stockroom.getItems.useQuery({
+    category: categoryTitle,
+  });
   const utils = trpc.useContext();
 
   // Mutations
@@ -79,13 +90,13 @@ export default function StockroomCategory() {
 
   // Tab state
   const [activeTab, setActiveTab] = useState("inventory");
-  
+
   // Form states
   const [selectedItemId, setSelectedItemId] = useState<string>("");
   const [quantity, setQuantity] = useState("");
   const [unitPrice, setUnitPrice] = useState("");
   const [employeeName, setEmployeeName] = useState("");
-  
+
   // States for receiving a brand new, unregistered item in the Add tab
   const [isReceivingNewItem, setIsReceivingNewItem] = useState(false);
   const [receiveNewName, setReceiveNewName] = useState("");
@@ -104,7 +115,7 @@ export default function StockroomCategory() {
     setNewItemSupplier("");
   };
 
-  const handleOpenAdd = (item?: {id: number}) => {
+  const handleOpenAdd = (item?: { id: number }) => {
     if (item) {
       setSelectedItemId(String(item.id));
       setIsReceivingNewItem(false);
@@ -119,7 +130,7 @@ export default function StockroomCategory() {
     setActiveTab("add");
   };
 
-  const handleOpenDispense = (item: {id: number}) => {
+  const handleOpenDispense = (item: { id: number }) => {
     setSelectedItemId(String(item.id));
     setQuantity("");
     setEmployeeName("");
@@ -139,15 +150,17 @@ export default function StockroomCategory() {
     receiveMutation.mutate({
       isNewItem: isReceivingNewItem,
       itemId: selectedItemId ? Number(selectedItemId) : undefined,
-      newItem: isReceivingNewItem ? {
-        name: receiveNewName,
-        itemCode: receiveNewCode,
-        supplier: receiveNewSupplier,
-        category: categoryTitle
-      } : undefined,
+      newItem: isReceivingNewItem
+        ? {
+            name: receiveNewName,
+            itemCode: receiveNewCode,
+            supplier: receiveNewSupplier,
+            category: categoryTitle,
+          }
+        : undefined,
       quantity: Number(quantity),
       unitPrice: Number(unitPrice),
-      totalValue: Number(quantity) * Number(unitPrice)
+      totalValue: Number(quantity) * Number(unitPrice),
     });
   };
 
@@ -159,7 +172,7 @@ export default function StockroomCategory() {
     dispenseMutation.mutate({
       itemId: Number(selectedItemId),
       quantity: Number(quantity),
-      employeeName: employeeName
+      employeeName: employeeName,
     });
   };
 
@@ -172,7 +185,7 @@ export default function StockroomCategory() {
       name: newItemName,
       itemCode: newItemCode,
       supplier: newItemSupplier,
-      category: categoryTitle
+      category: categoryTitle,
     });
   };
 
@@ -186,17 +199,31 @@ export default function StockroomCategory() {
         icon={<Archive className="h-5 w-5 text-primary" />}
       />
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir="rtl">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="w-full"
+        dir="rtl"
+      >
         <TabsList className="grid w-full grid-cols-3 mb-6 bg-muted/50 p-1">
-          <TabsTrigger value="inventory" className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">
+          <TabsTrigger
+            value="inventory"
+            className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+          >
             <List className="me-2 h-4 w-4" />
             جرد المخزون
           </TabsTrigger>
-          <TabsTrigger value="add" className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">
+          <TabsTrigger
+            value="add"
+            className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+          >
             <ArrowDownToLine className="me-2 h-4 w-4" />
             إضافة رصيد (استلام)
           </TabsTrigger>
-          <TabsTrigger value="dispense" className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">
+          <TabsTrigger
+            value="dispense"
+            className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+          >
             <ArrowUpFromLine className="me-2 h-4 w-4" />
             صرف رصيد
           </TabsTrigger>
@@ -209,10 +236,24 @@ export default function StockroomCategory() {
               <Input placeholder="ابحث بالاسم أو الكود..." className="pr-9" />
             </div>
             <div className="flex gap-2">
-              <Button onClick={() => itemsQuery.refetch()} variant="outline" size="icon" disabled={itemsQuery.isFetching}>
-                <RefreshCw className={cn("h-4 w-4", itemsQuery.isFetching && "animate-spin")} />
+              <Button
+                onClick={() => itemsQuery.refetch()}
+                variant="outline"
+                size="icon"
+                disabled={itemsQuery.isFetching}
+              >
+                <RefreshCw
+                  className={cn(
+                    "h-4 w-4",
+                    itemsQuery.isFetching && "animate-spin",
+                  )}
+                />
               </Button>
-              <Button onClick={() => setIsNewItemDialogOpen(true)} variant="default" className="bg-primary text-white">
+              <Button
+                onClick={() => setIsNewItemDialogOpen(true)}
+                variant="default"
+                className="bg-primary text-white"
+              >
                 <PlusCircle className="me-2 h-4 w-4" />
                 تعريف صنف جديد
               </Button>
@@ -232,53 +273,85 @@ export default function StockroomCategory() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {itemsQuery.isPending ? (
-                  Array(5).fill(0).map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-8" /></TableCell>
-                      <TableCell><Skeleton className="h-6 w-20" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                      <TableCell className="text-left"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
-                    </TableRow>
-                  ))
-                ) : itemsQuery.data?.map((item) => (
-                  <TableRow key={item.id} className="hover:bg-primary/5">
-                    <TableCell className="font-mono text-xs text-muted-foreground text-right">{item.itemCode || "-"}</TableCell>
-                    <TableCell className="font-medium text-foreground text-right">{item.name}</TableCell>
-                    <TableCell className="font-semibold text-foreground text-right">{item.quantity}</TableCell>
-                    <TableCell className="text-right">
-                      <Badge variant="outline" className={cn("font-semibold", getStatusClass(item.status))}>
-                        {item.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-right">{item.expiryDate ? new Date(item.expiryDate).toLocaleDateString('ar-EG') : "-"}</TableCell>
-                    <TableCell className="text-left">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="text-primary hover:text-primary hover:bg-primary/10 border-primary/20"
-                          onClick={() => handleOpenAdd(item)}
-                        >
-                          <ArrowDownToLine className="me-1.5 h-3.5 w-3.5" />
-                          إضافة
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="text-warning-text hover:text-warning-text hover:bg-warning/10 border-warning/20"
-                          onClick={() => handleOpenDispense(item)}
-                          disabled={item.quantity === 0}
-                        >
-                          <ArrowUpFromLine className="me-1.5 h-3.5 w-3.5" />
-                          صرف
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {itemsQuery.isPending
+                  ? Array(5)
+                      .fill(0)
+                      .map((_, i) => (
+                        <TableRow key={i}>
+                          <TableCell>
+                            <Skeleton className="h-4 w-16" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-4 w-32" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-4 w-8" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-6 w-20" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-4 w-24" />
+                          </TableCell>
+                          <TableCell className="text-left">
+                            <Skeleton className="h-8 w-24 ml-auto" />
+                          </TableCell>
+                        </TableRow>
+                      ))
+                  : itemsQuery.data?.map((item) => (
+                      <TableRow key={item.id} className="hover:bg-primary/5">
+                        <TableCell className="font-mono text-xs text-muted-foreground text-right">
+                          {item.itemCode || "-"}
+                        </TableCell>
+                        <TableCell className="font-medium text-foreground text-right">
+                          {item.name}
+                        </TableCell>
+                        <TableCell className="font-semibold text-foreground text-right">
+                          {item.quantity}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "font-semibold",
+                              getStatusClass(item.status),
+                            )}
+                          >
+                            {item.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-right">
+                          {item.expiryDate
+                            ? new Date(item.expiryDate).toLocaleDateString(
+                                "ar-EG",
+                              )
+                            : "-"}
+                        </TableCell>
+                        <TableCell className="text-left">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-primary hover:text-primary hover:bg-primary/10 border-primary/20"
+                              onClick={() => handleOpenAdd(item)}
+                            >
+                              <ArrowDownToLine className="me-1.5 h-3.5 w-3.5" />
+                              إضافة
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-warning-text hover:text-warning-text hover:bg-warning/10 border-warning/20"
+                              onClick={() => handleOpenDispense(item)}
+                              disabled={item.quantity === 0}
+                            >
+                              <ArrowUpFromLine className="me-1.5 h-3.5 w-3.5" />
+                              صرف
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
               </TableBody>
             </Table>
           </div>
@@ -292,35 +365,49 @@ export default function StockroomCategory() {
                 إذن استلام كمية
               </h2>
               <div className="flex bg-muted/50 p-1 rounded-md w-full sm:w-[240px]">
-                <button 
+                <button
                   type="button"
-                  className={cn("flex-1 text-sm py-1.5 rounded-sm transition-colors", !isReceivingNewItem ? "bg-white shadow-sm text-primary font-medium" : "text-muted-foreground")}
+                  className={cn(
+                    "flex-1 text-sm py-1.5 rounded-sm transition-colors",
+                    !isReceivingNewItem
+                      ? "bg-white shadow-sm text-primary font-medium"
+                      : "text-muted-foreground",
+                  )}
                   onClick={() => setIsReceivingNewItem(false)}
                 >
                   صنف مسجل
                 </button>
-                <button 
+                <button
                   type="button"
-                  className={cn("flex-1 text-sm py-1.5 rounded-sm transition-colors", isReceivingNewItem ? "bg-white shadow-sm text-primary font-medium" : "text-muted-foreground")}
+                  className={cn(
+                    "flex-1 text-sm py-1.5 rounded-sm transition-colors",
+                    isReceivingNewItem
+                      ? "bg-white shadow-sm text-primary font-medium"
+                      : "text-muted-foreground",
+                  )}
                   onClick={() => setIsReceivingNewItem(true)}
                 >
                   صنف جديد
                 </button>
               </div>
             </div>
-            
+
             <div className="space-y-6">
               {!isReceivingNewItem ? (
                 <div className="space-y-2">
                   <Label>اسم الصنف</Label>
-                  <select 
+                  <select
                     className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     value={selectedItemId}
                     onChange={(e) => setSelectedItemId(e.target.value)}
                   >
-                    <option value="" disabled>-- اختر الصنف --</option>
-                    {itemsQuery.data?.map(item => (
-                      <option key={item.id} value={item.id}>{item.name} ({item.itemCode || item.id})</option>
+                    <option value="" disabled>
+                      -- اختر الصنف --
+                    </option>
+                    {itemsQuery.data?.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name} ({item.itemCode || item.id})
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -328,7 +415,7 @@ export default function StockroomCategory() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-primary/5 p-4 rounded-lg border border-primary/10">
                   <div className="space-y-2 sm:col-span-2">
                     <Label>اسم الصنف الجديد</Label>
-                    <Input 
+                    <Input
                       value={receiveNewName}
                       onChange={(e) => setReceiveNewName(e.target.value)}
                       placeholder="أدخل اسم الصنف..."
@@ -337,7 +424,7 @@ export default function StockroomCategory() {
                   </div>
                   <div className="space-y-2">
                     <Label>الكود (اختياري)</Label>
-                    <Input 
+                    <Input
                       value={receiveNewCode}
                       onChange={(e) => setReceiveNewCode(e.target.value)}
                       placeholder="EDXXX"
@@ -346,7 +433,7 @@ export default function StockroomCategory() {
                   </div>
                   <div className="space-y-2">
                     <Label>المُورِّد (اختياري)</Label>
-                    <Input 
+                    <Input
                       value={receiveNewSupplier}
                       onChange={(e) => setReceiveNewSupplier(e.target.value)}
                       placeholder="اسم الشركة..."
@@ -355,43 +442,54 @@ export default function StockroomCategory() {
                   </div>
                 </div>
               )}
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label>الكمية المستلمة</Label>
-                  <Input 
-                    type="number" 
-                    value={quantity} 
-                    onChange={(e) => setQuantity(e.target.value)} 
+                  <Input
+                    type="number"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
                     placeholder="أدخل الكمية..."
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>سعر الوحدة (ج.م)</Label>
-                  <Input 
-                    type="number" 
-                    value={unitPrice} 
-                    onChange={(e) => setUnitPrice(e.target.value)} 
+                  <Input
+                    type="number"
+                    value={unitPrice}
+                    onChange={(e) => setUnitPrice(e.target.value)}
                     placeholder="أدخل سعر الوحدة..."
                   />
                 </div>
               </div>
-              
+
               <div className="pt-4 mt-6 border-t border-border/50">
                 <div className="flex justify-between items-center bg-primary/5 p-4 rounded-lg border border-primary/10">
-                  <span className="font-semibold text-primary text-lg">إجمالي القيمة:</span>
-                  <span className="text-2xl font-bold text-primary">{totalValue.toFixed(2)} ج.م</span>
+                  <span className="font-semibold text-primary text-lg">
+                    إجمالي القيمة:
+                  </span>
+                  <span className="text-2xl font-bold text-primary">
+                    {totalValue.toFixed(2)} ج.م
+                  </span>
                 </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-4">
-                <Button variant="outline" onClick={() => setActiveTab("inventory")}>إلغاء</Button>
-                <Button 
-                  onClick={handleSubmitAdd} 
+                <Button
+                  variant="outline"
+                  onClick={() => setActiveTab("inventory")}
+                >
+                  إلغاء
+                </Button>
+                <Button
+                  onClick={handleSubmitAdd}
                   className="bg-primary text-white"
                   disabled={receiveMutation.isPending}
                 >
-                  {receiveMutation.isPending ? "جاري الحفظ..." : "حفظ إذن الإضافة"}
+                  {receiveMutation.isPending
+                    ? "جاري الحفظ..."
+                    : "حفظ إذن الإضافة"}
                 </Button>
               </div>
             </div>
@@ -404,49 +502,61 @@ export default function StockroomCategory() {
               <ArrowUpFromLine className="me-2 h-5 w-5" />
               إذن صرف مخزون
             </h2>
-            
+
             <div className="space-y-6">
               <div className="space-y-2">
                 <Label>اسم الصنف</Label>
-                <select 
+                <select
                   className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   value={selectedItemId}
                   onChange={(e) => setSelectedItemId(e.target.value)}
                 >
-                  <option value="" disabled>-- اختر الصنف --</option>
-                  {itemsQuery.data?.map(item => (
-                    <option key={item.id} value={item.id}>{item.name} ({item.itemCode || item.id}) - المتاح: {item.quantity}</option>
+                  <option value="" disabled>
+                    -- اختر الصنف --
+                  </option>
+                  {itemsQuery.data?.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name} ({item.itemCode || item.id}) - المتاح:{" "}
+                      {item.quantity}
+                    </option>
                   ))}
                 </select>
               </div>
-              
+
               <div className="space-y-2">
                 <Label>الكمية المنصرفة</Label>
-                <Input 
-                  type="number" 
-                  value={quantity} 
-                  onChange={(e) => setQuantity(e.target.value)} 
+                <Input
+                  type="number"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
                   placeholder="أدخل الكمية المطلوبة للصرف..."
                 />
               </div>
 
               <div className="space-y-2">
                 <Label>اسم الموظف / المستلم</Label>
-                <Input 
-                  value={employeeName} 
-                  onChange={(e) => setEmployeeName(e.target.value)} 
+                <Input
+                  value={employeeName}
+                  onChange={(e) => setEmployeeName(e.target.value)}
                   placeholder="أدخل اسم الموظف أو القسم المستلم..."
                 />
               </div>
 
               <div className="flex justify-end gap-2 pt-6 border-t border-border/50">
-                <Button variant="outline" onClick={() => setActiveTab("inventory")}>إلغاء</Button>
-                <Button 
-                  onClick={handleSubmitDispense} 
+                <Button
+                  variant="outline"
+                  onClick={() => setActiveTab("inventory")}
+                >
+                  إلغاء
+                </Button>
+                <Button
+                  onClick={handleSubmitDispense}
                   className="bg-warning text-warning-foreground hover:bg-warning/90"
                   disabled={dispenseMutation.isPending}
                 >
-                  {dispenseMutation.isPending ? "جاري الحفظ..." : "تأكيد إذن الصرف"}
+                  {dispenseMutation.isPending
+                    ? "جاري الحفظ..."
+                    : "تأكيد إذن الصرف"}
                 </Button>
               </div>
             </div>
@@ -505,8 +615,8 @@ export default function StockroomCategory() {
             <DialogClose asChild>
               <Button variant="outline">إلغاء</Button>
             </DialogClose>
-            <Button 
-              onClick={handleCreateNewItem} 
+            <Button
+              onClick={handleCreateNewItem}
               className="bg-primary text-white"
               disabled={createItemMutation.isPending}
             >

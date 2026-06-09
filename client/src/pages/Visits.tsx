@@ -11,7 +11,16 @@ import { SearchBar } from "@/components/shared/SearchBar";
 import { FilterBar } from "@/components/shared/FilterBar";
 import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
 import { cn } from "@/lib/utils";
-import { CalendarDays, ClipboardList, Edit, CalendarRange, Check, ChevronDown, FileText, X } from "lucide-react";
+import {
+  CalendarDays,
+  ClipboardList,
+  Edit,
+  CalendarRange,
+  Check,
+  ChevronDown,
+  FileText,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const visitKindTabs = [
@@ -63,7 +72,8 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
   const hubVisitDateFilter = props?.hubVisitDateFilter;
   const hidePageChrome = props?.hidePageChrome;
   const patientHubReadOnly = Boolean(props?.patientHubReadOnly);
-  const patientHubViewOnlyHint = props?.patientHubViewOnlyHint ?? "العرض فقط داخل المركز";
+  const patientHubViewOnlyHint =
+    props?.patientHubViewOnlyHint ?? "العرض فقط داخل المركز";
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const [, routeParamsVisits] = useRoute("/visits/:id");
@@ -78,27 +88,32 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
   const [editAutorefraction, setEditAutorefraction] = useState<any>(null);
   const [editPentacam, setEditPentacam] = useState<any>(null);
 
-  const patientQuery = trpc.patient.getPatient.useQuery(
-    patientId ?? 0,
-    { enabled: Boolean(patientId), refetchOnWindowFocus: false }
-  );
+  const patientQuery = trpc.patient.getPatient.useQuery(patientId ?? 0, {
+    enabled: Boolean(patientId),
+    refetchOnWindowFocus: false,
+  });
 
   const allVisitsQuery = trpc.medical.getVisitsByPatient.useQuery(
     { patientId: 0 },
-    { refetchOnWindowFocus: false }
+    { refetchOnWindowFocus: false },
   );
 
   const patientVisitsQuery = trpc.medical.getVisitsByPatient.useQuery(
     { patientId: patientId ?? 0 },
-    { enabled: Boolean(patientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(patientId), refetchOnWindowFocus: false },
   );
 
   const updateVisitDateMutation = trpc.medical.updateVisitDate.useMutation();
   const updateExamDataMutation = trpc.medical.updateVisitExamData.useMutation();
 
   const patient = patientQuery.data as any;
-  const visits = (patientId > 0 ? patientVisitsQuery.data ?? [] : allVisitsQuery.data ?? []) as any[];
-  const isLoading = patientId > 0 ? patientVisitsQuery.isLoading : allVisitsQuery.isLoading;
+  const visits = (
+    patientId > 0
+      ? (patientVisitsQuery.data ?? [])
+      : (allVisitsQuery.data ?? [])
+  ) as any[];
+  const isLoading =
+    patientId > 0 ? patientVisitsQuery.isLoading : allVisitsQuery.isLoading;
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -107,7 +122,9 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
   }, [isAuthenticated, setLocation]);
 
   useEffect(() => {
-    const raw = (routeParamsVisits as { id?: string } | undefined)?.id ?? (routeParamsHub as { id?: string } | undefined)?.id;
+    const raw =
+      (routeParamsVisits as { id?: string } | undefined)?.id ??
+      (routeParamsHub as { id?: string } | undefined)?.id;
     const routeId = Number(raw ?? 0);
     if (Number.isFinite(routeId) && routeId > 0) {
       setPatientId(routeId);
@@ -120,7 +137,10 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
       age--;
     }
     return age;
@@ -130,10 +150,21 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
     if (!dateString) return "-";
     try {
       const date = new Date(dateString);
-      const dayNames = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+      const dayNames = [
+        "الأحد",
+        "الاثنين",
+        "الثلاثاء",
+        "الأربعاء",
+        "الخميس",
+        "الجمعة",
+        "السبت",
+      ];
       const day = dayNames[date.getDay()];
       const dateFormatted = date.toLocaleDateString("ar-EG");
-      const time = date.toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" });
+      const time = date.toLocaleTimeString("ar-EG", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
       return `${day} - ${dateFormatted} ${time}`;
     } catch {
       return dateString;
@@ -147,7 +178,8 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
     for (const v of rows) {
       const raw = v.visitDate ?? v.createdAt;
       const d = raw ? new Date(String(raw)) : null;
-      if (d && !Number.isNaN(d.getTime()) && isInCurrentCalendarWeek(d)) thisWeek += 1;
+      if (d && !Number.isNaN(d.getTime()) && isInCurrentCalendarWeek(d))
+        thisWeek += 1;
       if (String(v.visitType ?? "") === "followup") followups += 1;
     }
     return { total: rows.length, thisWeek, followups };
@@ -165,7 +197,10 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
         if (key !== hubVisitDateFilter) return false;
       }
       if (!needle) return true;
-      const nameLine = patientId > 0 && patient?.fullName ? String(patient.fullName) : String(row.patientName ?? "");
+      const nameLine =
+        patientId > 0 && patient?.fullName
+          ? String(patient.fullName)
+          : String(row.patientName ?? "");
       const hay = [
         formatDateTime(String(row.visitDate ?? row.createdAt ?? "")),
         String(row.chiefComplaint ?? ""),
@@ -192,12 +227,12 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
     try {
       const result = await updateVisitDateMutation.mutateAsync({
         visitId: visit.id,
-        visitDate: editDate
+        visitDate: editDate,
       });
       console.log("Date update result:", result);
 
       // Wait a moment then refetch
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
       if (patientId > 0) {
         await patientVisitsQuery.refetch();
       } else {
@@ -207,7 +242,10 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
       setEditDate("");
     } catch (error) {
       console.error("Failed to update visit date:", error);
-      alert("خطأ في حفظ التاريخ: " + (error instanceof Error ? error.message : "Unknown error"));
+      alert(
+        "خطأ في حفظ التاريخ: " +
+          (error instanceof Error ? error.message : "Unknown error"),
+      );
     }
   };
 
@@ -233,7 +271,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
 
       await updateExamDataMutation.mutateAsync({
         visitId: visit.id,
-        updates
+        updates,
       });
       if (patientId > 0) {
         await patientVisitsQuery.refetch();
@@ -249,7 +287,13 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
   if (!isAuthenticated) return null;
 
   return (
-    <div className={cn("mx-auto w-full", hidePageChrome ? "max-w-none px-2 py-3" : "max-w-[1280px]")} dir="rtl">
+    <div
+      className={cn(
+        "mx-auto w-full",
+        hidePageChrome ? "max-w-none px-2 py-3" : "max-w-[1280px]",
+      )}
+      dir="rtl"
+    >
       {!hidePageChrome ? (
         <>
           <PageHeader
@@ -258,7 +302,12 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
             icon={<ClipboardList className="h-5 w-5" />}
           />
 
-          <div className={cn(STAT_CARDS_MOBILE_ROW, "mb-4 gap-2 sm:mb-6 sm:grid sm:grid-cols-3 sm:gap-4")}>
+          <div
+            className={cn(
+              STAT_CARDS_MOBILE_ROW,
+              "mb-4 gap-2 sm:mb-6 sm:grid sm:grid-cols-3 sm:gap-4",
+            )}
+          >
             <StatCard
               title="إجمالي الزيارات"
               value={stats.total}
@@ -292,9 +341,17 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
 
       <div className="mb-6 flex flex-col gap-3 sm:flex-row">
         <div className="w-full sm:w-72">
-          <SearchBar value={search} onChange={setSearch} placeholder="بحث باسم المريض، التاريخ، الشكوى..." />
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="بحث باسم المريض، التاريخ، الشكوى..."
+          />
         </div>
-        <FilterBar filters={visitKindTabs} selected={activeVisitKind} onSelect={setActiveVisitKind} />
+        <FilterBar
+          filters={visitKindTabs}
+          selected={activeVisitKind}
+          onSelect={setActiveVisitKind}
+        />
       </div>
 
       <Card className="border-border shadow-sm">
@@ -302,13 +359,21 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
           <CardHeader className="border-b border-border pb-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex-1">
-                <CardTitle className="text-2xl">{patient?.fullName || "المريض"}</CardTitle>
+                <CardTitle className="text-2xl">
+                  {patient?.fullName || "المريض"}
+                </CardTitle>
                 <div className="mt-2 flex flex-col gap-1 text-sm text-muted-foreground">
                   <div>
-                    العمر: <span className="font-medium text-foreground">{getPatientAge(patient?.dateOfBirth)} سنة</span>
+                    العمر:{" "}
+                    <span className="font-medium text-foreground">
+                      {getPatientAge(patient?.dateOfBirth)} سنة
+                    </span>
                   </div>
                   <div>
-                    الدكتور: <span className="font-medium text-foreground">{patient?.doctorName || "-"}</span>
+                    الدكتور:{" "}
+                    <span className="font-medium text-foreground">
+                      {patient?.doctorName || "-"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -318,540 +383,722 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
 
         <CardContent className="pt-6">
           <div className="space-y-3">
-            {isLoading && <div className="py-8 text-center text-muted-foreground">جاري التحميل...</div>}
+            {isLoading && (
+              <div className="py-8 text-center text-muted-foreground">
+                جاري التحميل...
+              </div>
+            )}
 
             {!isLoading && visits.length === 0 && (
-              <div className="py-8 text-center text-muted-foreground">لا توجد زيارات مسجلة</div>
+              <div className="py-8 text-center text-muted-foreground">
+                لا توجد زيارات مسجلة
+              </div>
             )}
 
             {!isLoading && visits.length > 0 && filteredVisits.length === 0 && (
-              <div className="rounded-xl border border-dashed py-12 text-center text-muted-foreground">لا توجد زيارات مطابقة للبحث أو التصفية</div>
+              <div className="rounded-xl border border-dashed py-12 text-center text-muted-foreground">
+                لا توجد زيارات مطابقة للبحث أو التصفية
+              </div>
             )}
 
             {filteredVisits.map((visit, index) => {
-                const vid = visitRowId(visit as Record<string, unknown>, index);
-                const isExpanded = expandedVisitId === vid;
-                const visitDate = visit.visitDate || visit.createdAt;
-                const isEditingDate = editingVisitId === vid;
-                const vType = String((visit as any).visitType ?? "");
+              const vid = visitRowId(visit as Record<string, unknown>, index);
+              const isExpanded = expandedVisitId === vid;
+              const visitDate = visit.visitDate || visit.createdAt;
+              const isEditingDate = editingVisitId === vid;
+              const vType = String((visit as any).visitType ?? "");
 
-                return (
-                  <Card key={vid} className="border-border transition-shadow hover:shadow-md">
-                      {/* Visit Header - Expandable */}
-                      <CardHeader className="hover:bg-muted/40">
-                        <div className="flex items-center justify-between gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setExpandedVisitId(isExpanded ? null : vid)}
-                            className="flex flex-1 items-center gap-2 text-right"
-                          >
-                            {isEditingDate ? (
-                              <div className="flex-1 flex items-center gap-2">
-                                <Input
-                                  type="date"
-                                  value={editDate}
-                                  onChange={(e) => setEditDate(e.target.value)}
-                                  className="max-w-xs"
-                                  dir="ltr"
-                                />
+              return (
+                <Card
+                  key={vid}
+                  className="border-border transition-shadow hover:shadow-md"
+                >
+                  {/* Visit Header - Expandable */}
+                  <CardHeader className="hover:bg-muted/40">
+                    <div className="flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedVisitId(isExpanded ? null : vid)
+                        }
+                        className="flex flex-1 items-center gap-2 text-right"
+                      >
+                        {isEditingDate ? (
+                          <div className="flex-1 flex items-center gap-2">
+                            <Input
+                              type="date"
+                              value={editDate}
+                              onChange={(e) => setEditDate(e.target.value)}
+                              className="max-w-xs"
+                              dir="ltr"
+                            />
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSaveDate(visit);
+                              }}
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingVisitId(null);
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <CardTitle className="flex flex-wrap items-center gap-2 text-base">
+                              <span>
+                                {(visit as any).patientName || "مريض"} —{" "}
+                                {formatDateTime(visitDate)}
+                              </span>
+                              {vType && visitTypeLabels[vType] ? (
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    "border-0 text-[10px] font-semibold",
+                                    visitTypeStyles[vType],
+                                  )}
+                                >
+                                  {visitTypeLabels[vType]}
+                                </Badge>
+                              ) : null}
+                              {visit.patientId ? (
                                 <Button
                                   size="sm"
-                                  variant="default"
+                                  variant="ghost"
+                                  type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleSaveDate(visit);
+                                    const qs =
+                                      typeof window !== "undefined"
+                                        ? window.location.search
+                                        : "";
+                                    setLocation(
+                                      patientHubReadOnly
+                                        ? `/patient-hub/examination/${visit.patientId}${qs}`
+                                        : `/patient-file/${visit.patientId}`,
+                                    );
                                   }}
+                                  title="فتح ملف المريض"
                                 >
-                                  <Check className="h-4 w-4" />
+                                  <FileText className="h-4 w-4" />
+                                </Button>
+                              ) : null}
+                            </CardTitle>
+                          </>
+                        )}
+                      </button>
+
+                      <div className="flex items-center gap-1">
+                        {!patientHubReadOnly && !isEditingDate && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartEditDate(visit);
+                              setEditingVisitId(vid);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpandedVisitId(isExpanded ? null : vid)
+                          }
+                          className="p-2"
+                        >
+                          <ChevronDown
+                            className={`h-5 w-5 transition-transform ${
+                              isExpanded ? "rotate-180" : ""
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+                  </CardHeader>
+
+                  {/* Visit Details - Expandable Content */}
+                  {isExpanded && (
+                    <CardContent className="space-y-6 border-t border-border pt-4">
+                      {/* Exam Data */}
+                      {(visit.sphereOD ||
+                        visit.sphereOS ||
+                        visit.iopOD ||
+                        visit.iopOS ||
+                        visit.ucvaOD ||
+                        visit.ucvaOS ||
+                        visit.bcvaOD ||
+                        visit.bcvaOS) && (
+                        <div>
+                          <h4 className="font-semibold text-foreground mb-3">
+                            بيانات الفحص
+                          </h4>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b border-border">
+                                  <th className="text-right px-2 py-2">
+                                    القياس
+                                  </th>
+                                  <th className="text-center px-2 py-2">OD</th>
+                                  <th className="text-center px-2 py-2">OS</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {(visit.ucvaOD || visit.ucvaOS) && (
+                                  <tr className="border-b border-border">
+                                    <td className="text-right px-2 py-2">
+                                      UCVA
+                                    </td>
+                                    <td className="text-center px-2 py-2">
+                                      {visit.ucvaOD || "-"}
+                                    </td>
+                                    <td className="text-center px-2 py-2">
+                                      {visit.ucvaOS || "-"}
+                                    </td>
+                                  </tr>
+                                )}
+                                {(visit.bcvaOD || visit.bcvaOS) && (
+                                  <tr className="border-b border-border">
+                                    <td className="text-right px-2 py-2">
+                                      BCVA
+                                    </td>
+                                    <td className="text-center px-2 py-2">
+                                      {visit.bcvaOD || "-"}
+                                    </td>
+                                    <td className="text-center px-2 py-2">
+                                      {visit.bcvaOS || "-"}
+                                    </td>
+                                  </tr>
+                                )}
+                                {(visit.sphereOD || visit.sphereOS) && (
+                                  <tr className="border-b border-border">
+                                    <td className="text-right px-2 py-2">
+                                      Sphere
+                                    </td>
+                                    <td className="text-center px-2 py-2">
+                                      {visit.sphereOD || "-"}
+                                    </td>
+                                    <td className="text-center px-2 py-2">
+                                      {visit.sphereOS || "-"}
+                                    </td>
+                                  </tr>
+                                )}
+                                {(visit.cylinderOD || visit.cylinderOS) && (
+                                  <tr className="border-b border-border">
+                                    <td className="text-right px-2 py-2">
+                                      Cylinder
+                                    </td>
+                                    <td className="text-center px-2 py-2">
+                                      {visit.cylinderOD || "-"}
+                                    </td>
+                                    <td className="text-center px-2 py-2">
+                                      {visit.cylinderOS || "-"}
+                                    </td>
+                                  </tr>
+                                )}
+                                {(visit.axisOD || visit.axisOS) && (
+                                  <tr className="border-b border-border">
+                                    <td className="text-right px-2 py-2">
+                                      Axis
+                                    </td>
+                                    <td className="text-center px-2 py-2">
+                                      {visit.axisOD || "-"}
+                                    </td>
+                                    <td className="text-center px-2 py-2">
+                                      {visit.axisOS || "-"}
+                                    </td>
+                                  </tr>
+                                )}
+                                {(visit.iopOD || visit.iopOS) && (
+                                  <tr className="border-b border-border">
+                                    <td className="text-right px-2 py-2">
+                                      IOP
+                                    </td>
+                                    <td className="text-center px-2 py-2">
+                                      {visit.iopOD || "-"}
+                                    </td>
+                                    <td className="text-center px-2 py-2">
+                                      {visit.iopOS || "-"}
+                                    </td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                      {/* Autorefraction Data */}
+                      {visit.autorefraction && (
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-semibold text-foreground">
+                              الأوتوريفراكشن
+                            </h4>
+                            {!patientHubReadOnly &&
+                              editingExamType !== "autorefraction" && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() =>
+                                    handleStartEditExam(
+                                      "autorefraction",
+                                      visit.autorefraction,
+                                    )
+                                  }
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              )}
+                          </div>
+
+                          {editingExamType === "autorefraction" ? (
+                            <div className="space-y-3 p-3 bg-muted rounded-lg">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <Label className="text-sm">UCVA OD</Label>
+                                  <Input
+                                    value={editAutorefraction?.od?.ucva || ""}
+                                    onChange={(e) =>
+                                      setEditAutorefraction({
+                                        ...editAutorefraction,
+                                        od: {
+                                          ...editAutorefraction.od,
+                                          ucva: e.target.value,
+                                        },
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-sm">UCVA OS</Label>
+                                  <Input
+                                    value={editAutorefraction?.os?.ucva || ""}
+                                    onChange={(e) =>
+                                      setEditAutorefraction({
+                                        ...editAutorefraction,
+                                        os: {
+                                          ...editAutorefraction.os,
+                                          ucva: e.target.value,
+                                        },
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-sm">BCVA OD</Label>
+                                  <Input
+                                    value={editAutorefraction?.od?.bcva || ""}
+                                    onChange={(e) =>
+                                      setEditAutorefraction({
+                                        ...editAutorefraction,
+                                        od: {
+                                          ...editAutorefraction.od,
+                                          bcva: e.target.value,
+                                        },
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-sm">BCVA OS</Label>
+                                  <Input
+                                    value={editAutorefraction?.os?.bcva || ""}
+                                    onChange={(e) =>
+                                      setEditAutorefraction({
+                                        ...editAutorefraction,
+                                        os: {
+                                          ...editAutorefraction.os,
+                                          bcva: e.target.value,
+                                        },
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-sm">S OD</Label>
+                                  <Input
+                                    value={editAutorefraction?.od?.s || ""}
+                                    onChange={(e) =>
+                                      setEditAutorefraction({
+                                        ...editAutorefraction,
+                                        od: {
+                                          ...editAutorefraction.od,
+                                          s: e.target.value,
+                                        },
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-sm">S OS</Label>
+                                  <Input
+                                    value={editAutorefraction?.os?.s || ""}
+                                    onChange={(e) =>
+                                      setEditAutorefraction({
+                                        ...editAutorefraction,
+                                        os: {
+                                          ...editAutorefraction.os,
+                                          s: e.target.value,
+                                        },
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-sm">C OD</Label>
+                                  <Input
+                                    value={editAutorefraction?.od?.c || ""}
+                                    onChange={(e) =>
+                                      setEditAutorefraction({
+                                        ...editAutorefraction,
+                                        od: {
+                                          ...editAutorefraction.od,
+                                          c: e.target.value,
+                                        },
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-sm">C OS</Label>
+                                  <Input
+                                    value={editAutorefraction?.os?.c || ""}
+                                    onChange={(e) =>
+                                      setEditAutorefraction({
+                                        ...editAutorefraction,
+                                        os: {
+                                          ...editAutorefraction.os,
+                                          c: e.target.value,
+                                        },
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-sm">Axis OD</Label>
+                                  <Input
+                                    value={editAutorefraction?.od?.axis || ""}
+                                    onChange={(e) =>
+                                      setEditAutorefraction({
+                                        ...editAutorefraction,
+                                        od: {
+                                          ...editAutorefraction.od,
+                                          axis: e.target.value,
+                                        },
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-sm">Axis OS</Label>
+                                  <Input
+                                    value={editAutorefraction?.os?.axis || ""}
+                                    onChange={(e) =>
+                                      setEditAutorefraction({
+                                        ...editAutorefraction,
+                                        os: {
+                                          ...editAutorefraction.os,
+                                          axis: e.target.value,
+                                        },
+                                      })
+                                    }
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() =>
+                                    handleSaveExam(visit, "autorefraction")
+                                  }
+                                >
+                                  <Check className="h-4 w-4 mr-1" />
+                                  حفظ
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditingVisitId(null);
-                                  }}
+                                  onClick={() => setEditingExamType(null)}
                                 >
-                                  <X className="h-4 w-4" />
+                                  <X className="h-4 w-4 mr-1" />
+                                  إلغاء
                                 </Button>
                               </div>
-                            ) : (
-                              <>
-                                <CardTitle className="flex flex-wrap items-center gap-2 text-base">
-                                  <span>
-                                    {(visit as any).patientName || "مريض"} — {formatDateTime(visitDate)}
-                                  </span>
-                                  {vType && visitTypeLabels[vType] ? (
-                                    <Badge variant="outline" className={cn("border-0 text-[10px] font-semibold", visitTypeStyles[vType])}>
-                                      {visitTypeLabels[vType]}
-                                    </Badge>
-                                  ) : null}
-                                  {visit.patientId ? (
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        const qs = typeof window !== "undefined" ? window.location.search : "";
-                                        setLocation(
-                                          patientHubReadOnly ? `/patient-hub/examination/${visit.patientId}${qs}` : `/patient-file/${visit.patientId}`,
-                                        );
-                                      }}
-                                      title="فتح ملف المريض"
-                                    >
-                                      <FileText className="h-4 w-4" />
-                                    </Button>
-                                  ) : null}
-                                </CardTitle>
-                              </>
-                            )}
-                          </button>
-
-                          <div className="flex items-center gap-1">
-                            {!patientHubReadOnly && !isEditingDate && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleStartEditDate(visit);
-                                  setEditingVisitId(vid);
-                                }}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => setExpandedVisitId(isExpanded ? null : vid)}
-                              className="p-2"
-                            >
-                              <ChevronDown
-                                className={`h-5 w-5 transition-transform ${
-                                  isExpanded ? "rotate-180" : ""
-                                }`}
-                              />
-                            </button>
-                          </div>
+                            </div>
+                          ) : (
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="border-b border-border">
+                                    <th className="text-right px-2 py-2">
+                                      المقياس
+                                    </th>
+                                    <th className="text-center px-2 py-2">
+                                      OD
+                                    </th>
+                                    <th className="text-center px-2 py-2">
+                                      OS
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  <tr className="border-b border-border">
+                                    <td className="text-right px-2 py-2">
+                                      UCVA
+                                    </td>
+                                    <td className="text-center px-2 py-2">
+                                      {visit.autorefraction.od?.ucva || "-"}
+                                    </td>
+                                    <td className="text-center px-2 py-2">
+                                      {visit.autorefraction.os?.ucva || "-"}
+                                    </td>
+                                  </tr>
+                                  <tr className="border-b border-border">
+                                    <td className="text-right px-2 py-2">
+                                      BCVA
+                                    </td>
+                                    <td className="text-center px-2 py-2">
+                                      {visit.autorefraction.od?.bcva || "-"}
+                                    </td>
+                                    <td className="text-center px-2 py-2">
+                                      {visit.autorefraction.os?.bcva || "-"}
+                                    </td>
+                                  </tr>
+                                  <tr className="border-b border-border">
+                                    <td className="text-right px-2 py-2">
+                                      S / C / A
+                                    </td>
+                                    <td className="text-center px-2 py-2">
+                                      {visit.autorefraction.od?.s} /{" "}
+                                      {visit.autorefraction.od?.c} /{" "}
+                                      {visit.autorefraction.od?.axis}
+                                    </td>
+                                    <td className="text-center px-2 py-2">
+                                      {visit.autorefraction.os?.s} /{" "}
+                                      {visit.autorefraction.os?.c} /{" "}
+                                      {visit.autorefraction.os?.axis}
+                                    </td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
                         </div>
-                      </CardHeader>
-
-                      {/* Visit Details - Expandable Content */}
-                      {isExpanded && (
-                        <CardContent className="space-y-6 border-t border-border pt-4">
-                          {/* Exam Data */}
-                          {(visit.sphereOD || visit.sphereOS || visit.iopOD || visit.iopOS || visit.ucvaOD || visit.ucvaOS || visit.bcvaOD || visit.bcvaOS) && (
-                            <div>
-                              <h4 className="font-semibold text-foreground mb-3">بيانات الفحص</h4>
-                              <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                  <thead>
-                                    <tr className="border-b border-border">
-                                      <th className="text-right px-2 py-2">القياس</th>
-                                      <th className="text-center px-2 py-2">OD</th>
-                                      <th className="text-center px-2 py-2">OS</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {(visit.ucvaOD || visit.ucvaOS) && (
-                                      <tr className="border-b border-border">
-                                        <td className="text-right px-2 py-2">UCVA</td>
-                                        <td className="text-center px-2 py-2">{visit.ucvaOD || "-"}</td>
-                                        <td className="text-center px-2 py-2">{visit.ucvaOS || "-"}</td>
-                                      </tr>
-                                    )}
-                                    {(visit.bcvaOD || visit.bcvaOS) && (
-                                      <tr className="border-b border-border">
-                                        <td className="text-right px-2 py-2">BCVA</td>
-                                        <td className="text-center px-2 py-2">{visit.bcvaOD || "-"}</td>
-                                        <td className="text-center px-2 py-2">{visit.bcvaOS || "-"}</td>
-                                      </tr>
-                                    )}
-                                    {(visit.sphereOD || visit.sphereOS) && (
-                                      <tr className="border-b border-border">
-                                        <td className="text-right px-2 py-2">Sphere</td>
-                                        <td className="text-center px-2 py-2">{visit.sphereOD || "-"}</td>
-                                        <td className="text-center px-2 py-2">{visit.sphereOS || "-"}</td>
-                                      </tr>
-                                    )}
-                                    {(visit.cylinderOD || visit.cylinderOS) && (
-                                      <tr className="border-b border-border">
-                                        <td className="text-right px-2 py-2">Cylinder</td>
-                                        <td className="text-center px-2 py-2">{visit.cylinderOD || "-"}</td>
-                                        <td className="text-center px-2 py-2">{visit.cylinderOS || "-"}</td>
-                                      </tr>
-                                    )}
-                                    {(visit.axisOD || visit.axisOS) && (
-                                      <tr className="border-b border-border">
-                                        <td className="text-right px-2 py-2">Axis</td>
-                                        <td className="text-center px-2 py-2">{visit.axisOD || "-"}</td>
-                                        <td className="text-center px-2 py-2">{visit.axisOS || "-"}</td>
-                                      </tr>
-                                    )}
-                                    {(visit.iopOD || visit.iopOS) && (
-                                      <tr className="border-b border-border">
-                                        <td className="text-right px-2 py-2">IOP</td>
-                                        <td className="text-center px-2 py-2">{visit.iopOD || "-"}</td>
-                                        <td className="text-center px-2 py-2">{visit.iopOS || "-"}</td>
-                                      </tr>
-                                    )}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                          )}
-                          {/* Autorefraction Data */}
-                          {visit.autorefraction && (
-                            <div>
-                              <div className="flex items-center justify-between mb-3">
-                                <h4 className="font-semibold text-foreground">الأوتوريفراكشن</h4>
-                                {!patientHubReadOnly && editingExamType !== "autorefraction" && (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => handleStartEditExam("autorefraction", visit.autorefraction)}
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                )}
-                              </div>
-
-                              {editingExamType === "autorefraction" ? (
-                                <div className="space-y-3 p-3 bg-muted rounded-lg">
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                      <Label className="text-sm">UCVA OD</Label>
-                                      <Input
-                                        value={editAutorefraction?.od?.ucva || ""}
-                                        onChange={(e) =>
-                                          setEditAutorefraction({
-                                            ...editAutorefraction,
-                                            od: { ...editAutorefraction.od, ucva: e.target.value }
-                                          })
-                                        }
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm">UCVA OS</Label>
-                                      <Input
-                                        value={editAutorefraction?.os?.ucva || ""}
-                                        onChange={(e) =>
-                                          setEditAutorefraction({
-                                            ...editAutorefraction,
-                                            os: { ...editAutorefraction.os, ucva: e.target.value }
-                                          })
-                                        }
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm">BCVA OD</Label>
-                                      <Input
-                                        value={editAutorefraction?.od?.bcva || ""}
-                                        onChange={(e) =>
-                                          setEditAutorefraction({
-                                            ...editAutorefraction,
-                                            od: { ...editAutorefraction.od, bcva: e.target.value }
-                                          })
-                                        }
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm">BCVA OS</Label>
-                                      <Input
-                                        value={editAutorefraction?.os?.bcva || ""}
-                                        onChange={(e) =>
-                                          setEditAutorefraction({
-                                            ...editAutorefraction,
-                                            os: { ...editAutorefraction.os, bcva: e.target.value }
-                                          })
-                                        }
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm">S OD</Label>
-                                      <Input
-                                        value={editAutorefraction?.od?.s || ""}
-                                        onChange={(e) =>
-                                          setEditAutorefraction({
-                                            ...editAutorefraction,
-                                            od: { ...editAutorefraction.od, s: e.target.value }
-                                          })
-                                        }
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm">S OS</Label>
-                                      <Input
-                                        value={editAutorefraction?.os?.s || ""}
-                                        onChange={(e) =>
-                                          setEditAutorefraction({
-                                            ...editAutorefraction,
-                                            os: { ...editAutorefraction.os, s: e.target.value }
-                                          })
-                                        }
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm">C OD</Label>
-                                      <Input
-                                        value={editAutorefraction?.od?.c || ""}
-                                        onChange={(e) =>
-                                          setEditAutorefraction({
-                                            ...editAutorefraction,
-                                            od: { ...editAutorefraction.od, c: e.target.value }
-                                          })
-                                        }
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm">C OS</Label>
-                                      <Input
-                                        value={editAutorefraction?.os?.c || ""}
-                                        onChange={(e) =>
-                                          setEditAutorefraction({
-                                            ...editAutorefraction,
-                                            os: { ...editAutorefraction.os, c: e.target.value }
-                                          })
-                                        }
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm">Axis OD</Label>
-                                      <Input
-                                        value={editAutorefraction?.od?.axis || ""}
-                                        onChange={(e) =>
-                                          setEditAutorefraction({
-                                            ...editAutorefraction,
-                                            od: { ...editAutorefraction.od, axis: e.target.value }
-                                          })
-                                        }
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm">Axis OS</Label>
-                                      <Input
-                                        value={editAutorefraction?.os?.axis || ""}
-                                        onChange={(e) =>
-                                          setEditAutorefraction({
-                                            ...editAutorefraction,
-                                            os: { ...editAutorefraction.os, axis: e.target.value }
-                                          })
-                                        }
-                                      />
-                                    </div>
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <Button
-                                      size="sm"
-                                      onClick={() => handleSaveExam(visit, "autorefraction")}
-                                    >
-                                      <Check className="h-4 w-4 mr-1" />
-                                      حفظ
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => setEditingExamType(null)}
-                                    >
-                                      <X className="h-4 w-4 mr-1" />
-                                      إلغاء
-                                    </Button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="overflow-x-auto">
-                                  <table className="w-full text-sm">
-                                    <thead>
-                                      <tr className="border-b border-border">
-                                        <th className="text-right px-2 py-2">المقياس</th>
-                                        <th className="text-center px-2 py-2">OD</th>
-                                        <th className="text-center px-2 py-2">OS</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      <tr className="border-b border-border">
-                                        <td className="text-right px-2 py-2">UCVA</td>
-                                        <td className="text-center px-2 py-2">{visit.autorefraction.od?.ucva || "-"}</td>
-                                        <td className="text-center px-2 py-2">{visit.autorefraction.os?.ucva || "-"}</td>
-                                      </tr>
-                                      <tr className="border-b border-border">
-                                        <td className="text-right px-2 py-2">BCVA</td>
-                                        <td className="text-center px-2 py-2">{visit.autorefraction.od?.bcva || "-"}</td>
-                                        <td className="text-center px-2 py-2">{visit.autorefraction.os?.bcva || "-"}</td>
-                                      </tr>
-                                      <tr className="border-b border-border">
-                                        <td className="text-right px-2 py-2">S / C / A</td>
-                                        <td className="text-center px-2 py-2">
-                                          {visit.autorefraction.od?.s} / {visit.autorefraction.od?.c} / {visit.autorefraction.od?.axis}
-                                        </td>
-                                        <td className="text-center px-2 py-2">
-                                          {visit.autorefraction.os?.s} / {visit.autorefraction.os?.c} / {visit.autorefraction.os?.axis}
-                                        </td>
-                                      </tr>
-                                    </tbody>
-                                  </table>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Pentacam Data */}
-                          {visit.pentacam && (
-                            <div>
-                              <div className="flex items-center justify-between mb-3">
-                                <h4 className="font-semibold text-foreground">البنتاكام</h4>
-                                {!patientHubReadOnly && editingExamType !== "pentacam" && (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => handleStartEditExam("pentacam", visit.pentacam)}
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                )}
-                              </div>
-
-                              {editingExamType === "pentacam" ? (
-                                <div className="space-y-3 p-3 bg-muted rounded-lg">
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                      <Label className="text-sm">K1 OD</Label>
-                                      <Input
-                                        value={editPentacam?.od?.k1 || ""}
-                                        onChange={(e) =>
-                                          setEditPentacam({
-                                            ...editPentacam,
-                                            od: { ...editPentacam.od, k1: e.target.value }
-                                          })
-                                        }
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm">K1 OS</Label>
-                                      <Input
-                                        value={editPentacam?.os?.k1 || ""}
-                                        onChange={(e) =>
-                                          setEditPentacam({
-                                            ...editPentacam,
-                                            os: { ...editPentacam.os, k1: e.target.value }
-                                          })
-                                        }
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm">K2 OD</Label>
-                                      <Input
-                                        value={editPentacam?.od?.k2 || ""}
-                                        onChange={(e) =>
-                                          setEditPentacam({
-                                            ...editPentacam,
-                                            od: { ...editPentacam.od, k2: e.target.value }
-                                          })
-                                        }
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm">K2 OS</Label>
-                                      <Input
-                                        value={editPentacam?.os?.k2 || ""}
-                                        onChange={(e) =>
-                                          setEditPentacam({
-                                            ...editPentacam,
-                                            os: { ...editPentacam.os, k2: e.target.value }
-                                          })
-                                        }
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm">Thinnest OD</Label>
-                                      <Input
-                                        value={editPentacam?.od?.thinnest || ""}
-                                        onChange={(e) =>
-                                          setEditPentacam({
-                                            ...editPentacam,
-                                            od: { ...editPentacam.od, thinnest: e.target.value }
-                                          })
-                                        }
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm">Thinnest OS</Label>
-                                      <Input
-                                        value={editPentacam?.os?.thinnest || ""}
-                                        onChange={(e) =>
-                                          setEditPentacam({
-                                            ...editPentacam,
-                                            os: { ...editPentacam.os, thinnest: e.target.value }
-                                          })
-                                        }
-                                      />
-                                    </div>
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <Button
-                                      size="sm"
-                                      onClick={() => handleSaveExam(visit, "pentacam")}
-                                    >
-                                      <Check className="h-4 w-4 mr-1" />
-                                      حفظ
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => setEditingExamType(null)}
-                                    >
-                                      <X className="h-4 w-4 mr-1" />
-                                      إلغاء
-                                    </Button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="overflow-x-auto">
-                                  <table className="w-full text-sm">
-                                    <thead>
-                                      <tr className="border-b border-border">
-                                        <th className="text-right px-2 py-2">المقياس</th>
-                                        <th className="text-center px-2 py-2">OD</th>
-                                        <th className="text-center px-2 py-2">OS</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      <tr className="border-b border-border">
-                                        <td className="text-right px-2 py-2">K1 / K2</td>
-                                        <td className="text-center px-2 py-2">
-                                          {visit.pentacam.od?.k1} / {visit.pentacam.od?.k2}
-                                        </td>
-                                        <td className="text-center px-2 py-2">
-                                          {visit.pentacam.os?.k1} / {visit.pentacam.os?.k2}
-                                        </td>
-                                      </tr>
-                                      <tr className="border-b border-border">
-                                        <td className="text-right px-2 py-2">Thinnest Point</td>
-                                        <td className="text-center px-2 py-2">{visit.pentacam.od?.thinnest || "-"}</td>
-                                        <td className="text-center px-2 py-2">{visit.pentacam.os?.thinnest || "-"}</td>
-                                      </tr>
-                                    </tbody>
-                                  </table>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Empty State */}
-                          {!visit.autorefraction && !visit.pentacam && (
-                            <div className="text-center text-muted-foreground py-4">
-                              لا توجد بيانات مسجلة لهذه الزيارة
-                            </div>
-                          )}
-                        </CardContent>
                       )}
-                  </Card>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+
+                      {/* Pentacam Data */}
+                      {visit.pentacam && (
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-semibold text-foreground">
+                              البنتاكام
+                            </h4>
+                            {!patientHubReadOnly &&
+                              editingExamType !== "pentacam" && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() =>
+                                    handleStartEditExam(
+                                      "pentacam",
+                                      visit.pentacam,
+                                    )
+                                  }
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              )}
+                          </div>
+
+                          {editingExamType === "pentacam" ? (
+                            <div className="space-y-3 p-3 bg-muted rounded-lg">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <Label className="text-sm">K1 OD</Label>
+                                  <Input
+                                    value={editPentacam?.od?.k1 || ""}
+                                    onChange={(e) =>
+                                      setEditPentacam({
+                                        ...editPentacam,
+                                        od: {
+                                          ...editPentacam.od,
+                                          k1: e.target.value,
+                                        },
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-sm">K1 OS</Label>
+                                  <Input
+                                    value={editPentacam?.os?.k1 || ""}
+                                    onChange={(e) =>
+                                      setEditPentacam({
+                                        ...editPentacam,
+                                        os: {
+                                          ...editPentacam.os,
+                                          k1: e.target.value,
+                                        },
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-sm">K2 OD</Label>
+                                  <Input
+                                    value={editPentacam?.od?.k2 || ""}
+                                    onChange={(e) =>
+                                      setEditPentacam({
+                                        ...editPentacam,
+                                        od: {
+                                          ...editPentacam.od,
+                                          k2: e.target.value,
+                                        },
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-sm">K2 OS</Label>
+                                  <Input
+                                    value={editPentacam?.os?.k2 || ""}
+                                    onChange={(e) =>
+                                      setEditPentacam({
+                                        ...editPentacam,
+                                        os: {
+                                          ...editPentacam.os,
+                                          k2: e.target.value,
+                                        },
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-sm">Thinnest OD</Label>
+                                  <Input
+                                    value={editPentacam?.od?.thinnest || ""}
+                                    onChange={(e) =>
+                                      setEditPentacam({
+                                        ...editPentacam,
+                                        od: {
+                                          ...editPentacam.od,
+                                          thinnest: e.target.value,
+                                        },
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-sm">Thinnest OS</Label>
+                                  <Input
+                                    value={editPentacam?.os?.thinnest || ""}
+                                    onChange={(e) =>
+                                      setEditPentacam({
+                                        ...editPentacam,
+                                        os: {
+                                          ...editPentacam.os,
+                                          thinnest: e.target.value,
+                                        },
+                                      })
+                                    }
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() =>
+                                    handleSaveExam(visit, "pentacam")
+                                  }
+                                >
+                                  <Check className="h-4 w-4 mr-1" />
+                                  حفظ
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setEditingExamType(null)}
+                                >
+                                  <X className="h-4 w-4 mr-1" />
+                                  إلغاء
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="border-b border-border">
+                                    <th className="text-right px-2 py-2">
+                                      المقياس
+                                    </th>
+                                    <th className="text-center px-2 py-2">
+                                      OD
+                                    </th>
+                                    <th className="text-center px-2 py-2">
+                                      OS
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  <tr className="border-b border-border">
+                                    <td className="text-right px-2 py-2">
+                                      K1 / K2
+                                    </td>
+                                    <td className="text-center px-2 py-2">
+                                      {visit.pentacam.od?.k1} /{" "}
+                                      {visit.pentacam.od?.k2}
+                                    </td>
+                                    <td className="text-center px-2 py-2">
+                                      {visit.pentacam.os?.k1} /{" "}
+                                      {visit.pentacam.os?.k2}
+                                    </td>
+                                  </tr>
+                                  <tr className="border-b border-border">
+                                    <td className="text-right px-2 py-2">
+                                      Thinnest Point
+                                    </td>
+                                    <td className="text-center px-2 py-2">
+                                      {visit.pentacam.od?.thinnest || "-"}
+                                    </td>
+                                    <td className="text-center px-2 py-2">
+                                      {visit.pentacam.os?.thinnest || "-"}
+                                    </td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Empty State */}
+                      {!visit.autorefraction && !visit.pentacam && (
+                        <div className="text-center text-muted-foreground py-4">
+                          لا توجد بيانات مسجلة لهذه الزيارة
+                        </div>
+                      )}
+                    </CardContent>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

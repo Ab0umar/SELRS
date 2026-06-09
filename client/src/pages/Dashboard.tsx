@@ -17,6 +17,7 @@ import {
   Archive,
   Search,
   ChevronLeft,
+  ChevronRight,
   ChevronDown,
   AlertTriangle,
   Zap,
@@ -178,7 +179,10 @@ function StatRow({
 
 function PanelLink({ href, label }: { href: string; label: string }) {
   return (
-    <Link href={href} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+    <Link
+      href={href}
+      className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+    >
       {label}
       <ChevronLeft className="h-3 w-3" aria-hidden />
     </Link>
@@ -350,7 +354,7 @@ function OffUsersTodayCard() {
             لا توجد إجازات اليوم
           </p>
         ) : (
-          <ul className="space-y-1.5 max-h-48 overflow-y-auto">
+          <ul className="space-y-1.5">
             {list.map((emp) => (
               <li key={emp.empCd} className="flex items-center gap-2 text-sm">
                 <UserX
@@ -371,9 +375,12 @@ function OffUsersTodayCard() {
       </div>
       {!q.isLoading && list.length > 0 && (
         <div className="border-t border-border/40 px-4 py-2">
-          <Link href="/attendance/employees" className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
-              عرض تفاصيل الحضور
-              <ChevronLeft className="h-3 w-3" aria-hidden />
+          <Link
+            href="/attendance/employees"
+            className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+          >
+            عرض تفاصيل الحضور
+            <ChevronLeft className="h-3 w-3" aria-hidden />
           </Link>
         </div>
       )}
@@ -397,6 +404,9 @@ function TodayPanel({
     { refetchOnWindowFocus: false },
   );
 
+  const [innerSidebarOpen, setInnerSidebarOpen] = useState(true);
+  const [totalsOpen, setTotalsOpen] = useState(true);
+
   const total = merged.length;
   const treated = merged.filter((p) => p.queueStatus === "treated").length;
   const waiting = total - treated;
@@ -408,51 +418,76 @@ function TodayPanel({
       label: "مرضى اليوم",
       value: total,
       icon: Users,
-      cls: "bg-primary/10 text-primary",
-      bar: "bg-primary",
+      cls: "bg-blue-500 text-white",
+      bgCls:
+        "bg-blue-50/20 border-blue-100/70 hover:border-blue-200 text-blue-900",
+      labelCls: "text-blue-700/80",
     },
     {
       label: "تم معالجتهم",
       value: treated,
       icon: Activity,
-      cls: "bg-success/15 text-success",
-      bar: "bg-success",
+      cls: "bg-emerald-500 text-white",
+      bgCls:
+        "bg-emerald-50/20 border-emerald-100/70 hover:border-emerald-200 text-emerald-900",
+      labelCls: "text-emerald-700/80",
     },
     {
       label: "في الانتظار",
       value: waiting,
       icon: Clock,
-      cls: "bg-warning/15 text-warning",
-      bar: "bg-warning",
+      cls: "bg-amber-500 text-white",
+      bgCls:
+        "bg-amber-50/20 border-amber-100/70 hover:border-amber-200 text-amber-900",
+      labelCls: "text-amber-700/80",
     },
     {
       label: "العمليات",
       value: opsCount,
       icon: Syringe,
-      cls: "bg-secondary/15 text-secondary",
-      bar: "bg-secondary",
+      cls: "bg-orange-500 text-white",
+      bgCls:
+        "bg-orange-50/20 border-orange-100/70 hover:border-orange-200 text-orange-900",
+      labelCls: "text-orange-700/80",
     },
   ];
 
   if (queueLoading || opsQuery.isLoading) {
     return (
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-          {tiles.map((_, i) => (
-            <div
-              key={i}
-              className="rounded-lg border border-border/50 bg-background px-3 py-2.5"
-            >
-              <div className="flex items-center gap-3">
-                <Skeleton className="h-9 w-9 rounded-md" />
-                <div className="min-w-0 flex-1 space-y-2">
-                  <Skeleton className="h-3 w-20 rounded-full" />
-                  <Skeleton className="h-6 w-14 rounded-full" />
+        <button
+          type="button"
+          onClick={() => setTotalsOpen((value) => !value)}
+          className="flex w-full items-center justify-between rounded-lg border border-border/50 bg-background px-4 py-3 text-right transition-colors hover:bg-muted/40"
+          aria-expanded={totalsOpen}
+        >
+          <span className="text-sm font-bold text-foreground">
+            إحصائيات اليوم
+          </span>
+          {totalsOpen ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
+        </button>
+        {totalsOpen && (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+            {tiles.map((_, i) => (
+              <div
+                key={i}
+                className="rounded-lg border border-border/50 bg-background px-3 py-2.5"
+              >
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-9 w-9 rounded-md" />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <Skeleton className="h-3 w-20 rounded-full" />
+                    <Skeleton className="h-6 w-14 rounded-full" />
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
         <Skeleton className="h-10 rounded-lg" />
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
           <Skeleton className="lg:col-span-2 h-64 rounded-lg" />
@@ -464,78 +499,120 @@ function TodayPanel({
 
   return (
     <div className="space-y-4">
-      {/* Tiles */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-        {tiles.map((t) => {
-          const Icon = t.icon;
-          return (
-            <Surface
-              key={t.label}
-              className="relative overflow-hidden px-3 py-2.5"
-            >
-              <div
-                className={cn("absolute inset-x-0 top-0 h-1", t.bar)}
-                aria-hidden
-              />
-              <div className="flex items-center gap-3 pt-1">
+      <button
+        type="button"
+        onClick={() => setTotalsOpen((value) => !value)}
+        className="flex w-full items-center justify-between rounded-lg border border-border/50 bg-background px-4 py-3 text-right transition-colors hover:bg-muted/40"
+        aria-expanded={totalsOpen}
+      >
+        <span className="text-sm font-bold text-foreground">
+          إحصائيات اليوم
+        </span>
+        <span className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+          {total.toLocaleString("ar-EG")} مريض
+          {totalsOpen ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
+        </span>
+      </button>
+      {totalsOpen && (
+        <>
+          {/* Tiles */}
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {tiles.map((t) => {
+              const Icon = t.icon;
+              return (
                 <div
+                  key={t.label}
                   className={cn(
-                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-md",
-                    t.cls,
+                    "rounded-lg border px-3.5 py-3 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm",
+                    t.bgCls,
                   )}
                 >
-                  <Icon className="h-4 w-4" aria-hidden />
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={cn(
+                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-md shadow-xs",
+                        t.cls,
+                      )}
+                    >
+                      <Icon className="h-4 w-4" aria-hidden />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-2xl font-bold leading-none tabular-nums">
+                        {t.value}
+                      </p>
+                      <p
+                        className={cn("mt-1 text-xs font-semibold", t.labelCls)}
+                      >
+                        {t.label}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-2xl font-bold leading-none text-foreground tabular-nums">
-                    {t.value}
-                  </p>
-                  <p className="mt-1 text-xs font-medium text-muted-foreground">
-                    {t.label}
-                  </p>
-                </div>
-              </div>
-            </Surface>
-          );
-        })}
-      </div>
-
-      {/* Completion bar */}
-      <Surface className="px-4 py-3">
-        <div className="flex items-center gap-3">
-          <span className="shrink-0 text-sm font-medium text-foreground">
-            نسبة الإنجاز
-          </span>
-          <div
-            className="h-2 flex-1 overflow-hidden rounded-full bg-muted"
-            role="progressbar"
-            aria-valuenow={completionRate}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label="نسبة الإنجاز"
-          >
-            <div
-              className={cn(
-                "h-full w-full origin-right rounded-full transition-transform duration-500 ease-out",
-                completionRate >= 80
-                  ? "bg-success"
-                  : completionRate >= 50
-                    ? "bg-primary"
-                    : "bg-secondary",
-              )}
-              style={{ transform: `scaleX(${completionRate / 100})` }}
-            />
+              );
+            })}
           </div>
-          <span className="w-10 text-left text-sm font-semibold tabular-nums">
-            {completionRate}%
-          </span>
-        </div>
-      </Surface>
+
+          {/* Completion bar */}
+          <div className="rounded-lg border border-blue-100/50 bg-blue-50/5 px-4 py-3 shadow-xs">
+            <div className="flex items-center gap-3">
+              <span className="shrink-0 text-sm font-bold text-foreground">
+                نسبة إنجاز اليوم
+              </span>
+              <div
+                className="h-2.5 flex-1 overflow-hidden rounded-full bg-[#e2edf7]"
+                role="progressbar"
+                aria-valuenow={completionRate}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="نسبة الإنجاز"
+              >
+                <div
+                  className={cn(
+                    "h-full w-full origin-right rounded-full transition-transform duration-500 ease-out",
+                    completionRate >= 80
+                      ? "bg-emerald-500"
+                      : completionRate >= 50
+                        ? "bg-blue-600"
+                        : "bg-orange-500",
+                  )}
+                  style={{ transform: `scaleX(${completionRate / 100})` }}
+                />
+              </div>
+              <span className="w-10 text-left text-sm font-bold text-foreground tabular-nums">
+                {completionRate}%
+              </span>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Queue + side */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Surface className="lg:col-span-2">
-          <SectionHeader title="مرضى اليوم و العمليات" />
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
+        <Surface className="flex-1 min-w-0">
+          <SectionHeader title="مرضى اليوم و العمليات">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setInnerSidebarOpen(!innerSidebarOpen)}
+              className="hidden lg:flex h-8 gap-1.5 text-xs font-semibold border-border/50 hover:bg-muted/40 cursor-pointer"
+            >
+              {innerSidebarOpen ? (
+                <>
+                  <ChevronRight className="h-4 w-4" />
+                  <span>إخفاء الإحصائيات</span>
+                </>
+              ) : (
+                <>
+                  <ChevronLeft className="h-4 w-4" />
+                  <span>إحصائيات اليوم</span>
+                </>
+              )}
+            </Button>
+          </SectionHeader>
           <div className="p-3">
             <AppointmentsSection
               selectedDate={selectedDate}
@@ -544,25 +621,27 @@ function TodayPanel({
             />
           </div>
         </Surface>
-        <div className="space-y-4">
-          <Surface>
-            <SectionHeader title="توزيع الخدمات" />
-            <div className="p-4">
-              <ServiceBreakdown selectedDate={selectedDate} />
-            </div>
-          </Surface>
-          <OffUsersTodayCard />
-          <Surface>
-            <SectionHeader title="إحصائيات طبية" />
-            <div className="px-4 py-3">
-              <MedicalTotals />
-            </div>
-          </Surface>
-        </div>
+        {innerSidebarOpen && (
+          <div className="space-y-4 w-full lg:w-72 xl:w-80 shrink-0">
+            <Surface className="overflow-hidden">
+              <SectionHeader title="توزيع الخدمات" />
+              <div className="px-4 py-3.5">
+                <ServiceBreakdown selectedDate={selectedDate} />
+              </div>
+            </Surface>
+            <OffUsersTodayCard />
+            <Surface className="overflow-hidden">
+              <SectionHeader title="إحصائيات طبية" />
+              <div className="px-4 py-3.5">
+                <MedicalTotals />
+              </div>
+            </Surface>
+          </div>
+        )}
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <Surface className="lg:col-span-2">
           <SectionHeader title="اتجاه المرضى" />
           <div className="p-3 sm:p-4">
@@ -659,11 +738,15 @@ function PatientHubPanel() {
                 {searchQuery.data && searchQuery.data.length > 0 && (
                   <div className="divide-y divide-border/40">
                     {searchQuery.data.slice(0, 8).map((p) => (
-                      <Link key={p.id} href={`/patients/${p.id}`} className="flex items-center justify-between py-2.5 text-sm hover:text-primary transition-colors">
-                          <span className="font-medium">{p.fullName}</span>
-                          <span className="text-sm text-muted-foreground tabular-nums">
-                            {p.patientCode ?? "-"}
-                          </span>
+                      <Link
+                        key={p.id}
+                        href={`/patients/${p.id}`}
+                        className="flex items-center justify-between py-2.5 text-sm hover:text-primary transition-colors"
+                      >
+                        <span className="font-medium">{p.fullName}</span>
+                        <span className="text-sm text-muted-foreground tabular-nums">
+                          {p.patientCode ?? "-"}
+                        </span>
                       </Link>
                     ))}
                   </div>
@@ -678,11 +761,15 @@ function PatientHubPanel() {
                 </p>
                 <div className="divide-y divide-border/40">
                   {recent.map((p) => (
-                    <Link key={p.id} href={`/patients/${p.id}`} className="flex items-center justify-between py-2.5 text-sm hover:text-primary transition-colors">
-                        <span className="font-medium">{p.name}</span>
-                        <span className="text-sm text-muted-foreground tabular-nums">
-                          {p.code}
-                        </span>
+                    <Link
+                      key={p.id}
+                      href={`/patients/${p.id}`}
+                      className="flex items-center justify-between py-2.5 text-sm hover:text-primary transition-colors"
+                    >
+                      <span className="font-medium">{p.name}</span>
+                      <span className="text-sm text-muted-foreground tabular-nums">
+                        {p.code}
+                      </span>
                     </Link>
                   ))}
                 </div>
@@ -809,12 +896,16 @@ function AccountingPanel() {
             { href: "/accounting/loans", label: "القروض" },
             { href: "/accounting", label: "لوحة الحسابات الكاملة" },
           ].map(({ href, label }) => (
-            <Link key={href} href={href} className="flex items-center justify-between py-2.5 text-sm hover:text-primary transition-colors">
-                <span>{label}</span>
-                <ChevronLeft
-                  className="h-3.5 w-3.5 text-muted-foreground"
-                  aria-hidden
-                />
+            <Link
+              key={href}
+              href={href}
+              className="flex items-center justify-between py-2.5 text-sm hover:text-primary transition-colors"
+            >
+              <span>{label}</span>
+              <ChevronLeft
+                className="h-3.5 w-3.5 text-muted-foreground"
+                aria-hidden
+              />
             </Link>
           ))}
         </div>
@@ -968,12 +1059,16 @@ function AttendancePanel() {
             { href: "/attendance/reports", label: "التقارير" },
             { href: "/attendance/settings", label: "الإعدادات" },
           ].map(({ href, label }) => (
-            <Link key={href} href={href} className="flex items-center justify-between py-2.5 text-sm hover:text-primary transition-colors">
-                <span>{label}</span>
-                <ChevronLeft
-                  className="h-3.5 w-3.5 text-muted-foreground"
-                  aria-hidden
-                />
+            <Link
+              key={href}
+              href={href}
+              className="flex items-center justify-between py-2.5 text-sm hover:text-primary transition-colors"
+            >
+              <span>{label}</span>
+              <ChevronLeft
+                className="h-3.5 w-3.5 text-muted-foreground"
+                aria-hidden
+              />
             </Link>
           ))}
         </div>
@@ -1164,6 +1259,7 @@ export default function Dashboard() {
   const [bookingOpen, setBookingOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(getLocalDateIso);
   const [activeTab, setActiveTab] = useState<TabId>("today");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const visibleTabs = useMemo(
     () => TABS.filter((t) => t.permPath === null || canAccess(t.permPath)),
@@ -1176,9 +1272,9 @@ export default function Dashboard() {
       setActiveTab(visibleTabs[0]?.id ?? "today");
     }
   }, [permsLoaded, visibleTabs, activeTab]);
-  const [mobileAsidePanel, setMobileAsidePanel] = useState<
-    "workspaces" | "links" | null
-  >("workspaces");
+  const [mobileAsidePanel, setMobileAsidePanel] = useState<"workspaces" | null>(
+    "workspaces",
+  );
   const utils = trpc.useUtils();
   const now = useClock();
 
@@ -1245,6 +1341,23 @@ export default function Dashboard() {
         <Surface className="overflow-hidden">
           <div className="grid gap-3 px-4 py-3 lg:grid-cols-[auto_1fr] lg:items-center">
             <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="hidden xl:flex h-10 w-10 rounded-lg shrink-0 border-border/50 hover:bg-muted/40 cursor-pointer"
+                aria-label={
+                  sidebarOpen
+                    ? "إغلاق القائمة الجانبية"
+                    : "فتح القائمة الجانبية"
+                }
+              >
+                {sidebarOpen ? (
+                  <ChevronRight className="h-5 w-5" />
+                ) : (
+                  <ChevronLeft className="h-5 w-5" />
+                )}
+              </Button>
               <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <Zap className="h-5 w-5" aria-hidden />
               </span>
@@ -1264,8 +1377,20 @@ export default function Dashboard() {
           </div>
         </Surface>
 
-        <div className="grid gap-4 xl:grid-cols-[18rem_minmax(0,1fr)]">
-          <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
+        <div
+          className={cn(
+            "grid gap-4 transition-all duration-300",
+            sidebarOpen
+              ? "xl:grid-cols-[18rem_minmax(0,1fr)]"
+              : "xl:grid-cols-1",
+          )}
+        >
+          <aside
+            className={cn(
+              "space-y-4 xl:sticky xl:top-24 xl:self-start",
+              !sidebarOpen && "xl:hidden",
+            )}
+          >
             <div
               className="flex items-center gap-2 overflow-x-auto scrollbar-none xl:hidden"
               aria-label="لوحات جانبية"
@@ -1275,12 +1400,6 @@ export default function Dashboard() {
                   id: "workspaces" as const,
                   label: "مساحات العمل",
                   icon: LayoutDashboard,
-                  cls: "border-secondary/30 bg-secondary/15 text-secondary",
-                },
-                {
-                  id: "links" as const,
-                  label: "انتقال سريع",
-                  icon: ChevronLeft,
                   cls: "border-secondary/30 bg-secondary/15 text-secondary",
                 },
               ].map(({ id, label, icon: Icon, cls }) => {
@@ -1382,39 +1501,12 @@ export default function Dashboard() {
                 />
               </div>
             </Surface>
-
-            <Surface
-              className={cn(mobileAsidePanel !== "links" && "hidden xl:block")}
-            >
-              <SectionHeader title="انتقال سريع" />
-              <div className="grid grid-cols-2 gap-2 px-4 py-3 xl:block xl:divide-y xl:divide-border/40 xl:py-0">
-                {[
-                  { href: "/today-patients", label: "مرضى اليوم", icon: Users },
-                  { href: "/operations", label: "العمليات", icon: Syringe },
-                  { href: "/patients", label: "كل المرضى", icon: Search },
-                  { href: "/accounting", label: "الحسابات", icon: Wallet },
-                ].map(({ href, label, icon: Icon }) => (
-                  <Link key={href} href={href} className="flex items-center justify-between rounded-lg border border-border/50 bg-background px-3 py-2.5 text-sm transition-colors hover:border-secondary/30 hover:bg-secondary/10 hover:text-secondary xl:rounded-none xl:border-0 xl:bg-transparent xl:px-0 xl:hover:bg-transparent xl:hover:text-primary">
-                      <span className="flex items-center gap-2">
-                        <Icon
-                          className="h-3.5 w-3.5 text-muted-foreground"
-                          aria-hidden
-                        />
-                        {label}
-                      </span>
-                      <ChevronLeft
-                        className="h-3.5 w-3.5 text-muted-foreground"
-                        aria-hidden
-                      />
-                  </Link>
-                ))}
-              </div>
-            </Surface>
           </aside>
 
           <main className="min-w-0 space-y-4">
             <Surface className="overflow-hidden">
-              <div className="grid gap-3 px-4 py-3 lg:grid-cols-[1fr_auto] lg:items-center">
+              <div className="flex items-center gap-3 px-4 py-3">
+                {/* Left: workspace identity */}
                 <div className="flex min-w-0 items-center gap-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <ActiveTabIcon className="h-5 w-5" aria-hidden />
@@ -1428,7 +1520,32 @@ export default function Dashboard() {
                     </h2>
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+
+                {/* Center: quick nav links */}
+                <div className="hidden lg:flex flex-1 items-center justify-center gap-1.5 overflow-x-auto scrollbar-none">
+                  {[
+                    {
+                      href: "/today-patients",
+                      label: "مرضى اليوم",
+                      icon: Users,
+                    },
+                    { href: "/operations", label: "العمليات", icon: Syringe },
+                    { href: "/patients", label: "كل المرضى", icon: Search },
+                    { href: "/accounting", label: "الحسابات", icon: Wallet },
+                  ].map(({ href, label, icon: Icon }) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-border/50 bg-background px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+                    >
+                      <Icon className="h-3 w-3" aria-hidden />
+                      {label}
+                    </Link>
+                  ))}
+                </div>
+
+                {/* Right: live status badges */}
+                <div className="flex shrink-0 items-center gap-2 mr-auto lg:mr-0">
                   <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-success/15 px-3 text-sm font-semibold text-success">
                     <Activity className="h-3.5 w-3.5" aria-hidden />
                     متابعة حية

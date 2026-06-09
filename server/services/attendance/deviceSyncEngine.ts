@@ -55,7 +55,7 @@ export class DeviceSyncEngine {
 
       await this.device.connect();
       console.log(
-        `✓ Connected to ZKTeco device at ${this.config.deviceIp}:${this.config.devicePort}`
+        `✓ Connected to ZKTeco device at ${this.config.deviceIp}:${this.config.devicePort}`,
       );
 
       if (this.config.enableAutoSync) {
@@ -101,7 +101,7 @@ export class DeviceSyncEngine {
 
       // Fetch punches from device
       console.log(
-        `Fetching punches from device since ${this.lastSyncTime.toISOString()}`
+        `Fetching punches from device since ${this.lastSyncTime.toISOString()}`,
       );
       const punches = await this.device!.getPunchRecords(this.lastSyncTime);
 
@@ -115,7 +115,7 @@ export class DeviceSyncEngine {
           punch.punchDateTime,
           punch.direction === "in" ? 1 : 0,
           "zkTeco",
-          punch.empNo // sourceRowId = empNo for device data
+          punch.empNo, // sourceRowId = empNo for device data
         );
 
         if (imported) {
@@ -127,9 +127,13 @@ export class DeviceSyncEngine {
 
       // Record sync run and update high-water mark
       const now = new Date();
-      const minPunchTime = punches.length > 0
-        ? punches.reduce((min, p) => p.punchDateTime < min ? p.punchDateTime : min, punches[0].punchDateTime)
-        : now;
+      const minPunchTime =
+        punches.length > 0
+          ? punches.reduce(
+              (min, p) => (p.punchDateTime < min ? p.punchDateTime : min),
+              punches[0].punchDateTime,
+            )
+          : now;
 
       await db.insert(attendanceSyncRuns).values({
         startedAt: this.currentSync.startedAt,
@@ -148,20 +152,23 @@ export class DeviceSyncEngine {
       if (this.currentSync.recordsImported > 0) {
         const maxDate = new Date();
         await DailyMaterializer.recomputeRange(minPunchTime, maxDate);
-        console.log(`Recomputed daily records from ${minPunchTime} to ${maxDate}`);
+        console.log(
+          `Recomputed daily records from ${minPunchTime} to ${maxDate}`,
+        );
       }
 
       this.currentSync.completedAt = new Date();
       this.currentSync.status = "completed";
 
       console.log(
-        `✓ Sync completed: ${this.currentSync.recordsImported} imported, ${this.currentSync.recordsSkipped} skipped`
+        `✓ Sync completed: ${this.currentSync.recordsImported} imported, ${this.currentSync.recordsSkipped} skipped`,
       );
 
       return this.currentSync;
     } catch (error) {
       this.currentSync.status = "failed";
-      this.currentSync.error = error instanceof Error ? error.message : String(error);
+      this.currentSync.error =
+        error instanceof Error ? error.message : String(error);
       this.currentSync.completedAt = new Date();
 
       console.error("Sync failed:", error);
@@ -178,11 +185,11 @@ export class DeviceSyncEngine {
     punchAt: Date,
     direction: number,
     source: string,
-    sourceRowId: string
+    sourceRowId: string,
   ): Promise<boolean> {
     try {
       const sourceHash = this.hashRecord(
-        `${empCd}|${punchAt.toISOString()}|${sourceRowId}`
+        `${empCd}|${punchAt.toISOString()}|${sourceRowId}`,
       );
 
       await db.insert(attendancePunches).values({
@@ -229,7 +236,7 @@ export class DeviceSyncEngine {
     }, intervalMs);
 
     console.log(
-      `Auto-sync enabled every ${this.config.syncIntervalMinutes} minutes`
+      `Auto-sync enabled every ${this.config.syncIntervalMinutes} minutes`,
     );
   }
 
@@ -272,7 +279,7 @@ let deviceSyncInstance: DeviceSyncEngine | null = null;
  * Initialize global device sync
  */
 export async function initializeDeviceSync(
-  config: DeviceSyncConfig
+  config: DeviceSyncConfig,
 ): Promise<DeviceSyncEngine> {
   if (deviceSyncInstance) {
     return deviceSyncInstance;

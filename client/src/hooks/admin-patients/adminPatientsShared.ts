@@ -1,4 +1,9 @@
-export type ServiceType = "consultant" | "specialist" | "lasik" | "external" | "surgery";
+export type ServiceType =
+  | "consultant"
+  | "specialist"
+  | "lasik"
+  | "external"
+  | "surgery";
 
 export type SheetTypeChoice =
   | ServiceType
@@ -112,15 +117,25 @@ export const normalizeTypedDateInput = (value: string) => {
 };
 
 export const getServiceTypeLabel = (value: string) => {
-  const key = String(value ?? "").trim().toLowerCase();
+  const key = String(value ?? "")
+    .trim()
+    .toLowerCase();
   if (key === "consultant") return "Consultant";
   if (key === "specialist") return "Specialist";
-  if (key === "pentacam" || key === "pentacam_center" || key === "pentacam_c") return "Pentacam C";
-  if (key === "pentacam_external" || key === "pentacam_ex") return "Pentacam Ex";
+  if (key === "pentacam" || key === "pentacam_center" || key === "pentacam_c")
+    return "Pentacam C";
+  if (key === "pentacam_external" || key === "pentacam_ex")
+    return "Pentacam Ex";
   if (key === "pentacam_ex_c") return "Pentacam Ex.C";
   if (key === "lasik") return "Lasik";
   if (key === "external") return "External";
-  if (key === "surgery" || key === "operation" || key === "surgery_center" || key === "operation_center") return "Surgery";
+  if (
+    key === "surgery" ||
+    key === "operation" ||
+    key === "surgery_center" ||
+    key === "operation_center"
+  )
+    return "Surgery";
   if (key === "surgery_external") return "Surgery (External)";
   return value || "-";
 };
@@ -138,7 +153,9 @@ export const toIsoDate = (value: string) => {
   return "";
 };
 
-export const getYearMonth = (value: unknown): { year: string; month: string } | null => {
+export const getYearMonth = (
+  value: unknown,
+): { year: string; month: string } | null => {
   if (!value) return null;
   if (value instanceof Date && !Number.isNaN(value.valueOf())) {
     return {
@@ -176,16 +193,36 @@ export const isSheetTypeChoice = (value: string): value is SheetTypeChoice =>
   value === "pentacam_ex_c" ||
   value === "surgery_external";
 
-export const normalizeSheetTypeChoice = (value: unknown): SheetTypeChoice | "" => {
-  const raw = String(value ?? "").trim().toLowerCase();
+export const normalizeSheetTypeChoice = (
+  value: unknown,
+): SheetTypeChoice | "" => {
+  const raw = String(value ?? "")
+    .trim()
+    .toLowerCase();
   if (!raw) return "";
-  if (raw === "pentacam" || raw === "radiology_center" || raw === "pentacam_center") return "pentacam_c";
-  if (raw === "radiology_external" || raw === "pentacam_external") return "pentacam_ex";
+  if (
+    raw === "pentacam" ||
+    raw === "radiology_center" ||
+    raw === "pentacam_center"
+  )
+    return "pentacam_c";
+  if (raw === "radiology_external" || raw === "pentacam_external")
+    return "pentacam_ex";
   if (raw === "pentacam_c") return "pentacam_c";
   if (raw === "pentacam_ex") return "pentacam_ex";
   if (raw === "pentacam_ex_c") return "pentacam_ex_c";
-  if (raw === "surgery_center" || raw === "operation" || raw === "operation_center") return "surgery_center";
-  if (raw === "surgery" || raw === "surgery_external" || raw === "operation_external") return "surgery_external";
+  if (
+    raw === "surgery_center" ||
+    raw === "operation" ||
+    raw === "operation_center"
+  )
+    return "surgery_center";
+  if (
+    raw === "surgery" ||
+    raw === "surgery_external" ||
+    raw === "operation_external"
+  )
+    return "surgery_external";
   return isSheetTypeChoice(raw) ? raw : "";
 };
 
@@ -200,7 +237,8 @@ export function toLegacyServiceType(value: SheetTypeChoice): ServiceType {
     return "external";
   }
   if (value === "surgery_center") return "surgery";
-  return (value as ServiceType);
+  return value as ServiceType;
 }
 
-export const getPatientRowKey = (patient: PatientRow) => String((patient as { __rowKey?: string }).__rowKey ?? patient.id);
+export const getPatientRowKey = (patient: PatientRow) =>
+  String((patient as { __rowKey?: string }).__rowKey ?? patient.id);

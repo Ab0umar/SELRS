@@ -33,8 +33,8 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
 - [ ] **T001** Add Attendance env vars to `server/_core/env.ts` — `server/_core/env.ts`
   - **Owner**: Cursor · **Backup**: Codex · **Tool**: Cursor · **Role**: implement
   - **Inputs**: `specs/001-attendance-fingerprint/research.md` §R15
-  - **Outputs**: 10 new optional env entries (ATTENDANCE_*) with the defaults from R15. No existing entry changed.
-  - **Prompt**: "Add ten ATTENDANCE_* environment variable validators to `server/_core/env.ts` per `specs/001-attendance-fingerprint/research.md` §R15. Additive only — do not modify any existing validator. Default values must match R15 exactly. ATTENDANCE_ACCESS_PATH is optional at the env layer (validated at scheduler boot). Follow the project Constitution and Project Principles strictly."
+  - **Outputs**: 10 new optional env entries (ATTENDANCE\_\*) with the defaults from R15. No existing entry changed.
+  - **Prompt**: "Add ten ATTENDANCE\_\* environment variable validators to `server/_core/env.ts` per `specs/001-attendance-fingerprint/research.md` §R15. Additive only — do not modify any existing validator. Default values must match R15 exactly. ATTENDANCE_ACCESS_PATH is optional at the env layer (validated at scheduler boot). Follow the project Constitution and Project Principles strictly."
   - **Acceptance**: `pnpm check` passes; env file diff is additive; no existing key affected.
   - **Deps**: none
   - **Constitution Refs**: IV, VI, VII
@@ -72,7 +72,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T001
   - **Constitution Refs**: IV, VII
 
-- [X] **T005** [P] `AttendanceSource` interface + `sourceFactory` + `tcpDeviceAdapter` placeholder — `server/services/attendance/sources/AttendanceSource.ts`, `server/services/attendance/sources/sourceFactory.ts`, `server/services/attendance/sources/tcpDeviceAdapter.ts`
+- [x] **T005** [P] `AttendanceSource` interface + `sourceFactory` + `tcpDeviceAdapter` placeholder — `server/services/attendance/sources/AttendanceSource.ts`, `server/services/attendance/sources/sourceFactory.ts`, `server/services/attendance/sources/tcpDeviceAdapter.ts`
   - **Owner**: Codex · **Backup**: Cursor · **Tool**: Cursor · **Role**: implement
   - **Inputs**: `contracts/attendance-source.md`
   - **Outputs**: Interface + factory + a placeholder class that throws `not implemented` for the TCP adapter. No runtime dependency on a real device.
@@ -81,7 +81,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T003
   - **Constitution Refs**: I, VI
 
-- [X] **T006** `accessDbAdapter` implementation using `mdb-reader` with copy-first fallback — `server/services/attendance/sources/accessDbAdapter.ts`, `package.json` (add `mdb-reader` dep)
+- [x] **T006** `accessDbAdapter` implementation using `mdb-reader` with copy-first fallback — `server/services/attendance/sources/accessDbAdapter.ts`, `package.json` (add `mdb-reader` dep)
   - **Owner**: Codex · **Backup**: Cursor · **Tool**: Cursor · **Role**: implement
   - **Inputs**: `contracts/attendance-source.md`, `research.md` §R1
   - **Outputs**: Implements `AttendanceSource`. `fetchPunchesSince` yields `RawPunch` rows from the Access file's punches table where `time >= sinceLocal`, ascending. `fetchEmployees` yields rows from the employees table. Future-dated (`punchAt > now + 24h`) or malformed rows yield `{kind:'quarantine'}`. `isReachable` returns `false` on any error (no throw). Copy-first when `ATTENDANCE_ACCESS_COPY_FIRST=true`. `close` deletes the temp copy if used.
@@ -90,7 +90,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T005
   - **Constitution Refs**: I, VI
 
-- [X] **T007** Sync engine — `server/services/attendance/syncEngine.ts`, `server/services/attendance/employees.service.ts`, `server/services/attendance/punches.service.ts`
+- [x] **T007** Sync engine — `server/services/attendance/syncEngine.ts`, `server/services/attendance/employees.service.ts`, `server/services/attendance/punches.service.ts`
   - **Owner**: Codex · **Backup**: Cursor · **Tool**: Cursor · **Role**: implement
   - **Inputs**: `contracts/attendance-source.md`, `research.md` §R3, §R8, §R12, §R13
   - **Outputs**: `runSyncOnce({trigger, triggeredBy})` that: (1) acquires `GET_LOCK('attendance_sync', 0)`; (2) opens an `attendance_sync_runs` row `status='running'`; (3) reads HWM, applies safety window; (4) streams from the adapter; (5) UPSERTs employees mirror (including unknown placeholders per R12); (6) `INSERT IGNORE` into `attendance_punches` with composite UNIQUE + `source_hash` (SHA-1 per R8); (7) tracks counts (`rows_seen/inserted/skipped/quarantined`); (8) advances HWM; (9) closes the run row with the correct status per R13; (10) returns `{runId, status, rowsInserted, hwm}`; (11) releases the lock in a `finally`.
@@ -99,7 +99,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T004, T005, T008 (lazy)
   - **Constitution Refs**: I, IV, VI
 
-- [X] **T008** Rules engine + daily materializer — `server/services/attendance/rulesEngine.ts`, `server/services/attendance/dailyMaterializer.ts`, `server/services/attendance/shifts.service.ts`, `server/services/attendance/leaves.service.ts`, `server/services/attendance/holidays.service.ts`
+- [x] **T008** Rules engine + daily materializer — `server/services/attendance/rulesEngine.ts`, `server/services/attendance/dailyMaterializer.ts`, `server/services/attendance/shifts.service.ts`, `server/services/attendance/leaves.service.ts`, `server/services/attendance/holidays.service.ts`
   - **Owner**: Codex · **Backup**: GPT-5 (for any complex date arithmetic) · **Tool**: Cursor · **Role**: implement
   - **Inputs**: `contracts/rules-engine.md`, `data-model.md`
   - **Outputs**: Pure-function `resolveShift`, `pairPunches`, `computeDay` exactly per contract. `materializeRange(from, to, scope?)` loads shifts/assignments/leaves/holidays once, iterates employees×dates, builds `DayContext`, calls `computeDay`, UPSERTs into `attendance_daily`. Helper services expose typed CRUD-ish read+write functions.
@@ -117,7 +117,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T006
   - **Constitution Refs**: VI, VII
 
-- [X] **T010** [P] Frontend route shell + nav entry — `client/src/App.tsx` (EDIT — add lazy routes), `client/src/pages/attendance/AttendanceLayout.tsx` (NEW), update main navigation component to add an **Attendance** top-level entry
+- [x] **T010** [P] Frontend route shell + nav entry — `client/src/App.tsx` (EDIT — add lazy routes), `client/src/pages/attendance/AttendanceLayout.tsx` (NEW), update main navigation component to add an **Attendance** top-level entry
   - **Owner**: Cursor · **Backup**: Gemini (for layout) · **Tool**: Cursor · **Role**: implement
   - **Inputs**: `plan.md` (routes table), `spec.md` FR-001/FR-002, `.claude/rules/frontend.md`
   - **Outputs**: All 13 lazy routes registered under `/attendance/*` exactly mirroring the pattern used for `/accounting/*`. Each route wrapped in `ProtectedRoute` with the appropriate permission key. New top-level nav entry "Attendance" visible only when the user has `attendance.view`. Empty placeholder pages for each route so navigation works.
@@ -126,7 +126,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T002
   - **Constitution Refs**: I, VI, VII
 
-- [X] **T011** [P] Shared types — `shared/attendance/types.ts`
+- [x] **T011** [P] Shared types — `shared/attendance/types.ts`
   - **Owner**: Cursor · **Backup**: Codex · **Tool**: Cursor · **Role**: implement
   - **Inputs**: `contracts/trpc-attendance.md` § "Common types"
   - **Outputs**: `EmployeeRow`, `PunchRow`, `DailyRow`, `SyncRunRow`, `ShiftRow`, `AssignmentRow`, `LeaveRow`, `HolidayRow` type exports.
@@ -135,7 +135,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: none
   - **Constitution Refs**: I, VI
 
-- [X] **T012** Sync scheduler — `server/_core/attendanceSyncScheduler.ts`, server bootstrap edit at `server/_core/index.ts` (one line: `startAttendanceSyncScheduler()`)
+- [x] **T012** Sync scheduler — `server/_core/attendanceSyncScheduler.ts`, server bootstrap edit at `server/_core/index.ts` (one line: `startAttendanceSyncScheduler()`)
   - **Owner**: Cursor · **Backup**: Codex · **Tool**: Cursor · **Role**: implement
   - **Inputs**: `research.md` §R2, existing `server/_core/mssqlSyncScheduler.ts` (pattern to mirror)
   - **Outputs**: Two-tier `setInterval` scheduler driven by env (`ATTENDANCE_SYNC_BIZ_INTERVAL_MS`, `ATTENDANCE_SYNC_OFFHOURS_INTERVAL_MS`, `ATTENDANCE_BIZ_HOURS_START/END`). `started` guard, exits cleanly when `ATTENDANCE_ENABLED=false` or no source path. Tick function calls `syncEngine.runSyncOnce({trigger:'cron'})`. Server boot is NEVER blocked on attendance source state (FR-012).
@@ -515,11 +515,12 @@ Polish:        T039 (after T008); T040 (after T007); T041 (after T012, T008);
 **Phase 1 (Setup)**: T001, T002, T003 — all three independent files, run in parallel.
 
 **Phase 2 (Foundation)**, after T004 lands:
+
 - Track A: T005 → T006 → T009 (adapter pipeline)
 - Track B: T008 (rules engine + materializer)
 - Track C: T010 (frontend route shell)
 - Track D: T011 (shared types)
-Then T007 (sync engine) joins after T005 and T008. T012 follows T007.
+  Then T007 (sync engine) joins after T005 and T008. T012 follows T007.
 
 **Within each user-story phase**, all server-side query procedures are parallel `[P]` (they share only the router file, which can be merged trivially), and the UI tasks depend on their respective server tasks.
 
@@ -534,26 +535,26 @@ Then T007 (sync engine) joins after T005 and T008. T012 follows T007.
 
 ## Task Count Summary
 
-| Phase | Tasks |
-|---|---|
-| Phase 1 — Setup | 3 |
-| Phase 2 — Foundation | 9 |
-| Phase 3 — US1 (P1 MVP) | 3 |
-| Phase 4 — US2 (P1 MVP) | 4 |
-| Phase 5 — US3 (P2) | 6 |
-| Phase 6 — US4 (P2) | 4 |
-| Phase 7 — US5 (P3) | 4 |
-| Phase 8 — US6 (P3) | 5 |
-| Phase 9 — Polish | 6 |
-| **Total** | **44** |
+| Phase                  | Tasks  |
+| ---------------------- | ------ |
+| Phase 1 — Setup        | 3      |
+| Phase 2 — Foundation   | 9      |
+| Phase 3 — US1 (P1 MVP) | 3      |
+| Phase 4 — US2 (P1 MVP) | 4      |
+| Phase 5 — US3 (P2)     | 6      |
+| Phase 6 — US4 (P2)     | 4      |
+| Phase 7 — US5 (P3)     | 4      |
+| Phase 8 — US6 (P3)     | 5      |
+| Phase 9 — Polish       | 6      |
+| **Total**              | **44** |
 
 Independent test criteria per story:
 
-| Story | Independent test |
-|---|---|
-| US1 | After a successful sample sync, `/attendance` shows six populated cards in ≤5 s. |
-| US2 | Manual sync produces a logged run; raw logs filtered to the test date show the inserted punches. |
-| US3 | With a shift + assignment, `/attendance/daily?date=X` totals reconcile to a hand calc from raw punches. |
-| US4 | Insert a punch with an unknown emp_cd → sync ok; unknown surfaces in tab; dashboard counts not crashed. |
-| US5 | Late/Absence/Overtime totals reconcile to Daily view over the same range; print produces RTL Arabic-headed layout. |
-| US6 | Edit a shift, recompute, observe late/OT change; punch adjust leaves raw rows untouched and creates a `source='manual'` row. |
+| Story | Independent test                                                                                                             |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------- |
+| US1   | After a successful sample sync, `/attendance` shows six populated cards in ≤5 s.                                             |
+| US2   | Manual sync produces a logged run; raw logs filtered to the test date show the inserted punches.                             |
+| US3   | With a shift + assignment, `/attendance/daily?date=X` totals reconcile to a hand calc from raw punches.                      |
+| US4   | Insert a punch with an unknown emp_cd → sync ok; unknown surfaces in tab; dashboard counts not crashed.                      |
+| US5   | Late/Absence/Overtime totals reconcile to Daily view over the same range; print produces RTL Arabic-headed layout.           |
+| US6   | Edit a shift, recompute, observe late/OT change; punch adjust leaves raw rows untouched and creates a `source='manual'` row. |

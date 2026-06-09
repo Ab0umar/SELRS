@@ -6,11 +6,18 @@ import { useTodayQueuePatientsMerged } from "@/hooks/useTodayQueuePatientsMerged
 import { PageHeader } from "@/components/shared/PageHeader";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
-import { CalendarCheck, ClipboardCheck, Footprints, LayoutGrid, Syringe } from "lucide-react";
+import {
+  CalendarCheck,
+  ClipboardCheck,
+  Footprints,
+  LayoutGrid,
+  Syringe,
+} from "lucide-react";
 
 function parseRowDate(value: unknown): Date | null {
   if (value == null) return null;
-  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (value instanceof Date)
+    return Number.isNaN(value.getTime()) ? null : value;
   const d = new Date(String(value));
   return Number.isNaN(d.getTime()) ? null : d;
 }
@@ -34,31 +41,29 @@ function isInRollingWeek(d: Date, now: Date): boolean {
 
 type Accent = "blue" | "orange" | "emerald" | "rose";
 
-const ACCENT: Record<
-  Accent,
-  { bar: string; iconWrap: string; icon: string }
-> = {
-  blue: {
-    bar: "border-t-primary",
-    iconWrap: "bg-primary text-primary-foreground",
-    icon: "text-primary",
-  },
-  orange: {
-    bar: "border-t-secondary",
-    iconWrap: "bg-primary/15 text-primary",
-    icon: "text-secondary",
-  },
-  emerald: {
-    bar: "border-t-success",
-    iconWrap: "bg-success/15 text-success",
-    icon: "text-success",
-  },
-  rose: {
-    bar: "border-t-destructive",
-    iconWrap: "bg-destructive/10 text-destructive",
-    icon: "text-destructive",
-  },
-};
+const ACCENT: Record<Accent, { bar: string; iconWrap: string; icon: string }> =
+  {
+    blue: {
+      bar: "border-t-primary",
+      iconWrap: "bg-primary text-primary-foreground",
+      icon: "text-primary",
+    },
+    orange: {
+      bar: "border-t-secondary",
+      iconWrap: "bg-primary/15 text-primary",
+      icon: "text-secondary",
+    },
+    emerald: {
+      bar: "border-t-success",
+      iconWrap: "bg-success/15 text-success",
+      icon: "text-success",
+    },
+    rose: {
+      bar: "border-t-destructive",
+      iconWrap: "bg-destructive/10 text-destructive",
+      icon: "text-destructive",
+    },
+  };
 
 type HubCard = {
   key: string;
@@ -76,8 +81,12 @@ export default function WorkflowHub() {
   const [, setLocation] = useLocation();
 
   const { merged, isLoading: todayLoading } = useTodayQueuePatientsMerged();
-  const visitsQuery = trpc.medical.getVisits.useQuery(undefined, { refetchOnWindowFocus: false });
-  const appointmentsQuery = trpc.medical.getOperations.useQuery(undefined, { refetchOnWindowFocus: false });
+  const visitsQuery = trpc.medical.getVisits.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
+  const appointmentsQuery = trpc.medical.getOperations.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
 
   useEffect(() => {
     if (!isAuthenticated) setLocation("/");
@@ -86,7 +95,10 @@ export default function WorkflowHub() {
   const now = useMemo(() => new Date(), []);
 
   const followUpCount = useMemo(() => {
-    const rows = (visitsQuery.data ?? []) as Array<{ visitType?: string | null; visitDate?: unknown }>;
+    const rows = (visitsQuery.data ?? []) as Array<{
+      visitType?: string | null;
+      visitDate?: unknown;
+    }>;
     return rows.filter((v) => {
       if (String(v.visitType ?? "") !== "followup") return false;
       const d = parseRowDate(v.visitDate);
@@ -105,7 +117,10 @@ export default function WorkflowHub() {
   }, [visitsQuery.data, now]);
 
   const surgeryMonthCount = useMemo(() => {
-    const rows = (appointmentsQuery.data ?? []) as Array<{ appointmentType?: string | null; appointmentDate?: unknown }>;
+    const rows = (appointmentsQuery.data ?? []) as Array<{
+      appointmentType?: string | null;
+      appointmentDate?: unknown;
+    }>;
     return rows.filter((a) => {
       if (String(a.appointmentType ?? "") !== "surgery") return false;
       const d = parseRowDate(a.appointmentDate);
@@ -204,7 +219,9 @@ export default function WorkflowHub() {
                       <span className="text-3xl font-black tabular-nums tracking-tight text-foreground sm:text-[2rem] leading-none">
                         {card.statMain}
                       </span>
-                      <span className="mt-1.5 text-[11px] font-medium text-muted-foreground">{card.statSub}</span>
+                      <span className="mt-1.5 text-[11px] font-medium text-muted-foreground">
+                        {card.statSub}
+                      </span>
                     </div>
                     <div
                       className={cn(
@@ -217,8 +234,12 @@ export default function WorkflowHub() {
                     </div>
                   </div>
                   <div className="space-y-1 border-t border-border/60 pt-3">
-                    <h2 className="text-base font-bold text-foreground group-hover:text-primary transition-colors">{card.title}</h2>
-                    <p className="text-xs leading-relaxed text-muted-foreground">{card.description}</p>
+                    <h2 className="text-base font-bold text-foreground group-hover:text-primary transition-colors">
+                      {card.title}
+                    </h2>
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      {card.description}
+                    </p>
                   </div>
                 </div>
               </button>

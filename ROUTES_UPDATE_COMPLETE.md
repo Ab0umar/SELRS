@@ -24,6 +24,7 @@ const ComponentShowcase = lazy(() => import("./pages/ComponentShowcase"));
 ```
 
 **النتيجة:**
+
 - ✅ AdminServices الآن متوفر عند: `/admin/services`
 - ✅ TestsManagement الآن متوفر عند: `/admin/tests`
 - ✅ ComponentShowcase الآن متوفر عند: `/showcase` (admin only)
@@ -33,6 +34,7 @@ const ComponentShowcase = lazy(() => import("./pages/ComponentShowcase"));
 ### 2️⃣ **تحديث لوحة تحكم الإدمن (DashboardLayout.tsx)**
 
 #### قبل التعديل:
+
 ```javascript
 const menuItems = [
   { icon: Activity, label: "لوحة التحكم", path: "/dashboard?tab=admin" },
@@ -41,6 +43,7 @@ const menuItems = [
 ```
 
 #### بعد التعديل:
+
 ```javascript
 const menuItems = [
   { icon: Activity, label: "لوحة التحكم", path: "/dashboard?tab=admin" },
@@ -50,7 +53,7 @@ const menuItems = [
       { icon: Users, label: "إدارة المستخدمين", path: "/admin/users" },
       { icon: Stethoscope, label: "إدارة الأطباء", path: "/admin/doctors" },
       { icon: Shield, label: "الصلاحيات", path: "/admin/permissions" },
-    ]
+    ],
   },
   {
     label: "البيانات والخدمات",
@@ -59,7 +62,7 @@ const menuItems = [
       { icon: FileText, label: "إدارة النماذس", path: "/admin/sheets" },
       { icon: Tool, label: "مصمم النماذس", path: "/admin/sheet-designer" },
       { icon: Copy, label: "نسخ النماذس", path: "/sheet-copies" },
-    ]
+    ],
   },
   {
     label: "النظام والإعدادات",
@@ -67,21 +70,26 @@ const menuItems = [
       { icon: Settings, label: "الإعدادات", path: "/admin/settings" },
       { icon: Activity, label: "حالة النظام", path: "/admin/status" },
       { icon: AlertCircle, label: "الهجرات", path: "/admin/migrations" },
-      { icon: AlertCircle, label: "البنتاكام الفاشل", path: "/admin/pentacam-failed" },
+      {
+        icon: AlertCircle,
+        label: "البنتاكام الفاشل",
+        path: "/admin/pentacam-failed",
+      },
       { icon: Tool, label: "أدوات API", path: "/admin/api-tools" },
-    ]
+    ],
   },
   {
     label: "الأدوات الأخرى",
     items: [
       { icon: Stethoscope, label: "إدارة الاختبارات", path: "/admin/tests" },
       { icon: Eye, label: "عرض المكونات", path: "/showcase" },
-    ]
+    ],
   },
 ];
 ```
 
 #### التحسينات:
+
 - ✅ تقسيم القائمة إلى 5 فئات رئيسية
 - ✅ إضافة 13 صفحة إدارة (كانت 1 فقط!)
 - ✅ أيقونات واضحة لكل عنصر
@@ -92,6 +100,7 @@ const menuItems = [
 ### 3️⃣ **تحديث عرض القائمة (Navigation Rendering)**
 
 تم تحديث كود عرض القائمة لدعم:
+
 - ✅ الفئات المجمعة
 - ✅ القوائم الفرعية
 - ✅ تنسيق محسّن للفئات
@@ -99,20 +108,24 @@ const menuItems = [
 
 ```typescript
 // الكود السابق: loop بسيط
-{menuItems.map(item => {
-  const isActive = location === item.path;
-  // ... عرض عنصر واحد فقط
-})}
+{
+  menuItems.map((item) => {
+    const isActive = location === item.path;
+    // ... عرض عنصر واحد فقط
+  });
+}
 
 // الكود الجديد: دعم الفئات والقوائم الفرعية
-{menuItems.map((item, idx) => {
-  const isGroup = 'items' in item;
-  if (isGroup) {
-    // عرض فئة مع عناصرها الفرعية
-  } else {
-    // عرض عنصر عادي
-  }
-})}
+{
+  menuItems.map((item, idx) => {
+    const isGroup = "items" in item;
+    if (isGroup) {
+      // عرض فئة مع عناصرها الفرعية
+    } else {
+      // عرض عنصر عادي
+    }
+  });
+}
 ```
 
 ---
@@ -159,9 +172,11 @@ const menuItems = [
 ```
 
 **الأدوار المسموحة:**
+
 - ✅ admin (كامل الصلاحيات)
 
 **الأدوار المرفوعة:**
+
 - ❌ manager (لا يستطيع الوصول)
 - ❌ accountant (لا يستطيع الوصول)
 - ❌ doctor (لا يستطيع الوصول)
@@ -173,24 +188,26 @@ const menuItems = [
 
 ## 📈 الإحصائيات
 
-| المقياس | القيمة |
-|--------|--------|
-| روتس جديدة | 3 |
+| المقياس                    | القيمة      |
+| -------------------------- | ----------- |
+| روتس جديدة                 | 3           |
 | عناصر قائمة في لوحة الإدمن | 13 (كانت 1) |
-| فئات منظمة | 5 |
-| أيقونات جديدة | 8 |
-| صلاحيات محدثة | admin فقط |
+| فئات منظمة                 | 5           |
+| أيقونات جديدة              | 8           |
+| صلاحيات محدثة              | admin فقط   |
 
 ---
 
 ## 📝 ملفات معدلة
 
 ### 1. **client/src/App.tsx**
+
 - ✅ إضافة 3 lazy imports
 - ✅ إضافة 3 routes جديدة
 - 📍 السطور: 79-81، 229-231
 
 ### 2. **client/src/components/DashboardLayout.tsx**
+
 - ✅ إضافة 8 أيقونات جديدة من lucide-react
 - ✅ إعادة كتابة menuItems بـ 5 فئات و 13 عنصر
 - ✅ تحديث كود الـ map لدعم الفئات المجمعة
@@ -204,6 +221,7 @@ const menuItems = [
 ### الدخول إلى صفحات الإدارة الجديدة:
 
 **من واجهة المستخدم:**
+
 1. سجل الدخول كـ admin
 2. اذهب إلى لوحة التحكم
 3. اختر من الفئات المتاحة:
@@ -212,6 +230,7 @@ const menuItems = [
    - الأدوات الأخرى → عرض المكونات
 
 **من URL المباشر:**
+
 - إدارة الخدمات: `http://localhost:4000/admin/services`
 - إدارة الاختبارات: `http://localhost:4000/admin/tests`
 - عرض المكونات: `http://localhost:4000/showcase`
@@ -256,6 +275,7 @@ const menuItems = [
    - عدّل `requiredRoles={["admin", "manager"]}`
 
 2. **إضافة عناصر قائمة جديدة:**
+
    ```javascript
    {
      label: "فئة جديدة",

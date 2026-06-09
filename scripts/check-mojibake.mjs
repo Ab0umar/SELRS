@@ -3,7 +3,15 @@ import path from "node:path";
 
 const ROOT = process.cwd();
 const TARGET_DIRS = ["client/src", "server", "shared"];
-const FILE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".json", ".css", ".md"]);
+const FILE_EXTENSIONS = new Set([
+  ".ts",
+  ".tsx",
+  ".js",
+  ".jsx",
+  ".json",
+  ".css",
+  ".md",
+]);
 
 // Common UTF-8/Windows-1256 mojibake markers seen in this repo.
 const SUSPICIOUS_PATTERNS = [
@@ -33,7 +41,12 @@ function walk(dir) {
   if (!fs.existsSync(dir)) return;
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
-    if (entry.name === "node_modules" || entry.name === "dist" || entry.name === ".git") continue;
+    if (
+      entry.name === "node_modules" ||
+      entry.name === "dist" ||
+      entry.name === ".git"
+    )
+      continue;
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       walk(fullPath);
@@ -69,11 +82,17 @@ for (const dir of TARGET_DIRS) {
 }
 
 if (findings.length > 0) {
-  const blocking = findings.filter((finding) => !LEGACY_ALLOWLIST.has(finding.filePath.replace(/\\/g, "/")));
-  const legacy = findings.filter((finding) => LEGACY_ALLOWLIST.has(finding.filePath.replace(/\\/g, "/")));
+  const blocking = findings.filter(
+    (finding) => !LEGACY_ALLOWLIST.has(finding.filePath.replace(/\\/g, "/")),
+  );
+  const legacy = findings.filter((finding) =>
+    LEGACY_ALLOWLIST.has(finding.filePath.replace(/\\/g, "/")),
+  );
 
   if (legacy.length > 0) {
-    console.warn(`Encoding check: ${legacy.length} known legacy mojibake matches (allowlisted).`);
+    console.warn(
+      `Encoding check: ${legacy.length} known legacy mojibake matches (allowlisted).`,
+    );
   }
 
   if (blocking.length === 0) {

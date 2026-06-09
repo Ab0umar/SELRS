@@ -7,7 +7,15 @@ import { Link } from "wouter";
 import type { ReactNode } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 
-const DAY_NAMES = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+const DAY_NAMES = [
+  "الأحد",
+  "الاثنين",
+  "الثلاثاء",
+  "الأربعاء",
+  "الخميس",
+  "الجمعة",
+  "السبت",
+];
 
 export function formatArabicDate(value: string | Date | null | undefined) {
   if (!value) return "غير محدد";
@@ -40,12 +48,22 @@ export function PortalShell({
         <div className="min-w-0 space-y-1">
           <div className="inline-flex items-center gap-2 rounded-full border border-secondary/20 bg-secondary/10 px-3 py-1 text-secondary">
             <BrandLogo className="size-4 shrink-0" />
-            <span className="text-[11px] font-medium uppercase tracking-[0.2em]">SELRS</span>
+            <span className="text-[11px] font-medium uppercase tracking-[0.2em]">
+              SELRS
+            </span>
           </div>
-          <h1 className="text-2xl font-bold text-foreground sm:text-[1.75rem]">{title}</h1>
-          {subtitle && <p className="max-w-2xl text-sm leading-6 text-muted-foreground">{subtitle}</p>}
+          <h1 className="text-2xl font-bold text-foreground sm:text-[1.75rem]">
+            {title}
+          </h1>
+          {subtitle && (
+            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+              {subtitle}
+            </p>
+          )}
         </div>
-        {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+        {actions && (
+          <div className="flex shrink-0 items-center gap-2">{actions}</div>
+        )}
       </div>
       {children}
     </div>
@@ -75,10 +93,20 @@ export function PortalPanel({
       {(title || description || actions) && (
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 space-y-1">
-            {title && <h2 className="text-base font-semibold text-foreground">{title}</h2>}
-            {description && <p className="text-sm leading-6 text-muted-foreground">{description}</p>}
+            {title && (
+              <h2 className="text-base font-semibold text-foreground">
+                {title}
+              </h2>
+            )}
+            {description && (
+              <p className="text-sm leading-6 text-muted-foreground">
+                {description}
+              </p>
+            )}
           </div>
-          {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+          {actions && (
+            <div className="flex shrink-0 items-center gap-2">{actions}</div>
+          )}
         </div>
       )}
       {children}
@@ -102,7 +130,11 @@ export function PortalLabel({
       </div>
       <div className="min-w-0 space-y-0.5">
         <div className="text-sm font-semibold text-foreground">{title}</div>
-        {description && <p className="text-xs leading-5 text-muted-foreground">{description}</p>}
+        {description && (
+          <p className="text-xs leading-5 text-muted-foreground">
+            {description}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -126,7 +158,11 @@ export function PortalEmptyState({
       </div>
       <div className="mx-auto max-w-md space-y-1">
         <h3 className="text-base font-semibold text-foreground">{title}</h3>
-        {description && <p className="text-sm leading-6 text-muted-foreground">{description}</p>}
+        {description && (
+          <p className="text-sm leading-6 text-muted-foreground">
+            {description}
+          </p>
+        )}
       </div>
       {action && <div className="mt-5">{action}</div>}
     </div>
@@ -137,7 +173,10 @@ export function PortalLoadingRows({ rows = 4 }: { rows?: number }) {
   return (
     <div className="space-y-3">
       {Array.from({ length: rows }).map((_, index) => (
-        <div key={index} className="flex items-center gap-3 rounded-[1.25rem] border border-[#dbe7f4] bg-white p-3">
+        <div
+          key={index}
+          className="flex items-center gap-3 rounded-[1.25rem] border border-[#dbe7f4] bg-white p-3"
+        >
           <Skeleton className="size-10 rounded-xl bg-[#e8f0f8]" />
           <div className="min-w-0 flex-1 space-y-2">
             <Skeleton className="h-4 w-2/3 bg-[#e8f0f8]" />
@@ -161,17 +200,27 @@ export function PortalStatusBadge({
 }) {
   const lower = status.toLowerCase();
   const variant =
-    lower === "confirmed" ? "default" : lower === "pending" ? "secondary" : lower === "cancelled" ? "destructive" : "outline";
+    lower === "confirmed"
+      ? "default"
+      : lower === "pending"
+        ? "secondary"
+        : lower === "cancelled"
+          ? "destructive"
+          : "outline";
 
   return (
     <Badge
       variant={variant as "default" | "secondary" | "destructive" | "outline"}
       className={cn(
         "capitalize",
-        lower === "confirmed" && "bg-primary text-primary-foreground hover:bg-primary/90",
-        lower === "pending" && "bg-secondary text-secondary-foreground hover:bg-secondary/90",
-        lower === "cancelled" && "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        lower === "completed" && "border-[#d7e2ee] bg-[#eff4fa] text-foreground hover:bg-[#eff4fa]",
+        lower === "confirmed" &&
+          "bg-primary text-primary-foreground hover:bg-primary/90",
+        lower === "pending" &&
+          "bg-secondary text-secondary-foreground hover:bg-secondary/90",
+        lower === "cancelled" &&
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        lower === "completed" &&
+          "border-[#d7e2ee] bg-[#eff4fa] text-foreground hover:bg-[#eff4fa]",
         className,
       )}
     >
@@ -180,9 +229,20 @@ export function PortalStatusBadge({
   );
 }
 
-export function PortalBackLink({ href, label }: { href: string; label: string }) {
+export function PortalBackLink({
+  href,
+  label,
+}: {
+  href: string;
+  label: string;
+}) {
   return (
-    <Button asChild variant="ghost" size="sm" className="gap-1 px-2 text-muted-foreground hover:text-foreground">
+    <Button
+      asChild
+      variant="ghost"
+      size="sm"
+      className="gap-1 px-2 text-muted-foreground hover:text-foreground"
+    >
       <Link href={href}>
         <ArrowLeft className="size-4" />
         <span>{label}</span>
@@ -191,14 +251,22 @@ export function PortalBackLink({ href, label }: { href: string; label: string })
   );
 }
 
-export function PortalSectionTitle({ title, description }: { title: string; description?: string }) {
+export function PortalSectionTitle({
+  title,
+  description,
+}: {
+  title: string;
+  description?: string;
+}) {
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-2">
         <FileText className="size-4 text-primary" />
         <h2 className="text-lg font-semibold text-foreground">{title}</h2>
       </div>
-      {description && <p className="text-sm leading-6 text-muted-foreground">{description}</p>}
+      {description && (
+        <p className="text-sm leading-6 text-muted-foreground">{description}</p>
+      )}
     </div>
   );
 }
@@ -221,7 +289,14 @@ export function PortalMetric({
 
   return (
     <div className="rounded-xl border border-border bg-background p-3">
-      <div className={cn("mb-2 inline-flex rounded-lg px-2 py-1 text-[11px] font-medium", toneClass)}>{label}</div>
+      <div
+        className={cn(
+          "mb-2 inline-flex rounded-lg px-2 py-1 text-[11px] font-medium",
+          toneClass,
+        )}
+      >
+        {label}
+      </div>
       <div className="text-lg font-semibold text-foreground">{value}</div>
     </div>
   );

@@ -6,22 +6,32 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, CheckCircle, Clock, Activity } from "lucide-react";
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<"health" | "sync" | "audit">("health");
+  const [activeTab, setActiveTab] = useState<"health" | "sync" | "audit">(
+    "health",
+  );
 
-  const healthQuery = (trpc as any).attendance.systemHealth.useQuery(undefined, {
-    refetchInterval: 30_000,
-  });
+  const healthQuery = (trpc as any).attendance.systemHealth.useQuery(
+    undefined,
+    {
+      refetchInterval: 30_000,
+    },
+  );
 
-  const auditStatsQuery = (trpc as any).attendance.auditStats.useQuery(undefined, {
-    refetchInterval: 60_000,
-  });
+  const auditStatsQuery = (trpc as any).attendance.auditStats.useQuery(
+    undefined,
+    {
+      refetchInterval: 60_000,
+    },
+  );
 
   const auditLogsQuery = (trpc as any).attendance.auditLogs.useQuery(
     { limit: 100 },
-    { refetchInterval: 30_000 }
+    { refetchInterval: 30_000 },
   );
 
-  const syncStatusQuery = (trpc as any).attendance.syncStatus.useQuery({ limit: 20 });
+  const syncStatusQuery = (trpc as any).attendance.syncStatus.useQuery({
+    limit: 20,
+  });
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -71,7 +81,9 @@ export default function AdminDashboard() {
                           : "bg-destructive"
                       }`}
                     />
-                    <span className="font-medium">{healthQuery.data.database}</span>
+                    <span className="font-medium">
+                      {healthQuery.data.database}
+                    </span>
                   </div>
                 </CardContent>
               </Card>
@@ -124,7 +136,9 @@ export default function AdminDashboard() {
 
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Records Processed (24h)</CardTitle>
+                  <CardTitle className="text-sm">
+                    Records Processed (24h)
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
@@ -140,8 +154,12 @@ export default function AdminDashboard() {
                 <CardContent>
                   {auditStatsQuery.data ? (
                     <div className="text-sm space-y-1">
-                      <div>Logs (24h): {auditStatsQuery.data.totalLogsLast24h}</div>
-                      <div>Leaves: {auditStatsQuery.data.leaveActionsLast24h}</div>
+                      <div>
+                        Logs (24h): {auditStatsQuery.data.totalLogsLast24h}
+                      </div>
+                      <div>
+                        Leaves: {auditStatsQuery.data.leaveActionsLast24h}
+                      </div>
                     </div>
                   ) : (
                     <Skeleton className="h-6" />
@@ -174,7 +192,9 @@ export default function AdminDashboard() {
                     className="border rounded-lg p-3 bg-gray-50 text-sm"
                   >
                     <div className="flex justify-between items-start mb-2">
-                      <div className="font-medium">{run.source} • {run.trigger}</div>
+                      <div className="font-medium">
+                        {run.source} • {run.trigger}
+                      </div>
                       <span
                         className={`px-2 py-1 rounded text-xs font-semibold ${
                           run.status === "ok"
@@ -194,7 +214,9 @@ export default function AdminDashboard() {
                       {run.rowsInserted} rows inserted
                     </div>
                     {run.error && (
-                      <div className="text-destructive text-xs mt-1">{run.error}</div>
+                      <div className="text-destructive text-xs mt-1">
+                        {run.error}
+                      </div>
                     )}
                   </div>
                 ))}
@@ -234,15 +256,21 @@ export default function AdminDashboard() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium break-words">{log.action}</div>
+                      <div className="font-medium break-words">
+                        {log.action}
+                      </div>
                       <div className="text-xs text-gray-600">
                         {new Date(log.timestamp).toLocaleString()}
                       </div>
                       {log.empCd && (
-                        <div className="text-xs text-gray-600">Emp: {log.empCd}</div>
+                        <div className="text-xs text-gray-600">
+                          Emp: {log.empCd}
+                        </div>
                       )}
                       {log.error && (
-                        <div className="text-xs text-destructive mt-1">{log.error}</div>
+                        <div className="text-xs text-destructive mt-1">
+                          {log.error}
+                        </div>
                       )}
                     </div>
                   </div>

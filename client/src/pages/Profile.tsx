@@ -1,4 +1,10 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -65,7 +71,9 @@ export default function Profile() {
       };
       utils.auth.me.setData(undefined, nextUserAfterEmail);
       persistSessionUser(nextUserAfterEmail);
-      const currentUsername = String((user as User | null)?.username ?? "").trim();
+      const currentUsername = String(
+        (user as User | null)?.username ?? "",
+      ).trim();
       const nextUsername = username.trim();
       if (nextUsername && nextUsername !== currentUsername) {
         await changeUsernameMutation.mutateAsync({ username: nextUsername });
@@ -100,7 +108,8 @@ export default function Profile() {
     }
   };
 
-  const saving = updateProfileMutation.isPending || changeUsernameMutation.isPending;
+  const saving =
+    updateProfileMutation.isPending || changeUsernameMutation.isPending;
 
   return (
     <div className="container mx-auto max-w-4xl space-y-6 p-4" dir="rtl">
@@ -116,11 +125,18 @@ export default function Profile() {
           </div>
           <div className="grid grid-cols-[120px_1fr] items-center gap-2">
             <Label>الإيميل</Label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
           <div className="grid grid-cols-[120px_1fr] items-center gap-2">
             <Label>اسم المستخدم</Label>
-            <Input value={username} onChange={(e) => setUsername(e.target.value)} />
+            <Input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
           </div>
           <div className="flex justify-end">
             <Button onClick={onSaveProfile} disabled={saving}>
@@ -140,25 +156,42 @@ export default function Profile() {
         <CardContent className="space-y-3">
           <div className="grid grid-cols-[170px_1fr] items-center gap-2">
             <Label>كلمة المرور الحالية</Label>
-            <Input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
+            <Input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+            />
           </div>
           <div className="grid grid-cols-[170px_1fr] items-center gap-2">
             <Label>كلمة المرور الجديدة</Label>
-            <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+            <Input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
           </div>
           <div className="grid grid-cols-[170px_1fr] items-center gap-2">
             <Label>تأكيد كلمة المرور</Label>
-            <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+            <Input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
           </div>
           <div className="flex justify-end">
-            <Button onClick={onChangePassword} disabled={changePasswordMutation.isPending}>
-              {changePasswordMutation.isPending ? "Saving..." : "تغيير كلمة المرور"}
+            <Button
+              onClick={onChangePassword}
+              disabled={changePasswordMutation.isPending}
+            >
+              {changePasswordMutation.isPending
+                ? "Saving..."
+                : "تغيير كلمة المرور"}
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {(
+      {
         <Card className="border-border/80 bg-background/95 shadow-sm">
           <CardHeader>
             <CardTitle>المظهر</CardTitle>
@@ -166,7 +199,10 @@ export default function Profile() {
           <CardContent>
             <div className="flex gap-2">
               {(["light", "dark"] as ThemePref[]).map((option) => {
-                const labels: Record<ThemePref, string> = { light: "فاتح", dark: "داكن" };
+                const labels: Record<ThemePref, string> = {
+                  light: "فاتح",
+                  dark: "داكن",
+                };
                 const icons: Record<ThemePref, React.ReactNode> = {
                   light: <Sun className="h-4 w-4" />,
                   dark: <Moon className="h-4 w-4" />,
@@ -186,7 +222,7 @@ export default function Profile() {
             </div>
           </CardContent>
         </Card>
-      )}
+      }
     </div>
   );
 }

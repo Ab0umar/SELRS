@@ -108,7 +108,9 @@ export function registerZKTecoAdms(app: Express): void {
         deviceId: sn,
         source: "tcp" as const,
         sourceRowId: `${sn}_${p.empCd}_${p.punchAt.getTime()}`,
-        sourceHash: sha1(`${sn}|${p.empCd}|${p.punchAt.toISOString()}|${p.direction}`),
+        sourceHash: sha1(
+          `${sn}|${p.empCd}|${p.punchAt.toISOString()}|${p.direction}`,
+        ),
         importedAt: now,
       }));
 
@@ -122,16 +124,20 @@ export function registerZKTecoAdms(app: Express): void {
       const uniqueEmpCds = [...new Set(punches.map((p) => p.empCd))];
       await db
         .insert(attendanceEmployees)
-        .values(uniqueEmpCds.map((empCd) => ({
-          empCd,
-          fullName: empCd,
-          active: true,
-          createdAt: now,
-          updatedAt: now,
-        })))
+        .values(
+          uniqueEmpCds.map((empCd) => ({
+            empCd,
+            fullName: empCd,
+            active: true,
+            createdAt: now,
+            updatedAt: now,
+          })),
+        )
         .onDuplicateKeyUpdate({ set: { updatedAt: now } });
 
-      console.log(`[ADMS] SN=${sn} pushed ${punches.length} punches → inserted to MySQL`);
+      console.log(
+        `[ADMS] SN=${sn} pushed ${punches.length} punches → inserted to MySQL`,
+      );
 
       res.set("Content-Type", "text/plain");
       res.send(`OK: ${punches.length}`);

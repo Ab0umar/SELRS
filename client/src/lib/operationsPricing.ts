@@ -10,7 +10,8 @@ export const TAB_CONFIG = [
 
 export const normalizeTabKey = (value: unknown): string => {
   const raw = String(value ?? "").trim();
-  if (raw === TAB_SAADANY || raw === TAB_SAWAF || raw === TAB_OTHERS) return raw;
+  if (raw === TAB_SAADANY || raw === TAB_SAWAF || raw === TAB_OTHERS)
+    return raw;
   return TAB_SAADANY;
 };
 
@@ -128,20 +129,50 @@ export const DEFAULT_APPOINTMENTS_PRICING: AppointmentsPricingConfig = {
 
 export const EMPTY_APPOINTMENTS_PRICING: AppointmentsPricingConfig = {
   amount: {
-    prk: { saadanyConsultantSaadany: 0, saadanyConsultant: 0, saadanySpecialist: 0, fallback: 0 },
-    lasik: { saadanyConsultantSaadany: 0, saadanyConsultant: 0, sawaf: 0, fallback: 0 },
+    prk: {
+      saadanyConsultantSaadany: 0,
+      saadanyConsultant: 0,
+      saadanySpecialist: 0,
+      fallback: 0,
+    },
+    lasik: {
+      saadanyConsultantSaadany: 0,
+      saadanyConsultant: 0,
+      sawaf: 0,
+      fallback: 0,
+    },
   },
   doctorAccount: {
     prk: { saadany: 0, consultant: 0, specialist: 0, sawaf: 0, others: 0 },
-    lasik: { saadany: 0, consultant: 0, sawafMoria: 0, sawafMetal: 0, sawafFallback: 0, othersMoria: 0, othersMetal: 0, othersFallback: 0 },
+    lasik: {
+      saadany: 0,
+      consultant: 0,
+      sawafMoria: 0,
+      sawafMetal: 0,
+      sawafFallback: 0,
+      othersMoria: 0,
+      othersMetal: 0,
+      othersFallback: 0,
+    },
   },
 };
 
-export type OpKey = "prk" | "lasik" | "lasik_moria" | "lasik_metal" | "femto" | "other";
+export type OpKey =
+  | "prk"
+  | "lasik"
+  | "lasik_moria"
+  | "lasik_metal"
+  | "femto"
+  | "other";
 export type LevelKey = "consultant" | "specialist" | "unknown";
 
-export const normalizeText = (value: unknown) => String(value ?? "").toLowerCase().replace(/\s+/g, " ").trim();
-export const includesAny = (text: string, words: string[]) => words.some((word) => text.includes(word));
+export const normalizeText = (value: unknown) =>
+  String(value ?? "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+export const includesAny = (text: string, words: string[]) =>
+  words.some((word) => text.includes(word));
 
 export const detectOperationKey = (operation: unknown): OpKey => {
   const text = normalizeText(operation);
@@ -156,11 +187,15 @@ export const detectOperationKey = (operation: unknown): OpKey => {
 export const detectLevel = (value: unknown): LevelKey => {
   const text = normalizeText(value);
   if (includesAny(text, ["consultant", "استشاري"])) return "consultant";
-  if (includesAny(text, ["specialist", "اخصائي", "أخصائي"])) return "specialist";
+  if (includesAny(text, ["specialist", "اخصائي", "أخصائي"]))
+    return "specialist";
   return "unknown";
 };
 
-export const detectDoctorGroup = (tabKey: string, doctorName: unknown): "saadany" | "sawaf" | "others" => {
+export const detectDoctorGroup = (
+  tabKey: string,
+  doctorName: unknown,
+): "saadany" | "sawaf" | "others" => {
   const text = normalizeText(doctorName);
   if (includesAny(text, ["د/السعدني", "saadany"])) return "saadany";
   if (includesAny(text, ["د/الصواف", "sawaf"])) return "sawaf";
@@ -172,9 +207,12 @@ export const detectDoctorGroup = (tabKey: string, doctorName: unknown): "saadany
 export const getPricingDefaults = (
   tabKey: string,
   row: { operation?: string; doctor?: string },
-  config: AppointmentsPricingConfig = DEFAULT_APPOINTMENTS_PRICING
+  config: AppointmentsPricingConfig = DEFAULT_APPOINTMENTS_PRICING,
 ) => {
-  if ((config.amount.prk.fallback ?? 0) === 0 && (config.amount.lasik.fallback ?? 0) === 0) {
+  if (
+    (config.amount.prk.fallback ?? 0) === 0 &&
+    (config.amount.lasik.fallback ?? 0) === 0
+  ) {
     return { amount: 0, doctorAmount: 0 };
   }
 
@@ -187,8 +225,10 @@ export const getPricingDefaults = (
   let amount = 0;
   if (op === "prk") {
     if (group === "saadany") {
-      if (isSaadanyDoctor) amount = Number(config.amount.prk.saadanyConsultantSaadany ?? 0);
-      else if (level === "specialist") amount = Number(config.amount.prk.saadanySpecialist ?? 0);
+      if (isSaadanyDoctor)
+        amount = Number(config.amount.prk.saadanyConsultantSaadany ?? 0);
+      else if (level === "specialist")
+        amount = Number(config.amount.prk.saadanySpecialist ?? 0);
       else amount = Number(config.amount.prk.saadanyConsultant ?? 0);
     } else {
       amount = Number(config.amount.prk.fallback ?? OPERATION_BASE_AMOUNTS.PRK);
@@ -201,7 +241,9 @@ export const getPricingDefaults = (
     } else if (group === "sawaf") {
       amount = Number(config.amount.lasik.sawaf ?? 0);
     } else {
-      amount = Number(config.amount.lasik.fallback ?? OPERATION_BASE_AMOUNTS.Lasik);
+      amount = Number(
+        config.amount.lasik.fallback ?? OPERATION_BASE_AMOUNTS.Lasik,
+      );
     }
   } else if (op === "femto") {
     amount = OPERATION_BASE_AMOUNTS.Femto;
@@ -214,8 +256,10 @@ export const getPricingDefaults = (
     doctorAmount = FEMTO_CENTER_SHARE_DEFAULT;
   } else if (group === "saadany") {
     if (op === "prk") {
-      if (isSaadanyDoctor) doctorAmount = Number(config.doctorAccount.prk.saadany ?? 0);
-      else if (level === "specialist") doctorAmount = Number(config.doctorAccount.prk.specialist ?? 0);
+      if (isSaadanyDoctor)
+        doctorAmount = Number(config.doctorAccount.prk.saadany ?? 0);
+      else if (level === "specialist")
+        doctorAmount = Number(config.doctorAccount.prk.specialist ?? 0);
       else doctorAmount = Number(config.doctorAccount.prk.consultant ?? 0);
     } else if (op === "lasik" || op === "lasik_moria" || op === "lasik_metal") {
       doctorAmount = isSaadanyDoctor
@@ -223,14 +267,20 @@ export const getPricingDefaults = (
         : Number(config.doctorAccount.lasik.consultant ?? 0);
     }
   } else if (group === "sawaf") {
-    if (op === "prk") doctorAmount = Number(config.doctorAccount.prk.sawaf ?? 0);
-    else if (op === "lasik_moria" || op === "lasik") doctorAmount = Number(config.doctorAccount.lasik.sawafMoria ?? 0);
-    else if (op === "lasik_metal") doctorAmount = Number(config.doctorAccount.lasik.sawafMetal ?? 0);
+    if (op === "prk")
+      doctorAmount = Number(config.doctorAccount.prk.sawaf ?? 0);
+    else if (op === "lasik_moria" || op === "lasik")
+      doctorAmount = Number(config.doctorAccount.lasik.sawafMoria ?? 0);
+    else if (op === "lasik_metal")
+      doctorAmount = Number(config.doctorAccount.lasik.sawafMetal ?? 0);
     else doctorAmount = Number(config.doctorAccount.lasik.sawafFallback ?? 0);
   } else {
-    if (op === "prk") doctorAmount = Number(config.doctorAccount.prk.others ?? 0);
-    else if (op === "lasik_moria" || op === "lasik") doctorAmount = Number(config.doctorAccount.lasik.othersMoria ?? 0);
-    else if (op === "lasik_metal") doctorAmount = Number(config.doctorAccount.lasik.othersMetal ?? 0);
+    if (op === "prk")
+      doctorAmount = Number(config.doctorAccount.prk.others ?? 0);
+    else if (op === "lasik_moria" || op === "lasik")
+      doctorAmount = Number(config.doctorAccount.lasik.othersMoria ?? 0);
+    else if (op === "lasik_metal")
+      doctorAmount = Number(config.doctorAccount.lasik.othersMetal ?? 0);
     else doctorAmount = Number(config.doctorAccount.lasik.othersFallback ?? 0);
   }
 
@@ -247,8 +297,10 @@ export const normalizeDoctorName = (value: unknown) => {
   const raw = String(value ?? "").trim();
   if (!raw) return "";
   const lowered = raw.toLowerCase();
-  if (lowered.includes("saadany") || lowered.includes("سعدني")) return "د. محمد السعدني";
-  if (lowered.includes("sawaf") || lowered.includes("صواف")) return "د. أحمد الصواف";
+  if (lowered.includes("saadany") || lowered.includes("سعدني"))
+    return "د. محمد السعدني";
+  if (lowered.includes("sawaf") || lowered.includes("صواف"))
+    return "د. أحمد الصواف";
   return raw;
 };
 

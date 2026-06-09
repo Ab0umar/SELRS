@@ -4,15 +4,21 @@ export type PrintLayoutSettings = {
   scale: number;
 };
 
-export type PrintLayoutKey = "consultant" | "followup" | "specialist" | "lasik" | "external";
+export type PrintLayoutKey =
+  | "consultant"
+  | "followup"
+  | "specialist"
+  | "lasik"
+  | "external";
 
-export const DEFAULT_PRINT_LAYOUT: Record<PrintLayoutKey, PrintLayoutSettings> = {
-  consultant: { offsetXmm: 0, offsetYmm: 0, scale: 1 },
-  followup: { offsetXmm: 4, offsetYmm: 10, scale: 0.96 },
-  specialist: { offsetXmm: 0, offsetYmm: 0, scale: 1 },
-  lasik: { offsetXmm: 0, offsetYmm: 0, scale: 1 },
-  external: { offsetXmm: 0, offsetYmm: 0, scale: 1 },
-};
+export const DEFAULT_PRINT_LAYOUT: Record<PrintLayoutKey, PrintLayoutSettings> =
+  {
+    consultant: { offsetXmm: 0, offsetYmm: 0, scale: 1 },
+    followup: { offsetXmm: 4, offsetYmm: 10, scale: 0.96 },
+    specialist: { offsetXmm: 0, offsetYmm: 0, scale: 1 },
+    lasik: { offsetXmm: 0, offsetYmm: 0, scale: 1 },
+    external: { offsetXmm: 0, offsetYmm: 0, scale: 1 },
+  };
 
 const STORAGE_KEYS: Record<PrintLayoutKey, string> = {
   consultant: "selrs_print_layout_consultant_v1",
@@ -45,7 +51,10 @@ export function loadPrintLayout(key: PrintLayoutKey): PrintLayoutSettings {
   }
 }
 
-export function savePrintLayout(key: PrintLayoutKey, value: PrintLayoutSettings) {
+export function savePrintLayout(
+  key: PrintLayoutKey,
+  value: PrintLayoutSettings,
+) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(STORAGE_KEYS[key], JSON.stringify(value));
 }

@@ -68,31 +68,31 @@ Supported types: SQL schemas, OpenAPI/Protobuf API specs, Terraform/CloudFormati
 
 ## Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| Docker not available | Install Docker Desktop from https://docker.com, ensure it's running |
+| Problem                        | Solution                                                                                                                           |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Docker not available           | Install Docker Desktop from https://docker.com, ensure it's running                                                                |
 | Slow indexing on macOS/Windows | Docker can't use GPU. Install native Ollama from https://ollama.com/download for Metal/CUDA acceleration. Or use cloud embeddings. |
-| Want cloud embeddings instead | Set `EMBEDDING_PROVIDER=openai` + `OPENAI_API_KEY`, or `EMBEDDING_PROVIDER=google` + `GOOGLE_API_KEY` |
-| Search returns no results | Check `codebase_status` — project may not be indexed. Run `codebase_index`. |
-| Stale results | Check if watcher is active (`codebase_status`). Run `codebase_update` or `codebase_watch { action: "start" }`. |
-| Indexing was interrupted | Run `codebase_index` again — it resumes from the last checkpoint automatically. |
-| Another process is indexing | `codebase_status` detects cross-process indexing. Wait for it, or use `codebase_stop`. |
+| Want cloud embeddings instead  | Set `EMBEDDING_PROVIDER=openai` + `OPENAI_API_KEY`, or `EMBEDDING_PROVIDER=google` + `GOOGLE_API_KEY`                              |
+| Search returns no results      | Check `codebase_status` — project may not be indexed. Run `codebase_index`.                                                        |
+| Stale results                  | Check if watcher is active (`codebase_status`). Run `codebase_update` or `codebase_watch { action: "start" }`.                     |
+| Indexing was interrupted       | Run `codebase_index` again — it resumes from the last checkpoint automatically.                                                    |
+| Another process is indexing    | `codebase_status` detects cross-process indexing. Wait for it, or use `codebase_stop`.                                             |
 
 ## Key Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `QDRANT_MODE` | `managed` | `managed` (Docker) or `external` (remote/cloud Qdrant) |
-| `QDRANT_URL` | — | Full URL for remote Qdrant (e.g. `https://xyz.cloud.qdrant.io:6333`) |
-| `QDRANT_API_KEY` | — | API key for remote Qdrant |
-| `EMBEDDING_PROVIDER` | `ollama` | `ollama`, `openai`, or `google` |
-| `OPENAI_API_KEY` | — | Required when `EMBEDDING_PROVIDER=openai` |
-| `GOOGLE_API_KEY` | — | Required when `EMBEDDING_PROVIDER=google` |
-| `OLLAMA_MODE` | `auto` | `auto` (detect native, fallback Docker), `docker`, `external` |
-| `EMBEDDING_MODEL` | `nomic-embed-text` | Model name (provider-specific) |
-| `SEARCH_DEFAULT_LIMIT` | `10` | Default result limit for codebase_search (1-50) |
-| `SEARCH_MIN_SCORE` | `0.10` | Default minimum RRF score threshold (0-1) |
-| `MAX_FILE_SIZE_MB` | `5` | Maximum file size for indexing in MB |
-| `EXTRA_EXTENSIONS` | — | Additional file extensions to index (e.g. `.tpl,.blade,.hbs`) |
+| Variable               | Default            | Description                                                          |
+| ---------------------- | ------------------ | -------------------------------------------------------------------- |
+| `QDRANT_MODE`          | `managed`          | `managed` (Docker) or `external` (remote/cloud Qdrant)               |
+| `QDRANT_URL`           | —                  | Full URL for remote Qdrant (e.g. `https://xyz.cloud.qdrant.io:6333`) |
+| `QDRANT_API_KEY`       | —                  | API key for remote Qdrant                                            |
+| `EMBEDDING_PROVIDER`   | `ollama`           | `ollama`, `openai`, or `google`                                      |
+| `OPENAI_API_KEY`       | —                  | Required when `EMBEDDING_PROVIDER=openai`                            |
+| `GOOGLE_API_KEY`       | —                  | Required when `EMBEDDING_PROVIDER=google`                            |
+| `OLLAMA_MODE`          | `auto`             | `auto` (detect native, fallback Docker), `docker`, `external`        |
+| `EMBEDDING_MODEL`      | `nomic-embed-text` | Model name (provider-specific)                                       |
+| `SEARCH_DEFAULT_LIMIT` | `10`               | Default result limit for codebase_search (1-50)                      |
+| `SEARCH_MIN_SCORE`     | `0.10`             | Default minimum RRF score threshold (0-1)                            |
+| `MAX_FILE_SIZE_MB`     | `5`                | Maximum file size for indexing in MB                                 |
+| `EXTRA_EXTENSIONS`     | —                  | Additional file extensions to index (e.g. `.tpl,.blade,.hbs`)        |
 
 For full parameter details on every tool, see [references/tool-reference.md](references/tool-reference.md).

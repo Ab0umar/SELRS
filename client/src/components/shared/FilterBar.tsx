@@ -26,7 +26,10 @@ export function FilterBar({
   if (filters && onSelect) {
     return (
       <div
-        className={cn("flex items-center gap-1 sm:gap-1.5 overflow-x-auto scrollbar-none pb-0.5", className)}
+        className={cn(
+          "flex items-center gap-1 sm:gap-1.5 overflow-x-auto scrollbar-none pb-0.5",
+          className,
+        )}
         dir="rtl"
       >
         {filters.map(({ value, label }) => (
@@ -49,5 +52,14 @@ export function FilterBar({
     );
   }
 
-  return <div className={cn("flex items-center gap-2 overflow-x-auto pb-0.5", className)}>{children}</div>;
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-2 overflow-x-auto pb-0.5",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
 }

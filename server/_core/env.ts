@@ -14,15 +14,30 @@ const envSchema = z.object({
   FCM_SERVICE_ACCOUNT_JSON: z.string().optional().default(""),
   VAPID_PUBLIC_KEY: z.string().optional().default(""),
   VAPID_PRIVATE_KEY: z.string().optional().default(""),
-  NODE_ENV: z.enum(["development", "production", "test"]).optional().default("development"),
-  FK_PULLER_PATH: z.string().optional().default("D:\\Programs\\fp\\FKOldLogPuller.exe"),
-  FK_USER_PULLER_PATH: z.string().optional().default("D:\\Programs\\fp\\FKUserPuller.exe"),
+  NODE_ENV: z
+    .enum(["development", "production", "test"])
+    .optional()
+    .default("development"),
+  FK_PULLER_PATH: z
+    .string()
+    .optional()
+    .default("D:\\Programs\\fp\\FKOldLogPuller.exe"),
+  FK_USER_PULLER_PATH: z
+    .string()
+    .optional()
+    .default("D:\\Programs\\fp\\FKUserPuller.exe"),
   FK_MDB_PATH: z.string().optional().default("D:\\Programs\\fp\\Taurus.mdb"),
   ATTENDANCE_ENABLED: z.enum(["true", "false"]).optional().default("true"),
   ATTENDANCE_SOURCE: z.enum(["access", "tcp"]).optional().default("access"),
   ATTENDANCE_ACCESS_PATH: z.string().optional().default(""),
-  ATTENDANCE_ACCESS_COPY_FIRST: z.enum(["true", "false"]).optional().default("true"),
-  ATTENDANCE_ACCESS_USE_ODBC: z.enum(["true", "false"]).optional().default("false"),
+  ATTENDANCE_ACCESS_COPY_FIRST: z
+    .enum(["true", "false"])
+    .optional()
+    .default("true"),
+  ATTENDANCE_ACCESS_USE_ODBC: z
+    .enum(["true", "false"])
+    .optional()
+    .default("false"),
   ATTENDANCE_SYNC_BIZ_INTERVAL_MS: z.string().optional().default("120000"),
   ATTENDANCE_SYNC_OFFHOURS_INTERVAL_MS: z.string().optional().default("900000"),
   ATTENDANCE_BIZ_HOURS_START: z.string().optional().default("7"),
@@ -42,9 +57,12 @@ const parsed = envSchema.parse(process.env);
 if (parsed.NODE_ENV === "production") {
   const missing: string[] = [];
   if (!parsed.DATABASE_URL) missing.push("DATABASE_URL");
-  if (!parsed.JWT_SECRET || parsed.JWT_SECRET === "dev-only-change-me") missing.push("JWT_SECRET");
+  if (!parsed.JWT_SECRET || parsed.JWT_SECRET === "dev-only-change-me")
+    missing.push("JWT_SECRET");
   if (missing.length > 0) {
-    throw new Error(`[env] Missing required production env vars: ${missing.join(", ")}`);
+    throw new Error(
+      `[env] Missing required production env vars: ${missing.join(", ")}`,
+    );
   }
 }
 
@@ -69,8 +87,14 @@ export const ENV = {
   attendanceAccessPath: parsed.ATTENDANCE_ACCESS_PATH,
   attendanceAccessCopyFirst: parsed.ATTENDANCE_ACCESS_COPY_FIRST === "true",
   attendanceAccessUseOdbc: parsed.ATTENDANCE_ACCESS_USE_ODBC === "true",
-  attendanceSyncBizIntervalMs: parseInt(parsed.ATTENDANCE_SYNC_BIZ_INTERVAL_MS, 10),
-  attendanceSyncOffhoursIntervalMs: parseInt(parsed.ATTENDANCE_SYNC_OFFHOURS_INTERVAL_MS, 10),
+  attendanceSyncBizIntervalMs: parseInt(
+    parsed.ATTENDANCE_SYNC_BIZ_INTERVAL_MS,
+    10,
+  ),
+  attendanceSyncOffhoursIntervalMs: parseInt(
+    parsed.ATTENDANCE_SYNC_OFFHOURS_INTERVAL_MS,
+    10,
+  ),
   attendanceBizHoursStart: parseInt(parsed.ATTENDANCE_BIZ_HOURS_START, 10),
   attendanceBizHoursEnd: parseInt(parsed.ATTENDANCE_BIZ_HOURS_END, 10),
   attendanceSafetyWindowMin: parseInt(parsed.ATTENDANCE_SAFETY_WINDOW_MIN, 10),

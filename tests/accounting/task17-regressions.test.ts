@@ -13,9 +13,10 @@ import {
   type PrintPayload,
 } from "../../client/src/pages/accounting/printUtils";
 
-const repo = basename(process.cwd()).toLowerCase() === "client"
-  ? resolve(process.cwd(), "..")
-  : process.cwd();
+const repo =
+  basename(process.cwd()).toLowerCase() === "client"
+    ? resolve(process.cwd(), "..")
+    : process.cwd();
 const read = (path: string) => readFileSync(resolve(repo, path), "utf8");
 
 describe("Task 17 accounting SQL regressions", () => {
@@ -63,7 +64,9 @@ describe("Task 17 accounting SQL regressions", () => {
 
     expect(sql).toContain("LEFT JOIN PAPAT_SRV");
     expect(sql).toContain("@patientCode");
-    expect(sql).toMatch(/CONVERT\s*\(\s*VARCHAR\s*\(\s*40\s*\)\s*,\s*h\.PAT_CD\s*\)/i);
+    expect(sql).toMatch(
+      /CONVERT\s*\(\s*VARCHAR\s*\(\s*40\s*\)\s*,\s*h\.PAT_CD\s*\)/i,
+    );
   });
 
   it("matches receipt number with trimmed TR_NO compare", () => {
@@ -88,11 +91,17 @@ describe("Task 17 accounting print regressions", () => {
   ];
 
   it("formats print numbers and dates with Arabic digits", () => {
-    expect(formatPrintCellValue("2026-04-30", { key: "date" })).toBe("٢٠٢٦-٠٤-٣٠");
+    expect(formatPrintCellValue("2026-04-30", { key: "date" })).toBe(
+      "٢٠٢٦-٠٤-٣٠",
+    );
     expect(formatPrintCellValue("1805", { key: "trNo" })).toBe("١٨٠٥");
-    expect(formatPrintCellValue(12, { key: "rowCount", align: "right" })).toBe("١٢");
+    expect(formatPrintCellValue(12, { key: "rowCount", align: "right" })).toBe(
+      "١٢",
+    );
     // Money path uses formatMoneyAr: Arabic digits + fixed 2 decimals (see accountingFormat.ts).
-    expect(formatPrintCellValue(1234.5, { key: "totalGross", align: "right" })).toBe("١٢٣٤.٥٠");
+    expect(
+      formatPrintCellValue(1234.5, { key: "totalGross", align: "right" }),
+    ).toBe("١٢٣٤.٥٠");
   });
 
   it("aligns subtotal labels before the first numeric column", () => {
@@ -109,8 +118,16 @@ describe("Task 17 accounting print regressions", () => {
   });
 
   it("renders date range only when both endpoints exist", () => {
-    expect(hasPrintableDateRange({ clinicName: "SRV100", fromDate: "2026-04-01", toDate: "2026-04-30" })).toBe(true);
-    expect(hasPrintableDateRange({ clinicName: "SRV100", fromDate: "2026-04-01" })).toBe(false);
+    expect(
+      hasPrintableDateRange({
+        clinicName: "SRV100",
+        fromDate: "2026-04-01",
+        toDate: "2026-04-30",
+      }),
+    ).toBe(true);
+    expect(
+      hasPrintableDateRange({ clinicName: "SRV100", fromDate: "2026-04-01" }),
+    ).toBe(false);
   });
 });
 
@@ -157,7 +174,9 @@ describe("Task 17 accounting UI source invariants", () => {
   it("print preview header uses the real-logo chain and the official Arabic clinic name", () => {
     const source = read("client/src/pages/accounting/PrintPreview.tsx");
 
-    expect(source).toContain("PRINT_LOGO_CHAIN = [BRAND_LOGO_URL, BRAND_LOGO_PNG_FALLBACK_URL]");
+    expect(source).toContain(
+      "PRINT_LOGO_CHAIN = [BRAND_LOGO_URL, BRAND_LOGO_PNG_FALLBACK_URL]",
+    );
     expect(source).toContain("مركز عيون الشروق");
     expect(source).not.toContain("BRAND_LOGO_FALLBACK_URL");
   });

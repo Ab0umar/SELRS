@@ -52,7 +52,9 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value === "string") {
     try {
       const parsed = JSON.parse(value);
-      return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
+      return parsed && typeof parsed === "object"
+        ? (parsed as Record<string, unknown>)
+        : null;
     } catch {
       return null;
     }
@@ -211,7 +213,10 @@ async function main() {
         counters.migrated += 1;
       } catch (error) {
         counters.failed += 1;
-        console.error(`[backfill-exam-checklist] row id=${row.id} patientId=${row.patientId} failed`, error);
+        console.error(
+          `[backfill-exam-checklist] row id=${row.id} patientId=${row.patientId} failed`,
+          error,
+        );
       }
     }
 

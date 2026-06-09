@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Printer } from "lucide-react";
+import { Printer, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 
@@ -34,32 +34,51 @@ const PRINT_CSS = `
 export default function AbsentReport() {
   const [fromDate, setFromDate] = useState(DEFAULT_FROM);
   const [toDate, setToDate] = useState(DEFAULT_TO);
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+  const toggleRow = (empCd: string) => {
+    setExpandedRows((prev) => ({ ...prev, [empCd]: !prev[empCd] }));
+  };
 
-  const absentQ = (trpc as any).salary.getAbsentDays.useQuery({ from: fromDate, to: toDate });
+  const absentQ = (trpc as any).salary.getAbsentDays.useQuery({
+    from: fromDate,
+    to: toDate,
+  });
   const rows: any[] = absentQ.data ?? [];
 
   // Group by employee
   const byEmp: Record<string, { name: string; days: string[] }> = {};
   for (const r of rows) {
-    if (!byEmp[r.empCd]) byEmp[r.empCd] = { name: r.empName ?? r.empCd, days: [] };
+    if (!byEmp[r.empCd])
+      byEmp[r.empCd] = { name: r.empName ?? r.empCd, days: [] };
     byEmp[r.empCd].days.push(r.workDate);
   }
-  const empEntries = Object.entries(byEmp).sort((a, b) => a[1].name.localeCompare(b[1].name, "ar"));
+  const empEntries = Object.entries(byEmp).sort((a, b) =>
+    a[1].name.localeCompare(b[1].name, "ar"),
+  );
 
   const periodLabel = `${fmtAr(fromDate)} — ${fmtAr(toDate)}`;
 
   function handlePrint() {
-    const bodyRows = empEntries.map(([, { name, days }]) =>
-      days.map((d, i) => `
+    const bodyRows = empEntries
+      .map(([, { name, days }]) =>
+        days
+          .map(
+            (d, i) => `
         <tr>
           ${i === 0 ? `<td class="emp-col" rowspan="${days.length}">${name}</td>` : ""}
           <td>${fmtAr(d)}</td>
-        </tr>`).join("")
-    ).join("");
+        </tr>`,
+          )
+          .join(""),
+      )
+      .join("");
 
-    const totalsRows = empEntries.map(([, { name, days }]) =>
-      `<tr><td class="emp-col">${name}</td><td>${days.length} يوم</td></tr>`
-    ).join("");
+    const totalsRows = empEntries
+      .map(
+        ([, { name, days }]) =>
+          `<tr><td class="emp-col">${name}</td><td>${days.length} يوم</td></tr>`,
+      )
+      .join("");
 
     const html = `
       <h1>تقرير أيام الغياب</h1>
@@ -75,13 +94,18 @@ export default function AbsentReport() {
       </table>`;
 
     const mask = document.createElement("style");
-    mask.textContent = "@media print{body>*{visibility:hidden!important}#__pr__,#__pr__ *{visibility:visible!important}#__pr__{position:fixed;inset:0;direction:rtl}}";
+    mask.textContent =
+      "@media print{body>*{visibility:hidden!important}#__pr__,#__pr__ *{visibility:visible!important}#__pr__{position:fixed;inset:0;direction:rtl}}";
     const container = document.createElement("div");
     container.id = "__pr__";
     container.innerHTML = `<style>${PRINT_CSS}</style>${html}`;
     document.head.appendChild(mask);
     document.body.appendChild(container);
-    const cleanup = () => { mask.remove(); container.remove(); window.removeEventListener("afterprint", cleanup); };
+    const cleanup = () => {
+      mask.remove();
+      container.remove();
+      window.removeEventListener("afterprint", cleanup);
+    };
     window.addEventListener("afterprint", cleanup);
     window.print();
   }
@@ -90,19 +114,34 @@ export default function AbsentReport() {
     <div className="space-y-6" dir="rtl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-medium text-muted-foreground">مسار المتغيرات الشهرية</p>
+          <p className="text-xs font-medium text-muted-foreground">
+            مسار المتغيرات الشهرية
+          </p>
           <h2 className="text-2xl font-bold text-foreground">تقرير الغياب</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             مراجعة الغياب المؤثر على خصومات الشهر.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+          />
           <span className="text-sm text-muted-foreground">—</span>
-          <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
-          <Button variant="outline" onClick={handlePrint} className="gap-2" disabled={absentQ.isLoading}>
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+          />
+          <Button
+            variant="outline"
+            onClick={handlePrint}
+            className="gap-2"
+            disabled={absentQ.isLoading}
+          >
             <Printer size={15} /> طباعة
           </Button>
         </div>
@@ -111,69 +150,161 @@ export default function AbsentReport() {
       {/* Summary */}
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-xl border border-border bg-card px-4 py-3">
-          <div className="text-xs text-muted-foreground">إجمالي أيام الغياب</div>
-          <div className="mt-1 text-2xl font-bold text-destructive">{rows.length} يوم</div>
+          <div className="text-xs text-muted-foreground">
+            إجمالي أيام الغياب
+          </div>
+          <div className="mt-1 text-2xl font-bold text-destructive">
+            {rows.length} يوم
+          </div>
         </div>
         <div className="rounded-xl border border-border bg-card px-4 py-3">
-          <div className="text-xs text-muted-foreground">عدد الموظفين المتغيبين</div>
-          <div className="mt-1 text-2xl font-bold text-foreground">{empEntries.length}</div>
+          <div className="text-xs text-muted-foreground">
+            عدد الموظفين المتغيبين
+          </div>
+          <div className="mt-1 text-2xl font-bold text-foreground">
+            {empEntries.length}
+          </div>
         </div>
         <div className="rounded-xl border border-border bg-card px-4 py-3">
           <div className="text-xs text-muted-foreground">الفترة</div>
-          <div className="mt-1 text-sm font-semibold text-foreground">{periodLabel}</div>
+          <div className="mt-1 text-sm font-semibold text-foreground">
+            {periodLabel}
+          </div>
         </div>
       </div>
 
       {absentQ.isLoading && (
-        <p className="text-sm text-muted-foreground animate-pulse">جاري التحميل...</p>
+        <p className="text-sm text-muted-foreground animate-pulse">
+          جاري التحميل...
+        </p>
       )}
 
       {!absentQ.isLoading && (
         <section className="rounded-xl border border-border bg-background">
           <div className="border-b border-border px-4 py-3">
-            <h3 className="text-base font-semibold">أيام الغياب — {periodLabel}</h3>
+            <h3 className="text-base font-semibold">
+              أيام الغياب — {periodLabel}
+            </h3>
           </div>
-          <div className="overflow-x-auto">
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30 text-xs">
                   <th className="px-3 py-2 text-right font-medium">الموظف</th>
                   <th className="px-3 py-2 font-medium text-center">التاريخ</th>
-                  <th className="px-3 py-2 font-medium text-center">عدد أيام الغياب</th>
+                  <th className="px-3 py-2 font-medium text-center">
+                    عدد أيام الغياب
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {rows.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="px-3 py-6 text-center text-muted-foreground">
+                    <td
+                      colSpan={3}
+                      className="px-3 py-6 text-center text-muted-foreground"
+                    >
                       لا توجد أيام غياب في هذه الفترة
                     </td>
                   </tr>
-                ) : empEntries.map(([empCd, { name, days }]) =>
-                  days.map((d, i) => (
-                    <tr key={`${empCd}-${d}`} className="border-b border-border/50 last:border-0 hover:bg-muted/20">
-                      <td className="px-3 py-2 font-medium">{i === 0 ? name : ""}</td>
-                      <td className="px-3 py-2 text-center tabular-nums">{fmtAr(d)}</td>
-                      <td className="px-3 py-2 text-center">
-                        {i === 0 && (
-                          <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
-                            {days.length} يوم
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))
+                ) : (
+                  empEntries.map(([empCd, { name, days }]) =>
+                    days.map((d, i) => (
+                      <tr
+                        key={`${empCd}-${d}`}
+                        className="border-b border-border/50 last:border-0 hover:bg-muted/20"
+                      >
+                        <td className="px-3 py-2 font-medium">
+                          {i === 0 ? name : ""}
+                        </td>
+                        <td className="px-3 py-2 text-center tabular-nums">
+                          {fmtAr(d)}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {i === 0 && (
+                            <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
+                              {days.length} يوم
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    )),
+                  )
                 )}
               </tbody>
               {rows.length > 0 && (
                 <tfoot>
                   <tr className="border-t border-border bg-muted/30 font-semibold text-xs">
-                    <td className="px-3 py-2" colSpan={2}>الإجمالي</td>
+                    <td className="px-3 py-2" colSpan={2}>
+                      الإجمالي
+                    </td>
                     <td className="px-3 py-2 text-center">{rows.length} يوم</td>
                   </tr>
                 </tfoot>
               )}
             </table>
+          </div>
+
+          {/* Mobile Accordion Cards View */}
+          <div className="block lg:hidden divide-y divide-border/60">
+            {empEntries.map(([empCd, { name, days }]) => {
+              const isExpanded = !!expandedRows[empCd];
+              return (
+                <div
+                  key={empCd}
+                  className="p-4 bg-card hover:bg-slate-50/20 transition-colors"
+                >
+                  <div
+                    className="flex items-center justify-between cursor-pointer"
+                    onClick={() => toggleRow(empCd)}
+                  >
+                    <div className="space-y-1">
+                      <div className="font-bold text-sm text-foreground">
+                        {name}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-left">
+                        <div className="text-[10px] font-bold text-muted-foreground uppercase">
+                          أيام الغياب
+                        </div>
+                        <div className="text-sm font-bold text-destructive tabular-nums">
+                          {days.length} يوم
+                        </div>
+                      </div>
+                      {isExpanded ? (
+                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="mt-4 pt-4 border-t border-border/40 space-y-2 text-xs">
+                      <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                        تاريخ الغياب:
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {days.map((d) => (
+                          <div
+                            key={d}
+                            className="bg-muted/30 px-3 py-1.5 rounded-lg border border-border/20 text-center font-semibold tabular-nums text-foreground"
+                          >
+                            {fmtAr(d)}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {rows.length === 0 && (
+              <div className="px-4 py-8 text-center text-muted-foreground text-xs">
+                لا توجد أيام غياب في هذه الفترة
+              </div>
+            )}
           </div>
         </section>
       )}

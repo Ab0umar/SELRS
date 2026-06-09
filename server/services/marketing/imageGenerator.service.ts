@@ -20,7 +20,7 @@ export class MarketingImageConfigError extends Error {
   constructor() {
     super(
       "No image generation API configured. " +
-        "Set OPENAI_API_KEY or BUILT_IN_FORGE_API_URL + BUILT_IN_FORGE_API_KEY."
+        "Set OPENAI_API_KEY or BUILT_IN_FORGE_API_URL + BUILT_IN_FORGE_API_KEY.",
     );
     this.name = "MarketingImageConfigError";
   }
@@ -29,10 +29,15 @@ export class MarketingImageConfigError extends Error {
 // ─── Local disk storage ───────────────────────────────────────────────────────
 
 function getLocalImageDir(): string {
-  return ENV.marketingImageDir || path.resolve(process.cwd(), "uploads", "marketing");
+  return (
+    ENV.marketingImageDir || path.resolve(process.cwd(), "uploads", "marketing")
+  );
 }
 
-async function saveImageLocally(buffer: Buffer, postId: number): Promise<string> {
+async function saveImageLocally(
+  buffer: Buffer,
+  postId: number,
+): Promise<string> {
   const dir = getLocalImageDir();
   await fs.mkdir(dir, { recursive: true });
   const filename = `${postId}-${Date.now()}.png`;
@@ -42,7 +47,10 @@ async function saveImageLocally(buffer: Buffer, postId: number): Promise<string>
 
 // ─── DALL-E 3 generation ──────────────────────────────────────────────────────
 
-async function generateWithOpenAI(prompt: string, postId: number): Promise<string> {
+async function generateWithOpenAI(
+  prompt: string,
+  postId: number,
+): Promise<string> {
   const client = new OpenAI({ apiKey: ENV.openaiApiKey });
 
   const response = await client.images.generate({
@@ -75,7 +83,7 @@ async function generateWithOpenAI(prompt: string, postId: number): Promise<strin
 
 export async function generateMarketingImage(
   imagePrompt: string,
-  postId: number
+  postId: number,
 ): Promise<string> {
   // Priority 1: Forge API
   if (ENV.forgeApiUrl && ENV.forgeApiKey) {

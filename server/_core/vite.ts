@@ -8,7 +8,11 @@ import { createServer as createViteServer } from "vite";
 export async function setupVite(app: Express, server: Server) {
   const host = process.env.HOST || "127.0.0.1";
   const port = parseInt(process.env.PORT || "5000");
-  const viteConfigFile = path.resolve(import.meta.dirname, "../..", "vite.config.ts");
+  const viteConfigFile = path.resolve(
+    import.meta.dirname,
+    "../..",
+    "vite.config.ts",
+  );
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
@@ -30,14 +34,14 @@ export async function setupVite(app: Express, server: Server) {
         import.meta.dirname,
         "../..",
         "client",
-        "index.html"
+        "index.html",
       );
 
       // always reload the index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
       template = template.replace(
         `src="/src/main.tsx"`,
-        `src="/src/main.tsx?v=${nanoid()}"`
+        `src="/src/main.tsx?v=${nanoid()}"`,
       );
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
@@ -49,12 +53,17 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const builtDistPath = path.resolve(import.meta.dirname, "../..", "dist", "public");
+  const builtDistPath = path.resolve(
+    import.meta.dirname,
+    "../..",
+    "dist",
+    "public",
+  );
   const packagedPath = path.resolve(import.meta.dirname, "public");
   const distPath = fs.existsSync(builtDistPath) ? builtDistPath : packagedPath;
   if (!fs.existsSync(distPath)) {
     console.error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`
+      `Could not find the build directory: ${distPath}, make sure to build the client first`,
     );
   }
 
@@ -63,17 +72,23 @@ export function serveStatic(app: Express) {
       setHeaders: (res, filePath) => {
         // Never cache HTML entry points; they must always reference latest hashed assets.
         if (filePath.toLowerCase().endsWith(".html")) {
-          res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+          res.setHeader(
+            "Cache-Control",
+            "no-store, no-cache, must-revalidate, proxy-revalidate",
+          );
           res.setHeader("Pragma", "no-cache");
           res.setHeader("Expires", "0");
         }
       },
-    })
+    }),
   );
 
   // fall through to index.html if the file doesn't exist
   app.use((_req, res) => {
-    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader(
+      "Cache-Control",
+      "no-store, no-cache, must-revalidate, proxy-revalidate",
+    );
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
     res.sendFile(path.resolve(distPath, "index.html"));

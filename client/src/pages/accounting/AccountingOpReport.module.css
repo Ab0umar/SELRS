@@ -48,7 +48,8 @@
     color-mix(in srgb, var(--primary) 15%, var(--background)) 0%,
     color-mix(in srgb, var(--primary) 10%, var(--background)) 100%
   );
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, var(--primary) 40%);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--border) 60%, var(--primary) 40%);
   text-align: right;
 }
 
@@ -80,7 +81,8 @@
   font-weight: 700;
   background: var(--muted);
   color: var(--muted-foreground);
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, var(--primary) 40%);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--border) 60%, var(--primary) 40%);
 }
 
 .gridTable th:first-child,
@@ -110,9 +112,12 @@
 .grandTotalRow td {
   font-weight: 700;
   background: color-mix(in srgb, var(--primary) 12%, var(--background));
-  border-top: 1px solid color-mix(in srgb, var(--primary) 25%, var(--background));
-  border-bottom: 1px solid color-mix(in srgb, var(--primary) 25%, var(--background));
-  border-right: 1px solid color-mix(in srgb, var(--primary) 25%, var(--background));
+  border-top: 1px solid
+    color-mix(in srgb, var(--primary) 25%, var(--background));
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--primary) 25%, var(--background));
+  border-right: 1px solid
+    color-mix(in srgb, var(--primary) 25%, var(--background));
 }
 
 .grandTotalRow td:first-child {
@@ -122,9 +127,12 @@
 .detailFooterRow td {
   font-weight: 700;
   background: color-mix(in srgb, var(--secondary) 12%, var(--background));
-  border-top: 1px solid color-mix(in srgb, var(--secondary) 40%, var(--background));
-  border-bottom: 1px solid color-mix(in srgb, var(--secondary) 40%, var(--background));
-  border-right: 1px solid color-mix(in srgb, var(--secondary) 40%, var(--background));
+  border-top: 1px solid
+    color-mix(in srgb, var(--secondary) 40%, var(--background));
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--secondary) 40%, var(--background));
+  border-right: 1px solid
+    color-mix(in srgb, var(--secondary) 40%, var(--background));
 }
 
 .detailFooterRow td:first-child {
@@ -193,14 +201,19 @@
   background: linear-gradient(180deg, var(--background) 0%, var(--muted) 100%);
 }
 
-.colCompact { width: 1%; }
-.colStretch { width: auto; }
+.colCompact {
+  width: 1%;
+}
+.colStretch {
+  width: auto;
+}
 
 .printScope {
   position: relative;
 }
 
-.noPrint {}
+.noPrint {
+}
 
 @media print {
   @page {

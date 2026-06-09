@@ -11,6 +11,7 @@ import {
   UserRound,
   WifiOff,
   Zap,
+  Loader2,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -22,11 +23,7 @@ import {
   getOfflineCacheSummary,
   subscribeNetworkStatus,
 } from "@/lib/appRuntime";
-import {
-  BRAND_FOOTER_EN,
-  BRAND_NAME_AR,
-  BRAND_TAGLINE_AR,
-} from "@/lib/brand";
+import { BRAND_FOOTER_EN, BRAND_NAME_AR, BRAND_TAGLINE_AR } from "@/lib/brand";
 import {
   NATIVE_LAST_USERNAME_KEY,
   hydrateDurableValue,
@@ -34,16 +31,16 @@ import {
 } from "@/lib/nativeStorage";
 
 const SERVICES = [
-  { icon: Zap,        ar: "تصحيح الإبصار" },
-  { icon: Eye,        ar: "المياه البيضاء" },
-  { icon: Scan,       ar: "أشعة القرنية"   },
-  { icon: Microscope, ar: "زراعة العدسات"  },
+  { icon: Zap, ar: "تصحيح الإبصار" },
+  { icon: Eye, ar: "المياه البيضاء" },
+  { icon: Scan, ar: "أشعة القرنية" },
+  { icon: Microscope, ar: "زراعة العدسات" },
 ] as const;
 
 const STATS = [
-  { value: "+10K", label: "مريض"  },
-  { value: "15+",  label: "طبيب"  },
-  { value: "24/7", label: "خدمة"  },
+  { value: "+10K", label: "مريض" },
+  { value: "15+", label: "طبيب" },
+  { value: "24/7", label: "خدمة" },
 ] as const;
 
 export default function Home() {
@@ -74,14 +71,13 @@ export default function Home() {
     setLocation(role === "accountant" ? "/accounting" : "/dashboard");
   }, [loading, user, setLocation]);
 
-  useEffect(
-    () => subscribeNetworkStatus((s) => setIsOnline(s.connected)),
-    [],
-  );
+  useEffect(() => subscribeNetworkStatus((s) => setIsOnline(s.connected)), []);
 
   useEffect(() => {
     void hydrateDurableValue(NATIVE_LAST_USERNAME_KEY, "last_username").then(
-      (stored) => { if (stored) setUsername(stored); },
+      (stored) => {
+        if (stored) setUsername(stored);
+      },
     );
   }, []);
 
@@ -97,17 +93,26 @@ export default function Home() {
         credentials: "include",
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { setError(data?.error || "فشل تسجيل الدخول"); return; }
+      if (!res.ok) {
+        setError(data?.error || "فشل تسجيل الدخول");
+        return;
+      }
       if (typeof window !== "undefined") {
         const persist = Capacitor.isNativePlatform() ? true : rememberMe;
         window.localStorage.setItem("remember_me", persist ? "1" : "0");
         window.localStorage.setItem("last_username", username.trim());
-        void saveDurableValue(NATIVE_LAST_USERNAME_KEY, username.trim(), "last_username");
+        void saveDurableValue(
+          NATIVE_LAST_USERNAME_KEY,
+          username.trim(),
+          "last_username",
+        );
         const store = persist ? window.localStorage : window.sessionStorage;
         const clear = persist ? window.sessionStorage : window.localStorage;
-        clear.removeItem("user"); clear.removeItem("token");
-        store.removeItem("user"); store.removeItem("token");
-        if (data?.user)  store.setItem("user",  JSON.stringify(data.user));
+        clear.removeItem("user");
+        clear.removeItem("token");
+        store.removeItem("user");
+        store.removeItem("token");
+        if (data?.user) store.setItem("user", JSON.stringify(data.user));
         if (data?.token) store.setItem("token", String(data.token));
       }
       setLocation("/dashboard");
@@ -115,7 +120,9 @@ export default function Home() {
       setError(
         !navigator.onLine
           ? "لا يوجد اتصال بالإنترنت. يرجى التحقق من الشبكة."
-          : err instanceof Error ? err.message : "فشل تسجيل الدخول",
+          : err instanceof Error
+            ? err.message
+            : "فشل تسجيل الدخول",
       );
     } finally {
       setSubmitting(false);
@@ -127,174 +134,255 @@ export default function Home() {
       <div className="flex min-h-screen items-center justify-center bg-primary">
         <div className="space-y-3 text-center">
           <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-primary-foreground/20 border-t-primary-foreground/70" />
-          <p className="text-sm font-medium text-primary-foreground/50">جاري التحميل...</p>
+          <p className="text-sm font-medium text-primary-foreground/50">
+            جاري التحميل...
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div dir="rtl" className="flex min-h-dvh flex-col bg-background">
+    <div
+      className="h-dvh w-full overflow-hidden flex flex-col lg:flex-row bg-white text-foreground font-sans selection:bg-[#2a4f9a]/10 selection:text-[#1f3f82]"
+      dir="rtl"
+    >
+      {/* Brand panel (Right side on desktop, top banner on mobile) */}
+      <div className="relative overflow-hidden w-full h-[34dvh] min-h-[220px] max-h-[285px] lg:h-auto lg:max-h-none lg:w-[56%] flex flex-col bg-gradient-to-br from-[#15296a] via-[#0f2050] to-[#0c1840] py-5 px-5 sm:p-8 lg:p-14 justify-between shrink-0">
+        {/* soft glow blobs */}
+        <div
+          className="absolute top-[-120px] left-[-80px] w-[360px] h-[360px] rounded-full pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(211, 156, 42, 0.18), transparent 70%)",
+          }}
+        />
+        <div
+          className="absolute bottom-[-140px] right-[-100px] w-[420px] h-[420px] rounded-full pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(37, 99, 235, 0.30), transparent 70%)",
+          }}
+        />
 
-      {/* ── Navy top section ── */}
-      <div className="relative overflow-hidden bg-primary px-6 pb-7 pt-10 sm:pt-12">
-        <div className="pointer-events-none absolute -left-12 -top-12 h-52 w-52 rounded-full bg-secondary/15 blur-[70px]" aria-hidden />
-        <div className="pointer-events-none absolute -bottom-8 -right-8 h-40 w-40 rounded-full bg-white/5 blur-[60px]" aria-hidden />
-
-        {/* Logo + clinic name */}
-        <div className="relative flex items-center gap-4">
-          <div className="flex-shrink-0 rounded-2xl bg-white/10 p-2.5 ring-1 ring-white/20">
-            <BrandLogo className="h-14 w-14" />
-          </div>
-          <div>
-            <h1 className="text-[1.75rem] font-black leading-none tracking-tight text-primary-foreground">
-              {BRAND_NAME_AR}
-            </h1>
-            <p className="mt-1.5 text-[13px] font-bold text-secondary">{BRAND_TAGLINE_AR}</p>
+        {/* Lockup (Logo + Title + Tagline) */}
+        <div className="relative z-10 flex flex-1 flex-row items-center justify-center gap-5 lg:gap-7">
+          <BrandLogo className="size-32 lg:size-44 object-contain select-none shrink-0" />
+          <div className="flex flex-col items-start text-right">
+            <span className="whitespace-nowrap text-[32px] sm:text-[42px] lg:text-[56px] font-extrabold text-white leading-none">
+              مركز عيون الشروق
+            </span>
+            <span className="text-base lg:text-2xl font-bold text-[#FC9918] mt-2">
+              لامراض القرنيه و تصحيح الابصار
+            </span>
           </div>
         </div>
 
-        {/* Stats row */}
-        <div className="relative mt-5 flex items-stretch rounded-xl bg-white/8 ring-1 ring-white/10">
-          {STATS.map(({ value, label }, i) => (
-            <div key={label} className="flex flex-1 items-center">
-              {i > 0 && <div className="h-8 w-px flex-shrink-0 bg-white/15" />}
-              <div className="flex flex-1 flex-col items-center py-2.5">
-                <p className="text-base font-black text-primary-foreground">{value}</p>
-                <p className="text-[10px] font-medium text-primary-foreground/55">{label}</p>
-              </div>
+        {/* Services Grid (Desktop 2x2, Mobile 1x4 horizontal chips) */}
+        {/* Desktop 2x2 Grid */}
+        <div className="relative z-10 mt-auto hidden lg:grid grid-cols-4 gap-2.5">
+          {SERVICES.map(({ icon: Icon, ar: label }) => (
+            <div
+              key={label}
+              className="flex h-20 flex-col items-center justify-center gap-2 text-center"
+            >
+              <span className="flex items-center justify-center text-[#e8b54a] shrink-0">
+                <Icon className="size-7" />
+              </span>
+              <span className="text-white/85 text-sm font-bold leading-tight">
+                {label}
+              </span>
             </div>
           ))}
         </div>
 
-        {/* Service pills */}
-        <div className="relative mt-4 flex flex-wrap gap-1.5">
-          {SERVICES.map(({ icon: Icon, ar }) => (
+        {/* Mobile horizontal chips */}
+        <div className="relative z-10 mt-4 grid lg:hidden grid-cols-4 gap-1.5">
+          {SERVICES.map(({ icon: Icon, ar: label }) => (
             <div
-              key={ar}
-              className="flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[10.5px] font-semibold text-primary-foreground/85 ring-1 ring-white/15"
+              key={label}
+              className="flex h-16 flex-col items-center justify-center gap-1.5 text-center"
             >
-              <Icon className="h-2.5 w-2.5 text-secondary" />
-              {ar}
+              <span className="text-[#e8b54a]">
+                <Icon className="size-5" />
+              </span>
+              <span className="text-white/85 text-[9px] sm:text-[10px] font-bold leading-tight">
+                {label}
+              </span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* ── White form section — fills remaining height ── */}
-      <div className="flex flex-1 flex-col px-6 py-5">
-        <div className="flex flex-1 flex-col gap-4">
+      {/* Form Column (Left side on desktop, bottom sheet sliding up on mobile) */}
+      <div className="flex-1 overflow-hidden bg-white rounded-t-[22px] lg:rounded-none -mt-5 lg:mt-0 p-5 sm:p-10 lg:p-20 flex flex-col justify-between relative z-10 shadow-[0_-8px_30px_rgba(15,32,80,0.06)] lg:shadow-none">
+        {/* Top bar (for beautiful visual connection on mobile/desktop) */}
+        <div className="lg:hidden absolute top-2.5 left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-full bg-slate-200" />
 
-          <div>
-            <h2 className="text-lg font-black text-foreground">تسجيل الدخول</h2>
-            <p className="text-xs text-muted-foreground">أدخل بياناتك للوصول إلى النظام</p>
-          </div>
+        <div className="w-full max-w-[420px] mx-auto my-auto flex flex-col justify-center">
+          <span className="inline-flex items-center gap-1.5 self-start text-[10px] sm:text-xs font-bold tracking-wider uppercase text-[#2a4f9a] mb-3">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#d39c2a]" />
+            تسجيل دخول آمن
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0f2050] tracking-tight m-0">
+            دخول النظام
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 mt-2 mb-4 sm:mb-8 leading-relaxed">
+            أدخل بياناتك للوصول إلى نظام إدارة المرضى والفحوصات.
+          </p>
 
-          {error ? (
-            <Alert className="border-destructive/20 bg-destructive/8 py-2 text-destructive-text">
-              <AlertDescription className="text-xs">{error}</AlertDescription>
-            </Alert>
-          ) : null}
-          {!isOnline ? (
-            <Alert className="border-warning/25 bg-warning/10 py-2 text-warning-text">
-              <AlertDescription className="text-xs">
-                وضع عدم الاتصال — {offlineCacheSummary.count} ملف مخزن
-              </AlertDescription>
-            </Alert>
-          ) : null}
+          {/* Form */}
+          <form onSubmit={handleLogin} className="space-y-3 sm:space-y-5">
+            {error ? (
+              <Alert className="border-destructive/20 bg-destructive/5 text-destructive font-medium text-xs py-2 rounded-xl">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : null}
 
-          <form onSubmit={handleLogin} className="space-y-3">
-            <div className="space-y-1">
-              <label htmlFor="username" className="text-xs font-semibold text-foreground">اسم المستخدم</label>
+            {!isOnline ? (
+              <Alert className="border-warning/25 bg-warning/10 py-2 text-warning-text rounded-xl">
+                <AlertDescription className="text-xs font-medium">
+                  وضع عدم الاتصال — {offlineCacheSummary.count} ملف مخزن
+                </AlertDescription>
+              </Alert>
+            ) : null}
+
+            <div className="space-y-1.5">
+              <label
+                className="block text-xs sm:text-sm font-bold text-slate-700"
+                htmlFor="username"
+              >
+                اسم المستخدم
+              </label>
               <div className="relative">
-                <UserRound className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
                 <Input
-                  id="username" type="text" placeholder="أدخل اسم المستخدم"
-                  value={username} onChange={(e) => setUsername(e.target.value)}
-                  className="h-9 rounded-lg border-border bg-muted/40 pr-9 text-left text-sm placeholder:text-muted-foreground/40 focus-visible:ring-2 focus-visible:ring-ring/50"
-                  dir="ltr" disabled={submitting} required autoComplete="username"
+                  id="username"
+                  type="text"
+                  placeholder="أدخل اسم المستخدم"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="h-12 border-[#e6edf5] bg-slate-50 rounded-xl pr-12 focus-visible:ring-primary/10 text-right font-medium"
+                  disabled={submitting}
+                  required
+                  autoComplete="username"
                 />
+                <UserRound className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
               </div>
             </div>
 
-            <div className="space-y-1">
-              <label htmlFor="password" className="text-xs font-semibold text-foreground">كلمة المرور</label>
+            <div className="space-y-1.5">
+              <label
+                className="block text-xs sm:text-sm font-bold text-slate-700"
+                htmlFor="password"
+              >
+                كلمة المرور
+              </label>
               <div className="relative">
-                <LockKeyhole className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
                 <Input
-                  id="password" type={showPassword ? "text" : "password"} placeholder="أدخل كلمة المرور"
-                  value={password} onChange={(e) => setPassword(e.target.value)}
-                  className="h-9 rounded-lg border-border bg-muted/40 px-9 text-left text-sm placeholder:text-muted-foreground/40 focus-visible:ring-2 focus-visible:ring-ring/50"
-                  dir="ltr" disabled={submitting} required autoComplete="current-password"
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="******"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-12 border-[#e6edf5] bg-slate-50 rounded-xl pr-12 pl-12 focus-visible:ring-primary/10 text-right font-medium"
+                  disabled={submitting}
+                  required
+                  autoComplete="current-password"
                 />
+                <LockKeyhole className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                 <button
-                  type="button" aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                  type="button"
+                  aria-label={
+                    showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"
+                  }
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/40 transition-colors hover:text-muted-foreground"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#2a4f9a] transition-colors cursor-pointer"
                   tabIndex={-1}
                 >
-                  <Eye className="h-3.5 w-3.5" />
+                  <Eye className="size-5" />
                 </button>
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <label className="flex cursor-pointer items-center gap-2">
-                <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-3.5 w-3.5 rounded border-border accent-primary" disabled={submitting} />
-                <span className="text-xs text-muted-foreground">تذكرني</span>
+            <div className="flex items-center justify-between pt-1">
+              <label className="flex cursor-pointer items-center gap-2 text-xs sm:text-sm font-semibold text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-[#1f3f82] accent-[#1f3f82] cursor-pointer"
+                  disabled={submitting}
+                />
+                <span>تذكرني</span>
               </label>
-              <a href="#" onClick={(e) => e.preventDefault()} className="text-xs font-medium text-primary hover:underline">
+              <a
+                href="#"
+                onClick={(e) => e.preventDefault()}
+                className="text-xs sm:text-sm font-bold text-[#2a4f9a] hover:underline"
+              >
                 نسيت كلمة المرور؟
               </a>
             </div>
 
-            <Button
-              type="submit"
-              className="h-10 w-full rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={submitting}
-            >
-              {submitting ? "جاري تسجيل الدخول..." : (
-                <span className="flex items-center justify-center gap-2">تسجيل الدخول <LogIn className="h-4 w-4" /></span>
-              )}
-            </Button>
+            <div className="pt-2">
+              <Button
+                type="submit"
+                className="bg-primary text-sm font-bold text-primary-foreground"
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="size-5 animate-spin" />
+                    <span>جاري التحقق...</span>
+                  </div>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    دخول إلى النظام <LogIn className="size-5" />
+                  </span>
+                )}
+              </Button>
+            </div>
           </form>
 
-          {/* Portal links */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="flex-1 border-t border-border/50" />
-              <span className="text-[10px] font-semibold text-muted-foreground/60">بوابات أخرى</span>
-              <div className="flex-1 border-t border-border/50" />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Link href="/my/login">
-                <div className="flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border/60 bg-muted/40 text-[11px] font-semibold text-foreground transition-colors hover:border-primary/25 hover:bg-muted">
-                  <UserRound className="h-3 w-3 text-muted-foreground" /> دخول المريض
-                </div>
-              </Link>
-              <Link href="/doctor-portal/login">
-                <div className="flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border/60 bg-muted/40 text-[11px] font-semibold text-foreground transition-colors hover:border-primary/25 hover:bg-muted">
-                  <Stethoscope className="h-3 w-3 text-muted-foreground" /> دخول الطبيب
-                </div>
-              </Link>
-            </div>
+          {/* Portals divider */}
+          <div className="flex items-center gap-3.5 my-4 sm:my-8">
+            <div className="flex-1 h-px bg-[#e6edf5]" />
+            <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+              بوابات أخرى
+            </span>
+            <div className="flex-1 h-px bg-[#e6edf5]" />
           </div>
 
+          {/* Portals Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            <Link href="/my/login">
+              <div className="flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#e6edf5] bg-white text-xs sm:text-sm font-bold text-[#1e2a35] transition-all hover:border-[#1f3f82] hover:bg-[#eef2fb] hover:shadow-sm">
+                <UserRound className="size-4 text-[#3560b0]" /> دخول المريض
+              </div>
+            </Link>
+            <Link href="/doctor-portal/login">
+              <div className="flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#e6edf5] bg-white text-xs sm:text-sm font-bold text-[#1e2a35] transition-all hover:border-[#1f3f82] hover:bg-[#eef2fb] hover:shadow-sm">
+                <Stethoscope className="size-4 text-[#3560b0]" /> دخول الطبيب
+              </div>
+            </Link>
+          </div>
         </div>
 
-        {/* Footer — pushed to bottom */}
-        <div className="mt-4 flex items-center justify-between border-t border-border/40 pt-3">
-          <div className={`flex items-center gap-1.5 text-[10px] font-semibold ${
-            isOnline ? "text-primary/50" : "text-warning-text"
-          }`}>
-            {!isOnline && <WifiOff className="h-3 w-3" />}
-            {isOnline ? "متصل بالنظام" : `غير متصل (${offlineCacheSummary.count})`}
+        {/* Footer */}
+        <footer className="mt-4 pt-4 sm:mt-8 sm:pt-6 border-t border-[#e6edf5] flex flex-row items-center justify-between text-[11px] sm:text-xs text-slate-400 w-full">
+          <div
+            className={`flex items-center gap-1.5 font-bold ${isOnline ? "text-[#0f766e]" : "text-warning-text"}`}
+          >
+            {!isOnline && <WifiOff className="size-3.5" />}
+            {isOnline
+              ? "متصل بالنظام"
+              : `غير متصل (${offlineCacheSummary.count})`}
           </div>
-          <p className="text-[9px] text-muted-foreground/40">{BRAND_FOOTER_EN}</p>
-        </div>
+          <p className="m-0 text-slate-400/80">
+            © {new Date().getFullYear()} مركز عيون الشروق
+          </p>
+        </footer>
       </div>
-
     </div>
   );
 }

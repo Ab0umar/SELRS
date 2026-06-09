@@ -4,7 +4,12 @@ import { loadXlsx } from "@/lib/xlsx";
 import { trpc } from "@/lib/trpc";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { type AdminPatientsListState } from "./useAdminPatientsList";
-import { type BulkSnapshot, type ImportPreviewRow, type SheetTypeChoice, toLegacyServiceType } from "./adminPatientsShared";
+import {
+  type BulkSnapshot,
+  type ImportPreviewRow,
+  type SheetTypeChoice,
+  toLegacyServiceType,
+} from "./adminPatientsShared";
 
 type UseAdminPatientsBulkOptions = {
   activeDoctors: AdminPatientsListState["activeDoctors"];
@@ -22,22 +27,38 @@ export function useAdminPatientsBulk({
   setManualLockOverrides,
 }: UseAdminPatientsBulkOptions) {
   const utils = trpc.useUtils();
-  const bulkAssignDoctorMutation = trpc.medical.bulkAssignDoctorToPatients.useMutation();
-  const bulkAssignSheetMutation = trpc.medical.bulkAssignSheetTypeToPatients.useMutation();
+  const bulkAssignDoctorMutation =
+    trpc.medical.bulkAssignDoctorToPatients.useMutation();
+  const bulkAssignSheetMutation =
+    trpc.medical.bulkAssignSheetTypeToPatients.useMutation();
   const bulkRestoreMutation = trpc.medical.bulkRestorePatients.useMutation();
   const stageImportMutation = trpc.medical.stagePatientsImport.useMutation();
   const applyImportMutation = trpc.medical.applyPatientsImport.useMutation();
 
   const [bulkDoctorId, setBulkDoctorId] = useState("none");
-  const [bulkSheetType, setBulkSheetType] = useState<"none" | SheetTypeChoice>("none");
-  const [bulkManualLock, setBulkManualLock] = useState<"none" | "on" | "off">("none");
-  const [lastBulkSnapshots, setLastBulkSnapshots] = useState<BulkSnapshot[]>([]);
+  const [bulkSheetType, setBulkSheetType] = useState<"none" | SheetTypeChoice>(
+    "none",
+  );
+  const [bulkManualLock, setBulkManualLock] = useState<"none" | "on" | "off">(
+    "none",
+  );
+  const [lastBulkSnapshots, setLastBulkSnapshots] = useState<BulkSnapshot[]>(
+    [],
+  );
   const [lastBulkLabel, setLastBulkLabel] = useState("");
   const [importPreviewOpen, setImportPreviewOpen] = useState(false);
   const [importBatchId, setImportBatchId] = useState("");
-  const [importSummary, setImportSummary] = useState<{ total: number; valid: number; invalid: number } | null>(null);
-  const [importPreviewRows, setImportPreviewRows] = useState<ImportPreviewRow[]>([]);
-  const [importDateFormat, setImportDateFormat] = useState<"" | "DMY" | "MDY">("");
+  const [importSummary, setImportSummary] = useState<{
+    total: number;
+    valid: number;
+    invalid: number;
+  } | null>(null);
+  const [importPreviewRows, setImportPreviewRows] = useState<
+    ImportPreviewRow[]
+  >([]);
+  const [importDateFormat, setImportDateFormat] = useState<"" | "DMY" | "MDY">(
+    "",
+  );
 
   const handleSetFilteredDoctor = async () => {
     if (filteredPatients.length === 0) {
@@ -48,7 +69,9 @@ export function useAdminPatientsBulk({
       toast.info("Choose doctor first");
       return;
     }
-    const selectedDoctor = activeDoctors.find((doctor) => doctor.id === bulkDoctorId);
+    const selectedDoctor = activeDoctors.find(
+      (doctor) => doctor.id === bulkDoctorId,
+    );
     if (!selectedDoctor) {
       toast.error("Selected doctor not found");
       return;
@@ -58,25 +81,35 @@ export function useAdminPatientsBulk({
       toast.error("Selected doctor name is empty");
       return;
     }
-    const nextLocation = selectedDoctor.locationType === "external" ? "external" : "center";
-    const confirmed = window.confirm(`Change doctor for ${filteredPatients.length} filtered patients to \"${nextDoctorName}\" (${nextLocation})?`);
+    const nextLocation =
+      selectedDoctor.locationType === "external" ? "external" : "center";
+    const confirmed = window.confirm(
+      `Change doctor for ${filteredPatients.length} filtered patients to \"${nextDoctorName}\" (${nextLocation})?`,
+    );
     if (!confirmed) return;
 
     try {
       const result = await bulkAssignDoctorMutation.mutateAsync({
-        patientIds: Array.from(new Set(filteredPatients.map((patient) => patient.id))),
+        patientIds: Array.from(
+          new Set(filteredPatients.map((patient) => patient.id)),
+        ),
         doctorCode: String(selectedDoctor.code ?? "").trim(),
         doctorName: nextDoctorName,
         doctorLocationType: nextLocation,
       });
-      setLastBulkSnapshots(((result as { snapshots?: BulkSnapshot[] }).snapshots ?? []) as BulkSnapshot[]);
+      setLastBulkSnapshots(
+        ((result as { snapshots?: BulkSnapshot[] }).snapshots ??
+          []) as BulkSnapshot[],
+      );
       setLastBulkLabel(`Doctor -> ${nextDoctorName}`);
       toast.success(
         `Updated ${(result as { updatedCount?: number }).updatedCount ?? filteredPatients.length} patients to ${nextDoctorName}`,
       );
       await utils.medical.getAllPatients.invalidate();
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "Failed to update filtered patients doctor"));
+      toast.error(
+        getTrpcErrorMessage(error, "Failed to update filtered patients doctor"),
+      );
     }
   };
 
@@ -89,24 +122,36 @@ export function useAdminPatientsBulk({
       toast.info("Choose sheet type first");
       return;
     }
-    const confirmed = window.confirm(`Change sheet type for ${filteredPatients.length} filtered patients to \"${bulkSheetType}\"?`);
+    const confirmed = window.confirm(
+      `Change sheet type for ${filteredPatients.length} filtered patients to \"${bulkSheetType}\"?`,
+    );
     if (!confirmed) return;
 
     try {
-      const rowsWithServiceCode = filteredPatients.filter((patient) => Boolean(getRowServiceCode(patient)));
-      const rowsWithoutServiceCode = filteredPatients.filter((patient) => !getRowServiceCode(patient));
+      const rowsWithServiceCode = filteredPatients.filter((patient) =>
+        Boolean(getRowServiceCode(patient)),
+      );
+      const rowsWithoutServiceCode = filteredPatients.filter(
+        (patient) => !getRowServiceCode(patient),
+      );
       let updatedCount = 0;
 
       for (const patient of rowsWithServiceCode) {
         const rowServiceCode = getRowServiceCode(patient);
         if (!rowServiceCode) continue;
-        const existingState = await utils.medical.getPatientPageState.fetch({ patientId: patient.id, page: "examination" }).catch(() => null);
+        const existingState = await utils.medical.getPatientPageState
+          .fetch({ patientId: patient.id, page: "examination" })
+          .catch(() => null);
         const existingData =
-          existingState && typeof (existingState as { data?: unknown }).data === "object" && (existingState as { data?: unknown }).data
-            ? ((existingState as { data: Record<string, unknown> }).data as Record<string, unknown>)
+          existingState &&
+          typeof (existingState as { data?: unknown }).data === "object" &&
+          (existingState as { data?: unknown }).data
+            ? ((existingState as { data: Record<string, unknown> })
+                .data as Record<string, unknown>)
             : {};
         const existingMap =
-          existingData.serviceSheetTypeByCode && typeof existingData.serviceSheetTypeByCode === "object"
+          existingData.serviceSheetTypeByCode &&
+          typeof existingData.serviceSheetTypeByCode === "object"
             ? (existingData.serviceSheetTypeByCode as Record<string, unknown>)
             : {};
 
@@ -129,11 +174,17 @@ export function useAdminPatientsBulk({
       let snapshots: BulkSnapshot[] = [];
       if (rowsWithoutServiceCode.length > 0) {
         const result = await bulkAssignSheetMutation.mutateAsync({
-          patientIds: Array.from(new Set(rowsWithoutServiceCode.map((patient) => patient.id))),
+          patientIds: Array.from(
+            new Set(rowsWithoutServiceCode.map((patient) => patient.id)),
+          ),
           sheetType: toLegacyServiceType(bulkSheetType),
         });
-        snapshots = ((result as { snapshots?: BulkSnapshot[] }).snapshots ?? []) as BulkSnapshot[];
-        updatedCount += Number((result as { updatedCount?: number }).updatedCount ?? rowsWithoutServiceCode.length);
+        snapshots = ((result as { snapshots?: BulkSnapshot[] }).snapshots ??
+          []) as BulkSnapshot[];
+        updatedCount += Number(
+          (result as { updatedCount?: number }).updatedCount ??
+            rowsWithoutServiceCode.length,
+        );
       }
 
       setLastBulkSnapshots(snapshots);
@@ -141,7 +192,12 @@ export function useAdminPatientsBulk({
       toast.success(`Updated ${updatedCount} patients to ${bulkSheetType}`);
       await utils.medical.getAllPatients.invalidate();
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "Failed to update filtered patients sheet type"));
+      toast.error(
+        getTrpcErrorMessage(
+          error,
+          "Failed to update filtered patients sheet type",
+        ),
+      );
     }
   };
 
@@ -155,16 +211,27 @@ export function useAdminPatientsBulk({
       return;
     }
     const nextEnabled = bulkManualLock === "on";
-    const confirmed = window.confirm(`${nextEnabled ? "Enable" : "Disable"} manual lock for ${filteredPatients.length} filtered patients?`);
+    const confirmed = window.confirm(
+      `${nextEnabled ? "Enable" : "Disable"} manual lock for ${filteredPatients.length} filtered patients?`,
+    );
     if (!confirmed) return;
 
     try {
-      const uniquePatients = Array.from(new Map(filteredPatients.map((patient) => [patient.id, patient])).values());
+      const uniquePatients = Array.from(
+        new Map(
+          filteredPatients.map((patient) => [patient.id, patient]),
+        ).values(),
+      );
       for (const patient of uniquePatients) {
-        const existingState = await utils.medical.getPatientPageState.fetch({ patientId: patient.id, page: "examination" }).catch(() => null);
+        const existingState = await utils.medical.getPatientPageState
+          .fetch({ patientId: patient.id, page: "examination" })
+          .catch(() => null);
         const existingData =
-          existingState && typeof (existingState as { data?: unknown }).data === "object" && (existingState as { data?: unknown }).data
-            ? ((existingState as { data: Record<string, unknown> }).data as Record<string, unknown>)
+          existingState &&
+          typeof (existingState as { data?: unknown }).data === "object" &&
+          (existingState as { data?: unknown }).data
+            ? ((existingState as { data: Record<string, unknown> })
+                .data as Record<string, unknown>)
             : {};
 
         await savePatientPageStateMutation.mutateAsync({
@@ -185,10 +252,17 @@ export function useAdminPatientsBulk({
         }
         return next;
       });
-      toast.success(`${nextEnabled ? "Enabled" : "Disabled"} manual lock for ${filteredPatients.length} patients`);
+      toast.success(
+        `${nextEnabled ? "Enabled" : "Disabled"} manual lock for ${filteredPatients.length} patients`,
+      );
       await utils.medical.getAllPatients.invalidate();
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "Failed to update manual lock for filtered patients"));
+      toast.error(
+        getTrpcErrorMessage(
+          error,
+          "Failed to update manual lock for filtered patients",
+        ),
+      );
     }
   };
 
@@ -197,7 +271,9 @@ export function useAdminPatientsBulk({
       toast.info("No bulk action to undo");
       return;
     }
-    const confirmed = window.confirm(`Undo last bulk action (${lastBulkLabel}) for ${lastBulkSnapshots.length} patients?`);
+    const confirmed = window.confirm(
+      `Undo last bulk action (${lastBulkLabel}) for ${lastBulkSnapshots.length} patients?`,
+    );
     if (!confirmed) return;
 
     try {
@@ -214,24 +290,37 @@ export function useAdminPatientsBulk({
       toast.success("Last bulk action undone");
       await utils.medical.getAllPatients.invalidate();
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "Failed to undo last bulk action"));
+      toast.error(
+        getTrpcErrorMessage(error, "Failed to undo last bulk action"),
+      );
     }
   };
 
   const downloadInvalidImportCsv = () => {
-    const invalidRows = importPreviewRows.filter((row) => row.status !== "valid");
+    const invalidRows = importPreviewRows.filter(
+      (row) => row.status !== "valid",
+    );
     if (invalidRows.length === 0) {
       toast.info("No invalid rows to export");
       return;
     }
-    const escapeCsv = (value: string) => `\"${String(value ?? "").replace(/\"/g, '\"\"')}\"`;
+    const escapeCsv = (value: string) =>
+      `\"${String(value ?? "").replace(/\"/g, '\"\"')}\"`;
     const lines = [
       ["rowNumber", "patientCode", "fullName", "status", "errors"].join(","),
       ...invalidRows.map((row) =>
-        [String(row.rowNumber), escapeCsv(row.patientCode), escapeCsv(row.fullName), escapeCsv(row.status), escapeCsv((row.errors ?? []).join(" | "))].join(","),
+        [
+          String(row.rowNumber),
+          escapeCsv(row.patientCode),
+          escapeCsv(row.fullName),
+          escapeCsv(row.status),
+          escapeCsv((row.errors ?? []).join(" | ")),
+        ].join(","),
       ),
     ];
-    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([lines.join("\n")], {
+      type: "text/csv;charset=utf-8;",
+    });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
@@ -243,9 +332,13 @@ export function useAdminPatientsBulk({
   const applyStagedImport = async () => {
     if (!importBatchId) return;
     try {
-      const applied = await applyImportMutation.mutateAsync({ batchId: importBatchId });
+      const applied = await applyImportMutation.mutateAsync({
+        batchId: importBatchId,
+      });
       if (applied.inserted > 0 || applied.updated > 0) {
-        toast.success(`Import applied. Inserted ${applied.inserted}, updated ${applied.updated}.`);
+        toast.success(
+          `Import applied. Inserted ${applied.inserted}, updated ${applied.updated}.`,
+        );
       }
       if (applied.failed > 0) {
         toast.error(`Apply failed for ${applied.failed} row(s).`);
@@ -325,23 +418,44 @@ export function useAdminPatientsBulk({
       };
       const parseServiceType = (raw: string): SheetTypeChoice => {
         const value = raw.trim().toLowerCase();
-        if (value === "b" || value === "اخصائي" || value === "أخصائي" || value === "specialist") return "specialist";
-        if (value === "c" || value === "فحوصات الليزك" || value === "lasik") return "lasik";
-        if (value === "d" || value === "خارجي" || value === "external" || value === "2") return "external";
+        if (
+          value === "b" ||
+          value === "اخصائي" ||
+          value === "أخصائي" ||
+          value === "specialist"
+        )
+          return "specialist";
+        if (value === "c" || value === "فحوصات الليزك" || value === "lasik")
+          return "lasik";
+        if (
+          value === "d" ||
+          value === "خارجي" ||
+          value === "external" ||
+          value === "2"
+        )
+          return "external";
         return "consultant";
       };
       const readRowValue = (row: Record<string, unknown>, keys: string[]) => {
         for (const key of keys) {
           const value = row[key];
-          if (value !== undefined && value !== null && String(value).trim() !== "") return value;
+          if (
+            value !== undefined &&
+            value !== null &&
+            String(value).trim() !== ""
+          )
+            return value;
         }
         return "";
       };
 
       const rowsWithSheetName = workbook.SheetNames.flatMap((sheetName) => {
         const worksheet = workbook.Sheets[sheetName];
-        if (!worksheet) return [] as Array<Record<string, unknown> & { __sheetName: string }>;
-        const rows = XLSX.utils.sheet_to_json(worksheet) as Array<Record<string, unknown>>;
+        if (!worksheet)
+          return [] as Array<Record<string, unknown> & { __sheetName: string }>;
+        const rows = XLSX.utils.sheet_to_json(worksheet) as Array<
+          Record<string, unknown>
+        >;
         return rows.map((row) => ({ ...row, __sheetName: sheetName }));
       });
 
@@ -365,20 +479,44 @@ export function useAdminPatientsBulk({
         );
         return {
           rowNumber: index + 2,
-          patientCode: normalizeCode(row.patientCode || row.id || row.ID || row["Patient ID"] || row["رقم المريض"] || row["كود المريض"]),
-          fullName: normalizeString(row.fullName || row.name || row["اسم المريض"]),
+          patientCode: normalizeCode(
+            row.patientCode ||
+              row.id ||
+              row.ID ||
+              row["Patient ID"] ||
+              row["رقم المريض"] ||
+              row["كود المريض"],
+          ),
+          fullName: normalizeString(
+            row.fullName || row.name || row["اسم المريض"],
+          ),
           dateOfBirth: normalizeDate(row.dateOfBirth ?? row["تاريخ الميلاد"]),
           gender: (() => {
             const rawGender = normalizeString(row.gender ?? row["النوع"]);
-            if (rawGender === "ذكر" || rawGender.toLowerCase() === "male") return "male" as const;
-            if (rawGender === "أنثى" || rawGender === "انثى" || rawGender.toLowerCase() === "female") return "female" as const;
+            if (rawGender === "ذكر" || rawGender.toLowerCase() === "male")
+              return "male" as const;
+            if (
+              rawGender === "أنثى" ||
+              rawGender === "انثى" ||
+              rawGender.toLowerCase() === "female"
+            )
+              return "female" as const;
             return "" as const;
           })(),
-          phone: normalizeString(row.phone || row["تليفون منزل"] || row["تليفون"] || row["موبايل"] || row["الموبايل"] || row["هاتف"]),
+          phone: normalizeString(
+            row.phone ||
+              row["تليفون منزل"] ||
+              row["تليفون"] ||
+              row["موبايل"] ||
+              row["الموبايل"] ||
+              row["هاتف"],
+          ),
           address: normalizeString(row.address || row["العنوان"]),
           branch: "examinations" as const,
           serviceType,
-          locationType: (serviceType === "external" ? "external" : "center") as "center" | "external",
+          locationType: (serviceType === "external" ? "external" : "center") as
+            | "center"
+            | "external",
           doctorCode: normalizeString(
             readRowValue(row, [
               "doctorCode",
@@ -399,23 +537,45 @@ export function useAdminPatientsBulk({
               "اسم الطبيب",
             ]),
           ),
-          doctorName: normalizeString(readRowValue(row, ["doctorName", "doctor", "treatingDoctor", "physician", "اسم الطبيب", "الطبيب"])),
+          doctorName: normalizeString(
+            readRowValue(row, [
+              "doctorName",
+              "doctor",
+              "treatingDoctor",
+              "physician",
+              "اسم الطبيب",
+              "الطبيب",
+            ]),
+          ),
         };
       });
 
       const stage = await stageImportMutation.mutateAsync({ rows: stageRows });
-      const preview = await utils.medical.getPatientImportPreview.fetch({ batchId: stage.batchId, limit: 200 });
+      const preview = await utils.medical.getPatientImportPreview.fetch({
+        batchId: stage.batchId,
+        limit: 200,
+      });
       setImportBatchId(stage.batchId);
-      setImportSummary({ total: stage.total, valid: stage.valid, invalid: stage.invalid });
+      setImportSummary({
+        total: stage.total,
+        valid: stage.valid,
+        invalid: stage.invalid,
+      });
       setImportPreviewRows((preview as ImportPreviewRow[]) ?? []);
       setImportPreviewOpen(true);
       if (stage.invalid > 0) {
-        toast.error(`Import validation has ${stage.invalid} invalid row(s). Review before apply.`);
+        toast.error(
+          `Import validation has ${stage.invalid} invalid row(s). Review before apply.`,
+        );
       } else {
-        toast.success(`Validation passed for ${stage.valid} row(s). Click Apply to import.`);
+        toast.success(
+          `Validation passed for ${stage.valid} row(s). Click Apply to import.`,
+        );
       }
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "Failed to import patient workbook"));
+      toast.error(
+        getTrpcErrorMessage(error, "Failed to import patient workbook"),
+      );
     }
   };
 

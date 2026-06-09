@@ -5,7 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Printer, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn, formatDateLabel, getTrpcErrorMessage } from "@/lib/utils";
@@ -52,14 +58,18 @@ export default function RequestTests({
   const isReadOnly = !isAdmin;
   const editingForbidden = isReadOnly || Boolean(patientHubReadOnly);
 
-  const [patientId, setPatientId] = useState<number | null>(initialPatientId > 0 ? initialPatientId : null);
+  const [patientId, setPatientId] = useState<number | null>(
+    initialPatientId > 0 ? initialPatientId : null,
+  );
   const [patientName, setPatientName] = useState("");
   const [patientAge, setPatientAge] = useState("");
   const [patientCode, setPatientCode] = useState("");
   const [requestDate, setRequestDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
-  const [locationTypeFilter, setLocationTypeFilter] = useState<"all" | "center" | "external">("all");
+  const [locationTypeFilter, setLocationTypeFilter] = useState<
+    "all" | "center" | "external"
+  >("all");
 
   useEffect(() => {
     if (hubVisitDate && /^\d{4}-\d{2}-\d{2}$/.test(hubVisitDate)) {
@@ -71,10 +81,16 @@ export default function RequestTests({
   const [generalNotes, setGeneralNotes] = useState("");
   const patientStateQuery = trpc.medical.getPatientPageState.useQuery(
     { patientId: patientId ?? 0, page: "request-tests" },
-    { enabled: Boolean(patientId) && !editingForbidden, refetchOnWindowFocus: false }
+    {
+      enabled: Boolean(patientId) && !editingForbidden,
+      refetchOnWindowFocus: false,
+    },
   );
-  const savePatientStateMutation = trpc.medical.savePatientPageState.useMutation();
-  const patientStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savePatientStateMutation =
+    trpc.medical.savePatientPageState.useMutation();
+  const patientStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const localDraftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastAppliedDraftRef = useRef<string | null>(null);
   const hydratedPatientStateRef = useRef<number | null>(null);
@@ -158,10 +174,10 @@ export default function RequestTests({
     return false;
   };
 
-  const patientQuery = trpc.patient.getPatient.useQuery(
-    patientId ?? 0,
-    { enabled: Boolean(patientId), refetchOnWindowFocus: false }
-  );
+  const patientQuery = trpc.patient.getPatient.useQuery(patientId ?? 0, {
+    enabled: Boolean(patientId),
+    refetchOnWindowFocus: false,
+  });
 
   const createRequestMutation = trpc.medical.createTestRequest.useMutation({
     onSuccess: () => {
@@ -184,7 +200,8 @@ export default function RequestTests({
     const body = document.body;
     let hadDark = false;
     const handleBeforePrint = () => {
-      hadDark = root.classList.contains("dark") || body.classList.contains("dark");
+      hadDark =
+        root.classList.contains("dark") || body.classList.contains("dark");
       root.classList.remove("dark");
       body.classList.remove("dark");
     };
@@ -226,31 +243,47 @@ export default function RequestTests({
     if (!data) return;
     if (hydratedPatientStateRef.current === patientId) return;
     if (data.requestDate) setRequestDate(data.requestDate);
-    if (data.generalNotes !== undefined) setGeneralNotes(data.generalNotes ?? "");
+    if (data.generalNotes !== undefined)
+      setGeneralNotes(data.generalNotes ?? "");
     if (Array.isArray(data.selectedTests)) setSelectedTests(data.selectedTests);
     hydratedPatientStateRef.current = patientId;
   }, [patientStateQuery.data, patientId]);
 
   useEffect(() => {
-    const patientKey = patientId ? `selrs:patient-draft:request-tests:${patientId}` : null;
+    const patientKey = patientId
+      ? `selrs:patient-draft:request-tests:${patientId}`
+      : null;
     const tempKey = "selrs:patient-draft:request-tests:temp";
     const keysToCheck = patientKey ? [patientKey, tempKey] : [tempKey];
     try {
       const raw = readDraft(keysToCheck);
       if (raw) {
-        const key = keysToCheck.find((k) => raw && readDraft([k]) === raw) ?? keysToCheck[0];
-        const parsed = JSON.parse(raw) as { updatedAt?: string; data?: any } | null;
+        const key =
+          keysToCheck.find((k) => raw && readDraft([k]) === raw) ??
+          keysToCheck[0];
+        const parsed = JSON.parse(raw) as {
+          updatedAt?: string;
+          data?: any;
+        } | null;
         if (!parsed?.data) return;
         const draftUpdatedAt = Date.parse(parsed.updatedAt ?? "");
-        const serverUpdatedAt = Date.parse((patientStateQuery.data as any)?.updatedAt ?? "");
+        const serverUpdatedAt = Date.parse(
+          (patientStateQuery.data as any)?.updatedAt ?? "",
+        );
         if (!Number.isFinite(draftUpdatedAt)) return;
-        if (Number.isFinite(serverUpdatedAt) && draftUpdatedAt <= serverUpdatedAt) return;
+        if (
+          Number.isFinite(serverUpdatedAt) &&
+          draftUpdatedAt <= serverUpdatedAt
+        )
+          return;
         const signature = `${key}:${parsed.updatedAt ?? ""}`;
         if (lastAppliedDraftRef.current === signature) return;
         lastAppliedDraftRef.current = signature;
         if (parsed.data.requestDate) setRequestDate(parsed.data.requestDate);
-        if (parsed.data.generalNotes !== undefined) setGeneralNotes(parsed.data.generalNotes ?? "");
-        if (Array.isArray(parsed.data.selectedTests)) setSelectedTests(parsed.data.selectedTests);
+        if (parsed.data.generalNotes !== undefined)
+          setGeneralNotes(parsed.data.generalNotes ?? "");
+        if (Array.isArray(parsed.data.selectedTests))
+          setSelectedTests(parsed.data.selectedTests);
         if (patientKey && key === tempKey) {
           writeDraft(patientKey, parsed as any);
           try {
@@ -269,19 +302,32 @@ export default function RequestTests({
 
   useEffect(() => {
     if (!patientId || editingForbidden) return;
-    if (patientStateTimerRef.current) clearTimeout(patientStateTimerRef.current);
+    if (patientStateTimerRef.current)
+      clearTimeout(patientStateTimerRef.current);
     const payload = {
       requestDate,
       generalNotes,
       selectedTests,
     };
     patientStateTimerRef.current = setTimeout(() => {
-      savePatientStateMutation.mutate({ patientId, page: "request-tests", data: payload });
+      savePatientStateMutation.mutate({
+        patientId,
+        page: "request-tests",
+        data: payload,
+      });
     }, 800);
     return () => {
-      if (patientStateTimerRef.current) clearTimeout(patientStateTimerRef.current);
+      if (patientStateTimerRef.current)
+        clearTimeout(patientStateTimerRef.current);
     };
-  }, [patientId, editingForbidden, requestDate, generalNotes, selectedTests, savePatientStateMutation]);
+  }, [
+    patientId,
+    editingForbidden,
+    requestDate,
+    generalNotes,
+    selectedTests,
+    savePatientStateMutation,
+  ]);
 
   useEffect(() => {
     if (editingForbidden) return;
@@ -341,7 +387,7 @@ export default function RequestTests({
   const handleUpdateTestNotes = (testId: number, notes: string) => {
     if (editingForbidden) return;
     setSelectedTests(
-      selectedTests.map((t) => (t.id === testId ? { ...t, notes } : t))
+      selectedTests.map((t) => (t.id === testId ? { ...t, notes } : t)),
     );
   };
 
@@ -351,10 +397,13 @@ export default function RequestTests({
     toast.success("Test removed from request.");
   };
 
-
   const handleSaveRequest = async () => {
     if (editingForbidden) {
-      toast.error(patientHubReadOnly ? patientHubViewOnlyHint : "التعديل متاح للأدمن فقط.");
+      toast.error(
+        patientHubReadOnly
+          ? patientHubViewOnlyHint
+          : "التعديل متاح للأدمن فقط.",
+      );
       return;
     }
     if (!patientId) {
@@ -368,11 +417,15 @@ export default function RequestTests({
     const validItems = selectedTests.filter((t) => t.id > 0);
     const skippedCount = selectedTests.length - validItems.length;
     if (validItems.length === 0) {
-      toast.error("لا توجد معرّفات فحوصات صالحة للحفظ (يلزم وجود الرقم في النظام).");
+      toast.error(
+        "لا توجد معرّفات فحوصات صالحة للحفظ (يلزم وجود الرقم في النظام).",
+      );
       return;
     }
     if (skippedCount > 0) {
-      toast.warning(`تم تجاهل ${skippedCount} فحص غير موجود بالنظام أثناء الحفظ.`);
+      toast.warning(
+        `تم تجاهل ${skippedCount} فحص غير موجود بالنظام أثناء الحفظ.`,
+      );
     }
     await createRequestMutation.mutateAsync({
       patientId,
@@ -383,7 +436,9 @@ export default function RequestTests({
   };
 
   const handlePrint = () => {
-    void printOrExportPdf(`${String(patientName || patientId || "request-tests").trim()}.pdf`);
+    void printOrExportPdf(
+      `${String(patientName || patientId || "request-tests").trim()}.pdf`,
+    );
   };
 
   const handleSelectPatient = (patient: {
@@ -395,23 +450,32 @@ export default function RequestTests({
     setPatientName(patient.fullName ?? "");
     setPatientAge(patient.age != null ? String(patient.age) : "");
     setLocation(
-      embeddedInPatientHub ? `/patient-hub/request-tests/${patient.id}` : `/request-tests/${patient.id}`,
+      embeddedInPatientHub
+        ? `/patient-hub/request-tests/${patient.id}`
+        : `/request-tests/${patient.id}`,
     );
   };
 
   return (
     <div
-      className={cn("prescription-root bg-background", hidePageChrome ? "min-h-0" : "min-h-screen")}
+      className={cn(
+        "prescription-root bg-background",
+        hidePageChrome ? "min-h-0" : "min-h-screen",
+      )}
       dir="rtl"
       style={{ direction: "rtl" }}
     >
-      {printMode.printView ? null : hidePageChrome ? null : <PageHeader backTo="/patients" />}
+      {printMode.printView ? null : hidePageChrome ? null : (
+        <PageHeader backTo="/patients" />
+      )}
 
       <main
         data-mobile-pdf-root
         className={cn(
           "mx-auto print:p-0",
-          hidePageChrome ? "max-w-none px-2 pb-4 pt-1" : "container max-w-[1280px]",
+          hidePageChrome
+            ? "max-w-none px-2 pb-4 pt-1"
+            : "container max-w-[1280px]",
           printMode.printView ? "px-3 py-3" : hidePageChrome ? "" : "px-4 py-8",
         )}
       >
@@ -424,13 +488,20 @@ export default function RequestTests({
         ) : null}
         <div className="grid grid-cols-1 lg:grid-cols-[0.65fr_1.35fr] gap-6">
           <div className="space-y-6">
-            <Card className={`print:hidden ${printMode.printView ? "hidden" : ""}`}>
+            <Card
+              className={`print:hidden ${printMode.printView ? "hidden" : ""}`}
+            >
               <CardHeader>
                 <CardTitle>Patient Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Select value={locationTypeFilter} onValueChange={(v) => setLocationTypeFilter(v as any)}>
-                  <SelectTrigger className="h-9 rounded-lg text-sm"><SelectValue placeholder="مكان الخدمة" /></SelectTrigger>
+                <Select
+                  value={locationTypeFilter}
+                  onValueChange={(v) => setLocationTypeFilter(v as any)}
+                >
+                  <SelectTrigger className="h-9 rounded-lg text-sm">
+                    <SelectValue placeholder="مكان الخدمة" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">الكل</SelectItem>
                     <SelectItem value="center">مركز</SelectItem>
@@ -440,22 +511,49 @@ export default function RequestTests({
                 <PatientPicker
                   initialPatientId={patientId ?? undefined}
                   onSelect={handleSelectPatient}
-                  locationType={locationTypeFilter === "all" ? undefined : locationTypeFilter}
+                  locationType={
+                    locationTypeFilter === "all"
+                      ? undefined
+                      : locationTypeFilter
+                  }
                 />
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Name</label>
-                    <Input value={patientName} readOnly placeholder="Patient name" className="text-center" />
+                    <label className="block text-sm font-medium mb-2">
+                      Name
+                    </label>
+                    <Input
+                      value={patientName}
+                      readOnly
+                      placeholder="Patient name"
+                      className="text-center"
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">Age</label>
-                    <Input value={patientAge} readOnly placeholder="Age" className="text-center" />
+                    <label className="block text-sm font-medium mb-2">
+                      Age
+                    </label>
+                    <Input
+                      value={patientAge}
+                      readOnly
+                      placeholder="Age"
+                      className="text-center"
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">Date</label>
+                    <label className="block text-sm font-medium mb-2">
+                      Date
+                    </label>
                     <div className="space-y-1">
-                      <Input type="date" value={requestDate} readOnly={editingForbidden} onChange={(e) => setRequestDate(e.target.value)} />
-                      <span className="text-[10px] text-muted-foreground">{formatDateLabel(requestDate)}</span>
+                      <Input
+                        type="date"
+                        value={requestDate}
+                        readOnly={editingForbidden}
+                        onChange={(e) => setRequestDate(e.target.value)}
+                      />
+                      <span className="text-[10px] text-muted-foreground">
+                        {formatDateLabel(requestDate)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -465,7 +563,10 @@ export default function RequestTests({
 
           <div className="space-y-6 request-tests-print-content">
             <div className="hidden print:block request-tests-print-header">
-              <div className="pt-2 flex items-center justify-between gap-4 text-sm" dir="rtl">
+              <div
+                className="pt-2 flex items-center justify-between gap-4 text-sm"
+                dir="rtl"
+              >
                 <span className="inline-flex items-center gap-1" dir="rtl">
                   <span className="font-medium">الاسم:</span> {patientName}
                 </span>
@@ -475,44 +576,66 @@ export default function RequestTests({
                 </span>
                 <span className="inline-flex items-center gap-1" dir="rtl">
                   <span className="font-medium">الكود:</span>{" "}
-                  <span dir="ltr">{patientCode || (patientId != null ? String(patientId) : "")}</span>
+                  <span dir="ltr">
+                    {patientCode ||
+                      (patientId != null ? String(patientId) : "")}
+                  </span>
                 </span>
               </div>
             </div>
 
             <Card className="request-tests-print-list">
               <CardHeader className="print:hidden">
-                <CardTitle>الفحوصات المسجّلة للمريض ({selectedTests.length})</CardTitle>
+                <CardTitle>
+                  الفحوصات المسجّلة للمريض ({selectedTests.length})
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {selectedTests.length === 0 ? (
-                  <p className="text-center text-sm text-muted-foreground py-4">لا توجد فحوصات مسجّلة لهذا الطلب بعد.</p>
+                  <p className="text-center text-sm text-muted-foreground py-4">
+                    لا توجد فحوصات مسجّلة لهذا الطلب بعد.
+                  </p>
                 ) : (
                   selectedTests.map((test, index) => (
-                    <div key={test.id} className="border rounded-lg p-4 print:border-0 print:rounded-none print:p-2">
+                    <div
+                      key={test.id}
+                      className="border rounded-lg p-4 print:border-0 print:rounded-none print:p-2"
+                    >
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex-1">
-                          <p className="font-bold">{index + 1}. {test.name}</p>
+                          <p className="font-bold">
+                            {index + 1}. {test.name}
+                          </p>
                         </div>
                         {editingForbidden ? null : (
-                        <Button variant="destructive" size="sm" onClick={() => handleRemoveTest(test.id)} className="print:hidden">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleRemoveTest(test.id)}
+                            className="print:hidden"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         )}
                       </div>
                       <div className="print:hidden">
-                        <label className="block text-sm font-medium mb-1">Notes</label>
+                        <label className="block text-sm font-medium mb-1">
+                          Notes
+                        </label>
                         <Textarea
                           value={test.notes}
                           readOnly={editingForbidden}
-                          onChange={(e) => handleUpdateTestNotes(test.id, e.target.value)}
+                          onChange={(e) =>
+                            handleUpdateTestNotes(test.id, e.target.value)
+                          }
                           placeholder="Notes for this test"
                           className="min-h-16 text-xs text-center"
                         />
                       </div>
                       {test.notes && (
                         <div className="hidden print:block text-sm mt-2">
-                          <span className="font-medium">Notes:</span> {test.notes}
+                          <span className="font-medium">Notes:</span>{" "}
+                          {test.notes}
                         </div>
                       )}
                     </div>
@@ -521,7 +644,9 @@ export default function RequestTests({
               </CardContent>
             </Card>
 
-            <Card className={`print:hidden ${printMode.printView ? "hidden" : ""}`}>
+            <Card
+              className={`print:hidden ${printMode.printView ? "hidden" : ""}`}
+            >
               <CardHeader>
                 <CardTitle>General Notes</CardTitle>
               </CardHeader>
@@ -537,19 +662,23 @@ export default function RequestTests({
             </Card>
           </div>
         </div>
-        <div className={`print:hidden mt-4 flex justify-end gap-2 ${printMode.printView ? "hidden" : ""}`}>
+        <div
+          className={`print:hidden mt-4 flex justify-end gap-2 ${printMode.printView ? "hidden" : ""}`}
+        >
           {!editingForbidden ? (
-          <Button
-            variant="outline"
-            onClick={handleSaveRequest}
-            disabled={createRequestMutation.isPending}
-            type="button"
-          >
-            <Save className="h-4 w-4 ml-2" />
-            Save Request
-          </Button>
+            <Button
+              variant="outline"
+              onClick={handleSaveRequest}
+              disabled={createRequestMutation.isPending}
+              type="button"
+            >
+              <Save className="h-4 w-4 ml-2" />
+              Save Request
+            </Button>
           ) : patientHubReadOnly ? (
-            <span className="self-center text-xs text-muted-foreground">{patientHubViewOnlyHint}</span>
+            <span className="self-center text-xs text-muted-foreground">
+              {patientHubViewOnlyHint}
+            </span>
           ) : null}
           <Button variant="outline" onClick={handlePrint} type="button">
             <Printer className="h-4 w-4 ml-2" />
@@ -557,7 +686,7 @@ export default function RequestTests({
           </Button>
         </div>
       </main>
-        <style>{`
+      <style>{`
           @media print {
             /* print fidelity: black ink, white paper for physical output */
             .request-tests-root,
@@ -592,6 +721,3 @@ export default function RequestTests({
     </div>
   );
 }
-
-
-

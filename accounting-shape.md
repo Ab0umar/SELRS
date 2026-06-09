@@ -16,32 +16,32 @@ The page will be structured in a top-to-bottom flow, from high-level summary to 
 
 - **Layout:** A row of 3-4 summary cards at the top of the page.
 - **Content:**
-    - **Total Revenue (This Month):** Large number, with a small percentage change indicator vs. last month.
-    - **Services Rendered:** Count of all billable procedures.
-    - **Average Revenue Per Patient:** Calculation of total revenue / unique patients.
-    - **Outstanding Invoices:** Total amount pending payment.
+  - **Total Revenue (This Month):** Large number, with a small percentage change indicator vs. last month.
+  - **Services Rendered:** Count of all billable procedures.
+  - **Average Revenue Per Patient:** Calculation of total revenue / unique patients.
+  - **Outstanding Invoices:** Total amount pending payment.
 - **Design:** Use `Card` component from `DESIGN.md` (White background, light gray border, no shadow).
 
 ### Component 2: Revenue Breakdown (The "Detailed View")
 
 - **Layout:** A detailed data table below the key metrics.
 - **Content:**
-    - A table of all financial transactions, grouped by date (most recent first).
-    - **Columns:**
-        - `Date`: Transaction date.
-        - `Patient Name`: Patient associated with the service.
-        - `Service`: The specific procedure or consultation.
-        - `Doctor`: The performing doctor.
-        - `Amount`: Revenue from the service.
-        - `Status`: (e.g., Paid, Pending, Overdue).
+  - A table of all financial transactions, grouped by date (most recent first).
+  - **Columns:**
+    - `Date`: Transaction date.
+    - `Patient Name`: Patient associated with the service.
+    - `Service`: The specific procedure or consultation.
+    - `Doctor`: The performing doctor.
+    - `Amount`: Revenue from the service.
+    - `Status`: (e.g., Paid, Pending, Overdue).
 - **Design:** Use `Table` component from `DESIGN.md`. Alternating row colors, clear headers, and appropriate text alignment for numbers. The `Status` column will use colored badges (Success for Paid, Warning for Pending, Error for Overdue).
 
 ### Component 3: Filtering & Actions (The "Tools")
 
 - **Layout:** A control bar above the Revenue Breakdown table.
 - **Content:**
-    - **Date Range Picker:** To filter the table by a specific period.
-    - **Export Button:** A primary action button (`orange`) to export the current view as a CSV or Excel file.
+  - **Date Range Picker:** To filter the table by a specific period.
+  - **Export Button:** A primary action button (`orange`) to export the current view as a CSV or Excel file.
 - **Design:** Use `Form` input styles for the date picker and the `Primary` button style for the export action.
 
 ## 3. User Flow

@@ -6,7 +6,11 @@ import { useExaminationForm } from "@/hooks/examination/useExaminationForm";
 const PATIENT_DATA_EDIT_PERMISSION = "/patient-data/edit";
 
 /** Patient registration modal for quick patient entry dialog */
-export function ExaminationPatientQuickDialogContent({ onClose }: { onClose: () => void }) {
+export function ExaminationPatientQuickDialogContent({
+  onClose,
+}: {
+  onClose: () => void;
+}) {
   const form = useExaminationForm(PATIENT_DATA_EDIT_PERMISSION, {
     embedded: true,
     onEmbeddedClose: onClose,
@@ -15,7 +19,12 @@ export function ExaminationPatientQuickDialogContent({ onClose }: { onClose: () 
   if (!form.isAuthenticated) return null;
 
   return (
-    <form ref={form.formRef} onSubmit={form.handleSubmit} dir="rtl" className="space-y-0">
+    <form
+      ref={form.formRef}
+      onSubmit={form.handleSubmit}
+      dir="rtl"
+      className="space-y-0"
+    >
       <Tabs value="patient-info" onValueChange={() => {}} className="w-full">
         <ExaminationPatientInfoTab form={form} />
       </Tabs>
@@ -23,7 +32,11 @@ export function ExaminationPatientQuickDialogContent({ onClose }: { onClose: () 
         <Button type="button" variant="outline" onClick={form.handleCancel}>
           إلغاء
         </Button>
-        <Button type="submit" disabled={form.loading} className="bg-primary hover:bg-primary/85">
+        <Button
+          type="submit"
+          disabled={form.loading}
+          className="bg-primary hover:bg-primary/85"
+        >
           {form.loading ? "جاري الحفظ…" : "حفظ"}
         </Button>
       </div>

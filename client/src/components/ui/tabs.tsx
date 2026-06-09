@@ -33,11 +33,15 @@ function Tabs({
     if (!root) return;
 
     const triggers = Array.from(
-      root.querySelectorAll<HTMLElement>('[data-slot="tabs-trigger"][data-tab-value]')
+      root.querySelectorAll<HTMLElement>(
+        '[data-slot="tabs-trigger"][data-tab-value]',
+      ),
     ).filter((trigger) => !trigger.hasAttribute("disabled"));
     if (triggers.length < 2) return;
 
-    const activeIndex = triggers.findIndex((trigger) => trigger.getAttribute("data-state") === "active");
+    const activeIndex = triggers.findIndex(
+      (trigger) => trigger.getAttribute("data-state") === "active",
+    );
     if (activeIndex < 0) return;
 
     const nextIndex = direction === "next" ? activeIndex + 1 : activeIndex - 1;
@@ -46,36 +50,47 @@ function Tabs({
     nextTrigger.click();
   }, []);
 
-  const onTouchStart = React.useCallback((event: React.TouchEvent<HTMLDivElement>) => {
-    const target = event.target as HTMLElement | null;
-    if (target?.closest("input, textarea, select, button[data-no-tab-swipe='true']")) {
+  const onTouchStart = React.useCallback(
+    (event: React.TouchEvent<HTMLDivElement>) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.closest(
+          "input, textarea, select, button[data-no-tab-swipe='true']",
+        )
+      ) {
+        touchStartRef.current = null;
+        return;
+      }
+
+      const touch = event.changedTouches[0];
+      if (!touch) return;
+      touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+    },
+    [],
+  );
+
+  const onTouchEnd = React.useCallback(
+    (event: React.TouchEvent<HTMLDivElement>) => {
+      const start = touchStartRef.current;
       touchStartRef.current = null;
-      return;
-    }
+      if (!start) return;
 
-    const touch = event.changedTouches[0];
-    if (!touch) return;
-    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
-  }, []);
+      const touch = event.changedTouches[0];
+      if (!touch) return;
 
-  const onTouchEnd = React.useCallback((event: React.TouchEvent<HTMLDivElement>) => {
-    const start = touchStartRef.current;
-    touchStartRef.current = null;
-    if (!start) return;
+      const deltaX = touch.clientX - start.x;
+      const deltaY = touch.clientY - start.y;
+      if (Math.abs(deltaX) < 50 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.2)
+        return;
 
-    const touch = event.changedTouches[0];
-    if (!touch) return;
-
-    const deltaX = touch.clientX - start.x;
-    const deltaY = touch.clientY - start.y;
-    if (Math.abs(deltaX) < 50 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.2) return;
-
-    if (deltaX < 0) {
-      moveTab("next");
-      return;
-    }
-    moveTab("prev");
-  }, [moveTab]);
+      if (deltaX < 0) {
+        moveTab("next");
+        return;
+      }
+      moveTab("prev");
+    },
+    [moveTab],
+  );
 
   React.useEffect(() => {
     if (typeof window === "undefined" || !showSwipeHint) return;
@@ -105,7 +120,7 @@ function Tabs({
       }
       onValueChange?.(value);
     },
-    [onValueChange, persistKey]
+    [onValueChange, persistKey],
   );
 
   return (
@@ -138,7 +153,7 @@ function TabsList({
       data-slot="tabs-list"
       className={cn(
         "bg-muted text-muted-foreground inline-flex h-9 w-fit max-w-full items-center justify-start gap-1 overflow-x-auto rounded-lg p-[3px] [scrollbar-width:none]",
-        className
+        className,
       )}
       {...props}
     />
@@ -155,7 +170,7 @@ function TabsTrigger({
       data-tab-value={typeof props.value === "string" ? props.value : undefined}
       className={cn(
         "data-[state=active]:bg-background=active]:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring=active]:border-input=active]:bg-input/30 text-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:shadow-sm [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        className
+        className,
       )}
       {...props}
     />

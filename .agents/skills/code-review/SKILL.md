@@ -77,15 +77,15 @@ coderabbit review --agent --dir path/to/directory
 
 **Options:**
 
-| Flag             | Description                                                         |
-| ---------------- | ------------------------------------------------------------------- |
-| `-t all`         | All changes (default)                                               |
-| `-t committed`   | Committed changes only                                              |
-| `-t uncommitted` | Uncommitted changes only                                            |
-| `--base main`    | Compare against specific branch                                     |
-| `--base-commit`  | Compare against specific commit hash                                |
-| `--dir <path>`   | Review directory path; must contain an initialized Git repository   |
-| `--agent`        | Agent-readable review output and fix guidance                       |
+| Flag             | Description                                                       |
+| ---------------- | ----------------------------------------------------------------- |
+| `-t all`         | All changes (default)                                             |
+| `-t committed`   | Committed changes only                                            |
+| `-t uncommitted` | Uncommitted changes only                                          |
+| `--base main`    | Compare against specific branch                                   |
+| `--base-commit`  | Compare against specific commit hash                              |
+| `--dir <path>`   | Review directory path; must contain an initialized Git repository |
+| `--agent`        | Agent-readable review output and fix guidance                     |
 
 **Shorthand:** `cr` is an alias for `coderabbit`:
 

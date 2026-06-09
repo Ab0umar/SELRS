@@ -7,6 +7,8 @@ import {
   Users,
   ChevronRight,
   Activity,
+  Clock,
+  Settings,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
@@ -90,7 +92,7 @@ function isItemActive(pathname: string, activeFor: string[]) {
   return activeFor.some((path) =>
     path === "/attendance"
       ? pathname === path
-      : pathname === path || pathname.startsWith(`${path}/`)
+      : pathname === path || pathname.startsWith(`${path}/`),
   );
 }
 
@@ -98,21 +100,28 @@ function isSectionActive(pathname: string, items: any[]) {
   return items.some((item) => isItemActive(pathname, item.activeFor));
 }
 
-export default function AttendanceLayout({
-  children,
-}: AttendanceLayoutProps) {
+const mobileNavItems = [
+  { href: "/attendance", label: "الرئيسية", icon: LayoutDashboard, activeFor: ["/attendance"] },
+  { href: "/attendance/live", label: "المباشر", icon: Activity, activeFor: ["/attendance/live"] },
+  { href: "/attendance/employees", label: "الموظفون", icon: Users, activeFor: ["/attendance/employees"] },
+  { href: "/attendance/shift-schedule", label: "الروستر", icon: Clock, activeFor: ["/attendance/shift-schedule"] },
+  { href: "/attendance/reports", label: "التقارير", icon: BarChart3, activeFor: ["/attendance/reports"] },
+  { href: "/attendance/settings", label: "الإعدادات", icon: Settings, activeFor: ["/attendance/settings"] },
+];
+
+export default function AttendanceLayout({ children }: AttendanceLayoutProps) {
   const [location] = useLocation();
 
   const summaryQuery = (trpc as any).attendance.dashboardSummary.useQuery(
     undefined,
-    { refetchInterval: 30_000, refetchIntervalInBackground: false }
+    { refetchInterval: 30_000, refetchIntervalInBackground: false },
   );
   const deviceQuery = (trpc as any).attendance.deviceStatus.useQuery(
     undefined,
     {
       refetchInterval: 20_000,
       refetchIntervalInBackground: false,
-    }
+    },
   );
 
   const summary = summaryQuery.data as any;
@@ -152,7 +161,10 @@ export default function AttendanceLayout({
   ];
 
   return (
-    <div className="page-layout min-h-screen bg-background text-foreground" dir="rtl">
+    <div
+      className="page-layout min-h-screen bg-background text-foreground"
+      dir="rtl"
+    >
       {/* Header with metrics */}
       <div className="border-b border-secondary/15 bg-gradient-to-b from-secondary/5 to-transparent">
         <div className="mx-auto w-full px-3 py-4 sm:px-4 lg:px-5">
@@ -195,8 +207,8 @@ export default function AttendanceLayout({
 
       {/* Two-column layout: Sidebar + Content */}
       <div className="flex flex-col lg:flex-row">
-        {/* Sidebar Navigation */}
-        <aside className="w-full border-b border-border bg-card/50 lg:w-64 lg:border-b-0 lg:border-r">
+        {/* Sidebar Navigation (Desktop only) */}
+        <aside className="hidden lg:block w-full border-b border-border bg-card/50 lg:w-64 lg:border-b-0 lg:border-r">
           <nav className="space-y-1 p-3 sm:p-4">
             {navigationSections.map((section) => {
               const active = isSectionActive(location, section.items);
@@ -245,9 +257,13 @@ export default function AttendanceLayout({
                               : "bg-muted/20 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                           }`}
                         >
-                          <ChevronRight className={`h-4 w-4 mt-0.5 shrink-0 transition-opacity ${
-                            itemActive ? "opacity-100 text-secondary" : "opacity-0 group-hover:opacity-100"
-                          }`} />
+                          <ChevronRight
+                            className={`h-4 w-4 mt-0.5 shrink-0 transition-opacity ${
+                              itemActive
+                                ? "opacity-100 text-secondary"
+                                : "opacity-0 group-hover:opacity-100"
+                            }`}
+                          />
                           <div className="flex-1 min-w-0">
                             <div className="font-medium">{item.label}</div>
                             <div className="text-xs text-muted-foreground mt-0.5">
@@ -269,8 +285,30 @@ export default function AttendanceLayout({
           </nav>
         </aside>
 
+        {/* Mobile Horizontal Pill Navigation Bar (2nd Bottom Bar) */}
+        <div className="lg:hidden fixed bottom-14 left-0 right-0 h-14 bg-card border-t border-border flex items-center gap-2 px-4 overflow-x-auto z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] scrollbar-none whitespace-nowrap">
+          {mobileNavItems.map((item) => {
+            const Icon = item.icon;
+            const itemActive = isItemActive(location, item.activeFor);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold shrink-0 transition-colors ${
+                  itemActive
+                    ? "bg-secondary text-secondary-foreground shadow-sm"
+                    : "bg-muted text-muted-foreground hover:bg-muted/85"
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+
         {/* Main content area */}
-        <main className="flex-1 px-3 py-5 sm:px-4 lg:px-5">{children}</main>
+        <main className="flex-1 px-3 py-5 pb-32 sm:px-4 sm:pb-32 lg:px-5 lg:pb-5">{children}</main>
       </div>
     </div>
   );

@@ -11,7 +11,12 @@ import { getTrpcErrorMessage } from "@/lib/utils";
 import PatientPicker from "@/components/PatientPicker";
 import { trpc } from "@/lib/trpc";
 import { connectSheetUpdates } from "@/lib/ws";
-import { coerceSheetDesignerConfig, DEFAULT_SHEET_DESIGNER_CONFIG, loadSheetDesignerConfig, saveSheetDesignerConfig } from "@/lib/sheetDesigner";
+import {
+  coerceSheetDesignerConfig,
+  DEFAULT_SHEET_DESIGNER_CONFIG,
+  loadSheetDesignerConfig,
+  saveSheetDesignerConfig,
+} from "@/lib/sheetDesigner";
 import { BRAND_NAME_AR, BRAND_NAME_EN } from "@/lib/brand";
 
 export default function SpecialistSheet() {
@@ -22,7 +27,10 @@ export default function SpecialistSheet() {
   const [operationDateRight, setOperationDateRight] = useState("");
   const [operationDateLeft, setOperationDateLeft] = useState("");
   const [operationType, setOperationType] = useState("متابعة");
-  const [operationEyes, setOperationEyes] = useState({ right: true, left: false });
+  const [operationEyes, setOperationEyes] = useState({
+    right: true,
+    left: false,
+  });
   const formatDateLabel = (value: string) => {
     if (!value) return "لم يتم الاختيار";
     const date = new Date(value);
@@ -58,14 +66,16 @@ export default function SpecialistSheet() {
   const [printOffsetYmm, setPrintOffsetYmm] = useState(0);
   const [printScale, setPrintScale] = useState(1);
   const [customSheetCss, setCustomSheetCss] = useState("");
-  const [sheetTemplate, setSheetTemplate] = useState(DEFAULT_SHEET_DESIGNER_CONFIG.templates.specialist);
+  const [sheetTemplate, setSheetTemplate] = useState(
+    DEFAULT_SHEET_DESIGNER_CONFIG.templates.specialist,
+  );
   const designerSettingsQuery = trpc.medical.getSystemSetting.useQuery(
     { key: "sheet_designer_config" },
-    { enabled: isAuthenticated, refetchOnWindowFocus: false }
+    { enabled: isAuthenticated, refetchOnWindowFocus: false },
   );
   const mobileSheetModeQuery = trpc.medical.getSystemSetting.useQuery(
     { key: "mobile_sheet_mode_v1" },
-    { enabled: isAuthenticated, refetchOnWindowFocus: false }
+    { enabled: isAuthenticated, refetchOnWindowFocus: false },
   );
 
   useEffect(() => {
@@ -100,21 +110,21 @@ export default function SpecialistSheet() {
   const mobileSheetModeEnabled = Boolean(
     mobileSheetModeRaw && typeof mobileSheetModeRaw === "object"
       ? mobileSheetModeRaw.enabled
-      : mobileSheetModeRaw
+      : mobileSheetModeRaw,
   );
 
   const initialPatientId = params?.id ? Number(params.id) : undefined;
-  const patientQuery = trpc.patient.getPatient.useQuery(
-    initialPatientId ?? 0,
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
-  );
+  const patientQuery = trpc.patient.getPatient.useQuery(initialPatientId ?? 0, {
+    enabled: Boolean(initialPatientId),
+    refetchOnWindowFocus: false,
+  });
   const sheetQuery = trpc.medical.getSheetEntry.useQuery(
     { patientId: initialPatientId ?? 0, sheetType: "specialist" },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   const examinationStateQuery = trpc.medical.getPatientPageState.useQuery(
     { patientId: initialPatientId ?? 0, page: "examination" },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false }
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   useEffect(() => {
     if (!initialPatientId) return;
@@ -250,7 +260,7 @@ export default function SpecialistSheet() {
       reception: role === "reception" ? fullName : prev.reception,
       nurse: role === "nurse" ? fullName : prev.nurse,
       technician: role === "technician" ? fullName : prev.technician,
-      doctor: role === "doctor" ? (prev.doctor || fullName) : prev.doctor,
+      doctor: role === "doctor" ? prev.doctor || fullName : prev.doctor,
     }));
   }, [user?.name, user?.role, sheetQuery.data, examinationStateQuery.data]);
 
@@ -267,26 +277,63 @@ export default function SpecialistSheet() {
           return {};
         }
       })();
-      const pickValue = (next: string, prev?: string) => (next && next.trim() ? next : prev);
+      const pickValue = (next: string, prev?: string) =>
+        next && next.trim() ? next : prev;
       const mergedExamData = {
         autorefraction: {
           od: {
             ...(existing.examData?.autorefraction?.od ?? {}),
-            ucva: pickValue(formData.ucvaOD, existing.examData?.autorefraction?.od?.ucva),
-            bcva: pickValue(formData.bcvaOD, existing.examData?.autorefraction?.od?.bcva),
-            s: pickValue(formData.refractionOD?.s, existing.examData?.autorefraction?.od?.s),
-            c: pickValue(formData.refractionOD?.c, existing.examData?.autorefraction?.od?.c),
-            axis: pickValue(formData.refractionOD?.a, existing.examData?.autorefraction?.od?.axis),
-            iop: pickValue(formData.iopOD, existing.examData?.autorefraction?.od?.iop),
+            ucva: pickValue(
+              formData.ucvaOD,
+              existing.examData?.autorefraction?.od?.ucva,
+            ),
+            bcva: pickValue(
+              formData.bcvaOD,
+              existing.examData?.autorefraction?.od?.bcva,
+            ),
+            s: pickValue(
+              formData.refractionOD?.s,
+              existing.examData?.autorefraction?.od?.s,
+            ),
+            c: pickValue(
+              formData.refractionOD?.c,
+              existing.examData?.autorefraction?.od?.c,
+            ),
+            axis: pickValue(
+              formData.refractionOD?.a,
+              existing.examData?.autorefraction?.od?.axis,
+            ),
+            iop: pickValue(
+              formData.iopOD,
+              existing.examData?.autorefraction?.od?.iop,
+            ),
           },
           os: {
             ...(existing.examData?.autorefraction?.os ?? {}),
-            ucva: pickValue(formData.ucvaOS, existing.examData?.autorefraction?.os?.ucva),
-            bcva: pickValue(formData.bcvaOS, existing.examData?.autorefraction?.os?.bcva),
-            s: pickValue(formData.refractionOS?.s, existing.examData?.autorefraction?.os?.s),
-            c: pickValue(formData.refractionOS?.c, existing.examData?.autorefraction?.os?.c),
-            axis: pickValue(formData.refractionOS?.a, existing.examData?.autorefraction?.os?.axis),
-            iop: pickValue(formData.iopOS, existing.examData?.autorefraction?.os?.iop),
+            ucva: pickValue(
+              formData.ucvaOS,
+              existing.examData?.autorefraction?.os?.ucva,
+            ),
+            bcva: pickValue(
+              formData.bcvaOS,
+              existing.examData?.autorefraction?.os?.bcva,
+            ),
+            s: pickValue(
+              formData.refractionOS?.s,
+              existing.examData?.autorefraction?.os?.s,
+            ),
+            c: pickValue(
+              formData.refractionOS?.c,
+              existing.examData?.autorefraction?.os?.c,
+            ),
+            axis: pickValue(
+              formData.refractionOS?.a,
+              existing.examData?.autorefraction?.os?.axis,
+            ),
+            iop: pickValue(
+              formData.iopOS,
+              existing.examData?.autorefraction?.os?.iop,
+            ),
           },
         },
         pentacam: existing.examData?.pentacam ?? {},
@@ -318,7 +365,11 @@ export default function SpecialistSheet() {
   };
 
   return (
-    <div className={`min-h-screen bg-background sheet-layout ${mobileSheetModeEnabled ? "mobile-sheet-mode" : ""}`} dir="rtl" style={{ direction: 'rtl', textAlign: 'right' }}>
+    <div
+      className={`min-h-screen bg-background sheet-layout ${mobileSheetModeEnabled ? "mobile-sheet-mode" : ""}`}
+      dir="rtl"
+      style={{ direction: "rtl", textAlign: "right" }}
+    >
       <style>{`
         ${customSheetCss}
         .refraction-table-center th,
@@ -342,12 +393,21 @@ export default function SpecialistSheet() {
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
                 <div>
-                  <h1 className="text-2xl font-bold text-foreground">{sheetTemplate.sheetTitle}</h1>
-                  <p className="text-sm text-muted-foreground">{formData.patientName}</p>
+                  <h1 className="text-2xl font-bold text-foreground">
+                    {sheetTemplate.sheetTitle}
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    {formData.patientName}
+                  </p>
                 </div>
               </div>
               <div className="flex gap-1 print:hidden sheet-header-actions">
-                <Button variant="ghost" size="sm" type="button" onClick={() => setLocation("/patients")}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  type="button"
+                  onClick={() => setLocation("/patients")}
+                >
                   رجوع
                 </Button>
               </div>
@@ -380,50 +440,115 @@ export default function SpecialistSheet() {
             </Button>
           </div>
           {/* Header */}
-          <div className="mb-1 border-b-4 border-primary pb-1 -mx-8 px-8" style={{ textAlign: 'center' }}>
-            <h2 className="text-lg font-bold" dir="rtl" style={{ textAlign: 'right' }}>{BRAND_NAME_AR} — لليزك وتصحيح الإبصار</h2>
-            <p className="text-sm" dir="ltr" style={{ textAlign: 'center', unicodeBidi: 'bidi-override', direction: 'ltr' }}>{BRAND_NAME_EN} — Lasik & Vision Correction</p>
+          <div
+            className="mb-1 border-b-4 border-primary pb-1 -mx-8 px-8"
+            style={{ textAlign: "center" }}
+          >
+            <h2
+              className="text-lg font-bold"
+              dir="rtl"
+              style={{ textAlign: "right" }}
+            >
+              {BRAND_NAME_AR} — لليزك وتصحيح الإبصار
+            </h2>
+            <p
+              className="text-sm"
+              dir="ltr"
+              style={{
+                textAlign: "center",
+                unicodeBidi: "bidi-override",
+                direction: "ltr",
+              }}
+            >
+              {BRAND_NAME_EN} — Lasik & Vision Correction
+            </p>
           </div>
 
           {/* Operation Details removed per request */}
 
           {/* Patient Info */}
-          <p className="font-bold text-sm mb-1">{sheetTemplate.patientInfoTitle}</p>
-          <div className="sheet-section-card flex flex-col gap-1 mb-2 text-xs" dir="rtl" style={{ whiteSpace: "nowrap" }}>
+          <p className="font-bold text-sm mb-1">
+            {sheetTemplate.patientInfoTitle}
+          </p>
+          <div
+            className="sheet-section-card flex flex-col gap-1 mb-2 text-xs"
+            dir="rtl"
+            style={{ whiteSpace: "nowrap" }}
+          >
             <div className="flex flex-nowrap items-center justify-between gap-2 w-full">
               <div className="flex items-center gap-1">
                 <label className="font-bold">الاسم</label>
-                <Input value={formData.patientName} readOnly className="text-xs border-0" style={{ textAlign: 'right' }} />
+                <Input
+                  value={formData.patientName}
+                  readOnly
+                  className="text-xs border-0"
+                  style={{ textAlign: "right" }}
+                />
               </div>
               <div className="flex items-center gap-1">
                 <label className="font-bold">تاريخ الميلاد</label>
-                <Input value={formData.dateOfBirth} readOnly className="text-xs border-0" style={{ textAlign: 'right' }} />
+                <Input
+                  value={formData.dateOfBirth}
+                  readOnly
+                  className="text-xs border-0"
+                  style={{ textAlign: "right" }}
+                />
               </div>
               <div className="flex items-center gap-1">
                 <label className="font-bold">السن</label>
-                <Input value={formData.age} readOnly className="text-xs border-0" style={{ textAlign: 'right' }} />
+                <Input
+                  value={formData.age}
+                  readOnly
+                  className="text-xs border-0"
+                  style={{ textAlign: "right" }}
+                />
               </div>
               <div className="flex items-center gap-1">
                 <label className="font-bold">{sheetTemplate.doctorLabel}</label>
-                <Input value={signatures.doctor} readOnly className="text-xs border-0" style={{ textAlign: 'right' }} />
+                <Input
+                  value={signatures.doctor}
+                  readOnly
+                  className="text-xs border-0"
+                  style={{ textAlign: "right" }}
+                />
               </div>
             </div>
             <div className="flex flex-nowrap items-center justify-between gap-2 w-full">
               <div className="flex items-center gap-1">
                 <label className="font-bold">العنوان</label>
-                <Input value={formData.address} readOnly className="text-xs border-0" style={{ textAlign: 'right' }} />
+                <Input
+                  value={formData.address}
+                  readOnly
+                  className="text-xs border-0"
+                  style={{ textAlign: "right" }}
+                />
               </div>
               <div className="flex items-center gap-1">
                 <label className="font-bold">الموبايل</label>
-                <Input value={formData.phone} readOnly className="text-xs border-0" style={{ textAlign: 'right' }} />
+                <Input
+                  value={formData.phone}
+                  readOnly
+                  className="text-xs border-0"
+                  style={{ textAlign: "right" }}
+                />
               </div>
               <div className="flex items-center gap-1">
                 <label className="font-bold">كود العميل</label>
-                <Input value={formData.patientCode} readOnly className="text-xs border-0" style={{ textAlign: 'right' }} />
+                <Input
+                  value={formData.patientCode}
+                  readOnly
+                  className="text-xs border-0"
+                  style={{ textAlign: "right" }}
+                />
               </div>
               <div className="flex items-center gap-1">
                 <label className="font-bold">الوظيفة</label>
-                <Input value={formData.job} readOnly className="text-xs border-0" style={{ textAlign: 'right' }} />
+                <Input
+                  value={formData.job}
+                  readOnly
+                  className="text-xs border-0"
+                  style={{ textAlign: "right" }}
+                />
               </div>
             </div>
           </div>
@@ -442,7 +567,7 @@ export default function SpecialistSheet() {
               </div>
               <div className="flex items-center gap-1">
                 <Checkbox className="border-2 border-gray-700" />
-                <label className="text-sm cursor-pointer">ضغط  سكر  غده</label>
+                <label className="text-sm cursor-pointer">ضغط سكر غده</label>
               </div>
               <div className="flex items-center gap-1">
                 <Checkbox className="border-2 border-gray-700" />
@@ -451,19 +576,35 @@ export default function SpecialistSheet() {
             </div>
           </div>
           <div className="mb-4 border sheet-section-card">
-            <table className="w-full text-xs text-center lasik-table refraction-table-center" dir="ltr" style={{ direction: "ltr", unicodeBidi: "bidi-override", textAlign: "center" }}>
+            <table
+              className="w-full text-xs text-center lasik-table refraction-table-center"
+              dir="ltr"
+              style={{
+                direction: "ltr",
+                unicodeBidi: "bidi-override",
+                textAlign: "center",
+              }}
+            >
               <thead>
                 <tr className="border-b bg-muted">
-                  <th className="border-r p-0.5 text-center" colSpan={4}>Dominant eye _____________</th>
-                  <th className="p-0.5 text-center" colSpan={6}>Refraction</th>
+                  <th className="border-r p-0.5 text-center" colSpan={4}>
+                    Dominant eye _____________
+                  </th>
+                  <th className="p-0.5 text-center" colSpan={6}>
+                    Refraction
+                  </th>
                 </tr>
                 <tr className="border-b bg-muted">
                   <th className="border-r p-0.5"></th>
                   <th className="border-r p-0.5">UCVA</th>
                   <th className="border-r p-0.5">BCVA</th>
                   <th className="border-r p-0.5">IOP</th>
-                  <th className="border-r p-0.5" colSpan={3}>OD</th>
-                  <th className="p-0.5" colSpan={3}>OS</th>
+                  <th className="border-r p-0.5" colSpan={3}>
+                    OD
+                  </th>
+                  <th className="p-0.5" colSpan={3}>
+                    OS
+                  </th>
                 </tr>
                 <tr className="border-b">
                   <th className="border-r p-0.5"></th>
@@ -481,36 +622,206 @@ export default function SpecialistSheet() {
               <tbody>
                 <tr className="border-b">
                   <td className="border-r p-0.5 font-bold">OD</td>
-                  <td className="border-r p-0.5"><Input placeholder="" className="text-xs" value={formData.ucvaOD} onChange={(e) => setFormData((prev) => ({ ...prev, ucvaOD: e.target.value }))} /></td>
-                  <td className="border-r p-0.5"><Input placeholder="" className="text-xs" value={formData.bcvaOD} onChange={(e) => setFormData((prev) => ({ ...prev, bcvaOD: e.target.value }))} /></td>
-                  <td className="border-r p-0.5"><Input placeholder="" className="text-xs" value={formData.iopOD} onChange={(e) => setFormData((prev) => ({ ...prev, iopOD: e.target.value }))} /></td>
-                  <td className="border-r p-0.5" rowSpan={2}><Input placeholder="" className="text-xs" value={formData.refractionOD.s} onChange={(e) => setFormData((prev) => ({ ...prev, refractionOD: { ...prev.refractionOD, s: e.target.value } }))} /></td>
-                  <td className="border-r p-0.5" rowSpan={2}><Input placeholder="" className="text-xs" value={formData.refractionOD.c} onChange={(e) => setFormData((prev) => ({ ...prev, refractionOD: { ...prev.refractionOD, c: e.target.value } }))} /></td>
-                  <td className="border-r p-0.5" rowSpan={2}><Input placeholder="" className="text-xs" value={formData.refractionOD.a} onChange={(e) => setFormData((prev) => ({ ...prev, refractionOD: { ...prev.refractionOD, a: e.target.value } }))} /></td>
-                  <td className="border-r p-0.5" rowSpan={2}><Input placeholder="" className="text-xs" value={formData.refractionOS.s} onChange={(e) => setFormData((prev) => ({ ...prev, refractionOS: { ...prev.refractionOS, s: e.target.value } }))} /></td>
-                  <td className="border-r p-0.5" rowSpan={2}><Input placeholder="" className="text-xs" value={formData.refractionOS.c} onChange={(e) => setFormData((prev) => ({ ...prev, refractionOS: { ...prev.refractionOS, c: e.target.value } }))} /></td>
-                  <td className="p-0.5" rowSpan={2}><Input placeholder="" className="text-xs" value={formData.refractionOS.a} onChange={(e) => setFormData((prev) => ({ ...prev, refractionOS: { ...prev.refractionOS, a: e.target.value } }))} /></td>
+                  <td className="border-r p-0.5">
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={formData.ucvaOD}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          ucvaOD: e.target.value,
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5">
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={formData.bcvaOD}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          bcvaOD: e.target.value,
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5">
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={formData.iopOD}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          iopOD: e.target.value,
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5" rowSpan={2}>
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={formData.refractionOD.s}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          refractionOD: {
+                            ...prev.refractionOD,
+                            s: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5" rowSpan={2}>
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={formData.refractionOD.c}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          refractionOD: {
+                            ...prev.refractionOD,
+                            c: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5" rowSpan={2}>
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={formData.refractionOD.a}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          refractionOD: {
+                            ...prev.refractionOD,
+                            a: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5" rowSpan={2}>
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={formData.refractionOS.s}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          refractionOS: {
+                            ...prev.refractionOS,
+                            s: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5" rowSpan={2}>
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={formData.refractionOS.c}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          refractionOS: {
+                            ...prev.refractionOS,
+                            c: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="p-0.5" rowSpan={2}>
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={formData.refractionOS.a}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          refractionOS: {
+                            ...prev.refractionOS,
+                            a: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </td>
                 </tr>
                 <tr className="border-b">
                   <td className="border-r p-0.5 font-bold">OS</td>
-                  <td className="border-r p-0.5"><Input placeholder="" className="text-xs" value={formData.ucvaOS} onChange={(e) => setFormData((prev) => ({ ...prev, ucvaOS: e.target.value }))} /></td>
-                  <td className="border-r p-0.5"><Input placeholder="" className="text-xs" value={formData.bcvaOS} onChange={(e) => setFormData((prev) => ({ ...prev, bcvaOS: e.target.value }))} /></td>
-                  <td className="border-r p-0.5"><Input placeholder="" className="text-xs" value={formData.iopOS} onChange={(e) => setFormData((prev) => ({ ...prev, iopOS: e.target.value }))} /></td>
+                  <td className="border-r p-0.5">
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={formData.ucvaOS}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          ucvaOS: e.target.value,
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5">
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={formData.bcvaOS}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          bcvaOS: e.target.value,
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="border-r p-0.5">
+                    <Input
+                      placeholder=""
+                      className="text-xs"
+                      value={formData.iopOS}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          iopOS: e.target.value,
+                        }))
+                      }
+                    />
+                  </td>
                 </tr>
                 <tr className="border-b">
                   <td className="border-r p-0.5 font-bold">Fundus</td>
-                  <td className="p-0.5" colSpan={9}><Input placeholder="" className="text-xs" /></td>
+                  <td className="p-0.5" colSpan={9}>
+                    <Input placeholder="" className="text-xs" />
+                  </td>
                 </tr>
                 <tr>
                   <td className="border-r p-0.5 font-bold">Tear film</td>
-                  <td className="border-r p-0.5" colSpan={3}>BUT</td>
-                  <td className="border-r p-0.5" colSpan={3}>Schirmer T</td>
-                  <td className="p-0.5" colSpan={3}>Lid Margin</td>
+                  <td className="border-r p-0.5" colSpan={3}>
+                    BUT
+                  </td>
+                  <td className="border-r p-0.5" colSpan={3}>
+                    Schirmer T
+                  </td>
+                  <td className="p-0.5" colSpan={3}>
+                    Lid Margin
+                  </td>
                 </tr>
               </tbody>
             </table>
           </div>
-{/* Comments and Notes removed */}
+          {/* Comments and Notes removed */}
           <div className="mb-1 w-full sheet-section-card">
             <Textarea
               placeholder="Comments:"
@@ -524,31 +835,55 @@ export default function SpecialistSheet() {
           {/* Signature Line */}
           <div className="grid grid-cols-4 gap-2 text-xs border-t pt-2">
             <div className="flex items-center justify-end gap-1">
-              <span style={{textAlign: 'right'}}>استقبال</span>
-              <Input value={signatures.reception} readOnly className="text-xs border-0 text-right" />
+              <span style={{ textAlign: "right" }}>استقبال</span>
+              <Input
+                value={signatures.reception}
+                readOnly
+                className="text-xs border-0 text-right"
+              />
             </div>
             <div className="flex items-center justify-end gap-1">
-              <span style={{textAlign: 'right'}}>تمريض</span>
-              <Input value={signatures.nurse} readOnly className="text-xs border-0 text-right" />
+              <span style={{ textAlign: "right" }}>تمريض</span>
+              <Input
+                value={signatures.nurse}
+                readOnly
+                className="text-xs border-0 text-right"
+              />
             </div>
             <div className="flex items-center justify-end gap-1">
-              <span style={{textAlign: 'right'}}>فني</span>
-              <Input value={signatures.technician} readOnly className="text-xs border-0 text-right" />
+              <span style={{ textAlign: "right" }}>فني</span>
+              <Input
+                value={signatures.technician}
+                readOnly
+                className="text-xs border-0 text-right"
+              />
             </div>
             <div className="flex items-center justify-end gap-1">
-              <span style={{textAlign: 'right'}}>أخصائي</span>
-              <Input value={signatures.doctor} readOnly className="text-xs border-0 text-right" />
+              <span style={{ textAlign: "right" }}>أخصائي</span>
+              <Input
+                value={signatures.doctor}
+                readOnly
+                className="text-xs border-0 text-right"
+              />
             </div>
           </div>
         </div>
         <div className="sheet-mobile-actions print:hidden">
-          <Button type="button" variant="outline" onClick={() => setLocation("/patients")}>رجوع</Button>
-          <Button type="button" variant="outline" onClick={handlePrint}>طباعة</Button>
-          <Button type="button" variant="default" onClick={handleSaveSheet}>حفظ</Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setLocation("/patients")}
+          >
+            رجوع
+          </Button>
+          <Button type="button" variant="outline" onClick={handlePrint}>
+            طباعة
+          </Button>
+          <Button type="button" variant="default" onClick={handleSaveSheet}>
+            حفظ
+          </Button>
         </div>
       </main>
     </div>
   );
 }
-
-

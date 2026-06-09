@@ -61,16 +61,25 @@ const MORE_LINKS: { href: string; label: string }[] = [];
 
 export default function ServicesHubShell() {
   const [location] = useLocation();
-  const medicationsQuery = trpc.medical.getAllMedications.useQuery(undefined, { refetchOnWindowFocus: false });
-  const testsQuery = trpc.medical.getAllTests.useQuery(undefined, { refetchOnWindowFocus: false });
-  const servicesQuery = trpc.medical.getServicesFromDb.useQuery(undefined, { refetchOnWindowFocus: false });
+  const medicationsQuery = trpc.medical.getAllMedications.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
+  const testsQuery = trpc.medical.getAllTests.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
+  const servicesQuery = trpc.medical.getServicesFromDb.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
 
-  const isHubHome = location === "/services-hub" || location === "/services-hub/";
+  const isHubHome =
+    location === "/services-hub" || location === "/services-hub/";
   const stats = useMemo(() => {
     const meds = medicationsQuery.data ?? [];
     const tests = testsQuery.data ?? [];
     const services = servicesQuery.data ?? [];
-    const txhub = tests.filter((row: any) => row.type === "lab" || row.type === "imaging");
+    const txhub = tests.filter(
+      (row: any) => row.type === "lab" || row.type === "imaging",
+    );
     return {
       meds: meds.length,
       tests: tests.length,
@@ -79,7 +88,10 @@ export default function ServicesHubShell() {
     };
   }, [medicationsQuery.data, testsQuery.data, servicesQuery.data]);
 
-  const loading = medicationsQuery.isLoading || testsQuery.isLoading || servicesQuery.isLoading;
+  const loading =
+    medicationsQuery.isLoading ||
+    testsQuery.isLoading ||
+    servicesQuery.isLoading;
 
   const renderComponent = () => {
     if (isHubHome) return null;
@@ -100,7 +112,10 @@ export default function ServicesHubShell() {
     return (
       <div className="rounded-xl border border-border/80 bg-card p-6 text-right text-sm text-muted-foreground">
         المسار غير معروف. ارجع إلى{" "}
-        <Link href="/services-hub" className="font-semibold text-primary underline-offset-4 hover:underline">
+        <Link
+          href="/services-hub"
+          className="font-semibold text-primary underline-offset-4 hover:underline"
+        >
           مركز الخدمات
         </Link>
         .
@@ -123,7 +138,14 @@ export default function ServicesHubShell() {
           <CardContent className="space-y-4 p-4 sm:p-5">
             <SectionHeader
               title="الوحدات المتصلة"
-              badge={<Badge variant="outline" className="rounded-full px-2 py-0.5 text-[10px] font-bold">{MAIN_MODULES.length} صفحات</Badge>}
+              badge={
+                <Badge
+                  variant="outline"
+                  className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                >
+                  {MAIN_MODULES.length} صفحات
+                </Badge>
+              }
             />
 
             <div className="space-y-2">
@@ -136,21 +158,32 @@ export default function ServicesHubShell() {
                   >
                     <div className="flex min-w-0 items-start gap-3 text-right">
                       <div
-                        className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg", mod.iconWrap)}
+                        className={cn(
+                          "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
+                          mod.iconWrap,
+                        )}
                       >
                         <Icon className="h-5 w-5" />
                       </div>
                       <div className="min-w-0 space-y-0.5">
                         <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-sm font-bold text-foreground">{mod.title}</h3>
+                          <h3 className="text-sm font-bold text-foreground">
+                            {mod.title}
+                          </h3>
                           <span className="text-[11px] font-semibold text-muted-foreground">
                             {mod.href.replace("/services-hub", "") || "/"}
                           </span>
                         </div>
-                        <p className="text-[12px] leading-relaxed text-muted-foreground">{mod.description}</p>
+                        <p className="text-[12px] leading-relaxed text-muted-foreground">
+                          {mod.description}
+                        </p>
                       </div>
                     </div>
-                    <Button asChild variant="outline" className="w-full gap-2 rounded-lg sm:w-auto">
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="w-full gap-2 rounded-lg sm:w-auto"
+                    >
                       <Link href={mod.href}>
                         فتح
                         <ArrowRight className="h-4 w-4 rotate-180" />
@@ -172,7 +205,10 @@ export default function ServicesHubShell() {
                   الأرقام التالية تساعدك على معرفة أين تبدأ قبل فتح أي صفحة.
                 </p>
               </div>
-              <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-[10px] font-bold">
+              <Badge
+                variant="secondary"
+                className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+              >
                 مباشر
               </Badge>
             </div>
@@ -180,8 +216,14 @@ export default function ServicesHubShell() {
             <div className="mt-4 space-y-2">
               <StatCard title="الأدوية" value={loading ? "…" : stats.meds} />
               <StatCard title="الفحوصات" value={loading ? "…" : stats.tests} />
-              <StatCard title="الخدمات" value={loading ? "…" : stats.services} />
-              <StatCard title="النتائج الخارجية" value={loading ? "…" : stats.txhub} />
+              <StatCard
+                title="الخدمات"
+                value={loading ? "…" : stats.services}
+              />
+              <StatCard
+                title="النتائج الخارجية"
+                value={loading ? "…" : stats.txhub}
+              />
             </div>
           </div>
 
@@ -189,8 +231,8 @@ export default function ServicesHubShell() {
             <div className="space-y-2 text-right">
               <h2 className="text-sm font-bold">كيف يُستخدم</h2>
               <p className="text-[12px] leading-relaxed text-muted-foreground">
-                ابدأ من الأدوية أو السجل عندما تحتاج تعديل بيانات مرجعية، واستخدم كتالوج الفحوصات وTXhub عندما تعمل على
-                المعايير والنتائج.
+                ابدأ من الأدوية أو السجل عندما تحتاج تعديل بيانات مرجعية،
+                واستخدم كتالوج الفحوصات وTXhub عندما تعمل على المعايير والنتائج.
               </p>
             </div>
           </div>
@@ -203,7 +245,13 @@ export default function ServicesHubShell() {
             <SectionHeader title="روابط إضافية" />
             <div className="flex flex-wrap gap-2 justify-end">
               {MORE_LINKS.map((item) => (
-                <Button key={item.href} variant="outline" size="sm" asChild className="rounded-full">
+                <Button
+                  key={item.href}
+                  variant="outline"
+                  size="sm"
+                  asChild
+                  className="rounded-full"
+                >
                   <Link href={item.href}>{item.label}</Link>
                 </Button>
               ))}
@@ -215,7 +263,10 @@ export default function ServicesHubShell() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-5 px-4 py-6 sm:px-0 pb-10 text-right" dir="rtl">
+    <div
+      className="mx-auto w-full max-w-[1440px] space-y-5 px-4 py-6 sm:px-0 pb-10 text-right"
+      dir="rtl"
+    >
       {!isHubHome ? (
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" asChild className="gap-1">
@@ -224,7 +275,9 @@ export default function ServicesHubShell() {
               مركز الخدمات
             </Link>
           </Button>
-          <span className="text-xs text-muted-foreground">التنقل الكامل متاح أيضاً من القائمة الجانبية.</span>
+          <span className="text-xs text-muted-foreground">
+            التنقل الكامل متاح أيضاً من القائمة الجانبية.
+          </span>
         </div>
       ) : null}
 

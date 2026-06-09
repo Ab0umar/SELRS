@@ -263,8 +263,15 @@ export default function AdminPermissions() {
                 <CardTitle className="text-base font-black">
                   مصفوفة الوصول: {ROLE_LABELS_AR[selectedRole]}
                 </CardTitle>
-                <Badge variant="outline" className="text-[10px] font-bold h-5 bg-background">
-                  {SECTION_FILTER_OPTIONS.find(o => o.value === selectedSection)?.label}
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-bold h-5 bg-background"
+                >
+                  {
+                    SECTION_FILTER_OPTIONS.find(
+                      (o) => o.value === selectedSection,
+                    )?.label
+                  }
                 </Badge>
               </div>
               <CardDescription className="text-xs">
@@ -279,7 +286,9 @@ export default function AdminPermissions() {
                   : "border-border/60 bg-muted/40 text-muted-foreground",
               )}
             >
-              {hasUnsavedChanges ? "توجد تغييرات غير محفوظة" : "البيانات محفوظة ومزامنة"}
+              {hasUnsavedChanges
+                ? "توجد تغييرات غير محفوظة"
+                : "البيانات محفوظة ومزامنة"}
             </div>
           </div>
         </CardHeader>
@@ -289,7 +298,9 @@ export default function AdminPermissions() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Role selector */}
                 <div className="space-y-2">
-                  <span className="text-[11px] font-black text-muted-foreground uppercase tracking-widest px-1">الدور الوظيفي المستهدف</span>
+                  <span className="text-[11px] font-black text-muted-foreground uppercase tracking-widest px-1">
+                    الدور الوظيفي المستهدف
+                  </span>
                   <FilterBar
                     filters={ROLE_FILTER_OPTIONS}
                     selected={selectedRole}
@@ -300,7 +311,9 @@ export default function AdminPermissions() {
 
                 {/* Section tabs */}
                 <div className="space-y-2">
-                  <span className="text-[11px] font-black text-muted-foreground uppercase tracking-widest px-1">نطاق مراجعة الصفحات</span>
+                  <span className="text-[11px] font-black text-muted-foreground uppercase tracking-widest px-1">
+                    نطاق مراجعة الصفحات
+                  </span>
                   <FilterBar
                     filters={SECTION_FILTER_OPTIONS}
                     selected={selectedSection}
@@ -322,7 +335,9 @@ export default function AdminPermissions() {
                     dir="rtl"
                   >
                     <div className="mb-3 space-y-1">
-                      <div className="font-medium leading-snug">{perm.label}</div>
+                      <div className="font-medium leading-snug">
+                        {perm.label}
+                      </div>
                       <div className="text-xs leading-relaxed text-muted-foreground">
                         {getAccessLevelCopy(level).detail}
                       </div>
@@ -347,9 +362,15 @@ export default function AdminPermissions() {
               <Table dir="rtl" className="min-w-[760px] text-right text-sm">
                 <TableHeader className="sticky top-0 z-10 bg-primary/5 backdrop-blur-sm shadow-sm">
                   <TableRow className="hover:bg-transparent border-b-primary/10 h-12">
-                    <TableHead className="min-w-[200px] px-6 font-bold text-primary">الصفحة والموديول</TableHead>
-                    <TableHead className="w-32 px-2 text-center font-bold text-primary">لا وصول</TableHead>
-                    <TableHead className="w-32 px-2 text-center font-bold text-primary">عرض فقط</TableHead>
+                    <TableHead className="min-w-[200px] px-6 font-bold text-primary">
+                      الصفحة والموديول
+                    </TableHead>
+                    <TableHead className="w-32 px-2 text-center font-bold text-primary">
+                      لا وصول
+                    </TableHead>
+                    <TableHead className="w-32 px-2 text-center font-bold text-primary">
+                      عرض فقط
+                    </TableHead>
                     {writeAccessColumns.map((column) => (
                       <TableHead
                         key={column}
@@ -369,12 +390,14 @@ export default function AdminPermissions() {
                         key={perm.id}
                         className={cn(
                           "group transition-colors hover:bg-primary/[0.03]",
-                          idx % 2 === 0 ? "bg-background" : "bg-muted/10"
+                          idx % 2 === 0 ? "bg-background" : "bg-muted/10",
                         )}
                       >
                         <TableCell className="max-w-[360px] px-6 py-4 align-middle font-bold leading-snug">
                           <div className="space-y-1">
-                            <div className="text-sm group-hover:text-primary transition-colors">{perm.label}</div>
+                            <div className="text-sm group-hover:text-primary transition-colors">
+                              {perm.label}
+                            </div>
                             <div className="text-[10px] font-medium leading-relaxed text-muted-foreground/70">
                               {getAccessLevelCopy(level).detail}
                             </div>
@@ -404,23 +427,33 @@ export default function AdminPermissions() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-border/70 pt-6">
-             <div className="flex items-center gap-3">
-               <Shield className="h-8 w-8 text-primary/20" />
-               <p className="text-[11px] leading-relaxed text-muted-foreground max-w-xl">
-                تعديل كامل يعادل صلاحية (Read & Write) ويشمل جميع إجراءات الكتابة والحذف المتاحة في الموديول. 
-                التغييرات لا تصبح فعالة إلا بعد الضغط على زر الحفظ أعلاه.
+            <div className="flex items-center gap-3">
+              <Shield className="h-8 w-8 text-primary/20" />
+              <p className="text-[11px] leading-relaxed text-muted-foreground max-w-xl">
+                تعديل كامل يعادل صلاحية (Read & Write) ويشمل جميع إجراءات
+                الكتابة والحذف المتاحة في الموديول. التغييرات لا تصبح فعالة إلا
+                بعد الضغط على زر الحفظ أعلاه.
               </p>
-             </div>
-             {confirmReset ? (
+            </div>
+            {confirmReset ? (
               <div className="flex items-center gap-1">
-                <button type="button" aria-label="تأكيد"
+                <button
+                  type="button"
+                  aria-label="تأكيد"
                   className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
-                  onClick={() => { setPermissions(serverPermissions); setConfirmReset(false); }}>
+                  onClick={() => {
+                    setPermissions(serverPermissions);
+                    setConfirmReset(false);
+                  }}
+                >
                   تأكيد
                 </button>
-                <button type="button" aria-label="إلغاء"
+                <button
+                  type="button"
+                  aria-label="إلغاء"
                   className="rounded bg-muted text-muted-foreground hover:bg-border"
-                  onClick={() => setConfirmReset(false)}>
+                  onClick={() => setConfirmReset(false)}
+                >
                   إلغاء
                 </button>
               </div>

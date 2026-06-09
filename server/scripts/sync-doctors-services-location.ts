@@ -31,13 +31,18 @@ interface ServiceEntry {
 }
 
 export function mapDoctorDirectoryRows(
-  rows: Array<{ code: string; name: string; [key: string]: unknown }>
+  rows: Array<{ code: string; name: string; [key: string]: unknown }>,
 ): Array<{ code: string; name: string }> {
   return rows.map((r) => ({ ...r, name: r.name.trim() }));
 }
 
 export function mapServiceDirectoryRows(
-  rows: Array<{ code: string; name: string; price: number; [key: string]: unknown }>
+  rows: Array<{
+    code: string;
+    name: string;
+    price: number;
+    [key: string]: unknown;
+  }>,
 ): Array<{ code: string; name: string; price: number }> {
   return rows.map((r) => ({ ...r, name: r.name.trim() }));
 }
@@ -63,10 +68,15 @@ async function syncDoctorsAndServices() {
       const row = await getSystemSetting("doctor_directory");
       if (row?.value) {
         systemDoctors = JSON.parse(row.value);
-        console.log(`[SyncScript] Found ${systemDoctors.length} doctors in systemSettings`);
+        console.log(
+          `[SyncScript] Found ${systemDoctors.length} doctors in systemSettings`,
+        );
       }
     } catch (err) {
-      console.warn("[SyncScript] Could not read doctor_directory from systemSettings", err);
+      console.warn(
+        "[SyncScript] Could not read doctor_directory from systemSettings",
+        err,
+      );
     }
 
     // 2. Get services from systemSettings
@@ -76,10 +86,15 @@ async function syncDoctorsAndServices() {
       const row = await getSystemSetting("service_directory");
       if (row?.value) {
         systemServices = JSON.parse(row.value);
-        console.log(`[SyncScript] Found ${systemServices.length} services in systemSettings`);
+        console.log(
+          `[SyncScript] Found ${systemServices.length} services in systemSettings`,
+        );
       }
     } catch (err) {
-      console.warn("[SyncScript] Could not read service_directory from systemSettings", err);
+      console.warn(
+        "[SyncScript] Could not read service_directory from systemSettings",
+        err,
+      );
     }
 
     // 3. Sync doctors to table
@@ -92,11 +107,16 @@ async function syncDoctorsAndServices() {
       const doctorServiceType = doc.doctorType || "specialist";
 
       try {
-        const existing = await db.select().from(doctors).where(eq(doctors.code, doc.code)).limit(1);
+        const existing = await db
+          .select()
+          .from(doctors)
+          .where(eq(doctors.code, doc.code))
+          .limit(1);
 
         if (existing.length > 0) {
           // Update existing
-          await db.update(doctors)
+          await db
+            .update(doctors)
             .set({
               code: doc.code,
               name: doc.name,
@@ -106,7 +126,9 @@ async function syncDoctorsAndServices() {
               updatedAt: new Date(),
             })
             .where(eq(doctors.code, doc.code));
-          console.log(`[SyncScript] Updated doctor: ${doc.code} (${doc.name}) - locationType: ${locationType}, doctorType: ${doctorServiceType}`);
+          console.log(
+            `[SyncScript] Updated doctor: ${doc.code} (${doc.name}) - locationType: ${locationType}, doctorType: ${doctorServiceType}`,
+          );
         } else {
           // Insert new
           await db.insert(doctors).values({
@@ -117,7 +139,9 @@ async function syncDoctorsAndServices() {
             locationType: locationType,
             doctorType: doctorServiceType,
           });
-          console.log(`[SyncScript] Inserted doctor: ${doc.code} (${doc.name}) - locationType: ${locationType}, doctorType: ${doctorServiceType}`);
+          console.log(
+            `[SyncScript] Inserted doctor: ${doc.code} (${doc.name}) - locationType: ${locationType}, doctorType: ${doctorServiceType}`,
+          );
         }
         doctorSyncCount++;
       } catch (err) {
@@ -133,14 +157,20 @@ async function syncDoctorsAndServices() {
       // Map srvTyp to locationType: "1" = center, "2" = external
       let locationType = "center";
       if (svc.srvTyp === "2") locationType = "external";
-      else if ((svc as any).locationType) locationType = (svc as any).locationType;
+      else if ((svc as any).locationType)
+        locationType = (svc as any).locationType;
 
       try {
-        const existing = await db.select().from(services).where(eq(services.code, svc.code)).limit(1);
+        const existing = await db
+          .select()
+          .from(services)
+          .where(eq(services.code, svc.code))
+          .limit(1);
 
         if (existing.length > 0) {
           // Update existing
-          await db.update(services)
+          await db
+            .update(services)
             .set({
               code: svc.code,
               name: svc.name,
@@ -153,7 +183,9 @@ async function syncDoctorsAndServices() {
               updatedAt: new Date(),
             })
             .where(eq(services.code, svc.code));
-          console.log(`[SyncScript] Updated service: ${svc.code} (${svc.name}) - locationType: ${locationType}`);
+          console.log(
+            `[SyncScript] Updated service: ${svc.code} (${svc.name}) - locationType: ${locationType}`,
+          );
         } else {
           // Insert new
           await db.insert(services).values({
@@ -167,7 +199,9 @@ async function syncDoctorsAndServices() {
             locationType: locationType,
             isActive: svc.isActive !== false,
           });
-          console.log(`[SyncScript] Inserted service: ${svc.code} (${svc.name}) - locationType: ${locationType}`);
+          console.log(
+            `[SyncScript] Inserted service: ${svc.code} (${svc.name}) - locationType: ${locationType}`,
+          );
         }
         serviceSyncCount++;
       } catch (err) {
@@ -178,13 +212,25 @@ async function syncDoctorsAndServices() {
 
     // 5. Identify mismatches
     console.log("[SyncScript] Checking for location mismatches...");
-    const allDoctors = await db.select().from(doctors).where(eq(doctors.isActive, true));
-    const allServices = await db.select().from(services).where(eq(services.isActive, true));
+    const allDoctors = await db
+      .select()
+      .from(doctors)
+      .where(eq(doctors.isActive, true));
+    const allServices = await db
+      .select()
+      .from(services)
+      .where(eq(services.isActive, true));
 
     const centerDoctors = allDoctors.filter((d) => d.locationType === "center");
-    const externalDoctors = allDoctors.filter((d) => d.locationType === "external");
-    const centerServices = allServices.filter((s) => s.locationType === "center");
-    const externalServices = allServices.filter((s) => s.locationType === "external");
+    const externalDoctors = allDoctors.filter(
+      (d) => d.locationType === "external",
+    );
+    const centerServices = allServices.filter(
+      (s) => s.locationType === "center",
+    );
+    const externalServices = allServices.filter(
+      (s) => s.locationType === "external",
+    );
 
     console.log(`[SyncScript] Summary:`);
     console.log(`  - Center doctors: ${centerDoctors.length}`);
@@ -194,10 +240,13 @@ async function syncDoctorsAndServices() {
 
     console.log("\n[SyncScript] ✓ Sync complete!");
     console.log("\nNext steps:");
-    console.log("1. Database migration required to add locationType column to services table");
+    console.log(
+      "1. Database migration required to add locationType column to services table",
+    );
     console.log("2. Run this script after migration is applied");
-    console.log("3. Verify UI pages are querying from doctors/services tables with location filters");
-
+    console.log(
+      "3. Verify UI pages are querying from doctors/services tables with location filters",
+    );
   } catch (err) {
     console.error("[SyncScript] Fatal error:", err);
     process.exit(1);
@@ -205,8 +254,13 @@ async function syncDoctorsAndServices() {
 }
 
 // Run if executed directly
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  syncDoctorsAndServices().then(() => process.exit(0)).catch(() => process.exit(1));
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  syncDoctorsAndServices()
+    .then(() => process.exit(0))
+    .catch(() => process.exit(1));
 }
 
 export { syncDoctorsAndServices };

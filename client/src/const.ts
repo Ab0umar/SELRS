@@ -34,7 +34,10 @@ const isUsablePreferredOrigin = (origin: string, isNative: boolean) => {
   }
 
   // Capacitor should not call back into the bundled shell origin.
-  if (typeof window !== "undefined" && normalizeOrigin(window.location.origin) === origin) {
+  if (
+    typeof window !== "undefined" &&
+    normalizeOrigin(window.location.origin) === origin
+  ) {
     return false;
   }
 

@@ -21,7 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function AttendanceDashboard() {
   const dashboardQuery = (trpc as any).attendance.dashboardSummary.useQuery(
     undefined,
-    { refetchInterval: 30_000, refetchIntervalInBackground: false }
+    { refetchInterval: 30_000, refetchIntervalInBackground: false },
   );
 
   const deviceQuery = (trpc as any).attendance.deviceStatus.useQuery(
@@ -29,7 +29,7 @@ export default function AttendanceDashboard() {
     {
       refetchInterval: 20_000,
       refetchIntervalInBackground: false,
-    }
+    },
   );
 
   const summary = dashboardQuery.data as any;
@@ -155,7 +155,7 @@ export default function AttendanceDashboard() {
                 {isLoading ? (
                   <Skeleton className="h-6 w-12" />
                 ) : (
-                  summary?.presentToday ?? 0
+                  (summary?.presentToday ?? 0)
                 )}
               </span>
             </div>
@@ -165,7 +165,7 @@ export default function AttendanceDashboard() {
                 {isLoading ? (
                   <Skeleton className="h-6 w-12" />
                 ) : (
-                  summary?.lateToday ?? 0
+                  (summary?.lateToday ?? 0)
                 )}
               </span>
             </div>
@@ -175,7 +175,7 @@ export default function AttendanceDashboard() {
                 {isLoading ? (
                   <Skeleton className="h-6 w-12" />
                 ) : (
-                  summary?.insideNow ?? 0
+                  (summary?.insideNow ?? 0)
                 )}
               </span>
             </div>
@@ -206,7 +206,9 @@ export default function AttendanceDashboard() {
               const Icon = activity.icon;
               return (
                 <div key={index} className="flex items-start gap-3">
-                  <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${activity.color}`} />
+                  <Icon
+                    className={`h-4 w-4 mt-0.5 shrink-0 ${activity.color}`}
+                  />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground">
                       {activity.title}
@@ -254,7 +256,8 @@ export default function AttendanceDashboard() {
       <div className="rounded-lg border border-border/50 bg-muted/30 p-6">
         <h3 className="font-medium text-foreground">هل تحتاج إلى مساعدة؟</h3>
         <p className="mt-2 text-sm text-muted-foreground">
-          يمكنك الاطلاع على دليل الاستخدام أو التواصل مع فريق الدعم للحصول على مساعدة.
+          يمكنك الاطلاع على دليل الاستخدام أو التواصل مع فريق الدعم للحصول على
+          مساعدة.
         </p>
         <div className="mt-4 flex gap-2">
           <Button variant="outline" size="sm">

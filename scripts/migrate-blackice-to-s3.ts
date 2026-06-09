@@ -10,7 +10,9 @@ async function migrateBlackIceToS3() {
   const databaseUrl = process.env.DATABASE_URL;
 
   if (!awsAccessKeyId || !awsSecretAccessKey || !awsS3Bucket) {
-    console.error("[S3 Migration] Missing AWS credentials. Set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_BUCKET");
+    console.error(
+      "[S3 Migration] Missing AWS credentials. Set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_BUCKET",
+    );
     process.exit(1);
   }
 
@@ -20,7 +22,9 @@ async function migrateBlackIceToS3() {
   }
 
   console.log("[S3 Migration] Starting blackice_uploads migration to S3...");
-  console.log(`[S3 Migration] Using bucket: ${awsS3Bucket} in region: ${awsRegion}`);
+  console.log(
+    `[S3 Migration] Using bucket: ${awsS3Bucket} in region: ${awsRegion}`,
+  );
 
   const pool = mysql.createPool({
     uri: databaseUrl,
@@ -38,12 +42,14 @@ async function migrateBlackIceToS3() {
     } catch {
       console.log("[S3 Migration] Adding s3_key column...");
       await conn.query(
-        "ALTER TABLE blackice_uploads ADD COLUMN s3_key VARCHAR(255) AFTER file_name"
+        "ALTER TABLE blackice_uploads ADD COLUMN s3_key VARCHAR(255) AFTER file_name",
       );
     }
 
     // Get total count
-    const [[{ total }]] = await conn.query("SELECT COUNT(*) as total FROM blackice_uploads WHERE s3_key IS NULL");
+    const [[{ total }]] = await conn.query(
+      "SELECT COUNT(*) as total FROM blackice_uploads WHERE s3_key IS NULL",
+    );
     console.log(`[S3 Migration] Found ${total} records to migrate`);
 
     let processed = 0;
@@ -54,7 +60,7 @@ async function migrateBlackIceToS3() {
       const [rows] = await conn.query(
         `SELECT id, file_name, mime_type, file_data FROM blackice_uploads
          WHERE s3_key IS NULL ORDER BY id ASC LIMIT ?`,
-        [batchSize]
+        [batchSize],
       );
 
       if ((rows as any[]).length === 0) break;
@@ -63,10 +69,10 @@ async function migrateBlackIceToS3() {
         try {
           if (!row.file_data || row.file_data.length === 0) {
             console.log(`[S3 Migration] Skipping ${row.id} (empty file)`);
-            await conn.query("UPDATE blackice_uploads SET s3_key = ? WHERE id = ?", [
-              "EMPTY",
-              row.id,
-            ]);
+            await conn.query(
+              "UPDATE blackice_uploads SET s3_key = ? WHERE id = ?",
+              ["EMPTY", row.id],
+            );
             processed++;
             continue;
           }
@@ -80,7 +86,7 @@ async function migrateBlackIceToS3() {
           // Update DB to store S3 key (keep file_data for now in case of rollback)
           await conn.query(
             "UPDATE blackice_uploads SET s3_key = ? WHERE id = ?",
-            [s3Key, row.id]
+            [s3Key, row.id],
           );
 
           processed++;
@@ -89,21 +95,29 @@ async function migrateBlackIceToS3() {
           }
         } catch (error: any) {
           failed++;
-          console.error(`[S3 Migration] Failed to migrate ${row.id}: ${String(error?.message ?? error)}`);
+          console.error(
+            `[S3 Migration] Failed to migrate ${row.id}: ${String(error?.message ?? error)}`,
+          );
         }
       }
     }
 
     console.log(
-      `[S3 Migration] Complete: ${processed} migrated, ${failed} failed out of ${total}`
+      `[S3 Migration] Complete: ${processed} migrated, ${failed} failed out of ${total}`,
     );
 
     if (failed === 0) {
       console.log("[S3 Migration] Successfully migrated all files to S3!");
-      console.log("[S3 Migration] file_data, ocr_text, plain_text columns still contain old data");
+      console.log(
+        "[S3 Migration] file_data, ocr_text, plain_text columns still contain old data",
+      );
       console.log("[S3 Migration] When ready, you can clean up with:");
-      console.log("  ALTER TABLE blackice_uploads MODIFY COLUMN file_data LONGBLOB NULL;");
-      console.log("  UPDATE blackice_uploads SET file_data = NULL, ocr_text = NULL, plain_text = NULL WHERE s3_key IS NOT NULL;");
+      console.log(
+        "  ALTER TABLE blackice_uploads MODIFY COLUMN file_data LONGBLOB NULL;",
+      );
+      console.log(
+        "  UPDATE blackice_uploads SET file_data = NULL, ocr_text = NULL, plain_text = NULL WHERE s3_key IS NOT NULL;",
+      );
       console.log("  OPTIMIZE TABLE blackice_uploads;");
     }
 

@@ -1,7 +1,7 @@
 # SRV100 Project Principles
 
 Companion to `specs/CONSTITUTION.md` (canonical: `.specify/memory/constitution.md`).
-The Constitution is the *what* (non-negotiable rules). This document is the *how*
+The Constitution is the _what_ (non-negotiable rules). This document is the _how_
 (the operating model that produces work consistent with the Constitution).
 
 ---
@@ -29,20 +29,20 @@ All work flows in this strict order. No step may be skipped.
 Every task in `tasks.md` MUST contain these fields. Tasks missing any field are
 rejected during review.
 
-| Field | Description |
-|---|---|
-| **ID** | Stable identifier, e.g. `T-LASIK-001`. |
-| **Title** | One-line imperative. |
-| **Owner Model** | Primary model/tool assigned (per §4 routing). |
-| **Backup Model** | Fallback if Owner is unavailable or fails. |
-| **Tool** | Execution surface: Cursor, Codex CLI, manual, etc. |
-| **Role** | What the model is doing: implement / refactor / draft SQL / extract / review / design. |
-| **Inputs** | Files, schemas, prior task outputs, references. |
-| **Outputs** | Concrete artifacts (file paths, PR, report). |
-| **Prompt** | The English prompt to give the Owner Model. MUST end with: *"Follow the project Constitution and Project Principles strictly."* |
-| **Acceptance Criteria** | Verifiable conditions; includes verification commands and (for reports) legacy-parity check. |
-| **Dependencies** | Predecessor task IDs. |
-| **Constitution Refs** | Principles invoked (e.g., I, II, V). |
+| Field                   | Description                                                                                                                     |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **ID**                  | Stable identifier, e.g. `T-LASIK-001`.                                                                                          |
+| **Title**               | One-line imperative.                                                                                                            |
+| **Owner Model**         | Primary model/tool assigned (per §4 routing).                                                                                   |
+| **Backup Model**        | Fallback if Owner is unavailable or fails.                                                                                      |
+| **Tool**                | Execution surface: Cursor, Codex CLI, manual, etc.                                                                              |
+| **Role**                | What the model is doing: implement / refactor / draft SQL / extract / review / design.                                          |
+| **Inputs**              | Files, schemas, prior task outputs, references.                                                                                 |
+| **Outputs**             | Concrete artifacts (file paths, PR, report).                                                                                    |
+| **Prompt**              | The English prompt to give the Owner Model. MUST end with: _"Follow the project Constitution and Project Principles strictly."_ |
+| **Acceptance Criteria** | Verifiable conditions; includes verification commands and (for reports) legacy-parity check.                                    |
+| **Dependencies**        | Predecessor task IDs.                                                                                                           |
+| **Constitution Refs**   | Principles invoked (e.g., I, II, V).                                                                                            |
 
 ---
 
@@ -64,17 +64,18 @@ rejected during review.
 
 ## 4. Model Routing Matrix
 
-| Task type | Owner | Backup |
-|---|---|---|
-| Constitution / principles / spec / plan / tasks / review | Claude | — |
-| Multi-file edits inside repo | Cursor | Codex |
-| Implementation / refactor / bugfix | Codex | Cursor |
-| SQL design, report logic, complex reasoning | GPT-5 | Claude |
-| Bulk extraction, legacy summaries, SQL drafts | GPT-5 mini / GLM / Kimi | OpenRouter |
-| UI layout / visual variants | Gemini | Cursor |
-| Local lightweight edits | Ollama / Continue | Cursor |
+| Task type                                                | Owner                   | Backup     |
+| -------------------------------------------------------- | ----------------------- | ---------- |
+| Constitution / principles / spec / plan / tasks / review | Claude                  | —          |
+| Multi-file edits inside repo                             | Cursor                  | Codex      |
+| Implementation / refactor / bugfix                       | Codex                   | Cursor     |
+| SQL design, report logic, complex reasoning              | GPT-5                   | Claude     |
+| Bulk extraction, legacy summaries, SQL drafts            | GPT-5 mini / GLM / Kimi | OpenRouter |
+| UI layout / visual variants                              | Gemini                  | Cursor     |
+| Local lightweight edits                                  | Ollama / Continue       | Cursor     |
 
 **Routing rules:**
+
 - Never use Claude for heavy implementation, large repetitive edits, bulk refactoring,
   or cheap long-form extraction.
 - Never use a cheap model where legacy parity (Principle V) is at stake without a
@@ -137,6 +138,7 @@ These blocks are pasted directly into Cursor for execution.
 ## 9. Review Gate
 
 Claude reviews every delivered task against:
+
 1. Acceptance criteria met.
 2. Constitution principles cited in the task respected.
 3. No out-of-scope edits.

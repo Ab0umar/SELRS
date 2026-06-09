@@ -2,8 +2,13 @@
 import path from "node:path";
 import * as XLSX from "xlsx";
 
-const SOURCE_FILE = path.resolve("client/src/data/readyPrescriptionTemplates.ts");
-const OUTPUT_FILE = path.resolve("روشتات", "ready_prescriptions_multisheet_import.xlsx");
+const SOURCE_FILE = path.resolve(
+  "client/src/data/readyPrescriptionTemplates.ts",
+);
+const OUTPUT_FILE = path.resolve(
+  "روشتات",
+  "ready_prescriptions_multisheet_import.xlsx",
+);
 
 function sanitizeCell(value) {
   const text = String(value ?? "");
@@ -44,12 +49,13 @@ function toTemplates(arrayLiteral) {
 }
 
 function sanitizeSheetName(input, used) {
-  const base = String(input || "Sheet")
-    .replace(/[\\/*?:[\]]/g, " ")
-    .replace(/^'+|'+$/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 31) || "Sheet";
+  const base =
+    String(input || "Sheet")
+      .replace(/[\\/*?:[\]]/g, " ")
+      .replace(/^'+|'+$/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 31) || "Sheet";
 
   let candidate = base;
   let n = 2;
@@ -67,7 +73,9 @@ async function main() {
   const arrayLiteral = extractArrayLiteral(src);
   const templates = toTemplates(arrayLiteral);
   if (!templates.length) {
-    console.log("No ready prescription templates found. Skipping workbook generation.");
+    console.log(
+      "No ready prescription templates found. Skipping workbook generation.",
+    );
     return;
   }
 
@@ -92,7 +100,7 @@ async function main() {
 
     const sheetName = sanitizeSheetName(
       `${template.name || template.id || "Template"}`,
-      usedSheetNames
+      usedSheetNames,
     );
     const worksheet = XLSX.utils.json_to_sheet(
       rows.length
@@ -108,7 +116,7 @@ async function main() {
               duration: "",
               instructions: "",
             },
-          ]
+          ],
     );
     XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
   }

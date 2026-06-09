@@ -50,17 +50,25 @@ function receiptFilterValueUseRtl(filterKey: string): boolean {
   return false;
 }
 
-function reportThClass(col: { key: string; align?: string }, isReceiptPrint: boolean): string {
+function reportThClass(
+  col: { key: string; align?: string },
+  isReceiptPrint: boolean,
+): string {
   if (isReceiptPrint) return styles.receiptTh;
   if (col.align === "center") return "text-center";
   return styles.reportThText;
 }
 
-function subtotalLabelSpan(cols: { key: string; label: string; align?: "left" | "right" | "center" }[]): number {
+function subtotalLabelSpan(
+  cols: { key: string; label: string; align?: "left" | "right" | "center" }[],
+): number {
   return Math.max(1, firstNumericColumnIndex(cols));
 }
 
-function reportTdClass(col: { key: string; align?: string }, isReceiptPrint: boolean): string {
+function reportTdClass(
+  col: { key: string; align?: string },
+  isReceiptPrint: boolean,
+): string {
   if (isReceiptPrint) return receiptDataCellClass(col.key);
   if (col.align === "center") return "text-center";
   return styles.reportTdText;
@@ -106,17 +114,27 @@ export default function PrintPreview() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-muted/20 p-8 flex items-center justify-center" dir="rtl">
+      <div
+        className="min-h-screen bg-muted/20 p-8 flex items-center justify-center"
+        dir="rtl"
+      >
         <Card className="max-w-md border-error/30 bg-error/5 shadow-sm">
           <CardContent className="flex flex-col items-center p-6 text-center gap-4">
             <div className="rounded-full bg-error/10 p-3 text-error">
               <CircleAlert className="h-8 w-8" aria-hidden />
             </div>
             <div>
-              <p className="font-semibold text-foreground text-lg">تعذر عرض المعاينة</p>
+              <p className="font-semibold text-foreground text-lg">
+                تعذر عرض المعاينة
+              </p>
               <p className="mt-1 text-sm text-muted-foreground">{error}</p>
             </div>
-            <Button onClick={() => setLocation("/accounting")} variant="outline" className="mt-2" aria-label="الرجوع إلى الحسابات">
+            <Button
+              onClick={() => setLocation("/accounting")}
+              variant="outline"
+              className="mt-2"
+              aria-label="الرجوع إلى الحسابات"
+            >
               <ArrowLeft className="ml-2 h-4 w-4 rotate-180" aria-hidden />
               الرجوع إلى الحسابات
             </Button>
@@ -174,7 +192,9 @@ export default function PrintPreview() {
                 <td
                   key={col.key}
                   className={
-                    isReceiptPrint ? `${styles.receiptColText} ${styles.grandTotalPrintCell}` : styles.grandTotalPrintCell
+                    isReceiptPrint
+                      ? `${styles.receiptColText} ${styles.grandTotalPrintCell}`
+                      : styles.grandTotalPrintCell
                   }
                 />
               );
@@ -234,7 +254,9 @@ export default function PrintPreview() {
         currentServiceCode = serviceCode;
         const serviceName = String(r.serviceName ?? "");
         const label =
-          serviceName.trim().length > 0 ? `${serviceCode} — ${serviceName}` : serviceCode;
+          serviceName.trim().length > 0
+            ? `${serviceCode} — ${serviceName}`
+            : serviceCode;
         bodyRows.push(
           <tr key={`svc-${serviceCode}-${index}`} className={styles.groupRow}>
             <td colSpan={cols.length} className="font-bold text-right">
@@ -292,7 +314,9 @@ export default function PrintPreview() {
           flushDoctorBlock(currentDoctorCode);
         }
         currentDoctorCode = doctorCode;
-        const doctorName = r.doctorName ? `${String(r.doctorName)} (${doctorCode})` : doctorCode;
+        const doctorName = r.doctorName
+          ? `${String(r.doctorName)} (${doctorCode})`
+          : doctorCode;
         bodyRows.push(
           <tr key={`group-${doctorCode}-${index}`} className={styles.groupRow}>
             <td colSpan={cols.length} className="font-bold text-right">
@@ -327,7 +351,11 @@ export default function PrintPreview() {
             {cols.map((col, cIndex) => {
               if (cIndex === 0) {
                 return (
-                  <td key={col.key} colSpan={labelSpan} className="text-right font-bold">
+                  <td
+                    key={col.key}
+                    colSpan={labelSpan}
+                    className="text-right font-bold"
+                  >
                     {String(r[col.key] ?? "")}
                   </td>
                 );
@@ -335,7 +363,10 @@ export default function PrintPreview() {
               if (cIndex < labelSpan) return null;
 
               return (
-                <td key={col.key} className={reportTdClass(col, isReceiptPrint)}>
+                <td
+                  key={col.key}
+                  className={reportTdClass(col, isReceiptPrint)}
+                >
                   {col.align === "right" && r[col.key] !== undefined
                     ? formatPrintCellValue(r[col.key], col)
                     : ""}
@@ -362,7 +393,11 @@ export default function PrintPreview() {
       <div className={`${styles.backdrop} ${styles.noPrint}`} aria-hidden />
       <div className={styles.dialog}>
         <div className={`${styles.actionBar} ${styles.noPrint}`}>
-          <Button type="button" variant="outline" onClick={() => window.history.back()}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => window.history.back()}
+          >
             <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
             رجوع
           </Button>
@@ -387,13 +422,19 @@ export default function PrintPreview() {
                 <tr>
                   <th colSpan={cols.length} className={styles.printHeaderCell}>
                     <div className={styles.printBrandHeader} aria-hidden="true">
-                      <span className={styles.printBrandName}>مركز عيون الشروق</span>
+                      <span className={styles.printBrandName}>
+                        مركز عيون الشروق
+                      </span>
                       <PrintClinicLogo className={styles.printBrandLogo} />
                     </div>
 
                     <div className={`${styles.header} ${styles.screenOnly}`}>
-                      <h1 className="text-2xl font-bold uppercase tracking-tight">{payload.title}</h1>
-                      <div className="mt-1 text-sm font-medium text-foreground">{payload.meta.clinicName}</div>
+                      <h1 className="text-2xl font-bold uppercase tracking-tight">
+                        {payload.title}
+                      </h1>
+                      <div className="mt-1 text-sm font-medium text-foreground">
+                        {payload.meta.clinicName}
+                      </div>
                     </div>
 
                     <div className={styles.printTitleBand}>
@@ -401,51 +442,72 @@ export default function PrintPreview() {
                     </div>
 
                     <div className={styles.metaBlock}>
-                      <div className={`grid gap-4 text-sm ${isReceiptPrint ? "" : "grid-cols-2"}`}>
+                      <div
+                        className={`grid gap-4 text-sm ${isReceiptPrint ? "" : "grid-cols-2"}`}
+                      >
                         {hasPrintableDateRange(payload.meta) && (
-                          <div className={isReceiptPrint ? styles.receiptMetaRow : undefined}>
+                          <div
+                            className={
+                              isReceiptPrint ? styles.receiptMetaRow : undefined
+                            }
+                          >
                             <span className="font-semibold">الفترة:</span>
                             {isReceiptPrint ? (
                               <span className={styles.receiptMetaValueRtl}>
-                                من {formatDateAr(payload.meta.fromDate)} إلى {formatDateAr(payload.meta.toDate)}
+                                من {formatDateAr(payload.meta.fromDate)} إلى{" "}
+                                {formatDateAr(payload.meta.toDate)}
                               </span>
                             ) : (
                               <>
                                 {" "}
-                                من {formatDateAr(payload.meta.fromDate)} إلى {formatDateAr(payload.meta.toDate)}
+                                من {formatDateAr(
+                                  payload.meta.fromDate,
+                                )} إلى {formatDateAr(payload.meta.toDate)}
                               </>
                             )}
                           </div>
                         )}
                         {payload.meta.filters &&
-                          Object.entries(payload.meta.filters).map(([key, value]) => {
-                            if (!value) return null;
-                            return (
-                              <div key={key} className={isReceiptPrint ? styles.receiptMetaRow : undefined}>
-                                <span className="font-semibold">{key}:</span>
-                                {isReceiptPrint ? (
-                                  <span
-                                    className={
-                                      receiptFilterValueUseRtl(key)
-                                        ? styles.receiptMetaValueRtl
-                                        : styles.receiptMetaValueLtr
-                                    }
-                                  >
-                                    {toArabicDigits(value)}
-                                  </span>
-                                ) : (
-                                  <> {toArabicDigits(value)}</>
-                                )}
-                              </div>
-                            );
-                          })}
+                          Object.entries(payload.meta.filters).map(
+                            ([key, value]) => {
+                              if (!value) return null;
+                              return (
+                                <div
+                                  key={key}
+                                  className={
+                                    isReceiptPrint
+                                      ? styles.receiptMetaRow
+                                      : undefined
+                                  }
+                                >
+                                  <span className="font-semibold">{key}:</span>
+                                  {isReceiptPrint ? (
+                                    <span
+                                      className={
+                                        receiptFilterValueUseRtl(key)
+                                          ? styles.receiptMetaValueRtl
+                                          : styles.receiptMetaValueLtr
+                                      }
+                                    >
+                                      {toArabicDigits(value)}
+                                    </span>
+                                  ) : (
+                                    <> {toArabicDigits(value)}</>
+                                  )}
+                                </div>
+                              );
+                            },
+                          )}
                       </div>
                     </div>
                   </th>
                 </tr>
                 <tr>
                   {cols.map((col) => (
-                    <th key={col.key} className={reportThClass(col, isReceiptPrint)}>
+                    <th
+                      key={col.key}
+                      className={reportThClass(col, isReceiptPrint)}
+                    >
                       {col.label}
                     </th>
                   ))}
@@ -458,11 +520,14 @@ export default function PrintPreview() {
             <div className={styles.printTail}>
               {payload.footer && (
                 <div className={styles.footer}>
-                  <p className="font-medium">{toArabicDigits(payload.footer)}</p>
+                  <p className="font-medium">
+                    {toArabicDigits(payload.footer)}
+                  </p>
                 </div>
               )}
               <div className={styles.printTime}>
-                تمت الطباعة في: {toArabicDigits(new Date().toLocaleString("ar-EG"))}
+                تمت الطباعة في:{" "}
+                {toArabicDigits(new Date().toLocaleString("ar-EG"))}
               </div>
             </div>
           </div>

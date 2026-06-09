@@ -68,7 +68,9 @@ export default function TodayPatientsPanel() {
           ) : (
             <>
               <Calendar className="h-4 w-4 text-primary" />
-              <span className="text-xs font-medium text-primary">{selectedDate}</span>
+              <span className="text-xs font-medium text-primary">
+                {selectedDate}
+              </span>
             </>
           )}
         </div>

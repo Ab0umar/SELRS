@@ -5,7 +5,7 @@
  * Full end-to-end: Pull from device → MySQL → Daily materialization
  */
 
-import { FKDeviceSyncService } from '../server/services/attendance/fkDeviceSyncService';
+import { FKDeviceSyncService } from "../server/services/attendance/fkDeviceSyncService";
 
 async function main() {
   console.log(`\n🔄 FK Device Sync Pipeline Test`);
@@ -19,7 +19,7 @@ async function main() {
     console.log(`Sync Complete`);
     console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
 
-    console.log(`Status: ${result.success ? '✓ SUCCESS' : '✗ FAILED'}`);
+    console.log(`Status: ${result.success ? "✓ SUCCESS" : "✗ FAILED"}`);
     console.log(`Duration: ${result.duration}ms`);
     console.log(`Records Seen: ${result.recordsSeen}`);
     console.log(`Records Inserted: ${result.recordsInserted}`);
@@ -44,7 +44,9 @@ async function main() {
 
     process.exit(result.success ? 0 : 1);
   } catch (error) {
-    console.error(`\n✗ Test failed: ${error instanceof Error ? error.message : error}\n`);
+    console.error(
+      `\n✗ Test failed: ${error instanceof Error ? error.message : error}\n`,
+    );
     process.exit(1);
   }
 }

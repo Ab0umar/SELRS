@@ -7,6 +7,7 @@
 ## Overview
 
 Build a **modern attendance system** on top of Taraus read-only Access DB:
+
 - Sync Taraus data to MySQL incrementally
 - Compute daily/monthly metrics with permission adjustments
 - Expose via REST API (tRPC)
@@ -16,15 +17,15 @@ Build a **modern attendance system** on top of Taraus read-only Access DB:
 
 ## Phase 0-2: Data Sync (COMPLETED)
 
-✅ AccessDbAdapter reads KQ_KQData, RS_Emp, KQ_Shift, KQ_EmpShift from Taraus.mdb
+✅ AccessDbAdapter reads KQ*KQData, RS_Emp, KQ_Shift, KQ_EmpShift from Taraus.mdb
 ✅ SyncEngine imports with HWM, deduplicates, quarantines bad rows
-✅ Incremental sync to MySQL attendance_* tables
+✅ Incremental sync to MySQL attendance*\* tables
 
 ---
 
 ## Phase 3: Dashboard (COMPLETED)
 
-✅ dashboardSummary: COUNT(*) from attendance_daily for today's metrics
+✅ dashboardSummary: COUNT(\*) from attendance_daily for today's metrics
 ✅ syncStatus: List last N sync runs with status
 
 ---
@@ -34,8 +35,9 @@ Build a **modern attendance system** on top of Taraus read-only Access DB:
 ### Phase 4a: Data Import from Taraus
 
 **Query: Q_Raw_Punches_Validate** (SELECT from KQ_KQData)
+
 ```sql
-SELECT 
+SELECT
   GUID,
   EmpNo,
   KQDateTime,
@@ -44,7 +46,7 @@ SELECT
   VerifyModeName,
   InOutModeID
 FROM KQ_KQData
-WHERE 
+WHERE
   KQDateTime >= @sinceHWM
   AND IsInvalid = 0  -- Exclude marked invalid
   AND KQDateTime <= DATE_ADD(NOW(), INTERVAL 1 DAY)  -- Reject future >24h
@@ -52,6 +54,7 @@ ORDER BY EmpNo, KQDateTime
 ```
 
 Purpose:
+
 - Filter only valid, recent punches
 - Feed to daily aggregation
 
@@ -60,10 +63,11 @@ Purpose:
 ### Phase 4b: Daily Computation
 
 **Query: Q_Daily_Base** (SELECT from attendance_punches + RS_Emp + KQ_EmpShift + KQ_Shift)
+
 ```sql
 -- Step 1: Pair punches per employee per day
 WITH punches_per_day AS (
-  SELECT 
+  SELECT
     p.EmpNo,
     DATE(p.KQDateTime) as KQDate,
     s.ShiftID,
@@ -78,7 +82,7 @@ WITH punches_per_day AS (
       IF(NOT p.IsSignIn, TIME(p.KQDateTime), NULL) ORDER BY p.KQDateTime
     ), ',', 5) as out_times  -- First 5 out times
   FROM attendance_punches p
-  LEFT JOIN KQ_EmpShift es ON p.EmpNo = es.EmpNo 
+  LEFT JOIN KQ_EmpShift es ON p.EmpNo = es.EmpNo
     AND DATE(p.KQDateTime) = DATE(es.EmpShiftDate)
   LEFT JOIN KQ_Shift s ON es.ShiftNo = s.ShiftID
   WHERE DATE(p.KQDateTime) = CURDATE()
@@ -98,11 +102,13 @@ SELECT * FROM daily_with_times
 ```
 
 Purpose:
+
 - Parse raw punches into paired in/out times
 - Match to shift definitions
 - Create base daily record structure
 
 **Query: Q_Daily_WithShiftRules** (SELECT from Q_Daily_Base + KQ_Shift + KQ_Rule)
+
 ```sql
 SELECT
   d.EmpNo,
@@ -110,19 +116,19 @@ SELECT
   d.ShiftID,
   d.TimeIn1, d.TimeOut1,
   -- Calculate work hours from shift times
-  CASE 
+  CASE
     WHEN d.TimeIn1 IS NOT NULL AND d.TimeOut1 IS NOT NULL
     THEN TIMESTAMPDIFF(MINUTE, d.TimeIn1, d.TimeOut1) / 60.0
     ELSE 0
   END as WorkHours,
   -- Calculate late minutes
-  CASE 
+  CASE
     WHEN d.TimeIn1 > s.SigninTime1
     THEN TIMESTAMPDIFF(MINUTE, s.SigninTime1, d.TimeIn1)
     ELSE 0
   END as LateMins,
   -- Flag absent (no punch) vs present
-  CASE 
+  CASE
     WHEN d.TimeIn1 IS NULL THEN 1 ELSE 0
   END as AbsentDays
 FROM Q_Daily_Base d
@@ -131,10 +137,12 @@ LEFT JOIN KQ_Rule r ON ??? -- Rule application
 ```
 
 Purpose:
+
 - Calculate work hours, lateness, absence based on shift times
 - Apply rules (grace periods, overnight shifts, etc.)
 
 **Query: Q_Daily_WithPermission** (SELECT from Q_Daily_WithShiftRules + KQ_EmpPermission)
+
 ```sql
 SELECT
   d.EmpNo,
@@ -143,16 +151,18 @@ SELECT
   COALESCE(p.PermissionMins, 0) as PermissionMins,
   GREATEST(0, d.LateMins - COALESCE(p.PermissionMins, 0)) as FinalLateMins
 FROM Q_Daily_WithShiftRules d
-LEFT JOIN Q_PermissionCalc p 
-  ON d.EmpNo = p.EmpNo 
+LEFT JOIN Q_PermissionCalc p
+  ON d.EmpNo = p.EmpNo
   AND d.KQDate = p.PermissionDate
 ```
 
 Purpose:
+
 - Reduce lateness by approved permissions/absences
 - Pattern: `FinalLateMins = MAX(0, LateMins - PermissionMins)`
 
 **Query: Q_Daily_Final** (SELECT from Q_Daily_WithPermission)
+
 ```sql
 SELECT
   EmpNo,
@@ -170,6 +180,7 @@ SELECT
 ```
 
 Purpose:
+
 - Final daily metrics ready to UPSERT into attendance_daily
 - Used by rules engine (computeDay) in app
 
@@ -178,6 +189,7 @@ Purpose:
 ### Phase 4c: Raw Logs API
 
 **Query: QryGetRawLogs** (SELECT from attendance_punches + RS_Emp)
+
 ```sql
 SELECT
   p.GUID,
@@ -191,7 +203,7 @@ SELECT
   p.IsInvalid
 FROM attendance_punches p
 LEFT JOIN RS_Emp e ON p.EmpNo = e.EmpNo
-WHERE 
+WHERE
   (@dateFrom IS NULL OR DATE(p.KQDateTime) >= @dateFrom)
   AND (@dateTo IS NULL OR DATE(p.KQDateTime) <= @dateTo)
   AND (@empNo IS NULL OR p.EmpNo = @empNo)
@@ -201,6 +213,7 @@ LIMIT @limit
 ```
 
 Purpose:
+
 - Filter raw punches by date range, employee, direction
 - Frontend: /attendance/logs
 
@@ -209,6 +222,7 @@ Purpose:
 ## Phase 5: Monthly Aggregation & Reports
 
 **Query: Q_Build_Monthly** (SELECT from attendance_daily grouped by YearMonth)
+
 ```sql
 SELECT
   EmpNo,
@@ -230,10 +244,12 @@ GROUP BY EmpNo, YYYYMM
 ```
 
 Purpose:
+
 - Aggregate daily metrics to monthly
 - Feed to report generation
 
 **Query: Q_Monthly_Final** (SELECT from Q_Build_Monthly + RS_Emp + attendance_dayoff_balance)
+
 ```sql
 SELECT
   m.EmpNo,
@@ -259,6 +275,7 @@ ORDER BY e.EmpName
 ```
 
 Purpose:
+
 - Final monthly report for export/display
 - Columns match Taraus KQ_KQReportMonth
 
@@ -268,6 +285,7 @@ Purpose:
 
 **QryMonthlyReport** → attendance_monthly_report rows
 **QryLateReport** → Employees who were late
+
 ```sql
 SELECT EmpNo, EmpName, COUNT(*) as LateDays, SUM(LateMins) as TotalLateMins
 FROM attendance_daily d
@@ -278,6 +296,7 @@ ORDER BY TotalLateMins DESC
 ```
 
 **QryAbsentReport** → Employees who were absent
+
 ```sql
 SELECT EmpNo, EmpName, COUNT(*) as AbsentDays
 FROM attendance_daily d
@@ -288,6 +307,7 @@ ORDER BY AbsentDays DESC
 ```
 
 **QryOTReport** → Overtime summary
+
 ```sql
 SELECT EmpNo, EmpName, COUNT(*) as OTDays, SUM(OvertimeMins)/60 as TotalOTHours
 FROM attendance_daily d
@@ -302,6 +322,7 @@ ORDER BY TotalOTHours DESC
 ## Phase 6: Leave & Day-off Management
 
 **Query: Q_LeavePerMonth** (Calculate leave usage per month)
+
 ```sql
 SELECT
   EmpNo,
@@ -314,12 +335,13 @@ GROUP BY EmpNo, YYYYMM
 ```
 
 **Query: Q_DayOffBalance** (Current balances per employee)
+
 ```sql
 SELECT
   EmpNo,
-  SUM(CASE WHEN LeaveType = 'annual' THEN AllocationDays ELSE 0 END) - 
+  SUM(CASE WHEN LeaveType = 'annual' THEN AllocationDays ELSE 0 END) -
   SUM(CASE WHEN LeaveType = 'annual' THEN UsedDays ELSE 0 END) as AnnualRemain,
-  SUM(CASE WHEN LeaveType = 'sick' THEN AllocationDays ELSE 0 END) - 
+  SUM(CASE WHEN LeaveType = 'sick' THEN AllocationDays ELSE 0 END) -
   SUM(CASE WHEN LeaveType = 'sick' THEN UsedDays ELSE 0 END) as SickRemain,
   ...
 FROM attendance_leave
@@ -332,6 +354,7 @@ GROUP BY EmpNo
 ## Phase 7: Permission & Adjustments
 
 **Query: Q_PermissionCalc** (Permission impact)
+
 ```sql
 SELECT
   EmpNo,
@@ -374,15 +397,16 @@ Frontend: Dashboard, Raw Logs, Daily View, Monthly Reports, etc.
 ## Query Implementation Strategy
 
 ### Approach 1: Drizzle ORM Services (Recommended for Phase 4-5)
+
 ```typescript
 // server/services/attendance/dailyCompute.service.ts
 export class DailyComputeService {
   static async computeDay(
-    empNo: string, 
-    kqDate: Date, 
-    punches: RawPunch[], 
-    shifts: ShiftRow[], 
-    permissions: PermissionRow[]
+    empNo: string,
+    kqDate: Date,
+    punches: RawPunch[],
+    shifts: ShiftRow[],
+    permissions: PermissionRow[],
   ): Promise<DailyRow> {
     // Pair punches
     // Match to shift
@@ -399,6 +423,7 @@ export class DailyComputeService {
 ```
 
 ### Approach 2: SQL Queries (for Reports/Exports)
+
 ```typescript
 // server/routers/attendance.ts
 export const attendanceRouter = router({
@@ -415,15 +440,15 @@ export const attendanceRouter = router({
 
 ## Query Count Estimate
 
-| Category | Queries | Status |
-|----------|---------|--------|
-| Daily computation | Q_Daily_Base through Q_Daily_Final | Phase 4 |
-| Daily reports | Raw logs view, daily detail | Phase 4 |
-| Monthly aggregation | Q_Build_Monthly, Q_Monthly_Final | Phase 5 |
-| Monthly reports | Late, Absent, OT reports | Phase 5 |
-| Leave/day-off | Q_LeavePerMonth, Q_DayOffBalance | Phase 6 |
-| Permission | Q_PermissionCalc | Phase 7 |
-| **Total** | **~20-25 queries** | |
+| Category            | Queries                            | Status  |
+| ------------------- | ---------------------------------- | ------- |
+| Daily computation   | Q_Daily_Base through Q_Daily_Final | Phase 4 |
+| Daily reports       | Raw logs view, daily detail        | Phase 4 |
+| Monthly aggregation | Q_Build_Monthly, Q_Monthly_Final   | Phase 5 |
+| Monthly reports     | Late, Absent, OT reports           | Phase 5 |
+| Leave/day-off       | Q_LeavePerMonth, Q_DayOffBalance   | Phase 6 |
+| Permission          | Q_PermissionCalc                   | Phase 7 |
+| **Total**           | **~20-25 queries**                 |         |
 
 ---
 

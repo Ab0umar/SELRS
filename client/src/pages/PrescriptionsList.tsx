@@ -37,7 +37,9 @@ function statusBadge(st: RxStatus) {
     return <span className="text-xs font-semibold text-success">فعال</span>;
   }
   if (st === "expired") {
-    return <span className="text-xs font-semibold text-muted-foreground">منتهي</span>;
+    return (
+      <span className="text-xs font-semibold text-muted-foreground">منتهي</span>
+    );
   }
   return <span className="text-xs font-semibold text-success/90">مكتمل</span>;
 }
@@ -48,10 +50,13 @@ export default function PrescriptionsList() {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState("all");
 
-  const overviewQuery = trpc.medical.getPrescriptionsOverview.useQuery(undefined, {
-    enabled: Boolean(isAuthenticated),
-    refetchOnWindowFocus: false,
-  });
+  const overviewQuery = trpc.medical.getPrescriptionsOverview.useQuery(
+    undefined,
+    {
+      enabled: Boolean(isAuthenticated),
+      refetchOnWindowFocus: false,
+    },
+  );
 
   const rows = (overviewQuery.data ?? []) as Array<{
     id: number;
@@ -107,7 +112,12 @@ export default function PrescriptionsList() {
         subtitle="إدارة الوصفات الطبية"
         icon={<Pill className="h-5 w-5" />}
         action={
-          <Button type="button" size="sm" className="selrs-gradient-btn gap-2 text-primary-foreground" onClick={() => setLocation("/prescription")}>
+          <Button
+            type="button"
+            size="sm"
+            className="selrs-gradient-btn gap-2 text-primary-foreground"
+            onClick={() => setLocation("/prescription")}
+          >
             <Plus className="h-4 w-4" />
             <span className="text-xs sm:text-sm">روشتة جديدة</span>
           </Button>
@@ -124,7 +134,12 @@ export default function PrescriptionsList() {
         </div>
       ) : null}
 
-      <div className={cn(STAT_CARDS_MOBILE_ROW, "mb-4 gap-2 sm:mb-6 sm:grid sm:grid-cols-3 sm:gap-4")}>
+      <div
+        className={cn(
+          STAT_CARDS_MOBILE_ROW,
+          "mb-4 gap-2 sm:mb-6 sm:grid sm:grid-cols-3 sm:gap-4",
+        )}
+      >
         <StatCard
           title="روشتات فعالة"
           value={stats.active}
@@ -150,17 +165,30 @@ export default function PrescriptionsList() {
 
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="w-full sm:w-80">
-          <SearchBar value={search} onChange={setSearch} placeholder="بحث بالاسم أو الدواء أو الملاحظات..." />
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="بحث بالاسم أو الدواء أو الملاحظات..."
+          />
         </div>
-        <FilterBar filters={statusTabs} selected={tab} onSelect={setTab} className="sm:justify-end" />
+        <FilterBar
+          filters={statusTabs}
+          selected={tab}
+          onSelect={setTab}
+          className="sm:justify-end"
+        />
       </div>
 
       <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         {overviewQuery.isLoading ? (
-          <div className="p-12 text-center text-muted-foreground">جاري التحميل…</div>
+          <div className="p-12 text-center text-muted-foreground">
+            جاري التحميل…
+          </div>
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center text-muted-foreground">
-            {rows.length === 0 ? "لا توجد روشتات مسجلة بعد." : "لا توجد روشتات مطابقة للتصفية."}
+            {rows.length === 0
+              ? "لا توجد روشتات مسجلة بعد."
+              : "لا توجد روشتات مطابقة للتصفية."}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -172,16 +200,24 @@ export default function PrescriptionsList() {
                   <th className="px-4 py-3 font-semibold">التاريخ</th>
                   <th className="px-4 py-3 font-semibold">الأدوية</th>
                   <th className="px-4 py-3 font-semibold">الحالة</th>
-                  <th className="w-24 px-4 py-3 text-center font-semibold">إجراءات</th>
+                  <th className="w-24 px-4 py-3 text-center font-semibold">
+                    إجراءات
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((r) => {
                   const st = classifyPrescription(r.prescriptionDate);
                   const dt =
-                    r.prescriptionDate instanceof Date ? r.prescriptionDate : new Date(String(r.prescriptionDate ?? ""));
-                  const dateLabel = Number.isNaN(dt.getTime()) ? "—" : dt.toLocaleDateString("ar-EG");
-                  const noteSnippet = String(r.notes ?? "").trim().slice(0, 80);
+                    r.prescriptionDate instanceof Date
+                      ? r.prescriptionDate
+                      : new Date(String(r.prescriptionDate ?? ""));
+                  const dateLabel = Number.isNaN(dt.getTime())
+                    ? "—"
+                    : dt.toLocaleDateString("ar-EG");
+                  const noteSnippet = String(r.notes ?? "")
+                    .trim()
+                    .slice(0, 80);
 
                   return (
                     <tr
@@ -189,17 +225,30 @@ export default function PrescriptionsList() {
                       className="border-b border-border/70 transition-colors hover:bg-primary/[0.06]"
                     >
                       <td className="px-4 py-3 align-top">
-                        <div className="font-semibold">{r.patientName || `مريض #${r.patientId}`}</div>
-                        {noteSnippet ? <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">{noteSnippet}</div> : null}
+                        <div className="font-semibold">
+                          {r.patientName || `مريض #${r.patientId}`}
+                        </div>
+                        {noteSnippet ? (
+                          <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                            {noteSnippet}
+                          </div>
+                        ) : null}
                       </td>
-                      <td className="px-4 py-3 align-top text-muted-foreground">{r.doctorName || "—"}</td>
-                      <td className="px-4 py-3 align-top whitespace-nowrap" dir="ltr">
+                      <td className="px-4 py-3 align-top text-muted-foreground">
+                        {r.doctorName || "—"}
+                      </td>
+                      <td
+                        className="px-4 py-3 align-top whitespace-nowrap"
+                        dir="ltr"
+                      >
                         <Badge variant="outline" className="font-normal">
                           {dateLabel}
                         </Badge>
                       </td>
                       <td className="px-4 py-3 align-top">
-                        <span className="tabular-nums font-medium">{r.itemCount}</span>
+                        <span className="tabular-nums font-medium">
+                          {r.itemCount}
+                        </span>
                         <span className="text-muted-foreground"> دواء</span>
                       </td>
                       <td className="px-4 py-3 align-top">{statusBadge(st)}</td>
@@ -210,7 +259,9 @@ export default function PrescriptionsList() {
                           variant="ghost"
                           className="h-9 w-9 p-0"
                           title="عرض وتعديل"
-                          onClick={() => setLocation(`/prescription/${r.patientId}`)}
+                          onClick={() =>
+                            setLocation(`/prescription/${r.patientId}`)
+                          }
                         >
                           <Eye className="h-4 w-4" />
                         </Button>

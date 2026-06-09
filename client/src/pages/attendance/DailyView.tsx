@@ -219,7 +219,7 @@ export default function DailyView() {
             </div>
           ) : records.length > 0 ? (
             <div className="overflow-x-auto" dir="rtl">
-        <table dir="rtl" className="w-full text-sm" dir="rtl">
+              <table dir="rtl" className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/60">
                     <th className="px-4 py-3 text-right font-semibold text-foreground">

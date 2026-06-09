@@ -4,7 +4,7 @@
 **Review date:** 2026-05-04  
 **Re-review date:** 2026-05-04 (B-1 cleared)  
 **Branch state:** main (accounting feature committed, pre-merge)  
-**Spec version:** 1.0.0 | Constitution version: 1.0.0  
+**Spec version:** 1.0.0 | Constitution version: 1.0.0
 
 ---
 
@@ -18,21 +18,22 @@ Blocker B-1 resolved. All acceptance criteria now met. Non-blocking findings car
 
 ## Constitution Check
 
-| Principle | Evidence | Status |
-|-----------|----------|--------|
-| I. Strict Module Separation | No cross-module imports found in `server/services/accounting/` or `client/src/pages/accounting/`. `patientCode` is the only cross-DB linkage. | **PASS** |
-| II. Service-Based Accounting | All revenue queries derive from `PAPAT_SRV` / `PAJRNRCVH`. No revenue derived from patient count, doctor count, or medical data. | **PASS** |
-| III. Read-Only APIs | 9 procedures, all `managerProcedure`, all `.query()`. Zero `INSERT`/`UPDATE`/`DELETE`/`EXEC`/`MERGE` verbs in accounting code. | **PASS** |
-| IV. Use Existing DBs As-Is | Reuses `createMssqlPool`. No new MSSQL tables, no schema changes, no new env vars. | **PASS** |
-| V. Legacy Output Parity | Daily Revenue: PASS vs real legacy CSV. Service Revenue + Receipts Inquiry: PASS after approved fixture regeneration. Patient Account: PASS vs legacy-equivalent MSSQL aggregates (patient `1354`, all metrics exact). | **PASS** |
-| VI. Spec-Driven, Minimal-Diff | Spec → plan → scope-lock → tasks produced before implementation. Diff is minimal for the accounting surface. Incidental edits noted below. | **PASS** |
-| VII. Do Not Break Medical | `server/routers/medical.ts` — zero diff. `server/db.ts` — zero diff. `server/integrations/mssqlPatients.ts` — zero diff. `client/src/components/ProtectedRoute.tsx` — zero diff. | **PASS** |
+| Principle                     | Evidence                                                                                                                                                                                                               | Status   |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| I. Strict Module Separation   | No cross-module imports found in `server/services/accounting/` or `client/src/pages/accounting/`. `patientCode` is the only cross-DB linkage.                                                                          | **PASS** |
+| II. Service-Based Accounting  | All revenue queries derive from `PAPAT_SRV` / `PAJRNRCVH`. No revenue derived from patient count, doctor count, or medical data.                                                                                       | **PASS** |
+| III. Read-Only APIs           | 9 procedures, all `managerProcedure`, all `.query()`. Zero `INSERT`/`UPDATE`/`DELETE`/`EXEC`/`MERGE` verbs in accounting code.                                                                                         | **PASS** |
+| IV. Use Existing DBs As-Is    | Reuses `createMssqlPool`. No new MSSQL tables, no schema changes, no new env vars.                                                                                                                                     | **PASS** |
+| V. Legacy Output Parity       | Daily Revenue: PASS vs real legacy CSV. Service Revenue + Receipts Inquiry: PASS after approved fixture regeneration. Patient Account: PASS vs legacy-equivalent MSSQL aggregates (patient `1354`, all metrics exact). | **PASS** |
+| VI. Spec-Driven, Minimal-Diff | Spec → plan → scope-lock → tasks produced before implementation. Diff is minimal for the accounting surface. Incidental edits noted below.                                                                             | **PASS** |
+| VII. Do Not Break Medical     | `server/routers/medical.ts` — zero diff. `server/db.ts` — zero diff. `server/integrations/mssqlPatients.ts` — zero diff. `client/src/components/ProtectedRoute.tsx` — zero diff.                                       | **PASS** |
 
 ---
 
 ## Per-Task Status (Tasks 05–19)
 
 ### Task 05 — Analyze Legacy Files / Reports
+
 **Status: APPROVED**
 
 `specs/legacy-reports.md` exists and covers all five target reports (Daily Revenue, Service Revenue, Receipts Inquiry, Patient Account, Doctor Account) with legacy source paths, SELECT queries, columns, grouping, and totals. Ambiguities flagged with `TODO:` not invented. Acceptance criteria met.
@@ -40,6 +41,7 @@ Blocker B-1 resolved. All acceptance criteria now met. Non-blocking findings car
 ---
 
 ### Task 06 — Lock Accounting Scope
+
 **Status: APPROVED**
 
 `specs/scope-lock.md` exists. Frozen endpoint list (9), frozen page list (9), frozen filter parameters, frozen out-of-scope list all match `specs/specify.md`. Status: FROZEN 2026-05-03. Acceptance criteria met.
@@ -47,6 +49,7 @@ Blocker B-1 resolved. All acceptance criteria now met. Non-blocking findings car
 ---
 
 ### Task 07 — Design Accounting API Contracts
+
 **Status: APPROVED**
 
 `shared/accounting/contracts.ts` exists with all nine input/output schema pairs. No imports from `server/` or `client/`. `pnpm check` confirmed passing (deploy notes). Acceptance criteria met.
@@ -54,6 +57,7 @@ Blocker B-1 resolved. All acceptance criteria now met. Non-blocking findings car
 ---
 
 ### Task 08 — Map MSSQL Queries
+
 **Status: APPROVED**
 
 `server/services/accounting/sqlBuilders.ts` exists and exports one builder per endpoint. Zero write verbs (`grep -rniE "INSERT|UPDATE|DELETE|EXEC|MERGE" server/services/accounting/` returned empty). Unit test coverage for SQL builders is absent (see Task 16/17 notes below), but correctness is validated by passing parity checks. Acceptance criteria largely met; see test gap under non-blocking issues.
@@ -61,9 +65,11 @@ Blocker B-1 resolved. All acceptance criteria now met. Non-blocking findings car
 ---
 
 ### Task 09 — Implement Backend Accounting Layer
+
 **Status: APPROVED**
 
 All required files exist:
+
 - `server/services/accounting/mssqlAccounting.ts` ✓
 - `server/services/accounting/mappers.ts` ✓
 - `server/services/accounting/dailyRevenue.service.ts` ✓
@@ -84,6 +90,7 @@ Acceptance criteria met.
 ---
 
 ### Task 10 — Frontend Module Navigation Separation
+
 **Status: APPROVED WITH NOTE**
 
 `client/src/App.tsx` registers all 10 accounting lazy routes, all wrapped by `ProtectedRoute requiredRoles={ACCOUNTING_ROLES}` where `ACCOUNTING_ROLES = ['admin','manager','accountant']`. Medical routes not reshuffled.
@@ -99,6 +106,7 @@ Acceptance criteria substantially met.
 ---
 
 ### Task 11 — Build Accounting Dashboard
+
 **Status: APPROVED**
 
 `client/src/pages/accounting/AccountingHome.tsx` exists. Dashboard wired to `accounting.dashboardSummary`. `AccountingShell.tsx` wraps accounting pages. `pnpm check` passes. `pnpm build` succeeds (deploy notes). Acceptance criteria met.
@@ -106,6 +114,7 @@ Acceptance criteria substantially met.
 ---
 
 ### Task 12 — Build Daily Revenue Screen
+
 **Status: APPROVED**
 
 `client/src/pages/accounting/DailyRevenue.tsx` exists. Wired to `accounting.dailyRevenue`. Parity PASS for 2026-04 (all 24 working dates exact match vs legacy CSV, grand totals exact). Print button present. URL-synced filters documented. Acceptance criteria met.
@@ -113,6 +122,7 @@ Acceptance criteria substantially met.
 ---
 
 ### Task 13 — Build Service Revenue Screen
+
 **Status: APPROVED**
 
 `client/src/pages/accounting/LasikRevenue.tsx` exists. Wired to `accounting.serviceRevenue`. Parity PASS for 2026-04 (rowCount=492, totalGross=372,675, totalDiscount=19,120 — exact match after approved fixture regeneration). Print button present. Acceptance criteria met.
@@ -122,6 +132,7 @@ Acceptance criteria substantially met.
 ---
 
 ### Task 14 — Build Receipts Inquiry Screen
+
 **Status: APPROVED**
 
 `client/src/pages/accounting/ReceiptsInquiry.tsx` and `client/src/pages/accounting/ReceiptDetail.tsx` exist. Wired to `accounting.receiptsInquiry` and `accounting.receiptDetail`. Parity PASS for 2026-04 (rowCount=547, total=627,250, discount=29,690 — exact match after approved fixture regeneration).
@@ -133,6 +144,7 @@ Acceptance criteria met.
 ---
 
 ### Task 15 — Build Print Preview
+
 **Status: APPROVED**
 
 `client/src/pages/accounting/PrintPreview.tsx` and `client/src/pages/accounting/PrintPreview.module.css` exist. Accepts payload shape from plan §7 (title, meta, columns, rows, groupBy, totals, footer). `@media print` CSS present. A4-portrait layout. No PDF library added. `pnpm build` bundles correctly. Acceptance criteria met.
@@ -140,14 +152,17 @@ Acceptance criteria met.
 ---
 
 ### Task 16 — Integration Testing Against Legacy Outputs
+
 **Status: APPROVED WITH NOTE**
 
 `scripts/accounting/parity-check.ts` exists. Parity artifacts under `specs/parity/`:
+
 - `daily-revenue-2026-04.md` — PASS ✓
 - `service-revenue-2026-04.md` — PASS ✓ (after approved fixture regeneration)
 - `receipts-inquiry-2026-04.md` — PASS ✓ (after approved fixture regeneration)
 
 **All required artifacts present:**
+
 - `daily-revenue-2026-04.md` — PASS ✓
 - `service-revenue-2026-04.md` — PASS ✓
 - `receipts-inquiry-2026-04.md` — PASS ✓
@@ -161,6 +176,7 @@ Parity script exit code: 0, all 4 checks (confirmed by re-run after B-1 fix).
 ---
 
 ### Task 17 — Bug Fixing
+
 **Status: APPROVED**
 
 `tests/accounting/task17-regressions.test.ts` and `client/src/accounting-task17.test.ts` present. `pnpm check` passes; `pnpm test` passes (44 tests, 2 files). Scope-change requests for Service Revenue and Receipts Inquiry parity were properly filed (`specs/parity/SCOPE-CHANGE-REQUEST.md`) rather than silently adjusting SQL. No untouchable files modified. Acceptance criteria met.
@@ -168,36 +184,38 @@ Parity script exit code: 0, all 4 checks (confirmed by re-run after B-1 fix).
 ---
 
 ### Task 18 — Performance Optimization
+
 **Status: APPROVED**
 
 `specs/perf-report.md` exists. All 9 endpoints ≤ 2s (median 5 warm runs) on the reference dataset:
 
-| Endpoint | After (ms) | NFR-1 |
-|----------|----------:|-------|
-| dashboardSummary | 485 | PASS |
-| dailyRevenue | 471 | PASS |
-| serviceRevenue | 780 | PASS |
-| receiptsInquiry | 655 | PASS |
-| receiptDetail | 461 | PASS |
-| lasikReceipts | 667 | PASS |
-| lasikServices | 956 | PASS |
-| lasikRevenueSummary | 472 | PASS |
-| patientLasikSummary | 463 | PASS |
+| Endpoint            | After (ms) | NFR-1 |
+| ------------------- | ---------: | ----- |
+| dashboardSummary    |        485 | PASS  |
+| dailyRevenue        |        471 | PASS  |
+| serviceRevenue      |        780 | PASS  |
+| receiptsInquiry     |        655 | PASS  |
+| receiptDetail       |        461 | PASS  |
+| lasikReceipts       |        667 | PASS  |
+| lasikServices       |        956 | PASS  |
+| lasikRevenueSummary |        472 | PASS  |
+| patientLasikSummary |        463 | PASS  |
 
 Two semantics-preserving SQL rewrites applied (`dashboardSummary` unused CTE column removal; `lasikServices` join direction). No new DB objects. Parity re-confirmed (exit 0) after changes. Acceptance criteria met.
 
 ---
 
 ### Task 19 — Deployment Preparation
+
 **Status: APPROVED**
 
 `specs/deploy-notes.md` exists.
 
-| Check | Result |
-|-------|--------|
-| `pnpm check` | PASS |
-| `pnpm test` | PASS (44 tests, 2 files) |
-| `pnpm build` | PASS (vite + esbuild, encoding check passed) |
+| Check        | Result                                                                                  |
+| ------------ | --------------------------------------------------------------------------------------- |
+| `pnpm check` | PASS                                                                                    |
+| `pnpm test`  | PASS (44 tests, 2 files)                                                                |
+| `pnpm build` | PASS (vite + esbuild, encoding check passed)                                            |
 | `pnpm start` | PASS (PORT=4020 / 4010 after EADDRINUSE on 4000 — environment-specific, not app defect) |
 
 No new env vars. No `ecosystem.config.js` changes. No migrations. Rollback procedure documented (branch revert, code-only). Manual smoke checklist provided. HTTP 200 confirmed on all 6 verification paths. Acceptance criteria met.
@@ -209,6 +227,7 @@ No new env vars. No `ecosystem.config.js` changes. No migrations. Rollback proce
 ### B-1 — Patient Account Parity Artifact Missing — ✅ RESOLVED
 
 **Resolution (2026-05-04):**
+
 - `specs/parity/patient-account-sample.md` added. Documents `accounting.patientLasikSummary` vs a legacy-equivalent MSSQL aggregate query using the same join/filter as `buildPatientLasikSummarySql`. Patient `1354`, section 15, full Lasik ledger.
 - All 9 metrics match exactly: receipt count (1), service count (1), totalGross (360.00), totalDiscount (0.00), totalPaid (360.00), totalCompanyAmount (0.00), lastTransactionDate (2026-04-30).
 - `scripts/accounting/parity-check.ts` extended with `checkPatientLasikSummarySample()`.
@@ -224,6 +243,7 @@ No blockers remain.
 ### NB-1 — Test Coverage Gap (Tasks 08/09/16)
 
 Spec plan §8 and Tasks 08/16 required four test files:
+
 - `tests/accounting/sqlBuilders.test.ts`
 - `tests/accounting/mappers.test.ts`
 - `tests/accounting/lasikRevenue.int.test.ts`
@@ -246,6 +266,7 @@ No broken functionality results — both pages exist and are guarded correctly. 
 ### NB-3 — Extra Routes Beyond Scope-Lock (Task 10)
 
 Four routes not in scope-lock §4 were added:
+
 - `/accounting/patients-inquiry` → `AccountingPatientsInquiry`
 - `/accounting/patient-account` → `PatientAccount`
 - `/accounting/doctor` → `DoctorAccount`
@@ -298,18 +319,18 @@ The parity artifacts for Service Revenue and Receipts Inquiry were produced by c
 
 ## Acceptance Criteria Scorecard (Spec §10)
 
-| AC | Description | Status |
-|----|-------------|--------|
-| 1 | `pnpm check` passes; `pnpm test` passes | **PASS** |
-| 2 | `server/routers/index.ts` registers `accounting`; nothing else changed | **PASS** |
-| 3 | medical.ts, db.ts, mssqlPatients.ts, ProtectedRoute.tsx have zero diffs | **PASS** |
-| 4 | All 9 accounting procedures load via `appRouter.accounting.*` | **PASS** |
-| 5 | FR-1..FR-9 pages render without errors; handle 0013/0699 gracefully | **PASS** (build succeeds; smoke checklist in deploy-notes; edge codes handled per NR spec) |
-| 6 | Parity artifacts for at least one date range **per report** | **PASS** (B-1 resolved 2026-05-04) |
-| 7 | No INSERT/UPDATE/DELETE/mutating SQL in accounting service or router | **PASS** |
-| 8 | Print Preview structurally matches OP layout | **PASS** (PrintPreview.tsx + PrintPreview.module.css with @media print) |
-| 9 | Navigation separates Medical and Accounting; Medical unchanged | **PASS** |
-| 10 | Tasks document checks run and skipped | **PASS** (perf-report + deploy-notes) |
+| AC  | Description                                                             | Status                                                                                     |
+| --- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| 1   | `pnpm check` passes; `pnpm test` passes                                 | **PASS**                                                                                   |
+| 2   | `server/routers/index.ts` registers `accounting`; nothing else changed  | **PASS**                                                                                   |
+| 3   | medical.ts, db.ts, mssqlPatients.ts, ProtectedRoute.tsx have zero diffs | **PASS**                                                                                   |
+| 4   | All 9 accounting procedures load via `appRouter.accounting.*`           | **PASS**                                                                                   |
+| 5   | FR-1..FR-9 pages render without errors; handle 0013/0699 gracefully     | **PASS** (build succeeds; smoke checklist in deploy-notes; edge codes handled per NR spec) |
+| 6   | Parity artifacts for at least one date range **per report**             | **PASS** (B-1 resolved 2026-05-04)                                                         |
+| 7   | No INSERT/UPDATE/DELETE/mutating SQL in accounting service or router    | **PASS**                                                                                   |
+| 8   | Print Preview structurally matches OP layout                            | **PASS** (PrintPreview.tsx + PrintPreview.module.css with @media print)                    |
+| 9   | Navigation separates Medical and Accounting; Medical unchanged          | **PASS**                                                                                   |
+| 10  | Tasks document checks run and skipped                                   | **PASS** (perf-report + deploy-notes)                                                      |
 
 ---
 

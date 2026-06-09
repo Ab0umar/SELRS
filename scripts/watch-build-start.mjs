@@ -77,8 +77,14 @@ const acquireLock = () => {
   } catch {
     try {
       const existingPid = Number(fs.readFileSync(LOCK_FILE, "utf8").trim());
-      if (Number.isFinite(existingPid) && existingPid > 0 && isProcessRunning(existingPid)) {
-        log(`Another watch process is already running (pid ${existingPid}). Exiting.`);
+      if (
+        Number.isFinite(existingPid) &&
+        existingPid > 0 &&
+        isProcessRunning(existingPid)
+      ) {
+        log(
+          `Another watch process is already running (pid ${existingPid}). Exiting.`,
+        );
         return false;
       }
       fs.rmSync(LOCK_FILE, { force: true });
@@ -175,16 +181,12 @@ const shouldIgnore = (filePath) => {
 
 const startWatch = (root, buildKind, needsRestart) => {
   try {
-    const watcher = watch(
-      root,
-      { recursive: true },
-      (event, filename) => {
-        if (!filename) return;
-        const fullPath = path.join(root, filename.toString());
-        if (shouldIgnore(fullPath)) return;
-        scheduleBuild(buildKind, needsRestart);
-      }
-    );
+    const watcher = watch(root, { recursive: true }, (event, filename) => {
+      if (!filename) return;
+      const fullPath = path.join(root, filename.toString());
+      if (shouldIgnore(fullPath)) return;
+      scheduleBuild(buildKind, needsRestart);
+    });
     watcher.on("error", (err) => {
       log(`Watcher error at ${root}:`, err.message);
     });

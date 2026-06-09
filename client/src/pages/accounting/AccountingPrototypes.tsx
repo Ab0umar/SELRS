@@ -21,14 +21,54 @@ import {
 import { formatCountAr, formatMoneyAr } from "./accountingFormat";
 
 const reports = [
-  { label: "الإيراد اليومي", href: "/accounting/daily-revenue", icon: Banknote, desc: "مراجعة الإيرادات حسب اليوم" },
-  { label: "إيراد الخدمات", href: "/accounting/service-revenue", icon: Activity, desc: "إجماليات الطبيب والخدمة" },
-  { label: "استعلام الإيصالات", href: "/accounting/receipts", icon: ReceiptText, desc: "البحث عن رؤوس الإيصالات" },
-  { label: "الخدمات", href: "/accounting/services", icon: ClipboardList, desc: "حركة خدمات الليزك" },
-  { label: "استعلام المرضى", href: "/accounting/patients", icon: Users, desc: "بحث المرضى والإيصالات" },
-  { label: "حساب مريض", href: "/accounting/patient", icon: UserRound, desc: "بحث حساب مريض" },
-  { label: "حساب طبيب", href: "/accounting/doctor", icon: Stethoscope, desc: "بحث حساب طبيب" },
-  { label: "الخزنة", href: "/accounting/cashbook", icon: Wallet, desc: "حركات الخزنة" },
+  {
+    label: "الإيراد اليومي",
+    href: "/accounting/daily-revenue",
+    icon: Banknote,
+    desc: "مراجعة الإيرادات حسب اليوم",
+  },
+  {
+    label: "إيراد الخدمات",
+    href: "/accounting/service-revenue",
+    icon: Activity,
+    desc: "إجماليات الطبيب والخدمة",
+  },
+  {
+    label: "استعلام الإيصالات",
+    href: "/accounting/receipts",
+    icon: ReceiptText,
+    desc: "البحث عن رؤوس الإيصالات",
+  },
+  {
+    label: "الخدمات",
+    href: "/accounting/services",
+    icon: ClipboardList,
+    desc: "حركة خدمات الليزك",
+  },
+  {
+    label: "استعلام المرضى",
+    href: "/accounting/patients",
+    icon: Users,
+    desc: "بحث المرضى والإيصالات",
+  },
+  {
+    label: "حساب مريض",
+    href: "/accounting/patient",
+    icon: UserRound,
+    desc: "بحث حساب مريض",
+  },
+  {
+    label: "حساب طبيب",
+    href: "/accounting/doctor",
+    icon: Stethoscope,
+    desc: "بحث حساب طبيب",
+  },
+  {
+    label: "الخزنة",
+    href: "/accounting/cashbook",
+    icon: Wallet,
+    desc: "حركات الخزنة",
+  },
 ];
 
 function formatTime(isoDate: string) {
@@ -40,22 +80,54 @@ function formatTime(isoDate: string) {
   return `${String(h % 12 || 12).padStart(2, "0")}:${m} ${period}`;
 }
 
-function ProtoBadge({ tone, children }: { tone: "blue" | "emerald" | "amber"; children: ReactNode }) {
+function ProtoBadge({
+  tone,
+  children,
+}: {
+  tone: "blue" | "emerald" | "amber";
+  children: ReactNode;
+}) {
   const classes = {
     blue: "bg-primary text-primary-foreground border-ring/30",
     emerald: "bg-success/10 text-success border-success/30",
     amber: "bg-warning/10 text-warning border-warning/50",
   }[tone];
-  return <span className={cn("rounded-full border px-3 py-1 text-[11px] font-semibold", classes)}>{children}</span>;
+  return (
+    <span
+      className={cn(
+        "rounded-full border px-3 py-1 text-[11px] font-semibold",
+        classes,
+      )}
+    >
+      {children}
+    </span>
+  );
 }
 
-function SideRail({ title, subtitle, compact = false }: { title: string; subtitle: string; compact?: boolean }) {
+function SideRail({
+  title,
+  subtitle,
+  compact = false,
+}: {
+  title: string;
+  subtitle: string;
+  compact?: boolean;
+}) {
   return (
-    <div className={cn("rounded-[28px] border border-border bg-background shadow-sm", compact ? "p-4" : "p-5")}>
+    <div
+      className={cn(
+        "rounded-[28px] border border-border bg-background shadow-sm",
+        compact ? "p-4" : "p-5",
+      )}
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{title}</div>
-          <div className="mt-1 text-sm font-semibold text-foreground">{subtitle}</div>
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            {title}
+          </div>
+          <div className="mt-1 text-sm font-semibold text-foreground">
+            {subtitle}
+          </div>
         </div>
         <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
       </div>
@@ -63,13 +135,21 @@ function SideRail({ title, subtitle, compact = false }: { title: string; subtitl
         {reports.slice(0, 3).map((item) => {
           const Icon = item.icon;
           return (
-            <Link key={item.href} href={item.href} className="group flex items-center gap-3 rounded-2xl border border-border bg-muted/70 px-3 py-2.5 transition-colors hover:bg-primary/50">
+            <Link
+              key={item.href}
+              href={item.href}
+              className="group flex items-center gap-3 rounded-2xl border border-border bg-muted/70 px-3 py-2.5 transition-colors hover:bg-primary/50"
+            >
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-background text-primary shadow-sm">
                 <Icon className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-semibold text-foreground">{item.label}</div>
-                <div className="truncate text-xs text-muted-foreground">{item.desc}</div>
+                <div className="truncate text-sm font-semibold text-foreground">
+                  {item.label}
+                </div>
+                <div className="truncate text-xs text-muted-foreground">
+                  {item.desc}
+                </div>
               </div>
               <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </Link>
@@ -99,51 +179,104 @@ function MetricsRow({
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <div className="rounded-2xl border border-primary/20 bg-primary/80 p-4">
-        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-primary/80">إيراد اليوم</div>
-        <div className="mt-2 text-2xl font-bold tabular-nums text-foreground">{formatMoneyAr(summary?.totalRevenueToday ?? 0)}</div>
+        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-primary/80">
+          إيراد اليوم
+        </div>
+        <div className="mt-2 text-2xl font-bold tabular-nums text-foreground">
+          {formatMoneyAr(summary?.totalRevenueToday ?? 0)}
+        </div>
         <div className="mt-1 text-xs text-muted-foreground">مؤشر سريع</div>
       </div>
       <div className="rounded-2xl border border-success/20 bg-success/10 p-4">
-        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-success/80">إيصالات اليوم</div>
-        <div className="mt-2 text-2xl font-bold tabular-nums text-foreground">{formatCountAr(summary?.totalReceiptsToday ?? 0)}</div>
+        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-success/80">
+          إيصالات اليوم
+        </div>
+        <div className="mt-2 text-2xl font-bold tabular-nums text-foreground">
+          {formatCountAr(summary?.totalReceiptsToday ?? 0)}
+        </div>
         <div className="mt-1 text-xs text-muted-foreground">نشاط اليوم</div>
       </div>
       <div className="rounded-2xl border border-warning/15 bg-warning/10/80 p-4">
-        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-warning/80">إجمالي الإيراد</div>
-        <div className="mt-2 text-2xl font-bold tabular-nums text-foreground">{formatMoneyAr(cashbook?.totalIncome ?? 0)}</div>
+        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-warning/80">
+          إجمالي الإيراد
+        </div>
+        <div className="mt-2 text-2xl font-bold tabular-nums text-foreground">
+          {formatMoneyAr(cashbook?.totalIncome ?? 0)}
+        </div>
         <div className="mt-1 text-xs text-muted-foreground">من الخزنة</div>
       </div>
       <div className="rounded-2xl border border-border bg-background p-4 shadow-sm">
-        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">رصيد الخزنة</div>
-        <div className={cn("mt-2 text-2xl font-bold tabular-nums", (cashbook?.currentBalance ?? 0) >= 0 ? "text-primary" : "text-destructive")}>
+        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+          رصيد الخزنة
+        </div>
+        <div
+          className={cn(
+            "mt-2 text-2xl font-bold tabular-nums",
+            (cashbook?.currentBalance ?? 0) >= 0
+              ? "text-primary"
+              : "text-destructive",
+          )}
+        >
           {formatMoneyAr(cashbook?.currentBalance ?? 0)}
         </div>
-        <div className="mt-1 text-xs text-muted-foreground">آخر إجمالي متاح</div>
+        <div className="mt-1 text-xs text-muted-foreground">
+          آخر إجمالي متاح
+        </div>
       </div>
     </div>
   );
 }
 
-function ActivityTable({ rows }: { rows: Array<{ transactionDate: string; trNo: string; patientName?: string | null; patientCode?: string | null; total: number; discount: number; paidValue: number; sectionCode: number; trTy: number }> }) {
+function ActivityTable({
+  rows,
+}: {
+  rows: Array<{
+    transactionDate: string;
+    trNo: string;
+    patientName?: string | null;
+    patientCode?: string | null;
+    total: number;
+    discount: number;
+    paidValue: number;
+    sectionCode: number;
+    trTy: number;
+  }>;
+}) {
   return (
     <div className="overflow-hidden rounded-[28px] border border-border bg-background shadow-sm">
       <div className="flex items-center justify-between border-b border-border px-5 py-4">
         <div>
           <h3 className="text-sm font-bold text-foreground">حركات اليوم</h3>
-          <p className="mt-1 text-xs text-muted-foreground">صفوف فعلية، بدون حشو بصري.</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            صفوف فعلية، بدون حشو بصري.
+          </p>
         </div>
-        <span className="rounded-full bg-primary text-primary-foreground">{formatCountAr(rows.length)} حركة</span>
+        <span className="rounded-full bg-primary text-primary-foreground">
+          {formatCountAr(rows.length)} حركة
+        </span>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted text-[11px] font-semibold text-muted-foreground">
-              <th scope="col" className="w-20 px-4 py-3 text-right">الوقت</th>
-              <th scope="col" className="w-24 px-4 py-3 text-right">الإيصال</th>
-              <th scope="col" className="px-4 py-3 text-right">المريض</th>
-              <th scope="col" className="w-20 px-4 py-3 text-right">الكود</th>
-              <th scope="col" className="w-28 px-4 py-3 text-left" dir="ltr">المبلغ</th>
-              <th scope="col" className="w-28 px-4 py-3 text-left" dir="ltr">المدفوع</th>
+              <th scope="col" className="w-20 px-4 py-3 text-right">
+                الوقت
+              </th>
+              <th scope="col" className="w-24 px-4 py-3 text-right">
+                الإيصال
+              </th>
+              <th scope="col" className="px-4 py-3 text-right">
+                المريض
+              </th>
+              <th scope="col" className="w-20 px-4 py-3 text-right">
+                الكود
+              </th>
+              <th scope="col" className="w-28 px-4 py-3 text-left" dir="ltr">
+                المبلغ
+              </th>
+              <th scope="col" className="w-28 px-4 py-3 text-left" dir="ltr">
+                المدفوع
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -151,12 +284,45 @@ function ActivityTable({ rows }: { rows: Array<{ transactionDate: string; trNo: 
               const remaining = r.total - r.discount - r.paidValue;
               return (
                 <tr key={`${r.trTy}-${r.trNo}`} className="hover:bg-primary/50">
-                  <td className="whitespace-nowrap px-4 py-2.5 tabular-nums text-muted-foreground" dir="ltr">{formatTime(r.transactionDate)}</td>
-                  <td className="px-4 py-2.5 font-semibold tabular-nums text-foreground" dir="ltr">{r.trNo}</td>
-                  <td className="px-4 py-2.5 truncate text-foreground">{r.patientName || "—"}</td>
-                  <td className="px-4 py-2.5 tabular-nums text-muted-foreground" dir="ltr">{r.patientCode || "—"}</td>
-                  <td className={cn("px-4 py-2.5 tabular-nums", remaining > 0 && "font-semibold text-foreground")} dir="ltr">{formatMoneyAr(r.total - r.discount)}</td>
-                  <td className={cn("px-4 py-2.5 tabular-nums font-medium", remaining <= 0 ? "text-success" : "text-warning")} dir="ltr">{formatMoneyAr(r.paidValue)}</td>
+                  <td
+                    className="whitespace-nowrap px-4 py-2.5 tabular-nums text-muted-foreground"
+                    dir="ltr"
+                  >
+                    {formatTime(r.transactionDate)}
+                  </td>
+                  <td
+                    className="px-4 py-2.5 font-semibold tabular-nums text-foreground"
+                    dir="ltr"
+                  >
+                    {r.trNo}
+                  </td>
+                  <td className="px-4 py-2.5 truncate text-foreground">
+                    {r.patientName || "—"}
+                  </td>
+                  <td
+                    className="px-4 py-2.5 tabular-nums text-muted-foreground"
+                    dir="ltr"
+                  >
+                    {r.patientCode || "—"}
+                  </td>
+                  <td
+                    className={cn(
+                      "px-4 py-2.5 tabular-nums",
+                      remaining > 0 && "font-semibold text-foreground",
+                    )}
+                    dir="ltr"
+                  >
+                    {formatMoneyAr(r.total - r.discount)}
+                  </td>
+                  <td
+                    className={cn(
+                      "px-4 py-2.5 tabular-nums font-medium",
+                      remaining <= 0 ? "text-success" : "text-warning",
+                    )}
+                    dir="ltr"
+                  >
+                    {formatMoneyAr(r.paidValue)}
+                  </td>
                 </tr>
               );
             })}
@@ -192,7 +358,17 @@ function PrototypePanel({
     totalExpense?: number;
     currentBalance?: number;
   };
-  rows: Array<{ transactionDate: string; trNo: string; patientName?: string | null; patientCode?: string | null; total: number; discount: number; paidValue: number; sectionCode: number; trTy: number }>;
+  rows: Array<{
+    transactionDate: string;
+    trNo: string;
+    patientName?: string | null;
+    patientCode?: string | null;
+    total: number;
+    discount: number;
+    paidValue: number;
+    sectionCode: number;
+    trTy: number;
+  }>;
   variant: "command" | "workspace" | "mixed";
 }) {
   const toneClasses = {
@@ -207,61 +383,112 @@ function PrototypePanel({
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <ProtoBadge tone={tone}>Prototype</ProtoBadge>
-            <ProtoBadge tone={tone}>{variant === "command" ? "Command Center" : variant === "workspace" ? "Workspace First" : "Balanced Mixed"}</ProtoBadge>
+            <ProtoBadge tone={tone}>
+              {variant === "command"
+                ? "Command Center"
+                : variant === "workspace"
+                  ? "Workspace First"
+                  : "Balanced Mixed"}
+            </ProtoBadge>
           </div>
           <div className="flex items-center gap-3">
-            <div className={cn("flex h-10 w-10 items-center justify-center rounded-2xl border", toneClasses)}>
+            <div
+              className={cn(
+                "flex h-10 w-10 items-center justify-center rounded-2xl border",
+                toneClasses,
+              )}
+            >
               <Icon className="h-5 w-5" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-foreground">{title}</h2>
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">{subtitle}</p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                {subtitle}
+              </p>
             </div>
           </div>
         </div>
-        <Link href="/accounting" className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground bg-muted">
+        <Link
+          href="/accounting"
+          className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground bg-muted"
+        >
           فتح الصفحة
         </Link>
       </div>
 
       <div className="mt-4 space-y-4">
-        {variant === "workspace" ? null : <MetricsRow summary={summary} cashbook={cashbook} />}
+        {variant === "workspace" ? null : (
+          <MetricsRow summary={summary} cashbook={cashbook} />
+        )}
 
-        <div className={cn("grid gap-4", variant === "command" ? "lg:grid-cols-[minmax(0,1fr)_320px]" : variant === "workspace" ? "lg:grid-cols-[minmax(0,1fr)_280px]" : "lg:grid-cols-[minmax(0,1fr)_300px]")}>
+        <div
+          className={cn(
+            "grid gap-4",
+            variant === "command"
+              ? "lg:grid-cols-[minmax(0,1fr)_320px]"
+              : variant === "workspace"
+                ? "lg:grid-cols-[minmax(0,1fr)_280px]"
+                : "lg:grid-cols-[minmax(0,1fr)_300px]",
+          )}
+        >
           <div className="space-y-4">
             {variant === "workspace" ? (
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="rounded-2xl border border-border bg-muted/60 p-4">
-                  <div className="text-[11px] font-medium text-muted-foreground">إيراد الشهر</div>
-                  <div className="mt-2 text-xl font-bold tabular-nums text-foreground">{formatMoneyAr(summary?.totalRevenueThisMonth ?? 0)}</div>
+                  <div className="text-[11px] font-medium text-muted-foreground">
+                    إيراد الشهر
+                  </div>
+                  <div className="mt-2 text-xl font-bold tabular-nums text-foreground">
+                    {formatMoneyAr(summary?.totalRevenueThisMonth ?? 0)}
+                  </div>
                 </div>
                 <div className="rounded-2xl border border-border bg-muted/60 p-4">
-                  <div className="text-[11px] font-medium text-muted-foreground">إيصالات الشهر</div>
-                  <div className="mt-2 text-xl font-bold tabular-nums text-foreground">{formatCountAr(summary?.totalReceiptsThisMonth ?? 0)}</div>
+                  <div className="text-[11px] font-medium text-muted-foreground">
+                    إيصالات الشهر
+                  </div>
+                  <div className="mt-2 text-xl font-bold tabular-nums text-foreground">
+                    {formatCountAr(summary?.totalReceiptsThisMonth ?? 0)}
+                  </div>
                 </div>
                 <div className="rounded-2xl border border-border bg-muted/60 p-4">
-                  <div className="text-[11px] font-medium text-muted-foreground">المصروف</div>
-                  <div className="mt-2 text-xl font-bold tabular-nums text-foreground">{formatMoneyAr(cashbook?.totalExpense ?? 0)}</div>
+                  <div className="text-[11px] font-medium text-muted-foreground">
+                    المصروف
+                  </div>
+                  <div className="mt-2 text-xl font-bold tabular-nums text-foreground">
+                    {formatMoneyAr(cashbook?.totalExpense ?? 0)}
+                  </div>
                 </div>
               </div>
             ) : null}
             <ActivityTable rows={rows} />
           </div>
 
-          <div className={cn("space-y-4", variant === "command" ? "lg:pt-0" : "")}>
+          <div
+            className={cn("space-y-4", variant === "command" ? "lg:pt-0" : "")}
+          >
             {variant === "command" ? (
               <>
                 <SideRail title="التقارير" subtitle="مسارات سريعة" compact />
                 <div className="rounded-[28px] border border-border bg-muted/80 p-4">
-                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">الملخص</div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    الملخص
+                  </div>
                   <div className="mt-2 grid grid-cols-2 gap-3">
                     <div className="rounded-2xl bg-background p-3 shadow-sm">
-                      <div className="text-[11px] text-muted-foreground">اليوم</div>
-                      <div className="mt-2 text-lg font-bold tabular-nums text-foreground">{formatCountAr(summary?.totalReceiptsToday ?? 0)}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        اليوم
+                      </div>
+                      <div className="mt-2 text-lg font-bold tabular-nums text-foreground">
+                        {formatCountAr(summary?.totalReceiptsToday ?? 0)}
+                      </div>
                     </div>
                     <div className="rounded-2xl bg-background p-3 shadow-sm">
-                      <div className="text-[11px] text-muted-foreground">الرصيد</div>
-                      <div className="mt-2 text-lg font-bold tabular-nums text-foreground">{formatMoneyAr(cashbook?.currentBalance ?? 0)}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        الرصيد
+                      </div>
+                      <div className="mt-2 text-lg font-bold tabular-nums text-foreground">
+                        {formatMoneyAr(cashbook?.currentBalance ?? 0)}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -272,18 +499,30 @@ function PrototypePanel({
                   <div className="flex items-center gap-3">
                     <PanelRight className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">الخلاصة</div>
-                      <div className="mt-1 text-sm font-semibold text-foreground">بطاقات صغيرة، مساحة أكبر للجدول</div>
+                      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        الخلاصة
+                      </div>
+                      <div className="mt-1 text-sm font-semibold text-foreground">
+                        بطاقات صغيرة، مساحة أكبر للجدول
+                      </div>
                     </div>
                   </div>
                   <div className="mt-4 grid gap-3">
                     <div className="rounded-2xl border border-border bg-muted/70 p-3">
-                      <div className="text-[11px] text-muted-foreground">الخزنة</div>
-                      <div className="mt-1 text-lg font-bold tabular-nums text-foreground">{formatMoneyAr(cashbook?.currentBalance ?? 0)}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        الخزنة
+                      </div>
+                      <div className="mt-1 text-lg font-bold tabular-nums text-foreground">
+                        {formatMoneyAr(cashbook?.currentBalance ?? 0)}
+                      </div>
                     </div>
                     <div className="rounded-2xl border border-border bg-muted/70 p-3">
-                      <div className="text-[11px] text-muted-foreground">إيراد اليوم</div>
-                      <div className="mt-1 text-lg font-bold tabular-nums text-foreground">{formatMoneyAr(summary?.totalRevenueToday ?? 0)}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        إيراد اليوم
+                      </div>
+                      <div className="mt-1 text-lg font-bold tabular-nums text-foreground">
+                        {formatMoneyAr(summary?.totalRevenueToday ?? 0)}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -302,9 +541,18 @@ function PrototypePanel({
 }
 
 export default function AccountingPrototypes() {
-  const summaryQuery = trpc.accounting.dashboardSummary.useQuery({ sectionCode: 15 }, { refetchOnWindowFocus: true });
-  const cashbookQuery = trpc.accounting.accLedgerSummary.useQuery({}, { refetchOnWindowFocus: true });
-  const activityQuery = trpc.accounting.transactions.useQuery({ sectionCode: 15, limit: 8 }, { refetchOnWindowFocus: true });
+  const summaryQuery = trpc.accounting.dashboardSummary.useQuery(
+    { sectionCode: 15 },
+    { refetchOnWindowFocus: true },
+  );
+  const cashbookQuery = trpc.accounting.accLedgerSummary.useQuery(
+    {},
+    { refetchOnWindowFocus: true },
+  );
+  const activityQuery = trpc.accounting.transactions.useQuery(
+    { sectionCode: 15, limit: 8 },
+    { refetchOnWindowFocus: true },
+  );
 
   const summary = summaryQuery.data;
   const cashbook = cashbookQuery.data;
@@ -317,21 +565,35 @@ export default function AccountingPrototypes() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-primary text-primary-foreground">النسخ المقارنة</span>
-                <span className="rounded-full bg-success/10 px-3 py-1 text-[11px] font-semibold text-success">بيانات حية</span>
+                <span className="rounded-full bg-primary text-primary-foreground">
+                  النسخ المقارنة
+                </span>
+                <span className="rounded-full bg-success/10 px-3 py-1 text-[11px] font-semibold text-success">
+                  بيانات حية
+                </span>
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">تصميم الحسابات</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                  تصميم الحسابات
+                </h1>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-                  ثلاث اتجاهات على نفس البيانات: Command Center, Workspace First, Balanced Mixed. الهدف أن ترى الفرق قبل ما نثبت اتجاهًا واحدًا.
+                  ثلاث اتجاهات على نفس البيانات: Command Center, Workspace
+                  First, Balanced Mixed. الهدف أن ترى الفرق قبل ما نثبت اتجاهًا
+                  واحدًا.
                 </p>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Link href="/accounting" className="rounded-full border border-border bg-background px-3 py-2 text-xs font-semibold text-muted-foreground bg-muted">
+              <Link
+                href="/accounting"
+                className="rounded-full border border-border bg-background px-3 py-2 text-xs font-semibold text-muted-foreground bg-muted"
+              >
                 العودة للحسابات
               </Link>
-              <Link href="/accounting/cashbook" className="rounded-full border border-primary/30 bg-primary text-primary-foreground hover:bg-primary/90">
+              <Link
+                href="/accounting/cashbook"
+                className="rounded-full border border-primary/30 bg-primary text-primary-foreground hover:bg-primary/90"
+              >
                 فتح الخزنة
               </Link>
             </div>

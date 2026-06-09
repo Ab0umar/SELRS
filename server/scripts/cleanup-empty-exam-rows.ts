@@ -40,63 +40,147 @@ async function main() {
   const db = await getDb();
   if (!db) throw new Error("DB connection failed");
 
-  console.log(`\n=== Exam Empty-Row Cleanup (${EXECUTE ? "EXECUTE" : "DRY-RUN"}) ===\n`);
+  console.log(
+    `\n=== Exam Empty-Row Cleanup (${EXECUTE ? "EXECUTE" : "DRY-RUN"}) ===\n`,
+  );
 
   // ── 1. autorefractometryData ──────────────────────────────────────────────
   const autorefCols = [
-    "sphereOD","cylinderOD","axisOD","ucvaOD","bcvaOD","iopOD",
-    "sphereOS","cylinderOS","axisOS","ucvaOS","bcvaOS","iopOS",
+    "sphereOD",
+    "cylinderOD",
+    "axisOD",
+    "ucvaOD",
+    "bcvaOD",
+    "iopOD",
+    "sphereOS",
+    "cylinderOS",
+    "axisOS",
+    "ucvaOS",
+    "bcvaOS",
+    "iopOS",
   ];
   const autorefWhere = allBlank(autorefCols);
-  const autorefCount = await count(db, `SELECT COUNT(*) AS n FROM autorefractometryData WHERE ${autorefWhere}`);
+  const autorefCount = await count(
+    db,
+    `SELECT COUNT(*) AS n FROM autorefractometryData WHERE ${autorefWhere}`,
+  );
   console.log(`autorefractometryData  — empty rows: ${autorefCount}`);
   if (EXECUTE && autorefCount > 0) {
-    const deleted = await del(db, `DELETE FROM autorefractometryData WHERE ${autorefWhere}`);
+    const deleted = await del(
+      db,
+      `DELETE FROM autorefractometryData WHERE ${autorefWhere}`,
+    );
     console.log(`  ✓ Deleted ${deleted}`);
   }
 
   // ── 2. afterRefractionData ────────────────────────────────────────────────
-  const afterCols = ["sphereOD","cylinderOD","axisOD","sphereOS","cylinderOS","axisOS"];
+  const afterCols = [
+    "sphereOD",
+    "cylinderOD",
+    "axisOD",
+    "sphereOS",
+    "cylinderOS",
+    "axisOS",
+  ];
   const afterWhere = allBlank(afterCols);
-  const afterCount = await count(db, `SELECT COUNT(*) AS n FROM afterRefractionData WHERE ${afterWhere}`);
+  const afterCount = await count(
+    db,
+    `SELECT COUNT(*) AS n FROM afterRefractionData WHERE ${afterWhere}`,
+  );
   console.log(`afterRefractionData    — empty rows: ${afterCount}`);
   if (EXECUTE && afterCount > 0) {
-    const deleted = await del(db, `DELETE FROM afterRefractionData WHERE ${afterWhere}`);
+    const deleted = await del(
+      db,
+      `DELETE FROM afterRefractionData WHERE ${afterWhere}`,
+    );
     console.log(`  ✓ Deleted ${deleted}`);
   }
 
   // ── 3. glassesRecords ─────────────────────────────────────────────────────
-  const glassesCols = ["sOD","cOD","axisOD","pdOD","addOD","bcvaOD","sOS","cOS","axisOS","pdOS","addOS","bcvaOS"];
+  const glassesCols = [
+    "sOD",
+    "cOD",
+    "axisOD",
+    "pdOD",
+    "addOD",
+    "bcvaOD",
+    "sOS",
+    "cOS",
+    "axisOS",
+    "pdOS",
+    "addOS",
+    "bcvaOS",
+  ];
   const glassesWhere = allBlank(glassesCols);
-  const glassesCount = await count(db, `SELECT COUNT(*) AS n FROM glassesRecords WHERE ${glassesWhere}`);
+  const glassesCount = await count(
+    db,
+    `SELECT COUNT(*) AS n FROM glassesRecords WHERE ${glassesWhere}`,
+  );
   console.log(`glassesRecords         — empty rows: ${glassesCount}`);
   if (EXECUTE && glassesCount > 0) {
-    const deleted = await del(db, `DELETE FROM glassesRecords WHERE ${glassesWhere}`);
+    const deleted = await del(
+      db,
+      `DELETE FROM glassesRecords WHERE ${glassesWhere}`,
+    );
     console.log(`  ✓ Deleted ${deleted}`);
   }
 
   // ── 4. pentacamResults ────────────────────────────────────────────────────
   const pentacamCols = [
-    "k1OD","k2OD","axisOD","thinnestPointOD","apexOD","residualOD","tttOD","ablationOD",
-    "k1OS","k2OS","axisOS","thinnestPointOS","apexOS","residualOS","tttOS","ablationOS",
-    "pachymetryOD","pachymetryOS","notes",
+    "k1OD",
+    "k2OD",
+    "axisOD",
+    "thinnestPointOD",
+    "apexOD",
+    "residualOD",
+    "tttOD",
+    "ablationOD",
+    "k1OS",
+    "k2OS",
+    "axisOS",
+    "thinnestPointOS",
+    "apexOS",
+    "residualOS",
+    "tttOS",
+    "ablationOS",
+    "pachymetryOD",
+    "pachymetryOS",
+    "notes",
   ];
   const pentacamWhere = allBlank(pentacamCols);
-  const pentacamCount = await count(db, `SELECT COUNT(*) AS n FROM pentacamResults WHERE ${pentacamWhere}`);
+  const pentacamCount = await count(
+    db,
+    `SELECT COUNT(*) AS n FROM pentacamResults WHERE ${pentacamWhere}`,
+  );
   console.log(`pentacamResults        — empty rows: ${pentacamCount}`);
   if (EXECUTE && pentacamCount > 0) {
-    const deleted = await del(db, `DELETE FROM pentacamResults WHERE ${pentacamWhere}`);
+    const deleted = await del(
+      db,
+      `DELETE FROM pentacamResults WHERE ${pentacamWhere}`,
+    );
     console.log(`  ✓ Deleted ${deleted}`);
   }
 
   // ── 5. doctorReports ─────────────────────────────────────────────────────
   // "Empty" = all text fields blank AND diseases is NULL / '[]' / '{}'
-  const reportTextCols = ["diagnosis","treatment","recommendations","clinicalOpinion","additionalNotes"];
+  const reportTextCols = [
+    "diagnosis",
+    "treatment",
+    "recommendations",
+    "clinicalOpinion",
+    "additionalNotes",
+  ];
   const reportWhere = `${allBlank(reportTextCols)} AND (diseases IS NULL OR TRIM(diseases) = '' OR TRIM(diseases) = '[]' OR TRIM(diseases) = '{}')`;
-  const reportCount = await count(db, `SELECT COUNT(*) AS n FROM doctorReports WHERE ${reportWhere}`);
+  const reportCount = await count(
+    db,
+    `SELECT COUNT(*) AS n FROM doctorReports WHERE ${reportWhere}`,
+  );
   console.log(`doctorReports          — empty rows: ${reportCount}`);
   if (EXECUTE && reportCount > 0) {
-    const deleted = await del(db, `DELETE FROM doctorReports WHERE ${reportWhere}`);
+    const deleted = await del(
+      db,
+      `DELETE FROM doctorReports WHERE ${reportWhere}`,
+    );
     console.log(`  ✓ Deleted ${deleted}`);
   }
 
@@ -109,10 +193,16 @@ async function main() {
     AND NOT EXISTS (SELECT 1 FROM afterRefractionData af WHERE af.examinationId = examinations.id)
     AND NOT EXISTS (SELECT 1 FROM glassesRecords g WHERE g.examinationId = examinations.id)
   `;
-  const examCount = await count(db, `SELECT COUNT(*) AS n FROM examinations WHERE ${examWhere}`);
+  const examCount = await count(
+    db,
+    `SELECT COUNT(*) AS n FROM examinations WHERE ${examWhere}`,
+  );
   console.log(`examinations           — empty rows: ${examCount}`);
   if (EXECUTE && examCount > 0) {
-    const deleted = await del(db, `DELETE FROM examinations WHERE ${examWhere}`);
+    const deleted = await del(
+      db,
+      `DELETE FROM examinations WHERE ${examWhere}`,
+    );
     console.log(`  ✓ Deleted ${deleted}`);
   }
 
@@ -125,14 +215,19 @@ async function main() {
     AND NOT EXISTS (SELECT 1 FROM prescriptions pr WHERE pr.visitId = visits.id)
     AND NOT EXISTS (SELECT 1 FROM testRequests tr WHERE tr.visitId = visits.id)
   `;
-  const visitCount = await count(db, `SELECT COUNT(*) AS n FROM visits WHERE ${visitWhere}`);
+  const visitCount = await count(
+    db,
+    `SELECT COUNT(*) AS n FROM visits WHERE ${visitWhere}`,
+  );
   console.log(`visits                 — empty rows: ${visitCount}`);
   if (EXECUTE && visitCount > 0) {
     const deleted = await del(db, `DELETE FROM visits WHERE ${visitWhere}`);
     console.log(`  ✓ Deleted ${deleted}`);
   }
 
-  console.log(`\n${EXECUTE ? "✅ Cleanup complete." : "ℹ️  Dry-run complete. Re-run with --execute to delete."}\n`);
+  console.log(
+    `\n${EXECUTE ? "✅ Cleanup complete." : "ℹ️  Dry-run complete. Re-run with --execute to delete."}\n`,
+  );
   process.exit(0);
 }
 

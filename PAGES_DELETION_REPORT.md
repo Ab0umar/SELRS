@@ -8,12 +8,12 @@
 
 ## 🗑️ **الملفات المحذوفة:**
 
-| الملف | الحجم | الحالة |
-|--------|-------|--------|
-| Surgeries.tsx | 25KB | ✅ محذوف |
-| PentacamSheet.tsx | 11KB | ✅ محذوف |
-| OperationSheet.tsx | 13KB | ✅ محذوف |
-| LasikExamSheet.tsx | 56KB | ✅ محذوف |
+| الملف              | الحجم | الحالة   |
+| ------------------ | ----- | -------- |
+| Surgeries.tsx      | 25KB  | ✅ محذوف |
+| PentacamSheet.tsx  | 11KB  | ✅ محذوف |
+| OperationSheet.tsx | 13KB  | ✅ محذوف |
+| LasikExamSheet.tsx | 56KB  | ✅ محذوف |
 
 **الإجمالي المحذوف:** 105KB
 
@@ -22,6 +22,7 @@
 ## 📋 **ما تم حذفه من App.tsx:**
 
 ### ✅ Lazy Imports المحذوفة:
+
 ```typescript
 // ❌ تم حذفها:
 const Surgeries = lazy(() => import("./pages/Surgeries"));
@@ -31,6 +32,7 @@ const PentacamSheet = lazy(() => import("./pages/PentacamSheet"));
 ```
 
 ### ✅ Routes المحذوفة:
+
 ```typescript
 // ❌ تم حذفها:
 <Route path={"/surgeries"} ... />
@@ -47,16 +49,19 @@ const PentacamSheet = lazy(() => import("./pages/PentacamSheet"));
 ## 🔍 **المراجع المحذوفة:**
 
 ### من AdminPermissions.tsx:
+
 ```diff
 - { id: "/surgeries", label: "Surgeries" },
 ```
 
 ### من AdminUsers.tsx:
+
 ```diff
 - { id: "/surgeries", label: "Surgeries" },
 ```
 
 ### من PatientDetails.tsx:
+
 ```diff
 - const surgeriesQuery = trpc.medical.getSurgeriesByPatient.useQuery(...);
 ```
@@ -65,12 +70,12 @@ const PentacamSheet = lazy(() => import("./pages/PentacamSheet"));
 
 ## ✅ **الملفات المتبقية:**
 
-| الملف | السبب | الحالة |
-|--------|-------|--------|
-| AdminPentacamFailed.tsx | صفحة إدارة منفصلة | ✅ محفوظ |
+| الملف                      | السبب               | الحالة   |
+| -------------------------- | ------------------- | -------- |
+| AdminPentacamFailed.tsx    | صفحة إدارة منفصلة   | ✅ محفوظ |
 | ExternalOperationSheet.tsx | نموذج مختلف (خارجي) | ✅ محفوظ |
-| LasikFollowupPage.tsx | متابعة فقط | ✅ محفوظ |
-| ExaminationForm.tsx | فحص شامل | ✅ محفوظ |
+| LasikFollowupPage.tsx      | متابعة فقط          | ✅ محفوظ |
+| ExaminationForm.tsx        | فحص شامل            | ✅ محفوظ |
 
 ---
 
@@ -98,16 +103,19 @@ const PentacamSheet = lazy(() => import("./pages/PentacamSheet"));
 ## 🔐 **الأمان والاستقرار:**
 
 ✅ **لا توجد أخطاء:**
+
 - جميع الـ imports تم حذفها
 - جميع الروتس تم حذفها
 - جميع المراجع تم حذفها
 
 ✅ **الكود آمن:**
+
 - لا توجد مراجع معطلة
 - لا توجد imports غير مستخدمة
 - لا توجد روتس معطلة
 
 ✅ **الوظائف محفوظة:**
+
 - النماذس الأخرى تعمل
 - الاختبارات محفوظة
 - الإدارة محفوظة
@@ -136,27 +144,29 @@ const PentacamSheet = lazy(() => import("./pages/PentacamSheet"));
 
 ## 🎯 **النتيجة النهائية:**
 
-| العنصر | الحالة |
-|--------|--------|
-| ❌ Surgeries.tsx | محذوف ✅ |
-| ❌ PentacamSheet.tsx | محذوف ✅ |
-| ❌ OperationSheet.tsx | محذوف ✅ |
-| ❌ LasikExamSheet.tsx | محذوف ✅ |
-| ✅ جميع الروتس | محذوفة ✅ |
-| ✅ جميع المراجع | محذوفة ✅ |
-| ✅ جميع الـ imports | محذوفة ✅ |
+| العنصر                | الحالة    |
+| --------------------- | --------- |
+| ❌ Surgeries.tsx      | محذوف ✅  |
+| ❌ PentacamSheet.tsx  | محذوف ✅  |
+| ❌ OperationSheet.tsx | محذوف ✅  |
+| ❌ LasikExamSheet.tsx | محذوف ✅  |
+| ✅ جميع الروتس        | محذوفة ✅ |
+| ✅ جميع المراجع       | محذوفة ✅ |
+| ✅ جميع الـ imports   | محذوفة ✅ |
 
 ---
 
 ## ⚠️ **الملاحظات:**
 
 ### ما تم حذفه بالكامل:
+
 - Surgeries Management (إدارة العمليات الجراحية)
 - LASIK Exam Sheet (نموذج فحص الليزك)
 - Operation Sheet (نموذج العملية العادية)
 - Pentacam Sheet Display (عرض نتائج البنتاكام)
 
 ### ما تم الحفاظ عليه:
+
 - LASIK Followup Page (متابعة الليزك)
 - External Operation Sheet (العمليات الخارجية)
 - Admin Pentacam Failed (إدارة الفشل)
@@ -166,18 +176,22 @@ const PentacamSheet = lazy(() => import("./pages/PentacamSheet"));
 ## 🧹 **التنظيف الشامل:**
 
 ✅ **الملفات:**
+
 - 4 ملفات typescript محذوفة
 - 105KB من الكود محذوف
 
 ✅ **الروتس:**
+
 - 7 routes محذوفة من App.tsx
 - 0 routes معطلة متبقية
 
 ✅ **المراجع:**
+
 - 3 مراجع محذوفة من صفحات الإدارة
 - 0 مراجع معطلة متبقية
 
 ✅ **الـ imports:**
+
 - 4 lazy imports محذوفة
 - 0 imports معطلة متبقية
 
@@ -186,11 +200,13 @@ const PentacamSheet = lazy(() => import("./pages/PentacamSheet"));
 ## ✨ **الفائدة:**
 
 🚀 **تحسينات الأداء:**
+
 - تقليل حجم الـ bundle بـ 105KB
 - تقليل عدد الصفحات من 47 إلى 43
 - تقليل الروتس من 30+ إلى 23+
 
 🧹 **تنظيف الكود:**
+
 - حذف كود غير مستخدم
 - تقليل التعقيد
 - واجهة أنظف
@@ -200,6 +216,7 @@ const PentacamSheet = lazy(() => import("./pages/PentacamSheet"));
 ## 🔗 **الروتس المتبقية للعمليات:**
 
 إذا احتجت إلى العمليات الجراحية:
+
 - ✅ العمليات الخارجية: `/sheets/external/:id`
 - ✅ متابعة الليزك: `/sheets/lasik/:id/followup`
 - ✅ الفحص الشامل: `/examination/:id`

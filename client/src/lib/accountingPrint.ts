@@ -9,7 +9,11 @@ export type PrintPayload = {
     filters?: Record<string, string>;
   };
   groupBy?: string[];
-  columns: { key: string; label: string; align?: "left" | "right" | "center" }[];
+  columns: {
+    key: string;
+    label: string;
+    align?: "left" | "right" | "center";
+  }[];
   rows: Record<string, unknown>[];
   totals?: { label: string; values: Record<string, number> }[];
   footer?: string;

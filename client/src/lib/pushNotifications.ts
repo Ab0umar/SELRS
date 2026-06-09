@@ -32,20 +32,30 @@ export async function registerWebPush(): Promise<boolean> {
       const result = await Notification.requestPermission();
       console.log("[Push] Permission request result:", result);
       if (result !== "granted") {
-        console.warn("[Push] Notification permission not granted, got:", result);
+        console.warn(
+          "[Push] Notification permission not granted, got:",
+          result,
+        );
         return false;
       }
     }
 
-    console.log("[Push] VAPID Public Key:", import.meta.env.VITE_VAPID_PUBLIC_KEY ? "present" : "MISSING");
+    console.log(
+      "[Push] VAPID Public Key:",
+      import.meta.env.VITE_VAPID_PUBLIC_KEY ? "present" : "MISSING",
+    );
 
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: import.meta.env.VITE_VAPID_PUBLIC_KEY,
     });
 
-    const subscriptionJson = subscription.toJSON() as unknown as WebPushSubscription;
-    console.log("[Push] Web push subscription successful:", subscriptionJson.endpoint.substring(0, 30) + "...");
+    const subscriptionJson =
+      subscription.toJSON() as unknown as WebPushSubscription;
+    console.log(
+      "[Push] Web push subscription successful:",
+      subscriptionJson.endpoint.substring(0, 30) + "...",
+    );
     return true;
   } catch (error) {
     console.error("[Push] Web push registration failed", error);

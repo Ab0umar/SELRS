@@ -17,11 +17,13 @@ The SRV100 application interacts with two distinct databases: a MySQL database (
 ## Consequences
 
 **Positive:**
+
 - **Data Integrity:** Each system maintains its own data integrity without interference from the other. This prevents a bug in the Accounting module from corrupting medical records, and vice-versa.
 - **Clarity and Simplicity:** The "one bridge key" rule is simple to understand and enforce. It avoids complex, multi-database transaction logic.
 - **Loose Coupling:** The two systems are loosely coupled, which makes them easier to maintain and upgrade independently.
 
 **Negative:**
+
 - **Data Synchronization is an External Concern:** Keeping patient records aligned between the two systems (e.g., ensuring a patient created in the medical system also exists in the accounting system) is not the responsibility of the SRV100 application itself. This must be handled by external processes or data entry conventions.
 - **Potential for Orphaned Records:** An accounting record in MSSQL might have a `PAT_CD` that does not correspond to any `patientCode` in the MySQL database. The application UI must handle this gracefully (e.g., by displaying "No medical record linked") rather than crashing.
 

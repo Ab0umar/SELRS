@@ -55,65 +55,65 @@
 
 :root {
   /* SELRS Brand Colors */
-  --selrs-navy: #003D82;
-  --selrs-orange: #FF9500;
-  --selrs-dark-blue: #001F47;
-  --selrs-light-blue: #E8F0F8;
-  --selrs-light-orange: #FFE8CC;
+  --selrs-navy: #003d82;
+  --selrs-orange: #ff9500;
+  --selrs-dark-blue: #001f47;
+  --selrs-light-blue: #e8f0f8;
+  --selrs-light-orange: #ffe8cc;
 
   /* Primary Colors - Navy Blue */
-  --primary: #003D82;
-  --primary-foreground: #FFFFFF;
-  --sidebar-primary: #003D82;
-  --sidebar-primary-foreground: #FFFFFF;
+  --primary: #003d82;
+  --primary-foreground: #ffffff;
+  --sidebar-primary: #003d82;
+  --sidebar-primary-foreground: #ffffff;
 
   /* Charts - Navy Blue to Orange gradient */
-  --chart-1: #003D82;
-  --chart-2: #0052A3;
-  --chart-3: #FF9500;
-  --chart-4: #FFB84D;
-  --chart-5: #FFD699;
+  --chart-1: #003d82;
+  --chart-2: #0052a3;
+  --chart-3: #ff9500;
+  --chart-4: #ffb84d;
+  --chart-5: #ffd699;
 
   --radius: 0.65rem;
 
   /* Light Mode */
-  --background: #FFFFFF;
-  --foreground: #001F47;
-  --card: #F5F5F5;
-  --card-foreground: #001F47;
-  --popover: #FFFFFF;
-  --popover-foreground: #001F47;
-  --secondary: #FF9500;
-  --secondary-foreground: #001F47;
-  --muted: #E8F0F8;
-  --muted-foreground: #4B5563;
-  --accent: #FF9500;
-  --accent-foreground: #001F47;
-  --destructive: #EF4444;
-  --destructive-foreground: #FFFFFF;
-  --success: #10B981;
-  --success-foreground: #001F47;
-  --info: #3B82F6;
-  --info-foreground: #FFFFFF;
-  --warning: #F59E0B;
-  --warning-foreground: #92400E;
-  --error: #EF4444;
-  --error-foreground: #FFFFFF;
-  --border: #E5E7EB;
-  --input: #FFFFFF;
-  --ring: #003D82;
+  --background: #ffffff;
+  --foreground: #001f47;
+  --card: #f5f5f5;
+  --card-foreground: #001f47;
+  --popover: #ffffff;
+  --popover-foreground: #001f47;
+  --secondary: #ff9500;
+  --secondary-foreground: #001f47;
+  --muted: #e8f0f8;
+  --muted-foreground: #4b5563;
+  --accent: #ff9500;
+  --accent-foreground: #001f47;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --success: #10b981;
+  --success-foreground: #001f47;
+  --info: #3b82f6;
+  --info-foreground: #ffffff;
+  --warning: #f59e0b;
+  --warning-foreground: #92400e;
+  --error: #ef4444;
+  --error-foreground: #ffffff;
+  --border: #e5e7eb;
+  --input: #ffffff;
+  --ring: #003d82;
 
-  --sidebar: #FFFFFF;
-  --sidebar-foreground: #001F47;
-  --sidebar-accent: #FF9500;
-  --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: #E5E7EB;
-  --sidebar-ring: #003D82;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #001f47;
+  --sidebar-accent: #ff9500;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #e5e7eb;
+  --sidebar-ring: #003d82;
 
   /* Accessible text-on-light variants (WCAG AA on white/card surfaces) */
-  --destructive-text: #B91C1C;
+  --destructive-text: #b91c1c;
   --success-text: #047857;
-  --warning-text: #92400E;
+  --warning-text: #92400e;
 }
 
 .dark {
@@ -123,46 +123,46 @@
   --card-foreground: #e6edf3;
   --popover: #161b22;
   --popover-foreground: #e6edf3;
-  --primary: #003D82;
-  --primary-foreground: #FFFFFF;
-  --secondary: #FF9500;
+  --primary: #003d82;
+  --primary-foreground: #ffffff;
+  --secondary: #ff9500;
   --secondary-foreground: #0d1117;
   --muted: #21262d;
   --muted-foreground: #8b949e;
-  --accent: #FF9500;
+  --accent: #ff9500;
   --accent-foreground: #0d1117;
-  --destructive: #F87171;
+  --destructive: #f87171;
   --destructive-foreground: #0d1117;
-  --success: #34D399;
+  --success: #34d399;
   --success-foreground: #0d1117;
-  --info: #60A5FA;
+  --info: #60a5fa;
   --info-foreground: #0d1117;
-  --warning: #FCD34D;
+  --warning: #fcd34d;
   --warning-foreground: #0d1117;
-  --error: #F87171;
+  --error: #f87171;
   --error-foreground: #0d1117;
   --border: #30363d;
   --input: #21262d;
-  --ring: #FF9500;
+  --ring: #ff9500;
 
-  --chart-1: #4D8ECC;
-  --chart-2: #6BA3D6;
-  --chart-3: #FF9500;
-  --chart-4: #FFB84D;
-  --chart-5: #FFD699;
+  --chart-1: #4d8ecc;
+  --chart-2: #6ba3d6;
+  --chart-3: #ff9500;
+  --chart-4: #ffb84d;
+  --chart-5: #ffd699;
 
   --sidebar: #010409;
   --sidebar-foreground: #e6edf3;
-  --sidebar-primary: #003D82;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #FF9500;
+  --sidebar-primary: #003d82;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ff9500;
   --sidebar-accent-foreground: #0d1117;
   --sidebar-border: #30363d;
-  --sidebar-ring: #FF9500;
+  --sidebar-ring: #ff9500;
 
-  --destructive-text: #FCA5A5;
-  --success-text: #6EE7B7;
-  --warning-text: #FCD34D;
+  --destructive-text: #fca5a5;
+  --success-text: #6ee7b7;
+  --warning-text: #fcd34d;
 }
 
 @layer base {
@@ -179,7 +179,7 @@
   input:focus-visible,
   select:focus-visible,
   textarea:focus-visible {
-    outline: 2px solid #003D82;
+    outline: 2px solid #003d82;
     outline-offset: 2px;
   }
 
@@ -187,7 +187,13 @@
   html {
     font-size: 15px;
     line-height: 1.45;
-    font-family: "Segoe UI", Tahoma, Arial, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family:
+      "Segoe UI",
+      Tahoma,
+      Arial,
+      -apple-system,
+      BlinkMacSystemFont,
+      sans-serif;
   }
 
   body {
@@ -198,7 +204,7 @@
     text-align: start;
     background-image:
       radial-gradient(circle at top, rgba(0, 61, 130, 0.06), transparent 24%),
-      linear-gradient(180deg, #FFFFFF 0%, #F5F5F5 100%);
+      linear-gradient(180deg, #ffffff 0%, #f5f5f5 100%);
     background-attachment: fixed;
   }
   .dark body {
@@ -304,8 +310,13 @@ img {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* Ensure loading states don't cause margin/padding shifts */
@@ -344,7 +355,7 @@ img {
   .dark [class*="border-slate-100"],
   .dark [class*="border-slate-200"],
   .dark [class*="border-white/80"] {
-    border-color: rgba(48, 54, 61, 0.90) !important;
+    border-color: rgba(48, 54, 61, 0.9) !important;
   }
 
   .dark [class*="text-slate-950"],
@@ -362,15 +373,18 @@ img {
   .dark [class*="bg-[radial-gradient"],
   .dark [class*="bg-[linear-gradient"] {
     background-image:
-      radial-gradient(circle at top left, rgba(56, 189, 248, 0.06), transparent 34%),
-      linear-gradient(135deg, rgba(13, 17, 23, 0.97), rgba(22, 27, 34, 0.80)) !important;
+      radial-gradient(
+        circle at top left,
+        rgba(56, 189, 248, 0.06),
+        transparent 34%
+      ),
+      linear-gradient(135deg, rgba(13, 17, 23, 0.97), rgba(22, 27, 34, 0.8)) !important;
   }
 
   .dark [class*="shadow-sm"],
   .dark [class*="shadow-lg"] {
-    box-shadow: 0 1px 3px rgba(1, 4, 9, 0.30) !important;
+    box-shadow: 0 1px 3px rgba(1, 4, 9, 0.3) !important;
   }
-
 }
 
 @media (max-width: 640px) {
@@ -471,7 +485,6 @@ img {
   .overflow-x-auto {
     -webkit-overflow-scrolling: touch;
   }
-
 }
 
 @layer components {
@@ -509,7 +522,6 @@ img {
     color: var(--foreground);
   }
 
-
   .page-layout header.bg-primary {
     width: 100%;
   }
@@ -519,7 +531,6 @@ img {
     padding-top: 1.5rem;
     padding-bottom: 1.5rem;
   }
-
 
   .flex {
     min-height: 0;
@@ -543,19 +554,19 @@ img {
 
   /* SELRS Brand Utilities */
   .selrs-gradient-primary {
-    background: linear-gradient(135deg, #003D82 0%, #0052A3 100%);
+    background: linear-gradient(135deg, #003d82 0%, #0052a3 100%);
   }
 
   .selrs-gradient-accent {
-    background: linear-gradient(135deg, #FF9500 0%, #FFB84D 100%);
+    background: linear-gradient(135deg, #ff9500 0%, #ffb84d 100%);
   }
 
   .selrs-gradient-mixed {
-    background: linear-gradient(135deg, #003D82 0%, #FF9500 100%);
+    background: linear-gradient(135deg, #003d82 0%, #ff9500 100%);
   }
 
   .selrs-gradient-bar {
-    background: linear-gradient(90deg, #003D82 0%, #0052A3 48%, #FF9500 100%);
+    background: linear-gradient(90deg, #003d82 0%, #0052a3 48%, #ff9500 100%);
   }
 
   .selrs-text-gradient {
@@ -615,9 +626,23 @@ img {
     --ring: #003d82;
     color-scheme: light;
     background-image:
-      radial-gradient(circle at 18% 14%, rgba(0, 61, 130, 0.12) 0%, rgba(0, 61, 130, 0.05) 20%, transparent 48%),
-      radial-gradient(circle at 86% 16%, rgba(255, 149, 0, 0.14) 0%, rgba(255, 149, 0, 0.05) 18%, transparent 42%),
-      radial-gradient(circle at 72% 82%, rgba(0, 61, 130, 0.06) 0%, transparent 28%),
+      radial-gradient(
+        circle at 18% 14%,
+        rgba(0, 61, 130, 0.12) 0%,
+        rgba(0, 61, 130, 0.05) 20%,
+        transparent 48%
+      ),
+      radial-gradient(
+        circle at 86% 16%,
+        rgba(255, 149, 0, 0.14) 0%,
+        rgba(255, 149, 0, 0.05) 18%,
+        transparent 42%
+      ),
+      radial-gradient(
+        circle at 72% 82%,
+        rgba(0, 61, 130, 0.06) 0%,
+        transparent 28%
+      ),
       linear-gradient(135deg, #ffffff 0%, #f7fbff 42%, #eef4fb 100%);
     background-attachment: fixed;
   }
@@ -653,9 +678,23 @@ img {
     --ring: #003d82;
     color-scheme: light;
     background-image:
-      radial-gradient(circle at 18% 14%, rgba(0, 61, 130, 0.12) 0%, rgba(0, 61, 130, 0.05) 20%, transparent 48%),
-      radial-gradient(circle at 86% 16%, rgba(255, 149, 0, 0.14) 0%, rgba(255, 149, 0, 0.05) 18%, transparent 42%),
-      radial-gradient(circle at 72% 82%, rgba(0, 61, 130, 0.06) 0%, transparent 28%),
+      radial-gradient(
+        circle at 18% 14%,
+        rgba(0, 61, 130, 0.12) 0%,
+        rgba(0, 61, 130, 0.05) 20%,
+        transparent 48%
+      ),
+      radial-gradient(
+        circle at 86% 16%,
+        rgba(255, 149, 0, 0.14) 0%,
+        rgba(255, 149, 0, 0.05) 18%,
+        transparent 42%
+      ),
+      radial-gradient(
+        circle at 72% 82%,
+        rgba(0, 61, 130, 0.06) 0%,
+        transparent 28%
+      ),
       linear-gradient(135deg, #ffffff 0%, #f7fbff 42%, #eef4fb 100%);
     background-attachment: scroll;
   }
@@ -663,14 +702,14 @@ img {
   .selrs-glass-card {
     border: 1px solid rgba(0, 61, 130, 0.12);
     background: rgba(255, 255, 255, 0.85);
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.10);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1);
     backdrop-filter: blur(14px);
   }
 
   .dark .selrs-glass-card {
-    border: 1px solid rgba(48, 54, 61, 0.80);
+    border: 1px solid rgba(48, 54, 61, 0.8);
     background: rgba(22, 27, 34, 0.95);
-    box-shadow: 0 1px 3px rgba(1, 4, 9, 0.30);
+    box-shadow: 0 1px 3px rgba(1, 4, 9, 0.3);
     backdrop-filter: none;
   }
 
@@ -711,9 +750,13 @@ img {
 
 /* Print Styles for Operations List — A5 Landscape */
 @media print {
-  body.print-ops-list * { visibility: hidden !important; }
+  body.print-ops-list * {
+    visibility: hidden !important;
+  }
   body.print-ops-list .ops-print-table,
-  body.print-ops-list .ops-print-table * { visibility: visible !important; }
+  body.print-ops-list .ops-print-table * {
+    visibility: visible !important;
+  }
   body.print-ops-list .ops-print-table {
     display: block !important;
     position: fixed !important;
@@ -731,12 +774,11 @@ img {
     size: A4;
     margin: 10mm;
   }
-  
+
   body {
     margin: 0;
     padding: 0;
   }
-  
 
   main {
     max-width: 210mm;
@@ -750,11 +792,11 @@ img {
   .notes-col {
     padding-inline-start: 0 !important;
   }
-  
+
   .print\:hidden {
     display: none !important;
   }
-  
+
   .print\:p-0 {
     padding: 0 !important;
   }
@@ -767,7 +809,6 @@ img {
     background: transparent !important;
   }
 }
-
 
 /* Tighten field widths across all pages (including print) */
 .page-layout input[data-slot="input"] {
@@ -848,11 +889,17 @@ select {
   justify-items: start;
 }
 
-.auto-air-grid > .grid > div.grid.grid-cols-3:nth-child(2) > input[data-slot="input"] {
+.auto-air-grid
+  > .grid
+  > div.grid.grid-cols-3:nth-child(2)
+  > input[data-slot="input"] {
   margin-inline-start: 0 !important;
   margin-inline-end: auto !important;
 }
-.auto-air-grid > .grid > div.grid.grid-cols-3:nth-child(3) > input[data-slot="input"] {
+.auto-air-grid
+  > .grid
+  > div.grid.grid-cols-3:nth-child(3)
+  > input[data-slot="input"] {
   margin-inline-start: 0 !important;
   margin-inline-end: auto !important;
 }
@@ -1005,7 +1052,6 @@ select {
   }
 }
 
-
 /* Make plain examination inputs clearly visible and compact */
 .examination-plain-grid input[data-slot="input"] {
   width: 100% !important;
@@ -1028,7 +1074,6 @@ select {
   max-width: 220px;
 }
 
-
 .examination-plain-grid-wrapper {
   display: flex;
   justify-content: center;
@@ -1045,8 +1090,6 @@ select {
   justify-self: center;
   text-align: center;
 }
-
-
 
 /* Hard remove outer frame around custom examination grids */
 .examination-plain-grid-wrapper,

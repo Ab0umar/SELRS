@@ -145,7 +145,10 @@ export default function AccEntryDrawer({
         <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
           {/* Date */}
           <div className="space-y-1.5">
-            <label htmlFor="entry-tx-date" className="text-xs font-medium text-muted-foreground">
+            <label
+              htmlFor="entry-tx-date"
+              className="text-xs font-medium text-muted-foreground"
+            >
               التاريخ
             </label>
             <Input
@@ -160,7 +163,10 @@ export default function AccEntryDrawer({
           {/* Income / Expense */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label htmlFor="entry-income" className="text-xs font-medium text-success">
+              <label
+                htmlFor="entry-income"
+                className="text-xs font-medium text-success"
+              >
                 إيراد
               </label>
               <Input
@@ -175,7 +181,12 @@ export default function AccEntryDrawer({
               />
             </div>
             <div className="space-y-1.5">
-              <label htmlFor="entry-expense" className="text-xs font-medium text-destructive">مصروف</label>
+              <label
+                htmlFor="entry-expense"
+                className="text-xs font-medium text-destructive"
+              >
+                مصروف
+              </label>
               <Input
                 id="entry-expense"
                 type="number"
@@ -210,7 +221,10 @@ export default function AccEntryDrawer({
 
           {/* Notes */}
           <div className="space-y-1.5">
-            <label htmlFor="entry-notes" className="text-xs font-medium text-muted-foreground">
+            <label
+              htmlFor="entry-notes"
+              className="text-xs font-medium text-muted-foreground"
+            >
               ملاحظات
             </label>
             <textarea

@@ -41,11 +41,16 @@ const tables = [
 ];
 
 const db = await getDb();
-if (!db) { console.error("DB unavailable"); process.exit(1); }
+if (!db) {
+  console.error("DB unavailable");
+  process.exit(1);
+}
 
 for (const ddl of tables) {
   await db.execute(sql.raw(ddl));
-  const name = (ddl.match(/TABLE IF NOT EXISTS (\w+)/) ?? ddl.match(/VIEW (\w+)/))?.[1] ?? "?";
+  const name =
+    (ddl.match(/TABLE IF NOT EXISTS (\w+)/) ?? ddl.match(/VIEW (\w+)/))?.[1] ??
+    "?";
   console.log(`  created: ${name}`);
 }
 console.log("Done.");

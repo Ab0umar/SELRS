@@ -1,4 +1,7 @@
-export function getErrorContext(message?: string): { title: string; hint: string } {
+export function getErrorContext(message?: string): {
+  title: string;
+  hint: string;
+} {
   if (!message) {
     return {
       title: "حدث خطأ غير متوقع",
@@ -9,7 +12,11 @@ export function getErrorContext(message?: string): { title: string; hint: string
   const msg = message.toLowerCase();
 
   // Not found / no results
-  if (msg.includes("not found") || msg.includes("موجود") || msg.includes("غير موجود")) {
+  if (
+    msg.includes("not found") ||
+    msg.includes("موجود") ||
+    msg.includes("غير موجود")
+  ) {
     return {
       title: "لم يتم العثور على النتيجة",
       hint: "تحقق من البيانات المدخلة والفلاتر المختارة.",
@@ -30,7 +37,11 @@ export function getErrorContext(message?: string): { title: string; hint: string
   }
 
   // Timeout
-  if (msg.includes("timeout") || msg.includes("استغرق") || msg.includes("طويل")) {
+  if (
+    msg.includes("timeout") ||
+    msg.includes("استغرق") ||
+    msg.includes("طويل")
+  ) {
     return {
       title: "انتهت مهلة الانتظار",
       hint: "الطلب استغرق وقتاً طويلاً. حاول مرة أخرى مع تقليل نطاق البيانات.",
@@ -38,7 +49,11 @@ export function getErrorContext(message?: string): { title: string; hint: string
   }
 
   // Database/server errors
-  if (msg.includes("database") || msg.includes("server") || msg.includes("500")) {
+  if (
+    msg.includes("database") ||
+    msg.includes("server") ||
+    msg.includes("500")
+  ) {
     return {
       title: "خطأ في الخادم",
       hint: "يحدث صيانة أو مشكلة تقنية. حاول لاحقاً.",
@@ -46,7 +61,11 @@ export function getErrorContext(message?: string): { title: string; hint: string
   }
 
   // Validation errors
-  if (msg.includes("invalid") || msg.includes("validation") || msg.includes("غير صحيح")) {
+  if (
+    msg.includes("invalid") ||
+    msg.includes("validation") ||
+    msg.includes("غير صحيح")
+  ) {
     return {
       title: "بيانات غير صحيحة",
       hint: "تحقق من صيغة البيانات المدخلة.",

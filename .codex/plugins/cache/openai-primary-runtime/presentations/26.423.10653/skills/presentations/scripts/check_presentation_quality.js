@@ -16,7 +16,8 @@ const DEBUG_BORDER_COLORS = new Set([
   "66e7ff",
   "b6edff",
 ]);
-const PLACEHOLDER_PATTERN = /\b(Slide Number|Click to add|Lorem ipsum|Replace with|TODO|TBD)\b/i;
+const PLACEHOLDER_PATTERN =
+  /\b(Slide Number|Click to add|Lorem ipsum|Replace with|TODO|TBD)\b/i;
 
 function usage() {
   return `Usage: check_presentation_quality.js --workspace <dir> [--pptx <file>] [--report <file>]
@@ -29,9 +30,11 @@ function parseArgs(argv) {
   const args = {};
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (!arg.startsWith("--")) throw new Error(`Unexpected positional argument: ${arg}`);
+    if (!arg.startsWith("--"))
+      throw new Error(`Unexpected positional argument: ${arg}`);
     const value = argv[i + 1];
-    if (!value || value.startsWith("--")) throw new Error(`Missing value for ${arg}`);
+    if (!value || value.startsWith("--"))
+      throw new Error(`Missing value for ${arg}`);
     i += 1;
     if (arg === "--workspace") args.workspace = value;
     else if (arg === "--pptx") args.pptx = value;
@@ -48,9 +51,15 @@ function runCapture(command, args, options = {}) {
     maxBuffer: options.maxBuffer || 80 * 1024 * 1024,
   });
   if (result.status !== 0) {
-    const stderr = Buffer.isBuffer(result.stderr) ? result.stderr.toString("utf8") : result.stderr;
-    const stdout = Buffer.isBuffer(result.stdout) ? result.stdout.toString("utf8") : result.stdout;
-    throw new Error((stderr || stdout || `${command} ${args.join(" ")} failed`).trim());
+    const stderr = Buffer.isBuffer(result.stderr)
+      ? result.stderr.toString("utf8")
+      : result.stderr;
+    const stdout = Buffer.isBuffer(result.stdout)
+      ? result.stdout.toString("utf8")
+      : result.stdout;
+    throw new Error(
+      (stderr || stdout || `${command} ${args.join(" ")} failed`).trim(),
+    );
   }
   return result.stdout;
 }
@@ -62,17 +71,23 @@ function zipNames(pptxPath) {
 }
 
 function zipListing(pptxPath) {
-  const lines = String(runCapture("unzip", ["-l", pptxPath], { encoding: "utf8" })).split(/\r?\n/);
+  const lines = String(
+    runCapture("unzip", ["-l", pptxPath], { encoding: "utf8" }),
+  ).split(/\r?\n/);
   const sizes = new Map();
   for (const line of lines) {
-    const match = line.match(/^\s*(\d+)\s+\d{2}-\d{2}-\d{4}\s+\d{2}:\d{2}\s+(.+)$/);
+    const match = line.match(
+      /^\s*(\d+)\s+\d{2}-\d{2}-\d{4}\s+\d{2}:\d{2}\s+(.+)$/,
+    );
     if (match) sizes.set(match[2], Number.parseInt(match[1], 10));
   }
   return sizes;
 }
 
 function readZipText(pptxPath, entryName) {
-  return Buffer.from(runCapture("unzip", ["-p", pptxPath, entryName])).toString("utf8");
+  return Buffer.from(runCapture("unzip", ["-p", pptxPath, entryName])).toString(
+    "utf8",
+  );
 }
 
 function readZipBuffer(pptxPath, entryName) {
@@ -87,7 +102,9 @@ function slideNumber(entryName) {
 function assertReportUnderScratch(reportPath, scratchDir) {
   const relative = path.relative(scratchDir, reportPath);
   if (relative.startsWith("..") || path.isAbsolute(relative)) {
-    throw new Error(`Quality report must be written under scratch/: ${reportPath}`);
+    throw new Error(
+      `Quality report must be written under scratch/: ${reportPath}`,
+    );
   }
 }
 
@@ -98,7 +115,9 @@ function inspectPptx(pptxPath) {
     .filter((name) => /^ppt\/slides\/slide\d+\.xml$/.test(name))
     .sort((a, b) => slideNumber(a) - slideNumber(b));
   const mediaNames = names.filter((name) => name.startsWith("ppt/media/"));
-  const chartNames = names.filter((name) => /^ppt\/(?:.*\/)?charts\/chart\d+\.xml$/.test(name)).sort();
+  const chartNames = names
+    .filter((name) => /^ppt\/(?:.*\/)?charts\/chart\d+\.xml$/.test(name))
+    .sort();
 
   const result = {
     slide_count: slideXmlNames.length,
@@ -113,7 +132,8 @@ function inspectPptx(pptxPath) {
     failures: [],
   };
 
-  if (!slideXmlNames.length) result.failures.push("PPTX contains no slide XML parts.");
+  if (!slideXmlNames.length)
+    result.failures.push("PPTX contains no slide XML parts.");
 
   for (const mediaName of mediaNames) {
     const size = sizes.get(mediaName) || 0;
@@ -131,13 +151,18 @@ function inspectPptx(pptxPath) {
     const slideNo = index + 1;
     const xml = readZipText(pptxPath, slideName);
     if (PLACEHOLDER_PATTERN.test(xml)) {
-      result.placeholder_text.push({ slide: slideNo, pattern: PLACEHOLDER_PATTERN.source });
+      result.placeholder_text.push({
+        slide: slideNo,
+        pattern: PLACEHOLDER_PATTERN.source,
+      });
     }
     if (/\btype="sldNum"|\bplaceholderType: "sldNum"|Slide Number/i.test(xml)) {
       result.slide_numbers.push(slideNo);
     }
     for (const lineMatch of xml.matchAll(/<a:ln\b[\s\S]*?<\/a:ln>/g)) {
-      for (const colorMatch of lineMatch[0].matchAll(/<a:srgbClr\b[^>]*\bval="([0-9A-Fa-f]{6})"/g)) {
+      for (const colorMatch of lineMatch[0].matchAll(
+        /<a:srgbClr\b[^>]*\bval="([0-9A-Fa-f]{6})"/g,
+      )) {
         const normalized = colorMatch[1].toLowerCase();
         if (DEBUG_BORDER_COLORS.has(normalized)) {
           result.debug_line_colors.push({ slide: slideNo, color: normalized });
@@ -147,19 +172,29 @@ function inspectPptx(pptxPath) {
   }
 
   if (result.zero_byte_media.length) {
-    result.failures.push(`PPTX contains zero-byte media parts: ${result.zero_byte_media.slice(0, 12).join(", ")}`);
+    result.failures.push(
+      `PPTX contains zero-byte media parts: ${result.zero_byte_media.slice(0, 12).join(", ")}`,
+    );
   }
   if (result.invalid_png_media.length) {
-    result.failures.push(`PPTX contains invalid PNG media parts: ${result.invalid_png_media.slice(0, 12).join(", ")}`);
+    result.failures.push(
+      `PPTX contains invalid PNG media parts: ${result.invalid_png_media.slice(0, 12).join(", ")}`,
+    );
   }
   if (result.placeholder_text.length) {
-    result.failures.push(`PPTX contains visible placeholder/debug text candidates on ${result.placeholder_text.length} slide(s).`);
+    result.failures.push(
+      `PPTX contains visible placeholder/debug text candidates on ${result.placeholder_text.length} slide(s).`,
+    );
   }
   if (result.slide_numbers.length) {
-    result.failures.push(`PPTX contains slide-number placeholders on slide(s): ${result.slide_numbers.join(", ")}`);
+    result.failures.push(
+      `PPTX contains slide-number placeholders on slide(s): ${result.slide_numbers.join(", ")}`,
+    );
   }
   if (result.debug_line_colors.length) {
-    result.warnings.push(`PPTX contains debug-colored lines on ${result.debug_line_colors.length} slide(s).`);
+    result.warnings.push(
+      `PPTX contains debug-colored lines on ${result.debug_line_colors.length} slide(s).`,
+    );
   }
 
   return result;
@@ -183,8 +218,12 @@ function main() {
   const workspaceDir = path.resolve(args.workspace);
   const scratchDir = path.join(workspaceDir, "scratch");
   const outputDir = path.join(workspaceDir, "output");
-  const pptxPath = path.resolve(args.pptx || path.join(outputDir, "output.pptx"));
-  const reportPath = path.resolve(args.report || path.join(scratchDir, "quality-report.json"));
+  const pptxPath = path.resolve(
+    args.pptx || path.join(outputDir, "output.pptx"),
+  );
+  const reportPath = path.resolve(
+    args.report || path.join(scratchDir, "quality-report.json"),
+  );
 
   fs.mkdirSync(scratchDir, { recursive: true });
   assertReportUnderScratch(reportPath, scratchDir);
@@ -207,13 +246,17 @@ function main() {
       report.failures.push(...report.checks.pptx_package.failures);
       report.warnings.push(...report.checks.pptx_package.warnings);
     } catch (error) {
-      report.failures.push(`PPTX package inspection failed: ${error && error.message ? error.message : String(error)}`);
+      report.failures.push(
+        `PPTX package inspection failed: ${error && error.message ? error.message : String(error)}`,
+      );
     }
   }
 
   report.checks.output_hygiene = checkOutputHygiene(outputDir, pptxPath);
   if (report.checks.output_hygiene.unexpected_files.length) {
-    report.failures.push(`output/ contains non-deliverable files: ${report.checks.output_hygiene.unexpected_files.join(", ")}`);
+    report.failures.push(
+      `output/ contains non-deliverable files: ${report.checks.output_hygiene.unexpected_files.join(", ")}`,
+    );
   }
 
   fs.writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");

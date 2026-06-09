@@ -3,8 +3,8 @@
  * Troubleshoots device connection issues
  */
 
-import * as net from 'net';
-import { getDefaultDevice } from './deviceAdapter.service';
+import * as net from "net";
+import { getDefaultDevice } from "./deviceAdapter.service";
 
 export interface DiagnosticResult {
   test: string;
@@ -20,24 +20,28 @@ export class DeviceDiagnosticsService {
   /**
    * Test TCP connection to device
    */
-  async testTcpConnection(ip: string, port: number, timeoutMs: number = 5000): Promise<DiagnosticResult> {
+  async testTcpConnection(
+    ip: string,
+    port: number,
+    timeoutMs: number = 5000,
+  ): Promise<DiagnosticResult> {
     return new Promise((resolve) => {
       const socket = net.createConnection(
         { host: ip, port, timeout: timeoutMs },
         () => {
           socket.destroy();
           resolve({
-            test: 'TCP Connection',
+            test: "TCP Connection",
             success: true,
             message: `Successfully connected to ${ip}:${port}`,
             timestamp: new Date(),
           });
-        }
+        },
       );
 
-      socket.on('error', (err) => {
+      socket.on("error", (err) => {
         resolve({
-          test: 'TCP Connection',
+          test: "TCP Connection",
           success: false,
           message: `Failed to connect: ${err.message}`,
           timestamp: new Date(),
@@ -45,10 +49,10 @@ export class DeviceDiagnosticsService {
         });
       });
 
-      socket.on('timeout', () => {
+      socket.on("timeout", () => {
         socket.destroy();
         resolve({
-          test: 'TCP Connection',
+          test: "TCP Connection",
           success: false,
           message: `Connection timeout (${timeoutMs}ms exceeded)`,
           timestamp: new Date(),
@@ -66,7 +70,10 @@ export class DeviceDiagnosticsService {
   /**
    * Test if device responds to status query
    */
-  async testDeviceResponse(ip: string, port: number): Promise<DiagnosticResult> {
+  async testDeviceResponse(
+    ip: string,
+    port: number,
+  ): Promise<DiagnosticResult> {
     return new Promise((resolve) => {
       const socket = net.createConnection(
         { host: ip, port, timeout: 5000 },
@@ -80,20 +87,21 @@ export class DeviceDiagnosticsService {
             socket.destroy();
             if (!received) {
               resolve({
-                test: 'Device Response',
+                test: "Device Response",
                 success: false,
-                message: 'No response to status query (device may not be ready)',
+                message:
+                  "No response to status query (device may not be ready)",
                 timestamp: new Date(),
               });
             }
           }, 3000);
 
-          socket.on('data', (data) => {
+          socket.on("data", (data) => {
             received = true;
             clearTimeout(timeout);
             socket.destroy();
             resolve({
-              test: 'Device Response',
+              test: "Device Response",
               success: true,
               message: `Device responded with ${data.length} bytes`,
               timestamp: new Date(),
@@ -101,21 +109,21 @@ export class DeviceDiagnosticsService {
             });
           });
 
-          socket.on('error', (err) => {
+          socket.on("error", (err) => {
             clearTimeout(timeout);
             resolve({
-              test: 'Device Response',
+              test: "Device Response",
               success: false,
               message: `Connection error: ${err.message}`,
               timestamp: new Date(),
             });
           });
-        }
+        },
       );
 
-      socket.on('error', (err) => {
+      socket.on("error", (err) => {
         resolve({
-          test: 'Device Response',
+          test: "Device Response",
           success: false,
           message: `Failed to establish connection: ${err.message}`,
           timestamp: new Date(),
@@ -127,10 +135,13 @@ export class DeviceDiagnosticsService {
   /**
    * Run full diagnostic suite
    */
-  async runFullDiagnostics(ip: string, port: number): Promise<DiagnosticResult[]> {
+  async runFullDiagnostics(
+    ip: string,
+    port: number,
+  ): Promise<DiagnosticResult[]> {
     this.results = [];
 
-    console.log('[Diagnostics] Starting device diagnostics...');
+    console.log("[Diagnostics] Starting device diagnostics...");
 
     // Test 1: Basic connectivity
     const connectTest = await this.testTcpConnection(ip, port);
@@ -143,9 +154,9 @@ export class DeviceDiagnosticsService {
     } else {
       // Add informational result about connection failure
       this.results.push({
-        test: 'Device Response',
+        test: "Device Response",
         success: false,
-        message: 'Skipped (TCP connection failed)',
+        message: "Skipped (TCP connection failed)",
         timestamp: new Date(),
       });
     }
@@ -154,11 +165,11 @@ export class DeviceDiagnosticsService {
     const device = getDefaultDevice();
     const status = device.getStatus();
     this.results.push({
-      test: 'Adapter Status',
+      test: "Adapter Status",
       success: status.connected,
       message: status.connected
-        ? 'Adapter currently connected'
-        : status.connectionError || 'Adapter disconnected',
+        ? "Adapter currently connected"
+        : status.connectionError || "Adapter disconnected",
       timestamp: new Date(),
       details: status,
     });
@@ -178,31 +189,31 @@ export class DeviceDiagnosticsService {
    */
   generateReport(): string {
     const lines: string[] = [
-      '=== Device Diagnostics Report ===',
+      "=== Device Diagnostics Report ===",
       `Generated: ${new Date().toLocaleString()}`,
-      '',
+      "",
     ];
 
     if (this.results.length === 0) {
-      lines.push('No diagnostics run yet.');
-      return lines.join('\n');
+      lines.push("No diagnostics run yet.");
+      return lines.join("\n");
     }
 
     for (const result of this.results) {
-      const status = result.success ? '✓ PASS' : '✗ FAIL';
+      const status = result.success ? "✓ PASS" : "✗ FAIL";
       lines.push(`${status} | ${result.test}`);
       lines.push(`       ${result.message}`);
       if (result.details) {
         lines.push(`       Details: ${JSON.stringify(result.details)}`);
       }
-      lines.push('');
+      lines.push("");
     }
 
     const allPass = this.results.every((r) => r.success);
-    lines.push('');
-    lines.push(allPass ? '✓ All tests passed' : '✗ Some tests failed');
+    lines.push("");
+    lines.push(allPass ? "✓ All tests passed" : "✗ Some tests failed");
 
-    return lines.join('\n');
+    return lines.join("\n");
   }
 }
 

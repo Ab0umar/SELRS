@@ -1,11 +1,24 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Pencil, Check, X, Printer } from "lucide-react";
+import { Plus, Trash2, Pencil, Check, X, Printer, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 
 const now = new Date();
-const MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+const MONTHS = [
+  "يناير",
+  "فبراير",
+  "مارس",
+  "أبريل",
+  "مايو",
+  "يونيو",
+  "يوليو",
+  "أغسطس",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
+];
 
 type Tab = "penalties" | "advances" | "insurance";
 
@@ -28,15 +41,27 @@ export default function SalaryPenalties() {
   const [tab, setTab] = useState<Tab>("penalties");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ empCd: "", amount: "", reason: "" });
-  const [editingInsurance, setEditingInsurance] = useState<{ id: number; value: string } | null>(null);
+  const [editingInsurance, setEditingInsurance] = useState<{
+    id: number;
+    value: string;
+  } | null>(null);
+  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+  const toggleRow = (id: number) => {
+    setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const empsQ = (trpc as any).salary.listEmployees.useQuery();
   const employees: any[] = empsQ.data ?? [];
-  const empName = (empCd: string) => employees.find((e: any) => e.empCd === empCd)?.fullName ?? empCd;
-  const empDept = (empCd: string) => employees.find((e: any) => e.empCd === empCd)?.department ?? "—";
+  const empName = (empCd: string) =>
+    employees.find((e: any) => e.empCd === empCd)?.fullName ?? empCd;
+  const empDept = (empCd: string) =>
+    employees.find((e: any) => e.empCd === empCd)?.department ?? "—";
 
   // ── Penalties ──────────────────────────────────────────────────────────────
-  const penaltiesQ = (trpc as any).salary.listPenalties.useQuery({ year, month });
+  const penaltiesQ = (trpc as any).salary.listPenalties.useQuery({
+    year,
+    month,
+  });
   const penalties: any[] = penaltiesQ.data ?? [];
 
   const addPenaltyMut = (trpc as any).salary.addPenalty.useMutation({
@@ -50,7 +75,10 @@ export default function SalaryPenalties() {
   });
 
   const deletePenaltyMut = (trpc as any).salary.deletePenalty.useMutation({
-    onSuccess: () => { penaltiesQ.refetch(); toast.success("تم الحذف"); },
+    onSuccess: () => {
+      penaltiesQ.refetch();
+      toast.success("تم الحذف");
+    },
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
 
@@ -69,7 +97,10 @@ export default function SalaryPenalties() {
   });
 
   const deleteAdvanceMut = (trpc as any).salary.deleteAdvance.useMutation({
-    onSuccess: () => { advancesQ.refetch(); toast.success("تم الحذف"); },
+    onSuccess: () => {
+      advancesQ.refetch();
+      toast.success("تم الحذف");
+    },
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
 
@@ -78,19 +109,29 @@ export default function SalaryPenalties() {
   const basics: any[] = basicsQ.data ?? [];
   const latestByEmp: any[] = Object.values(
     basics.reduce((acc: Record<string, any>, b: any) => {
-      if (!acc[b.empCd] || String(b.effectiveFrom) > String(acc[b.empCd].effectiveFrom))
+      if (
+        !acc[b.empCd] ||
+        String(b.effectiveFrom) > String(acc[b.empCd].effectiveFrom)
+      )
         acc[b.empCd] = b;
       return acc;
-    }, {})
+    }, {}),
   );
 
   const updateBasicMut = (trpc as any).salary.updateBasic.useMutation({
-    onSuccess: () => { basicsQ.refetch(); setEditingInsurance(null); toast.success("تم التحديث"); },
+    onSuccess: () => {
+      basicsQ.refetch();
+      setEditingInsurance(null);
+      toast.success("تم التحديث");
+    },
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
 
   // ── Payroll deductions (for print layout) ─────────────────────────────────
-  const deductionsQ = (trpc as any).salary.listPayrollDeductions.useQuery({ year, month });
+  const deductionsQ = (trpc as any).salary.listPayrollDeductions.useQuery({
+    year,
+    month,
+  });
   const payrollDeductions: any[] = deductionsQ.data ?? [];
 
   // ── Print ──────────────────────────────────────────────────────────────────
@@ -102,10 +143,12 @@ export default function SalaryPenalties() {
     }
 
     // Collect all empCds that appear in any deduction source
-    const allEmpCds = Array.from(new Set([
-      ...payrollDeductions.map((r: any) => r.empCd),
-      ...latestByEmp.map((b: any) => b.empCd),
-    ]));
+    const allEmpCds = Array.from(
+      new Set([
+        ...payrollDeductions.map((r: any) => r.empCd),
+        ...latestByEmp.map((b: any) => b.empCd),
+      ]),
+    );
 
     // Build insurance map from salaryBasics
     const insuranceMap: Record<string, number> = {};
@@ -113,21 +156,25 @@ export default function SalaryPenalties() {
       insuranceMap[b.empCd] = Number(b.insuranceDeduction ?? 0);
     }
 
-    const fmt = (n: number) => n === 0
-      ? `<span class="zero">—</span>`
-      : n.toLocaleString("ar-EG", { minimumFractionDigits: 2 });
+    const fmt = (n: number) =>
+      n === 0
+        ? `<span class="zero">—</span>`
+        : n.toLocaleString("ar-EG", { minimumFractionDigits: 2 });
 
-    const rows = allEmpCds.map(empCd => {
-      const pr = byEmp[empCd];
-      const name = pr?.fullName ?? empName(empCd);
-      const dept = pr?.department ?? empDept(empCd);
-      const jazaat = Number(pr?.penaltyDeduction ?? 0);
-      const takhirat = Number(pr?.lateDeduction ?? 0) + Number(pr?.earlyLeaveDeduction ?? 0);
-      const tameenat = insuranceMap[empCd] ?? 0;
-      const ghiyab = Number(pr?.absentDeduction ?? 0);
-      const total = jazaat + takhirat + tameenat + ghiyab;
-      return { name, dept, jazaat, takhirat, tameenat, ghiyab, total };
-    }).sort((a, b) => a.name.localeCompare(b.name, "ar"));
+    const rows = allEmpCds
+      .map((empCd) => {
+        const pr = byEmp[empCd];
+        const name = pr?.fullName ?? empName(empCd);
+        const dept = pr?.department ?? empDept(empCd);
+        const jazaat = Number(pr?.penaltyDeduction ?? 0);
+        const takhirat =
+          Number(pr?.lateDeduction ?? 0) + Number(pr?.earlyLeaveDeduction ?? 0);
+        const tameenat = insuranceMap[empCd] ?? 0;
+        const ghiyab = Number(pr?.absentDeduction ?? 0);
+        const total = jazaat + takhirat + tameenat + ghiyab;
+        return { name, dept, jazaat, takhirat, tameenat, ghiyab, total };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name, "ar"));
 
     const totJazaat = rows.reduce((s, r) => s + r.jazaat, 0);
     const totTakhirat = rows.reduce((s, r) => s + r.takhirat, 0);
@@ -135,7 +182,9 @@ export default function SalaryPenalties() {
     const totGhiyab = rows.reduce((s, r) => s + r.ghiyab, 0);
     const totAll = rows.reduce((s, r) => s + r.total, 0);
 
-    const bodyRows = rows.map(r => `
+    const bodyRows = rows
+      .map(
+        (r) => `
       <tr>
         <td class="emp-col">${r.name}</td>
         <td>${r.dept}</td>
@@ -144,7 +193,9 @@ export default function SalaryPenalties() {
         <td>${fmt(r.tameenat)}</td>
         <td>${fmt(r.ghiyab)}</td>
         <td><strong>${fmt(r.total)}</strong></td>
-      </tr>`).join("");
+      </tr>`,
+      )
+      .join("");
 
     const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/>
       <title>كشف الخصومات</title>
@@ -185,35 +236,57 @@ export default function SalaryPenalties() {
   // ── Shared helpers ─────────────────────────────────────────────────────────
   const rows = tab === "penalties" ? penalties : advances;
   const total = rows.reduce((s: number, r: any) => s + Number(r.amount), 0);
-  const isPending = tab === "penalties" ? addPenaltyMut.isPending : addAdvanceMut.isPending;
+  const isPending =
+    tab === "penalties" ? addPenaltyMut.isPending : addAdvanceMut.isPending;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const amount = parseFloat(form.amount);
-    if (isNaN(amount) || amount <= 0) { toast.error("أدخل مبلغ صحيح"); return; }
+    if (isNaN(amount) || amount <= 0) {
+      toast.error("أدخل مبلغ صحيح");
+      return;
+    }
     if (tab === "penalties") {
-      addPenaltyMut.mutate({ empCd: form.empCd, year, month, amount, reason: form.reason });
+      addPenaltyMut.mutate({
+        empCd: form.empCd,
+        year,
+        month,
+        amount,
+        reason: form.reason,
+      });
     } else {
-      addAdvanceMut.mutate({ empCd: form.empCd, year, month, amount, reason: form.reason });
+      addAdvanceMut.mutate({
+        empCd: form.empCd,
+        year,
+        month,
+        amount,
+        reason: form.reason,
+      });
     }
   };
 
-  const resetForm = () => { setShowForm(false); setForm({ empCd: "", amount: "", reason: "" }); };
+  const resetForm = () => {
+    setShowForm(false);
+    setForm({ empCd: "", amount: "", reason: "" });
+  };
 
   const tabDefs: { key: Tab; label: string }[] = [
     { key: "penalties", label: "جزاءات" },
-    { key: "advances",  label: "سلف" },
+    { key: "advances", label: "سلف" },
     { key: "insurance", label: "تأمينات" },
   ];
 
   return (
     <div className="space-y-6" dir="rtl">
-
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-medium text-muted-foreground">مسار المتغيرات الشهرية</p>
-          <h2 className="text-2xl font-bold text-foreground">الخصومات والسلف</h2>
+          <p className="text-xs font-medium text-muted-foreground">
+            مسار المتغيرات الشهرية
+          </p>
+          <h2 className="text-2xl font-bold text-foreground">
+            الخصومات والسلف
+          </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             جزاءات وسلف وتأمينات الشهر قبل توليد كشف الرواتب.
           </p>
@@ -224,18 +297,34 @@ export default function SalaryPenalties() {
             <>
               <select
                 value={month}
-                onChange={(e) => { setMonth(Number(e.target.value)); resetForm(); }}
+                onChange={(e) => {
+                  setMonth(Number(e.target.value));
+                  resetForm();
+                }}
                 className="rounded-md border border-border bg-background px-3 py-2 text-sm"
               >
-                {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+                {MONTHS.map((m, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    {m}
+                  </option>
+                ))}
               </select>
               <select
                 value={year}
-                onChange={(e) => { setYear(Number(e.target.value)); resetForm(); }}
+                onChange={(e) => {
+                  setYear(Number(e.target.value));
+                  resetForm();
+                }}
                 className="rounded-md border border-border bg-background px-3 py-2 text-sm"
               >
-                {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map(y => (
-                  <option key={y} value={y}>{y}</option>
+                {[
+                  now.getFullYear() - 1,
+                  now.getFullYear(),
+                  now.getFullYear() + 1,
+                ].map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
                 ))}
               </select>
               <Button onClick={() => setShowForm(!showForm)} className="gap-2">
@@ -255,7 +344,11 @@ export default function SalaryPenalties() {
         {tabDefs.map(({ key, label }) => (
           <button
             key={key}
-            onClick={() => { setTab(key); resetForm(); setEditingInsurance(null); }}
+            onClick={() => {
+              setTab(key);
+              resetForm();
+              setEditingInsurance(null);
+            }}
             className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
               tab === key
                 ? "bg-background shadow-sm text-foreground"
@@ -272,10 +365,14 @@ export default function SalaryPenalties() {
         <section className="rounded-xl border border-border bg-background">
           <div className="border-b border-border px-4 py-3">
             <h3 className="text-base font-semibold">
-              {tab === "penalties" ? "جزاء جديد" : "سلفة جديدة"} — {MONTHS[month - 1]} {year}
+              {tab === "penalties" ? "جزاء جديد" : "سلفة جديدة"} —{" "}
+              {MONTHS[month - 1]} {year}
             </h3>
           </div>
-          <form onSubmit={handleSubmit} className="grid gap-4 px-4 py-4 sm:grid-cols-3">
+          <form
+            onSubmit={handleSubmit}
+            className="grid gap-4 px-4 py-4 sm:grid-cols-3"
+          >
             <div className="space-y-2">
               <label className="block text-sm font-medium">الموظف</label>
               <select
@@ -286,14 +383,19 @@ export default function SalaryPenalties() {
               >
                 <option value="">-- اختر موظفاً --</option>
                 {employees.map((emp: any) => (
-                  <option key={emp.empCd} value={emp.empCd}>{emp.fullName} ({emp.empCd})</option>
+                  <option key={emp.empCd} value={emp.empCd}>
+                    {emp.fullName} ({emp.empCd})
+                  </option>
                 ))}
               </select>
             </div>
             <div className="space-y-2">
               <label className="block text-sm font-medium">المبلغ</label>
               <input
-                type="number" value={form.amount} min={0} step="0.01"
+                type="number"
+                value={form.amount}
+                min={0}
+                step="0.01"
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 required
@@ -302,14 +404,20 @@ export default function SalaryPenalties() {
             <div className="space-y-2">
               <label className="block text-sm font-medium">السبب</label>
               <input
-                type="text" value={form.reason} placeholder="اختياري"
+                type="text"
+                value={form.reason}
+                placeholder="اختياري"
                 onChange={(e) => setForm({ ...form, reason: e.target.value })}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
             </div>
             <div className="flex gap-2 sm:col-span-3">
-              <Button type="submit" disabled={isPending}>إضافة</Button>
-              <Button type="button" variant="outline" onClick={resetForm}>إلغاء</Button>
+              <Button type="submit" disabled={isPending}>
+                إضافة
+              </Button>
+              <Button type="button" variant="outline" onClick={resetForm}>
+                إلغاء
+              </Button>
             </div>
           </form>
         </section>
@@ -320,7 +428,8 @@ export default function SalaryPenalties() {
         <section className="rounded-xl border border-border bg-background">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h3 className="text-base font-semibold">
-              {tab === "penalties" ? "الجزاءات" : "السلف"} — {MONTHS[month - 1]} {year}
+              {tab === "penalties" ? "الجزاءات" : "السلف"} — {MONTHS[month - 1]}{" "}
+              {year}
             </h3>
             {rows.length > 0 && (
               <span className="text-sm font-bold text-destructive">
@@ -328,31 +437,53 @@ export default function SalaryPenalties() {
               </span>
             )}
           </div>
-          <div className="overflow-x-auto" dir="rtl">
-        <table dir="rtl" className="w-full text-sm">
+          <div className="hidden lg:block overflow-x-auto" dir="rtl">
+            <table dir="rtl" className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">الموظف</th>
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">القسم</th>
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">المبلغ</th>
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">السبب</th>
+                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                    الموظف
+                  </th>
+                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                    القسم
+                  </th>
+                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                    المبلغ
+                  </th>
+                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                    السبب
+                  </th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r: any) => (
-                  <tr key={r.id} className="border-b border-border/50 hover:bg-muted/20">
-                    <td className="px-4 py-3 font-medium">{r.fullName ?? empName(r.empCd)}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{r.department ?? empDept(r.empCd)}</td>
+                  <tr
+                    key={r.id}
+                    className="border-b border-border/50 hover:bg-muted/20"
+                  >
+                    <td className="px-4 py-3 font-medium">
+                      {r.fullName ?? empName(r.empCd)}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {r.department ?? empDept(r.empCd)}
+                    </td>
                     <td className="px-4 py-3 font-bold text-destructive">
                       {Number(r.amount).toLocaleString("ar-EG")} ج.م
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">{r.reason ?? "—"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {r.reason ?? "—"}
+                    </td>
                     <td className="px-4 py-3">
                       <Button
-                        variant="ghost" size="sm"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => {
-                          if (confirm(`حذف ${tab === "penalties" ? "هذا الجزاء" : "هذه السلفة"}؟`)) {
+                          if (
+                            confirm(
+                              `حذف ${tab === "penalties" ? "هذا الجزاء" : "هذه السلفة"}؟`,
+                            )
+                          ) {
                             tab === "penalties"
                               ? deletePenaltyMut.mutate({ id: r.id })
                               : deleteAdvanceMut.mutate({ id: r.id });
@@ -366,13 +497,97 @@ export default function SalaryPenalties() {
                 ))}
                 {rows.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
-                      لا توجد {tab === "penalties" ? "جزاءات" : "سلف"} لهذا الشهر
+                    <td
+                      colSpan={5}
+                      className="px-4 py-8 text-center text-muted-foreground"
+                    >
+                      لا توجد {tab === "penalties" ? "جزاءات" : "سلف"} لهذا
+                      الشهر
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Accordion Cards View */}
+          <div className="block lg:hidden divide-y divide-border/60">
+            {rows.map((r: any) => {
+              const isExpanded = !!expandedRows[r.id];
+              return (
+                <div
+                  key={r.id}
+                  className="p-4 bg-card hover:bg-slate-50/20 transition-colors"
+                >
+                  <div
+                    className="flex items-center justify-between cursor-pointer"
+                    onClick={() => toggleRow(r.id)}
+                  >
+                    <div className="space-y-1">
+                      <div className="font-bold text-sm text-foreground">
+                        {r.fullName ?? empName(r.empCd)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        القسم: {r.department ?? empDept(r.empCd)}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-left">
+                        <div className="text-[10px] font-bold text-muted-foreground uppercase">
+                          المبلغ
+                        </div>
+                        <div className="text-sm font-bold text-destructive tabular-nums">
+                          {Number(r.amount).toLocaleString("ar-EG")} ج.م
+                        </div>
+                      </div>
+                      {isExpanded ? (
+                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="mt-4 pt-4 border-t border-border/40 space-y-3 text-xs">
+                      <div className="space-y-2">
+                        <div className="flex justify-between border-b border-border/20 pb-1">
+                          <span className="text-muted-foreground">السبب:</span>
+                          <span className="font-semibold">{r.reason ?? "—"}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (
+                              confirm(
+                                `حذف ${tab === "penalties" ? "هذا الجزاء" : "هذه السلفة"}؟`,
+                              )
+                            ) {
+                              tab === "penalties"
+                                ? deletePenaltyMut.mutate({ id: r.id })
+                                : deleteAdvanceMut.mutate({ id: r.id });
+                            }
+                          }}
+                          className="h-9 px-3 border-border hover:bg-red-50 text-red-600 gap-1"
+                        >
+                          <Trash2 size={14} className="text-destructive" />
+                          <span>حذف</span>
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {rows.length === 0 && (
+              <div className="px-4 py-8 text-center text-muted-foreground text-xs">
+                لا توجد {tab === "penalties" ? "جزاءات" : "سلف"} لهذا الشهر
+              </div>
+            )}
           </div>
         </section>
       )}
@@ -382,37 +597,69 @@ export default function SalaryPenalties() {
         <section className="rounded-xl border border-border bg-background">
           <div className="border-b border-border px-4 py-3">
             <h3 className="text-base font-semibold">خصم التأمينات</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">مبلغ ثابت يُخصم شهرياً من راتب كل موظف</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              مبلغ ثابت يُخصم شهرياً من راتب كل موظف
+            </p>
           </div>
-          <div className="overflow-x-auto" dir="rtl">
-        <table dir="rtl" className="w-full text-sm">
+          <div className="hidden lg:block overflow-x-auto" dir="rtl">
+            <table dir="rtl" className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">الموظف</th>
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">القسم</th>
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">خصم التأمين</th>
+                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                    الموظف
+                  </th>
+                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                    القسم
+                  </th>
+                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                    خصم التأمين
+                  </th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
                 {latestByEmp.map((b: any) => {
-                  const editing = editingInsurance?.id === b.id ? editingInsurance : null;
+                  const editing =
+                    editingInsurance?.id === b.id ? editingInsurance : null;
                   return (
-                    <tr key={b.id} className="border-b border-border/50 hover:bg-muted/20">
-                      <td className="px-4 py-3 font-medium">{b.fullName ?? b.empCd}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{b.department ?? "—"}</td>
+                    <tr
+                      key={b.id}
+                      className="border-b border-border/50 hover:bg-muted/20"
+                    >
+                      <td className="px-4 py-3 font-medium">
+                        {b.fullName ?? b.empCd}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {b.department ?? "—"}
+                      </td>
                       <td className="px-4 py-3">
                         {editing ? (
                           <input
-                            type="number" min={0} step="0.01"
+                            type="number"
+                            min={0}
+                            step="0.01"
                             value={editing.value}
-                            onChange={(e) => setEditingInsurance({ id: b.id, value: e.target.value })}
+                            onChange={(e) =>
+                              setEditingInsurance({
+                                id: b.id,
+                                value: e.target.value,
+                              })
+                            }
                             className="w-28 rounded-md border border-primary bg-background px-2 py-1 text-sm outline-none"
                             autoFocus
                           />
                         ) : (
-                          <span className={Number(b.insuranceDeduction) > 0 ? "font-bold text-destructive" : "text-muted-foreground"}>
-                            {Number(b.insuranceDeduction ?? 0).toLocaleString("ar-EG")} ج.م
+                          <span
+                            className={
+                              Number(b.insuranceDeduction) > 0
+                                ? "font-bold text-destructive"
+                                : "text-muted-foreground"
+                            }
+                          >
+                            {Number(b.insuranceDeduction ?? 0).toLocaleString(
+                              "ar-EG",
+                            )}{" "}
+                            ج.م
                           </span>
                         )}
                       </td>
@@ -420,24 +667,41 @@ export default function SalaryPenalties() {
                         {editing ? (
                           <div className="flex gap-1">
                             <Button
-                              variant="ghost" size="sm"
+                              variant="ghost"
+                              size="sm"
                               disabled={updateBasicMut.isPending}
                               onClick={() => {
                                 const v = parseFloat(editing.value);
-                                if (isNaN(v) || v < 0) { toast.error("أدخل مبلغ صحيح"); return; }
-                                updateBasicMut.mutate({ id: b.id, insuranceDeduction: v });
+                                if (isNaN(v) || v < 0) {
+                                  toast.error("أدخل مبلغ صحيح");
+                                  return;
+                                }
+                                updateBasicMut.mutate({
+                                  id: b.id,
+                                  insuranceDeduction: v,
+                                });
                               }}
                             >
                               <Check size={14} className="text-green-600" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => setEditingInsurance(null)}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingInsurance(null)}
+                            >
                               <X size={14} />
                             </Button>
                           </div>
                         ) : (
                           <Button
-                            variant="ghost" size="sm"
-                            onClick={() => setEditingInsurance({ id: b.id, value: String(b.insuranceDeduction ?? 0) })}
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              setEditingInsurance({
+                                id: b.id,
+                                value: String(b.insuranceDeduction ?? 0),
+                              })
+                            }
                           >
                             <Pencil size={14} />
                           </Button>
@@ -448,7 +712,10 @@ export default function SalaryPenalties() {
                 })}
                 {latestByEmp.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                    <td
+                      colSpan={4}
+                      className="px-4 py-8 text-center text-muted-foreground"
+                    >
                       لا يوجد موظفون بإعدادات راتب
                     </td>
                   </tr>
@@ -456,9 +723,137 @@ export default function SalaryPenalties() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Accordion Cards View */}
+          <div className="block lg:hidden divide-y divide-border/60">
+            {latestByEmp.map((b: any) => {
+              const isExpanded = !!expandedRows[b.id];
+              const editing = editingInsurance?.id === b.id ? editingInsurance : null;
+              return (
+                <div
+                  key={b.id}
+                  className="p-4 bg-card hover:bg-slate-50/20 transition-colors"
+                >
+                  <div
+                    className="flex items-center justify-between cursor-pointer"
+                    onClick={() => toggleRow(b.id)}
+                  >
+                    <div className="space-y-1">
+                      <div className="font-bold text-sm text-foreground">
+                        {b.fullName ?? b.empCd}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        القسم: {b.department ?? "—"}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-left">
+                        <div className="text-[10px] font-bold text-muted-foreground uppercase">
+                          خصم التأمين
+                        </div>
+                        <div className="text-sm font-semibold text-foreground tabular-nums">
+                          {editing ? (
+                            <input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              value={editing.value}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e) =>
+                                setEditingInsurance({
+                                  id: b.id,
+                                  value: e.target.value,
+                                })
+                              }
+                              className="w-20 rounded-md border border-primary bg-background px-2 py-0.5 text-xs outline-none"
+                              autoFocus
+                            />
+                          ) : (
+                            <span
+                              className={
+                                Number(b.insuranceDeduction) > 0
+                                  ? "font-bold text-destructive"
+                                  : "text-muted-foreground"
+                              }
+                            >
+                              {Number(b.insuranceDeduction ?? 0).toLocaleString("ar-EG")} ج.م
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {isExpanded ? (
+                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="mt-4 pt-4 border-t border-border/40 space-y-3 text-xs">
+                      <div className="flex justify-end gap-2 pt-2">
+                        {editing ? (
+                          <div className="flex gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={updateBasicMut.isPending}
+                              onClick={() => {
+                                const v = parseFloat(editing.value);
+                                if (isNaN(v) || v < 0) {
+                                  toast.error("أدخل مبلغ صحيح");
+                                  return;
+                                }
+                                updateBasicMut.mutate({
+                                  id: b.id,
+                                  insuranceDeduction: v,
+                                });
+                              }}
+                              className="h-9 px-3 border-border text-green-600 gap-1"
+                            >
+                              <Check size={14} />
+                              <span>حفظ</span>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setEditingInsurance(null)}
+                              className="h-9 px-3 border-border gap-1"
+                            >
+                              <X size={14} />
+                              <span>إلغاء</span>
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              setEditingInsurance({
+                                id: b.id,
+                                value: String(b.insuranceDeduction ?? 0),
+                              })
+                            }
+                            className="h-9 px-3 border-border hover:bg-blue-50/30 text-blue-600 gap-1"
+                          >
+                            <Pencil size={14} />
+                            <span>تعديل الخصم</span>
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {latestByEmp.length === 0 && (
+              <div className="px-4 py-8 text-center text-muted-foreground text-xs">
+                لا يوجد موظفون بإعدادات راتب
+              </div>
+            )}
+          </div>
         </section>
       )}
-
     </div>
   );
 }

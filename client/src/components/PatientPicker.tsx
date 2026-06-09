@@ -49,10 +49,9 @@ export default function PatientPicker({
     hydratedPatientIdRef.current = null;
   }, [initialPatientId]);
 
-  const patientQuery = trpc.patient.getPatient.useQuery(
-    initialPatientId ?? 0,
-    { enabled: Boolean(initialPatientId) }
-  );
+  const patientQuery = trpc.patient.getPatient.useQuery(initialPatientId ?? 0, {
+    enabled: Boolean(initialPatientId),
+  });
 
   const normalizedQuery = query.replace(/\s+/g, " ").trim();
 
@@ -61,7 +60,7 @@ export default function PatientPicker({
     {
       enabled: normalizedQuery.length >= 1,
       refetchOnWindowFocus: false,
-    }
+    },
   );
 
   useEffect(() => {
@@ -81,7 +80,13 @@ export default function PatientPicker({
     if (fireOnInitialPatientLoad) {
       onSelect(patient);
     }
-  }, [patientQuery.data, initialPatientId, fireOnInitialPatientLoad, onSelect, allowPatient]);
+  }, [
+    patientQuery.data,
+    initialPatientId,
+    fireOnInitialPatientLoad,
+    onSelect,
+    allowPatient,
+  ]);
 
   const results = (searchQuery.data ?? []) as PatientOption[];
   const filteredResults = allowPatient ? results.filter(allowPatient) : results;
@@ -98,7 +103,9 @@ export default function PatientPicker({
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium hidden">{label}</label>
-      <div className={`relative w-full max-w-md ml-auto ${wrapperClassName ?? ""}`}>
+      <div
+        className={`relative w-full max-w-md ml-auto ${wrapperClassName ?? ""}`}
+      >
         <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center gap-2 text-muted-foreground">
           <Search className="h-4 w-4" />
         </div>
@@ -126,10 +133,14 @@ export default function PatientPicker({
       {!readOnly && open && normalizedQuery.length >= 1 && (
         <div className="max-h-64 overflow-y-auto rounded-2xl border border-border bg-popover shadow-lg">
           {searchQuery.isLoading && (
-            <div className="px-3 py-2 text-sm text-muted-foreground">جاري البحث...</div>
+            <div className="px-3 py-2 text-sm text-muted-foreground">
+              جاري البحث...
+            </div>
           )}
           {!searchQuery.isLoading && filteredResults.length === 0 && (
-            <div className="px-3 py-2 text-sm text-muted-foreground">لا توجد نتائج</div>
+            <div className="px-3 py-2 text-sm text-muted-foreground">
+              لا توجد نتائج
+            </div>
           )}
           {filteredResults.map((patient) => (
             <button
@@ -167,7 +178,8 @@ export default function PatientPicker({
       )}
       {selected && (
         <div className="hidden rounded-2xl border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
-          المريض المحدد: <span className="font-medium">{selected.fullName}</span>
+          المريض المحدد:{" "}
+          <span className="font-medium">{selected.fullName}</span>
         </div>
       )}
     </div>

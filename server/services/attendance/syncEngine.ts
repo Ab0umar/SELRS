@@ -9,26 +9,27 @@
  * - Triggers daily materializer on success
  */
 
-import { getDb } from '../../db';
-import { attendanceSyncRuns } from '../../../drizzle/schema';
-import { eq, and, inArray, desc, sql } from 'drizzle-orm';
-import { AttendanceSource } from './sources/AttendanceSource';
-import { createAttendanceSource } from './sources/sourceFactory';
-import { EmployeesService } from './employees.service';
-import { PunchesService } from './punches.service';
-import { dailyMaterializer } from './dailyMaterializer';
+import { getDb } from "../../db";
+import { attendanceSyncRuns } from "../../../drizzle/schema";
+import { eq, and, inArray, desc, sql } from "drizzle-orm";
+import { AttendanceSource } from "./sources/AttendanceSource";
+import { createAttendanceSource } from "./sources/sourceFactory";
+import { EmployeesService } from "./employees.service";
+import { PunchesService } from "./punches.service";
+import { dailyMaterializer } from "./dailyMaterializer";
 
-const SYNC_LOCK_NAME = 'attendance_sync';
-const SAFETY_WINDOW_MINUTES = parseInt(process.env.ATTENDANCE_SAFETY_WINDOW_MIN ?? '120', 10) || 120;
+const SYNC_LOCK_NAME = "attendance_sync";
+const SAFETY_WINDOW_MINUTES =
+  parseInt(process.env.ATTENDANCE_SAFETY_WINDOW_MIN ?? "120", 10) || 120;
 
 export interface SyncTrigger {
-  trigger: 'cron' | 'manual';
+  trigger: "cron" | "manual";
   triggeredBy?: number; // user ID for manual triggers
 }
 
 export interface SyncResult {
   runId: number;
-  status: 'running' | 'ok' | 'partial' | 'failed' | 'locked';
+  status: "running" | "ok" | "partial" | "failed" | "locked";
   rowsInserted?: number;
   rowsSeen?: number;
   hwm?: Date | null;
@@ -41,10 +42,10 @@ export interface SyncResult {
  */
 export async function runSyncOnce(
   trigger: SyncTrigger,
-  source: AttendanceSource = createAttendanceSource()
+  source: AttendanceSource = createAttendanceSource(),
 ): Promise<SyncResult> {
   const db = await getDb();
-  if (!db) throw new Error('Database not available');
+  if (!db) throw new Error("Database not available");
 
   const startedAt = new Date();
   let runId: number | null = null;
@@ -59,7 +60,9 @@ export async function runSyncOnce(
     }
 
     // Try to acquire advisory lock (5 second timeout, then fail)
-    const lockResult = await db.execute(sql`SELECT GET_LOCK(${SYNC_LOCK_NAME}, 5) as lockAcquired`);
+    const lockResult = await db.execute(
+      sql`SELECT GET_LOCK(${SYNC_LOCK_NAME}, 5) as lockAcquired`,
+    );
     const rows = lockResult as any;
     acquired = rows?.[0]?.[0]?.lockAcquired === 1;
 
@@ -71,10 +74,10 @@ export async function runSyncOnce(
         source: source.name,
         trigger: trigger.trigger,
         triggeredBy: trigger.triggeredBy,
-        status: 'locked',
+        status: "locked",
         error: null,
       });
-      return { runId, status: 'locked' };
+      return { runId, status: "locked" };
     }
 
     // Create sync run record
@@ -83,7 +86,7 @@ export async function runSyncOnce(
       source: source.name,
       trigger: trigger.trigger,
       triggeredBy: trigger.triggeredBy,
-      status: 'running',
+      status: "running",
       error: null,
     });
 
@@ -92,7 +95,10 @@ export async function runSyncOnce(
     const safetyRewindMs = SAFETY_WINDOW_MINUTES * 60 * 1000;
     // If no HWM exists, start from Jan 1 of current year (2026 only)
     const defaultSince = new Date(new Date().getFullYear(), 0, 1);
-    const sinceLocal = prevHwm && prevHwm instanceof Date ? new Date(prevHwm.getTime() - safetyRewindMs) : defaultSince;
+    const sinceLocal =
+      prevHwm && prevHwm instanceof Date
+        ? new Date(prevHwm.getTime() - safetyRewindMs)
+        : defaultSince;
 
     // Sync employees first
     let rowsSeen = 0;
@@ -100,7 +106,7 @@ export async function runSyncOnce(
     let rowsSkipped = 0;
     let rowsQuarantined = 0;
     let maxPunchAt: Date | null = null;
-    let status: 'ok' | 'partial' | 'failed' = 'ok';
+    let status: "ok" | "partial" | "failed" = "ok";
     let errorMsg: string | null = null;
 
     try {
@@ -116,9 +122,11 @@ export async function runSyncOnce(
       for await (const record of source.fetchPunchesSince(sinceLocal)) {
         rowsSeen++;
 
-        if (record.kind === 'quarantine') {
+        if (record.kind === "quarantine") {
           rowsQuarantined++;
-          console.warn(`[attendance:sync] Quarantined: ${record.reason} (${record.rowRef})`);
+          console.warn(
+            `[attendance:sync] Quarantined: ${record.reason} (${record.rowRef})`,
+          );
           continue;
         }
 
@@ -126,7 +134,10 @@ export async function runSyncOnce(
 
         // Try to insert (dedup via UNIQUE constraint + source_hash)
         try {
-          const inserted = await PunchesService.insertPunchIgnore(punch, source.name);
+          const inserted = await PunchesService.insertPunchIgnore(
+            punch,
+            source.name,
+          );
           if (inserted) {
             rowsInserted++;
             if (!maxPunchAt || punch.punchAt > maxPunchAt) {
@@ -136,14 +147,14 @@ export async function runSyncOnce(
             rowsSkipped++;
           }
         } catch (punchErr) {
-          console.error('[attendance:sync] Punch insert error:', punchErr);
+          console.error("[attendance:sync] Punch insert error:", punchErr);
           rowsSkipped++;
         }
       }
 
       console.log(
         `[attendance:sync] Punch sync summary: rowsSeen=${rowsSeen}, ` +
-        `rowsInserted=${rowsInserted}, rowsSkipped=${rowsSkipped}, rowsQuarantined=${rowsQuarantined}`
+          `rowsInserted=${rowsInserted}, rowsSkipped=${rowsSkipped}, rowsQuarantined=${rowsQuarantined}`,
       );
 
       // Update HWM if we saw any punches
@@ -153,24 +164,28 @@ export async function runSyncOnce(
 
       // Determine final status
       if (rowsQuarantined > 0) {
-        status = 'partial';
+        status = "partial";
       }
     } catch (err) {
-      status = 'failed';
+      status = "failed";
       errorMsg = sanitizeError(err);
-      console.error('[attendance:sync] Sync error:', err);
+      console.error("[attendance:sync] Sync error:", err);
     }
 
     // Trigger materializer on success (partial is still ok)
-    if (status !== 'failed' && maxPunchAt) {
+    if (status !== "failed" && maxPunchAt) {
       try {
         await dailyMaterializer.recomputeRange(
-          new Date(sinceLocal.getFullYear(), sinceLocal.getMonth(), sinceLocal.getDate()),
-          new Date()
+          new Date(
+            sinceLocal.getFullYear(),
+            sinceLocal.getMonth(),
+            sinceLocal.getDate(),
+          ),
+          new Date(),
         );
       } catch (matErr) {
-        console.error('[attendance:sync] Materializer error:', matErr);
-        status = 'partial';
+        console.error("[attendance:sync] Materializer error:", matErr);
+        status = "partial";
       }
     }
 
@@ -198,7 +213,7 @@ export async function runSyncOnce(
     if (runId) {
       try {
         await finishSyncRun(db, runId, {
-          status: 'failed',
+          status: "failed",
           error: fatalMsg,
           finishedAt: new Date(),
         });
@@ -206,7 +221,7 @@ export async function runSyncOnce(
         // Ignore further errors
       }
     }
-    return { runId: runId ?? -1, status: 'failed', error: fatalMsg };
+    return { runId: runId ?? -1, status: "failed", error: fatalMsg };
   } finally {
     // Always release lock and close source
     if (acquired) {
@@ -230,13 +245,13 @@ async function createSyncRun(
   db: any,
   data: {
     startedAt: Date;
-    source: 'access' | 'tcp';
-    trigger: 'cron' | 'manual';
+    source: "access" | "tcp";
+    trigger: "cron" | "manual";
     triggeredBy?: number;
-    status: 'running' | 'locked' | 'ok' | 'partial' | 'failed';
+    status: "running" | "locked" | "ok" | "partial" | "failed";
     error?: string | null;
     finishedAt?: Date;
-  }
+  },
 ): Promise<number> {
   const now = new Date();
   const result = await db.insert(attendanceSyncRuns).values({
@@ -259,14 +274,14 @@ async function finishSyncRun(
   db: any,
   runId: number,
   data: {
-    status: 'ok' | 'partial' | 'failed';
+    status: "ok" | "partial" | "failed";
     error?: string | null;
     rowsSeen?: number;
     rowsInserted?: number;
     rowsSkipped?: number;
     rowsQuarantined?: number;
     finishedAt: Date;
-  }
+  },
 ): Promise<void> {
   await db
     .update(attendanceSyncRuns)
@@ -282,15 +297,18 @@ async function finishSyncRun(
     .where(eq(attendanceSyncRuns.id, runId));
 }
 
-async function getLastHwm(db: any, source: 'access' | 'tcp'): Promise<Date | null> {
+async function getLastHwm(
+  db: any,
+  source: "access" | "tcp",
+): Promise<Date | null> {
   const result = await db
     .select({ highWaterMark: attendanceSyncRuns.highWaterMark })
     .from(attendanceSyncRuns)
     .where(
       and(
         eq(attendanceSyncRuns.source, source),
-        inArray(attendanceSyncRuns.status, ['ok', 'partial'])
-      )
+        inArray(attendanceSyncRuns.status, ["ok", "partial"]),
+      ),
     )
     .orderBy(desc(attendanceSyncRuns.startedAt))
     .limit(1);
@@ -309,23 +327,23 @@ async function updateHwm(db: any, runId: number, hwm: Date): Promise<void> {
 
 export async function resetSyncHistory(): Promise<void> {
   const db = await getDb();
-  if (!db) throw new Error('Database not available');
+  if (!db) throw new Error("Database not available");
 
   await db
     .update(attendanceSyncRuns)
     .set({
       highWaterMark: null,
     })
-    .where(eq(attendanceSyncRuns.source, 'access'));
+    .where(eq(attendanceSyncRuns.source, "access"));
 }
 
 function sanitizeError(err: unknown): string {
   if (err instanceof Error) {
     // Remove sensitive paths and env values
     let msg = err.message;
-    msg = msg.replace(/[A-Z]:\\[^\s"']+/g, '(path)');
-    msg = msg.replace(/\/[^\s"']+/g, '(path)');
+    msg = msg.replace(/[A-Z]:\\[^\s"']+/g, "(path)");
+    msg = msg.replace(/\/[^\s"']+/g, "(path)");
     return msg;
   }
-  return 'Unknown error during sync';
+  return "Unknown error during sync";
 }

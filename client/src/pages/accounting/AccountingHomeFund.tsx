@@ -220,7 +220,10 @@ export default function AccountingHomeFund() {
             <div className="grid gap-3">
               <div className="grid gap-3 sm:grid-cols-[120px_minmax(0,1fr)_minmax(0,1fr)]">
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="home-date" className="text-xs text-muted-foreground">
+                  <label
+                    htmlFor="home-date"
+                    className="text-xs text-muted-foreground"
+                  >
                     التاريخ
                   </label>
                   <input
@@ -246,7 +249,10 @@ export default function AccountingHomeFund() {
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="home-out" className="text-xs text-destructive">
+                  <label
+                    htmlFor="home-out"
+                    className="text-xs text-destructive"
+                  >
                     منه (مصروف)
                   </label>
                   <input
@@ -261,7 +267,9 @@ export default function AccountingHomeFund() {
                 </div>
               </div>
               <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-                <label htmlFor="homefund-notes" className="sr-only">البيان</label>
+                <label htmlFor="homefund-notes" className="sr-only">
+                  البيان
+                </label>
                 <input
                   id="homefund-notes"
                   type="text"
@@ -357,8 +365,13 @@ export default function AccountingHomeFund() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex h-10 items-center gap-2 rounded-xl border border-border bg-muted px-3 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
-                <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                <label htmlFor="homefund-search" className="sr-only">بحث في البيان</label>
+                <Search
+                  className="h-4 w-4 shrink-0 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <label htmlFor="homefund-search" className="sr-only">
+                  بحث في البيان
+                </label>
                 <input
                   id="homefund-search"
                   type="text"
@@ -445,14 +458,18 @@ export default function AccountingHomeFund() {
                     <div
                       className={cn(
                         "mt-1 font-semibold tabular-nums",
-                        row.outAmount ? "text-destructive" : "text-muted-foreground",
+                        row.outAmount
+                          ? "text-destructive"
+                          : "text-muted-foreground",
                       )}
                     >
                       {row.outAmount ? fmt(row.outAmount) : "—"}
                     </div>
                   </div>
                   <div className="col-span-2 rounded-xl bg-muted px-3 py-2">
-                    <div className="text-[10px] text-muted-foreground">الرصيد</div>
+                    <div className="text-[10px] text-muted-foreground">
+                      الرصيد
+                    </div>
                     <div
                       className={cn(
                         "mt-1 font-semibold tabular-nums",
@@ -487,7 +504,10 @@ export default function AccountingHomeFund() {
                       className="flex cursor-pointer select-none items-center gap-1 focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       التاريخ{" "}
-                      <span className="text-muted-foreground" aria-hidden="true">
+                      <span
+                        className="text-muted-foreground"
+                        aria-hidden="true"
+                      >
                         {sortDir === "desc" ? "↓" : "↑"}
                       </span>
                     </button>
@@ -556,7 +576,8 @@ export default function AccountingHomeFund() {
                     }}
                     className={cn(
                       "cursor-pointer transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/30",
-                      editingId === row.id && "bg-primary/5 ring-1 ring-primary/20",
+                      editingId === row.id &&
+                        "bg-primary/5 ring-1 ring-primary/20",
                     )}
                   >
                     <td className="whitespace-nowrap px-2 py-2 text-[11px] text-muted-foreground sm:px-4 sm:py-2.5 sm:text-xs">
@@ -639,4 +660,3 @@ export default function AccountingHomeFund() {
     </AccountingShell>
   );
 }
-

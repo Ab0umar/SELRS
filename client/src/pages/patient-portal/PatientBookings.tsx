@@ -1,4 +1,12 @@
-import { CalendarDays, ClipboardList, RefreshCw, ShieldAlert, Sparkles, TicketCheck } from "lucide-react";
+import {
+  CalendarDays,
+  ClipboardList,
+  RefreshCw,
+  ShieldAlert,
+  Sparkles,
+  TicketCheck,
+  ArrowLeft,
+} from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -7,14 +15,14 @@ import PatientLayout from "./PatientLayout";
 import {
   PortalEmptyState,
   PortalLoadingRows,
-  PortalMetric,
-  PortalPanel,
-  PortalShell,
   PortalStatusBadge,
   formatArabicDate,
 } from "./portal-ui";
 
-const STATUS_META: Record<string, { label: string; tone: "pending" | "confirmed" | "cancelled" | "completed" }> = {
+const STATUS_META: Record<
+  string,
+  { label: string; tone: "pending" | "confirmed" | "cancelled" | "completed" }
+> = {
   pending: { label: "قيد المراجعة", tone: "pending" },
   confirmed: { label: "مؤكد", tone: "confirmed" },
   cancelled: { label: "ملغي", tone: "cancelled" },
@@ -22,7 +30,8 @@ const STATUS_META: Record<string, { label: string; tone: "pending" | "confirmed"
 };
 
 export default function PatientBookings() {
-  const { data, isLoading, error, refetch } = trpc.patientPortal.getMyBookings.useQuery();
+  const { data, isLoading, error, refetch } =
+    trpc.patientPortal.getMyBookings.useQuery();
 
   const summary = useMemo(() => {
     const bookings = data ?? [];
@@ -34,41 +43,102 @@ export default function PatientBookings() {
     };
   }, [data]);
 
+  const handleBack = () => {
+    window.location.href = "/my/file";
+  };
+
   return (
     <PatientLayout>
-      <PortalShell
-        title="مواعيدي"
-        subtitle="سجل الحجز هنا يظهر الحالة الحالية، الموعد المؤكد إن وُجد، وأي ملاحظات من الاستقبال."
-      >
-        <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-          <PortalPanel title="ملخص سريع" description="نظرة مختصرة على حالة الحجوزات الحالية.">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-              <PortalMetric label="إجمالي الحجوزات" value={summary.total} tone="neutral" />
-              <PortalMetric label="قيد المراجعة" value={summary.pending} tone="orange" />
-              <PortalMetric label="مؤكدة" value={summary.confirmed} tone="blue" />
-              <PortalMetric label="مكتملة" value={summary.completed} tone="neutral" />
-            </div>
+      <div className="space-y-6">
+        {/* Title Header */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold text-primary">
+              مواعيدي وحجوزاتي 🗓️
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              تابع حالة طلبات الحجز الحالية وتاريخ زياراتك السابقة للمركز.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 border-[#d8e4f1] bg-white text-primary hover:bg-[#f7fbff] cursor-pointer"
+            onClick={handleBack}
+          >
+            <ArrowLeft className="size-4" />
+            رجوع
+          </Button>
+        </div>
 
-            <div className="mt-4 rounded-xl border border-border bg-muted/20 p-3">
-              <div className="flex items-start gap-3">
-                <Sparkles className="mt-0.5 size-4 text-primary" />
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-foreground">حجز جديد</p>
-                  <p className="text-sm leading-6 text-muted-foreground">
-                    إذا لم تجد الموعد المطلوب، يمكنك إرسال طلب جديد بسرعة.
+        <div className="grid gap-6 lg:grid-cols-[1.1fr_1.9fr]">
+          {/* Summary Column */}
+          <div className="space-y-4">
+            {/* Quick Summary Card */}
+            <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
+              <div className="border-b border-[#f0f5fa] pb-2">
+                <h3 className="text-sm font-bold text-foreground">
+                  ملخص حالة الحجوزات
+                </h3>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3 text-center">
+                  <p className="text-[10px] text-blue-700 font-bold">
+                    الحجوزات المؤكدة
+                  </p>
+                  <p className="text-xl font-black text-blue-900 mt-1">
+                    {summary.confirmed}
+                  </p>
+                </div>
+                <div className="bg-orange-50/50 border border-orange-100 rounded-xl p-3 text-center">
+                  <p className="text-[10px] text-orange-700 font-bold">
+                    قيد الانتظار
+                  </p>
+                  <p className="text-xl font-black text-orange-900 mt-1">
+                    {summary.pending}
+                  </p>
+                </div>
+                <div className="bg-[#F4F8FB] border border-[#e2edf7] rounded-xl p-3 text-center col-span-2">
+                  <p className="text-[10px] text-muted-foreground font-semibold">
+                    إجمالي الزيارات والطلبات
+                  </p>
+                  <p className="text-lg font-black text-foreground mt-0.5">
+                    {summary.total}
                   </p>
                 </div>
               </div>
-              <Button asChild className="mt-4 w-full gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90">
+            </div>
+
+            {/* Quick Booking Call-to-action */}
+            <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="size-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                  <Sparkles className="size-4.5" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-foreground">
+                    حجز موعد جديد
+                  </p>
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    تصفح التواريخ المتاحة للأطباء والاستشاريين وارسل طلب حجز
+                    فوري.
+                  </p>
+                </div>
+              </div>
+              <Button
+                asChild
+                className="w-full h-11 text-sm font-bold bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors rounded-xl shadow-xs cursor-pointer gap-2"
+              >
                 <Link href="/my/book">
-                  <CalendarDays className="size-4" />
-                  حجز موعد جديد
+                  <CalendarDays className="size-4.5" />
+                  <span>البدء في طلب حجز موعد</span>
                 </Link>
               </Button>
             </div>
-          </PortalPanel>
+          </div>
 
-          <PortalPanel title="السجل الكامل" description="آخر الحجوزات أولاً، مع الحالة والتفاصيل المهمة لكل طلب.">
+          {/* Bookings List Column */}
+          <div className="space-y-4">
             {isLoading && <PortalLoadingRows rows={4} />}
 
             {error && (
@@ -77,7 +147,10 @@ export default function PatientBookings() {
                 title="تعذر تحميل المواعيد"
                 description={error.message}
                 action={
-                  <Button onClick={() => void refetch()} className="gap-2">
+                  <Button
+                    onClick={() => void refetch()}
+                    className="gap-2 cursor-pointer"
+                  >
                     <RefreshCw className="size-4" />
                     إعادة المحاولة
                   </Button>
@@ -89,65 +162,100 @@ export default function PatientBookings() {
               <PortalEmptyState
                 icon={<TicketCheck className="size-5" />}
                 title="لا توجد حجوزات سابقة"
-                description="يمكنك إرسال طلب جديد من زر الحجز الموجود في الملخص."
+                description="لم تسجل أي طلبات حجز بعد في ملفك الطبي. يمكنك البدء بحجز موعد جديد."
               />
             )}
 
             {data && data.length > 0 && (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {data.map((item) => {
                   const meta = STATUS_META[item.status] ?? STATUS_META.pending;
                   return (
-                    <div key={item.id} className="rounded-xl border border-border bg-background p-4">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="min-w-0 space-y-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-sm font-semibold text-foreground">{item.typeLabel}</p>
-                            <PortalStatusBadge status={item.status} label={meta.label} />
-                          </div>
-                          <div className="grid gap-1 text-sm text-muted-foreground">
-                            <p>تاريخ الطلب: {formatArabicDate(item.requestedDate)}</p>
-                            {item.confirmedDate && <p>الموعد المؤكد: {formatArabicDate(item.confirmedDate)}</p>}
-                          </div>
-                        </div>
-                        <div className="shrink-0 text-left text-xs text-muted-foreground">
-                          <p>آخر تحديث</p>
-                          <p>{formatArabicDate(item.updatedAt ?? item.createdAt)}</p>
-                        </div>
-                      </div>
-
-                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                        <div className="rounded-xl bg-muted/25 p-3">
-                          <p className="text-xs text-muted-foreground">الحالة</p>
-                          <p className="mt-1 text-sm font-medium text-foreground">{meta.label}</p>
-                        </div>
-                        <div className="rounded-xl bg-muted/25 p-3">
-                          <p className="text-xs text-muted-foreground">ملاحظتك</p>
-                          <p className="mt-1 text-sm leading-6 text-foreground">
-                            {item.notes || "لا توجد ملاحظات"}
+                    <div
+                      key={item.id}
+                      className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4"
+                    >
+                      {/* Top title & status badge */}
+                      <div className="flex items-center justify-between border-b border-[#f0f5fa] pb-2">
+                        <div className="space-y-0.5">
+                          <h4 className="text-sm font-bold text-foreground">
+                            {item.typeLabel}
+                          </h4>
+                          <p className="text-[10px] text-muted-foreground">
+                            طلب حجز رقم #{item.id}
                           </p>
                         </div>
+                        <PortalStatusBadge
+                          status={item.status}
+                          label={meta.label}
+                        />
                       </div>
 
-                      {item.staffNotes && (
-                        <div className="mt-3 rounded-xl bg-secondary/10 p-3">
-                          <div className="flex items-start gap-2">
-                            <ClipboardList className="mt-0.5 size-4 shrink-0 text-secondary" />
-                            <div>
-                              <p className="text-xs font-medium text-foreground">ملاحظة الاستقبال</p>
-                              <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.staffNotes}</p>
-                            </div>
-                          </div>
+                      {/* Booking dates info grid */}
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="bg-[#F4F8FB] border border-[#e2edf7] rounded-xl p-3 space-y-0.5">
+                          <p className="text-[10px] text-muted-foreground font-semibold">
+                            تاريخ الطلب المفضل
+                          </p>
+                          <p className="text-xs font-bold text-foreground">
+                            {formatArabicDate(item.requestedDate)}
+                          </p>
                         </div>
-                      )}
+
+                        {item.confirmedDate ? (
+                          <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3 space-y-0.5">
+                            <p className="text-[10px] text-blue-700 font-bold">
+                              الموعد المؤكد النهائي
+                            </p>
+                            <p className="text-xs font-black text-blue-900">
+                              {formatArabicDate(item.confirmedDate)}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="bg-orange-50/50 border border-orange-100 rounded-xl p-3 space-y-0.5">
+                            <p className="text-[10px] text-orange-700 font-bold">
+                              تأكيد الموعد
+                            </p>
+                            <p className="text-xs font-bold text-orange-950 font-sans">
+                              بانتظار الاستقبال
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Notes & staff notes */}
+                      <div className="space-y-2">
+                        {item.notes && (
+                          <div className="rounded-xl border border-border bg-[#F4F8FB]/30 p-3.5 text-xs leading-5">
+                            <p className="font-bold text-foreground mb-0.5">
+                              ملاحظتك للطلب:
+                            </p>
+                            <p className="text-muted-foreground">
+                              {item.notes}
+                            </p>
+                          </div>
+                        )}
+
+                        {item.staffNotes && (
+                          <div className="rounded-xl border border-secondary/20 bg-secondary/5 p-3.5 text-xs leading-5">
+                            <div className="flex items-start gap-2 text-secondary font-bold mb-1">
+                              <ClipboardList className="size-4 shrink-0" />
+                              <span>ملاحظة موظف الاستقبال:</span>
+                            </div>
+                            <p className="text-[#995C00] pr-6">
+                              {item.staffNotes}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
               </div>
             )}
-          </PortalPanel>
+          </div>
         </div>
-      </PortalShell>
+      </div>
     </PatientLayout>
   );
 }

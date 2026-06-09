@@ -9,19 +9,22 @@
 ## Test Results
 
 ### ✓ TCP Connection
+
 - **Status:** Connected successfully
 - **Result:** Port 5005 is open and accepting connections
 - **Implication:** Network connectivity is working
 
 ### ✗ Command/Response Protocol
+
 - **Status:** Device does not respond to any commands
 - **Tests performed:**
   - Standard ZKTeco CMD_CONNECT (0x03E8) — No response
-  - Status query (0xAA 0xBB) — No response  
+  - Status query (0xAA 0xBB) — No response
   - Basic TCP commands — No response
 - **Timeout:** 5000ms per command
 
 ### ✗ Real-Time Punch Streaming
+
 - **Status:** Device does not stream punch events
 - **Monitoring duration:** 15 seconds
 - **Result:** No unsolicited data received from device
@@ -64,12 +67,14 @@ Web Dashboard
 ```
 
 **Advantages:**
+
 - ✓ Works with existing infrastructure
 - ✓ Uses well-documented Access tables (KQ_KQData, DI_User)
 - ✓ No reverse-engineering needed
 - ✓ Proven by Taratus.exe
 
 **Workflow:**
+
 1. User runs `Taratus.exe` when ready to sync attendance
 2. Taratus updates `Taurus.mdb` Access DB with latest punches
 3. User clicks "Sync" button in SRV100 web UI
@@ -83,12 +88,14 @@ Web Dashboard
 ## Implementation Status
 
 ### Completed (Phase 2 - TCP Direct)
+
 - ✓ zktecoDevice.ts (ZKTeco protocol implementation)
 - ✓ deviceSyncEngine.ts (sync orchestration)
 - ✓ Device diagnostics and testing tools
 - ❌ Device does not respond to commands
 
 ### Fallback (Phase 1 - Access DB)
+
 - ✓ accessDbSync.service.ts (Access DB reader via ODBC)
 - 🔄 Ready for integration with attendance router
 - 🔄 Ready for sync procedures
@@ -98,35 +105,44 @@ Web Dashboard
 ## Recommended Path Forward
 
 ### Option A: Use Phase 1 (Recommended)
+
 **Pros:**
+
 - Proven to work
 - No unknown protocol needed
 - User controls when sync happens
 - Can test today with Taratus + Access DB
 
 **Cons:**
+
 - Still requires Taratus.exe on user's machine
 - Not real-time
 - Manual trigger required
 
 ### Option B: Investigate Device Protocol Further
+
 **Pros:**
+
 - Eliminates Taratus dependency
 - Enables real-time sync
 - Phase 2 goal achieved
 
 **Cons:**
+
 - Requires device documentation
 - May need Wireshark packet capture
 - Could require manufacturer support
 - Risk of protocol being proprietary/locked
 
 ### Option C: Hybrid Approach
+
 **Day 1:**
+
 - Deploy Phase 1 (Access DB) for immediate functionality
 - User can sync by running Taratus → clicking "Sync" button
 
 **Later:**
+
 - Document actual ZKTeco protocol by capturing Taratus traffic
 - Implement proper TCP driver when protocol is known
 - Switch to Phase 2 (direct TCP) when available
@@ -155,13 +171,13 @@ Web Dashboard
 
 ## Summary
 
-| Aspect | Phase 2 (TCP) | Phase 1 (Access DB) |
-|--------|---------------|------------------|
-| Status | ❌ Device unresponsive | ✓ Ready to integrate |
-| Implementation | Complete | Complete |
-| Testing | Failed (no device response) | Pending |
-| Timeline | Unknown | Can deploy today |
-| Real-time | Yes | No (manual sync) |
-| Requires Taratus | No | Yes |
+| Aspect           | Phase 2 (TCP)               | Phase 1 (Access DB)  |
+| ---------------- | --------------------------- | -------------------- |
+| Status           | ❌ Device unresponsive      | ✓ Ready to integrate |
+| Implementation   | Complete                    | Complete             |
+| Testing          | Failed (no device response) | Pending              |
+| Timeline         | Unknown                     | Can deploy today     |
+| Real-time        | Yes                         | No (manual sync)     |
+| Requires Taratus | No                          | Yes                  |
 
 **Recommended:** Proceed with Phase 1 (Access DB). Phase 2 can be revisited once device protocol is documented or accessible.

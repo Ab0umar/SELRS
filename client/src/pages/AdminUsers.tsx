@@ -146,24 +146,15 @@ function roleLabelAr(role: UserRole): string {
 
 function roleBadgeClass(role: UserRole): string {
   const map: Record<UserRole, string> = {
-    manager:
-      "bg-destructive/10 text-destructive border-0",
-    doctor:
-      "bg-primary/10 text-primary border-0",
-    reception:
-      "bg-success/15 text-foreground border-0",
-    nurse:
-      "bg-secondary/15 text-secondary border-0",
-    technician:
-      "bg-warning/20 text-warning border-0",
-    accountant:
-      "bg-primary/15 text-primary border-0",
-    admin:
-      "bg-border text-foreground border-0",
-    worker:
-      "bg-muted text-muted-foreground border-0",
-    supervisor:
-      "bg-warning/20 text-warning border-0",
+    manager: "bg-destructive/10 text-destructive border-0",
+    doctor: "bg-primary/10 text-primary border-0",
+    reception: "bg-success/15 text-foreground border-0",
+    nurse: "bg-secondary/15 text-secondary border-0",
+    technician: "bg-warning/20 text-warning border-0",
+    accountant: "bg-primary/15 text-primary border-0",
+    admin: "bg-border text-foreground border-0",
+    worker: "bg-muted text-muted-foreground border-0",
+    supervisor: "bg-warning/20 text-warning border-0",
   };
   return map[role] ?? "bg-muted text-muted-foreground border-0";
 }
@@ -798,39 +789,39 @@ export default function AdminUsers() {
         </CardHeader>
         <CardContent className="space-y-5 pt-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div className="w-full lg:max-w-sm">
-                <SearchBar
-                  value={searchTerm}
-                  onChange={setSearchTerm}
-                  placeholder="بحث بالاسم أو البريد أو اسم المستخدم…"
-                />
-              </div>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-                <Select
-                  value={statusFilter}
-                  onValueChange={(value) =>
-                    setStatusFilter(value as "all" | "active" | "inactive")
-                  }
+            <div className="w-full lg:max-w-sm">
+              <SearchBar
+                value={searchTerm}
+                onChange={setSearchTerm}
+                placeholder="بحث بالاسم أو البريد أو اسم المستخدم…"
+              />
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+              <Select
+                value={statusFilter}
+                onValueChange={(value) =>
+                  setStatusFilter(value as "all" | "active" | "inactive")
+                }
+              >
+                <SelectTrigger
+                  className="h-10 w-full border-muted bg-background sm:w-[160px]"
+                  dir="rtl"
                 >
-                  <SelectTrigger
-                    className="h-10 w-full border-muted bg-background sm:w-[160px]"
-                    dir="rtl"
-                  >
-                    <SelectValue placeholder="الحالة" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">كل الحالات</SelectItem>
-                    <SelectItem value="active">نشط فقط</SelectItem>
-                    <SelectItem value="inactive">غير نشط</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FilterBar
-                  filters={ROLE_TABS}
-                  selected={roleFilter}
-                  onSelect={(v) => setRoleFilter(v as UserRole | "all")}
-                  className="max-w-[min(100%,640px)] sm:justify-end"
-                />
-              </div>
+                  <SelectValue placeholder="الحالة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل الحالات</SelectItem>
+                  <SelectItem value="active">نشط فقط</SelectItem>
+                  <SelectItem value="inactive">غير نشط</SelectItem>
+                </SelectContent>
+              </Select>
+              <FilterBar
+                filters={ROLE_TABS}
+                selected={roleFilter}
+                onSelect={(v) => setRoleFilter(v as UserRole | "all")}
+                className="max-w-[min(100%,640px)] sm:justify-end"
+              />
+            </div>
           </div>
 
           {/* Mobile cards, hidden on sm+ */}
@@ -973,26 +964,46 @@ export default function AdminUsers() {
               <Table className="min-w-[1000px] text-right">
                 <TableHeader className="sticky top-0 z-10 bg-primary/5 backdrop-blur-sm">
                   <TableRow className="hover:bg-transparent border-b-primary/10">
-                    <TableHead className="text-right font-bold text-primary h-11">الاسم والمهمة</TableHead>
-                    <TableHead className="text-right font-bold text-primary h-11">البريد الإلكتروني</TableHead>
-                    <TableHead className="text-right font-bold text-primary h-11">الدور الوظيفي</TableHead>
-                    <TableHead className="text-right font-bold text-primary h-11">الحالة</TableHead>
-                    <TableHead className="text-right font-bold text-primary h-11">آخر نشاط</TableHead>
-                    <TableHead className="text-right font-bold text-primary h-11 whitespace-nowrap">تاريخ الإنشاء</TableHead>
-                    <TableHead className="w-[140px] text-center font-bold text-primary h-11">إجراءات</TableHead>
+                    <TableHead className="text-right font-bold text-primary h-11">
+                      الاسم والمهمة
+                    </TableHead>
+                    <TableHead className="text-right font-bold text-primary h-11">
+                      البريد الإلكتروني
+                    </TableHead>
+                    <TableHead className="text-right font-bold text-primary h-11">
+                      الدور الوظيفي
+                    </TableHead>
+                    <TableHead className="text-right font-bold text-primary h-11">
+                      الحالة
+                    </TableHead>
+                    <TableHead className="text-right font-bold text-primary h-11">
+                      آخر نشاط
+                    </TableHead>
+                    <TableHead className="text-right font-bold text-primary h-11 whitespace-nowrap">
+                      تاريخ الإنشاء
+                    </TableHead>
+                    <TableHead className="w-[140px] text-center font-bold text-primary h-11">
+                      إجراءات
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {usersQuery.isLoading && (
                     <TableRow>
-                      <TableCell colSpan={7} className="py-12 text-center text-muted-foreground animate-pulse">
+                      <TableCell
+                        colSpan={7}
+                        className="py-12 text-center text-muted-foreground animate-pulse"
+                      >
                         جاري تحميل بيانات المستخدمين…
                       </TableCell>
                     </TableRow>
                   )}
                   {!usersQuery.isLoading && filteredUsers.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="py-12 text-center text-muted-foreground bg-muted/20">
+                      <TableCell
+                        colSpan={7}
+                        className="py-12 text-center text-muted-foreground bg-muted/20"
+                      >
                         لا توجد نتائج مطابقة لبحثك.
                       </TableCell>
                     </TableRow>
@@ -1003,22 +1014,30 @@ export default function AdminUsers() {
                     const lastKey = toDateKey(lastRaw);
                     const createdKey = toDateKey(u.createdAt as unknown);
                     return (
-                      <TableRow key={u.id} className={cn(
-                        "group transition-colors hover:bg-primary/[0.03]",
-                        idx % 2 === 0 ? "bg-background" : "bg-muted/15"
-                      )}>
+                      <TableRow
+                        key={u.id}
+                        className={cn(
+                          "group transition-colors hover:bg-primary/[0.03]",
+                          idx % 2 === 0 ? "bg-background" : "bg-muted/15",
+                        )}
+                      >
                         <TableCell className="align-middle py-3">
                           <div className="flex items-center justify-end gap-3">
                             <div className="min-w-0 text-right">
                               <div className="font-bold text-sm leading-tight text-foreground/90 group-hover:text-primary transition-colors">
                                 {u.name ?? u.username}
                               </div>
-                              <div className="mt-1 flex items-center justify-end gap-1.5 text-[10px] text-muted-foreground tabular-nums" dir="ltr">
+                              <div
+                                className="mt-1 flex items-center justify-end gap-1.5 text-[10px] text-muted-foreground tabular-nums"
+                                dir="ltr"
+                              >
                                 <span>{shiftLabelAr(u.shift)}</span>
                                 <span className="opacity-30">|</span>
                                 <span>{branchLabelAr(u.branch)}</span>
                                 <span className="opacity-30">|</span>
-                                <span className="font-medium text-foreground/60">@{u.username}</span>
+                                <span className="font-medium text-foreground/60">
+                                  @{u.username}
+                                </span>
                               </div>
                             </div>
                             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-inner">
@@ -1027,12 +1046,21 @@ export default function AdminUsers() {
                           </div>
                         </TableCell>
                         <TableCell className="max-w-[200px] align-middle py-3">
-                          <span className="block truncate text-xs font-medium text-muted-foreground/80 hover:text-foreground transition-colors" dir="ltr" title={u.email ?? ""}>
+                          <span
+                            className="block truncate text-xs font-medium text-muted-foreground/80 hover:text-foreground transition-colors"
+                            dir="ltr"
+                            title={u.email ?? ""}
+                          >
                             {u.email?.trim() ? u.email : "—"}
                           </span>
                         </TableCell>
                         <TableCell className="align-middle whitespace-nowrap py-3">
-                          <Badge className={cn("font-bold text-[10px] px-2 py-0.5 shadow-sm", roleBadgeClass(u.role))}>
+                          <Badge
+                            className={cn(
+                              "font-bold text-[10px] px-2 py-0.5 shadow-sm",
+                              roleBadgeClass(u.role),
+                            )}
+                          >
                             {roleLabelAr(u.role)}
                           </Badge>
                         </TableCell>
@@ -1047,13 +1075,21 @@ export default function AdminUsers() {
                                 ? "border-success/30 bg-success/10 text-success hover:bg-success/15 hover:border-success/40"
                                 : "border-muted-foreground/20 bg-muted/40 text-muted-foreground hover:bg-muted/60",
                             )}
-                            onClick={() => requestRiskAction("toggle-active", u)}
+                            onClick={() =>
+                              requestRiskAction("toggle-active", u)
+                            }
                           >
                             {u.isActive ? "نشط" : "غير نشط"}
                           </Button>
                         </TableCell>
                         <TableCell className="align-middle whitespace-nowrap text-[11px] font-medium text-muted-foreground tabular-nums py-3">
-                          {lastKey ? formatDateLabel(lastKey) : <span className="opacity-40 italic">لم يدخل بعد</span>}
+                          {lastKey ? (
+                            formatDateLabel(lastKey)
+                          ) : (
+                            <span className="opacity-40 italic">
+                              لم يدخل بعد
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell className="align-middle whitespace-nowrap text-[11px] font-medium text-muted-foreground tabular-nums py-3">
                           {createdKey ? formatDateLabel(createdKey) : "—"}
@@ -1068,7 +1104,9 @@ export default function AdminUsers() {
                               title="استعادة صلاحيات الدور"
                               aria-label="استعادة صلاحيات الدور"
                               disabled={setUserPermissionsMutation.isPending}
-                              onClick={() => requestRiskAction("reset-permissions", u)}
+                              onClick={() =>
+                                requestRiskAction("reset-permissions", u)
+                              }
                             >
                               <RotateCcw className="h-3.5 w-3.5" />
                             </Button>
@@ -1461,7 +1499,9 @@ export default function AdminUsers() {
               })}
             </div>
             {permissionStateQuery.isError && (
-              <p className="text-xs text-destructive mt-2">تعذر تحميل الصلاحيات.</p>
+              <p className="text-xs text-destructive mt-2">
+                تعذر تحميل الصلاحيات.
+              </p>
             )}
           </div>
 

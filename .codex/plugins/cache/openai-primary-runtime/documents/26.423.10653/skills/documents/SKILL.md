@@ -20,6 +20,7 @@ Use this skill when you need to create or modify `.docx` files **in this contain
 DOCX text extraction (or reading XML) will miss layout defects: clipping, overlap, missing glyphs, broken tables, spacing drift, and header/footer issues.
 
 **Shipping gate:** before delivering any DOCX, you must:
+
 - Run `render_docx.py --renderer artifact-tool` to produce `page-<N>.png` images
 - Open the PNGs (100% zoom) and confirm every page is clean
 - If anything looks off, fix the DOCX and **re-render** (repeat until flawless)
@@ -27,9 +28,6 @@ DOCX text extraction (or reading XML) will miss layout defects: clipping, overla
 If artifact-tool rendering fails, fix rendering first rather than guessing. Do not ship a DOCX based on XML/text inspection alone.
 
 **Deliverable discipline:** Rendered artifacts (PNGs and optional LibreOffice PDFs) are for internal QA only. Unless the user explicitly asks for intermediates, **return only the requested final deliverable** (e.g., when the task asks for a DOCX, deliver the DOCX — not page images or PDFs).
-
-
-
 
 ## Design standards for document generation
 
@@ -126,11 +124,13 @@ This skill is organized for progressive discovery: start here, then jump into ta
 DOCS SKILL PACKAGE
 
 Root:
+
 - SKILL.md: short overview + routing
 - manifest.txt: machine-readable list of files to download (one relative path per line)
 - render_docx.py: canonical DOCX→PNG renderer (artifact-tool by default; optional LibreOffice cross-check)
 
 Tasks:
+
 - tasks/read_review.md
 - tasks/create_edit.md
 - tasks/verify_render.md
@@ -152,22 +152,26 @@ Tasks:
 - tasks/navigation_internal_links.md
 
 OOXML:
+
 - ooxml/tracked_changes.md
 - ooxml/comments.md
 - ooxml/hyperlinks_and_fields.md
 - ooxml/rels_and_content_types.md
 
 Troubleshooting:
+
 - troubleshooting/libreoffice_headless.md
 - troubleshooting/run_splitting.md
 
 Scripts:
 
 **Core building blocks (importable helpers):**
+
 - `scripts/docx_ooxml_patch.py` — low-level OOXML patch helper (tracked changes, comments, hyperlinks, relationships). Other scripts reuse this.
-- `scripts/fields_materialize.py` — materialize `SEQ`/`REF` field *display text* for deterministic headless rendering/QA.
+- `scripts/fields_materialize.py` — materialize `SEQ`/`REF` field _display text_ for deterministic headless rendering/QA.
 
 **High-leverage utilities (also importable, but commonly invoked as CLIs):**
+
 - `render_docx.py` — canonical DOCX → PNG renderer (artifact-tool by default; optional LibreOffice PDF via `--renderer libreoffice --emit_pdf`; do not deliver intermediates unless asked).
 - `scripts/render_docx_artifact_tool.mjs` — artifact-tool DOCX → per-page PNG renderer used by `render_docx.py --renderer artifact-tool`.
 - `scripts/render_and_diff.py` — render + per-page image diff between two DOCXs.
@@ -184,11 +188,13 @@ Scripts:
 - `scripts/comments_strip.py` — remove all comments (final-delivery mode).
 
 **Audits / conversions / niche helpers:**
+
 - `scripts/fields_report.py`, `scripts/heading_audit.py`, `scripts/section_audit.py`, `scripts/images_audit.py`, `scripts/footnotes_report.py`, `scripts/watermark_audit_remove.py`
 - `scripts/xlsx_to_docx_table.py`, `scripts/docx_table_to_csv.py`
 - `scripts/insert_toc.py`, `scripts/insert_note.py`, `scripts/apply_template_styles.py`, `scripts/accept_tracked_changes.py`, `scripts/make_fixtures.py`
 
 **v7 additions (stress-test helpers):**
+
 - `scripts/watermark_add.py` — add a detectable VML watermark object into an existing header.
 - `scripts/comments_add.py` — add multiple comments (by paragraph substring match) and wire up comments.xml plumbing if needed.
 - `scripts/comments_apply_patch.py` — append/replace comment text and mark/clear resolved state (`w:done=1`).
@@ -199,57 +205,67 @@ Scripts:
 > `scripts/xlsx_to_docx_table.py` also marks header rows as repeating headers (`w:tblHeader`) to improve a11y and multi-page tables.
 
 Examples:
+
 - examples/end_to_end_smoke_test.md
 
 > Note: `manifest.txt` is **machine-readable** and is used by download tooling. It must contain only relative file paths (one per line).
-
 
 ## Coverage map (scripts ↔ task guides)
 
 This is a quick index so you can jump from a helper script to the right task guide.
 
 ### Layout & style
+
 - `style_lint.py`, `style_normalize.py` → `tasks/style_lint_normalize.md`
 - `apply_template_styles.py` → `tasks/templates_style_packs.md`
 - `section_audit.py` → `tasks/sections_layout.md`
 - `heading_audit.py` → `tasks/headings_numbering.md`
 
 ### Figures / images
+
 - `images_audit.py`, `a11y_audit.py` → `tasks/images_figures.md`, `tasks/accessibility_a11y.md`
 - `captions_and_crossrefs.py` → `tasks/captions_crossrefs.md`
 
 ### Tables / spreadsheets
+
 - `xlsx_to_docx_table.py` → `tasks/tables_spreadsheets.md`
 - `docx_table_to_csv.py` → `tasks/tables_spreadsheets.md`
 
 ### Fields & references
+
 - `fields_report.py`, `fields_materialize.py` → `tasks/fields_update.md`
 - `insert_ref_fields.py`, `flatten_ref_fields.py` → `tasks/fields_update.md`, `tasks/captions_crossrefs.md`
 - `insert_toc.py` → `tasks/toc_workflow.md`
 
 ### Review lifecycle (comments / tracked changes)
+
 - `add_tracked_replacements.py`, `accept_tracked_changes.py` → `tasks/clean_tracked_changes.md`
 - `comments_add.py`, `comments_extract.py`, `comments_apply_patch.py`, `comments_strip.py` → `tasks/comments_manage.md`
 
 ### Privacy / publishing
+
 - `privacy_scrub.py` → `tasks/privacy_scrub_metadata.md`
 - `redact_docx.py` → `tasks/redaction_anonymization.md`
 - `watermark_add.py`, `watermark_audit_remove.py` → `tasks/watermarks_background.md`
 
 ### Navigation & multi-doc assembly
+
 - `internal_nav.py` → `tasks/navigation_internal_links.md`
 - `merge_docx_append.py` → `tasks/multi_doc_merge.md`
 
 ### Forms & protection
+
 - `content_controls.py` → `tasks/forms_content_controls.md`
 - `set_protection.py` → `tasks/protection_restrict_editing.md`
 
 ### QA / regression
+
 - `render_and_diff.py`, `render_docx.py` → `tasks/compare_diff.md`, `tasks/verify_render.md`
 - `make_fixtures.py` → `tasks/fixtures_edge_cases.md`
 - `docx_ooxml_patch.py` → used across guides for targeted patches
 
 ## Skill folder contents
+
 - `tasks/` — task playbooks (what to do step-by-step)
 - `ooxml/` — advanced OOXML patches (tracked changes, comments, hyperlinks, fields)
 - `scripts/` — reusable helper scripts
@@ -258,17 +274,19 @@ This is a quick index so you can jump from a helper script to the right task gui
 ## Default workflow (80/20)
 
 **Rule of thumb:** every meaningful edit batch must end with a render + PNG review. No exceptions.
-"80/20" here means: follow the simplest workflow that covers *most* DOCX tasks reliably.
+"80/20" here means: follow the simplest workflow that covers _most_ DOCX tasks reliably.
 
 **Golden path (don’t mix-and-match unless debugging):**
+
 1. **Author/edit with `python-docx`** (paragraphs, runs, styles, tables, headers/footers).
 2. **Render → inspect PNGs immediately** (DOCX → PNGs). Treat this as your feedback loop.
 3. **Fix and repeat** until the PNGs are visually perfect.
 4. **Only if needed**: use OOXML patching for tracked changes, comments, hyperlinks, or fields.
-5. **Re-render and inspect again** after *any* OOXML patch or layout-sensitive change.
+5. **Re-render and inspect again** after _any_ OOXML patch or layout-sensitive change.
 6. **Deliver only after the latest PNG review passes** (all pages, 100% zoom).
 
 ## Visual review (recommended)
+
 Use the packaged renderer. In this skill it defaults to artifact-tool and emits `page-<N>.png` images:
 
 ```bash
@@ -282,6 +300,7 @@ python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out_lo --rende
 Then inspect the generated `page-<N>.png` files.
 
 **Success criteria (render + visual QA):**
+
 - PNGs exist for each page
 - Page count matches expectations
 - **Inspect every page at 100% zoom** (no “spot check” for final delivery)
@@ -295,11 +314,13 @@ Then inspect the generated `page-<N>.png` files.
 - **Not reliable for:** **comments** (often not rendered in headless PDF export). For comments, also do **structural checks** (comments.xml + anchors + rels + content-types).
 
 ## Quality reminders
+
 - Don’t ship visible defects (clipped/overlapping text, broken tables, unreadable glyphs).
 - Don’t leak tool citation tokens into the DOCX (convert them to normal human citations).
 - Prefer ASCII punctuation (avoid exotic Unicode hyphens/dashes that render inconsistently).
 
 ## Where to go next
+
 - If the task is **reading/reviewing**: `tasks/read_review.md`
 - If the task is **creating/editing**: `tasks/create_edit.md`
 - If you need an **accessibility audit** (alt text, headings, tables, links): `tasks/accessibility_a11y.md`

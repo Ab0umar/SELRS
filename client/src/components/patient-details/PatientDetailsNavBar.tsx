@@ -15,7 +15,11 @@ interface PatientDetailsNavBarProps {
     isPending: boolean;
     mutateAsync: (vars: { patientId: number }) => Promise<any>;
   };
-  handleSelectPatient: (p: { id: number; fullName: string; patientCode?: string | null }) => void;
+  handleSelectPatient: (p: {
+    id: number;
+    fullName: string;
+    patientCode?: string | null;
+  }) => void;
 }
 
 export function PatientDetailsNavBar({
@@ -30,7 +34,11 @@ export function PatientDetailsNavBar({
 }: PatientDetailsNavBarProps) {
   const qs = typeof window !== "undefined" ? window.location.search : "";
   const reportBriefPath =
-    patientId && inPatientHub ? `/patient-hub/brief/${patientId}${qs}` : patientId ? `/patient-summary/${patientId}` : "/";
+    patientId && inPatientHub
+      ? `/patient-hub/brief/${patientId}${qs}`
+      : patientId
+        ? `/patient-summary/${patientId}`
+        : "/";
 
   return (
     <div className="mb-4 flex flex-wrap items-center gap-2 print:hidden">
@@ -40,7 +48,8 @@ export function PatientDetailsNavBar({
         onClick={() => goBack()}
         className="rounded-xl border-border bg-background hover:bg-muted"
       >
-        <ArrowRight className="h-4 w-4 ml-2" />رجوع
+        <ArrowRight className="h-4 w-4 ml-2" />
+        رجوع
       </Button>
       {patientId && (
         <Button
@@ -49,10 +58,14 @@ export function PatientDetailsNavBar({
           onClick={() => setLocation(reportBriefPath)}
           className="rounded-xl border-border bg-background hover:bg-muted"
         >
-          <FileText className="h-4 w-4 ml-2" />التقرير المجمع / الموجز
+          <FileText className="h-4 w-4 ml-2" />
+          التقرير المجمع / الموجز
         </Button>
       )}
-      <PatientPicker initialPatientId={patientId} onSelect={handleSelectPatient} />
+      <PatientPicker
+        initialPatientId={patientId}
+        onSelect={handleSelectPatient}
+      />
       {patientId && isAdmin && !readOnlyPatientHub && (
         <Button
           variant="destructive"
@@ -60,7 +73,11 @@ export function PatientDetailsNavBar({
           disabled={deletePatientMutation.isPending}
           className="rounded-xl"
           onClick={async () => {
-            if (confirm("هل أنت متأكد من حذف المريض وكل بياناته؟\n\nهذا الإجراء لا يمكن التراجع عنه!")) {
+            if (
+              confirm(
+                "هل أنت متأكد من حذف المريض وكل بياناته؟\n\nهذا الإجراء لا يمكن التراجع عنه!",
+              )
+            ) {
               try {
                 await deletePatientMutation.mutateAsync({ patientId });
                 const { toast } = await import("sonner");
@@ -73,7 +90,8 @@ export function PatientDetailsNavBar({
             }
           }}
         >
-          <FileText className="h-4 w-4 ml-2" />حذف المريض
+          <FileText className="h-4 w-4 ml-2" />
+          حذف المريض
         </Button>
       )}
     </div>

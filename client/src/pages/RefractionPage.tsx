@@ -3,7 +3,13 @@ import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import PatientPicker from "@/components/PatientPicker";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -194,7 +200,9 @@ export default function RefractionPage() {
       },
     });
   const [form, setForm] = useState<RefractionForm>(EMPTY_FORM);
-  const [locationTypeFilter, setLocationTypeFilter] = useState<"all" | "center" | "external">("all");
+  const [locationTypeFilter, setLocationTypeFilter] = useState<
+    "all" | "center" | "external"
+  >("all");
 
   const sourceAutos = useMemo(() => {
     const consultant = parseSheetAuto(consultantQuery.data);
@@ -453,8 +461,13 @@ export default function RefractionPage() {
         className={`mb-4 refraction-no-print ${printMode.printView ? "hidden" : ""}`}
       >
         <div className="mb-2">
-          <Select value={locationTypeFilter} onValueChange={(v) => setLocationTypeFilter(v as any)}>
-            <SelectTrigger className="h-9 rounded-lg text-sm"><SelectValue placeholder="مكان الخدمة" /></SelectTrigger>
+          <Select
+            value={locationTypeFilter}
+            onValueChange={(v) => setLocationTypeFilter(v as any)}
+          >
+            <SelectTrigger className="h-9 rounded-lg text-sm">
+              <SelectValue placeholder="مكان الخدمة" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">الكل</SelectItem>
               <SelectItem value="center">مركز</SelectItem>
@@ -468,7 +481,9 @@ export default function RefractionPage() {
             if (!id) return;
             setLocation(`/refraction/${id}`);
           }}
-          locationType={locationTypeFilter === "all" ? undefined : locationTypeFilter}
+          locationType={
+            locationTypeFilter === "all" ? undefined : locationTypeFilter
+          }
         />
       </div>
       <style>{`
@@ -650,15 +665,33 @@ export default function RefractionPage() {
                     <thead>
                       <tr>
                         <th
-                          style={{ border: "2px solid var(--primary)", padding: 6 }}
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 6,
+                          }}
                         ></th>
-                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>
+                        <th
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 6,
+                          }}
+                        >
                           Sph.
                         </th>
-                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>
+                        <th
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 6,
+                          }}
+                        >
                           Cyl.
                         </th>
-                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>
+                        <th
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 6,
+                          }}
+                        >
                           Axis
                         </th>
                       </tr>
@@ -725,7 +758,10 @@ export default function RefractionPage() {
                         >
                           NEAR
                         </td>
-                        <td colSpan={3} style={{ border: "2px solid var(--primary)" }}>
+                        <td
+                          colSpan={3}
+                          style={{ border: "2px solid var(--primary)" }}
+                        >
                           <span className="hidden print:inline">
                             Add {form.addOD || ""}
                           </span>
@@ -764,15 +800,33 @@ export default function RefractionPage() {
                     <thead>
                       <tr>
                         <th
-                          style={{ border: "2px solid var(--primary)", padding: 6 }}
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 6,
+                          }}
                         ></th>
-                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>
+                        <th
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 6,
+                          }}
+                        >
                           Sph.
                         </th>
-                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>
+                        <th
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 6,
+                          }}
+                        >
                           Cyl.
                         </th>
-                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>
+                        <th
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 6,
+                          }}
+                        >
                           Axis
                         </th>
                       </tr>
@@ -839,7 +893,10 @@ export default function RefractionPage() {
                         >
                           NEAR
                         </td>
-                        <td colSpan={3} style={{ border: "2px solid var(--primary)" }}>
+                        <td
+                          colSpan={3}
+                          style={{ border: "2px solid var(--primary)" }}
+                        >
                           <span className="hidden print:inline">
                             Add {form.addOS || ""}
                           </span>
@@ -868,4 +925,3 @@ export default function RefractionPage() {
     </div>
   );
 }
-

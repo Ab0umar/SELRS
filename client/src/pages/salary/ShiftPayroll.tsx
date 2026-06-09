@@ -1,22 +1,82 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Printer } from "lucide-react";
+import { RefreshCw, Printer, ChevronDown, ChevronUp } from "lucide-react";
 
 const now = new Date();
-const MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
-const MONTHS_AR = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+const MONTHS = [
+  "يناير",
+  "فبراير",
+  "مارس",
+  "أبريل",
+  "مايو",
+  "يونيو",
+  "يوليو",
+  "أغسطس",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
+];
+const MONTHS_AR = [
+  "يناير",
+  "فبراير",
+  "مارس",
+  "أبريل",
+  "مايو",
+  "يونيو",
+  "يوليو",
+  "أغسطس",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
+];
 
 function fmt(n: number) {
-  return Number(n).toLocaleString("en-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return Number(n).toLocaleString("en-EG", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 function toArabicWords(amount: number): string {
   const n = Math.round(amount);
   if (n === 0) return "صفر جنيه";
-  const ones = ["","واحد","اثنان","ثلاثة","أربعة","خمسة","ستة","سبعة","ثمانية","تسعة","عشرة",
-    "أحد عشر","اثنا عشر","ثلاثة عشر","أربعة عشر","خمسة عشر","ستة عشر","سبعة عشر","ثمانية عشر","تسعة عشر"];
-  const tens = ["","","عشرون","ثلاثون","أربعون","خمسون","ستون","سبعون","ثمانون","تسعون"];
+  const ones = [
+    "",
+    "واحد",
+    "اثنان",
+    "ثلاثة",
+    "أربعة",
+    "خمسة",
+    "ستة",
+    "سبعة",
+    "ثمانية",
+    "تسعة",
+    "عشرة",
+    "أحد عشر",
+    "اثنا عشر",
+    "ثلاثة عشر",
+    "أربعة عشر",
+    "خمسة عشر",
+    "ستة عشر",
+    "سبعة عشر",
+    "ثمانية عشر",
+    "تسعة عشر",
+  ];
+  const tens = [
+    "",
+    "",
+    "عشرون",
+    "ثلاثون",
+    "أربعون",
+    "خمسون",
+    "ستون",
+    "سبعون",
+    "ثمانون",
+    "تسعون",
+  ];
   function b100(x: number): string {
     if (x < 20) return ones[x];
     const o = x % 10;
@@ -43,23 +103,30 @@ function toArabicWords(amount: number): string {
 export default function ShiftPayroll() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
+  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+  const toggleRow = (id: number) => {
+    setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
-  const payrollQ = (trpc as any).salary.computeShiftPayroll.useQuery({ year, month });
+  const payrollQ = (trpc as any).salary.computeShiftPayroll.useQuery({
+    year,
+    month,
+  });
   const rows: any[] = payrollQ.data ?? [];
 
   const doctors = rows.filter((r: any) => r.type === "doctor");
-  const techs    = rows.filter((r: any) => r.type === "tech");
+  const techs = rows.filter((r: any) => r.type === "tech");
 
   const totalScheduled = rows.reduce((s: number, r: any) => s + r.scheduled, 0);
-  const totalAttended  = rows.reduce((s: number, r: any) => s + r.attended, 0);
-  const totalAbsent    = rows.reduce((s: number, r: any) => s + r.absent, 0);
-  const totalPay       = rows.reduce((s: number, r: any) => s + r.totalPay, 0);
+  const totalAttended = rows.reduce((s: number, r: any) => s + r.attended, 0);
+  const totalAbsent = rows.reduce((s: number, r: any) => s + r.absent, 0);
+  const totalPay = rows.reduce((s: number, r: any) => s + r.totalPay, 0);
 
   function printSlips() {
     // Collect all unique shift names across all rows
-    const allShiftNames = Array.from(new Set(
-      rows.flatMap((r: any) => Object.keys(r.byShift ?? {}))
-    ));
+    const allShiftNames = Array.from(
+      new Set(rows.flatMap((r: any) => Object.keys(r.byShift ?? {}))),
+    );
 
     const SLIP_CSS = `
       @page { size: A4; margin: 10mm; }
@@ -88,24 +155,27 @@ export default function ShiftPayroll() {
     const titleAr = `مرتب شهر ${MONTHS_AR[month - 1]} ${year}`;
     const today = new Date().toLocaleDateString("ar-EG");
 
-    const slips = rows.map((r: any, i: number) => {
-      const byShift = r.byShift ?? {};
-      const shiftCols = allShiftNames.map((sn: string) => {
-        const s = byShift[sn] ?? { attended: 0, rate: r.ratePerShift };
-        return `<td>${fmt(s.attended)}</td><td>${fmt(s.rate)}</td>`;
-      }).join("");
+    const slips = rows
+      .map((r: any, i: number) => {
+        const byShift = r.byShift ?? {};
+        const shiftCols = allShiftNames
+          .map((sn: string) => {
+            const s = byShift[sn] ?? { attended: 0, rate: r.ratePerShift };
+            return `<td>${fmt(s.attended)}</td><td>${fmt(s.rate)}</td>`;
+          })
+          .join("");
 
-      const shiftHeaders = allShiftNames.map((sn: string) =>
-        `<th colspan="2">شفتي ${sn}</th>`
-      ).join("");
+        const shiftHeaders = allShiftNames
+          .map((sn: string) => `<th colspan="2">شفتي ${sn}</th>`)
+          .join("");
 
-      const shiftSubHeaders = allShiftNames.map(() =>
-        `<th>عدد</th><th>قيمة</th>`
-      ).join("");
+        const shiftSubHeaders = allShiftNames
+          .map(() => `<th>عدد</th><th>قيمة</th>`)
+          .join("");
 
-      const shiftColspan = allShiftNames.length * 2;
+        const shiftColspan = allShiftNames.length * 2;
 
-      return `
+        return `
         ${i > 0 ? '<hr class="sep"/>' : ""}
         <div class="slip">
           <div class="top">
@@ -158,7 +228,8 @@ export default function ShiftPayroll() {
             <div class="sig-block"><div class="sig-line"></div>يعتمد</div>
           </div>
         </div>`;
-    }).join("");
+      })
+      .join("");
 
     const footer = `
       <div style="display:flex;justify-content:space-between;font-size:8px;color:#555;margin-top:10px;">
@@ -167,13 +238,18 @@ export default function ShiftPayroll() {
       </div>`;
 
     const mask = document.createElement("style");
-    mask.textContent = "@media print{body>*{visibility:hidden!important}#__pr__,#__pr__ *{visibility:visible!important}#__pr__{position:fixed;inset:0;direction:rtl}}";
+    mask.textContent =
+      "@media print{body>*{visibility:hidden!important}#__pr__,#__pr__ *{visibility:visible!important}#__pr__{position:fixed;inset:0;direction:rtl}}";
     const container = document.createElement("div");
     container.id = "__pr__";
     container.innerHTML = `<style>${SLIP_CSS}</style>${slips}${footer}`;
     document.head.appendChild(mask);
     document.body.appendChild(container);
-    const cleanup = () => { mask.remove(); container.remove(); window.removeEventListener("afterprint", cleanup); };
+    const cleanup = () => {
+      mask.remove();
+      container.remove();
+      window.removeEventListener("afterprint", cleanup);
+    };
     window.addEventListener("afterprint", cleanup);
     window.print();
   }
@@ -184,34 +260,126 @@ export default function ShiftPayroll() {
     return (
       <div className="space-y-1">
         <div className="flex items-center justify-between px-1">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
-          <span className="text-sm font-semibold text-primary">{fmt(sectionPay)} ج.م</span>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            {title}
+          </h3>
+          <span className="text-sm font-semibold text-primary">
+            {fmt(sectionPay)} ج.م
+          </span>
         </div>
-        <div className="rounded-xl border border-border overflow-hidden">
+        
+        {/* Desktop Table View */}
+        <div className="hidden lg:block rounded-xl border border-border overflow-hidden">
           <table className="w-full text-sm" dir="rtl">
             <thead>
               <tr className="border-b border-border bg-muted/30 text-xs">
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">الاسم</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">قيمة الشفت</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">مجدول</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground text-success">حضور</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground text-destructive">غياب</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground font-bold">المستحق</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                  الاسم
+                </th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                  قيمة الشفت
+                </th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                  مجدول
+                </th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground text-success">
+                  حضور
+                </th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground text-destructive">
+                  غياب
+                </th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground font-bold">
+                  المستحق
+                </th>
               </tr>
             </thead>
             <tbody>
               {data.map((r: any) => (
-                <tr key={r.id} className="border-b border-border/50 hover:bg-muted/20">
+                <tr
+                  key={r.id}
+                  className="border-b border-border/50 hover:bg-muted/20"
+                >
                   <td className="px-4 py-3 font-medium">{r.name}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{fmt(r.ratePerShift)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{r.scheduled}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-green-600 font-medium">{r.attended}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-destructive">{r.absent}</td>
-                  <td className="px-4 py-3 text-right tabular-nums font-bold text-primary">{fmt(r.totalPay)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">
+                    {fmt(r.ratePerShift)}
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums">
+                    {r.scheduled}
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums text-green-600 font-medium">
+                    {r.attended}
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums text-destructive">
+                    {r.absent}
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums font-bold text-primary">
+                    {fmt(r.totalPay)}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Accordion Cards View */}
+        <div className="block lg:hidden rounded-xl border border-border overflow-hidden divide-y divide-border/60">
+          {data.map((r: any) => {
+            const isExpanded = !!expandedRows[r.id];
+            return (
+              <div
+                key={r.id}
+                className="p-4 bg-card hover:bg-slate-50/20 transition-colors"
+              >
+                <div
+                  className="flex items-center justify-between cursor-pointer"
+                  onClick={() => toggleRow(r.id)}
+                >
+                  <div className="space-y-1">
+                    <div className="font-bold text-sm text-foreground">
+                      {r.name}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      قيمة الشفت: {fmt(r.ratePerShift)} ج.م
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-left">
+                      <div className="text-[10px] font-bold text-muted-foreground uppercase">
+                        المستحق
+                      </div>
+                      <div className="text-sm font-bold text-primary tabular-nums">
+                        {fmt(r.totalPay)} ج.م
+                      </div>
+                    </div>
+                    {isExpanded ? (
+                      <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </div>
+                </div>
+
+                {isExpanded && (
+                  <div className="mt-4 pt-4 border-t border-border/40 space-y-3 text-xs">
+                    <div className="grid grid-cols-2 gap-y-2 gap-x-4">
+                      <div className="flex justify-between border-b border-border/20 pb-1">
+                        <span className="text-muted-foreground">مجدول:</span>
+                        <span className="font-semibold tabular-nums">{r.scheduled}</span>
+                      </div>
+                      <div className="flex justify-between border-b border-border/20 pb-1">
+                        <span className="text-muted-foreground">حضور:</span>
+                        <span className="font-semibold text-green-600 tabular-nums">{r.attended}</span>
+                      </div>
+                      <div className="flex justify-between border-b border-border/20 pb-1 col-span-2">
+                        <span className="text-muted-foreground">غياب:</span>
+                        <span className="font-semibold text-destructive tabular-nums">{r.absent}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -222,25 +390,51 @@ export default function ShiftPayroll() {
       {/* Header controls */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-medium text-muted-foreground">مسار الشفتات</p>
+          <p className="text-xs font-medium text-muted-foreground">
+            مسار الشفتات
+          </p>
           <h2 className="text-2xl font-bold">كشف الشفتات</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             مستحقات الأطباء والفنيين حسب الشفتات المسجلة.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <select value={month} onChange={e => setMonth(Number(e.target.value))}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm">
-            {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-          </select>
-          <select value={year} onChange={e => setYear(Number(e.target.value))}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm">
-            {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map(y => (
-              <option key={y} value={y}>{y}</option>
+          <select
+            value={month}
+            onChange={(e) => setMonth(Number(e.target.value))}
+            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+          >
+            {MONTHS.map((m, i) => (
+              <option key={i} value={i + 1}>
+                {m}
+              </option>
             ))}
           </select>
-          <Button variant="outline" onClick={() => payrollQ.refetch()} disabled={payrollQ.isFetching} className="gap-2">
-            <RefreshCw size={15} className={payrollQ.isFetching ? "animate-spin" : ""} />
+          <select
+            value={year}
+            onChange={(e) => setYear(Number(e.target.value))}
+            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+          >
+            {[
+              now.getFullYear() - 1,
+              now.getFullYear(),
+              now.getFullYear() + 1,
+            ].map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
+          <Button
+            variant="outline"
+            onClick={() => payrollQ.refetch()}
+            disabled={payrollQ.isFetching}
+            className="gap-2"
+          >
+            <RefreshCw
+              size={15}
+              className={payrollQ.isFetching ? "animate-spin" : ""}
+            />
             تحديث
           </Button>
           {rows.length > 0 && (
@@ -255,12 +449,31 @@ export default function ShiftPayroll() {
       {rows.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: "الشفتات المجدولة", value: String(totalScheduled), tone: "text-foreground" },
-            { label: "تم الحضور",         value: String(totalAttended),  tone: "text-green-600 font-bold" },
-            { label: "غياب",              value: String(totalAbsent),    tone: "text-destructive" },
-            { label: "إجمالي المستحق",    value: fmt(totalPay) + " ج.م", tone: "text-primary font-bold" },
-          ].map(card => (
-            <div key={card.label} className="rounded-xl border border-border bg-card px-4 py-3">
+            {
+              label: "الشفتات المجدولة",
+              value: String(totalScheduled),
+              tone: "text-foreground",
+            },
+            {
+              label: "تم الحضور",
+              value: String(totalAttended),
+              tone: "text-green-600 font-bold",
+            },
+            {
+              label: "غياب",
+              value: String(totalAbsent),
+              tone: "text-destructive",
+            },
+            {
+              label: "إجمالي المستحق",
+              value: fmt(totalPay) + " ج.م",
+              tone: "text-primary font-bold",
+            },
+          ].map((card) => (
+            <div
+              key={card.label}
+              className="rounded-xl border border-border bg-card px-4 py-3"
+            >
               <div className="text-xs text-muted-foreground">{card.label}</div>
               <div className={`mt-1 text-lg ${card.tone}`}>{card.value}</div>
             </div>
@@ -283,7 +496,10 @@ export default function ShiftPayroll() {
           {/* Grand total */}
           <div className="flex justify-end">
             <div className="rounded-xl border border-border bg-muted/20 px-6 py-3 text-sm">
-              الإجمالي: <span className="font-bold text-primary ml-2">{fmt(totalPay)} ج.م</span>
+              الإجمالي:{" "}
+              <span className="font-bold text-primary ml-2">
+                {fmt(totalPay)} ج.م
+              </span>
             </div>
           </div>
         </div>

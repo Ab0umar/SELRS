@@ -10,12 +10,26 @@ import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
-import { AlertTriangle, CheckCircle2, FlaskConical, Pencil, Plus, Trash2, XCircle } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  FlaskConical,
+  Pencil,
+  Plus,
+  Trash2,
+  XCircle,
+} from "lucide-react";
 
 type TestType = "examination" | "lab" | "imaging" | "other";
 type DashboardMode = "examinations" | "txhub";
@@ -63,7 +77,11 @@ function parseEditableRange(raw: string): { min: string; max: string } | null {
   return { min: nums[0]!, max: nums[1]! };
 }
 
-function buildNormalRange(form: { refMin: string; refMax: string; normalRange: string }): string {
+function buildNormalRange(form: {
+  refMin: string;
+  refMax: string;
+  normalRange: string;
+}): string {
   const min = form.refMin.trim();
   const max = form.refMax.trim();
   if (min || max) return `${min || "—"} - ${max || "—"}`;
@@ -78,7 +96,11 @@ function rangeDisplay(row: Record<string, unknown>): string {
   return nr || u;
 }
 
-export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?: DashboardMode }) {
+export default function TestsCatalogDashboard({
+  mode = "examinations",
+}: {
+  mode?: DashboardMode;
+}) {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
@@ -98,7 +120,9 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
     isActive: true,
   });
 
-  const testsQuery = trpc.medical.getAllTests.useQuery(undefined, { refetchOnWindowFocus: false });
+  const testsQuery = trpc.medical.getAllTests.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
 
   const createMutation = trpc.medical.createTest.useMutation({
     onSuccess: () => {
@@ -106,7 +130,8 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
       testsQuery.refetch();
       resetForm();
     },
-    onError: (e: unknown) => toast.error(getTrpcErrorMessage(e, "فشل في إضافة الفحص")),
+    onError: (e: unknown) =>
+      toast.error(getTrpcErrorMessage(e, "فشل في إضافة الفحص")),
   });
 
   const updateMutation = trpc.medical.updateTest.useMutation({
@@ -115,7 +140,8 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
       testsQuery.refetch();
       resetForm();
     },
-    onError: (e: unknown) => toast.error(getTrpcErrorMessage(e, "فشل في تحديث الفحص")),
+    onError: (e: unknown) =>
+      toast.error(getTrpcErrorMessage(e, "فشل في تحديث الفحص")),
   });
 
   const deleteMutation = trpc.medical.deleteTest.useMutation({
@@ -123,7 +149,8 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
       toast.success("تم حذف الفحص بنجاح");
       testsQuery.refetch();
     },
-    onError: (e: unknown) => toast.error(getTrpcErrorMessage(e, "فشل في حذف الفحص")),
+    onError: (e: unknown) =>
+      toast.error(getTrpcErrorMessage(e, "فشل في حذف الفحص")),
   });
 
   useEffect(() => {
@@ -133,8 +160,11 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
   const isTx = mode === "txhub";
 
   const baseRows = useMemo(() => {
-    const all = ((testsQuery.data ?? []) as Record<string, unknown>[]).map((r) => r);
-    if (isTx) return all.filter((r) => r.type === "lab" || r.type === "imaging");
+    const all = ((testsQuery.data ?? []) as Record<string, unknown>[]).map(
+      (r) => r,
+    );
+    if (isTx)
+      return all.filter((r) => r.type === "lab" || r.type === "imaging");
     return all;
   }, [testsQuery.data, isTx]);
 
@@ -158,7 +188,12 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
       const name = String(row.name ?? "").toLowerCase();
       const cat = String(row.category ?? "").toLowerCase();
       const ref = String(row.normalRange ?? "").toLowerCase();
-      return name.includes(q) || cat.includes(q) || ref.includes(q) || categoryLabel(String(row.type)).toLowerCase().includes(q);
+      return (
+        name.includes(q) ||
+        cat.includes(q) ||
+        ref.includes(q) ||
+        categoryLabel(String(row.type)).toLowerCase().includes(q)
+      );
     });
   }, [baseRows, search, typeFilter]);
 
@@ -189,7 +224,9 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
     setEditingId(Number(row.id));
     setForm({
       name: String(row.name ?? ""),
-      type: (String(row.type ?? (isTx ? "lab" : "examination")) as TestType) || (isTx ? "lab" : "examination"),
+      type:
+        (String(row.type ?? (isTx ? "lab" : "examination")) as TestType) ||
+        (isTx ? "lab" : "examination"),
       category: String(row.category ?? ""),
       refMin: parsedRange?.min ?? "",
       refMax: parsedRange?.max ?? "",
@@ -240,7 +277,10 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <div className="container mx-auto max-w-[1400px] px-3 py-6 sm:px-4 sm:py-8" dir="rtl">
+      <div
+        className="container mx-auto max-w-[1400px] px-3 py-6 sm:px-4 sm:py-8"
+        dir="rtl"
+      >
         <PageHeader
           title={isTx ? "ربط النتائج الخارجية" : "إدارة الفحوصات"}
           description={
@@ -250,7 +290,12 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
           }
           icon={<FlaskConical className="h-5 w-5 text-primary" />}
           action={
-            <Button type="button" variant="outline" className="gap-1 font-semibold" onClick={resetForm}>
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-1 font-semibold"
+              onClick={resetForm}
+            >
               <Plus className="h-4 w-4" />
               {isTx ? "إضافة مرجع" : "إنشاء"}
             </Button>
@@ -263,14 +308,36 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
           className={cn(
             STAT_CARDS_MOBILE_ROW,
             "mb-5 gap-2 sm:gap-4",
-            isTx ? "sm:grid sm:grid-cols-2 lg:grid-cols-4" : "sm:grid sm:grid-cols-3",
+            isTx
+              ? "sm:grid sm:grid-cols-2 lg:grid-cols-4"
+              : "sm:grid sm:grid-cols-3",
           )}
         >
-          <StatCard title={isTx ? "المرجع الخارجي" : "إجمالي الفحوصات"} value={stats.total} icon={FlaskConical} iconColor="bg-primary text-primary-foreground" />
-          <StatCard title={isTx ? "مفعلة" : "فعالة"} value={stats.active} icon={CheckCircle2} iconColor="bg-success/100/10 text-success" />
-          <StatCard title={isTx ? "غير مرتبطة" : "معطلة"} value={stats.inactive} icon={XCircle} iconColor="bg-destructive text-destructive-foreground" />
+          <StatCard
+            title={isTx ? "المرجع الخارجي" : "إجمالي الفحوصات"}
+            value={stats.total}
+            icon={FlaskConical}
+            iconColor="bg-primary text-primary-foreground"
+          />
+          <StatCard
+            title={isTx ? "مفعلة" : "فعالة"}
+            value={stats.active}
+            icon={CheckCircle2}
+            iconColor="bg-success/100/10 text-success"
+          />
+          <StatCard
+            title={isTx ? "غير مرتبطة" : "معطلة"}
+            value={stats.inactive}
+            icon={XCircle}
+            iconColor="bg-destructive text-destructive-foreground"
+          />
           {isTx ? (
-            <StatCard title="بلا مدى طبيعي" value={stats.missingRef} icon={AlertTriangle} iconColor="bg-warning/100/10 text-warning/90" />
+            <StatCard
+              title="بلا مدى طبيعي"
+              value={stats.missingRef}
+              icon={AlertTriangle}
+              iconColor="bg-warning/100/10 text-warning/90"
+            />
           ) : null}
         </div>
 
@@ -286,15 +353,21 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
               <SearchBar
                 value={search}
                 onChange={setSearch}
-                placeholder={isTx ? "بحث في المرجع الخارجي..." : "بحث عن فحص..."}
+                placeholder={
+                  isTx ? "بحث في المرجع الخارجي..." : "بحث عن فحص..."
+                }
                 className="md:order-1 md:max-w-md md:flex-1"
               />
             </div>
 
             {isTx ? (
               <div className="mb-4 rounded-lg border border-dashed border-border/80 bg-muted/20 px-3 py-2.5 text-[12px] leading-relaxed text-muted-foreground">
-                <span className="font-semibold text-foreground">طريقة الاستخدام: </span>
-                هذا القسم لنتائج الأنظمة الخارجية فقط، أضف اسم المرجع مثل K1 أو IOP أو CCT، ثم ضع أقل وأعلى قيمة طبيعية والوحدة. أي نتيجة مريض أقل أو أعلى من هذا المدى يمكن تعليمها بالأحمر في شاشات النتائج.
+                <span className="font-semibold text-foreground">
+                  طريقة الاستخدام:{" "}
+                </span>
+                هذا القسم لنتائج الأنظمة الخارجية فقط، أضف اسم المرجع مثل K1 أو
+                IOP أو CCT، ثم ضع أقل وأعلى قيمة طبيعية والوحدة. أي نتيجة مريض
+                أقل أو أعلى من هذا المدى يمكن تعليمها بالأحمر في شاشات النتائج.
               </div>
             ) : null}
 
@@ -302,9 +375,15 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
               <table className="w-full min-w-[820px] text-sm" dir="rtl">
                 <thead>
                   <tr className="border-b bg-muted/40 text-[11px] font-semibold text-muted-foreground">
-                    <th className="p-3 text-right">{isTx ? "اسم المرجع" : "اسم الفحص"}</th>
-                    <th className="p-3 text-right">{isTx ? "الوصف / التصنيف" : "التصنيف"}</th>
-                    <th className="p-3 text-right">{isTx ? "النوع الخارجي" : "النوع"}</th>
+                    <th className="p-3 text-right">
+                      {isTx ? "اسم المرجع" : "اسم الفحص"}
+                    </th>
+                    <th className="p-3 text-right">
+                      {isTx ? "الوصف / التصنيف" : "التصنيف"}
+                    </th>
+                    <th className="p-3 text-right">
+                      {isTx ? "النوع الخارجي" : "النوع"}
+                    </th>
                     <th className="p-3 text-right">المدى الطبيعي</th>
                     <th className="p-3 text-right">الحالة</th>
                     <th className="w-24 p-3 text-center">إجراءات</th>
@@ -313,13 +392,19 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
                 <tbody>
                   {testsQuery.isLoading ? (
                     <tr>
-                      <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                      <td
+                        colSpan={6}
+                        className="p-8 text-center text-muted-foreground"
+                      >
                         جاري التحميل…
                       </td>
                     </tr>
                   ) : filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                      <td
+                        colSpan={6}
+                        className="p-8 text-center text-muted-foreground"
+                      >
                         لا توجد بيانات مطابقة.
                       </td>
                     </tr>
@@ -329,14 +414,23 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
                       const active = rowActive(row);
                       const missingRef = !hasMedicalReference(row);
                       return (
-                        <tr key={id} className="border-b last:border-0 hover:bg-muted/20">
+                        <tr
+                          key={id}
+                          className="border-b last:border-0 hover:bg-muted/20"
+                        >
                           <td className="p-3">
-                            <div className="font-semibold">{String(row.name ?? "")}</div>
+                            <div className="font-semibold">
+                              {String(row.name ?? "")}
+                            </div>
                             {String(row.description ?? "").trim() ? (
-                              <div className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">{String(row.description)}</div>
+                              <div className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">
+                                {String(row.description)}
+                              </div>
                             ) : null}
                           </td>
-                          <td className="p-3 text-muted-foreground">{String(row.category ?? "").trim() || "—"}</td>
+                          <td className="p-3 text-muted-foreground">
+                            {String(row.category ?? "").trim() || "—"}
+                          </td>
                           <td className="p-3">
                             <span className="inline-flex rounded-full bg-primary text-primary-foreground">
                               {categoryLabel(String(row.type))}
@@ -351,7 +445,11 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
                             )}
                           >
                             {rangeDisplay(row)}
-                            {missingRef ? <span className="mt-1 block text-[10px] font-bold">ناقص مدى طبيعي</span> : null}
+                            {missingRef ? (
+                              <span className="mt-1 block text-[10px] font-bold">
+                                ناقص مدى طبيعي
+                              </span>
+                            ) : null}
                           </td>
                           <td className="p-3">
                             <span
@@ -367,26 +465,46 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
                           </td>
                           <td className="p-3">
                             <div className="flex justify-center gap-1">
-                              <Button type="button" variant="ghost" size="icon" className="h-11 w-11" onClick={() => openEdit(row)} title="تعديل" aria-label="تعديل الفحص">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-11 w-11"
+                                onClick={() => openEdit(row)}
+                                title="تعديل"
+                                aria-label="تعديل الفحص"
+                              >
                                 <Pencil className="h-3.5 w-3.5" />
                               </Button>
                               {delConfirm === id ? (
                                 <div className="flex items-center gap-1">
-                                  <button type="button" aria-label="تأكيد الحذف"
+                                  <button
+                                    type="button"
+                                    aria-label="تأكيد الحذف"
                                     className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
-                                    onClick={() => { void remove(id); setDelConfirm(null); }}>
+                                    onClick={() => {
+                                      void remove(id);
+                                      setDelConfirm(null);
+                                    }}
+                                  >
                                     تأكيد
                                   </button>
-                                  <button type="button" aria-label="إلغاء الحذف"
+                                  <button
+                                    type="button"
+                                    aria-label="إلغاء الحذف"
                                     className="rounded bg-muted text-muted-foreground hover:bg-border"
-                                    onClick={() => setDelConfirm(null)}>
+                                    onClick={() => setDelConfirm(null)}
+                                  >
                                     ✕
                                   </button>
                                 </div>
                               ) : (
-                                <button type="button" aria-label="حذف الفحص"
+                                <button
+                                  type="button"
+                                  aria-label="حذف الفحص"
                                   className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                                  onClick={() => setDelConfirm(id)}>
+                                  onClick={() => setDelConfirm(id)}
+                                >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </button>
                               )}
@@ -401,19 +519,36 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
             </div>
           </section>
 
-            <aside className="rounded-xl border bg-card p-4 shadow-sm lg:sticky lg:top-4 lg:self-start">
-              <h2 className="mb-4 text-base font-bold">
-                {editingId ? (isTx ? "تعديل مرجع" : "تعديل فحص") : (isTx ? "إضافة مرجع جديد" : "إضافة فحص جديد")}
-              </h2>
-              <div className="grid gap-3">
+          <aside className="rounded-xl border bg-card p-4 shadow-sm lg:sticky lg:top-4 lg:self-start">
+            <h2 className="mb-4 text-base font-bold">
+              {editingId
+                ? isTx
+                  ? "تعديل مرجع"
+                  : "تعديل فحص"
+                : isTx
+                  ? "إضافة مرجع جديد"
+                  : "إضافة فحص جديد"}
+            </h2>
+            <div className="grid gap-3">
               <div className="space-y-1">
                 <Label>{isTx ? "اسم المرجع" : "اسم الفحص"}</Label>
-                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={isTx ? "مثال: K1 أو ضغط العين" : "مثال: K1 أو ضغط العين"} />
+                <Input
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder={
+                    isTx ? "مثال: K1 أو ضغط العين" : "مثال: K1 أو ضغط العين"
+                  }
+                />
               </div>
 
               <div className="space-y-1">
                 <Label>{isTx ? "نوع المرجع" : "نوع الفحص"}</Label>
-                <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v as TestType })}>
+                <Select
+                  value={form.type}
+                  onValueChange={(v) =>
+                    setForm({ ...form, type: v as TestType })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -437,39 +572,74 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
 
               <div className="space-y-1">
                 <Label>{isTx ? "المصدر / التصنيف" : "التصنيف"}</Label>
-                <Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="مثال: بنتاكام، جلوكوما، شبكية" />
+                <Input
+                  value={form.category}
+                  onChange={(e) =>
+                    setForm({ ...form, category: e.target.value })
+                  }
+                  placeholder="مثال: بنتاكام، جلوكوما، شبكية"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <Label>أقل طبيعي</Label>
-                  <Input dir="ltr" className="text-left" value={form.refMin} onChange={(e) => setForm({ ...form, refMin: e.target.value })} placeholder="500" />
+                  <Input
+                    dir="ltr"
+                    className="text-left"
+                    value={form.refMin}
+                    onChange={(e) =>
+                      setForm({ ...form, refMin: e.target.value })
+                    }
+                    placeholder="500"
+                  />
                 </div>
                 <div className="space-y-1">
                   <Label>أعلى طبيعي</Label>
-                  <Input dir="ltr" className="text-left" value={form.refMax} onChange={(e) => setForm({ ...form, refMax: e.target.value })} placeholder="600" />
+                  <Input
+                    dir="ltr"
+                    className="text-left"
+                    value={form.refMax}
+                    onChange={(e) =>
+                      setForm({ ...form, refMax: e.target.value })
+                    }
+                    placeholder="600"
+                  />
                 </div>
               </div>
 
-                <div className="space-y-1">
-                  <Label>{isTx ? "الوحدة الخارجية" : "الوحدة"}</Label>
-                  <Input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} placeholder="D، µm، mmHg، mg/dL..." />
-                </div>
+              <div className="space-y-1">
+                <Label>{isTx ? "الوحدة الخارجية" : "الوحدة"}</Label>
+                <Input
+                  value={form.unit}
+                  onChange={(e) => setForm({ ...form, unit: e.target.value })}
+                  placeholder="D، µm، mmHg، mg/dL..."
+                />
+              </div>
 
               <div className="space-y-1">
                 <Label>مدى نصي بديل</Label>
                 <Input
                   value={form.normalRange}
-                  onChange={(e) => setForm({ ...form, normalRange: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, normalRange: e.target.value })
+                  }
                   placeholder="مثال: طبيعي بالسالب"
                   disabled={Boolean(form.refMin.trim() || form.refMax.trim())}
                 />
-                <p className="text-[11px] text-muted-foreground">استخدمه لو المرجع ليس رقماً من/إلى.</p>
+                <p className="text-[11px] text-muted-foreground">
+                  استخدمه لو المرجع ليس رقماً من/إلى.
+                </p>
               </div>
 
               <div className="space-y-1">
                 <Label>الحالة</Label>
-                <Select value={form.isActive ? "1" : "0"} onValueChange={(v) => setForm({ ...form, isActive: v === "1" })}>
+                <Select
+                  value={form.isActive ? "1" : "0"}
+                  onValueChange={(v) =>
+                    setForm({ ...form, isActive: v === "1" })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -480,28 +650,41 @@ export default function TestsCatalogDashboard({ mode = "examinations" }: { mode?
                 </Select>
               </div>
 
-                <div className="space-y-1">
-                  <Label>{isTx ? "ملاحظات الربط" : "الوصف"}</Label>
-                  <Textarea
-                    value={form.description}
-                    onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    placeholder={isTx ? "ملاحظات الربط أو المصدر الخارجي..." : "وصف مختصر للفحص..."}
-                    className="min-h-[88px]"
-                  />
-                </div>
-
-                <div className="flex gap-2 pt-1">
-                  <Button type="button" className="flex-1 gap-1 font-semibold" onClick={() => void save()} disabled={createMutation.isPending || updateMutation.isPending}>
-                    حفظ
-                  </Button>
-                  {editingId ? (
-                    <Button type="button" variant="outline" onClick={resetForm}>
-                      إلغاء
-                    </Button>
-                  ) : null}
-                </div>
+              <div className="space-y-1">
+                <Label>{isTx ? "ملاحظات الربط" : "الوصف"}</Label>
+                <Textarea
+                  value={form.description}
+                  onChange={(e) =>
+                    setForm({ ...form, description: e.target.value })
+                  }
+                  placeholder={
+                    isTx
+                      ? "ملاحظات الربط أو المصدر الخارجي..."
+                      : "وصف مختصر للفحص..."
+                  }
+                  className="min-h-[88px]"
+                />
               </div>
-            </aside>
+
+              <div className="flex gap-2 pt-1">
+                <Button
+                  type="button"
+                  className="flex-1 gap-1 font-semibold"
+                  onClick={() => void save()}
+                  disabled={
+                    createMutation.isPending || updateMutation.isPending
+                  }
+                >
+                  حفظ
+                </Button>
+                {editingId ? (
+                  <Button type="button" variant="outline" onClick={resetForm}>
+                    إلغاء
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          </aside>
         </div>
       </div>
     </div>

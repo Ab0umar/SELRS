@@ -65,19 +65,42 @@ const BOOKING_TYPES: Record<string, string> = {
   followup: "متابعة",
 };
 
-const DAY_NAMES = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
-const DAYS_AR = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+const DAY_NAMES = [
+  "الأحد",
+  "الاثنين",
+  "الثلاثاء",
+  "الأربعاء",
+  "الخميس",
+  "الجمعة",
+  "السبت",
+];
+const DAYS_AR = [
+  "الأحد",
+  "الاثنين",
+  "الثلاثاء",
+  "الأربعاء",
+  "الخميس",
+  "الجمعة",
+  "السبت",
+];
 const DAY_BITS = [1, 2, 4, 8, 16, 32, 64];
 
-type StatusFilter = "" | "pending" | "confirmed" | "cancelled" | "completed";
+type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
+type StatusFilter = "" | BookingStatus;
+type BookingType =
+  | "consultant"
+  | "specialist"
+  | "lasik"
+  | "external"
+  | "followup";
 
 type BookingRow = {
   id: number;
   patientId: number | null;
-  bookingType: keyof typeof BOOKING_TYPES;
+  bookingType: BookingType;
   requestedDate: string | Date;
   confirmedDate: string | Date | null;
-  status: StatusFilter;
+  status: BookingStatus;
   staffNotes: string | null;
   notes: string | null;
   guestName: string | null;
@@ -91,7 +114,7 @@ type BookingRow = {
 };
 
 type ScheduleRow = {
-  bookingType: keyof typeof BOOKING_TYPES;
+  bookingType: BookingType;
   label: string;
   weekdayMask: number;
   isActive: boolean;
@@ -100,21 +123,33 @@ type ScheduleRow = {
 
 function formatDate(value: Date | string | null | undefined) {
   if (!value) return "—";
-  const date = new Date(value instanceof Date ? value.toISOString().slice(0, 10) : value);
+  const date = new Date(
+    value instanceof Date ? value.toISOString().slice(0, 10) : value,
+  );
   return `${DAY_NAMES[date.getDay()]} ${date.toLocaleDateString("ar-EG")}`;
 }
 
 function formatDateKey(value: Date | string | null | undefined) {
   if (!value) return "";
-  const date = new Date(value instanceof Date ? value.toISOString().slice(0, 10) : value);
+  const date = new Date(
+    value instanceof Date ? value.toISOString().slice(0, 10) : value,
+  );
   return date.toISOString().slice(0, 10);
 }
 
-function BookingCard({ booking, onUpdated }: { booking: BookingRow; onUpdated: () => void }) {
+function BookingCard({
+  booking,
+  onUpdated,
+}: {
+  booking: BookingRow;
+  onUpdated: () => void;
+}) {
   const [expanded, setExpanded] = useState(booking.status === "pending");
-  const [status, setStatus] = useState<StatusFilter>(booking.status);
+  const [status, setStatus] = useState<BookingStatus>(booking.status);
   const [staffNotes, setStaffNotes] = useState(booking.staffNotes ?? "");
-  const [confirmedDate, setConfirmedDate] = useState(formatDateKey(booking.confirmedDate));
+  const [confirmedDate, setConfirmedDate] = useState(
+    formatDateKey(booking.confirmedDate),
+  );
 
   const updateBooking = trpc.patientPortal.updateBooking.useMutation({
     onSuccess: () => {
@@ -158,7 +193,9 @@ function BookingCard({ booking, onUpdated }: { booking: BookingRow; onUpdated: (
       >
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="truncate text-sm font-semibold text-slate-900">{displayName}</p>
+            <p className="truncate text-sm font-semibold text-slate-900">
+              {displayName}
+            </p>
             {booking.isGuest && (
               <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
                 زائر
@@ -172,7 +209,9 @@ function BookingCard({ booking, onUpdated }: { booking: BookingRow; onUpdated: (
             <span className="text-slate-300">•</span>
             <span>{reqDate}</span>
           </div>
-          {displayPhone ? <p className="mt-1 text-xs text-slate-500">{displayPhone}</p> : null}
+          {displayPhone ? (
+            <p className="mt-1 text-xs text-slate-500">{displayPhone}</p>
+          ) : null}
         </div>
 
         <div className="flex shrink-0 flex-col items-end gap-2">
@@ -185,7 +224,9 @@ function BookingCard({ booking, onUpdated }: { booking: BookingRow; onUpdated: (
             <StatusIcon className="size-3.5" />
             {meta.label}
           </span>
-          <span className="text-xs text-slate-400">{expanded ? "إخفاء" : "تفاصيل"}</span>
+          <span className="text-xs text-slate-400">
+            {expanded ? "إخفاء" : "تفاصيل"}
+          </span>
         </div>
       </button>
 
@@ -195,31 +236,39 @@ function BookingCard({ booking, onUpdated }: { booking: BookingRow; onUpdated: (
             <div className="space-y-4">
               <div className="grid gap-2 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-slate-500">الحالة</label>
+                  <label className="text-xs font-medium text-slate-500">
+                    الحالة
+                  </label>
                   <div className="grid grid-cols-2 gap-2">
-                    {STATUS_OPTS.filter((opt) => opt.value !== "").map((opt) => {
-                      const active = status === opt.value;
-                      return (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => setStatus(opt.value as StatusFilter)}
-                          className={cn(
-                            "min-h-10 rounded-xl border px-3 py-2 text-sm font-medium transition-colors",
-                            active
-                              ? "border-blue-200 bg-blue-50 text-blue-700"
-                              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
-                          )}
-                        >
-                          {opt.label}
-                        </button>
-                      );
-                    })}
+                    {STATUS_OPTS.filter((opt) => opt.value !== "").map(
+                      (opt) => {
+                        const active = status === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() =>
+                              setStatus(opt.value as BookingStatus)
+                            }
+                            className={cn(
+                              "min-h-10 rounded-xl border px-3 py-2 text-sm font-medium transition-colors",
+                              active
+                                ? "border-blue-200 bg-blue-50 text-blue-700"
+                                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      },
+                    )}
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-slate-500">تاريخ مؤكد</label>
+                  <label className="text-xs font-medium text-slate-500">
+                    تاريخ مؤكد
+                  </label>
                   <Input
                     type="date"
                     value={confirmedDate}
@@ -231,7 +280,9 @@ function BookingCard({ booking, onUpdated }: { booking: BookingRow; onUpdated: (
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-slate-500">ملاحظات الموظف</label>
+                <label className="text-xs font-medium text-slate-500">
+                  ملاحظات الموظف
+                </label>
                 <textarea
                   value={staffNotes}
                   onChange={(e) => setStaffNotes(e.target.value)}
@@ -243,7 +294,9 @@ function BookingCard({ booking, onUpdated }: { booking: BookingRow; onUpdated: (
 
               {booking.notes ? (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm leading-6 text-amber-900">
-                  <p className="mb-1 text-xs font-medium text-amber-700">ملاحظة المريض</p>
+                  <p className="mb-1 text-xs font-medium text-amber-700">
+                    ملاحظة المريض
+                  </p>
                   {booking.notes}
                 </div>
               ) : null}
@@ -255,20 +308,28 @@ function BookingCard({ booking, onUpdated }: { booking: BookingRow; onUpdated: (
                 <div className="mt-3 space-y-3 text-sm">
                   <div className="flex items-center justify-between gap-4">
                     <span className="text-slate-500">المريض</span>
-                    <span className="max-w-[70%] font-medium text-slate-900">{displayName}</span>
+                    <span className="max-w-[70%] font-medium text-slate-900">
+                      {displayName}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between gap-4">
                     <span className="text-slate-500">النوع</span>
-                    <span className="font-medium text-slate-900">{booking.typeLabel}</span>
+                    <span className="font-medium text-slate-900">
+                      {booking.typeLabel}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between gap-4">
                     <span className="text-slate-500">التاريخ المطلوب</span>
-                    <span className="font-medium text-slate-900">{reqDate}</span>
+                    <span className="font-medium text-slate-900">
+                      {reqDate}
+                    </span>
                   </div>
                   {confirmedDate ? (
                     <div className="flex items-center justify-between gap-4">
                       <span className="text-slate-500">التاريخ المؤكد</span>
-                      <span className="font-medium text-slate-900">{formatDate(confirmedDate)}</span>
+                      <span className="font-medium text-slate-900">
+                        {formatDate(confirmedDate)}
+                      </span>
                     </div>
                   ) : null}
                 </div>
@@ -313,8 +374,17 @@ function BookingCard({ booking, onUpdated }: { booking: BookingRow; onUpdated: (
   );
 }
 
-function ScheduleRowCard({ row, onSaved }: { row: ScheduleRow; onSaved: () => void }) {
-  const [local, setLocal] = useState({ weekdayMask: row.weekdayMask, isActive: row.isActive });
+function ScheduleRowCard({
+  row,
+  onSaved,
+}: {
+  row: ScheduleRow;
+  onSaved: () => void;
+}) {
+  const [local, setLocal] = useState({
+    weekdayMask: row.weekdayMask,
+    isActive: row.isActive,
+  });
   const [dirty, setDirty] = useState(false);
 
   const updateSchedule = trpc.patientPortal.updateSchedule.useMutation({
@@ -353,7 +423,9 @@ function ScheduleRowCard({ row, onSaved }: { row: ScheduleRow; onSaved: () => vo
             onClick={toggleActive}
             className={cn(
               "relative mt-0.5 h-6 w-11 shrink-0 rounded-full border transition-colors focus:outline-none",
-              local.isActive ? "border-blue-200 bg-blue-600" : "border-slate-300 bg-slate-200",
+              local.isActive
+                ? "border-blue-200 bg-blue-600"
+                : "border-slate-300 bg-slate-200",
             )}
             aria-label={local.isActive ? "تعطيل الجدول" : "تفعيل الجدول"}
           >
@@ -367,7 +439,9 @@ function ScheduleRowCard({ row, onSaved }: { row: ScheduleRow; onSaved: () => vo
 
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm font-semibold text-slate-900">{row.label}</p>
+              <p className="text-sm font-semibold text-slate-900">
+                {row.label}
+              </p>
               <span
                 className={cn(
                   "rounded-full border px-2.5 py-1 text-[11px] font-medium",
@@ -398,7 +472,9 @@ function ScheduleRowCard({ row, onSaved }: { row: ScheduleRow; onSaved: () => vo
               {updateSchedule.isPending ? "..." : "حفظ"}
             </Button>
           ) : null}
-          <span className="text-xs text-slate-400">{dirty ? "تغييرات غير محفوظة" : "محفوظ"}</span>
+          <span className="text-xs text-slate-400">
+            {dirty ? "تغييرات غير محفوظة" : "محفوظ"}
+          </span>
         </div>
       </div>
 
@@ -439,16 +515,20 @@ function ScheduleRowCard({ row, onSaved }: { row: ScheduleRow; onSaved: () => vo
 const STAFF_BOOKING_TYPES = [
   { value: "consultant" as const, label: "كشف استشاري" },
   { value: "specialist" as const, label: "كشف أخصائي" },
-  { value: "lasik"      as const, label: "فحوصات الليزك" },
-  { value: "external"   as const, label: "أشعة خارجي" },
-  { value: "followup"   as const, label: "متابعة" },
+  { value: "lasik" as const, label: "فحوصات الليزك" },
+  { value: "external" as const, label: "أشعة خارجي" },
+  { value: "followup" as const, label: "متابعة" },
 ];
 
 function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [selectedPatient, setSelectedPatient] = useState<{ id: number; name: string; code: string } | null>(null);
-  const [bookingType, setBookingType] = useState<"consultant" | "specialist" | "lasik" | "external" | "followup">("consultant");
+  const [selectedPatient, setSelectedPatient] = useState<{
+    id: number;
+    name: string;
+    code: string;
+  } | null>(null);
+  const [bookingType, setBookingType] = useState<BookingType>("consultant");
   const [requestedDate, setRequestedDate] = useState("");
   const [confirmedDate, setConfirmedDate] = useState("");
   const [staffNotes, setStaffNotes] = useState("");
@@ -464,7 +544,11 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
     onSuccess: () => {
       toast.success("تم إضافة الحجز");
       setOpen(false);
-      setSearch(""); setSelectedPatient(null); setRequestedDate(""); setConfirmedDate(""); setStaffNotes("");
+      setSearch("");
+      setSelectedPatient(null);
+      setRequestedDate("");
+      setConfirmedDate("");
+      setStaffNotes("");
       onCreated();
     },
     onError: (e) => toast.error(e.message),
@@ -474,12 +558,20 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
 
   const reset = () => {
     setOpen(false);
-    setSearch(""); setSelectedPatient(null); setRequestedDate(""); setConfirmedDate(""); setStaffNotes("");
+    setSearch("");
+    setSelectedPatient(null);
+    setRequestedDate("");
+    setConfirmedDate("");
+    setStaffNotes("");
   };
 
   if (!open) {
     return (
-      <Button size="sm" onClick={() => setOpen(true)} className="h-9 gap-1.5 rounded-xl">
+      <Button
+        size="sm"
+        onClick={() => setOpen(true)}
+        className="h-9 gap-1.5 rounded-xl"
+      >
         <Plus className="size-4" />
         إضافة حجز
       </Button>
@@ -487,9 +579,17 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
   }
 
   return (
-    <article className="rounded-2xl border border-blue-200 bg-blue-50/40 p-4 shadow-sm" dir="rtl">
+    <article
+      className="rounded-2xl border border-blue-200 bg-blue-50/40 p-4 shadow-sm"
+      dir="rtl"
+    >
       <div className="mb-4 flex items-center justify-between">
-        <Button size="sm" variant="ghost" className="h-7 w-7 rounded-lg p-0" onClick={reset}>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 w-7 rounded-lg p-0"
+          onClick={reset}
+        >
           <X className="size-3.5" />
         </Button>
         <p className="text-sm font-semibold text-slate-900">إضافة حجز للمريض</p>
@@ -501,11 +601,20 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
           <label className="text-xs font-medium text-slate-500">المريض</label>
           {selectedPatient ? (
             <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5">
-              <button type="button" onClick={() => { setSelectedPatient(null); setSearch(""); }} className="text-slate-400 hover:text-slate-600">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPatient(null);
+                  setSearch("");
+                }}
+                className="text-slate-400 hover:text-slate-600"
+              >
                 <X className="size-3.5" />
               </button>
               <div className="text-right">
-                <p className="text-sm font-semibold text-slate-900">{selectedPatient.name}</p>
+                <p className="text-sm font-semibold text-slate-900">
+                  {selectedPatient.name}
+                </p>
                 <p className="text-xs text-slate-500">{selectedPatient.code}</p>
               </div>
             </div>
@@ -515,7 +624,10 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
                 <Search className="pointer-events-none absolute right-3 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
                 <Input
                   value={search}
-                  onChange={(e) => { setSearch(e.target.value); setShowDropdown(true); }}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setShowDropdown(true);
+                  }}
                   onFocus={() => setShowDropdown(true)}
                   placeholder="اسم المريض أو الكود أو الموبايل..."
                   className="h-10 rounded-xl border-slate-200 bg-white pr-9 text-sm"
@@ -528,10 +640,22 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
                       key={p.id}
                       type="button"
                       className="flex w-full items-center justify-between px-3 py-2.5 text-right transition-colors hover:bg-slate-50"
-                      onClick={() => { setSelectedPatient({ id: p.id, name: p.fullName, code: p.patientCode ?? "" }); setSearch(""); setShowDropdown(false); }}
+                      onClick={() => {
+                        setSelectedPatient({
+                          id: p.id,
+                          name: p.fullName,
+                          code: p.patientCode ?? "",
+                        });
+                        setSearch("");
+                        setShowDropdown(false);
+                      }}
                     >
-                      <span className="text-xs text-slate-400">{p.patientCode}</span>
-                      <span className="text-sm font-medium text-slate-900">{p.fullName}</span>
+                      <span className="text-xs text-slate-400">
+                        {p.patientCode}
+                      </span>
+                      <span className="text-sm font-medium text-slate-900">
+                        {p.fullName}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -542,7 +666,9 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
 
         {/* Booking type */}
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-slate-500">نوع الحجز</label>
+          <label className="text-xs font-medium text-slate-500">
+            نوع الحجز
+          </label>
           <div className="grid grid-cols-2 gap-2">
             {STAFF_BOOKING_TYPES.map((t) => (
               <button
@@ -564,18 +690,36 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
 
         {/* Dates */}
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-slate-500">تاريخ الموعد</label>
-          <Input type="date" value={requestedDate} onChange={(e) => setRequestedDate(e.target.value)} className="h-10 rounded-xl border-slate-200 bg-white text-sm" dir="ltr" />
+          <label className="text-xs font-medium text-slate-500">
+            تاريخ الموعد
+          </label>
+          <Input
+            type="date"
+            value={requestedDate}
+            onChange={(e) => setRequestedDate(e.target.value)}
+            className="h-10 rounded-xl border-slate-200 bg-white text-sm"
+            dir="ltr"
+          />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-slate-500">تاريخ مؤكد (اختياري)</label>
-          <Input type="date" value={confirmedDate} onChange={(e) => setConfirmedDate(e.target.value)} className="h-10 rounded-xl border-slate-200 bg-white text-sm" dir="ltr" />
+          <label className="text-xs font-medium text-slate-500">
+            تاريخ مؤكد (اختياري)
+          </label>
+          <Input
+            type="date"
+            value={confirmedDate}
+            onChange={(e) => setConfirmedDate(e.target.value)}
+            className="h-10 rounded-xl border-slate-200 bg-white text-sm"
+            dir="ltr"
+          />
         </div>
 
         {/* Notes */}
         <div className="space-y-1.5 lg:col-span-2">
-          <label className="text-xs font-medium text-slate-500">ملاحظات للمريض (اختياري)</label>
+          <label className="text-xs font-medium text-slate-500">
+            ملاحظات للمريض (اختياري)
+          </label>
           <textarea
             value={staffNotes}
             onChange={(e) => setStaffNotes(e.target.value)}
@@ -590,19 +734,28 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
         <Button
           size="sm"
           disabled={!canSubmit}
-          onClick={() => create.mutate({
-            patientId: selectedPatient!.id,
-            bookingType,
-            requestedDate,
-            confirmedDate: confirmedDate || undefined,
-            status: "confirmed",
-            staffNotes: staffNotes || undefined,
-          })}
+          onClick={() =>
+            create.mutate({
+              patientId: selectedPatient!.id,
+              bookingType,
+              requestedDate,
+              confirmedDate: confirmedDate || undefined,
+              status: "confirmed",
+              staffNotes: staffNotes || undefined,
+            })
+          }
           className="rounded-xl"
         >
           {create.isPending ? "جاري الحفظ..." : "حفظ الحجز"}
         </Button>
-        <Button size="sm" variant="outline" onClick={reset} className="rounded-xl border-slate-200">إلغاء</Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={reset}
+          className="rounded-xl border-slate-200"
+        >
+          إلغاء
+        </Button>
       </div>
     </article>
   );
@@ -621,37 +774,54 @@ function ClosuresPanel() {
   const [label, setLabel] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [bookingType, setBookingType] = useState("");
+  const [bookingType, setBookingType] = useState<"" | BookingType>("");
   const [adding, setAdding] = useState(false);
 
-  const { data: closures, refetch } = trpc.patientPortal.listClosures.useQuery();
+  const { data: closures, refetch } =
+    trpc.patientPortal.listClosures.useQuery();
 
   const add = trpc.patientPortal.addClosure.useMutation({
     onSuccess: () => {
       toast.success("تمت إضافة فترة الإغلاق");
-      setLabel(""); setStartDate(""); setEndDate(""); setBookingType(""); setAdding(false);
+      setLabel("");
+      setStartDate("");
+      setEndDate("");
+      setBookingType("");
+      setAdding(false);
       void refetch();
     },
     onError: (e) => toast.error(e.message),
   });
 
   const del = trpc.patientPortal.deleteClosure.useMutation({
-    onSuccess: () => { toast.success("تم الحذف"); void refetch(); },
+    onSuccess: () => {
+      toast.success("تم الحذف");
+      void refetch();
+    },
     onError: (e) => toast.error(e.message),
   });
 
   const fmt = (d: string | Date | null) => {
     if (!d) return "—";
-    const s = typeof d === "string" ? d : (d as Date).toISOString().slice(0, 10);
-    return new Date(s + "T00:00:00").toLocaleDateString("ar-EG", { day: "numeric", month: "long", year: "numeric" });
+    const s =
+      typeof d === "string" ? d : (d as Date).toISOString().slice(0, 10);
+    return new Date(s + "T00:00:00").toLocaleDateString("ar-EG", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
   };
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-slate-900">فترات الإجازة والإغلاق</p>
-          <p className="mt-0.5 text-xs text-slate-500">التواريخ المحددة هنا لن تظهر للمرضى كمواعيد متاحة.</p>
+          <p className="text-sm font-semibold text-slate-900">
+            فترات الإجازة والإغلاق
+          </p>
+          <p className="mt-0.5 text-xs text-slate-500">
+            التواريخ المحددة هنا لن تظهر للمرضى كمواعيد متاحة.
+          </p>
         </div>
         <button
           type="button"
@@ -667,7 +837,9 @@ function ClosuresPanel() {
         <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-3 space-y-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="sm:col-span-2 space-y-1">
-              <label className="text-xs font-medium text-slate-500">الوصف (مثل: إجازة د. أحمد)</label>
+              <label className="text-xs font-medium text-slate-500">
+                الوصف (مثل: إجازة د. أحمد)
+              </label>
               <input
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
@@ -676,13 +848,15 @@ function ClosuresPanel() {
               />
             </div>
             <div className="sm:col-span-2 space-y-1">
-              <label className="text-xs font-medium text-slate-500">نوع الحجز المتأثر</label>
+              <label className="text-xs font-medium text-slate-500">
+                نوع الحجز المتأثر
+              </label>
               <div className="flex flex-wrap gap-2">
                 {CLOSURE_TYPES.map((t) => (
                   <button
                     key={t.value}
                     type="button"
-                    onClick={() => setBookingType(t.value)}
+                    onClick={() => setBookingType(t.value as BookingType)}
                     className={cn(
                       "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
                       bookingType === t.value
@@ -697,51 +871,115 @@ function ClosuresPanel() {
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-slate-500">من</label>
-              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-9 rounded-xl text-sm" dir="ltr" />
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="h-9 rounded-xl text-sm"
+                dir="ltr"
+              />
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-slate-500">إلى</label>
-              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-9 rounded-xl text-sm" dir="ltr" />
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="h-9 rounded-xl text-sm"
+                dir="ltr"
+              />
             </div>
             <div className="sm:col-span-2 flex gap-2">
               <Button
                 size="sm"
                 disabled={!label || !startDate || !endDate || add.isPending}
-                onClick={() => add.mutate({ label, startDate, endDate, bookingType: bookingType || null })}
+                onClick={() =>
+                  add.mutate({
+                    label,
+                    startDate,
+                    endDate,
+                    bookingType: bookingType || null,
+                  })
+                }
                 className="rounded-xl"
               >
                 {add.isPending ? "..." : "حفظ"}
               </Button>
-              <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setAdding(false)}>إلغاء</Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => setAdding(false)}
+              >
+                إلغاء
+              </Button>
             </div>
           </div>
         </div>
       )}
 
       {!closures || closures.length === 0 ? (
-        <p className="text-xs text-slate-400 text-center py-2">لا توجد فترات إغلاق مضافة.</p>
+        <p className="text-xs text-slate-400 text-center py-2">
+          لا توجد فترات إغلاق مضافة.
+        </p>
       ) : (
         <div className="space-y-2">
           {closures.map((c) => {
-            const start = typeof c.startDate === "string" ? c.startDate : (c.startDate as Date).toISOString().slice(0, 10);
-            const end = typeof c.endDate === "string" ? c.endDate : (c.endDate as Date).toISOString().slice(0, 10);
+            const start =
+              typeof c.startDate === "string"
+                ? c.startDate
+                : (c.startDate as Date).toISOString().slice(0, 10);
+            const end =
+              typeof c.endDate === "string"
+                ? c.endDate
+                : (c.endDate as Date).toISOString().slice(0, 10);
             const today = new Date().toISOString().slice(0, 10);
             const isActive = today >= start && today <= end;
             const isPast = today > end;
             return (
-              <div key={c.id} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-                <BanIcon className={cn("size-4 shrink-0", isActive ? "text-red-500" : isPast ? "text-slate-300" : "text-amber-400")} />
+              <div
+                key={c.id}
+                className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5"
+              >
+                <BanIcon
+                  className={cn(
+                    "size-4 shrink-0",
+                    isActive
+                      ? "text-red-500"
+                      : isPast
+                        ? "text-slate-300"
+                        : "text-amber-400",
+                  )}
+                />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className={cn("text-sm font-medium", isPast ? "text-slate-400 line-through" : "text-slate-800")}>{c.label}</p>
-                    <span className={cn(
-                      "rounded-full border px-2 py-0.5 text-[11px] font-medium",
-                      c.bookingType ? "border-blue-200 bg-blue-50 text-blue-700" : "border-slate-200 bg-slate-100 text-slate-500"
-                    )}>
-                      {c.bookingType ? CLOSURE_TYPES.find((t) => t.value === c.bookingType)?.label : "كل الأنواع"}
+                    <p
+                      className={cn(
+                        "text-sm font-medium",
+                        isPast
+                          ? "text-slate-400 line-through"
+                          : "text-slate-800",
+                      )}
+                    >
+                      {c.label}
+                    </p>
+                    <span
+                      className={cn(
+                        "rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                        c.bookingType
+                          ? "border-blue-200 bg-blue-50 text-blue-700"
+                          : "border-slate-200 bg-slate-100 text-slate-500",
+                      )}
+                    >
+                      {c.bookingType
+                        ? CLOSURE_TYPES.find((t) => t.value === c.bookingType)
+                            ?.label
+                        : "كل الأنواع"}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500" dir="ltr">{fmt(c.startDate)} → {fmt(c.endDate)}</p>
+                  <p className="text-xs text-slate-500" dir="ltr">
+                    {fmt(c.startDate)} → {fmt(c.endDate)}
+                  </p>
                 </div>
                 {isActive && (
                   <span className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-600">
@@ -769,7 +1007,10 @@ function LoadingQueue() {
   return (
     <div className="space-y-3">
       {Array.from({ length: 3 }).map((_, index) => (
-        <div key={index} className="animate-pulse rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div
+          key={index}
+          className="animate-pulse rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+        >
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-2">
               <div className="h-4 w-40 rounded-full bg-slate-100" />
@@ -788,12 +1029,18 @@ function ScheduleLoading() {
   return (
     <div className="space-y-3">
       {Array.from({ length: 4 }).map((_, index) => (
-        <div key={index} className="animate-pulse rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div
+          key={index}
+          className="animate-pulse rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+        >
           <div className="h-5 w-44 rounded-full bg-slate-100" />
           <div className="mt-3 h-4 w-full rounded-full bg-slate-100" />
           <div className="mt-3 flex gap-2">
             {Array.from({ length: 5 }).map((__, chipIndex) => (
-              <div key={chipIndex} className="h-8 w-16 rounded-full bg-slate-100" />
+              <div
+                key={chipIndex}
+                className="h-8 w-16 rounded-full bg-slate-100"
+              />
             ))}
           </div>
         </div>
@@ -806,7 +1053,9 @@ export default function AdminPortalBookings() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("");
   const [dateFilter, setDateFilter] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState<"bookings" | "schedule">("bookings");
+  const [activeTab, setActiveTab] = useState<"bookings" | "schedule">(
+    "bookings",
+  );
 
   const bookingsQuery = trpc.patientPortal.listBookings.useQuery({
     status: statusFilter || undefined,
@@ -843,9 +1092,12 @@ export default function AdminPortalBookings() {
   const stats = useMemo(
     () => ({
       total: filteredBookings.length,
-      pending: filteredBookings.filter((item) => item.status === "pending").length,
-      confirmed: filteredBookings.filter((item) => item.status === "confirmed").length,
-      cancelled: filteredBookings.filter((item) => item.status === "cancelled").length,
+      pending: filteredBookings.filter((item) => item.status === "pending")
+        .length,
+      confirmed: filteredBookings.filter((item) => item.status === "confirmed")
+        .length,
+      cancelled: filteredBookings.filter((item) => item.status === "cancelled")
+        .length,
     }),
     [filteredBookings],
   );
@@ -885,8 +1137,12 @@ export default function AdminPortalBookings() {
                 key={item.label}
                 className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
               >
-                <p className="text-[11px] font-medium text-slate-500">{item.label}</p>
-                <p className="mt-1 text-lg font-semibold text-slate-900">{item.value}</p>
+                <p className="text-[11px] font-medium text-slate-500">
+                  {item.label}
+                </p>
+                <p className="mt-1 text-lg font-semibold text-slate-900">
+                  {item.value}
+                </p>
               </div>
             ))}
           </div>
@@ -913,30 +1169,30 @@ export default function AdminPortalBookings() {
             </div>
 
             <div className="flex flex-wrap items-center justify-end gap-2">
-            <div className="inline-flex rounded-2xl border border-slate-200 bg-slate-50 p-1">
-              {[
-                { key: "bookings", label: "الحجوزات", icon: CalendarDays },
-                { key: "schedule", label: "جدول الأوقات", icon: Settings2 },
-              ].map(({ key, label, icon: Icon }) => {
-                const active = activeTab === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setActiveTab(key as typeof activeTab)}
-                    className={cn(
-                      "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors",
-                      active
-                        ? "bg-white text-slate-900 shadow-sm"
-                        : "text-slate-500 hover:text-slate-900",
-                    )}
-                  >
-                    <Icon className="size-4" />
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
+              <div className="inline-flex rounded-2xl border border-slate-200 bg-slate-50 p-1">
+                {[
+                  { key: "bookings", label: "الحجوزات", icon: CalendarDays },
+                  { key: "schedule", label: "جدول الأوقات", icon: Settings2 },
+                ].map(({ key, label, icon: Icon }) => {
+                  const active = activeTab === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setActiveTab(key as typeof activeTab)}
+                      className={cn(
+                        "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors",
+                        active
+                          ? "bg-white text-slate-900 shadow-sm"
+                          : "text-slate-500 hover:text-slate-900",
+                      )}
+                    >
+                      <Icon className="size-4" />
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
 
               <div className="flex flex-wrap justify-end gap-2">
                 {STATUS_OPTS.map((option) => {
@@ -945,7 +1201,9 @@ export default function AdminPortalBookings() {
                     <button
                       key={option.value}
                       type="button"
-                      onClick={() => setStatusFilter(option.value as StatusFilter)}
+                      onClick={() =>
+                        setStatusFilter(option.value as StatusFilter)
+                      }
                       className={cn(
                         "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                         active
@@ -968,9 +1226,21 @@ export default function AdminPortalBookings() {
               <SlidersHorizontal className="size-3.5" />
               فلاتر مفعلة
             </span>
-            {searchTerm ? <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-700">بحث: {searchTerm}</span> : null}
-            {dateFilter ? <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-700">تاريخ: {dateFilter}</span> : null}
-            {statusFilter ? <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-700">{STATUS_OPTS.find((item) => item.value === statusFilter)?.label}</span> : null}
+            {searchTerm ? (
+              <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-700">
+                بحث: {searchTerm}
+              </span>
+            ) : null}
+            {dateFilter ? (
+              <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-700">
+                تاريخ: {dateFilter}
+              </span>
+            ) : null}
+            {statusFilter ? (
+              <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-700">
+                {STATUS_OPTS.find((item) => item.value === statusFilter)?.label}
+              </span>
+            ) : null}
             <Button
               size="sm"
               variant="ghost"
@@ -996,22 +1266,35 @@ export default function AdminPortalBookings() {
           {bookingsQuery.error ? (
             <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-5 text-right text-red-800 shadow-sm">
               <p className="text-sm font-semibold">تعذر تحميل الحجوزات</p>
-              <p className="mt-1 text-sm leading-6 text-red-700">{bookingsQuery.error.message}</p>
+              <p className="mt-1 text-sm leading-6 text-red-700">
+                {bookingsQuery.error.message}
+              </p>
             </div>
           ) : null}
 
-          {!bookingsQuery.isLoading && !bookingsQuery.error && filteredBookings.length === 0 ? (
+          {!bookingsQuery.isLoading &&
+          !bookingsQuery.error &&
+          filteredBookings.length === 0 ? (
             <div className="rounded-2xl border border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
               <CalendarDays className="mx-auto size-10 text-slate-300" />
-              <h3 className="mt-4 text-base font-semibold text-slate-900">لا توجد حجوزات مطابقة</h3>
+              <h3 className="mt-4 text-base font-semibold text-slate-900">
+                لا توجد حجوزات مطابقة
+              </h3>
               <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-500">
-                جرّب توسيع الفلاتر أو مسح البحث. إذا كان الهدف مراجعة الجدول، انتقل إلى تبويب جدول الأوقات.
+                جرّب توسيع الفلاتر أو مسح البحث. إذا كان الهدف مراجعة الجدول،
+                انتقل إلى تبويب جدول الأوقات.
               </p>
             </div>
           ) : null}
 
           {!bookingsQuery.isLoading && !bookingsQuery.error
-            ? filteredBookings.map((booking) => <BookingCard key={booking.id} booking={booking} onUpdated={() => void bookingsQuery.refetch()} />)
+            ? filteredBookings.map((booking) => (
+                <BookingCard
+                  key={booking.id}
+                  booking={booking}
+                  onUpdated={() => void bookingsQuery.refetch()}
+                />
+              ))
             : null}
         </section>
       ) : null}
@@ -1023,28 +1306,40 @@ export default function AdminPortalBookings() {
           {scheduleQuery.error ? (
             <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-5 text-right text-red-800 shadow-sm">
               <p className="text-sm font-semibold">تعذر تحميل الجدول</p>
-              <p className="mt-1 text-sm leading-6 text-red-700">{scheduleQuery.error.message}</p>
+              <p className="mt-1 text-sm leading-6 text-red-700">
+                {scheduleQuery.error.message}
+              </p>
             </div>
           ) : null}
 
-          {!scheduleQuery.isLoading && !scheduleQuery.error && scheduleQuery.data ? (
+          {!scheduleQuery.isLoading &&
+          !scheduleQuery.error &&
+          scheduleQuery.data ? (
             <div className="space-y-3">
               <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">جدول الأوقات</p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      جدول الأوقات
+                    </p>
                     <p className="mt-1 text-sm leading-6 text-slate-500">
-                      الأيام النشطة هنا تتحكم مباشرة في ما يظهر للمريض داخل بوابة الحجز.
+                      الأيام النشطة هنا تتحكم مباشرة في ما يظهر للمريض داخل
+                      بوابة الحجز.
                     </p>
                   </div>
                   <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
-                    {scheduleQuery.data.filter((row) => row.isActive).length} مفعل
+                    {scheduleQuery.data.filter((row) => row.isActive).length}{" "}
+                    مفعل
                   </span>
                 </div>
               </div>
 
               {scheduleQuery.data.map((row) => (
-                <ScheduleRowCard key={row.bookingType} row={row} onSaved={() => void scheduleQuery.refetch()} />
+                <ScheduleRowCard
+                  key={row.bookingType}
+                  row={row}
+                  onSaved={() => void scheduleQuery.refetch()}
+                />
               ))}
 
               <ClosuresPanel />

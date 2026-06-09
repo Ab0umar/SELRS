@@ -1,30 +1,30 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Terminal, Send, X, Zap, CheckCircle, AlertCircle } from 'lucide-react';
-import { trpc } from '@/lib/trpc';
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Terminal, Send, X, Zap, CheckCircle, AlertCircle } from "lucide-react";
+import { trpc } from "@/lib/trpc";
 
 const tRPC = trpc as any;
 
 interface LogEntry {
   id: number;
   timestamp: Date;
-  type: 'command' | 'response' | 'error';
+  type: "command" | "response" | "error";
   message: string;
 }
 
 export default function DeviceConsole() {
   const queryClient = useQueryClient();
-  const [commandInput, setCommandInput] = useState('');
+  const [commandInput, setCommandInput] = useState("");
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [logId, setLogId] = useState(1);
-  const [diagnosticIP, setDiagnosticIP] = useState('192.168.1.100');
-  const [diagnosticPort, setDiagnosticPort] = useState('5005');
+  const [diagnosticIP, setDiagnosticIP] = useState("192.168.1.100");
+  const [diagnosticPort, setDiagnosticPort] = useState("5005");
 
-  const addLog = (type: 'command' | 'response' | 'error', message: string) => {
+  const addLog = (type: "command" | "response" | "error", message: string) => {
     setLogs((prev) => [
       { id: logId, timestamp: new Date(), type, message },
       ...prev.slice(0, 99), // Keep last 100 logs
@@ -37,34 +37,40 @@ export default function DeviceConsole() {
   });
 
   const sendCommand = useMutation({
-    mutationFn: (hex: string) => tRPC.attendance.sendDeviceCommand.mutate({ hex }),
+    mutationFn: (hex: string) =>
+      tRPC.attendance.sendDeviceCommand.mutate({ hex }),
     onSuccess: (result: any) => {
-      addLog('command', `Sent: ${commandInput}`);
-      addLog('response', result.success ? 'Command sent successfully' : `Error: ${result.error}`);
-      setCommandInput('');
+      addLog("command", `Sent: ${commandInput}`);
+      addLog(
+        "response",
+        result.success ? "Command sent successfully" : `Error: ${result.error}`,
+      );
+      setCommandInput("");
     },
     onError: (error: any) => {
-      addLog('error', `Failed to send: ${error.message}`);
+      addLog("error", `Failed to send: ${error.message}`);
     },
   });
 
   const requestStatus = useMutation({
-    mutationFn: () => tRPC.attendance.sendDeviceCommand.mutate({ hex: 'AABB0000' }),
+    mutationFn: () =>
+      tRPC.attendance.sendDeviceCommand.mutate({ hex: "AABB0000" }),
     onSuccess: () => {
-      addLog('command', 'Requested device status');
+      addLog("command", "Requested device status");
     },
     onError: (error: any) => {
-      addLog('error', `Failed: ${error.message}`);
+      addLog("error", `Failed: ${error.message}`);
     },
   });
 
   const requestEmployeeData = useMutation({
-    mutationFn: () => tRPC.attendance.sendDeviceCommand.mutate({ hex: 'AABB0100' }),
+    mutationFn: () =>
+      tRPC.attendance.sendDeviceCommand.mutate({ hex: "AABB0100" }),
     onSuccess: () => {
-      addLog('command', 'Requested employee data');
+      addLog("command", "Requested employee data");
     },
     onError: (error: any) => {
-      addLog('error', `Failed: ${error.message}`);
+      addLog("error", `Failed: ${error.message}`);
     },
   });
 
@@ -75,23 +81,29 @@ export default function DeviceConsole() {
         port: parseInt(diagnosticPort) || 5005,
       }),
     onSuccess: (result: any) => {
-      addLog('command', `Running diagnostics on ${diagnosticIP}:${diagnosticPort}`);
+      addLog(
+        "command",
+        `Running diagnostics on ${diagnosticIP}:${diagnosticPort}`,
+      );
       if (result.success) {
-        addLog('response', '✓ All diagnostic tests passed!');
+        addLog("response", "✓ All diagnostic tests passed!");
         result.results.forEach((r: any) => {
-          addLog('response', `${r.success ? '✓' : '✗'} ${r.test}: ${r.message}`);
+          addLog(
+            "response",
+            `${r.success ? "✓" : "✗"} ${r.test}: ${r.message}`,
+          );
         });
       } else {
-        addLog('error', '✗ Some diagnostic tests failed');
+        addLog("error", "✗ Some diagnostic tests failed");
         result.results.forEach((r: any) => {
           if (!r.success) {
-            addLog('error', `${r.test}: ${r.message}`);
+            addLog("error", `${r.test}: ${r.message}`);
           }
         });
       }
     },
     onError: (error: any) => {
-      addLog('error', `Diagnostics failed: ${error.message}`);
+      addLog("error", `Diagnostics failed: ${error.message}`);
     },
   });
 
@@ -105,12 +117,12 @@ export default function DeviceConsole() {
 
     // Validate hex format
     if (!/^[0-9A-Fa-f]*$/.test(commandInput)) {
-      addLog('error', 'Invalid hex format. Use 0-9, A-F only.');
+      addLog("error", "Invalid hex format. Use 0-9, A-F only.");
       return;
     }
 
     if (commandInput.length % 2 !== 0) {
-      addLog('error', 'Hex string must have even length (pairs of bytes).');
+      addLog("error", "Hex string must have even length (pairs of bytes).");
       return;
     }
 
@@ -140,14 +152,18 @@ export default function DeviceConsole() {
             </div>
             <div>
               <p className="text-gray-600">Total Punches</p>
-              <p className="font-mono">{deviceStatusQuery.data?.punchCount ?? 0}</p>
+              <p className="font-mono">
+                {deviceStatusQuery.data?.punchCount ?? 0}
+              </p>
             </div>
             <div>
               <p className="text-gray-600">Last Punch</p>
               <p className="font-mono text-xs">
                 {deviceStatusQuery.data?.lastPunch
-                  ? new Date(deviceStatusQuery.data.lastPunch).toLocaleTimeString()
-                  : 'Never'}
+                  ? new Date(
+                      deviceStatusQuery.data.lastPunch,
+                    ).toLocaleTimeString()
+                  : "Never"}
               </p>
             </div>
           </div>
@@ -167,7 +183,7 @@ export default function DeviceConsole() {
               variant="outline"
               className="text-xs"
             >
-              {requestStatus.isPending ? 'Sending...' : 'Query Status'}
+              {requestStatus.isPending ? "Sending..." : "Query Status"}
             </Button>
             <Button
               onClick={() => requestEmployeeData.mutate()}
@@ -175,7 +191,7 @@ export default function DeviceConsole() {
               variant="outline"
               className="text-xs"
             >
-              {requestEmployeeData.isPending ? 'Sending...' : 'Get Employees'}
+              {requestEmployeeData.isPending ? "Sending..." : "Get Employees"}
             </Button>
           </div>
           <div className="text-xs text-gray-600">
@@ -193,7 +209,9 @@ export default function DeviceConsole() {
         <CardContent>
           <form onSubmit={handleSendCommand} className="space-y-3">
             <div>
-              <label className="block text-sm font-medium mb-2">Hex String (uppercase, no spaces)</label>
+              <label className="block text-sm font-medium mb-2">
+                Hex String (uppercase, no spaces)
+              </label>
               <Input
                 type="text"
                 value={commandInput}
@@ -206,9 +224,13 @@ export default function DeviceConsole() {
                 Example: AABB1234 (8 characters = 4 bytes)
               </p>
             </div>
-            <Button type="submit" disabled={sendCommand.isPending || !commandInput.trim()} className="w-full">
+            <Button
+              type="submit"
+              disabled={sendCommand.isPending || !commandInput.trim()}
+              className="w-full"
+            >
               <Send className="w-4 h-4 mr-2" />
-              {sendCommand.isPending ? 'Sending...' : 'Send Command'}
+              {sendCommand.isPending ? "Sending..." : "Send Command"}
             </Button>
           </form>
         </CardContent>
@@ -225,7 +247,9 @@ export default function DeviceConsole() {
         <CardContent className="space-y-3">
           <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="block text-xs font-medium mb-1">Device IP</label>
+              <label className="block text-xs font-medium mb-1">
+                Device IP
+              </label>
               <Input
                 type="text"
                 value={diagnosticIP}
@@ -251,12 +275,13 @@ export default function DeviceConsole() {
                 className="w-full"
               >
                 <Zap className="w-4 h-4 mr-1" />
-                {runDiagnostics.isPending ? 'Testing...' : 'Run Tests'}
+                {runDiagnostics.isPending ? "Testing..." : "Run Tests"}
               </Button>
             </div>
           </div>
           <p className="text-xs text-gray-600">
-            Tests TCP connectivity, device response, and adapter status. Helps diagnose connection issues.
+            Tests TCP connectivity, device response, and adapter status. Helps
+            diagnose connection issues.
           </p>
         </CardContent>
       </Card>
@@ -289,11 +314,19 @@ export default function DeviceConsole() {
             <div className="bg-gray-900 text-gray-100 p-4 rounded font-mono text-xs space-y-1 max-h-96 overflow-y-auto">
               {logs.map((log) => (
                 <div key={log.id}>
-                  <span className="text-gray-500">{log.timestamp.toLocaleTimeString()}</span>
+                  <span className="text-gray-500">
+                    {log.timestamp.toLocaleTimeString()}
+                  </span>
                   <span className="ml-2">
-                    {log.type === 'command' && <span className="text-primary">[CMD]</span>}
-                    {log.type === 'response' && <span className="text-success">[RES]</span>}
-                    {log.type === 'error' && <span className="text-destructive">[ERR]</span>}
+                    {log.type === "command" && (
+                      <span className="text-primary">[CMD]</span>
+                    )}
+                    {log.type === "response" && (
+                      <span className="text-success">[RES]</span>
+                    )}
+                    {log.type === "error" && (
+                      <span className="text-destructive">[ERR]</span>
+                    )}
                   </span>
                   <span className="ml-2">{log.message}</span>
                 </div>

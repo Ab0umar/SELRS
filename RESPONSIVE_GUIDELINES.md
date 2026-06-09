@@ -4,16 +4,17 @@
 
 SRV100 is tested and optimized for these device widths:
 
-| Breakpoint | Width | Device | UI Mode | Priority |
-|------------|-------|--------|---------|----------|
-| `xs` | 320px | iPhone SE (compat) | Mobile cards | Critical |
-| `sm` | 360px | Android 5.5" (common) | Mobile cards | Critical |
-| `sm+` | 390px | iPhone 12 Pro | Mobile cards | Critical |
-| `md` | 430px | iPhone Max | Mobile cards | Critical |
-| `tablet` | 640px | iPad mini | Hybrid | High |
-| `lg` | 1024px+ | Desktop | Table/Grid | High |
+| Breakpoint | Width   | Device                | UI Mode      | Priority |
+| ---------- | ------- | --------------------- | ------------ | -------- |
+| `xs`       | 320px   | iPhone SE (compat)    | Mobile cards | Critical |
+| `sm`       | 360px   | Android 5.5" (common) | Mobile cards | Critical |
+| `sm+`      | 390px   | iPhone 12 Pro         | Mobile cards | Critical |
+| `md`       | 430px   | iPhone Max            | Mobile cards | Critical |
+| `tablet`   | 640px   | iPad mini             | Hybrid       | High     |
+| `lg`       | 1024px+ | Desktop               | Table/Grid   | High     |
 
 **Breakpoints used in Tailwind:**
+
 - `sm`: 640px (default Tailwind)
 - `md`: 768px (default Tailwind, rarely used)
 - `lg`: 1024px (default Tailwind)
@@ -25,64 +26,73 @@ SRV100 is tested and optimized for these device widths:
 ### Mobile-First Grid System
 
 #### Patient Cards (Admin Patients)
+
 ```tailwind
 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4
 gap-1 sm:gap-1.5 md:gap-2
 ```
 
-| Width | Cols | Gap | Card Width |
-|-------|------|-----|-----------|
-| 320px | 2 | 4px | ~144px |
-| 360px | 2 | 4px | ~164px |
-| 390px | 2 | 6px | ~174px |
-| 430px | 2 | 6px | ~194px |
-| 640px | 3 | 6px | ~198px |
-| 1024px | 4 | 8px | ~232px |
+| Width  | Cols | Gap | Card Width |
+| ------ | ---- | --- | ---------- |
+| 320px  | 2    | 4px | ~144px     |
+| 360px  | 2    | 4px | ~164px     |
+| 390px  | 2    | 6px | ~174px     |
+| 430px  | 2    | 6px | ~194px     |
+| 640px  | 3    | 6px | ~198px     |
+| 1024px | 4    | 8px | ~232px     |
 
 #### Stats Banners (Dashboard)
+
 ```tailwind
 grid grid-cols-2 sm:grid-cols-4
 gap-1 sm:gap-1.5
 ```
 
-| Width | Cols | Gap | Stat Width |
-|-------|------|-----|-----------|
-| 320px | 2 | 4px | ~150px |
-| 360px | 2 | 4px | ~170px |
-| 640px | 4 | 6px | ~151px |
-| 1024px | 4 | 8px | ~224px |
+| Width  | Cols | Gap | Stat Width |
+| ------ | ---- | --- | ---------- |
+| 320px  | 2    | 4px | ~150px     |
+| 360px  | 2    | 4px | ~170px     |
+| 640px  | 4    | 6px | ~151px     |
+| 1024px | 4    | 8px | ~224px     |
 
 ### Typography Scaling
+
 ```tailwind
 text-[10px] sm:text-[11px] sm:text-sm md:text-base
 ```
 
-| Width | Body | Labels | Headers |
-|-------|------|--------|---------|
-| 320px | 12px | 10px | 14px |
-| 640px | 14px | 12px | 16px |
-| 1024px | 16px | 13px | 18px |
+| Width  | Body | Labels | Headers |
+| ------ | ---- | ------ | ------- |
+| 320px  | 12px | 10px   | 14px    |
+| 640px  | 14px | 12px   | 16px    |
+| 1024px | 16px | 13px   | 18px    |
 
 ### Spacing System
 
 #### Mobile Padding (xs, sm, sm+, md)
+
 ```tailwind
 px-2 py-1.5 sm:px-3 sm:py-2
 ```
+
 - **Horizontal:** 8px base, 12px on sm
 - **Vertical:** 6px base, 8px on sm
 
 #### Desktop Padding (lg)
+
 ```tailwind
 px-4 py-3
 ```
+
 - **Horizontal:** 16px
 - **Vertical:** 12px
 
 #### Gaps
+
 ```tailwind
 gap-1 sm:gap-1.5 md:gap-2
 ```
+
 - **Mobile:** 4px
 - **Tablet (sm):** 6px
 - **Desktop (md):** 8px
@@ -90,6 +100,7 @@ gap-1 sm:gap-1.5 md:gap-2
 ## Component Rules
 
 ### Select/Input Min-Width
+
 **Rule:** Allow inputs to shrink below 120px on mobile
 
 ```tailwind
@@ -100,13 +111,14 @@ gap-1 sm:gap-1.5 md:gap-2
 <SelectTrigger className="min-w-[100px] sm:min-w-[120px] rounded-lg">
 ```
 
-| Component | Width 320px | Width 640px | Width 1024px |
-|-----------|------------|------------|-------------|
-| Month select | 100px | 120px | 120px |
-| Year select | 80px | 94px | 94px |
-| Size select | 100px | 120px | 120px |
+| Component    | Width 320px | Width 640px | Width 1024px |
+| ------------ | ----------- | ----------- | ------------ |
+| Month select | 100px       | 120px       | 120px        |
+| Year select  | 80px        | 94px        | 94px         |
+| Size select  | 100px       | 120px       | 120px        |
 
 ### Button Text Sizing
+
 ```tailwind
 // WRONG - Same font size everywhere
 <Button className="text-sm">Long Arabic Text</Button>
@@ -115,13 +127,14 @@ gap-1 sm:gap-1.5 md:gap-2
 <Button className="text-xs sm:text-sm">مزامنة الكتالوج</Button>
 ```
 
-| Width | Text Size | Button Height |
-|-------|-----------|---------------|
-| 320px | 12px | 32px |
-| 640px | 14px | 36px |
-| 1024px | 14px | 36px |
+| Width  | Text Size | Button Height |
+| ------ | --------- | ------------- |
+| 320px  | 12px      | 32px          |
+| 640px  | 14px      | 36px          |
+| 1024px | 14px      | 36px          |
 
 ### Dialog Height
+
 **Rule:** Max-height must account for mobile headers and footers
 
 ```tailwind
@@ -129,13 +142,14 @@ gap-1 sm:gap-1.5 md:gap-2
 <DialogContent className="max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
 ```
 
-| Width | Max Height | Space for Controls |
-|-------|-----------|------------------|
-| 320px | 85vh | 15% (status bar, keyboard) |
-| 640px | 90vh | 10% (header bar) |
-| 1024px | 95vh | 5% (minimal) |
+| Width  | Max Height | Space for Controls         |
+| ------ | ---------- | -------------------------- |
+| 320px  | 85vh       | 15% (status bar, keyboard) |
+| 640px  | 90vh       | 10% (header bar)           |
+| 1024px | 95vh       | 5% (minimal)               |
 
 ### Toolbar Wrapping
+
 **Rule:** Toolbars should flex-wrap on mobile instead of overflow-x
 
 ```tailwind
@@ -153,21 +167,25 @@ gap-1 sm:gap-1.5 md:gap-2
 ```
 
 ### Table Display
+
 **Rule:** Desktop tables, mobile cards
 
 ```tsx
-{isMobileViewport ? (
-  // Mobile: Cards with pagination
-  <div className="grid grid-cols-2 gap-2">...</div>
-) : (
-  // Desktop: Virtualized table
-  <Table>...</Table>
-)}
+{
+  isMobileViewport ? (
+    // Mobile: Cards with pagination
+    <div className="grid grid-cols-2 gap-2">...</div>
+  ) : (
+    // Desktop: Virtualized table
+    <Table>...</Table>
+  );
+}
 ```
 
 ## RTL Alignment
 
 ### Margin & Padding
+
 **Rule:** Use Tailwind's automatic RTL direction
 
 ```tailwind
@@ -179,6 +197,7 @@ gap-1 sm:gap-1.5 md:gap-2
 ```
 
 ### Flex Direction
+
 **Rule:** Use flex-row-reverse for RTL manually, or rely on dir="rtl"
 
 ```tsx
@@ -192,10 +211,11 @@ gap-1 sm:gap-1.5 md:gap-2
 ```
 
 ### Icon Placement
+
 ```tsx
 // Icons mirror automatically in RTL
 <Button className="gap-2">
-  <RefreshCw className="h-4 w-4" />  {/* Renders on right in RTL */}
+  <RefreshCw className="h-4 w-4" /> {/* Renders on right in RTL */}
   <span>مزامنة</span>
 </Button>
 ```
@@ -203,6 +223,7 @@ gap-1 sm:gap-1.5 md:gap-2
 ## Testing Checklist
 
 ### Visual Testing
+
 - [ ] 320px: No horizontal overflow, text readable
 - [ ] 360px: Cards/buttons properly spaced
 - [ ] 390px: Stats banners readable (2-col layout)
@@ -211,6 +232,7 @@ gap-1 sm:gap-1.5 md:gap-2
 - [ ] 1024px: Desktop layout full-featured
 
 ### Component Testing
+
 - [ ] Selects don't overflow: input width >= (label + icon)
 - [ ] Dialogs fit screen: height <= 90vh
 - [ ] Toolbars wrap: buttons stack on mobile
@@ -218,6 +240,7 @@ gap-1 sm:gap-1.5 md:gap-2
 - [ ] Cards readable: text not squeezed
 
 ### RTL Testing
+
 - [ ] Text right-aligned (dir="rtl" at page)
 - [ ] Icons mirror correctly
 - [ ] Dialogs right-aligned
@@ -225,6 +248,7 @@ gap-1 sm:gap-1.5 md:gap-2
 - [ ] Forms left-labeled (RTL convention)
 
 ### Performance Testing
+
 - [ ] Mobile card grid: 20 cards per page, no lag
 - [ ] Desktop table: 100+ rows virtualized, smooth scroll
 - [ ] Stats banners: Instantly visible (no render delay)
@@ -293,6 +317,7 @@ gap-1 sm:gap-1.5 md:gap-2
 ## Performance Guidelines
 
 ### Avoid Rerenders on Viewport Change
+
 ```typescript
 // ✅ Correct
 const isMobileViewport = useMediaQuery("(max-width: 639px)");
@@ -304,6 +329,7 @@ const isMobileViewport = window.innerWidth < 640;
 ```
 
 ### Virtualization for Large Lists
+
 ```typescript
 // Mobile: Paginated cards (20 per page)
 const pages = Math.ceil(patients.length / 20);
@@ -317,6 +343,7 @@ const rowVirtualizer = useVirtualizer({
 ```
 
 ### Memoize Grid/Cards Rendering
+
 ```typescript
 // ✅ Correct
 const cardComponents = useMemo(

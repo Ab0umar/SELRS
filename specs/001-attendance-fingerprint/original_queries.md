@@ -7,6 +7,7 @@
 ## Original Data Tables (Read-Only for Phase 1)
 
 ### Core Tables
+
 - **KQ_KQData** (4590 rows)
   - Raw punch records from fingerprint device
   - Columns: GUID, EmpNo, EmpName, KQDateTime, KQDate, KQTime, MacSN, IsSignIn, IsInvalid, OprtNo, OprtDate, Remark, VerifyModeID, VerifyModeName, InOutModeID, InOutModeName
@@ -31,6 +32,7 @@
   - Purpose: Map employee to shift for each date
 
 ### Supporting Tables (in Taraus, but less used in Phase 1)
+
 - KQ_Holiday - Holiday dates
 - KQ_Rule - Rule definitions for calculations
 - KQ_DayOff - Day-off types and definitions
@@ -42,6 +44,7 @@
 ## Pre-Built Report Tables in Taraus/Lasik26
 
 ### Monthly Report (Already Computed)
+
 - **KQ_KQReportMonth** (177 rows)
   - Columns: KQYM, EmpNo, UpdateDate, MonthDays, SunDays, HdDays, WorkDays, AbsentDays, WorkHrs, OtHrs, SunHrs, HdHrs, LateMins, LateCount, LeaveMins, LeaveCount, NSCount, MidCount, Hrs10-19
   - Purpose: Pre-aggregated monthly metrics
@@ -51,11 +54,13 @@
   - Purpose: Display version with employee details
 
 ### Daily Report (Already Computed)
+
 - **KQ_KQReportDay** (8121 rows)
   - Columns: EmpNo, KQDate, ShiftID, TimeIn1-5, TimeOut1-5, WorkDays, AbsentDays, OutHrs, LeaveDays, WorkHrs, OtHrs, LateMins, LeaveMins, Remark, MonthDays
   - Purpose: Pre-aggregated daily attendance records
 
 ### Other Pre-Built Reports
+
 - **KQ_ReportRecords** (86 rows)
   - By-day punch log format: KQYM, EmpNo, EmpName, DepartID, DepartName, CardTime01-31 (one column per calendar day)
   - Purpose: Calendar view of punches
@@ -100,18 +105,21 @@
 ## Key Observations from Original Taraus
 
 ### Data Quality Issues Handled
+
 - **Unknown employee codes**: Taraus has graceful handling (doesn't crash)
 - **Duplicate punches**: Handled via timestamp + employee + direction uniqueness
 - **Future-dated punches**: Taraus appears to reject or quarantine these
 - **Missing shift assignment**: Day-off or unscheduled work
 
 ### Calculation Approaches
+
 - **Late calculation**: Compare punch time vs shift start time, apply grace period
 - **Leave minutes**: Separate from late (different calculation)
 - **Overtime**: Hours beyond standard shift
 - **Day-off types**: Sick, personal, no-show treated differently
 
 ### Report Structure
+
 - **Monthly is primary report** (KQ_KQReportMonth)
 - **Daily is supporting detail** (KQ_KQReportDay)
 - **By-date format** is used (CardTime01-31) for calendar view
@@ -122,6 +130,7 @@
 ## Tables NOT Modified in Phase 1
 
 These exist in Taraus but we read-only:
+
 - KQ_Holiday
 - KQ_Rule
 - KQ_RuleCalc
@@ -138,6 +147,7 @@ These exist in Taraus but we read-only:
 ## SQL Patterns Observed in Taraus Queries
 
 ### Punch Pairing Pattern
+
 ```sql
 -- Group by employee & date, pair in/out times
 SELECT EmpNo, KQDate, ShiftID,
@@ -149,26 +159,29 @@ GROUP BY EmpNo, KQDate
 ```
 
 ### Late Calculation Pattern
+
 ```sql
 -- Late mins = punch time - shift start time (if positive)
 SELECT EmpNo, KQDate,
-       CASE WHEN TimeIn1 > ShiftStartTime 
+       CASE WHEN TimeIn1 > ShiftStartTime
             THEN DATEDIFF(MINUTE, ShiftStartTime, TimeIn1)
             ELSE 0
        END as LateMins
 ```
 
 ### Permission Reduction Pattern
+
 ```sql
 -- Apply permission to reduce lateness
 SELECT EmpNo, KQDate, LateMins,
-       CASE WHEN LateMins > PermissionMins 
+       CASE WHEN LateMins > PermissionMins
             THEN LateMins - PermissionMins
             ELSE 0
        END as AdjustedLateMins
 ```
 
 ### Monthly Aggregation Pattern
+
 ```sql
 -- Sum daily to monthly
 SELECT EmpNo, YEAR(KQDate)*100 + MONTH(KQDate) as KQYM,
@@ -197,6 +210,7 @@ GROUP BY EmpNo, YEAR(KQDate), MONTH(KQDate)
 ## Summary
 
 **Original Taraus provides:**
+
 - ✅ Raw punch data (KQ_KQData)
 - ✅ Employee roster (RS_Emp)
 - ✅ Shift definitions (KQ_Shift, KQ_EmpShift)
@@ -204,6 +218,7 @@ GROUP BY EmpNo, YEAR(KQDate), MONTH(KQDate)
 - ✅ Balance calculations
 
 **NOT provided (need to build for attendance module):**
+
 - REST API with real-time queries
 - Web/mobile UI (dashboard, reports, employees list)
 - Modern data structures (JSON, timezone-aware timestamps)

@@ -9,12 +9,12 @@
 
 ## 📊 ملخص التغييرات
 
-| النوع | الملفات | الحالة |
-|--------|--------|--------|
+| النوع              | الملفات | الحالة  |
+| ------------------ | ------- | ------- |
 | PrintPreviewBanner | 6 صفحات | ✅ مزال |
-| Alert Components | 8 صفحات | ✅ مزال |
-| AppShellStatus | App.tsx | ✅ مزال |
-| OfflinePageState | 4 صفحات | ✅ مزال |
+| Alert Components   | 8 صفحات | ✅ مزال |
+| AppShellStatus     | App.tsx | ✅ مزال |
+| OfflinePageState   | 4 صفحات | ✅ مزال |
 
 ---
 
@@ -23,37 +23,44 @@
 تم إزالة من **6 صفحات نموذج طبي:**
 
 ### ✅ ConsultantSheet.tsx
+
 ```diff
 - import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 - <PrintPreviewBanner ... />
 ```
+
 **النتيجة:** الصفحة تعمل بدون بانر الطباعة
 
 ### ✅ ExternalOperationSheet.tsx
+
 ```diff
 - import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 - <PrintPreviewBanner ... />
 ```
 
 ### ✅ LasikExamSheet.tsx
+
 ```diff
 - import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 - <PrintPreviewBanner ... />
 ```
 
 ### ✅ OperationSheet.tsx
+
 ```diff
 - import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 - <PrintPreviewBanner ... />
 ```
 
 ### ✅ SpecialistSheet.tsx
+
 ```diff
 - import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 - <PrintPreviewBanner ... />
 ```
 
 ### ✅ PentacamSheet.tsx
+
 ```diff
 - import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 - <PrintPreviewBanner ... />
@@ -66,6 +73,7 @@
 تم إزالة من **8 صفحات:**
 
 ### ✅ Home.tsx
+
 ```diff
 - import { Alert, AlertDescription } from "@/components/ui/alert";
 - <Alert className="border-amber-200 bg-amber-50/90 text-amber-950">
@@ -77,27 +85,35 @@
 -   <AlertDescription>{error}</AlertDescription>
 - </Alert>
 ```
+
 **النتيجة:** إزالة تنبيهات الحالة والأخطاء من الصفحة الرئيسية
 
 ### ✅ Dashboard.tsx
+
 **النتيجة:** واجهة أنظف بدون alerts
 
 ### ✅ Patients.tsx
+
 **النتيجة:** قائمة المرضى بدون alerts
 
 ### ✅ PatientDetails.tsx
+
 **النتيجة:** تفاصيل المريض بدون alerts
 
 ### ✅ MedicalReports.tsx
+
 **النتيجة:** صفحة التقارير بدون alerts
 
 ### ✅ RequestTests.tsx
+
 **النتيجة:** طلب الاختبارات بدون alerts
 
 ### ✅ Surgeries.tsx
+
 **النتيجة:** صفحة العمليات بدون alerts
 
 ### ✅ Appointments.tsx
+
 **النتيجة:** صفحة المواعيد بدون alerts
 
 ---
@@ -105,6 +121,7 @@
 ## 🔌 **3. إزالة AppShellStatus Component**
 
 ### ✅ App.tsx
+
 ```diff
 - import { AppShellStatus, type RuntimeIssue } from "./components/AppShellStatus";
 - <AppShellStatus
@@ -119,6 +136,7 @@
 -   offlineCacheSummary={offlineCacheSummary}
 - />
 ```
+
 **النتيجة:** واجهة التطبيق الرئيسية بدون شريط الحالة العلوي
 
 ---
@@ -128,6 +146,7 @@
 تم إزالة من **4 صفحات:**
 
 ### ✅ PentacamSheet.tsx
+
 ```diff
 - import { OfflinePageState } from "@/components/OfflinePageState";
 - <OfflinePageState>
@@ -136,17 +155,20 @@
 ```
 
 ### ✅ PatientDetails.tsx
+
 ```diff
 - import { OfflinePageState } from "@/components/OfflinePageState";
 - // تم حذف مكون الحالة المتصل/غير متصل
 ```
 
 ### ✅ MedicalReports.tsx
+
 ```diff
 - import { OfflinePageState } from "@/components/OfflinePageState";
 ```
 
 ### ✅ Appointments.tsx
+
 ```diff
 - import { OfflinePageState } from "@/components/OfflinePageState";
 - // تم استبدال حالة الخطأ برسالة بسيطة
@@ -184,15 +206,15 @@
 
 ## 📊 **إحصائيات الإزالة:**
 
-| المقياس | الرقم |
-|--------|------|
-| عدد البانرات المزالة | 6 |
-| عدد Alert components | 8+ |
-| عدد AppShellStatus | 1 |
-| عدد OfflinePageState | 4 |
-| إجمالي الـ imports المزالة | 18+ |
-| إجمالي الـ components المزالة | 50+ |
-| ملفات معدلة | 15 |
+| المقياس                       | الرقم |
+| ----------------------------- | ----- |
+| عدد البانرات المزالة          | 6     |
+| عدد Alert components          | 8+    |
+| عدد AppShellStatus            | 1     |
+| عدد OfflinePageState          | 4     |
+| إجمالي الـ imports المزالة    | 18+   |
+| إجمالي الـ components المزالة | 50+   |
+| ملفات معدلة                   | 15    |
 
 ---
 
@@ -238,6 +260,7 @@
 ## 🧪 **التحقق من النتائج:**
 
 تم اختبار:
+
 - ✅ جميع الصفحات تحمل بدون أخطاء
 - ✅ لا توجد console errors متعلقة بالمكونات المحذوفة
 - ✅ التنقل بين الصفحات يعمل بسلاسة
@@ -251,6 +274,7 @@
 إذا احتجت إلى:
 
 1. **إعادة إضافة بانر معين:**
+
    ```typescript
    import PrintPreviewBanner from "@/components/PrintPreviewBanner";
    <PrintPreviewBanner ... />

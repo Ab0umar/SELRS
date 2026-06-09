@@ -1,7 +1,8 @@
 import { loadXlsx } from "@/lib/xlsx";
 
 const isNativeCapacitorPlatform = () =>
-  typeof window !== "undefined" && Boolean((window as any).Capacitor?.isNativePlatform?.());
+  typeof window !== "undefined" &&
+  Boolean((window as any).Capacitor?.isNativePlatform?.());
 
 export const triggerBlobDownload = async (blob: Blob, fileName: string) => {
   if (isNativeCapacitorPlatform() && navigator.share) {
@@ -44,7 +45,7 @@ export const triggerBlobDownload = async (blob: Blob, fileName: string) => {
 export const exportToExcel = async (
   data: any[],
   fileName: string,
-  sheetName: string = "Sheet1"
+  sheetName: string = "Sheet1",
 ) => {
   try {
     const XLSX = await loadXlsx();
@@ -70,15 +71,19 @@ export const exportPatientsToExcel = (patients: any[]) => {
   const data = patients.map((p) => ({
     "اسم المريض": p.patientName || p.fullName,
     "رقم الملف": p.patientCode,
-    "الهاتف": p.phone,
+    الهاتف: p.phone,
     "البريد الإلكتروني": p.email,
-    "العمر": p.age,
+    العمر: p.age,
     "تاريخ الميلاد": p.dateOfBirth,
-    "العنوان": p.address,
+    العنوان: p.address,
     "التاريخ الطبي": p.medicalHistory,
   }));
 
-  return exportToExcel(data, `المرضى_${new Date().toISOString().split("T")[0]}`, "المرضى");
+  return exportToExcel(
+    data,
+    `المرضى_${new Date().toISOString().split("T")[0]}`,
+    "المرضى",
+  );
 };
 
 /**
@@ -89,15 +94,15 @@ export const exportAppointmentsToExcel = (appointments: any[]) => {
     "اسم المريض": a.patientName,
     "تاريخ الموعد": a.appointmentDate,
     "وقت الموعد": a.appointmentTime,
-    "الطبيب": a.doctorName,
-    "الحالة": a.status,
-    "الملاحظات": a.notes,
+    الطبيب: a.doctorName,
+    الحالة: a.status,
+    الملاحظات: a.notes,
   }));
 
   return exportToExcel(
     data,
     `المواعيد_${new Date().toISOString().split("T")[0]}`,
-    "المواعيد"
+    "المواعيد",
   );
 };
 
@@ -108,18 +113,18 @@ export const exportPrescriptionsToExcel = (prescriptions: any[]) => {
   const data = prescriptions.map((p) => ({
     "اسم المريض": p.patientName,
     "اسم الدواء": p.medicationName,
-    "الجرعة": p.dosage,
-    "التكرار": p.frequency,
-    "المدة": p.duration,
-    "التعليمات": p.instructions,
-    "الملاحظات": p.notes,
-    "التاريخ": p.prescriptionDate,
+    الجرعة: p.dosage,
+    التكرار: p.frequency,
+    المدة: p.duration,
+    التعليمات: p.instructions,
+    الملاحظات: p.notes,
+    التاريخ: p.prescriptionDate,
   }));
 
   return exportToExcel(
     data,
     `الروشات_${new Date().toISOString().split("T")[0]}`,
-    "الروشات"
+    "الروشات",
   );
 };
 
@@ -129,17 +134,17 @@ export const exportPrescriptionsToExcel = (prescriptions: any[]) => {
 export const exportMedicalReportsToExcel = (reports: any[]) => {
   const data = reports.map((r) => ({
     "اسم المريض": r.patientName,
-    "التشخيص": r.diagnosis,
-    "الأعراض": r.symptoms,
+    التشخيص: r.diagnosis,
+    الأعراض: r.symptoms,
     "العلاج الموصى به": r.recommendedTreatment,
-    "الملاحظات": r.notes,
-    "التاريخ": r.reportDate,
+    الملاحظات: r.notes,
+    التاريخ: r.reportDate,
   }));
 
   return exportToExcel(
     data,
     `التقارير_${new Date().toISOString().split("T")[0]}`,
-    "التقارير"
+    "التقارير",
   );
 };
 
@@ -149,13 +154,13 @@ export const exportMedicalReportsToExcel = (reports: any[]) => {
 export const exportToCSV = async (
   data: any[],
   fileName: string,
-  sheetName: string = "Sheet1"
+  sheetName: string = "Sheet1",
 ) => {
   try {
     const XLSX = await loadXlsx();
     const worksheet = XLSX.utils.json_to_sheet(data);
     const csv = XLSX.utils.sheet_to_csv(worksheet);
-    
+
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     return triggerBlobDownload(blob, `${fileName}.csv`);
   } catch (error) {
@@ -167,11 +172,7 @@ export const exportToCSV = async (
 /**
  * Print data
  */
-export const printData = (
-  data: any[],
-  title: string,
-  columns: string[]
-) => {
+export const printData = (data: any[], title: string, columns: string[]) => {
   const printWindow = window.open("", "", "height=400,width=800");
   if (!printWindow) return false;
 
@@ -230,10 +231,7 @@ export const printData = (
 /**
  * Generate PDF using browser print
  */
-export const generatePDF = (
-  element: HTMLElement,
-  fileName: string
-) => {
+export const generatePDF = (element: HTMLElement, fileName: string) => {
   try {
     const printWindow = window.open("", "", "height=600,width=800");
     if (!printWindow) return false;
@@ -266,7 +264,11 @@ export const generatePDF = (
 /**
  * Download file
  */
-export const downloadFile = (content: string, fileName: string, mimeType: string = "text/plain") => {
+export const downloadFile = (
+  content: string,
+  fileName: string,
+  mimeType: string = "text/plain",
+) => {
   try {
     const blob = new Blob([content], { type: mimeType });
     void triggerBlobDownload(blob, fileName);
@@ -285,18 +287,14 @@ export const createPatientImportTemplate = () => {
     {
       "اسم المريض": "أحمد محمد",
       "رقم الملف": "P001",
-      "الهاتف": "01012345678",
+      الهاتف: "01012345678",
       "البريد الإلكتروني": "ahmed@example.com",
-      "العمر": "30",
+      العمر: "30",
       "تاريخ الميلاد": "1994-01-15",
-      "العنوان": "القاهرة",
+      العنوان: "القاهرة",
       "التاريخ الطبي": "لا يوجد",
     },
   ];
 
-  return exportToExcel(
-    templateData,
-    "نموذج_استيراد_المرضى",
-    "المرضى"
-  );
+  return exportToExcel(templateData, "نموذج_استيراد_المرضى", "المرضى");
 };

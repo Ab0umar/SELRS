@@ -1,12 +1,11 @@
-
-import mysql from 'mysql2/promise';
-import dotenv from 'dotenv';
+import mysql from "mysql2/promise";
+import dotenv from "dotenv";
 
 dotenv.config();
 
 async function run() {
   const connection = await mysql.createConnection(process.env.DATABASE_URL);
-  console.log('Connected to MySQL.');
+  console.log("Connected to MySQL.");
 
   const statements = [
     `CREATE TABLE IF NOT EXISTS \`stock_items\` (
@@ -34,17 +33,17 @@ async function run() {
             \`performedBy\` varchar(255),
             \`createdAt\` timestamp NOT NULL DEFAULT (now()),
             CONSTRAINT \`stock_transactions_id\` PRIMARY KEY(\`id\`)
-    );`
+    );`,
   ];
 
   try {
     for (let statement of statements) {
-      console.log('Executing statement...');
+      console.log("Executing statement...");
       await connection.query(statement);
     }
-    console.log('Stockroom tables ensured successfully.');
+    console.log("Stockroom tables ensured successfully.");
   } catch (err) {
-    console.error('Error ensuring stockroom tables:', err);
+    console.error("Error ensuring stockroom tables:", err);
   } finally {
     await connection.end();
   }

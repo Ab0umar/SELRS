@@ -5,7 +5,7 @@
 
 export interface AttendanceSource {
   /** Logical adapter name; stored in attendance_sync_runs.source */
-  readonly name: 'access' | 'tcp';
+  readonly name: "access" | "tcp";
 
   /** Cheap reachability probe. MUST NOT throw; returns false on any error. */
   isReachable(): Promise<boolean>;
@@ -31,15 +31,15 @@ export interface AttendanceSource {
 }
 
 export type RawPunchOrQuarantine =
-  | { kind: 'punch'; row: RawPunch }
-  | { kind: 'quarantine'; reason: string; rowRef: string };
+  | { kind: "punch"; row: RawPunch }
+  | { kind: "quarantine"; reason: string; rowRef: string };
 
 export interface RawPunch {
   empCd: string;
-  punchAt: Date;                          // facility-local; engine validates not >24h in future
-  direction?: 'in' | 'out' | 'unknown';   // hint only (research.md R4)
+  punchAt: Date; // facility-local; engine validates not >24h in future
+  direction?: "in" | "out" | "unknown"; // hint only (research.md R4)
   deviceId?: string;
-  sourceRowId: string;                    // stable per-row identity in the source
+  sourceRowId: string; // stable per-row identity in the source
 }
 
 export interface RawEmployee {

@@ -35,7 +35,10 @@ function sortTodayQueuePatients(list: TodayQueuePatient[]) {
 
 /** Today’s clinic queue: merges all stages so tabs / KPIs reflect live DB state (not checked-in-only). */
 export function useTodayQueuePatientsMerged(dateIso?: string) {
-  const todayIso = useMemo(() => dateIso ?? new Date().toISOString().split("T")[0], [dateIso]);
+  const todayIso = useMemo(
+    () => dateIso ?? new Date().toISOString().split("T")[0],
+    [dateIso],
+  );
 
   const checkedIn = trpc.medical.getTodayPatientsByQueueStatus.useQuery({
     date: todayIso,
@@ -71,7 +74,10 @@ export function useTodayQueuePatientsMerged(dateIso?: string) {
   }, [checkedIn.data, next.data, clinic.data, treated.data]);
 
   const isLoading =
-    checkedIn.isLoading || next.isLoading || clinic.isLoading || treated.isLoading;
+    checkedIn.isLoading ||
+    next.isLoading ||
+    clinic.isLoading ||
+    treated.isLoading;
 
   return {
     todayIso,

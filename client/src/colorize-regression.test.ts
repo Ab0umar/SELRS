@@ -10,7 +10,7 @@ function readClientFile(path: string) {
 
 function readClientTsxFiles(dir = resolve(clientRoot, "src")): string {
   return readdirSync(dir, { withFileTypes: true })
-    .flatMap(entry => {
+    .flatMap((entry) => {
       const fullPath = resolve(dir, entry.name);
 
       if (entry.isDirectory()) return readClientTsxFiles(fullPath);
@@ -23,18 +23,22 @@ function readClientTsxFiles(dir = resolve(clientRoot, "src")): string {
 
 describe("color token regressions", () => {
   it("keeps primary as SELRS navy and reserves orange for secondary accents", () => {
-    const source = readClientFile("src/index.css");
+    const source = readClientFile("src/index.css").toLowerCase();
 
-    expect(source).toContain("--primary: #003D82;");
-    expect(source).toContain("--secondary: #FF9500;");
-    expect(source).not.toContain("--primary: #FF9500;");
+    expect(source).toContain("--primary: #003d82;");
+    expect(source).toContain("--secondary: #ff9500;");
+    expect(source).not.toContain("--primary: #ff9500;");
   });
 
   it("keeps the login submit label readable on the navy action background", () => {
     const source = readClientFile("src/pages/Home.tsx");
 
-    expect(source).not.toContain("bg-primary text-[15px] font-bold text-card-foreground");
-    expect(source).toContain("bg-primary text-[15px] font-bold text-primary-foreground");
+    expect(source).not.toContain(
+      "bg-primary text-sm font-bold text-card-foreground",
+    );
+    expect(source).toContain(
+      "bg-primary text-sm font-bold text-primary-foreground",
+    );
   });
 
   it("does not render a theme toggle when the product is light-theme only", () => {
@@ -58,13 +62,23 @@ describe("color token regressions", () => {
     const source = readClientTsxFiles();
 
     expect(source).not.toContain("hover:bg-primary text-primary-foreground");
-    expect(source).not.toContain("data-[selected-single=true]:bg-primary text-primary-foreground");
+    expect(source).not.toContain(
+      "data-[selected-single=true]:bg-primary text-primary-foreground",
+    );
     expect(source).not.toContain("text-primary-foreground=checked]");
     expect(source).not.toContain("border-primary=checked]");
-    expect(source).not.toMatch(/bg-primary[^\n]*text-primary-foreground[^\n]*hover:bg-primary\/10/);
-    expect(source).not.toContain("bg-destructive/10 text-destructive-foreground");
-    expect(source).not.toContain("text-destructive-foreground bg-destructive/10");
-    expect(source).not.toMatch(/hover:bg-destructive(?!\/)[^\n]*hover:text-destructive(?!-foreground)/);
+    expect(source).not.toMatch(
+      /bg-primary[^\n]*text-primary-foreground[^\n]*hover:bg-primary\/10/,
+    );
+    expect(source).not.toContain(
+      "bg-destructive/10 text-destructive-foreground",
+    );
+    expect(source).not.toContain(
+      "text-destructive-foreground bg-destructive/10",
+    );
+    expect(source).not.toMatch(
+      /hover:bg-destructive(?!\/)[^\n]*hover:text-destructive(?!-foreground)/,
+    );
     expect(source).not.toContain("hover:text-destructive-foreground:bg-red");
   });
 });

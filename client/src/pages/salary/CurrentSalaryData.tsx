@@ -8,7 +8,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, Download, Filter } from "lucide-react";
+import { Plus, Pencil, Trash2, Download, Filter, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 
 interface BasicForm {
@@ -85,9 +85,14 @@ function SalaryTable({
   isLoading,
   isPending,
 }: SalaryTableProps) {
+  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+  const toggleRow = (id: number) => {
+    setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
   const getEmployeeName = (empCd: string) => {
-    const emp = employees.find((e) => e.code === empCd);
-    return emp?.name || empCd;
+    const emp = employees.find((e) => e.empCd === empCd);
+    return emp?.fullName || empCd;
   };
 
   const totalAmount = data.reduce((sum, item) => sum + rowTotal(item), 0);
@@ -103,12 +108,14 @@ function SalaryTable({
           </div>
           <div className="text-right">
             <div className="text-xs text-muted-foreground">الإجمالي</div>
-            <div className="text-2xl font-bold text-primary">{fmt(totalAmount)}</div>
+            <div className="text-2xl font-bold text-primary">
+              {fmt(totalAmount)}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Table */}
+      {/* Table & Cards */}
       {isLoading ? (
         <div className="px-6 py-8 text-center text-muted-foreground">
           جاري التحميل...
@@ -118,121 +125,247 @@ function SalaryTable({
           لا توجد بيانات رواتب مسجلة
         </div>
       ) : (
-        <div className="overflow-x-auto" dir="rtl">
-        <table dir="rtl" className="w-full text-sm">
-            {/* Table Header */}
-            <thead>
-              <tr className="border-b border-border bg-muted/30">
-                <th className="px-4 py-3 text-right font-semibold text-foreground">
-                  الموظف
-                </th>
-                <th className="px-4 py-3 text-right font-semibold text-foreground">
-                  الراتب الأساسي
-                </th>
-                <th className="px-4 py-3 text-right font-semibold text-foreground">
-                  اعانة اجتماعية
-                </th>
-                <th className="px-4 py-3 text-right font-semibold text-foreground">
-                  علاء معيشة
-                </th>
-                <th className="px-4 py-3 text-right font-semibold text-foreground">
-                  بدل انتقال
-                </th>
-                <th className="px-4 py-3 text-right font-semibold text-foreground">
-                  طبيعة عمل
-                </th>
-                <th className="px-4 py-3 text-right font-semibold text-foreground">
-                  بدل استقبال
-                </th>
-                <th className="px-4 py-3 text-right font-semibold text-foreground">
-                  الزيادة السنوية
-                </th>
-                <th className="px-4 py-3 text-right font-semibold text-foreground">
-                  الإجمالي
-                </th>
-                <th className="px-4 py-3 text-center font-semibold text-foreground">
-                  الإجراءات
-                </th>
-              </tr>
-            </thead>
-
-            {/* Table Body */}
-            <tbody>
-              {data.map((item, idx) => (
-                <tr
-                  key={item.id}
-                  className={`border-b border-border/50 transition-colors hover:bg-muted/30 ${
-                    idx % 2 === 0 ? "bg-background" : "bg-muted/10"
-                  }`}
-                >
-                  <td className="px-4 py-3 font-medium text-foreground">
-                    {getEmployeeName(item.empCd)}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums">
-                    {fmt(Number(item.basicAmount))}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums">
-                    {fmt(Number(item.socialAllowance ?? 0))}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums">
-                    {fmt(Number(item.costOfLivingAllowance ?? 0))}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums">
-                    {fmt(Number(item.transportAllowance ?? 0))}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums">
-                    {fmt(Number(item.workNatureAllowance ?? 0))}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums">
-                    {fmt(Number(item.receptionAllowance ?? 0))}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums">
-                    {fmt(Number(item.yearlyRaise ?? 0))}
-                  </td>
-                  <td className="px-4 py-3 text-right font-bold text-primary tabular-nums">
-                    {fmt(rowTotal(item))}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onEdit(item)}
-                        disabled={isPending}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Pencil className="h-4 w-4 text-blue-600" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          if (
-                            confirm(
-                              `هل تريد حذف راتب ${getEmployeeName(item.empCd)}؟`
-                            )
-                          ) {
-                            onDelete(item.id);
-                          }
-                        }}
-                        disabled={isPending}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                      </Button>
-                    </div>
-                  </td>
+        <>
+          {/* Desktop Table View */}
+          <div className="overflow-x-auto hidden lg:block" dir="rtl">
+            <table dir="rtl" className="w-full text-sm">
+              {/* Table Header */}
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="px-4 py-3 text-right font-semibold text-foreground">
+                    الموظف
+                  </th>
+                  <th className="px-4 py-3 text-right font-semibold text-foreground">
+                    الراتب الأساسي
+                  </th>
+                  <th className="px-4 py-3 text-right font-semibold text-foreground">
+                    اعانة اجتماعية
+                  </th>
+                  <th className="px-4 py-3 text-right font-semibold text-foreground">
+                    علاء معيشة
+                  </th>
+                  <th className="px-4 py-3 text-right font-semibold text-foreground">
+                    بدل انتقال
+                  </th>
+                  <th className="px-4 py-3 text-right font-semibold text-foreground">
+                    طبيعة عمل
+                  </th>
+                  <th className="px-4 py-3 text-right font-semibold text-foreground">
+                    بدل استقبال
+                  </th>
+                  <th className="px-4 py-3 text-right font-semibold text-foreground">
+                    الزيادة السنوية
+                  </th>
+                  <th className="px-4 py-3 text-right font-semibold text-foreground">
+                    الإجمالي
+                  </th>
+                  <th className="px-4 py-3 text-center font-semibold text-foreground">
+                    الإجراءات
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+
+              {/* Table Body */}
+              <tbody>
+                {data.map((item, idx) => (
+                  <tr
+                    key={item.id}
+                    className={`border-b border-border/50 transition-colors hover:bg-muted/30 ${
+                      idx % 2 === 0 ? "bg-background" : "bg-muted/10"
+                    }`}
+                  >
+                    <td className="px-4 py-3 font-medium text-foreground">
+                      {getEmployeeName(item.empCd)}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums">
+                      {fmt(Number(item.basicAmount))}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums">
+                      {fmt(Number(item.socialAllowance ?? 0))}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums">
+                      {fmt(Number(item.costOfLivingAllowance ?? 0))}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums">
+                      {fmt(Number(item.transportAllowance ?? 0))}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums">
+                      {fmt(Number(item.workNatureAllowance ?? 0))}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums">
+                      {fmt(Number(item.receptionAllowance ?? 0))}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums">
+                      {fmt(Number(item.yearlyRaise ?? 0))}
+                    </td>
+                    <td className="px-4 py-3 text-right font-bold text-primary tabular-nums">
+                      {fmt(rowTotal(item))}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onEdit(item)}
+                          disabled={isPending}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Pencil className="h-4 w-4 text-blue-600" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (
+                              confirm(
+                                `هل تريد حذف راتب ${getEmployeeName(item.empCd)}؟`,
+                              )
+                            ) {
+                              onDelete(item.id);
+                            }
+                          }}
+                          disabled={isPending}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-600" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Accordion Cards View */}
+          <div className="block lg:hidden divide-y divide-border/60">
+            {data.map((item) => {
+              const isExpanded = !!expandedRows[item.id];
+              return (
+                <div
+                  key={item.id}
+                  className="p-4 bg-card hover:bg-slate-50/20 transition-colors"
+                >
+                  <div
+                    className="flex items-center justify-between cursor-pointer"
+                    onClick={() => toggleRow(item.id)}
+                  >
+                    <div className="space-y-1">
+                      <div className="font-bold text-sm text-foreground">
+                        {getEmployeeName(item.empCd)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        الأساسي: {fmt(Number(item.basicAmount))} ج.م
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-left">
+                        <div className="text-[10px] font-bold text-muted-foreground uppercase">
+                          الإجمالي
+                        </div>
+                        <div className="text-sm font-black text-primary tabular-nums">
+                          {fmt(rowTotal(item))} ج.م
+                        </div>
+                      </div>
+                      {isExpanded ? (
+                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="mt-4 pt-4 border-t border-border/40 space-y-3 text-xs">
+                      <div className="grid grid-cols-2 gap-y-2.5 gap-x-4">
+                        <div className="flex justify-between border-b border-border/20 pb-1">
+                          <span className="text-muted-foreground">الأساسي:</span>
+                          <span className="font-semibold tabular-nums">
+                            {fmt(Number(item.basicAmount))} ج.م
+                          </span>
+                        </div>
+                        <div className="flex justify-between border-b border-border/20 pb-1">
+                          <span className="text-muted-foreground">اعانة اجتماعية:</span>
+                          <span className="font-semibold tabular-nums">
+                            {fmt(Number(item.socialAllowance ?? 0))} ج.م
+                          </span>
+                        </div>
+                        <div className="flex justify-between border-b border-border/20 pb-1">
+                          <span className="text-muted-foreground">علاء معيشة:</span>
+                          <span className="font-semibold tabular-nums">
+                            {fmt(Number(item.costOfLivingAllowance ?? 0))} ج.م
+                          </span>
+                        </div>
+                        <div className="flex justify-between border-b border-border/20 pb-1">
+                          <span className="text-muted-foreground">بدل انتقال:</span>
+                          <span className="font-semibold tabular-nums">
+                            {fmt(Number(item.transportAllowance ?? 0))} ج.م
+                          </span>
+                        </div>
+                        <div className="flex justify-between border-b border-border/20 pb-1">
+                          <span className="text-muted-foreground">طبيعة عمل:</span>
+                          <span className="font-semibold tabular-nums">
+                            {fmt(Number(item.workNatureAllowance ?? 0))} ج.م
+                          </span>
+                        </div>
+                        <div className="flex justify-between border-b border-border/20 pb-1">
+                          <span className="text-muted-foreground">بدل استقبال:</span>
+                          <span className="font-semibold tabular-nums">
+                            {fmt(Number(item.receptionAllowance ?? 0))} ج.م
+                          </span>
+                        </div>
+                        <div className="flex justify-between border-b border-border/20 pb-1 col-span-2">
+                          <span className="text-muted-foreground">الزيادة السنوية:</span>
+                          <span className="font-semibold tabular-nums">
+                            {fmt(Number(item.yearlyRaise ?? 0))} ج.م
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onEdit(item)}
+                          disabled={isPending}
+                          className="h-9 px-3 border-border hover:bg-blue-50/30 text-blue-600 gap-1"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          <span>تعديل</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (
+                              confirm(
+                                `هل تريد حذف راتب ${getEmployeeName(item.empCd)}؟`,
+                              )
+                            ) {
+                              onDelete(item.id);
+                            }
+                          }}
+                          disabled={isPending}
+                          className="h-9 px-3 border-border hover:bg-red-50 text-red-600 gap-1"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span>حذف</span>
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
       {/* Footer */}
       <div className="border-t border-border bg-muted/20 px-6 py-3 flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
-          عدد الموظفين: <span className="font-semibold text-foreground">{data.length}</span>
+          عدد الموظفين:{" "}
+          <span className="font-semibold text-foreground">{data.length}</span>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" className="gap-2">
@@ -245,16 +378,188 @@ function SalaryTable({
   );
 }
 
+// ── Shifts Table Component ──────────────────────────────────
+interface ShiftsTableProps {
+  title: string;
+  data: any[];
+  employees: any[];
+  isLoading: boolean;
+}
+
+function ShiftsTable({ title, data, employees, isLoading }: ShiftsTableProps) {
+  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+  const toggleRow = (id: number) => {
+    setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const getEmployeeName = (empCd: string) => {
+    const emp = employees.find((e) => e.empCd === empCd);
+    return emp?.fullName || empCd;
+  };
+
+  const TYPE_LABEL: Record<string, string> = { doctor: "طبيب", tech: "فني" };
+
+  return (
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
+      <div className="border-b border-border bg-gradient-to-r from-primary/5 to-transparent px-6 py-4 flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+        </div>
+        <div className="text-right">
+          <span className="text-xs text-muted-foreground">
+            عدد كادر الشفتات: {data.length}
+          </span>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="px-6 py-10 text-center text-muted-foreground text-xs font-medium">
+          جاري التحميل...
+        </div>
+      ) : data.length === 0 ? (
+        <div className="px-6 py-10 text-center text-muted-foreground text-xs font-medium">
+          لا توجد كفاءات شفتات مسجلة
+        </div>
+      ) : (
+        <>
+          {/* Desktop Table View */}
+          <div className="overflow-x-auto hidden lg:block" dir="rtl">
+            <table dir="rtl" className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="px-4 py-3 text-right font-bold w-40">الاسم</th>
+                  <th className="px-4 py-3 text-right font-bold">النوع</th>
+                  <th className="px-4 py-3 text-right font-bold">قيمة الشفت</th>
+                  <th className="px-4 py-3 text-right font-bold">ربط الحضور</th>
+                  <th className="px-4 py-3 text-right font-bold">الحالة</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((s, idx) => (
+                  <tr
+                    key={s.id}
+                    className={`border-b border-border/40 transition-colors hover:bg-muted/30 ${
+                      idx % 2 === 0 ? "bg-white" : "bg-[#F9FAFB]"
+                    }`}
+                  >
+                    <td className="px-4 py-3 font-semibold text-foreground">
+                      {s.name}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {TYPE_LABEL[s.type]}
+                    </td>
+                    <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                      {fmt(Number(s.ratePerShift))} ج.م
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {s.empCd ? (
+                        getEmployeeName(s.empCd)
+                      ) : (
+                        <span className="text-[10px] italic text-muted-foreground/50">
+                          يدوي
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-semibold ${s.active ? "bg-green-50 text-green-700 ring-1 ring-green-600/10" : "bg-gray-50 text-gray-600 ring-1 ring-gray-500/10"}`}
+                      >
+                        {s.active ? "نشط" : "غير نشط"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Accordion Cards View */}
+          <div className="block lg:hidden divide-y divide-border/60">
+            {data.map((s) => {
+              const isExpanded = !!expandedRows[s.id];
+              return (
+                <div
+                  key={s.id}
+                  className="p-4 bg-card hover:bg-slate-50/20 transition-colors"
+                >
+                  <div
+                    className="flex items-center justify-between cursor-pointer"
+                    onClick={() => toggleRow(s.id)}
+                  >
+                    <div className="space-y-1">
+                      <div className="font-bold text-sm text-foreground">
+                        {s.name}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        النوع: {TYPE_LABEL[s.type]}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-left">
+                        <div className="text-[10px] font-bold text-muted-foreground uppercase">
+                          قيمة الشفت
+                        </div>
+                        <div className="text-sm font-semibold text-foreground tabular-nums">
+                          {fmt(Number(s.ratePerShift))} ج.م
+                        </div>
+                      </div>
+                      {isExpanded ? (
+                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="mt-4 pt-4 border-t border-border/40 space-y-3 text-xs">
+                      <div className="space-y-2">
+                        <div className="flex justify-between border-b border-border/20 pb-1">
+                          <span className="text-muted-foreground">ربط الحضور:</span>
+                          <span className="font-semibold">
+                            {s.empCd ? (
+                              getEmployeeName(s.empCd)
+                            ) : (
+                              <span className="text-[10px] italic text-muted-foreground/50">
+                                يدوي
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex justify-between border-b border-border/20 pb-1">
+                          <span className="text-muted-foreground">الحالة:</span>
+                          <span
+                            className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${s.active ? "bg-green-50 text-green-700 ring-1 ring-green-600/10" : "bg-gray-50 text-gray-600 ring-1 ring-gray-500/10"}`}
+                          >
+                            {s.active ? "نشط" : "غير نشط"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function CurrentSalaryData() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<BasicForm>(BLANK);
   const [showForm, setShowForm] = useState(false);
+  const [centerTab, setCenterTab] = useState<"salaries" | "shifts">("shifts"); // default shifts on right
 
   const basicsQ = (trpc as any).salary.listBasics.useQuery();
   const empsQ = (trpc as any).salary.listEmployees.useQuery();
+  const shiftStaffQ = (trpc as any).salary.listShiftStaff.useQuery();
 
   const basics: any[] = basicsQ.data ?? [];
   const employees: any[] = empsQ.data ?? [];
+  const shiftStaff: any[] = shiftStaffQ.data ?? [];
 
   const deleteMut = (trpc as any).salary.deleteBasic.useMutation({
     onSuccess: () => {
@@ -264,25 +569,26 @@ export default function CurrentSalaryData() {
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
 
-  // Separate data by location (assuming there's a location field)
-  // If not, we'll use a simple split for demo purposes
-  const centerData = basics.filter((b) => {
-    const emp = employees.find((e) => e.code === b.empCd);
-    return emp?.location === "center" || emp?.type === "center";
+  // Separate data by location
+  const centerSalaries = basics.filter((b) => {
+    const emp = employees.find((e) => e.empCd === b.empCd);
+    const dept = emp?.department?.toLowerCase().trim();
+    return dept === "مركز" || dept === "center";
   });
 
-  const clinicData = basics.filter((b) => {
-    const emp = employees.find((e) => e.code === b.empCd);
-    return emp?.location === "clinic" || emp?.type === "clinic";
+  const clinicSalaries = basics.filter((b) => {
+    const emp = employees.find((e) => e.empCd === b.empCd);
+    const dept = emp?.department?.toLowerCase().trim();
+    return dept === "عيادة" || dept === "clinic";
   });
 
-  // If no location data, split by index (50/50)
-  const allData = centerData.length === 0 && clinicData.length === 0
-    ? {
-        center: basics.slice(0, Math.ceil(basics.length / 2)),
-        clinic: basics.slice(Math.ceil(basics.length / 2)),
-      }
-    : { center: centerData, clinic: clinicData };
+  // Filter shifts belonging to center (shifts only belong to Center)
+  const centerShifts = shiftStaff.filter((s) => {
+    if (!s.empCd) return true;
+    const emp = employees.find((e) => e.empCd === s.empCd);
+    const dept = emp?.department?.toLowerCase().trim();
+    return !emp || dept === "مركز" || dept === "center";
+  });
 
   const handleEdit = (item: any) => {
     setEditingId(item.id);
@@ -311,12 +617,14 @@ export default function CurrentSalaryData() {
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-medium text-muted-foreground">مسار التحضير</p>
+          <p className="text-xs font-medium text-muted-foreground">
+            مسار التحضير
+          </p>
           <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             بيانات الرواتب الحالية
           </h1>
           <p className="mt-1 text-sm leading-6 text-muted-foreground">
-            الرواتب والبدلات المسجلة حالياً مقسمة حسب موقع العمل
+            الرواتب والبدلات والشفتات المسجلة حالياً مقسمة حسب موقع العمل
           </p>
         </div>
         <div className="flex gap-2">
@@ -324,7 +632,14 @@ export default function CurrentSalaryData() {
             <Filter className="h-4 w-4" />
             تصفية
           </Button>
-          <Button onClick={() => { setEditingId(null); setForm(BLANK); setShowForm(!showForm); }} className="gap-2">
+          <Button
+            onClick={() => {
+              setEditingId(null);
+              setForm(BLANK);
+              setShowForm(!showForm);
+            }}
+            className="gap-2"
+          >
             <Plus className="h-4 w-4" />
             إضافة راتب
           </Button>
@@ -346,8 +661,8 @@ export default function CurrentSalaryData() {
                 <select className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
                   <option>اختر موظفاً</option>
                   {employees.map((emp) => (
-                    <option key={emp.code} value={emp.code}>
-                      {emp.name}
+                    <option key={emp.empCd} value={emp.empCd}>
+                      {emp.fullName}
                     </option>
                   ))}
                 </select>
@@ -381,50 +696,104 @@ export default function CurrentSalaryData() {
       )}
 
       {/* Tables Container */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Center Table */}
-        <SalaryTable
-          title="المركز"
-          subtitle="الموظفون العاملون بالمركز"
-          data={allData.center}
-          employees={employees}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          isLoading={basicsQ.isLoading}
-          isPending={deleteMut.isPending}
-        />
+      <div className="space-y-6">
+        {/* Center Section */}
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border pb-2 gap-2">
+            <h2 className="text-lg font-bold text-foreground">المركز</h2>
+            {/* Center Tabs Header - Shifts on the right, Salaries on the left */}
+            <div className="flex bg-slate-100 rounded-lg p-0.5 border border-border/60">
+              <button
+                onClick={() => setCenterTab("shifts")}
+                className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                  centerTab === "shifts"
+                    ? "bg-white text-blue-600 shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                الشفتات
+              </button>
+              <button
+                onClick={() => setCenterTab("salaries")}
+                className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                  centerTab === "salaries"
+                    ? "bg-white text-blue-600 shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                الرواتب
+              </button>
+            </div>
+          </div>
 
-        {/* Clinic Table */}
-        <SalaryTable
-          title="العيادة"
-          subtitle="الموظفون العاملون بالعيادة"
-          data={allData.clinic}
-          employees={employees}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          isLoading={basicsQ.isLoading}
-          isPending={deleteMut.isPending}
-        />
+          {centerTab === "salaries" ? (
+            <SalaryTable
+              title="رواتب موظفي المركز"
+              subtitle="الرواتب والبدلات لموظفي المركز"
+              data={centerSalaries}
+              employees={employees}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              isLoading={basicsQ.isLoading}
+              isPending={deleteMut.isPending}
+            />
+          ) : (
+            <ShiftsTable
+              title="طاقم شفتات المركز"
+              data={centerShifts}
+              employees={employees}
+              isLoading={shiftStaffQ.isLoading}
+            />
+          )}
+        </div>
+
+        {/* Clinic Section */}
+        <div className="space-y-3 pt-4">
+          <div className="border-b border-border pb-2">
+            <h2 className="text-lg font-bold text-foreground">العيادة</h2>
+          </div>
+
+          <SalaryTable
+            title="رواتب موظفي العيادة"
+            subtitle="الرواتب والبدلات لموظفي العيادة"
+            data={clinicSalaries}
+            employees={employees}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            isLoading={basicsQ.isLoading}
+            isPending={deleteMut.isPending}
+          />
+        </div>
       </div>
 
       {/* Summary Section */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-4">
         <div className="rounded-lg border border-border bg-card p-4">
-          <div className="text-sm text-muted-foreground">إجمالي الموظفين</div>
+          <div className="text-sm text-muted-foreground">
+            إجمالي موظفي الرواتب
+          </div>
           <div className="mt-2 text-2xl font-bold text-foreground">
             {basics.length}
           </div>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
+          <div className="text-sm text-muted-foreground">
+            إجمالي كادر الشفتات
+          </div>
+          <div className="mt-2 text-2xl font-bold text-blue-600">
+            {shiftStaff.length}
+          </div>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4">
           <div className="text-sm text-muted-foreground">موظفو المركز</div>
           <div className="mt-2 text-2xl font-bold text-primary">
-            {allData.center.length}
+            {centerSalaries.length}
           </div>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
           <div className="text-sm text-muted-foreground">موظفو العيادة</div>
           <div className="mt-2 text-2xl font-bold text-secondary">
-            {allData.clinic.length}
+            {clinicSalaries.length}
           </div>
         </div>
       </div>

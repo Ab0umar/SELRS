@@ -5,7 +5,15 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import PatientPicker from "@/components/PatientPicker";
-import { Calendar, Eye, FileText, LayoutTemplate, Plus, Trash2, User } from "lucide-react";
+import {
+  Calendar,
+  Eye,
+  FileText,
+  LayoutTemplate,
+  Plus,
+  Trash2,
+  User,
+} from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { cn } from "@/lib/utils";
@@ -69,7 +77,9 @@ const STATUS_FILTER_OPTIONS: { value: "all" | FormStatus; label: string }[] = [
 export default function AdminSheets() {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
-  const [selectedPatient, setSelectedPatient] = useState<PickedPatient | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<PickedPatient | null>(
+    null,
+  );
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | FormStatus>("all");
 
@@ -91,7 +101,10 @@ export default function AdminSheets() {
   if (!isAuthenticated || user?.role !== "admin") return null;
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-5 pb-6 text-right" dir="rtl">
+    <div
+      className="mx-auto w-full max-w-[1440px] space-y-5 pb-6 text-right"
+      dir="rtl"
+    >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <PageHeader
           title="النماذج الطبية"
@@ -118,7 +131,12 @@ export default function AdminSheets() {
             });
           }}
         />
-        <SearchBar value={search} onChange={setSearch} placeholder="تصفية النماذج بالاسم…" className="w-full" />
+        <SearchBar
+          value={search}
+          onChange={setSearch}
+          placeholder="تصفية النماذج بالاسم…"
+          className="w-full"
+        />
         <div className="flex flex-wrap gap-2">
           {STATUS_FILTER_OPTIONS.map((opt) => (
             <Button
@@ -128,9 +146,13 @@ export default function AdminSheets() {
               variant={statusFilter === opt.value ? "default" : "outline"}
               className={cn(
                 "rounded-full px-4",
-                statusFilter === opt.value ? "selrs-gradient-btn border-0 text-primary-foreground" : "border-border/80",
+                statusFilter === opt.value
+                  ? "selrs-gradient-btn border-0 text-primary-foreground"
+                  : "border-border/80",
               )}
-              onClick={() => setStatusFilter(opt.value === "all" ? "all" : opt.value)}
+              onClick={() =>
+                setStatusFilter(opt.value === "all" ? "all" : opt.value)
+              }
             >
               {opt.label}
             </Button>
@@ -158,8 +180,13 @@ export default function AdminSheets() {
                   {sheet.status === "approved" ? "معتمد" : "مسودة"}
                 </Badge>
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="text-base font-black leading-snug">{sheet.title}</h3>
-                  <FileText className="h-5 w-5 shrink-0 text-primary" aria-hidden />
+                  <h3 className="text-base font-black leading-snug">
+                    {sheet.title}
+                  </h3>
+                  <FileText
+                    className="h-5 w-5 shrink-0 text-primary"
+                    aria-hidden
+                  />
                 </div>
                 <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <User className="h-3.5 w-3.5 shrink-0 opacity-70" />
@@ -186,7 +213,9 @@ export default function AdminSheets() {
                   className="h-9 w-9 text-destructive-foreground bg-destructive text-destructive-foreground"
                   title="حذف غير متاح للقوالب"
                   aria-label="حذف غير متاح للقوالب"
-                  onClick={() => toast.message("قوالب النظام ثابتة — لا يمكن حذفها من هنا.")}
+                  onClick={() =>
+                    toast.message("قوالب النظام ثابتة — لا يمكن حذفها من هنا.")
+                  }
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

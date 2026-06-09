@@ -90,7 +90,7 @@ function isItemActive(pathname: string, activeFor: string[]) {
   return activeFor.some((path) =>
     path === "/attendance"
       ? pathname === path
-      : pathname === path || pathname.startsWith(`${path}/`)
+      : pathname === path || pathname.startsWith(`${path}/`),
   );
 }
 
@@ -98,21 +98,19 @@ function isSectionActive(pathname: string, items: any[]) {
   return items.some((item) => isItemActive(pathname, item.activeFor));
 }
 
-export default function AttendanceLayout({
-  children,
-}: AttendanceLayoutProps) {
+export default function AttendanceLayout({ children }: AttendanceLayoutProps) {
   const [location] = useLocation();
 
   const summaryQuery = (trpc as any).attendance.dashboardSummary.useQuery(
     undefined,
-    { refetchInterval: 30_000, refetchIntervalInBackground: false }
+    { refetchInterval: 30_000, refetchIntervalInBackground: false },
   );
   const deviceQuery = (trpc as any).attendance.deviceStatus.useQuery(
     undefined,
     {
       refetchInterval: 20_000,
       refetchIntervalInBackground: false,
-    }
+    },
   );
 
   const summary = summaryQuery.data as any;
@@ -152,7 +150,10 @@ export default function AttendanceLayout({
   ];
 
   return (
-    <div className="page-layout min-h-screen bg-background text-foreground" dir="rtl">
+    <div
+      className="page-layout min-h-screen bg-background text-foreground"
+      dir="rtl"
+    >
       {/* Header with metrics */}
       <div className="border-b border-secondary/15 bg-gradient-to-b from-secondary/5 to-transparent">
         <div className="mx-auto w-full px-3 py-4 sm:px-4 lg:px-5">

@@ -32,16 +32,16 @@ No foreign keys cross into Medical or Accounting tables. `emp_cd` is the only li
 
 Mirror of Tararus employee list, plus locally-managed flags.
 
-| Column | Type | Notes |
-|---|---|---|
-| `emp_cd` | VARCHAR(32) | **PK**. Stable from source. |
-| `full_name` | VARCHAR(255) | NOT NULL. `'UNKNOWN'` for unmapped codes. |
-| `department` | VARCHAR(128) | NULL. |
-| `default_shift_id` | INT | NULL, FK → `attendance_shifts.id` (ON DELETE SET NULL). |
-| `active` | TINYINT(1) | DEFAULT 1. `0` for unknown codes + offboarded staff. |
-| `source_hash` | CHAR(40) | NULL. SHA-1 of source row; lets sync detect changes cheaply. |
-| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP. |
-| `updated_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP. |
+| Column             | Type         | Notes                                                        |
+| ------------------ | ------------ | ------------------------------------------------------------ |
+| `emp_cd`           | VARCHAR(32)  | **PK**. Stable from source.                                  |
+| `full_name`        | VARCHAR(255) | NOT NULL. `'UNKNOWN'` for unmapped codes.                    |
+| `department`       | VARCHAR(128) | NULL.                                                        |
+| `default_shift_id` | INT          | NULL, FK → `attendance_shifts.id` (ON DELETE SET NULL).      |
+| `active`           | TINYINT(1)   | DEFAULT 1. `0` for unknown codes + offboarded staff.         |
+| `source_hash`      | CHAR(40)     | NULL. SHA-1 of source row; lets sync detect changes cheaply. |
+| `created_at`       | DATETIME     | DEFAULT CURRENT_TIMESTAMP.                                   |
+| `updated_at`       | DATETIME     | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP.       |
 
 Indexes: `idx_active (active)`, `idx_dept (department)`.
 
@@ -51,21 +51,22 @@ Indexes: `idx_active (active)`, `idx_dept (department)`.
 
 Immutable mirror of raw punches.
 
-| Column | Type | Notes |
-|---|---|---|
-| `id` | BIGINT AUTO_INCREMENT | **PK**. |
-| `emp_cd` | VARCHAR(32) | NOT NULL. **No FK** — punches may arrive for unknown employees (FR-037); orphans are tolerated. |
-| `punch_at` | DATETIME | NOT NULL. Facility-local. |
-| `direction` | ENUM('in','out','unknown') | DEFAULT 'unknown'. Hint only (see R4). |
-| `device_id` | VARCHAR(64) | NULL. Reserved for Phase 3. |
-| `source` | ENUM('access','tcp','manual') | NOT NULL. |
-| `source_row_id` | VARCHAR(64) | NULL for `manual`; required for `access`/`tcp`. |
-| `source_hash` | CHAR(40) | NOT NULL. Dedup key (R8). |
-| `note` | VARCHAR(255) | NULL. Used for `source='manual'` corrections. |
-| `inserted_by` | INT | NULL. User id for `manual` rows. |
-| `imported_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP. |
+| Column          | Type                          | Notes                                                                                           |
+| --------------- | ----------------------------- | ----------------------------------------------------------------------------------------------- |
+| `id`            | BIGINT AUTO_INCREMENT         | **PK**.                                                                                         |
+| `emp_cd`        | VARCHAR(32)                   | NOT NULL. **No FK** — punches may arrive for unknown employees (FR-037); orphans are tolerated. |
+| `punch_at`      | DATETIME                      | NOT NULL. Facility-local.                                                                       |
+| `direction`     | ENUM('in','out','unknown')    | DEFAULT 'unknown'. Hint only (see R4).                                                          |
+| `device_id`     | VARCHAR(64)                   | NULL. Reserved for Phase 3.                                                                     |
+| `source`        | ENUM('access','tcp','manual') | NOT NULL.                                                                                       |
+| `source_row_id` | VARCHAR(64)                   | NULL for `manual`; required for `access`/`tcp`.                                                 |
+| `source_hash`   | CHAR(40)                      | NOT NULL. Dedup key (R8).                                                                       |
+| `note`          | VARCHAR(255)                  | NULL. Used for `source='manual'` corrections.                                                   |
+| `inserted_by`   | INT                           | NULL. User id for `manual` rows.                                                                |
+| `imported_at`   | DATETIME                      | DEFAULT CURRENT_TIMESTAMP.                                                                      |
 
 Indexes:
+
 - `UNIQUE KEY uq_punch (emp_cd, punch_at, source_row_id)`
 - `idx_emp_time (emp_cd, punch_at)`
 - `idx_punch_at (punch_at)`
@@ -77,18 +78,18 @@ Indexes:
 
 ### `attendance_shifts`
 
-| Column | Type | Notes |
-|---|---|---|
-| `id` | INT AUTO_INCREMENT | **PK**. |
-| `name` | VARCHAR(64) | NOT NULL. |
-| `start_time` | TIME | NOT NULL. |
-| `end_time` | TIME | NOT NULL. |
-| `crosses_midnight` | TINYINT(1) | DEFAULT 0. |
-| `grace_late_min` | INT | DEFAULT 0. |
-| `grace_early_min` | INT | DEFAULT 0. |
-| `break_minutes` | INT | DEFAULT 0. |
-| `active` | TINYINT(1) | DEFAULT 1. |
-| `created_at`, `updated_at` | DATETIME | as above. |
+| Column                     | Type               | Notes      |
+| -------------------------- | ------------------ | ---------- |
+| `id`                       | INT AUTO_INCREMENT | **PK**.    |
+| `name`                     | VARCHAR(64)        | NOT NULL.  |
+| `start_time`               | TIME               | NOT NULL.  |
+| `end_time`                 | TIME               | NOT NULL.  |
+| `crosses_midnight`         | TINYINT(1)         | DEFAULT 0. |
+| `grace_late_min`           | INT                | DEFAULT 0. |
+| `grace_early_min`          | INT                | DEFAULT 0. |
+| `break_minutes`            | INT                | DEFAULT 0. |
+| `active`                   | TINYINT(1)         | DEFAULT 1. |
+| `created_at`, `updated_at` | DATETIME           | as above.  |
 
 Indexes: `idx_active (active)`.
 
@@ -98,15 +99,15 @@ Indexes: `idx_active (active)`.
 
 Many-to-many over time. Employee → shift over a date range, with weekday mask.
 
-| Column | Type | Notes |
-|---|---|---|
-| `id` | INT AUTO_INCREMENT | **PK**. |
-| `emp_cd` | VARCHAR(32) | NOT NULL. |
-| `shift_id` | INT | NOT NULL, FK → `attendance_shifts.id` (ON DELETE RESTRICT). |
-| `effective_from` | DATE | NOT NULL. |
-| `effective_to` | DATE | NULL (open-ended). |
-| `weekday_mask` | TINYINT UNSIGNED | DEFAULT 127 (binary 1111111 = all days). Bit 0 = Sunday. |
-| `created_at`, `updated_at` | DATETIME | as above. |
+| Column                     | Type               | Notes                                                       |
+| -------------------------- | ------------------ | ----------------------------------------------------------- |
+| `id`                       | INT AUTO_INCREMENT | **PK**.                                                     |
+| `emp_cd`                   | VARCHAR(32)        | NOT NULL.                                                   |
+| `shift_id`                 | INT                | NOT NULL, FK → `attendance_shifts.id` (ON DELETE RESTRICT). |
+| `effective_from`           | DATE               | NOT NULL.                                                   |
+| `effective_to`             | DATE               | NULL (open-ended).                                          |
+| `weekday_mask`             | TINYINT UNSIGNED   | DEFAULT 127 (binary 1111111 = all days). Bit 0 = Sunday.    |
+| `created_at`, `updated_at` | DATETIME           | as above.                                                   |
 
 Indexes: `idx_emp_from (emp_cd, effective_from)`.
 
@@ -116,16 +117,16 @@ Indexes: `idx_emp_from (emp_cd, effective_from)`.
 
 ### `attendance_leaves`
 
-| Column | Type | Notes |
-|---|---|---|
-| `id` | INT AUTO_INCREMENT | **PK**. |
-| `emp_cd` | VARCHAR(32) | NOT NULL. |
-| `date_from` | DATE | NOT NULL. |
-| `date_to` | DATE | NOT NULL. |
-| `type` | ENUM('annual','sick','unpaid','other') | NOT NULL. |
-| `approved` | TINYINT(1) | DEFAULT 0. Only `approved=1` overrides `absent`. |
-| `note` | VARCHAR(255) | NULL. |
-| `created_at`, `updated_at` | DATETIME | as above. |
+| Column                     | Type                                   | Notes                                            |
+| -------------------------- | -------------------------------------- | ------------------------------------------------ |
+| `id`                       | INT AUTO_INCREMENT                     | **PK**.                                          |
+| `emp_cd`                   | VARCHAR(32)                            | NOT NULL.                                        |
+| `date_from`                | DATE                                   | NOT NULL.                                        |
+| `date_to`                  | DATE                                   | NOT NULL.                                        |
+| `type`                     | ENUM('annual','sick','unpaid','other') | NOT NULL.                                        |
+| `approved`                 | TINYINT(1)                             | DEFAULT 0. Only `approved=1` overrides `absent`. |
+| `note`                     | VARCHAR(255)                           | NULL.                                            |
+| `created_at`, `updated_at` | DATETIME                               | as above.                                        |
 
 Indexes: `idx_emp_from (emp_cd, date_from)`.
 
@@ -133,12 +134,12 @@ Indexes: `idx_emp_from (emp_cd, date_from)`.
 
 ### `attendance_holidays`
 
-| Column | Type | Notes |
-|---|---|---|
-| `date` | DATE | **PK**. |
-| `label` | VARCHAR(128) | NOT NULL. |
-| `paid` | TINYINT(1) | DEFAULT 1. |
-| `created_at`, `updated_at` | DATETIME | as above. |
+| Column                     | Type         | Notes      |
+| -------------------------- | ------------ | ---------- |
+| `date`                     | DATE         | **PK**.    |
+| `label`                    | VARCHAR(128) | NOT NULL.  |
+| `paid`                     | TINYINT(1)   | DEFAULT 1. |
+| `created_at`, `updated_at` | DATETIME     | as above.  |
 
 ---
 
@@ -146,20 +147,20 @@ Indexes: `idx_emp_from (emp_cd, date_from)`.
 
 Computed table — rebuildable from raw punches + rules.
 
-| Column | Type | Notes |
-|---|---|---|
-| `emp_cd` | VARCHAR(32) | PK part. |
-| `work_date` | DATE | PK part. Shift-anchor date, NOT calendar date of punch (R9). |
-| `shift_id` | INT | NULL (no shift resolved). |
-| `first_in` | DATETIME | NULL. |
-| `last_out` | DATETIME | NULL. |
-| `worked_minutes` | INT | NULL when `missing_checkout`. ≥ 0 otherwise. |
-| `late_minutes` | INT | DEFAULT 0. |
-| `early_leave_min` | INT | DEFAULT 0. |
-| `overtime_minutes` | INT | DEFAULT 0. |
-| `status` | ENUM('present','absent','leave','holiday','partial','missing_checkout') | NOT NULL. |
-| `inside_now` | TINYINT(1) | DEFAULT 0. Materialized for the dashboard "inside now" widget. |
-| `computed_at` | DATETIME | NOT NULL. |
+| Column             | Type                                                                    | Notes                                                          |
+| ------------------ | ----------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `emp_cd`           | VARCHAR(32)                                                             | PK part.                                                       |
+| `work_date`        | DATE                                                                    | PK part. Shift-anchor date, NOT calendar date of punch (R9).   |
+| `shift_id`         | INT                                                                     | NULL (no shift resolved).                                      |
+| `first_in`         | DATETIME                                                                | NULL.                                                          |
+| `last_out`         | DATETIME                                                                | NULL.                                                          |
+| `worked_minutes`   | INT                                                                     | NULL when `missing_checkout`. ≥ 0 otherwise.                   |
+| `late_minutes`     | INT                                                                     | DEFAULT 0.                                                     |
+| `early_leave_min`  | INT                                                                     | DEFAULT 0.                                                     |
+| `overtime_minutes` | INT                                                                     | DEFAULT 0.                                                     |
+| `status`           | ENUM('present','absent','leave','holiday','partial','missing_checkout') | NOT NULL.                                                      |
+| `inside_now`       | TINYINT(1)                                                              | DEFAULT 0. Materialized for the dashboard "inside now" widget. |
+| `computed_at`      | DATETIME                                                                | NOT NULL.                                                      |
 
 **Primary key**: `(emp_cd, work_date)`. Indexes: `idx_date_status (work_date, status)`, `idx_inside_now (inside_now)`.
 
@@ -171,21 +172,21 @@ Computed table — rebuildable from raw punches + rules.
 
 Audit trail for every sync attempt.
 
-| Column | Type | Notes |
-|---|---|---|
-| `id` | BIGINT AUTO_INCREMENT | **PK**. |
-| `started_at` | DATETIME | NOT NULL. |
-| `finished_at` | DATETIME | NULL until done. |
-| `source` | ENUM('access','tcp') | NOT NULL. |
-| `trigger` | ENUM('cron','manual') | NOT NULL. |
-| `triggered_by` | INT | NULL for cron, user id for manual. |
-| `rows_seen` | INT | DEFAULT 0. |
-| `rows_inserted` | INT | DEFAULT 0. |
-| `rows_skipped` | INT | DEFAULT 0. Excludes dedup skips. |
-| `rows_quarantined` | INT | DEFAULT 0. Future-dated/malformed. |
-| `status` | ENUM('running','ok','partial','failed','locked') | NOT NULL. |
-| `error` | TEXT | NULL. Sanitized: no env values, no file paths. |
-| `high_water_mark` | DATETIME | NULL. Max `punch_at` successfully imported in this run. |
+| Column             | Type                                             | Notes                                                   |
+| ------------------ | ------------------------------------------------ | ------------------------------------------------------- |
+| `id`               | BIGINT AUTO_INCREMENT                            | **PK**.                                                 |
+| `started_at`       | DATETIME                                         | NOT NULL.                                               |
+| `finished_at`      | DATETIME                                         | NULL until done.                                        |
+| `source`           | ENUM('access','tcp')                             | NOT NULL.                                               |
+| `trigger`          | ENUM('cron','manual')                            | NOT NULL.                                               |
+| `triggered_by`     | INT                                              | NULL for cron, user id for manual.                      |
+| `rows_seen`        | INT                                              | DEFAULT 0.                                              |
+| `rows_inserted`    | INT                                              | DEFAULT 0.                                              |
+| `rows_skipped`     | INT                                              | DEFAULT 0. Excludes dedup skips.                        |
+| `rows_quarantined` | INT                                              | DEFAULT 0. Future-dated/malformed.                      |
+| `status`           | ENUM('running','ok','partial','failed','locked') | NOT NULL.                                               |
+| `error`            | TEXT                                             | NULL. Sanitized: no env values, no file paths.          |
+| `high_water_mark`  | DATETIME                                         | NULL. Max `punch_at` successfully imported in this run. |
 
 Indexes: `idx_started (started_at DESC)`, `idx_status (status)`.
 

@@ -4,9 +4,9 @@
  * Supports real-time punch reception
  */
 
-import { EventEmitter } from 'events';
-import * as net from 'net';
-import { DeviceSettingsService } from './deviceSettings.service';
+import { EventEmitter } from "events";
+import * as net from "net";
+import { DeviceSettingsService } from "./deviceSettings.service";
 
 export interface DeviceConfig {
   ip: string;
@@ -19,7 +19,7 @@ export interface DeviceConfig {
 export interface DevicePunch {
   empNo: string;
   timestamp: Date;
-  direction: 'in' | 'out' | 'unknown';
+  direction: "in" | "out" | "unknown";
   deviceId: string;
 }
 
@@ -74,15 +74,17 @@ export class DeviceAdapterService extends EventEmitter {
           this.reconnectAttempts = 0;
           this.connectionError = undefined;
           this.lastConnected = new Date();
-          this.emit('connected');
-          console.log(`[Device] Connected to ${this.config.ip}:${this.config.port}`);
+          this.emit("connected");
+          console.log(
+            `[Device] Connected to ${this.config.ip}:${this.config.port}`,
+          );
           resolve(true);
-        }
+        },
       );
 
-      socket.on('data', (data: Buffer) => this.handleData(data));
-      socket.on('error', (err: Error) => this.handleError(err));
-      socket.on('close', () => this.handleClose());
+      socket.on("data", (data: Buffer) => this.handleData(data));
+      socket.on("error", (err: Error) => this.handleError(err));
+      socket.on("close", () => this.handleClose());
       socket.setTimeout(this.config.timeout, () => socket.destroy());
 
       this.socket = socket;
@@ -90,7 +92,7 @@ export class DeviceAdapterService extends EventEmitter {
       setTimeout(() => {
         if (this.isConnecting) {
           this.isConnecting = false;
-          this.connectionError = 'Connection timeout';
+          this.connectionError = "Connection timeout";
           socket.destroy();
           resolve(false);
         }
@@ -119,8 +121,8 @@ export class DeviceAdapterService extends EventEmitter {
 
     try {
       let data: Buffer;
-      if (typeof command === 'string') {
-        data = Buffer.from(command, 'utf8');
+      if (typeof command === "string") {
+        data = Buffer.from(command, "utf8");
       } else {
         data = command;
       }
@@ -137,7 +139,7 @@ export class DeviceAdapterService extends EventEmitter {
    */
   requestStatus(): boolean {
     // Standard command: query device status
-    return this.sendCommand(Buffer.from([0xAA, 0xBB, 0x00, 0x00, 0x00, 0x00]));
+    return this.sendCommand(Buffer.from([0xaa, 0xbb, 0x00, 0x00, 0x00, 0x00]));
   }
 
   /**
@@ -145,7 +147,7 @@ export class DeviceAdapterService extends EventEmitter {
    */
   requestEmployeeData(): boolean {
     // Command to get employee list from device
-    return this.sendCommand(Buffer.from([0xAA, 0xBB, 0x01, 0x00, 0x00, 0x00]));
+    return this.sendCommand(Buffer.from([0xaa, 0xbb, 0x01, 0x00, 0x00, 0x00]));
   }
 
   /**
@@ -177,7 +179,7 @@ export class DeviceAdapterService extends EventEmitter {
       if (punch) {
         this.punchCount++;
         this.lastPunch = punch.timestamp;
-        this.emit('punch', punch);
+        this.emit("punch", punch);
         this.buffer = this.buffer.slice(24);
       } else {
         break;
@@ -192,7 +194,7 @@ export class DeviceAdapterService extends EventEmitter {
   private parsePunch(data: Buffer): DevicePunch | null {
     try {
       // Extract employee number (8 bytes, ASCII)
-      const empNo = data.slice(0, 8).toString('ascii').trim();
+      const empNo = data.slice(0, 8).toString("ascii").trim();
 
       // Extract timestamp (8 bytes, Unix timestamp in big-endian)
       const timestampMs = data.readBigUInt64BE(8) as any;
@@ -200,8 +202,8 @@ export class DeviceAdapterService extends EventEmitter {
 
       // Extract direction (1 byte: 0=out, 1=in, others=unknown)
       const directionByte = data[16];
-      const direction: 'in' | 'out' | 'unknown' =
-        directionByte === 1 ? 'in' : directionByte === 0 ? 'out' : 'unknown';
+      const direction: "in" | "out" | "unknown" =
+        directionByte === 1 ? "in" : directionByte === 0 ? "out" : "unknown";
 
       if (!empNo || isNaN(timestamp.getTime())) {
         return null;
@@ -223,8 +225,8 @@ export class DeviceAdapterService extends EventEmitter {
    */
   private handleError(err: Error): void {
     this.connectionError = err.message;
-    if (this.listenerCount('error') > 0) {
-      this.emit('error', err);
+    if (this.listenerCount("error") > 0) {
+      this.emit("error", err);
     }
     console.error(`[Device] Error: ${err.message}`);
     this.attemptReconnect();
@@ -236,8 +238,8 @@ export class DeviceAdapterService extends EventEmitter {
   private handleClose(): void {
     this.socket = null;
     this.isConnecting = false;
-    this.emit('disconnected');
-    console.log('[Device] Disconnected');
+    this.emit("disconnected");
+    console.log("[Device] Disconnected");
     this.attemptReconnect();
   }
 
@@ -246,7 +248,7 @@ export class DeviceAdapterService extends EventEmitter {
    */
   private attemptReconnect(): void {
     if (this.reconnectAttempts >= this.config.maxRetries) {
-      this.connectionError = 'Max reconnection attempts reached';
+      this.connectionError = "Max reconnection attempts reached";
       return;
     }
 

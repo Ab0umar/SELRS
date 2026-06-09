@@ -25,7 +25,7 @@ async function main() {
   try {
     const [rows] = await conn.query<any[]>(
       "SELECT id, username, role, isActive FROM users WHERE id = ? LIMIT 1",
-      [userId]
+      [userId],
     );
 
     if (!rows.length) {
@@ -40,7 +40,7 @@ async function main() {
 
     const [afterRows] = await conn.query<any[]>(
       "SELECT id, username, role, isActive FROM users WHERE id = ? LIMIT 1",
-      [userId]
+      [userId],
     );
 
     const after = afterRows[0];
@@ -57,8 +57,8 @@ async function main() {
           },
         },
         null,
-        2
-      )
+        2,
+      ),
     );
   } finally {
     await conn.end();
@@ -69,4 +69,3 @@ main().catch((error) => {
   console.error("[ensure-active-admin] Failed:", error);
   process.exit(1);
 });
-

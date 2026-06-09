@@ -23,16 +23,16 @@ SELRS (Saadany Eye Laser & Refractive Surgery) Medical Center Platform. A monoli
 
 ## Medical vs Accounting Philosophy
 
-| Aspect | Medical | Accounting |
-|---|---|---|
-| Database | MySQL (`selrs26`) | MSSQL (`op2026`) |
-| Data direction | Read + Write | Read-Only (Phase 1) |
-| Primary key | `patients.id` (auto-increment) | `PAT_CD` (string, zero-padded) |
-| Access pattern | Full CRUD | SELECT only, parameterized |
-| Bridge key | `patients.patientCode` = MSSQL `PAT_CD` (read-time only) | Same |
-| Permission gate | Role-based (doctor, nurse, tech, reception, admin) | `accountingProcedure` (path-based `/accounting` permission) |
-| UI language | Arabic + English | Arabic (Eastern Arabic-Indic digits for money) |
-| State | Real-time WebSocket updates | Polling (60s auto-refresh) |
+| Aspect          | Medical                                                  | Accounting                                                  |
+| --------------- | -------------------------------------------------------- | ----------------------------------------------------------- |
+| Database        | MySQL (`selrs26`)                                        | MSSQL (`op2026`)                                            |
+| Data direction  | Read + Write                                             | Read-Only (Phase 1)                                         |
+| Primary key     | `patients.id` (auto-increment)                           | `PAT_CD` (string, zero-padded)                              |
+| Access pattern  | Full CRUD                                                | SELECT only, parameterized                                  |
+| Bridge key      | `patients.patientCode` = MSSQL `PAT_CD` (read-time only) | Same                                                        |
+| Permission gate | Role-based (doctor, nurse, tech, reception, admin)       | `accountingProcedure` (path-based `/accounting` permission) |
+| UI language     | Arabic + English                                         | Arabic (Eastern Arabic-Indic digits for money)              |
+| State           | Real-time WebSocket updates                              | Polling (60s auto-refresh)                                  |
 
 ---
 
@@ -95,6 +95,7 @@ server/_core/
 ```
 
 **Procedure hierarchy:**
+
 - `publicProcedure` — no auth
 - `protectedProcedure` — any authenticated user
 - `doctorProcedure` — doctor, admin, manager
@@ -204,18 +205,18 @@ client/src/
 
 ## Main Tables
 
-| Table | Purpose |
-|---|---|
-| `patients` | Patient records, demographics, `patientCode`, `id` |
-| `users` | Staff accounts, roles, permissions |
-| `operations` | Scheduled surgeries/procedures |
-| `patient_service_entries` | Service entries synced from MSSQL |
-| `audit_logs` | Action audit trail |
-| `permissions` | Path-based permission assignments |
-| `branches` | Clinic branch data |
-| `card_visibility` | Dashboard card configuration per user |
-| `accLedger` | Cashbook ledger (income/expense/balance) — MySQL-side accounting |
-| `accCategories` | Cashbook categories |
+| Table                     | Purpose                                                          |
+| ------------------------- | ---------------------------------------------------------------- |
+| `patients`                | Patient records, demographics, `patientCode`, `id`               |
+| `users`                   | Staff accounts, roles, permissions                               |
+| `operations`              | Scheduled surgeries/procedures                                   |
+| `patient_service_entries` | Service entries synced from MSSQL                                |
+| `audit_logs`              | Action audit trail                                               |
+| `permissions`             | Path-based permission assignments                                |
+| `branches`                | Clinic branch data                                               |
+| `card_visibility`         | Dashboard card configuration per user                            |
+| `accLedger`               | Cashbook ledger (income/expense/balance) — MySQL-side accounting |
+| `accCategories`           | Cashbook categories                                              |
 
 ## What Is Allowed
 
@@ -254,12 +255,12 @@ client/src/
 
 ## Main Accounting Tables
 
-| Table | Purpose | Key Columns |
-|---|---|---|
-| `PAPATMF` | Patient master | `PAT_CD`, `NAM` |
-| `MDTEAM` | Doctor directory | `CODE`, `PHNM_AR` |
-| `SRVCMF` | Service catalog | `SRV_CD`, `SRV_NM_AR` |
-| `PAJRNRCVH` | Receipt headers | `SEC_CD`, `TR_TY`, `TR_NO`, `TR_DT`, `PAT_CD`, `TOTL`, `DISC`, `PA_VL`, `CNCL` |
+| Table       | Purpose            | Key Columns                                                                               |
+| ----------- | ------------------ | ----------------------------------------------------------------------------------------- |
+| `PAPATMF`   | Patient master     | `PAT_CD`, `NAM`                                                                           |
+| `MDTEAM`    | Doctor directory   | `CODE`, `PHNM_AR`                                                                         |
+| `SRVCMF`    | Service catalog    | `SRV_CD`, `SRV_NM_AR`                                                                     |
+| `PAJRNRCVH` | Receipt headers    | `SEC_CD`, `TR_TY`, `TR_NO`, `TR_DT`, `PAT_CD`, `TOTL`, `DISC`, `PA_VL`, `CNCL`            |
 | `PAPAT_SRV` | Service line items | `SEC_CD`, `TR_TY`, `TR_NO`, `SRV_CD`, `PRC`, `QTY`, `PA_VL`, `DISC_VL`, `SRV_BY1`, `CNCL` |
 
 ## Revenue Logic
@@ -328,31 +329,31 @@ LEFT JOIN PAPATMF p ON h.PAT_CD = p.PAT_CD
 
 All under `accountingRouter`, gated by `accountingProcedure`:
 
-| Procedure | Input | Output | Purpose |
-|---|---|---|---|
-| `dashboardSummary` | `{ sectionCode?, date? }` | 4 KPI numbers | Today/month revenue + receipt counts |
-| `transactions` | `{ sectionCode?, limit?, date? }` | `ReceiptHeader[]` | Today's receipt activity feed |
-| `dailyRevenue` | `{ fromDate, toDate, sectionCode?, doctorCode? }` | Daily rows + totals | Per-day revenue breakdown |
-| `serviceRevenue` | `{ fromDate, toDate, sectionCode?, doctorCode?, serviceCode? }` | Grouped sections + services | Service-based revenue report |
-| `receiptsInquiry` | `{ fromDate?, toDate?, patientCode?, doctorCode?, sectionCode?, trNo?, trTy?, limit? }` | `ReceiptHeader[]` | Receipt search |
-| `receiptDetail` | `{ sectionCode, trTy, trNo }` | `{ header, lines[] }` | Single receipt + line items |
-| `lasikReceipts` | Lasik-pinned alias (SEC_CD=15) | `ReceiptHeader[]` | Lasik receipt list |
-| `lasikServices` | `{ fromDate?, toDate?, patientCode?, serviceCode?, doctorCode?, limit? }` | `ServiceRow[]` | Lasik service lines |
-| `lasikRevenueSummary` | `{ fromDate?, toDate?, doctorCode? }` | Revenue totals | Lasik revenue summary |
-| `patientLasikSummary` | `{ patientCode }` | Patient financial summary | Patient account view |
-| `patientLookup` | `{ patientCode }` | `{ patientCode, patientName }` | Patient name lookup |
-| `doctorLookup` | `{ doctorCode }` | `{ doctorCode, doctorName }` | Doctor name lookup |
-| `serviceLookup` | `{ serviceCode, sectionCode? }` | `{ serviceCode, serviceName }` | Service name lookup |
-| `accLedgerSummary` | `{ dateFrom?, dateTo? }` | Income/expense/balance totals | Cashbook summary (MySQL) |
-| `accLedger` | `{ dateFrom?, dateTo?, type?, page?, pageSize? }` | Paginated ledger rows | Cashbook entries (MySQL) |
-| `accCategories` | — | Category list | Cashbook categories (MySQL) |
-| `addAccEntry` | Entry fields | Mutation result | Add cashbook entry (MySQL, mutation) |
-| `addPatientServices` | Patient + services | Mutation result | Add service entries (mutation) |
-| `deleteReceipt` | Receipt key | Mutation result | Delete receipt (mutation, admin only) |
-| `updateReceipt` | Receipt update fields | Mutation result | Update receipt (mutation) |
-| `serviceEntryCatalog` | — | Services + doctors catalog | Service entry form data |
-| `patientNameLookup` | `{ patientCode }` | Patient name | Quick name lookup |
-| `triggerAccSync` | — | Sync result | Trigger Access DB sync (admin only) |
+| Procedure             | Input                                                                                   | Output                         | Purpose                               |
+| --------------------- | --------------------------------------------------------------------------------------- | ------------------------------ | ------------------------------------- |
+| `dashboardSummary`    | `{ sectionCode?, date? }`                                                               | 4 KPI numbers                  | Today/month revenue + receipt counts  |
+| `transactions`        | `{ sectionCode?, limit?, date? }`                                                       | `ReceiptHeader[]`              | Today's receipt activity feed         |
+| `dailyRevenue`        | `{ fromDate, toDate, sectionCode?, doctorCode? }`                                       | Daily rows + totals            | Per-day revenue breakdown             |
+| `serviceRevenue`      | `{ fromDate, toDate, sectionCode?, doctorCode?, serviceCode? }`                         | Grouped sections + services    | Service-based revenue report          |
+| `receiptsInquiry`     | `{ fromDate?, toDate?, patientCode?, doctorCode?, sectionCode?, trNo?, trTy?, limit? }` | `ReceiptHeader[]`              | Receipt search                        |
+| `receiptDetail`       | `{ sectionCode, trTy, trNo }`                                                           | `{ header, lines[] }`          | Single receipt + line items           |
+| `lasikReceipts`       | Lasik-pinned alias (SEC_CD=15)                                                          | `ReceiptHeader[]`              | Lasik receipt list                    |
+| `lasikServices`       | `{ fromDate?, toDate?, patientCode?, serviceCode?, doctorCode?, limit? }`               | `ServiceRow[]`                 | Lasik service lines                   |
+| `lasikRevenueSummary` | `{ fromDate?, toDate?, doctorCode? }`                                                   | Revenue totals                 | Lasik revenue summary                 |
+| `patientLasikSummary` | `{ patientCode }`                                                                       | Patient financial summary      | Patient account view                  |
+| `patientLookup`       | `{ patientCode }`                                                                       | `{ patientCode, patientName }` | Patient name lookup                   |
+| `doctorLookup`        | `{ doctorCode }`                                                                        | `{ doctorCode, doctorName }`   | Doctor name lookup                    |
+| `serviceLookup`       | `{ serviceCode, sectionCode? }`                                                         | `{ serviceCode, serviceName }` | Service name lookup                   |
+| `accLedgerSummary`    | `{ dateFrom?, dateTo? }`                                                                | Income/expense/balance totals  | Cashbook summary (MySQL)              |
+| `accLedger`           | `{ dateFrom?, dateTo?, type?, page?, pageSize? }`                                       | Paginated ledger rows          | Cashbook entries (MySQL)              |
+| `accCategories`       | —                                                                                       | Category list                  | Cashbook categories (MySQL)           |
+| `addAccEntry`         | Entry fields                                                                            | Mutation result                | Add cashbook entry (MySQL, mutation)  |
+| `addPatientServices`  | Patient + services                                                                      | Mutation result                | Add service entries (mutation)        |
+| `deleteReceipt`       | Receipt key                                                                             | Mutation result                | Delete receipt (mutation, admin only) |
+| `updateReceipt`       | Receipt update fields                                                                   | Mutation result                | Update receipt (mutation)             |
+| `serviceEntryCatalog` | —                                                                                       | Services + doctors catalog     | Service entry form data               |
+| `patientNameLookup`   | `{ patientCode }`                                                                       | Patient name                   | Quick name lookup                     |
+| `triggerAccSync`      | —                                                                                       | Sync result                    | Trigger Access DB sync (admin only)   |
 
 ## Services
 
@@ -373,13 +374,13 @@ server/services/accounting/
 
 ## Reports
 
-| Report | Legacy Source | Page Component |
-|---|---|---|
-| Daily Revenue | `DAY_IN SQLSRV.txt`, `تقرير الرمد.rtm` | `DailyRevenue.tsx` |
-| Service Revenue (Doctor→Service) | `اطباء.rtm`, `TRF_DRSRV1.RTM` | `LasikRevenue.tsx` |
-| Receipts Inquiry | `تقرير الرمد.rtm` | `ReceiptsInquiry.tsx` |
-| Patient Account | `PAPATMF.rtm` | `PatientAccount.tsx` |
-| Doctor Account | `اطباء.rtm` | `DoctorAccount.tsx` |
+| Report                           | Legacy Source                          | Page Component        |
+| -------------------------------- | -------------------------------------- | --------------------- |
+| Daily Revenue                    | `DAY_IN SQLSRV.txt`, `تقرير الرمد.rtm` | `DailyRevenue.tsx`    |
+| Service Revenue (Doctor→Service) | `اطباء.rtm`, `TRF_DRSRV1.RTM`          | `LasikRevenue.tsx`    |
+| Receipts Inquiry                 | `تقرير الرمد.rtm`                      | `ReceiptsInquiry.tsx` |
+| Patient Account                  | `PAPATMF.rtm`                          | `PatientAccount.tsx`  |
+| Doctor Account                   | `اطباء.rtm`                            | `DoctorAccount.tsx`   |
 
 ## Print Workflow
 
@@ -552,21 +553,21 @@ server/services/accounting/
 
 These files should almost NEVER be modified:
 
-| File | Reason |
-|---|---|
-| `server/routers/medical.ts` | Core medical business logic |
-| `server/routers/patient.ts` | Patient CRUD API |
-| `server/db.ts` | Database + legacy text handling |
-| `server/integrations/mssqlPatients.ts` | MSSQL pool + sync logic |
-| `client/src/components/ProtectedRoute.tsx` | Auth gate for all pages |
-| `server/_core/procedures.ts` | Role-based procedure definitions |
-| `server/_core/context.ts` | Auth context |
-| `server/_core/trpc.ts` | tRPC initialization |
-| `server/_core/env.ts` | Environment configuration |
-| `ecosystem.config.js` | PM2 process config |
-| `shared/types.ts` | Medical shared types |
-| `shared/const.ts` | Shared constants |
-| `drizzle/schema.ts` | MySQL schema definition |
+| File                                       | Reason                           |
+| ------------------------------------------ | -------------------------------- |
+| `server/routers/medical.ts`                | Core medical business logic      |
+| `server/routers/patient.ts`                | Patient CRUD API                 |
+| `server/db.ts`                             | Database + legacy text handling  |
+| `server/integrations/mssqlPatients.ts`     | MSSQL pool + sync logic          |
+| `client/src/components/ProtectedRoute.tsx` | Auth gate for all pages          |
+| `server/_core/procedures.ts`               | Role-based procedure definitions |
+| `server/_core/context.ts`                  | Auth context                     |
+| `server/_core/trpc.ts`                     | tRPC initialization              |
+| `server/_core/env.ts`                      | Environment configuration        |
+| `ecosystem.config.js`                      | PM2 process config               |
+| `shared/types.ts`                          | Medical shared types             |
+| `shared/const.ts`                          | Shared constants                 |
+| `drizzle/schema.ts`                        | MySQL schema definition          |
 
 ---
 
@@ -633,6 +634,7 @@ Constitution → Principles → /specify → /clarify → /plan → /tasks → E
 ## Task Reporting Format
 
 Every completed task reports:
+
 - Changed files
 - What changed
 - Checks run
@@ -642,17 +644,18 @@ Every completed task reports:
 
 # Model Routing
 
-| Task Type | Best Model | Backup | Notes |
-|---|---|---|---|
-| Specs, plan, tasks, review | Claude | — | Leader/planner/reviewer only |
-| Multi-file edits inside repo | Cursor | Codex | Default execution surface |
-| Implementation / refactor / bugfix | Codex | Cursor | Backend + frontend wiring |
-| SQL design, report logic, complex reasoning | GPT-5 | Claude | Query parity, aggregation |
-| Bulk extraction, legacy summaries | GPT-5 mini / GLM / Kimi | OpenRouter | Cheap long-form work |
-| UI layout / visual variants | Gemini | Cursor | Design alternatives |
-| Local lightweight edits | Ollama / Continue | Cursor | Offline mode |
+| Task Type                                   | Best Model              | Backup     | Notes                        |
+| ------------------------------------------- | ----------------------- | ---------- | ---------------------------- |
+| Specs, plan, tasks, review                  | Claude                  | —          | Leader/planner/reviewer only |
+| Multi-file edits inside repo                | Cursor                  | Codex      | Default execution surface    |
+| Implementation / refactor / bugfix          | Codex                   | Cursor     | Backend + frontend wiring    |
+| SQL design, report logic, complex reasoning | GPT-5                   | Claude     | Query parity, aggregation    |
+| Bulk extraction, legacy summaries           | GPT-5 mini / GLM / Kimi | OpenRouter | Cheap long-form work         |
+| UI layout / visual variants                 | Gemini                  | Cursor     | Design alternatives          |
+| Local lightweight edits                     | Ollama / Continue       | Cursor     | Offline mode                 |
 
 **Key rules:**
+
 - Never use Claude for heavy implementation
 - Never use cheap models for legacy parity checks without Claude review
 - Every task prompt ends with: "Follow the project Constitution and Project Principles strictly."

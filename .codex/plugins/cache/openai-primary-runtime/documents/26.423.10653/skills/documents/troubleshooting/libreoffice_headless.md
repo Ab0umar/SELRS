@@ -1,9 +1,11 @@
 # Troubleshooting: Optional LibreOffice headless rendering
 
 ## Symptom: `soffice` hangs, times out, or errors in a container
+
 This is commonly caused by LibreOffice failing to create/lock its user profile, or attempting to write config/cache under a non-writable `HOME`.
 
 ## Recommended path: use artifact-tool
+
 For `documents`, LibreOffice is optional. Use the canonical helper with the artifact-tool renderer:
 
 ```bash
@@ -15,6 +17,7 @@ python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out --verbose 
 If artifact-tool fails, fix artifact-tool rendering before delivery. Do not ship from structural DOCX inspection alone.
 
 ## LibreOffice cross-check: profile + writable HOME
+
 If you explicitly need a LibreOffice cross-check, use a unique profile:
 
 ```bash
@@ -35,13 +38,16 @@ python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out_lo --rende
 ```
 
 ## About scary stderr on "successful" conversions
+
 LibreOffice sometimes prints scary-looking messages (notably `error : Unknown IO error`) even when the output PDF is correct.
 
 Prefer these success criteria over stderr:
+
 - command completes
 - downstream PNGs exist and look correct
 
 ## If you still get weird behavior
+
 - Ensure the profile directory is unique per process (use `$$` or a uuid)
 - Delete stale profiles between runs
 - Prefer `/mnt/data` over `/tmp` if you suspect permission sandboxing

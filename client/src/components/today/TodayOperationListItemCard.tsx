@@ -41,10 +41,9 @@ export function TodayOperationListItemCard({
   const code = str(item.code);
 
   const rawDoctor = str(item.doctor);
-  const doctorResolved =
-    rawDoctor
-      ? (doctorNameByCode.get(rawDoctor.toLowerCase()) ?? rawDoctor)
-      : (str(listDoctorName) || null);
+  const doctorResolved = rawDoctor
+    ? (doctorNameByCode.get(rawDoctor.toLowerCase()) ?? rawDoctor)
+    : str(listDoctorName) || null;
 
   const operation = str(item.operation) || str(listOperationType) || null;
   const eye = str(item.eye) || null;
@@ -76,12 +75,10 @@ export function TodayOperationListItemCard({
           </div>
         ) : null}
 
-        {(operation || eye) ? (
+        {operation || eye ? (
           <div className="flex items-center gap-1.5">
             <Eye className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            <span>
-              {[operation, eye].filter(Boolean).join(" · ")}
-            </span>
+            <span>{[operation, eye].filter(Boolean).join(" · ")}</span>
           </div>
         ) : null}
 
@@ -108,7 +105,9 @@ export function TodayOperationListItemCard({
       </div>
 
       {row.isAutoFromMssql ? (
-        <p className={cn("mt-0.5 text-[10px] text-muted-foreground/60")}>مزامنة تلقائية</p>
+        <p className={cn("mt-0.5 text-[10px] text-muted-foreground/60")}>
+          مزامنة تلقائية
+        </p>
       ) : null}
     </div>
   );

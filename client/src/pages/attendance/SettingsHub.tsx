@@ -8,13 +8,41 @@ import SyncStatus from "./admin/SyncStatus";
 import EmpSync from "./admin/EmpSync";
 
 const TABS = [
-  { key: "device", label: "الجهاز", description: "اتصال جهاز البصمة ومسارات البيانات" },
-  { key: "sync", label: "المزامنة", description: "حالة تزامن البصمات وآخر تشغيل" },
-  { key: "empsync", label: "موظفو الجهاز", description: "مطابقة موظفي الجهاز مع النظام" },
-  { key: "shifts", label: "تعريف الورديات", description: "إنشاء الورديات وقواعدها" },
-  { key: "holidays", label: "العطلات الرسمية", description: "أيام العطل المدفوعة وغير المدفوعة" },
-  { key: "settings", label: "قواعد الحضور", description: "حدود التأخير والانصراف والحساب" },
-  { key: "admin", label: "لوحة الإدارة", description: "ملخصات وأدوات إدارة وحدة الحضور" },
+  {
+    key: "device",
+    label: "الجهاز",
+    description: "اتصال جهاز البصمة ومسارات البيانات",
+  },
+  {
+    key: "sync",
+    label: "المزامنة",
+    description: "حالة تزامن البصمات وآخر تشغيل",
+  },
+  {
+    key: "empsync",
+    label: "موظفو الجهاز",
+    description: "مطابقة موظفي الجهاز مع النظام",
+  },
+  {
+    key: "shifts",
+    label: "تعريف الورديات",
+    description: "إنشاء الورديات وقواعدها",
+  },
+  {
+    key: "holidays",
+    label: "العطلات الرسمية",
+    description: "أيام العطل المدفوعة وغير المدفوعة",
+  },
+  {
+    key: "settings",
+    label: "قواعد الحضور",
+    description: "حدود التأخير والانصراف والحساب",
+  },
+  {
+    key: "admin",
+    label: "لوحة الإدارة",
+    description: "ملخصات وأدوات إدارة وحدة الحضور",
+  },
 ];
 
 export default function SettingsHub() {
@@ -27,7 +55,9 @@ export default function SettingsHub() {
         <p className="text-xs font-medium text-muted-foreground">
           مسار الإعدادات والمزامنة
         </p>
-        <h2 className="text-xl font-bold text-foreground">{currentTab.label}</h2>
+        <h2 className="text-xl font-bold text-foreground">
+          {currentTab.label}
+        </h2>
         <p className="text-sm text-muted-foreground">
           {currentTab.description}
         </p>

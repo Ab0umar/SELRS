@@ -23,17 +23,17 @@ Technical approach: a new tRPC router (`server/routers/attendance.ts`) over a ne
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-checked at end of Phase 1.*
+_GATE: Must pass before Phase 0 research. Re-checked at end of Phase 1._
 
-| Principle | Status | How this plan complies |
-|---|---|---|
-| **I. Strict Module Separation** | ✅ Pass | `server/routers/attendance.ts` MUST NOT import from `medical.ts`/`accounting.ts`; `client/src/pages/attendance/*` MUST NOT import from Medical or Accounting page trees. Only `routers/index.ts` and `client/src/App.tsx` are edited (allowed registration points). Attendance never reads `PAT_CD` or any MSSQL accounting data. |
-| **II. Service-Based Accounting Only** | ✅ N/A | Attendance does not derive any revenue/expense; this principle governs Accounting and remains untouched. |
-| **III. Read-Only Accounting APIs** | ✅ N/A | No Accounting procedures added or modified. |
-| **IV. Use Existing Databases As-Is** | ✅ Pass | Only **new** `attendance_*` tables are added. No existing column renamed, dropped, or repurposed. No edits to `drizzle/schema.ts` rows for medical/patient/accounting; only additions. Drizzle migration created additively. |
-| **V. Legacy Output Parity** | ✅ Documented exception | Principle V is mandated for Accounting reports; the spec's Assumptions explicitly note that Attendance Phase 1 does **not** require legacy parity (Tararus reports may differ in rounding/policy). A reconciliation pass is deferred to a later phase. No constitutional amendment needed because Principle V's text scopes itself to "every Accounting report". |
-| **VI. Spec-Driven, Minimal-Diff Execution** | ✅ Pass | `/specify` (spec.md) and `/clarify` complete; this `/plan` runs before any code. Each `/tasks` row will carry the mandatory schema (Owner/Backup/Tool/Role/Inputs/Outputs/Prompt/Acceptance/Deps/Constitution Refs). No refactors outside Attendance scope. |
-| **VII. Do Not Break Medical** | ✅ Pass | No edits to `server/routers/medical.ts`, `server/_core/procedures.ts` semantics (only **additive** new procedure factories), `client/src/components/ProtectedRoute.tsx`, `server/db.ts`, or MSSQL patient sync. `pnpm check` mandatory before sign-off. |
+| Principle                                   | Status                  | How this plan complies                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **I. Strict Module Separation**             | ✅ Pass                 | `server/routers/attendance.ts` MUST NOT import from `medical.ts`/`accounting.ts`; `client/src/pages/attendance/*` MUST NOT import from Medical or Accounting page trees. Only `routers/index.ts` and `client/src/App.tsx` are edited (allowed registration points). Attendance never reads `PAT_CD` or any MSSQL accounting data.                                |
+| **II. Service-Based Accounting Only**       | ✅ N/A                  | Attendance does not derive any revenue/expense; this principle governs Accounting and remains untouched.                                                                                                                                                                                                                                                         |
+| **III. Read-Only Accounting APIs**          | ✅ N/A                  | No Accounting procedures added or modified.                                                                                                                                                                                                                                                                                                                      |
+| **IV. Use Existing Databases As-Is**        | ✅ Pass                 | Only **new** `attendance_*` tables are added. No existing column renamed, dropped, or repurposed. No edits to `drizzle/schema.ts` rows for medical/patient/accounting; only additions. Drizzle migration created additively.                                                                                                                                     |
+| **V. Legacy Output Parity**                 | ✅ Documented exception | Principle V is mandated for Accounting reports; the spec's Assumptions explicitly note that Attendance Phase 1 does **not** require legacy parity (Tararus reports may differ in rounding/policy). A reconciliation pass is deferred to a later phase. No constitutional amendment needed because Principle V's text scopes itself to "every Accounting report". |
+| **VI. Spec-Driven, Minimal-Diff Execution** | ✅ Pass                 | `/specify` (spec.md) and `/clarify` complete; this `/plan` runs before any code. Each `/tasks` row will carry the mandatory schema (Owner/Backup/Tool/Role/Inputs/Outputs/Prompt/Acceptance/Deps/Constitution Refs). No refactors outside Attendance scope.                                                                                                      |
+| **VII. Do Not Break Medical**               | ✅ Pass                 | No edits to `server/routers/medical.ts`, `server/_core/procedures.ts` semantics (only **additive** new procedure factories), `client/src/components/ProtectedRoute.tsx`, `server/db.ts`, or MSSQL patient sync. `pnpm check` mandatory before sign-off.                                                                                                          |
 
 **Gate result**: PASS. No violations to track in Complexity Tracking.
 
@@ -148,6 +148,7 @@ shared/
 ## Phase 0 — Research
 
 See [`research.md`](./research.md) for resolved decisions on:
+
 1. Access reader: `mdb-reader` vs ODBC vs copy-first.
 2. Job scheduler: dedicated package vs Node `setInterval` vs existing scheduler.
 3. Advisory-lock primitive in MySQL.
@@ -171,11 +172,11 @@ Artifacts produced in this phase:
 
 ### Constitution re-check after Phase 1 design
 
-| Principle | Re-check |
-|---|---|
-| I — Module separation | Reaffirmed. No artifact above references Medical or Accounting code paths. |
-| IV — Existing DBs as-is | Reaffirmed. `data-model.md` only adds tables; migration is additive. |
-| VI — Minimal diff | Reaffirmed. Registration edits are the absolute minimum; no refactors. |
+| Principle                 | Re-check                                                                                           |
+| ------------------------- | -------------------------------------------------------------------------------------------------- |
+| I — Module separation     | Reaffirmed. No artifact above references Medical or Accounting code paths.                         |
+| IV — Existing DBs as-is   | Reaffirmed. `data-model.md` only adds tables; migration is additive.                               |
+| VI — Minimal diff         | Reaffirmed. Registration edits are the absolute minimum; no refactors.                             |
 | VII — Don't break Medical | Reaffirmed. New procedure factories are added beside existing ones; existing signatures unchanged. |
 
 **Re-gate**: PASS. No new violations surfaced by the design.

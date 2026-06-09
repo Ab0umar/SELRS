@@ -9,29 +9,36 @@
 ## Task 01: Establish Constitution and Project Principles
 
 ### Owner Model
+
 Claude
 
 ### Backup Model
+
 GPT-5
 
 ### Tool
+
 Claude
 
 ### Role
+
 Governance: ratify the Constitution and Project Principles that govern every
 subsequent task.
 
 ### Input
+
 - Existing `specs/CONSTITUTION.md`
 - Existing `specs/PROJECT_PRINCIPLES.md`
 - `AGENTS.md`, `CLAUDE.md`
 
 ### Output
+
 - Approved `specs/CONSTITUTION.md` v1.0.0
 - Approved `specs/PROJECT_PRINCIPLES.md` v1.0.0
 - Sync Impact note (if any future edit)
 
 ### Prompt
+
 ```text
 Follow the project Constitution and Project Principles strictly.
 
@@ -54,6 +61,7 @@ Output:
 ```
 
 ### Acceptance Criteria
+
 - `specs/CONSTITUTION.md` exists and is v1.0.0.
 - `specs/PROJECT_PRINCIPLES.md` exists and is v1.0.0.
 - No downstream task is accepted unless its prompt ends with the mandatory
@@ -64,29 +72,36 @@ Output:
 ## Task 02: Generate /specify
 
 ### Owner Model
+
 Claude
 
 ### Backup Model
+
 GPT-5
 
 ### Tool
+
 Claude
 
 ### Role
+
 Spec author for the Accounting Phase 1 feature.
 
 ### Input
+
 - `specs/CONSTITUTION.md`, `specs/PROJECT_PRINCIPLES.md`
 - `SRV100_Final.txt`, `Acc_SRV100/SRV100_Plan.txt`,
   `Acc_SRV100/SRV100_UPDATED_FINAL.txt`, `Acc_SRV100/OP_QU.txt`
 - Legacy OP `.rtm` reports under `Acc_SRV100/*.rtm`
 
 ### Output
+
 - `specs/specify.md` with Goal, Scope, Non-scope, Users/modules,
   System rules, Functional requirements, Non-functional requirements,
   Data boundaries, Legacy matching requirements, Acceptance criteria.
 
 ### Prompt
+
 ```text
 Follow the project Constitution and Project Principles strictly.
 
@@ -108,6 +123,7 @@ Output:
 ```
 
 ### Acceptance Criteria
+
 - `specs/specify.md` exists and includes all 10 required sections.
 - Non-scope list explicitly forbids DB redesign, writes, and medical edits.
 - Legacy matching section names specific `.rtm` sources per report.
@@ -117,30 +133,37 @@ Output:
 ## Task 03: Generate /plan
 
 ### Owner Model
+
 Claude
 
 ### Backup Model
+
 GPT-5
 
 ### Tool
+
 Claude
 
 ### Role
+
 Plan author.
 
 ### Input
+
 - `specs/specify.md`, Constitution, Principles
 - Current repo layout (`server/routers`, `server/services/`,
   `server/integrations/mssqlPatients.ts`, `client/src/App.tsx`,
   `client/src/pages/accounting/`)
 
 ### Output
+
 - `specs/plan.md` with Architecture overview, Existing system assumptions,
   Medical/Accounting separation, Backend strategy, MSSQL read-only strategy,
   Frontend strategy, Report/print strategy, Testing strategy, Deployment
   considerations, Model routing strategy, Constitution Check.
 
 ### Prompt
+
 ```text
 Follow the project Constitution and Project Principles strictly.
 
@@ -162,6 +185,7 @@ Output:
 ```
 
 ### Acceptance Criteria
+
 - `specs/plan.md` exists; Constitution Check passes all seven principles.
 - Folder structure explicitly places accounting code under
   `server/services/accounting/` and `client/src/pages/accounting/`.
@@ -172,25 +196,32 @@ Output:
 ## Task 04: Generate /tasks with Model Routing
 
 ### Owner Model
+
 Claude
 
 ### Backup Model
+
 GPT-5
 
 ### Tool
+
 Claude
 
 ### Role
+
 Task author.
 
 ### Input
+
 - `specs/specify.md`, `specs/plan.md`, Constitution, Principles
 
 ### Output
+
 - `specs/tasks.md` containing 20 tasks, each with the mandatory schema and a
   named Owner Model + Backup Model + Tool.
 
 ### Prompt
+
 ```text
 Follow the project Constitution and Project Principles strictly.
 
@@ -212,6 +243,7 @@ Output:
 ```
 
 ### Acceptance Criteria
+
 - `specs/tasks.md` lists 20 tasks in the exact schema.
 - No implementation task has Claude as Owner Model.
 - Dependencies form a DAG with Task 01..04 as roots.
@@ -221,30 +253,37 @@ Output:
 ## Task 05: Analyze Legacy Files / Reports
 
 ### Owner Model
+
 GPT-5 mini (bulk extraction)
 
 ### Backup Model
+
 GLM / Kimi
 
 ### Tool
+
 Cursor (+ cheap model)
 
 ### Role
+
 Legacy inventory extractor: summarize the legacy `.rtm` reports into a
 structured table of columns/grouping/totals per report.
 
 ### Input
+
 - `Acc_SRV100/*.rtm` (all legacy reports)
 - `Acc_SRV100/OP_QU.txt`, `Acc_SRV100/lasik_op.txt`
 - `Acc_SRV100/SRV100_Plan.txt`
 
 ### Output
+
 - `specs/legacy-reports.md` — one section per target report (Daily Revenue,
   Service Revenue, Receipts Inquiry, Patient Account, Doctor Account)
   listing: legacy file, SELECT query, columns, grouping, totals, footer,
   notes.
 
 ### Prompt
+
 ```text
 Follow the project Constitution and Project Principles strictly.
 
@@ -265,6 +304,7 @@ Output:
 ```
 
 ### Acceptance Criteria
+
 - `specs/legacy-reports.md` exists.
 - Each target report has its legacy source path, SELECT query, columns,
   grouping, and totals documented.
@@ -275,28 +315,35 @@ Output:
 ## Task 06: Lock Accounting Scope
 
 ### Owner Model
+
 Claude
 
 ### Backup Model
+
 GPT-5
 
 ### Tool
+
 Claude
 
 ### Role
+
 Scope controller: freeze the exact list of endpoints, pages, filters, and
 out-of-scope items for Phase 1 based on the spec + plan + legacy analysis.
 
 ### Input
+
 - `specs/specify.md`, `specs/plan.md`, `specs/legacy-reports.md`
 
 ### Output
+
 - `specs/scope-lock.md` with: frozen endpoint list, frozen page list,
   frozen filter parameters per endpoint, frozen out-of-scope list.
 - Any executor discovering an unlisted need MUST stop and file a scope
   change request against this file.
 
 ### Prompt
+
 ```text
 Follow the project Constitution and Project Principles strictly.
 
@@ -317,6 +364,7 @@ Output:
 ```
 
 ### Acceptance Criteria
+
 - `specs/scope-lock.md` exists and matches specify.md exactly.
 - No endpoint or page is listed that is not in specify.md.
 - Out-of-scope list is explicit and copy-pastable.
@@ -326,22 +374,28 @@ Output:
 ## Task 07: Design Accounting API Contracts
 
 ### Owner Model
+
 GPT-5
 
 ### Backup Model
+
 Claude
 
 ### Tool
+
 Cursor
 
 ### Role
+
 Contract designer: write zod schemas and TypeScript interfaces for every
 accounting endpoint input/output. No runtime code yet.
 
 ### Input
+
 - `specs/specify.md`, `specs/plan.md`, `specs/scope-lock.md`
 
 ### Output
+
 - `shared/accounting/contracts.ts` with zod schemas for:
   - `dashboardSummaryInput/Output`
   - `dailyRevenueInput/Output`
@@ -354,6 +408,7 @@ accounting endpoint input/output. No runtime code yet.
   - `patientLasikSummaryInput/Output`
 
 ### Prompt
+
 ```text
 Follow the project Constitution and Project Principles strictly.
 
@@ -375,6 +430,7 @@ Output:
 ```
 
 ### Acceptance Criteria
+
 - `shared/accounting/contracts.ts` exists with all nine schema pairs.
 - `pnpm check` passes.
 - No imports from server or client code.
@@ -384,27 +440,34 @@ Output:
 ## Task 08: Map MSSQL Queries for Accounting Reports
 
 ### Owner Model
+
 GPT-5
 
 ### Backup Model
+
 Claude
 
 ### Tool
+
 Cursor
 
 ### Role
+
 SQL author: write parameterized MSSQL queries (as string templates in TS)
 for every accounting service, matching the legacy report logic.
 
 ### Input
+
 - `specs/legacy-reports.md`, `specs/scope-lock.md`,
   `Acc_SRV100/OP_QU.txt`
 
 ### Output
+
 - `server/services/accounting/sqlBuilders.ts` exporting query builder
   functions per endpoint (as pure functions returning `{ sql, params }`).
 
 ### Prompt
+
 ```text
 Follow the project Constitution and Project Principles strictly.
 
@@ -428,6 +491,7 @@ Output:
 ```
 
 ### Acceptance Criteria
+
 - File exists and exports one builder per endpoint.
 - `grep -iE "INSERT|UPDATE|DELETE|EXEC|MERGE" server/services/accounting`
   returns zero results.
@@ -439,25 +503,31 @@ Output:
 ## Task 09: Implement Backend Accounting Layer
 
 ### Owner Model
+
 Codex
 
 ### Backup Model
+
 Cursor
 
 ### Tool
+
 Cursor
 
 ### Role
+
 Backend implementer: build the accounting service layer, the tRPC router,
 and register it in `server/routers/index.ts`.
 
 ### Input
+
 - `shared/accounting/contracts.ts` (Task 07)
 - `server/services/accounting/sqlBuilders.ts` (Task 08)
 - Existing `createMssqlPool` in `server/integrations/mssqlPatients.ts`
 - Existing `managerProcedure` in `server/_core/procedures.ts`
 
 ### Output
+
 - `server/services/accounting/mssqlAccounting.ts` (pool + `mssqlQuery` helper)
 - `server/services/accounting/mappers.ts`
 - `server/services/accounting/*.service.ts` (one per endpoint, per plan §4.1)
@@ -465,6 +535,7 @@ and register it in `server/routers/index.ts`.
 - `server/routers/index.ts` updated to register `accounting`
 
 ### Prompt
+
 ```text
 Follow the project Constitution and Project Principles strictly.
 
@@ -491,6 +562,7 @@ Output:
 ```
 
 ### Acceptance Criteria
+
 - `appRouter.accounting` exists with 9 queries.
 - `pnpm check` passes.
 - `grep -iE "INSERT|UPDATE|DELETE|EXEC" server/services/accounting server/routers/accounting.ts`
@@ -503,30 +575,37 @@ Output:
 ## Task 10: Add Frontend Module Navigation Separation
 
 ### Owner Model
+
 Cursor
 
 ### Backup Model
+
 Codex
 
 ### Tool
+
 Cursor
 
 ### Role
+
 Frontend infra: add a role-gated **Accounting** top-level nav entry, register
 accounting lazy routes in `App.tsx`, and ensure `AccountingShell.tsx` wraps
 accounting pages with a dedicated sub-nav.
 
 ### Input
+
 - `specs/scope-lock.md`
 - `client/src/App.tsx`, `client/src/pages/accounting/AccountingShell.tsx`
 - Existing nav component (whatever the project uses)
 
 ### Output
+
 - Edited `client/src/App.tsx` with lazy routes for accounting.
 - Edited existing navigation to add one **Accounting** entry (role-gated).
 - `AccountingShell.tsx` wired with sub-nav routes.
 
 ### Prompt
+
 ```text
 Follow the project Constitution and Project Principles strictly.
 
@@ -550,6 +629,7 @@ Output:
 ```
 
 ### Acceptance Criteria
+
 - New routes resolve under `/accounting/*`.
 - Non-permitted roles see no Accounting entry and get redirected from
   `/accounting/*`.
@@ -561,28 +641,35 @@ Output:
 ## Task 11: Build Accounting Dashboard (`AccountingHome.tsx`)
 
 ### Owner Model
+
 Cursor
 
 ### Backup Model
+
 Codex
 
 ### Tool
+
 Cursor
 
 ### Role
+
 Frontend implementer: convert the placeholder `AccountingHome.tsx` from
 prototype data to live tRPC data.
 
 ### Input
+
 - `accounting.dashboardSummary` (Task 09)
 - `client/src/pages/accounting/AccountingHome.tsx` (placeholder)
 
 ### Output
+
 - `AccountingHome.tsx` live: cards with `totalReceiptsToday`,
   `totalRevenueToday`, `totalReceiptsThisMonth`, `totalRevenueThisMonth`,
   and quick links to the four main reports.
 
 ### Prompt
+
 ```text
 Follow the project Constitution and Project Principles strictly.
 
@@ -604,6 +691,7 @@ Output:
 ```
 
 ### Acceptance Criteria
+
 - Page renders with live data for a manager user.
 - Error and loading states visible.
 - No console errors.
@@ -614,27 +702,34 @@ Output:
 ## Task 12: Build Daily Revenue Screen (`DailyRevenue.tsx`)
 
 ### Owner Model
+
 Cursor
 
 ### Backup Model
+
 Codex
 
 ### Tool
+
 Cursor
 
 ### Role
+
 Frontend implementer: wire Daily Revenue page to `accounting.dailyRevenue`.
 
 ### Input
+
 - `accounting.dailyRevenue`
 - Placeholder `DailyRevenue.tsx`
 
 ### Output
+
 - Daily Revenue page with filters (`fromDate`, `toDate`, `sectionCode`,
   `doctorCode`), daily rows table, grand totals row, and a **Print**
   button that navigates to Print Preview.
 
 ### Prompt
+
 ```text
 Follow the project Constitution and Project Principles strictly.
 
@@ -657,6 +752,7 @@ Output:
 ```
 
 ### Acceptance Criteria
+
 - Returns sensible totals for a known date range.
 - Filters actually reshape the query (spot-check with two ranges).
 - Print button opens Print Preview with the daily revenue payload.
@@ -667,29 +763,36 @@ Output:
 ## Task 13: Build Service Revenue Report Screen (`LasikRevenue.tsx`)
 
 ### Owner Model
+
 Cursor
 
 ### Backup Model
+
 Codex
 
 ### Tool
+
 Cursor
 
 ### Role
+
 Frontend implementer: service-based revenue report grouped Doctor → Service
 with per-group and grand totals.
 
 ### Input
+
 - `accounting.serviceRevenue`
 - Placeholder `LasikRevenue.tsx`
 
 ### Output
+
 - Grouped report (outer group by doctor, inner group by service) with
   counts, sum of gross, sum of paid, sum of discount. Per-doctor subtotal,
   per-service subtotal, grand total. Filters: date range, doctorCode,
   serviceCode, sectionCode.
 
 ### Prompt
+
 ```text
 Follow the project Constitution and Project Principles strictly.
 
@@ -711,6 +814,7 @@ Output:
 ```
 
 ### Acceptance Criteria
+
 - Output matches the shape in specs/legacy-reports.md.
 - Totals match the legacy parity artifact for the test month (see Task 16).
 - Print Preview renders the grouped structure.
@@ -720,28 +824,35 @@ Output:
 ## Task 14: Build Receipts Inquiry Screen (`ReceiptsInquiry.tsx` + Detail)
 
 ### Owner Model
+
 Cursor
 
 ### Backup Model
+
 Codex
 
 ### Tool
+
 Cursor
 
 ### Role
+
 Frontend implementer: receipts list page + receipt detail page.
 
 ### Input
+
 - `accounting.receiptsInquiry`, `accounting.receiptDetail`
 - Placeholders `LasikReceipts.tsx` / `ReceiptsInquiry.tsx`
 
 ### Output
+
 - Receipts inquiry list with filters (`fromDate`, `toDate`, `patientCode`,
   `doctorCode`, `sectionCode`, `trNo`, `trTy`).
 - Row click navigates to `/accounting/receipts/:secCd/:trTy/:trNo` which
   shows the receipt header + detail lines and a Print button.
 
 ### Prompt
+
 ```text
 Follow the project Constitution and Project Principles strictly.
 
@@ -763,6 +874,7 @@ Output:
 ```
 
 ### Acceptance Criteria
+
 - Inquiry page returns expected receipts for a known range.
 - Detail page matches the legacy single-receipt layout.
 - No crash on `0013` or `0699` patient codes.
@@ -772,28 +884,35 @@ Output:
 ## Task 15: Build Print Preview (`PrintPreview.tsx`)
 
 ### Owner Model
+
 Gemini (UI layout)
 
 ### Backup Model
+
 Cursor
 
 ### Tool
+
 Cursor (+ Gemini for layout variants)
 
 ### Role
+
 Frontend implementer: single Print Preview page that renders the payload
 shape from plan §7 into an A4-portrait printable layout.
 
 ### Input
+
 - `PrintPreview.tsx` placeholder
 - Plan §7 payload shape
 - OP `.rtm` structural cues from `specs/legacy-reports.md`
 
 ### Output
+
 - `PrintPreview.tsx` + a `PrintPreview.module.css` with `@media print` rules.
 - Print button on all report pages hands state to this page.
 
 ### Prompt
+
 ```text
 Follow the project Constitution and Project Principles strictly.
 
@@ -816,6 +935,7 @@ Output:
 ```
 
 ### Acceptance Criteria
+
 - Page prints cleanly (no site chrome, no colored banners).
 - Daily Revenue, Service Revenue, Receipts Detail, and Patient Account all
   open this page and print correctly.
@@ -826,23 +946,29 @@ Output:
 ## Task 16: Integration Testing Against Legacy Outputs
 
 ### Owner Model
+
 GPT-5
 
 ### Backup Model
+
 Claude (review only)
 
 ### Tool
+
 Cursor + ChatGPT
 
 ### Role
+
 Parity engineer: produce a script that compares accounting API outputs to
 legacy OP CSV exports for a chosen date range.
 
 ### Input
+
 - Legacy CSV exports produced from OP for the reference month (2026-04)
 - `accounting.*` tRPC endpoints
 
 ### Output
+
 - `scripts/accounting/parity-check.ts` that:
   - calls each accounting endpoint for the reference range,
   - loads the legacy CSV,
@@ -851,6 +977,7 @@ legacy OP CSV exports for a chosen date range.
 - Parity artifacts under `specs/parity/` for each report.
 
 ### Prompt
+
 ```text
 Follow the project Constitution and Project Principles strictly.
 
@@ -876,6 +1003,7 @@ Output:
 ```
 
 ### Acceptance Criteria
+
 - Parity markdown files exist under `specs/parity/`.
 - All totals match the legacy CSV for the reference range.
 - Receipts Inquiry row count is exact.
@@ -886,28 +1014,35 @@ Output:
 ## Task 17: Bug Fixing
 
 ### Owner Model
+
 Codex
 
 ### Backup Model
+
 Cursor
 
 ### Tool
+
 Cursor
 
 ### Role
+
 Bug fixer: address issues found during integration testing (Task 16) and
 QA review.
 
 ### Input
+
 - Parity results (Task 16)
 - Reviewer notes from Claude review of Tasks 09–15
 - User-reported defects (if any)
 
 ### Output
+
 - Smallest-possible diffs per bug.
 - Regression tests added for each fixed bug.
 
 ### Prompt
+
 ```text
 Follow the project Constitution and Project Principles strictly.
 
@@ -932,6 +1067,7 @@ Output:
 ```
 
 ### Acceptance Criteria
+
 - All blocking issues are resolved.
 - `pnpm check` and `pnpm test` both pass.
 - No file in the untouchable list was modified.
@@ -941,23 +1077,29 @@ Output:
 ## Task 18: Performance Optimization
 
 ### Owner Model
+
 GPT-5
 
 ### Backup Model
+
 Codex
 
 ### Tool
+
 Cursor
 
 ### Role
+
 Performance engineer: measure and, if needed, optimize accounting queries
 and UI data flows to meet NFR-1 (≤2s for a 30-day window on op2026).
 
 ### Input
+
 - Built Accounting module (Tasks 09–15)
 - Representative date ranges from Task 16
 
 ### Output
+
 - `specs/perf-report.md` with timings per endpoint before/after.
 - Query-level optimizations (only index hints or rewrites that preserve
   semantics; no new indexes created on MSSQL — index creation is out of
@@ -965,6 +1107,7 @@ and UI data flows to meet NFR-1 (≤2s for a 30-day window on op2026).
 - Frontend wins if any (memoization, query key tuning, lazy groups).
 
 ### Prompt
+
 ```text
 Follow the project Constitution and Project Principles strictly.
 
@@ -987,6 +1130,7 @@ Output:
 ```
 
 ### Acceptance Criteria
+
 - Each endpoint meets NFR-1 on the reference dataset.
 - Parity still passes.
 - No DB object creation.
@@ -996,28 +1140,35 @@ Output:
 ## Task 19: Deployment Preparation
 
 ### Owner Model
+
 Cursor
 
 ### Backup Model
+
 Codex
 
 ### Tool
+
 Cursor
 
 ### Role
+
 Release engineer: ensure build, start, and PM2 ecosystem remain green; no
 new env vars; document rollback.
 
 ### Input
+
 - Built Accounting module
 - `ecosystem.config.js`, `package.json`, `.env.example`
 
 ### Output
+
 - `specs/deploy-notes.md` describing: commands run (`pnpm build`,
   `pnpm start`), verification URL list, rollback procedure (revert feature
   branch), new env vars (expected: none), manual smoke checklist.
 
 ### Prompt
+
 ```text
 Follow the project Constitution and Project Principles strictly.
 
@@ -1041,6 +1192,7 @@ Output:
 ```
 
 ### Acceptance Criteria
+
 - `pnpm build` succeeds.
 - `pnpm start` serves the built app.
 - Deploy notes list rollback, smoke checks, and confirm no env/config
@@ -1051,27 +1203,34 @@ Output:
 ## Task 20: Final Review
 
 ### Owner Model
+
 Claude
 
 ### Backup Model
+
 GPT-5
 
 ### Tool
+
 Claude
 
 ### Role
+
 Final reviewer: run the review template over every accepted task and issue
 a Phase 1 sign-off.
 
 ### Input
+
 - Completed Tasks 05–19 outputs
 - `specs/claude_review_prompt.md`
 
 ### Output
+
 - `specs/phase1-signoff.md` with per-task Approved / Needs Fixes status,
   remaining non-blocking improvements, and a final "ready to merge" decision.
 
 ### Prompt
+
 ```text
 Follow the project Constitution and Project Principles strictly.
 
@@ -1093,6 +1252,7 @@ Output:
 ```
 
 ### Acceptance Criteria
+
 - `specs/phase1-signoff.md` exists.
 - Final verdict is clear and justified.
 - Each task has an explicit Approved / Needs Fixes entry.
