@@ -55,6 +55,7 @@ export async function sendWebPushToSubscription(
 export async function sendWebPushNotifications(
   payload: WebPushPayload,
   targetRoles: string[] | null = null,
+  targetUserIds: number[] | null = null,
 ): Promise<{ sent: number; skipped: number; configured: boolean }> {
   if (!configureWebPush()) {
     console.warn("[WebPush] VAPID keys not configured");
@@ -71,6 +72,37 @@ export async function sendWebPushNotifications(
   let skipped = 0;
 
   for (const reg of registrations) {
+    const registrationUserId = Number(reg.userId);
+    if (
+      Array.isArray(targetUserIds) &&
+      targetUserIds.length > 0 &&
+      (!Number.isFinite(registrationUserId) ||
+        !targetUserIds.includes(registrationUserId))
+    ) {
+      skipped += 1;
+      continue;
+    }
+
+    if (Array.isArray(targetRoles) && targetRoles.length > 0) {
+      const user = Number.isFinite(registrationUserId)
+        ? await db.getUserById(registrationUserId).catch(() => null)
+        : null;
+      const role = String((user as any)?.role ?? "")
+        .trim()
+        .toLowerCase();
+      const allowedRoles = targetRoles
+        .map((value) =>
+          String(value ?? "")
+            .trim()
+            .toLowerCase(),
+        )
+        .filter(Boolean);
+      if (!role || !allowedRoles.includes(role)) {
+        skipped += 1;
+        continue;
+      }
+    }
+
     const result = await sendWebPushToSubscription(reg.token, payload);
     if (result === "sent") {
       sent += 1;

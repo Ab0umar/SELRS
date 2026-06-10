@@ -113,6 +113,14 @@ function AppNotificationsBridge() {
     { enabled: isAuthenticated, staleTime: 60000, refetchOnWindowFocus: false },
   );
 
+  const isInAppEnabled = (() => {
+    const raw = (settingsQuery.data as any)?.value;
+    if (!raw || typeof raw !== "object") return true;
+    const patients = (raw as any).patients;
+    if (!patients || typeof patients !== "object") return true;
+    return patients.enabled === true && patients.inApp !== false;
+  })();
+
   const isLocalEnabled = (() => {
     const raw = (settingsQuery.data as any)?.value;
     if (!raw || typeof raw !== "object") return false;
@@ -177,11 +185,14 @@ function AppNotificationsBridge() {
       const message = String(item.message ?? "").trim();
       const tone = item.kind ?? "info";
       seenIdsRef.current.add(id);
-      if (tone === "success") toast.success(title, { description: message });
-      else if (tone === "warning")
-        toast.warning(title, { description: message });
-      else if (tone === "error") toast.error(title, { description: message });
-      else toast(title, { description: message });
+      if (isInAppEnabled) {
+        if (tone === "success") toast.success(title, { description: message });
+        else if (tone === "warning")
+          toast.warning(title, { description: message });
+        else if (tone === "error")
+          toast.error(title, { description: message });
+        else toast(title, { description: message });
+      }
       // Browser local notification (fires if local channel is enabled + permission granted)
       if (isLocalEnabled) fireBrowserNotification(title, message);
     }
@@ -194,6 +205,7 @@ function AppNotificationsBridge() {
     }
   }, [
     isAuthenticated,
+    isInAppEnabled,
     isLocalEnabled,
     notificationsQuery.data,
     storageKey,

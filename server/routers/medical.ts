@@ -2433,6 +2433,50 @@ export const medicalRouter = router({
               mssqlPushError,
             },
           );
+          const notificationSettings = await getAppNotificationSettings().catch(
+            () => DEFAULT_APP_NOTIFICATION_SETTINGS,
+          );
+          if (notificationSettings.patients.enabled) {
+            const notifTitle = resolvePatientNotifTitle(
+              [patientInput.serviceCode].filter(Boolean) as string[],
+            );
+            const existingFullName = String(
+              (existingByIdentity as any)?.fullName ??
+                patientInput.fullName ??
+                "",
+            ).trim();
+            await pushAppNotification({
+              title: notifTitle,
+              message:
+                existingFullName || String(patientInput.fullName ?? "").trim(),
+              kind: "success",
+              source: "manual_patient_create",
+              entityType: "patient",
+              entityId: existingId || null,
+              meta: {
+                patientCode: existingCode,
+                fullName: existingFullName || patientInput.fullName,
+                reused: true,
+                receiptNo: pushResult?.trNo ?? null,
+                createdBy:
+                  String(
+                    (ctx.user as any)?.name ??
+                      (ctx.user as any)?.username ??
+                      "",
+                  ).trim() || null,
+              },
+              channels: {
+                inApp: notificationSettings.patients.inApp,
+                push: notificationSettings.patients.push,
+                local: notificationSettings.patients.local,
+              },
+            }).catch((error) => {
+              console.warn(
+                "[patient-create-existing] Failed to append app notification:",
+                error,
+              );
+            });
+          }
           return {
             success: true,
             reused: true,
@@ -2582,6 +2626,7 @@ export const medicalRouter = router({
             channels: {
               inApp: notificationSettings.patients.inApp,
               push: notificationSettings.patients.push,
+              local: notificationSettings.patients.local,
             },
           }).catch((error) => {
             console.warn(
@@ -2717,6 +2762,7 @@ export const medicalRouter = router({
             channels: {
               inApp: notificationSettings.patients.inApp,
               push: notificationSettings.patients.push,
+              local: notificationSettings.patients.local,
             },
           }).catch((error) => {
             console.warn(

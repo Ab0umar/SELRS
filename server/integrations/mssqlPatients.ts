@@ -5686,6 +5686,7 @@ export async function syncPatientsFromMssql(
             channels: {
               inApp: notificationSettings.patients.inApp,
               push: notificationSettings.patients.push,
+              local: notificationSettings.patients.local,
             },
           }).catch((error) => {
             console.warn(

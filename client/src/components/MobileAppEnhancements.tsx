@@ -11,9 +11,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { type NativeAppInfo } from "@/lib/appRuntime";
 import { shouldRegisterNativePush } from "@/lib/nativePushConfig";
+import { notifyNativeFeedItem } from "@/lib/nativeNotifications";
 import { useLocation } from "wouter";
 
 const APP_NOTIFICATION_FEED_KEY = "app_notifications_feed_v1";
+const APP_NOTIFICATION_SETTINGS_KEY = "app_notification_settings_v1";
 const PUSH_DEVICE_ID_KEY = "selrs_push_device_id_v1";
 const PUSH_TOKEN_KEY = "selrs_push_token_v1";
 const PUSH_REGISTRATION_STATE_KEY = "selrs_push_registration_state_v1";
@@ -246,12 +248,32 @@ function AppNotificationsBridge() {
   const notificationsQuery = trpc.medical.getSystemSetting.useQuery(
     { key: APP_NOTIFICATION_FEED_KEY },
     {
-      enabled: isAuthenticated && !isNative,
+      enabled: isAuthenticated,
       refetchInterval: 15000,
       refetchOnWindowFocus: true,
       staleTime: 5000,
     },
   );
+  const settingsQuery = trpc.medical.getSystemSetting.useQuery(
+    { key: APP_NOTIFICATION_SETTINGS_KEY },
+    { enabled: isAuthenticated, staleTime: 60000, refetchOnWindowFocus: false },
+  );
+
+  const isInAppEnabled = (() => {
+    const raw = (settingsQuery.data as any)?.value;
+    if (!raw || typeof raw !== "object") return true;
+    const patients = (raw as any).patients;
+    if (!patients || typeof patients !== "object") return true;
+    return patients.enabled === true && patients.inApp !== false;
+  })();
+
+  const isLocalEnabled = (() => {
+    const raw = (settingsQuery.data as any)?.value;
+    if (!raw || typeof raw !== "object") return false;
+    const patients = (raw as any).patients;
+    if (!patients || typeof patients !== "object") return false;
+    return patients.enabled === true && patients.local === true;
+  })();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -269,7 +291,6 @@ function AppNotificationsBridge() {
   }, [storageKey]);
 
   useEffect(() => {
-    if (isNative) return;
     if (!isAuthenticated) return;
     const itemsRaw = (notificationsQuery.data as any)?.value;
     const items = Array.isArray(itemsRaw)
@@ -310,11 +331,17 @@ function AppNotificationsBridge() {
       const message = String(item.message ?? "").trim();
       const tone = item.kind ?? "info";
       seenIdsRef.current.add(id);
-      if (tone === "success") toast.success(title, { description: message });
-      else if (tone === "warning")
-        toast.warning(title, { description: message });
-      else if (tone === "error") toast.error(title, { description: message });
-      else toast(title, { description: message });
+      if (isInAppEnabled) {
+        if (tone === "success") toast.success(title, { description: message });
+        else if (tone === "warning")
+          toast.warning(title, { description: message });
+        else if (tone === "error")
+          toast.error(title, { description: message });
+        else toast(title, { description: message });
+      }
+      if (isNative && isLocalEnabled) {
+        void notifyNativeFeedItem(item).catch(() => {});
+      }
     }
 
     if (typeof window !== "undefined") {
@@ -325,7 +352,9 @@ function AppNotificationsBridge() {
     }
   }, [
     isAuthenticated,
+    isInAppEnabled,
     isNative,
+    isLocalEnabled,
     notificationsQuery.data,
     storageKey,
     user?.id,

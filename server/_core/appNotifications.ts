@@ -1,5 +1,6 @@
 import * as db from "../db";
 import { sendFcmPushToRegisteredDevices } from "./fcmPush";
+import { sendWebPushNotifications } from "./webPush";
 
 export const APP_NOTIFICATION_FEED_KEY = "app_notifications_feed_v1";
 export const APP_NOTIFICATION_SETTINGS_KEY = "app_notification_settings_v1";
@@ -29,8 +30,8 @@ type PushAppNotificationInput = {
   entityType?: string | null;
   entityId?: number | null;
   meta?: Record<string, unknown> | null;
-  /** Override which delivery channels fire. Both default to true when omitted. */
-  channels?: { inApp?: boolean; push?: boolean };
+  /** Override which delivery channels fire. In-app and push default to true when omitted. */
+  channels?: { inApp?: boolean; push?: boolean; local?: boolean };
 };
 
 export type CategoryChannels = {
@@ -127,7 +128,8 @@ const normalizeFeed = (value: unknown): AppNotificationEntry[] => {
 export async function pushAppNotification(
   input: PushAppNotificationInput,
 ): Promise<AppNotificationEntry> {
-  const doInApp = input.channels?.inApp !== false;
+  const doFeed =
+    input.channels?.inApp !== false || input.channels?.local === true;
   const doPush = input.channels?.push !== false;
 
   const entry: AppNotificationEntry = {
@@ -164,7 +166,7 @@ export async function pushAppNotification(
     meta: input.meta ?? null,
   };
 
-  if (doInApp) {
+  if (doFeed) {
     const row = await db
       .getSystemSetting(APP_NOTIFICATION_FEED_KEY)
       .catch(() => null);
@@ -184,18 +186,30 @@ export async function pushAppNotification(
   }
 
   if (doPush) {
-    await sendFcmPushToRegisteredDevices({
+    const pushPayload = {
       notificationId: entry.id,
       title: entry.title,
       body: entry.message,
       kind: entry.kind,
-      targetRoles: entry.targetRoles ?? null,
-      targetUserIds: entry.targetUserIds ?? null,
       path: entry.meta?.path ? String(entry.meta.path) : null,
       entityType: entry.entityType ?? null,
       entityId: entry.entityId ?? null,
+    };
+
+    await sendFcmPushToRegisteredDevices({
+      ...pushPayload,
+      targetRoles: entry.targetRoles ?? null,
+      targetUserIds: entry.targetUserIds ?? null,
     }).catch((error) => {
       console.warn("[FCM] pushAppNotification send failed:", error);
+    });
+
+    await sendWebPushNotifications(
+      pushPayload,
+      entry.targetRoles ?? null,
+      entry.targetUserIds ?? null,
+    ).catch((error) => {
+      console.warn("[WebPush] pushAppNotification send failed:", error);
     });
   }
 
