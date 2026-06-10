@@ -404,8 +404,8 @@ function TodayPanel({
     { refetchOnWindowFocus: false },
   );
 
-  const [innerSidebarOpen, setInnerSidebarOpen] = useState(true);
   const [totalsOpen, setTotalsOpen] = useState(true);
+  const [subTab, setSubTab] = useState<"queue" | "analytics">("queue");
 
   const total = merged.length;
   const treated = merged.filter((p) => p.queueStatus === "treated").length;
@@ -498,131 +498,164 @@ function TodayPanel({
   }
 
   return (
-    <div className="space-y-4">
-      <button
-        type="button"
-        onClick={() => setTotalsOpen((value) => !value)}
-        className="flex w-full items-center justify-between rounded-lg border border-border/50 bg-background px-4 py-3 text-right transition-colors hover:bg-muted/40"
-        aria-expanded={totalsOpen}
-      >
-        <span className="text-sm font-bold text-foreground">
-          إحصائيات اليوم
-        </span>
-        <span className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-          {total.toLocaleString("ar-EG")} مريض
-          {totalsOpen ? (
-            <ChevronDown className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
+    <div className="space-y-6">
+      {/* Sub tabs configuration */}
+      <div className="flex border-b border-border/40 gap-4 mb-4">
+        <button
+          onClick={() => setSubTab("queue")}
+          className={cn(
+            "px-4 py-2.5 text-sm font-bold border-b-2 transition-colors duration-200 cursor-pointer",
+            subTab === "queue"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
           )}
-        </span>
-      </button>
-      {totalsOpen && (
-        <>
-          {/* Tiles */}
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {tiles.map((t) => {
-              const Icon = t.icon;
-              return (
-                <div
-                  key={t.label}
-                  className={cn(
-                    "rounded-lg border px-3.5 py-3 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm",
-                    t.bgCls,
-                  )}
-                >
-                  <div className="flex items-center gap-3">
+        >
+          العمل اليومي والانتظار
+        </button>
+        <button
+          onClick={() => setSubTab("analytics")}
+          className={cn(
+            "px-4 py-2.5 text-sm font-bold border-b-2 transition-colors duration-200 cursor-pointer",
+            subTab === "analytics"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          )}
+        >
+          التحليلات وإحصائيات اليوم
+        </button>
+      </div>
+
+      {subTab === "queue" && (
+        <div className="space-y-4">
+          <button
+            type="button"
+            onClick={() => setTotalsOpen((value) => !value)}
+            className="flex w-full items-center justify-between rounded-lg border border-border/50 bg-background px-4 py-3 text-right transition-colors hover:bg-muted/40"
+            aria-expanded={totalsOpen}
+          >
+            <span className="text-sm font-bold text-foreground">
+              إحصائيات اليوم
+            </span>
+            <span className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+              {total.toLocaleString("ar-EG")} مريض
+              {totalsOpen ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronLeft className="h-4 w-4" />
+              )}
+            </span>
+          </button>
+          {totalsOpen && (
+            <>
+              {/* Tiles */}
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                {tiles.map((t) => {
+                  const Icon = t.icon;
+                  return (
                     <div
+                      key={t.label}
                       className={cn(
-                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-md shadow-xs",
-                        t.cls,
+                        "rounded-lg border px-3.5 py-3 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm",
+                        t.bgCls,
                       )}
                     >
-                      <Icon className="h-4 w-4" aria-hidden />
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={cn(
+                            "flex h-9 w-9 shrink-0 items-center justify-center rounded-md shadow-xs",
+                            t.cls,
+                          )}
+                        >
+                          <Icon className="h-4 w-4" aria-hidden />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-2xl font-bold leading-none tabular-nums">
+                            {t.value}
+                          </p>
+                          <p
+                            className={cn("mt-1 text-xs font-semibold", t.labelCls)}
+                          >
+                            {t.label}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-2xl font-bold leading-none tabular-nums">
-                        {t.value}
-                      </p>
-                      <p
-                        className={cn("mt-1 text-xs font-semibold", t.labelCls)}
-                      >
-                        {t.label}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Completion bar */}
-          <div className="rounded-lg border border-blue-100/50 bg-blue-50/5 px-4 py-3 shadow-xs">
-            <div className="flex items-center gap-3">
-              <span className="shrink-0 text-sm font-bold text-foreground">
-                نسبة إنجاز اليوم
-              </span>
-              <div
-                className="h-2.5 flex-1 overflow-hidden rounded-full bg-[#e2edf7]"
-                role="progressbar"
-                aria-valuenow={completionRate}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-label="نسبة الإنجاز"
-              >
-                <div
-                  className={cn(
-                    "h-full w-full origin-right rounded-full transition-transform duration-500 ease-out",
-                    completionRate >= 80
-                      ? "bg-emerald-500"
-                      : completionRate >= 50
-                        ? "bg-blue-600"
-                        : "bg-orange-500",
-                  )}
-                  style={{ transform: `scaleX(${completionRate / 100})` }}
-                />
+                  );
+                })}
               </div>
-              <span className="w-10 text-left text-sm font-bold text-foreground tabular-nums">
-                {completionRate}%
-              </span>
+
+              {/* Completion bar */}
+              <div className="rounded-lg border border-blue-100/50 bg-blue-50/5 px-4 py-3 shadow-xs">
+                <div className="flex items-center gap-3">
+                  <span className="shrink-0 text-sm font-bold text-foreground">
+                    نسبة إنجاز اليوم
+                  </span>
+                  <div
+                    className="h-2.5 flex-1 overflow-hidden rounded-full bg-[#e2edf7]"
+                    role="progressbar"
+                    aria-valuenow={completionRate}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label="نسبة الإنجاز"
+                  >
+                    <div
+                      className={cn(
+                        "h-full w-full origin-right rounded-full transition-transform duration-500 ease-out",
+                        completionRate >= 80
+                          ? "bg-emerald-500"
+                          : completionRate >= 50
+                            ? "bg-blue-600"
+                            : "bg-orange-500",
+                      )}
+                      style={{ transform: `scaleX(${completionRate / 100})` }}
+                    />
+                  </div>
+                  <span className="w-10 text-left text-sm font-bold text-foreground tabular-nums">
+                    {completionRate}%
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Appointments list occupying full width */}
+          <Surface className="w-full">
+            <SectionHeader title="مرضى اليوم و العمليات" />
+            <div className="p-3">
+              <AppointmentsSection
+                selectedDate={selectedDate}
+                onSelectedDateChange={onSelectedDateChange}
+                onOpenMeasurementsMedicalFile={openMedicalFileForPatient}
+              />
             </div>
-          </div>
-        </>
+          </Surface>
+        </div>
       )}
 
-      {/* Queue + side */}
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
-        <Surface className="flex-1 min-w-0">
-          <SectionHeader title="مرضى اليوم و العمليات">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setInnerSidebarOpen(!innerSidebarOpen)}
-              className="hidden lg:flex h-8 gap-1.5 text-xs font-semibold border-border/50 hover:bg-muted/40 cursor-pointer"
-            >
-              {innerSidebarOpen ? (
-                <>
-                  <ChevronRight className="h-4 w-4" />
-                  <span>إخفاء الإحصائيات</span>
-                </>
-              ) : (
-                <>
-                  <ChevronLeft className="h-4 w-4" />
-                  <span>إحصائيات اليوم</span>
-                </>
-              )}
-            </Button>
-          </SectionHeader>
-          <div className="p-3">
-            <AppointmentsSection
-              selectedDate={selectedDate}
-              onSelectedDateChange={onSelectedDateChange}
-              onOpenMeasurementsMedicalFile={openMedicalFileForPatient}
-            />
+      {subTab === "analytics" && (
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:items-start">
+          {/* Left: Charts */}
+          <div className="space-y-5 lg:col-span-2">
+            <Surface>
+              <SectionHeader title="اتجاه المرضى" />
+              <div className="p-3 sm:p-4">
+                <Suspense fallback={<ChartLoading />}>
+                  <PatientTrendChart />
+                </Suspense>
+              </div>
+            </Surface>
+            <Surface>
+              <SectionHeader title="أقسام المركز" />
+              <div className="p-3 sm:p-4">
+                <Suspense fallback={<ChartLoading />}>
+                  <DepartmentWorkloadChart />
+                </Suspense>
+              </div>
+            </Surface>
           </div>
-        </Surface>
-        {innerSidebarOpen && (
-          <div className="space-y-4 w-full lg:w-72 xl:w-80 shrink-0">
+
+          {/* Right: Sidebar statistics */}
+          <div className="space-y-4">
             <Surface className="overflow-hidden">
               <SectionHeader title="توزيع الخدمات" />
               <div className="px-4 py-3.5">
@@ -637,28 +670,8 @@ function TodayPanel({
               </div>
             </Surface>
           </div>
-        )}
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <Surface className="lg:col-span-2">
-          <SectionHeader title="اتجاه المرضى" />
-          <div className="p-3 sm:p-4">
-            <Suspense fallback={<ChartLoading />}>
-              <PatientTrendChart />
-            </Suspense>
-          </div>
-        </Surface>
-        <Surface>
-          <SectionHeader title="أقسام المركز" />
-          <div className="p-3 sm:p-4">
-            <Suspense fallback={<ChartLoading />}>
-              <DepartmentWorkloadChart />
-            </Suspense>
-          </div>
-        </Surface>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1328,7 +1341,7 @@ export default function Dashboard() {
       className="selrs-page-bg -m-3 min-h-full px-3 py-4 sm:-m-4 sm:px-4 sm:py-5 md:-m-4"
       dir="rtl"
     >
-      <div className="mx-auto w-full max-w-[1440px] space-y-4">
+      <div className="mx-auto w-full max-w-[1440px] space-y-6">
         {medicalFilePortal}
         <OperationsBookingQuickDialog
           open={bookingOpen}
@@ -1338,7 +1351,7 @@ export default function Dashboard() {
           }}
         />
 
-        <Surface className="overflow-hidden">
+        <Surface className="overflow-hidden bg-background">
           <div className="grid gap-3 px-4 py-3 lg:grid-cols-[auto_1fr] lg:items-center">
             <div className="flex items-center gap-3">
               <Button
@@ -1525,7 +1538,7 @@ export default function Dashboard() {
                 <div className="hidden lg:flex flex-1 items-center justify-center gap-1.5 overflow-x-auto scrollbar-none">
                   {[
                     {
-                      href: "/today-patients",
+                      href: "/today",
                       label: "مرضى اليوم",
                       icon: Users,
                     },

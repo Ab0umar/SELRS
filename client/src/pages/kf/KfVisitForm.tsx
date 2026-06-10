@@ -10,6 +10,8 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { ChevronRight, Save, Loader2, Calendar } from "lucide-react";
 
+const KF_DOCTORS = ["د. محمد السعدني", "د. سعيد مجدي"] as const;
+
 export default function KfVisitForm() {
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/kf/patients/:kfPatientId/visits/new");
@@ -147,8 +149,8 @@ export default function KfVisitForm() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="consultation">كشف / استشارة</SelectItem>
-                    <SelectItem value="examination">فحص طبي</SelectItem>
+                    <SelectItem value="consultation">كشف استشاري</SelectItem>
+                    <SelectItem value="examination">كشف أخصائي</SelectItem>
                     <SelectItem value="followup">متابعة</SelectItem>
                     <SelectItem value="operation">عملية جراحية</SelectItem>
                   </SelectContent>
@@ -157,14 +159,20 @@ export default function KfVisitForm() {
 
               {/* Doctor Name */}
               <div className="space-y-2">
-                <Label htmlFor="doctorName">اسم الطبيب</Label>
-                <Input
-                  id="doctorName"
-                  type="text"
-                  placeholder="اسم الطبيب المتابع للحالة"
+                <Label htmlFor="doctorName">الطبيب</Label>
+                <Select
                   value={doctorName}
-                  onChange={(e) => setDoctorName(e.target.value)}
-                />
+                  onValueChange={setDoctorName}
+                >
+                  <SelectTrigger id="doctorName">
+                    <SelectValue placeholder="اختر الطبيب..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {KF_DOCTORS.map((dr) => (
+                      <SelectItem key={dr} value={dr}>{dr}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Status */}

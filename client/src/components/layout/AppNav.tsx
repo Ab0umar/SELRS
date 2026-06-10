@@ -48,6 +48,7 @@ import {
   UserCog,
   Star,
   DollarSign,
+  Hospital,
 } from "lucide-react";
 
 export type NavLeaf = {
@@ -188,6 +189,7 @@ export const adminNavGroups: NavGroup[] = [
   attendanceNavGroup,
   salaryNavGroup,
   accountingNavGroup,
+  { icon: Hospital, label: "كفرالشيخ", path: "/kf", isMain: true },
   { icon: Archive, label: "المخزن", path: "/stockroom", isMain: true },
   { icon: Syringe, label: "العمليات", path: "/operations", isMain: true },
   { icon: Network, label: "مركز المريض", path: "/patient-hub", isMain: true },

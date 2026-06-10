@@ -6,12 +6,12 @@ import {
   Users,
   Percent,
   UserRound,
-  SlidersHorizontal,
   ChevronRight,
   Clock,
   Settings,
   AlertCircle,
   FileSpreadsheet,
+  ChevronLeft,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
@@ -26,24 +26,22 @@ function fmt(n: number) {
   });
 }
 
-// Reorganized navigation structure - cleaner hierarchy
+// Navigation structure
 const navigationSections = [
   {
     id: "preparation",
     label: "التحضير",
-    description: "إعداد بيانات الرواتب الأساسية",
-    icon: Users,
     items: [
       {
         href: "/salary",
         label: "بيانات الرواتب الأساسية",
-        description: "إدخال وتعديل الرواتب والشفتات",
+        icon: Users,
         activeFor: ["/salary"],
       },
       {
         href: "/salary/current-data",
         label: "بيانات الرواتب الحالية",
-        description: "عرض وطباعة الرواتب والشفتات",
+        icon: FileSpreadsheet,
         activeFor: ["/salary/current-data"],
       },
     ],
@@ -51,25 +49,23 @@ const navigationSections = [
   {
     id: "variables",
     label: "المتغيرات الشهرية",
-    description: "إدخال البيانات المتغيرة كل شهر",
-    icon: Percent,
     items: [
       {
         href: "/salary/pools",
         label: "النسب الشهرية",
-        description: "تسجيل عمولات الكشف والبنتاكام",
+        icon: Percent,
         activeFor: ["/salary/pools"],
       },
       {
         href: "/salary/penalties",
         label: "الخصومات والسلف",
-        description: "جزاءات الشهر والسلف والتأمينات",
+        icon: AlertCircle,
         activeFor: ["/salary/penalties"],
       },
       {
         href: "/salary/absent-report",
-        label: "تقرير الغياب",
-        description: "أيام الغياب والتصاريح",
+        label: "تقرير الغياب والعمل",
+        icon: Clock,
         activeFor: ["/salary/absent-report"],
       },
     ],
@@ -77,13 +73,11 @@ const navigationSections = [
   {
     id: "payroll",
     label: "كشف الشهر",
-    description: "توليد واعتماد كشف الرواتب",
-    icon: BarChart3,
     items: [
       {
         href: "/salary/payroll",
-        label: "كشف الشهر",
-        description: "احتساب ومراجعة وطباعة الرواتب",
+        label: "كشف الشهر والتسوية",
+        icon: BarChart3,
         activeFor: ["/salary/payroll"],
       },
     ],
@@ -91,19 +85,17 @@ const navigationSections = [
   {
     id: "shifts",
     label: "الشفتات",
-    description: "إدارة شفتات الأطباء والفنيين",
-    icon: UserRound,
     items: [
       {
         href: "/salary/shift-staff",
-        label: "طاقم الشفتات",
-        description: "تعريف الأطباء والفنيين وأسعارهم",
+        label: "طاقم الشفتات والأطباء",
+        icon: UserRound,
         activeFor: ["/salary/shift-staff"],
       },
       {
         href: "/salary/shift-payroll",
         label: "كشف الشفتات",
-        description: "مستحقات الشفتات الشهرية",
+        icon: BadgeDollarSign,
         activeFor: ["/salary/shift-payroll"],
       },
     ],
@@ -111,13 +103,11 @@ const navigationSections = [
   {
     id: "settings",
     label: "الإعدادات",
-    description: "ضبط قواعد الرواتب",
-    icon: SlidersHorizontal,
     items: [
       {
         href: "/salary/settings",
-        label: "إعدادات الرواتب",
-        description: "نسب الحضور والقواعس المستخدمة",
+        label: "إعدادات وقواعد الرواتب",
+        icon: Settings,
         activeFor: ["/salary/settings"],
       },
     ],
@@ -132,10 +122,6 @@ function isItemActive(pathname: string, activeFor: string[]) {
   );
 }
 
-function isSectionActive(pathname: string, items: any[]) {
-  return items.some((item) => isItemActive(pathname, item.activeFor));
-}
-
 const mobileNavItems = [
   { href: "/salary", label: "الأساسي", icon: Users, activeFor: ["/salary"] },
   { href: "/salary/current-data", label: "الحالي", icon: FileSpreadsheet, activeFor: ["/salary/current-data"] },
@@ -143,7 +129,7 @@ const mobileNavItems = [
   { href: "/salary/penalties", label: "الخصومات", icon: AlertCircle, activeFor: ["/salary/penalties"] },
   { href: "/salary/absent-report", label: "الغياب", icon: Clock, activeFor: ["/salary/absent-report"] },
   { href: "/salary/payroll", label: "كشف الشهر", icon: BarChart3, activeFor: ["/salary/payroll"] },
-  { href: "/salary/shift-staff", label: "طاقم الشفتات", icon: UserRound, activeFor: ["/salary/shift-staff"] },
+  { href: "/salary/shift-staff", label: "الطاقم", icon: UserRound, activeFor: ["/salary/shift-staff"] },
   { href: "/salary/shift-payroll", label: "كشف الشفتات", icon: BadgeDollarSign, activeFor: ["/salary/shift-payroll"] },
   { href: "/salary/settings", label: "الإعدادات", icon: Settings, activeFor: ["/salary/settings"] },
 ];
@@ -158,165 +144,132 @@ export default function SalaryLayout({ children }: SalaryLayoutProps) {
   );
   const summary = summaryQ.data as any;
 
-  // Key metrics for the dashboard
-  const metrics = [
-    {
-      label: "إجمالي الرواتب",
-      value: summary ? fmt(summary.totalPay) : "—",
-      tone: "text-primary",
-      accent: "bg-primary/10 border-primary/20",
-    },
-    {
-      label: "عدد الموظفين",
-      value: summary ? String(summary.staffCount) : "—",
-      tone: "text-foreground",
-      accent: "bg-muted border-border",
-    },
-    {
-      label: "الجزاءات",
-      value: summary ? fmt(summary.totalPenalties) : "—",
-      tone: "text-destructive",
-      accent: "bg-destructive/10 border-destructive/20",
-    },
-    {
-      label: "العمولات",
-      value: summary ? fmt(summary.totalCommissions) : "—",
-      tone: "text-success",
-      accent: "bg-success/10 border-success/20",
-    },
-  ];
-
   return (
     <div
       className="page-layout min-h-screen bg-background text-foreground"
       dir="rtl"
     >
-      {/* Header with metrics */}
-      <div className="border-b border-primary/15 bg-gradient-to-b from-primary/5 to-transparent">
-        <div className="mx-auto w-full px-3 py-4 sm:px-4 lg:px-5">
-          <div className="flex flex-col gap-4 sm:gap-6">
+      {/* Header */}
+      <div className="border-b border-border/60 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
+        <div className="mx-auto w-full px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-3">
             {/* Title section */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                  <BadgeDollarSign className="h-3.5 w-3.5" />
-                  إدارة الرواتب
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/15 px-2.5 py-0.5 text-[11px] font-medium text-primary">
+                    <BadgeDollarSign className="h-3.5 w-3.5 animate-pulse" />
+                    إدارة الرواتب
+                  </div>
                 </div>
+                <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+                  نظام الرواتب والعمولات
+                </h1>
+                <p className="max-w-xl text-xs text-muted-foreground">
+                  إدارة رواتب الموظفين، العمولات، الجزاءات، والشفتات الطبية
+                </p>
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                نظام الرواتب والعمولات
-              </h1>
-              <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                إدارة شاملة لرواتب الموظفين والعمولات والشفتات مع تقارير دقيقة
-              </p>
+
+              {/* Compact Metrics Pill Row */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] sm:text-xs font-semibold text-muted-foreground/80 bg-muted/40 px-3.5 py-2 rounded-xl border border-border/40 w-fit self-start sm:self-center shadow-xs">
+                <span className="flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5 text-primary shrink-0" /> 
+                  الموظفون: <strong className="text-foreground">{summary?.staffCount ?? "—"}</strong>
+                </span>
+                <span className="h-3 w-px bg-border/60 hidden sm:inline" />
+                <span className="flex items-center gap-1.5">
+                  <BadgeDollarSign className="h-3.5 w-3.5 text-success shrink-0" /> 
+                  الرواتب: <strong className="text-foreground">{summary ? fmt(summary.totalPay) : "—"} ج.م</strong>
+                </span>
+                <span className="h-3 w-px bg-border/60 hidden sm:inline" />
+                <span className="flex items-center gap-1.5">
+                  <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" /> 
+                  الخصومات: <strong className="text-foreground">{summary ? fmt(summary.totalPenalties) : "—"} ج.م</strong>
+                </span>
+                <span className="h-3 w-px bg-border/60 hidden sm:inline" />
+                <span className="flex items-center gap-1.5">
+                  <Percent className="h-3.5 w-3.5 text-success shrink-0" /> 
+                  العمولات: <strong className="text-foreground">{summary ? fmt(summary.totalCommissions) : "—"} ج.م</strong>
+                </span>
+              </div>
             </div>
 
-            {/* Metrics grid */}
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {metrics.map((metric) => (
-                <div
-                  key={metric.label}
-                  className={`rounded-lg border p-3 ${metric.accent}`}
-                >
-                  <div className="text-xs font-semibold text-foreground/70">
-                    {metric.label}
-                  </div>
-                  <div
-                    className={`mt-1.5 text-lg font-bold tabular-nums ${metric.tone}`}
+            {/* Mobile Horizontal Pill Navigation Bar (Inline top navigation) */}
+            <div className="lg:hidden mt-2 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none whitespace-nowrap border-t border-border/40 pt-3">
+              {mobileNavItems.map((item) => {
+                const Icon = item.icon;
+                const itemActive = isItemActive(location, item.activeFor);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all ${
+                      itemActive
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    }`}
                   >
-                    {metric.value}
-                  </div>
-                </div>
-              ))}
+                    <Icon className="h-3.5 w-3.5" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         </div>
       </div>
 
       {/* Two-column layout: Sidebar + Content */}
-      <div className="flex flex-col lg:flex-row">
+      <div className="flex flex-col lg:flex-row mx-auto w-full max-w-[1600px]">
         {/* Sidebar Navigation (Desktop only) */}
-        <aside className="hidden lg:block w-full border-b border-border bg-card/50 lg:w-64 lg:border-b-0 lg:border-r">
-          <nav className="space-y-1 p-3 sm:p-4">
-            {navigationSections.map((section) => {
-              const active = isSectionActive(location, section.items);
-              return (
-                <div key={section.id} className="space-y-1">
-                  {/* Section header */}
-                  <div className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <section.icon className="h-4 w-4 text-muted-foreground" />
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">
-                          {section.label}
-                        </h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {section.description}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Section items */}
-                  <div className="space-y-1">
-                    {section.items.map((item) => {
-                      const itemActive = isItemActive(location, item.activeFor);
-                      return (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          className={`group flex items-start gap-3 rounded-l-lg rounded-r-none border-r-2 px-3 py-2.5 text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 ${
-                            itemActive
-                              ? "border-blue-600 bg-blue-50/70 text-blue-600 font-bold"
-                              : "border-transparent text-muted-foreground hover:bg-gray-100 hover:text-foreground"
-                          }`}
-                        >
-                          <ChevronRight className="h-4 w-4 mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-blue-600" />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold">{item.label}</div>
-                            <div className="text-xs text-muted-foreground mt-0.5">
-                              {item.description}
-                            </div>
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-
-                  {/* Divider between sections */}
-                  {section.id !== "settings" && (
-                    <div className="my-2 border-t border-border" />
-                  )}
+        <aside className="hidden lg:block w-full border-b border-border/60 bg-card/20 lg:w-64 lg:border-b-0 lg:border-r border-border/60 min-h-[calc(100vh-115px)]">
+          <nav className="space-y-4 p-4 sticky top-4">
+            {navigationSections.map((section) => (
+              <div key={section.id} className="space-y-1">
+                {/* Section header */}
+                <div className="px-3 py-1">
+                  <h3 className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider">
+                    {section.label}
+                  </h3>
                 </div>
-              );
-            })}
+
+                {/* Section items */}
+                <div className="space-y-1">
+                  {section.items.map((item) => {
+                    const itemActive = isItemActive(location, item.activeFor);
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`group flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 ${
+                          itemActive
+                            ? "bg-primary/10 text-primary font-medium shadow-sm border border-primary/10"
+                            : "text-muted-foreground hover:bg-muted/40 hover:text-foreground border border-transparent"
+                        }`}
+                      >
+                        <Icon className={`h-4 w-4 shrink-0 transition-colors ${itemActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`} />
+                        <span className="flex-1 min-w-0 truncate">{item.label}</span>
+                        <ChevronLeft
+                          className={`h-3.5 w-3.5 shrink-0 transition-all opacity-0 ${
+                            itemActive
+                              ? "opacity-100 text-primary translate-x-0"
+                              : "group-hover:opacity-100 group-hover:-translate-x-0.5"
+                          }`}
+                        />
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
         </aside>
 
-        {/* Mobile Horizontal Pill Navigation Bar (2nd Bottom Bar) */}
-        <div className="lg:hidden fixed bottom-14 left-0 right-0 h-14 bg-card border-t border-border flex items-center gap-2 px-4 overflow-x-auto z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] scrollbar-none whitespace-nowrap">
-          {mobileNavItems.map((item) => {
-            const Icon = item.icon;
-            const itemActive = isItemActive(location, item.activeFor);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold shrink-0 transition-colors ${
-                  itemActive
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "bg-muted text-muted-foreground hover:bg-muted/85"
-                }`}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-
         {/* Main content area */}
-        <main className="flex-1 px-3 py-5 pb-32 sm:px-4 sm:pb-32 lg:px-5 lg:pb-5">{children}</main>
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 min-w-0">
+          {children}
+        </main>
       </div>
     </div>
   );

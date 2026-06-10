@@ -60,6 +60,7 @@ type HubModuleCard = {
   description: string;
   icon: LucideIcon;
   iconWrap: string;
+  category: "staff" | "services" | "portal" | "system";
 };
 
 const ALL_MODULES: HubModuleCard[] = [
@@ -69,6 +70,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "كشف المرتبات والعمولات والجزاءات الشهرية.",
     icon: DollarSign,
     iconWrap: "bg-success/10 text-success",
+    category: "staff",
   },
   {
     href: "/admin-hub/permissions",
@@ -76,6 +78,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "تحديد صلاحيات الوصول للأدوار المختلفة.",
     icon: Shield,
     iconWrap: "bg-secondary/[0.07] text-secondary",
+    category: "staff",
   },
   {
     href: "/admin-hub/doctors",
@@ -83,6 +86,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "تنظيم قائمة الأطباء والتخصصات.",
     icon: Stethoscope,
     iconWrap: "bg-success/10 text-success",
+    category: "staff",
   },
   {
     href: "/admin-hub/users",
@@ -90,6 +94,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "إضافة وتعديل بيانات الموظفين والمستخدمين.",
     icon: Users,
     iconWrap: "bg-primary/10 text-primary",
+    category: "staff",
   },
   {
     href: "/admin-hub/status",
@@ -97,6 +102,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "مراقبة اتصال الخادم وقاعدة البيانات والأداء.",
     icon: Terminal,
     iconWrap: "bg-primary/[0.07] text-primary",
+    category: "system",
   },
   {
     href: "/admin-hub/migrations",
@@ -104,6 +110,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "تطبيق ترحيلات Drizzle وأدوات الصيانة.",
     icon: Database,
     iconWrap: "bg-primary/10 text-primary",
+    category: "system",
   },
   {
     href: "/admin-hub/services",
@@ -111,6 +118,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "إدارة قائمة الخدمات الطبية ومطابقة الأطباء.",
     icon: HeartPulse,
     iconWrap: "bg-secondary/[0.07] text-secondary",
+    category: "services",
   },
   {
     href: "/admin-hub/data-source-audit",
@@ -118,6 +126,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "مراجعة وتدقيق مصدر البيانات للسجلات.",
     icon: FileSearch,
     iconWrap: "bg-muted text-muted-foreground",
+    category: "system",
   },
   {
     href: "/admin-hub/settings",
@@ -125,6 +134,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "ضبط إعدادات النظام والتسعير.",
     icon: Settings,
     iconWrap: "bg-muted text-muted-foreground",
+    category: "system",
   },
   {
     href: "/admin-hub/api-tools",
@@ -132,6 +142,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "أدوات للمطورين لفحص tRPC.",
     icon: Plug,
     iconWrap: "bg-muted text-muted-foreground",
+    category: "system",
   },
   {
     href: "/admin-hub/tests",
@@ -139,6 +150,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "إدارة قائمة التحاليل والفحوصات المخبرية.",
     icon: TestTube2,
     iconWrap: "bg-muted text-muted-foreground",
+    category: "services",
   },
   {
     href: "/admin-hub/card-visibility",
@@ -146,6 +158,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "التحكم في الكروت التي تظهر في الداشبورد.",
     icon: Eye,
     iconWrap: "bg-muted text-muted-foreground",
+    category: "system",
   },
   {
     href: "/admin-hub/notifications",
@@ -153,6 +166,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "إدارة إعدادات الإخطارات داخل التطبيق.",
     icon: Bell,
     iconWrap: "bg-muted text-muted-foreground",
+    category: "system",
   },
   {
     href: "/admin-hub/forms",
@@ -160,6 +174,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "إدارة، تصميم، ونسخ النماذج والشيتات.",
     icon: Layers,
     iconWrap: "bg-muted text-muted-foreground",
+    category: "services",
   },
   {
     href: "/admin/pentacam",
@@ -167,6 +182,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "استيراد صور JPG وربطها بالمرضى أو إعادة التعيين.",
     icon: Scan,
     iconWrap: "bg-primary/10 text-primary",
+    category: "portal",
   },
   {
     href: "/admin-hub/pentacam-failed",
@@ -174,6 +190,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "مراجعة وإصلاح سجلات البنتاكام غير المكتملة.",
     icon: Scan,
     iconWrap: "bg-muted text-muted-foreground",
+    category: "portal",
   },
   {
     href: "/admin-hub/patients",
@@ -181,6 +198,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "مراجعة بيانات المرضى والمزامنة مع النظام.",
     icon: UserCheck,
     iconWrap: "bg-primary text-primary-foreground",
+    category: "portal",
   },
   {
     href: "/admin-hub/portal-bookings",
@@ -188,6 +206,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "إدارة حجوزات بوابة المرضى وجدول الأوقات المتاحة.",
     icon: CalendarDays,
     iconWrap: "bg-cyan-50 text-cyan-700",
+    category: "portal",
   },
   {
     href: "/admin-hub/external-doctors",
@@ -195,6 +214,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "إدارة حسابات الأطباء الخارجيين وصلاحيات الوصول للصور.",
     icon: Globe,
     iconWrap: "bg-primary/10 text-primary",
+    category: "staff",
   },
   {
     href: "/admin-hub/external-doctors/referrals",
@@ -202,6 +222,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "ربط المرضى بالأطباء الخارجيين لمنحهم وصولاً لصورهم.",
     icon: Link2,
     iconWrap: "bg-primary/[0.07] text-primary",
+    category: "staff",
   },
   {
     href: "/doctor-portal/login",
@@ -209,6 +230,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "صفحة دخول الأطباء الخارجيين لعرض صور مرضاهم.",
     icon: Globe,
     iconWrap: "bg-cyan-50 text-cyan-700",
+    category: "portal",
   },
   {
     href: "/my/login",
@@ -216,6 +238,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "صفحة دخول المرضى لمتابعة ملفاتهم وحجوزاتهم.",
     icon: UserCheck,
     iconWrap: "bg-cyan-50 text-cyan-700",
+    category: "portal",
   },
   {
     href: "/admin-hub/sheets",
@@ -223,6 +246,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "إدارة الشيتات الطبية المتاحة في النظام.",
     icon: Layers,
     iconWrap: "bg-primary/[0.07] text-primary",
+    category: "services",
   },
   {
     href: "/admin-hub/sheet-designer",
@@ -230,6 +254,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "تصميم وتخصيص قوالب الشيتات الطبية.",
     icon: PenSquare,
     iconWrap: "bg-primary/[0.07] text-primary",
+    category: "services",
   },
   {
     href: "/admin-hub/sheet-copies",
@@ -237,6 +262,7 @@ const ALL_MODULES: HubModuleCard[] = [
     description: "إدارة ونسخ الشيتات المحفوظة للمرضى.",
     icon: Copy,
     iconWrap: "bg-primary/[0.07] text-primary",
+    category: "services",
   },
 ];
 
@@ -350,8 +376,43 @@ export default function AdminHubShell() {
     );
   };
 
+  const CATEGORIES = [
+    {
+      id: "staff" as const,
+      title: "الموظفون والصلاحيات",
+      subtitle: "إدارة المستخدمين والأطباء والصلاحيات والرواتب",
+      icon: Users,
+      color: "text-primary",
+      bg: "bg-primary/5",
+    },
+    {
+      id: "services" as const,
+      title: "الخدمات والعيادات الطبية",
+      subtitle: "إدارة الخدمات والأسعار وقوالب الشيتات والفحوصات",
+      icon: HeartPulse,
+      color: "text-secondary",
+      bg: "bg-secondary/5",
+    },
+    {
+      id: "portal" as const,
+      title: "بوابة المرضى والملفات",
+      subtitle: "إدارة المرضى والحجوزات ومزامنة صور البنتاكام وبوابات تسجيل الدخول",
+      icon: Scan,
+      color: "text-cyan-700",
+      bg: "bg-cyan-50",
+    },
+    {
+      id: "system" as const,
+      title: "إعدادات النظام والصيانة",
+      subtitle: "مراقبة حالة الخادم، الميجريشن، إعدادات tRPC والإخطارات",
+      icon: Settings,
+      color: "text-muted-foreground",
+      bg: "bg-muted/40",
+    },
+  ];
+
   const HubLanding = () => (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <PageHeader
         title="مركز الإدارة"
         subtitle="التحكم الشامل في المستخدمين، الأطباء، والخدمات الفنية للمركز."
@@ -360,7 +421,7 @@ export default function AdminHubShell() {
 
       {/* Critical Actions Tier */}
       <Link href="/admin-hub/diagnostics">
-        <Card className="group relative overflow-hidden border-success/30/60 bg-success/10/40 transition-all hover:border-success/40 hover:bg-success/10/60 active:scale-[0.99]">
+        <Card className="group relative overflow-hidden border-success/30 bg-success/5 transition-all hover:border-success/40 hover:bg-success/10 active:scale-[0.99] cursor-pointer">
           <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4 text-right">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-success/15 text-success transition-transform group-hover:scale-110">
@@ -370,7 +431,7 @@ export default function AdminHubShell() {
                 <div className="font-bold text-foreground">
                   التشخيص والإصلاح
                 </div>
-                <p className="text-xs text-success/70">
+                <p className="text-xs text-muted-foreground">
                   أدوات فحص وإصلاح البيانات المتقدمة للمشرفين التقنيين.
                 </p>
               </div>
@@ -380,39 +441,64 @@ export default function AdminHubShell() {
         </Card>
       </Link>
 
-      {/* All Modules Grid */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-2 lg:grid-cols-3">
-        {ALL_MODULES.map((mod) => {
-          const Icon = mod.icon;
+      {/* Grouped Modules */}
+      <div className="space-y-8">
+        {CATEGORIES.map((cat) => {
+          const CatIcon = cat.icon;
+          const modules = ALL_MODULES.filter((m) => m.category === cat.id);
+
           return (
-            <Link key={mod.href} href={mod.href}>
-              <Card
-                className={cn(
-                  "group h-full border-border/60 bg-card transition-all hover:border-primary/40 hover:shadow-md active:scale-[0.98]",
-                )}
-              >
-                <CardContent className="flex h-full flex-col gap-4 p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div
-                      className={cn(
-                        "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-colors group-hover:bg-primary/5",
-                        mod.iconWrap,
-                      )}
-                    >
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0 flex-1 space-y-1 text-right">
-                      <h3 className="font-bold text-sm tracking-tight text-foreground/90 transition-colors group-hover:text-primary">
-                        {mod.title}
-                      </h3>
-                      <p className="text-xs leading-relaxed text-muted-foreground line-clamp-2">
-                        {mod.description}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+            <div key={cat.id} className="space-y-3">
+              <div className="flex items-center gap-3 border-b border-border/40 pb-2">
+                <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg text-sm", cat.bg, cat.color)}>
+                  <CatIcon className="h-4 w-4" />
+                </div>
+                <div className="text-right">
+                  <h2 className="text-base font-bold text-foreground">
+                    {cat.title}
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    {cat.subtitle}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {modules.map((mod) => {
+                  const Icon = mod.icon;
+                  return (
+                    <Link key={mod.href} href={mod.href}>
+                      <Card
+                        className={cn(
+                          "group h-full border-border/60 bg-card transition-all hover:border-primary/40 hover:shadow-md active:scale-[0.98] cursor-pointer",
+                        )}
+                      >
+                        <CardContent className="flex h-full flex-col gap-4 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div
+                              className={cn(
+                                "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors group-hover:bg-primary/5",
+                                mod.iconWrap,
+                              )}
+                            >
+                              <Icon className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0 flex-1 space-y-1 text-right">
+                              <h3 className="font-bold text-xs tracking-tight text-foreground/90 transition-colors group-hover:text-primary">
+                                {mod.title}
+                              </h3>
+                              <p className="text-[11px] leading-normal text-muted-foreground line-clamp-2">
+                                {mod.description}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
       </div>

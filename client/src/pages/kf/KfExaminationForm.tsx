@@ -6,9 +6,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import RefractionValueSelect from "@/components/RefractionValueSelect";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { ChevronRight, Save, Loader2, Eye, Activity } from "lucide-react";
+import { ChevronRight, Save, Loader2, Activity } from "lucide-react";
+import {
+  CYLINDER_COMBOBOX_OPTIONS,
+  IOP_OPTIONS,
+  SPHERE_COMBOBOX_OPTIONS,
+  UCVA_BCVA_OPTIONS,
+} from "@/lib/refractionOptions";
+
+const KF_DOCTORS = ["د. محمد السعدني", "د. سعيد مجدي"] as const;
 
 export default function KfExaminationForm() {
   const [, setLocation] = useLocation();
@@ -21,22 +30,24 @@ export default function KfExaminationForm() {
   const [doctorName, setDoctorName] = useState("");
 
   // Visual Acuity
-  const [rightVa, setRightVa] = useState("");
-  const [leftVa, setLeftVa] = useState("");
-
-  // IOP
-  const [iopRight, setIopRight] = useState("");
-  const [iopLeft, setIopLeft] = useState("");
+  const [ucvaOD, setUcvaOD] = useState("");
+  const [ucvaOS, setUcvaOS] = useState("");
+  const [bcvaOD, setBcvaOD] = useState("");
+  const [bcvaOS, setBcvaOS] = useState("");
+  const [iopOD, setIopOD] = useState("");
+  const [iopOS, setIopOS] = useState("");
 
   // Refraction OD (Right Eye)
-  const [odSph, setOdSph] = useState("");
-  const [odCyl, setOdCyl] = useState("");
+  const [odSph, setOdSph] = useState("--");
+  const [odCyl, setOdCyl] = useState("--");
   const [odAxis, setOdAxis] = useState("");
 
   // Refraction OS (Left Eye)
-  const [osSph, setOsSph] = useState("");
-  const [osCyl, setOsCyl] = useState("");
+  const [osSph, setOsSph] = useState("--");
+  const [osCyl, setOsCyl] = useState("--");
   const [osAxis, setOsAxis] = useState("");
+  const [osPd, setOsPd] = useState("");
+  const [nearAdd, setNearAdd] = useState("");
 
   // Clinical records
   const [diagnosis, setDiagnosis] = useState("");
@@ -78,15 +89,23 @@ export default function KfExaminationForm() {
     }
 
     const rightRefraction = {
+      ucva: ucvaOD.trim() || undefined,
+      bcva: bcvaOD.trim() || undefined,
+      iop: iopOD.trim() || undefined,
       sph: odSph.trim() || undefined,
       cyl: odCyl.trim() || undefined,
       axis: odAxis.trim() || undefined,
+      add: nearAdd.trim() || undefined,
     };
 
     const leftRefraction = {
+      ucva: ucvaOS.trim() || undefined,
+      bcva: bcvaOS.trim() || undefined,
+      iop: iopOS.trim() || undefined,
       sph: osSph.trim() || undefined,
       cyl: osCyl.trim() || undefined,
       axis: osAxis.trim() || undefined,
+      add: nearAdd.trim() || undefined,
     };
 
     try {
@@ -94,12 +113,12 @@ export default function KfExaminationForm() {
         kfPatientId,
         kfVisitId: kfVisitId === "none" ? null : Number(kfVisitId),
         examDate,
-        rightVa: rightVa.trim() || null,
-        leftVa: leftVa.trim() || null,
+        rightVa: ucvaOD.trim() || null,
+        leftVa: ucvaOS.trim() || null,
         rightRefraction,
         leftRefraction,
-        iopRight: iopRight.trim() || null,
-        iopLeft: iopLeft.trim() || null,
+        iopRight: iopOD.trim() || null,
+        iopLeft: iopOS.trim() || null,
         diagnosis: diagnosis.trim() || null,
         plan: plan.trim() || null,
         notes: notes.trim() || null,
@@ -182,13 +201,16 @@ export default function KfExaminationForm() {
 
             <div className="space-y-2">
               <Label htmlFor="doctorName">اسم الطبيب الفاحص</Label>
-              <Input
-                id="doctorName"
-                type="text"
-                placeholder="اسم الطبيب"
-                value={doctorName}
-                onChange={(e) => setDoctorName(e.target.value)}
-              />
+              <Select value={doctorName} onValueChange={setDoctorName}>
+                <SelectTrigger id="doctorName">
+                  <SelectValue placeholder="اختر الطبيب..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {KF_DOCTORS.map((dr) => (
+                    <SelectItem key={dr} value={dr}>{dr}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
@@ -210,148 +232,165 @@ export default function KfExaminationForm() {
           </CardContent>
         </Card>
 
-        {/* Vision Acuity & IOP & Refraction Panel (Ophthalmic side-by-side template) */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Right Eye (OD) - Standard ophthalmic layout puts Right Eye on right side of sheet (from doctor perspective, but here we place it logically for reader) */}
-          <Card className="border-sky-500/10">
-            <CardHeader className="bg-sky-500/5 py-3 flex flex-row items-center justify-between">
-              <CardTitle className="text-base text-sky-800 dark:text-sky-300">العين اليمنى (Oculus Dexter - OD)</CardTitle>
-              <Eye className="h-4 w-4 text-sky-500" />
-            </CardHeader>
-            <CardContent className="p-4 space-y-4">
-              {/* VA & IOP */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label htmlFor="rightVa">حدة الإبصار (VA)</Label>
-                  <Input
-                    id="rightVa"
-                    type="text"
-                    placeholder="مثال: 6/12"
-                    value={rightVa}
-                    onChange={(e) => setRightVa(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="iopRight">ضغط العين (IOP)</Label>
-                  <Input
-                    id="iopRight"
-                    type="text"
-                    placeholder="مثال: 15 mmHg"
-                    value={iopRight}
-                    onChange={(e) => setIopRight(e.target.value)}
-                  />
-                </div>
+        {/* Vision Acuity & IOP & Refraction Tables */}
+        <Card>
+          <CardHeader className="py-4">
+            <CardTitle className="text-base">جدول حدة الإبصار والانكسار</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm" dir="ltr">
+              <div className="flex items-center gap-2">
+                <Label className="shrink-0 font-medium">UCVA:</Label>
+                <RefractionValueSelect
+                  value={ucvaOD}
+                  onChange={setUcvaOD}
+                  options={UCVA_BCVA_OPTIONS}
+                  triggerClassName="w-[9rem] shrink-0"
+                />
+                <span className="shrink-0 text-muted-foreground">/</span>
+                <RefractionValueSelect
+                  value={ucvaOS}
+                  onChange={setUcvaOS}
+                  options={UCVA_BCVA_OPTIONS}
+                  triggerClassName="w-[9rem] shrink-0"
+                />
               </div>
+              <div className="flex items-center gap-2">
+                <Label className="shrink-0 font-medium">BCVA:</Label>
+                <RefractionValueSelect
+                  value={bcvaOD}
+                  onChange={setBcvaOD}
+                  options={UCVA_BCVA_OPTIONS}
+                  triggerClassName="w-[9rem] shrink-0"
+                />
+                <span className="shrink-0 text-muted-foreground">/</span>
+                <RefractionValueSelect
+                  value={bcvaOS}
+                  onChange={setBcvaOS}
+                  options={UCVA_BCVA_OPTIONS}
+                  triggerClassName="w-[9rem] shrink-0"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Label className="shrink-0 font-medium">IOP:</Label>
+                <RefractionValueSelect
+                  value={iopOD}
+                  onChange={setIopOD}
+                  options={IOP_OPTIONS}
+                  triggerClassName="w-[7rem] shrink-0"
+                />
+                <span className="shrink-0 text-muted-foreground">/</span>
+                <RefractionValueSelect
+                  value={iopOS}
+                  onChange={setIopOS}
+                  options={IOP_OPTIONS}
+                  triggerClassName="w-[7rem] shrink-0"
+                />
+              </div>
+            </div>
 
-              {/* Refraction details */}
-              <div className="border-t pt-3 space-y-2">
-                <span className="text-xs font-bold text-muted-foreground block">قياس الانكسار (Refraction)</span>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="space-y-1">
-                    <Label htmlFor="odSph" className="text-xs">Sph (Sphere)</Label>
-                    <Input
-                      id="odSph"
-                      type="text"
-                      placeholder="+1.25"
-                      value={odSph}
-                      onChange={(e) => setOdSph(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="odCyl" className="text-xs">Cyl (Cylinder)</Label>
-                    <Input
-                      id="odCyl"
-                      type="text"
-                      placeholder="-0.75"
-                      value={odCyl}
-                      onChange={(e) => setOdCyl(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="odAxis" className="text-xs">Axis (المحور)</Label>
-                    <Input
-                      id="odAxis"
-                      type="text"
-                      placeholder="90"
-                      value={odAxis}
-                      onChange={(e) => setOdAxis(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Left Eye (OS) */}
-          <Card className="border-teal-500/10">
-            <CardHeader className="bg-teal-500/5 py-3 flex flex-row items-center justify-between">
-              <CardTitle className="text-base text-teal-800 dark:text-teal-300">العين اليسرى (Oculus Sinister - OS)</CardTitle>
-              <Eye className="h-4 w-4 text-teal-500" />
-            </CardHeader>
-            <CardContent className="p-4 space-y-4">
-              {/* VA & IOP */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label htmlFor="leftVa">حدة الإبصار (VA)</Label>
-                  <Input
-                    id="leftVa"
-                    type="text"
-                    placeholder="مثال: 6/6"
-                    value={leftVa}
-                    onChange={(e) => setLeftVa(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="iopLeft">ضغط العين (IOP)</Label>
-                  <Input
-                    id="iopLeft"
-                    type="text"
-                    placeholder="مثال: 14 mmHg"
-                    value={iopLeft}
-                    onChange={(e) => setIopLeft(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* Refraction details */}
-              <div className="border-t pt-3 space-y-2">
-                <span className="text-xs font-bold text-muted-foreground block">قياس الانكسار (Refraction)</span>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="space-y-1">
-                    <Label htmlFor="osSph" className="text-xs">Sph (Sphere)</Label>
-                    <Input
-                      id="osSph"
-                      type="text"
-                      placeholder="0.00"
-                      value={osSph}
-                      onChange={(e) => setOsSph(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="osCyl" className="text-xs">Cyl (Cylinder)</Label>
-                    <Input
-                      id="osCyl"
-                      type="text"
-                      placeholder="-0.25"
-                      value={osCyl}
-                      onChange={(e) => setOsCyl(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="osAxis" className="text-xs">Axis (المحور)</Label>
-                    <Input
-                      id="osAxis"
-                      type="text"
-                      placeholder="180"
-                      value={osAxis}
-                      onChange={(e) => setOsAxis(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            <table
+              className="w-full table-fixed border-collapse text-center text-sm"
+              dir="ltr"
+            >
+                <thead>
+                  <tr className="bg-muted/70">
+                    <th className="border px-3 py-3 w-32 text-left">Eye</th>
+                    <th className="border px-3 py-3" colSpan={3}>
+                      -OD
+                    </th>
+                    <th className="border px-3 py-3" colSpan={4}>
+                      -OS
+                    </th>
+                  </tr>
+                  <tr className="bg-muted/40">
+                    <th className="border px-3 py-3 text-left">Distance</th>
+                    <th className="border px-3 py-3">S</th>
+                    <th className="border px-3 py-3">C</th>
+                    <th className="border px-3 py-3">Axis</th>
+                    <th className="border px-3 py-3">S</th>
+                    <th className="border px-3 py-3">C</th>
+                    <th className="border px-3 py-3">Axis</th>
+                    <th className="border px-3 py-3">PD</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="border px-3 py-3 text-left font-medium">
+                      Distance
+                    </td>
+                    <td className="border px-2 py-2">
+                      <RefractionValueSelect
+                        value={odSph}
+                        onChange={setOdSph}
+                        options={SPHERE_COMBOBOX_OPTIONS}
+                        triggerClassName="w-full"
+                      />
+                    </td>
+                    <td className="border px-2 py-2">
+                      <RefractionValueSelect
+                        value={odCyl}
+                        onChange={setOdCyl}
+                        options={CYLINDER_COMBOBOX_OPTIONS}
+                        triggerClassName="w-full"
+                      />
+                    </td>
+                    <td className="border px-2 py-2">
+                      <Input
+                        id="odAxis"
+                        value={odAxis}
+                        onChange={(e) => setOdAxis(e.target.value)}
+                        placeholder="Axis"
+                      />
+                    </td>
+                    <td className="border px-2 py-2">
+                      <RefractionValueSelect
+                        value={osSph}
+                        onChange={setOsSph}
+                        options={SPHERE_COMBOBOX_OPTIONS}
+                        triggerClassName="w-full"
+                      />
+                    </td>
+                    <td className="border px-2 py-2">
+                      <RefractionValueSelect
+                        value={osCyl}
+                        onChange={setOsCyl}
+                        options={CYLINDER_COMBOBOX_OPTIONS}
+                        triggerClassName="w-full"
+                      />
+                    </td>
+                    <td className="border px-2 py-2">
+                      <Input
+                        id="osAxis"
+                        value={osAxis}
+                        onChange={(e) => setOsAxis(e.target.value)}
+                        placeholder="Axis"
+                      />
+                    </td>
+                    <td className="border px-2 py-2">
+                      <Input
+                        value={osPd}
+                        onChange={(e) => setOsPd(e.target.value)}
+                        placeholder="PD"
+                      />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="border px-3 py-3 text-left font-medium">
+                      Near
+                    </td>
+                    <td className="border px-2 py-2" colSpan={7}>
+                      <Input
+                        value={nearAdd}
+                        onChange={(e) => setNearAdd(e.target.value)}
+                        placeholder="ADD"
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+          </CardContent>
+        </Card>
 
         {/* Section 3: Diagnosis & Treatment Plan */}
         <Card>

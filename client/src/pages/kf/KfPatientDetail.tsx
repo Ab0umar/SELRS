@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { Link, useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -23,8 +26,14 @@ import {
   Eye,
   Activity,
   Heart,
-  Layers
+  Layers,
+  Trash2,
+  Loader2,
+  ScrollText,
+  RefreshCw,
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 // Translations
 const GENDER_AR = { male: "ذكر", female: "أنثى" };
@@ -52,7 +61,160 @@ const FOLLOWUP_STATUS_AR = {
   missed: "لم يحضر"
 };
 
+function ConsultationSheet({ patient }: { patient: any }) {
+  const today = new Date().toLocaleDateString("ar-EG");
+  const cell: React.CSSProperties = { border: "1px solid #000", padding: "5px 8px", fontSize: "12px" };
+  const line: React.CSSProperties = { borderBottom: "1px solid #999", marginTop: 16, marginBottom: 8 };
+  const line2: React.CSSProperties = { borderBottom: "1px solid #999", marginBottom: 4 };
+  return (
+    <div dir="rtl" style={{ fontFamily: "Arial, sans-serif", fontSize: "13px", color: "#000", padding: "24px" }}>
+      <div style={{ textAlign: "center", borderBottom: "2px solid #000", paddingBottom: 10, marginBottom: 12 }}>
+        <div style={{ fontSize: 16, fontWeight: "bold" }}>مركز ساعدني لجراحة وتقويم الإبصار</div>
+        <div style={{ fontSize: 14 }}>وحدة كفرالشيخ الطبية</div>
+        <div style={{ fontSize: 14, fontWeight: "bold" }}>ورقة كشف / استشارة</div>
+      </div>
+      <div style={{ textAlign: "left", marginBottom: 8, fontSize: 12 }}>
+        <strong>التاريخ:</strong> {today}
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 10 }}>
+        <tbody>
+          <tr>
+            <td style={{ ...cell, width: "50%" }}><strong>كود المريض:</strong> {patient.kfCode}</td>
+            <td style={cell}><strong>اسم المريض:</strong> {patient.fullName}</td>
+          </tr>
+          <tr>
+            <td style={cell}><strong>السن:</strong> {patient.age ? `${patient.age} سنة` : "—"}</td>
+            <td style={cell}><strong>الجنس:</strong> {patient.gender === "male" ? "ذكر" : patient.gender === "female" ? "أنثى" : "—"}</td>
+          </tr>
+          <tr>
+            <td style={cell}><strong>الهاتف:</strong> {patient.phone || "—"}</td>
+            <td style={cell}><strong>الرقم القومي:</strong> {patient.nationalId || "—"}</td>
+          </tr>
+          <tr>
+            <td style={cell}><strong>المهنة:</strong> {patient.occupation || "—"}</td>
+            <td style={cell}><strong>العنوان:</strong> {patient.address || "—"}</td>
+          </tr>
+          <tr>
+            <td style={{ ...cell, fontSize: 12 }} colSpan={2}><strong>التاريخ المرضي:</strong> {patient.medicalHistory || "—"}</td>
+          </tr>
+          <tr>
+            <td style={{ ...cell, fontSize: 12 }} colSpan={2}><strong>الحساسية:</strong> {patient.allergies || "—"}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style={{ border: "2px solid #000", marginBottom: 8 }}>
+        <div style={{ background: "#f0f0f0", padding: "4px 8px", fontWeight: "bold", textAlign: "center", borderBottom: "1px solid #000", fontSize: 12 }}>بيانات الكشف الطبي</div>
+        <div style={{ padding: "6px 8px", borderBottom: "1px solid #000", fontSize: 12 }}>
+          <strong>الشكوى الرئيسية:</strong>
+          <div style={line} /><div style={line2} />
+        </div>
+        <div style={{ padding: "6px 8px", borderBottom: "1px solid #000", fontSize: 12 }}>
+          <table style={{ width: "100%" }}><tbody>
+            <tr>
+              <td><strong>حدة الإبصار (VA):</strong></td>
+              <td>يمين: <span style={{ display: "inline-block", borderBottom: "1px solid #999", minWidth: 70 }}>&nbsp;</span></td>
+              <td>يسار: <span style={{ display: "inline-block", borderBottom: "1px solid #999", minWidth: 70 }}>&nbsp;</span></td>
+            </tr>
+            <tr>
+              <td><strong>ضغط العين (IOP):</strong></td>
+              <td>يمين: <span style={{ display: "inline-block", borderBottom: "1px solid #999", minWidth: 70 }}>&nbsp;</span></td>
+              <td>يسار: <span style={{ display: "inline-block", borderBottom: "1px solid #999", minWidth: 70 }}>&nbsp;</span></td>
+            </tr>
+          </tbody></table>
+        </div>
+        <div style={{ padding: "6px 8px", borderBottom: "1px solid #000", fontSize: 12 }}>
+          <strong>التشخيص:</strong>
+          <div style={line} /><div style={line2} />
+        </div>
+        <div style={{ padding: "6px 8px", borderBottom: "1px solid #000", fontSize: 12 }}>
+          <strong>العلاج / الروشتة:</strong>
+          <div style={line} /><div style={{ ...line2, marginBottom: 8 }} /><div style={line2} />
+        </div>
+        <div style={{ padding: 8, fontSize: 12 }}>
+          <table style={{ width: "100%" }}><tbody>
+            <tr>
+              <td>الطبيب المعالج: <span style={{ display: "inline-block", borderBottom: "1px solid #999", minWidth: 120 }}>&nbsp;</span></td>
+              <td style={{ textAlign: "left" }}>التوقيع: <span style={{ display: "inline-block", borderBottom: "1px solid #999", minWidth: 100 }}>&nbsp;</span></td>
+            </tr>
+          </tbody></table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FollowupSheet({ patient, operations, followups }: { patient: any; operations: any[]; followups: any[] }) {
+  const lastOp = operations.find((op: any) => op.status === "completed") ?? operations[0];
+  const nextFollowup = followups.find((f: any) => f.status === "scheduled");
+  const sheetDate = nextFollowup
+    ? new Date(nextFollowup.followupDate).toLocaleDateString("ar-EG")
+    : new Date().toLocaleDateString("ar-EG");
+  const cell: React.CSSProperties = { border: "1px solid #000", padding: "5px 8px", fontSize: "12px" };
+  const line: React.CSSProperties = { borderBottom: "1px solid #999", marginTop: 16, marginBottom: 8 };
+  const line2: React.CSSProperties = { borderBottom: "1px solid #999", marginBottom: 4 };
+  return (
+    <div dir="rtl" style={{ fontFamily: "Arial, sans-serif", fontSize: "13px", color: "#000", padding: "24px" }}>
+      <div style={{ textAlign: "center", borderBottom: "2px solid #000", paddingBottom: 10, marginBottom: 12 }}>
+        <div style={{ fontSize: 16, fontWeight: "bold" }}>مركز ساعدني لجراحة وتقويم الإبصار</div>
+        <div style={{ fontSize: 14 }}>وحدة كفرالشيخ الطبية</div>
+        <div style={{ fontSize: 14, fontWeight: "bold" }}>ورقة متابعة مريض</div>
+      </div>
+      <div style={{ textAlign: "left", marginBottom: 8, fontSize: 12 }}>
+        <strong>تاريخ المتابعة:</strong> {sheetDate}
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 10 }}>
+        <tbody>
+          <tr>
+            <td style={{ ...cell, width: "50%" }}><strong>كود المريض:</strong> {patient.kfCode}</td>
+            <td style={cell}><strong>اسم المريض:</strong> {patient.fullName}</td>
+          </tr>
+          <tr>
+            <td style={cell}><strong>السن:</strong> {patient.age ? `${patient.age} سنة` : "—"}</td>
+            <td style={cell}><strong>الجنس:</strong> {patient.gender === "male" ? "ذكر" : patient.gender === "female" ? "أنثى" : "—"}</td>
+          </tr>
+          <tr>
+            <td style={cell} colSpan={2}><strong>الهاتف:</strong> {patient.phone || "—"}</td>
+          </tr>
+          {lastOp && (
+            <tr>
+              <td style={cell} colSpan={2}>
+                <strong>آخر عملية:</strong> {lastOp.opType} — {new Date(lastOp.opDate).toLocaleDateString("ar-EG")}
+                {" "}({lastOp.eye === "both" ? "العينين" : lastOp.eye === "right" ? "العين اليمنى" : "العين اليسرى"})
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+      <div style={{ border: "2px solid #000", marginBottom: 8 }}>
+        <div style={{ background: "#f0f0f0", padding: "4px 8px", fontWeight: "bold", textAlign: "center", borderBottom: "1px solid #000", fontSize: 12 }}>بيانات المتابعة</div>
+        <div style={{ padding: "6px 8px", borderBottom: "1px solid #000", fontSize: 12 }}>
+          <strong>الحالة الحالية للمريض:</strong>
+          <div style={line} /><div style={line2} />
+        </div>
+        <div style={{ padding: "6px 8px", borderBottom: "1px solid #000", fontSize: 12 }}>
+          <strong>ملاحظات المتابعة:</strong>
+          <div style={line} /><div style={{ ...line2, marginBottom: 8 }} /><div style={line2} />
+        </div>
+        <div style={{ padding: "6px 8px", borderBottom: "1px solid #000", fontSize: 12 }}>
+          <strong>موعد المتابعة القادم:</strong>{" "}
+          <span style={{ display: "inline-block", borderBottom: "1px solid #999", minWidth: 150 }}>&nbsp;</span>
+        </div>
+        <div style={{ padding: 8, fontSize: 12 }}>
+          <table style={{ width: "100%" }}><tbody>
+            <tr>
+              <td>الطبيب المعالج: <span style={{ display: "inline-block", borderBottom: "1px solid #999", minWidth: 120 }}>&nbsp;</span></td>
+              <td style={{ textAlign: "left" }}>التوقيع: <span style={{ display: "inline-block", borderBottom: "1px solid #999", minWidth: 100 }}>&nbsp;</span></td>
+            </tr>
+          </tbody></table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function KfPatientDetail() {
+  const { user } = useAuth();
+  const canDelete = user?.role === "admin" || user?.role === "accountant";
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/kf/patients/:kfPatientId");
   const kfPatientId = params?.kfPatientId ? Number(params.kfPatientId) : null;
@@ -63,12 +225,23 @@ export default function KfPatientDetail() {
   // Selected Exam for details dialog
   const [selectedExamId, setSelectedExamId] = useState<number | null>(null);
 
+  // Delete confirm states per tab
+  const [delVisit, setDelVisit] = useState<number | null>(null);
+  const [delExam, setDelExam] = useState<number | null>(null);
+  const [delOp, setDelOp] = useState<number | null>(null);
+  const [delFollowup, setDelFollowup] = useState<number | null>(null);
+
+  // Edit states per tab
+  const [editVisit, setEditVisit] = useState<any | null>(null);
+  const [editExam, setEditExam] = useState<any | null>(null);
+  const [editOp, setEditOp] = useState<any | null>(null);
+  const [editFollowup, setEditFollowup] = useState<any | null>(null);
+
   // Queries
   const { data: patient, isLoading: loadingPatient, isError } = trpc.kf.getPatient.useQuery(
     { kfId: kfPatientId ?? 0 },
     { enabled: !!kfPatientId }
   );
-
   const { data: visits = [], isLoading: loadingVisits } = trpc.kf.listVisits.useQuery(
     { kfPatientId: kfPatientId ?? 0 },
     { enabled: !!kfPatientId }
@@ -94,6 +267,41 @@ export default function KfPatientDetail() {
     { kfExamId: selectedExamId ?? 0 },
     { enabled: !!selectedExamId }
   );
+
+  const utils = trpc.useUtils();
+  const deleteVisitMut = trpc.kf.deleteVisit.useMutation({
+    onSuccess: () => { utils.kf.listVisits.invalidate(); toast.success("تم حذف الزيارة"); setDelVisit(null); },
+    onError: () => toast.error("تعذر حذف الزيارة"),
+  });
+  const deleteExamMut = trpc.kf.deleteExamination.useMutation({
+    onSuccess: () => { utils.kf.listExaminations.invalidate(); toast.success("تم حذف الفحص"); setDelExam(null); },
+    onError: () => toast.error("تعذر حذف الفحص"),
+  });
+  const deleteOpMut = trpc.kf.deleteOperation.useMutation({
+    onSuccess: () => { utils.kf.listOperations.invalidate(); toast.success("تم حذف العملية"); setDelOp(null); },
+    onError: () => toast.error("تعذر حذف العملية"),
+  });
+  const deleteFollowupMut = trpc.kf.deleteFollowup.useMutation({
+    onSuccess: () => { utils.kf.listFollowups.invalidate(); toast.success("تم حذف المتابعة"); setDelFollowup(null); },
+    onError: () => toast.error("تعذر حذف المتابعة"),
+  });
+
+  const updateVisitMut = trpc.kf.updateVisit.useMutation({
+    onSuccess: () => { utils.kf.listVisits.invalidate(); toast.success("تم تعديل الزيارة"); setEditVisit(null); },
+    onError: () => toast.error("تعذر تعديل الزيارة"),
+  });
+  const updateExamMut = trpc.kf.updateExamination.useMutation({
+    onSuccess: () => { utils.kf.listExaminations.invalidate(); toast.success("تم تعديل الفحص"); setEditExam(null); },
+    onError: () => toast.error("تعذر تعديل الفحص"),
+  });
+  const updateOpMut = trpc.kf.updateOperation.useMutation({
+    onSuccess: () => { utils.kf.listOperations.invalidate(); toast.success("تم تعديل العملية"); setEditOp(null); },
+    onError: () => toast.error("تعذر تعديل العملية"),
+  });
+  const updateFollowupMut = trpc.kf.updateFollowup.useMutation({
+    onSuccess: () => { utils.kf.listFollowups.invalidate(); toast.success("تم تعديل المتابعة"); setEditFollowup(null); },
+    onError: () => toast.error("تعذر تعديل المتابعة"),
+  });
 
   if (loadingPatient) {
     return (
@@ -126,6 +334,7 @@ export default function KfPatientDetail() {
   };
 
   return (
+    <>
     <section dir="rtl" className="space-y-6">
       {/* Back & Edit Action bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -133,12 +342,26 @@ export default function KfPatientDetail() {
           <ChevronRight className="h-4 w-4" />
           <span>الرجوع لسجل المرضى</span>
         </Button>
-        <Button asChild variant="outline" className="gap-2 self-start sm:self-auto">
-          <Link href={`/kf/patients/${patient.kfId}/edit`}>
-            <Edit className="h-4 w-4" />
-            <span>تعديل بيانات المريض</span>
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2 self-start sm:self-auto">
+          <Button asChild variant="outline" size="sm" className="gap-1.5 cursor-pointer">
+            <Link href={`/KFsheets/consultant/${patient.kfId}?original=1`} target="_blank">
+              <ScrollText className="h-4 w-4" />
+              <span>شيت استشاري KF</span>
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm" className="gap-1.5 cursor-pointer">
+            <Link href={`/KFsheets/consultant/${patient.kfId}/followup?original=1`} target="_blank">
+              <RefreshCw className="h-4 w-4" />
+              <span>متابعة KF</span>
+            </Link>
+          </Button>
+          <Button asChild variant="outline" className="gap-2">
+            <Link href={`/kf/patients/${patient.kfId}/edit`}>
+              <Edit className="h-4 w-4" />
+              <span>تعديل بيانات المريض</span>
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Patient Header Card */}
@@ -308,18 +531,19 @@ export default function KfPatientDetail() {
                     <TableHead className="text-right">الطبيب المعالج</TableHead>
                     <TableHead className="text-right">الحالة</TableHead>
                     <TableHead className="text-right">الملاحظات</TableHead>
+                    <TableHead className="text-left"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loadingVisits ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-4">
+                      <TableCell colSpan={6} className="text-center py-4">
                         جاري التحميل...
                       </TableCell>
                     </TableRow>
                   ) : visits.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                      <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
                         لا توجد زيارات مسجلة لهذا المريض. اضغط على "إضافة زيارة جديدة" للبدء.
                       </TableCell>
                     </TableRow>
@@ -353,6 +577,25 @@ export default function KfPatientDetail() {
                         <TableCell className="max-w-xs truncate" title={v.notes ?? ""}>
                           {v.notes || "—"}
                         </TableCell>
+                        <TableCell className="text-left">
+                          <div className="flex gap-1 items-center">
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-primary" onClick={() => setEditVisit({ ...v, visitDate: v.visitDate ? new Date(v.visitDate).toISOString().split("T")[0] : "" })}>
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+                            {delVisit === v.kfVisitId ? (
+                              <div className="flex gap-1">
+                                <Button variant="destructive" size="sm" className="h-6 px-2 text-xs" onClick={() => deleteVisitMut.mutate({ kfVisitId: v.kfVisitId })} disabled={deleteVisitMut.isPending}>
+                                  {deleteVisitMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "حذف"}
+                                </Button>
+                                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setDelVisit(null)}>لا</Button>
+                              </div>
+                            ) : canDelete ? (
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" onClick={() => setDelVisit(v.kfVisitId)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            ) : null}
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -375,7 +618,7 @@ export default function KfPatientDetail() {
                     <TableHead className="text-right">ضغط العين (ي / ش)</TableHead>
                     <TableHead className="text-right">التشخيص</TableHead>
                     <TableHead className="text-right">الطبيب الفاحص</TableHead>
-                    <TableHead className="text-left">عرض</TableHead>
+                    <TableHead className="text-left">إجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -407,9 +650,26 @@ export default function KfPatientDetail() {
                         </TableCell>
                         <TableCell>{e.doctorName || "—"}</TableCell>
                         <TableCell className="text-left">
-                          <Button variant="ghost" size="icon" className="cursor-pointer" onClick={() => setSelectedExamId(e.kfExamId)}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-1 items-center">
+                            <Button variant="ghost" size="icon" className="cursor-pointer" onClick={() => setSelectedExamId(e.kfExamId)}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-primary" onClick={() => setEditExam({ ...e, examDate: e.examDate ? new Date(e.examDate).toISOString().split("T")[0] : "", rightRefraction: e.rightRefraction ?? {}, leftRefraction: e.leftRefraction ?? {} })}>
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+                            {delExam === e.kfExamId ? (
+                              <div className="flex gap-1">
+                                <Button variant="destructive" size="sm" className="h-6 px-2 text-xs" onClick={() => deleteExamMut.mutate({ kfExamId: e.kfExamId })} disabled={deleteExamMut.isPending}>
+                                  {deleteExamMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "حذف"}
+                                </Button>
+                                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setDelExam(null)}>لا</Button>
+                              </div>
+                            ) : canDelete ? (
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" onClick={() => setDelExam(e.kfExamId)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            ) : null}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -433,18 +693,19 @@ export default function KfPatientDetail() {
                     <TableHead className="text-right">الجراح</TableHead>
                     <TableHead className="text-right">الحالة</TableHead>
                     <TableHead className="text-right">ملاحظات</TableHead>
+                    <TableHead className="text-left"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loadingOps ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-4">
+                      <TableCell colSpan={7} className="text-center py-4">
                         جاري التحميل...
                       </TableCell>
                     </TableRow>
                   ) : operations.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                      <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
                         لا توجد عمليات جراحية مسجلة.
                       </TableCell>
                     </TableRow>
@@ -475,6 +736,25 @@ export default function KfPatientDetail() {
                         <TableCell className="max-w-xs truncate" title={op.notes ?? ""}>
                           {op.notes || "—"}
                         </TableCell>
+                        <TableCell className="text-left">
+                          <div className="flex gap-1 items-center">
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-primary" onClick={() => setEditOp({ ...op, opDate: op.opDate ? new Date(op.opDate).toISOString().split("T")[0] : "" })}>
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+                            {delOp === op.kfOpId ? (
+                              <div className="flex gap-1">
+                                <Button variant="destructive" size="sm" className="h-6 px-2 text-xs" onClick={() => deleteOpMut.mutate({ kfOpId: op.kfOpId })} disabled={deleteOpMut.isPending}>
+                                  {deleteOpMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "حذف"}
+                                </Button>
+                                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setDelOp(null)}>لا</Button>
+                              </div>
+                            ) : canDelete ? (
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" onClick={() => setDelOp(op.kfOpId)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            ) : null}
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -494,18 +774,19 @@ export default function KfPatientDetail() {
                     <TableHead className="text-right">تاريخ المتابعة</TableHead>
                     <TableHead className="text-right">الحالة</TableHead>
                     <TableHead className="text-right">ملاحظات</TableHead>
+                    <TableHead className="text-left"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loadingFollows ? (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center py-4">
+                      <TableCell colSpan={4} className="text-center py-4">
                         جاري التحميل...
                       </TableCell>
                     </TableRow>
                   ) : followups.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
+                      <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
                         لا توجد متابعات مسجلة لهذا المريض.
                       </TableCell>
                     </TableRow>
@@ -529,6 +810,25 @@ export default function KfPatientDetail() {
                           </Badge>
                         </TableCell>
                         <TableCell>{f.notes || "—"}</TableCell>
+                        <TableCell className="text-left">
+                          <div className="flex gap-1 items-center">
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-primary" onClick={() => setEditFollowup({ ...f, followupDate: f.followupDate ? new Date(f.followupDate).toISOString().split("T")[0] : "" })}>
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+                            {delFollowup === f.kfFollowupId ? (
+                              <div className="flex gap-1">
+                                <Button variant="destructive" size="sm" className="h-6 px-2 text-xs" onClick={() => deleteFollowupMut.mutate({ kfFollowupId: f.kfFollowupId })} disabled={deleteFollowupMut.isPending}>
+                                  {deleteFollowupMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "حذف"}
+                                </Button>
+                                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setDelFollowup(null)}>لا</Button>
+                              </div>
+                            ) : canDelete ? (
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" onClick={() => setDelFollowup(f.kfFollowupId)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            ) : null}
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -642,5 +942,235 @@ export default function KfPatientDetail() {
         </DialogContent>
       </Dialog>
     </section>
+
+      {/* Edit Visit Dialog */}
+      <Dialog open={!!editVisit} onOpenChange={(open) => !open && setEditVisit(null)}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>تعديل الزيارة</DialogTitle>
+            <DialogDescription>عدّل بيانات الزيارة ثم اضغط حفظ</DialogDescription>
+          </DialogHeader>
+          {editVisit && (
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label>تاريخ الزيارة</Label>
+                <Input type="date" value={editVisit.visitDate ?? ""} onChange={(e) => setEditVisit({ ...editVisit, visitDate: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label>نوع الزيارة</Label>
+                <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={editVisit.visitType ?? ""} onChange={(e) => setEditVisit({ ...editVisit, visitType: e.target.value })}>
+                  <option value="consultation">كشف / استشارة</option>
+                  <option value="examination">فحص طبي</option>
+                  <option value="followup">متابعة</option>
+                  <option value="operation">عملية جراحية</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label>الحالة</Label>
+                <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={editVisit.status ?? ""} onChange={(e) => setEditVisit({ ...editVisit, status: e.target.value })}>
+                  <option value="scheduled">مجدول</option>
+                  <option value="arrived">وصل بالعيادة</option>
+                  <option value="in_progress">قيد الكشف</option>
+                  <option value="completed">اكتمل</option>
+                  <option value="cancelled">ملغي</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label>الطبيب المعالج</Label>
+                <Input value={editVisit.doctorName ?? ""} onChange={(e) => setEditVisit({ ...editVisit, doctorName: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label>ملاحظات</Label>
+                <Textarea rows={2} value={editVisit.notes ?? ""} onChange={(e) => setEditVisit({ ...editVisit, notes: e.target.value })} />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditVisit(null)}>إلغاء</Button>
+            <Button disabled={updateVisitMut.isPending} onClick={() => {
+              if (!editVisit) return;
+              updateVisitMut.mutate({ kfVisitId: editVisit.kfVisitId, visitDate: editVisit.visitDate, visitType: editVisit.visitType, status: editVisit.status, doctorName: editVisit.doctorName || null, notes: editVisit.notes || null });
+            }}>
+              {updateVisitMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Examination Dialog */}
+      <Dialog open={!!editExam} onOpenChange={(open) => !open && setEditExam(null)}>
+        <DialogContent dir="rtl" className="max-w-xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>تعديل الفحص الطبي</DialogTitle>
+            <DialogDescription>عدّل بيانات الفحص ثم اضغط حفظ</DialogDescription>
+          </DialogHeader>
+          {editExam && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>تاريخ الفحص</Label>
+                  <Input type="date" value={editExam.examDate ?? ""} onChange={(e) => setEditExam({ ...editExam, examDate: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>الطبيب الفاحص</Label>
+                  <Input value={editExam.doctorName ?? ""} onChange={(e) => setEditExam({ ...editExam, doctorName: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>VA اليمنى (UCVA)</Label>
+                  <Input value={editExam.rightVa ?? ""} onChange={(e) => setEditExam({ ...editExam, rightVa: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>VA اليسرى (UCVA)</Label>
+                  <Input value={editExam.leftVa ?? ""} onChange={(e) => setEditExam({ ...editExam, leftVa: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>IOP اليمنى</Label>
+                  <Input value={editExam.iopRight ?? ""} onChange={(e) => setEditExam({ ...editExam, iopRight: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>IOP اليسرى</Label>
+                  <Input value={editExam.iopLeft ?? ""} onChange={(e) => setEditExam({ ...editExam, iopLeft: e.target.value })} />
+                </div>
+              </div>
+              <div className="border rounded-md p-3 space-y-2">
+                <p className="text-xs font-bold text-muted-foreground">انكسار العين اليمنى (OD)</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-1"><Label className="text-xs">Sph</Label><Input className="h-8 text-xs" value={(editExam.rightRefraction as any)?.sph ?? ""} onChange={(e) => setEditExam({ ...editExam, rightRefraction: { ...(editExam.rightRefraction as any), sph: e.target.value } })} /></div>
+                  <div className="space-y-1"><Label className="text-xs">Cyl</Label><Input className="h-8 text-xs" value={(editExam.rightRefraction as any)?.cyl ?? ""} onChange={(e) => setEditExam({ ...editExam, rightRefraction: { ...(editExam.rightRefraction as any), cyl: e.target.value } })} /></div>
+                  <div className="space-y-1"><Label className="text-xs">Axis</Label><Input className="h-8 text-xs" value={(editExam.rightRefraction as any)?.axis ?? ""} onChange={(e) => setEditExam({ ...editExam, rightRefraction: { ...(editExam.rightRefraction as any), axis: e.target.value } })} /></div>
+                </div>
+              </div>
+              <div className="border rounded-md p-3 space-y-2">
+                <p className="text-xs font-bold text-muted-foreground">انكسار العين اليسرى (OS)</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-1"><Label className="text-xs">Sph</Label><Input className="h-8 text-xs" value={(editExam.leftRefraction as any)?.sph ?? ""} onChange={(e) => setEditExam({ ...editExam, leftRefraction: { ...(editExam.leftRefraction as any), sph: e.target.value } })} /></div>
+                  <div className="space-y-1"><Label className="text-xs">Cyl</Label><Input className="h-8 text-xs" value={(editExam.leftRefraction as any)?.cyl ?? ""} onChange={(e) => setEditExam({ ...editExam, leftRefraction: { ...(editExam.leftRefraction as any), cyl: e.target.value } })} /></div>
+                  <div className="space-y-1"><Label className="text-xs">Axis</Label><Input className="h-8 text-xs" value={(editExam.leftRefraction as any)?.axis ?? ""} onChange={(e) => setEditExam({ ...editExam, leftRefraction: { ...(editExam.leftRefraction as any), axis: e.target.value } })} /></div>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label>التشخيص</Label>
+                <Textarea rows={2} value={editExam.diagnosis ?? ""} onChange={(e) => setEditExam({ ...editExam, diagnosis: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label>الخطة العلاجية</Label>
+                <Textarea rows={2} value={editExam.plan ?? ""} onChange={(e) => setEditExam({ ...editExam, plan: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label>ملاحظات</Label>
+                <Textarea rows={2} value={editExam.notes ?? ""} onChange={(e) => setEditExam({ ...editExam, notes: e.target.value })} />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditExam(null)}>إلغاء</Button>
+            <Button disabled={updateExamMut.isPending} onClick={() => {
+              if (!editExam) return;
+              updateExamMut.mutate({ kfExamId: editExam.kfExamId, examDate: editExam.examDate, rightVa: editExam.rightVa || null, leftVa: editExam.leftVa || null, iopRight: editExam.iopRight || null, iopLeft: editExam.iopLeft || null, rightRefraction: editExam.rightRefraction || null, leftRefraction: editExam.leftRefraction || null, diagnosis: editExam.diagnosis || null, plan: editExam.plan || null, notes: editExam.notes || null, doctorName: editExam.doctorName || null });
+            }}>
+              {updateExamMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Operation Dialog */}
+      <Dialog open={!!editOp} onOpenChange={(open) => !open && setEditOp(null)}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>تعديل العملية الجراحية</DialogTitle>
+            <DialogDescription>عدّل بيانات العملية ثم اضغط حفظ</DialogDescription>
+          </DialogHeader>
+          {editOp && (
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label>تاريخ العملية</Label>
+                <Input type="date" value={editOp.opDate ?? ""} onChange={(e) => setEditOp({ ...editOp, opDate: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label>نوع العملية</Label>
+                <Input value={editOp.opType ?? ""} onChange={(e) => setEditOp({ ...editOp, opType: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label>العين</Label>
+                <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={editOp.eye ?? ""} onChange={(e) => setEditOp({ ...editOp, eye: e.target.value })}>
+                  <option value="right">اليمنى</option>
+                  <option value="left">اليسرى</option>
+                  <option value="both">العينين</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label>الجراح</Label>
+                <Input value={editOp.doctorName ?? ""} onChange={(e) => setEditOp({ ...editOp, doctorName: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label>الحالة</Label>
+                <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={editOp.status ?? ""} onChange={(e) => setEditOp({ ...editOp, status: e.target.value })}>
+                  <option value="scheduled">مجدولة</option>
+                  <option value="completed">اكتملت</option>
+                  <option value="cancelled">ملغاة</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label>ملاحظات</Label>
+                <Textarea rows={2} value={editOp.notes ?? ""} onChange={(e) => setEditOp({ ...editOp, notes: e.target.value })} />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditOp(null)}>إلغاء</Button>
+            <Button disabled={updateOpMut.isPending} onClick={() => {
+              if (!editOp) return;
+              updateOpMut.mutate({ kfOpId: editOp.kfOpId, opDate: editOp.opDate, opType: editOp.opType, eye: editOp.eye, doctorName: editOp.doctorName || null, status: editOp.status, notes: editOp.notes || null });
+            }}>
+              {updateOpMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Followup Dialog */}
+      <Dialog open={!!editFollowup} onOpenChange={(open) => !open && setEditFollowup(null)}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>تعديل المتابعة</DialogTitle>
+            <DialogDescription>عدّل بيانات المتابعة ثم اضغط حفظ</DialogDescription>
+          </DialogHeader>
+          {editFollowup && (
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label>تاريخ المتابعة</Label>
+                <Input type="date" value={editFollowup.followupDate ?? ""} onChange={(e) => setEditFollowup({ ...editFollowup, followupDate: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label>الحالة</Label>
+                <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={editFollowup.status ?? ""} onChange={(e) => setEditFollowup({ ...editFollowup, status: e.target.value })}>
+                  <option value="scheduled">مجدولة</option>
+                  <option value="completed">اكتملت</option>
+                  <option value="missed">لم يحضر</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label>ملاحظات</Label>
+                <Textarea rows={2} value={editFollowup.notes ?? ""} onChange={(e) => setEditFollowup({ ...editFollowup, notes: e.target.value })} />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditFollowup(null)}>إلغاء</Button>
+            <Button disabled={updateFollowupMut.isPending} onClick={() => {
+              if (!editFollowup) return;
+              updateFollowupMut.mutate({ kfFollowupId: editFollowup.kfFollowupId, followupDate: editFollowup.followupDate, status: editFollowup.status, notes: editFollowup.notes || null });
+            }}>
+              {updateFollowupMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

@@ -69,19 +69,47 @@ export default function PayrollReport() {
     setExpandedCards((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const year = new Date(fromDate).getFullYear();
-  const month = new Date(fromDate).getMonth() + 1;
-  const periodLabel = `${new Date(fromDate).toLocaleDateString("ar-EG")} — ${new Date(toDate).toLocaleDateString("ar-EG")}`;
+  const [year, month] = fromDate.split("-").map(Number);
+  const periodLabel = `${new Date(fromDate + "T00:00:00").toLocaleDateString("ar-EG")} — ${new Date(toDate + "T00:00:00").toLocaleDateString("ar-EG")}`;
+
+  const handleFromDateChange = (val: string) => {
+    setFromDate(val);
+    if (!val) return;
+    const [y, m] = val.split("-").map(Number);
+    if (isNaN(y) || isNaN(m)) return;
+    const [currentY, currentM] = fromDate.split("-").map(Number);
+    if (y !== currentY || m !== currentM) {
+      const last = new Date(y, m, 0);
+      const lastDayStr = `${y}-${String(m).padStart(2, "0")}-${String(last.getDate()).padStart(2, "0")}`;
+      setToDate(lastDayStr);
+    }
+  };
+
+  const handleToDateChange = (val: string) => {
+    setToDate(val);
+    if (!val) return;
+    const [y, m] = val.split("-").map(Number);
+    if (isNaN(y) || isNaN(m)) return;
+    const [currentY, currentM] = toDate.split("-").map(Number);
+    if (y !== currentY || m !== currentM) {
+      const firstDayStr = `${y}-${String(m).padStart(2, "0")}-01`;
+      setFromDate(firstDayStr);
+    }
+  };
 
   const centerQ = (trpc as any).salary.getPayroll.useQuery({
     year,
     month,
     section: "مركز",
+    fromDate,
+    toDate,
   });
   const clinicQ = (trpc as any).salary.getPayroll.useQuery({
     year,
     month,
     section: "عيادة",
+    fromDate,
+    toDate,
   });
   const sectionPoolQ = (trpc as any).salary.getCommissionPool.useQuery({
     year,
@@ -812,14 +840,14 @@ export default function PayrollReport() {
             <input
               type="date"
               value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
+              onChange={(e) => handleFromDateChange(e.target.value)}
               className="rounded-md border border-border bg-background px-3 py-2 text-sm flex-1 sm:flex-initial"
             />
             <span className="text-sm text-muted-foreground">—</span>
             <input
               type="date"
               value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
+              onChange={(e) => handleToDateChange(e.target.value)}
               className="rounded-md border border-border bg-background px-3 py-2 text-sm flex-1 sm:flex-initial"
             />
           </div>

@@ -446,11 +446,117 @@ export const salaryRouter = router({
         year: z.number().int(),
         month: z.number().int(),
         section: z.string().default("مركز"),
+        fromDate: z.string().optional(),
+        toDate: z.string().optional(),
       }),
     )
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
+
+      if (input.fromDate || input.toDate) {
+        // Dynamic on-the-fly computation
+        const dynamicRows = await PayrollComputeService.compute(
+          input.year,
+          input.month,
+          input.section,
+          undefined,
+          input.fromDate,
+          input.toDate,
+        );
+
+        // Fetch employee details to join
+        const empDetails = await db
+          .select({
+            empCd: attendanceEmployees.empCd,
+            fullName: attendanceEmployees.fullName,
+            department: attendanceEmployees.department,
+            salaryType: attendanceEmployees.salaryType,
+          })
+          .from(attendanceEmployees);
+
+        const empMap = new Map(empDetails.map((e) => [e.empCd, e]));
+
+        // Fetch shift staff names
+        const shiftStaffRows = await db
+          .select({
+            id: shiftStaff.id,
+            name: shiftStaff.name,
+            type: shiftStaff.type,
+          })
+          .from(shiftStaff);
+
+        const shiftNameMap = new Map<number, string>();
+        for (const s of shiftStaffRows) {
+          shiftNameMap.set(
+            s.id,
+            `${s.name} (${s.type === "doctor" ? "د" : "ف"})`,
+          );
+        }
+
+        const mappedRows = dynamicRows.map((row) => {
+          const isShift = row.empCd.startsWith("shift_");
+          let fullName = row.empCd;
+          let department = row.section;
+          let salaryType: string | null = null;
+
+          if (isShift) {
+            const id = parseInt(row.empCd.slice(6), 10);
+            fullName = shiftNameMap.get(id) ?? row.empCd;
+            department = "مناوبة";
+          } else {
+            const emp = empMap.get(row.empCd);
+            if (emp) {
+              fullName = emp.fullName;
+              department = emp.department ?? row.section;
+              salaryType = emp.salaryType;
+            }
+          }
+
+          return {
+            id: undefined as number | undefined,
+            empCd: row.empCd,
+            year: row.year,
+            month: row.month,
+            section: row.section,
+            basicSalary: String(row.basicSalary),
+            workingDays: row.workingDays,
+            absentDays: row.absentDays,
+            lateMinutes: row.lateMinutes,
+            earlyLeaveMinutes: row.earlyLeaveMinutes,
+            overtimeMinutes: row.overtimeMinutes,
+            leaveDays: row.leaveDays,
+            absentDeduction: String(row.absentDeduction),
+            lateDeduction: String(row.lateDeduction),
+            earlyLeaveDeduction: String(row.earlyLeaveDeduction),
+            penaltyDeduction: String(row.penaltyDeduction),
+            advancesDeduction: String(row.advancesDeduction),
+            insuranceDeduction: String(row.insuranceDeduction),
+            totalDeductions: String(row.totalDeductions),
+            deductionPct: String(row.deductionPct),
+            leaveMultiplier: String(row.leaveMultiplier),
+            netBasic: String(row.netBasic),
+            attendanceCommission: String(row.attendanceCommission),
+            examCommission: String(row.examCommission),
+            pentacamCommission: String(row.pentacamCommission),
+            costOfLivingAllowance: String(row.costOfLivingAllowance),
+            transportAllowance: String(row.transportAllowance),
+            totalCommission: String(row.totalCommission),
+            overtimePay: String(row.overtimePay),
+            totalPay: String(row.totalPay),
+            payrollStatus: "draft" as "draft" | "approved" | "paid",
+            computedAt: new Date(),
+            fullName,
+            department,
+            salaryType,
+          };
+        });
+
+        // Order by fullName ascending
+        return mappedRows.sort((a, b) => a.fullName.localeCompare(b.fullName));
+      }
+
+      // Default monthly calculation (existing code)
       const rows = await db
         .select({
           id: salaryPayroll.id,
@@ -698,6 +804,7 @@ export const salaryRouter = router({
         department: attendanceEmployees.department,
         salaryType: attendanceEmployees.salaryType,
         attendanceCommissionRate: attendanceEmployees.attendanceCommissionRate,
+        attendanceLeaveMultiplier: attendanceEmployees.attendanceLeaveMultiplier,
         commAttendance: attendanceEmployees.commAttendance,
         commExam: attendanceEmployees.commExam,
         commPentacam: attendanceEmployees.commPentacam,

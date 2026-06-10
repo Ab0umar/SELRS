@@ -1,13 +1,17 @@
 import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { Home, Users, CalendarRange, ClipboardList } from "lucide-react";
+import { Home, Users, CalendarRange, ClipboardList, CalendarDays, BarChart3, ReceiptText, Wallet } from "lucide-react";
 
 const LINKS = [
   { href: "/kf", label: "الرئيسية", icon: Home },
   { href: "/kf/patients", label: "المرضى", icon: Users },
   { href: "/kf/operations", label: "العمليات", icon: ClipboardList },
   { href: "/kf/followups", label: "المتابعات", icon: CalendarRange },
+  { href: "/kf/accounting/daily-revenue", label: "الإيراد اليومي", icon: CalendarDays },
+  { href: "/kf/accounting/service-revenue", label: "إيراد الخدمات", icon: BarChart3 },
+  { href: "/kf/accounting/receipts", label: "الإيصالات", icon: ReceiptText },
+  { href: "/kf/accounting/ledger", label: "الخزنة", icon: Wallet },
 ] as const;
 
 export default function KfShell({ children }: { children: ReactNode }) {

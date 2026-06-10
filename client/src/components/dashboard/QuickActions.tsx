@@ -24,7 +24,7 @@ const quickActions = [
     arabic: "حجز موعد",
     icon: CalendarPlus,
     color: "bg-primary text-primary-foreground hover:bg-primary/90",
-    path: "/today-patients",
+    path: "/today",
   },
   {
     arabic: "قياس و فحص",

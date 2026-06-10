@@ -1,9 +1,9 @@
 export const EMPTY_SELECT_VALUE = "__empty__";
 
 function formatSigned(value: number, digits = 2) {
-  if (Math.abs(value) < 0.0001) return "----";
-  if (value > 0) return `+${value.toFixed(digits)}`;
-  return value.toFixed(digits);
+  if (Math.abs(value) < 0.0001) return "--";
+  const formatted = value.toFixed(digits);
+  return value > 0 ? `+${formatted}` : formatted;
 }
 
 function buildRange(
@@ -28,10 +28,17 @@ export const UCVA_BCVA_OPTIONS = [
   "0.05",
   ...buildRange(0.1, 1.0, 0.1, (value) => value.toFixed(1)),
 ];
+export const IOP_OPTIONS = buildRange(1, 30, 1, (value) => String(value));
 export const SPHERE_OPTIONS = buildRange(-30, 30, 0.25, (value) =>
   formatSigned(value, 2),
 );
 export const CYLINDER_OPTIONS = buildRange(-10, 10, 0.25, (value) =>
+  formatSigned(value, 2),
+);
+export const SPHERE_COMBOBOX_OPTIONS = buildRange(-30, 30, 0.25, (value) =>
+  formatSigned(value, 2),
+);
+export const CYLINDER_COMBOBOX_OPTIONS = buildRange(-12, 12, 0.25, (value) =>
   formatSigned(value, 2),
 );
 export const AIR_PUFF_OPTIONS = [

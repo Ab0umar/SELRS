@@ -599,6 +599,18 @@
     box-shadow: none !important;
     background: transparent !important;
   }
+
+  /* Allow CSS page breaks to fire — overflow:hidden on AppShell blocks break-before:page */
+  /* Also clear max-w-[1600px] so A4 content isn't wider than the page */
+  .selrs-page-bg,
+  .selrs-page-bg > main,
+  .selrs-page-bg > main > div {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    max-width: none !important;
+    width: 100% !important;
+  }
 }
 
 /* Tighten field widths across all pages (including print) */

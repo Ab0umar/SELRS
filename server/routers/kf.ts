@@ -1,10 +1,13 @@
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import {
   and,
   asc,
   desc,
   eq,
+  gte,
   like,
+  lte,
   or,
   sql,
 } from "drizzle-orm";
@@ -14,6 +17,7 @@ import {
   kfExaminations,
   kfOperations,
   kfFollowups,
+  kfLedger,
   patients,
 } from "../../drizzle/schema";
 import {
@@ -43,6 +47,11 @@ import {
   kfUpdatePatientInputSchema,
   kfUpdateVisitInputSchema,
 } from "../../shared/kf/contracts";
+
+const KF_PRICES: Record<string, number> = {
+  consultation: 465,
+  examination: 215,
+};
 
 function error(message: string, code: TRPCError["code"] = "INTERNAL_SERVER_ERROR") {
   return new TRPCError({ code, message });
@@ -296,6 +305,7 @@ export const kfRouter = router({
       if (!code) return null;
       const [row] = await db
         .select({
+          id: patients.id,
           patientCode: patients.patientCode,
           fullName: patients.fullName,
         })
@@ -557,6 +567,261 @@ export const kfRouter = router({
         .update(kfFollowups)
         .set(patch)
         .where(eq(kfFollowups.kfFollowupId, input.kfFollowupId));
+      return { ok: true };
+    }),
+
+  getDailyRevenue: kfProcedure
+    .input(z.object({ fromDate: z.string(), toDate: z.string() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const rows = await db!
+        .select({
+          visitDate: kfVisits.visitDate,
+          visitType: kfVisits.visitType,
+          count: sql<number>`COUNT(*)`,
+        })
+        .from(kfVisits)
+        .where(
+          and(
+            gte(kfVisits.visitDate, toMysqlDate(input.fromDate) as Date),
+            lte(kfVisits.visitDate, toMysqlDate(input.toDate) as Date),
+          )
+        )
+        .groupBy(kfVisits.visitDate, kfVisits.visitType)
+        .orderBy(asc(kfVisits.visitDate));
+
+      const byDate = new Map<string, {
+        consultationCount: number; consultationTotal: number;
+        examinationCount: number; examinationTotal: number;
+        totalCount: number; total: number;
+      }>();
+      for (const row of rows) {
+        const d = row.visitDate instanceof Date
+          ? row.visitDate.toISOString().split("T")[0]
+          : String(row.visitDate).slice(0, 10);
+        const cnt = Number(row.count);
+        const fee = KF_PRICES[row.visitType as string] ?? 0;
+        if (!byDate.has(d)) byDate.set(d, { consultationCount: 0, consultationTotal: 0, examinationCount: 0, examinationTotal: 0, totalCount: 0, total: 0 });
+        const e = byDate.get(d)!;
+        e.totalCount += cnt;
+        e.total += cnt * fee;
+        if (row.visitType === "consultation") { e.consultationCount += cnt; e.consultationTotal += cnt * fee; }
+        else if (row.visitType === "examination") { e.examinationCount += cnt; e.examinationTotal += cnt * fee; }
+      }
+      const dailyRows = Array.from(byDate.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([date, d]) => ({ date, ...d }));
+      const totals = dailyRows.reduce(
+        (a, r) => ({ consultationCount: a.consultationCount + r.consultationCount, consultationTotal: a.consultationTotal + r.consultationTotal, examinationCount: a.examinationCount + r.examinationCount, examinationTotal: a.examinationTotal + r.examinationTotal, totalCount: a.totalCount + r.totalCount, total: a.total + r.total }),
+        { consultationCount: 0, consultationTotal: 0, examinationCount: 0, examinationTotal: 0, totalCount: 0, total: 0 }
+      );
+      return { rows: dailyRows, totals };
+    }),
+
+  getServiceRevenue: kfProcedure
+    .input(z.object({ fromDate: z.string(), toDate: z.string() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const rows = await db!
+        .select({ visitType: kfVisits.visitType, count: sql<number>`COUNT(*)` })
+        .from(kfVisits)
+        .where(
+          and(
+            gte(kfVisits.visitDate, toMysqlDate(input.fromDate) as Date),
+            lte(kfVisits.visitDate, toMysqlDate(input.toDate) as Date),
+          )
+        )
+        .groupBy(kfVisits.visitType);
+
+      const KF_LABELS: Record<string, string> = { consultation: "كشف استشاري", examination: "كشف أخصائي", followup: "متابعة", operation: "عملية جراحية" };
+      let grandTotal = 0; let totalCount = 0;
+      const serviceRows = rows.map((r: any) => {
+        const count = Number(r.count);
+        const unitPrice = KF_PRICES[r.visitType as string] ?? 0;
+        const total = count * unitPrice;
+        grandTotal += total; totalCount += count;
+        return { visitType: r.visitType as string, label: KF_LABELS[r.visitType as string] ?? r.visitType as string, count, unitPrice, total };
+      });
+      return { rows: serviceRows, grandTotal, totalCount };
+    }),
+
+  getLedgerSummary: kfProcedure
+    .input(z.object({ dateFrom: z.string().optional(), dateTo: z.string().optional() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const conds: any[] = [];
+      if (input.dateFrom) conds.push(gte(kfLedger.entryDate, toMysqlDate(input.dateFrom) as Date));
+      if (input.dateTo) conds.push(lte(kfLedger.entryDate, toMysqlDate(input.dateTo) as Date));
+      const [row] = await db!
+        .select({
+          totalIncome: sql<number>`COALESCE(SUM(income), 0)`,
+          totalExpense: sql<number>`COALESCE(SUM(expense), 0)`,
+        })
+        .from(kfLedger)
+        .where(conds.length > 0 ? and(...(conds as [any, ...any[]])) : undefined);
+      const totalIncome = Number(row?.totalIncome ?? 0);
+      const totalExpense = Number(row?.totalExpense ?? 0);
+      return { totalIncome, totalExpense, currentBalance: totalIncome - totalExpense };
+    }),
+
+  getLedger: kfProcedure
+    .input(z.object({
+      page: z.number().int().min(1).default(1),
+      pageSize: z.number().int().min(1).max(100).default(50),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+      notes: z.string().optional(),
+      sortDir: z.enum(["asc", "desc"]).default("desc"),
+    }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const offset = (input.page - 1) * input.pageSize;
+      const conds: any[] = [];
+      if (input.dateFrom) conds.push(gte(kfLedger.entryDate, toMysqlDate(input.dateFrom) as Date));
+      if (input.dateTo) conds.push(lte(kfLedger.entryDate, toMysqlDate(input.dateTo) as Date));
+      if (input.notes) conds.push(like(kfLedger.notes, `%${input.notes}%`));
+      const where = conds.length > 0 ? and(...(conds as [any, ...any[]])) : undefined;
+      const [countRow] = await db!.select({ total: sql<number>`COUNT(*)` }).from(kfLedger).where(where);
+      const rows = await db!
+        .select()
+        .from(kfLedger)
+        .where(where)
+        .orderBy(input.sortDir === "asc" ? asc(kfLedger.entryDate) : desc(kfLedger.entryDate))
+        .limit(input.pageSize)
+        .offset(offset);
+      return { rows, total: Number(countRow?.total ?? 0) };
+    }),
+
+  addLedgerEntry: kfProcedure
+    .input(z.object({
+      entryDate: z.string(),
+      income: z.number().min(0).default(0),
+      expense: z.number().min(0).default(0),
+      notes: z.string().max(500).optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await requireDb();
+      const result = await db.insert(kfLedger).values({
+        entryDate: toMysqlDate(input.entryDate) as Date,
+        income: Math.round(input.income),
+        expense: Math.round(input.expense),
+        notes: input.notes ?? null,
+        createdByUserId: ctx.user?.id ?? null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      return { kfLedgerId: insertIdOf(result) };
+    }),
+
+  deleteLedgerEntry: kfProcedure
+    .input(z.object({ kfLedgerId: z.number().int() }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      await db.delete(kfLedger).where(eq(kfLedger.kfLedgerId, input.kfLedgerId));
+      return { ok: true };
+    }),
+
+  getRevenue: kfProcedure
+    .input(z.object({ date: z.string().optional() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const targetDate = input.date ?? new Date().toISOString().split("T")[0];
+      const rows = await db!
+        .select({
+          visitType: kfVisits.visitType,
+          count: sql<number>`COUNT(*)`,
+        })
+        .from(kfVisits)
+        .where(eq(kfVisits.visitDate, toMysqlDate(targetDate) as Date))
+        .groupBy(kfVisits.visitType);
+      let total = 0;
+      const breakdown = rows.map((r: any) => {
+        const fee = KF_PRICES[r.visitType] ?? 0;
+        const subtotal = fee * Number(r.count);
+        total += subtotal;
+        return { visitType: r.visitType as string, count: Number(r.count), fee, subtotal };
+      });
+      return { date: targetDate, total, breakdown };
+    }),
+
+  listReceipts: kfProcedure
+    .input(z.object({
+      fromDate: z.string().optional(),
+      toDate: z.string().optional(),
+      kfCode: z.string().optional(),
+      page: z.number().int().min(1).default(1),
+      pageSize: z.number().int().min(1).max(500).default(200),
+    }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const offset = (input.page - 1) * input.pageSize;
+      const conditions: ReturnType<typeof eq>[] = [];
+      if (input.fromDate) conditions.push(gte(kfVisits.visitDate, toMysqlDate(input.fromDate) as Date) as any);
+      if (input.toDate) conditions.push(lte(kfVisits.visitDate, toMysqlDate(input.toDate) as Date) as any);
+      if (input.kfCode) conditions.push(like(kfPatients.kfCode, `%${input.kfCode}%`) as any);
+      const rows = await db!
+        .select({
+          kfVisitId: kfVisits.kfVisitId,
+          visitDate: kfVisits.visitDate,
+          visitType: kfVisits.visitType,
+          doctorName: kfVisits.doctorName,
+          status: kfVisits.status,
+          patientName: kfPatients.fullName,
+          kfCode: kfPatients.kfCode,
+        })
+        .from(kfVisits)
+        .innerJoin(kfPatients, eq(kfVisits.kfPatientId, kfPatients.kfId))
+        .where(conditions.length > 0 ? and(...(conditions as [any, ...any[]])) : undefined)
+        .orderBy(desc(kfVisits.visitDate), desc(kfVisits.kfVisitId))
+        .limit(input.pageSize)
+        .offset(offset);
+      return rows.map((r: any) => ({
+        ...r,
+        fee: KF_PRICES[r.visitType] ?? 0,
+      }));
+    }),
+
+  deletePatient: kfProcedure
+    .input(z.object({ kfId: z.number().int() }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      await db.transaction(async (tx) => {
+        await tx.delete(kfFollowups).where(eq(kfFollowups.kfPatientId, input.kfId));
+        await tx.delete(kfExaminations).where(eq(kfExaminations.kfPatientId, input.kfId));
+        await tx.delete(kfOperations).where(eq(kfOperations.kfPatientId, input.kfId));
+        await tx.delete(kfVisits).where(eq(kfVisits.kfPatientId, input.kfId));
+        await tx.delete(kfPatients).where(eq(kfPatients.kfId, input.kfId));
+      });
+      return { ok: true };
+    }),
+
+  deleteVisit: kfProcedure
+    .input(z.object({ kfVisitId: z.number().int() }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      await db.delete(kfVisits).where(eq(kfVisits.kfVisitId, input.kfVisitId));
+      return { ok: true };
+    }),
+
+  deleteExamination: kfProcedure
+    .input(z.object({ kfExamId: z.number().int() }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      await db.delete(kfExaminations).where(eq(kfExaminations.kfExamId, input.kfExamId));
+      return { ok: true };
+    }),
+
+  deleteOperation: kfProcedure
+    .input(z.object({ kfOpId: z.number().int() }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      await db.delete(kfOperations).where(eq(kfOperations.kfOpId, input.kfOpId));
+      return { ok: true };
+    }),
+
+  deleteFollowup: kfProcedure
+    .input(z.object({ kfFollowupId: z.number().int() }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      await db.delete(kfFollowups).where(eq(kfFollowups.kfFollowupId, input.kfFollowupId));
       return { ok: true };
     }),
 });

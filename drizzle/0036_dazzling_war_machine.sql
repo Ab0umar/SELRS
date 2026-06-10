@@ -1,4 +1,4 @@
-CREATE TABLE `kf_examinations` (
+CREATE TABLE IF NOT EXISTS `kf_examinations` (
 	`kf_exam_id` int AUTO_INCREMENT NOT NULL,
 	`kf_patient_id` int NOT NULL,
 	`kf_visit_id` int,
@@ -19,7 +19,7 @@ CREATE TABLE `kf_examinations` (
 	CONSTRAINT `kf_examinations_kf_exam_id` PRIMARY KEY(`kf_exam_id`)
 );
 --> statement-breakpoint
-CREATE TABLE `kf_followups` (
+CREATE TABLE IF NOT EXISTS `kf_followups` (
 	`kf_followup_id` int AUTO_INCREMENT NOT NULL,
 	`kf_patient_id` int NOT NULL,
 	`kf_visit_id` int,
@@ -33,7 +33,7 @@ CREATE TABLE `kf_followups` (
 	CONSTRAINT `kf_followups_kf_followup_id` PRIMARY KEY(`kf_followup_id`)
 );
 --> statement-breakpoint
-CREATE TABLE `kf_operations` (
+CREATE TABLE IF NOT EXISTS `kf_operations` (
 	`kf_op_id` int AUTO_INCREMENT NOT NULL,
 	`kf_patient_id` int NOT NULL,
 	`kf_visit_id` int,
@@ -49,7 +49,7 @@ CREATE TABLE `kf_operations` (
 	CONSTRAINT `kf_operations_kf_op_id` PRIMARY KEY(`kf_op_id`)
 );
 --> statement-breakpoint
-CREATE TABLE `kf_patients` (
+CREATE TABLE IF NOT EXISTS `kf_patients` (
 	`kf_id` int AUTO_INCREMENT NOT NULL,
 	`kf_code` varchar(20) NOT NULL,
 	`full_name` varchar(255) NOT NULL,
@@ -72,7 +72,19 @@ CREATE TABLE `kf_patients` (
 	CONSTRAINT `kf_patients_kf_code_unique` UNIQUE(`kf_code`)
 );
 --> statement-breakpoint
-CREATE TABLE `kf_visits` (
+CREATE TABLE IF NOT EXISTS `kf_ledger` (
+	`kf_ledger_id` int AUTO_INCREMENT NOT NULL,
+	`entry_date` date NOT NULL,
+	`income` int NOT NULL DEFAULT 0,
+	`expense` int NOT NULL DEFAULT 0,
+	`notes` varchar(500),
+	`created_by_user_id` int,
+	`created_at` timestamp NOT NULL DEFAULT (now()),
+	`updated_at` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `kf_ledger_kf_ledger_id` PRIMARY KEY(`kf_ledger_id`)
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `kf_visits` (
 	`kf_visit_id` int AUTO_INCREMENT NOT NULL,
 	`kf_patient_id` int NOT NULL,
 	`visit_date` date NOT NULL,
@@ -85,6 +97,3 @@ CREATE TABLE `kf_visits` (
 	`updated_at` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
 	CONSTRAINT `kf_visits_kf_visit_id` PRIMARY KEY(`kf_visit_id`)
 );
---> statement-breakpoint
-ALTER TABLE `attendance_employees` ADD `comm_day10` boolean DEFAULT true NOT NULL;--> statement-breakpoint
-ALTER TABLE `visit_schedule_requests` ADD `patientType` varchar(32) DEFAULT 'existing';

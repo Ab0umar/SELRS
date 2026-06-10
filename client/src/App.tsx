@@ -51,6 +51,7 @@ import {
 } from "./lib/nativePrint";
 import { ensureNativeNotificationPermission } from "./lib/nativeNotifications";
 import { useAuth } from "./hooks/useAuth";
+import { trpc } from "@/lib/trpc";
 
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Home = lazy(() => import("./pages/Home"));
@@ -153,6 +154,17 @@ const KfOperationForm = lazy(() => import("./pages/kf/KfOperationForm"));
 const KfFollowupForm = lazy(() => import("./pages/kf/KfFollowupForm"));
 const KfOperations = lazy(() => import("./pages/kf/KfOperations"));
 const KfFollowups = lazy(() => import("./pages/kf/KfFollowups"));
+const KfConsultantSheet = lazy(
+  () => import("./pages/kf/KfConsultantSheet"),
+);
+const KfConsultantFollowupSheet = lazy(
+  () => import("./pages/kf/KfConsultantFollowupSheet"),
+);
+const KfAccounting = lazy(() => import("./pages/kf/KfAccounting"));
+const KfDailyRevenue = lazy(() => import("./pages/kf/KfDailyRevenue"));
+const KfServiceRevenue = lazy(() => import("./pages/kf/KfServiceRevenue"));
+const KfReceipts = lazy(() => import("./pages/kf/KfReceipts"));
+const KfLedger = lazy(() => import("./pages/kf/KfLedger"));
 // Marketing module
 import MarketingLayout from "./pages/marketing/MarketingLayout";
 const MarketingDashboard = lazy(
@@ -404,8 +416,22 @@ function PrescriptionsWriterDeepLinkRedirect() {
 function DashboardRouteGate() {
   const { user } = useAuth();
   const role = String(user?.role ?? "").toLowerCase();
+  const permissionsQuery = trpc.medical.getMyPermissions.useQuery(undefined, {
+    enabled: Boolean(user) && role !== "admin" && role !== "accountant",
+    refetchOnWindowFocus: false,
+  });
   if (user && role !== "admin") {
     if (role === "accountant") return <Redirect to="/accounting" />;
+    if (permissionsQuery.isSuccess) {
+      const paths = (permissionsQuery.data ?? []) as string[];
+      const normalized = paths.map((p) => p.replace(/:r[w]?$/, ""));
+      const hasToday = normalized.some(
+        (p) => p === "/today" || p === "/today-patients",
+      );
+      if (!hasToday && normalized.includes("/kf")) {
+        return <Redirect to="/kf" />;
+      }
+    }
     return <Redirect to="/today" />;
   }
   return (
@@ -1012,6 +1038,72 @@ const Router = memo(function Router() {
           <ProtectedRoute>
             <KfShell>
               <KfFollowups />
+            </KfShell>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/KFsheets/consultant/:kfPatientId"}
+        component={() => (
+          <ProtectedRoute>
+            <KfConsultantSheet />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/KFsheets/consultant/:kfPatientId/followup"}
+        component={() => (
+          <ProtectedRoute>
+            <KfConsultantFollowupSheet />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/kf/accounting"}
+        component={() => (
+          <ProtectedRoute>
+            <KfShell>
+              <KfAccounting />
+            </KfShell>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/kf/accounting/daily-revenue"}
+        component={() => (
+          <ProtectedRoute>
+            <KfShell>
+              <KfDailyRevenue />
+            </KfShell>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/kf/accounting/service-revenue"}
+        component={() => (
+          <ProtectedRoute>
+            <KfShell>
+              <KfServiceRevenue />
+            </KfShell>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/kf/accounting/receipts"}
+        component={() => (
+          <ProtectedRoute>
+            <KfShell>
+              <KfReceipts />
+            </KfShell>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={"/kf/accounting/ledger"}
+        component={() => (
+          <ProtectedRoute>
+            <KfShell>
+              <KfLedger />
             </KfShell>
           </ProtectedRoute>
         )}

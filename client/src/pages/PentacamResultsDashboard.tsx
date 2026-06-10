@@ -15,7 +15,14 @@ import {
   medicalReferenceClass,
   type MedicalReference,
 } from "@/lib/medical-reference";
-import { Activity, AlertTriangle, CheckCircle2, Eye } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Eye,
+} from "lucide-react";
 
 const filterTabs = [
   { value: "all", label: "الكل" },
@@ -200,6 +207,14 @@ export default function PentacamResultsDashboard({
   );
   const [fromDate, setFromDate] = useState<string>(initial.fromDate ?? "");
   const [toDate, setToDate] = useState<string>(initial.toDate ?? "");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(
+    () =>
+      initial.visitId != null ||
+      initial.resultId != null ||
+      initial.patientId != null ||
+      Boolean(initial.fromDate) ||
+      Boolean(initial.toDate),
+  );
 
   const eyeFilter = useMemo(() => {
     if (activeFilter === "OD" || activeFilter === "OS")
@@ -520,7 +535,7 @@ export default function PentacamResultsDashboard({
           </div>
         ) : null}
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
           <div className="space-y-4">
             <div className="rounded-xl border bg-card p-4 shadow-sm">
               <div className="flex flex-col gap-4">
@@ -532,201 +547,192 @@ export default function PentacamResultsDashboard({
                   disabled={patientHubReadOnly}
                 />
 
-                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                  <div
-                    className={cn(
-                      "w-full",
-                      patientHubReadOnly && "pointer-events-none opacity-60",
-                    )}
-                  >
-                    <FilterBar
-                      filters={locationFilterTabs}
-                      selected={locationFilter}
-                      onSelect={setLocationFilter}
-                      className="w-full flex-wrap"
-                    />
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                  <div className="space-y-3">
+                    <div
+                      className={cn(
+                        "w-full",
+                        patientHubReadOnly && "pointer-events-none opacity-60",
+                      )}
+                    >
+                      <FilterBar
+                        filters={locationFilterTabs}
+                        selected={locationFilter}
+                        onSelect={setLocationFilter}
+                        className="w-full flex-wrap"
+                      />
+                    </div>
+
+                    <div
+                      className={cn(
+                        "w-full",
+                        patientHubReadOnly && "pointer-events-none opacity-60",
+                      )}
+                    >
+                      <FilterBar
+                        filters={filterTabs}
+                        selected={activeFilter}
+                        onSelect={setActiveFilter}
+                        className="w-full flex-wrap"
+                      />
+                    </div>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {statsQuery.isLoading
-                      ? "جارٍ تحديث الملخص..."
-                      : `${statsQuery.data?.examsToday ?? 0} نتيجة لليوم`}
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                      {statsQuery.isLoading
+                        ? "جارٍ تحديث الملخص..."
+                        : `${statsQuery.data?.examsToday ?? 0} نتيجة اليوم`}
+                    </span>
+                    <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+                      {listQuery.isLoading
+                        ? "جارٍ تحديث النتائج..."
+                        : `${visibleRowCount} نتيجة ظاهرة`}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 gap-1.5 px-2 text-xs"
+                      onClick={() =>
+                        setShowAdvancedFilters((current) => !current)
+                      }
+                    >
+                      {showAdvancedFilters ? (
+                        <ChevronUp className="h-3.5 w-3.5" />
+                      ) : (
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      )}
+                      بحث متقدم
+                    </Button>
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                  <div
-                    className={cn(
-                      "w-full",
-                      patientHubReadOnly && "pointer-events-none opacity-60",
-                    )}
-                  >
-                    <FilterBar
-                      filters={filterTabs}
-                      selected={activeFilter}
-                      onSelect={setActiveFilter}
-                      className="w-full flex-wrap"
-                    />
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {listQuery.isLoading
-                      ? "جارٍ تحديث النتائج..."
-                      : `${visibleRowCount} نتيجة ظاهرة الآن`}
-                  </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  <div className="rounded-xl border border-primary/30 bg-primary/10 p-3">
-                    <div className="flex items-start justify-between gap-3">
+                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5">
+                    <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-xs font-medium text-primary">
-                          فحوصات اليوم
+                        <p className="text-[11px] font-medium text-primary">
+                          اليوم
                         </p>
-                        <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">
+                        <p className="mt-1 text-lg font-semibold tabular-nums text-foreground">
                           {statsQuery.isLoading
                             ? "…"
                             : (statsQuery.data?.examsToday ?? 0)}
                         </p>
-                        <p className="mt-1 text-xs text-primary/70">
+                      </div>
+                      <div className="text-left">
+                        <Activity className="mr-auto h-4 w-4 text-primary" />
+                        <p className="mt-1 text-[11px] text-primary/70">
                           {statsQuery.isLoading
                             ? "..."
                             : `${Math.abs(trendDelta)} مقارنة بالأمس`}
                         </p>
                       </div>
-                      <span className="rounded-full bg-primary p-2 text-primary-foreground">
-                        <Activity className="h-4 w-4" />
-                      </span>
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-success/30 bg-success/10 p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-medium text-success">
-                          مقبولة
-                        </p>
-                        <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">
-                          {listQuery.isLoading ? "…" : summaryStats.accepted}
-                        </p>
-                        <p className="mt-1 text-xs text-success/70">
-                          جاهزة للمراجعة السريعة
-                        </p>
-                      </div>
-                      <span className="rounded-full bg-success/15 p-2 text-success">
-                        <Eye className="h-4 w-4" />
-                      </span>
-                    </div>
+                  <div className="rounded-lg border border-success/20 bg-success/5 px-3 py-2.5">
+                    <p className="text-[11px] font-medium text-success">
+                      مقبولة
+                    </p>
+                    <p className="mt-1 text-lg font-semibold tabular-nums text-foreground">
+                      {listQuery.isLoading ? "…" : summaryStats.accepted}
+                    </p>
                   </div>
 
-                  <div className="rounded-xl border border-warning/50 bg-warning/10 p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-medium text-warning-foreground">
-                          بحاجة لتكرار
-                        </p>
-                        <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">
-                          {listQuery.isLoading ? "…" : summaryStats.repeat}
-                        </p>
-                        <p className="mt-1 text-xs text-warning-foreground/70">
-                          جودة أو اكتمال يحتاج مراجعة
-                        </p>
-                      </div>
-                      <span className="rounded-full bg-warning/20 p-2 text-warning-foreground">
-                        <AlertTriangle className="h-4 w-4" />
-                      </span>
-                    </div>
+                  <div className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2.5">
+                    <p className="text-[11px] font-medium text-warning-foreground">
+                      تحتاج تكرار
+                    </p>
+                    <p className="mt-1 text-lg font-semibold tabular-nums text-foreground">
+                      {listQuery.isLoading ? "…" : summaryStats.repeat}
+                    </p>
                   </div>
 
-                  <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-medium text-destructive">
-                          شاذة
-                        </p>
-                        <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">
-                          {listQuery.isLoading ? "…" : summaryStats.abnormal}
-                        </p>
-                        <p className="mt-1 text-xs text-destructive/70">
-                          قيم خارجة عن المرجع
-                        </p>
-                      </div>
-                      <span className="rounded-full bg-destructive/15 p-2 text-destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                      </span>
-                    </div>
+                  <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5">
+                    <p className="text-[11px] font-medium text-destructive">
+                      شاذة
+                    </p>
+                    <p className="mt-1 text-lg font-semibold tabular-nums text-foreground">
+                      {listQuery.isLoading ? "…" : summaryStats.abnormal}
+                    </p>
                   </div>
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">
-                      رقم السجل (ID)
-                    </Label>
-                    <Input
-                      dir="ltr"
-                      className="h-9 text-sm"
-                      placeholder="pentacam result id"
-                      value={resultId}
-                      disabled={patientHubReadOnly}
-                      onChange={(e) =>
-                        setResultId(e.target.value.replace(/[^\d]/g, ""))
-                      }
-                    />
+                {showAdvancedFilters ? (
+                  <div className="grid gap-3 border-t border-border/70 pt-4 md:grid-cols-2 xl:grid-cols-5">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">
+                        رقم السجل
+                      </Label>
+                      <Input
+                        dir="ltr"
+                        className="h-9 text-sm"
+                        placeholder="pentacam result id"
+                        value={resultId}
+                        disabled={patientHubReadOnly}
+                        onChange={(e) =>
+                          setResultId(e.target.value.replace(/[^\d]/g, ""))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">
+                        رقم الزيارة
+                      </Label>
+                      <Input
+                        dir="ltr"
+                        className="h-9 text-sm"
+                        placeholder="visit id"
+                        value={visitId}
+                        disabled={patientHubReadOnly}
+                        onChange={(e) =>
+                          setVisitId(e.target.value.replace(/[^\d]/g, ""))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">
+                        المريض
+                      </Label>
+                      <Input
+                        dir="ltr"
+                        className="h-9 text-sm"
+                        placeholder="patient id"
+                        value={patientId}
+                        disabled={patientHubReadOnly}
+                        onChange={(e) =>
+                          setPatientId(e.target.value.replace(/[^\d]/g, ""))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">
+                        من تاريخ
+                      </Label>
+                      <Input
+                        type="date"
+                        className="h-9 text-sm"
+                        value={fromDate}
+                        disabled={patientHubReadOnly}
+                        onChange={(e) => setFromDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">
+                        إلى تاريخ
+                      </Label>
+                      <Input
+                        type="date"
+                        className="h-9 text-sm"
+                        value={toDate}
+                        disabled={patientHubReadOnly}
+                        onChange={(e) => setToDate(e.target.value)}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">
-                      رقم الزيارة
-                    </Label>
-                    <Input
-                      dir="ltr"
-                      className="h-9 text-sm"
-                      placeholder="visit id"
-                      value={visitId}
-                      disabled={patientHubReadOnly}
-                      onChange={(e) =>
-                        setVisitId(e.target.value.replace(/[^\d]/g, ""))
-                      }
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">
-                      المريض
-                    </Label>
-                    <Input
-                      dir="ltr"
-                      className="h-9 text-sm"
-                      placeholder="patient id"
-                      value={patientId}
-                      disabled={patientHubReadOnly}
-                      onChange={(e) =>
-                        setPatientId(e.target.value.replace(/[^\d]/g, ""))
-                      }
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">
-                      من تاريخ
-                    </Label>
-                    <Input
-                      type="date"
-                      className="h-9 text-sm"
-                      value={fromDate}
-                      disabled={patientHubReadOnly}
-                      onChange={(e) => setFromDate(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">
-                      إلى تاريخ
-                    </Label>
-                    <Input
-                      type="date"
-                      className="h-9 text-sm"
-                      value={toDate}
-                      disabled={patientHubReadOnly}
-                      onChange={(e) => setToDate(e.target.value)}
-                    />
-                  </div>
-                </div>
+                ) : null}
               </div>
             </div>
 
@@ -986,37 +992,34 @@ export default function PentacamResultsDashboard({
             ) : null}
           </div>
 
-          <aside className="space-y-4 lg:sticky lg:top-4 self-start">
+          <aside className="space-y-4 self-start">
             <div className="rounded-xl border bg-card p-4 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h2 className="text-sm font-semibold text-foreground">
-                    شريط التنبيه
+                    ملخص التنبيه
                   </h2>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                    الحالات الشاذة أو التي تحتاج تكرار تبقى هنا حتى لا تضيع
-                    أثناء التصفح.
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    الحالات غير الطبيعية فقط.
                   </p>
                 </div>
-                <span className="rounded-full bg-primary text-primary-foreground">
-                  مراجعة
-                </span>
+                <AlertTriangle className="h-4 w-4 text-warning-foreground" />
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-2">
-                <div className="rounded-lg border border-warning/50 bg-warning/10 p-3">
+                <div className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2.5">
                   <p className="text-[11px] font-medium text-warning-foreground">
-                    بحاجة لتكرار
+                    تكرار
                   </p>
-                  <p className="mt-1 text-xl font-semibold tabular-nums text-foreground">
+                  <p className="mt-1 text-lg font-semibold tabular-nums text-foreground">
                     {listQuery.isLoading ? "…" : summaryStats.repeat}
                   </p>
                 </div>
-                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3">
+                <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5">
                   <p className="text-[11px] font-medium text-destructive">
                     شاذة
                   </p>
-                  <p className="mt-1 text-xl font-semibold tabular-nums text-foreground">
+                  <p className="mt-1 text-lg font-semibold tabular-nums text-foreground">
                     {listQuery.isLoading ? "…" : summaryStats.abnormal}
                   </p>
                 </div>

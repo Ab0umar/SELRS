@@ -76,6 +76,15 @@ export default function ProtectedRoute({
     ) {
       return true;
     }
+    if (
+      cleanPath === "/KFsheets/consultant" ||
+      cleanPath.startsWith("/KFsheets/consultant/")
+    ) {
+      const matchKf = allowedPaths.some(
+        (p) => p === "/kf" || (p !== "/" && p.startsWith("/kf")),
+      );
+      if (matchKf) return true;
+    }
     /** كتالوج الفحوصات و TXhub يُقيّدان بنفس مستوى صلاحيات الاختبارات أو الأدوية */
     if (
       cleanPath === "/examinations/catalog" ||
@@ -225,7 +234,8 @@ export default function ProtectedRoute({
     }
 
     if (userRole !== "admin" && permissionsQuery.isSuccess && !isPathAllowed) {
-      setLocation("/");
+      const fallback = allowedPaths.includes("/kf") ? "/kf" : "/";
+      setLocation(fallback !== cleanPath ? fallback : "/");
       return;
     }
   }, [

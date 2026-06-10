@@ -1,4 +1,4 @@
-import { History, Syringe, Trash2 } from "lucide-react";
+import { Calculator, CalendarRange, ClipboardList, History, Syringe, Trash2 } from "lucide-react";
 import { Fragment, useState } from "react";
 import { toast } from "sonner";
 import { OfflinePageState } from "@/components/OfflinePageState";
@@ -14,11 +14,12 @@ import { formatDayDate } from "@/hooks/operations/operationsShared";
 import { useOperations } from "@/hooks/operations/useOperations";
 import { useOperationsActions } from "@/hooks/operations/useOperationsActions";
 import { trpc } from "@/lib/trpc";
-import { getTrpcErrorMessage } from "@/lib/utils";
+import { cn, getTrpcErrorMessage } from "@/lib/utils";
 
 export default function Operations() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [delConfirm, setDelConfirm] = useState<number | null>(null);
+  const [viewTab, setViewTab] = useState<"list" | "booking" | "financials">("list");
 
   const operations = useOperations();
   const actions = useOperationsActions(operations);
@@ -76,6 +77,7 @@ export default function Operations() {
         </div>
       )}
 
+      {/* Main Header */}
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3 print:hidden">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
@@ -109,155 +111,231 @@ export default function Operations() {
         </div>
       </div>
 
+      {/* View Sub-Tabs Selection */}
+      <div className="mb-6 flex border-b border-border/50 pb-px print:hidden" dir="rtl">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setViewTab("list")}
+            className={cn(
+              "relative flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all duration-200 rounded-t-lg border border-transparent border-b-0 -mb-[1px]",
+              viewTab === "list"
+                ? "bg-background border-border/50 text-primary shadow-[0_-2px_10px_rgba(0,0,0,0.02)]"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+            )}
+          >
+            <ClipboardList className="h-4 w-4 text-primary" />
+            <span>قائمة الحالات اليومية</span>
+            {operations.currentList.length > 0 && (
+              <span className={cn(
+                "rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums transition-colors duration-200",
+                viewTab === "list" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+              )}>
+                {operations.currentList.length}
+              </span>
+            )}
+            {viewTab === "list" && (
+              <span className="absolute inset-x-0 -top-px h-[2px] bg-primary rounded-t-full" />
+            )}
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => setViewTab("booking")}
+            className={cn(
+              "relative flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all duration-200 rounded-t-lg border border-transparent border-b-0 -mb-[1px]",
+              viewTab === "booking"
+                ? "bg-background border-border/50 text-primary shadow-[0_-2px_10px_rgba(0,0,0,0.02)]"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+            )}
+          >
+            <CalendarRange className="h-4 w-4 text-primary" />
+            <span>حجز وجدولة العمليات</span>
+            {((operations.operationBookingsQuery.data ?? []).length > 0) && (
+              <span className={cn(
+                "rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums transition-colors duration-200",
+                viewTab === "booking" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+              )}>
+                {operations.operationBookingsQuery.data?.reduce((acc, b) => acc + (b.casesCount || 0), 0) || 0}
+              </span>
+            )}
+            {viewTab === "booking" && (
+              <span className="absolute inset-x-0 -top-px h-[2px] bg-primary rounded-t-full" />
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setViewTab("financials")}
+            className={cn(
+              "relative flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all duration-200 rounded-t-lg border border-transparent border-b-0 -mb-[1px]",
+              viewTab === "financials"
+                ? "bg-background border-border/50 text-primary shadow-[0_-2px_10px_rgba(0,0,0,0.02)]"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+            )}
+          >
+            <Calculator className="h-4 w-4 text-primary" />
+            <span>الحسابات والمجموع الكلي</span>
+            {viewTab === "financials" && (
+              <span className="absolute inset-x-0 -top-px h-[2px] bg-primary rounded-t-full" />
+            )}
+          </button>
+        </div>
+      </div>
+
       <main className="space-y-4 print:p-0 print:space-y-0">
         <div className="space-y-4" dir="rtl">
-          <OperationsBookingInlinePanel
-            initialDate={String(operations.listDate)}
-            initialDoctorName={operations.doctorName}
-            onSaved={() => {
-              void operations.historyQuery.refetch();
-              void operations.listQuery.refetch();
-              void operations.operationBookingsQuery.refetch();
-            }}
-          />
+          {/* Booking Panel and bookings list (Screen only) */}
+          <div className={cn("space-y-4", viewTab !== "booking" && "hidden")}>
+            <OperationsBookingInlinePanel
+              initialDate={String(operations.listDate)}
+              initialDoctorName={operations.doctorName}
+              onSaved={() => {
+                void operations.historyQuery.refetch();
+                void operations.listQuery.refetch();
+                void operations.operationBookingsQuery.refetch();
+              }}
+            />
 
-          {operations.activeTab === TAB_OTHERS && (
-            <section className="rounded-lg border border-border/50 bg-background shadow-sm print:border-0 print:bg-transparent print:shadow-none">
-              <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
-                <h2 className="text-sm font-semibold text-foreground">
-                  حجوزات العمليات
-                </h2>
-                <span className="text-[11px] text-muted-foreground tabular-nums">
-                  {formatDayDate(String(operations.listDate))}
-                </span>
-              </div>
-              <div className="px-4 py-3">
-                {operations.operationBookingsQuery.isLoading ? (
-                  <p className="text-[11px] text-muted-foreground animate-pulse">
-                    جاري تحميل الحجوزات...
-                  </p>
-                ) : (operations.operationBookingsQuery.data ?? []).length ===
-                  0 ? (
-                  <p className="text-[11px] text-muted-foreground">
-                    لا توجد حجوزات مسجلة لهذا التاريخ.
-                  </p>
-                ) : (
-                  <table className="w-full text-xs border-collapse" dir="rtl">
-                    <thead>
-                      <tr className="border-b border-border/50 text-muted-foreground">
-                        <th className="py-1.5 text-right font-medium">
-                          نوع العملية
-                        </th>
-                        <th className="py-1.5 text-center w-20 font-medium">
-                          الوقت
-                        </th>
-                        <th className="py-1.5 text-center w-16 font-medium">
-                          العدد
-                        </th>
-                        <th className="py-1.5 text-center w-10 font-medium"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(() => {
-                        const bookings =
-                          operations.operationBookingsQuery.data ?? [];
-                        const grouped: Record<string, typeof bookings> = {};
-                        for (const b of bookings) {
-                          const d = b.doctorName || "طبيب غير محدد";
-                          if (!grouped[d]) grouped[d] = [];
-                          grouped[d].push(b);
-                        }
-                        return Object.entries(grouped).map(([doctor, list]) => (
-                          <Fragment key={doctor}>
-                            <tr>
-                              <td
-                                colSpan={4}
-                                className="pt-2 pb-0.5 font-semibold text-primary text-[11px]"
-                              >
-                                {doctor}
-                              </td>
-                            </tr>
-                            {list.map((booking) => (
-                              <tr
-                                key={booking.id}
-                                className="border-b border-border/30 last:border-0 hover:bg-muted/20"
-                              >
-                                <td className="py-1 pr-3 text-muted-foreground">
-                                  {operationTypeLabel(booking.operationType)}
-                                </td>
+            {operations.activeTab === TAB_OTHERS && (
+              <section className="rounded-lg border border-border/50 bg-background shadow-sm print:border-0 print:bg-transparent print:shadow-none">
+                <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
+                  <h2 className="text-sm font-semibold text-foreground">
+                    حجوزات العمليات
+                  </h2>
+                  <span className="text-[11px] text-muted-foreground tabular-nums">
+                    {formatDayDate(String(operations.listDate))}
+                  </span>
+                </div>
+                <div className="px-4 py-3">
+                  {operations.operationBookingsQuery.isLoading ? (
+                    <p className="text-[11px] text-muted-foreground animate-pulse">
+                      جاري تحميل الحجوزات...
+                    </p>
+                  ) : (operations.operationBookingsQuery.data ?? []).length ===
+                    0 ? (
+                    <p className="text-[11px] text-muted-foreground">
+                      لا توجد حجوزات مسجلة لهذا التاريخ.
+                    </p>
+                  ) : (
+                    <table className="w-full text-xs border-collapse" dir="rtl">
+                      <thead>
+                        <tr className="border-b border-border/50 text-muted-foreground">
+                          <th className="py-1.5 text-right font-medium">
+                            نوع العملية
+                          </th>
+                          <th className="py-1.5 text-center w-20 font-medium">
+                            الوقت
+                          </th>
+                          <th className="py-1.5 text-center w-16 font-medium">
+                            العدد
+                          </th>
+                          <th className="py-1.5 text-center w-10 font-medium"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          const bookings =
+                            operations.operationBookingsQuery.data ?? [];
+                          const grouped: Record<string, typeof bookings> = {};
+                          for (const b of bookings) {
+                            const d = b.doctorName || "طبيب غير محدد";
+                            if (!grouped[d]) grouped[d] = [];
+                            grouped[d].push(b);
+                          }
+                          return Object.entries(grouped).map(([doctor, list]) => (
+                            <Fragment key={doctor}>
+                              <tr>
                                 <td
-                                  className="py-1 text-center tabular-nums"
-                                  dir="ltr"
+                                  colSpan={4}
+                                  className="pt-2 pb-0.5 font-semibold text-primary text-[11px]"
                                 >
-                                  {booking.bookingTime || "-"}
-                                </td>
-                                <td className="py-1 text-center font-semibold tabular-nums">
-                                  {booking.casesCount}
-                                </td>
-                                <td className="py-1 text-center">
-                                  {delConfirm === booking.id ? (
-                                    <div className="flex items-center gap-1">
-                                      <button
-                                        type="button"
-                                        aria-label="تأكيد الحذف"
-                                        className="min-h-11 rounded bg-destructive px-2 text-xs text-destructive-foreground hover:bg-destructive/80 sm:min-h-8"
-                                        onClick={() => {
-                                          deleteBookingMutation.mutate({
-                                            id: booking.id,
-                                          });
-                                          setDelConfirm(null);
-                                        }}
-                                      >
-                                        تأكيد
-                                      </button>
-                                      <button
-                                        type="button"
-                                        aria-label="إلغاء الحذف"
-                                        className="min-h-11 rounded bg-muted px-2 text-xs text-muted-foreground hover:bg-muted/80 sm:min-h-8"
-                                        onClick={() => setDelConfirm(null)}
-                                      >
-                                        ✕
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      aria-label="حذف الحجز"
-                                      className="inline-flex h-11 w-11 items-center justify-center rounded bg-destructive/10 text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground sm:h-9 sm:w-9"
-                                      disabled={deleteBookingMutation.isPending}
-                                      onClick={() => setDelConfirm(booking.id)}
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </button>
-                                  )}
+                                  {doctor}
                                 </td>
                               </tr>
-                            ))}
-                          </Fragment>
-                        ));
-                      })()}
-                    </tbody>
-                    <tfoot>
-                      <tr className="border-t border-border/50">
-                        <td className="pt-1.5 font-semibold text-foreground">
-                          إجمالي الحالات
-                        </td>
-                        <td />
-                        <td className="pt-1.5 text-center font-bold tabular-nums text-foreground">
-                          {(
-                            operations.operationBookingsQuery.data ?? []
-                          ).reduce((acc, b) => acc + (b.casesCount || 0), 0)}
-                        </td>
-                        <td />
-                      </tr>
-                    </tfoot>
-                  </table>
-                )}
-              </div>
-            </section>
-          )}
+                              {list.map((booking) => (
+                                <tr
+                                  key={booking.id}
+                                  className="border-b border-border/30 last:border-0 hover:bg-muted/20"
+                                >
+                                  <td className="py-1 pr-3 text-muted-foreground">
+                                    {operationTypeLabel(booking.operationType)}
+                                  </td>
+                                  <td
+                                    className="py-1 text-center tabular-nums"
+                                    dir="ltr"
+                                  >
+                                    {booking.bookingTime || "-"}
+                                  </td>
+                                  <td className="py-1 text-center font-semibold tabular-nums">
+                                    {booking.casesCount}
+                                  </td>
+                                  <td className="py-1 text-center">
+                                    {delConfirm === booking.id ? (
+                                      <div className="flex items-center gap-1">
+                                        <button
+                                          type="button"
+                                          aria-label="تأكيد الحذف"
+                                          className="min-h-11 rounded bg-destructive px-2 text-xs text-destructive-foreground hover:bg-destructive/80 sm:min-h-8"
+                                          onClick={() => {
+                                            deleteBookingMutation.mutate({
+                                              id: booking.id,
+                                            });
+                                            setDelConfirm(null);
+                                          }}
+                                        >
+                                          تأكيد
+                                        </button>
+                                        <button
+                                          type="button"
+                                          aria-label="إلغاء الحذف"
+                                          className="min-h-11 rounded bg-muted px-2 text-xs text-muted-foreground hover:bg-muted/80 sm:min-h-8"
+                                          onClick={() => setDelConfirm(null)}
+                                        >
+                                          ✕
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        aria-label="حذف الحجز"
+                                        className="inline-flex h-11 w-11 items-center justify-center rounded bg-destructive/10 text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground sm:h-9 sm:w-9"
+                                        disabled={deleteBookingMutation.isPending}
+                                        onClick={() => setDelConfirm(booking.id)}
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </button>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </Fragment>
+                          ));
+                        })()}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t border-border/50">
+                          <td className="pt-1.5 font-semibold text-foreground">
+                            إجمالي الحالات
+                          </td>
+                          <td />
+                          <td className="pt-1.5 text-center font-bold tabular-nums text-foreground">
+                            {(
+                              operations.operationBookingsQuery.data ?? []
+                            ).reduce((acc, b) => acc + (b.casesCount || 0), 0)}
+                          </td>
+                          <td />
+                        </tr>
+                      </tfoot>
+                    </table>
+                  )}
+                </div>
+              </section>
+            )}
+          </div>
 
-          <section className="print:border-0 print:bg-transparent">
+          {/* Operation Dialog & Toolbar (Print header preserved) */}
+          <section className={cn("print:border-0 print:bg-transparent", viewTab !== "list" && "hidden print:block")}>
             <div className="border-b border-border/50 py-3">
               <OperationDialog
                 activeTab={operations.activeTab}
@@ -296,7 +374,8 @@ export default function Operations() {
             </div>
           </section>
 
-          <section className="print:border-0 print:bg-transparent">
+          {/* Operations Daily Cases Table */}
+          <section className={cn("print:border-0 print:bg-transparent", viewTab !== "list" && "hidden print:block")}>
             <div className="py-3">
               <OperationsTable
                 canManageList={operations.canManageList}
@@ -312,7 +391,8 @@ export default function Operations() {
             </div>
           </section>
 
-          <section className="print:border-0 print:bg-transparent">
+          {/* Operation Financial Totals Panel */}
+          <section className={cn("print:border-0 print:bg-transparent", viewTab !== "financials" && "hidden print:block")}>
             <OperationTotals
               accountingTotals={operations.accountingTotals}
               accountsAdjustmentInputs={operations.accountsAdjustmentInputs}

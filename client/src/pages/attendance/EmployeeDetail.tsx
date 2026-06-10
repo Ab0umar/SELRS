@@ -79,6 +79,7 @@ export default function EmployeeDetail() {
     date: todayStr,
     type: "out" as "in" | "out",
     durationMinutes: 60,
+    notAffectSalary: false,
     note: "",
   });
 
@@ -144,6 +145,11 @@ export default function EmployeeDetail() {
     { enabled: !!empCd },
   );
 
+  const permListQuery = (trpc as any).attendance.listPermissions.useQuery(
+    { empCd },
+    { enabled: !!empCd },
+  );
+
   const shiftRequestsQuery = (
     trpc as any
   ).attendance.listShiftChangeRequests.useQuery(
@@ -163,10 +169,12 @@ export default function EmployeeDetail() {
     onSuccess: () => {
       setPermMsg("✓ تم حفظ الإذن");
       permReportQuery.refetch();
+      permListQuery.refetch();
       setPermForm({
         date: todayStr,
         type: "out",
         durationMinutes: 60,
+        notAffectSalary: false,
         note: "",
       });
       dailyQuery.refetch();
@@ -494,6 +502,18 @@ export default function EmployeeDetail() {
                 />
               </div>
 
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={permForm.notAffectSalary}
+                  onChange={(e) =>
+                    setPermForm({ ...permForm, notAffectSalary: e.target.checked })
+                  }
+                  className="h-4 w-4 rounded border-border accent-secondary"
+                />
+                <span className="text-sm text-muted-foreground">لا يؤثر على الراتب</span>
+              </label>
+
               <Button
                 size="sm"
                 onClick={() => {
@@ -513,6 +533,56 @@ export default function EmployeeDetail() {
                 >
                   {permMsg}
                 </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Permissions list */}
+          <Card className="border-border">
+            <CardHeader className="pb-2 pt-4">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+                <ShieldCheck className="h-4 w-4 text-secondary" />
+                سجل الأذونات
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {permListQuery.isLoading ? (
+                <p className="px-4 py-6 text-center text-sm text-muted-foreground">جارٍ التحميل…</p>
+              ) : !permListQuery.data?.length ? (
+                <p className="px-4 py-6 text-center text-sm text-muted-foreground">لا توجد أذونات مسجلة</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
+                        <th className="px-3 py-2 text-right">التاريخ</th>
+                        <th className="px-3 py-2 text-right">النوع</th>
+                        <th className="px-3 py-2 text-right">المدة</th>
+                        <th className="px-3 py-2 text-right">يؤثر على الراتب</th>
+                        <th className="px-3 py-2 text-right">ملاحظة</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(permListQuery.data as any[]).map((p: any) => (
+                        <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20">
+                          <td className="px-3 py-2 font-mono text-xs">{p.date}</td>
+                          <td className="px-3 py-2">
+                            <span className={`inline-flex rounded px-1.5 py-0.5 text-xs font-medium ${p.type === "out" ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800"}`}>
+                              {p.type === "out" ? "خروج" : "دخول"}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2">{p.durationMinutes} د</td>
+                          <td className="px-3 py-2">
+                            {p.notAffectSalary
+                              ? <span className="text-xs text-muted-foreground">لا</span>
+                              : <span className="text-xs text-destructive">نعم</span>}
+                          </td>
+                          <td className="px-3 py-2 text-muted-foreground">{p.note || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </CardContent>
           </Card>

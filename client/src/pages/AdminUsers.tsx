@@ -172,9 +172,9 @@ function toDateKey(value: unknown): string {
 
 function branchLabelAr(b: UserBranch): string {
   const m: Record<UserBranch, string> = {
-    examinations: "فحوصات",
-    surgery: "عمليات",
-    both: "فحوصات وعمليات",
+    examinations: "طنطا",
+    surgery: "كفرالشيخ",
+    both: "الفرعان",
   };
   return m[b] ?? String(b);
 }
@@ -1250,9 +1250,8 @@ export default function AdminUsers() {
                   <SelectValue placeholder="اختر الفرع" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="examinations">فحوصات</SelectItem>
-                  <SelectItem value="surgery">عمليات</SelectItem>
-                  <SelectItem value="both">كلاهما</SelectItem>
+                  <SelectItem value="examinations">طنطا</SelectItem>
+                  <SelectItem value="surgery">كفرالشيخ</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1406,9 +1405,8 @@ export default function AdminUsers() {
                   <SelectValue placeholder="اختر الفرع" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="examinations">فحوصات</SelectItem>
-                  <SelectItem value="surgery">عمليات</SelectItem>
-                  <SelectItem value="both">كلاهما</SelectItem>
+                  <SelectItem value="examinations">طنطا</SelectItem>
+                  <SelectItem value="surgery">كفرالشيخ</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -13,6 +13,7 @@ interface NewPerm {
   date: string;
   type: PermType;
   durationMinutes: number;
+  notAffectSalary: boolean;
   note: string;
 }
 
@@ -26,6 +27,7 @@ export default function Permissions() {
     date: today,
     type: "out",
     durationMinutes: 60,
+    notAffectSalary: false,
     note: "",
   });
 
@@ -45,6 +47,7 @@ export default function Permissions() {
         date: today,
         type: "out",
         durationMinutes: 60,
+        notAffectSalary: false,
         note: "",
       });
       permsQuery.refetch();
@@ -238,6 +241,17 @@ export default function Permissions() {
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                 />
               </div>
+              <div>
+                <label className="flex items-center gap-2 cursor-pointer select-none pt-6">
+                  <input
+                    type="checkbox"
+                    checked={form.notAffectSalary}
+                    onChange={(e) => setForm({ ...form, notAffectSalary: e.target.checked })}
+                    className="h-4 w-4 rounded border-border accent-secondary"
+                  />
+                  <span className="text-sm font-medium">لا يؤثر على الراتب</span>
+                </label>
+              </div>
               <div className="md:col-span-2">
                 <label
                   htmlFor="attendance-perm-form-note"
@@ -284,9 +298,13 @@ export default function Permissions() {
                 <Skeleton key={i} className="h-10 w-full" />
               ))}
             </div>
+          ) : permsQuery.isError ? (
+            <div className="py-8 text-center text-destructive text-sm">
+              خطأ: {(permsQuery.error as any)?.message ?? "تعذر تحميل الأذونات"}
+            </div>
           ) : !permsQuery.data?.length ? (
             <div className="py-8 text-center text-muted-foreground">
-              لا توجد أذونات
+              لا توجد أذونات في هذه الفترة
             </div>
           ) : (
             <div className="overflow-x-auto" dir="rtl">
@@ -298,6 +316,7 @@ export default function Permissions() {
                     <th className="text-right py-3 px-4">النوع</th>
                     <th className="text-right py-3 px-4">المدة</th>
                     <th className="text-right py-3 px-4">الحالة</th>
+                    <th className="text-right py-3 px-4">يؤثر على الراتب</th>
                     <th className="text-right py-3 px-4">ملاحظة</th>
                     <th className="text-right py-3 px-4">الإجراءات</th>
                   </tr>
@@ -326,6 +345,11 @@ export default function Permissions() {
                             انتظار الموافقة
                           </span>
                         )}
+                      </td>
+                      <td className="py-2 px-4 text-sm">
+                        {p.notAffectSalary
+                          ? <span className="text-muted-foreground">لا</span>
+                          : <span className="text-destructive font-medium">نعم</span>}
                       </td>
                       <td className="py-2 px-4 text-muted-foreground text-xs">
                         {p.note ?? "—"}

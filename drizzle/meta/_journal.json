@@ -176,6 +176,13 @@
       "when": 1781020278444,
       "tag": "0036_dazzling_war_machine",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "5",
+      "when": 1781068188995,
+      "tag": "0037_parallel_warbound",
+      "breakpoints": true
     }
   ]
 }

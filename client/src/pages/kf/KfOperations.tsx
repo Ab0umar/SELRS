@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, ClipboardList, FilterX, Eye, ArrowLeftRight } from "lucide-react";
+import { Calendar, ClipboardList, FilterX, Eye, ArrowLeftRight, Trash2, Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 const OP_STATUS_AR = {
   scheduled: "مجدولة",
@@ -17,16 +19,24 @@ const OP_STATUS_AR = {
 };
 
 export default function KfOperations() {
+  const { user } = useAuth();
+  const canDelete = user?.role === "admin" || user?.role === "accountant";
   const [dateFilter, setDateFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<"scheduled" | "completed" | "cancelled" | "all">("all");
+  const [delConfirm, setDelConfirm] = useState<number | null>(null);
 
   // Build query input
   const queryInput: any = {};
   if (dateFilter) queryInput.date = dateFilter;
   if (statusFilter !== "all") queryInput.status = statusFilter;
 
+  const utils = trpc.useUtils();
   // Query
   const { data: operations = [], isLoading, isError, refetch } = trpc.kf.listOperations.useQuery(queryInput);
+  const deleteMut = trpc.kf.deleteOperation.useMutation({
+    onSuccess: () => { utils.kf.listOperations.invalidate(); toast.success("تم حذف العملية"); setDelConfirm(null); },
+    onError: () => toast.error("تعذر حذف العملية"),
+  });
 
   const handleClearFilters = () => {
     setDateFilter("");
@@ -101,6 +111,7 @@ export default function KfOperations() {
                 <TableHead className="text-right">الجراح</TableHead>
                 <TableHead className="text-right">الحالة</TableHead>
                 <TableHead className="text-left">ملف المريض</TableHead>
+                <TableHead className="text-left"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -119,13 +130,13 @@ export default function KfOperations() {
                 ))
               ) : isError ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-destructive">
+                  <TableCell colSpan={9} className="text-center py-8 text-destructive">
                     حدث خطأ أثناء تحميل جدول العمليات.
                   </TableCell>
                 </TableRow>
               ) : operations.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-10 text-muted-foreground">
                     لا توجد عمليات تطابق معايير البحث المحددة.
                   </TableCell>
                 </TableRow>
@@ -172,6 +183,20 @@ export default function KfOperations() {
                           <Eye className="h-4 w-4" />
                         </Link>
                       </Button>
+                    </TableCell>
+                    <TableCell className="text-left" onClick={(e) => e.stopPropagation()}>
+                      {delConfirm === op.kfOpId ? (
+                        <div className="flex gap-1">
+                          <Button variant="destructive" size="sm" className="h-6 px-2 text-xs" onClick={() => deleteMut.mutate({ kfOpId: op.kfOpId })} disabled={deleteMut.isPending}>
+                            {deleteMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "حذف"}
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setDelConfirm(null)}>لا</Button>
+                        </div>
+                      ) : canDelete ? (
+                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" onClick={() => setDelConfirm(op.kfOpId)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      ) : null}
                     </TableCell>
                   </TableRow>
                 ))

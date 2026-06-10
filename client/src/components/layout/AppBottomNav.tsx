@@ -5,6 +5,7 @@ import {
   CalendarDays,
   Clock,
   DollarSign,
+  Hospital,
   LayoutDashboard,
   LayoutGrid,
   Network,
@@ -49,6 +50,12 @@ const staffTabs = [
     label: "الحسابات",
     icon: Banknote,
     paths: ["/accounting"],
+  },
+  {
+    key: "kf",
+    label: "كفرالشيخ",
+    icon: Hospital,
+    paths: ["/kf"],
   },
   {
     key: "roster",
@@ -101,6 +108,12 @@ const adminTabs = [
     label: "الحضور",
     icon: Activity,
     paths: ["/attendance"],
+  },
+  {
+    key: "kf",
+    label: "كفرالشيخ",
+    icon: Hospital,
+    paths: ["/kf"],
   },
   {
     key: "admin",

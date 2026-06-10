@@ -136,11 +136,14 @@ export class PayrollComputeService {
     month: number,
     section = "مركز",
     filterEmpCd?: string,
+    fromDate?: string,
+    toDate?: string,
   ): Promise<PayrollRow[]> {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
 
-    const [firstDay, lastDay] = monthRange(year, month);
+    const firstDay = fromDate || monthRange(year, month)[0];
+    const lastDay = toDate || monthRange(year, month)[1];
 
     const employees = filterEmpCd
       ? await db
@@ -201,6 +204,9 @@ export class PayrollComputeService {
           empCd: attendanceDaily.empCd,
           status: attendanceDaily.status,
           workDate: attendanceDaily.workDate,
+          lateMinutes: attendanceDaily.lateMinutes,
+          earlyLeaveMin: attendanceDaily.earlyLeaveMin,
+          overtimeMinutes: attendanceDaily.overtimeMinutes,
         })
         .from(attendanceDaily)
         .where(
@@ -242,12 +248,14 @@ export class PayrollComputeService {
 
     // Set of holiday date strings YYYY-MM-DD (not Fridays — already excluded from roster)
     const holidayDates = new Set<string>(
-      holidayRows.map((h) => {
-        const d = h.date as any;
-        return d instanceof Date
-          ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-          : String(d).slice(0, 10);
-      }),
+      holidayRows
+        .map((h) => {
+          const d = h.date as any;
+          return d instanceof Date
+            ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+            : String(d).slice(0, 10);
+        })
+        .filter((ds) => ds >= firstDay && ds <= lastDay),
     );
     // Number of holiday working days (exclude Fridays = day 5)
     const holidayWorkingDaysCount = [...holidayDates].filter(
@@ -405,11 +413,26 @@ export class PayrollComputeService {
       // For linked employees, apply punch deductions; otherwise, just attendance ratio
       let deductionPct = 0;
       if (ss.empCd) {
-        const report = monthlyReports.find((r) => r.empCd === ss.empCd);
-        if (report) {
+        let lateMinutes = 0;
+        let earlyLeaveMinutes = 0;
+        let hasData = false;
+
+        if (fromDate || toDate) {
+          const empDailyRows = dailyRows.filter((d) => d.empCd === ss.empCd);
+          lateMinutes = empDailyRows.reduce((s, d) => s + (d.lateMinutes ?? 0), 0);
+          earlyLeaveMinutes = empDailyRows.reduce((s, d) => s + (d.earlyLeaveMin ?? 0), 0);
+          hasData = true;
+        } else {
+          const report = monthlyReports.find((r) => r.empCd === ss.empCd);
+          if (report) {
+            lateMinutes = report.totalLateMins ?? 0;
+            earlyLeaveMinutes = report.totalEarlyLeaveMins ?? 0;
+            hasData = true;
+          }
+        }
+
+        if (hasData) {
           const basic = empBasicMap.get(ss.empCd) ?? 0;
-          const lateMinutes = report.totalLateMins ?? 0;
-          const earlyLeaveMinutes = report.totalEarlyLeaveMins ?? 0;
           if (basic > 0 && scheduled > 0) {
             const dailyRate = basic / scheduled;
             const minuteRate = dailyRate / 360;
@@ -499,12 +522,27 @@ export class PayrollComputeService {
       ).length;
 
       // Official holidays count as paid non-working days — don't deduct absence for them
-      const rawAbsentDays = report?.absentDays ?? 0;
+      let rawAbsentDays = 0;
+      let lateMinutes = 0;
+      let earlyLeaveMinutes = 0;
+      let overtimeMinutes = 0;
+      let leaveDays = 0;
+
+      if (fromDate || toDate) {
+        const empDailyRows = dailyRows.filter((d) => d.empCd === emp.empCd);
+        rawAbsentDays = empDailyRows.filter((d) => d.status === "absent").length;
+        lateMinutes = empDailyRows.reduce((s, d) => s + (d.lateMinutes ?? 0), 0);
+        earlyLeaveMinutes = empDailyRows.reduce((s, d) => s + (d.earlyLeaveMin ?? 0), 0);
+        overtimeMinutes = empDailyRows.reduce((s, d) => s + (d.overtimeMinutes ?? 0), 0);
+        leaveDays = empDailyRows.filter((d) => d.status === "leave").length;
+      } else {
+        rawAbsentDays = report?.absentDays ?? 0;
+        lateMinutes = report?.totalLateMins ?? 0;
+        earlyLeaveMinutes = report?.totalEarlyLeaveMins ?? 0;
+        overtimeMinutes = report?.totalOTMins ?? 0;
+        leaveDays = report?.leaveDays ?? 0;
+      }
       const absentDays = Math.max(0, rawAbsentDays - holidayWorkingDaysCount);
-      const lateMinutes = report?.totalLateMins ?? 0;
-      const earlyLeaveMinutes = report?.totalEarlyLeaveMins ?? 0;
-      const overtimeMinutes = report?.totalOTMins ?? 0;
-      const leaveDays = report?.leaveDays ?? 0;
 
       const dailyRate = workingDays > 0 ? basic / workingDays : 0;
       const minuteRate = dailyRate / 360; // 6h × 60min
@@ -550,7 +588,11 @@ export class PayrollComputeService {
       const deductionPct = basic > 0 ? Math.min(1, totalDeductions / basic) : 0;
 
       const netBasic = round2(Math.max(0, basic - totalDeductions));
-      const lm = leaveMultiplier(leaveDays);
+      const customLm =
+        emp.attendanceLeaveMultiplier != null
+          ? Number(emp.attendanceLeaveMultiplier)
+          : null;
+      const lm = customLm !== null ? customLm : leaveMultiplier(leaveDays);
       const commMult = lm * (1 - deductionPct);
       const empRate =
         emp.attendanceCommissionRate != null

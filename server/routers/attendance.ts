@@ -1966,6 +1966,12 @@ export const attendanceRouter = router({
           .max(1)
           .nullable()
           .optional(),
+        attendanceLeaveMultiplier: z
+          .number()
+          .min(0)
+          .max(1)
+          .nullable()
+          .optional(),
         active: z.boolean(),
       }),
     )
@@ -1981,6 +1987,10 @@ export const attendanceRouter = router({
           attendanceCommissionRate:
             input.attendanceCommissionRate != null
               ? (String(input.attendanceCommissionRate) as any)
+              : null,
+          attendanceLeaveMultiplier:
+            input.attendanceLeaveMultiplier != null
+              ? (String(input.attendanceLeaveMultiplier) as any)
               : null,
           active: input.active,
         })
@@ -2356,6 +2366,7 @@ export const attendanceRouter = router({
         date: z.string(),
         type: z.enum(["in", "out"]),
         durationMinutes: z.number().int().min(1).max(480),
+        notAffectSalary: z.boolean().optional(),
         note: z.string().optional(),
       }),
     )
@@ -2368,6 +2379,7 @@ export const attendanceRouter = router({
         type: input.type,
         durationMinutes: input.durationMinutes,
         approved: true,
+        notAffectSalary: input.notAffectSalary ?? false,
         note: input.note ?? null,
       });
 

@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { AlertCircle, Percent, Settings, ShieldAlert, Users } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface RateForm {
   r3: string;
@@ -11,10 +14,10 @@ interface RateForm {
 }
 
 const TIERS = [
-  { key: "r3" as const, label: "≤ 3 أيام إجازة", placeholder: "25" },
-  { key: "r5" as const, label: "≤ 5 أيام إجازة", placeholder: "15" },
-  { key: "r7" as const, label: "≤ 7 أيام إجازة", placeholder: "10" },
-  { key: "r10" as const, label: "≤ 10 أيام إجازة", placeholder: "5" },
+  { key: "r3" as const, label: "≤ 3 أيام إجازة" },
+  { key: "r5" as const, label: "≤ 5 أيام إجازة" },
+  { key: "r7" as const, label: "≤ 7 أيام إجازة" },
+  { key: "r10" as const, label: "≤ 10 أيام إجازة" },
 ];
 
 function GlobalRates() {
@@ -30,9 +33,9 @@ function GlobalRates() {
   const setRatesMut = (trpc as any).salary.setAttendanceRates.useMutation({
     onSuccess: () => {
       ratesQ.refetch();
-      toast.success("تم حفظ النسب");
+      toast.success("تم حفظ النسب العامة بنجاح");
     },
-    onError: (err: any) => toast.error(err.message ?? "خطأ في الحفظ"),
+    onError: (err: any) => toast.error(err.message ?? "خطأ في حفظ النسب"),
     onSettled: () => setSaving(false),
   });
 
@@ -53,7 +56,7 @@ function GlobalRates() {
     const r7 = parseFloat(form.r7) / 100;
     const r10 = parseFloat(form.r10) / 100;
     if ([r3, r5, r7, r10].some(isNaN)) {
-      toast.error("أدخل قيمًا صحيحة");
+      toast.error("أدخل قيمًا صحيحة للنسب");
       return;
     }
     setSaving(true);
@@ -61,75 +64,102 @@ function GlobalRates() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-1">
-        <h2 className="text-base font-semibold">نسب الحضور العامة (مركز)</h2>
-        <p className="text-sm text-muted-foreground">
-          تُطبَّق على كل موظف ليس له نسبة خاصة.
-        </p>
-      </div>
-      <div className="space-y-3">
-        {TIERS.map(({ key, label }) => (
-          <div key={key} className="flex items-center gap-3">
-            <label className="w-40 shrink-0 text-sm">{label}</label>
-            <div className="relative w-28">
-              <input
-                type="number"
-                min={0}
-                max={100}
-                step={1}
-                value={form[key]}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, [key]: e.target.value }))
-                }
-                className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm pr-7 text-right"
-              />
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                %
-              </span>
-            </div>
+    <Card className="border-border/60 bg-card/30 backdrop-blur-sm shadow-sm">
+      <CardHeader className="pb-4">
+        <div className="flex items-center gap-2">
+          <Settings className="h-5 w-5 text-primary" />
+          <div>
+            <CardTitle className="text-sm font-bold">نسب الحضور العامة (المركز)</CardTitle>
+            <CardDescription className="text-[11px]">
+              تُطبَّق هذه النسب تلقائياً على كل موظف ليس لديه نسبة حضور خاصة.
+            </CardDescription>
           </div>
-        ))}
-      </div>
-      <p className="text-xs text-muted-foreground">
-        أكثر من 10 أيام = 0% (ثابت)
-      </p>
-      <Button onClick={save} disabled={saving || ratesQ.isLoading} size="sm">
-        {saving ? "جاري الحفظ…" : "حفظ النسب"}
-      </Button>
-    </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {TIERS.map(({ key, label }) => (
+            <div key={key} className="flex flex-col gap-1.5 rounded-lg border border-border/40 p-3 bg-muted/10">
+              <span className="text-[10px] font-semibold text-muted-foreground">{label}</span>
+              <div className="relative">
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={form[key]}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, [key]: e.target.value }))
+                  }
+                  className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-xs pr-7 text-right outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+                />
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground">
+                  %
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center justify-between border-t border-border/40 pt-4">
+          <span className="text-[10px] text-muted-foreground/80">
+            * الغياب الأكثر من 10 أيام يُحسب بنسبة 0% تلقائياً.
+          </span>
+          <Button onClick={save} disabled={saving || ratesQ.isLoading} size="sm" className="h-8 text-xs font-semibold">
+            {saving ? "جاري الحفظ…" : "حفظ النسب"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
-function EmployeeRates() {
+function EmployeeSettingsGrid() {
   const empsQ = (trpc as any).salary.listEmployees.useQuery();
   const updateMut = (trpc as any).attendance.updateEmployee.useMutation({
-    onError: (err: any) => toast.error(err.message ?? "خطأ في الحفظ"),
+    onError: (err: any) => toast.error(err.message ?? "خطأ في حفظ إعدادات الموظف"),
+  });
+  const flagsMut = (trpc as any).salary.setCommissionFlags.useMutation({
+    onError: (err: any) => toast.error(err.message ?? "خطأ في تعديل العمولات والبدلات"),
+    onSuccess: () => empsQ.refetch(),
   });
 
   const [rates, setRates] = useState<Record<string, string>>({});
-
+  const [multipliers, setMultipliers] = useState<Record<string, string>>({});
   const allEmps: any[] = empsQ.data ?? [];
 
   useEffect(() => {
     if (!empsQ.data) return;
-    const init: Record<string, string> = {};
+    const initRates: Record<string, string> = {};
+    const initMults: Record<string, string> = {};
     for (const emp of empsQ.data) {
-      init[emp.empCd] =
+      initRates[emp.empCd] =
         emp.attendanceCommissionRate != null
           ? String(Math.round(Number(emp.attendanceCommissionRate) * 100))
           : "";
+      initMults[emp.empCd] =
+        emp.attendanceLeaveMultiplier != null
+          ? String(Math.round(Number(emp.attendanceLeaveMultiplier) * 100))
+          : "";
     }
-    setRates(init);
+    setRates(initRates);
+    setMultipliers(initMults);
   }, [empsQ.data]);
 
-  function saveEmp(emp: any) {
-    const raw = rates[emp.empCd] ?? "";
-    const rate = raw === "" ? null : parseFloat(raw) / 100;
+  function saveEmpSettings(emp: any) {
+    const rawRate = rates[emp.empCd] ?? "";
+    const rate = rawRate === "" ? null : parseFloat(rawRate) / 100;
     if (rate !== null && isNaN(rate)) {
-      toast.error("قيمة غير صحيحة");
+      toast.error("قيمة نسبة الحضور غير صحيحة");
       return;
     }
+
+    const rawMult = multipliers[emp.empCd] ?? "";
+    const multiplier = rawMult === "" ? null : parseFloat(rawMult) / 100;
+    if (multiplier !== null && isNaN(multiplier)) {
+      toast.error("قيمة معامل الحضور غير صحيحة");
+      return;
+    }
+
     updateMut.mutate(
       {
         empCd: emp.empCd,
@@ -137,157 +167,253 @@ function EmployeeRates() {
         department: emp.department,
         salaryType: emp.salaryType ?? undefined,
         attendanceCommissionRate: rate,
+        attendanceLeaveMultiplier: multiplier,
         active: emp.active ?? true,
       },
       {
         onSuccess: () => {
           empsQ.refetch();
-          toast.success(`تم حفظ نسبة ${emp.fullName}`);
+          toast.success(`تم حفظ إعدادات الموظف: ${emp.fullName}`);
         },
       },
     );
   }
 
-  if (empsQ.isLoading)
-    return <p className="text-sm text-muted-foreground">جاري التحميل…</p>;
-  if (allEmps.length === 0)
-    return <p className="text-sm text-muted-foreground">لا يوجد موظفون.</p>;
+  function toggleFlag(
+    emp: any,
+    key: "commAttendance" | "commExam" | "commPentacam" | "commDay10"
+  ) {
+    const attendanceEnabled = emp.commAttendance !== false;
+    const examEnabled = emp.commExam !== false;
+    const pentacamEnabled = emp.commPentacam !== false;
+    const day10Enabled = emp.commDay10 !== false;
 
-  return (
-    <div className="space-y-4">
-      <div className="space-y-1">
-        <h2 className="text-base font-semibold">نسبة الحضور لكل موظف</h2>
-        <p className="text-sm text-muted-foreground">
-          اتركها فارغة لاستخدام النسبة العامة.
-        </p>
-      </div>
-      <div className="divide-y divide-border rounded-md border">
-        {allEmps.map((emp: any) => (
-          <div key={emp.empCd} className="flex items-center gap-3 px-4 py-2.5">
-            <span className="flex-1 text-sm">{emp.fullName}</span>
-            <span className="text-xs text-muted-foreground w-16 text-center">
-              {emp.salaryType || "—"}
-            </span>
-            <div className="relative w-24">
-              <input
-                type="number"
-                min={0}
-                max={100}
-                step={1}
-                placeholder="عام"
-                value={rates[emp.empCd] ?? ""}
-                onChange={(e) =>
-                  setRates((r) => ({ ...r, [emp.empCd]: e.target.value }))
-                }
-                className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm pr-7 text-right"
-              />
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                %
-              </span>
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={updateMut.isPending}
-              onClick={() => saveEmp(emp)}
-              className="shrink-0"
-            >
-              حفظ
-            </Button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function Day10ExclusionSection() {
-  const empsQ = (trpc as any).salary.listEmployees.useQuery();
-  const flagsMut = (trpc as any).salary.setCommissionFlags.useMutation({
-    onError: (err: any) => toast.error(err.message ?? "خطأ في الحفظ"),
-    onSuccess: () => empsQ.refetch(),
-  });
-
-  const allEmps: any[] = empsQ.data ?? [];
-
-  function toggle(emp: any) {
     flagsMut.mutate({
       empCd: emp.empCd,
-      commAttendance: emp.commAttendance !== false,
-      commExam: emp.commExam !== false,
-      commPentacam: emp.commPentacam !== false,
-      commDay10: !emp.commDay10,
+      commAttendance: key === "commAttendance" ? !attendanceEnabled : attendanceEnabled,
+      commExam: key === "commExam" ? !examEnabled : examEnabled,
+      commPentacam: key === "commPentacam" ? !pentacamEnabled : pentacamEnabled,
+      commDay10: key === "commDay10" ? !day10Enabled : day10Enabled,
     });
   }
 
-  if (empsQ.isLoading)
-    return <p className="text-sm text-muted-foreground">جاري التحميل…</p>;
-  if (allEmps.length === 0)
-    return <p className="text-sm text-muted-foreground">لا يوجد موظفون.</p>;
+  if (empsQ.isLoading) {
+    return (
+      <Card className="border-border/60">
+        <CardContent className="py-6 space-y-3">
+          <Skeleton className="h-6 w-1/3 animate-pulse" />
+          <Skeleton className="h-20 w-full animate-pulse" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (allEmps.length === 0) {
+    return (
+      <Card className="border-border/60">
+        <CardContent className="py-8 text-center text-xs text-muted-foreground font-medium">
+          لا يوجد موظفون مسجلون في النظام حالياً.
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-1">
-        <h2 className="text-base font-semibold">إلغاء بدلات يوم 10</h2>
-        <p className="text-sm text-muted-foreground">
-          الموظفون الذين تم إيقاف بدلاتهم لن يحصلوا على غلاء معيشة أو بدل
-          مواصلات في حساب يوم 10.
-        </p>
-      </div>
-      <div className="divide-y divide-border rounded-md border">
-        {allEmps.map((emp: any) => {
-          const enabled = emp.commDay10 !== false;
-          return (
-            <div
-              key={emp.empCd}
-              className="flex items-center gap-3 px-4 py-2.5"
-            >
-              <span className="flex-1 text-sm">{emp.fullName}</span>
-              <span className="text-xs text-muted-foreground w-16 text-center">
-                {emp.salaryType || "—"}
-              </span>
-              <button
-                type="button"
-                disabled={flagsMut.isPending}
-                onClick={() => toggle(emp)}
-                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none disabled:opacity-50 ${enabled ? "bg-primary" : "bg-input"}`}
-                role="switch"
-                aria-checked={enabled}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm ring-0 transition-transform ${enabled ? "translate-x-4" : "translate-x-0"}`}
-                />
-              </button>
-              <span
-                className={`text-xs w-12 ${enabled ? "text-primary font-medium" : "text-muted-foreground"}`}
-              >
-                {enabled ? "مفعّل" : "ملغى"}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+    <Card className="border-border/60 bg-card/30 backdrop-blur-sm shadow-sm overflow-hidden">
+      <CardHeader className="pb-4">
+        <div className="flex items-center gap-2">
+          <Users className="h-5 w-5 text-primary" />
+          <div>
+            <CardTitle className="text-sm font-bold">إعدادات الموظفين الخاصة</CardTitle>
+            <CardDescription className="text-[11px]">
+              تعديل نسب العمولات الخاصة ومعامل الحضور الإضافي وتفعيل عمولات الحضور، الكشف، البنتاكام، وبدلات يوم 10.
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full text-right border-collapse text-xs">
+            <thead>
+              <tr className="border-t border-b border-border bg-muted/40 text-muted-foreground font-bold">
+                <th className="px-6 py-3 font-semibold">الموظف</th>
+                <th className="px-4 py-3 font-semibold text-center w-24">النوع</th>
+                <th className="px-4 py-3 font-semibold text-center w-[240px]">النسب والمعاملات الخاصة</th>
+                <th className="px-6 py-3 font-semibold text-center w-80">تفعيل العمولات والبدلات</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/40">
+              {allEmps.map((emp) => {
+                const attendanceEnabled = emp.commAttendance !== false;
+                const examEnabled = emp.commExam !== false;
+                const pentacamEnabled = emp.commPentacam !== false;
+                const day10Enabled = emp.commDay10 !== false;
+
+                return (
+                  <tr key={emp.empCd} className="hover:bg-muted/10 transition-colors">
+                    <td className="px-6 py-3 font-bold text-foreground">
+                      {emp.fullName}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground border">
+                        {emp.salaryType || "—"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3 justify-center">
+                        {/* att% Input */}
+                        <div className="flex flex-col items-center gap-1 w-20">
+                          <span className="text-[9px] font-bold text-muted-foreground whitespace-nowrap">عمولة الحضور %</span>
+                          <div className="relative w-full">
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              step={1}
+                              placeholder="عام"
+                              value={rates[emp.empCd] ?? ""}
+                              onChange={(e) =>
+                                setRates((r) => ({ ...r, [emp.empCd]: e.target.value }))
+                              }
+                              className="w-full rounded-md border border-input bg-background px-2 py-1 text-xs pr-6 text-right outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+                            />
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted-foreground">
+                              %
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Multiplier Input */}
+                        <div className="flex flex-col items-center gap-1 w-20">
+                          <span className="text-[9px] font-bold text-muted-foreground whitespace-nowrap">المعامل %</span>
+                          <div className="relative w-full">
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              step={1}
+                              placeholder="تلقائي"
+                              value={multipliers[emp.empCd] ?? ""}
+                              onChange={(e) =>
+                                setMultipliers((m) => ({ ...m, [emp.empCd]: e.target.value }))
+                              }
+                              className="w-full rounded-md border border-input bg-background px-2 py-1 text-xs pr-6 text-right outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+                            />
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted-foreground">
+                              %
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Save Button */}
+                        <div className="flex flex-col items-center gap-1 pt-4 shrink-0">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={updateMut.isPending}
+                            onClick={() => saveEmpSettings(emp)}
+                            className="h-7 px-2 text-[10px] font-bold"
+                          >
+                            حفظ
+                          </Button>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-3">
+                      <div className="flex items-center gap-4 justify-center">
+                        {/* عمولة الحضور */}
+                        <div className="flex flex-col items-center gap-1.5 w-16">
+                          <span className="text-[9px] font-bold text-muted-foreground whitespace-nowrap">عمولة الحضور</span>
+                          <button
+                            type="button"
+                            disabled={flagsMut.isPending}
+                            onClick={() => toggleFlag(emp, "commAttendance")}
+                            className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors focus-visible:outline-none disabled:opacity-50 ${attendanceEnabled ? "bg-primary" : "bg-input"}`}
+                            role="switch"
+                            aria-checked={attendanceEnabled}
+                          >
+                            <span
+                              className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow-sm ring-0 transition-transform ${attendanceEnabled ? "translate-x-3.5" : "translate-x-0"}`}
+                            />
+                          </button>
+                        </div>
+
+                        {/* معامل الكشف */}
+                        <div className="flex flex-col items-center gap-1.5 w-16">
+                          <span className="text-[9px] font-bold text-muted-foreground whitespace-nowrap">معامل الكشف</span>
+                          <button
+                            type="button"
+                            disabled={flagsMut.isPending}
+                            onClick={() => toggleFlag(emp, "commExam")}
+                            className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors focus-visible:outline-none disabled:opacity-50 ${examEnabled ? "bg-primary" : "bg-input"}`}
+                            role="switch"
+                            aria-checked={examEnabled}
+                          >
+                            <span
+                              className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow-sm ring-0 transition-transform ${examEnabled ? "translate-x-3.5" : "translate-x-0"}`}
+                            />
+                          </button>
+                        </div>
+
+                        {/* معامل البنتاكام */}
+                        <div className="flex flex-col items-center gap-1.5 w-16">
+                          <span className="text-[9px] font-bold text-muted-foreground whitespace-nowrap">البنتاكام</span>
+                          <button
+                            type="button"
+                            disabled={flagsMut.isPending}
+                            onClick={() => toggleFlag(emp, "commPentacam")}
+                            className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors focus-visible:outline-none disabled:opacity-50 ${pentacamEnabled ? "bg-primary" : "bg-input"}`}
+                            role="switch"
+                            aria-checked={pentacamEnabled}
+                          >
+                            <span
+                              className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow-sm ring-0 transition-transform ${pentacamEnabled ? "translate-x-3.5" : "translate-x-0"}`}
+                            />
+                          </button>
+                        </div>
+
+                        {/* بدلات يوم 10 */}
+                        <div className="flex flex-col items-center gap-1.5 w-16">
+                          <span className="text-[9px] font-bold text-muted-foreground whitespace-nowrap">بدلات يوم 10</span>
+                          <button
+                            type="button"
+                            disabled={flagsMut.isPending}
+                            onClick={() => toggleFlag(emp, "commDay10")}
+                            className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors focus-visible:outline-none disabled:opacity-50 ${day10Enabled ? "bg-primary" : "bg-input"}`}
+                            role="switch"
+                            aria-checked={day10Enabled}
+                          >
+                            <span
+                              className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow-sm ring-0 transition-transform ${day10Enabled ? "translate-x-3.5" : "translate-x-0"}`}
+                            />
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
 export default function SalarySettings() {
   return (
-    <div className="space-y-10 max-w-lg">
+    <div className="space-y-6 max-w-4xl mx-auto">
+      {/* Title */}
       <div className="space-y-1">
-        <p className="text-xs font-medium text-muted-foreground">
-          مسار الإعدادات
-        </p>
-        <h2 className="text-2xl font-bold text-foreground">إعدادات الرواتب</h2>
-        <p className="text-sm text-muted-foreground">
-          قواعد الحضور ونسب الموظفين التي تدخل في الحساب الشهري.
+        <h2 className="text-base font-bold text-foreground">قواعد ونسب احتساب الرواتب</h2>
+        <p className="text-xs text-muted-foreground">
+          تعديل نسب عمولات الحضور العامة، والنسب المخصصة لكل موظف، واستحقاقات بدلات المعيشة والانتقال.
         </p>
       </div>
+
       <GlobalRates />
-      <hr className="border-border" />
-      <EmployeeRates />
-      <hr className="border-border" />
-      <Day10ExclusionSection />
+      <EmployeeSettingsGrid />
     </div>
   );
 }

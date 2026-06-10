@@ -26,6 +26,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import PatientPicker from "@/components/PatientPicker";
 import { patientNavPathForPageKey } from "@/lib/patientNavPaths";
 import type { PageKey } from "@/lib/dashboard-data";
@@ -82,14 +88,14 @@ const quickActions: QuickActionItem[] = [
   {
     label: "تسجيل مريض",
     icon: UserPlus,
-    color: "bg-primary text-primary-foreground hover:bg-primary/90",
+    color: "bg-blue-100 text-blue-700",
     kind: "quick-entry-dialog",
     permPath: "/patients",
   },
   {
     label: "تحديد موعد / كشف",
     icon: CalendarPlus,
-    color: "bg-primary text-primary-foreground hover:bg-primary/90",
+    color: "bg-amber-100 text-amber-700",
     kind: "portal-booking-dialog",
     permPath: "/operations",
   },
@@ -103,7 +109,7 @@ const quickActions: QuickActionItem[] = [
   {
     label: "حجز العمليات",
     icon: Syringe,
-    color: "bg-success text-success-foreground hover:bg-success/90",
+    color: "bg-emerald-100 text-emerald-700",
     kind: "operations-booking-dialog",
     permPath: "/operations",
   },
@@ -208,7 +214,6 @@ export function QuickActions({
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [portalBookingOpen, setPortalBookingOpen] = useState(false);
   const [pickPage, setPickPage] = useState<PageKey | null>(null);
-  const [moreOpen, setMoreOpen] = useState(false);
 
   const userRole = String(user?.role ?? "").toLowerCase();
   const isAdmin = userRole === "admin";
@@ -326,6 +331,7 @@ export function QuickActions({
               "quick-entry-dialog",
               "schedule-dialog",
               "operations-booking-dialog",
+              "portal-booking-dialog",
             ].includes(action.kind);
             return (
               <button
@@ -355,55 +361,46 @@ export function QuickActions({
             );
           })}
           {moreActions.length > 0 && (
-            <button
-              type="button"
-              aria-label={
-                moreOpen ? "إغلاق اختصارات المزيد" : "فتح اختصارات المزيد"
-              }
-              aria-expanded={moreOpen}
-              onClick={() => setMoreOpen((open) => !open)}
-              className="flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-secondary/30 bg-secondary/15 px-0 text-sm font-semibold text-secondary transition-[background-color,border-color,transform] hover:bg-secondary/20 active:scale-[0.98] sm:w-auto sm:justify-start sm:px-3"
-            >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
-                <ChevronDown
-                  className={cn(
-                    "h-3.5 w-3.5 transition-transform",
-                    moreOpen && "rotate-180",
-                  )}
-                  aria-hidden="true"
-                />
-              </span>
-              <span className="hidden whitespace-nowrap sm:inline">المزيد</span>
-              <span className="hidden rounded-full bg-secondary/15 px-1.5 text-[11px] tabular-nums sm:inline">
-                {moreActions.length}
-              </span>
-            </button>
-          )}
-        </div>
-
-        {moreOpen && moreActions.length > 0 && (
-          <div className="mt-2 flex w-max min-w-full items-center gap-2 border-t border-border/40 pt-2">
-            {moreActions.map((action) => {
-              const Icon = action.icon;
-              return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <button
-                  key={action.label}
                   type="button"
-                  aria-label={action.label}
-                  onClick={() => handleAction(action)}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-secondary/30 bg-secondary/10 px-0 text-sm font-semibold text-secondary transition-[background-color,border-color,transform] hover:border-secondary/50 hover:bg-secondary/15 active:scale-[0.98] sm:w-auto sm:justify-start sm:px-3"
+                  aria-label="فتح اختصارات المزيد"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-secondary/30 bg-secondary/15 px-0 text-sm font-semibold text-secondary transition-[background-color,border-color,transform] hover:bg-secondary/20 active:scale-[0.98] sm:w-auto sm:justify-start sm:px-3 cursor-pointer"
                 >
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
-                    <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                    <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
                   </span>
-                  <span className="hidden whitespace-nowrap sm:inline">
-                    {action.label}
+                  <span className="hidden whitespace-nowrap sm:inline">المزيد</span>
+                  <span className="hidden rounded-full bg-secondary/15 px-1.5 text-[11px] tabular-nums sm:inline">
+                    {moreActions.length}
                   </span>
                 </button>
-              );
-            })}
-          </div>
-        )}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-52 p-1 space-y-0.5 bg-background border border-border rounded-lg shadow-md"
+                style={{ direction: "rtl" }}
+              >
+                {moreActions.map((action) => {
+                  const Icon = action.icon;
+                  return (
+                    <DropdownMenuItem
+                      key={action.label}
+                      onClick={() => handleAction(action)}
+                      className="flex items-center gap-2.5 px-3 py-2 text-sm text-secondary hover:bg-secondary/5 focus:bg-secondary/5 focus:text-secondary rounded-md cursor-pointer transition-colors"
+                    >
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-secondary/10 text-secondary">
+                        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                      </span>
+                      <span className="font-semibold">{action.label}</span>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       </div>
     </>
   );

@@ -1273,6 +1273,10 @@ export const attendanceEmployees = mysqlTable(
       precision: 5,
       scale: 4,
     }),
+    attendanceLeaveMultiplier: decimal("attendance_leave_multiplier", {
+      precision: 5,
+      scale: 4,
+    }),
     defaultShiftId: int("default_shift_id"),
     active: boolean("active").default(true).notNull(),
     commAttendance: boolean("comm_attendance").default(true).notNull(),
@@ -1462,6 +1466,7 @@ export const attendancePermissions = mysqlTable(
     type: mysqlEnum("perm_type", ["in", "out"]).notNull(),
     durationMinutes: int("duration_minutes").notNull(),
     approved: boolean("approved").default(false).notNull(),
+    notAffectSalary: boolean("not_affect_salary").default(false).notNull(),
     note: varchar("note", { length: 255 }),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -2433,3 +2438,17 @@ export const kfFollowups = mysqlTable("kf_followups", {
 
 export type KfFollowup = typeof kfFollowups.$inferSelect;
 export type InsertKfFollowup = typeof kfFollowups.$inferInsert;
+
+export const kfLedger = mysqlTable("kf_ledger", {
+  kfLedgerId: int("kf_ledger_id").autoincrement().primaryKey(),
+  entryDate: date("entry_date").notNull(),
+  income: int("income").default(0).notNull(),
+  expense: int("expense").default(0).notNull(),
+  notes: varchar("notes", { length: 500 }),
+  createdByUserId: int("created_by_user_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type KfLedgerEntry = typeof kfLedger.$inferSelect;
+export type InsertKfLedgerEntry = typeof kfLedger.$inferInsert;

@@ -10,7 +10,8 @@ import {
   CalendarRange,
   ChevronLeft,
   Activity,
-  Plus
+  Plus,
+  Printer,
 } from "lucide-react";
 
 export default function KfHome() {
@@ -36,7 +37,7 @@ export default function KfHome() {
   return (
     <section dir="rtl" className="space-y-6">
       {/* Welcome Banner */}
-      <div className="relative overflow-hidden rounded-2xl border border-primary/10 bg-gradient-to-l from-primary/10 via-primary/5 to-transparent p-6 sm:p-8">
+      <div className="relative overflow-hidden rounded-2xl border border-primary/10 bg-gradient-to-l from-primary/10 via-primary/5 to-transparent p-6 sm:p-8 print:hidden">
         <div className="relative z-10 space-y-2">
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl text-foreground">
             مرحباً بك في وحدة KF الطبية
@@ -51,7 +52,7 @@ export default function KfHome() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-3 print:hidden">
         <Card className="hover:shadow-md transition-all">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium text-muted-foreground">إجمالي المرضى المسجلين</CardTitle>
@@ -103,7 +104,7 @@ export default function KfHome() {
       </div>
 
       {/* Quick Action Hub */}
-      <Card>
+      <Card className="print:hidden">
         <CardHeader>
           <CardTitle className="text-lg font-semibold">إجراءات سريعة</CardTitle>
           <CardDescription>الوصول المباشر لأهم وظائف النظام</CardDescription>
@@ -155,15 +156,25 @@ export default function KfHome() {
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Recent Patients */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between print:hidden">
             <div>
               <CardTitle className="text-lg">المرضى المضافون مؤخراً</CardTitle>
               <CardDescription>آخر 5 مرضى تم تسجيل ملفاتهم</CardDescription>
             </div>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/kf/patients">عرض الكل</Link>
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => window.print()} disabled={loadingPatients || recentPatients.length === 0}>
+                <Printer className="h-3.5 w-3.5" />
+                طباعة
+              </Button>
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/kf/patients">عرض الكل</Link>
+              </Button>
+            </div>
           </CardHeader>
+          <div className="hidden print:block px-6 py-3 border-b text-center">
+            <div className="font-bold text-base">مركز ساعدني لجراحة وتقويم الإبصار — وحدة كفرالشيخ</div>
+            <div className="text-sm">المرضى المضافون مؤخراً — {new Date().toLocaleDateString("ar-EG")}</div>
+          </div>
           <CardContent className="space-y-4">
             {loadingPatients ? (
               Array.from({ length: 3 }).map((_, i) => (
@@ -198,7 +209,7 @@ export default function KfHome() {
         </Card>
 
         {/* Upcoming Operations */}
-        <Card>
+        <Card className="print:hidden">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-lg">العمليات القادمة</CardTitle>

@@ -23,6 +23,7 @@ export const PERMISSION_SECTIONS = [
   "مركز الخدمات",
   "المخزن",
   "مركز الإدارة",
+  "وحدة KF",
   "أخرى",
 ] as const;
 
@@ -389,6 +390,26 @@ export const PAGE_PERMISSION_DEFINITIONS = [
     label: "كتابة MSSQL (مزامنة)",
     group: "مركز الإدارة",
   },
+
+  // ── وحدة KF ──
+  { id: "/kf", label: "لوحة KF الرئيسية", group: "وحدة KF" },
+  { id: "/kf/patients", label: "مرضى KF", group: "وحدة KF" },
+  { id: "/kf/patients/new", label: "تسجيل مريض KF جديد", group: "وحدة KF" },
+  { id: "/kf/patients/:kfPatientId", label: "ملف مريض KF", group: "وحدة KF" },
+  { id: "/kf/patients/:kfPatientId/edit", label: "تعديل مريض KF", group: "وحدة KF" },
+  { id: "/kf/patients/:kfPatientId/visits/new", label: "KF — إضافة زيارة", group: "وحدة KF" },
+  { id: "/kf/patients/:kfPatientId/examinations/new", label: "KF — إضافة فحص", group: "وحدة KF" },
+  { id: "/kf/patients/:kfPatientId/operations/new", label: "KF — حجز عملية", group: "وحدة KF" },
+  { id: "/kf/patients/:kfPatientId/followups/new", label: "KF — جدولة متابعة", group: "وحدة KF" },
+  { id: "/KFsheets/consultant/:kfPatientId", label: "KF — شيت استشاري", group: "وحدة KF" },
+  { id: "/KFsheets/consultant/:kfPatientId/followup", label: "KF — متابعة استشاري", group: "وحدة KF" },
+  { id: "/kf/operations", label: "KF — العمليات", group: "وحدة KF" },
+  { id: "/kf/followups", label: "KF — المتابعات", group: "وحدة KF" },
+  { id: "/kf/accounting", label: "KF — الحسابات", group: "وحدة KF" },
+  { id: "/kf/accounting/daily-revenue", label: "KF — الإيراد اليومي", group: "وحدة KF" },
+  { id: "/kf/accounting/service-revenue", label: "KF — إيراد الخدمات", group: "وحدة KF" },
+  { id: "/kf/accounting/receipts", label: "KF — الإيصالات", group: "وحدة KF" },
+  { id: "/kf/accounting/ledger", label: "KF — الخزنة", group: "وحدة KF" },
 
   // ── أخرى ──
   { id: "/profile", label: "الملف الشخصي", group: "أخرى" },

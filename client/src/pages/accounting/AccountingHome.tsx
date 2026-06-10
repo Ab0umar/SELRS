@@ -172,6 +172,7 @@ export default function AccountingHome() {
   const [notes, setNotes] = useState("");
   const [saved, setSaved] = useState(false);
   const [notesFocused, setNotesFocused] = useState(false);
+  const [homeTab, setHomeTab] = useState<"activity" | "entry" | "links">("activity");
   const [activeTab, setActiveTab] = useState<"cashbook" | "service">(
     "cashbook",
   );
@@ -404,18 +405,18 @@ export default function AccountingHome() {
                       : formatMoneyAr(cashbook?.currentBalance ?? 0),
                   },
                 ].map((m) => (
-                  <a
+                  <Link
                     key={m.label}
                     href={m.href}
                     className="group hidden flex-col items-end gap-0.5 no-underline sm:flex"
                   >
-                    <span className="text-xs font-medium text-muted-foreground group-hover:text-muted-foreground transition-colors">
+                    <span className="text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">
                       {m.label}
                     </span>
                     <span className="text-sm font-bold tabular-nums leading-none text-foreground">
                       {m.val}
                     </span>
-                  </a>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -443,21 +444,92 @@ export default function AccountingHome() {
                     : formatMoneyAr(cashbook?.currentBalance ?? 0),
                 },
               ].map((m) => (
-                <a
+                <Link
                   key={m.label}
                   href={m.href}
                   className="group flex flex-col gap-0.5 no-underline"
                 >
-                  <span className="text-xs font-medium text-muted-foreground group-hover:text-muted-foreground transition-colors">
+                  <span className="text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">
                     {m.label}
                   </span>
                   <span className="text-sm font-bold tabular-nums leading-none text-foreground">
                     {m.val}
                   </span>
-                </a>
+                </Link>
               ))}
             </div>
-            <div className="h-px bg-muted" />
+          </div>
+        </section>
+
+        {/* View Sub-Tabs Selection */}
+        <div className="flex border-b border-border/50 pb-px print:hidden" dir="rtl">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setHomeTab("activity")}
+              className={cn(
+                "relative flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all duration-200 rounded-t-lg border border-transparent border-b-0 -mb-[1px]",
+                homeTab === "activity"
+                  ? "bg-background border-border/50 text-primary shadow-[0_-2px_10px_rgba(0,0,0,0.02)]"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              )}
+            >
+              <TrendingUp className="h-4 w-4 text-primary" />
+              <span>حركات اليوم والنشاط</span>
+              {receipts.length > 0 && (
+                <span className={cn(
+                  "rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums transition-colors duration-200",
+                  homeTab === "activity" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                )}>
+                  {receipts.length}
+                </span>
+              )}
+              {homeTab === "activity" && (
+                <span className="absolute inset-x-0 -top-px h-[2px] bg-primary rounded-t-full" />
+              )}
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => setHomeTab("entry")}
+              className={cn(
+                "relative flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all duration-200 rounded-t-lg border border-transparent border-b-0 -mb-[1px]",
+                homeTab === "entry"
+                  ? "bg-background border-border/50 text-primary shadow-[0_-2px_10px_rgba(0,0,0,0.02)]"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              )}
+            >
+              <Wallet className="h-4 w-4 text-primary" />
+              <span>تسجيل حركة جديدة</span>
+              {homeTab === "entry" && (
+                <span className="absolute inset-x-0 -top-px h-[2px] bg-primary rounded-t-full" />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setHomeTab("links")}
+              className={cn(
+                "relative flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all duration-200 rounded-t-lg border border-transparent border-b-0 -mb-[1px]",
+                homeTab === "links"
+                  ? "bg-background border-border/50 text-primary shadow-[0_-2px_10px_rgba(0,0,0,0.02)]"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              )}
+            >
+              <BookOpen className="h-4 w-4 text-primary" />
+              <span>المسارات السريعة</span>
+              {homeTab === "links" && (
+                <span className="absolute inset-x-0 -top-px h-[2px] bg-primary rounded-t-full" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        {homeTab === "entry" && (
+          <section
+            className="rounded-lg border border-border bg-background p-4 lg:p-5"
+            dir="rtl"
+          >
             <div className="flex flex-col gap-2.5">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <button
@@ -868,26 +940,15 @@ export default function AccountingHome() {
                 </div>
               )}
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
-        <section className="rounded-lg border border-border bg-background p-4 lg:p-5">
-          <button
-            type="button"
-            onClick={() => setMoreQuickLinksOpen((v) => !v)}
-            aria-expanded={moreQuickLinksOpen}
-            className="flex w-full items-center justify-between gap-3 rounded-2xl border border-border bg-muted px-3 py-2.5 text-right text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted"
-          >
-            <span>المسارات السريعة</span>
-            <ChevronDown
-              className={cn(
-                "h-4 w-4 transition-transform",
-                moreQuickLinksOpen && "rotate-180",
-              )}
-            />
-          </button>
-          {moreQuickLinksOpen ? (
-            <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-4 sm:gap-2">
+        {homeTab === "links" && (
+          <section className="rounded-lg border border-border bg-background p-4 lg:p-5">
+            <h2 className="text-sm font-bold text-foreground mb-4">
+              المسارات السريعة للحسابات
+            </h2>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
               {quickLinkGroups
                 .flatMap((group) => group)
                 .map((item) => {
@@ -896,22 +957,25 @@ export default function AccountingHome() {
                     <Link
                       key={item.href}
                       href={item.href}
-                      className="group flex flex-col gap-1.5 rounded-2xl border border-primary/20 bg-primary/5 px-2.5 py-2.5 transition-colors hover:bg-primary/70 sm:gap-2 sm:px-3 sm:py-3"
+                      className="group flex flex-col gap-2 rounded-2xl border border-primary/10 bg-primary/5 p-4 transition-all duration-200 hover:bg-primary/10 hover:border-primary/30 hover:shadow-sm"
                     >
-                      <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-primary text-primary-foreground ring-1 ring-primary/30 sm:h-8 sm:w-8">
-                        <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-primary-foreground ring-1 ring-primary/30 transition-all duration-200 group-hover:scale-105 group-hover:bg-primary/90">
+                        <Icon className="h-4 w-4" />
                       </div>
-                      <div className="truncate text-xs font-semibold text-primary sm:text-sm">
+                      <div className="text-sm font-semibold text-primary mt-1">
                         {item.label}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground leading-normal">
+                        {item.desc}
                       </div>
                     </Link>
                   );
                 })}
             </div>
-          ) : null}
-        </section>
+          </section>
+        )}
 
-        {activityEverVisible && (
+        {homeTab === "activity" && activityEverVisible && (
           <section className="w-full overflow-hidden rounded-lg border border-border bg-background">
             <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
               <div>

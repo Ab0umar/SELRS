@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { trpc } from "@/lib/trpc";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, UserPlus, Phone, CreditCard, Calendar, Eye, Edit } from "lucide-react";
+import { Search, UserPlus, Phone, CreditCard, Calendar, Eye, Edit, Trash2, Loader2, Printer } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 // Local useDebounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -26,18 +28,26 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export default function KfPatients() {
+  const { user } = useAuth();
+  const canDelete = user?.role === "admin" || user?.role === "accountant";
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
+  const [delConfirm, setDelConfirm] = useState<number | null>(null);
   const pageSize = 15;
 
   const debouncedSearch = useDebounce(searchTerm, 300);
+  const utils = trpc.useUtils();
 
   // Queries
   const { data, isLoading, isError } = trpc.kf.listPatients.useQuery({
     search: debouncedSearch,
     page,
     pageSize
+  });
+  const deleteMut = trpc.kf.deletePatient.useMutation({
+    onSuccess: () => { utils.kf.listPatients.invalidate(); toast.success("تم حذف المريض وجميع سجلاته"); setDelConfirm(null); },
+    onError: () => toast.error("تعذر حذف المريض"),
   });
 
   const patients = data?.patients ?? [];
@@ -50,21 +60,27 @@ export default function KfPatients() {
 
   return (
     <section dir="rtl" className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 print:hidden">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">سجل مرضى KF</h1>
           <p className="text-muted-foreground text-sm">البحث، الإضافة واستعراض ملفات المرضى</p>
         </div>
-        <Button asChild className="self-start sm:self-auto gap-2">
-          <Link href="/kf/patients/new">
-            <UserPlus className="h-4 w-4" />
-            <span>تسجيل مريض جديد</span>
-          </Link>
-        </Button>
+        <div className="flex gap-2 self-start sm:self-auto">
+          <Button variant="outline" className="gap-2" onClick={() => window.print()} disabled={isLoading || patients.length === 0}>
+            <Printer className="h-4 w-4" />
+            <span>طباعة</span>
+          </Button>
+          <Button asChild className="gap-2">
+            <Link href="/kf/patients/new">
+              <UserPlus className="h-4 w-4" />
+              <span>تسجيل مريض جديد</span>
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-3 print:hidden">
           <CardTitle className="text-lg">قائمة البحث</CardTitle>
           <CardDescription>ابحث باستخدام الاسم، كود المريض (KF-XXXX)، رقم الهاتف، أو الرقم القومي</CardDescription>
           <div className="relative mt-2 max-w-md">
@@ -82,6 +98,10 @@ export default function KfPatients() {
           </div>
         </CardHeader>
         <CardContent>
+          <div className="hidden print:block text-center py-2 mb-3 border-b-2 border-black">
+            <div className="text-base font-bold">مركز ساعدني لجراحة وتقويم الإبصار — وحدة كفرالشيخ</div>
+            <div className="text-sm">سجل المرضى — تاريخ الطباعة: {new Date().toLocaleDateString("ar-EG")}</div>
+          </div>
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -156,7 +176,7 @@ export default function KfPatients() {
                         </span>
                       </TableCell>
                       <TableCell className="text-left" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-start gap-2">
+                        <div className="flex justify-start gap-1">
                           <Button variant="ghost" size="icon" asChild title="عرض الملف">
                             <Link href={`/kf/patients/${patient.kfId}`}>
                               <Eye className="h-4 w-4" />
@@ -167,6 +187,18 @@ export default function KfPatients() {
                               <Edit className="h-4 w-4" />
                             </Link>
                           </Button>
+                          {delConfirm === patient.kfId ? (
+                            <div className="flex gap-1 items-center">
+                              <Button variant="destructive" size="sm" className="h-7 px-2 text-xs" onClick={() => deleteMut.mutate({ kfId: patient.kfId })} disabled={deleteMut.isPending}>
+                                {deleteMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "حذف"}
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setDelConfirm(null)}>لا</Button>
+                            </div>
+                          ) : canDelete ? (
+                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" title="حذف" onClick={() => setDelConfirm(patient.kfId)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          ) : null}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -178,7 +210,7 @@ export default function KfPatients() {
 
           {/* Pagination */}
           {!isLoading && totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4">
+            <div className="flex items-center justify-between mt-4 print:hidden">
               <span className="text-sm text-muted-foreground">
                 عرض {patients.length} من أصل {total} مريض
               </span>

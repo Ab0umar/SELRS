@@ -5,7 +5,7 @@ import {
   LayoutDashboard,
   Smartphone,
   Users,
-  ChevronRight,
+  ChevronLeft,
   Activity,
   Clock,
   Settings,
@@ -16,24 +16,22 @@ interface AttendanceLayoutProps {
   children: ReactNode;
 }
 
-// Simplified and reorganized navigation structure
+// Navigation structure
 const navigationSections = [
   {
     id: "monitoring",
     label: "المراقبة اليومية",
-    description: "متابعة الحضور والانصراف",
-    icon: Activity,
     items: [
       {
         href: "/attendance",
         label: "لوحة التحكم",
-        description: "ملخص الحضور والإحصائيات",
+        icon: LayoutDashboard,
         activeFor: ["/attendance"],
       },
       {
         href: "/attendance/live",
         label: "الحضور الآن",
-        description: "مراقبة فورية لحركة الدخول والخروج",
+        icon: Activity,
         activeFor: ["/attendance/live"],
       },
     ],
@@ -41,19 +39,17 @@ const navigationSections = [
   {
     id: "employees",
     label: "الموظفون والطلبات",
-    description: "إدارة الموظفين والإجازات",
-    icon: Users,
     items: [
       {
         href: "/attendance/employees",
         label: "قائمة الموظفين",
-        description: "إدارة بيانات الموظفين",
+        icon: Users,
         activeFor: ["/attendance/employees"],
       },
       {
         href: "/attendance/shift-schedule",
         label: "الروستر الشهري",
-        description: "جدول الورديات والحضور",
+        icon: Clock,
         activeFor: ["/attendance/shift-schedule"],
       },
     ],
@@ -61,13 +57,11 @@ const navigationSections = [
   {
     id: "reports",
     label: "التقارير",
-    description: "تقارير الحضور والإجازات",
-    icon: BarChart3,
     items: [
       {
         href: "/attendance/reports",
         label: "التقارير",
-        description: "تقارير يومية وتفصيلية",
+        icon: BarChart3,
         activeFor: ["/attendance/reports"],
       },
     ],
@@ -75,13 +69,11 @@ const navigationSections = [
   {
     id: "settings",
     label: "الإعدادات والمزامنة",
-    description: "ضبط الأجهزة والمزامنة",
-    icon: Smartphone,
     items: [
       {
         href: "/attendance/settings",
         label: "الإعدادات",
-        description: "إعداد الأجهزة والقواعد",
+        icon: Settings,
         activeFor: ["/attendance/settings"],
       },
     ],
@@ -96,10 +88,6 @@ function isItemActive(pathname: string, activeFor: string[]) {
   );
 }
 
-function isSectionActive(pathname: string, items: any[]) {
-  return items.some((item) => isItemActive(pathname, item.activeFor));
-}
-
 const mobileNavItems = [
   { href: "/attendance", label: "الرئيسية", icon: LayoutDashboard, activeFor: ["/attendance"] },
   { href: "/attendance/live", label: "المباشر", icon: Activity, activeFor: ["/attendance/live"] },
@@ -112,10 +100,6 @@ const mobileNavItems = [
 export default function AttendanceLayout({ children }: AttendanceLayoutProps) {
   const [location] = useLocation();
 
-  const summaryQuery = (trpc as any).attendance.dashboardSummary.useQuery(
-    undefined,
-    { refetchInterval: 30_000, refetchIntervalInBackground: false },
-  );
   const deviceQuery = (trpc as any).attendance.deviceStatus.useQuery(
     undefined,
     {
@@ -124,191 +108,147 @@ export default function AttendanceLayout({ children }: AttendanceLayoutProps) {
     },
   );
 
-  const summary = summaryQuery.data as any;
   const device = deviceQuery.data as any;
-
-  // Key metrics for the dashboard
-  const metrics = [
-    {
-      label: "حاضر اليوم",
-      value: summary?.presentToday ?? 0,
-      tone: "text-success",
-      accent: "bg-success/10 border-success/20",
-    },
-    {
-      label: "متأخر اليوم",
-      value: summary?.lateToday ?? 0,
-      tone: "text-warning",
-      accent: "bg-warning/10 border-warning/20",
-    },
-    {
-      label: "داخل الآن",
-      value: summary?.insideNow ?? 0,
-      tone: "text-info",
-      accent: "bg-info/10 border-info/20",
-    },
-    {
-      label: "الجهاز",
-      value:
-        device?.status === "online" || device?.connected === true
-          ? "متصل"
-          : device?.status === "connecting"
-            ? "جارٍ"
-            : "غير متصل",
-      tone: "text-secondary",
-      accent: "bg-secondary/10 border-secondary/20",
-    },
-  ];
+  const isDeviceOnline = device?.status === "online" || device?.connected === true;
+  const isDeviceConnecting = device?.status === "connecting";
 
   return (
     <div
       className="page-layout min-h-screen bg-background text-foreground"
       dir="rtl"
     >
-      {/* Header with metrics */}
-      <div className="border-b border-secondary/15 bg-gradient-to-b from-secondary/5 to-transparent">
-        <div className="mx-auto w-full px-3 py-4 sm:px-4 lg:px-5">
-          <div className="flex flex-col gap-4 sm:gap-6">
+      {/* Header */}
+      <div className="border-b border-border/60 bg-gradient-to-b from-secondary/5 to-transparent backdrop-blur-sm">
+        <div className="mx-auto w-full px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-3">
             {/* Title section */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="inline-flex items-center gap-2 rounded-full border border-secondary/20 bg-secondary/10 px-3 py-1 text-xs font-medium text-secondary">
-                  <span className="h-2 w-2 rounded-full bg-secondary" />
-                  نظام الحضور والانصراف
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-secondary/20 bg-secondary/15 px-2.5 py-0.5 text-[11px] font-medium text-secondary">
+                    <span className="h-1.5 w-1.5 rounded-full bg-secondary animate-pulse" />
+                    نظام الحضور والانصراف
+                  </div>
                 </div>
+                <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+                  إدارة الحضور والانصراف
+                </h1>
+                <p className="max-w-xl text-xs text-muted-foreground">
+                  مراقبة حضور الموظفين، الورديات، والطلبات
+                </p>
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                إدارة الحضور والانصراف
-              </h1>
-              <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                مراقبة شاملة لحضور الموظفين والإجازات والأذونات مع تقارير دقيقة
-              </p>
+
+              {/* Device Status Badge */}
+              <div className="self-start sm:self-center">
+                {deviceQuery.isLoading ? (
+                  <div className="h-7 w-32 animate-pulse rounded-full bg-muted" />
+                ) : (
+                  <div
+                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium shadow-sm transition-all ${
+                      isDeviceOnline
+                        ? "border-success/20 bg-success/10 text-success"
+                        : isDeviceConnecting
+                          ? "border-warning/20 bg-warning/10 text-warning"
+                          : "border-muted bg-muted/40 text-muted-foreground"
+                    }`}
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        isDeviceOnline
+                          ? "bg-success animate-ping"
+                          : isDeviceConnecting
+                            ? "bg-warning animate-pulse"
+                            : "bg-muted-foreground"
+                      }`}
+                    />
+                    <span>
+                      {isDeviceOnline
+                        ? "جهاز البصمة: متصل"
+                        : isDeviceConnecting
+                          ? "جهاز البصمة: جارٍ الاتصال"
+                          : "جهاز البصمة: غير متصل"}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Metrics grid */}
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {metrics.map((metric) => (
-                <div
-                  key={metric.label}
-                  className={`rounded-lg border p-3 ${metric.accent}`}
-                >
-                  <div className="text-xs font-semibold text-foreground/70">
-                    {metric.label}
-                  </div>
-                  <div className={`mt-1.5 text-lg font-bold ${metric.tone}`}>
-                    {metric.value}
-                  </div>
-                </div>
-              ))}
+            {/* Mobile Horizontal Pill Navigation Bar (Inline top navigation) */}
+            <div className="lg:hidden mt-2 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none whitespace-nowrap border-t border-border/40 pt-3">
+              {mobileNavItems.map((item) => {
+                const Icon = item.icon;
+                const itemActive = isItemActive(location, item.activeFor);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all ${
+                      itemActive
+                        ? "bg-secondary text-secondary-foreground shadow-sm"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    }`}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         </div>
       </div>
 
       {/* Two-column layout: Sidebar + Content */}
-      <div className="flex flex-col lg:flex-row">
+      <div className="flex flex-col lg:flex-row mx-auto w-full max-w-[1600px]">
         {/* Sidebar Navigation (Desktop only) */}
-        <aside className="hidden lg:block w-full border-b border-border bg-card/50 lg:w-64 lg:border-b-0 lg:border-r">
-          <nav className="space-y-1 p-3 sm:p-4">
-            {navigationSections.map((section) => {
-              const active = isSectionActive(location, section.items);
-              return (
-                <div key={section.id} className="space-y-1">
-                  {/* Section header */}
-                  <div
-                    className={`rounded-xl border px-3 py-2.5 transition-colors ${
-                      active
-                        ? "border-secondary/20 bg-secondary/10"
-                        : "border-border bg-background"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <section.icon
-                        className={`h-4 w-4 ${
-                          active ? "text-secondary" : "text-muted-foreground"
-                        }`}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <h3
-                          className={`text-xs font-semibold uppercase tracking-wide ${
-                            active ? "text-secondary" : "text-foreground"
-                          }`}
-                        >
-                          {section.label}
-                        </h3>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {section.description}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Section items */}
-                  <div className="mt-1 space-y-1 pl-1">
-                    {section.items.map((item) => {
-                      const itemActive = isItemActive(location, item.activeFor);
-                      return (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          className={`group flex items-start gap-3 rounded-lg px-3 py-2.5 text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/30 focus-visible:ring-offset-2 ${
-                            itemActive
-                              ? "bg-background text-secondary font-medium ring-1 ring-inset ring-secondary/15 shadow-sm"
-                              : "bg-muted/20 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                          }`}
-                        >
-                          <ChevronRight
-                            className={`h-4 w-4 mt-0.5 shrink-0 transition-opacity ${
-                              itemActive
-                                ? "opacity-100 text-secondary"
-                                : "opacity-0 group-hover:opacity-100"
-                            }`}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium">{item.label}</div>
-                            <div className="text-xs text-muted-foreground mt-0.5">
-                              {item.description}
-                            </div>
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-
-                  {/* Divider between sections */}
-                  {section.id !== "settings" && (
-                    <div className="my-3 border-t border-border/80" />
-                  )}
+        <aside className="hidden lg:block w-full border-b border-border/60 bg-card/20 lg:w-64 lg:border-b-0 lg:border-r border-border/60 min-h-[calc(100vh-115px)]">
+          <nav className="space-y-4 p-4 sticky top-4">
+            {navigationSections.map((section) => (
+              <div key={section.id} className="space-y-1">
+                {/* Section header */}
+                <div className="px-3 py-1">
+                  <h3 className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider">
+                    {section.label}
+                  </h3>
                 </div>
-              );
-            })}
+
+                {/* Section items */}
+                <div className="space-y-1">
+                  {section.items.map((item) => {
+                    const itemActive = isItemActive(location, item.activeFor);
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`group flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/30 ${
+                          itemActive
+                            ? "bg-secondary/10 text-secondary font-medium shadow-sm border border-secondary/10"
+                            : "text-muted-foreground hover:bg-muted/40 hover:text-foreground border border-transparent"
+                        }`}
+                      >
+                        <Icon className={`h-4 w-4 shrink-0 transition-colors ${itemActive ? "text-secondary" : "text-muted-foreground group-hover:text-foreground"}`} />
+                        <span className="flex-1 min-w-0 truncate">{item.label}</span>
+                        <ChevronLeft
+                          className={`h-3.5 w-3.5 shrink-0 transition-all opacity-0 ${
+                            itemActive
+                              ? "opacity-100 text-secondary translate-x-0"
+                              : "group-hover:opacity-100 group-hover:-translate-x-0.5"
+                          }`}
+                        />
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
         </aside>
 
-        {/* Mobile Horizontal Pill Navigation Bar (2nd Bottom Bar) */}
-        <div className="lg:hidden fixed bottom-14 left-0 right-0 h-14 bg-card border-t border-border flex items-center gap-2 px-4 overflow-x-auto z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] scrollbar-none whitespace-nowrap">
-          {mobileNavItems.map((item) => {
-            const Icon = item.icon;
-            const itemActive = isItemActive(location, item.activeFor);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold shrink-0 transition-colors ${
-                  itemActive
-                    ? "bg-secondary text-secondary-foreground shadow-sm"
-                    : "bg-muted text-muted-foreground hover:bg-muted/85"
-                }`}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-
         {/* Main content area */}
-        <main className="flex-1 px-3 py-5 pb-32 sm:px-4 sm:pb-32 lg:px-5 lg:pb-5">{children}</main>
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 min-w-0">
+          {children}
+        </main>
       </div>
     </div>
   );
