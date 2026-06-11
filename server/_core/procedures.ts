@@ -373,6 +373,47 @@ export function makeAttWriteProcedure(pagePath: string) {
   );
 }
 
+// Salary per-page factory (admin + manager bypass)
+export function makeSalaryProcedure(pagePath: string) {
+  return t.procedure.use(
+    t.middleware(async (opts) => {
+      const { ctx, next } = opts;
+      if (!ctx.user)
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+      if (ctx.user.role === "admin" || ctx.user.role === "manager")
+        return next({ ctx: { ...ctx, user: ctx.user } });
+      const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+      const ok = permissions.some((p) => {
+        const clean = String(p ?? "").trim().replace(/:r[w]?$/, "").trim();
+        return permMatchesPath(clean, pagePath);
+      });
+      if (!ok) throw new TRPCError({ code: "FORBIDDEN", message: "Salary access required" });
+      return next({ ctx: { ...ctx, user: ctx.user } });
+    }),
+  );
+}
+
+export function makeSalaryWriteProcedure(pagePath: string) {
+  return t.procedure.use(
+    t.middleware(async (opts) => {
+      const { ctx, next } = opts;
+      if (!ctx.user)
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+      if (ctx.user.role === "admin" || ctx.user.role === "manager")
+        return next({ ctx: { ...ctx, user: ctx.user } });
+      const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+      const ok = permissions.some((p) => {
+        const raw = String(p ?? "").trim();
+        if (!raw.endsWith(":rw")) return false;
+        const clean = raw.slice(0, -3).trim();
+        return permMatchesPath(clean, pagePath);
+      });
+      if (!ok) throw new TRPCError({ code: "FORBIDDEN", message: "Salary write access required" });
+      return next({ ctx: { ...ctx, user: ctx.user } });
+    }),
+  );
+}
+
 // KF procedure - gate by effective /kf permissions
 export const kfProcedure = t.procedure.use(
   t.middleware(async (opts) => {

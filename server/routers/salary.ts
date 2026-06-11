@@ -1,7 +1,8 @@
 import { z } from "zod";
 import {
   router,
-  attendanceManagerProcedure as managerProcedure,
+  makeSalaryProcedure,
+  makeSalaryWriteProcedure,
   protectedProcedure,
 } from "../_core/procedures";
 import { getDb } from "../db";
@@ -40,7 +41,7 @@ const allowanceInput = z.object({
 
 export const salaryRouter = router({
   // ── Basics ──────────────────────────────────────────────
-  listBasics: managerProcedure.query(async () => {
+  listBasics: makeSalaryProcedure("/salary").query(async () => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     const rows = await db
@@ -70,7 +71,7 @@ export const salaryRouter = router({
     return rows;
   }),
 
-  setBasic: managerProcedure
+  setBasic: makeSalaryWriteProcedure("/salary")
     .input(
       allowanceInput.extend({
         empCd: z.string().min(1),
@@ -99,7 +100,7 @@ export const salaryRouter = router({
       return { id: (result as any).insertId };
     }),
 
-  updateBasic: managerProcedure
+  updateBasic: makeSalaryWriteProcedure("/salary")
     .input(
       z.object({
         id: z.number().int(),
@@ -149,7 +150,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  deleteBasic: managerProcedure
+  deleteBasic: makeSalaryWriteProcedure("/salary")
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -159,7 +160,7 @@ export const salaryRouter = router({
     }),
 
   // ── Penalties ────────────────────────────────────────────
-  listPenalties: managerProcedure
+  listPenalties: makeSalaryProcedure("/salary/penalties")
     .input(z.object({ year: z.number().int(), month: z.number().int() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -191,7 +192,7 @@ export const salaryRouter = router({
       return rows;
     }),
 
-  addPenalty: managerProcedure
+  addPenalty: makeSalaryWriteProcedure("/salary/penalties")
     .input(
       z.object({
         empCd: z.string().min(1),
@@ -214,7 +215,7 @@ export const salaryRouter = router({
       return { id: (result as any).insertId };
     }),
 
-  deletePenalty: managerProcedure
+  deletePenalty: makeSalaryWriteProcedure("/salary/penalties")
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -224,7 +225,7 @@ export const salaryRouter = router({
     }),
 
   // ── Advances ─────────────────────────────────────────────
-  listAdvances: managerProcedure
+  listAdvances: makeSalaryProcedure("/salary")
     .input(z.object({ year: z.number().int(), month: z.number().int() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -240,7 +241,7 @@ export const salaryRouter = router({
         );
     }),
 
-  addAdvance: managerProcedure
+  addAdvance: makeSalaryWriteProcedure("/salary")
     .input(
       z.object({
         empCd: z.string().min(1),
@@ -263,7 +264,7 @@ export const salaryRouter = router({
       return { id: (result as any).insertId };
     }),
 
-  deleteAdvance: managerProcedure
+  deleteAdvance: makeSalaryWriteProcedure("/salary")
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -273,7 +274,7 @@ export const salaryRouter = router({
     }),
 
   // ── Commission Pools ─────────────────────────────────────
-  getCommissionPool: managerProcedure
+  getCommissionPool: makeSalaryProcedure("/salary/pools")
     .input(
       z.object({
         year: z.number().int(),
@@ -298,7 +299,7 @@ export const salaryRouter = router({
       return rows[0] ?? null;
     }),
 
-  setCommissionPool: managerProcedure
+  setCommissionPool: makeSalaryWriteProcedure("/salary/pools")
     .input(
       z.object({
         year: z.number().int(),
@@ -422,7 +423,7 @@ export const salaryRouter = router({
     }),
 
   // ── Payroll ──────────────────────────────────────────────
-  computePayroll: managerProcedure
+  computePayroll: makeSalaryWriteProcedure("/salary/payroll")
     .input(
       z.object({
         year: z.number().int(),
@@ -440,7 +441,7 @@ export const salaryRouter = router({
       return { saved, rows };
     }),
 
-  getPayroll: managerProcedure
+  getPayroll: makeSalaryProcedure("/salary/payroll")
     .input(
       z.object({
         year: z.number().int(),
@@ -643,7 +644,7 @@ export const salaryRouter = router({
       });
     }),
 
-  listPayrollDeductions: managerProcedure
+  listPayrollDeductions: makeSalaryProcedure("/salary/payroll")
     .input(z.object({ year: z.number().int(), month: z.number().int() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -675,7 +676,7 @@ export const salaryRouter = router({
         .orderBy(attendanceEmployees.fullName);
     }),
 
-  finalizePayroll: managerProcedure
+  finalizePayroll: makeSalaryWriteProcedure("/salary/payroll")
     .input(z.object({ year: z.number().int(), month: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -693,7 +694,7 @@ export const salaryRouter = router({
     }),
 
   // ── Raise History ────────────────────────────────────────
-  listRaiseHistory: managerProcedure
+  listRaiseHistory: makeSalaryProcedure("/salary")
     .input(z.object({ empCd: z.string().min(1) }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -705,7 +706,7 @@ export const salaryRouter = router({
         .orderBy(desc(salaryRaiseHistory.year));
     }),
 
-  setRaise: managerProcedure
+  setRaise: makeSalaryWriteProcedure("/salary")
     .input(
       z.object({
         empCd: z.string().min(1),
@@ -734,7 +735,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  deleteRaise: managerProcedure
+  deleteRaise: makeSalaryWriteProcedure("/salary")
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -746,7 +747,7 @@ export const salaryRouter = router({
     }),
 
   // ── Salary Config ────────────────────────────────────────
-  getAttendanceRates: managerProcedure.query(async () => {
+  getAttendanceRates: makeSalaryProcedure("/salary").query(async () => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     const rows = await db
@@ -767,7 +768,7 @@ export const salaryRouter = router({
     };
   }),
 
-  setAttendanceRates: managerProcedure
+  setAttendanceRates: makeSalaryWriteProcedure("/salary")
     .input(
       z.object({
         rate3: z.number().min(0).max(1),
@@ -794,7 +795,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  listEmployees: managerProcedure.query(async () => {
+  listEmployees: makeSalaryProcedure("/salary").query(async () => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     return await db
@@ -814,7 +815,7 @@ export const salaryRouter = router({
       .orderBy(attendanceEmployees.fullName);
   }),
 
-  getAbsentDays: managerProcedure
+  getAbsentDays: makeSalaryProcedure("/salary")
     .input(z.object({ from: z.string(), to: z.string() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -849,7 +850,7 @@ export const salaryRouter = router({
       });
     }),
 
-  setCommissionFlags: managerProcedure
+  setCommissionFlags: makeSalaryWriteProcedure("/salary/pools")
     .input(
       z.object({
         empCd: z.string(),
@@ -875,7 +876,7 @@ export const salaryRouter = router({
     }),
 
   // ── Shift Staff ──────────────────────────────────────────
-  listShiftStaff: managerProcedure.query(async () => {
+  listShiftStaff: makeSalaryProcedure("/salary").query(async () => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     return db
@@ -884,7 +885,7 @@ export const salaryRouter = router({
       .orderBy(shiftStaff.type, shiftStaff.name);
   }),
 
-  addShiftStaff: managerProcedure
+  addShiftStaff: makeSalaryWriteProcedure("/salary")
     .input(
       z.object({
         name: z.string().min(1),
@@ -907,7 +908,7 @@ export const salaryRouter = router({
       return { id: (result as any).insertId };
     }),
 
-  updateShiftStaff: managerProcedure
+  updateShiftStaff: makeSalaryWriteProcedure("/salary")
     .input(
       z.object({
         id: z.number(),
@@ -936,7 +937,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  deleteShiftStaff: managerProcedure
+  deleteShiftStaff: makeSalaryWriteProcedure("/salary")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -948,7 +949,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  getShiftSchedule: managerProcedure
+  getShiftSchedule: makeSalaryProcedure("/salary")
     .input(z.object({ year: z.number(), month: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -1071,7 +1072,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  listUsersForShiftLink: managerProcedure.query(async () => {
+  listUsersForShiftLink: makeSalaryProcedure("/salary").query(async () => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     const { users } = await import("../../drizzle/schema");
@@ -1087,7 +1088,7 @@ export const salaryRouter = router({
       .orderBy(users.name);
   }),
 
-  linkUserToShiftStaff: managerProcedure
+  linkUserToShiftStaff: makeSalaryWriteProcedure("/salary")
     .input(
       z.object({
         staffId: z.number().int(),
@@ -1104,7 +1105,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  addShiftEntry: managerProcedure
+  addShiftEntry: makeSalaryWriteProcedure("/salary")
     .input(
       z.object({
         staffId: z.number(),
@@ -1132,7 +1133,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  addShiftsBulk: managerProcedure
+  addShiftsBulk: makeSalaryWriteProcedure("/salary")
     .input(
       z.object({
         staffId: z.number(),
@@ -1164,7 +1165,7 @@ export const salaryRouter = router({
       return { inserted };
     }),
 
-  toggleShiftPresent: managerProcedure
+  toggleShiftPresent: makeSalaryWriteProcedure("/salary")
     .input(z.object({ id: z.number(), present: z.boolean() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1176,7 +1177,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  deleteShiftEntry: managerProcedure
+  deleteShiftEntry: makeSalaryWriteProcedure("/salary")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1185,7 +1186,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  clearRoster: managerProcedure
+  clearRoster: makeSalaryWriteProcedure("/salary")
     .input(z.object({ year: z.number().int(), month: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1219,7 +1220,7 @@ export const salaryRouter = router({
         );
     }),
 
-  addHoliday: managerProcedure
+  addHoliday: makeSalaryWriteProcedure("/salary")
     .input(
       z.object({
         date: z.string(),
@@ -1243,7 +1244,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  deleteHoliday: managerProcedure
+  deleteHoliday: makeSalaryWriteProcedure("/salary")
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1252,7 +1253,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  computeShiftPayroll: managerProcedure
+  computeShiftPayroll: makeSalaryWriteProcedure("/salary/payroll")
     .input(z.object({ year: z.number(), month: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -1464,13 +1465,13 @@ export const salaryRouter = router({
     }),
 
   // ── Shift Cycles ─────────────────────────────────────────
-  getStaffCycles: managerProcedure.query(async () => {
+  getStaffCycles: makeSalaryProcedure("/salary/payroll").query(async () => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     return db.select().from(shiftStaffCycle);
   }),
 
-  setStaffCycle: managerProcedure
+  setStaffCycle: makeSalaryWriteProcedure("/salary/payroll")
     .input(
       z.object({
         staffId: z.number(),
@@ -1504,7 +1505,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  generateFromCycles: managerProcedure
+  generateFromCycles: makeSalaryWriteProcedure("/salary/payroll")
     .input(z.object({ year: z.number(), month: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1552,7 +1553,7 @@ export const salaryRouter = router({
       return { inserted };
     }),
 
-  monthSummary: managerProcedure
+  monthSummary: makeSalaryProcedure("/salary")
     .input(z.object({ year: z.number(), month: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
