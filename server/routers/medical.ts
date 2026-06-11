@@ -2588,7 +2588,6 @@ export const medicalRouter = router({
             return null;
           });
         }
-        console.log("[patient-create] reached notification block, patientId=", created?.id);
         await db.logAuditEvent(
           ctx.user.id,
           "CREATE_PATIENT",
@@ -2597,11 +2596,10 @@ export const medicalRouter = router({
           {
             message: `Created patient: ${input.fullName}`,
           },
-        ).catch((e) => console.warn("[patient-create] logAuditEvent failed:", e));
+        );
         const notificationSettings = await getAppNotificationSettings().catch(
           () => DEFAULT_APP_NOTIFICATION_SETTINGS,
         );
-        console.log("[patient-create] notif settings:", JSON.stringify(notificationSettings.patients));
         if (notificationSettings.patients.enabled) {
           const targetRoles = resolveNotificationTargetRolesByUserRole(
             (ctx.user as any)?.role,
@@ -3668,7 +3666,39 @@ export const medicalRouter = router({
             message: `Registered new patient with ${processServices.length} services`,
             patientCode: code,
           },
+        ).catch(() => null);
+
+        const notifSettings = await getAppNotificationSettings().catch(
+          () => DEFAULT_APP_NOTIFICATION_SETTINGS,
         );
+        if (notifSettings.patients.enabled) {
+          const targetRoles = resolveNotificationTargetRolesByUserRole(
+            (ctx.user as any)?.role,
+          );
+          const serviceCodes = processServices.map((s) => s.code).filter(Boolean) as string[];
+          const notifTitle = resolvePatientNotifTitle(serviceCodes);
+          await pushAppNotification({
+            title: notifTitle,
+            message: String(input.fullName ?? "").trim(),
+            kind: "success",
+            targetRoles,
+            source: "manual_patient_create",
+            entityType: "patient",
+            entityId: Number(newPatient.id),
+            meta: {
+              patientCode: code,
+              fullName: input.fullName,
+              createdBy: String(
+                (ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "",
+              ).trim() || null,
+            },
+            channels: {
+              inApp: notifSettings.patients.inApp,
+              push: notifSettings.patients.push,
+              local: notifSettings.patients.local,
+            },
+          }).catch((e) => console.warn("[createPatientFromExamination] notif failed:", e));
+        }
 
         return {
           id: Number(newPatient.id),
