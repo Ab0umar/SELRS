@@ -504,7 +504,7 @@ export function usePatientsActions(
     const selectedDoctorCode = String(selectedDoctor?.code ?? "").trim();
     const selectedDoctorIdNumeric = Number(selectedDoctorId);
 
-    await createPatientMutation.mutateAsync({
+    const created = await createPatientMutation.mutateAsync({
       patientCode: patientDraft.patientCode.trim() || undefined,
       fullName: patientDraft.fullName.trim(),
       phone: patientDraft.phone.trim(),
@@ -519,7 +519,9 @@ export function usePatientsActions(
         : undefined,
       ...(selectedDoctorCode ? { doctorCode: selectedDoctorCode } : {}),
     });
-    toast.success("تم إضافة المريض");
+    const receiptPart = created?.receiptNo ? ` — إيصال #${created.receiptNo}` : "";
+    const mssqlPart = created?.mssqlLinked ? " ✓ MSSQL" : created?.mssqlNote ? ` ⚠ ${created.mssqlNote}` : "";
+    toast.success(`تم إضافة المريض${receiptPart}${mssqlPart}`);
   };
 
   return {

@@ -824,6 +824,9 @@ export default function ExaminationForm() {
           locationType,
         });
         effectivePatientId = created.id;
+        if (created.receiptNo) {
+          toast.success(`تم تسجيل المريض — إيصال #${created.receiptNo}`);
+        }
         setPatientInfo((prev) => ({
           ...prev,
           id: effectivePatientId,
