@@ -96,3 +96,23 @@ export function broadcastPunch(
     }
   });
 }
+
+export function broadcastAppNotification(notification: {
+  id: string;
+  title: string;
+  message: string;
+  kind?: string;
+  targetRoles?: string[] | null;
+  targetUserIds?: number[] | null;
+  source?: string | null;
+  entityType?: string | null;
+  entityId?: number | null;
+}) {
+  if (!wss) return;
+  const payload = JSON.stringify({ type: "app-notification", ...notification });
+  wss.clients.forEach((client) => {
+    const ws = client as any;
+    if (ws.readyState !== WebSocket.OPEN) return;
+    ws.send(payload);
+  });
+}

@@ -1,6 +1,7 @@
 import * as db from "../db";
 import { sendFcmPushToRegisteredDevices } from "./fcmPush";
 import { sendWebPushNotifications } from "./webPush";
+import { broadcastAppNotification } from "./ws";
 
 export const APP_NOTIFICATION_FEED_KEY = "app_notifications_feed_v1";
 export const APP_NOTIFICATION_SETTINGS_KEY = "app_notification_settings_v1";
@@ -183,6 +184,7 @@ export async function pushAppNotification(
       APP_NOTIFICATION_FEED_LIMIT,
     );
     await db.updateSystemSettings(APP_NOTIFICATION_FEED_KEY, nextFeed);
+    broadcastAppNotification(entry);
   }
 
   if (doPush) {

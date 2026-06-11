@@ -108,6 +108,8 @@ function AppNotificationsBridge() {
   const seenIdsRef = useRef<Set<string>>(new Set());
   const storageKey = `selrs_seen_app_notifications_${String(user?.id ?? "guest")}`;
   const notificationsQuery = useAppNotificationFeed(isAuthenticated);
+  const isInAppEnabledRef = useRef<boolean>(true);
+  const isLocalEnabledRef = useRef<boolean>(false);
   const settingsQuery = trpc.medical.getSystemSetting.useQuery(
     { key: APP_NOTIFICATION_SETTINGS_KEY },
     { enabled: isAuthenticated, staleTime: 60000, refetchOnWindowFocus: false },
@@ -128,6 +130,55 @@ function AppNotificationsBridge() {
     if (!patients || typeof patients !== "object") return false;
     return patients.enabled === true && patients.local === true;
   })();
+
+  // Keep refs in sync so the WS handler can access current values without stale closure
+  isInAppEnabledRef.current = isInAppEnabled;
+  isLocalEnabledRef.current = isLocalEnabled;
+
+  // Real-time WS push — fires toast immediately instead of waiting for 15s poll
+  useEffect(() => {
+    if (!isAuthenticated || typeof window === "undefined") return;
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const wsUrl = `${protocol}://${window.location.host}/ws`;
+    let ws: WebSocket | null = null;
+    let closed = false;
+    try {
+      ws = new WebSocket(wsUrl);
+      ws.addEventListener("message", (event) => {
+        try {
+          const msg = JSON.parse(event.data as string);
+          if (msg?.type !== "app-notification") return;
+          const item: AppNotificationItem = msg;
+          if (!canCurrentUserSeeNotification(user?.id, user?.role, item)) return;
+          const id = String(item.id ?? "").trim();
+          if (!id || seenIdsRef.current.has(id)) return;
+          seenIdsRef.current.add(id);
+          // Also mark seen in localStorage so poll doesn't re-fire
+          try {
+            window.localStorage.setItem(
+              storageKey,
+              JSON.stringify(Array.from(seenIdsRef.current).slice(-200)),
+            );
+          } catch { /* ignore */ }
+          const title = String(item.title ?? "").trim() || "Notification";
+          const message = String(item.message ?? "").trim();
+          if (isInAppEnabledRef.current) {
+            const tone = item.kind ?? "info";
+            if (tone === "success") toast.success(title, { description: message });
+            else if (tone === "warning") toast.warning(title, { description: message });
+            else if (tone === "error") toast.error(title, { description: message });
+            else toast(title, { description: message });
+          }
+          if (isLocalEnabledRef.current) fireBrowserNotification(title, message);
+        } catch { /* ignore malformed */ }
+      });
+    } catch { /* WS not available */ }
+    return () => {
+      closed = true;
+      ws?.close();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, user?.id, user?.role, storageKey]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
