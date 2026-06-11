@@ -114,6 +114,7 @@ export default function CommissionPools() {
   const [form, setForm] = useState<FormState>(BLANK);
 
   const [editingMonth, setEditingMonth] = useState<number | null>(null);
+  const [markazExamRate, setMarkazExamRate] = useState("50");
   const [consultantRate, setConsultantRate] = useState("15");
   const [specialistRate, setSpecialistRate] = useState("15");
 
@@ -146,6 +147,13 @@ export default function CommissionPools() {
     if (pool) {
       const cCount = parseInt(pool.examCountConsultant) || 0;
       const sCount = parseInt(pool.examCountSpecialist) || 0;
+      const totalCount = parseInt(pool.examCount) || 0;
+      const totalPool = Number(pool.examPool) || 0;
+      const mRate =
+        totalCount > 0
+          ? String(Math.round((totalPool / totalCount) * 10) / 10)
+          : "50";
+      setMarkazExamRate(mRate);
       const cRate =
         pool.examPoolConsultant && cCount > 0
           ? String(
@@ -189,6 +197,7 @@ export default function CommissionPools() {
       setSpecialistRate(sRate);
     } else {
       setForm(BLANK);
+      setMarkazExamRate("50");
       setConsultantRate("15");
       setSpecialistRate("15");
     }
@@ -247,10 +256,13 @@ export default function CommissionPools() {
   const transportAllowanceTotal =
     Math.round(transportAllowanceAmount * transportAllowanceCount * 100) / 100;
 
-  // For center: exam commission split by percentage
-  const examTotal = examCount * EXAM_PRICE;
+  // For center: exam commission split by percentage (count × user-set cost)
+  const markazExamRateNum = parseFloat(markazExamRate) || 0;
+  const examTotal = isMarkaz
+    ? Math.round(examCount * markazExamRateNum * 100) / 100
+    : examCount * EXAM_PRICE;
   const examDrPool = isMarkaz ? Math.round(examTotal * 0.6 * 100) / 100 : 0;
-  const examEmpPool = isMarkaz ? calcExamEmpPool(examCount) : 0;
+  const examEmpPool = isMarkaz ? Math.round(examTotal * 0.4 * 100) / 100 : 0;
 
   // X-ray calculations (same as exam: 50 ج per xray)
   const xrayTotal = xrayCount * EXAM_PRICE;
@@ -352,26 +364,42 @@ export default function CommissionPools() {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    saveMut.mutate({
-      year,
-      month,
-      section,
-      examCount: consultantCount + specialistCount,
-      xrayCount: xrayTotalCount,
-      cases450: parseInt(form.xray450) || 0,
-      cases400: parseInt(form.xray400) || 0,
-      cases350: parseInt(form.xray350) || 0,
-      cases250: parseInt(form.xray250) || 0,
-      examCountConsultant: consultantCount,
-      examCountSpecialist: specialistCount,
-      examPoolConsultant: consultantPool,
-      examPoolSpecialist: specialistPool,
-      costOfLivingAllowanceAmount,
-      costOfLivingAllowanceCount,
-      transportAllowanceAmount,
-      transportAllowanceCount,
-      notes: form.notes,
-    });
+    if (isMarkaz) {
+      saveMut.mutate({
+        year,
+        month,
+        section,
+        examCount,
+        xrayCount: xrayTotalCount,
+        cases450: parseInt(form.xray450) || 0,
+        cases400: parseInt(form.xray400) || 0,
+        cases350: parseInt(form.xray350) || 0,
+        cases250: parseInt(form.xray250) || 0,
+        examPoolOverride: Math.round(examCount * markazExamRateNum * 100) / 100,
+        costOfLivingAllowanceAmount,
+        costOfLivingAllowanceCount,
+        transportAllowanceAmount,
+        transportAllowanceCount,
+        notes: form.notes,
+      });
+    } else {
+      saveMut.mutate({
+        year,
+        month,
+        section,
+        examCount: consultantCount + specialistCount,
+        xrayCount: xrayTotalCount,
+        examCountConsultant: consultantCount,
+        examCountSpecialist: specialistCount,
+        examPoolConsultant: consultantPool,
+        examPoolSpecialist: specialistPool,
+        costOfLivingAllowanceAmount,
+        costOfLivingAllowanceCount,
+        transportAllowanceAmount,
+        transportAllowanceCount,
+        notes: form.notes,
+      });
+    }
   };
 
   const set =
@@ -448,178 +476,107 @@ export default function CommissionPools() {
                     >
                       <thead>
                         <tr className="bg-muted/50 border-b">
-                          <th className="px-4 py-3 text-right font-semibold">
-                            الكشف
-                          </th>
-                          <th className="px-4 py-3 text-center font-semibold">
-                            العدد
-                          </th>
-                          <th className="px-4 py-3 text-center font-semibold">
-                            المبلغ
-                          </th>
-                          <th className="px-4 py-3 text-center font-semibold">
-                            الإجمالي
-                          </th>
+                          <th className="px-4 py-3 text-right font-semibold">البيان</th>
+                          <th className="px-4 py-3 text-center font-semibold">القيمة</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr className="border-b hover:bg-muted/20">
-                          <td className="px-4 py-3 font-medium">استشاري</td>
+                          <td className="px-4 py-3 font-medium">العدد</td>
                           <td className="px-4 py-3 text-center">
                             <input
                               type="number"
-                              value={form.consultantCount}
+                              value={form.examCount}
                               min={0}
                               step="1"
-                              onChange={set("consultantCount")}
-                              className="w-16 rounded border border-border bg-background px-2 py-1 text-center text-sm"
+                              onChange={set("examCount")}
+                              className="w-24 rounded border border-border bg-background px-2 py-1 text-center text-sm"
                             />
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <input
-                              type="number"
-                              value={consultantRate}
-                              min={0}
-                              step="0.5"
-                              onChange={(e) =>
-                                setConsultantRate(e.target.value)
-                              }
-                              className="w-16 rounded border border-border bg-background px-2 py-1 text-center text-sm"
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-center font-semibold text-primary">
-                            {consultantPool.toLocaleString("ar-EG")} ج
                           </td>
                         </tr>
                         <tr className="border-b hover:bg-muted/20">
-                          <td className="px-4 py-3 font-medium">أخصائي</td>
+                          <td className="px-4 py-3 font-medium">التكلفة (ج)</td>
                           <td className="px-4 py-3 text-center">
                             <input
                               type="number"
-                              value={form.specialistCount}
-                              min={0}
-                              step="1"
-                              onChange={set("specialistCount")}
-                              className="w-16 rounded border border-border bg-background px-2 py-1 text-center text-sm"
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <input
-                              type="number"
-                              value={specialistRate}
+                              value={markazExamRate}
                               min={0}
                               step="0.5"
-                              onChange={(e) =>
-                                setSpecialistRate(e.target.value)
-                              }
-                              className="w-16 rounded border border-border bg-background px-2 py-1 text-center text-sm"
+                              onChange={(e) => setMarkazExamRate(e.target.value)}
+                              className="w-24 rounded border border-border bg-background px-2 py-1 text-center text-sm"
                             />
                           </td>
+                        </tr>
+                        <tr className="border-b bg-primary/5 hover:bg-muted/20">
+                          <td className="px-4 py-3 font-medium">الإجمالي</td>
                           <td className="px-4 py-3 text-center font-semibold text-primary">
-                            {specialistPool.toLocaleString("ar-EG")} ج
+                            {examTotal.toLocaleString("ar-EG")} ج
                           </td>
                         </tr>
-                        <tr className="bg-primary/10 font-bold">
-                          <td className="px-4 py-3">إجمالي نسب الكشف</td>
-                          <td className="px-4 py-3 text-center">-</td>
-                          <td className="px-4 py-3 text-center">-</td>
-                          <td className="px-4 py-3 text-center text-primary">
-                            {(consultantPool + specialistPool).toLocaleString(
-                              "ar-EG",
-                            )}{" "}
-                            ج
+                        <tr className="border-b bg-blue-50/30 hover:bg-blue-50/50">
+                          <td className="px-4 py-3 font-medium text-blue-700">الأطباء (60%)</td>
+                          <td className="px-4 py-3 text-center font-semibold text-blue-600">
+                            {examDrPool.toLocaleString("ar-EG")} ج
+                          </td>
+                        </tr>
+                        <tr className="bg-green-50/30 hover:bg-green-50/50">
+                          <td className="px-4 py-3 font-medium text-green-700">الموظفين والفنيين (40%)</td>
+                          <td className="px-4 py-3 text-center font-semibold text-green-600">
+                            {examEmpPool.toLocaleString("ar-EG")} ج
                           </td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
 
-                  {/* Mobile View: Cards Layout */}
-                  <div className="block lg:hidden space-y-4">
-                    {/* Consultant Card */}
+                  {/* Mobile View */}
+                  <div className="block lg:hidden space-y-3">
                     <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-                      <div className="font-bold text-sm text-foreground">استشاري</div>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
                           <label className="text-xs font-semibold text-muted-foreground">العدد</label>
                           <input
                             type="number"
-                            value={form.consultantCount}
+                            value={form.examCount}
                             min={0}
                             step="1"
-                            onChange={set("consultantCount")}
+                            onChange={set("examCount")}
                             className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-xs font-semibold text-muted-foreground">المبلغ</label>
+                          <label className="text-xs font-semibold text-muted-foreground">التكلفة (ج)</label>
                           <input
                             type="number"
-                            value={consultantRate}
+                            value={markazExamRate}
                             min={0}
                             step="0.5"
-                            onChange={(e) => setConsultantRate(e.target.value)}
+                            onChange={(e) => setMarkazExamRate(e.target.value)}
                             className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
                           />
                         </div>
                       </div>
                       <div className="flex justify-between items-center pt-2 border-t border-border/40">
                         <span className="text-xs text-muted-foreground">الإجمالي:</span>
-                        <span className="text-sm font-bold text-primary">{consultantPool.toLocaleString("ar-EG")} ج</span>
+                        <span className="text-sm font-bold text-primary">{examTotal.toLocaleString("ar-EG")} ج</span>
                       </div>
                     </div>
-
-                    {/* Specialist Card */}
-                    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-                      <div className="font-bold text-sm text-foreground">أخصائي</div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <label className="text-xs font-semibold text-muted-foreground">العدد</label>
-                          <input
-                            type="number"
-                            value={form.specialistCount}
-                            min={0}
-                            step="1"
-                            onChange={set("specialistCount")}
-                            className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-xs font-semibold text-muted-foreground">المبلغ</label>
-                          <input
-                            type="number"
-                            value={specialistRate}
-                            min={0}
-                            step="0.5"
-                            onChange={(e) => setSpecialistRate(e.target.value)}
-                            className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
-                          />
-                        </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-xl border border-blue-200 bg-blue-50/30 p-3 text-center">
+                        <div className="text-[10px] text-blue-600 font-semibold mb-1">الأطباء (60%)</div>
+                        <div className="text-base font-black text-blue-700">{examDrPool.toLocaleString("ar-EG")} ج</div>
                       </div>
-                      <div className="flex justify-between items-center pt-2 border-t border-border/40">
-                        <span className="text-xs text-muted-foreground">الإجمالي:</span>
-                        <span className="text-sm font-bold text-primary">{specialistPool.toLocaleString("ar-EG")} ج</span>
-                      </div>
-                    </div>
-
-                    {/* Summary Card */}
-                    <div className="rounded-xl bg-blue-50/30 border border-blue-100 p-4 flex justify-between items-center">
-                      <div className="space-y-1">
-                        <div className="text-xs font-bold text-foreground">إجمالي نسب الكشف</div>
-                        <div className="text-[10px] text-muted-foreground">
-                          العدد: {(consultantCount + specialistCount).toLocaleString("ar-EG")}
-                        </div>
-                      </div>
-                      <div className="text-lg font-black text-primary">
-                        {(consultantPool + specialistPool).toLocaleString("ar-EG")} ج
+                      <div className="rounded-xl border border-green-200 bg-green-50/30 p-3 text-center">
+                        <div className="text-[10px] text-green-600 font-semibold mb-1">الموظفين والفنيين (40%)</div>
+                        <div className="text-base font-black text-green-700">{examEmpPool.toLocaleString("ar-EG")} ج</div>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* X-ray Section */}
+                {/* Pentacam Section */}
                 <div className="space-y-3">
-                  <h3 className="font-semibold text-base">الأشعة</h3>
+                  <h3 className="font-semibold text-base">البنتاكام</h3>
                   <div className="hidden lg:block overflow-x-auto" dir="rtl">
                     <table
                       className="w-full text-sm border border-border rounded-lg"
@@ -997,6 +954,39 @@ export default function CommissionPools() {
                 </div>
               </div>
             )}
+
+            {/* Totals Summary */}
+            {isMarkaz && (() => {
+              const drTotal = Math.round((examDrPool + xrayDoctorsTotal) * 100) / 100;
+              const empTechTotal = Math.round((examEmpPool + xrayStaffTotal) * 100) / 100;
+              return (
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-base">ملخص التوزيع</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-4">
+                      <div className="text-xs font-semibold text-blue-700 mb-1">إجمالي الأطباء</div>
+                      <div className="text-xl font-black text-blue-700">
+                        {drTotal.toLocaleString("ar-EG")} ج
+                      </div>
+                      <div className="mt-1.5 text-[10px] text-blue-500 space-y-0.5">
+                        <div>كشف: {examDrPool.toLocaleString("ar-EG")} ج</div>
+                        <div>بنتاكام: {xrayDoctorsTotal.toLocaleString("ar-EG")} ج</div>
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-green-200 bg-green-50/40 p-4">
+                      <div className="text-xs font-semibold text-green-700 mb-1">إجمالي الموظفين والفنيين</div>
+                      <div className="text-xl font-black text-green-700">
+                        {empTechTotal.toLocaleString("ar-EG")} ج
+                      </div>
+                      <div className="mt-1.5 text-[10px] text-green-500 space-y-0.5">
+                        <div>كشف: {examEmpPool.toLocaleString("ar-EG")} ج</div>
+                        <div>بنتاكام: {xrayStaffTotal.toLocaleString("ar-EG")} ج</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Day-10 Allowances */}
             <div className="space-y-3">

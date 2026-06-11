@@ -91,6 +91,7 @@ export default function PrescriptionsDashboard() {
   const [statusFilter, setStatusFilter] = useState<RxStatus>("all");
   const [page, setPage] = useState(1);
   const pageSize = 50;
+  const [viewMode, setViewMode] = useState<"list" | "review">("list");
 
   useEffect(() => {
     setPage(1);
@@ -231,7 +232,44 @@ export default function PrescriptionsDashboard() {
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      {/* Tab Selector */}
+      <div className="mb-4 flex border-b border-border">
+        <button
+          type="button"
+          onClick={() => setViewMode("list")}
+          className={cn(
+            "pb-2.5 pt-1 px-4 text-sm font-semibold border-b-2 transition-colors",
+            viewMode === "list"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          )}
+        >
+          قائمة السجلات ({total})
+        </button>
+        <button
+          type="button"
+          onClick={() => setViewMode("review")}
+          className={cn(
+            "pb-2.5 pt-1 px-4 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2",
+            viewMode === "review"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <span>الروشتات المنتهية</span>
+          {alertRows.length > 0 ? (
+            <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
+              {alertRows.length}
+            </span>
+          ) : (
+            <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
+              0
+            </span>
+          )}
+        </button>
+      </div>
+
+      {viewMode === "list" ? (
         <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
           {overviewQuery.isLoading ? (
             <div className="p-12 text-center text-muted-foreground">
@@ -338,28 +376,30 @@ export default function PrescriptionsDashboard() {
             onPageChange={setPage}
           />
         </section>
-
-        <aside className="space-y-4 lg:sticky lg:top-4">
-          <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-            <div className="mb-3 text-sm font-semibold">الروشتات المنتهية</div>
-            {alertRows.length === 0 ? (
-              <div className="text-sm text-muted-foreground">
-                لا توجد روشتات منتهية ضمن التصفية الحالية.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {alertRows.map((row) => (
-                  <button
-                    key={row.id}
-                    type="button"
-                    onClick={() =>
-                      setLocation(`/prescription/${row.patientId}`)
-                    }
-                    className="w-full rounded-xl border border-border/80 bg-muted/20 p-3 text-right transition-colors hover:bg-muted/40"
-                  >
+      ) : (
+        <div className="space-y-4">
+          <h3 className="text-sm font-semibold text-foreground">
+            الروشتات المنتهية ({alertRows.length})
+          </h3>
+          {alertRows.length === 0 ? (
+            <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">
+              لا توجد روشتات منتهية ضمن التصفية الحالية.
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {alertRows.map((row) => (
+                <button
+                  key={row.id}
+                  type="button"
+                  onClick={() =>
+                    setLocation(`/prescription/${row.patientId}`)
+                  }
+                  className="w-full rounded-xl border border-border/80 bg-muted/20 p-3 text-right transition-colors hover:bg-muted/40 flex flex-col justify-between"
+                >
+                  <div className="w-full">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="font-semibold">
+                        <div className="font-semibold text-sm">
                           {row.patientName || `مريض #${row.patientId}`}
                         </div>
                         <div
@@ -369,20 +409,20 @@ export default function PrescriptionsDashboard() {
                           {row.patientCode || "—"}
                         </div>
                       </div>
-                      <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
+                      <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
                         منتهية
                       </span>
                     </div>
-                    <div className="mt-3 text-[11px] text-muted-foreground">
-                      {row.itemCount} دواء, {row.doctorName || "—"}
+                    <div className="mt-3 text-[11px] text-muted-foreground border-t border-border/50 pt-2">
+                      {row.itemCount} دواء • {row.doctorName || "—"}
                     </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </aside>
-      </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

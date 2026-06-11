@@ -148,10 +148,10 @@ export default function KfFollowups() {
                       <Badge
                         className={
                           f.status === "completed"
-                            ? "bg-emerald-500 hover:bg-emerald-600"
+                            ? "bg-success hover:bg-success/90 text-success-foreground"
                             : f.status === "missed"
-                            ? "bg-amber-500 hover:bg-amber-600"
-                            : "bg-primary hover:bg-primary/95"
+                            ? "bg-warning hover:bg-warning/90 text-warning-foreground"
+                            : "bg-primary hover:bg-primary/95 text-primary-foreground"
                         }
                       >
                         {(FOLLOWUP_STATUS_AR as Record<string, string>)[f.status ?? "scheduled"] || f.status}

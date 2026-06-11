@@ -137,8 +137,8 @@ export default function PatientDetails() {
                   className={cn(
                     "flex items-center gap-3 border-s-2 px-4 py-2.5 text-sm transition-colors",
                     active
-                      ? "border-s-primary bg-primary text-primary-foreground"
-                      : "border-transparent text-muted-foreground hover:bg-muted text-muted-foreground",
+                      ? "border-s-primary bg-primary/10 text-primary font-medium"
+                      : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                 >
                   <Icon

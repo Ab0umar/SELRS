@@ -2225,11 +2225,11 @@ export default function PayrollReport() {
                         return (
                           <tr
                             key={`tech-${tech.id}`}
-                            className="border-b border-border/50 bg-amber-50/30 hover:bg-amber-50/50 transition-colors"
+                            className="border-b border-border/50 bg-secondary/5 hover:bg-secondary/10 transition-colors"
                           >
                             <td className="px-3 py-3 text-center">
                               <div className="font-medium">{tech.fullName}</div>
-                              <div className="text-xs text-amber-600 font-medium">
+                              <div className="text-xs text-secondary font-medium">
                                 فني شفتات
                               </div>
                             </td>
@@ -2698,7 +2698,7 @@ export default function PayrollReport() {
                     return (
                       <div
                         key={`tech-${tech.id}`}
-                        className="bg-amber-50/10 p-4 transition-colors hover:bg-amber-50/20 divide-y divide-border/20"
+                        className="bg-secondary/5 p-4 transition-colors hover:bg-secondary/10 divide-y divide-border/20"
                       >
                         <div
                           className="flex items-center justify-between cursor-pointer select-none pb-2"
@@ -2708,7 +2708,7 @@ export default function PayrollReport() {
                             <div className="font-semibold text-foreground text-sm">
                               {tech.fullName}
                             </div>
-                            <div className="text-xs text-amber-600 font-medium">
+                            <div className="text-xs text-secondary font-medium">
                               فني شفتات
                             </div>
                           </div>

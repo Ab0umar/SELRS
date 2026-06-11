@@ -442,8 +442,8 @@ export default function KfPatientDetail() {
             <>
               <hr className="my-4 border-border/60" />
               <div className="grid gap-4 sm:grid-cols-3">
-                <div className="space-y-1 p-2 rounded bg-amber-50/10 border border-amber-500/10">
-                  <span className="text-xs text-amber-600 font-bold block">التاريخ المرضي العام</span>
+                <div className="space-y-1 p-2 rounded bg-secondary/5 border border-secondary/20">
+                  <span className="text-xs text-secondary font-bold block">التاريخ المرضي العام</span>
                   <p className="text-xs text-foreground mt-1 whitespace-pre-wrap">{patient.medicalHistory || "لا يوجد"}</p>
                 </div>
                 <div className="space-y-1 p-2 rounded bg-red-50/10 border border-red-500/10">
@@ -563,12 +563,12 @@ export default function KfPatientDetail() {
                           <Badge
                             className={
                               v.status === "completed"
-                                ? "bg-emerald-500 hover:bg-emerald-600"
+                                ? "bg-success hover:bg-success/90 text-success-foreground"
                                 : v.status === "cancelled"
-                                ? "bg-destructive hover:bg-destructive/90"
+                                ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground"
                                 : v.status === "in_progress"
-                                ? "bg-amber-500 hover:bg-amber-600"
-                                : "bg-primary hover:bg-primary/95"
+                                ? "bg-warning hover:bg-warning/90 text-warning-foreground"
+                                : "bg-primary hover:bg-primary/95 text-primary-foreground"
                             }
                           >
                             {(VISIT_STATUS_AR as Record<string, string>)[v.status ?? "scheduled"] || v.status}
@@ -800,10 +800,10 @@ export default function KfPatientDetail() {
                           <Badge
                             className={
                               f.status === "completed"
-                                ? "bg-emerald-500 hover:bg-emerald-600"
+                                ? "bg-success hover:bg-success/90 text-success-foreground"
                                 : f.status === "missed"
-                                ? "bg-amber-500 hover:bg-amber-600"
-                                : "bg-primary hover:bg-primary/95"
+                                ? "bg-warning hover:bg-warning/90 text-warning-foreground"
+                                : "bg-primary hover:bg-primary/95 text-primary-foreground"
                             }
                           >
                             {(FOLLOWUP_STATUS_AR as Record<string, string>)[f.status ?? "scheduled"] || f.status}

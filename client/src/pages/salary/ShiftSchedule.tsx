@@ -658,12 +658,12 @@ export default function ShiftSchedule() {
                           return (
                             <th
                               key={ds}
-                              className={`sticky top-0 z-20 border-l border-border px-0 py-0 text-center ${holiday ? "bg-amber-50/80" : "bg-background"}`}
+                              className={`sticky top-0 z-20 border-l border-border px-0 py-0 text-center ${holiday ? "bg-warning/10" : "bg-background"}`}
                               title={holiday?.name || undefined}
                             >
                               <div className="flex h-full min-h-14 flex-col justify-center px-1.5 py-1.5">
                                 <div
-                                  className={`text-[10px] font-semibold leading-tight ${holiday ? "text-amber-700" : "text-foreground"}`}
+                                  className={`text-[10px] font-semibold leading-tight ${holiday ? "text-warning" : "text-foreground"}`}
                                 >
                                   {DAYS_AR[dow]}
                                 </div>
@@ -708,7 +708,7 @@ export default function ShiftSchedule() {
                             const canEdit = isManager || isMyRow;
                             const isHoliday = holidayDates.has(ds);
                             const rowClasses = isHoliday
-                              ? "bg-amber-50/40"
+                              ? "bg-warning/5"
                               : "";
 
                             return (
@@ -781,12 +781,12 @@ export default function ShiftSchedule() {
                                   })}
 
                                   {isHoliday && entries.length === 0 && (
-                                    <span className="text-[9px] font-semibold text-amber-700">
+                                    <span className="text-[9px] font-semibold text-warning">
                                       عطلة
                                     </span>
                                   )}
 
-                                  {isMyRow &&
+                                  {(isMyRow || isManager) &&
                                     entries.length === 0 &&
                                     !isHoliday && (
                                       <div className="flex w-full gap-1">
@@ -797,14 +797,23 @@ export default function ShiftSchedule() {
                                             key={shiftName}
                                             type="button"
                                             onClick={() =>
-                                              addMyShiftMut.mutate({
-                                                year,
-                                                month,
-                                                workDate: ds,
-                                                shiftName,
-                                              })
+                                              isManager
+                                                ? bulkMut.mutate({
+                                                    staffId: s.id,
+                                                    shiftName,
+                                                    dates: [ds],
+                                                  })
+                                                : addMyShiftMut.mutate({
+                                                    year,
+                                                    month,
+                                                    workDate: ds,
+                                                    shiftName,
+                                                  })
                                             }
-                                            disabled={addMyShiftMut.isPending}
+                                            disabled={
+                                              addMyShiftMut.isPending ||
+                                              bulkMut.isPending
+                                            }
                                             className="inline-flex min-h-8 flex-1 items-center justify-center rounded-md bg-muted px-1.5 py-1 text-[10px] font-semibold text-muted-foreground hover:bg-primary/10 hover:text-primary"
                                             title={SHIFT_META[shiftName].label}
                                           >
@@ -935,7 +944,7 @@ export default function ShiftSchedule() {
                       {holidays.map((h: any) => (
                         <span
                           key={h.id}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800"
+                          className="inline-flex items-center gap-1.5 rounded-full border border-warning/20 bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning"
                         >
                           {String(h.date).slice(0, 10)}
                           {h.name && <span>· {h.name}</span>}
@@ -944,7 +953,7 @@ export default function ShiftSchedule() {
                             onClick={() =>
                               deleteHolidayMut.mutate({ id: h.id })
                             }
-                            className="inline-flex items-center justify-center text-amber-700 hover:text-destructive"
+                            className="inline-flex items-center justify-center text-warning hover:text-destructive"
                             title="حذف"
                           >
                             <X size={11} />

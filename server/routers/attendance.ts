@@ -1723,7 +1723,13 @@ export const attendanceRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
-      const conditions = [];
+      const today = new Date();
+      const conditions: any[] = [
+        or(
+          isNull(attendanceShiftAssignments.effectiveTo),
+          gte(attendanceShiftAssignments.effectiveTo, today),
+        ),
+      ];
       if (input?.empCd) {
         conditions.push(eq(attendanceShiftAssignments.empCd, input.empCd));
       }
@@ -1748,7 +1754,7 @@ export const attendanceRouter = router({
           attendanceShifts,
           eq(attendanceShiftAssignments.shiftId, attendanceShifts.id),
         )
-        .where(conditions.length > 0 ? and(...(conditions as any)) : undefined)
+        .where(and(...conditions))
         .orderBy(attendanceShiftAssignments.empCd);
 
       return assignments.map((a) => ({

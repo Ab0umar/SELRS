@@ -215,7 +215,7 @@ export default function ScheduleSwap() {
       <Card className="border-border">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base font-bold text-foreground">
-            <Clock className="h-5 w-5 text-amber-600" />
+            <Clock className="h-5 w-5 text-secondary" />
             طلبات تغيير وتبديل المواعيد قيد الانتظار
           </CardTitle>
           <CardDescription>
@@ -803,15 +803,15 @@ export default function ScheduleSwap() {
                       86400000,
                   ) + 1;
                 return (
-                  <div className="rounded-xl border border-amber-500/10 bg-amber-500/5 p-4 text-sm space-y-2">
-                    <div className="font-bold text-amber-900 mb-1">
+                  <div className="rounded-xl border border-secondary/20 bg-secondary/5 p-4 text-sm space-y-2">
+                    <div className="font-bold text-foreground mb-1">
                       ملخص عملية التبادل ({days} {days === 1 ? "يوم" : "أيام"}):
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <span className="font-semibold text-foreground">
                         {aAssign.empName}
                       </span>
-                      <ArrowLeftRight size={13} className="text-amber-600" />
+                      <ArrowLeftRight size={13} className="text-secondary" />
                       <span className="text-primary font-medium">
                         {bAssign.shiftName}
                       </span>
@@ -823,7 +823,7 @@ export default function ScheduleSwap() {
                       <span className="font-semibold text-foreground">
                         {bAssign.empName}
                       </span>
-                      <ArrowLeftRight size={13} className="text-amber-600" />
+                      <ArrowLeftRight size={13} className="text-secondary" />
                       <span className="text-primary font-medium">
                         {aAssign.shiftName}
                       </span>
@@ -831,7 +831,7 @@ export default function ScheduleSwap() {
                         ({swapFrom} ← {swapTo})
                       </span>
                     </div>
-                    <div className="text-xs text-amber-700/80 pt-1">
+                    <div className="text-xs text-muted-foreground pt-1">
                       ملاحظة: بعد انتهاء يوم {swapTo}، سيعود كلا الموظفين
                       تلقائياً إلى ورديتهما الأصلية.
                     </div>

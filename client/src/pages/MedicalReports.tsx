@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  ArrowRight,
   ClipboardList,
   DoorOpen,
   FileText,
@@ -769,86 +770,103 @@ export default function MedicalReports() {
       dir="rtl"
     >
       <CardHeader>
-        <CardTitle>
-          {selectedReport ? "تعديل التقرير" : "التقارير المسجّلة للمريض"}
-        </CardTitle>
+        <div className="flex justify-between items-center gap-4">
+          <CardTitle dir="rtl">
+            {selectedReport ? "تعديل التقرير" : "التقارير الطبية للمريض"}
+          </CardTitle>
+          {selectedReport && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedReport(null)}
+              className="text-xs h-7 px-2"
+            >
+              <ArrowRight className="h-3 w-3 ml-1" />
+              العودة
+            </Button>
+          )}
+        </div>
         <CardDescription>
           {selectedReport
             ? "عدّل حقول التقرير المختار ثم احفظ التحديث."
-            : "اختر تقريراً مسجّلاً من القائمة لعرض محتواه وتعديله."}
+            : "اختر مريضاً ثم اختر تقريراً مسجّلاً لعرض محتواه وتعديله."}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <PatientPicker
-          initialPatientId={selectedPatientId ?? undefined}
-          onSelect={handleSelectPatient}
-          fireOnInitialPatientLoad={false}
-        />
-        {inHubReports ? (
-          <p className="text-xs text-muted-foreground" role="note">
-            العرض فقط داخل مركز المريض
-          </p>
-        ) : null}
-        {selectedPatientId ? (
-          <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-3">
-            <p className="text-sm font-semibold">
-              التقارير المحفوظة لهذا المريض
-            </p>
-            {reportsQuery.isLoading ? (
-              <p className="text-xs text-muted-foreground">جاري التحميل…</p>
-            ) : patientDoctorReportRows.length === 0 ? (
-              <p className="text-xs text-muted-foreground">
-                لا توجد تقارير مسجّلة لهذا المريض.
+        {!selectedReport ? (
+          <>
+            <PatientPicker
+              initialPatientId={selectedPatientId ?? undefined}
+              onSelect={handleSelectPatient}
+              fireOnInitialPatientLoad={false}
+            />
+            {selectedPatientId ? (
+              <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-3">
+                <p className="text-sm font-semibold">
+                  التقارير المحفوظة لهذا المريض
+                </p>
+                {reportsQuery.isLoading ? (
+                  <p className="text-xs text-muted-foreground">جاري التحميل…</p>
+                ) : patientDoctorReportRows.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    لا توجد تقارير مسجّلة لهذا المريض.
+                  </p>
+                ) : (
+                  <ul className="max-h-52 space-y-1 overflow-y-auto pr-1">
+                    {patientDoctorReportRows.map((row) => {
+                      const rid = Number(row?.id ?? 0);
+                      const created = row?.createdAt
+                        ? typeof row.createdAt === "string"
+                          ? row.createdAt.split("T")[0]
+                          : new Date(row.createdAt as Date)
+                              .toISOString()
+                              .split("T")[0]
+                        : "";
+                      const snippet = overviewReportTitleSnippet(row);
+                      const active = false;
+                      return (
+                        <li key={rid || String(row.createdAt)}>
+                          <Button
+                            type="button"
+                            variant={active ? "secondary" : "outline"}
+                            className="h-auto w-full justify-start gap-2 whitespace-normal py-2 text-right"
+                            onClick={() =>
+                              handleViewReport(
+                                doctorDbRowToReportRow(
+                                  row,
+                                  patientQuery.data as any,
+                                ),
+                              )
+                            }
+                          >
+                            <span
+                              className="shrink-0 font-mono text-xs text-muted-foreground"
+                              dir="ltr"
+                            >
+                              {created ? formatDateLabel(created) : "—"}
+                            </span>
+                            <span className="min-w-0 flex-1 text-sm leading-snug">
+                              {snippet}
+                            </span>
+                          </Button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            ) : null}
+            {selectedPatientId ? (
+              <p className="text-sm text-muted-foreground">
+                اختر أحد التقارير أعلاه للمتابعة.
               </p>
             ) : (
-              <ul className="max-h-52 space-y-1 overflow-y-auto pr-1">
-                {patientDoctorReportRows.map((row) => {
-                  const rid = Number(row?.id ?? 0);
-                  const created = row?.createdAt
-                    ? typeof row.createdAt === "string"
-                      ? row.createdAt.split("T")[0]
-                      : new Date(row.createdAt as Date)
-                          .toISOString()
-                          .split("T")[0]
-                    : "";
-                  const snippet = overviewReportTitleSnippet(row);
-                  const active = selectedReport?.id === rid;
-                  return (
-                    <li key={rid || String(row.createdAt)}>
-                      <Button
-                        type="button"
-                        variant={active ? "secondary" : "outline"}
-                        className="h-auto w-full justify-start gap-2 whitespace-normal py-2 text-right"
-                        onClick={() =>
-                          handleViewReport(
-                            doctorDbRowToReportRow(
-                              row,
-                              patientQuery.data as any,
-                            ),
-                          )
-                        }
-                      >
-                        <span
-                          className="shrink-0 font-mono text-xs text-muted-foreground"
-                          dir="ltr"
-                        >
-                          {created ? formatDateLabel(created) : "—"}
-                        </span>
-                        <span className="min-w-0 flex-1 text-sm leading-snug">
-                          {snippet}
-                        </span>
-                      </Button>
-                    </li>
-                  );
-                })}
-              </ul>
+              <p className="text-sm text-muted-foreground">
+                اختر مريضاً للبدء.
+              </p>
             )}
-          </div>
-        ) : null}
-        {!selectedReport && selectedPatientId ? (
-          <p className="text-sm text-muted-foreground">
-            اختر أحد التقارير أعلاه للمتابعة.
-          </p>
+          </>
         ) : null}
         <fieldset
           disabled={inHubReports || !selectedReport}
@@ -1328,87 +1346,293 @@ export default function MedicalReports() {
           </>
         ) : null}
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 print:grid-cols-1">
-          <div className="lg:col-span-2 print:hidden">
-            <FormPanel />
-          </div>
-          <div className="print:hidden">
+        {inHubReports ? (
+          <div className="space-y-6 max-w-4xl mx-auto">
             {selectedReport ? (
-              <Card className="sticky top-4">
-                <CardHeader className="space-y-3">
-                  <div className="flex items-center justify-between gap-4">
-                    <CardTitle>تقرير طبي</CardTitle>
-                    <div className="flex items-center gap-3">
-                      <BrandLogo className="h-12 w-12 shrink-0 rounded-lg border border-border/50 bg-background" />
-                      <div className="text-right">
-                        <p className="font-semibold leading-tight">
-                          {BRAND_NAME_AR}
-                        </p>
-                        <p className="text-xs text-muted-foreground leading-tight">
-                          {BRAND_NAME_EN}
-                        </p>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center print:hidden">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setSelectedReport(null)}
+                    className="gap-2"
+                  >
+                    <ArrowRight className="h-4 w-4 ml-1" />
+                    <span>العودة لقائمة التقارير</span>
+                  </Button>
+                </div>
+                <Card>
+                  <CardHeader className="space-y-3">
+                    <div className="flex items-center justify-between gap-4">
+                      <CardTitle dir="rtl">تقرير طبي</CardTitle>
+                      <div className="flex items-center gap-3">
+                        <BrandLogo className="h-12 w-12 shrink-0 rounded-lg border border-border/50 bg-background" />
+                        <div className="text-right">
+                          <p className="font-semibold leading-tight">
+                            {BRAND_NAME_AR}
+                          </p>
+                          <p className="text-xs text-muted-foreground leading-tight">
+                            {BRAND_NAME_EN}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4" dir="rtl">
-                  <div className="flex flex-wrap gap-6 border-b pb-3 text-sm">
-                    <span>
-                      <span className="font-semibold">الاسم: </span>
-                      {selectedReport.patientName}
-                    </span>
-                    {selectedReport.patientAge ? (
+                  </CardHeader>
+                  <CardContent className="space-y-4" dir="rtl">
+                    <div className="flex flex-wrap gap-6 border-b pb-3 text-sm">
                       <span>
-                        <span className="font-semibold">السن: </span>
-                        {selectedReport.patientAge}
+                        <span className="font-semibold">الاسم: </span>
+                        {selectedReport.patientName}
                       </span>
+                      {selectedReport.patientAge ? (
+                        <span>
+                          <span className="font-semibold">السن: </span>
+                          {selectedReport.patientAge}
+                        </span>
+                      ) : null}
+                      {selectedReport.date ? (
+                        <span>
+                          <span className="font-semibold">التاريخ: </span>
+                          {formatDateLabel(selectedReport.date)}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div>
+                      <p className="mb-1 text-sm font-semibold text-muted-foreground">
+                        التشخيص
+                      </p>
+                      <p className="text-sm">
+                        {formatDisplayValue(selectedReport.diagnosis)}
+                      </p>
+                    </div>
+                    <div className="border-t pt-3">
+                      <p className="mb-1 text-sm font-semibold text-muted-foreground">
+                        التوصية
+                      </p>
+                      <p className="text-sm">
+                        {formatDisplayValue(selectedReport.recommendation)}
+                      </p>
+                    </div>
+                    {selectedReport.prescription ? (
+                      <div className="border-t pt-3">
+                        <p className="mb-1 text-sm font-semibold text-muted-foreground">
+                          الروشتة
+                        </p>
+                        <p className="text-sm whitespace-pre-wrap">
+                          {formatDisplayValue(selectedReport.prescription)}
+                        </p>
+                      </div>
                     ) : null}
-                    {selectedReport.date ? (
-                      <span>
-                        <span className="font-semibold">التاريخ: </span>
-                        {formatDateLabel(selectedReport.date)}
-                      </span>
+                    {selectedReport.notes ? (
+                      <div className="border-t pt-3">
+                        <p className="mb-1 text-sm font-semibold text-muted-foreground">
+                          ملاحظات
+                        </p>
+                        <p className="text-sm">
+                          {formatDisplayValue(selectedReport.notes)}
+                        </p>
+                      </div>
                     ) : null}
-                  </div>
-                  <div>
-                    <p className="mb-1 text-sm font-semibold text-muted-foreground">
-                      التشخيص
-                    </p>
-                    <p className="text-sm">
-                      {formatDisplayValue(selectedReport.diagnosis)}
-                    </p>
-                  </div>
-                  <div className="border-t pt-3">
-                    <p className="mb-1 text-sm font-semibold text-muted-foreground">
-                      التوصية
-                    </p>
-                    <p className="text-sm">
-                      {formatDisplayValue(selectedReport.recommendation)}
-                    </p>
-                  </div>
-                  <Button
-                    className="w-full bg-primary hover:bg-primary/90 print:hidden"
-                    onClick={() => handleDownloadReportPdf(selectedReport)}
-                  >
-                    <FileText className="mr-2 h-4 w-4" />
-                    تحميل كـ PDF
-                  </Button>
-                </CardContent>
-              </Card>
+                    <Button
+                      className="w-full bg-primary hover:bg-primary/90 print:hidden"
+                      onClick={() => handleDownloadReportPdf(selectedReport)}
+                    >
+                      <FileText className="mr-2 h-4 w-4" />
+                      تحميل كـ PDF
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
             ) : (
-              <Card className="sticky top-4 border-dashed">
-                <CardHeader>
-                  <CardTitle className="text-base">معاينة الطباعة</CardTitle>
-                  <CardDescription>
-                    {inHubReports
-                      ? "اختر تقريراً مسجّلاً من القائمة لعرض المعاينة هنا."
-                      : "اختر تقريراً مسجّلاً من القائمة أو من جدول التقارير لعرض المعاينة هنا."}
-                  </CardDescription>
-                </CardHeader>
-              </Card>
+              <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+                <div className="border-b bg-primary/10 px-4 py-3 text-sm font-semibold text-primary">
+                  <span>التقارير الطبية المحفوظة للمريض</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-right text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/40 font-semibold">
+                        <th className="px-4 py-3">التاريخ</th>
+                        <th className="px-4 py-3">الطبيب</th>
+                        <th className="px-4 py-3">النوع</th>
+                        <th className="px-4 py-3">العنوان / التشخيص</th>
+                        <th className="w-24 px-4 py-3 text-center">إجراءات</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reportsQuery.isLoading ? (
+                        <tr>
+                          <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                            جاري التحميل…
+                          </td>
+                        </tr>
+                      ) : patientDoctorReportRows.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                            لا توجد تقارير مسجّلة لهذا المريض.
+                          </td>
+                        </tr>
+                      ) : (
+                        patientDoctorReportRows.map((row) => {
+                          const cat = categorizeMedicalReport(row as any);
+                          const created = row.createdAt
+                            ? typeof row.createdAt === "string"
+                              ? row.createdAt.split("T")[0]
+                              : new Date(row.createdAt as Date)
+                                  .toISOString()
+                                  .split("T")[0]
+                            : "";
+                          return (
+                            <tr
+                              key={String(row.id)}
+                              className="border-b border-border/70 transition-colors hover:bg-primary/[0.06]"
+                            >
+                              <td className="px-4 py-3 align-top whitespace-nowrap">
+                                <Badge variant="outline" className="font-normal">
+                                  {created ? formatDateLabel(created) : "—"}
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-3 align-top text-muted-foreground">
+                                {String(row.doctorName ?? "").trim() || "—"}
+                              </td>
+                              <td className="px-4 py-3 align-top">
+                                <Badge className={cn("font-semibold", typeBadgeClass(cat))}>
+                                  {typeLabel(cat)}
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-3 align-top text-muted-foreground">
+                                {overviewReportTitleSnippet(row)}
+                              </td>
+                              <td className="px-4 py-3 text-center align-top">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 px-2"
+                                  onClick={() =>
+                                    setSelectedReport(
+                                      doctorDbRowToReportRow(
+                                        row,
+                                        patientQuery.data as any,
+                                      ),
+                                    )
+                                  }
+                                >
+                                  <Eye className="h-4 w-4 ml-1" />
+                                  عرض
+                                </Button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             )}
           </div>
-        </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 print:grid-cols-1">
+            <div className="lg:col-span-2 print:hidden">
+              <FormPanel />
+            </div>
+            <div className="print:hidden">
+              {selectedReport ? (
+                <Card className="sticky top-4">
+                  <CardHeader className="space-y-3">
+                    <div className="flex items-center justify-between gap-4">
+                      <CardTitle>تقرير طبي</CardTitle>
+                      <div className="flex items-center gap-3">
+                        <BrandLogo className="h-12 w-12 shrink-0 rounded-lg border border-border/50 bg-background" />
+                        <div className="text-right">
+                          <p className="font-semibold leading-tight">
+                            {BRAND_NAME_AR}
+                          </p>
+                          <p className="text-xs text-muted-foreground leading-tight">
+                            {BRAND_NAME_EN}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4" dir="rtl">
+                    <div className="flex flex-wrap gap-6 border-b pb-3 text-sm">
+                      <span>
+                        <span className="font-semibold">الاسم: </span>
+                        {selectedReport.patientName}
+                      </span>
+                      {selectedReport.patientAge ? (
+                        <span>
+                          <span className="font-semibold">السن: </span>
+                          {selectedReport.patientAge}
+                        </span>
+                      ) : null}
+                      {selectedReport.date ? (
+                        <span>
+                          <span className="font-semibold">التاريخ: </span>
+                          {formatDateLabel(selectedReport.date)}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div>
+                      <p className="mb-1 text-sm font-semibold text-muted-foreground">
+                        التشخيص
+                      </p>
+                      <p className="text-sm">
+                        {formatDisplayValue(selectedReport.diagnosis)}
+                      </p>
+                    </div>
+                    <div className="border-t pt-3">
+                      <p className="mb-1 text-sm font-semibold text-muted-foreground">
+                        التوصية
+                      </p>
+                      <p className="text-sm">
+                        {formatDisplayValue(selectedReport.recommendation)}
+                      </p>
+                    </div>
+                    {selectedReport.prescription ? (
+                      <div className="border-t pt-3">
+                        <p className="mb-1 text-sm font-semibold text-muted-foreground">
+                          الروشتة
+                        </p>
+                        <p className="text-sm whitespace-pre-wrap">
+                          {formatDisplayValue(selectedReport.prescription)}
+                        </p>
+                      </div>
+                    ) : null}
+                    {selectedReport.notes ? (
+                      <div className="border-t pt-3">
+                        <p className="mb-1 text-sm font-semibold text-muted-foreground">
+                          ملاحظات
+                        </p>
+                        <p className="text-sm font-mono">
+                          {formatDisplayValue(selectedReport.notes)}
+                        </p>
+                      </div>
+                    ) : null}
+                    <Button
+                      className="w-full bg-primary hover:bg-primary/90 print:hidden"
+                      onClick={() => handleDownloadReportPdf(selectedReport)}
+                    >
+                      <FileText className="mr-2 h-4 w-4" />
+                      تحميل كـ PDF
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="sticky top-4 border-dashed">
+                  <CardHeader>
+                    <CardTitle className="text-base">معاينة الطباعة</CardTitle>
+                    <CardDescription>
+                      اختر تقريراً مسجّلاً من القائمة أو من جدول التقارير لعرض المعاينة هنا.
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              )}
+            </div>
+          </div>
+        )}
       </div>
       <style>{`
         @media print {

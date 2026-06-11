@@ -215,6 +215,7 @@ export default function PentacamResultsDashboard({
       Boolean(initial.fromDate) ||
       Boolean(initial.toDate),
   );
+  const [viewMode, setViewMode] = useState<"list" | "review">("list");
 
   const eyeFilter = useMemo(() => {
     if (activeFilter === "OD" || activeFilter === "OS")
@@ -535,7 +536,44 @@ export default function PentacamResultsDashboard({
           </div>
         ) : null}
 
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
+        {/* Tab Selector */}
+        <div className="mb-4 flex border-b border-border">
+          <button
+            type="button"
+            onClick={() => setViewMode("list")}
+            className={cn(
+              "pb-2.5 pt-1 px-4 text-sm font-semibold border-b-2 transition-colors",
+              viewMode === "list"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            قائمة السجلات ({listQuery.isLoading ? "…" : (activeFilter === "all" ? groupedPatientRows.length : rowsWithAttention.length)})
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("review")}
+            className={cn(
+              "pb-2.5 pt-1 px-4 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2",
+              viewMode === "review"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <span>سجلات للمراجعة / التنبيهات</span>
+            {alertRows.length > 0 ? (
+              <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
+                {alertRows.length}
+              </span>
+            ) : (
+              <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+                0
+              </span>
+            )}
+          </button>
+        </div>
+
+        {viewMode === "list" ? (
           <div className="space-y-4">
             <div className="rounded-xl border bg-card p-4 shadow-sm">
               <div className="flex flex-col gap-4">
@@ -581,12 +619,12 @@ export default function PentacamResultsDashboard({
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                       {statsQuery.isLoading
-                        ? "جارٍ تحديث الملخص..."
+                        ? "...جارٍ تحديث الملخص"
                         : `${statsQuery.data?.examsToday ?? 0} نتيجة اليوم`}
                     </span>
                     <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
                       {listQuery.isLoading
-                        ? "جارٍ تحديث النتائج..."
+                        ? "...جارٍ تحديث النتائج"
                         : `${visibleRowCount} نتيجة ظاهرة`}
                     </span>
                     <Button
@@ -769,7 +807,7 @@ export default function PentacamResultsDashboard({
                           colSpan={activeFilter === "all" ? 7 : 9}
                           className="p-8 text-center text-muted-foreground"
                         >
-                          جارٍ التحميل...
+                          ...جارٍ التحميل
                         </td>
                       </tr>
                     ) : (
@@ -792,11 +830,11 @@ export default function PentacamResultsDashboard({
                             <tr
                               key={`patient-${group.patientId}`}
                               className={cn(
-                                "border-b last:border-0 transition-colors hover:bg-primary/50",
+                                "border-b last:border-0 transition-colors hover:bg-primary/5",
                                 group.attention.severity === "abnormal"
-                                  ? "bg-destructive/70 hover:bg-destructive/10"
+                                  ? "bg-destructive/10 hover:bg-destructive/15"
                                   : group.attention.severity === "repeat"
-                                    ? "bg-warning/10/70 hover:bg-warning/10"
+                                    ? "bg-warning/10 hover:bg-warning/15"
                                     : "",
                               )}
                             >
@@ -887,10 +925,10 @@ export default function PentacamResultsDashboard({
                               className={cn(
                                 "border-b last:border-0 transition-colors",
                                 attention.severity === "abnormal"
-                                  ? "bg-destructive/70 hover:bg-destructive/10"
+                                  ? "bg-destructive/10 hover:bg-destructive/15"
                                   : attention.severity === "repeat"
-                                    ? "bg-warning/10/70 hover:bg-warning/10"
-                                    : "hover:bg-primary/50",
+                                    ? "bg-warning/10 hover:bg-warning/15"
+                                    : "hover:bg-primary/5",
                               )}
                             >
                               <td className="max-w-[220px] p-2.5 font-semibold whitespace-nowrap truncate">
@@ -991,9 +1029,9 @@ export default function PentacamResultsDashboard({
               </p>
             ) : null}
           </div>
-
-          <aside className="space-y-4 self-start">
-            <div className="rounded-xl border bg-card p-4 shadow-sm">
+        ) : (
+          <div className="space-y-6">
+            <div className="rounded-xl border bg-card p-4 shadow-sm max-w-xl">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h2 className="text-sm font-semibold text-foreground">
@@ -1026,93 +1064,90 @@ export default function PentacamResultsDashboard({
               </div>
             </div>
 
-            <div className="rounded-xl border bg-card p-4 shadow-sm">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-sm font-semibold text-foreground">
-                  القائمة الحرجة
-                </h3>
-                <span className="text-xs text-muted-foreground">
-                  {alertRows.length} عناصر
-                </span>
-              </div>
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-foreground">
+                القائمة الحرجة ({alertRows.length} عناصر)
+              </h3>
 
-              <div className="mt-4 space-y-3">
-                {listQuery.isLoading ? (
-                  <div className="rounded-lg border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
-                    جارٍ تحميل التنبيهات...
-                  </div>
-                ) : alertRows.length === 0 ? (
-                  <div className="rounded-lg border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
-                    لا توجد حالات حرجة في النتائج الحالية.
-                  </div>
-                ) : (
-                  alertRows.map(({ row, attention }) => (
+              {listQuery.isLoading ? (
+                <div className="rounded-lg border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
+                  ...جارٍ تحميل التنبيهات
+                </div>
+              ) : alertRows.length === 0 ? (
+                <div className="rounded-lg border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
+                  لا توجد حالات حرجة في النتائج الحالية.
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {alertRows.map(({ row, attention }) => (
                     <div
                       key={`alert-${row.resultId}-${row.eye}`}
                       className={cn(
-                        "rounded-lg border p-3",
+                        "rounded-lg border p-3 flex flex-col justify-between",
                         attention.severity === "abnormal"
                           ? "border-destructive/30 bg-destructive/10"
                           : "border-warning/50 bg-warning/10",
                       )}
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-foreground">
-                            {row.patientName}
-                          </p>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {row.doctorName || "—"} •{" "}
-                            {formatVisitDateAr(row.visitDate)}
-                          </p>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-1.5">
-                          <span
-                            className={cn(
-                              "rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                              attention.severity === "abnormal"
-                                ? "bg-destructive/15 text-destructive"
-                                : "bg-warning/20 text-warning-foreground",
-                            )}
-                          >
-                            {attention.severity === "abnormal"
-                              ? "شاذة"
-                              : "تكرار"}
-                          </span>
-                          <button
-                            type="button"
-                            aria-label="تجاهل التنبيه"
-                            onClick={() =>
-                              setDismissedAlerts((prev) =>
-                                new Set(prev).add(`${row.resultId}-${row.eye}`),
-                              )
-                            }
-                            className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground/50 transition-colors hover:bg-success/10 hover:text-success"
-                          >
-                            <CheckCircle2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {attention.reasons.length > 0 ? (
-                        <div className="mt-2 flex flex-wrap gap-1.5">
-                          {attention.reasons.map((reason) => (
+                      <div>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-foreground">
+                              {row.patientName}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {row.doctorName || "—"} •{" "}
+                              {formatVisitDateAr(row.visitDate)}
+                            </p>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1.5">
                             <span
-                              key={`${row.resultId}-${row.eye}-${reason}`}
                               className={cn(
-                                "rounded-full px-2 py-0.5 text-[11px] font-medium",
+                                "rounded-full px-2 py-0.5 text-[11px] font-semibold",
                                 attention.severity === "abnormal"
-                                  ? "bg-destructive/10 text-destructive"
-                                  : "bg-warning/20 text-warning/90",
+                                  ? "bg-destructive/15 text-destructive"
+                                  : "bg-warning/20 text-warning-foreground",
                               )}
                             >
-                              {formatReasonBadge(reason)}
+                              {attention.severity === "abnormal"
+                                ? "شاذة"
+                                : "تكرار"}
                             </span>
-                          ))}
+                            <button
+                              type="button"
+                              aria-label="تجاهل التنبيه"
+                              onClick={() =>
+                                setDismissedAlerts((prev) =>
+                                  new Set(prev).add(`${row.resultId}-${row.eye}`),
+                                )
+                              }
+                              className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground/50 transition-colors hover:bg-success/10 hover:text-success"
+                            >
+                              <CheckCircle2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         </div>
-                      ) : null}
 
-                      <div className="mt-3 flex items-center justify-between gap-3">
+                        {attention.reasons.length > 0 ? (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {attention.reasons.map((reason) => (
+                              <span
+                                key={`${row.resultId}-${row.eye}-${reason}`}
+                                className={cn(
+                                  "rounded-full px-2 py-0.5 text-[11px] font-medium",
+                                  attention.severity === "abnormal"
+                                    ? "bg-destructive/10 text-destructive"
+                                    : "bg-warning/20 text-warning/90",
+                                )}
+                              >
+                                {formatReasonBadge(reason)}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-between gap-3 border-t border-border/50 pt-2">
                         <span className="text-xs text-muted-foreground">
                           {row.eye === "OD" ? "يمين" : "يسار"} •{" "}
                           {row.quality === "accepted" ? "مقبول" : "يحتاج تكرار"}
@@ -1138,12 +1173,12 @@ export default function PentacamResultsDashboard({
                         )}
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </aside>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

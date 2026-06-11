@@ -333,7 +333,7 @@ export const salaryRouter = router({
           ? consultantPool + specialistPool
           : input.examPoolOverride !== undefined
             ? r2(input.examPoolOverride)
-            : r2(input.examCount * 50 * 0.4),
+            : r2(input.examCount * 50),
       ) as any;
       const pentacamPool = String(
         calcPentacamPool(

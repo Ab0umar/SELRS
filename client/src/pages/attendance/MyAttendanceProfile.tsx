@@ -339,9 +339,9 @@ export default function MyAttendanceProfile() {
                   return (
                     <div
                       key={i}
-                      className="flex items-center gap-2 rounded-md border border-amber-300 bg-amber-500/10 px-3 py-2 text-sm"
+                      className="flex items-center gap-2 rounded-md border border-secondary/20 bg-secondary/10 px-3 py-2 text-sm"
                     >
-                      <Clock className="h-4 w-4 text-amber-600 shrink-0" />
+                      <Clock className="h-4 w-4 text-secondary shrink-0" />
                       <span>
                         طلب تغيير موعد ({typeAr}): {s.dateFrom}{" "}
                         {s.dateTo ? `→ ${s.dateTo}` : ""}
@@ -553,7 +553,7 @@ export default function MyAttendanceProfile() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Clock className="h-4 w-4 text-amber-600" />
+              <Clock className="h-4 w-4 text-secondary" />
               طلب تغيير / تبديل موعد
             </CardTitle>
           </CardHeader>

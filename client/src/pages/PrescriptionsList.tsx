@@ -58,7 +58,7 @@ export default function PrescriptionsList() {
     },
   );
 
-  const rows = (overviewQuery.data ?? []) as Array<{
+  const rows = (overviewQuery.data?.rows ?? []) as Array<{
     id: number;
     patientId: number;
     prescriptionDate: string | Date | null;

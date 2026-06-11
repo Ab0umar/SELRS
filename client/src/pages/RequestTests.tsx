@@ -486,15 +486,12 @@ export default function RequestTests({
             onPrint={handlePrint}
           />
         ) : null}
-        <div className="grid grid-cols-1 lg:grid-cols-[0.65fr_1.35fr] gap-6">
-          <div className="space-y-6">
-            <Card
-              className={`print:hidden ${printMode.printView ? "hidden" : ""}`}
-            >
-              <CardHeader>
-                <CardTitle>Patient Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+        <div className="space-y-6 max-w-4xl mx-auto">
+          {/* Patient Selection (Hidden when embedded or printing) */}
+          {!embeddedInPatientHub && !printMode.printView && (
+            <div className="rounded-xl border bg-card p-4 shadow-sm print:hidden">
+              <h3 className="text-sm font-semibold mb-3">اختيار المريض ومكان الخدمة</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
                 <Select
                   value={locationTypeFilter}
                   onValueChange={(v) => setLocationTypeFilter(v as any)}
@@ -517,50 +514,43 @@ export default function RequestTests({
                       : locationTypeFilter
                   }
                 />
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Name
-                    </label>
+              </div>
+            </div>
+          )}
+
+          {/* Document Header (Metadata row) */}
+          {patientId && !printMode.printView && (
+            <div className="rounded-xl border bg-card p-4 shadow-sm">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 text-sm">
+                <div>
+                  <span className="text-xs text-muted-foreground block mb-1">الاسم / Name</span>
+                  <span className="font-semibold text-foreground">{patientName || "—"}</span>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground block mb-1">السن / Age</span>
+                  <span className="font-semibold text-foreground">{patientAge || "—"}</span>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground block mb-1">الكود / Code</span>
+                  <span className="font-semibold text-foreground">{patientCode || patientId || "—"}</span>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground block mb-1">التاريخ / Date</span>
+                  <div className="space-y-1">
                     <Input
-                      value={patientName}
-                      readOnly
-                      placeholder="Patient name"
-                      className="text-center"
+                      type="date"
+                      value={requestDate}
+                      readOnly={editingForbidden}
+                      onChange={(e) => setRequestDate(e.target.value)}
+                      className="h-8 text-xs font-semibold"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Age
-                    </label>
-                    <Input
-                      value={patientAge}
-                      readOnly
-                      placeholder="Age"
-                      className="text-center"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Date
-                    </label>
-                    <div className="space-y-1">
-                      <Input
-                        type="date"
-                        value={requestDate}
-                        readOnly={editingForbidden}
-                        onChange={(e) => setRequestDate(e.target.value)}
-                      />
-                      <span className="text-[10px] text-muted-foreground">
-                        {formatDateLabel(requestDate)}
-                      </span>
-                    </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </div>
+          )}
 
+          {/* Test List & Notes (Single Column) */}
           <div className="space-y-6 request-tests-print-content">
             <div className="hidden print:block request-tests-print-header">
               <div
@@ -584,13 +574,11 @@ export default function RequestTests({
               </div>
             </div>
 
-            <Card className="request-tests-print-list">
-              <CardHeader className="print:hidden">
-                <CardTitle>
-                  الفحوصات المسجّلة للمريض ({selectedTests.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <div className="rounded-xl border bg-card shadow-sm overflow-hidden request-tests-print-list">
+              <div className="border-b bg-primary/10 px-4 py-3 text-sm font-semibold text-primary flex justify-between items-center print:hidden">
+                <span>الفحوصات المطلوبة ({selectedTests.length})</span>
+              </div>
+              <div className="divide-y divide-border p-4">
                 {selectedTests.length === 0 ? (
                   <p className="text-center text-sm text-muted-foreground py-4">
                     لا توجد فحوصات مسجّلة لهذا الطلب بعد.
@@ -599,11 +587,11 @@ export default function RequestTests({
                   selectedTests.map((test, index) => (
                     <div
                       key={test.id}
-                      className="border rounded-lg p-4 print:border-0 print:rounded-none print:p-2"
+                      className="py-3 first:pt-0 last:pb-0 print:py-2 flex flex-col gap-2"
                     >
-                      <div className="flex justify-between items-start mb-2">
+                      <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <p className="font-bold">
+                          <p className="font-bold text-sm text-foreground">
                             {index + 1}. {test.name}
                           </p>
                         </div>
@@ -612,15 +600,15 @@ export default function RequestTests({
                             variant="destructive"
                             size="sm"
                             onClick={() => handleRemoveTest(test.id)}
-                            className="print:hidden"
+                            className="print:hidden h-8 w-8 p-0"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         )}
                       </div>
                       <div className="print:hidden">
-                        <label className="block text-sm font-medium mb-1">
-                          Notes
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">
+                          Notes / ملاحظات
                         </label>
                         <Textarea
                           value={test.notes}
@@ -628,12 +616,12 @@ export default function RequestTests({
                           onChange={(e) =>
                             handleUpdateTestNotes(test.id, e.target.value)
                           }
-                          placeholder="Notes for this test"
-                          className="min-h-16 text-xs text-center"
+                          placeholder="ملاحظات خاصة بهذا الفحص..."
+                          className="min-h-12 text-sm text-right"
                         />
                       </div>
                       {test.notes && (
-                        <div className="hidden print:block text-sm mt-2">
+                        <div className="hidden print:block text-sm mt-1">
                           <span className="font-medium">Notes:</span>{" "}
                           {test.notes}
                         </div>
@@ -641,29 +629,25 @@ export default function RequestTests({
                     </div>
                   ))
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            <Card
-              className={`print:hidden ${printMode.printView ? "hidden" : ""}`}
-            >
-              <CardHeader>
-                <CardTitle>General Notes</CardTitle>
-              </CardHeader>
-              <CardContent>
+            {!printMode.printView && (
+              <div className="rounded-xl border bg-card p-4 shadow-sm print:hidden">
+                <h3 className="text-sm font-semibold mb-3 text-foreground">ملاحظات عامة / General Notes</h3>
                 <Textarea
                   value={generalNotes}
                   readOnly={editingForbidden}
                   onChange={(e) => setGeneralNotes(e.target.value)}
-                  placeholder="Additional notes"
-                  className="min-h-24 text-center"
+                  placeholder="ملاحظات إضافية..."
+                  className="min-h-20 text-right text-sm"
                 />
-              </CardContent>
-            </Card>
+              </div>
+            )}
           </div>
         </div>
         <div
-          className={`print:hidden mt-4 flex justify-end gap-2 ${printMode.printView ? "hidden" : ""}`}
+          className={`print:hidden mt-4 flex justify-end gap-2 max-w-4xl mx-auto ${printMode.printView ? "hidden" : ""}`}
         >
           {!editingForbidden ? (
             <Button

@@ -40,6 +40,20 @@ export function calcPentacamPool(
   );
 }
 
+export function calcPentacamDrPool(
+  cases450: number,
+  cases400: number,
+  cases350: number,
+  cases250: number,
+): number {
+  return round2(
+    cases450 * PENTACAM_TIERS[0].deduction * (1 - PENTACAM_TIERS[0].empPct) +
+      cases400 * PENTACAM_TIERS[1].deduction * (1 - PENTACAM_TIERS[1].empPct) +
+      cases350 * PENTACAM_TIERS[2].deduction * (1 - PENTACAM_TIERS[2].empPct) +
+      cases250 * PENTACAM_TIERS[3].deduction * (1 - PENTACAM_TIERS[3].empPct),
+  );
+}
+
 interface AttendanceRates {
   r3: number;
   r5: number;
@@ -288,6 +302,14 @@ export class PayrollComputeService {
           pool.cases250 ?? 0,
         )
       : 0;
+    const pentacamDrPool = pool
+      ? calcPentacamDrPool(
+          pool.cases450 ?? 0,
+          pool.cases400 ?? 0,
+          pool.cases350 ?? 0,
+          pool.cases250 ?? 0,
+        )
+      : 0;
 
     // Resolve each employee's current basic (most recent effectiveFrom)
     const empBasicMap = new Map<string, number>();
@@ -483,6 +505,9 @@ export class PayrollComputeService {
       (ss) => (shiftStatsMap.get(ss.id)?.scheduled ?? 0) > 0,
     );
     const totalCountForExam = activeExamCount + activeTechsThisMonth.length;
+    // مركز: 60% of examPool to doctors (by salary), 40% to emps+techs (equally)
+    const examPoolDrs = round2(examPool * 0.6);
+    const examPoolEmpsTechs = round2(examPool * 0.4);
 
     // عيادة: count eligible employees per pool to avoid double-paying
     const consultantEligible = !isMarkaz
@@ -593,7 +618,13 @@ export class PayrollComputeService {
           ? Number(emp.attendanceLeaveMultiplier)
           : null;
       const lm = customLm !== null ? customLm : leaveMultiplier(leaveDays);
-      const commMult = lm * (1 - deductionPct);
+      // Insurance does not reduce the commission multiplier
+      const deductionsForComm = round2(
+        absentDeduction + lateDeduction + earlyLeaveDeduction +
+        penaltyDeduction + advancesDeduction,
+      );
+      const deductionPctForComm = basic > 0 ? Math.min(1, deductionsForComm / basic) : 0;
+      const commMult = lm * (1 - deductionPctForComm);
       const empRate =
         emp.attendanceCommissionRate != null
           ? Number(emp.attendanceCommissionRate)
@@ -611,7 +642,7 @@ export class PayrollComputeService {
       };
 
       const attendanceCommission = flags.commAttendance
-        ? round2(acRate * basic * lm * (1 - deductionPct))
+        ? round2(acRate * basic * commMult)
         : 0;
       let examCommission: number;
       if (!flags.commExam) {
@@ -623,21 +654,23 @@ export class PayrollComputeService {
         const t = emp.salaryType;
         const cShare = t === "استشاري" || t === "الاثنين" ? perConsultant : 0;
         const sShare = t === "أخصائي" || t === "الاثنين" ? perSpecialist : 0;
-        // Apply deduction pct via commMult (lm * (1 - deductionPct))
-        examCommission = round2((cShare + sShare) * commMult);
+        examCommission = round2(cShare + sShare);
       } else {
-        const examDivisor = isMarkaz ? totalCountForExam : 3;
-        const empShares = !isMarkaz && emp.salaryType === "الاثنين" ? 2 : 1;
-        examCommission = round2(
-          (examDivisor > 0 ? (examPool / examDivisor) * empShares : 0) *
-            commMult,
-        );
+        if (isMarkaz) {
+          examCommission =
+            totalCountForExam > 0
+              ? round2(examPoolEmpsTechs / totalCountForExam)
+              : 0;
+        } else {
+          const empShares = emp.salaryType === "الاثنين" ? 2 : 1;
+          examCommission = round2((examPool / 3) * empShares);
+        }
       }
       const pentacamCommission =
         isMarkaz && flags.commPentacam
           ? round2(
               totalSumForPentacam > 0
-                ? (basic / totalSumForPentacam) * pentacamPool * commMult
+                ? (basic / totalSumForPentacam) * pentacamPool
                 : 0,
             )
           : 0;
@@ -716,11 +749,11 @@ export class PayrollComputeService {
       const attendanceCommission = round2(0.25 * netBasic);
       const examCommission =
         scheduled > 0 && totalCountForExam > 0 && netBasic > 0
-          ? round2(examPool / totalCountForExam)
+          ? round2(examPoolEmpsTechs / totalCountForExam)
           : 0;
       const pentacamCommission = round2(
         totalSumForPentacam > 0
-          ? (netBasic / totalSumForPentacam) * pentacamPool * commMult
+          ? (netBasic / totalSumForPentacam) * pentacamPool
           : 0,
       );
       usedExam = round2(usedExam + examCommission);
@@ -763,9 +796,11 @@ export class PayrollComputeService {
       });
     }
 
-    // Doctors: get the remaining pool split equally among them
-    const remainingExam = Math.max(0, round2(examPool - usedExam));
-    const remainingPenta = Math.max(0, round2(pentacamPool - usedPenta));
+    // Doctors: each commission by salary proportion within doctors only
+    const sumDoctorBasics = doctors.reduce(
+      (s, ss) => s + (shiftStatsMap.get(ss.id)?.netPay ?? 0),
+      0,
+    );
     for (const ss of doctors) {
       const stats = shiftStatsMap.get(ss.id) ?? {
         scheduled: 0,
@@ -788,10 +823,14 @@ export class PayrollComputeService {
 
       const attendanceCommission = round2(0.25 * netBasic);
       const examCommission = round2(
-        doctors.length > 0 ? remainingExam / doctors.length : 0,
+        sumDoctorBasics > 0
+          ? (netBasic / sumDoctorBasics) * examPoolDrs
+          : 0,
       );
       const pentacamCommission = round2(
-        doctors.length > 0 ? (remainingPenta / doctors.length) * commMult : 0,
+        sumDoctorBasics > 0
+          ? (netBasic / sumDoctorBasics) * pentacamDrPool
+          : 0,
       );
       const totalCommission = round2(
         attendanceCommission + examCommission + pentacamCommission,

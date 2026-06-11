@@ -141,7 +141,6 @@ export default function PatientSummary() {
     summaryParams?.id ?? hubSummaryParams?.id ?? hubBriefParams?.id;
   const patientId = rawPatientId ? Number(rawPatientId) : undefined;
 
-  const [activeSection, setActiveSection] = useState<string>("basic");
   const contentRef = useRef<HTMLDivElement>(null);
 
   const patientQuery = trpc.patient.getPatient.useQuery(patientId ?? 0, {
@@ -813,39 +812,6 @@ export default function PatientSummary() {
     ],
   );
 
-  // Scrollspy via IntersectionObserver anchored to content container
-  useEffect(() => {
-    const content = contentRef.current;
-    if (!content) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setActiveSection(entry.target.id.replace("sum-", ""));
-            break;
-          }
-        }
-      },
-      { root: content, threshold: 0, rootMargin: "-10% 0px -65% 0px" },
-    );
-    tocSections.forEach((s) => {
-      const el = document.getElementById(`sum-${s.id}`);
-      if (el) observer.observe(el);
-    });
-    return () => observer.disconnect();
-  }, [tocSections]);
-
-  const scrollToSection = useCallback((id: string) => {
-    const el = document.getElementById(`sum-${id}`);
-    if (el && contentRef.current) {
-      contentRef.current.scrollTo({
-        top: el.offsetTop - 24,
-        behavior: "smooth",
-      });
-      setActiveSection(id);
-    }
-  }, []);
-
   return (
     <div className="flex h-full min-h-0 flex-col" dir="rtl">
       {/* Identity strip — info/blue tint distinguishes from patient-file */}
@@ -898,38 +864,11 @@ export default function PatientSummary() {
         </div>
       </header>
 
-      {/* Two-column layout */}
+      {/* Unified single-column report layout */}
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* TOC sidebar — right side in RTL, desktop only */}
-        <aside className="hidden w-44 shrink-0 flex-col border-e border-border/60 bg-muted/15 lg:flex print:hidden">
-          <p className="px-4 pb-2 pt-5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
-            المحتويات
-          </p>
-          <nav
-            className="flex flex-col overflow-y-auto pb-6"
-            aria-label="فهرس التقرير"
-          >
-            {tocSections.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => scrollToSection(s.id)}
-                className={cn(
-                  "border-s-2 px-4 py-2 text-right text-sm transition-colors",
-                  activeSection === s.id
-                    ? "border-s-info bg-info/10 font-semibold text-info"
-                    : "border-transparent text-muted-foreground hover:bg-muted text-muted-foreground",
-                )}
-              >
-                {s.label}
-              </button>
-            ))}
-          </nav>
-        </aside>
-
         {/* Scrollable content */}
         <main ref={contentRef} className="flex-1 overflow-y-auto">
-          <div className="space-y-10 px-4 py-6 pb-16 print:space-y-8 print:px-6 print:py-4">
+          <div className="space-y-10 px-4 py-6 pb-16 max-w-4xl mx-auto w-full print:space-y-8 print:px-6 print:py-4">
             {/* البيانات الأساسية */}
             <section id="sum-basic" className="scroll-mt-4">
               <SectionHeading id="basic" label="البيانات الأساسية" />

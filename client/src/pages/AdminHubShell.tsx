@@ -205,7 +205,7 @@ const ALL_MODULES: HubModuleCard[] = [
     title: "حجوزات البوابة",
     description: "إدارة حجوزات بوابة المرضى وجدول الأوقات المتاحة.",
     icon: CalendarDays,
-    iconWrap: "bg-cyan-50 text-cyan-700",
+    iconWrap: "bg-secondary/15 text-secondary",
     category: "portal",
   },
   {
@@ -229,7 +229,7 @@ const ALL_MODULES: HubModuleCard[] = [
     title: "بوابة الطبيب الخارجي",
     description: "صفحة دخول الأطباء الخارجيين لعرض صور مرضاهم.",
     icon: Globe,
-    iconWrap: "bg-cyan-50 text-cyan-700",
+    iconWrap: "bg-secondary/15 text-secondary",
     category: "portal",
   },
   {
@@ -237,7 +237,7 @@ const ALL_MODULES: HubModuleCard[] = [
     title: "بوابة المريض",
     description: "صفحة دخول المرضى لمتابعة ملفاتهم وحجوزاتهم.",
     icon: UserCheck,
-    iconWrap: "bg-cyan-50 text-cyan-700",
+    iconWrap: "bg-secondary/15 text-secondary",
     category: "portal",
   },
   {
@@ -398,8 +398,8 @@ export default function AdminHubShell() {
       title: "بوابة المرضى والملفات",
       subtitle: "إدارة المرضى والحجوزات ومزامنة صور البنتاكام وبوابات تسجيل الدخول",
       icon: Scan,
-      color: "text-cyan-700",
-      bg: "bg-cyan-50",
+      color: "text-secondary",
+      bg: "bg-secondary/15",
     },
     {
       id: "system" as const,

@@ -75,6 +75,10 @@ function AssignmentPanel({
   const [dayShifts, setDayShifts] = useState<Record<number, number>>(() =>
     buildDayShifts(assignments),
   );
+  const [addShiftId, setAddShiftId] = useState<number>(0);
+  const [addMask, setAddMask] = useState<number>(
+    WORKING_DAYS.reduce((m, { dow }) => m | (1 << dow), 0),
+  );
 
   useEffect(() => {
     setDayShifts(buildDayShifts(assignments));
@@ -88,11 +92,38 @@ function AssignmentPanel({
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
 
+  const addMut = (trpc as any).attendance.addShiftAssignment.useMutation({
+    onSuccess: () => {
+      onSaved();
+      setAddShiftId(0);
+      toast.success("تم إضافة الوردية");
+    },
+    onError: (e: any) => toast.error("خطأ: " + e.message),
+  });
+
+  const deleteMut = (trpc as any).attendance.deleteAssignment.useMutation({
+    onSuccess: () => {
+      onSaved();
+      toast.success("تم حذف الوردية");
+    },
+    onError: (e: any) => toast.error("خطأ: " + e.message),
+  });
+
   function save() {
     const payload = Object.entries(dayShifts)
       .filter(([, shiftId]) => shiftId > 0)
       .map(([dow, shiftId]) => ({ dayOfWeek: parseInt(dow), shiftId }));
     saveMut.mutate({ empCd, dayShifts: payload });
+  }
+
+  function addExtra() {
+    if (!addShiftId) { toast.error("اختر الوردية"); return; }
+    addMut.mutate({
+      empCd,
+      shiftId: addShiftId,
+      effectiveFrom: new Date().toISOString().split("T")[0],
+      weekdayMask: addMask,
+    });
   }
 
   return (
@@ -140,6 +171,63 @@ function AssignmentPanel({
                 </select>
               </div>
             ))}
+          </div>
+
+          {/* Existing assignments list with delete */}
+          {assignments.length > 0 && (
+            <div className="space-y-1 pt-1 border-t border-border/30">
+              <p className="text-xs font-semibold text-muted-foreground">الورديات الحالية</p>
+              {assignments.map((a) => (
+                <div key={a.id} className="flex items-center justify-between rounded-md border border-border/50 bg-muted/20 px-3 py-1.5 text-xs">
+                  <span className="font-medium">{a.shiftName} — {maskLabel(a.weekdayMask)}</span>
+                  <button
+                    type="button"
+                    onClick={() => deleteMut.mutate({ id: a.id })}
+                    disabled={deleteMut.isPending}
+                    className="text-destructive hover:text-destructive/80 transition-colors"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add extra assignment without overwriting */}
+          <div className="space-y-2 pt-1 border-t border-border/30">
+            <p className="text-xs font-semibold text-muted-foreground">إضافة وردية إضافية</p>
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={addShiftId}
+                onChange={(e) => setAddShiftId(parseInt(e.target.value))}
+                className="rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+              >
+                <option value={0}>-- اختر الوردية --</option>
+                {shifts.map((s: any) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+              <div className="flex flex-wrap gap-1">
+                {WORKING_DAYS.map(({ dow }) => (
+                  <button
+                    key={dow}
+                    type="button"
+                    onClick={() => setAddMask((m) => m ^ (1 << dow))}
+                    className={`rounded px-2 py-1 text-[11px] font-semibold border transition-colors ${(addMask >> dow) & 1 ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted/50"}`}
+                  >
+                    {DAYS_SH[dow]}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={addExtra}
+                disabled={addMut.isPending}
+                className="rounded-lg border border-success bg-success/10 px-4 py-1.5 text-xs font-semibold text-success hover:bg-success/20 disabled:opacity-50 transition-colors"
+              >
+                إضافة
+              </button>
+            </div>
           </div>
 
           <div className="flex gap-2 pt-1 border-t border-border/30">
@@ -215,15 +303,15 @@ function TempSwapPanel({
   const otherShifts = shifts.filter((s: any) => s.id !== assignment?.shiftId);
 
   return (
-    <tr className="border-b border-amber-200/40 bg-amber-500/5">
+    <tr className="border-b border-secondary/20 bg-secondary/5">
       <td colSpan={7} className="px-5 py-4" dir="rtl">
         <div className="space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <ArrowLeftRight size={14} className="text-amber-600" />
+              <ArrowLeftRight size={14} className="text-secondary" />
               <p className="text-sm font-semibold text-foreground">
-                تبديل مؤقت — <span className="text-amber-600">{empName}</span>
+                تبديل مؤقت — <span className="text-secondary">{empName}</span>
               </p>
             </div>
             <button
@@ -306,7 +394,7 @@ function TempSwapPanel({
                 type="button"
                 onClick={save}
                 disabled={tempMut.isPending}
-                className="rounded-lg border border-amber-500 bg-amber-500 px-5 py-1.5 text-xs font-semibold text-white hover:bg-amber-600 disabled:opacity-50 transition-colors"
+                className="rounded-lg border border-secondary bg-secondary px-5 py-1.5 text-xs font-semibold text-secondary-foreground hover:bg-secondary/90 disabled:opacity-50 transition-colors"
               >
                 {tempMut.isPending ? "جاري التبديل…" : "تأكيد التبديل"}
               </button>
@@ -675,7 +763,7 @@ export default function EmployeesList() {
                               setPanelCd(null);
                             }}
                             title="تبديل مؤقت للوردية"
-                            className={`h-8 w-8 p-0 ${showSwap ? "text-amber-600" : "text-muted-foreground"}`}
+                            className={`h-8 w-8 p-0 ${showSwap ? "text-secondary" : "text-muted-foreground"}`}
                           >
                             <ArrowLeftRight size={14} />
                           </Button>

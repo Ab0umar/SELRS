@@ -426,17 +426,17 @@ export default function KfPatientForm() {
             {verifiedSelrsName !== null && (
               <div className={`flex items-center gap-2 p-3 rounded-lg border text-sm max-w-xl ${
                 verifiedSelrsName 
-                  ? "bg-emerald-50/20 border-emerald-100 text-emerald-800 dark:text-emerald-300"
-                  : "bg-amber-50/20 border-amber-100 text-amber-800 dark:text-amber-300"
+                  ? "bg-success/5 border-success/20 text-success"
+                  : "bg-warning/5 border-warning/20 text-warning"
               }`}>
                 {verifiedSelrsName ? (
                   <>
-                    <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                    <Check className="h-4 w-4 shrink-0 text-success" />
                     <p>تم العثور على المريض: <strong>{verifiedSelrsName}</strong></p>
                   </>
                 ) : (
                   <>
-                    <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                    <AlertCircle className="h-4 w-4 shrink-0 text-warning" />
                     <p>لم يتم العثور على مريض بهذا الكود في SELRS. يمكنك الحفظ على أي حال.</p>
                   </>
                 )}
