@@ -144,12 +144,25 @@ function AppNotificationsBridge() {
     let closed = false;
     try {
       ws = new WebSocket(wsUrl);
+      ws.addEventListener("open", () => {
+        console.log("[Notif] WS connected:", wsUrl);
+      });
+      ws.addEventListener("error", (e) => {
+        console.warn("[Notif] WS error:", e);
+      });
+      ws.addEventListener("close", (e) => {
+        console.log("[Notif] WS closed:", e.code, e.reason);
+      });
       ws.addEventListener("message", (event) => {
         try {
           const msg = JSON.parse(event.data as string);
+          console.log("[Notif] WS message received:", msg?.type);
           if (msg?.type !== "app-notification") return;
           const item: AppNotificationItem = msg;
-          if (!canCurrentUserSeeNotification(user?.id, user?.role, item)) return;
+          if (!canCurrentUserSeeNotification(user?.id, user?.role, item)) {
+            console.log("[Notif] filtered by role/user:", item.targetRoles, item.targetUserIds);
+            return;
+          }
           const id = String(item.id ?? "").trim();
           if (!id || seenIdsRef.current.has(id)) return;
           seenIdsRef.current.add(id);
@@ -162,6 +175,7 @@ function AppNotificationsBridge() {
           } catch { /* ignore */ }
           const title = String(item.title ?? "").trim() || "Notification";
           const message = String(item.message ?? "").trim();
+          console.log("[Notif] showing toast:", title, "inApp:", isInAppEnabledRef.current);
           if (isInAppEnabledRef.current) {
             const tone = item.kind ?? "info";
             if (tone === "success") toast.success(title, { description: message });

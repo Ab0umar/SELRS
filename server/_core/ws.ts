@@ -108,11 +108,18 @@ export function broadcastAppNotification(notification: {
   entityType?: string | null;
   entityId?: number | null;
 }) {
-  if (!wss) return;
+  if (!wss) {
+    console.warn("[WS] broadcastAppNotification called but wss is null");
+    return;
+  }
+  const totalClients = wss.clients.size;
+  let sent = 0;
   const payload = JSON.stringify({ type: "app-notification", ...notification });
   wss.clients.forEach((client) => {
     const ws = client as any;
     if (ws.readyState !== WebSocket.OPEN) return;
     ws.send(payload);
+    sent++;
   });
+  console.log(`[WS] broadcastAppNotification: sent to ${sent}/${totalClients} clients — ${notification.title}`);
 }
