@@ -141,54 +141,76 @@ function AppNotificationsBridge() {
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
     const wsUrl = `${protocol}://${window.location.host}/ws`;
     let ws: WebSocket | null = null;
-    let closed = false;
-    try {
-      ws = new WebSocket(wsUrl);
-      ws.addEventListener("open", () => {
-        console.log("[Notif] WS connected:", wsUrl);
-      });
-      ws.addEventListener("error", (e) => {
-        console.warn("[Notif] WS error:", e);
-      });
-      ws.addEventListener("close", (e) => {
-        console.log("[Notif] WS closed:", e.code, e.reason);
-      });
-      ws.addEventListener("message", (event) => {
-        try {
-          const msg = JSON.parse(event.data as string);
-          console.log("[Notif] WS message received:", msg?.type);
-          if (msg?.type !== "app-notification") return;
-          const item: AppNotificationItem = msg;
-          if (!canCurrentUserSeeNotification(user?.id, user?.role, item)) {
-            console.log("[Notif] filtered by role/user:", item.targetRoles, item.targetUserIds);
-            return;
+    let destroyed = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let retryDelay = 2000;
+
+    let pingTimer: ReturnType<typeof setInterval> | null = null;
+
+    const connect = () => {
+      if (destroyed) return;
+      try {
+        ws = new WebSocket(wsUrl);
+        ws.addEventListener("open", () => {
+          console.log("[Notif] WS connected:", wsUrl);
+          retryDelay = 2000;
+          // Keepalive: send ping every 25s to prevent NAT/firewall idle timeout
+          if (pingTimer) clearInterval(pingTimer);
+          pingTimer = setInterval(() => {
+            if (ws?.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ type: "ping" }));
+            }
+          }, 25000);
+        });
+        ws.addEventListener("error", (e) => {
+          console.warn("[Notif] WS error:", e);
+        });
+        ws.addEventListener("close", (e) => {
+          console.log("[Notif] WS closed:", e.code, e.reason, "— retrying in", retryDelay, "ms");
+          if (pingTimer) { clearInterval(pingTimer); pingTimer = null; }
+          if (!destroyed) {
+            retryTimer = setTimeout(() => {
+              retryDelay = Math.min(retryDelay * 2, 30000);
+              connect();
+            }, retryDelay);
           }
-          const id = String(item.id ?? "").trim();
-          if (!id || seenIdsRef.current.has(id)) return;
-          seenIdsRef.current.add(id);
-          // Also mark seen in localStorage so poll doesn't re-fire
+        });
+        ws.addEventListener("message", (event) => {
           try {
-            window.localStorage.setItem(
-              storageKey,
-              JSON.stringify(Array.from(seenIdsRef.current).slice(-200)),
-            );
-          } catch { /* ignore */ }
-          const title = String(item.title ?? "").trim() || "Notification";
-          const message = String(item.message ?? "").trim();
-          console.log("[Notif] showing toast:", title, "inApp:", isInAppEnabledRef.current);
-          if (isInAppEnabledRef.current) {
-            const tone = item.kind ?? "info";
-            if (tone === "success") toast.success(title, { description: message });
-            else if (tone === "warning") toast.warning(title, { description: message });
-            else if (tone === "error") toast.error(title, { description: message });
-            else toast(title, { description: message });
-          }
-          if (isLocalEnabledRef.current) fireBrowserNotification(title, message);
-        } catch { /* ignore malformed */ }
-      });
-    } catch { /* WS not available */ }
+            const msg = JSON.parse(event.data as string);
+            if (msg?.type !== "app-notification") return;
+            const item: AppNotificationItem = msg;
+            if (!canCurrentUserSeeNotification(user?.id, user?.role, item)) return;
+            const id = String(item.id ?? "").trim();
+            if (!id || seenIdsRef.current.has(id)) return;
+            seenIdsRef.current.add(id);
+            try {
+              window.localStorage.setItem(
+                storageKey,
+                JSON.stringify(Array.from(seenIdsRef.current).slice(-200)),
+              );
+            } catch { /* ignore */ }
+            const title = String(item.title ?? "").trim() || "Notification";
+            const message = String(item.message ?? "").trim();
+            if (isInAppEnabledRef.current) {
+              const tone = item.kind ?? "info";
+              if (tone === "success") toast.success(title, { description: message });
+              else if (tone === "warning") toast.warning(title, { description: message });
+              else if (tone === "error") toast.error(title, { description: message });
+              else toast(title, { description: message });
+            }
+            if (isLocalEnabledRef.current) fireBrowserNotification(title, message);
+          } catch { /* ignore malformed */ }
+        });
+      } catch { /* WS not available */ }
+    };
+
+    connect();
+
     return () => {
-      closed = true;
+      destroyed = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      if (pingTimer) clearInterval(pingTimer);
       ws?.close();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
