@@ -2600,6 +2600,7 @@ export const medicalRouter = router({
         const notificationSettings = await getAppNotificationSettings().catch(
           () => DEFAULT_APP_NOTIFICATION_SETTINGS,
         );
+        console.log("[patient-create] notif settings:", JSON.stringify(notificationSettings.patients));
         if (notificationSettings.patients.enabled) {
           const targetRoles = resolveNotificationTargetRolesByUserRole(
             (ctx.user as any)?.role,
