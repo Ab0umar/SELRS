@@ -249,6 +249,44 @@ export const kfProcedure = t.procedure.use(
   }),
 );
 
+// KF write procedure — requires :rw level (mutations: create/update/delete)
+export const kfWriteProcedure = t.procedure.use(
+  t.middleware(async (opts) => {
+    const { ctx, next } = opts;
+
+    if (!ctx.user) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "User not authenticated",
+      });
+    }
+
+    if (ctx.user.role === "admin" || ctx.user.role === "accountant") {
+      return next({ ctx: { ...ctx, user: ctx.user } });
+    }
+
+    const permissions = await db.getEffectiveUserPermissions(
+      ctx.user.id,
+      ctx.user.role ?? undefined,
+    );
+    const canWriteKf = permissions.some((p) => {
+      const raw = String(p ?? "").trim();
+      if (!raw.endsWith(":rw")) return false;
+      const clean = raw.slice(0, -3).trim();
+      return clean === "/kf" || clean.startsWith("/kf/");
+    });
+
+    if (!canWriteKf) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "KF write access required",
+      });
+    }
+
+    return next({ ctx: { ...ctx, user: ctx.user } });
+  }),
+);
+
 // Admin procedure - المسؤول
 export const adminProcedure = t.procedure.use(
   t.middleware(async (opts) => {
