@@ -40,22 +40,22 @@ export function useTodayQueuePatientsMerged(dateIso?: string) {
     [dateIso],
   );
 
-  const checkedIn = trpc.medical.getTodayPatientsByQueueStatus.useQuery({
-    date: todayIso,
-    queueStatus: "checkedIn",
-  });
-  const next = trpc.medical.getTodayPatientsByQueueStatus.useQuery({
-    date: todayIso,
-    queueStatus: "next",
-  });
-  const clinic = trpc.medical.getTodayPatientsByQueueStatus.useQuery({
-    date: todayIso,
-    queueStatus: "clinic",
-  });
-  const treated = trpc.medical.getTodayPatientsByQueueStatus.useQuery({
-    date: todayIso,
-    queueStatus: "treated",
-  });
+  const checkedIn = trpc.medical.getTodayPatientsByQueueStatus.useQuery(
+    { date: todayIso, queueStatus: "checkedIn" },
+    { refetchInterval: 10000, refetchOnWindowFocus: true },
+  );
+  const next = trpc.medical.getTodayPatientsByQueueStatus.useQuery(
+    { date: todayIso, queueStatus: "next" },
+    { refetchInterval: 10000, refetchOnWindowFocus: true },
+  );
+  const clinic = trpc.medical.getTodayPatientsByQueueStatus.useQuery(
+    { date: todayIso, queueStatus: "clinic" },
+    { refetchInterval: 10000, refetchOnWindowFocus: true },
+  );
+  const treated = trpc.medical.getTodayPatientsByQueueStatus.useQuery(
+    { date: todayIso, queueStatus: "treated" },
+    { refetchInterval: 10000, refetchOnWindowFocus: true },
+  );
 
   const merged = useMemo(() => {
     const map = new Map<number, TodayQueuePatient>();
