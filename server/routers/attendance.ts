@@ -12,8 +12,8 @@ import {
 } from "../services/attendance/fkDeviceSyncService";
 import {
   router,
-  attendanceViewerProcedure,
-  attendanceManagerProcedure,
+  makeAttProcedure,
+  makeAttWriteProcedure,
   protectedProcedure,
   adminProcedure,
 } from "../_core/procedures";
@@ -70,11 +70,11 @@ function fmtDate(d: Date | string | null | undefined): string {
  * AttendanceRouter - TRPC router for attendance module
  */
 export const attendanceRouter = router({
-  dashboardSummary: attendanceViewerProcedure.query(async () => {
+  dashboardSummary: makeAttProcedure("/attendance").query(async () => {
     return DashboardService.getSummary();
   }),
 
-  offTodayList: attendanceViewerProcedure.query(async () => {
+  offTodayList: makeAttProcedure("/attendance").query(async () => {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
     const now = new Date();
@@ -105,7 +105,7 @@ export const attendanceRouter = router({
     }));
   }),
 
-  syncStatus: attendanceViewerProcedure
+  syncStatus: makeAttProcedure("/attendance")
     .input(z.object({ limit: z.number().int().min(1).max(200).default(50) }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -155,7 +155,7 @@ export const attendanceRouter = router({
       };
     }),
 
-  employeesList: attendanceViewerProcedure
+  employeesList: makeAttProcedure("/attendance/employees")
     .input(z.object({}).optional())
     .query(async () => {
       const db = await getDb();
@@ -177,7 +177,7 @@ export const attendanceRouter = router({
       };
     }),
 
-  rawPunches: attendanceViewerProcedure
+  rawPunches: makeAttProcedure("/attendance")
     .input(
       z.object({
         empCd: z.string().optional(),
@@ -239,7 +239,7 @@ export const attendanceRouter = router({
       };
     }),
 
-  dailyByDate: attendanceViewerProcedure
+  dailyByDate: makeAttProcedure("/attendance")
     .input(
       z.object({
         date: z.string(), // YYYY-MM-DD
@@ -290,7 +290,7 @@ export const attendanceRouter = router({
       }));
     }),
 
-  dailyByEmployee: attendanceViewerProcedure
+  dailyByEmployee: makeAttProcedure("/attendance/employees")
     .input(
       z.object({
         empCd: z.string(),
@@ -334,7 +334,7 @@ export const attendanceRouter = router({
       }));
     }),
 
-  monthlyReport: attendanceViewerProcedure
+  monthlyReport: makeAttProcedure("/attendance/reports")
     .input(
       z.object({
         year: z.number().int().min(2020).max(2099),
@@ -349,7 +349,7 @@ export const attendanceRouter = router({
       return monthly;
     }),
 
-  lateReport: attendanceViewerProcedure
+  lateReport: makeAttProcedure("/attendance/reports")
     .input(
       z.object({
         year: z.number().int().min(2020).max(2099),
@@ -364,7 +364,7 @@ export const attendanceRouter = router({
       return MonthlyComputeService.lateReport(monthly);
     }),
 
-  absentReport: attendanceViewerProcedure
+  absentReport: makeAttProcedure("/attendance/reports")
     .input(
       z.object({
         year: z.number().int().min(2020).max(2099),
@@ -379,7 +379,7 @@ export const attendanceRouter = router({
       return MonthlyComputeService.absentReport(monthly);
     }),
 
-  otReport: attendanceViewerProcedure
+  otReport: makeAttProcedure("/attendance/reports")
     .input(
       z.object({
         year: z.number().int().min(2020).max(2099),
@@ -394,7 +394,7 @@ export const attendanceRouter = router({
       return MonthlyComputeService.otReport(monthly);
     }),
 
-  summaryReport: attendanceViewerProcedure
+  summaryReport: makeAttProcedure("/attendance/reports")
     .input(
       z.object({
         year: z.number().int().min(2020).max(2099),
@@ -409,7 +409,7 @@ export const attendanceRouter = router({
       return MonthlyComputeService.summaryReport(monthly);
     }),
 
-  employeeLeaves: attendanceViewerProcedure
+  employeeLeaves: makeAttProcedure("/attendance")
     .input(
       z.object({
         empCd: z.string(),
@@ -427,7 +427,7 @@ export const attendanceRouter = router({
       );
     }),
 
-  leaveBalance: attendanceViewerProcedure
+  leaveBalance: makeAttProcedure("/attendance")
     .input(
       z.object({
         empCd: z.string(),
@@ -439,11 +439,11 @@ export const attendanceRouter = router({
       return LeaveManagementService.getLeaveBalance(input.empCd, year);
     }),
 
-  pendingLeaves: attendanceViewerProcedure.query(async () => {
+  pendingLeaves: makeAttProcedure("/attendance").query(async () => {
     return LeaveManagementService.getPendingLeaves();
   }),
 
-  createLeave: attendanceManagerProcedure
+  createLeave: makeAttWriteProcedure("/attendance")
     .input(
       z.object({
         empCd: z.string(),
@@ -477,7 +477,7 @@ export const attendanceRouter = router({
       return { success: true };
     }),
 
-  approveLeave: attendanceManagerProcedure
+  approveLeave: makeAttWriteProcedure("/attendance")
     .input(z.object({ leaveId: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -533,14 +533,14 @@ export const attendanceRouter = router({
       return { success: true, leaveId: input.leaveId };
     }),
 
-  deleteLeave: attendanceManagerProcedure
+  deleteLeave: makeAttWriteProcedure("/attendance")
     .input(z.object({ leaveId: z.number() }))
     .mutation(async ({ input }) => {
       return LeaveManagementService.deleteLeave(input.leaveId);
     }),
 
   // List all leaves across all employees, filterable by empCd and date range
-  listLeaves: attendanceViewerProcedure
+  listLeaves: makeAttProcedure("/attendance")
     .input(
       z.object({
         empCd: z.string().optional(),
@@ -582,7 +582,7 @@ export const attendanceRouter = router({
       }));
     }),
 
-  recomputeDaily: attendanceManagerProcedure
+  recomputeDaily: makeAttWriteProcedure("/attendance")
     .input(
       z.object({
         empCd: z.string(),
@@ -603,7 +603,7 @@ export const attendanceRouter = router({
       return { success: true, recordsUpdated: updated };
     }),
 
-  adjustmentSummary: attendanceViewerProcedure
+  adjustmentSummary: makeAttProcedure("/attendance")
     .input(
       z.object({
         empCd: z.string(),
@@ -622,17 +622,17 @@ export const attendanceRouter = router({
       );
     }),
 
-  auditLogs: attendanceViewerProcedure
+  auditLogs: makeAttProcedure("/attendance")
     .input(z.object({ limit: z.number().int().min(1).max(200).default(50) }))
     .query(async ({ input }) => {
       return AuditLogService.getRecentLogs(input.limit);
     }),
 
-  auditStats: attendanceViewerProcedure.query(async () => {
+  auditStats: makeAttProcedure("/attendance").query(async () => {
     return AuditLogService.getStats();
   }),
 
-  systemHealth: attendanceViewerProcedure.query(async () => {
+  systemHealth: makeAttProcedure("/attendance").query(async () => {
     const db = await getDb();
     const stats = AuditLogService.getStats();
 
@@ -647,11 +647,11 @@ export const attendanceRouter = router({
     };
   }),
 
-  deviceSettings: attendanceViewerProcedure.query(async () => {
+  deviceSettings: makeAttProcedure("/attendance/admin/device").query(async () => {
     return DeviceSettingsService.getSettings();
   }),
 
-  deviceStatus: attendanceViewerProcedure.query(async () => {
+  deviceStatus: makeAttProcedure("/attendance/admin/device").query(async () => {
     const db = await getDb();
     if (!db)
       return {
@@ -681,7 +681,7 @@ export const attendanceRouter = router({
     };
   }),
 
-  updateDeviceSettings: attendanceManagerProcedure
+  updateDeviceSettings: makeAttWriteProcedure("/attendance/admin/device")
     .input(
       z.object({
         enabled: z.boolean().optional(),
@@ -695,7 +695,7 @@ export const attendanceRouter = router({
       return DeviceSettingsService.updateSettings(input);
     }),
 
-  connectDevice: attendanceManagerProcedure.mutation(async () => {
+  connectDevice: makeAttWriteProcedure("/attendance/admin/device").mutation(async () => {
     const connected = await DeviceSettingsService.connectDevice();
     AuditLogService.log({
       action: "device_connected",
@@ -705,7 +705,7 @@ export const attendanceRouter = router({
     return { success: connected };
   }),
 
-  disconnectDevice: attendanceManagerProcedure.mutation(async () => {
+  disconnectDevice: makeAttWriteProcedure("/attendance/admin/device").mutation(async () => {
     DeviceSettingsService.disconnectDevice();
     AuditLogService.log({
       action: "device_disconnected",
@@ -715,7 +715,7 @@ export const attendanceRouter = router({
     return { success: true };
   }),
 
-  resetDeviceConnection: attendanceManagerProcedure.mutation(async () => {
+  resetDeviceConnection: makeAttWriteProcedure("/attendance/admin/device").mutation(async () => {
     DeviceSettingsService.resetDeviceConnection();
     AuditLogService.log({
       action: "device_reset",
@@ -725,7 +725,7 @@ export const attendanceRouter = router({
     return { success: true };
   }),
 
-  sendDeviceCommand: attendanceManagerProcedure
+  sendDeviceCommand: makeAttWriteProcedure("/attendance/admin/device")
     .input(
       z.object({
         hex: z
@@ -747,7 +747,7 @@ export const attendanceRouter = router({
       }
     }),
 
-  batchAddPunches: attendanceManagerProcedure
+  batchAddPunches: makeAttWriteProcedure("/attendance/admin/device")
     .input(
       z.object({
         punches: z.array(
@@ -813,7 +813,7 @@ export const attendanceRouter = router({
       };
     }),
 
-  runDeviceDiagnostics: attendanceManagerProcedure
+  runDeviceDiagnostics: makeAttWriteProcedure("/attendance/admin/device")
     .input(
       z.object({
         ip: z.string(),
@@ -835,7 +835,7 @@ export const attendanceRouter = router({
       };
     }),
 
-  testZKTecoConnection: attendanceManagerProcedure
+  testZKTecoConnection: makeAttWriteProcedure("/attendance/admin/device")
     .input(
       z.object({
         ip: z.string().regex(/^(\d{1,3}\.){3}\d{1,3}$/, "Invalid IP address"),
@@ -884,7 +884,7 @@ export const attendanceRouter = router({
       }
     }),
 
-  pullDeviceLogs: attendanceManagerProcedure
+  pullDeviceLogs: makeAttWriteProcedure("/attendance/admin/device")
     .input(
       z.object({
         ip: z
@@ -933,7 +933,7 @@ export const attendanceRouter = router({
       }
     }),
 
-  exportDevicePunches: attendanceManagerProcedure
+  exportDevicePunches: makeAttWriteProcedure("/attendance/admin/device")
     .input(
       z.object({
         ip: z
@@ -963,7 +963,7 @@ export const attendanceRouter = router({
       };
     }),
 
-  syncEmployeesFromDevice: attendanceManagerProcedure
+  syncEmployeesFromDevice: makeAttWriteProcedure("/attendance/admin/device")
     .input(
       z.object({
         ip: z
@@ -1085,7 +1085,7 @@ export const attendanceRouter = router({
       }
     }),
 
-  syncFromFKDevice: attendanceManagerProcedure
+  syncFromFKDevice: makeAttWriteProcedure("/attendance/admin/sync")
     .input(
       z.object({
         ip: z
@@ -1140,7 +1140,7 @@ export const attendanceRouter = router({
       }
     }),
 
-  testFKDeviceConnection: attendanceManagerProcedure
+  testFKDeviceConnection: makeAttWriteProcedure("/attendance/admin/device")
     .input(
       z.object({
         ip: z
@@ -1176,7 +1176,7 @@ export const attendanceRouter = router({
       }
     }),
 
-  syncNow: attendanceManagerProcedure
+  syncNow: makeAttWriteProcedure("/attendance/admin/sync")
     .input(z.object({}).optional())
     .mutation(async ({ ctx }) => {
       try {
@@ -1218,7 +1218,7 @@ export const attendanceRouter = router({
       }
     }),
 
-  resetSyncHistory: attendanceManagerProcedure
+  resetSyncHistory: makeAttWriteProcedure("/attendance/admin/sync")
     .input(z.object({}).optional())
     .mutation(async ({ ctx }) => {
       try {
@@ -1248,7 +1248,7 @@ export const attendanceRouter = router({
     }),
 
   // Device Sync Procedures (ZKTeco direct connection)
-  deviceSyncNow: attendanceManagerProcedure
+  deviceSyncNow: makeAttWriteProcedure("/attendance/admin/sync")
     .input(z.object({}).optional())
     .mutation(async ({ ctx }) => {
       try {
@@ -1291,7 +1291,7 @@ export const attendanceRouter = router({
       }
     }),
 
-  deviceSyncStatus: attendanceViewerProcedure
+  deviceSyncStatus: makeAttProcedure("/attendance/admin/sync")
     .input(z.object({}).optional())
     .query(async () => {
       const engine = getDeviceSyncEngine();
@@ -1318,7 +1318,7 @@ export const attendanceRouter = router({
       };
     }),
 
-  initializeDeviceSync: attendanceManagerProcedure
+  initializeDeviceSync: makeAttWriteProcedure("/attendance/admin/sync")
     .input(
       z.object({
         deviceIp: z
@@ -1366,7 +1366,7 @@ export const attendanceRouter = router({
       }
     }),
 
-  materializeDaily: attendanceManagerProcedure
+  materializeDaily: makeAttWriteProcedure("/attendance")
     .input(
       z.object({
         fromDate: z.string().optional(), // YYYY-MM-DD, defaults to 30 days ago
@@ -1439,7 +1439,7 @@ export const attendanceRouter = router({
       }
     }),
 
-  generateMonthlyReports: attendanceManagerProcedure
+  generateMonthlyReports: makeAttWriteProcedure("/attendance")
     .input(
       z.object({
         year: z.number().int().min(2020).max(2099),
@@ -1480,7 +1480,7 @@ export const attendanceRouter = router({
       }
     }),
 
-  healthCheck: attendanceViewerProcedure.query(async () => {
+  healthCheck: makeAttProcedure("/attendance").query(async () => {
     const db = await getDb();
     return {
       status: "ok",
@@ -1489,7 +1489,7 @@ export const attendanceRouter = router({
     };
   }),
 
-  bootstrapShifts: attendanceManagerProcedure
+  bootstrapShifts: makeAttWriteProcedure("/attendance")
     .input(z.object({}).optional())
     .mutation(async () => {
       const db = await getDb();
@@ -1581,7 +1581,7 @@ export const attendanceRouter = router({
       }
     }),
 
-  listShifts: attendanceViewerProcedure.query(async () => {
+  listShifts: makeAttProcedure("/attendance/shift-schedule").query(async () => {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
 
@@ -1607,7 +1607,7 @@ export const attendanceRouter = router({
     }));
   }),
 
-  createShift: attendanceManagerProcedure
+  createShift: makeAttWriteProcedure("/attendance/shift-schedule")
     .input(
       z.object({
         name: z.string().min(1).max(64),
@@ -1660,7 +1660,7 @@ export const attendanceRouter = router({
       }
     }),
 
-  updateShift: attendanceManagerProcedure
+  updateShift: makeAttWriteProcedure("/attendance/shift-schedule")
     .input(
       z.object({
         id: z.number(),
@@ -1717,7 +1717,7 @@ export const attendanceRouter = router({
       }
     }),
 
-  listAssignments: attendanceViewerProcedure
+  listAssignments: makeAttProcedure("/attendance/shift-schedule")
     .input(z.object({ empCd: z.string().optional() }).optional())
     .query(async ({ input }) => {
       const db = await getDb();
@@ -1771,7 +1771,7 @@ export const attendanceRouter = router({
       }));
     }),
 
-  assignShift: attendanceManagerProcedure
+  assignShift: makeAttWriteProcedure("/attendance/shift-schedule")
     .input(
       z.object({
         empCd: z.string(),
@@ -1836,7 +1836,7 @@ export const attendanceRouter = router({
       }
     }),
 
-  addShiftAssignment: attendanceManagerProcedure
+  addShiftAssignment: makeAttWriteProcedure("/attendance/shift-schedule")
     .input(
       z.object({
         empCd: z.string(),
@@ -1858,7 +1858,7 @@ export const attendanceRouter = router({
       return { success: true };
     }),
 
-  updateAssignment: attendanceManagerProcedure
+  updateAssignment: makeAttWriteProcedure("/attendance/shift-schedule")
     .input(
       z.object({
         id: z.number(),
@@ -1894,7 +1894,7 @@ export const attendanceRouter = router({
       }
     }),
 
-  deleteAssignment: attendanceManagerProcedure
+  deleteAssignment: makeAttWriteProcedure("/attendance/shift-schedule")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1912,7 +1912,7 @@ export const attendanceRouter = router({
       }
     }),
 
-  saveDayShiftAssignments: attendanceManagerProcedure
+  saveDayShiftAssignments: makeAttWriteProcedure("/attendance/shift-schedule")
     .input(
       z.object({
         empCd: z.string(),
@@ -1959,7 +1959,7 @@ export const attendanceRouter = router({
     }),
 
   // ─── Employee Edit / Delete ──────────────────────────────────────────────
-  updateEmployee: attendanceManagerProcedure
+  updateEmployee: makeAttWriteProcedure("/attendance/shift-schedule")
     .input(
       z.object({
         empCd: z.string(),
@@ -2004,7 +2004,7 @@ export const attendanceRouter = router({
       return { success: true };
     }),
 
-  deleteEmployee: attendanceManagerProcedure
+  deleteEmployee: makeAttWriteProcedure("/attendance/shift-schedule")
     .input(z.object({ empCd: z.string() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -2016,7 +2016,7 @@ export const attendanceRouter = router({
     }),
 
   // ─── Swap Shifts Between Two Employees ──────────────────────────────────
-  swapShifts: attendanceManagerProcedure
+  swapShifts: makeAttWriteProcedure("/attendance/shift-schedule")
     .input(
       z.object({
         empCdA: z.string(),
@@ -2121,7 +2121,7 @@ export const attendanceRouter = router({
     }),
 
   // ─── Temp Shift Change For Single Employee ───────────────────────────────
-  tempChangeShift: attendanceManagerProcedure
+  tempChangeShift: makeAttWriteProcedure("/attendance/shift-schedule")
     .input(
       z.object({
         empCd: z.string(),
@@ -2216,7 +2216,7 @@ export const attendanceRouter = router({
     }),
 
   // ─── Bulk Shift Assignment ───────────────────────────────────────────────
-  bulkAssignShift: attendanceManagerProcedure
+  bulkAssignShift: makeAttWriteProcedure("/attendance/shift-schedule")
     .input(
       z.object({
         empCds: z.array(z.string()).min(1),
@@ -2255,7 +2255,7 @@ export const attendanceRouter = router({
     }),
 
   // ─── Leave Balance ────────────────────────────────────────────────────────
-  setLeaveBalance: attendanceManagerProcedure
+  setLeaveBalance: makeAttWriteProcedure("/attendance")
     .input(
       z.object({
         empCd: z.string(),
@@ -2284,7 +2284,7 @@ export const attendanceRouter = router({
       return { success: true };
     }),
 
-  allLeaveBalances: attendanceViewerProcedure
+  allLeaveBalances: makeAttProcedure("/attendance")
     .input(z.object({ year: z.number().int().optional() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -2340,7 +2340,7 @@ export const attendanceRouter = router({
     }),
 
   // ─── Permissions (إذن) ────────────────────────────────────────────────────
-  listPermissions: attendanceViewerProcedure
+  listPermissions: makeAttProcedure("/attendance")
     .input(
       z.object({
         empCd: z.string().optional(),
@@ -2365,7 +2365,7 @@ export const attendanceRouter = router({
         .orderBy(desc(attendancePermissions.date));
     }),
 
-  createPermission: attendanceManagerProcedure
+  createPermission: makeAttWriteProcedure("/attendance")
     .input(
       z.object({
         empCd: z.string(),
@@ -2417,7 +2417,7 @@ export const attendanceRouter = router({
       return { success: true, id: (result as any)?.[0]?.insertId };
     }),
 
-  approvePermission: attendanceManagerProcedure
+  approvePermission: makeAttWriteProcedure("/attendance")
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -2494,7 +2494,7 @@ export const attendanceRouter = router({
       return { success: true };
     }),
 
-  deletePermission: attendanceManagerProcedure
+  deletePermission: makeAttWriteProcedure("/attendance")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -2541,7 +2541,7 @@ export const attendanceRouter = router({
       return { success: true };
     }),
 
-  permissionReport: attendanceViewerProcedure
+  permissionReport: makeAttProcedure("/attendance")
     .input(
       z.object({
         from: z.string(), // YYYY-MM-DD
@@ -2599,7 +2599,7 @@ export const attendanceRouter = router({
     }),
 
   // ─── Holidays ─────────────────────────────────────────────────────────────
-  listHolidays: attendanceViewerProcedure
+  listHolidays: makeAttProcedure("/attendance")
     .input(z.object({ year: z.number().int().optional() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -2625,7 +2625,7 @@ export const attendanceRouter = router({
       }));
     }),
 
-  addHoliday: attendanceManagerProcedure
+  addHoliday: makeAttWriteProcedure("/attendance")
     .input(
       z.object({
         date: z.string(),
@@ -2649,7 +2649,7 @@ export const attendanceRouter = router({
       return { success: true };
     }),
 
-  deleteHoliday: attendanceManagerProcedure
+  deleteHoliday: makeAttWriteProcedure("/attendance")
     .input(z.object({ date: z.string() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -2661,7 +2661,7 @@ export const attendanceRouter = router({
     }),
 
   // ─── Date-range report ────────────────────────────────────────────────────
-  rangeReport: attendanceViewerProcedure
+  rangeReport: makeAttProcedure("/attendance")
     .input(z.object({ from: z.string(), to: z.string() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -3130,7 +3130,7 @@ export const attendanceRouter = router({
       return { success: true };
     }),
 
-  createShiftChangeRequest: attendanceManagerProcedure
+  createShiftChangeRequest: makeAttWriteProcedure("/attendance/shift-schedule")
     .input(
       z.object({
         empCd: z.string(),
@@ -3164,7 +3164,7 @@ export const attendanceRouter = router({
       return { success: true };
     }),
 
-  listShiftChangeRequests: attendanceViewerProcedure
+  listShiftChangeRequests: makeAttProcedure("/attendance")
     .input(
       z
         .object({
@@ -3228,7 +3228,7 @@ export const attendanceRouter = router({
       }));
     }),
 
-  approveShiftChangeRequest: attendanceManagerProcedure
+  approveShiftChangeRequest: makeAttWriteProcedure("/attendance/shift-schedule")
     .input(
       z.object({
         requestId: z.number().int(),
@@ -3518,7 +3518,7 @@ export const attendanceRouter = router({
       return { success: true };
     }),
 
-  rejectShiftChangeRequest: attendanceManagerProcedure
+  rejectShiftChangeRequest: makeAttWriteProcedure("/attendance/shift-schedule")
     .input(
       z.object({
         requestId: z.number().int(),
@@ -3608,7 +3608,7 @@ export const attendanceRouter = router({
 
   // ─── Shift Cycles ────────────────────────────────────────────────────────
 
-  listShiftCycles: attendanceManagerProcedure.query(async () => {
+  listShiftCycles: makeAttProcedure("/attendance/shift-schedule").query(async () => {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
     const cycles = await db.select().from(attendanceShiftCycles);
@@ -3628,7 +3628,7 @@ export const attendanceRouter = router({
     }));
   }),
 
-  createShiftCycle: attendanceManagerProcedure
+  createShiftCycle: makeAttWriteProcedure("/attendance/shift-schedule")
     .input(
       z.object({
         name: z.string().min(1).max(100),
@@ -3665,7 +3665,7 @@ export const attendanceRouter = router({
       return { id: cycleId };
     }),
 
-  updateShiftCycle: attendanceManagerProcedure
+  updateShiftCycle: makeAttWriteProcedure("/attendance/shift-schedule")
     .input(
       z.object({
         id: z.number().int(),
@@ -3712,7 +3712,7 @@ export const attendanceRouter = router({
       return { success: true };
     }),
 
-  deleteShiftCycle: attendanceManagerProcedure
+  deleteShiftCycle: makeAttWriteProcedure("/attendance/shift-schedule")
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -3729,7 +3729,7 @@ export const attendanceRouter = router({
       return { success: true };
     }),
 
-  listCycleAssignments: attendanceManagerProcedure.query(async () => {
+  listCycleAssignments: makeAttProcedure("/attendance/shift-schedule").query(async () => {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
     const rows = await db
@@ -3766,7 +3766,7 @@ export const attendanceRouter = router({
     }));
   }),
 
-  assignCycle: attendanceManagerProcedure
+  assignCycle: makeAttWriteProcedure("/attendance/shift-schedule")
     .input(
       z.object({
         empCds: z.array(z.string()).min(1),
@@ -3794,7 +3794,7 @@ export const attendanceRouter = router({
       return { inserted: input.empCds.length };
     }),
 
-  updateCycleAssignment: attendanceManagerProcedure
+  updateCycleAssignment: makeAttWriteProcedure("/attendance/shift-schedule")
     .input(
       z.object({
         id: z.number().int(),
@@ -3821,7 +3821,7 @@ export const attendanceRouter = router({
       return { success: true };
     }),
 
-  removeCycleAssignment: attendanceManagerProcedure
+  removeCycleAssignment: makeAttWriteProcedure("/attendance/shift-schedule")
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();

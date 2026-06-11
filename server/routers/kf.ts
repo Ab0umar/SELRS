@@ -22,8 +22,8 @@ import {
 } from "../../drizzle/schema";
 import {
   router,
-  kfProcedure,
-  kfWriteProcedure,
+  makeKfProcedure,
+  makeKfWriteProcedure,
 } from "../_core/procedures";
 import { getDb } from "../db";
 import {
@@ -154,7 +154,7 @@ function setDefined<T extends Record<string, unknown>>(target: T, key: keyof T, 
 }
 
 export const kfRouter = router({
-  listPatients: kfProcedure
+  listPatients: makeKfProcedure("/kf/patients")
     .input(kfListPatientsInputSchema)
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -175,7 +175,7 @@ export const kfRouter = router({
       });
     }),
 
-  getPatient: kfProcedure
+  getPatient: makeKfProcedure("/kf/patients")
     .input(kfGetPatientInputSchema)
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -188,7 +188,7 @@ export const kfRouter = router({
       return row;
     }),
 
-  searchPatients: kfProcedure
+  searchPatients: makeKfProcedure("/kf/patients")
     .input(kfSearchPatientsInputSchema)
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -201,7 +201,7 @@ export const kfRouter = router({
         .limit(50);
     }),
 
-  listVisits: kfProcedure
+  listVisits: makeKfProcedure("/kf/patients")
     .input(kfListVisitsInputSchema)
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -213,7 +213,7 @@ export const kfRouter = router({
         .orderBy(desc(kfVisits.visitDate), desc(kfVisits.kfVisitId));
     }),
 
-  listExaminations: kfProcedure
+  listExaminations: makeKfProcedure("/kf/patients")
     .input(kfListExaminationsInputSchema)
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -225,7 +225,7 @@ export const kfRouter = router({
         .orderBy(desc(kfExaminations.examDate), desc(kfExaminations.kfExamId));
     }),
 
-  getExamination: kfProcedure
+  getExamination: makeKfProcedure("/kf/patients")
     .input(kfGetExaminationInputSchema)
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -238,7 +238,7 @@ export const kfRouter = router({
       return row;
     }),
 
-  listOperations: kfProcedure
+  listOperations: makeKfProcedure("/kf/operations")
     .input(kfListOperationsInputSchema)
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -269,7 +269,7 @@ export const kfRouter = router({
       return query.orderBy(desc(kfOperations.opDate), desc(kfOperations.kfOpId));
     }),
 
-  listFollowups: kfProcedure
+  listFollowups: makeKfProcedure("/kf/followups")
     .input(kfListFollowupsInputSchema)
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -298,7 +298,7 @@ export const kfRouter = router({
       return query.orderBy(desc(kfFollowups.followupDate), desc(kfFollowups.kfFollowupId));
     }),
 
-  bridgeLookupSelrsPatient: kfProcedure
+  bridgeLookupSelrsPatient: makeKfProcedure("/kf/patients")
     .input(kfBridgeLookupSelrsPatientInputSchema)
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -316,7 +316,7 @@ export const kfRouter = router({
       return row ?? null;
     }),
 
-  createPatient: kfWriteProcedure
+  createPatient: makeKfWriteProcedure("/kf/patients")
     .input(kfCreatePatientInputSchema)
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
@@ -355,7 +355,7 @@ export const kfRouter = router({
       return result;
     }),
 
-  updatePatient: kfWriteProcedure
+  updatePatient: makeKfWriteProcedure("/kf/patients")
     .input(kfUpdatePatientInputSchema)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -384,7 +384,7 @@ export const kfRouter = router({
       return { ok: true };
     }),
 
-  createVisit: kfWriteProcedure
+  createVisit: makeKfWriteProcedure("/kf/patients")
     .input(kfCreateVisitInputSchema)
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
@@ -403,7 +403,7 @@ export const kfRouter = router({
       return { kfVisitId: insertIdOf(result) };
     }),
 
-  updateVisit: kfWriteProcedure
+  updateVisit: makeKfWriteProcedure("/kf/patients")
     .input(kfUpdateVisitInputSchema)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -422,7 +422,7 @@ export const kfRouter = router({
       return { ok: true };
     }),
 
-  createExamination: kfWriteProcedure
+  createExamination: makeKfWriteProcedure("/kf/patients")
     .input(kfCreateExaminationInputSchema)
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
@@ -449,7 +449,7 @@ export const kfRouter = router({
       return { kfExamId: insertIdOf(result) };
     }),
 
-  updateExamination: kfWriteProcedure
+  updateExamination: makeKfWriteProcedure("/kf/patients")
     .input(kfUpdateExaminationInputSchema)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -479,7 +479,7 @@ export const kfRouter = router({
       return { ok: true };
     }),
 
-  createOperation: kfWriteProcedure
+  createOperation: makeKfWriteProcedure("/kf/operations")
     .input(kfCreateOperationInputSchema)
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
@@ -501,7 +501,7 @@ export const kfRouter = router({
       return { kfOpId: insertIdOf(result) };
     }),
 
-  updateOperation: kfWriteProcedure
+  updateOperation: makeKfWriteProcedure("/kf/operations")
     .input(kfUpdateOperationInputSchema)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -526,7 +526,7 @@ export const kfRouter = router({
       return { ok: true };
     }),
 
-  createFollowup: kfWriteProcedure
+  createFollowup: makeKfWriteProcedure("/kf/followups")
     .input(kfCreateFollowupInputSchema)
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
@@ -547,7 +547,7 @@ export const kfRouter = router({
       return { kfFollowupId: insertIdOf(result) };
     }),
 
-  updateFollowup: kfWriteProcedure
+  updateFollowup: makeKfWriteProcedure("/kf/followups")
     .input(kfUpdateFollowupInputSchema)
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -571,7 +571,7 @@ export const kfRouter = router({
       return { ok: true };
     }),
 
-  getDailyRevenue: kfProcedure
+  getDailyRevenue: makeKfProcedure("/kf/accounting/daily-revenue")
     .input(z.object({ fromDate: z.string(), toDate: z.string() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -617,7 +617,7 @@ export const kfRouter = router({
       return { rows: dailyRows, totals };
     }),
 
-  getServiceRevenue: kfProcedure
+  getServiceRevenue: makeKfProcedure("/kf/accounting/service-revenue")
     .input(z.object({ fromDate: z.string(), toDate: z.string() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -644,7 +644,7 @@ export const kfRouter = router({
       return { rows: serviceRows, grandTotal, totalCount };
     }),
 
-  getLedgerSummary: kfProcedure
+  getLedgerSummary: makeKfProcedure("/kf/accounting/ledger")
     .input(z.object({ dateFrom: z.string().optional(), dateTo: z.string().optional() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -663,7 +663,7 @@ export const kfRouter = router({
       return { totalIncome, totalExpense, currentBalance: totalIncome - totalExpense };
     }),
 
-  getLedger: kfProcedure
+  getLedger: makeKfProcedure("/kf/accounting/ledger")
     .input(z.object({
       page: z.number().int().min(1).default(1),
       pageSize: z.number().int().min(1).max(100).default(50),
@@ -691,7 +691,7 @@ export const kfRouter = router({
       return { rows, total: Number(countRow?.total ?? 0) };
     }),
 
-  addLedgerEntry: kfWriteProcedure
+  addLedgerEntry: makeKfWriteProcedure("/kf/accounting/ledger")
     .input(z.object({
       entryDate: z.string(),
       income: z.number().min(0).default(0),
@@ -712,7 +712,7 @@ export const kfRouter = router({
       return { kfLedgerId: insertIdOf(result) };
     }),
 
-  deleteLedgerEntry: kfWriteProcedure
+  deleteLedgerEntry: makeKfWriteProcedure("/kf/accounting/ledger")
     .input(z.object({ kfLedgerId: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -720,7 +720,7 @@ export const kfRouter = router({
       return { ok: true };
     }),
 
-  getRevenue: kfProcedure
+  getRevenue: makeKfProcedure("/kf/accounting")
     .input(z.object({ date: z.string().optional() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -743,7 +743,7 @@ export const kfRouter = router({
       return { date: targetDate, total, breakdown };
     }),
 
-  listReceipts: kfProcedure
+  listReceipts: makeKfProcedure("/kf/accounting/receipts")
     .input(z.object({
       fromDate: z.string().optional(),
       toDate: z.string().optional(),
@@ -780,7 +780,7 @@ export const kfRouter = router({
       }));
     }),
 
-  deletePatient: kfWriteProcedure
+  deletePatient: makeKfWriteProcedure("/kf/patients")
     .input(z.object({ kfId: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -794,7 +794,7 @@ export const kfRouter = router({
       return { ok: true };
     }),
 
-  deleteVisit: kfWriteProcedure
+  deleteVisit: makeKfWriteProcedure("/kf/patients")
     .input(z.object({ kfVisitId: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -802,7 +802,7 @@ export const kfRouter = router({
       return { ok: true };
     }),
 
-  deleteExamination: kfWriteProcedure
+  deleteExamination: makeKfWriteProcedure("/kf/patients")
     .input(z.object({ kfExamId: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -810,7 +810,7 @@ export const kfRouter = router({
       return { ok: true };
     }),
 
-  deleteOperation: kfWriteProcedure
+  deleteOperation: makeKfWriteProcedure("/kf/operations")
     .input(z.object({ kfOpId: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -818,7 +818,7 @@ export const kfRouter = router({
       return { ok: true };
     }),
 
-  deleteFollowup: kfWriteProcedure
+  deleteFollowup: makeKfWriteProcedure("/kf/followups")
     .input(z.object({ kfFollowupId: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();

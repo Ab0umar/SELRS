@@ -239,6 +239,140 @@ export const accountingWriteProcedure = t.procedure.use(
   }),
 );
 
+// ── Per-page procedure factories ──────────────────────────────────────────
+// Read check: user needs permission on pagePath, any parent of pagePath, or the module root.
+// Write check: same path hierarchy but :rw suffix required.
+//
+// Hierarchy rule: "/accounting:rw" covers all "/accounting/*" pages.
+//                 "/accounting/advances:rw" covers only that page.
+
+function permMatchesPath(clean: string, pagePath: string): boolean {
+  return clean === pagePath || pagePath.startsWith(clean + "/");
+}
+
+// KF per-page factory (admin + accountant bypass)
+export function makeKfProcedure(pagePath: string) {
+  return t.procedure.use(
+    t.middleware(async (opts) => {
+      const { ctx, next } = opts;
+      if (!ctx.user)
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+      if (ctx.user.role === "admin" || ctx.user.role === "accountant")
+        return next({ ctx: { ...ctx, user: ctx.user } });
+      const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+      const ok = permissions.some((p) => {
+        const clean = String(p ?? "").trim().replace(/:r[w]?$/, "").trim();
+        return permMatchesPath(clean, pagePath);
+      });
+      if (!ok) throw new TRPCError({ code: "FORBIDDEN", message: "KF access required" });
+      return next({ ctx: { ...ctx, user: ctx.user } });
+    }),
+  );
+}
+
+export function makeKfWriteProcedure(pagePath: string) {
+  return t.procedure.use(
+    t.middleware(async (opts) => {
+      const { ctx, next } = opts;
+      if (!ctx.user)
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+      if (ctx.user.role === "admin" || ctx.user.role === "accountant")
+        return next({ ctx: { ...ctx, user: ctx.user } });
+      const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+      const ok = permissions.some((p) => {
+        const raw = String(p ?? "").trim();
+        if (!raw.endsWith(":rw")) return false;
+        const clean = raw.slice(0, -3).trim();
+        return permMatchesPath(clean, pagePath);
+      });
+      if (!ok) throw new TRPCError({ code: "FORBIDDEN", message: "KF write access required" });
+      return next({ ctx: { ...ctx, user: ctx.user } });
+    }),
+  );
+}
+
+// Accounting per-page factory (admin bypass)
+export function makeAccProcedure(pagePath: string) {
+  return t.procedure.use(
+    t.middleware(async (opts) => {
+      const { ctx, next } = opts;
+      if (!ctx.user)
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+      if (ctx.user.role === "admin")
+        return next({ ctx: { ...ctx, user: ctx.user } });
+      const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+      const ok = permissions.some((p) => {
+        const clean = String(p ?? "").trim().replace(/:r[w]?$/, "").trim();
+        return permMatchesPath(clean, pagePath);
+      });
+      if (!ok) throw new TRPCError({ code: "FORBIDDEN", message: "Accounting access required" });
+      return next({ ctx: { ...ctx, user: ctx.user } });
+    }),
+  );
+}
+
+export function makeAccWriteProcedure(pagePath: string) {
+  return t.procedure.use(
+    t.middleware(async (opts) => {
+      const { ctx, next } = opts;
+      if (!ctx.user)
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+      if (ctx.user.role === "admin")
+        return next({ ctx: { ...ctx, user: ctx.user } });
+      const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+      const ok = permissions.some((p) => {
+        const raw = String(p ?? "").trim();
+        if (!raw.endsWith(":rw")) return false;
+        const clean = raw.slice(0, -3).trim();
+        return permMatchesPath(clean, pagePath);
+      });
+      if (!ok) throw new TRPCError({ code: "FORBIDDEN", message: "Accounting write access required" });
+      return next({ ctx: { ...ctx, user: ctx.user } });
+    }),
+  );
+}
+
+// Attendance per-page factory (admin + manager bypass)
+export function makeAttProcedure(pagePath: string) {
+  return t.procedure.use(
+    t.middleware(async (opts) => {
+      const { ctx, next } = opts;
+      if (!ctx.user)
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+      if (ctx.user.role === "admin" || ctx.user.role === "manager")
+        return next({ ctx: { ...ctx, user: ctx.user } });
+      const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+      const ok = permissions.some((p) => {
+        const clean = String(p ?? "").trim().replace(/:r[w]?$/, "").trim();
+        return permMatchesPath(clean, pagePath);
+      });
+      if (!ok) throw new TRPCError({ code: "FORBIDDEN", message: "Attendance access required" });
+      return next({ ctx: { ...ctx, user: ctx.user } });
+    }),
+  );
+}
+
+export function makeAttWriteProcedure(pagePath: string) {
+  return t.procedure.use(
+    t.middleware(async (opts) => {
+      const { ctx, next } = opts;
+      if (!ctx.user)
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+      if (ctx.user.role === "admin" || ctx.user.role === "manager")
+        return next({ ctx: { ...ctx, user: ctx.user } });
+      const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+      const ok = permissions.some((p) => {
+        const raw = String(p ?? "").trim();
+        if (!raw.endsWith(":rw")) return false;
+        const clean = raw.slice(0, -3).trim();
+        return permMatchesPath(clean, pagePath);
+      });
+      if (!ok) throw new TRPCError({ code: "FORBIDDEN", message: "Attendance write access required" });
+      return next({ ctx: { ...ctx, user: ctx.user } });
+    }),
+  );
+}
+
 // KF procedure - gate by effective /kf permissions
 export const kfProcedure = t.procedure.use(
   t.middleware(async (opts) => {

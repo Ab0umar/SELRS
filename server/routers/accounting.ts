@@ -31,8 +31,8 @@ import {
   transactionsOutputSchema,
 } from "../../shared/accounting/contracts";
 import {
-  accountingProcedure,
-  accountingWriteProcedure,
+  makeAccProcedure,
+  makeAccWriteProcedure,
   adminProcedure,
   router,
 } from "../_core/procedures";
@@ -70,7 +70,7 @@ async function accountingQuery<T>(
 }
 
 export const accountingRouter = router({
-  dashboardSummary: accountingProcedure
+  dashboardSummary: makeAccProcedure("/accounting")
     .input(dashboardSummaryInputSchema)
     .output(extendedDashboardSummaryOutputSchema)
     .query(({ input }) =>
@@ -79,56 +79,56 @@ export const accountingRouter = router({
       ),
     ),
 
-  transactions: accountingProcedure
+  transactions: makeAccProcedure("/accounting")
     .input(transactionsInputSchema)
     .output(transactionsOutputSchema)
     .query(({ input }) =>
       accountingQuery("todayActivity", () => getTransactions(input)),
     ),
 
-  dailyRevenue: accountingProcedure
+  dailyRevenue: makeAccProcedure("/accounting/daily-revenue")
     .input(dailyRevenueInputSchema)
     .output(dailyRevenueOutputSchema)
     .query(({ input }) =>
       accountingQuery("dailyRevenue", () => getDailyRevenue(input)),
     ),
 
-  serviceRevenue: accountingProcedure
+  serviceRevenue: makeAccProcedure("/accounting/service-revenue")
     .input(serviceRevenueInputSchema)
     .output(serviceRevenueOutputSchema)
     .query(({ input }) =>
       accountingQuery("serviceRevenue", () => getServiceRevenue(input)),
     ),
 
-  receiptsInquiry: accountingProcedure
+  receiptsInquiry: makeAccProcedure("/accounting/receipts")
     .input(receiptsInquiryInputSchema)
     .output(receiptsInquiryOutputSchema)
     .query(({ input }) =>
       accountingQuery("receiptsInquiry", () => getReceiptsInquiry(input)),
     ),
 
-  receiptDetail: accountingProcedure
+  receiptDetail: makeAccProcedure("/accounting/receipts")
     .input(receiptDetailInputSchema)
     .output(receiptDetailOutputSchema)
     .query(({ input }) =>
       accountingQuery("receiptDetail", () => getReceiptDetail(input)),
     ),
 
-  lasikReceipts: accountingProcedure
+  lasikReceipts: makeAccProcedure("/accounting")
     .input(lasikReceiptsInputSchema)
     .output(lasikReceiptsOutputSchema)
     .query(({ input }) =>
       accountingQuery("lasikReceipts", () => getLasikReceipts(input)),
     ),
 
-  lasikServices: accountingProcedure
+  lasikServices: makeAccProcedure("/accounting")
     .input(lasikServicesInputSchema)
     .output(lasikServicesOutputSchema)
     .query(({ input }) =>
       accountingQuery("lasikServices", () => getLasikServices(input)),
     ),
 
-  lasikRevenueSummary: accountingProcedure
+  lasikRevenueSummary: makeAccProcedure("/accounting")
     .input(lasikRevenueSummaryInputSchema)
     .output(lasikRevenueSummaryOutputSchema)
     .query(({ input }) =>
@@ -137,7 +137,7 @@ export const accountingRouter = router({
       ),
     ),
 
-  patientLasikSummary: accountingProcedure
+  patientLasikSummary: makeAccProcedure("/accounting")
     .input(patientLasikSummaryInputSchema)
     .output(patientLasikSummaryOutputSchema)
     .query(({ input }) =>
@@ -146,7 +146,7 @@ export const accountingRouter = router({
       ),
     ),
 
-  patientLookup: accountingProcedure
+  patientLookup: makeAccProcedure("/accounting")
     .input(z.object({ patientCode: z.string() }))
     .query(async ({ input }) => {
       const rows = await mssqlQuery<{ PAT_CD: string; NAM: string }>(
@@ -160,7 +160,7 @@ export const accountingRouter = router({
         : null;
     }),
 
-  patientNameLookup: accountingProcedure
+  patientNameLookup: makeAccProcedure("/accounting")
     .input(z.object({ patientCode: z.string() }))
     .query(async ({ input }) => {
       const code = input.patientCode.trim();
@@ -177,7 +177,7 @@ export const accountingRouter = router({
       return patient ? { patientName: String(patient.fullName) } : null;
     }),
 
-  doctorLookup: accountingProcedure
+  doctorLookup: makeAccProcedure("/accounting")
     .input(z.object({ doctorCode: z.string() }))
     .query(async ({ input }) => {
       const rows = await mssqlQuery<{ CODE: string; PHNM_AR: string }>(
@@ -189,7 +189,7 @@ export const accountingRouter = router({
         : null;
     }),
 
-  serviceLookup: accountingProcedure
+  serviceLookup: makeAccProcedure("/accounting")
     .input(
       z.object({ serviceCode: z.string(), sectionCode: z.number().optional() }),
     )
@@ -203,7 +203,7 @@ export const accountingRouter = router({
         : null;
     }),
 
-  serviceEntryCatalog: accountingProcedure.query(async () => {
+  serviceEntryCatalog: makeAccProcedure("/accounting").query(async () => {
     const db = await getDb();
     if (!db)
       throw new TRPCError({
@@ -241,7 +241,7 @@ export const accountingRouter = router({
     };
   }),
 
-  addPatientServices: accountingWriteProcedure
+  addPatientServices: makeAccWriteProcedure("/accounting")
     .input(
       z.object({
         patientCode: z.string().min(1),
@@ -377,7 +377,7 @@ export const accountingRouter = router({
       };
     }),
 
-  deleteReceipt: accountingWriteProcedure
+  deleteReceipt: makeAccWriteProcedure("/accounting/receipts")
     .input(
       z.object({
         patientCode: z.string().min(1),
@@ -422,7 +422,7 @@ export const accountingRouter = router({
       }
     }),
 
-  updateReceipt: accountingWriteProcedure
+  updateReceipt: makeAccWriteProcedure("/accounting/receipts")
     .input(
       z.object({
         patientCode: z.string().min(1),
@@ -460,7 +460,7 @@ export const accountingRouter = router({
 
   // ── Access DB (الخزنه) ────────────────────────────────────────────────────
 
-  accLedgerSummary: accountingProcedure
+  accLedgerSummary: makeAccProcedure("/accounting/ledger")
     .input(
       z.object({
         dateFrom: z.string().optional(),
@@ -498,7 +498,7 @@ export const accountingRouter = router({
       };
     }),
 
-  accLedger: accountingProcedure
+  accLedger: makeAccProcedure("/accounting/ledger")
     .input(
       z.object({
         dateFrom: z.string().optional(),
@@ -555,7 +555,7 @@ export const accountingRouter = router({
 
   // ── Advances (السلفه) ─────────────────────────────────────────────────────
 
-  accAdvancesSummary: accountingProcedure.query(async () => {
+  accAdvancesSummary: makeAccProcedure("/accounting/advances").query(async () => {
     const db = await getDb();
     if (!db)
       throw new TRPCError({
@@ -594,7 +594,7 @@ export const accountingRouter = router({
     };
   }),
 
-  accAdvancesLedger: accountingProcedure
+  accAdvancesLedger: makeAccProcedure("/accounting/advances")
     .input(
       z.object({
         page: z.number().int().min(1).default(1),
@@ -651,7 +651,7 @@ export const accountingRouter = router({
 
   // ── Loans (القرض) ─────────────────────────────────────────────────────────
 
-  accLoansSummary: accountingProcedure.query(async () => {
+  accLoansSummary: makeAccProcedure("/accounting/loans").query(async () => {
     const db = await getDb();
     if (!db)
       throw new TRPCError({
@@ -692,7 +692,7 @@ export const accountingRouter = router({
     };
   }),
 
-  accLoansLedger: accountingProcedure
+  accLoansLedger: makeAccProcedure("/accounting/loans")
     .input(
       z.object({
         page: z.number().int().min(1).default(1),
@@ -741,7 +741,7 @@ export const accountingRouter = router({
 
   // ── Home (البيت) ──────────────────────────────────────────────────────────
 
-  accHomeSummary: accountingProcedure.query(async () => {
+  accHomeSummary: makeAccProcedure("/accounting/home-fund").query(async () => {
     const db = await getDb();
     if (!db)
       throw new TRPCError({
@@ -760,7 +760,7 @@ export const accountingRouter = router({
     };
   }),
 
-  accHomeLedger: accountingProcedure
+  accHomeLedger: makeAccProcedure("/accounting/home-fund")
     .input(
       z.object({
         page: z.number().int().min(1).default(1),
@@ -809,7 +809,7 @@ export const accountingRouter = router({
 
   // ── Instapay (انستاباي) ───────────────────────────────────────────────────
 
-  accInstapaySummary: accountingProcedure.query(async () => {
+  accInstapaySummary: makeAccProcedure("/accounting/instapay").query(async () => {
     const db = await getDb();
     if (!db)
       throw new TRPCError({
@@ -828,7 +828,7 @@ export const accountingRouter = router({
     };
   }),
 
-  accInstapayLedger: accountingProcedure
+  accInstapayLedger: makeAccProcedure("/accounting/instapay")
     .input(
       z.object({
         page: z.number().int().min(1).default(1),
@@ -875,7 +875,7 @@ export const accountingRouter = router({
       return { rows, total, page: input.page, pageSize: input.pageSize };
     }),
 
-  accSaadanyLedger: accountingProcedure
+  accSaadanyLedger: makeAccProcedure("/accounting/dr-saadany")
     .input(
       z.object({
         page: z.number().int().min(1).default(1),
@@ -922,7 +922,7 @@ export const accountingRouter = router({
 
   // ── _T views — pure MySQL (no PowerShell) ────────────────────────────────
 
-  accReports: accountingProcedure.query(async () => {
+  accReports: makeAccProcedure("/accounting").query(async () => {
     const db = await getDb();
     if (!db)
       throw new TRPCError({
@@ -1000,7 +1000,7 @@ export const accountingRouter = router({
 
   // ── Employees list (for advance form) ────────────────────────────────────
 
-  accEmployeesList: accountingProcedure.query(async () => {
+  accEmployeesList: makeAccProcedure("/accounting").query(async () => {
     const db = await getDb();
     if (!db)
       throw new TRPCError({
@@ -1018,7 +1018,7 @@ export const accountingRouter = router({
 
   // ── Categories (for entry form autocomplete) ─────────────────────────────
 
-  accCategories: accountingProcedure.query(async () => {
+  accCategories: makeAccProcedure("/accounting").query(async () => {
     const db = await getDb();
     if (!db)
       throw new TRPCError({
@@ -1040,7 +1040,7 @@ export const accountingRouter = router({
 
   // ── Ledger write mutations ────────────────────────────────────────────────
 
-  addAccEntry: accountingWriteProcedure
+  addAccEntry: makeAccWriteProcedure("/accounting/cashbook")
     .input(
       z.object({
         txDate: z.string(),
@@ -1088,7 +1088,7 @@ export const accountingRouter = router({
       return { id: ledgerId };
     }),
 
-  updateAccEntry: accountingWriteProcedure
+  updateAccEntry: makeAccWriteProcedure("/accounting/cashbook")
     .input(
       z.object({
         id: z.number().int(),
@@ -1153,7 +1153,7 @@ export const accountingRouter = router({
       return { id: input.id };
     }),
 
-  deleteAccEntry: accountingWriteProcedure
+  deleteAccEntry: makeAccWriteProcedure("/accounting/cashbook")
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1178,7 +1178,7 @@ export const accountingRouter = router({
 
   // ── Advances write mutations ──────────────────────────────────────────────
 
-  addAccAdvance: accountingWriteProcedure
+  addAccAdvance: makeAccWriteProcedure("/accounting/advances")
     .input(
       z.object({
         txDate: z.string(),
@@ -1207,7 +1207,7 @@ export const accountingRouter = router({
       return { id: res.insertId };
     }),
 
-  updateAccAdvance: accountingWriteProcedure
+  updateAccAdvance: makeAccWriteProcedure("/accounting/advances")
     .input(
       z.object({
         id: z.number().int(),
@@ -1237,7 +1237,7 @@ export const accountingRouter = router({
       return { id: input.id };
     }),
 
-  addAccHome: accountingWriteProcedure
+  addAccHome: makeAccWriteProcedure("/accounting/home-fund")
     .input(
       z.object({
         txDate: z.string(),
@@ -1272,7 +1272,7 @@ export const accountingRouter = router({
       return { id: res.insertId };
     }),
 
-  addAccInstapay: accountingWriteProcedure
+  addAccInstapay: makeAccWriteProcedure("/accounting/instapay")
     .input(
       z.object({
         txDate: z.string(),
@@ -1309,7 +1309,7 @@ export const accountingRouter = router({
 
   // ── Loans write mutations ─────────────────────────────────────────────────
 
-  addAccLoan: accountingWriteProcedure
+  addAccLoan: makeAccWriteProcedure("/accounting/loans")
     .input(
       z.object({
         txDate: z.string(),
@@ -1345,7 +1345,7 @@ export const accountingRouter = router({
       return { id: res.insertId };
     }),
 
-  updateAccLoan: accountingWriteProcedure
+  updateAccLoan: makeAccWriteProcedure("/accounting/loans")
     .input(
       z.object({
         id: z.number().int(),
@@ -1376,7 +1376,7 @@ export const accountingRouter = router({
       return { id: input.id };
     }),
 
-  deleteAccLoan: accountingWriteProcedure
+  deleteAccLoan: makeAccWriteProcedure("/accounting/loans")
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1389,7 +1389,7 @@ export const accountingRouter = router({
       return { ok: true };
     }),
 
-  deleteAccAdvance: accountingWriteProcedure
+  deleteAccAdvance: makeAccWriteProcedure("/accounting/advances")
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1402,7 +1402,7 @@ export const accountingRouter = router({
       return { ok: true };
     }),
 
-  deleteAccHome: accountingWriteProcedure
+  deleteAccHome: makeAccWriteProcedure("/accounting/home-fund")
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1415,7 +1415,7 @@ export const accountingRouter = router({
       return { ok: true };
     }),
 
-  deleteAccInstapay: accountingWriteProcedure
+  deleteAccInstapay: makeAccWriteProcedure("/accounting/instapay")
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1428,7 +1428,7 @@ export const accountingRouter = router({
       return { ok: true };
     }),
 
-  deleteAccSaadany: accountingWriteProcedure
+  deleteAccSaadany: makeAccWriteProcedure("/accounting/dr-saadany")
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1441,7 +1441,7 @@ export const accountingRouter = router({
       return { ok: true };
     }),
 
-  updateAccHome: accountingWriteProcedure
+  updateAccHome: makeAccWriteProcedure("/accounting/home-fund")
     .input(
       z.object({
         id: z.number().int(),
@@ -1471,7 +1471,7 @@ export const accountingRouter = router({
       return { id: input.id };
     }),
 
-  updateAccInstapay: accountingWriteProcedure
+  updateAccInstapay: makeAccWriteProcedure("/accounting/instapay")
     .input(
       z.object({
         id: z.number().int(),
@@ -1501,7 +1501,7 @@ export const accountingRouter = router({
       return { id: input.id };
     }),
 
-  addAccSaadany: accountingWriteProcedure
+  addAccSaadany: makeAccWriteProcedure("/accounting/dr-saadany")
     .input(
       z.object({
         txDate: z.string(),
@@ -1529,7 +1529,7 @@ export const accountingRouter = router({
       return { id: res.insertId };
     }),
 
-  updateAccSaadany: accountingWriteProcedure
+  updateAccSaadany: makeAccWriteProcedure("/accounting/dr-saadany")
     .input(
       z.object({
         id: z.number().int(),
