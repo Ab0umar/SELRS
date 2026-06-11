@@ -2588,6 +2588,7 @@ export const medicalRouter = router({
             return null;
           });
         }
+        console.log("[patient-create] reached notification block, patientId=", created?.id);
         await db.logAuditEvent(
           ctx.user.id,
           "CREATE_PATIENT",
@@ -2596,7 +2597,7 @@ export const medicalRouter = router({
           {
             message: `Created patient: ${input.fullName}`,
           },
-        );
+        ).catch((e) => console.warn("[patient-create] logAuditEvent failed:", e));
         const notificationSettings = await getAppNotificationSettings().catch(
           () => DEFAULT_APP_NOTIFICATION_SETTINGS,
         );
