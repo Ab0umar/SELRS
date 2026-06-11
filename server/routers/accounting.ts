@@ -32,6 +32,7 @@ import {
 } from "../../shared/accounting/contracts";
 import {
   accountingProcedure,
+  accountingWriteProcedure,
   adminProcedure,
   router,
 } from "../_core/procedures";
@@ -240,7 +241,7 @@ export const accountingRouter = router({
     };
   }),
 
-  addPatientServices: accountingProcedure
+  addPatientServices: accountingWriteProcedure
     .input(
       z.object({
         patientCode: z.string().min(1),
@@ -376,7 +377,7 @@ export const accountingRouter = router({
       };
     }),
 
-  deleteReceipt: accountingProcedure
+  deleteReceipt: accountingWriteProcedure
     .input(
       z.object({
         patientCode: z.string().min(1),
@@ -421,7 +422,7 @@ export const accountingRouter = router({
       }
     }),
 
-  updateReceipt: accountingProcedure
+  updateReceipt: accountingWriteProcedure
     .input(
       z.object({
         patientCode: z.string().min(1),
@@ -1039,7 +1040,7 @@ export const accountingRouter = router({
 
   // ── Ledger write mutations ────────────────────────────────────────────────
 
-  addAccEntry: accountingProcedure
+  addAccEntry: accountingWriteProcedure
     .input(
       z.object({
         txDate: z.string(),
@@ -1087,7 +1088,7 @@ export const accountingRouter = router({
       return { id: ledgerId };
     }),
 
-  updateAccEntry: accountingProcedure
+  updateAccEntry: accountingWriteProcedure
     .input(
       z.object({
         id: z.number().int(),
@@ -1152,7 +1153,7 @@ export const accountingRouter = router({
       return { id: input.id };
     }),
 
-  deleteAccEntry: accountingProcedure
+  deleteAccEntry: accountingWriteProcedure
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1177,7 +1178,7 @@ export const accountingRouter = router({
 
   // ── Advances write mutations ──────────────────────────────────────────────
 
-  addAccAdvance: accountingProcedure
+  addAccAdvance: accountingWriteProcedure
     .input(
       z.object({
         txDate: z.string(),
@@ -1206,7 +1207,7 @@ export const accountingRouter = router({
       return { id: res.insertId };
     }),
 
-  updateAccAdvance: accountingProcedure
+  updateAccAdvance: accountingWriteProcedure
     .input(
       z.object({
         id: z.number().int(),
@@ -1236,7 +1237,7 @@ export const accountingRouter = router({
       return { id: input.id };
     }),
 
-  addAccHome: accountingProcedure
+  addAccHome: accountingWriteProcedure
     .input(
       z.object({
         txDate: z.string(),
@@ -1271,7 +1272,7 @@ export const accountingRouter = router({
       return { id: res.insertId };
     }),
 
-  addAccInstapay: accountingProcedure
+  addAccInstapay: accountingWriteProcedure
     .input(
       z.object({
         txDate: z.string(),
@@ -1308,7 +1309,7 @@ export const accountingRouter = router({
 
   // ── Loans write mutations ─────────────────────────────────────────────────
 
-  addAccLoan: accountingProcedure
+  addAccLoan: accountingWriteProcedure
     .input(
       z.object({
         txDate: z.string(),
@@ -1344,7 +1345,7 @@ export const accountingRouter = router({
       return { id: res.insertId };
     }),
 
-  updateAccLoan: accountingProcedure
+  updateAccLoan: accountingWriteProcedure
     .input(
       z.object({
         id: z.number().int(),
@@ -1375,7 +1376,7 @@ export const accountingRouter = router({
       return { id: input.id };
     }),
 
-  deleteAccLoan: accountingProcedure
+  deleteAccLoan: accountingWriteProcedure
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1388,7 +1389,7 @@ export const accountingRouter = router({
       return { ok: true };
     }),
 
-  deleteAccAdvance: accountingProcedure
+  deleteAccAdvance: accountingWriteProcedure
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1401,7 +1402,7 @@ export const accountingRouter = router({
       return { ok: true };
     }),
 
-  deleteAccHome: accountingProcedure
+  deleteAccHome: accountingWriteProcedure
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1414,7 +1415,7 @@ export const accountingRouter = router({
       return { ok: true };
     }),
 
-  deleteAccInstapay: accountingProcedure
+  deleteAccInstapay: accountingWriteProcedure
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1427,7 +1428,7 @@ export const accountingRouter = router({
       return { ok: true };
     }),
 
-  deleteAccSaadany: accountingProcedure
+  deleteAccSaadany: accountingWriteProcedure
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1440,7 +1441,7 @@ export const accountingRouter = router({
       return { ok: true };
     }),
 
-  updateAccHome: accountingProcedure
+  updateAccHome: accountingWriteProcedure
     .input(
       z.object({
         id: z.number().int(),
@@ -1470,7 +1471,7 @@ export const accountingRouter = router({
       return { id: input.id };
     }),
 
-  updateAccInstapay: accountingProcedure
+  updateAccInstapay: accountingWriteProcedure
     .input(
       z.object({
         id: z.number().int(),
@@ -1500,7 +1501,7 @@ export const accountingRouter = router({
       return { id: input.id };
     }),
 
-  addAccSaadany: accountingProcedure
+  addAccSaadany: accountingWriteProcedure
     .input(
       z.object({
         txDate: z.string(),
@@ -1528,7 +1529,7 @@ export const accountingRouter = router({
       return { id: res.insertId };
     }),
 
-  updateAccSaadany: accountingProcedure
+  updateAccSaadany: accountingWriteProcedure
     .input(
       z.object({
         id: z.number().int(),

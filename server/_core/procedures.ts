@@ -201,6 +201,44 @@ export const accountingProcedure = t.procedure.use(
   }),
 );
 
+// Accounting write procedure — requires :rw level (mutations: add/update/delete)
+export const accountingWriteProcedure = t.procedure.use(
+  t.middleware(async (opts) => {
+    const { ctx, next } = opts;
+
+    if (!ctx.user) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "User not authenticated",
+      });
+    }
+
+    if (ctx.user.role === "admin") {
+      return next({ ctx: { ...ctx, user: ctx.user } });
+    }
+
+    const permissions = await db.getEffectiveUserPermissions(
+      ctx.user.id,
+      ctx.user.role ?? undefined,
+    );
+    const canWriteAccounting = permissions.some((p) => {
+      const raw = String(p ?? "").trim();
+      if (!raw.endsWith(":rw")) return false;
+      const clean = raw.slice(0, -3).trim();
+      return clean === "/accounting" || clean.startsWith("/accounting/");
+    });
+
+    if (!canWriteAccounting) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Accounting write access required",
+      });
+    }
+
+    return next({ ctx: { ...ctx, user: ctx.user } });
+  }),
+);
+
 // KF procedure - gate by effective /kf permissions
 export const kfProcedure = t.procedure.use(
   t.middleware(async (opts) => {
@@ -421,7 +459,7 @@ export const attendanceViewerProcedure = t.procedure.use(
   }),
 );
 
-// Attendance manager procedure - gate by attendance.manage permission (admin, manager)
+// Attendance manager procedure - requires :rw on /attendance (admin/manager bypass)
 export const attendanceManagerProcedure = t.procedure.use(
   t.middleware(async (opts) => {
     const { ctx, next } = opts;
@@ -447,16 +485,16 @@ export const attendanceManagerProcedure = t.procedure.use(
       ctx.user.role ?? undefined,
     );
     const canManageAttendance = permissions.some((p) => {
-      const clean = String(p ?? "")
-        .replace(/:r[w]?$/, "")
-        .trim();
+      const raw = String(p ?? "").trim();
+      if (!raw.endsWith(":rw")) return false;
+      const clean = raw.slice(0, -3).trim();
       return clean === "/attendance" || clean.startsWith("/attendance/");
     });
 
     if (!canManageAttendance) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Attendance manage access required",
+        message: "Attendance write access required",
       });
     }
 
