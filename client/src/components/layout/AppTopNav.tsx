@@ -553,6 +553,7 @@ export function AppTopNav({
                 {moreGroups.map((group, gi) => {
                   const key = group.navKey ?? String(gi);
                   const isOpen = openSections[key] ?? false;
+                  const isSingle = group.items.length === 1;
                   return (
                     <div
                       key={key}
@@ -560,19 +561,29 @@ export function AppTopNav({
                     >
                       <button
                         type="button"
-                        onClick={() => toggleSection(key)}
+                        onClick={() => {
+                          if (isSingle) {
+                            onNavigate(group.items[0].path);
+                            setMoreOpen(false);
+                            setOpenSections({});
+                          } else {
+                            toggleSection(key);
+                          }
+                        }}
                         className="flex w-full items-center justify-between px-3 py-2.5 text-sm font-medium text-muted-foreground bg-muted/40"
                       >
                         <span>{group.label}</span>
-                        <ChevronDown
-                          className={cn(
-                            "h-3.5 w-3.5 text-muted-foreground transition-transform duration-200",
-                            isOpen && "rotate-180",
-                          )}
-                          aria-hidden
-                        />
+                        {!isSingle && (
+                          <ChevronDown
+                            className={cn(
+                              "h-3.5 w-3.5 text-muted-foreground transition-transform duration-200",
+                              isOpen && "rotate-180",
+                            )}
+                            aria-hidden
+                          />
+                        )}
                       </button>
-                      {isOpen && (
+                      {!isSingle && isOpen && (
                         <div className="pb-1">
                           {group.items.map((item) => (
                             <button
