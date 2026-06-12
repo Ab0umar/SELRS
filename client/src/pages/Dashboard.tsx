@@ -418,37 +418,37 @@ function TodayPanel({
       label: "مرضى اليوم",
       value: total,
       icon: Users,
-      cls: "bg-blue-500 text-white",
+      cls: "bg-primary text-primary-foreground",
       bgCls:
-        "bg-blue-50/20 border-blue-100/70 hover:border-blue-200 text-blue-900",
-      labelCls: "text-blue-700/80",
+        "bg-primary/5 border-primary/20 hover:border-primary/40 text-foreground",
+      labelCls: "text-primary/80",
     },
     {
       label: "تم معالجتهم",
       value: treated,
       icon: Activity,
-      cls: "bg-emerald-500 text-white",
+      cls: "bg-success text-white",
       bgCls:
-        "bg-emerald-50/20 border-emerald-100/70 hover:border-emerald-200 text-emerald-900",
-      labelCls: "text-emerald-700/80",
+        "bg-success/5 border-success/20 hover:border-success/40 text-foreground",
+      labelCls: "text-success/80",
     },
     {
       label: "في الانتظار",
       value: waiting,
       icon: Clock,
-      cls: "bg-amber-500 text-white",
+      cls: "bg-warning text-white",
       bgCls:
-        "bg-amber-50/20 border-amber-100/70 hover:border-amber-200 text-amber-900",
-      labelCls: "text-amber-700/80",
+        "bg-warning/5 border-warning/20 hover:border-warning/40 text-foreground",
+      labelCls: "text-warning/80",
     },
     {
       label: "العمليات",
       value: opsCount,
       icon: Syringe,
-      cls: "bg-orange-500 text-white",
+      cls: "bg-secondary text-secondary-foreground",
       bgCls:
-        "bg-orange-50/20 border-orange-100/70 hover:border-orange-200 text-orange-900",
-      labelCls: "text-orange-700/80",
+        "bg-secondary/5 border-secondary/20 hover:border-secondary/40 text-foreground",
+      labelCls: "text-secondary/80",
     },
   ];
 
@@ -585,7 +585,7 @@ function TodayPanel({
               </div>
 
               {/* Completion bar */}
-              <div className="rounded-lg border border-blue-100/50 bg-blue-50/5 px-4 py-3 shadow-xs">
+              <div className="rounded-lg border border-primary/10 bg-primary/5 px-4 py-3 shadow-xs">
                 <div className="flex items-center gap-3">
                   <span className="shrink-0 text-sm font-bold text-foreground">
                     نسبة إنجاز اليوم
@@ -602,10 +602,10 @@ function TodayPanel({
                       className={cn(
                         "h-full w-full origin-right rounded-full transition-transform duration-500 ease-out",
                         completionRate >= 80
-                          ? "bg-emerald-500"
+                          ? "bg-success"
                           : completionRate >= 50
-                            ? "bg-blue-600"
-                            : "bg-orange-500",
+                            ? "bg-primary"
+                            : "bg-secondary",
                       )}
                       style={{ transform: `scaleX(${completionRate / 100})` }}
                     />
