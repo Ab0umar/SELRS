@@ -446,8 +446,8 @@ export default function KfPatientDetail() {
                   <span className="text-xs text-secondary font-bold block">التاريخ المرضي العام</span>
                   <p className="text-xs text-foreground mt-1 whitespace-pre-wrap">{patient.medicalHistory || "لا يوجد"}</p>
                 </div>
-                <div className="space-y-1 p-2 rounded bg-red-50/10 border border-red-500/10">
-                  <span className="text-xs text-red-600 font-bold block">حساسية الأدوية / الأطعمة</span>
+                <div className="space-y-1 p-2 rounded bg-destructive/10 border border-destructive/10">
+                  <span className="text-xs text-destructive font-bold block">حساسية الأدوية / الأطعمة</span>
                   <p className="text-xs text-foreground mt-1 whitespace-pre-wrap">{patient.allergies || "لا يوجد"}</p>
                 </div>
                 <div className="space-y-1 p-2 rounded bg-muted/50 border border-border/40">
