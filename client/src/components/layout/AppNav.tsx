@@ -198,39 +198,11 @@ export const adminNavGroups: NavGroup[] = [
     navKey: "clinics",
     groupPath: "/clinics-hub",
     items: [
-      { icon: Eye, label: "الفحوصات", path: "/examination" },
-      {
-        icon: CircleDot,
-        label: "نتائج البنتكام",
-        path: "/sheets/pentacam/dashboard",
-      },
-      {
-        icon: Glasses,
-        label: "لوحة الانكسارات",
-        path: "/clinics-hub/refractions-dashboard",
-      },
-      {
-        icon: Activity,
-        label: "لوحة Autoref",
-        path: "/clinics-hub/autorefs-dashboard",
-      },
-      {
-        icon: Pill,
-        label: "لوحة الروشتات",
-        path: "/clinics-hub/prescriptions-dashboard",
-      },
-      { icon: Pill, label: "الروشتات", path: "/prescriptions" },
-      { icon: TestTube2, label: "طلب تحاليل", path: "/request-tests" },
-      {
-        icon: FileSpreadsheet,
-        label: "تقرير المريض",
-        path: "/patient-summary",
-      },
-      {
-        icon: ClipboardList,
-        label: "التقارير الطبية",
-        path: "/medical-reports",
-      },
+      { icon: FileText, label: "ملف المريض", path: "/patient-file" },
+      { icon: Glasses, label: "القياسات", path: "/sheets/refractions/dashboard" },
+      { icon: CircleDot, label: "البنتاكام", path: "/sheets/pentacam/dashboard" },
+      { icon: Pill, label: "روشتات و تقارير", path: "/prescription" },
+      { icon: FlaskConical, label: "أشعة و تحاليل", path: "/request-tests" },
     ],
   },
   {
@@ -239,7 +211,6 @@ export const adminNavGroups: NavGroup[] = [
     groupPath: "/patients-hub",
     items: [
       { icon: FileText, label: "ملف المريض", path: "/patient-file" },
-      { icon: ClipboardList, label: "تقرير مجمع", path: "/patient-summary" },
       { icon: Repeat, label: "المتابعات", path: "/followups" },
       { icon: CalendarCheck, label: "الزيارات", path: "/visits" },
     ],
