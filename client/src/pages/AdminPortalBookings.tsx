@@ -37,22 +37,22 @@ const STATUS_META: Record<
 > = {
   pending: {
     label: "قيد المراجعة",
-    className: "border-amber-200 bg-amber-50 text-amber-800",
+    className: "border-warning/30 bg-warning/10 text-warning",
     icon: Clock3,
   },
   confirmed: {
     label: "مؤكد",
-    className: "border-blue-200 bg-blue-50 text-blue-700",
+    className: "border-primary/30 bg-primary/10 text-primary",
     icon: CheckCircle2,
   },
   cancelled: {
     label: "ملغي",
-    className: "border-red-200 bg-red-50 text-red-700",
+    className: "border-destructive/30 bg-destructive/10 text-destructive",
     icon: XCircle,
   },
   completed: {
     label: "مكتمل",
-    className: "border-slate-200 bg-slate-50 text-slate-700",
+    className: "border-border bg-muted/40 text-muted-foreground",
     icon: CheckCircle2,
   },
 };
@@ -185,32 +185,32 @@ function BookingCard({
   const codeLabel = booking.patientCode ?? (booking.isGuest ? "زائر" : "جديد");
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <article className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
       <button
         type="button"
-        className="flex w-full items-start gap-4 px-4 py-4 text-right transition-colors hover:bg-slate-50/80"
+        className="flex w-full items-start gap-4 px-4 py-4 text-right transition-colors hover:bg-muted/20"
         onClick={() => setExpanded((value) => !value)}
       >
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="truncate text-sm font-semibold text-slate-900">
+            <p className="truncate text-sm font-semibold text-foreground">
               {displayName}
             </p>
             {booking.isGuest && (
-              <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+              <span className="rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[11px] font-medium text-warning">
                 زائر
               </span>
             )}
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span>{codeLabel}</span>
-            <span className="text-slate-300">•</span>
+            <span className="text-muted-foreground/50">•</span>
             <span>{booking.typeLabel}</span>
-            <span className="text-slate-300">•</span>
+            <span className="text-muted-foreground/50">•</span>
             <span>{reqDate}</span>
           </div>
           {displayPhone ? (
-            <p className="mt-1 text-xs text-slate-500">{displayPhone}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{displayPhone}</p>
           ) : null}
         </div>
 
@@ -224,19 +224,19 @@ function BookingCard({
             <StatusIcon className="size-3.5" />
             {meta.label}
           </span>
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-muted-foreground">
             {expanded ? "إخفاء" : "تفاصيل"}
           </span>
         </div>
       </button>
 
       {expanded ? (
-        <div className="border-t border-slate-200 bg-slate-50/70 px-4 py-4">
+        <div className="border-t border-border bg-muted/30 px-4 py-4">
           <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="space-y-4">
               <div className="grid gap-2 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-slate-500">
+                  <label className="text-xs font-medium text-muted-foreground">
                     الحالة
                   </label>
                   <div className="grid grid-cols-2 gap-2">
@@ -253,8 +253,8 @@ function BookingCard({
                             className={cn(
                               "min-h-10 rounded-xl border px-3 py-2 text-sm font-medium transition-colors",
                               active
-                                ? "border-blue-200 bg-blue-50 text-blue-700"
-                                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+                                ? "border-primary/30 bg-primary/10 text-primary"
+                                : "border-border bg-white text-muted-foreground hover:bg-muted/40",
                             )}
                           >
                             {opt.label}
@@ -266,7 +266,7 @@ function BookingCard({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-slate-500">
+                  <label className="text-xs font-medium text-muted-foreground">
                     تاريخ مؤكد
                   </label>
                   <Input
@@ -274,27 +274,27 @@ function BookingCard({
                     value={confirmedDate}
                     onChange={(e) => setConfirmedDate(e.target.value)}
                     dir="ltr"
-                    className="h-10 rounded-xl border-slate-200 bg-white text-sm"
+                    className="h-10 rounded-xl border-border bg-white text-sm"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-slate-500">
+                <label className="text-xs font-medium text-muted-foreground">
                   ملاحظات الموظف
                 </label>
                 <textarea
                   value={staffNotes}
                   onChange={(e) => setStaffNotes(e.target.value)}
                   rows={3}
-                  className="min-h-24 w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm leading-6 text-slate-900 outline-none transition-shadow focus:ring-2 focus:ring-blue-200"
+                  className="min-h-24 w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm leading-6 text-foreground outline-none transition-shadow focus:ring-2 focus:ring-primary/30"
                   placeholder="ملاحظات تُعرض للمريض..."
                 />
               </div>
 
               {booking.notes ? (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm leading-6 text-amber-900">
-                  <p className="mb-1 text-xs font-medium text-amber-700">
+                <div className="rounded-xl border border-warning/30 bg-warning/10 px-3 py-2.5 text-sm leading-6 text-warning">
+                  <p className="mb-1 text-xs font-medium text-warning">
                     ملاحظة المريض
                   </p>
                   {booking.notes}
@@ -303,31 +303,31 @@ function BookingCard({
             </div>
 
             <div className="space-y-4">
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
-                <p className="text-xs font-medium text-slate-500">ملخص سريع</p>
+              <div className="rounded-2xl border border-border bg-white px-4 py-4">
+                <p className="text-xs font-medium text-muted-foreground">ملخص سريع</p>
                 <div className="mt-3 space-y-3 text-sm">
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-slate-500">المريض</span>
-                    <span className="max-w-[70%] font-medium text-slate-900">
+                    <span className="text-muted-foreground">المريض</span>
+                    <span className="max-w-[70%] font-medium text-foreground">
                       {displayName}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-slate-500">النوع</span>
-                    <span className="font-medium text-slate-900">
+                    <span className="text-muted-foreground">النوع</span>
+                    <span className="font-medium text-foreground">
                       {booking.typeLabel}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-slate-500">التاريخ المطلوب</span>
-                    <span className="font-medium text-slate-900">
+                    <span className="text-muted-foreground">التاريخ المطلوب</span>
+                    <span className="font-medium text-foreground">
                       {reqDate}
                     </span>
                   </div>
                   {confirmedDate ? (
                     <div className="flex items-center justify-between gap-4">
-                      <span className="text-slate-500">التاريخ المؤكد</span>
-                      <span className="font-medium text-slate-900">
+                      <span className="text-muted-foreground">التاريخ المؤكد</span>
+                      <span className="font-medium text-foreground">
                         {formatDate(confirmedDate)}
                       </span>
                     </div>
@@ -348,7 +348,7 @@ function BookingCard({
                   size="sm"
                   variant="outline"
                   onClick={() => setExpanded(false)}
-                  className="rounded-xl border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  className="rounded-xl border-border bg-white text-foreground hover:bg-muted/40"
                 >
                   إغلاق
                 </Button>
@@ -361,7 +361,7 @@ function BookingCard({
                     }
                   }}
                   disabled={deleteBooking.isPending}
-                  className="rounded-xl border-red-200 bg-white text-red-600 hover:bg-red-50"
+                  className="rounded-xl border-destructive/30 bg-background text-destructive hover:bg-destructive/10"
                 >
                   <Trash2 className="size-3.5" />
                 </Button>
@@ -415,7 +415,7 @@ function ScheduleRowCard({
   };
 
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <article className="rounded-2xl border border-border bg-white p-4 shadow-sm">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex items-start gap-3">
           <button
@@ -424,8 +424,8 @@ function ScheduleRowCard({
             className={cn(
               "relative mt-0.5 h-6 w-11 shrink-0 rounded-full border transition-colors focus:outline-none",
               local.isActive
-                ? "border-blue-200 bg-blue-600"
-                : "border-slate-300 bg-slate-200",
+                ? "border-primary/30 bg-primary"
+                : "border-border bg-muted",
             )}
             aria-label={local.isActive ? "تعطيل الجدول" : "تفعيل الجدول"}
           >
@@ -439,21 +439,21 @@ function ScheduleRowCard({
 
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm font-semibold text-slate-900">
+              <p className="text-sm font-semibold text-foreground">
                 {row.label}
               </p>
               <span
                 className={cn(
                   "rounded-full border px-2.5 py-1 text-[11px] font-medium",
                   local.isActive
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    : "border-slate-200 bg-slate-50 text-slate-500",
+                    ? "border-success/30 bg-success/10 text-success"
+                    : "border-border bg-muted/40 text-muted-foreground",
                 )}
               >
                 {local.isActive ? "مفعل" : "متوقف"}
               </span>
             </div>
-            <p className="mt-1 text-sm leading-6 text-slate-500">
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
               {local.isActive
                 ? "الأيام المختارة هنا هي الأيام التي ستظهر للمريض عند الحجز."
                 : "الجدول متوقف حالياً ولن تظهر له مواعيد متاحة."}
@@ -472,14 +472,14 @@ function ScheduleRowCard({
               {updateSchedule.isPending ? "..." : "حفظ"}
             </Button>
           ) : null}
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-muted-foreground">
             {dirty ? "تغييرات غير محفوظة" : "محفوظ"}
           </span>
         </div>
       </div>
 
       <div className="mt-4">
-        <div className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-500">
+        <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
           <SlidersHorizontal className="size-3.5" />
           <span>الأيام</span>
         </div>
@@ -496,10 +496,10 @@ function ScheduleRowCard({
                 className={cn(
                   "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                   !local.isActive
-                    ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                    ? "cursor-not-allowed border-border bg-muted/60 text-muted-foreground"
                     : active
-                      ? "border-blue-200 bg-blue-50 text-blue-700"
-                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+                      ? "border-primary/30 bg-primary/10 text-primary"
+                      : "border-border bg-white text-muted-foreground hover:bg-muted/40",
                 )}
               >
                 {day}
@@ -580,7 +580,7 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
 
   return (
     <article
-      className="rounded-2xl border border-blue-200 bg-blue-50/40 p-4 shadow-sm"
+      className="rounded-2xl border border-primary/20 bg-primary/5 p-4 shadow-sm"
       dir="rtl"
     >
       <div className="mb-4 flex items-center justify-between">
@@ -592,36 +592,36 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
         >
           <X className="size-3.5" />
         </Button>
-        <p className="text-sm font-semibold text-slate-900">إضافة حجز للمريض</p>
+        <p className="text-sm font-semibold text-foreground">إضافة حجز للمريض</p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Patient search */}
         <div className="relative space-y-1.5" ref={searchRef}>
-          <label className="text-xs font-medium text-slate-500">المريض</label>
+          <label className="text-xs font-medium text-muted-foreground">المريض</label>
           {selectedPatient ? (
-            <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+            <div className="flex items-center justify-between rounded-xl border border-border bg-white px-3 py-2.5">
               <button
                 type="button"
                 onClick={() => {
                   setSelectedPatient(null);
                   setSearch("");
                 }}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-muted-foreground hover:text-muted-foreground"
               >
                 <X className="size-3.5" />
               </button>
               <div className="text-right">
-                <p className="text-sm font-semibold text-slate-900">
+                <p className="text-sm font-semibold text-foreground">
                   {selectedPatient.name}
                 </p>
-                <p className="text-xs text-slate-500">{selectedPatient.code}</p>
+                <p className="text-xs text-muted-foreground">{selectedPatient.code}</p>
               </div>
             </div>
           ) : (
             <>
               <div className="relative">
-                <Search className="pointer-events-none absolute right-3 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
+                <Search className="pointer-events-none absolute right-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={search}
                   onChange={(e) => {
@@ -630,16 +630,16 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
                   }}
                   onFocus={() => setShowDropdown(true)}
                   placeholder="اسم المريض أو الكود أو الموبايل..."
-                  className="h-10 rounded-xl border-slate-200 bg-white pr-9 text-sm"
+                  className="h-10 rounded-xl border-border bg-white pr-9 text-sm"
                 />
               </div>
               {showDropdown && searchResults && searchResults.length > 0 && (
-                <div className="absolute top-full z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg">
+                <div className="absolute top-full z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-xl border border-border bg-white shadow-lg">
                   {(searchResults as any[]).slice(0, 8).map((p) => (
                     <button
                       key={p.id}
                       type="button"
-                      className="flex w-full items-center justify-between px-3 py-2.5 text-right transition-colors hover:bg-slate-50"
+                      className="flex w-full items-center justify-between px-3 py-2.5 text-right transition-colors hover:bg-muted/40"
                       onClick={() => {
                         setSelectedPatient({
                           id: p.id,
@@ -650,10 +650,10 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
                         setShowDropdown(false);
                       }}
                     >
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-muted-foreground">
                         {p.patientCode}
                       </span>
-                      <span className="text-sm font-medium text-slate-900">
+                      <span className="text-sm font-medium text-foreground">
                         {p.fullName}
                       </span>
                     </button>
@@ -666,7 +666,7 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
 
         {/* Booking type */}
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-slate-500">
+          <label className="text-xs font-medium text-muted-foreground">
             نوع الحجز
           </label>
           <div className="grid grid-cols-2 gap-2">
@@ -678,8 +678,8 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
                 className={cn(
                   "rounded-xl border px-3 py-2 text-xs font-medium transition-colors",
                   bookingType === t.value
-                    ? "border-blue-200 bg-blue-50 text-blue-700"
-                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+                    ? "border-primary/30 bg-primary/10 text-primary"
+                    : "border-border bg-white text-muted-foreground hover:bg-muted/40",
                 )}
               >
                 {t.label}
@@ -690,34 +690,34 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
 
         {/* Dates */}
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-slate-500">
+          <label className="text-xs font-medium text-muted-foreground">
             تاريخ الموعد
           </label>
           <Input
             type="date"
             value={requestedDate}
             onChange={(e) => setRequestedDate(e.target.value)}
-            className="h-10 rounded-xl border-slate-200 bg-white text-sm"
+            className="h-10 rounded-xl border-border bg-white text-sm"
             dir="ltr"
           />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-slate-500">
+          <label className="text-xs font-medium text-muted-foreground">
             تاريخ مؤكد (اختياري)
           </label>
           <Input
             type="date"
             value={confirmedDate}
             onChange={(e) => setConfirmedDate(e.target.value)}
-            className="h-10 rounded-xl border-slate-200 bg-white text-sm"
+            className="h-10 rounded-xl border-border bg-white text-sm"
             dir="ltr"
           />
         </div>
 
         {/* Notes */}
         <div className="space-y-1.5 lg:col-span-2">
-          <label className="text-xs font-medium text-slate-500">
+          <label className="text-xs font-medium text-muted-foreground">
             ملاحظات للمريض (اختياري)
           </label>
           <textarea
@@ -725,7 +725,7 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
             onChange={(e) => setStaffNotes(e.target.value)}
             rows={2}
             placeholder="تُعرض للمريض في البوابة..."
-            className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm leading-6 text-slate-900 outline-none focus:ring-2 focus:ring-blue-200"
+            className="w-full resize-none rounded-xl border border-border bg-white px-3 py-2.5 text-sm leading-6 text-foreground outline-none focus:ring-2 focus:ring-primary/30"
           />
         </div>
       </div>
@@ -752,7 +752,7 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
           size="sm"
           variant="outline"
           onClick={reset}
-          className="rounded-xl border-slate-200"
+          className="rounded-xl border-border"
         >
           إلغاء
         </Button>
@@ -813,20 +813,20 @@ function ClosuresPanel() {
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+    <div className="rounded-2xl border border-border bg-white p-4 shadow-sm space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-slate-900">
+          <p className="text-sm font-semibold text-foreground">
             فترات الإجازة والإغلاق
           </p>
-          <p className="mt-0.5 text-xs text-slate-500">
+          <p className="mt-0.5 text-xs text-muted-foreground">
             التواريخ المحددة هنا لن تظهر للمرضى كمواعيد متاحة.
           </p>
         </div>
         <button
           type="button"
           onClick={() => setAdding((v) => !v)}
-          className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
+          className="flex items-center gap-1.5 rounded-xl border border-border bg-white px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted/40"
         >
           <Plus className="size-3.5" />
           إضافة فترة
@@ -834,21 +834,21 @@ function ClosuresPanel() {
       </div>
 
       {adding && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-3 space-y-3">
+        <div className="rounded-xl border border-primary/20 bg-primary/10 p-3 space-y-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="sm:col-span-2 space-y-1">
-              <label className="text-xs font-medium text-slate-500">
+              <label className="text-xs font-medium text-muted-foreground">
                 الوصف (مثل: إجازة د. أحمد)
               </label>
               <input
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
                 placeholder="وصف فترة الإغلاق..."
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
             <div className="sm:col-span-2 space-y-1">
-              <label className="text-xs font-medium text-slate-500">
+              <label className="text-xs font-medium text-muted-foreground">
                 نوع الحجز المتأثر
               </label>
               <div className="flex flex-wrap gap-2">
@@ -860,8 +860,8 @@ function ClosuresPanel() {
                     className={cn(
                       "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
                       bookingType === t.value
-                        ? "border-blue-200 bg-blue-50 text-blue-700"
-                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+                        ? "border-primary/30 bg-primary/10 text-primary"
+                        : "border-border bg-white text-muted-foreground hover:bg-muted/40",
                     )}
                   >
                     {t.label}
@@ -870,7 +870,7 @@ function ClosuresPanel() {
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-500">من</label>
+              <label className="text-xs font-medium text-muted-foreground">من</label>
               <Input
                 type="date"
                 value={startDate}
@@ -880,7 +880,7 @@ function ClosuresPanel() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-500">إلى</label>
+              <label className="text-xs font-medium text-muted-foreground">إلى</label>
               <Input
                 type="date"
                 value={endDate}
@@ -919,7 +919,7 @@ function ClosuresPanel() {
       )}
 
       {!closures || closures.length === 0 ? (
-        <p className="text-xs text-slate-400 text-center py-2">
+        <p className="text-xs text-muted-foreground text-center py-2">
           لا توجد فترات إغلاق مضافة.
         </p>
       ) : (
@@ -939,16 +939,16 @@ function ClosuresPanel() {
             return (
               <div
                 key={c.id}
-                className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5"
+                className="flex items-center gap-3 rounded-xl border border-border bg-muted/40 px-3 py-2.5"
               >
                 <BanIcon
                   className={cn(
                     "size-4 shrink-0",
                     isActive
-                      ? "text-red-500"
+                      ? "text-destructive"
                       : isPast
-                        ? "text-slate-300"
-                        : "text-amber-400",
+                        ? "text-muted-foreground/50"
+                        : "text-warning",
                   )}
                 />
                 <div className="min-w-0 flex-1">
@@ -957,8 +957,8 @@ function ClosuresPanel() {
                       className={cn(
                         "text-sm font-medium",
                         isPast
-                          ? "text-slate-400 line-through"
-                          : "text-slate-800",
+                          ? "text-muted-foreground line-through"
+                          : "text-foreground",
                       )}
                     >
                       {c.label}
@@ -967,8 +967,8 @@ function ClosuresPanel() {
                       className={cn(
                         "rounded-full border px-2 py-0.5 text-[11px] font-medium",
                         c.bookingType
-                          ? "border-blue-200 bg-blue-50 text-blue-700"
-                          : "border-slate-200 bg-slate-100 text-slate-500",
+                          ? "border-primary/30 bg-primary/10 text-primary"
+                          : "border-border bg-muted/60 text-muted-foreground",
                       )}
                     >
                       {c.bookingType
@@ -977,12 +977,12 @@ function ClosuresPanel() {
                         : "كل الأنواع"}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500" dir="ltr">
+                  <p className="text-xs text-muted-foreground" dir="ltr">
                     {fmt(c.startDate)} → {fmt(c.endDate)}
                   </p>
                 </div>
                 {isActive && (
-                  <span className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-600">
+                  <span className="rounded-full border border-destructive/20 bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
                     الآن
                   </span>
                 )}
@@ -990,7 +990,7 @@ function ClosuresPanel() {
                   type="button"
                   onClick={() => del.mutate({ id: c.id })}
                   disabled={del.isPending}
-                  className="text-slate-400 transition-colors hover:text-red-500"
+                  className="text-muted-foreground transition-colors hover:text-destructive"
                 >
                   <Trash2 className="size-3.5" />
                 </button>
@@ -1009,15 +1009,15 @@ function LoadingQueue() {
       {Array.from({ length: 3 }).map((_, index) => (
         <div
           key={index}
-          className="animate-pulse rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+          className="animate-pulse rounded-2xl border border-border bg-white p-4 shadow-sm"
         >
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-2">
-              <div className="h-4 w-40 rounded-full bg-slate-100" />
-              <div className="h-3 w-56 rounded-full bg-slate-100" />
-              <div className="h-3 w-24 rounded-full bg-slate-100" />
+              <div className="h-4 w-40 rounded-full bg-muted/60" />
+              <div className="h-3 w-56 rounded-full bg-muted/60" />
+              <div className="h-3 w-24 rounded-full bg-muted/60" />
             </div>
-            <div className="h-8 w-24 rounded-full bg-slate-100" />
+            <div className="h-8 w-24 rounded-full bg-muted/60" />
           </div>
         </div>
       ))}
@@ -1031,15 +1031,15 @@ function ScheduleLoading() {
       {Array.from({ length: 4 }).map((_, index) => (
         <div
           key={index}
-          className="animate-pulse rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+          className="animate-pulse rounded-2xl border border-border bg-white p-4 shadow-sm"
         >
-          <div className="h-5 w-44 rounded-full bg-slate-100" />
-          <div className="mt-3 h-4 w-full rounded-full bg-slate-100" />
+          <div className="h-5 w-44 rounded-full bg-muted/60" />
+          <div className="mt-3 h-4 w-full rounded-full bg-muted/60" />
           <div className="mt-3 flex gap-2">
             {Array.from({ length: 5 }).map((__, chipIndex) => (
               <div
                 key={chipIndex}
-                className="h-8 w-16 rounded-full bg-slate-100"
+                className="h-8 w-16 rounded-full bg-muted/60"
               />
             ))}
           </div>
@@ -1124,7 +1124,7 @@ export default function AdminPortalBookings() {
         }
       />
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <section className="rounded-2xl border border-border bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
@@ -1135,12 +1135,12 @@ export default function AdminPortalBookings() {
             ].map((item) => (
               <div
                 key={item.label}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
+                className="rounded-2xl border border-border bg-muted/40 px-4 py-3"
               >
-                <p className="text-[11px] font-medium text-slate-500">
+                <p className="text-[11px] font-medium text-muted-foreground">
                   {item.label}
                 </p>
-                <p className="mt-1 text-lg font-semibold text-slate-900">
+                <p className="mt-1 text-lg font-semibold text-foreground">
                   {item.value}
                 </p>
               </div>
@@ -1150,12 +1150,12 @@ export default function AdminPortalBookings() {
           <div className="flex w-full flex-col gap-2 lg:max-w-2xl lg:items-end">
             <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
               <div className="relative w-full sm:max-w-xs">
-                <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="بحث بالاسم أو الكود أو الهاتف"
-                  className="h-10 rounded-xl border-slate-200 bg-white pr-10 text-sm"
+                  className="h-10 rounded-xl border-border bg-white pr-10 text-sm"
                 />
               </div>
 
@@ -1163,13 +1163,13 @@ export default function AdminPortalBookings() {
                 type="date"
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
-                className="h-10 w-full rounded-xl border-slate-200 bg-white text-sm sm:w-44"
+                className="h-10 w-full rounded-xl border-border bg-white text-sm sm:w-44"
                 dir="ltr"
               />
             </div>
 
             <div className="flex flex-wrap items-center justify-end gap-2">
-              <div className="inline-flex rounded-2xl border border-slate-200 bg-slate-50 p-1">
+              <div className="inline-flex rounded-2xl border border-border bg-muted/40 p-1">
                 {[
                   { key: "bookings", label: "الحجوزات", icon: CalendarDays },
                   { key: "schedule", label: "جدول الأوقات", icon: Settings2 },
@@ -1183,8 +1183,8 @@ export default function AdminPortalBookings() {
                       className={cn(
                         "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors",
                         active
-                          ? "bg-white text-slate-900 shadow-sm"
-                          : "text-slate-500 hover:text-slate-900",
+                          ? "bg-white text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground",
                       )}
                     >
                       <Icon className="size-4" />
@@ -1207,8 +1207,8 @@ export default function AdminPortalBookings() {
                       className={cn(
                         "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                         active
-                          ? "border-blue-200 bg-blue-50 text-blue-700"
-                          : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50",
+                          ? "border-primary/30 bg-primary/10 text-primary"
+                          : "border-border bg-white text-muted-foreground hover:bg-muted/40",
                       )}
                     >
                       {option.label}
@@ -1221,23 +1221,23 @@ export default function AdminPortalBookings() {
         </div>
 
         {dateFilter || statusFilter || searchTerm ? (
-          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-            <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-3 py-1">
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1 rounded-full bg-muted/40 px-3 py-1">
               <SlidersHorizontal className="size-3.5" />
               فلاتر مفعلة
             </span>
             {searchTerm ? (
-              <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-700">
+              <span className="rounded-full bg-primary/10 px-3 py-1 text-primary">
                 بحث: {searchTerm}
               </span>
             ) : null}
             {dateFilter ? (
-              <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-700">
+              <span className="rounded-full bg-primary/10 px-3 py-1 text-primary">
                 تاريخ: {dateFilter}
               </span>
             ) : null}
             {statusFilter ? (
-              <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-700">
+              <span className="rounded-full bg-primary/10 px-3 py-1 text-primary">
                 {STATUS_OPTS.find((item) => item.value === statusFilter)?.label}
               </span>
             ) : null}
@@ -1264,9 +1264,9 @@ export default function AdminPortalBookings() {
           {bookingsQuery.isLoading ? <LoadingQueue /> : null}
 
           {bookingsQuery.error ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-5 text-right text-red-800 shadow-sm">
+            <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-5 text-right text-destructive shadow-sm">
               <p className="text-sm font-semibold">تعذر تحميل الحجوزات</p>
-              <p className="mt-1 text-sm leading-6 text-red-700">
+              <p className="mt-1 text-sm leading-6 text-destructive">
                 {bookingsQuery.error.message}
               </p>
             </div>
@@ -1275,12 +1275,12 @@ export default function AdminPortalBookings() {
           {!bookingsQuery.isLoading &&
           !bookingsQuery.error &&
           filteredBookings.length === 0 ? (
-            <div className="rounded-2xl border border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
-              <CalendarDays className="mx-auto size-10 text-slate-300" />
-              <h3 className="mt-4 text-base font-semibold text-slate-900">
+            <div className="rounded-2xl border border-border bg-white px-6 py-10 text-center shadow-sm">
+              <CalendarDays className="mx-auto size-10 text-muted-foreground/50" />
+              <h3 className="mt-4 text-base font-semibold text-foreground">
                 لا توجد حجوزات مطابقة
               </h3>
-              <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-500">
+              <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
                 جرّب توسيع الفلاتر أو مسح البحث. إذا كان الهدف مراجعة الجدول،
                 انتقل إلى تبويب جدول الأوقات.
               </p>
@@ -1304,9 +1304,9 @@ export default function AdminPortalBookings() {
           {scheduleQuery.isLoading ? <ScheduleLoading /> : null}
 
           {scheduleQuery.error ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-5 text-right text-red-800 shadow-sm">
+            <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-5 text-right text-destructive shadow-sm">
               <p className="text-sm font-semibold">تعذر تحميل الجدول</p>
-              <p className="mt-1 text-sm leading-6 text-red-700">
+              <p className="mt-1 text-sm leading-6 text-destructive">
                 {scheduleQuery.error.message}
               </p>
             </div>
@@ -1316,18 +1316,18 @@ export default function AdminPortalBookings() {
           !scheduleQuery.error &&
           scheduleQuery.data ? (
             <div className="space-y-3">
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+              <div className="rounded-2xl border border-border bg-white px-4 py-4 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">
+                    <p className="text-sm font-semibold text-foreground">
                       جدول الأوقات
                     </p>
-                    <p className="mt-1 text-sm leading-6 text-slate-500">
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
                       الأيام النشطة هنا تتحكم مباشرة في ما يظهر للمريض داخل
                       بوابة الحجز.
                     </p>
                   </div>
-                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
+                  <span className="rounded-full border border-border bg-muted/40 px-3 py-1 text-xs font-medium text-muted-foreground">
                     {scheduleQuery.data.filter((row) => row.isActive).length}{" "}
                     مفعل
                   </span>
