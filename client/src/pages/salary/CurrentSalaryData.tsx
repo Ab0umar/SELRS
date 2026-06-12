@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Current Salary Data Component
  * Displays salary information in two organized tables:
  * 1. Center (المركز) - Employees working at the center
@@ -244,7 +244,7 @@ function SalaryTable({
               return (
                 <div
                   key={item.id}
-                  className="p-4 bg-card hover:bg-slate-50/20 transition-colors"
+                  className="p-4 bg-card hover:bg-muted/20 transition-colors"
                 >
                   <div
                     className="flex items-center justify-between cursor-pointer"
@@ -480,7 +480,7 @@ function ShiftsTable({ title, data, employees, isLoading }: ShiftsTableProps) {
               return (
                 <div
                   key={s.id}
-                  className="p-4 bg-card hover:bg-slate-50/20 transition-colors"
+                  className="p-4 bg-card hover:bg-muted/20 transition-colors"
                 >
                   <div
                     className="flex items-center justify-between cursor-pointer"
@@ -702,7 +702,7 @@ export default function CurrentSalaryData() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border pb-2 gap-2">
             <h2 className="text-lg font-bold text-foreground">المركز</h2>
             {/* Center Tabs Header - Shifts on the right, Salaries on the left */}
-            <div className="flex bg-slate-100 rounded-lg p-0.5 border border-border/60">
+            <div className="flex bg-muted/10 rounded-lg p-0.5 border border-border/60">
               <button
                 onClick={() => setCenterTab("shifts")}
                 className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${

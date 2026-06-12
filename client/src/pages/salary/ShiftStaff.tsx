@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Check, X, RefreshCw, Trash2, ChevronDown, ChevronUp } from "lucide-react";
@@ -538,7 +538,7 @@ export default function ShiftStaff() {
 
     if (isEditing) {
       return (
-        <div key={s.id} className="p-4 bg-card hover:bg-slate-50/20 transition-colors space-y-3">
+        <div key={s.id} className="p-4 bg-card hover:bg-muted/20 transition-colors space-y-3">
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-foreground">الاسم</label>
             <input
@@ -610,7 +610,7 @@ export default function ShiftStaff() {
               id={`edit-active-${s.id}`}
               checked={editForm.active}
               onChange={(e) => setEditForm({ ...editForm, active: e.target.checked })}
-              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
             />
             <label htmlFor={`edit-active-${s.id}`} className="text-xs font-bold text-foreground">
               نشط ومتاح في الشفتات
@@ -642,7 +642,7 @@ export default function ShiftStaff() {
     }
 
     return (
-      <div key={s.id} className={`p-4 bg-card hover:bg-slate-50/20 transition-colors ${!s.active ? "opacity-50" : ""}`}>
+      <div key={s.id} className={`p-4 bg-card hover:bg-muted/20 transition-colors ${!s.active ? "opacity-50" : ""}`}>
         <div
           className="flex items-center justify-between cursor-pointer"
           onClick={() => toggleRow(s.id)}

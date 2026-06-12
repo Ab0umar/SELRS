@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2, X, Search, ChevronDown, ChevronUp } from "lucide-react";
@@ -124,7 +124,7 @@ function SalaryTable({
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
       {/* Header */}
-      <div className="border-b border-border bg-slate-50/50 px-6 py-4 flex items-center justify-between">
+      <div className="border-b border-border bg-muted/50 px-6 py-4 flex items-center justify-between">
         <div>
           <h3 className="text-base font-bold text-foreground">{title}</h3>
         </div>
@@ -254,7 +254,7 @@ function SalaryTable({
               return (
                 <div
                   key={item.id}
-                  className="p-4 bg-card hover:bg-slate-50/20 transition-colors"
+                  className="p-4 bg-card hover:bg-muted/20 transition-colors"
                 >
                   <div
                     className="flex items-center justify-between cursor-pointer"
@@ -372,7 +372,7 @@ function SalaryTable({
       )}
 
       {/* Footer */}
-      <div className="border-t border-border bg-slate-50/30 px-6 py-3">
+      <div className="border-t border-border bg-muted/30 px-6 py-3">
         <div className="text-xs text-muted-foreground">
           عدد الموظفين:{" "}
           <span className="font-semibold text-foreground">{data.length}</span>
@@ -414,7 +414,7 @@ function ShiftsTable({
 
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
-      <div className="border-b border-border bg-slate-50/50 px-6 py-4 flex items-center justify-between">
+      <div className="border-b border-border bg-muted/50 px-6 py-4 flex items-center justify-between">
         <div>
           <h3 className="text-base font-bold text-foreground">{title}</h3>
         </div>
@@ -518,7 +518,7 @@ function ShiftsTable({
               return (
                 <div
                   key={s.id}
-                  className="p-4 bg-card hover:bg-slate-50/20 transition-colors"
+                  className="p-4 bg-card hover:bg-muted/20 transition-colors"
                 >
                   <div
                     className="flex items-center justify-between cursor-pointer"
@@ -897,7 +897,7 @@ export default function SalaryBasics() {
             <div className="pointer-events-none fixed inset-y-0 left-0 flex max-w-full pl-10 sm:pl-16">
               <div className="pointer-events-auto w-screen max-w-md transform bg-white shadow-2xl transition-transform duration-300 ease-in-out border-r border-border flex flex-col">
                 {/* Header */}
-                <div className="border-b border-border bg-slate-50/50 px-6 py-4 flex items-center justify-between">
+                <div className="border-b border-border bg-muted/50 px-6 py-4 flex items-center justify-between">
                   <h3 className="text-base font-bold text-foreground">
                     {editingId || editingShiftId
                       ? editingId
@@ -909,7 +909,7 @@ export default function SalaryBasics() {
                   </h3>
                   <button
                     type="button"
-                    className="flex size-7 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground hover:text-foreground hover:bg-slate-50 transition-colors cursor-pointer"
+                    className="flex size-7 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground hover:text-foreground hover:bg-muted/5 transition-colors cursor-pointer"
                     onClick={() => {
                       setShowForm(false);
                       setEditingId(null);
@@ -931,7 +931,7 @@ export default function SalaryBasics() {
                       <label className="block text-xs font-bold text-foreground">
                         نوع البيانات
                       </label>
-                      <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-lg border border-border/60">
+                      <div className="grid grid-cols-2 p-1 bg-muted/10 rounded-lg border border-border/60">
                         <button
                           type="button"
                           onClick={() => setFormType("salary")}
@@ -996,7 +996,7 @@ export default function SalaryBasics() {
                       )}
 
                       {/* Salary Components Section */}
-                      <div className="rounded-xl border border-border bg-slate-50/30 p-4 space-y-4">
+                      <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-4">
                         <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                           تفاصيل بنود الراتب
                         </p>
@@ -1238,7 +1238,7 @@ export default function SalaryBasics() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border pb-2 gap-2">
           <h2 className="text-lg font-black text-foreground">المركز</h2>
           {/* Tabs header for Center */}
-          <div className="flex bg-slate-100 rounded-lg p-0.5 border border-border/60">
+          <div className="flex bg-muted/10 rounded-lg p-0.5 border border-border/60">
             <button
               onClick={() => setCenterTab("shifts")}
               className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${

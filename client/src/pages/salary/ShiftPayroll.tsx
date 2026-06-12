@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Printer, ChevronDown, ChevronUp } from "lucide-react";
@@ -328,7 +328,7 @@ export default function ShiftPayroll() {
             return (
               <div
                 key={r.id}
-                className="p-4 bg-card hover:bg-slate-50/20 transition-colors"
+                className="p-4 bg-card hover:bg-muted/20 transition-colors"
               >
                 <div
                   className="flex items-center justify-between cursor-pointer"

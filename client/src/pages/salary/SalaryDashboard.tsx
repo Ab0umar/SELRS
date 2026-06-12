@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Salary Module Dashboard
  * Landing page with quick actions and key information
  */
