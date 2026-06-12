@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { TRPCClientError } from "@trpc/client";
 
 // Translations
 const GENDER_AR = { male: "ذكر", female: "أنثى" };
@@ -247,10 +248,11 @@ export default function KfPatientDetail() {
     { enabled: !!kfPatientId }
   );
 
-  const { data: examinations = [], isLoading: loadingExams } = trpc.kf.listExaminations.useQuery(
+  const { data: examinations = [], isLoading: loadingExams, isError: isExamsError, error: examsError } = trpc.kf.listExaminations.useQuery(
     { kfPatientId: kfPatientId ?? 0 },
     { enabled: !!kfPatientId }
   );
+  const isExamsForbidden = isExamsError && examsError instanceof TRPCClientError && examsError.data?.code === "FORBIDDEN";
 
   const { data: operations = [], isLoading: loadingOps } = trpc.kf.listOperations.useQuery(
     { kfPatientId: kfPatientId ?? 0 },
@@ -626,6 +628,12 @@ export default function KfPatientDetail() {
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-4">
                         جاري التحميل...
+                      </TableCell>
+                    </TableRow>
+                  ) : isExamsError ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-10 text-destructive font-medium">
+                        {isExamsForbidden ? "Access restricted" : "حدث خطأ أثناء تحميل الفحوصات"}
                       </TableCell>
                     </TableRow>
                   ) : examinations.length === 0 ? (

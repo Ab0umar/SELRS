@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { trpc } from "@/lib/trpc";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, UserPlus, Phone, CreditCard, Calendar, Eye, Edit, Trash2, Loader2, Printer } from "lucide-react";
+import { Search, UserPlus, Phone, CreditCard, Calendar, Eye, Edit, Trash2, Loader2, Printer, ShieldOff } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { TRPCClientError } from "@trpc/client";
 
 // Local useDebounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -40,11 +41,12 @@ export default function KfPatients() {
   const utils = trpc.useUtils();
 
   // Queries
-  const { data, isLoading, isError } = trpc.kf.listPatients.useQuery({
+  const { data, isLoading, isError, error } = trpc.kf.listPatients.useQuery({
     search: debouncedSearch,
     page,
     pageSize
   });
+  const isForbidden = isError && error instanceof TRPCClientError && error.data?.code === "FORBIDDEN";
   const deleteMut = trpc.kf.deletePatient.useMutation({
     onSuccess: () => { utils.kf.listPatients.invalidate(); toast.success("تم حذف المريض وجميع سجلاته"); setDelConfirm(null); },
     onError: () => toast.error("تعذر حذف المريض"),
@@ -128,8 +130,16 @@ export default function KfPatients() {
                   ))
                 ) : isError ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-destructive">
-                      حدث خطأ أثناء تحميل البيانات. يرجى المحاولة مرة أخرى.
+                    <TableCell colSpan={6} className="py-10">
+                      {isForbidden ? (
+                        <div className="flex flex-col items-center gap-2 text-destructive" role="alert">
+                          <ShieldOff className="h-8 w-8" />
+                          <span className="font-semibold text-base">تم رفض الوصول</span>
+                          <span className="text-sm text-muted-foreground">ليس لديك صلاحية الوصول إلى هذه الصفحة</span>
+                        </div>
+                      ) : (
+                        <span className="block text-center text-destructive">حدث خطأ أثناء تحميل البيانات. يرجى المحاولة مرة أخرى.</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ) : patients.length === 0 ? (

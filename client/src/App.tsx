@@ -472,7 +472,9 @@ const Router = memo(function Router() {
         )}
       />
 
-      {/* Patient Portal — no staff auth required */}
+      {/* Patient Portal — canonical path is /my/*, keep old /patient-portal/* alive */}
+      <Route path={"/patient-portal/login"} component={() => <Redirect to="/my/login" />} />
+      <Route path={"/patient-portal"} component={() => <Redirect to="/my/login" />} />
       <Route path={"/my/login"} component={PatientLogin} />
       <Route path={"/my/book-guest"} component={PatientGuestBook} />
       <Route
