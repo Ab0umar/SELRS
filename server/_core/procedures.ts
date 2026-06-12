@@ -281,8 +281,8 @@ export function makeKfWriteProcedure(pagePath: string) {
       const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
       const ok = permissions.some((p) => {
         const raw = String(p ?? "").trim();
-        if (!raw.endsWith(":rw")) return false;
-        const clean = raw.slice(0, -3).trim();
+        if (raw.endsWith(":r") && !raw.endsWith(":rw")) return false;
+        const clean = raw.replace(/:rw$/, "").trim();
         return permMatchesPath(clean, pagePath);
       });
       if (!ok) throw new TRPCError({ code: "FORBIDDEN", message: "KF write access required" });
@@ -322,8 +322,8 @@ export function makeAccWriteProcedure(pagePath: string) {
       const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
       const ok = permissions.some((p) => {
         const raw = String(p ?? "").trim();
-        if (!raw.endsWith(":rw")) return false;
-        const clean = raw.slice(0, -3).trim();
+        if (raw.endsWith(":r") && !raw.endsWith(":rw")) return false;
+        const clean = raw.replace(/:rw$/, "").trim();
         return permMatchesPath(clean, pagePath);
       });
       if (!ok) throw new TRPCError({ code: "FORBIDDEN", message: "Accounting write access required" });
@@ -363,8 +363,8 @@ export function makeAttWriteProcedure(pagePath: string) {
       const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
       const ok = permissions.some((p) => {
         const raw = String(p ?? "").trim();
-        if (!raw.endsWith(":rw")) return false;
-        const clean = raw.slice(0, -3).trim();
+        if (raw.endsWith(":r") && !raw.endsWith(":rw")) return false;
+        const clean = raw.replace(/:rw$/, "").trim();
         return permMatchesPath(clean, pagePath);
       });
       if (!ok) throw new TRPCError({ code: "FORBIDDEN", message: "Attendance write access required" });
@@ -404,8 +404,8 @@ export function makeStockroomWriteProcedure(pagePath: string) {
       const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
       const ok = permissions.some((p) => {
         const raw = String(p ?? "").trim();
-        if (!raw.endsWith(":rw")) return false;
-        const clean = raw.slice(0, -3).trim();
+        if (raw.endsWith(":r") && !raw.endsWith(":rw")) return false;
+        const clean = raw.replace(/:rw$/, "").trim();
         return permMatchesPath(clean, pagePath);
       });
       if (!ok) throw new TRPCError({ code: "FORBIDDEN", message: "Stockroom write access required" });
@@ -445,8 +445,8 @@ export function makeSalaryWriteProcedure(pagePath: string) {
       const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
       const ok = permissions.some((p) => {
         const raw = String(p ?? "").trim();
-        if (!raw.endsWith(":rw")) return false;
-        const clean = raw.slice(0, -3).trim();
+        if (raw.endsWith(":r") && !raw.endsWith(":rw")) return false;
+        const clean = raw.replace(/:rw$/, "").trim();
         return permMatchesPath(clean, pagePath);
       });
       if (!ok) throw new TRPCError({ code: "FORBIDDEN", message: "Salary write access required" });
