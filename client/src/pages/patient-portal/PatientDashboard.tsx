@@ -70,35 +70,35 @@ export default function PatientDashboard() {
                 icon={ScanLine}
                 label="الأشعة والفحوصات"
                 description="عرض صور الأشعة (Pentacam) وتحميل التقارير الطبية."
-                color="bg-orange-50 text-orange-600"
+                color="bg-secondary/10 text-secondary"
               />
               <QuickAction
                 href="/my/refraction"
                 icon={Glasses}
                 label="مقاس النظارة"
                 description="متابعة قياسات النظر وحفظ سجل الانكسارات."
-                color="bg-blue-50 text-blue-600"
+                color="bg-primary/10 text-primary"
               />
               <QuickAction
                 href="/my/prescription"
                 icon={Pill}
                 label="الروشتات"
                 description="عرض الأدوية الموصوفة والتعليمات الطبية."
-                color="bg-emerald-50 text-emerald-600"
+                color="bg-success/10 text-success"
               />
               <QuickAction
                 href="/my/file"
                 icon={FileText}
                 label="الملف الشخصي"
                 description="تحديث البيانات الأساسية والاطلاع على التاريخ المرضي."
-                color="bg-purple-50 text-purple-600"
+                color="bg-muted/40 text-muted-foreground"
               />
               <QuickAction
                 href="/my/book"
                 icon={CalendarDays}
                 label="حجز موعد"
                 description="طلب موعد جديد أو متابعة حالة الحجوزات القادمة."
-                color="bg-rose-50 text-rose-600"
+                color="bg-destructive/10 text-destructive"
               />
             </div>
 

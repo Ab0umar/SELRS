@@ -41,28 +41,28 @@ export default function SalaryDashboard() {
       title: "تحضير الرواتب",
       description: "إدخال الرواتب الأساسية والبدلات",
       href: "/salary",
-      color: "bg-blue-50 text-blue-600",
+      color: "bg-primary/10 text-primary",
     },
     {
       icon: TrendingUp,
       title: "العمولات الشهرية",
       description: "تسجيل عمولات الكشف والبنتاكام",
       href: "/salary/pools",
-      color: "bg-green-50 text-green-600",
+      color: "bg-success/10 text-success",
     },
     {
       icon: AlertCircle,
       title: "الخصومات والسلف",
       description: "إدخال الجزاءات والسلف والتأمينات",
       href: "/salary/penalties",
-      color: "bg-red-50 text-red-600",
+      color: "bg-destructive/10 text-destructive",
     },
     {
       icon: FileText,
       title: "كشف الشهر",
       description: "توليد واعتماد كشف الرواتب",
       href: "/salary/payroll",
-      color: "bg-purple-50 text-purple-600",
+      color: "bg-muted/40 text-muted-foreground",
     },
   ];
 
@@ -72,19 +72,19 @@ export default function SalaryDashboard() {
       title: "تم تحديث الرواتب الأساسية",
       time: "منذ ساعتين",
       icon: CheckCircle,
-      color: "text-green-600",
+      color: "text-success",
     },
     {
       title: "جاري احتساب العمولات",
       time: "منذ 30 دقيقة",
       icon: Clock,
-      color: "text-blue-600",
+      color: "text-primary",
     },
     {
       title: "تم مراجعة الخصومات",
       time: "منذ يوم واحد",
       icon: CheckCircle,
-      color: "text-green-600",
+      color: "text-success",
     },
   ];
 

@@ -60,7 +60,7 @@ function PrescriptionCard({ row }: { row: any }) {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <div className="size-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
+                    <div className="size-8 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center shrink-0">
                       <Pill className="size-4" />
                     </div>
                     <p className="text-sm font-bold text-foreground">

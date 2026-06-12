@@ -88,14 +88,14 @@ const quickActions: QuickActionItem[] = [
   {
     label: "تسجيل مريض",
     icon: UserPlus,
-    color: "bg-blue-100 text-blue-700",
+    color: "bg-primary/15 text-primary",
     kind: "quick-entry-dialog",
     permPath: "/patients",
   },
   {
     label: "تحديد موعد / كشف",
     icon: CalendarPlus,
-    color: "bg-amber-100 text-amber-700",
+    color: "bg-warning/15 text-warning",
     kind: "portal-booking-dialog",
     permPath: "/operations",
   },
@@ -109,7 +109,7 @@ const quickActions: QuickActionItem[] = [
   {
     label: "حجز العمليات",
     icon: Syringe,
-    color: "bg-emerald-100 text-emerald-700",
+    color: "bg-success/15 text-success",
     kind: "operations-booking-dialog",
     permPath: "/operations",
   },

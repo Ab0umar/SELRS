@@ -49,11 +49,11 @@ function EyeCard({
       ];
   return (
     <div
-      className={`flex-1 rounded-xl border p-4.5 transition-all duration-200 ${isOS ? "border-blue-100 bg-blue-50/30" : "border-emerald-100 bg-emerald-50/30"}`}
+      className={`flex-1 rounded-xl border p-4.5 transition-all duration-200 ${isOS ? "border-primary/15 bg-primary/8" : "border-success/15 bg-success/8"}`}
     >
       <div className="mb-3 flex items-center justify-between">
         <span
-          className={`rounded-lg px-2.5 py-0.5 text-xs font-bold ${isOS ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"}`}
+          className={`rounded-lg px-2.5 py-0.5 text-xs font-bold ${isOS ? "bg-primary/15 text-primary" : "bg-success/15 text-success"}`}
           dir="ltr"
         >
           {side}

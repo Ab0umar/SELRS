@@ -82,19 +82,19 @@ export default function PatientBookings() {
                 </h3>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3 text-center">
-                  <p className="text-[10px] text-blue-700 font-bold">
+                <div className="bg-primary/8 border border-primary/15 rounded-xl p-3 text-center">
+                  <p className="text-[10px] text-primary font-bold">
                     الحجوزات المؤكدة
                   </p>
-                  <p className="text-xl font-black text-blue-900 mt-1">
+                  <p className="text-xl font-black text-foreground mt-1">
                     {summary.confirmed}
                   </p>
                 </div>
-                <div className="bg-orange-50/50 border border-orange-100 rounded-xl p-3 text-center">
-                  <p className="text-[10px] text-orange-700 font-bold">
+                <div className="bg-secondary/8 border border-secondary/15 rounded-xl p-3 text-center">
+                  <p className="text-[10px] text-secondary font-bold">
                     قيد الانتظار
                   </p>
-                  <p className="text-xl font-black text-orange-900 mt-1">
+                  <p className="text-xl font-black text-foreground mt-1">
                     {summary.pending}
                   </p>
                 </div>
@@ -112,7 +112,7 @@ export default function PatientBookings() {
             {/* Quick Booking Call-to-action */}
             <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
               <div className="flex items-start gap-3">
-                <div className="size-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                <div className="size-9 rounded-xl bg-muted/40 text-muted-foreground flex items-center justify-center shrink-0">
                   <Sparkles className="size-4.5" />
                 </div>
                 <div className="space-y-1">
@@ -203,20 +203,20 @@ export default function PatientBookings() {
                         </div>
 
                         {item.confirmedDate ? (
-                          <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3 space-y-0.5">
-                            <p className="text-[10px] text-blue-700 font-bold">
+                          <div className="bg-primary/8 border border-primary/15 rounded-xl p-3 space-y-0.5">
+                            <p className="text-[10px] text-primary font-bold">
                               الموعد المؤكد النهائي
                             </p>
-                            <p className="text-xs font-black text-blue-900">
+                            <p className="text-xs font-black text-foreground">
                               {formatArabicDate(item.confirmedDate)}
                             </p>
                           </div>
                         ) : (
-                          <div className="bg-orange-50/50 border border-orange-100 rounded-xl p-3 space-y-0.5">
-                            <p className="text-[10px] text-orange-700 font-bold">
+                          <div className="bg-secondary/8 border border-secondary/15 rounded-xl p-3 space-y-0.5">
+                            <p className="text-[10px] text-secondary font-bold">
                               تأكيد الموعد
                             </p>
-                            <p className="text-xs font-bold text-orange-950 font-sans">
+                            <p className="text-xs font-bold text-foreground font-sans">
                               بانتظار الاستقبال
                             </p>
                           </div>

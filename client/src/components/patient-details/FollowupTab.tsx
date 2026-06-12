@@ -201,7 +201,7 @@ export function FollowupTab({
                   <div>
                     <div className="flex items-center gap-2">
                       <span
-                        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isExam ? "bg-primary/10 text-primary" : "bg-emerald-500/10 text-emerald-600"}`}
+                        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isExam ? "bg-primary/10 text-primary" : "bg-success/10 text-success"}`}
                       >
                         {isExam ? "فحص" : "متابعة"}
                       </span>

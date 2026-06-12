@@ -128,7 +128,7 @@ export default function PatientScans() {
                     className="flex flex-col justify-between rounded-2xl border border-[#dbe7f4] bg-white p-5 shadow-xs hover:border-primary/20 transition-all duration-200"
                   >
                     <div className="flex items-start gap-3.5 mb-4">
-                      <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                      <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                         <Icon className="size-5" />
                       </div>
                       <div className="min-w-0 space-y-1">

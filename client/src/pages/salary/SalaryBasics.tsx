@@ -89,7 +89,7 @@ function fmt(n: number) {
 }
 
 const inputCls =
-  "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20";
+  "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20";
 
 // ── Salary Table Component ─────────────────────────────────
 interface SalaryTableProps {
@@ -132,7 +132,7 @@ function SalaryTable({
           <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
             إجمالي الرواتب
           </div>
-          <div className="text-lg font-black text-blue-600 tabular-nums">
+          <div className="text-lg font-black text-primary tabular-nums">
             {fmt(totalAmount)}{" "}
             <span className="text-xs font-semibold text-muted-foreground">
               ج.م
@@ -152,7 +152,7 @@ function SalaryTable({
           <div className="overflow-x-auto hidden lg:block" dir="rtl">
             <table dir="rtl" className="w-full text-xs">
               <thead>
-                <tr className="border-b border-border bg-blue-50/60 text-blue-900 font-bold">
+                <tr className="border-b border-border bg-primary/8 text-foreground font-bold">
                   <th className="px-4 py-3 text-right font-bold w-40">الموظف</th>
                   <th className="px-4 py-3 text-right font-bold">
                     الراتب الأساسي
@@ -180,7 +180,7 @@ function SalaryTable({
                 {data.map((item, idx) => (
                   <tr
                     key={item.id}
-                    className={`border-b border-border/40 transition-colors hover:bg-blue-50/30 ${
+                    className={`border-b border-border/40 transition-colors hover:bg-primary/10 ${
                       idx % 2 === 0 ? "bg-white" : "bg-[#F9FAFB]"
                     }`}
                   >
@@ -208,7 +208,7 @@ function SalaryTable({
                     <td className="px-4 py-3 text-right tabular-nums">
                       {fmt(Number(item.yearlyRaise ?? 0))}
                     </td>
-                    <td className="px-4 py-3 text-right font-bold text-blue-600 tabular-nums">
+                    <td className="px-4 py-3 text-right font-bold text-primary tabular-nums">
                       {fmt(rowTotal(item))}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -218,9 +218,9 @@ function SalaryTable({
                           size="sm"
                           onClick={() => onEdit(item)}
                           disabled={isPending}
-                          className="h-8 w-8 p-0 hover:bg-blue-50/50"
+                          className="h-8 w-8 p-0 hover:bg-primary/10"
                         >
-                          <Pencil className="h-4 w-4 text-blue-600" />
+                          <Pencil className="h-4 w-4 text-primary" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -235,9 +235,9 @@ function SalaryTable({
                             }
                           }}
                           disabled={isPending}
-                          className="h-8 w-8 p-0 hover:bg-red-50"
+                          className="h-8 w-8 p-0 hover:bg-destructive/10"
                         >
-                          <Trash2 className="h-4 w-4 text-red-600" />
+                          <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
                     </td>
@@ -273,7 +273,7 @@ function SalaryTable({
                         <div className="text-[10px] font-bold text-muted-foreground uppercase">
                           الإجمالي
                         </div>
-                        <div className="text-sm font-black text-blue-600 tabular-nums">
+                        <div className="text-sm font-black text-primary tabular-nums">
                           {fmt(rowTotal(item))} ج.م
                         </div>
                       </div>
@@ -338,7 +338,7 @@ function SalaryTable({
                           size="sm"
                           onClick={() => onEdit(item)}
                           disabled={isPending}
-                          className="h-9 px-3 border-border hover:bg-blue-50/30 text-blue-600 gap-1"
+                          className="h-9 px-3 border-border hover:bg-primary/10 text-primary gap-1"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                           <span>تعديل</span>
@@ -356,7 +356,7 @@ function SalaryTable({
                             }
                           }}
                           disabled={isPending}
-                          className="h-9 px-3 border-border hover:bg-red-50 text-red-600 gap-1"
+                          className="h-9 px-3 border-border hover:bg-destructive/10 text-destructive gap-1"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                           <span>حذف</span>
@@ -435,7 +435,7 @@ function ShiftsTable({
           <div className="overflow-x-auto hidden lg:block" dir="rtl">
             <table dir="rtl" className="w-full text-xs">
               <thead>
-                <tr className="border-b border-border bg-blue-50/60 text-blue-900 font-bold">
+                <tr className="border-b border-border bg-primary/8 text-foreground font-bold">
                   <th className="px-4 py-3 text-right font-bold w-40">الاسم</th>
                   <th className="px-4 py-3 text-right font-bold">النوع</th>
                   <th className="px-4 py-3 text-right font-bold">قيمة الشفت</th>
@@ -450,7 +450,7 @@ function ShiftsTable({
                 {data.map((s, idx) => (
                   <tr
                     key={s.id}
-                    className={`border-b border-border/40 transition-colors hover:bg-blue-50/30 ${
+                    className={`border-b border-border/40 transition-colors hover:bg-primary/10 ${
                       idx % 2 === 0 ? "bg-white" : "bg-[#F9FAFB]"
                     }`}
                   >
@@ -474,7 +474,7 @@ function ShiftsTable({
                     </td>
                     <td className="px-4 py-3">
                       <span
-                        className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-semibold ${s.active ? "bg-green-50 text-green-700 ring-1 ring-green-600/10" : "bg-gray-50 text-gray-600 ring-1 ring-gray-500/10"}`}
+                        className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-semibold ${s.active ? "bg-success/10 text-success ring-1 ring-success/20" : "bg-muted/40 text-muted-foreground ring-1 ring-border/40"}`}
                       >
                         {s.active ? "نشط" : "غير نشط"}
                       </span>
@@ -486,9 +486,9 @@ function ShiftsTable({
                           size="sm"
                           onClick={() => onEdit(s)}
                           disabled={isPending}
-                          className="h-8 w-8 p-0 hover:bg-blue-50/50"
+                          className="h-8 w-8 p-0 hover:bg-primary/10"
                         >
-                          <Pencil className="h-4 w-4 text-blue-600" />
+                          <Pencil className="h-4 w-4 text-primary" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -499,9 +499,9 @@ function ShiftsTable({
                             }
                           }}
                           disabled={isPending}
-                          className="h-8 w-8 p-0 hover:bg-red-50"
+                          className="h-8 w-8 p-0 hover:bg-destructive/10"
                         >
-                          <Trash2 className="h-4 w-4 text-red-600" />
+                          <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
                     </td>
@@ -567,7 +567,7 @@ function ShiftsTable({
                         <div className="flex justify-between border-b border-border/20 pb-1">
                           <span className="text-muted-foreground">الحالة:</span>
                           <span
-                            className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${s.active ? "bg-green-50 text-green-700 ring-1 ring-green-600/10" : "bg-gray-50 text-gray-600 ring-1 ring-gray-500/10"}`}
+                            className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${s.active ? "bg-success/10 text-success ring-1 ring-success/20" : "bg-muted/40 text-muted-foreground ring-1 ring-border/40"}`}
                           >
                             {s.active ? "نشط" : "غير نشط"}
                           </span>
@@ -580,7 +580,7 @@ function ShiftsTable({
                           size="sm"
                           onClick={() => onEdit(s)}
                           disabled={isPending}
-                          className="h-9 px-3 border-border hover:bg-blue-50/30 text-blue-600 gap-1"
+                          className="h-9 px-3 border-border hover:bg-primary/10 text-primary gap-1"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                           <span>تعديل</span>
@@ -594,7 +594,7 @@ function ShiftsTable({
                             }
                           }}
                           disabled={isPending}
-                          className="h-9 px-3 border-border hover:bg-red-50 text-red-600 gap-1"
+                          className="h-9 px-3 border-border hover:bg-destructive/10 text-destructive gap-1"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                           <span>حذف</span>
@@ -846,7 +846,7 @@ export default function SalaryBasics() {
               placeholder="بحث بالاسم أو الكود..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-10 w-64 rounded-lg border border-border bg-background pr-10 pl-4 text-xs font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              className="h-10 w-64 rounded-lg border border-border bg-background pr-10 pl-4 text-xs font-medium outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
 
@@ -872,7 +872,7 @@ export default function SalaryBasics() {
               setForm(BLANK);
               setShowForm(true);
             }}
-            className="gap-2 bg-blue-600 text-white hover:bg-blue-700 h-10 px-4 rounded-lg shadow-sm font-semibold transition-all"
+            className="gap-2 bg-primary text-white hover:bg-primary/90 h-10 px-4 rounded-lg shadow-sm font-semibold transition-all"
           >
             <Plus className="h-4 w-4" />
             إضافة عضو شفت
@@ -937,7 +937,7 @@ export default function SalaryBasics() {
                           onClick={() => setFormType("salary")}
                           className={`py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
                             formType === "salary"
-                              ? "bg-white text-blue-600 shadow-xs"
+                              ? "bg-white text-primary shadow-xs"
                               : "text-muted-foreground"
                           }`}
                         >
@@ -948,7 +948,7 @@ export default function SalaryBasics() {
                           onClick={() => setFormType("shift")}
                           className={`py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
                             formType === "shift"
-                              ? "bg-white text-blue-600 shadow-xs"
+                              ? "bg-white text-primary shadow-xs"
                               : "text-muted-foreground"
                           }`}
                         >
@@ -985,8 +985,8 @@ export default function SalaryBasics() {
                           </select>
                         </div>
                       ) : (
-                        <div className="rounded-lg bg-blue-50/50 border border-blue-100 p-3 space-y-1">
-                          <div className="text-[10px] font-bold text-blue-900 uppercase">
+                        <div className="rounded-lg bg-primary/8 border border-primary/15 p-3 space-y-1">
+                          <div className="text-[10px] font-bold text-foreground uppercase">
                             اسم الموظف كود ({form.empCd})
                           </div>
                           <div className="text-sm font-bold text-foreground">
@@ -1022,11 +1022,11 @@ export default function SalaryBasics() {
                       </div>
 
                       {/* Calculator Highlight */}
-                      <div className="mt-3 flex items-center justify-between rounded-lg bg-blue-50 border border-blue-100 px-4 py-3">
-                        <span className="text-xs font-bold text-blue-900">
+                      <div className="mt-3 flex items-center justify-between rounded-lg bg-primary/10 border border-primary/15 px-4 py-3">
+                        <span className="text-xs font-bold text-foreground">
                           إجمالي مستحقات الراتب
                         </span>
-                        <span className="text-lg font-black text-blue-700 tabular-nums">
+                        <span className="text-lg font-black text-primary tabular-nums">
                           {totalOf(form).toLocaleString("en-EG")} ج.م
                         </span>
                       </div>
@@ -1243,7 +1243,7 @@ export default function SalaryBasics() {
               onClick={() => setCenterTab("shifts")}
               className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
                 centerTab === "shifts"
-                  ? "bg-white text-blue-600 shadow-xs"
+                  ? "bg-white text-primary shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -1253,7 +1253,7 @@ export default function SalaryBasics() {
               onClick={() => setCenterTab("salaries")}
               className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
                 centerTab === "salaries"
-                  ? "bg-white text-blue-600 shadow-xs"
+                  ? "bg-white text-primary shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -1314,7 +1314,7 @@ export default function SalaryBasics() {
           <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
             إجمالي المركز
           </div>
-          <div className="mt-2 text-2xl font-black text-blue-600 tabular-nums">
+          <div className="mt-2 text-2xl font-black text-primary tabular-nums">
             {centerSalaries.length + centerShifts.length}
           </div>
         </div>

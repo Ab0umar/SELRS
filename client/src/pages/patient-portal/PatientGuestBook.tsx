@@ -256,7 +256,7 @@ export default function PatientGuestBook() {
                 {step === 4 && "الخطوة 4 من 4: مراجعة وملاحظات وإرسال 📝"}
               </span>
               <span
-                className={step === 4 ? "text-emerald-600" : "text-primary"}
+                className={step === 4 ? "text-success" : "text-primary"}
               >
                 {step === 1 && "25% مكتمل"}
                 {step === 2 && "50% مكتمل"}
@@ -273,7 +273,7 @@ export default function PatientGuestBook() {
                       ? "w-1/2"
                       : step === 3
                         ? "w-3/4"
-                        : "w-full bg-emerald-500"
+                        : "w-full bg-success/100"
                 }`}
               />
             </div>
@@ -311,7 +311,7 @@ export default function PatientGuestBook() {
                       errors.guestName
                         ? "border-destructive focus-visible:ring-destructive/10 bg-destructive/5"
                         : guestName.trim()
-                          ? "border-emerald-500 focus-visible:ring-emerald-500/10 bg-emerald-50/5"
+                          ? "border-success focus-visible:ring-success/10 bg-success/5"
                           : ""
                     }`}
                     dir="rtl"
@@ -343,7 +343,7 @@ export default function PatientGuestBook() {
                       errors.guestPhone
                         ? "border-destructive focus-visible:ring-destructive/10 bg-destructive/5"
                         : /^01\d{9}$/.test(guestPhone.trim())
-                          ? "border-emerald-500 focus-visible:ring-emerald-500/10 bg-emerald-50/5"
+                          ? "border-success focus-visible:ring-success/10 bg-success/5"
                           : ""
                     }`}
                     dir="ltr"
@@ -510,9 +510,9 @@ export default function PatientGuestBook() {
                       }}
                       modifiersClassNames={{
                         monday:
-                          "bg-red-50 text-red-700 [&>button]:bg-red-50 [&>button]:text-red-700 [&>button]:ring-1 [&>button]:ring-red-200",
+                          "bg-destructive/10 text-destructive [&>button]:bg-destructive/10 [&>button]:text-destructive [&>button]:ring-1 [&>button]:ring-destructive/30",
                         consultantTanta:
-                          "bg-blue-50 text-blue-700 [&>button]:bg-blue-50 [&>button]:text-blue-700 [&>button]:ring-1 [&>button]:ring-blue-200",
+                          "bg-primary/10 text-primary [&>button]:bg-primary/10 [&>button]:text-primary [&>button]:ring-1 [&>button]:ring-primary/30",
                       }}
                       fromDate={minDate}
                       toDate={maxDate}
@@ -522,10 +522,10 @@ export default function PatientGuestBook() {
                   <div className="flex items-center justify-center gap-2 text-xs font-semibold">
                     {bookingType === "consultant" && (
                       <>
-                        <span className="rounded-full bg-red-50 px-2.5 py-1 text-red-700 ring-1 ring-red-200">
+                        <span className="rounded-full bg-destructive/10 px-2.5 py-1 text-destructive ring-1 ring-destructive/30">
                           كفرالشيخ
                         </span>
-                        <span className="rounded-full bg-blue-50 px-2.5 py-1 text-blue-700 ring-1 ring-blue-200">
+                        <span className="rounded-full bg-primary/10 px-2.5 py-1 text-primary ring-1 ring-primary/30">
                           طنطا
                         </span>
                       </>

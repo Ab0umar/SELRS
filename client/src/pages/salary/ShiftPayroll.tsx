@@ -306,7 +306,7 @@ export default function ShiftPayroll() {
                   <td className="px-4 py-3 text-right tabular-nums">
                     {r.scheduled}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-green-600 font-medium">
+                  <td className="px-4 py-3 text-right tabular-nums text-success font-medium">
                     {r.attended}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums text-destructive">
@@ -368,7 +368,7 @@ export default function ShiftPayroll() {
                       </div>
                       <div className="flex justify-between border-b border-border/20 pb-1">
                         <span className="text-muted-foreground">حضور:</span>
-                        <span className="font-semibold text-green-600 tabular-nums">{r.attended}</span>
+                        <span className="font-semibold text-success tabular-nums">{r.attended}</span>
                       </div>
                       <div className="flex justify-between border-b border-border/20 pb-1 col-span-2">
                         <span className="text-muted-foreground">غياب:</span>
@@ -457,7 +457,7 @@ export default function ShiftPayroll() {
             {
               label: "تم الحضور",
               value: String(totalAttended),
-              tone: "text-green-600 font-bold",
+              tone: "text-success font-bold",
             },
             {
               label: "غياب",

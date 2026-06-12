@@ -513,15 +513,15 @@ export default function CommissionPools() {
                             {examTotal.toLocaleString("ar-EG")} ج
                           </td>
                         </tr>
-                        <tr className="border-b bg-blue-50/30 hover:bg-blue-50/50">
-                          <td className="px-4 py-3 font-medium text-blue-700">الأطباء (60%)</td>
-                          <td className="px-4 py-3 text-center font-semibold text-blue-600">
+                        <tr className="border-b bg-primary/8 hover:bg-primary/10">
+                          <td className="px-4 py-3 font-medium text-primary">الأطباء (60%)</td>
+                          <td className="px-4 py-3 text-center font-semibold text-primary">
                             {examDrPool.toLocaleString("ar-EG")} ج
                           </td>
                         </tr>
-                        <tr className="bg-green-50/30 hover:bg-green-50/50">
-                          <td className="px-4 py-3 font-medium text-green-700">الموظفين والفنيين (40%)</td>
-                          <td className="px-4 py-3 text-center font-semibold text-green-600">
+                        <tr className="bg-success/8 hover:bg-success/10">
+                          <td className="px-4 py-3 font-medium text-success">الموظفين والفنيين (40%)</td>
+                          <td className="px-4 py-3 text-center font-semibold text-success">
                             {examEmpPool.toLocaleString("ar-EG")} ج
                           </td>
                         </tr>
@@ -562,13 +562,13 @@ export default function CommissionPools() {
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="rounded-xl border border-blue-200 bg-blue-50/30 p-3 text-center">
-                        <div className="text-[10px] text-blue-600 font-semibold mb-1">الأطباء (60%)</div>
-                        <div className="text-base font-black text-blue-700">{examDrPool.toLocaleString("ar-EG")} ج</div>
+                      <div className="rounded-xl border border-primary/20 bg-primary/8 p-3 text-center">
+                        <div className="text-[10px] text-primary font-semibold mb-1">الأطباء (60%)</div>
+                        <div className="text-base font-black text-primary">{examDrPool.toLocaleString("ar-EG")} ج</div>
                       </div>
-                      <div className="rounded-xl border border-green-200 bg-green-50/30 p-3 text-center">
-                        <div className="text-[10px] text-green-600 font-semibold mb-1">الموظفين والفنيين (40%)</div>
-                        <div className="text-base font-black text-green-700">{examEmpPool.toLocaleString("ar-EG")} ج</div>
+                      <div className="rounded-xl border border-success/20 bg-success/8 p-3 text-center">
+                        <div className="text-[10px] text-success font-semibold mb-1">الموظفين والفنيين (40%)</div>
+                        <div className="text-base font-black text-success">{examEmpPool.toLocaleString("ar-EG")} ج</div>
                       </div>
                     </div>
                   </div>
@@ -583,7 +583,7 @@ export default function CommissionPools() {
                       dir="rtl"
                     >
                       <thead>
-                        <tr className="bg-orange-50/50 border-b">
+                        <tr className="bg-secondary/8 border-b">
                           <th className="px-4 py-3 text-right font-semibold">
                             البيان
                           </th>
@@ -651,7 +651,7 @@ export default function CommissionPools() {
                             {xrayTotalCount.toLocaleString("ar-EG")}
                           </td>
                         </tr>
-                        <tr className="border-b bg-blue-50/30 hover:bg-blue-50/50">
+                        <tr className="border-b bg-primary/8 hover:bg-primary/10">
                           <td className="px-4 py-3 font-medium">الإجمالي</td>
                           <td className="px-4 py-3 text-center font-semibold text-primary">
                             {xrayTierTotals[450].toLocaleString("ar-EG")} ج
@@ -669,39 +669,39 @@ export default function CommissionPools() {
                             {xrayGrandTotal.toLocaleString("ar-EG")} ج
                           </td>
                         </tr>
-                        <tr className="border-b bg-blue-50/30 hover:bg-blue-50/50">
+                        <tr className="border-b bg-primary/8 hover:bg-primary/10">
                           <td className="px-4 py-3 font-medium">الأطباء</td>
-                          <td className="px-4 py-3 text-center font-semibold text-blue-600">
+                          <td className="px-4 py-3 text-center font-semibold text-primary">
                             {xrayTierDoctors[450].toLocaleString("ar-EG")} ج
                           </td>
-                          <td className="px-4 py-3 text-center font-semibold text-blue-600">
+                          <td className="px-4 py-3 text-center font-semibold text-primary">
                             {xrayTierDoctors[400].toLocaleString("ar-EG")} ج
                           </td>
-                          <td className="px-4 py-3 text-center font-semibold text-blue-600">
+                          <td className="px-4 py-3 text-center font-semibold text-primary">
                             {xrayTierDoctors[350].toLocaleString("ar-EG")} ج
                           </td>
-                          <td className="px-4 py-3 text-center font-semibold text-blue-600">
+                          <td className="px-4 py-3 text-center font-semibold text-primary">
                             {xrayTierDoctors[250].toLocaleString("ar-EG")} ج
                           </td>
-                          <td className="px-4 py-3 text-center font-semibold text-blue-600">
+                          <td className="px-4 py-3 text-center font-semibold text-primary">
                             {xrayDoctorsTotal.toLocaleString("ar-EG")} ج
                           </td>
                         </tr>
-                        <tr className="bg-green-50/30 hover:bg-green-50/50">
+                        <tr className="bg-success/8 hover:bg-success/10">
                           <td className="px-4 py-3 font-medium">الموظفين</td>
-                          <td className="px-4 py-3 text-center font-semibold text-green-600">
+                          <td className="px-4 py-3 text-center font-semibold text-success">
                             {xrayTierStaff[450].toLocaleString("ar-EG")} ج
                           </td>
-                          <td className="px-4 py-3 text-center font-semibold text-green-600">
+                          <td className="px-4 py-3 text-center font-semibold text-success">
                             {xrayTierStaff[400].toLocaleString("ar-EG")} ج
                           </td>
-                          <td className="px-4 py-3 text-center font-semibold text-green-600">
+                          <td className="px-4 py-3 text-center font-semibold text-success">
                             {xrayTierStaff[350].toLocaleString("ar-EG")} ج
                           </td>
-                          <td className="px-4 py-3 text-center font-semibold text-green-600">
+                          <td className="px-4 py-3 text-center font-semibold text-success">
                             {xrayTierStaff[250].toLocaleString("ar-EG")} ج
                           </td>
-                          <td className="px-4 py-3 text-center font-semibold text-green-600">
+                          <td className="px-4 py-3 text-center font-semibold text-success">
                             {xrayStaffTotal.toLocaleString("ar-EG")} ج
                           </td>
                         </tr>
@@ -744,11 +744,11 @@ export default function CommissionPools() {
                           <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/40 text-[11px]">
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">الأطباء:</span>
-                              <span className="font-semibold text-blue-600">{xrayTierDoctors[tier].toLocaleString("ar-EG")} ج</span>
+                              <span className="font-semibold text-primary">{xrayTierDoctors[tier].toLocaleString("ar-EG")} ج</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">الموظفين:</span>
-                              <span className="font-semibold text-green-600">{xrayTierStaff[tier].toLocaleString("ar-EG")} ج</span>
+                              <span className="font-semibold text-success">{xrayTierStaff[tier].toLocaleString("ar-EG")} ج</span>
                             </div>
                           </div>
                         </div>
@@ -756,23 +756,23 @@ export default function CommissionPools() {
                     })}
 
                     {/* X-Ray Summary Card */}
-                    <div className="rounded-xl bg-orange-50/20 border border-orange-100 p-4 space-y-2">
+                    <div className="rounded-xl bg-secondary/5 border border-secondary/15 p-4 space-y-2">
                       <div className="flex justify-between items-center text-xs font-bold text-foreground">
                         <span>إجمالي حالات الأشعة:</span>
                         <span className="text-sm">{xrayTotalCount.toLocaleString("ar-EG")} حالة</span>
                       </div>
-                      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-orange-100/60 text-xs">
+                      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-secondary/15/60 text-xs">
                         <div className="text-center">
                           <div className="text-[10px] text-muted-foreground">الإجمالي</div>
                           <div className="font-bold text-primary">{xrayGrandTotal.toLocaleString("ar-EG")} ج</div>
                         </div>
-                        <div className="text-center border-r border-orange-100/60">
+                        <div className="text-center border-r border-secondary/15/60">
                           <div className="text-[10px] text-muted-foreground">الأطباء</div>
-                          <div className="font-bold text-blue-600">{xrayDoctorsTotal.toLocaleString("ar-EG")} ج</div>
+                          <div className="font-bold text-primary">{xrayDoctorsTotal.toLocaleString("ar-EG")} ج</div>
                         </div>
-                        <div className="text-center border-r border-orange-100/60">
+                        <div className="text-center border-r border-secondary/15/60">
                           <div className="text-[10px] text-muted-foreground">الموظفين</div>
-                          <div className="font-bold text-green-600">{xrayStaffTotal.toLocaleString("ar-EG")} ج</div>
+                          <div className="font-bold text-success">{xrayStaffTotal.toLocaleString("ar-EG")} ج</div>
                         </div>
                       </div>
                     </div>
@@ -940,7 +940,7 @@ export default function CommissionPools() {
                   </div>
 
                   {/* Summary Card */}
-                  <div className="rounded-xl bg-blue-50/30 border border-blue-100 p-4 flex justify-between items-center">
+                  <div className="rounded-xl bg-primary/8 border border-primary/15 p-4 flex justify-between items-center">
                     <div className="space-y-1">
                       <div className="text-xs font-bold text-foreground">إجمالي نسب الكشف</div>
                       <div className="text-[10px] text-muted-foreground">
@@ -963,22 +963,22 @@ export default function CommissionPools() {
                 <div className="space-y-2">
                   <h3 className="font-semibold text-base">ملخص التوزيع</h3>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-4">
-                      <div className="text-xs font-semibold text-blue-700 mb-1">إجمالي الأطباء</div>
-                      <div className="text-xl font-black text-blue-700">
+                    <div className="rounded-xl border border-primary/20 bg-primary/8 p-4">
+                      <div className="text-xs font-semibold text-primary mb-1">إجمالي الأطباء</div>
+                      <div className="text-xl font-black text-primary">
                         {drTotal.toLocaleString("ar-EG")} ج
                       </div>
-                      <div className="mt-1.5 text-[10px] text-blue-500 space-y-0.5">
+                      <div className="mt-1.5 text-[10px] text-primary space-y-0.5">
                         <div>كشف: {examDrPool.toLocaleString("ar-EG")} ج</div>
                         <div>بنتاكام: {xrayDoctorsTotal.toLocaleString("ar-EG")} ج</div>
                       </div>
                     </div>
-                    <div className="rounded-xl border border-green-200 bg-green-50/40 p-4">
-                      <div className="text-xs font-semibold text-green-700 mb-1">إجمالي الموظفين والفنيين</div>
-                      <div className="text-xl font-black text-green-700">
+                    <div className="rounded-xl border border-success/20 bg-success/10/40 p-4">
+                      <div className="text-xs font-semibold text-success mb-1">إجمالي الموظفين والفنيين</div>
+                      <div className="text-xl font-black text-success">
                         {empTechTotal.toLocaleString("ar-EG")} ج
                       </div>
-                      <div className="mt-1.5 text-[10px] text-green-500 space-y-0.5">
+                      <div className="mt-1.5 text-[10px] text-success space-y-0.5">
                         <div>كشف: {examEmpPool.toLocaleString("ar-EG")} ج</div>
                         <div>بنتاكام: {xrayStaffTotal.toLocaleString("ar-EG")} ج</div>
                       </div>
@@ -997,7 +997,7 @@ export default function CommissionPools() {
                   dir="rtl"
                 >
                   <thead>
-                    <tr className="bg-emerald-50/50 border-b">
+                    <tr className="bg-success/8 border-b">
                       <th className="px-4 py-3 text-right font-semibold">
                         البيان
                       </th>
@@ -1065,7 +1065,7 @@ export default function CommissionPools() {
                         {transportAllowanceTotal.toLocaleString("ar-EG")} ج
                       </td>
                     </tr>
-                    <tr className="bg-emerald-50/30 font-bold">
+                    <tr className="bg-success/8 font-bold">
                       <td className="px-4 py-3">إجمالي بدلات يوم 10</td>
                       <td className="px-4 py-3 text-center">-</td>
                       <td className="px-4 py-3 text-center">-</td>
@@ -1149,7 +1149,7 @@ export default function CommissionPools() {
                 </div>
 
                 {/* Summary Card */}
-                <div className="rounded-xl bg-emerald-50/30 border border-emerald-100 p-4 flex justify-between items-center">
+                <div className="rounded-xl bg-success/8 border border-success/15 p-4 flex justify-between items-center">
                   <div className="space-y-1">
                     <div className="text-xs font-bold text-foreground">إجمالي بدلات يوم 10</div>
                   </div>

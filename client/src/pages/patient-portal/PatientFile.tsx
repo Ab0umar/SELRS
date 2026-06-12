@@ -169,7 +169,7 @@ export default function PatientFile() {
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
                 <Link href="/my/refraction">
                   <div className="bg-white border border-[#dbe7f4] rounded-2xl p-4 text-center space-y-3 shadow-xs hover:border-primary/30 transition-all duration-200 cursor-pointer h-full flex flex-col justify-center items-center">
-                    <div className="size-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <div className="size-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                       <Glasses className="size-5" />
                     </div>
                     <div className="space-y-1">
@@ -185,7 +185,7 @@ export default function PatientFile() {
 
                 <Link href="/my/prescription">
                   <div className="bg-white border border-[#dbe7f4] rounded-2xl p-4 text-center space-y-3 shadow-xs hover:border-primary/30 transition-all duration-200 cursor-pointer h-full flex flex-col justify-center items-center">
-                    <div className="size-11 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
+                    <div className="size-11 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center">
                       <Pill className="size-5" />
                     </div>
                     <div className="space-y-1">
@@ -201,7 +201,7 @@ export default function PatientFile() {
 
                 <Link href="/my/scans">
                   <div className="bg-white border border-[#dbe7f4] rounded-2xl p-4 text-center space-y-3 shadow-xs hover:border-primary/30 transition-all duration-200 cursor-pointer h-full flex flex-col justify-center items-center">
-                    <div className="size-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <div className="size-11 rounded-xl bg-success/10 text-success flex items-center justify-center">
                       <ScanLine className="size-5" />
                     </div>
                     <div className="space-y-1">
@@ -217,7 +217,7 @@ export default function PatientFile() {
 
                 <Link href="/my/book">
                   <div className="bg-white border border-[#dbe7f4] rounded-2xl p-4 text-center space-y-3 shadow-xs hover:border-primary/30 transition-all duration-200 cursor-pointer h-full flex flex-col justify-center items-center">
-                    <div className="size-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                    <div className="size-11 rounded-xl bg-muted/40 text-muted-foreground flex items-center justify-center">
                       <CalendarDays className="size-5" />
                     </div>
                     <div className="space-y-1">
@@ -233,7 +233,7 @@ export default function PatientFile() {
 
                 <Link href="/my/bookings" className="col-span-2 md:col-span-1">
                   <div className="bg-white border border-[#dbe7f4] rounded-2xl p-4 text-center space-y-3 shadow-xs hover:border-primary/30 transition-all duration-200 cursor-pointer h-full flex flex-col justify-center items-center">
-                    <div className="size-11 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center mx-auto">
+                    <div className="size-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center mx-auto">
                       <UserRound className="size-5" />
                     </div>
                     <div className="space-y-1">

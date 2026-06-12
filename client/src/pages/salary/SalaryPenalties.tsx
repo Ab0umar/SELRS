@@ -572,7 +572,7 @@ export default function SalaryPenalties() {
                                 : deleteAdvanceMut.mutate({ id: r.id });
                             }
                           }}
-                          className="h-9 px-3 border-border hover:bg-red-50 text-red-600 gap-1"
+                          className="h-9 px-3 border-border hover:bg-destructive/10 text-destructive gap-1"
                         >
                           <Trash2 size={14} className="text-destructive" />
                           <span>حذف</span>
@@ -682,7 +682,7 @@ export default function SalaryPenalties() {
                                 });
                               }}
                             >
-                              <Check size={14} className="text-green-600" />
+                              <Check size={14} className="text-success" />
                             </Button>
                             <Button
                               variant="ghost"
@@ -809,7 +809,7 @@ export default function SalaryPenalties() {
                                   insuranceDeduction: v,
                                 });
                               }}
-                              className="h-9 px-3 border-border text-green-600 gap-1"
+                              className="h-9 px-3 border-border text-success gap-1"
                             >
                               <Check size={14} />
                               <span>حفظ</span>
@@ -834,7 +834,7 @@ export default function SalaryPenalties() {
                                 value: String(b.insuranceDeduction ?? 0),
                               })
                             }
-                            className="h-9 px-3 border-border hover:bg-blue-50/30 text-blue-600 gap-1"
+                            className="h-9 px-3 border-border hover:bg-primary/10 text-primary gap-1"
                           >
                             <Pencil size={14} />
                             <span>تعديل الخصم</span>

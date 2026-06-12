@@ -739,7 +739,7 @@ export default function EmployeesList() {
                             title="تعديل بيانات الموظف"
                             className="h-8 w-8 p-0"
                           >
-                            <Pencil size={14} className="text-blue-500" />
+                            <Pencil size={14} className="text-primary" />
                           </Button>
                           <Button
                             variant="ghost"
@@ -778,7 +778,7 @@ export default function EmployeesList() {
                             title="حذف الموظف"
                             className="h-8 w-8 p-0"
                           >
-                            <Trash2 size={14} className="text-red-500" />
+                            <Trash2 size={14} className="text-destructive" />
                           </Button>
                         </div>
                       )}

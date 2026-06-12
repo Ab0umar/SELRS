@@ -113,11 +113,11 @@ function EyeCard({
       ];
   return (
     <div
-      className={`flex-1 rounded-xl border p-4.5 transition-all duration-200 ${isOS ? "border-blue-100 bg-blue-50/30" : "border-emerald-100 bg-emerald-50/30"}`}
+      className={`flex-1 rounded-xl border p-4.5 transition-all duration-200 ${isOS ? "border-primary/15 bg-primary/8" : "border-success/15 bg-success/8"}`}
     >
       <div className="mb-3 flex items-center justify-between">
         <span
-          className={`rounded-lg px-2.5 py-0.5 text-xs font-bold ${isOS ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"}`}
+          className={`rounded-lg px-2.5 py-0.5 text-xs font-bold ${isOS ? "bg-primary/15 text-primary" : "bg-success/15 text-success"}`}
           dir="ltr"
         >
           {side}
@@ -260,7 +260,7 @@ function PrescriptionCard({ row }: { row: any }) {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <div className="size-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
+                    <div className="size-8 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center shrink-0">
                       <Pill className="size-4" />
                     </div>
                     <p className="text-sm font-bold text-foreground">
@@ -624,7 +624,7 @@ export default function DoctorPatientImages() {
                             className="flex flex-col justify-between rounded-2xl border border-[#dbe7f4] bg-white p-5 shadow-xs hover:border-primary/20 transition-all duration-200"
                           >
                             <div className="flex items-start gap-3.5 mb-4">
-                              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                                 <Icon className="size-5" />
                               </div>
                               <div className="min-w-0 space-y-1">

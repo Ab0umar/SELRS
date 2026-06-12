@@ -256,7 +256,7 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
             )}
 
             {pushState === "granted" && PUSH_SUPPORTED && (
-              <div className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50/50 px-4 py-2 text-xs text-emerald-700">
+              <div className="flex items-center gap-2 rounded-xl border border-success/15 bg-success/8 px-4 py-2 text-xs text-success">
                 <BellRing className="size-3.5 shrink-0" />
                 <span>الإشعارات الفورية مفعّلة بنجاح</span>
               </div>

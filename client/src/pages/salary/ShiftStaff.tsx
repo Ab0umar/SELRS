@@ -121,28 +121,28 @@ function CycleEditor({
             <button
               type="button"
               onClick={() => applyPreset(PRESET_SAT_WED, "Morning")}
-              className="rounded px-1.5 py-0.5 text-[10px] font-medium border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors"
+              className="rounded px-1.5 py-0.5 text-[10px] font-medium border border-secondary/20 bg-secondary/10 text-secondary hover:bg-secondary/15 transition-colors"
             >
               س→ر ☀
             </button>
             <button
               type="button"
               onClick={() => applyPreset(PRESET_SUN_THU, "Morning")}
-              className="rounded px-1.5 py-0.5 text-[10px] font-medium border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors"
+              className="rounded px-1.5 py-0.5 text-[10px] font-medium border border-secondary/20 bg-secondary/10 text-secondary hover:bg-secondary/15 transition-colors"
             >
               ح→خ ☀
             </button>
             <button
               type="button"
               onClick={() => applyPreset(PRESET_SAT_WED, "Night")}
-              className="rounded px-1.5 py-0.5 text-[10px] font-medium border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+              className="rounded px-1.5 py-0.5 text-[10px] font-medium border border-primary/20 bg-primary/10 text-primary hover:bg-primary/15 transition-colors"
             >
               س→ر 🌙
             </button>
             <button
               type="button"
               onClick={() => applyPreset(PRESET_SUN_THU, "Night")}
-              className="rounded px-1.5 py-0.5 text-[10px] font-medium border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+              className="rounded px-1.5 py-0.5 text-[10px] font-medium border border-primary/20 bg-primary/10 text-primary hover:bg-primary/15 transition-colors"
             >
               ح→خ 🌙
             </button>
@@ -185,8 +185,8 @@ function CycleEditor({
                       title="صباحي"
                       className={`rounded px-1 py-0.5 text-[11px] leading-none transition-colors ${
                         hasMorning
-                          ? "bg-orange-500/20 text-orange-700 ring-1 ring-orange-400/50"
-                          : "bg-muted/40 text-muted-foreground hover:bg-orange-500/10 hover:text-orange-600"
+                          ? "bg-secondary/20 text-secondary ring-1 ring-secondary/40"
+                          : "bg-muted/40 text-muted-foreground hover:bg-secondary/10 hover:text-secondary"
                       }`}
                     >
                       ☀
@@ -197,8 +197,8 @@ function CycleEditor({
                       title="مسائي"
                       className={`rounded px-1 py-0.5 text-[11px] leading-none transition-colors ${
                         hasNight
-                          ? "bg-blue-500/20 text-blue-700 ring-1 ring-blue-400/50"
-                          : "bg-muted/40 text-muted-foreground hover:bg-blue-500/10 hover:text-blue-600"
+                          ? "bg-primary/20 text-primary ring-1 ring-primary/40"
+                          : "bg-muted/40 text-muted-foreground hover:bg-primary/10 hover:text-primary"
                       }`}
                     >
                       🌙
@@ -427,7 +427,7 @@ export default function ShiftStaff() {
                   onClick={() => submitEdit(s.id)}
                   disabled={updateMut.isPending}
                 >
-                  <Check size={14} className="text-green-600" />
+                  <Check size={14} className="text-success" />
                 </Button>
                 <Button
                   variant="ghost"
@@ -474,7 +474,7 @@ export default function ShiftStaff() {
             </td>
             <td className="px-4 py-3">
               <span
-                className={`rounded px-2 py-0.5 text-xs font-semibold ${s.active ? "bg-green-500/10 text-green-600" : "bg-muted text-muted-foreground"}`}
+                className={`rounded px-2 py-0.5 text-xs font-semibold ${s.active ? "bg-success/100/10 text-success" : "bg-muted text-muted-foreground"}`}
               >
                 {s.active ? "Active" : "Inactive"}
               </span>
@@ -622,7 +622,7 @@ export default function ShiftStaff() {
               size="sm"
               disabled={updateMut.isPending}
               onClick={() => submitEdit(s.id)}
-              className="h-9 px-3 border-border text-green-600 gap-1 flex-1 font-semibold"
+              className="h-9 px-3 border-border text-success gap-1 flex-1 font-semibold"
             >
               <Check size={14} />
               <span>حفظ</span>
@@ -696,7 +696,7 @@ export default function ShiftStaff() {
               <div className="flex justify-between border-b border-border/20 pb-1">
                 <span className="text-muted-foreground">الحالة:</span>
                 <span
-                  className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${s.active ? "bg-green-50 text-green-700 ring-1 ring-green-600/10" : "bg-gray-50 text-gray-600 ring-1 ring-gray-500/10"}`}
+                  className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${s.active ? "bg-success/10 text-success ring-1 ring-success/20" : "bg-muted/40 text-muted-foreground ring-1 ring-border/40"}`}
                 >
                   {s.active ? "نشط" : "غير نشط"}
                 </span>
@@ -708,7 +708,7 @@ export default function ShiftStaff() {
                 variant="outline"
                 size="sm"
                 onClick={() => startEdit(s)}
-                className="h-9 px-3 border-border hover:bg-blue-50/30 text-blue-600 gap-1"
+                className="h-9 px-3 border-border hover:bg-primary/10 text-primary gap-1"
               >
                 <Pencil size={14} />
                 <span>تعديل</span>
@@ -729,7 +729,7 @@ export default function ShiftStaff() {
                   if (confirm(`Delete ${s.name}?`))
                     deleteMut.mutate({ id: s.id });
                 }}
-                className="h-9 px-3 border-border hover:bg-red-50 text-red-600 gap-1"
+                className="h-9 px-3 border-border hover:bg-destructive/10 text-destructive gap-1"
               >
                 <Trash2 size={14} className="text-destructive" />
                 <span>حذف</span>

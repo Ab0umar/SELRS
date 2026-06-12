@@ -567,7 +567,7 @@ export default function EmployeeDetail() {
                         <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20">
                           <td className="px-3 py-2 font-mono text-xs">{p.date}</td>
                           <td className="px-3 py-2">
-                            <span className={`inline-flex rounded px-1.5 py-0.5 text-xs font-medium ${p.type === "out" ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800"}`}>
+                            <span className={`inline-flex rounded px-1.5 py-0.5 text-xs font-medium ${p.type === "out" ? "bg-warning/15 text-warning" : "bg-primary/15 text-foreground"}`}>
                               {p.type === "out" ? "خروج" : "دخول"}
                             </span>
                           </td>
@@ -686,7 +686,7 @@ export default function EmployeeDetail() {
           <Card className="border-border">
             <CardHeader className="pb-2 pt-4">
               <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-                <Clock className="h-4 w-4 text-amber-600" />
+                <Clock className="h-4 w-4 text-warning" />
                 طلب تغيير / تبديل موعد
               </CardTitle>
             </CardHeader>

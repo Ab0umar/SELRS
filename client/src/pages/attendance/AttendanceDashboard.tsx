@@ -43,28 +43,28 @@ export default function AttendanceDashboard() {
       title: "الحضور الآن",
       description: "مراقبة فورية لحركة الدخول والخروج",
       href: "/attendance/live",
-      color: "bg-blue-50 text-blue-600",
+      color: "bg-primary/10 text-primary",
     },
     {
       icon: Users,
       title: "الموظفون",
       description: "إدارة بيانات الموظفين والإجازات",
       href: "/attendance/employees",
-      color: "bg-green-50 text-green-600",
+      color: "bg-success/10 text-success",
     },
     {
       icon: Calendar,
       title: "الروستر الشهري",
       description: "جدول الورديات والحضور",
       href: "/attendance/shift-schedule",
-      color: "bg-purple-50 text-purple-600",
+      color: "bg-muted/40 text-muted-foreground",
     },
     {
       icon: AlertCircle,
       title: "التقارير",
       description: "تقارير الحضور والإجازات",
       href: "/attendance/reports",
-      color: "bg-orange-50 text-orange-600",
+      color: "bg-secondary/10 text-secondary",
     },
   ];
 
@@ -74,19 +74,19 @@ export default function AttendanceDashboard() {
       title: "تم تسجيل حضور 45 موظف",
       time: "منذ ساعة",
       icon: CheckCircle,
-      color: "text-green-600",
+      color: "text-success",
     },
     {
       title: "5 موظفين متأخرين",
       time: "منذ 30 دقيقة",
       icon: Clock,
-      color: "text-yellow-600",
+      color: "text-warning",
     },
     {
       title: "جهاز البصمة متصل",
       time: "منذ يوم واحد",
       icon: CheckCircle,
-      color: "text-green-600",
+      color: "text-success",
     },
   ];
 

@@ -122,13 +122,13 @@ const SHIFT_META: Record<
   Morning: {
     label: "صباح",
     short: "ص",
-    tone: "bg-orange-500/10 text-orange-700 ring-1 ring-inset ring-orange-500/20 hover:bg-orange-500/15",
+    tone: "bg-secondary/10 text-secondary ring-1 ring-inset ring-secondary/20 hover:bg-secondary/15",
     printClass: "shift-m",
   },
   Night: {
     label: "مساء",
     short: "م",
-    tone: "bg-blue-500/10 text-blue-700 ring-1 ring-inset ring-blue-500/20 hover:bg-blue-500/15",
+    tone: "bg-primary/10 text-primary ring-1 ring-inset ring-primary/20 hover:bg-primary/15",
     printClass: "shift-n",
   },
 };
@@ -668,12 +668,12 @@ export default function ShiftSchedule() {
                                   {DAYS_AR[dow]}
                                 </div>
                                 <div
-                                  className={`text-[10px] tabular-nums ${holiday ? "text-amber-600" : "text-muted-foreground"}`}
+                                  className={`text-[10px] tabular-nums ${holiday ? "text-warning" : "text-muted-foreground"}`}
                                 >
                                   {fmtDate(ds)}
                                 </div>
                                 {holiday && (
-                                  <div className="mt-1 inline-flex items-center justify-center rounded-full bg-amber-500/12 px-1.5 py-0.5 text-[9px] font-semibold text-amber-700">
+                                  <div className="mt-1 inline-flex items-center justify-center rounded-full bg-warning/12 px-1.5 py-0.5 text-[9px] font-semibold text-warning">
                                     عطلة
                                   </div>
                                 )}

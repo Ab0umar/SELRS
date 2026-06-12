@@ -284,9 +284,9 @@ export default function PatientBook() {
                       }}
                       modifiersClassNames={{
                         monday:
-                          "bg-red-50 text-red-700 [&>button]:bg-red-50 [&>button]:text-red-700 [&>button]:ring-1 [&>button]:ring-red-200",
+                          "bg-destructive/10 text-destructive [&>button]:bg-destructive/10 [&>button]:text-destructive [&>button]:ring-1 [&>button]:ring-destructive/30",
                         consultantTanta:
-                          "bg-blue-50 text-blue-700 [&>button]:bg-blue-50 [&>button]:text-blue-700 [&>button]:ring-1 [&>button]:ring-blue-200",
+                          "bg-primary/10 text-primary [&>button]:bg-primary/10 [&>button]:text-primary [&>button]:ring-1 [&>button]:ring-primary/30",
                       }}
                       fromDate={minDate}
                       toDate={maxDate}
@@ -296,10 +296,10 @@ export default function PatientBook() {
                   <div className="flex items-center justify-center gap-2.5 text-xs font-semibold">
                     {bookingType === "consultant" && (
                       <>
-                        <span className="rounded-full bg-red-50 px-2.5 py-1 text-red-700 ring-1 ring-red-200">
+                        <span className="rounded-full bg-destructive/10 px-2.5 py-1 text-destructive ring-1 ring-destructive/30">
                           كفرالشيخ
                         </span>
-                        <span className="rounded-full bg-blue-50 px-2.5 py-1 text-blue-700 ring-1 ring-blue-200">
+                        <span className="rounded-full bg-primary/10 px-2.5 py-1 text-primary ring-1 ring-primary/30">
                           طنطا
                         </span>
                       </>
