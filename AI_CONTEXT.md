@@ -1,7 +1,7 @@
 # SRV100 AI Context Document
 
 > Single "read this first" file for any AI model (Cursor, Codex, Claude, GPT, Gemini, GLM, Kimi).
-> Version: 1.1.0 — aligned with Constitution v1.0.0, Principles v1.0.0. Updated 2026-06-12.
+> Version: 2.0.0 — aligned with Constitution v1.0.0, Principles v1.0.0. Updated 2026-06-12.
 
 ---
 
@@ -9,10 +9,16 @@
 
 ## What the Project Is
 
-SELRS (Saadany Eye Laser & Refractive Surgery) Medical Center Platform. A monolithic web application serving two distinct domains:
+SELRS (Saadany Eye Laser & Refractive Surgery) Medical Center Platform. A monolithic full-stack TypeScript web application (React + Express + tRPC) with 8 distinct modules:
 
-1. **Medical Module** — patient registration, examination, operations scheduling, doctor workflows, Pentacam integration, OCR, FCM notifications
-2. **Accounting Module** — financial reporting from legacy MSSQL accounting database, service-based revenue analysis, receipt inquiry, print-preview reports
+1. **Medical** — patient registration, examination, operations scheduling, doctor workflows, Pentacam integration, OCR, FCM notifications
+2. **Accounting** — financial reporting from legacy MSSQL accounting database, service-based revenue analysis, receipt inquiry, print-preview reports, MySQL cashbook
+3. **KF (Clinical — كفرالشيخ)** — isolated MySQL-only clinical sub-module: patients, visits, examinations, operations, follow-ups, accounting ledger. Patient codes follow KF-0001 format.
+4. **Attendance** — fingerprint-based staff attendance, live board, monthly reports, ZKTeco device sync, shift management
+5. **Salary** — payroll module: salary basics, penalties, commission pools, payroll reports, shift-based staff schedules
+6. **Stockroom** — inventory management: stock items per category, stock transactions (receive/dispense), low-stock reports
+7. **Patient Portal** — patient self-service: login via phone OTP, view file/refractions/prescriptions/scans, book appointments
+8. **Marketing** — social media post management, brand library, draft/post history (admin-only)
 
 ## Main Goals
 
@@ -73,12 +79,17 @@ MySQL (selrs26)                    MSSQL (op2026)
 ## Routing Architecture
 
 - `client/src/App.tsx` — lazy routes with `ProtectedRoute` wrappers
-- Medical routes: `/dashboard`, `/patients/*`, `/operations`, etc.
-- Accounting routes: `/accounting/*` — all gated by `allowedRoles` or path-based permission
-- KF (clinical) routes: `/kf/*` — gated by `makeKfProcedure` / `makeKfWriteProcedure` (admin + accountant bypass)
-- Stockroom routes: `/stockroom`, `/stockroom/reports` — gated by `makeStockroomProcedure` / `makeStockroomWriteProcedure`
+- Medical routes: `/dashboard`, `/patients/*`, `/operations`, `/today`, etc.
+- Accounting routes: `/accounting/*` — gated by path-based permission
+- KF (clinical) routes: `/kf/*`, `/KFsheets/*` — gated by `makeKfProcedure` / `makeKfWriteProcedure` (admin + accountant bypass)
+- Attendance routes: `/attendance/*` — gated by `makeAttProcedure` / `makeAttWriteProcedure` (admin + manager bypass)
 - Salary routes: `/salary/*` — gated by `makeSalaryProcedure` / `makeSalaryWriteProcedure` (admin + manager bypass)
-- Backend: `server/routers/index.ts` composes `appRouter = { medical, patient, accounting, kf, attendance, salary, shiftStaff, stockroom, patientPortal }`
+- Stockroom routes: `/stockroom`, `/stockroom/*` — gated by `makeStockroomProcedure` / `makeStockroomWriteProcedure` (admin bypass)
+- Patient portal routes: `/my/*` — separate `patientPortalProcedure` (patient session, not staff session)
+- Doctor portal routes: `/doctor-portal/*` — separate `doctorPortalProcedure` (external doctor session)
+- Marketing routes: `/marketing/*` — `requiredRoles={["admin"]}` in ProtectedRoute
+- Admin hub: `/admin-hub`, `/admin/*` — `requiredRoles={["admin"]}`
+- Backend: `server/routers/index.ts` composes `appRouter = { patientPortal, accounting, attendance, kf, medical, patient, stockroom, salary, marketing }`
 
 ## tRPC Structure
 
@@ -87,39 +98,50 @@ server/routers/
 ├── index.ts          → appRouter composition (ONLY allowed shared edit point)
 ├── medical.ts        → Medical CRUD (UNTOUCHABLE)
 ├── patient.ts        → Patient queries (UNTOUCHABLE)
-├── accounting.ts     → Accounting read-only queries
+├── accounting.ts     → Accounting reports + MySQL cashbook mutations
 ├── kf.ts             → KF clinical module (isolated MySQL-only)
-├── attendance.ts     → Attendance + fingerprint module
-├── salary.ts         → Salary module
-├── shiftStaff.ts     → Shift/staff scheduling
+├── attendance.ts     → Attendance + fingerprint module + shift management
+├── salary.ts         → Salary + payroll module
 ├── stockroom.ts      → Stockroom inventory module
-└── patientPortal.ts  → Patient portal (self-service)
+├── patientPortal.ts  → Patient portal (self-service, OTP-auth)
+└── marketing.ts      → Marketing / social media posts (admin-only)
 
 server/_core/
 ├── procedures.ts     → Role-based procedure builders + per-page factory functions
 ├── trpc.ts           → tRPC init
-├── context.ts        → Auth context
+├── context.ts        → Auth context (staff session, patient session, doctor session)
 ├── index.ts          → Express server bootstrap
 └── env.ts            → Environment config
 ```
 
 **Procedure hierarchy:**
 
-Base procedures (role-based):
-- `publicProcedure` — no auth
-- `protectedProcedure` — any authenticated user
-- `doctorProcedure` — doctor, admin, manager
-- `nurseProcedure` — nurse, admin, manager
-- `technicianProcedure` — technician, admin, manager
-- `receptionProcedure` — reception, admin, manager
-- `managerProcedure` — manager, admin, accountant
-- `accountingProcedure` — admin bypass OR path-based `/accounting` permission check
-- `adminProcedure` — admin only
-- `medicalStaffProcedure` — all medical roles + admin + manager
+Base procedures (role-based, defined in `server/_core/procedures.ts`):
 
-**Per-page factory functions** (all modules except Medical use these):
+| Procedure | Auth required | Allowed roles |
+|---|---|---|
+| `publicProcedure` | None | Any |
+| `protectedProcedure` | Staff session | Any authenticated user |
+| `doctorProcedure` | Staff session | doctor, admin, manager |
+| `nurseProcedure` | Staff session | nurse, admin, manager |
+| `technicianProcedure` | Staff session | technician, admin, manager |
+| `receptionProcedure` | Staff session | reception, admin, manager |
+| `managerProcedure` | Staff session | manager, admin, accountant |
+| `accountingProcedure` | Staff session | admin bypass OR `/accounting` path permission |
+| `accountingWriteProcedure` | Staff session | admin bypass OR `/accounting:rw` path permission |
+| `kfProcedure` | Staff session | admin + accountant bypass OR `/kf` path permission |
+| `kfWriteProcedure` | Staff session | admin + accountant bypass OR `/kf:rw` permission |
+| `attendanceViewerProcedure` | Staff session | admin + manager bypass OR `/attendance` permission |
+| `attendanceManagerProcedure` | Staff session | admin + manager bypass OR `/attendance:rw` permission |
+| `attendanceAdminProcedure` | Staff session | admin only |
+| `adminProcedure` | Staff session | admin only |
+| `medicalStaffProcedure` | Staff session | doctor, nurse, technician, reception, manager, admin |
+| `patientPortalProcedure` | Patient session | authenticated patient (OTP) |
+| `doctorPortalProcedure` | Doctor session | authenticated external doctor |
 
-Each module exposes a read procedure and a write procedure factory, keyed to a `pagePath` string:
+**Per-page factory functions** (used inside specific routers to gate per-page access):
+
+Each module exposes a read factory and a write factory, each keyed to a `pagePath` string. The factory checks the user's stored permissions match that path (or a parent).
 
 | Factory pair | Module | Bypass roles |
 |---|---|---|
@@ -127,22 +149,22 @@ Each module exposes a read procedure and a write procedure factory, keyed to a `
 | `makeAccProcedure(pagePath)` / `makeAccWriteProcedure(pagePath)` | Accounting | admin only |
 | `makeAttProcedure(pagePath)` / `makeAttWriteProcedure(pagePath)` | Attendance | admin + manager |
 | `makeSalaryProcedure(pagePath)` / `makeSalaryWriteProcedure(pagePath)` | Salary | admin + manager |
-| `makeStockroomProcedure(pagePath)` / `makeStockroomWriteProcedure(pagePath)` | Stockroom | admin + accountant |
+| `makeStockroomProcedure(pagePath)` / `makeStockroomWriteProcedure(pagePath)` | Stockroom | admin only |
 
 **Per-page permission semantics:**
 
-Permissions are stored as path strings in the `permissions` table. The matching logic (`permMatchesPath`) follows this hierarchy:
+Permissions are stored as path strings in the `user_permissions` table. The `permMatchesPath` helper follows this hierarchy:
 - `bare path` (e.g. `/salary`) — full access (read + write). Backward-compatible: AdminUsers saves bare paths.
 - `path:r` (e.g. `/salary:r`) — read-only access.
 - `path:rw` (e.g. `/salary:rw`) — read + write access.
 - A parent path covers children: `/salary:rw` grants access to `/salary/payroll`.
 - No matching permission → FORBIDDEN.
 
-Write check: `if (raw.endsWith(":r") && !raw.endsWith(":rw")) return false` — bare paths AND `:rw` both allow writes.
+Write check logic: `if (raw.endsWith(":r") && !raw.endsWith(":rw")) return false` — bare paths AND `:rw` both allow writes. `:r` alone is read-only.
 
 **Permission source by tool:**
-- **AdminUsers** (per-user) saves bare paths → full access by design.
-- **AdminPermissions** (team/role) saves with `:r` or `:rw` suffix.
+- **AdminUsers** (per-user page) saves bare paths → full access by design.
+- **AdminPermissions** (team/role page) saves with `:r` or `:rw` suffix.
 
 ## React Structure
 
@@ -150,50 +172,78 @@ Write check: `if (raw.endsWith(":r") && !raw.endsWith(":rw")) return false` — 
 client/src/
 ├── App.tsx                    → Route definitions (lazy + ProtectedRoute)
 ├── pages/
-│   ├── accounting/
-│   │   ├── AccountingHome.tsx        → Dashboard + activity feed
-│   │   ├── AccountingShell.tsx       → Layout shell with sub-nav
-│   │   ├── DailyRevenue.tsx          → Daily revenue report
-│   │   ├── LasikRevenue.tsx          → Service revenue (grouped)
-│   │   ├── ReceiptsInquiry.tsx       → Receipt search
-│   │   ├── AccountingPatientsInquiry.tsx → Patient/receipt cross-ref
-│   │   ├── ReceiptDetail.tsx         → Single receipt + line items
-│   │   ├── LasikServices.tsx         → Service lines list
-│   │   ├── PatientAccount.tsx        → Patient financial summary
-│   │   ├── DoctorAccount.tsx         → Doctor financial summary
-│   │   ├── AccountingCashbook.tsx    → Cashbook (MySQL accLedger)
-│   │   ├── AccountingLedger.tsx      → Ledger entries (MySQL)
-│   │   ├── AccountingAdvances.tsx    → Employee advances
-│   │   ├── AccountingLoans.tsx       → Loans tracking
-│   │   ├── AccountingHomeFund.tsx    → Home fund balance
-│   │   ├── AccountingInstapay.tsx    → Instapay balance
-│   │   ├── AccountingDrSaadany.tsx   → Dr. Saadany account
-│   │   ├── PrintPreview.tsx          → A4 printable reports
-│   │   ├── accountingFormat.ts       → formatMoneyAr, formatCountAr, toArabicDigits
-│   │   └── AccountingOpReport.module.css → Shared report table styles
-│   ├── kf/                     → KF clinical module pages
-│   │   ├── KfPatients.tsx      → /kf/patients
-│   │   ├── KfOperations.tsx    → /kf/operations
-│   │   ├── KfFollowups.tsx     → /kf/followups
-│   │   ├── KfLedger.tsx        → /kf/accounting/ledger
-│   │   └── KfReceipts.tsx      → /kf/accounting/receipts
-│   ├── salary/                 → Salary module pages (/salary/*)
-│   ├── stockroom/              → Stockroom pages (/stockroom, /stockroom/reports)
-│   ├── Dashboard.tsx           → Medical dashboard
+│   ├── accounting/            → /accounting/* pages (AccountingHome, DailyRevenue,
+│   │                             LasikRevenue, ReceiptsInquiry, ReceiptDetail,
+│   │                             LasikServices, PatientAccount, DoctorAccount,
+│   │                             AccountingCashbook, AccountingLedger, AccountingAdvances,
+│   │                             AccountingLoans, AccountingHomeFund, AccountingInstapay,
+│   │                             AccountingDrSaadany, PrintPreview, AccountingPatientsInquiry)
+│   ├── kf/                    → /kf/* pages (KfShell, KfHome, KfPatients, KfPatientForm,
+│   │                             KfPatientDetail, KfVisitForm, KfExaminationForm,
+│   │                             KfOperationForm, KfFollowupForm, KfOperations,
+│   │                             KfFollowups, KfConsultantSheet, KfConsultantFollowupSheet,
+│   │                             KfAccounting, KfDailyRevenue, KfServiceRevenue,
+│   │                             KfReceipts, KfLedger)
+│   ├── attendance/            → /attendance/* pages (AttendanceLayout, AttendanceHome,
+│   │                             LiveBoard, MyAttendanceProfile, EmployeeDetail,
+│   │                             EmployeesHub, ReportsHub, SettingsHub,
+│   │                             admin/DeviceSettings, admin/SyncStatus)
+│   ├── salary/                → /salary/* pages (SalaryLayout, SalaryBasics, SalaryPenalties,
+│   │                             CommissionPools, PayrollReport, SalarySettings,
+│   │                             ShiftStaff, ShiftSchedule, ShiftPayroll, AbsentReport,
+│   │                             CurrentSalaryData)
+│   ├── marketing/             → /marketing/* pages (MarketingLayout, MarketingDashboard,
+│   │                             PostHistory, DraftPosts, BrandLibrary, MarketingSettings)
+│   ├── patient-portal/        → /my/* pages (PatientLogin, PatientGuestBook, PatientFile,
+│   │                             PatientRefraction, PatientPrescription, PatientScans,
+│   │                             PatientBook, PatientBookings)
+│   ├── doctor-portal/         → /doctor-portal/* pages (DoctorLogin, DoctorDashboard,
+│   │                             DoctorPatientImages)
+│   ├── dev/                   → Dev-only pages (Styleguide, ComponentsGallery, Prototypes,
+│   │                             Documentation)
+│   ├── Dashboard.tsx           → Medical dashboard (admin only)
 │   ├── Operations.tsx          → Operations scheduling
 │   ├── Patients.tsx            → Patient list
-│   └── ...
+│   ├── TodayPatients.tsx       → Today's patient queue
+│   ├── PatientDetails.tsx      → Medical file (also at /medicalfile, /patient-file)
+│   ├── StockroomShell.tsx      → Stockroom SPA shell
+│   └── ...                    → Other medical pages (sheets, examination, followups, etc.)
 ├── components/
 │   ├── ProtectedRoute.tsx      → Frontend auth gate (UNTOUCHABLE)
+│   ├── PatientPortalRoute.tsx  → Patient session gate
+│   ├── DoctorPortalRoute.tsx   → External doctor session gate
 │   ├── layout/
-│   │   └── AppNav.tsx          → Sidebar navigation (NavGroupSection entries)
+│   │   ├── AppNav.tsx          → Sidebar nav groups (attendanceNavGroup, salaryNavGroup,
+│   │   │                         accountingNavGroup, adminNavGroups, staffNavGroups)
+│   │   ├── AppTopNav.tsx       → Top navigation bar (desktop tabs + "more" popover)
+│   │   ├── AppBottomNav.tsx    → Mobile bottom nav (staff vs admin tab sets)
+│   │   └── AppSidebar.tsx      → Sidebar shell (desktop)
 │   ├── ui/                     → shadcn/ui primitives
 │   └── ...
 ├── hooks/                      → Auth hooks, data hooks
 └── lib/
     ├── trpc.ts                 → tRPC client setup
+    ├── page-permissions.ts     → PAGE_PERMISSION_DEFINITIONS (all permission page IDs)
+    ├── nav-permission-utils.ts → permissionsToAllowedRoots, pathGrantedByRoots
     └── utils.ts                → cn() helper
 ```
+
+## Navigation Structure
+
+### Desktop
+
+- **AppTopNav** — horizontal header bar. Admin sees `adminQuickTabs` (8 fixed tabs: لوحة التحكم, مركز المريض, الحسابات, المرتبات, الحضور, كفرالشيخ, المخزن, مركز الإدارة). Non-admin sees permission-filtered tabs from `allNavTabs` (today, patients, operations, accounting, kf, stockroom) plus a "المزيد" popover for sections in `moreGroups`.
+- **AppSidebar** — collapsible sidebar (desktop only). Admin sees `adminNavGroups`; staff sees `staffNavGroups`. The "مركز الإدارة" group is NOT in the sidebar (only reachable from top nav / admin hub).
+- **"المزيد" popover** — shows `NavGroupSection` entries filtered by user permission. Single-item sections navigate directly on header click without expanding.
+
+### Mobile
+
+- **AppBottomNav** — fixed bottom nav. **Admin tabs**: لوحة التحكم, مركز المريض, الحسابات, المرتبات, الحضور, كفرالشيخ, الإدارة, المزيد. **Staff tabs** (permission-filtered): اليوم, مركز المريض, العمليات, الحسابات, كفرالشيخ, الروستر (doctors/technicians only), المزيد.
+- **"المزيد" drawer** — opens `NavGroupSection` list filtered by permission. Same single-item direct-navigate behavior.
+
+### Sidebar Clinics Group (5 sections)
+
+The clinics area in `adminNavGroups` / `staffNavGroups` is split into five `NavGroupSection` entries (keys: `clinics-file`, `clinics-measurements`, `clinics-pentacam`, `clinics-prescriptions`, `clinics-tests`). Each section title navigates directly when it has only one item.
 
 ## Print/Report System
 
@@ -252,18 +302,95 @@ client/src/
 
 ## Main Tables
 
-| Table                     | Purpose                                                          |
-| ------------------------- | ---------------------------------------------------------------- |
-| `patients`                | Patient records, demographics, `patientCode`, `id`               |
-| `users`                   | Staff accounts, roles, permissions                               |
-| `operations`              | Scheduled surgeries/procedures                                   |
-| `patient_service_entries` | Service entries synced from MSSQL                                |
-| `audit_logs`              | Action audit trail                                               |
-| `permissions`             | Path-based permission assignments                                |
-| `branches`                | Clinic branch data                                               |
-| `card_visibility`         | Dashboard card configuration per user                            |
-| `accLedger`               | Cashbook ledger (income/expense/balance) — MySQL-side accounting |
-| `accCategories`           | Cashbook categories                                              |
+| Table                              | Purpose                                                          |
+| ---------------------------------- | ---------------------------------------------------------------- |
+| `users`                            | Staff accounts, roles, branch, shift                             |
+| `user_permissions`                 | Path-based per-user permission assignments                       |
+| `patients`                         | Patient records, demographics, `patientCode`, `id`               |
+| `patient_import_staging`           | Staging rows for bulk patient import                             |
+| `patient_service_entries`          | Service entries synced from MSSQL                                |
+| `visits`                           | Patient visit records                                            |
+| `examinations`                     | Examination data (refraction, diagnosis, etc.)                   |
+| `autorefractometryData`            | Autoref/keratometry measurements                                 |
+| `afterRefractionData`              | Post-refraction measurements                                     |
+| `glassesRecords`                   | Glasses prescription records                                     |
+| `pentacamResults`                  | Pentacam corneal scan results                                    |
+| `doctorReports`                    | Medical reports authored by doctors                              |
+| `prescriptions` / `prescriptionItems` | Drug prescriptions + line items                               |
+| `diseases`                         | Disease catalog                                                  |
+| `medications` / `tests`            | Medication and test catalogs                                     |
+| `testRequests` / `testRequestItems`| Lab/radiology test requests                                      |
+| `surgeries` / `postOpFollowups`    | Surgery records + post-op follow-ups                             |
+| `operationLists` / `operationListItems` / `operationBookings` | Operation scheduling tables |
+| `appointments`                     | Appointment calendar                                             |
+| `followupSheets` / `followupItems` | Follow-up sheet entries                                          |
+| `visitScheduleRequests`            | Visit scheduling requests                                        |
+| `services`                         | Medical service catalog                                          |
+| `sheet_entries`                    | Medical sheet data (generic key-value store)                     |
+| `consentForms`                     | Patient consent form data                                        |
+| `medicalHistoryChecklist` / `examinationChecklistItems` | Checklist templates |
+| `auditLog`                         | Action audit trail                                               |
+| `userPageStates`                   | Per-user page state JSON (exam page state, etc.)                 |
+| `patientPageStates`                | Per-patient page state JSON                                      |
+| `pushDeviceRegistrations`          | FCM device tokens for push notifications                         |
+| `systemSettings`                   | Key-value system settings store                                  |
+| `doctors` (doctorsLookup)          | Local doctor directory                                           |
+| `external_doctors`                 | External doctor portal registry                                  |
+| `external_doctor_referrals`        | Referral records from external doctors                           |
+| `external_doctor_access_logs`      | External doctor portal access log                                |
+| `accLedger`                        | Cashbook ledger (income/expense/balance)                         |
+| `accAdvances`                      | Employee advances tracking                                       |
+| `accLoans`                         | Loan records                                                     |
+| `accHome`                          | Home fund records                                                |
+| `accInstapay`                      | Instapay transaction records                                     |
+| `accEmployees`                     | Accounting employee references                                   |
+| `accCategories`                    | Cashbook categories                                              |
+| `accSaadany`                       | Dr. Saadany special account entries                              |
+| `stock_items`                      | Inventory item catalog                                           |
+| `stock_transactions`               | Stock movement (add/dispense)                                    |
+| `attendance_shifts`                | Shift definitions (start/end times, grace periods)               |
+| `employee_attendance_mapping`      | Maps users to fingerprint machine user IDs                       |
+| `attendance_logs`                  | Raw fingerprint logs                                             |
+| `attendanceEmployees`              | Employee attendance profiles                                     |
+| `attendancePunches`                | Processed punch records                                          |
+| `attendanceDaily`                  | Daily materialized attendance summary                            |
+| `attendanceMonthlyReport`          | Monthly attendance roll-up per employee                          |
+| `attendanceShiftAssignments`       | Per-employee shift assignments                                   |
+| `attendanceShiftCycles` / `attendanceShiftCycleSlots` / `attendanceShiftCycleAssignments` | Rotating shift cycles |
+| `attendanceLeaves`                 | Leave requests                                                   |
+| `attendanceHolidays`               | Public holiday calendar                                          |
+| `attendanceLeaveBalances`          | Accrued leave balance per employee                               |
+| `attendancePermissions`            | Permission/early-exit records                                    |
+| `attendanceSyncRuns`               | Fingerprint device sync run log                                  |
+| `attendanceDeviceSettings`         | ZKTeco device connection settings                                |
+| `attendanceShiftChangeRequests`    | Shift swap/change requests                                       |
+| `salaryBasics`                     | Basic salary components per employee                             |
+| `salaryPenalties`                  | Penalty records                                                  |
+| `salaryCommissionPools`            | Commission pool configurations                                   |
+| `salaryPayroll`                    | Computed payroll entries                                         |
+| `salaryAdvances`                   | Salary advance records                                           |
+| `salaryHolidays`                   | Salary-module holiday calendar                                   |
+| `salaryRaiseHistory`               | Raise history per employee                                       |
+| `salaryConfig`                     | Module-level salary configuration                                |
+| `shiftStaff`                       | Shift staff assignment (for surgical/daily shift schedules)      |
+| `shiftAttendance`                  | Shift-level attendance tracking                                  |
+| `shiftStaffCycle`                  | Cyclic shift assignments                                         |
+| `patient_portal_otps`              | OTP codes for patient portal login                               |
+| `patient_portal_sessions`          | Authenticated patient portal sessions                            |
+| `booking_schedule_config`          | Appointment booking schedule configuration                       |
+| `booking_closures`                 | Booking closure (holiday/blocked) dates                          |
+| `patient_portal_bookings`          | Bookings made through patient portal                             |
+| `marketing_posts`                  | Social media post records                                        |
+| `marketing_settings`               | Marketing module settings                                        |
+| `marketing_logs`                   | AI/post generation logs                                          |
+| `marketing_reference_designs`      | Reference design assets                                          |
+| `marketing_brand_profile`          | Brand identity profile                                           |
+| `kf_patients`                      | KF clinical patients (kfCode: KF-0001 format)                    |
+| `kf_visits`                        | KF patient visits                                                |
+| `kf_examinations`                  | KF examination records                                           |
+| `kf_operations`                    | KF operation/surgery records                                     |
+| `kf_followups`                     | KF post-op follow-up records                                     |
+| `kf_ledger`                        | KF accounting ledger (income/expense entries)                    |
 
 ## What Is Allowed
 
@@ -600,32 +727,38 @@ server/services/accounting/
 
 These files should almost NEVER be modified:
 
-| File                                       | Reason                           |
-| ------------------------------------------ | -------------------------------- |
-| `server/routers/medical.ts`                | Core medical business logic      |
-| `server/routers/patient.ts`                | Patient CRUD API                 |
-| `server/db.ts`                             | Database + legacy text handling  |
-| `server/integrations/mssqlPatients.ts`     | MSSQL pool + sync logic          |
-| `client/src/components/ProtectedRoute.tsx` | Auth gate for all pages          |
-| `server/_core/procedures.ts`               | Role-based procedure definitions |
-| `server/_core/context.ts`                  | Auth context                     |
-| `server/_core/trpc.ts`                     | tRPC initialization              |
-| `server/_core/env.ts`                      | Environment configuration        |
-| `ecosystem.config.js`                      | PM2 process config               |
-| `shared/types.ts`                          | Medical shared types             |
-| `shared/const.ts`                          | Shared constants                 |
-| `drizzle/schema.ts`                        | MySQL schema definition          |
+| File                                           | Reason                                          |
+| ---------------------------------------------- | ----------------------------------------------- |
+| `server/routers/medical.ts`                    | Core medical business logic (UNTOUCHABLE)       |
+| `server/routers/patient.ts`                    | Patient CRUD API (UNTOUCHABLE)                  |
+| `server/db.ts`                                 | Database + legacy text handling (UNTOUCHABLE)   |
+| `server/integrations/mssqlPatients.ts`         | MSSQL pool + sync logic                         |
+| `client/src/components/ProtectedRoute.tsx`     | Frontend auth gate for all staff pages          |
+| `client/src/components/PatientPortalRoute.tsx` | Patient session gate                            |
+| `client/src/components/DoctorPortalRoute.tsx`  | External doctor session gate                    |
+| `server/_core/procedures.ts`                   | Role-based procedure definitions + factories    |
+| `server/_core/context.ts`                      | Auth context (staff + patient + doctor)         |
+| `server/_core/trpc.ts`                         | tRPC initialization                             |
+| `server/_core/env.ts`                          | Environment configuration                       |
+| `ecosystem.config.js`                          | PM2 process config                              |
+| `shared/types.ts`                              | Shared types (re-exports drizzle schema types)  |
+| `shared/const.ts`                              | Shared constants                                |
+| `drizzle/schema.ts`                            | MySQL schema definition                         |
+| `client/src/lib/page-permissions.ts`           | All permission page IDs (source of truth)       |
 
 ---
 
 # Allowed Shared Edit Points
 
-Only these shared files may be edited when adding accounting features:
+Only these shared files may be edited when adding new module features:
 
-1. **`server/routers/index.ts`** — to register new routers (2-line edit)
+1. **`server/routers/index.ts`** — to register new routers (2-line edit max)
 2. **`client/src/App.tsx`** — to add lazy routes with ProtectedRoute wrappers
 3. **`shared/accounting/contracts.ts`** — accounting-specific zod schemas and types
-4. **`server/_core/procedures.ts`** — only if a new procedure type is genuinely needed (requires review)
+4. **`shared/kf/contracts.ts`** — KF-specific zod schemas and types
+5. **`client/src/lib/page-permissions.ts`** — to register new permission page IDs
+6. **`server/_core/procedures.ts`** — only if a new procedure type is genuinely needed (requires review)
+7. **`client/src/components/layout/AppNav.tsx`** — to add new nav group entries
 
 ---
 
@@ -760,5 +893,5 @@ After editing:
 
 ---
 
-**Document version:** 1.1.0 — updated 2026-06-12
+**Document version:** 2.0.0 — updated 2026-06-12
 **Aligned with:** Constitution v1.0.0, Project Principles v1.0.0, Spec v1.0.0, Plan v1.0.0, Tasks v1.0.0

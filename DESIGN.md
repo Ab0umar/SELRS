@@ -129,24 +129,61 @@ Never reach for `sky-*`, `cyan-*`, `pink-*`, `indigo-*`, `teal-*`, `emerald-*`, 
 - **Inactive link**: Muted text, no background
 - **Hover**: Light gray background
 
-#### AppNav structure (`client/src/components/layout/AppNav.tsx`)
+#### Navigation architecture
 
-The **Clinics group** is split into 5 `NavGroupSection` accordion entries:
+The app has three navigation surfaces that work together. Component files live in `client/src/components/layout/`.
+
+**AppTopNav** (`AppTopNav.tsx`) — horizontal header bar (visible on all screen sizes):
+- Admin users see 8 fixed `adminQuickTabs`: لوحة التحكم, مركز المريض, الحسابات, المرتبات, الحضور, كفرالشيخ, المخزن, مركز الإدارة.
+- Non-admin users see permission-filtered tabs from `allNavTabs` (today, patients, operations, accounting, kf, stockroom). Tabs not permitted are hidden.
+- A **"المزيد" popover** (desktop only) shows remaining `NavGroupSection` entries from `navGroups` that are not already main tabs, filtered by permission. Sections with a single item navigate directly on header click — no accordion expand.
+- The Accounting sub-group for non-admin users also appears as a dropdown button next to the Accounting tab when the user has accounting permission but it is not already in `mainNavTabs`.
+
+**AppSidebar** (`AppSidebar.tsx`) — collapsible sidebar (desktop only):
+- Admin sees `adminNavGroups` (defined in `AppNav.tsx`).
+- Staff sees `staffNavGroups` (same as adminNavGroups minus the last entry, with attendance items role-filtered and "حضوري" + "الروستر" added at the bottom).
+- **مركز الإدارة** group is NOT in the sidebar — reachable from AppTopNav admin tabs and user dropdown only.
+
+**AppBottomNav** (`AppBottomNav.tsx`) — fixed bottom tab bar (mobile only, hidden on `md:` and above):
+
+| Admin tabs | Staff tabs (permission-filtered) |
+|---|---|
+| لوحة التحكم | اليوم |
+| مركز المريض | مركز المريض |
+| الحسابات | العمليات |
+| المرتبات | الحسابات |
+| الحضور | كفرالشيخ |
+| كفرالشيخ | الروستر *(doctors + technicians only)* |
+| الإدارة | المزيد |
+| المزيد | |
+
+The "المزيد" tab in both variants opens the same `NavGroupSection` drawer filtered by permission. Single-item sections navigate directly.
+
+#### AppNav groups (`client/src/components/layout/AppNav.tsx`)
+
+| Export | Type | nav key | Module |
+|---|---|---|---|
+| `attendanceNavGroup` | `NavGroupSection` | `attendance` | Attendance (5 items) |
+| `salaryNavGroup` | `NavGroupSection` | `salary` | Salary (4 items) |
+| `accountingNavGroup` | `NavGroupSection` | `accounting` | Accounting (14 items) |
+| `adminNavGroups` | `NavGroup[]` | — | All admin nav (includes above + Clinics groups + KF + Stockroom + more) |
+| `staffNavGroups` | `NavGroup[]` | — | Same as admin but without last entry; adds "حضوري" and "الروستر" leaves |
+
+#### Clinics sidebar sections (5 `NavGroupSection` accordion entries)
 
 | Section key | Arabic label | Links |
 |---|---|---|
 | `clinics-file` | ملف المريض | `/medicalfile` |
 | `clinics-measurements` | القياسات | `/sheets/autorefs/dashboard`, `/sheets/refractions/dashboard` |
 | `clinics-pentacam` | البنتاكام | `/sheets/pentacam/dashboard`, `/sheets/pentacam`, `/admin/pentacam` |
-| `clinics-prescriptions` | الروشتات | `/prescription`, `/medical-reports` |
-| `clinics-tests` | الفحوصات | `/request-tests` |
+| `clinics-prescriptions` | روشتات و تقارير | `/prescription`, `/medical-reports` |
+| `clinics-tests` | أشعة و تحاليل | `/request-tests` |
 
-**Behavior notes:**
-- Single-item accordion sections navigate directly on header click (no pointless expand).
-- **مركز الإدارة** group has been removed from the sidebar (`adminNavGroups`).
-- **Salary** appears in the `AppTopNav` "more" dropdown for non-admin users who have a salary permission (was excluded before).
-- `/quick-entry` and `/new-cases` removed from navigation (unused/broken pages).
-- `/patient-summary` moved into the patients menu.
+**Key behavior notes:**
+- Single-item accordion sections navigate directly on header click (no expand needed).
+- **مركز الإدارة** group is NOT in the sidebar; it appears only as an admin quick tab and in the user dropdown.
+- Salary appears in the "المزيد" popover for non-admin users who have a `/salary` permission.
+- `/quick-entry` and `/new-cases` are not in navigation groups (accessible directly via URL or command palette).
 
 ### Alerts / Callouts
 

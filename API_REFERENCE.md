@@ -1155,21 +1155,49 @@ Patient codes use the format `KF-0001`.
 
 ### Tables
 
-- `kf_patients` — KF patient registry
+- `kf_patients` — KF patient registry (kfCode: KF-0001 format)
+- `kf_visits` — KF patient visits
+- `kf_examinations` — KF examination records
 - `kf_operations` — KF operations/surgeries
 - `kf_followups` — Post-op follow-ups
-- `kf_accounting_ledger` — KF ledger entries
-- `kf_accounting_receipts` — KF receipts
+- `kf_ledger` — KF accounting ledger (income/expense entries)
 
-### Page-to-procedure mapping
+### Procedures
 
-| Page path | Procedure type |
-|---|---|
-| `/kf/patients` | `makeKfProcedure("/kf/patients")` / `makeKfWriteProcedure("/kf/patients")` |
-| `/kf/operations` | `makeKfProcedure("/kf/operations")` / `makeKfWriteProcedure("/kf/operations")` |
-| `/kf/followups` | `makeKfProcedure("/kf/followups")` / `makeKfWriteProcedure("/kf/followups")` |
-| `/kf/accounting/ledger` | `makeKfProcedure("/kf/accounting/ledger")` / `makeKfWriteProcedure("/kf/accounting/ledger")` |
-| `/kf/accounting/receipts` | `makeKfProcedure("/kf/accounting/receipts")` / `makeKfWriteProcedure("/kf/accounting/receipts")` |
+| Procedure | Type | pagePath |
+|---|---|---|
+| `listPatients` | query | `/kf/patients` |
+| `getPatient` | query | `/kf/patients` |
+| `searchPatients` | query | `/kf/patients` |
+| `listVisits` | query | `/kf/patients` |
+| `listExaminations` | query | `/kf/patients` |
+| `getExamination` | query | `/kf/patients` |
+| `listOperations` | query | `/kf/operations` |
+| `listFollowups` | query | `/kf/followups` |
+| `bridgeLookupSelrsPatient` | query | `/kf/patients` |
+| `createPatient` | mutation (write) | `/kf/patients` |
+| `updatePatient` | mutation (write) | `/kf/patients` |
+| `deletePatient` | mutation (write) | `/kf/patients` |
+| `createVisit` | mutation (write) | `/kf/patients` |
+| `updateVisit` | mutation (write) | `/kf/patients` |
+| `deleteVisit` | mutation (write) | `/kf/patients` |
+| `createExamination` | mutation (write) | `/kf/patients` |
+| `updateExamination` | mutation (write) | `/kf/patients` |
+| `deleteExamination` | mutation (write) | `/kf/patients` |
+| `createOperation` | mutation (write) | `/kf/operations` |
+| `updateOperation` | mutation (write) | `/kf/operations` |
+| `deleteOperation` | mutation (write) | `/kf/operations` |
+| `createFollowup` | mutation (write) | `/kf/followups` |
+| `updateFollowup` | mutation (write) | `/kf/followups` |
+| `deleteFollowup` | mutation (write) | `/kf/followups` |
+| `getDailyRevenue` | query | `/kf/accounting/daily-revenue` |
+| `getServiceRevenue` | query | `/kf/accounting/service-revenue` |
+| `getLedgerSummary` | query | `/kf/accounting/ledger` |
+| `getLedger` | query | `/kf/accounting/ledger` |
+| `addLedgerEntry` | mutation (write) | `/kf/accounting/ledger` |
+| `deleteLedgerEntry` | mutation (write) | `/kf/accounting/ledger` |
+| `getRevenue` | query | `/kf/accounting` |
+| `listReceipts` | query | `/kf/accounting/receipts` |
 
 Router file: `server/routers/kf.ts`
 
@@ -1177,23 +1205,112 @@ Router file: `server/routers/kf.ts`
 
 ## 📦 Stockroom Router (`stockroom`)
 
-Inventory module. Previously used `protectedProcedure` (any logged-in user); now gated by `makeStockroomProcedure` / `makeStockroomWriteProcedure` — admin and accountant bypass.
+Inventory module gated by `makeStockroomProcedure` / `makeStockroomWriteProcedure` — **admin bypass only** (not accountant).
 
 ### Tables
 
-- `stockItems` — Inventory items
-- `stockTransactions` — Stock movement transactions
+- `stock_items` — Inventory item catalog (categories: eye-drops, op-room, surgical, office, extra)
+- `stock_transactions` — Stock movement records (type: add / dispense)
 
-### Routes
+### Procedures
 
-| Route | Procedure type |
-|---|---|
-| `/stockroom` | `makeStockroomProcedure("/stockroom")` / `makeStockroomWriteProcedure("/stockroom")` |
-| `/stockroom/reports` | `makeStockroomProcedure("/stockroom/reports")` |
+| Procedure | Type | pagePath |
+|---|---|---|
+| `getItems` | query | `/stockroom` |
+| `createItem` | mutation (write) | `/stockroom` |
+| `receiveStock` | mutation (write) | `/stockroom` |
+| `dispenseStock` | mutation (write) | `/stockroom` |
+| `getReports` | query | `/stockroom/reports` |
 
 Router file: `server/routers/stockroom.ts`
 
 ---
 
+## 🕐 Attendance Router (`attendance`)
+
+Fingerprint-based attendance module. Uses `makeAttProcedure` / `makeAttWriteProcedure` factories (admin + manager bypass) plus `attendanceViewerProcedure`, `attendanceManagerProcedure`, `attendanceAdminProcedure`, and `protectedProcedure` for self-service endpoints.
+
+### Key tables
+
+- `attendanceEmployees`, `attendancePunches`, `attendanceDaily`, `attendanceMonthlyReport`
+- `attendanceShifts`, `attendanceShiftAssignments`, `attendanceShiftCycles`
+- `attendanceLeaves`, `attendanceHolidays`, `attendanceLeaveBalances`, `attendancePermissions`
+- `attendanceSyncRuns`, `attendanceDeviceSettings`, `attendanceShiftChangeRequests`
+- `employee_attendance_mapping`, `attendance_logs` (raw)
+- `shiftStaff`, `shiftAttendance`, `shiftStaffCycle` (surgical shift scheduling)
+
+### Key procedures (summary)
+
+| Procedure | Access level |
+|---|---|
+| `dashboardSummary` | `attendanceViewerProcedure` |
+| `getLiveBoard` | `attendanceViewerProcedure` |
+| `listEmployees` | `makeAttProcedure("/attendance/employees")` |
+| `getEmployeeDetail` | `makeAttProcedure("/attendance/employees/:empCd")` |
+| `getMonthlyReport` | `makeAttProcedure("/attendance/reports")` |
+| `getMyProfile` | `protectedProcedure` (self-service) |
+| `createLeave` | `makeAttWriteProcedure(...)` |
+| `approveLeave` | `makeAttWriteProcedure(...)` |
+| `syncFromDevice` | `attendanceAdminProcedure` |
+| `getDeviceSettings` | `makeAttProcedure("/attendance/admin/device")` |
+| `updateDeviceSettings` | `makeAttWriteProcedure("/attendance/admin/device")` |
+| `listShiftStaff` | `makeSalaryProcedure("/salary/shift-staff")` |
+
+Router file: `server/routers/attendance.ts`
+
+---
+
+## 💰 Salary Router (`salary`)
+
+Payroll module gated by `makeSalaryProcedure` / `makeSalaryWriteProcedure` (admin + manager bypass).
+
+### Key tables
+
+- `salary_basics`, `salary_penalties`, `salary_commission_pools`, `salary_payroll`
+- `salary_advances`, `salary_holidays`, `salary_raise_history`, `salary_config`
+
+### Key procedures (summary)
+
+| Procedure | Type | pagePath |
+|---|---|---|
+| `listBasics` | query | `/salary` |
+| `upsertBasic` | mutation (write) | `/salary` |
+| `listPenalties` | query | `/salary/penalties` |
+| `createPenalty` / `updatePenalty` / `deletePenalty` | mutations (write) | `/salary/penalties` |
+| `listPools` / `createPool` / `updatePool` | query/mutation | `/salary/pools` |
+| `computePayroll` / `getPayrollReport` | query | `/salary/payroll` |
+| `savePayroll` | mutation (write) | `/salary/payroll` |
+| `getSalarySettings` / `updateSalarySettings` | query/mutation | `/salary/settings` |
+
+Router file: `server/routers/salary.ts`
+
+---
+
+## 📱 Patient Portal Router (`patientPortal`)
+
+Self-service portal for patients. Uses `patientPortalProcedure` (patient OTP session). Public procedures include OTP request/verify.
+
+### Key procedures
+
+| Procedure | Type | Auth |
+|---|---|---|
+| `requestOtp` | mutation | public |
+| `verifyOtp` | mutation | public |
+| `logout` | mutation | `patientPortalProcedure` |
+| `getMyProfile` | query | `patientPortalProcedure` |
+| `getMyScans` | query | `patientPortalProcedure` |
+| `getMyRefractions` | query | `patientPortalProcedure` |
+| `getMyPrescriptions` | query | `patientPortalProcedure` |
+| `createBooking` | mutation | `patientPortalProcedure` |
+| `getMyBookings` | query | `patientPortalProcedure` |
+| `getNotifications` | query | `patientPortalProcedure` |
+| `registerPatientPushToken` | mutation | `patientPortalProcedure` |
+
+`getMyProfile` returns the patient record plus a `visitCount` field (count of visit rows for that patient).
+
+Router file: `server/routers/patientPortal.ts`
+
+---
+
 **Last Updated:** 2026-06-12
-**API Version:** 1.1.0
+**API Version:** 2.0.0
