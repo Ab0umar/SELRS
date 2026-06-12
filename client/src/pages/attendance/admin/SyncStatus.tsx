@@ -176,7 +176,7 @@ export default function SyncStatus() {
           <div
             className={`rounded-lg border px-4 py-3 text-sm ${
               lastResult.success
-                ? "border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200"
+                ? "border-success/30 bg-success/10 text-success"
                 : "border-destructive/30 bg-destructive/5 text-destructive"
             }`}
           >
@@ -232,7 +232,7 @@ export default function SyncStatus() {
               >
                 <div className="flex items-center gap-2">
                   {run.status === "ok" ? (
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    <CheckCircle2 className="h-4 w-4 text-success" />
                   ) : (
                     <XCircle className="h-4 w-4 text-destructive" />
                   )}
@@ -244,7 +244,7 @@ export default function SyncStatus() {
                   <span className="text-muted-foreground">
                     رُئي: {run.recordsSeen ?? "—"}
                   </span>
-                  <span className="font-medium text-green-600">
+                  <span className="font-medium text-success">
                     +{run.recordsInserted ?? 0}
                   </span>
                   {run.errorMessage && (
