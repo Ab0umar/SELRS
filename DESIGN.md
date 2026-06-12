@@ -129,6 +129,25 @@ Never reach for `sky-*`, `cyan-*`, `pink-*`, `indigo-*`, `teal-*`, `emerald-*`, 
 - **Inactive link**: Muted text, no background
 - **Hover**: Light gray background
 
+#### AppNav structure (`client/src/components/layout/AppNav.tsx`)
+
+The **Clinics group** is split into 5 `NavGroupSection` accordion entries:
+
+| Section key | Arabic label | Links |
+|---|---|---|
+| `clinics-file` | ملف المريض | `/medicalfile` |
+| `clinics-measurements` | القياسات | `/sheets/autorefs/dashboard`, `/sheets/refractions/dashboard` |
+| `clinics-pentacam` | البنتاكام | `/sheets/pentacam/dashboard`, `/sheets/pentacam`, `/admin/pentacam` |
+| `clinics-prescriptions` | الروشتات | `/prescription`, `/medical-reports` |
+| `clinics-tests` | الفحوصات | `/request-tests` |
+
+**Behavior notes:**
+- Single-item accordion sections navigate directly on header click (no pointless expand).
+- **مركز الإدارة** group has been removed from the sidebar (`adminNavGroups`).
+- **Salary** appears in the `AppTopNav` "more" dropdown for non-admin users who have a salary permission (was excluded before).
+- `/quick-entry` and `/new-cases` removed from navigation (unused/broken pages).
+- `/patient-summary` moved into the patients menu.
+
 ### Alerts / Callouts
 
 - **Success**: Green (#10B981) left border (2px), light green background (#ECFDF5), green text

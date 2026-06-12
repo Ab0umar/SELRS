@@ -109,6 +109,38 @@ Clear session cookies.
 
 ---
 
+## 🔑 Permission System
+
+All non-Medical routers use **per-page factory procedures** defined in `server/_core/procedures.ts`. Each factory is called with a `pagePath` string (e.g. `"/salary"`, `"/kf/patients"`) and enforces access based on the user's stored permission strings.
+
+### Path-suffix semantics
+
+| Stored permission | Access granted |
+|---|---|
+| `/salary` (bare) | Read + Write — backward-compatible; AdminUsers saves bare paths |
+| `/salary:r` | Read-only |
+| `/salary:rw` | Read + Write |
+| (no match) | FORBIDDEN |
+
+Parent paths cover children: `/salary:rw` grants access to `/salary/payroll`.
+
+Write check: bare paths and `:rw` both pass the write guard. `:r` alone does not.
+
+### Factory functions
+
+| Factory | Module | Bypass roles |
+|---|---|---|
+| `makeKfProcedure` / `makeKfWriteProcedure` | KF clinical | admin + accountant |
+| `makeAccProcedure` / `makeAccWriteProcedure` | Accounting | admin |
+| `makeAttProcedure` / `makeAttWriteProcedure` | Attendance | admin + manager |
+| `makeSalaryProcedure` / `makeSalaryWriteProcedure` | Salary | admin + manager |
+| `makeStockroomProcedure` / `makeStockroomWriteProcedure` | Stockroom | admin + accountant |
+
+**AdminUsers** (per-user permissions page) saves bare paths → full access.
+**AdminPermissions** (team/role permissions) saves with `:r` or `:rw` suffix.
+
+---
+
 ## ⚙️ System Router (`system`)
 
 ### 1. `system.health` (Query)
@@ -1115,5 +1147,53 @@ curl -X POST http://localhost:4000/trpc/system.health \
 
 ---
 
-**Last Updated:** March 29, 2026
-**API Version:** 1.0.30
+## 🏥 KF Router (`kf`)
+
+Isolated clinical module (MySQL-only, `kf_*` tables). All procedures gated by `makeKfProcedure` / `makeKfWriteProcedure` — admin and accountant bypass, otherwise requires a matching `/kf/*` permission.
+
+Patient codes use the format `KF-0001`.
+
+### Tables
+
+- `kf_patients` — KF patient registry
+- `kf_operations` — KF operations/surgeries
+- `kf_followups` — Post-op follow-ups
+- `kf_accounting_ledger` — KF ledger entries
+- `kf_accounting_receipts` — KF receipts
+
+### Page-to-procedure mapping
+
+| Page path | Procedure type |
+|---|---|
+| `/kf/patients` | `makeKfProcedure("/kf/patients")` / `makeKfWriteProcedure("/kf/patients")` |
+| `/kf/operations` | `makeKfProcedure("/kf/operations")` / `makeKfWriteProcedure("/kf/operations")` |
+| `/kf/followups` | `makeKfProcedure("/kf/followups")` / `makeKfWriteProcedure("/kf/followups")` |
+| `/kf/accounting/ledger` | `makeKfProcedure("/kf/accounting/ledger")` / `makeKfWriteProcedure("/kf/accounting/ledger")` |
+| `/kf/accounting/receipts` | `makeKfProcedure("/kf/accounting/receipts")` / `makeKfWriteProcedure("/kf/accounting/receipts")` |
+
+Router file: `server/routers/kf.ts`
+
+---
+
+## 📦 Stockroom Router (`stockroom`)
+
+Inventory module. Previously used `protectedProcedure` (any logged-in user); now gated by `makeStockroomProcedure` / `makeStockroomWriteProcedure` — admin and accountant bypass.
+
+### Tables
+
+- `stockItems` — Inventory items
+- `stockTransactions` — Stock movement transactions
+
+### Routes
+
+| Route | Procedure type |
+|---|---|
+| `/stockroom` | `makeStockroomProcedure("/stockroom")` / `makeStockroomWriteProcedure("/stockroom")` |
+| `/stockroom/reports` | `makeStockroomProcedure("/stockroom/reports")` |
+
+Router file: `server/routers/stockroom.ts`
+
+---
+
+**Last Updated:** 2026-06-12
+**API Version:** 1.1.0

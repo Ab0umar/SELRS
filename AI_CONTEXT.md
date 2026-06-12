@@ -1,7 +1,7 @@
 # SRV100 AI Context Document
 
 > Single "read this first" file for any AI model (Cursor, Codex, Claude, GPT, Gemini, GLM, Kimi).
-> Version: 1.0.0 — aligned with Constitution v1.0.0, Principles v1.0.0.
+> Version: 1.1.0 — aligned with Constitution v1.0.0, Principles v1.0.0. Updated 2026-06-12.
 
 ---
 
@@ -75,7 +75,10 @@ MySQL (selrs26)                    MSSQL (op2026)
 - `client/src/App.tsx` — lazy routes with `ProtectedRoute` wrappers
 - Medical routes: `/dashboard`, `/patients/*`, `/operations`, etc.
 - Accounting routes: `/accounting/*` — all gated by `allowedRoles` or path-based permission
-- Backend: `server/routers/index.ts` composes `appRouter = { medical, patient, accounting }`
+- KF (clinical) routes: `/kf/*` — gated by `makeKfProcedure` / `makeKfWriteProcedure` (admin + accountant bypass)
+- Stockroom routes: `/stockroom`, `/stockroom/reports` — gated by `makeStockroomProcedure` / `makeStockroomWriteProcedure`
+- Salary routes: `/salary/*` — gated by `makeSalaryProcedure` / `makeSalaryWriteProcedure` (admin + manager bypass)
+- Backend: `server/routers/index.ts` composes `appRouter = { medical, patient, accounting, kf, attendance, salary, shiftStaff, stockroom, patientPortal }`
 
 ## tRPC Structure
 
@@ -84,10 +87,16 @@ server/routers/
 ├── index.ts          → appRouter composition (ONLY allowed shared edit point)
 ├── medical.ts        → Medical CRUD (UNTOUCHABLE)
 ├── patient.ts        → Patient queries (UNTOUCHABLE)
-└── accounting.ts     → Accounting read-only queries
+├── accounting.ts     → Accounting read-only queries
+├── kf.ts             → KF clinical module (isolated MySQL-only)
+├── attendance.ts     → Attendance + fingerprint module
+├── salary.ts         → Salary module
+├── shiftStaff.ts     → Shift/staff scheduling
+├── stockroom.ts      → Stockroom inventory module
+└── patientPortal.ts  → Patient portal (self-service)
 
 server/_core/
-├── procedures.ts     → Role-based procedure builders
+├── procedures.ts     → Role-based procedure builders + per-page factory functions
 ├── trpc.ts           → tRPC init
 ├── context.ts        → Auth context
 ├── index.ts          → Express server bootstrap
@@ -96,6 +105,7 @@ server/_core/
 
 **Procedure hierarchy:**
 
+Base procedures (role-based):
 - `publicProcedure` — no auth
 - `protectedProcedure` — any authenticated user
 - `doctorProcedure` — doctor, admin, manager
@@ -106,6 +116,33 @@ server/_core/
 - `accountingProcedure` — admin bypass OR path-based `/accounting` permission check
 - `adminProcedure` — admin only
 - `medicalStaffProcedure` — all medical roles + admin + manager
+
+**Per-page factory functions** (all modules except Medical use these):
+
+Each module exposes a read procedure and a write procedure factory, keyed to a `pagePath` string:
+
+| Factory pair | Module | Bypass roles |
+|---|---|---|
+| `makeKfProcedure(pagePath)` / `makeKfWriteProcedure(pagePath)` | KF clinical | admin + accountant |
+| `makeAccProcedure(pagePath)` / `makeAccWriteProcedure(pagePath)` | Accounting | admin only |
+| `makeAttProcedure(pagePath)` / `makeAttWriteProcedure(pagePath)` | Attendance | admin + manager |
+| `makeSalaryProcedure(pagePath)` / `makeSalaryWriteProcedure(pagePath)` | Salary | admin + manager |
+| `makeStockroomProcedure(pagePath)` / `makeStockroomWriteProcedure(pagePath)` | Stockroom | admin + accountant |
+
+**Per-page permission semantics:**
+
+Permissions are stored as path strings in the `permissions` table. The matching logic (`permMatchesPath`) follows this hierarchy:
+- `bare path` (e.g. `/salary`) — full access (read + write). Backward-compatible: AdminUsers saves bare paths.
+- `path:r` (e.g. `/salary:r`) — read-only access.
+- `path:rw` (e.g. `/salary:rw`) — read + write access.
+- A parent path covers children: `/salary:rw` grants access to `/salary/payroll`.
+- No matching permission → FORBIDDEN.
+
+Write check: `if (raw.endsWith(":r") && !raw.endsWith(":rw")) return false` — bare paths AND `:rw` both allow writes.
+
+**Permission source by tool:**
+- **AdminUsers** (per-user) saves bare paths → full access by design.
+- **AdminPermissions** (team/role) saves with `:r` or `:rw` suffix.
 
 ## React Structure
 
@@ -134,12 +171,22 @@ client/src/
 │   │   ├── PrintPreview.tsx          → A4 printable reports
 │   │   ├── accountingFormat.ts       → formatMoneyAr, formatCountAr, toArabicDigits
 │   │   └── AccountingOpReport.module.css → Shared report table styles
+│   ├── kf/                     → KF clinical module pages
+│   │   ├── KfPatients.tsx      → /kf/patients
+│   │   ├── KfOperations.tsx    → /kf/operations
+│   │   ├── KfFollowups.tsx     → /kf/followups
+│   │   ├── KfLedger.tsx        → /kf/accounting/ledger
+│   │   └── KfReceipts.tsx      → /kf/accounting/receipts
+│   ├── salary/                 → Salary module pages (/salary/*)
+│   ├── stockroom/              → Stockroom pages (/stockroom, /stockroom/reports)
 │   ├── Dashboard.tsx           → Medical dashboard
 │   ├── Operations.tsx          → Operations scheduling
 │   ├── Patients.tsx            → Patient list
 │   └── ...
 ├── components/
 │   ├── ProtectedRoute.tsx      → Frontend auth gate (UNTOUCHABLE)
+│   ├── layout/
+│   │   └── AppNav.tsx          → Sidebar navigation (NavGroupSection entries)
 │   ├── ui/                     → shadcn/ui primitives
 │   └── ...
 ├── hooks/                      → Auth hooks, data hooks
@@ -713,5 +760,5 @@ After editing:
 
 ---
 
-**Document version:** 1.0.0 — generated 2026-05-18
+**Document version:** 1.1.0 — updated 2026-06-12
 **Aligned with:** Constitution v1.0.0, Project Principles v1.0.0, Spec v1.0.0, Plan v1.0.0, Tasks v1.0.0
