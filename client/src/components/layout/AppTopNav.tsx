@@ -282,8 +282,7 @@ export function AppTopNav({
           (item): item is NavGroupSection =>
             "items" in item &&
             item.navKey !== "accounting" &&
-            item.navKey !== "attendance" &&
-            item.navKey !== "salary",
+            item.navKey !== "attendance",
         )
         .map((group) => ({ ...group, items: group.items.filter(leafVisible) }))
         .filter((group) => group.items.length > 0),
