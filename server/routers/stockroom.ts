@@ -1,18 +1,16 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/procedures";
+import { router, makeStockroomProcedure, makeStockroomWriteProcedure } from "../_core/procedures";
 import * as db from "../db";
 import { TRPCError } from "@trpc/server";
 
 export const stockroomRouter = router({
-  // Get all items in a category
-  getItems: protectedProcedure
+  getItems: makeStockroomProcedure("/stockroom")
     .input(z.object({ category: z.string().optional() }))
     .query(async ({ input }) => {
       return await db.getStockItems(input.category);
     }),
 
-  // Define a new item type
-  createItem: protectedProcedure
+  createItem: makeStockroomWriteProcedure("/stockroom")
     .input(
       z.object({
         itemCode: z.string().optional(),
@@ -23,7 +21,6 @@ export const stockroomRouter = router({
       }),
     )
     .mutation(async ({ input }) => {
-      // Check if code already exists
       if (input.itemCode) {
         const existing = await db.getStockItemByCode(input.itemCode);
         if (existing) {
@@ -42,12 +39,10 @@ export const stockroomRouter = router({
       });
     }),
 
-  // Add stock (Receive)
-  receiveStock: protectedProcedure
+  receiveStock: makeStockroomWriteProcedure("/stockroom")
     .input(
       z.object({
-        itemId: z.number().optional(), // Existing item
-        // Or new item details
+        itemId: z.number().optional(),
         isNewItem: z.boolean().default(false),
         newItem: z
           .object({
@@ -65,7 +60,6 @@ export const stockroomRouter = router({
     .mutation(async ({ input, ctx }) => {
       let resolvedItemId = input.itemId;
 
-      // 1. If it's a new item, create it first
       if (input.isNewItem && input.newItem) {
         const res = await db.insertStockItem({
           name: input.newItem.name,
@@ -85,7 +79,6 @@ export const stockroomRouter = router({
         });
       }
 
-      // 2. Log transaction and update quantity
       return await db.insertStockTransaction({
         itemId: resolvedItemId,
         type: "add",
@@ -96,8 +89,7 @@ export const stockroomRouter = router({
       });
     }),
 
-  // Dispense stock
-  dispenseStock: protectedProcedure
+  dispenseStock: makeStockroomWriteProcedure("/stockroom")
     .input(
       z.object({
         itemId: z.number(),
@@ -126,8 +118,7 @@ export const stockroomRouter = router({
       });
     }),
 
-  // Get transactions for reports
-  getReports: protectedProcedure
+  getReports: makeStockroomProcedure("/stockroom/reports")
     .input(z.object({ limit: z.number().optional() }))
     .query(async ({ input }) => {
       const transactions = await db.getStockTransactions(input.limit);
