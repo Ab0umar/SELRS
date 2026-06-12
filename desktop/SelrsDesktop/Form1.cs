@@ -19,6 +19,7 @@ public partial class Form1 : Form
 {
     private const string DefaultHomeUrl = "http://192.168.1.100:4000";
     private static readonly (string id, string label, string url)[] UrlPresets = [
+        ("localhost", "Localhost (localhost:4000)", "http://localhost:4000"),
         ("local", "Local (192.168.1.100:4000)", "http://192.168.1.100:4000"),
         ("lan", "LAN (192.168.0.100:4000)", "http://192.168.0.100:4000"),
         ("online", "Online (selrs.cc)", "https://selrs.cc"),
@@ -353,7 +354,7 @@ private void UpdateMaximizeButtonText()
             MinimizeBox = false,
             MaximizeBox = false,
             ShowInTaskbar = false,
-            ClientSize = new Size(440, 268),
+            ClientSize = new Size(440, 320),
             BackColor = bg,
         };
 
@@ -375,7 +376,7 @@ private void UpdateMaximizeButtonText()
             Size = new Size(400, 1),
         };
 
-        string[] arabicLabels = ["الشبكة المحلية (1)", "الشبكة المحلية (2)", "الإنترنت"];
+        string[] arabicLabels = ["Localhost", "الشبكة المحلية (1)", "الشبكة المحلية (2)", "الإنترنت"];
         var radios = new RadioButton[UrlPresets.Length];
 
         for (var i = 0; i < UrlPresets.Length; i++)
@@ -426,7 +427,7 @@ private void UpdateMaximizeButtonText()
             BackColor = bg,
             FlatStyle = FlatStyle.Flat,
             Size = new Size(88, 34),
-            Location = new Point(20, 222),
+            Location = new Point(20, 274),
             UseVisualStyleBackColor = false,
         };
         btnCancel.FlatAppearance.BorderSize = 1;
@@ -443,7 +444,7 @@ private void UpdateMaximizeButtonText()
             BackColor = accentBlue,
             FlatStyle = FlatStyle.Flat,
             Size = new Size(88, 34),
-            Location = new Point(332, 222),
+            Location = new Point(332, 274),
             UseVisualStyleBackColor = false,
         };
         btnOpen.FlatAppearance.BorderSize = 0;
