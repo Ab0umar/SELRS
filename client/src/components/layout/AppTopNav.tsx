@@ -230,6 +230,14 @@ export function AppTopNav({
         paths: ["/kf"],
         checkPath: "/kf",
       },
+      {
+        icon: Archive,
+        label: "المخزن",
+        path: "/stockroom",
+        key: "stockroom",
+        paths: ["/stockroom"],
+        checkPath: "/stockroom",
+      },
     ],
     [],
   );
@@ -256,6 +264,7 @@ export function AppTopNav({
       { icon: DollarSign, label: "المرتبات", path: "/salary" },
       { icon: Activity, label: "الحضور", path: "/attendance" },
       { icon: Hospital, label: "كفرالشيخ", path: "/kf" },
+      { icon: Archive, label: "المخزن", path: "/stockroom" },
       { icon: Settings, label: "مركز الإدارة", path: "/admin-hub" },
     ],
     [],
