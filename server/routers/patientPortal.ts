@@ -18,8 +18,9 @@ import {
   bookingScheduleConfig,
   bookingClosures,
   patients,
+  visits,
 } from "../../drizzle/schema";
-import { eq, and, desc, ne, sql, lte, gte, type SQL } from "drizzle-orm";
+import { eq, and, desc, ne, sql, lte, gte, count, type SQL } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import { ENV } from "../_core/env";
 import { sendFcmPushToRegisteredDevices } from "../_core/fcmPush";
@@ -174,7 +175,13 @@ export const patientPortalRouter = router({
         code: "NOT_FOUND",
         message: "لم يتم العثور على الملف",
       });
-    return patient;
+
+    const [{ visitCount }] = await db
+      .select({ visitCount: count() })
+      .from(visits)
+      .where(eq(visits.patientId, ctx.patientSession.patientId));
+
+    return { ...patient, visitCount: visitCount ?? 0 };
   }),
 
   getMyScans: patientPortalProcedure.query(async ({ ctx }) => {
