@@ -724,7 +724,7 @@ export default function KfPatientDetail() {
                           <Badge
                             className={
                               op.status === "completed"
-                                ? "bg-emerald-500 hover:bg-emerald-600"
+                                ? "bg-success hover:bg-success/90 text-success-foreground"
                                 : op.status === "cancelled"
                                 ? "bg-destructive hover:bg-destructive/90"
                                 : "bg-primary hover:bg-primary/95"

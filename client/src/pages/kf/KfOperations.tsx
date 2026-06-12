@@ -156,9 +156,9 @@ export default function KfOperations() {
                           <span>العينين</span>
                         </Badge>
                       ) : op.eye === "right" ? (
-                        <Badge variant="outline" className="border-sky-200 text-sky-700 bg-sky-50/20">اليمنى</Badge>
+                        <Badge variant="outline" className="border-primary/20 text-primary bg-primary/5">اليمنى</Badge>
                       ) : op.eye === "left" ? (
-                        <Badge variant="outline" className="border-teal-200 text-teal-700 bg-teal-50/20">اليسرى</Badge>
+                        <Badge variant="outline" className="border-secondary/25 text-secondary bg-secondary/5">اليسرى</Badge>
                       ) : (
                         "—"
                       )}
@@ -168,7 +168,7 @@ export default function KfOperations() {
                       <Badge
                         className={
                           op.status === "completed"
-                            ? "bg-emerald-500 hover:bg-emerald-600"
+                            ? "bg-success hover:bg-success/90 text-success-foreground"
                             : op.status === "cancelled"
                             ? "bg-destructive hover:bg-destructive/90"
                             : "bg-primary hover:bg-primary/95"

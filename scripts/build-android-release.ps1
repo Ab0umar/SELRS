@@ -15,7 +15,7 @@ $packageJsonPath = Join-Path $repoRoot "package.json"
 $androidDir = Join-Path $repoRoot "android"
 
 # المسار الافتراضي للنسخ (OneDrive)
-$defaultDestination = "C:\Users\SELRS\OneDrive\Documents\SELRS.cc"
+$defaultDestination = "C:\Users\drels\OneDrive\SELRS.cc"
 $resolvedDestDir = if ($ApkOutputDir) { $ApkOutputDir } else { $defaultDestination }
 
 $maxAndroidVersionCode = 2100000000
