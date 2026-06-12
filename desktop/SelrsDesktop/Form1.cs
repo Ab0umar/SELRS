@@ -19,10 +19,9 @@ public partial class Form1 : Form
 {
     private const string DefaultHomeUrl = "http://192.168.1.100:4000";
     private static readonly (string id, string label, string url)[] UrlPresets = [
-        ("localhost", "Localhost (localhost:4000)", "http://localhost:4000"),
         ("local", "Local (192.168.1.100:4000)", "http://192.168.1.100:4000"),
         ("lan", "LAN (192.168.0.100:4000)", "http://192.168.0.100:4000"),
-        ("online", "Online (op.selrs.cc)", "https://op.selrs.cc"),
+        ("online", "Online (selrs.cc)", "https://selrs.cc"),
     ];
     private string _homeUrl;
     private readonly string _userDataDir;
@@ -376,7 +375,7 @@ private void UpdateMaximizeButtonText()
             Size = new Size(400, 1),
         };
 
-        string[] arabicLabels = ["الخادم الرئيسي", "شبكة محلية", "إنترنت"];
+        string[] arabicLabels = ["الشبكة المحلية (1)", "الشبكة المحلية (2)", "الإنترنت"];
         var radios = new RadioButton[UrlPresets.Length];
 
         for (var i = 0; i < UrlPresets.Length; i++)
