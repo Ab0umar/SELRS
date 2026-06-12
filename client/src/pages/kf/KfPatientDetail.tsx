@@ -380,7 +380,7 @@ export default function KfPatientDetail() {
           </div>
           {patient.selrsPatientCode && (
             <div className="flex items-center gap-1.5 text-sm bg-muted px-3 py-1 rounded-full text-muted-foreground w-fit">
-              <Heart className="h-4 w-4 text-rose-500" />
+              <Heart className="h-4 w-4 text-destructive" />
               <span>مرتبط بـ SELRS: </span>
               <strong className="font-mono">{patient.selrsPatientCode}</strong>
             </div>
