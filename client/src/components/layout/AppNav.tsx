@@ -238,8 +238,6 @@ export const adminNavGroups: NavGroup[] = [
     navKey: "patients",
     groupPath: "/patients-hub",
     items: [
-      { icon: UserRound, label: "دخول سريع", path: "/quick-entry" },
-      { icon: LayoutGrid, label: "حالات جديدة", path: "/new-cases" },
       { icon: FileText, label: "ملف المريض", path: "/patient-file" },
       { icon: Repeat, label: "المتابعات", path: "/followups" },
       { icon: CalendarCheck, label: "الزيارات", path: "/visits" },
