@@ -374,7 +374,7 @@ async function copyToClipboard(value: string) {
 const Router = memo(function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
-    <Switch>
+    <>
       <Route path={ROUTES.dashboard} component={DashboardRouteGate} />
       <AttendanceRoutes />
       <SalaryRoutes />
@@ -384,7 +384,7 @@ const Router = memo(function Router() {
       <AdminRoutes />
       <MarketingRoutes />
       <MiscRoutes />
-    </Switch>
+    </>
   );
 });
 
