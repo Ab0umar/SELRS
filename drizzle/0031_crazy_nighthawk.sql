@@ -28,8 +28,7 @@ CREATE TABLE `stock_transactions` (
 --> statement-breakpoint
 RENAME TABLE `accInstagram` TO `accInstapay`;--> statement-breakpoint
 DROP INDEX `accInstagram_accessId` ON `accInstapay`;--> statement-breakpoint
-ALTER TABLE `accInstapay` DROP PRIMARY KEY;--> statement-breakpoint
-ALTER TABLE `accInstapay` ADD PRIMARY KEY(`id`);--> statement-breakpoint
+ALTER TABLE `accInstapay` DROP PRIMARY KEY, ADD PRIMARY KEY(`id`);--> statement-breakpoint
 ALTER TABLE `accLoans` ADD `total` decimal(15,2);--> statement-breakpoint
 ALTER TABLE `operationListItems` ADD `notes` varchar(500);--> statement-breakpoint
 CREATE INDEX `accInstapay_accessId` ON `accInstapay` (`accessId`);

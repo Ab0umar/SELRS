@@ -8,6 +8,7 @@ import { requestAppReload } from "@/lib/appRuntime";
 import { AppShell } from "@/components/layout/AppShell";
 import { AppShellSkeleton } from "@/components/layout/AppShellSkeleton";
 import type { User } from "@shared/types";
+import { ROUTES } from "../../../shared/routes";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -17,10 +18,12 @@ interface ProtectedRouteProps {
 
 function normalizePath(path: string): string {
   const raw = String(path ?? "").trim();
-  if (!raw) return "/";
-  const withSlash = raw.startsWith("/") ? raw : `/${raw}`;
+  if (!raw) return ROUTES.home;
+  const withSlash = raw.startsWith(ROUTES.home)
+    ? raw
+    : `${ROUTES.home}${raw}`;
   const noHashOrQuery = withSlash.split("?")[0].split("#")[0];
-  if (noHashOrQuery.length > 1 && noHashOrQuery.endsWith("/")) {
+  if (noHashOrQuery.length > 1 && noHashOrQuery.endsWith(ROUTES.home)) {
     return noHashOrQuery.slice(0, -1);
   }
   return noHashOrQuery;
@@ -37,7 +40,7 @@ export default function ProtectedRoute({
     (user as (User & { mustChangePassword?: boolean }) | null)
       ?.mustChangePassword,
   );
-  const forcePasswordRoute = "/force-password-change";
+  const forcePasswordRoute = ROUTES.forcePasswordChange;
   const [location, setLocation] = useLocation();
   const navStackRef = useRef<string[]>([]);
   const permissionsQuery = trpc.medical.getMyPermissions.useQuery(undefined, {
@@ -54,100 +57,101 @@ export default function ProtectedRoute({
   }, [permissionsQuery.data]);
 
   const cleanPath = useMemo(() => {
-    return normalizePath(location || "/");
+    return normalizePath(location || ROUTES.home);
   }, [location]);
 
   const isPathAllowed = useMemo(() => {
     if (!user) return false;
     if (userRole === "admin") return true;
-    if (cleanPath === "/profile") return true;
-    if (cleanPath === "/attendance/my") return true;
-    if (cleanPath === "/attendance/shift-schedule") return true;
-    if (userRole === "reception" && cleanPath === "/examination") return true;
+    if (cleanPath === ROUTES.profile) return true;
+    if (cleanPath === ROUTES.attendanceMy) return true;
+    if (cleanPath === ROUTES.attendanceShiftSchedule) return true;
+    if (userRole === "reception" && cleanPath === ROUTES.examination) return true;
     if (
-      (cleanPath === "/admin/settings/pricing-rules" ||
-        cleanPath === "/admin-hub/settings/pricing-rules") &&
+      (cleanPath === ROUTES.adminSettingsPricingRules ||
+        cleanPath === ROUTES.adminHubSettingsPricingRules) &&
       userRole === "accountant"
     )
       return true;
     if (
       userRole === "accountant" &&
-      (cleanPath === "/kf" || cleanPath.startsWith("/kf/"))
+      (cleanPath === ROUTES.kf || cleanPath.startsWith(`${ROUTES.kf}/`))
     ) {
       return true;
     }
     if (
-      cleanPath === "/KFsheets/consultant" ||
-      cleanPath.startsWith("/KFsheets/consultant/")
+      cleanPath === ROUTES.kfSheetsConsultant ||
+      cleanPath.startsWith(`${ROUTES.kfSheetsConsultant}/`)
     ) {
       const matchKf = allowedPaths.some(
-        (p) => p === "/kf" || (p !== "/" && p.startsWith("/kf")),
+        (p) => p === ROUTES.kf || (p !== ROUTES.home && p.startsWith(ROUTES.kf)),
       );
       if (matchKf) return true;
     }
     /** كتالوج الفحوصات و TXhub يُقيّدان بنفس مستوى صلاحيات الاختبارات أو الأدوية */
     if (
-      cleanPath === "/examinations/catalog" ||
-      cleanPath.startsWith("/examinations/catalog/") ||
-      cleanPath === "/txhub" ||
-      cleanPath.startsWith("/txhub/")
+      cleanPath === ROUTES.examCatalog ||
+      cleanPath.startsWith(`${ROUTES.examCatalog}/`) ||
+      cleanPath === ROUTES.txhub ||
+      cleanPath.startsWith(`${ROUTES.txhub}/`)
     ) {
       const matchTests = allowedPaths.some(
-        (p) => p === "/tests" || (p !== "/" && p.startsWith("/tests")),
+        (p) => p === ROUTES.tests || (p !== ROUTES.home && p.startsWith(ROUTES.tests)),
       );
       const matchMeds = allowedPaths.some(
         (p) =>
-          p === "/medications" || (p !== "/" && p.startsWith("/medications")),
+          p === ROUTES.medications ||
+          (p !== ROUTES.home && p.startsWith(ROUTES.medications)),
       );
       const matchExamCatalog =
-        allowedPaths.includes("/examinations/catalog") ||
-        allowedPaths.some((p) => p.startsWith("/examinations/catalog:"));
+        allowedPaths.includes(ROUTES.examCatalog) ||
+        allowedPaths.some((p) => p.startsWith(`${ROUTES.examCatalog}:`));
       const matchTx =
-        allowedPaths.includes("/txhub") ||
-        allowedPaths.some((p) => p.startsWith("/txhub"));
+        allowedPaths.includes(ROUTES.txhub) ||
+        allowedPaths.some((p) => p.startsWith(ROUTES.txhub));
       const allowExamPath =
-        cleanPath === "/examinations/catalog" ||
-        cleanPath.startsWith("/examinations/catalog/");
+        cleanPath === ROUTES.examCatalog ||
+        cleanPath.startsWith(`${ROUTES.examCatalog}/`);
       const allowTxPath =
-        cleanPath === "/txhub" || cleanPath.startsWith("/txhub/");
+        cleanPath === ROUTES.txhub || cleanPath.startsWith(`${ROUTES.txhub}/`);
       if (allowExamPath && (matchTests || matchMeds || matchExamCatalog))
         return true;
       if (allowTxPath && (matchTests || matchMeds || matchTx)) return true;
     }
     if (
-      cleanPath === "/patient-file" ||
-      cleanPath.startsWith("/patient-file/")
+      cleanPath === ROUTES.patientFile ||
+      cleanPath.startsWith(`${ROUTES.patientFile}/`)
     ) {
       if (
-        allowedPaths.includes("/patients") ||
-        allowedPaths.includes("/patients/:id")
+        allowedPaths.includes(ROUTES.patients) ||
+        allowedPaths.includes(ROUTES.patientsById)
       )
         return true;
     }
     /** مركز المريض: نفس مستوى الوصول لقائمة المرضى / ملف المريض */
-    if (cleanPath === "/patient-hub" || cleanPath.startsWith("/patient-hub/")) {
+    if (cleanPath === ROUTES.patientHub || cleanPath.startsWith(`${ROUTES.patientHub}/`)) {
       if (
-        allowedPaths.includes("/patients") ||
-        allowedPaths.includes("/patients/:id")
+        allowedPaths.includes(ROUTES.patients) ||
+        allowedPaths.includes(ROUTES.patientsById)
       )
         return true;
     }
     /** قائمة الروشتات: تُعامل مثل صلاحية الكتابة `/prescription` إن لم تُذكر صريحةً. */
     if (
-      cleanPath === "/prescriptions" ||
-      cleanPath.startsWith("/prescriptions/")
+      cleanPath === ROUTES.prescriptions ||
+      cleanPath.startsWith(`${ROUTES.prescriptions}/`)
     ) {
       if (
-        allowedPaths.includes("/prescriptions") ||
+        allowedPaths.includes(ROUTES.prescriptions) ||
         allowedPaths.some(
-          (p) => p === "/prescription" || p.startsWith("/prescription/"),
+          (p) => p === ROUTES.prescription || p.startsWith(`${ROUTES.prescription}/`),
         )
       ) {
         return true;
       }
     }
     if (cleanPath === forcePasswordRoute) return true;
-    if (cleanPath === "/" || cleanPath === "/dashboard") return true;
+    if (cleanPath === ROUTES.home || cleanPath === ROUTES.dashboard) return true;
     if (!allowedPaths.length) {
       return false;
     }
@@ -155,10 +159,10 @@ export default function ProtectedRoute({
     return allowedPaths.some((permission) => {
       if (!permission) return false;
       if (permission === cleanPath) return true;
-      if (permission !== "/" && cleanPath.startsWith(`${permission}/`))
+      if (permission !== ROUTES.home && cleanPath.startsWith(`${permission}/`))
         return true;
-      if (permission.includes("/:")) {
-        const base = permission.split("/:")[0];
+      if (permission.includes(`${ROUTES.home}:`)) {
+        const base = permission.split(`${ROUTES.home}:`)[0];
         return cleanPath === base || cleanPath.startsWith(`${base}/`);
       }
       return false;
@@ -189,7 +193,7 @@ export default function ProtectedRoute({
 
     // If not authenticated, redirect to login
     if (!user) {
-      setLocation("/login");
+      setLocation(ROUTES.login);
       return;
     }
 
@@ -198,15 +202,15 @@ export default function ProtectedRoute({
       return;
     }
     if (!mustChangePassword && cleanPath === forcePasswordRoute) {
-      setLocation("/dashboard");
+      setLocation(ROUTES.dashboard);
       return;
     }
 
     if (
       userRole === "accountant" &&
-      (cleanPath === "/" || cleanPath === "/dashboard")
+      (cleanPath === ROUTES.home || cleanPath === ROUTES.dashboard)
     ) {
-      setLocation("/accounting");
+      setLocation(ROUTES.accounting);
       return;
     }
 
@@ -219,7 +223,7 @@ export default function ProtectedRoute({
       roleMismatch &&
       !(userRole !== "admin" && permissionsQuery.isSuccess && isPathAllowed)
     ) {
-      setLocation("/");
+      setLocation(ROUTES.home);
       return;
     }
 
@@ -229,13 +233,13 @@ export default function ProtectedRoute({
       user.branch !== "both" &&
       !requiredBranches.includes(user.branch)
     ) {
-      setLocation("/");
+      setLocation(ROUTES.home);
       return;
     }
 
     if (userRole !== "admin" && permissionsQuery.isSuccess && !isPathAllowed) {
-      const fallback = allowedPaths.includes("/kf") ? "/kf" : "/";
-      setLocation(fallback !== cleanPath ? fallback : "/");
+      const fallback = allowedPaths.includes(ROUTES.kf) ? ROUTES.kf : ROUTES.home;
+      setLocation(fallback !== cleanPath ? fallback : ROUTES.home);
       return;
     }
   }, [
@@ -309,7 +313,7 @@ export default function ProtectedRoute({
             ليس لديك صلاحية للوصول لهذه الصفحة
           </p>
           <button
-            onClick={() => setLocation("/")}
+            onClick={() => setLocation(ROUTES.home)}
             className="text-primary hover:underline"
           >
             العودة للصفحة الرئيسية
@@ -334,7 +338,7 @@ export default function ProtectedRoute({
             هذه الصفحة غير متاحة لفرعك
           </p>
           <button
-            onClick={() => setLocation("/")}
+            onClick={() => setLocation(ROUTES.home)}
             className="text-primary hover:underline"
           >
             العودة للصفحة الرئيسية
@@ -355,7 +359,7 @@ export default function ProtectedRoute({
             ليس لديك صلاحية للوصول لهذه الصفحة
           </p>
           <button
-            onClick={() => setLocation("/")}
+            onClick={() => setLocation(ROUTES.home)}
             className="text-primary hover:underline"
           >
             العودة للصفحة الرئيسية

@@ -5240,19 +5240,28 @@ export async function syncPatientsFromMssql(
 
             // Auto-create visit for the patient when synced
             if (targetPatientId > 0) {
-              await db
-                .createVisit({
-                  patientId: targetPatientId,
-                  visitDate: examinationDate, // تاريخ الكشف/الفحص from DT/VST_DT
-                  visitType: "consultation",
-                  branch: createPayload.branch || "examinations",
-                  queueStatus: "checkedIn",
-                  checkedInAt: registrationDate, // تاريخ التسجيل from ENTRYDATE
-                  createdAt: registrationDate, // تاريخ التسجيل from ENTRYDATE
-                })
-                .catch(() => {
-                  // Silently fail if visit creation doesn't work - patient is still created
-                });
+              const visitDateStr =
+                examinationDate instanceof Date
+                  ? examinationDate.toISOString().split("T")[0]
+                  : String(examinationDate ?? "").split("T")[0];
+              const alreadyHasVisit = await db
+                .hasVisitForDate(targetPatientId, visitDateStr)
+                .catch(() => false);
+              if (!alreadyHasVisit) {
+                await db
+                  .createVisit({
+                    patientId: targetPatientId,
+                    visitDate: examinationDate,
+                    visitType: "consultation",
+                    branch: createPayload.branch || "examinations",
+                    queueStatus: "checkedIn",
+                    checkedInAt: registrationDate,
+                    createdAt: registrationDate,
+                  })
+                  .catch(() => {
+                    // Silently fail if visit creation doesn't work - patient is still created
+                  });
+              }
             }
 
             if (insertedPatientsSample.length < 10) {
