@@ -197,7 +197,7 @@ export default function FollowupForm() {
         followupItems,
       });
     } catch (error) {
-      console.error("Save error:", error);
+      toast.error(error instanceof Error ? error.message : "فشل حفظ بيانات المتابعة");
     } finally {
       setLoading(false);
     }

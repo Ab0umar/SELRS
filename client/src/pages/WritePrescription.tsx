@@ -656,7 +656,6 @@ export default function WritePrescription({
       toast.error("يرجى إضافة دواء واحد على الأقل.");
       return;
     }
-    console.log("Saving prescription items:", itemsToSave);
     await createPrescriptionMutation.mutateAsync({
       patientId,
       date: prescriptionDate,
@@ -749,11 +748,6 @@ export default function WritePrescription({
   const importFromFile = async (file: File) => {
     try {
       toast.info(`جارٍ استيراد الملف: ${file.name}`);
-      console.log("[importReadyPrescriptions] file", {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-      });
       setImportStatus(`تم اختيار الملف: ${file.name}`);
       const buffer = await file.arrayBuffer();
       const XLSX = await loadXlsx();

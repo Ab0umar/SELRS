@@ -229,7 +229,6 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
         visitId: visit.id,
         visitDate: editDate,
       });
-      console.log("Date update result:", result);
 
       // Wait a moment then refetch
       await new Promise((resolve) => setTimeout(resolve, 500));
