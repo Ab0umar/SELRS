@@ -235,13 +235,24 @@ export function QuickActions({
     return quickActions.filter((a) => isPermAllowed(a.permPath, allowedPaths));
   }, [isAdmin, permissionsQuery.isSuccess, allowedPaths]);
 
-  const isMoreAction = (action: QuickActionItem) =>
-    action.color.includes("bg-secondary") ||
-    action.color.includes("bg-warning") ||
-    (action.kind === "pick-patient" &&
-      ["medical-reports", "patient-details", "patient-summary"].includes(
-        action.page,
-      ));
+  const isMoreAction = (action: QuickActionItem) => {
+    // Dialog-triggered actions always stay in the main bar regardless of color.
+    if (
+      action.kind === "quick-entry-dialog" ||
+      action.kind === "schedule-dialog" ||
+      action.kind === "portal-booking-dialog" ||
+      action.kind === "operations-booking-dialog"
+    )
+      return false;
+    return (
+      action.color.includes("bg-secondary") ||
+      action.color.includes("bg-warning") ||
+      (action.kind === "pick-patient" &&
+        ["medical-reports", "patient-details", "patient-summary"].includes(
+          action.page,
+        ))
+    );
+  };
   const mainActions = visibleActions.filter((action) => !isMoreAction(action));
   const moreActions = visibleActions.filter(isMoreAction);
 
