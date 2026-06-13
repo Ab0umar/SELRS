@@ -178,3 +178,6 @@ scripts/GIT-sync.ps1
 Salaries/
 Salaries/*.mdb
 testsprite_tests\tmp\config.json
+
+ZKTimeNet.db
+testsprite_tests/
