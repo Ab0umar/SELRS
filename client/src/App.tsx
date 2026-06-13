@@ -372,19 +372,20 @@ async function copyToClipboard(value: string) {
 }
 
 const Router = memo(function Router() {
-  // make sure to consider if you need authentication for certain routes
+  // Route group functions are called directly (not as JSX components) so wouter's
+  // Switch can flatten their Fragment children and see all Route elements.
   return (
-    <>
+    <Switch>
       <Route path={ROUTES.dashboard} component={DashboardRouteGate} />
-      <AttendanceRoutes />
-      <SalaryRoutes />
-      <KfRoutes />
-      <AccountingRoutes />
-      <MedicalRoutes />
-      <AdminRoutes />
-      <MarketingRoutes />
-      <MiscRoutes />
-    </>
+      {AttendanceRoutes()}
+      {SalaryRoutes()}
+      {KfRoutes()}
+      {AccountingRoutes()}
+      {MedicalRoutes()}
+      {AdminRoutes()}
+      {MarketingRoutes()}
+      {MiscRoutes()}
+    </Switch>
   );
 });
 
