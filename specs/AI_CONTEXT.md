@@ -1,7 +1,7 @@
 # SRV100 AI Context Document
 
 > Single "read this first" file for any AI model (Cursor, Codex, Claude, GPT, Gemini, GLM, Kimi).
-> Version: 1.0.0 — aligned with Constitution v1.0.0, Principles v1.0.0.
+> Version: 2.0.0 — updated 2026-06-13. Reflects plans 001–005 complete.
 
 ---
 
@@ -9,10 +9,12 @@
 
 ## What the Project Is
 
-SELRS (Saadany Eye Laser & Refractive Surgery) Medical Center Platform. A monolithic web application serving two distinct domains:
+SELRS (Saadany Eye Laser & Refractive Surgery) Medical Center Platform. A monolithic web application serving four distinct domains:
 
 1. **Medical Module** — patient registration, examination, operations scheduling, doctor workflows, Pentacam integration, OCR, FCM notifications
 2. **Accounting Module** — financial reporting from legacy MSSQL accounting database, service-based revenue analysis, receipt inquiry, print-preview reports
+3. **Attendance Module** — fingerprint device sync, shift/leave/holiday management, daily materialization, reports (plan 001 complete)
+4. **KF (Clinical) Module** — isolated MySQL-only clinical module, KF-0001 codes, accountant+admin bypass (plan in `specs/kf/`)
 
 ## Main Goals
 
@@ -65,26 +67,47 @@ MySQL (selrs26)                    MSSQL (op2026)
 ├── operations                     ├── PAJRNRCVH (receipt headers)
 ├── audit_logs                     ├── PAPAT_SRV (service lines)
 ├── branches                       ├── DEPT (departments)
-└── ... (medical schema)           └── APPCODES, CMPMF (lookups)
+├── attendance_employees           └── APPCODES, CMPMF (lookups)
+├── attendance_punches
+├── attendance_sync_runs
+├── attendance_shifts
+├── attendance_shift_assignments
+├── attendance_leaves
+├── attendance_holidays
+├── attendance_daily
+├── kf_patients + 4 more kf_* tables
+└── ... (medical schema)
 ```
 
 **Connection:** MySQL via Drizzle in `server/db.ts`. MSSQL via `createMssqlPool()` in `server/integrations/mssqlPatients.ts`, wrapped by `mssqlQuery()` helper in `server/services/accounting/mssqlAccounting.ts`.
 
 ## Routing Architecture
 
-- `client/src/App.tsx` — lazy routes with `ProtectedRoute` wrappers
+- `client/src/App.tsx` — lazy routes with `ProtectedRoute` wrappers; all permission-gated paths use `ROUTES.*` constants from `shared/routes.ts`
 - Medical routes: `/dashboard`, `/patients/*`, `/operations`, etc.
 - Accounting routes: `/accounting/*` — all gated by `allowedRoles` or path-based permission
-- Backend: `server/routers/index.ts` composes `appRouter = { medical, patient, accounting }`
+- Attendance routes: `/attendance/*` — gated by attendance permission
+- KF routes: `/kf/*` — gated by KF permission
+- Key renames done: `/txhub` → `/treatment`, `/today` → `/bookings`, `/admin-hub` → `/booking-triage` (redirects in place)
+- Backend: `server/routers/index.ts` composes `appRouter = { medical, patient, accounting, attendance, kf, ... }`
 
 ## tRPC Structure
 
 ```
 server/routers/
-├── index.ts          → appRouter composition (ONLY allowed shared edit point)
-├── medical.ts        → Medical CRUD (UNTOUCHABLE)
-├── patient.ts        → Patient queries (UNTOUCHABLE)
-└── accounting.ts     → Accounting read-only queries
+├── index.ts                  → appRouter composition (ONLY allowed shared edit point)
+├── medical.ts                → Medical router composition (~74 lines; spreads sub-routers)
+├── medical-catalog.ts        → Catalog procedures (medications, diseases, tests, prescriptions, surgeries)
+├── medical-examinations.ts   → Examinations/visits procedures
+├── medical-mssql.ts          → MSSQL sync procedures
+├── medical-ops.ts            → Ops/admin/reports procedures
+├── medical-patient.ts        → Patient-core procedures
+├── medical-pentacam.ts       → Pentacam procedures
+├── _medical/                 → Shared helpers (pentacam-helpers, patient-helpers, service-helpers)
+├── patient.ts                → Patient queries (UNTOUCHABLE)
+├── accounting.ts             → Accounting read-only queries
+├── attendance.ts             → Attendance module (~3500 lines; shifts/leaves/holidays/sync/reports)
+└── kf.ts                     → KF clinical module
 
 server/_core/
 ├── procedures.ts     → Role-based procedure builders
@@ -106,47 +129,42 @@ server/_core/
 - `accountingProcedure` — admin bypass OR path-based `/accounting` permission check
 - `adminProcedure` — admin only
 - `medicalStaffProcedure` — all medical roles + admin + manager
+- `makeAttProcedure(path)` — attendance read; admin bypass OR path-based permission check
+- `makeAttWriteProcedure(path)` — attendance write; admin bypass OR path-based `:rw` permission check
+- `kfProcedure` — KF read; accountant+admin bypass OR `/kf` permission
+- `kfWriteProcedure` — KF write; accountant+admin bypass OR `/kf:rw` permission
 
 ## React Structure
 
 ```
 client/src/
-├── App.tsx                    → Route definitions (lazy + ProtectedRoute)
-├── pages/
-│   ├── accounting/
-│   │   ├── AccountingHome.tsx        → Dashboard + activity feed
-│   │   ├── AccountingShell.tsx       → Layout shell with sub-nav
-│   │   ├── DailyRevenue.tsx          → Daily revenue report
-│   │   ├── LasikRevenue.tsx          → Service revenue (grouped)
-│   │   ├── ReceiptsInquiry.tsx       → Receipt search
-│   │   ├── AccountingPatientsInquiry.tsx → Patient/receipt cross-ref
-│   │   ├── ReceiptDetail.tsx         → Single receipt + line items
-│   │   ├── LasikServices.tsx         → Service lines list
-│   │   ├── PatientAccount.tsx        → Patient financial summary
-│   │   ├── DoctorAccount.tsx         → Doctor financial summary
-│   │   ├── AccountingCashbook.tsx    → Cashbook (MySQL accLedger)
-│   │   ├── AccountingLedger.tsx      → Ledger entries (MySQL)
-│   │   ├── AccountingAdvances.tsx    → Employee advances
-│   │   ├── AccountingLoans.tsx       → Loans tracking
-│   │   ├── AccountingHomeFund.tsx    → Home fund balance
-│   │   ├── AccountingInstapay.tsx    → Instapay balance
-│   │   ├── AccountingDrSaadany.tsx   → Dr. Saadany account
-│   │   ├── PrintPreview.tsx          → A4 printable reports
-│   │   ├── accountingFormat.ts       → formatMoneyAr, formatCountAr, toArabicDigits
-│   │   └── AccountingOpReport.module.css → Shared report table styles
-│   ├── Dashboard.tsx           → Medical dashboard
-│   ├── Operations.tsx          → Operations scheduling
-│   ├── Patients.tsx            → Patient list
-│   └── ...
+├── App.tsx                    → Route definitions (lazy + ProtectedRoute); uses ROUTES.* constants
+├── pages/                     → Shared/medical pages (Dashboard, Operations, Patients, Login, etc.)
+├── features/                  → Domain feature folders (plan 005 complete)
+│   ├── kf/                    → KF clinical pages + KF-specific components
+│   ├── attendance/            → Attendance pages + attendance-specific components
+│   ├── salary/                → Salary pages
+│   ├── accounting/            → Accounting pages (AccountingHome, DailyRevenue, LasikRevenue, etc.)
+│   ├── stockroom/             → Stockroom pages
+│   ├── admin/                 → Admin pages
+│   ├── doctor-portal/         → Doctor portal pages
+│   └── patient-portal/        → Patient portal pages
 ├── components/
-│   ├── ProtectedRoute.tsx      → Frontend auth gate (UNTOUCHABLE)
-│   ├── ui/                     → shadcn/ui primitives
+│   ├── ProtectedRoute.tsx     → Frontend auth gate; uses ROUTES.* constants (UNTOUCHABLE)
+│   ├── ui/                    → shadcn/ui primitives
 │   └── ...
-├── hooks/                      → Auth hooks, data hooks
+├── hooks/                     → Auth hooks, data hooks
 └── lib/
-    ├── trpc.ts                 → tRPC client setup
-    └── utils.ts                → cn() helper
+    ├── trpc.ts                → tRPC client setup
+    └── utils.ts               → cn() helper
 ```
+
+## Route Constants
+
+- `shared/routes.ts` exports `ROUTES` object (`as const`) and `RoutePath` type
+- All permission-gated path strings in `ProtectedRoute.tsx` and `App.tsx` use `ROUTES.*`
+- A typo in any reference is a compile error (TypeScript literal type enforcement)
+- Key constants: `ROUTES.txhub` = `"/treatment"`, `ROUTES.today` = `"/bookings"`, `ROUTES.adminHub` = `"/booking-triage"`
 
 ## Print/Report System
 
@@ -555,8 +573,9 @@ These files should almost NEVER be modified:
 
 | File                                       | Reason                           |
 | ------------------------------------------ | -------------------------------- |
-| `server/routers/medical.ts`                | Core medical business logic      |
-| `server/routers/patient.ts`                | Patient CRUD API                 |
+| `server/routers/medical.ts`                | Medical router composition — edit sub-routers instead |
+| `server/routers/medical-*.ts`              | Medical sub-routers — preserve procedure names        |
+| `server/routers/patient.ts`               | Patient CRUD API                 |
 | `server/db.ts`                             | Database + legacy text handling  |
 | `server/integrations/mssqlPatients.ts`     | MSSQL pool + sync logic          |
 | `client/src/components/ProtectedRoute.tsx` | Auth gate for all pages          |
@@ -573,12 +592,13 @@ These files should almost NEVER be modified:
 
 # Allowed Shared Edit Points
 
-Only these shared files may be edited when adding accounting features:
+Only these shared files may be edited when adding features:
 
 1. **`server/routers/index.ts`** — to register new routers (2-line edit)
-2. **`client/src/App.tsx`** — to add lazy routes with ProtectedRoute wrappers
-3. **`shared/accounting/contracts.ts`** — accounting-specific zod schemas and types
-4. **`server/_core/procedures.ts`** — only if a new procedure type is genuinely needed (requires review)
+2. **`client/src/App.tsx`** — to add lazy routes with ProtectedRoute wrappers; use `ROUTES.*` constants
+3. **`shared/routes.ts`** — to add new route path constants; use `as const`
+4. **`shared/accounting/contracts.ts`** — accounting-specific zod schemas and types
+5. **`server/_core/procedures.ts`** — only if a new procedure type is genuinely needed (requires review)
 
 ---
 
@@ -679,6 +699,10 @@ Every completed task reports:
 13. **Skipping `pnpm check` after shared file edits** — mandatory for auth/routing/types
 14. **Logging full row payloads** — PII risk; only log timing at debug level
 15. **Crashing on MSSQL-only patient codes (0013, 0699)** — must show graceful placeholder
+16. **Using raw path strings in ProtectedRoute or App.tsx** — all permission paths use `ROUTES.*`
+17. **Adding pages directly to `client/src/pages/`** — domain pages go in `client/src/features/<domain>/`
+18. **Editing `medical.ts` for procedure logic** — edit the relevant `medical-*.ts` sub-router instead
+19. **Hardcoding attendance paths without `makeAttProcedure`** — use the attendance procedure builders
 
 ---
 
@@ -713,5 +737,6 @@ After editing:
 
 ---
 
-**Document version:** 1.0.0 — generated 2026-05-18
-**Aligned with:** Constitution v1.0.0, Project Principles v1.0.0, Spec v1.0.0, Plan v1.0.0, Tasks v1.0.0
+**Document version:** 2.0.0 — updated 2026-06-13
+**Aligned with:** Constitution v1.0.0, Project Principles v1.0.0
+**Plans complete:** 001 (Attendance, T043 hardware smoke pending), 002 (Medical router split), 003 (Permission typed constants), 004 (Route rename cleanup), 005 (Frontend feature folders)

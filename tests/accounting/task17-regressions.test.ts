@@ -11,7 +11,7 @@ import {
   hasPrintableDateRange,
   sumNumericBlock,
   type PrintPayload,
-} from "../../client/src/pages/accounting/printUtils";
+} from "../../client/src/features/accounting/printUtils";
 
 const repo =
   basename(process.cwd()).toLowerCase() === "client"
@@ -133,7 +133,7 @@ describe("Task 17 accounting print regressions", () => {
 
 describe("Task 17 accounting UI source invariants", () => {
   it("patient account shows search UI and Lasik summary query", () => {
-    const source = read("client/src/pages/accounting/PatientAccount.tsx");
+    const source = read("client/src/features/accounting/PatientAccount.tsx");
 
     expect(source).toContain("حساب مريض");
     expect(source).toContain("كود المريض");
@@ -148,7 +148,7 @@ describe("Task 17 accounting UI source invariants", () => {
   });
 
   it("doctor account shows search UI and service revenue grouping", () => {
-    const source = read("client/src/pages/accounting/DoctorAccount.tsx");
+    const source = read("client/src/features/accounting/DoctorAccount.tsx");
 
     expect(source).toContain("حساب طبيب");
     expect(source).toContain("كود الطبيب");
@@ -161,7 +161,7 @@ describe("Task 17 accounting UI source invariants", () => {
   });
 
   it("service revenue does not render standalone totals tables outside its report table", () => {
-    const source = read("client/src/pages/accounting/LasikRevenue.tsx");
+    const source = read("client/src/features/accounting/LasikRevenue.tsx");
 
     expect(source).not.toContain("styles.totalsTable");
     expect(source).not.toContain("styles.totalsArea");
@@ -172,7 +172,7 @@ describe("Task 17 accounting UI source invariants", () => {
   });
 
   it("print preview header uses the real-logo chain and the official Arabic clinic name", () => {
-    const source = read("client/src/pages/accounting/PrintPreview.tsx");
+    const source = read("client/src/features/accounting/PrintPreview.tsx");
 
     expect(source).toContain(
       "PRINT_LOGO_CHAIN = [BRAND_LOGO_URL, BRAND_LOGO_PNG_FALLBACK_URL]",
@@ -181,3 +181,4 @@ describe("Task 17 accounting UI source invariants", () => {
     expect(source).not.toContain("BRAND_LOGO_FALLBACK_URL");
   });
 });
+

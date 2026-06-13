@@ -30,7 +30,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
 
 **Purpose**: Wire env, permission keys, and the empty router so subsequent phases compile cleanly.
 
-- [ ] **T001** Add Attendance env vars to `server/_core/env.ts` — `server/_core/env.ts`
+- [x] **T001** Add Attendance env vars to `server/_core/env.ts` — `server/_core/env.ts`
   - **Owner**: Cursor · **Backup**: Codex · **Tool**: Cursor · **Role**: implement
   - **Inputs**: `specs/001-attendance-fingerprint/research.md` §R15
   - **Outputs**: 10 new optional env entries (ATTENDANCE\_\*) with the defaults from R15. No existing entry changed.
@@ -39,7 +39,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: none
   - **Constitution Refs**: IV, VI, VII
 
-- [ ] **T002** [P] Register Attendance permission keys in the existing permission system — `server/_core/procedures.ts` and the permission key registry (locate via repo grep on existing keys like `accounting.view`)
+- [x] **T002** [P] Register Attendance permission keys in the existing permission system — `server/_core/procedures.ts` and the permission key registry (locate via repo grep on existing keys like `accounting.view`)
   - **Owner**: Cursor · **Backup**: Codex · **Tool**: Cursor · **Role**: implement
   - **Inputs**: `contracts/trpc-attendance.md` (role factories), `.claude/rules/permissions.md`
   - **Outputs**: Three new permission keys registered (`attendance.view`, `attendance.manage`, `attendance.admin`) plus three procedure factories `attendanceViewerProcedure`, `attendanceManagerProcedure`, `attendanceAdminProcedure`. Factories build on top of existing `protectedProcedure`. Admin bypass and branch restrictions preserved.
@@ -48,7 +48,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: none
   - **Constitution Refs**: I, VII
 
-- [ ] **T003** [P] Create empty `attendanceRouter` and register it — `server/routers/attendance.ts` (NEW), `server/routers/index.ts` (EDIT — one line)
+- [x] **T003** [P] Create empty `attendanceRouter` and register it — `server/routers/attendance.ts` (NEW), `server/routers/index.ts` (EDIT — one line)
   - **Owner**: Cursor · **Backup**: Codex · **Tool**: Cursor · **Role**: implement
   - **Inputs**: `contracts/trpc-attendance.md`
   - **Outputs**: New router file exporting an empty `attendanceRouter`; `routers/index.ts` augmented with `attendance: attendanceRouter` alongside `medical`/`accounting`. No procedures yet.
@@ -63,7 +63,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
 
 **⚠️ CRITICAL**: No user-story work begins until this phase is complete. Establishes schema, adapter seam, sync engine, rules engine, materializer, scheduler stub, frontend route shell.
 
-- [ ] **T004** Drizzle schema additions for the 8 new `attendance_*` tables — `drizzle/schema.ts` (additive) + new migration `drizzle/00XX_add_attendance_tables.sql`
+- [x] **T004** Drizzle schema additions for the 8 new `attendance_*` tables — `drizzle/schema.ts` (additive) + new migration `drizzle/00XX_add_attendance_tables.sql`
   - **Owner**: Cursor · **Backup**: Codex · **Tool**: Cursor · **Role**: implement
   - **Inputs**: `data-model.md`
   - **Outputs**: 8 Drizzle table definitions appended to `schema.ts` (employees, punches, shifts, shift_assignments, leaves, holidays, daily, sync_runs). Generated migration applies cleanly. No existing table modified.
@@ -108,7 +108,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T004
   - **Constitution Refs**: I, VI
 
-- [ ] **T009** [P] Test fixture `.mdb` + Vitest harness for adapter — `server/services/attendance/__tests__/fixtures/tararus-sample.mdb` (binary), `server/services/attendance/__tests__/accessDbAdapter.test.ts`
+- [x] **T009** [P] Test fixture `.mdb` + Vitest harness for adapter — `server/services/attendance/__tests__/fixtures/tararus-sample.mdb` (binary), `server/services/attendance/__tests__/accessDbAdapter.test.ts`
   - **Owner**: cheap (file generation) → Cursor (test code) · **Backup**: Codex · **Tool**: Cursor · **Role**: implement
   - **Inputs**: Tararus column schema (discoverable from production file or vendor docs)
   - **Outputs**: Small `.mdb` containing ~10 employees and ~50 punches across 7 days, including: one unknown emp_cd, one future-dated row (quarantine), one malformed row, one overnight-shift pair. Test file exercises every code path of `accessDbAdapter`.
@@ -154,7 +154,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
 
 **Independent test**: With a sample sync completed, opening `/attendance` shows six populated cards within 5 s.
 
-- [ ] **T013** [P] [US1] `attendance.dashboardSummary` query procedure — `server/routers/attendance.ts`, `server/services/attendance/dashboard.service.ts` (NEW)
+- [x] **T013** [P] [US1] `attendance.dashboardSummary` query procedure — `server/routers/attendance.ts`, `server/services/attendance/dashboard.service.ts` (NEW)
   - **Owner**: Codex · **Backup**: Cursor · **Tool**: Cursor · **Role**: implement
   - **Inputs**: `contracts/trpc-attendance.md` §dashboardSummary
   - **Outputs**: Query returns the exact output shape; uses `attendance_daily` for counts and latest `attendance_sync_runs` row for `lastSync`. Backed by `attendanceViewerProcedure`.
@@ -163,7 +163,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T004, T008, T010
   - **Constitution Refs**: I, VI
 
-- [ ] **T014** [P] [US1] `attendance.syncStatus` query procedure — `server/routers/attendance.ts`
+- [x] **T014** [P] [US1] `attendance.syncStatus` query procedure — `server/routers/attendance.ts`
   - **Owner**: Codex · **Backup**: Cursor · **Tool**: Cursor · **Role**: implement
   - **Inputs**: contracts/trpc-attendance.md §syncStatus
   - **Outputs**: Query returns `{runs, current}`; default `limit=50`, max `200`.
@@ -172,7 +172,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T004, T010
   - **Constitution Refs**: I, VI
 
-- [ ] **T015** [US1] `AttendanceHome` page with six dashboard cards — `client/src/pages/attendance/AttendanceHome.tsx`, `client/src/components/attendance/widgets/*.tsx`, `client/src/hooks/attendance/useDashboardSummary.ts`
+- [x] **T015** [US1] `AttendanceHome` page with six dashboard cards — `client/src/pages/attendance/AttendanceHome.tsx`, `client/src/components/attendance/widgets/*.tsx`, `client/src/hooks/attendance/useDashboardSummary.ts`
   - **Owner**: Cursor (with Gemini for card layout iteration) · **Backup**: Codex · **Tool**: Cursor · **Role**: implement
   - **Inputs**: `contracts/trpc-attendance.md` §dashboardSummary, spec FR-020, spec Story 1 acceptance scenarios, clarification Q4 (polling 30 s)
   - **Outputs**: Six cards (Present today, Absent today, Late today, Inside now, Missing checkout, Last sync). React-query hook with `refetchInterval: 30_000`, `refetchIntervalInBackground: false`. Manual Refresh button. Loading skeletons and "Never synced" empty state. UI in English.
@@ -189,7 +189,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
 
 **Independent test**: Manual sync produces a run row with `status=ok` and the inserted punches are visible in `/attendance/logs` filtered to the test date.
 
-- [ ] **T016** [P] [US2] `attendance.syncNow` mutation — `server/routers/attendance.ts`
+- [x] **T016** [P] [US2] `attendance.syncNow` mutation — `server/routers/attendance.ts`
   - **Owner**: Codex · **Backup**: Cursor · **Tool**: Cursor · **Role**: implement
   - **Inputs**: `contracts/trpc-attendance.md` §syncNow, `research.md` §R3, §R13
   - **Outputs**: Manager-gated mutation that calls `syncEngine.runSyncOnce({trigger:'manual', triggeredBy: ctx.user.id})` and returns `{runId, status: 'running'|'locked'}`. Audit log entry written via existing helper.
@@ -198,7 +198,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T007
   - **Constitution Refs**: I, VI
 
-- [ ] **T017** [P] [US2] `attendance.rawPunches` query — `server/routers/attendance.ts`
+- [x] **T017** [P] [US2] `attendance.rawPunches` query — `server/routers/attendance.ts`
   - **Owner**: Codex · **Backup**: Cursor · **Tool**: Cursor · **Role**: implement
   - **Inputs**: `contracts/trpc-attendance.md` §rawPunches
   - **Outputs**: Paginated query with `empCd?, from, to, source?, page?, pageSize?` (default 100, max 500). Uses `idx_emp_time` / `idx_punch_at`.
@@ -207,7 +207,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T004
   - **Constitution Refs**: I, VI
 
-- [ ] **T018** [US2] `SyncStatus` admin page with manual sync trigger — `client/src/pages/attendance/admin/SyncStatus.tsx`, `client/src/hooks/attendance/useSyncStatus.ts`
+- [x] **T018** [US2] `SyncStatus` admin page with manual sync trigger — `client/src/pages/attendance/admin/SyncStatus.tsx`, `client/src/hooks/attendance/useSyncStatus.ts`
   - **Owner**: Cursor · **Backup**: Codex · **Tool**: Cursor · **Role**: implement
   - **Inputs**: spec Story 2, `contracts/trpc-attendance.md` §syncNow, §syncStatus
   - **Outputs**: Shows current run state + list of recent runs (status, started/finished, counts, HWM, sanitized error). "Sync now" button calls the mutation, displays a toast (success / error / locked), and refreshes the list. Polling at 5 s while a run is `running`, 30 s otherwise.
@@ -216,7 +216,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T016, T014
   - **Constitution Refs**: I, VI
 
-- [ ] **T019** [US2] `RawLogs` page with filters — `client/src/pages/attendance/RawLogs.tsx`, `client/src/hooks/attendance/useRawPunches.ts`
+- [x] **T019** [US2] `RawLogs` page with filters — `client/src/pages/attendance/RawLogs.tsx`, `client/src/hooks/attendance/useRawPunches.ts`
   - **Owner**: Cursor · **Backup**: Codex · **Tool**: Cursor · **Role**: implement
   - **Inputs**: spec Story 2 scenario 2, `contracts/trpc-attendance.md` §rawPunches
   - **Outputs**: Table with date-range picker, employee-code search, source filter. Default range: last 7 days. Pagination 100/page.
@@ -233,7 +233,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
 
 **Independent test**: With raw punches synced and a basic shift defined, `/attendance/daily?date=...` shows correct rows.
 
-- [ ] **T020** [P] [US3] `attendance.dailyByDate` query — `server/routers/attendance.ts`
+- [x] **T020** [P] [US3] `attendance.dailyByDate` query — `server/routers/attendance.ts`
   - **Owner**: Codex · **Backup**: Cursor · **Tool**: Cursor · **Role**: implement
   - **Inputs**: `contracts/trpc-attendance.md` §dailyByDate
   - **Outputs**: Paginated query joining `attendance_daily` to `attendance_employees`, optional `department` filter.
@@ -242,7 +242,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T008
   - **Constitution Refs**: I, VI
 
-- [ ] **T021** [P] [US3] `attendance.dailyByEmployee` query — `server/routers/attendance.ts`
+- [x] **T021** [P] [US3] `attendance.dailyByEmployee` query — `server/routers/attendance.ts`
   - **Owner**: Codex · **Backup**: Cursor · **Tool**: Cursor · **Role**: implement
   - **Inputs**: `contracts/trpc-attendance.md` §dailyByEmployee
   - **Outputs**: Range query for a single employee.
@@ -251,7 +251,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T008
   - **Constitution Refs**: I, VI
 
-- [ ] **T022** [P] [US3] `attendance.insideNow` query — `server/routers/attendance.ts`
+- [x] **T022** [P] [US3] `attendance.insideNow` query — `server/routers/attendance.ts`
   - **Owner**: Codex · **Backup**: Cursor · **Tool**: Cursor · **Role**: implement
   - **Outputs**: Returns list backed by `idx_inside_now` on today's rows.
   - **Prompt**: "Implement `insideNow` per the contract. `SELECT … FROM attendance_daily WHERE work_date = CURDATE() AND inside_now = 1` joined to employees for name/department. Follow the project Constitution and Project Principles strictly."
@@ -259,7 +259,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T008
   - **Constitution Refs**: I, VI
 
-- [ ] **T023** [P] [US3] `attendance.recomputeRange` mutation — `server/routers/attendance.ts`
+- [x] **T023** [P] [US3] `attendance.recomputeRange` mutation — `server/routers/attendance.ts`
   - **Owner**: Codex · **Backup**: Cursor · **Tool**: Cursor · **Role**: implement
   - **Inputs**: `contracts/trpc-attendance.md` §recomputeRange, `research.md` §R11
   - **Outputs**: Manager-gated mutation calling `dailyMaterializer.recomputeRange(from, to, {empCd?})`. Returns `{rowsWritten}`. Idempotent.
@@ -268,7 +268,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T008
   - **Constitution Refs**: I, VI
 
-- [ ] **T024** [US3] `DailyView` page — `client/src/pages/attendance/DailyView.tsx`, `client/src/hooks/attendance/useDailyByDate.ts`
+- [x] **T024** [US3] `DailyView` page — `client/src/pages/attendance/DailyView.tsx`, `client/src/hooks/attendance/useDailyByDate.ts`
   - **Owner**: Cursor · **Backup**: Codex · **Tool**: Cursor · **Role**: implement
   - **Inputs**: spec Story 3, `contracts/trpc-attendance.md` §dailyByDate
   - **Outputs**: Date picker (default today), department filter, table with columns: name, dept, first-in, last-out, worked min, late min, early-leave min, OT min, status (badge). Status badge colors per spec. UI in English.
@@ -277,7 +277,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T020
   - **Constitution Refs**: I, VI
 
-- [ ] **T025** [US3] `LiveBoard` page — `client/src/pages/attendance/LiveBoard.tsx`, `client/src/hooks/attendance/useInsideNow.ts`
+- [x] **T025** [US3] `LiveBoard` page — `client/src/pages/attendance/LiveBoard.tsx`, `client/src/hooks/attendance/useInsideNow.ts`
   - **Owner**: Cursor · **Backup**: Codex · **Tool**: Cursor · **Role**: implement
   - **Inputs**: spec FR-020 ("inside now"), `contracts/trpc-attendance.md` §insideNow
   - **Outputs**: Big-screen friendly grid of avatars/names of employees currently inside. Refetch every 30 s.
@@ -294,7 +294,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
 
 **Independent test**: Inserting a punch with an unknown code surfaces it in the Unknown tab; sync still succeeds.
 
-- [ ] **T026** [P] [US4] `attendance.employeesList` query — `server/routers/attendance.ts`
+- [x] **T026** [P] [US4] `attendance.employeesList` query — `server/routers/attendance.ts`
   - **Owner**: Codex · **Backup**: Cursor · **Tool**: Cursor · **Role**: implement
   - **Outputs**: Paginated, filterable by `search/department/activeOnly/unknownOnly`.
   - **Prompt**: "Implement `employeesList` per the contract. `unknownOnly=true` filters to `active=0 AND full_name='UNKNOWN'`. Follow the project Constitution and Project Principles strictly."
@@ -302,7 +302,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T004
   - **Constitution Refs**: I, VI
 
-- [ ] **T027** [P] [US4] `attendance.employeeDetail` query — `server/routers/attendance.ts`
+- [x] **T027** [P] [US4] `attendance.employeeDetail` query — `server/routers/attendance.ts`
   - **Owner**: Codex · **Backup**: Cursor · **Tool**: Cursor · **Role**: implement
   - **Outputs**: Returns employee + last 10 daily rows + assignments + leaves.
   - **Prompt**: "Implement `employeeDetail` per the contract. Follow the project Constitution and Project Principles strictly."
@@ -310,7 +310,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T004
   - **Constitution Refs**: I, VI
 
-- [ ] **T028** [US4] `EmployeesList` page with Mapped/Unknown tabs — `client/src/pages/attendance/EmployeesList.tsx`, `client/src/components/attendance/UnknownEmployeesPanel.tsx`
+- [x] **T028** [US4] `EmployeesList` page with Mapped/Unknown tabs — `client/src/pages/attendance/EmployeesList.tsx`, `client/src/components/attendance/UnknownEmployeesPanel.tsx`
   - **Owner**: Cursor · **Backup**: Codex · **Tool**: Cursor · **Role**: implement
   - **Outputs**: Two tabs: "Mapped" (`unknownOnly=false, activeOnly=true`), "Unknown" (`unknownOnly=true`). Search + department filter. Pagination 50/page. UI in English.
   - **Prompt**: "Build `EmployeesList.tsx` per spec Story 4. The Unknown tab badge shows the count of unknown employees. Clicking a row opens `/attendance/employees/:empCd`. Follow the project Constitution and Project Principles strictly."
@@ -318,7 +318,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T026
   - **Constitution Refs**: I, VI
 
-- [ ] **T029** [US4] `EmployeeDetail` page — `client/src/pages/attendance/EmployeeDetail.tsx`
+- [x] **T029** [US4] `EmployeeDetail` page — `client/src/pages/attendance/EmployeeDetail.tsx`
   - **Owner**: Cursor · **Backup**: Codex · **Tool**: Cursor · **Role**: implement
   - **Outputs**: Profile section + recent attendance + assignments + leaves. For unknown employees, a banner explaining the state with an "Edit name/department" action.
   - **Prompt**: "Build `EmployeeDetail.tsx` per spec Story 4 scenario 2. For unknown employees (`active=0 AND full_name='UNKNOWN'`), show a yellow banner: 'This employee code was seen in punches but has no profile. Edit below to activate.' Follow the project Constitution and Project Principles strictly."
@@ -334,7 +334,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
 
 **Independent test**: Each report run reconciles to Daily view totals over the same range.
 
-- [ ] **T030** [P] [US5] `attendance.lateReport` query — `server/routers/attendance.ts`
+- [x] **T030** [P] [US5] `attendance.lateReport` query — `server/routers/attendance.ts`
   - **Owner**: GPT-5 (draft SQL) → Codex (implement) · **Backup**: Cursor · **Tool**: Cursor · **Role**: implement
   - **Inputs**: `contracts/trpc-attendance.md` §lateReport
   - **Outputs**: Aggregated SQL over `attendance_daily` with `late_minutes >= threshold`. Returns rows + totals.
@@ -343,7 +343,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T008
   - **Constitution Refs**: I, VI
 
-- [ ] **T031** [P] [US5] `attendance.absenceReport` query — `server/routers/attendance.ts`
+- [x] **T031** [P] [US5] `attendance.absenceReport` query — `server/routers/attendance.ts`
   - **Owner**: GPT-5 (draft) → Codex · **Backup**: Cursor · **Tool**: Cursor · **Role**: implement
   - **Outputs**: Counts `status='absent'` rows over the range, grouped by employee.
   - **Prompt**: "Implement `absenceReport` per the contract. SQL aggregates `attendance_daily WHERE status='absent'`. Follow the project Constitution and Project Principles strictly."
@@ -351,7 +351,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T008
   - **Constitution Refs**: I, VI
 
-- [ ] **T032** [P] [US5] `attendance.overtimeReport` query — `server/routers/attendance.ts`
+- [x] **T032** [P] [US5] `attendance.overtimeReport` query — `server/routers/attendance.ts`
   - **Owner**: GPT-5 (draft) → Codex · **Backup**: Cursor · **Tool**: Cursor · **Role**: implement
   - **Outputs**: Aggregates `overtime_minutes`, days with OT.
   - **Prompt**: "Implement `overtimeReport` per the contract. SQL aggregates `SUM(overtime_minutes), COUNT(*) WHERE overtime_minutes > 0`. Follow the project Constitution and Project Principles strictly."
@@ -359,7 +359,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T008
   - **Constitution Refs**: I, VI
 
-- [ ] **T033** [US5] Reports hub + three report pages with print/CSV — `client/src/pages/attendance/Reports.tsx`, `client/src/pages/attendance/reports/LateReport.tsx`, `AbsenceReport.tsx`, `OvertimeReport.tsx`, `client/src/components/attendance/ReportPrintable.tsx`, `client/src/lib/attendance/csv.ts`
+- [x] **T033** [US5] Reports hub + three report pages with print/CSV — `client/src/pages/attendance/Reports.tsx`, `client/src/pages/attendance/reports/LateReport.tsx`, `AbsenceReport.tsx`, `OvertimeReport.tsx`, `client/src/components/attendance/ReportPrintable.tsx`, `client/src/lib/attendance/csv.ts`
   - **Owner**: Cursor · **Backup**: Gemini (RTL layout review) · **Tool**: Cursor · **Role**: implement
   - **Inputs**: spec Story 5, clarification Q2 (English UI, Arabic reports), `research.md` §R6
   - **Outputs**: Three report pages. Filters in English chrome; printable region wrapped in `<div dir="rtl" lang="ar">` with Arabic headers/column labels/totals. Print CSS hides chrome (`@media print`). CSV export client-side via `Blob` + `URL.createObjectURL`. Numeric and date values use facility-local formatting.
@@ -376,7 +376,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
 
 **Independent test**: Define shift, assign employee, recompute, observe lateness/OT change.
 
-- [ ] **T034** [P] [US6] `attendance.shifts.{list,upsert,delete}` + `assignments.{listByEmployee,upsert,delete}` — `server/routers/attendance.ts`
+- [x] **T034** [P] [US6] `attendance.shifts.{list,upsert,delete}` + `assignments.{listByEmployee,upsert,delete}` — `server/routers/attendance.ts`
   - **Owner**: Codex · **Backup**: Cursor · **Tool**: Cursor · **Role**: implement
   - **Inputs**: contracts/trpc-attendance.md §shifts/assignments
   - **Outputs**: 5+3 procedures. Assignment upsert validates non-overlapping ranges per employee.
@@ -385,7 +385,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T004
   - **Constitution Refs**: I, VI
 
-- [ ] **T035** [P] [US6] `attendance.leaves.{list,upsert,delete}` + `holidays.{list,upsert,delete}` — `server/routers/attendance.ts`
+- [x] **T035** [P] [US6] `attendance.leaves.{list,upsert,delete}` + `holidays.{list,upsert,delete}` — `server/routers/attendance.ts`
   - **Owner**: Codex · **Backup**: Cursor · **Tool**: Cursor · **Role**: implement
   - **Outputs**: Standard CRUD on `attendance_leaves` and `attendance_holidays`.
   - **Prompt**: "Implement leaves and holidays procedures per the contract. Holiday `date` is primary key; upsert on conflict. Follow the project Constitution and Project Principles strictly."
@@ -393,7 +393,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T004
   - **Constitution Refs**: I, VI
 
-- [ ] **T036** [P] [US6] `attendance.punches.adjust` mutation — `server/routers/attendance.ts`
+- [x] **T036** [P] [US6] `attendance.punches.adjust` mutation — `server/routers/attendance.ts`
   - **Owner**: Codex · **Backup**: Cursor · **Tool**: Cursor · **Role**: implement
   - **Inputs**: `contracts/trpc-attendance.md` §punches.adjust, FR-017
   - **Outputs**: Admin-gated mutation inserts a NEW `attendance_punches` row with `source='manual'`, `inserted_by`, `note`. Original rows never modified.
@@ -402,7 +402,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T008
   - **Constitution Refs**: I, VI
 
-- [ ] **T037** [US6] `Settings` page (shifts, assignments, leaves, holidays editors) — `client/src/pages/attendance/Settings.tsx`, `client/src/components/attendance/ShiftEditor.tsx`, `AssignmentEditor.tsx`, `LeaveEditor.tsx`, `HolidayEditor.tsx`
+- [x] **T037** [US6] `Settings` page (shifts, assignments, leaves, holidays editors) — `client/src/pages/attendance/Settings.tsx`, `client/src/components/attendance/ShiftEditor.tsx`, `AssignmentEditor.tsx`, `LeaveEditor.tsx`, `HolidayEditor.tsx`
   - **Owner**: Cursor (Gemini for layout) · **Backup**: Codex · **Tool**: Cursor · **Role**: implement
   - **Inputs**: spec Story 6, T034/T035 contracts
   - **Outputs**: Tabbed page (Shifts / Assignments / Leaves / Holidays). Inline CRUD with optimistic updates. After mutating a shift parameter, prompt user with "Recompute affected dates?" → calls `recomputeRange`. UI in English.
@@ -411,7 +411,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T034, T035, T023
   - **Constitution Refs**: I, VI
 
-- [ ] **T038** [US6] `PunchAdjustDialog` and integration into Raw Logs — `client/src/components/attendance/PunchAdjustDialog.tsx`, EDIT `client/src/pages/attendance/RawLogs.tsx`
+- [x] **T038** [US6] `PunchAdjustDialog` and integration into Raw Logs — `client/src/components/attendance/PunchAdjustDialog.tsx`, EDIT `client/src/pages/attendance/RawLogs.tsx`
   - **Owner**: Cursor · **Backup**: Codex · **Tool**: Cursor · **Role**: implement
   - **Outputs**: Per-row "Adjust" action (admin-only). Dialog requires `note`. On submit, calls `punches.adjust` and refreshes the list.
   - **Prompt**: "Add an admin-only 'Adjust' button per row in RawLogs. Clicking opens `PunchAdjustDialog`: emp_cd (prefilled, readonly), punch_at (datetime), direction (in/out/unknown), note (required, ≥3 chars). On submit, call `attendance.punches.adjust` and show a toast with the new row id. Follow the project Constitution and Project Principles strictly."
@@ -423,7 +423,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [ ] **T039** [P] Unit tests for rules engine — `server/services/attendance/__tests__/rulesEngine.test.ts`
+- [x] **T039** [P] Unit tests for rules engine — `server/services/attendance/__tests__/rulesEngine.test.ts`
   - **Owner**: Codex · **Backup**: Cursor · **Tool**: Cursor · **Role**: implement
   - **Inputs**: `contracts/rules-engine.md` test plan (14 cases for `computeDay`, 8 for `resolveShift`, 6 for `pairPunches`)
   - **Outputs**: 28 Vitest cases. All pure-function; no DB, no fs.
@@ -432,7 +432,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T008
   - **Constitution Refs**: VI, VII
 
-- [ ] **T040** [P] Service-layer tests for sync engine — `server/services/attendance/__tests__/syncEngine.test.ts`
+- [x] **T040** [P] Service-layer tests for sync engine — `server/services/attendance/__tests__/syncEngine.test.ts`
   - **Owner**: Codex · **Backup**: Cursor · **Tool**: Cursor · **Role**: implement
   - **Inputs**: `research.md` §R3, §R13; a `FakeAttendanceSource` in the same file
   - **Outputs**: Tests for: HWM advance, dedup via `INSERT IGNORE`, advisory lock prevents overlap, unknown-employee placeholder UPSERT, quarantine → `partial`, adapter throw before any rows → `failed`, `GET_LOCK` returns 0 → `locked`, run row always closed.
@@ -441,7 +441,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T007
   - **Constitution Refs**: VI, VII
 
-- [ ] **T041** [P] Nightly recompute job — extension of `server/_core/attendanceSyncScheduler.ts`
+- [x] **T041** [P] Nightly recompute job — extension of `server/_core/attendanceSyncScheduler.ts`
   - **Owner**: Cursor · **Backup**: Codex · **Tool**: Cursor · **Role**: implement
   - **Inputs**: spec Assumptions (nightly safety-net recompute, last 7 days)
   - **Outputs**: At 02:30 facility-local, calls `dailyMaterializer.recomputeRange(today-7, today)`. Logged via the same run mechanism if convenient; otherwise a separate audit log line.
@@ -450,7 +450,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T012, T008
   - **Constitution Refs**: VI
 
-- [ ] **T042** [P] Audit-log integration verification — touches existing audit helper usage in T016, T023, T036, T034, T035
+- [x] **T042** [P] Audit-log integration verification — touches existing audit helper usage in T016, T023, T036, T034, T035
   - **Owner**: Cursor · **Backup**: Codex · **Tool**: Cursor · **Role**: review
   - **Outputs**: Confirms every mutation emits an audit log entry via the existing helper used by Medical/Accounting. No new audit table; reuse the existing one.
   - **Prompt**: "Verify that every Attendance mutation (`syncNow`, `recomputeRange`, `shifts.*`, `assignments.*`, `leaves.*`, `holidays.*`, `punches.adjust`) calls the existing audit-log helper with a unique `action` value namespaced under `attendance.*`. List any gaps and fix them inline. Follow the project Constitution and Project Principles strictly."
@@ -458,7 +458,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T016, T023, T034, T035, T036
   - **Constitution Refs**: VI, VII
 
-- [ ] **T043** Quickstart smoke pass — manual run of `specs/001-attendance-fingerprint/quickstart.md` end-to-end
+- [ ] **T043** ⏸ DEFERRED — Quickstart smoke pass — manual run of `specs/001-attendance-fingerprint/quickstart.md` end-to-end (requires physical fingerprint hardware; any engineer with device access can close this by following quickstart.md and confirming all scenarios pass)
   - **Owner**: Claude (review) · **Backup**: — · **Tool**: manual · **Role**: review
   - **Inputs**: `quickstart.md`
   - **Outputs**: Each numbered step in quickstart confirmed working; gaps filed as follow-up tasks.
@@ -467,7 +467,7 @@ Followed by an indented block with: **Owner**, **Backup**, **Tool**, **Role**, *
   - **Deps**: T015, T018, T019, T024, T025, T028, T029, T033, T037, T038
   - **Constitution Refs**: V (parity exempted per spec Assumptions), VI, VII
 
-- [ ] **T044** Final `pnpm check` + `pnpm test` + smoke of Medical/Accounting unchanged
+- [x] **T044** Final `pnpm check` + `pnpm test` + smoke of Medical/Accounting unchanged
   - **Owner**: Cursor · **Backup**: Codex · **Tool**: Cursor · **Role**: review
   - **Outputs**: Verification report: `pnpm check`, `pnpm test`, manual smoke of one Medical and one Accounting page, attached to the PR description per Project Principles §5.
   - **Prompt**: "Run `pnpm check` and `pnpm test`. Manually load one Medical page (e.g., `/medical` home) and one Accounting page (e.g., `/accounting`); confirm they behave identically to `main`. Produce the standard task report (changed files / what changed / checks run / checks skipped). Follow the project Constitution and Project Principles strictly."

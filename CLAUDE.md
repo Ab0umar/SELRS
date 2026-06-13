@@ -109,7 +109,12 @@ See Claude memory files: `project_mssql_sync_fix.md`, `feedback_stale_exam_state
 <!-- SPECKIT START -->
 
 For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan:
-`specs/001-attendance-fingerprint/plan.md`
+shell commands, and other important information, see active plans:
+- `specs/009-routes-full-coverage/plan.md` — extend ROUTES.* to all remaining App.tsx domains (next up)
+- `specs/010-app-router-split/plan.md` — split App.tsx into domain route files
+- `specs/010b-app-cleanup/plan.md` — extract non-route logic from App.tsx (next up after 010)
+- `specs/011-backend-tests/plan.md` — backend integration tests for tRPC procedures
+- `specs/012-queue-visit-hardening/plan.md` — dedup guard + O(1) helper + queue regression test
+- `specs/013-mssql-push-tests/plan.md` — MSSQL push wiring tests for all 3 push procedures (10 tests)
 
 <!-- SPECKIT END -->

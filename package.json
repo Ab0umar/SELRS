@@ -12,6 +12,7 @@
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "dev:prod-watch": "node scripts/watch-build-start.mjs",
     "check": "tsc --noEmit",
+    "test:backend": "vitest run --config vitest.backend.config.ts",
     "format": "prettier --write .",
     "test": "vitest run",
     "test:ui": "playwright test",

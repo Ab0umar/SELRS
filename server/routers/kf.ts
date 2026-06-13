@@ -320,6 +320,17 @@ export const kfRouter = router({
     .input(kfCreatePatientInputSchema)
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
+      const nationalId = String(input.nationalId ?? "").trim();
+      if (nationalId) {
+        const [duplicate] = await db
+          .select({ kfId: kfPatients.kfId })
+          .from(kfPatients)
+          .where(eq(kfPatients.nationalId, nationalId))
+          .limit(1);
+        if (duplicate) {
+          throw error("KF patient with this national ID already exists", "CONFLICT");
+        }
+      }
       const now = new Date();
       const result = await db.transaction(async (tx) => {
         const tempCode = `TMP${Date.now().toString(36)}${Math.random()

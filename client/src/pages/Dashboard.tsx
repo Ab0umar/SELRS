@@ -34,7 +34,7 @@ import { getLocalDateIso } from "@/hooks/operations/operationsShared";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
-import { formatMoneyAr } from "./accounting/accountingFormat";
+import { formatMoneyAr } from "../features/accounting/accountingFormat";
 
 // ─── Lazy charts ────────────────────────────────────────────────────────────
 const ChartLoading = () => (

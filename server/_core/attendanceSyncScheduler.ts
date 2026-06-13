@@ -6,6 +6,7 @@
 
 import { FKDeviceSyncService } from "../services/attendance/fkDeviceSyncService";
 import { FKAttendLogPuller } from "../services/attendance/fkAttendLogPuller";
+import { dailyMaterializer } from "../services/attendance/dailyMaterializer";
 
 function asBool(value: unknown, fallback = false): boolean {
   const raw = String(value ?? "")
@@ -21,6 +22,7 @@ function toNumber(value: unknown, fallback: number): number {
 }
 
 let started = false;
+let lastNightlyRecomputeDate = ""; // YYYY-MM-DD; in-memory marker (recompute is idempotent)
 
 const ATTENDANCE_ENABLED = asBool(process.env.ATTENDANCE_ENABLED, true);
 const BUSINESS_HOURS_START = toNumber(
@@ -45,6 +47,25 @@ function isBusinessHours(): boolean {
 
 function getCurrentIntervalMs(): number {
   return isBusinessHours() ? BIZ_INTERVAL_MS : OFFHOURS_INTERVAL_MS;
+}
+
+async function runNightlyRecomputeIfDue(): Promise<void> {
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  if (now.getHours() < 2 || lastNightlyRecomputeDate === todayStr) return;
+
+  lastNightlyRecomputeDate = todayStr;
+  try {
+    const sevenDaysAgo = new Date(now);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const rowsWritten = await dailyMaterializer.recomputeRange(sevenDaysAgo, now);
+    console.log(`[attendance] nightly recompute done: rowsWritten=${rowsWritten}`);
+  } catch (err) {
+    console.error(
+      "[attendance] nightly recompute error:",
+      err instanceof Error ? err.message : String(err),
+    );
+  }
 }
 
 export function startAttendanceSyncScheduler() {
@@ -93,6 +114,9 @@ export function startAttendanceSyncScheduler() {
     } finally {
       running = false;
     }
+
+    // Nightly safety-net recompute at 02:30 (last 7 days)
+    await runNightlyRecomputeIfDue();
   };
 
   // Start first tick

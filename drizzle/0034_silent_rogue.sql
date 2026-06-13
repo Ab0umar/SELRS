@@ -350,7 +350,7 @@ CREATE TABLE `shift_staff_cycle` (
 	CONSTRAINT `shift_staff_cycle_staff_id_day_of_week_shift_name_pk` PRIMARY KEY(`staff_id`,`day_of_week`,`shift_name`)
 );
 --> statement-breakpoint
-ALTER TABLE `attendance_monthly_report` DROP PRIMARY KEY;--> statement-breakpoint
+ALTER TABLE `attendance_monthly_report` DROP PRIMARY KEY, DROP COLUMN `id`, ADD PRIMARY KEY (`emp_cd`, `year`, `month`);--> statement-breakpoint
 ALTER TABLE `users` MODIFY COLUMN `role` enum('admin','doctor','nurse','technician','reception','manager','accountant','worker','supervisor') NOT NULL DEFAULT 'reception';--> statement-breakpoint
 ALTER TABLE `attendance_employees` ADD `salary_type` varchar(32);--> statement-breakpoint
 ALTER TABLE `attendance_employees` ADD `attendance_commission_rate` decimal(5,4);--> statement-breakpoint
@@ -379,4 +379,3 @@ CREATE INDEX `idx_salary_emp` ON `salary_basics` (`emp_cd`);--> statement-breakp
 CREATE INDEX `idx_payroll_year_month` ON `salary_payroll` (`year`,`month`);--> statement-breakpoint
 CREATE INDEX `idx_penalty_emp_month` ON `salary_penalties` (`emp_cd`,`year`,`month`);--> statement-breakpoint
 CREATE INDEX `idx_raise_emp` ON `salary_raise_history` (`emp_cd`);--> statement-breakpoint
-ALTER TABLE `attendance_monthly_report` DROP COLUMN `id`;

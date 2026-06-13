@@ -3190,6 +3190,22 @@ export async function getVisitsByPatient(patientId: number) {
     .orderBy(desc(visits.visitDate));
 }
 
+export async function hasVisitForDate(
+  patientId: number,
+  dateIso: string,
+): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const rows = await db
+    .select({ id: visits.id })
+    .from(visits)
+    .where(
+      and(eq(visits.patientId, patientId), sql`DATE(${visits.visitDate}) = ${dateIso}`),
+    )
+    .limit(1);
+  return rows.length > 0;
+}
+
 export async function getAllVisits() {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
