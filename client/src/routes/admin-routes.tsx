@@ -22,9 +22,8 @@ const AdminDataSourceAudit = lazy(() => import("../features/admin/AdminDataSourc
 const AdminServices = lazy(() => import("../features/admin/AdminServices"));
 const TestsManagement = lazy(() => import("../pages/TestsManagement"));
 
-export function AdminRoutes() {
-  return (
-    <>
+export const AdminRoutes = (
+  <>
       {/* Admin routes */}
       {/* Admin Hub - handles all /admin-hub routes internally */}
       <Route
@@ -290,6 +289,5 @@ export function AdminRoutes() {
           </ProtectedRoute>
         )}
       />
-    </>
-  );
-}
+  </>
+);

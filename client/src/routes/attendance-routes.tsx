@@ -14,9 +14,8 @@ const AttendanceDeviceSettings = lazy(() => import("../features/attendance/admin
 const AttendanceSyncStatus = lazy(() => import("../features/attendance/admin/SyncStatus"));
 const ShiftSchedule = lazy(() => import("../features/salary/ShiftSchedule"));
 
-export function AttendanceRoutes() {
-  return (
-    <>
+export const AttendanceRoutes = (
+  <>
       {/* Attendance Module Routes — 5 top-level pages */}
       <Route
         path={ROUTES.attendance}
@@ -116,6 +115,5 @@ export function AttendanceRoutes() {
           </ProtectedRoute>
         )}
       />
-    </>
-  );
-}
+  </>
+);

@@ -1,6 +1,5 @@
 import {
   Suspense,
-  lazy,
   memo,
   useCallback,
   useEffect,
@@ -10,7 +9,7 @@ import {
 import { Capacitor } from "@capacitor/core";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Redirect, Route, Switch, useLocation } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
 import { getApiUrl } from "./const";
 import { type RuntimeIssue } from "./components/AppShellStatus";
 import MobileAppEnhancements from "./components/MobileAppEnhancements";
@@ -19,7 +18,6 @@ import GlobalCommandPalette from "./components/GlobalCommandPalette";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { AppShellSkeleton } from "@/components/layout/AppShellSkeleton";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import ProtectedRoute from "./components/ProtectedRoute";
 import { AttendanceRoutes } from "./routes/attendance-routes";
 import { SalaryRoutes } from "./routes/salary-routes";
 import { KfRoutes } from "./routes/kf-routes";
@@ -63,237 +61,6 @@ import {
 import { ensureNativeNotificationPermission } from "./lib/nativeNotifications";
 import { useAuth } from "./hooks/useAuth";
 
-const NotFound = lazy(() => import("./pages/NotFound"));
-const Home = lazy(() => import("./pages/Home"));
-const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
-const Patients = lazy(() => import("./pages/Patients"));
-const PatientDetails = lazy(() => import("./pages/PatientDetails"));
-const ExaminationForm = lazy(() => import("./pages/ExaminationForm"));
-const Operations = lazy(() => import("./pages/Operations"));
-const MedicalReports = lazy(() => import("./pages/MedicalReports"));
-const ConsultantSheet = lazy(() => import("./pages/ConsultantSheet"));
-const ConsultantFollowupPage = lazy(
-  () => import("./pages/ConsultantFollowupPage"),
-);
-const SpecialistSheet = lazy(() => import("./pages/SpecialistSheet"));
-const LasikExamSheet = lazy(() => import("./pages/LasikExamSheet"));
-const LasikFollowupPage = lazy(() => import("./pages/LasikFollowupPage"));
-const PentacamSheet = lazy(() => import("./pages/PentacamSheet"));
-const AdminPentacamLinking = lazy(() => import("./features/admin/AdminPentacamLinking"));
-const PentacamResultsDashboard = lazy(
-  () => import("./pages/PentacamResultsDashboard"),
-);
-const RefractionsDashboard = lazy(() => import("./pages/RefractionsDashboard"));
-const AutorefsDashboard = lazy(() => import("./pages/AutorefsDashboard"));
-const PrescriptionsDashboard = lazy(
-  () => import("./pages/PrescriptionsDashboard"),
-);
-const ExternalOperationSheet = lazy(
-  () => import("./pages/ExternalOperationSheet"),
-);
-const RefractionPage = lazy(() => import("./pages/RefractionPage"));
-const PatientSummary = lazy(() => import("./pages/PatientSummary"));
-const MedicationsTestsManagement = lazy(
-  () => import("./pages/MedicationsTestsManagement"),
-);
-const MedicationsCatalogPage = lazy(
-  () => import("./pages/MedicationsCatalogPage"),
-);
-const MedicationsManagement = lazy(
-  () => import("./pages/MedicationsManagement"),
-);
-const ExaminationsCatalogPage = lazy(
-  () => import("./pages/ExaminationsCatalogPage"),
-);
-const TxHubPage = lazy(() => import("./pages/TxHubPage"));
-const WritePrescription = lazy(() => import("./pages/WritePrescription"));
-const PrescriptionsList = lazy(() => import("./pages/PrescriptionsList"));
-const RequestTests = lazy(() => import("./pages/RequestTests"));
-const AdminUsers = lazy(() => import("./features/admin/AdminUsers"));
-const AdminMigrations = lazy(() => import("./features/admin/AdminMigrations"));
-const AdminApiTools = lazy(() => import("./features/admin/AdminApiTools"));
-const AdminStatus = lazy(() => import("./features/admin/AdminStatus"));
-const AdminSettings = lazy(() => import("./features/admin/AdminSettings"));
-const AdminNotificationSettings = lazy(
-  () => import("./features/admin/AdminNotificationSettings"),
-);
-const AdminPermissions = lazy(() => import("./features/admin/AdminPermissions"));
-const AdminSheets = lazy(() => import("./features/admin/AdminSheets"));
-const AdminSheetDesigner = lazy(() => import("./features/admin/AdminSheetDesigner"));
-const AdminDoctors = lazy(() => import("./features/admin/AdminDoctors"));
-const AdminPentacamFailed = lazy(() => import("./features/admin/AdminPentacamFailed"));
-const AdminSheetCopies = lazy(() => import("./features/admin/AdminSheetCopies"));
-const AdminFormsHub = lazy(() => import("./features/admin/AdminFormsHub"));
-const AdminPatients = lazy(() => import("./features/admin/AdminPatients"));
-const AdminCardVisibility = lazy(() => import("./features/admin/AdminCardVisibility"));
-const AdminDiagnostics = lazy(() => import("./features/admin/AdminDiagnostics"));
-const AdminDataSourceAudit = lazy(() => import("./features/admin/AdminDataSourceAudit"));
-const ForcePasswordChange = lazy(() => import("./pages/ForcePasswordChange"));
-const Profile = lazy(() => import("./pages/Profile"));
-const QuickPatientEntry = lazy(() => import("./pages/QuickPatientEntry"));
-const NewCases = lazy(() => import("./pages/NewCases"));
-const FollowupForm = lazy(() => import("./pages/FollowupForm"));
-const DoctorPatientView = lazy(() => import("./pages/DoctorPatientView"));
-const PatientHubShell = lazy(() => import("./pages/PatientHubShell"));
-const ClinicsHubShell = lazy(() => import("./pages/ClinicsHubShell"));
-const PatientsHubShell = lazy(() => import("./pages/PatientsHubShell"));
-const ServicesHubShell = lazy(() => import("./pages/ServicesHubShell"));
-const WorkflowShell = lazy(() => import("./pages/WorkflowShell"));
-const AdminHubShell = lazy(() => import("./features/admin/AdminHubShell"));
-const Followups = lazy(() => import("./pages/Followups"));
-const Visits = lazy(() => import("./pages/Visits"));
-const AdminServices = lazy(() => import("./features/admin/AdminServices"));
-const TestsManagement = lazy(() => import("./pages/TestsManagement"));
-const ComponentShowcase = lazy(() => import("./pages/ComponentShowcase"));
-const Styleguide = lazy(() => import("./pages/dev/Styleguide"));
-const ComponentsGallery = lazy(() => import("./pages/dev/ComponentsGallery"));
-const Prototypes = lazy(() => import("./pages/dev/Prototypes"));
-const Documentation = lazy(() => import("./pages/dev/Documentation"));
-const TodayPatients = lazy(() => import("./pages/TodayPatients"));
-const WorkflowHub = lazy(() => import("./pages/WorkflowHub"));
-const StockroomShell = lazy(() => import("./features/stockroom/StockroomShell"));
-const KfShell = lazy(() => import("./features/kf/KfShell"));
-const KfHome = lazy(() => import("./features/kf/KfHome"));
-const KfPatients = lazy(() => import("./features/kf/KfPatients"));
-const KfPatientForm = lazy(() => import("./features/kf/KfPatientForm"));
-const KfPatientDetail = lazy(() => import("./features/kf/KfPatientDetail"));
-const KfVisitForm = lazy(() => import("./features/kf/KfVisitForm"));
-const KfExaminationForm = lazy(() => import("./features/kf/KfExaminationForm"));
-const KfOperationForm = lazy(() => import("./features/kf/KfOperationForm"));
-const KfFollowupForm = lazy(() => import("./features/kf/KfFollowupForm"));
-const KfOperations = lazy(() => import("./features/kf/KfOperations"));
-const KfFollowups = lazy(() => import("./features/kf/KfFollowups"));
-const KfConsultantSheet = lazy(
-  () => import("./features/kf/KfConsultantSheet"),
-);
-const KfConsultantFollowupSheet = lazy(
-  () => import("./features/kf/KfConsultantFollowupSheet"),
-);
-const KfAccounting = lazy(() => import("./features/kf/KfAccounting"));
-const KfDailyRevenue = lazy(() => import("./features/kf/KfDailyRevenue"));
-const KfServiceRevenue = lazy(() => import("./features/kf/KfServiceRevenue"));
-const KfReceipts = lazy(() => import("./features/kf/KfReceipts"));
-const KfLedger = lazy(() => import("./features/kf/KfLedger"));
-// Marketing module
-import MarketingLayout from "./pages/marketing/MarketingLayout";
-const MarketingDashboard = lazy(
-  () => import("./pages/marketing/MarketingDashboard"),
-);
-const PostHistory = lazy(() => import("./pages/marketing/PostHistory"));
-const DraftPosts = lazy(() => import("./pages/marketing/DraftPosts"));
-const MarketingSettings = lazy(
-  () => import("./pages/marketing/MarketingSettings"),
-);
-const BrandLibrary = lazy(() => import("./pages/marketing/BrandLibrary"));
-// Attendance module
-import AttendanceLayout from "./features/attendance/AttendanceLayout";
-const AttendanceHome = lazy(() => import("./features/attendance/AttendanceHome"));
-const AttendanceLive = lazy(() => import("./features/attendance/LiveBoard"));
-const AttendanceMyProfile = lazy(
-  () => import("./features/attendance/MyAttendanceProfile"),
-);
-const AttendanceEmployeeDetail = lazy(
-  () => import("./features/attendance/EmployeeDetail"),
-);
-const AttendanceEmployeesHub = lazy(
-  () => import("./features/attendance/EmployeesHub"),
-);
-const AttendanceReportsHub = lazy(
-  () => import("./features/attendance/ReportsHub"),
-);
-const AttendanceSettingsHub = lazy(
-  () => import("./features/attendance/SettingsHub"),
-);
-const AttendanceDeviceSettings = lazy(
-  () => import("./features/attendance/admin/DeviceSettings"),
-);
-const AttendanceSyncStatus = lazy(
-  () => import("./features/attendance/admin/SyncStatus"),
-);
-// Salary module
-import SalaryLayout from "./features/salary/SalaryLayout";
-const SalaryBasics = lazy(() => import("./features/salary/SalaryBasics"));
-const SalaryPenalties = lazy(() => import("./features/salary/SalaryPenalties"));
-const CommissionPools = lazy(() => import("./features/salary/CommissionPools"));
-const PayrollReport = lazy(() => import("./features/salary/PayrollReport"));
-const SalarySettings = lazy(() => import("./features/salary/SalarySettings"));
-const ShiftStaff = lazy(() => import("./features/salary/ShiftStaff"));
-const ShiftSchedule = lazy(() => import("./features/salary/ShiftSchedule"));
-const ShiftPayroll = lazy(() => import("./features/salary/ShiftPayroll"));
-const AbsentReport = lazy(() => import("./features/salary/AbsentReport"));
-const CurrentSalaryData = lazy(
-  () => import("./features/salary/CurrentSalaryData"),
-);
-// External Doctors module
-const ExternalDoctors = lazy(() => import("./pages/ExternalDoctors"));
-const ExternalDoctorReferrals = lazy(
-  () => import("./pages/ExternalDoctorReferrals"),
-);
-// Doctor portal
-const DoctorLogin = lazy(() => import("./features/doctor-portal/DoctorLogin"));
-const DoctorDashboard = lazy(
-  () => import("./features/doctor-portal/DoctorDashboard"),
-);
-const DoctorPatientImages = lazy(
-  () => import("./features/doctor-portal/DoctorPatientImages"),
-);
-import DoctorPortalRoute from "./components/DoctorPortalRoute";
-// Patient portal
-const PatientLogin = lazy(() => import("./features/patient-portal/PatientLogin"));
-const PatientGuestBook = lazy(
-  () => import("./features/patient-portal/PatientGuestBook"),
-);
-const PatientFile = lazy(() => import("./features/patient-portal/PatientFile"));
-const PatientRefraction = lazy(
-  () => import("./features/patient-portal/PatientRefraction"),
-);
-const PatientPrescription = lazy(
-  () => import("./features/patient-portal/PatientPrescription"),
-);
-const PatientScans = lazy(() => import("./features/patient-portal/PatientScans"));
-const PatientBook = lazy(() => import("./features/patient-portal/PatientBook"));
-const PatientBookings = lazy(
-  () => import("./features/patient-portal/PatientBookings"),
-);
-import PatientPortalRoute from "./components/PatientPortalRoute";
-const AccountingHome = lazy(() => import("./features/accounting/AccountingHome"));
-const AccountingPrototypes = lazy(
-  () => import("./features/accounting/AccountingPrototypes"),
-);
-const AccountingCashbook = lazy(
-  () => import("./features/accounting/AccountingCashbook"),
-);
-const AccountingLedger = lazy(
-  () => import("./features/accounting/AccountingLedger"),
-);
-const AccountingAdvances = lazy(
-  () => import("./features/accounting/AccountingAdvances"),
-);
-const AccountingLoans = lazy(
-  () => import("./features/accounting/AccountingLoans"),
-);
-const AccountingHomeFund = lazy(
-  () => import("./features/accounting/AccountingHomeFund"),
-);
-const AccountingInstapay = lazy(
-  () => import("./features/accounting/AccountingInstapay"),
-);
-const AccountingDrSaadany = lazy(
-  () => import("./features/accounting/AccountingDrSaadany"),
-);
-const DailyRevenue = lazy(() => import("./features/accounting/DailyRevenue"));
-const LasikRevenue = lazy(() => import("./features/accounting/LasikRevenue"));
-const ReceiptsInquiry = lazy(
-  () => import("./features/accounting/ReceiptsInquiry"),
-);
-const ReceiptDetail = lazy(() => import("./features/accounting/ReceiptDetail"));
-const LasikServices = lazy(() => import("./features/accounting/LasikServices"));
-const AccountingPatientsInquiry = lazy(
-  () => import("./features/accounting/AccountingPatientsInquiry"),
-);
-const PatientAccount = lazy(() => import("./features/accounting/PatientAccount"));
-const DoctorAccount = lazy(() => import("./features/accounting/DoctorAccount"));
-const PrintPreview = lazy(() => import("./features/accounting/PrintPreview"));
 const RUNTIME_ISSUE_STORAGE_KEY = "selrs:last-runtime-issue";
 const HEALTH_POLL_MS = 60_000;
 const NATIVE_HEALTH_POLL_MS = 5 * 60_000;
@@ -372,19 +139,17 @@ async function copyToClipboard(value: string) {
 }
 
 const Router = memo(function Router() {
-  // Route group functions are called directly (not as JSX components) so wouter's
-  // Switch can flatten their Fragment children and see all Route elements.
   return (
     <Switch>
       <Route path={ROUTES.dashboard} component={DashboardRouteGate} />
-      {AttendanceRoutes()}
-      {SalaryRoutes()}
-      {KfRoutes()}
-      {AccountingRoutes()}
-      {MedicalRoutes()}
-      {AdminRoutes()}
-      {MarketingRoutes()}
-      {MiscRoutes()}
+      {AttendanceRoutes}
+      {SalaryRoutes}
+      {KfRoutes}
+      {AccountingRoutes}
+      {MedicalRoutes}
+      {AdminRoutes}
+      {MarketingRoutes}
+      {MiscRoutes}
     </Switch>
   );
 });

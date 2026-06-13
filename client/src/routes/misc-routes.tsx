@@ -42,9 +42,8 @@ const Documentation = lazy(() => import("../pages/dev/Documentation"));
 const PrivacyPolicy = lazy(() => import("../pages/PrivacyPolicy"));
 const NotFound = lazy(() => import("../pages/NotFound"));
 
-export function MiscRoutes() {
-  return (
-    <>
+export const MiscRoutes = (
+  <>
       <Route path={ROUTES.doctorPortalLogin} component={DoctorLogin} />
       <Route
         path={ROUTES.doctorPortalPatient}
@@ -263,6 +262,5 @@ export function MiscRoutes() {
       <Route path={ROUTES.privacy} component={PrivacyPolicy} />
       <Route path={ROUTES.page404} component={NotFound} />
       <Route component={NotFound} />
-    </>
-  );
-}
+  </>
+);

@@ -48,9 +48,8 @@ const AdminPentacamLinking = lazy(() => import("../features/admin/AdminPentacamL
 const ExternalDoctorReferrals = lazy(() => import("../pages/ExternalDoctorReferrals"));
 const ExternalDoctors = lazy(() => import("../pages/ExternalDoctors"));
 
-export function MedicalRoutes() {
-  return (
-    <>
+export const MedicalRoutes = (
+  <>
       <Route
         path={`${ROUTES.examination}/:id`}
         component={() => (
@@ -543,6 +542,5 @@ export function MedicalRoutes() {
           </ProtectedRoute>
         )}
       />
-    </>
-  );
-}
+  </>
+);

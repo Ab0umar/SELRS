@@ -156,6 +156,22 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
+function stripImpeccableLive(): Plugin {
+  return {
+    name: "strip-impeccable-live",
+    transformIndexHtml: {
+      order: "post",
+      handler(html, ctx) {
+        if (ctx.server) return html;
+        return html.replace(
+          /\s*<!--\s*impeccable-live-start\s*-->[\s\S]*?<!--\s*impeccable-live-end\s*-->/,
+          "",
+        );
+      },
+    },
+  };
+}
+
 const APP_VERSION = process.env.npm_package_version ?? "unknown";
 const BUILD_TIME = new Date().toISOString();
 const ANDROID_GOOGLE_SERVICES_JSON = path.join(
@@ -170,7 +186,7 @@ const hasAndroidGoogleServicesJson = fs.existsSync(
 
 export default defineConfig(({ mode }) => {
   const isProd = mode === "production";
-  const plugins: PluginOption[] = [react()];
+  const plugins: PluginOption[] = [react(), stripImpeccableLive() as PluginOption];
 
   // Temporarily disabled plugins to fix Vite build issues
   // if (!isProd) {

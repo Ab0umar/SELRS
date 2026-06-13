@@ -21,9 +21,8 @@ const KfServiceRevenue = lazy(() => import("../features/kf/KfServiceRevenue"));
 const KfReceipts = lazy(() => import("../features/kf/KfReceipts"));
 const KfLedger = lazy(() => import("../features/kf/KfLedger"));
 
-export function KfRoutes() {
-  return (
-    <>
+export const KfRoutes = (
+  <>
       {/* KF Module Routes */}
       <Route
         path={ROUTES.kf}
@@ -208,6 +207,5 @@ export function KfRoutes() {
           </ProtectedRoute>
         )}
       />
-    </>
-  );
-}
+  </>
+);

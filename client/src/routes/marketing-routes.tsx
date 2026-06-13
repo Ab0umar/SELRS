@@ -9,9 +9,8 @@ const DraftPosts = lazy(() => import("../pages/marketing/DraftPosts"));
 const MarketingSettings = lazy(() => import("../pages/marketing/MarketingSettings"));
 const BrandLibrary = lazy(() => import("../pages/marketing/BrandLibrary"));
 
-export function MarketingRoutes() {
-  return (
-    <>
+export const MarketingRoutes = (
+  <>
       <Route
         path={ROUTES.marketing}
         component={() => (
@@ -62,6 +61,5 @@ export function MarketingRoutes() {
           </ProtectedRoute>
         )}
       />
-    </>
-  );
-}
+  </>
+);

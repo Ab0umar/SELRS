@@ -21,9 +21,8 @@ const ReceiptDetail = lazy(() => import("../features/accounting/ReceiptDetail"))
 const LasikRevenue = lazy(() => import("../features/accounting/LasikRevenue"));
 const LasikServices = lazy(() => import("../features/accounting/LasikServices"));
 
-export function AccountingRoutes() {
-  return (
-    <>
+export const AccountingRoutes = (
+  <>
       {/* Accounting Module Routes */}
       <Route
         path={ROUTES.accounting}
@@ -209,6 +208,5 @@ export function AccountingRoutes() {
           </ProtectedRoute>
         )}
       />
-    </>
-  );
-}
+  </>
+);

@@ -13,9 +13,8 @@ const ShiftPayroll = lazy(() => import("../features/salary/ShiftPayroll"));
 const AbsentReport = lazy(() => import("../features/salary/AbsentReport"));
 const CurrentSalaryData = lazy(() => import("../features/salary/CurrentSalaryData"));
 
-export function SalaryRoutes() {
-  return (
-    <>
+export const SalaryRoutes = (
+  <>
       {/* Salary Module Routes */}
       <Route
         path={ROUTES.salary}
@@ -107,6 +106,5 @@ export function SalaryRoutes() {
           </ProtectedRoute>
         )}
       />
-    </>
-  );
-}
+  </>
+);
