@@ -108,9 +108,9 @@ function switchSource(nextUrl) {
   }
 }
 
-function buildAppMenu() {
+function buildSourceMenu() {
   const activeOrigin = normalizeSourceUrl(activeHomeUrl);
-  const sourceSubmenu = SOURCE_PRESETS.map((preset) => {
+  const items = SOURCE_PRESETS.map((preset) => {
     const presetUrl = normalizeSourceUrl(preset.url);
     return {
       type: "radio",
@@ -119,10 +119,10 @@ function buildAppMenu() {
       click: () => switchSource(presetUrl),
     };
   });
-  sourceSubmenu.push(
+  items.push(
     { type: "separator" },
     {
-      label: "Reload Current Source",
+      label: "Reload",
       click: () => {
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.loadURL(activeHomeUrl);
@@ -130,15 +130,12 @@ function buildAppMenu() {
       },
     }
   );
+  return Menu.buildFromTemplate(items);
+}
 
-  const template = [
-    {
-      label: "Source",
-      submenu: sourceSubmenu,
-    },
-  ];
-  const menu = Menu.buildFromTemplate(template);
-  Menu.setApplicationMenu(menu);
+function showSourceMenu() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  buildSourceMenu().popup({ window: mainWindow });
 }
 
 function createWindow() {
@@ -179,6 +176,14 @@ function createWindow() {
     if (key === "f5" || ((input.control || input.meta) && key === "r")) {
       event.preventDefault();
     }
+    if (input.type === "keyDown" && (input.control || input.meta) && input.shift && key === "s") {
+      event.preventDefault();
+      showSourceMenu();
+    }
+  });
+
+  mainWindow.webContents.on("context-menu", () => {
+    showSourceMenu();
   });
   logEvent("window-created");
   showWindowTimer = setTimeout(() => {
@@ -322,7 +327,7 @@ app.whenReady().then(() => {
     logEvent("permission-request", { permission, origin, allowed });
     callback(allowed);
   });
-  buildAppMenu();
+  Menu.setApplicationMenu(null);
   createWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
