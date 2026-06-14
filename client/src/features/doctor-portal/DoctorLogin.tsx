@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, Redirect, useLocation } from "wouter";
 import {
   Eye,
   Loader2,
@@ -32,10 +32,7 @@ export default function DoctorLogin() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  if (isLoggedIn) {
-    navigate("/doctor-portal/dashboard");
-    return null;
-  }
+  if (isLoggedIn) return <Redirect to="/doctor-portal/dashboard" />;
 
   const loginMutation = trpc.doctorPortal.login.useMutation({
     onSuccess: (data) => {
