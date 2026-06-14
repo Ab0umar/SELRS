@@ -1312,5 +1312,31 @@ Router file: `server/routers/patientPortal.ts`
 
 ---
 
-**Last Updated:** 2026-06-12
-**API Version:** 2.0.0
+---
+
+## 🩺 Doctor Portal Router (`doctorPortal`)
+
+External doctor portal. Uses `doctorPortalProcedure` (JWT session, `type: "externalDoctor"`). Public procedures include login.
+
+### Key procedures
+
+| Procedure | Type | Auth |
+|---|---|---|
+| `login` | mutation | public |
+| `getMyPatients` | query | `doctorPortalProcedure` |
+| `getPatientImages` | query | `doctorPortalProcedure` |
+
+**`getMyPatients`** returns patients linked via `external_doctor_referrals` OR auto-matched by `doctorCode`, filtered to only those with at least one `blackice_uploads` record (Pentacam images). Each row includes `source: "referral" | "auto"`.
+
+**`getPatientImages`** returns patient profile + `images[]` (Pentacam scans) + `refractions[]` + `prescriptions[]`. Security: verifies the patient is linked to the requesting doctor before returning data.
+
+**Auto-referral:** When a new patient is registered in `medical-patient.ts` with a `doctorCode` matching an active external doctor, `autoLinkAndNotifyDoctors()` inserts an `external_doctor_referrals` row (INSERT IGNORE) and sends a WebSocket `{ type: "new-patient" }` event to the doctor's connection.
+
+**WebSocket:** Doctor portal connects to `/ws?doctorToken=<jwt>`. The WS server (`server/_core/ws.ts`) verifies the token and sets `ws.doctorPortalId`. Use `broadcastToDoctorPortal(doctorId, payload)` to send targeted messages.
+
+Router file: `server/routers/doctorPortal.ts`
+
+---
+
+**Last Updated:** 2026-06-14
+**API Version:** 2.1.0

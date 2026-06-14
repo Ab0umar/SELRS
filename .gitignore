@@ -59,6 +59,7 @@ desktop-electron/win7/node_modules/
 desktop-electron/*.exe
 desktop-electron/*.zip
 desktop-electron/*.7z
+desktop-electron/win-unpacked
 
 # Packaged mobile artifacts
 *.apk

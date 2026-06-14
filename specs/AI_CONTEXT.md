@@ -1,7 +1,7 @@
 # SRV100 AI Context Document
 
 > Single "read this first" file for any AI model (Cursor, Codex, Claude, GPT, Gemini, GLM, Kimi).
-> Version: 2.0.0 — updated 2026-06-13. Reflects plans 001–005 complete.
+> Version: 2.1.0 — updated 2026-06-14. Reflects plans 001–005 complete + 010 (app router split), doctor portal real-time notifications, Pentacam auto-linker, حجز filter.
 
 ---
 
@@ -55,7 +55,10 @@ SELRS (Saadany Eye Laser & Refractive Surgery) Medical Center Platform. A monoli
 - **Drizzle ORM** for MySQL access (`server/db.ts`)
 - **mssql** package for MSSQL access via `createMssqlPool()` from `server/integrations/mssqlPatients.ts`
 - **Zod** for input/output validation on all tRPC procedures
-- WebSocket server for real-time medical updates
+- WebSocket server for real-time medical updates (`server/_core/ws.ts`)
+  - Staff connections authenticated via session cookie
+  - Doctor portal connections authenticated via `?doctorToken=<jwt>` query param (same `JWT_SECRET`)
+  - `broadcastToDoctorPortal(doctorId, payload)` sends targeted messages to a specific doctor's connection
 
 ## Database Architecture
 
@@ -76,6 +79,10 @@ MySQL (selrs26)                    MSSQL (op2026)
 ├── attendance_holidays
 ├── attendance_daily
 ├── kf_patients + 4 more kf_* tables
+├── external_doctors           → Doctor portal accounts (username, passwordHash, doctorCode, isActive)
+├── external_doctor_referrals  → Links external doctor ↔ patient (auto-created on patient registration)
+├── external_doctor_access_logs → Audit trail for doctor portal access
+├── blackice_uploads           → Pentacam scan images (linked to patients.id)
 └── ... (medical schema)
 ```
 
@@ -84,12 +91,13 @@ MySQL (selrs26)                    MSSQL (op2026)
 ## Routing Architecture
 
 - `client/src/App.tsx` — lazy routes with `ProtectedRoute` wrappers; all permission-gated paths use `ROUTES.*` constants from `shared/routes.ts`
+- **Route groups are JSX constants, NOT function calls.** Route files (`attendance-routes.tsx`, `salary-routes.tsx`, `kf-routes.tsx`, etc.) export `export const AttendanceRoutes = (<>...</>)`. In `App.tsx` use `{AttendanceRoutes}` not `{AttendanceRoutes()}`. Do not revert to function calls.
 - Medical routes: `/dashboard`, `/patients/*`, `/operations`, etc.
 - Accounting routes: `/accounting/*` — all gated by `allowedRoles` or path-based permission
 - Attendance routes: `/attendance/*` — gated by attendance permission
 - KF routes: `/kf/*` — gated by KF permission
 - Key renames done: `/txhub` → `/treatment`, `/today` → `/bookings`, `/admin-hub` → `/booking-triage` (redirects in place)
-- Backend: `server/routers/index.ts` composes `appRouter = { medical, patient, accounting, attendance, kf, ... }`
+- Backend: `server/routers/index.ts` composes `appRouter = { medical, patient, accounting, attendance, kf, doctorPortal, ... }`
 
 ## tRPC Structure
 
@@ -101,19 +109,21 @@ server/routers/
 ├── medical-examinations.ts   → Examinations/visits procedures
 ├── medical-mssql.ts          → MSSQL sync procedures
 ├── medical-ops.ts            → Ops/admin/reports procedures
-├── medical-patient.ts        → Patient-core procedures
-├── medical-pentacam.ts       → Pentacam procedures
+├── medical-patient.ts        → Patient-core procedures; calls autoLinkAndNotifyDoctors() on new patient
+├── medical-pentacam.ts       → Pentacam procedures; exports autoLinkUnlinkedPentacamFiles()
 ├── _medical/                 → Shared helpers (pentacam-helpers, patient-helpers, service-helpers)
 ├── patient.ts                → Patient queries (UNTOUCHABLE)
 ├── accounting.ts             → Accounting read-only queries
 ├── attendance.ts             → Attendance module (~3500 lines; shifts/leaves/holidays/sync/reports)
+├── doctorPortal.ts           → External doctor portal (login, getMyPatients, getPatientImages)
 └── kf.ts                     → KF clinical module
 
 server/_core/
-├── procedures.ts     → Role-based procedure builders
+├── procedures.ts     → Role-based procedure builders; includes doctorPortalProcedure
 ├── trpc.ts           → tRPC init
 ├── context.ts        → Auth context
-├── index.ts          → Express server bootstrap
+├── index.ts          → Express server bootstrap; runs startPentacamAutoLinker() on startup
+├── ws.ts             → WebSocket server; staff (cookie auth) + doctor portal (?doctorToken= JWT)
 └── env.ts            → Environment config
 ```
 
@@ -121,6 +131,7 @@ server/_core/
 
 - `publicProcedure` — no auth
 - `protectedProcedure` — any authenticated user
+- `doctorPortalProcedure` — external doctor portal JWT auth (verifies `type: "externalDoctor"` JWT)
 - `doctorProcedure` — doctor, admin, manager
 - `nurseProcedure` — nurse, admin, manager
 - `technicianProcedure` — technician, admin, manager
@@ -139,7 +150,9 @@ server/_core/
 ```
 client/src/
 ├── App.tsx                    → Route definitions (lazy + ProtectedRoute); uses ROUTES.* constants
+│                                 Route groups are JSX constants {AttendanceRoutes}, NOT function calls
 ├── pages/                     → Shared/medical pages (Dashboard, Operations, Patients, Login, etc.)
+│   └── dashboard/appointments-activity.tsx → Today queue; حجز filter chip shows portal bookings + queue
 ├── features/                  → Domain feature folders (plan 005 complete)
 │   ├── kf/                    → KF clinical pages + KF-specific components
 │   ├── attendance/            → Attendance pages + attendance-specific components
@@ -147,7 +160,7 @@ client/src/
 │   ├── accounting/            → Accounting pages (AccountingHome, DailyRevenue, LasikRevenue, etc.)
 │   ├── stockroom/             → Stockroom pages
 │   ├── admin/                 → Admin pages
-│   ├── doctor-portal/         → Doctor portal pages
+│   ├── doctor-portal/         → Doctor portal pages; DoctorDashboard opens WS for real-time notifications
 │   └── patient-portal/        → Patient portal pages
 ├── components/
 │   ├── ProtectedRoute.tsx     → Frontend auth gate; uses ROUTES.* constants (UNTOUCHABLE)
@@ -493,9 +506,26 @@ server/services/accounting/
 
 ## Notifications Flow
 
-- FCM (Firebase Cloud Messaging) for push notifications
-- WebSocket for real-time in-app updates
-- Notification triggers: patient arrival, operation status change, etc.
+- FCM (Firebase Cloud Messaging) for push notifications to mobile
+- WebSocket for real-time in-app updates (staff) and doctor portal notifications
+- Notification triggers: patient arrival, operation status change, new patient for doctor
+- Doctor portal real-time: when a new patient is registered with a matching `doctorCode`, `autoLinkAndNotifyDoctors()` fires → inserts `external_doctor_referrals` (INSERT IGNORE) + broadcasts `{ type: "new-patient" }` via WS → DoctorDashboard shows browser Notification
+
+## Pentacam Auto-Linker
+
+- `startPentacamAutoLinker()` runs in `server/_core/index.ts` on server startup
+- Calls `autoLinkUnlinkedPentacamFiles()` from `server/routers/medical-pentacam.ts` immediately, then every 5 minutes
+- Queries `blackice_uploads` where `patient_id IS NULL`, matches by patient code in file name, updates `patient_id`
+- Guarded by `busy` flag to prevent concurrent runs; logs only when `imported > 0`
+- **Do not add manual triggers or UI buttons** for Pentacam linking — the scheduler handles it
+
+## Doctor Portal
+
+- External doctors access via `/doctor-portal` route with their own JWT-based auth (`doctorPortalProcedure`)
+- JWT signed with same `JWT_SECRET`; `type: "externalDoctor"` claim distinguishes from staff tokens
+- `getMyPatients`: returns patients linked via `external_doctor_referrals` OR auto-matched by `doctorCode`, **only those with at least one `blackice_uploads` record** (Pentacam images)
+- Auto-referral: on any new patient registration, `autoLinkAndNotifyDoctors()` checks for active external doctors with matching `doctorCode` and inserts referrals idempotently
+- Real-time: doctor portal WS connection authenticates via `?doctorToken=<jwt>`; receives `new-patient` events instantly
 
 ## What Must NEVER Break
 
@@ -703,6 +733,10 @@ Every completed task reports:
 17. **Adding pages directly to `client/src/pages/`** — domain pages go in `client/src/features/<domain>/`
 18. **Editing `medical.ts` for procedure logic** — edit the relevant `medical-*.ts` sub-router instead
 19. **Hardcoding attendance paths without `makeAttProcedure`** — use the attendance procedure builders
+20. **Reverting route files to function calls** — `export const AttendanceRoutes = (<>...</>)` not `export function AttendanceRoutes() { return (<>...</>) }`; function calls bypass React component semantics
+21. **Calling `{AttendanceRoutes()}`** in App.tsx — use `{AttendanceRoutes}` (JSX constant reference)
+22. **Adding Pentacam link UI buttons** — the 5-minute server scheduler handles all linking automatically
+23. **Picking `doctorToken` for doctor portal WS without `?doctorToken=` query param** — that is the agreed auth path for doctor WS connections; do not change to header-based auth
 
 ---
 
@@ -737,6 +771,7 @@ After editing:
 
 ---
 
-**Document version:** 2.0.0 — updated 2026-06-13
+**Document version:** 2.1.0 — updated 2026-06-14
 **Aligned with:** Constitution v1.0.0, Project Principles v1.0.0
-**Plans complete:** 001 (Attendance, T043 hardware smoke pending), 002 (Medical router split), 003 (Permission typed constants), 004 (Route rename cleanup), 005 (Frontend feature folders)
+**Plans complete:** 001 (Attendance, T043 hardware smoke pending), 002 (Medical router split), 003 (Permission typed constants), 004 (Route rename cleanup), 005 (Frontend feature folders), 010 (App router split — JSX constants, dead import cleanup, Vite strip-impeccable-live plugin)
+**Recent features (no plan):** Pentacam 5-min auto-linker (server startup scheduler), Doctor portal real-time WS notifications + auto-referral on patient registration, حجز filter in today queue (appointments-activity.tsx)

@@ -39,7 +39,7 @@ server/
     index.ts             — Express server bootstrap, CORS, health endpoint
     trpc.ts              — tRPC init
     env.ts               — environment config
-    ws.ts                — WebSocket server
+    ws.ts                — WebSocket server (staff cookie auth + doctor portal ?doctorToken= JWT auth)
   routers/
     index.ts             — appRouter composition
     medical.ts           — core medical CRUD (UNTOUCHABLE)
@@ -51,6 +51,7 @@ server/
     stockroom.ts         — inventory management
     patientPortal.ts     — patient portal (OTP auth)
     marketing.ts         — marketing posts (admin only)
+    doctorPortal.ts      — external doctor portal (JWT auth, patient images, referrals)
   db.ts                  — Drizzle MySQL access, legacy text helpers (UNTOUCHABLE)
   integrations/
     mssqlPatients.ts     — MSSQL pool + sync logic (UNTOUCHABLE)
@@ -105,6 +106,7 @@ pnpm db:sync-check
 | Stockroom | `/stockroom`, `/stockroom/*` | `server/routers/stockroom.ts` | `makeStockroomProcedure` / `makeStockroomWriteProcedure` | admin |
 | Patient Portal | `/my/*` | `server/routers/patientPortal.ts` | `patientPortalProcedure` (OTP session) | — |
 | Marketing | `/marketing/*` | `server/routers/marketing.ts` | `ProtectedRoute requiredRoles=["admin"]` | — |
+| Doctor Portal | `/doctor-portal/*` | `server/routers/doctorPortal.ts` | `doctorPortalProcedure` (JWT, external doctors) | — |
 
 ## Permission System
 

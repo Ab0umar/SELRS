@@ -1,7 +1,7 @@
 # SRV100 AI Context Document
 
 > Single "read this first" file for any AI model (Cursor, Codex, Claude, GPT, Gemini, GLM, Kimi).
-> Version: 2.0.0 — aligned with Constitution v1.0.0, Principles v1.0.0. Updated 2026-06-12.
+> Version: 2.1.0 — aligned with Constitution v1.0.0, Principles v1.0.0. Updated 2026-06-14. Adds: app router split (JSX constants), doctor portal real-time WS notifications + auto-referral, Pentacam auto-linker, حجز filter in today queue.
 
 ---
 
@@ -59,7 +59,10 @@ SELRS (Saadany Eye Laser & Refractive Surgery) Medical Center Platform. A monoli
 - **Drizzle ORM** for MySQL access (`server/db.ts`)
 - **mssql** package for MSSQL access via `createMssqlPool()` from `server/integrations/mssqlPatients.ts`
 - **Zod** for input/output validation on all tRPC procedures
-- WebSocket server for real-time medical updates
+- WebSocket server for real-time medical updates (`server/_core/ws.ts`)
+  - Staff connections authenticated via session cookie
+  - Doctor portal connections authenticated via `?doctorToken=<jwt>` query param (same `JWT_SECRET`)
+  - `broadcastToDoctorPortal(doctorId, payload)` sends targeted messages to a specific doctor's connection
 
 ## Database Architecture
 
@@ -89,7 +92,8 @@ MySQL (selrs26)                    MSSQL (op2026)
 - Doctor portal routes: `/doctor-portal/*` — separate `doctorPortalProcedure` (external doctor session)
 - Marketing routes: `/marketing/*` — `requiredRoles={["admin"]}` in ProtectedRoute
 - Admin hub: `/admin-hub`, `/admin/*` — `requiredRoles={["admin"]}`
-- Backend: `server/routers/index.ts` composes `appRouter = { patientPortal, accounting, attendance, kf, medical, patient, stockroom, salary, marketing }`
+- **Route groups are JSX constants, NOT function calls.** Route files (`attendance-routes.tsx`, `salary-routes.tsx`, etc.) export `export const AttendanceRoutes = (<>...</>)`. In `App.tsx` use `{AttendanceRoutes}` not `{AttendanceRoutes()}`.
+- Backend: `server/routers/index.ts` composes `appRouter = { patientPortal, accounting, attendance, kf, medical, patient, stockroom, salary, marketing, doctorPortal }`
 
 ## tRPC Structure
 
@@ -104,13 +108,16 @@ server/routers/
 ├── salary.ts         → Salary + payroll module
 ├── stockroom.ts      → Stockroom inventory module
 ├── patientPortal.ts  → Patient portal (self-service, OTP-auth)
-└── marketing.ts      → Marketing / social media posts (admin-only)
+├── marketing.ts      → Marketing / social media posts (admin-only)
+├── doctorPortal.ts   → External doctor portal (login, getMyPatients, getPatientImages)
+└── medical-pentacam.ts → Pentacam procedures; exports autoLinkUnlinkedPentacamFiles()
 
 server/_core/
-├── procedures.ts     → Role-based procedure builders + per-page factory functions
+├── procedures.ts     → Role-based procedure builders + per-page factory functions; includes doctorPortalProcedure
 ├── trpc.ts           → tRPC init
 ├── context.ts        → Auth context (staff session, patient session, doctor session)
-├── index.ts          → Express server bootstrap
+├── index.ts          → Express server bootstrap; runs startPentacamAutoLinker() on startup
+├── ws.ts             → WebSocket server; staff (cookie) + doctor portal (?doctorToken= JWT)
 └── env.ts            → Environment config
 ```
 
@@ -649,9 +656,26 @@ server/services/accounting/
 
 ## Notifications Flow
 
-- FCM (Firebase Cloud Messaging) for push notifications
-- WebSocket for real-time in-app updates
-- Notification triggers: patient arrival, operation status change, etc.
+- FCM (Firebase Cloud Messaging) for push notifications to mobile
+- WebSocket for real-time in-app updates (staff) and doctor portal browser notifications
+- Notification triggers: patient arrival, operation status change, new patient for doctor
+- Doctor portal real-time: on new patient registration with matching `doctorCode`, `autoLinkAndNotifyDoctors()` fires → `INSERT IGNORE INTO external_doctor_referrals` + WS `{ type: "new-patient" }` → `DoctorDashboard` shows browser `Notification`
+
+## Pentacam Auto-Linker
+
+- `startPentacamAutoLinker()` runs in `server/_core/index.ts` on server startup, then every 5 minutes
+- Calls `autoLinkUnlinkedPentacamFiles()` from `server/routers/medical-pentacam.ts`
+- Queries `blackice_uploads` where `patient_id IS NULL`, matches by patient code in file name
+- Guarded by `busy` flag; logs only when `imported > 0`
+- **Do not add manual triggers or UI buttons** for Pentacam linking — the scheduler handles it
+
+## Doctor Portal
+
+- External doctors access at `/doctor-portal/*` with JWT auth (`doctorPortalProcedure`)
+- JWT signed with same `JWT_SECRET`; `type: "externalDoctor"` claim distinguishes from staff tokens
+- `getMyPatients`: returns patients linked via `external_doctor_referrals` OR auto-matched by `doctorCode`, **only those with at least one `blackice_uploads` record**
+- Auto-referral: on any new patient registration, `autoLinkAndNotifyDoctors()` checks for active external doctors with matching `doctorCode` and inserts referrals idempotently
+- Real-time: doctor WS connection uses `?doctorToken=<jwt>`; receives `new-patient` events instantly
 
 ## What Must NEVER Break
 
@@ -859,6 +883,11 @@ Every completed task reports:
 13. **Skipping `pnpm check` after shared file edits** — mandatory for auth/routing/types
 14. **Logging full row payloads** — PII risk; only log timing at debug level
 15. **Crashing on MSSQL-only patient codes (0013, 0699)** — must show graceful placeholder
+16. **Using raw path strings in ProtectedRoute or App.tsx** — all permission paths use `ROUTES.*`
+17. **Reverting route files to function calls** — `export const AttendanceRoutes = (<>...</>)` not `export function AttendanceRoutes() { return (<>...</>) }`; function calls bypass React component semantics
+18. **Calling `{AttendanceRoutes()}`** in App.tsx — use `{AttendanceRoutes}` (JSX constant reference)
+19. **Adding Pentacam link UI buttons** — the 5-minute server scheduler in `server/_core/index.ts` handles all linking automatically
+20. **Removing `EXISTS blackice_uploads` from doctor portal `getMyPatients`** — doctors must only see patients with Pentacam images; auto-referral and notifications still fire for all new patients regardless
 
 ---
 
@@ -893,5 +922,7 @@ After editing:
 
 ---
 
-**Document version:** 2.0.0 — updated 2026-06-12
+**Document version:** 2.1.0 — updated 2026-06-14
 **Aligned with:** Constitution v1.0.0, Project Principles v1.0.0, Spec v1.0.0, Plan v1.0.0, Tasks v1.0.0
+**Plans complete:** 001–005 + 010 (app router split — JSX constants, dead import cleanup, Vite strip-impeccable-live plugin)
+**Recent features (no plan):** Pentacam 5-min auto-linker (server startup scheduler), doctor portal real-time WS notifications + auto-referral on patient registration, حجز filter in today queue (appointments-activity.tsx)
