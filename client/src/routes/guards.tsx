@@ -42,13 +42,13 @@ export function DashboardRouteGate() {
       const paths = (permissionsQuery.data ?? []) as string[];
       const normalized = paths.map((p) => p.replace(/:r[w]?$/, ""));
       const hasToday = normalized.some(
-        (p) => p === ROUTES.today || p === "/today" || p === "/today-patients",
+        (p) => p === ROUTES.today || p === ROUTES.todayRoute || p === "/today-patients",
       );
       if (!hasToday && normalized.includes("/kf")) {
         return <Redirect to="/kf" />;
       }
     }
-    return <Redirect to={ROUTES.today} />;
+    return <Redirect to={ROUTES.todayRoute} />;
   }
   return (
     <ProtectedRoute requiredRoles={["admin"]}>

@@ -152,6 +152,12 @@ export default function ProtectedRoute({
     }
     if (cleanPath === forcePasswordRoute) return true;
     if (cleanPath === ROUTES.home || cleanPath === ROUTES.dashboard) return true;
+    // /today (/bookings) and /today (alias) are the same page — treat them as interchangeable
+    if (cleanPath === ROUTES.today) {
+      return allowedPaths.some(
+        (p) => p === ROUTES.today || p === ROUTES.todayRoute || p === "/today-patients",
+      );
+    }
     if (!allowedPaths.length) {
       return false;
     }
