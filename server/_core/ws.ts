@@ -1,14 +1,31 @@
 import type { IncomingMessage, Server } from "http";
+import { URL } from "node:url";
 import { WebSocketServer, WebSocket, type RawData } from "ws";
 import { parse as parseCookieHeader } from "cookie";
+import jwt from "jsonwebtoken";
 import { authService, AUTH_COOKIE_NAME, LEGACY_AUTH_COOKIE_NAME } from "./auth";
+import { ENV } from "./env";
 
 type WsClient = WebSocket & {
   subscriptions?: Set<number>;
   attendanceSubscribed?: boolean;
+  doctorPortalId?: number;
 };
 
 let wss: WebSocketServer | null = null;
+
+function verifyDoctorToken(token: string): number | null {
+  try {
+    const secret = ENV.JWT_SECRET || "dev-only-change-me";
+    const payload = jwt.verify(token, secret) as any;
+    if (payload?.type === "externalDoctor" && payload?.doctorId) {
+      return Number(payload.doctorId);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 export function registerWsServer(server: Server) {
   wss = new WebSocketServer({ noServer: true });
@@ -23,6 +40,21 @@ export function registerWsServer(server: Server) {
   });
 
   wss.on("connection", async (socket: WsClient, req: IncomingMessage) => {
+    // Doctor portal: authenticate via ?doctorToken= query param
+    const rawUrl = req.url ?? "";
+    const parsedUrl = new URL(rawUrl, "http://localhost");
+    const doctorToken = parsedUrl.searchParams.get("doctorToken");
+    if (doctorToken) {
+      const doctorId = verifyDoctorToken(doctorToken);
+      if (!doctorId) {
+        socket.close(1008, "Unauthorized");
+        return;
+      }
+      socket.doctorPortalId = doctorId;
+      return;
+    }
+
+    // Staff: authenticate via session cookie
     const cookies = parseCookieHeader(req.headers.cookie || "");
     const token = cookies[AUTH_COOKIE_NAME] || cookies[LEGACY_AUTH_COOKIE_NAME];
     const session = await authService.verifySession(token);
@@ -51,6 +83,21 @@ export function registerWsServer(server: Server) {
         // ignore malformed messages
       }
     });
+  });
+}
+
+export function broadcastToDoctorPortal(
+  doctorId: number,
+  payload: Record<string, unknown>,
+) {
+  if (!wss) return;
+  const message = JSON.stringify(payload);
+  wss.clients.forEach((client) => {
+    const ws = client as WsClient;
+    if (ws.readyState !== WebSocket.OPEN) return;
+    if (ws.doctorPortalId === doctorId) {
+      ws.send(message);
+    }
   });
 }
 

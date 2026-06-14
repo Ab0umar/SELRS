@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { eq, and, sql as drizzleSql } from "drizzle-orm";
 import {
   protectedProcedure,
   adminProcedure,
@@ -17,7 +17,10 @@ import { upsertPatientToMssql } from "../integrations/mssqlPatients";
 import {
   patientServiceEntries,
   visits,
+  externalDoctors,
+  externalDoctorReferrals,
 } from "../../drizzle/schema";
+import { broadcastToDoctorPortal } from "../_core/ws";
 import {
   resolvePatientNotifTitle,
   resolveNotificationTargetRolesByUserRole,
@@ -30,6 +33,47 @@ import {
   resolveDoctorCodeById,
   resolveDoctorCodeByName,
 } from "./_medical/patient-helpers";
+
+async function autoLinkAndNotifyDoctors(
+  patientCode: string,
+  patientName: string,
+  doctorCode: string,
+): Promise<void> {
+  try {
+    const drizzleDb = await db.getDb();
+    if (!drizzleDb) return;
+
+    const doctors = await drizzleDb
+      .select({ id: externalDoctors.id })
+      .from(externalDoctors)
+      .where(
+        and(
+          eq(externalDoctors.doctorCode, doctorCode),
+          eq(externalDoctors.isActive, true),
+        ),
+      );
+
+    if (doctors.length === 0) return;
+
+    for (const doctor of doctors) {
+      // Upsert referral — ignore if already exists
+      await drizzleDb.execute(
+        drizzleSql`INSERT IGNORE INTO external_doctor_referrals
+          (external_doctor_id, patient_code, is_active)
+          VALUES (${doctor.id}, ${patientCode}, 1)`,
+      );
+
+      broadcastToDoctorPortal(doctor.id, {
+        type: "new-patient",
+        patientCode,
+        patientName,
+        at: Date.now(),
+      });
+    }
+  } catch (err) {
+    console.warn("[doctor-autolink] Failed:", String((err as any)?.message ?? err));
+  }
+}
 
 function resolveInsertId(result: unknown): number {
   const anyResult = result as
@@ -283,6 +327,14 @@ export const medicalPatientRoutes = {
               );
             });
           }
+          // Auto-link to external doctor portal and notify
+          if (existingCode && doctorCode) {
+            const existingName = String(
+              (existingByIdentity as any)?.fullName ?? patientInput.fullName ?? "",
+            ).trim();
+            void autoLinkAndNotifyDoctors(existingCode, existingName, doctorCode);
+          }
+
           // Create today's visit if the patient isn't already checked in today
           if (existingId > 0) {
             const hasTodayVisit = await db
@@ -495,6 +547,28 @@ export const medicalPatientRoutes = {
             },
           );
         }
+
+        // Auto-link to external doctor portal and notify
+        if (created?.patientCode && created?.fullName) {
+          let resolvedCode = String(patientInput.doctorCode ?? "").trim() || null;
+          if (!resolvedCode) {
+            resolvedCode =
+              (await resolveDoctorCodeById((created as any).doctorId)) ?? null;
+          }
+          if (!resolvedCode) {
+            resolvedCode =
+              (await resolveDoctorCodeByName(patientInput.doctorName ?? null)) ??
+              null;
+          }
+          if (resolvedCode) {
+            void autoLinkAndNotifyDoctors(
+              String(created.patientCode),
+              String(created.fullName),
+              resolvedCode,
+            );
+          }
+        }
+
         return {
           success: true,
           patientId: created?.id ?? 0,

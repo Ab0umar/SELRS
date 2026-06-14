@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import {
   FileImage,
@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { useDoctorAuth } from "@/hooks/useDoctorAuth";
 import DoctorLayout from "./DoctorLayout";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +34,19 @@ function matchesSearch(fullName: string | null, query: string): boolean {
     .split(/\s+/)
     .filter(Boolean)
     .every((p) => name.includes(p));
+}
+
+function showBrowserNotification(title: string, body: string) {
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "granted") {
+    new Notification(title, { body, icon: "/favicon.ico" });
+  } else if (Notification.permission !== "denied") {
+    void Notification.requestPermission().then((perm) => {
+      if (perm === "granted") {
+        new Notification(title, { body, icon: "/favicon.ico" });
+      }
+    });
+  }
 }
 
 // ── Skeleton row ──────────────────────────────────────────────────────────────
@@ -107,12 +121,9 @@ function PatientRow({
       onKeyDown={(e) => e.key === "Enter" && onClick()}
       className="group flex cursor-pointer items-center gap-4 rounded-2xl border border-[#e1ebf6] bg-white p-4 transition-all duration-150 hover:border-secondary/30 hover:bg-[#f4f9ff] hover:shadow-xs"
     >
-      {/* Avatar */}
       <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#003D82] text-base font-bold text-white shadow-xs">
         {initial}
       </div>
-
-      {/* Info */}
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-bold text-foreground">
           {patient.fullName ?? "مريض غير معروف"}
@@ -134,8 +145,6 @@ function PatientRow({
           ))}
         </div>
       </div>
-
-      {/* CTA */}
       <Button
         size="sm"
         className="shrink-0 gap-1.5 rounded-xl bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/90"
@@ -154,8 +163,11 @@ function PatientRow({
 // ── Main dashboard ────────────────────────────────────────────────────────────
 export default function DoctorDashboard() {
   const [, navigate] = useLocation();
+  const { token } = useDoctorAuth();
   const [search, setSearch] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
+
   const { data, isLoading, error, refetch } =
     trpc.doctorPortal.getMyPatients.useQuery();
 
@@ -169,6 +181,49 @@ export default function DoctorDashboard() {
     await refetch();
     setRefreshing(false);
   };
+
+  // Request notification permission proactively
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      void Notification.requestPermission();
+    }
+  }, []);
+
+  // WebSocket: connect with doctor JWT, listen for new-patient events
+  useEffect(() => {
+    if (!token) return;
+
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const host = window.location.host;
+    const ws = new WebSocket(
+      `${protocol}//${host}/ws?doctorToken=${encodeURIComponent(token)}`,
+    );
+    wsRef.current = ws;
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(String(event.data));
+        if (msg?.type === "new-patient") {
+          showBrowserNotification(
+            "مريض جديد",
+            String(msg.patientName ?? msg.patientCode ?? ""),
+          );
+          void refetch();
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+
+    ws.onerror = () => {
+      ws.close();
+    };
+
+    return () => {
+      ws.close();
+      wsRef.current = null;
+    };
+  }, [token, refetch]);
 
   return (
     <DoctorLayout>

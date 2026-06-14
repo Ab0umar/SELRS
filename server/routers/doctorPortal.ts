@@ -107,14 +107,12 @@ export const doctorPortalRouter = router({
         message: "DB unavailable",
       });
 
-    // Load this doctor's account to get their doctorCode mapping
     const [doctor] = await db
       .select({ doctorCode: externalDoctors.doctorCode })
       .from(externalDoctors)
       .where(eq(externalDoctors.id, ctx.doctorSession.doctorId))
       .limit(1);
 
-    // Manual referrals
     const referrals = await db
       .select({
         id: externalDoctorReferrals.id,
@@ -135,13 +133,14 @@ export const doctorPortalRouter = router({
 
     const referralCodes = new Set(referrals.map((r) => r.patientCode));
 
-    // Auto-mapped patients by doctorCode — only those with pentacam images
+    // Auto-mapped patients by doctorCode — all patients, no image requirement
     let autoPatients: {
       patientCode: string;
       fullName: string | null;
       age: number | null;
       gender: "male" | "female" | null;
       lastVisit: Date | null;
+      createdAt: Date;
     }[] = [];
     if (doctor?.doctorCode) {
       autoPatients = await db
@@ -151,18 +150,13 @@ export const doctorPortalRouter = router({
           age: patients.age,
           gender: patients.gender,
           lastVisit: patients.lastVisit,
+          createdAt: patients.createdAt,
         })
         .from(patients)
-        .where(
-          and(
-            eq(patients.doctorCode, doctor.doctorCode),
-            sql`EXISTS (SELECT 1 FROM blackice_uploads WHERE patient_id = ${patients.id} LIMIT 1)`,
-          ),
-        )
-        .orderBy(desc(patients.lastVisit));
+        .where(eq(patients.doctorCode, doctor.doctorCode))
+        .orderBy(desc(patients.createdAt));
     }
 
-    // Build merged list: manual referrals first, then auto-mapped (excluding already-listed)
     const result: Array<{
       referralId: number | null;
       patientCode: string;
@@ -171,10 +165,10 @@ export const doctorPortalRouter = router({
       gender: "male" | "female" | null;
       lastVisit: Date | null;
       assignedAt: Date | null;
+      patientCreatedAt: Date | null;
       source: "referral" | "auto";
     }> = [];
 
-    // Enrich referral rows with patient info
     if (referrals.length > 0) {
       const codes = referrals.map((r) => r.patientCode);
       const patientRows = await db
@@ -184,14 +178,10 @@ export const doctorPortalRouter = router({
           age: patients.age,
           gender: patients.gender,
           lastVisit: patients.lastVisit,
+          createdAt: patients.createdAt,
         })
         .from(patients)
-        .where(
-          and(
-            sql`${patients.patientCode} IN ${codes}`,
-            sql`EXISTS (SELECT 1 FROM blackice_uploads WHERE patient_id = ${patients.id} LIMIT 1)`,
-          ),
-        );
+        .where(sql`${patients.patientCode} IN ${codes}`);
 
       const patientMap = new Map(patientRows.map((p) => [p.patientCode, p]));
       for (const r of referrals) {
@@ -204,12 +194,12 @@ export const doctorPortalRouter = router({
           gender: p?.gender ?? null,
           lastVisit: p?.lastVisit ?? null,
           assignedAt: r.createdAt,
+          patientCreatedAt: p?.createdAt ?? null,
           source: "referral",
         });
       }
     }
 
-    // Add auto-mapped patients not already in referrals
     for (const p of autoPatients) {
       if (!referralCodes.has(p.patientCode)) {
         result.push({
@@ -220,6 +210,7 @@ export const doctorPortalRouter = router({
           gender: p.gender,
           lastVisit: p.lastVisit,
           assignedAt: null,
+          patientCreatedAt: p.createdAt,
           source: "auto",
         });
       }
