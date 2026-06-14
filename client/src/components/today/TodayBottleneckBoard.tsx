@@ -686,6 +686,13 @@ export function TodayBottleneckBoard({
       { date: selectedDate },
       { staleTime: 60_000, refetchOnWindowFocus: false },
     );
+
+  useEffect(() => {
+    const handler = () => void visitScheduleRequestsQuery.refetch();
+    window.addEventListener("booking-update", handler);
+    return () => window.removeEventListener("booking-update", handler);
+  }, [visitScheduleRequestsQuery]);
+
   const removeScheduleRequest =
     trpc.patient.removeVisitScheduleRequest.useMutation({
       onSuccess: async () => {

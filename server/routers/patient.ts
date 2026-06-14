@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import type { InsertVisitScheduleRequest } from "../../drizzle/schema";
 import { router, protectedProcedure } from "../_core/procedures";
 import * as db from "../db";
+import { broadcastBookingUpdate } from "../_core/ws";
 
 /**
  * Patient Router - Patient-related queries and mutations
@@ -98,6 +99,8 @@ export const patientRouter = router({
           createdByUserId: ctx.user.id,
         };
         const { id } = await db.insertVisitScheduleRequest(payload);
+
+        broadcastBookingUpdate();
 
         await db.logAuditEvent(
           ctx.user.id,
