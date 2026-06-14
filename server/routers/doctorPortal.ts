@@ -133,7 +133,7 @@ export const doctorPortalRouter = router({
 
     const referralCodes = new Set(referrals.map((r) => r.patientCode));
 
-    // Auto-mapped patients by doctorCode — all patients, no image requirement
+    // Auto-mapped patients by doctorCode — only those with pentacam images
     let autoPatients: {
       patientCode: string;
       fullName: string | null;
@@ -153,8 +153,13 @@ export const doctorPortalRouter = router({
           createdAt: patients.createdAt,
         })
         .from(patients)
-        .where(eq(patients.doctorCode, doctor.doctorCode))
-        .orderBy(desc(patients.createdAt));
+        .where(
+          and(
+            eq(patients.doctorCode, doctor.doctorCode),
+            sql`EXISTS (SELECT 1 FROM blackice_uploads WHERE patient_id = ${patients.id} LIMIT 1)`,
+          ),
+        )
+        .orderBy(desc(patients.lastVisit));
     }
 
     const result: Array<{
@@ -181,7 +186,12 @@ export const doctorPortalRouter = router({
           createdAt: patients.createdAt,
         })
         .from(patients)
-        .where(sql`${patients.patientCode} IN ${codes}`);
+        .where(
+          and(
+            sql`${patients.patientCode} IN ${codes}`,
+            sql`EXISTS (SELECT 1 FROM blackice_uploads WHERE patient_id = ${patients.id} LIMIT 1)`,
+          ),
+        );
 
       const patientMap = new Map(patientRows.map((p) => [p.patientCode, p]));
       for (const r of referrals) {
