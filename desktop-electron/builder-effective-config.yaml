@@ -1,0 +1,26 @@
+directories:
+  output: D:\c\srv100_acc\desktop-electron
+  buildResources: build
+appId: cc.selrs.electron
+productName: SELRS
+files:
+  - filter:
+      - main.js
+      - preload.js
+win:
+  icon: assets/app.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: SELRS
+  installerIcon: assets/app.ico
+  uninstallerIcon: assets/app.ico
+  installerHeaderIcon: assets/app.ico
+  artifactName: SELRS-Electron-Setup-${version}.${ext}
+electronVersion: 37.10.3
