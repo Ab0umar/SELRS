@@ -1,9 +1,9 @@
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { pushAppNotification } from "./appNotifications";
-import { getOperationBookingsByDateRange, getDb } from "../db";
+import { getOperationBookingsByDateRange, getDb, getSystemSetting } from "../db";
 import { operationLists, operationListItems } from "../../drizzle/schema";
 
-const SEND_HOUR = 20; // 8pm — configurable via OP_REMINDER_HOUR env var
+const DEFAULT_SEND_HOUR = 20;
 const LABEL = "[op-reminder]";
 
 let lastSentDate = ""; // tracks which calendar date we already fired for
@@ -37,7 +37,39 @@ async function getOperationListsForDate(dateStr: string) {
   return results;
 }
 
+async function loadOpReminderConfig(): Promise<{
+  enabled: boolean;
+  sendHour: number;
+  targetAll: boolean;
+  userIds: number[];
+}> {
+  try {
+    const row = await getSystemSetting("app_notification_settings_v1");
+    if (!row?.value) return { enabled: false, sendHour: DEFAULT_SEND_HOUR, targetAll: true, userIds: [] };
+    const parsed: unknown = typeof row.value === "string" ? JSON.parse(row.value) : row.value;
+    const raw = parsed as Record<string, unknown> | undefined;
+    const rem = raw?.opReminder as Record<string, unknown> | undefined;
+    if (!rem) return { enabled: false, sendHour: DEFAULT_SEND_HOUR, targetAll: true, userIds: [] };
+    const enabled = typeof rem.enabled === "boolean" ? rem.enabled : false;
+    const sendHour = Number.isFinite(Number(rem.sendHour)) ? Number(rem.sendHour) : DEFAULT_SEND_HOUR;
+    const targetAll = typeof rem.targetAll === "boolean" ? rem.targetAll : true;
+    const userIds = Array.isArray(rem.userIds)
+      ? (rem.userIds as unknown[]).map(Number).filter((n) => Number.isFinite(n))
+      : [];
+    return { enabled, sendHour, targetAll, userIds };
+  } catch {
+    return { enabled: false, sendHour: DEFAULT_SEND_HOUR, targetAll: true, userIds: [] };
+  }
+}
+
 async function sendOpReminders(): Promise<void> {
+  const cfg = await loadOpReminderConfig();
+  if (!cfg.enabled) {
+    console.log(`${LABEL} Disabled in settings — skipping`);
+    return;
+  }
+
+  const targetUserIds = cfg.targetAll ? null : cfg.userIds.length > 0 ? cfg.userIds : null;
   const tomorrow = tomorrowDateString();
 
   // --- operationBookings ---
@@ -56,7 +88,8 @@ async function sendOpReminders(): Promise<void> {
       title,
       message: body,
       kind: "info",
-      targetRoles: null, // null = all roles
+      targetRoles: null,
+      targetUserIds,
       source: "op-reminder",
       entityType: "operationBooking",
       entityId: op.id,
@@ -83,6 +116,7 @@ async function sendOpReminders(): Promise<void> {
       message: body,
       kind: "info",
       targetRoles: null,
+      targetUserIds,
       source: "op-reminder",
       entityType: "operationList",
       entityId: list.id,
@@ -102,19 +136,18 @@ async function sendOpReminders(): Promise<void> {
 }
 
 export function startOpReminderScheduler(): void {
-  const sendHour =
-    Number.isFinite(Number(process.env.OP_REMINDER_HOUR))
-      ? Number(process.env.OP_REMINDER_HOUR)
-      : SEND_HOUR;
-
   setInterval(() => {
     const now = new Date();
-    if (now.getHours() !== sendHour) return;
     const today = todayDateString();
     if (lastSentDate === today) return; // already fired today
-    lastSentDate = today;
-    void sendOpReminders().catch((err) =>
-      console.error(`${LABEL} Scheduler error:`, err),
-    );
+    void (async () => {
+      const cfg = await loadOpReminderConfig().catch(() => null);
+      if (!cfg?.enabled) return;
+      if (now.getHours() !== cfg.sendHour) return;
+      lastSentDate = today;
+      await sendOpReminders().catch((err) =>
+        console.error(`${LABEL} Scheduler error:`, err),
+      );
+    })();
   }, 60_000); // check every minute
 }

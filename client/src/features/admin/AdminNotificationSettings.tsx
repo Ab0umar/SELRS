@@ -19,6 +19,7 @@ import {
   Archive,
   Bell,
   BellOff,
+  CalendarClock,
   MonitorSmartphone,
   Syringe,
   Users,
@@ -39,6 +40,7 @@ type NotifSettings = {
   operations: CategoryChannels & { userIds: number[] };
   attendance: CategoryChannels & { managerId: number | null };
   stockroom: CategoryChannels;
+  opReminder: CategoryChannels & { sendHour: number; targetAll: boolean; userIds: number[] };
 };
 
 type UserRecord = {
@@ -67,6 +69,15 @@ const DEFAULT: NotifSettings = {
     managerId: null,
   },
   stockroom: { enabled: false, inApp: false, push: false, local: false },
+  opReminder: {
+    enabled: false,
+    inApp: true,
+    push: true,
+    local: false,
+    sendHour: 20,
+    targetAll: true,
+    userIds: [],
+  },
 };
 
 function parseCat(raw: unknown, def: CategoryChannels): CategoryChannels {
@@ -96,11 +107,32 @@ function parseSettings(raw: unknown): NotifSettings {
       attnRaw?.managerId != null && Number.isFinite(Number(attnRaw.managerId))
         ? Number(attnRaw.managerId)
         : null;
+    const opReminderRaw = r.opReminder as Record<string, unknown> | undefined;
+    const opReminderUserIds = Array.isArray(opReminderRaw?.userIds)
+      ? (opReminderRaw!.userIds as unknown[])
+          .map(Number)
+          .filter((n) => Number.isFinite(n))
+      : [];
+    const opReminderSendHour =
+      opReminderRaw?.sendHour != null &&
+      Number.isFinite(Number(opReminderRaw.sendHour))
+        ? Number(opReminderRaw.sendHour)
+        : DEFAULT.opReminder.sendHour;
+    const opReminderTargetAll =
+      typeof opReminderRaw?.targetAll === "boolean"
+        ? opReminderRaw.targetAll
+        : DEFAULT.opReminder.targetAll;
     return {
       patients: parseCat(r.patients, DEFAULT.patients),
       operations: { ...parseCat(r.operations, DEFAULT.operations), userIds },
       attendance: { ...parseCat(r.attendance, DEFAULT.attendance), managerId },
       stockroom: parseCat(r.stockroom, DEFAULT.stockroom),
+      opReminder: {
+        ...parseCat(r.opReminder, DEFAULT.opReminder),
+        sendHour: opReminderSendHour,
+        targetAll: opReminderTargetAll,
+        userIds: opReminderUserIds,
+      },
     };
   }
 
@@ -130,6 +162,7 @@ function parseSettings(raw: unknown): NotifSettings {
     },
     attendance: DEFAULT.attendance,
     stockroom: DEFAULT.stockroom,
+    opReminder: DEFAULT.opReminder,
   };
 }
 
@@ -537,7 +570,8 @@ export default function AdminNotificationSettings() {
     settings.patients.local ||
     settings.operations.local ||
     settings.attendance.local ||
-    settings.stockroom.local;
+    settings.stockroom.local ||
+    settings.opReminder.local;
 
   const requestBrowserPermission = async () => {
     if (typeof window === "undefined" || !("Notification" in window)) return;
@@ -717,6 +751,81 @@ export default function AdminNotificationSettings() {
             <Archive className="size-3" />
             مستخدمو المخزن
           </Badge>
+        }
+      />
+
+      {/* Op Reminder */}
+      <CategorySection
+        icon={CalendarClock}
+        title="تذكير العمليات"
+        description="إشعار يومي بقائمة عمليات الغد يُرسَل في الساعة المحددة"
+        channels={settings.opReminder}
+        onChannelChange={(patch) => patchCategory("opReminder", patch)}
+        fcmConfigured={fcmConfigured}
+        audience={
+          <div className="space-y-3">
+            {/* Send hour picker */}
+            <div className="flex items-center gap-3">
+              <p className="text-xs text-muted-foreground shrink-0">
+                وقت الإرسال
+              </p>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  min={0}
+                  max={23}
+                  value={settings.opReminder.sendHour}
+                  onChange={(e) => {
+                    const v = Math.min(23, Math.max(0, Number(e.target.value)));
+                    if (Number.isFinite(v))
+                      patchCategory("opReminder", { sendHour: v });
+                  }}
+                  className="h-8 w-16 rounded-md border border-border bg-background px-2 text-center text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <span className="text-xs text-muted-foreground">:00</span>
+              </div>
+            </div>
+            {/* Audience toggle */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  patchCategory("opReminder", { targetAll: true, userIds: [] })
+                }
+                className={cn(
+                  "rounded-full border px-3 py-0.5 text-xs transition-colors",
+                  settings.opReminder.targetAll
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:border-primary/50",
+                )}
+              >
+                جميع المستخدمين
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  patchCategory("opReminder", { targetAll: false })
+                }
+                className={cn(
+                  "rounded-full border px-3 py-0.5 text-xs transition-colors",
+                  !settings.opReminder.targetAll
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:border-primary/50",
+                )}
+              >
+                مستخدمون محددون
+              </button>
+            </div>
+            {!settings.opReminder.targetAll && (
+              <UserMultiPicker
+                users={users}
+                selected={settings.opReminder.userIds}
+                onChange={(ids) =>
+                  patchCategory("opReminder", { userIds: ids })
+                }
+              />
+            )}
+          </div>
         }
       />
 
