@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -142,6 +142,12 @@ export function AppointmentsSection({
     { staleTime: 60_000, refetchOnWindowFocus: false },
   );
   const bookingsForDate = (bookingsQuery.data ?? []) as any[];
+
+  useEffect(() => {
+    const handler = () => void (bookingsQuery as any).refetch();
+    window.addEventListener("booking-update", handler);
+    return () => window.removeEventListener("booking-update", handler);
+  }, [bookingsQuery]);
 
   const utils = trpc.useUtils();
   const markVisitTreated = trpc.medical.updateVisitQueueStatus.useMutation({

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarDays,
   CheckCircle2,
@@ -1062,6 +1062,12 @@ export default function AdminPortalBookings() {
     date: dateFilter || undefined,
     limit: 100,
   });
+
+  useEffect(() => {
+    const handler = () => void bookingsQuery.refetch();
+    window.addEventListener("booking-update", handler);
+    return () => window.removeEventListener("booking-update", handler);
+  }, [bookingsQuery]);
 
   const scheduleQuery = trpc.patientPortal.getSchedule.useQuery(undefined, {
     enabled: activeTab === "schedule",

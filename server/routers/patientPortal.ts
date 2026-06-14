@@ -25,6 +25,7 @@ import jwt from "jsonwebtoken";
 import { ENV } from "../_core/env";
 import { sendFcmPushToRegisteredDevices } from "../_core/fcmPush";
 import { sendWebPushToSubscription } from "../_core/webPush";
+import { broadcastBookingUpdate } from "../_core/ws";
 
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
@@ -335,6 +336,8 @@ export const patientPortalRouter = router({
         status: "pending",
       });
 
+      broadcastBookingUpdate();
+
       const typeLabel =
         BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType;
       sendFcmPushToRegisteredDevices({
@@ -382,6 +385,8 @@ export const patientPortalRouter = router({
         notes: input.notes ?? undefined,
         status: "pending",
       });
+
+      broadcastBookingUpdate();
 
       const typeLabel =
         BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType;
@@ -546,6 +551,8 @@ export const patientPortalRouter = router({
         staffNotes: input.staffNotes ?? undefined,
       });
 
+      broadcastBookingUpdate();
+
       return { ok: true };
     }),
 
@@ -561,6 +568,8 @@ export const patientPortalRouter = router({
       await db
         .delete(patientPortalBookings)
         .where(eq(patientPortalBookings.id, input.id));
+      broadcastBookingUpdate();
+
       return { ok: true };
     }),
 
@@ -661,6 +670,8 @@ export const patientPortalRouter = router({
           }
         }
       }
+
+      broadcastBookingUpdate();
 
       return { ok: true };
     }),

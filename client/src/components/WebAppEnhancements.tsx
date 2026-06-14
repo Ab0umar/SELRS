@@ -178,6 +178,10 @@ function AppNotificationsBridge() {
         ws.addEventListener("message", (event) => {
           try {
             const msg = JSON.parse(event.data as string);
+            if (msg?.type === "booking-update") {
+              window.dispatchEvent(new CustomEvent("booking-update"));
+              return;
+            }
             if (msg?.type !== "app-notification") return;
             const item: AppNotificationItem = msg;
             if (!canCurrentUserSeeNotification(user?.id, user?.role, item)) return;

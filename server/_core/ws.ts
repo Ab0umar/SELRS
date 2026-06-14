@@ -170,3 +170,13 @@ export function broadcastAppNotification(notification: {
   });
   console.log(`[WS] broadcastAppNotification: sent to ${sent}/${totalClients} clients — ${notification.title}`);
 }
+
+export function broadcastBookingUpdate() {
+  if (!wss) return;
+  const payload = JSON.stringify({ type: "booking-update" });
+  wss.clients.forEach((client) => {
+    const ws = client as any;
+    if (ws.readyState !== WebSocket.OPEN) return;
+    ws.send(payload);
+  });
+}
