@@ -29,9 +29,10 @@ import { TodayPatientShortcutsDialog } from "@/components/today/TodayPatientShor
 import { getLocalDateIso } from "@/hooks/operations/operationsShared";
 
 type MainTab = "patients" | "operations" | "bookings";
-type QueueFilter = "all" | QueueStatus;
+type QueueFilter = "all" | QueueStatus | "bookings";
 
 const QUEUE_FILTERS: { value: QueueFilter; label: string }[] = [
+  { value: "bookings", label: "حجز" },
   { value: "checkedIn", label: "تسجيل" },
   { value: "next", label: "التالي" },
   { value: "clinic", label: "عيادة" },
@@ -284,6 +285,7 @@ export function AppointmentsSection({
   const counts = useMemo(
     () => ({
       all: merged.length,
+      bookings: bookingsForDate.length,
       checkedIn: byStatus.checkedIn.length,
       next: byStatus.next.length,
       clinic: byStatus.clinic.length,
@@ -291,6 +293,7 @@ export function AppointmentsSection({
     }),
     [
       merged.length,
+      bookingsForDate.length,
       byStatus.checkedIn.length,
       byStatus.next.length,
       byStatus.clinic.length,
@@ -299,7 +302,7 @@ export function AppointmentsSection({
   );
 
   const filteredPatients = useMemo(() => {
-    if (queueFilter === "all") return merged;
+    if (queueFilter === "all" || queueFilter === "bookings") return merged;
     return merged.filter((p) => p.queueStatus === queueFilter);
   }, [queueFilter, merged]);
 
@@ -420,9 +423,9 @@ export function AppointmentsSection({
         >
           <CalendarPlus className="h-4 w-4" />
           حجز
-          {pendingBookingsCount > 0 && (
+          {bookingsForDate.length > 0 && (
             <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-warning px-1 text-[10px] font-bold text-warning-foreground tabular-nums">
-              {pendingBookingsCount}
+              {bookingsForDate.length}
             </span>
           )}
         </Button>
@@ -455,7 +458,75 @@ export function AppointmentsSection({
             })}
           </div>
 
-          {isLoading ? (
+          {queueFilter === "bookings" ? (
+            bookingsQuery.isLoading ? (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-20 rounded-xl" />
+                ))}
+              </div>
+            ) : bookingsForDate.length === 0 ? (
+              <div className="flex min-h-[220px] flex-col items-center justify-center px-4 py-12 text-center text-sm text-muted-foreground">
+                لا توجد حجوزات لهذا اليوم
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {(bookingsForDate as any[]).map((booking) => {
+                  const STATUS_STYLE: Record<string, string> = {
+                    pending: "border-warning/30 bg-warning/5 text-warning",
+                    confirmed: "border-primary/30 bg-primary/5 text-primary",
+                    cancelled: "border-destructive/30 bg-destructive/5 text-destructive",
+                    completed: "border-border bg-muted/30 text-muted-foreground",
+                  };
+                  const STATUS_AR: Record<string, string> = {
+                    pending: "قيد المراجعة",
+                    confirmed: "مؤكد",
+                    cancelled: "ملغي",
+                    completed: "مكتمل",
+                  };
+                  const BOOKING_TYPES_AR: Record<string, string> = {
+                    consultant: "كشف استشاري",
+                    specialist: "كشف أخصائي",
+                    lasik: "فحوصات الليزك",
+                    external: "أشعة خارجي",
+                    followup: "متابعة",
+                  };
+                  const name = booking.patientName ?? booking.guestName ?? "—";
+                  const code = booking.patientCode ?? (booking.isGuest ? "زائر" : "جديد");
+                  const type = BOOKING_TYPES_AR[booking.bookingType] ?? booking.typeLabel ?? booking.bookingType;
+                  const stStyle = STATUS_STYLE[booking.status] ?? STATUS_STYLE.completed;
+                  const stAr = STATUS_AR[booking.status] ?? booking.status;
+                  return (
+                    <a
+                      key={booking.id}
+                      href="/admin-hub/portal-bookings"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        window.location.href = "/admin-hub/portal-bookings";
+                      }}
+                      className={cn(
+                        "block rounded-xl border p-3 shadow-sm transition-shadow hover:shadow-md cursor-pointer",
+                        stStyle,
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-foreground">{name}</p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">{code} · {type}</p>
+                        </div>
+                        <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium", stStyle)}>
+                          {stAr}
+                        </span>
+                      </div>
+                      {booking.staffNotes ? (
+                        <p className="mt-2 truncate text-xs text-muted-foreground">{booking.staffNotes}</p>
+                      ) : null}
+                    </a>
+                  );
+                })}
+              </div>
+            )
+          ) : isLoading ? (
             <p className="py-10 text-center text-sm text-muted-foreground">
               جاري التحميل…
             </p>
