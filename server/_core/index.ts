@@ -29,6 +29,7 @@ import { startAttendanceSyncScheduler } from "./attendanceSyncScheduler";
 import { initMarketingScheduler } from "../services/marketing/scheduler.service";
 import { startPunchReception } from "../services/attendance/punchReception.service";
 import { DeviceSettingsService } from "../services/attendance/deviceSettings.service";
+import { autoLinkUnlinkedPentacamFiles } from "../routers/medical-pentacam";
 import mysql from "mysql2/promise";
 import { getBuildInfo } from "./buildInfo";
 import {
@@ -1367,6 +1368,29 @@ async function startServer() {
     }, cfg.pollIntervalMs);
   }
 
+  function startPentacamAutoLinker() {
+    const INTERVAL_MS = 5 * 60 * 1000;
+    let busy = false;
+    const run = async () => {
+      if (busy) return;
+      busy = true;
+      try {
+        const result = await autoLinkUnlinkedPentacamFiles();
+        if (result.imported > 0) {
+          console.log(
+            `[pentacam-auto] Linked ${result.imported} new files (unmatched=${result.unmatched})`,
+          );
+        }
+      } catch (err: any) {
+        console.error("[pentacam-auto] Error:", String(err?.message ?? err));
+      } finally {
+        busy = false;
+      }
+    };
+    void run();
+    setInterval(() => void run(), INTERVAL_MS);
+  }
+
   // Black Ice uploads: list recent uploaded docs for UI.
   app.get("/api/blackice/uploads", async (req, res) => {
     try {
@@ -2181,6 +2205,7 @@ async function startServer() {
   initMarketingScheduler();
   await startBlackIceFolderImporter();
   await startBlackIceOcrLinker();
+  startPentacamAutoLinker();
 }
 
 startServer().catch(console.error);

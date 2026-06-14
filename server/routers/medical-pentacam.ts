@@ -921,3 +921,75 @@ export const medicalPentacamRoutes = {
       return out;
     }),
 };
+
+export async function autoLinkUnlinkedPentacamFiles(): Promise<{
+  processed: number;
+  imported: number;
+  alreadyLinked: number;
+  unmatched: number;
+  skipped: number;
+}> {
+  const rows = await db.getUnlinkedBlackiceUploads(10000);
+  if (rows.length === 0) {
+    return { processed: 0, imported: 0, alreadyLinked: 0, unmatched: 0, skipped: 0 };
+  }
+
+  const fileNames = rows
+    .map((r) => path.basename(String(r.file_name ?? "").trim()))
+    .filter(Boolean);
+
+  let skipped = 0;
+  let unmatched = 0;
+  const linkPairs: Array<{ fileName: string; patientId: number }> = [];
+  const needsNameMatch: string[] = [];
+  const extractedCodes = new Map<string, string>();
+
+  for (const fileName of fileNames) {
+    if (!/\.(jpg|jpeg|png|webp)$/i.test(fileName)) {
+      skipped += 1;
+      continue;
+    }
+    const codes = extractPatientCodeCandidatesFromFileName(fileName);
+    if (codes.length > 0) {
+      extractedCodes.set(path.posix.basename(fileName), codes[0]);
+    } else {
+      needsNameMatch.push(fileName);
+    }
+  }
+
+  if (extractedCodes.size > 0) {
+    const uniqueCodes = Array.from(new Set(extractedCodes.values()));
+    const codeMap = await db.getPatientIdsByCodes(uniqueCodes);
+    for (const [baseName, code] of extractedCodes) {
+      const patientId = codeMap.get(code);
+      if (!patientId) {
+        unmatched += 1;
+        continue;
+      }
+      linkPairs.push({ fileName: baseName, patientId });
+    }
+  }
+
+  if (needsNameMatch.length > 0) {
+    const matcher = await buildPentacamPatientCandidates();
+    for (const fileName of needsNameMatch) {
+      const matched = resolvePatientForPentacamFileName(fileName, matcher);
+      if (!matched?.patient) {
+        unmatched += 1;
+        continue;
+      }
+      const patientId = Number((matched.patient as any)?.id ?? 0);
+      if (!Number.isFinite(patientId) || patientId <= 0) {
+        unmatched += 1;
+        continue;
+      }
+      linkPairs.push({ fileName: path.posix.basename(fileName), patientId });
+    }
+  }
+
+  const imported =
+    linkPairs.length > 0 ? await db.linkBlackiceUploadsBatch(linkPairs) : 0;
+  const alreadyLinked = Math.max(0, linkPairs.length - imported);
+
+  return { processed: fileNames.length, imported, alreadyLinked, unmatched, skipped };
+}
