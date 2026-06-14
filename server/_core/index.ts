@@ -27,6 +27,7 @@ import { registerWsServer } from "./ws";
 import { startMssqlSyncScheduler } from "./mssqlSyncScheduler";
 import { startAttendanceSyncScheduler } from "./attendanceSyncScheduler";
 import { initMarketingScheduler } from "../services/marketing/scheduler.service";
+import { startOpReminderScheduler } from "./opReminderScheduler";
 import { startPunchReception } from "../services/attendance/punchReception.service";
 import { DeviceSettingsService } from "../services/attendance/deviceSettings.service";
 import { autoLinkUnlinkedPentacamFiles } from "../routers/medical-pentacam";
@@ -2206,6 +2207,7 @@ async function startServer() {
   await startBlackIceFolderImporter();
   await startBlackIceOcrLinker();
   startPentacamAutoLinker();
+  startOpReminderScheduler();
 }
 
 startServer().catch(console.error);
