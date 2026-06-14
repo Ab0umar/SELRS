@@ -138,18 +138,10 @@ export function AppointmentsSection({
 
   // ── Portal bookings for the selected date ───────────────────────────────
   const bookingsQuery = (trpc as any).patientPortal.listBookings.useQuery(
-    { limit: 200 },
+    { date: selectedDate, limit: 200 },
     { staleTime: 60_000, refetchOnWindowFocus: false },
   );
-  const bookingsForDate = (bookingsQuery.data ?? []).filter((b: any) => {
-    if (!b.requestedDate) return false;
-    const d = new Date(b.requestedDate);
-    const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    return ymd === selectedDate;
-  });
-  const pendingBookingsCount = bookingsForDate.filter(
-    (b: any) => b.status === "pending",
-  ).length;
+  const bookingsForDate = (bookingsQuery.data ?? []) as any[];
 
   const utils = trpc.useUtils();
   const markVisitTreated = trpc.medical.updateVisitQueueStatus.useMutation({
@@ -459,73 +451,27 @@ export function AppointmentsSection({
           </div>
 
           {queueFilter === "bookings" ? (
-            bookingsQuery.isLoading ? (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <Skeleton key={i} className="h-20 rounded-xl" />
-                ))}
-              </div>
-            ) : bookingsForDate.length === 0 ? (
-              <div className="flex min-h-[220px] flex-col items-center justify-center px-4 py-12 text-center text-sm text-muted-foreground">
-                لا توجد حجوزات لهذا اليوم
-              </div>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {(bookingsForDate as any[]).map((booking) => {
-                  const STATUS_STYLE: Record<string, string> = {
-                    pending: "border-warning/30 bg-warning/5 text-warning",
-                    confirmed: "border-primary/30 bg-primary/5 text-primary",
-                    cancelled: "border-destructive/30 bg-destructive/5 text-destructive",
-                    completed: "border-border bg-muted/30 text-muted-foreground",
-                  };
-                  const STATUS_AR: Record<string, string> = {
-                    pending: "قيد المراجعة",
-                    confirmed: "مؤكد",
-                    cancelled: "ملغي",
-                    completed: "مكتمل",
-                  };
-                  const BOOKING_TYPES_AR: Record<string, string> = {
-                    consultant: "كشف استشاري",
-                    specialist: "كشف أخصائي",
-                    lasik: "فحوصات الليزك",
-                    external: "أشعة خارجي",
-                    followup: "متابعة",
-                  };
-                  const name = booking.patientName ?? booking.guestName ?? "—";
-                  const code = booking.patientCode ?? (booking.isGuest ? "زائر" : "جديد");
-                  const type = BOOKING_TYPES_AR[booking.bookingType] ?? booking.typeLabel ?? booking.bookingType;
-                  const stStyle = STATUS_STYLE[booking.status] ?? STATUS_STYLE.completed;
-                  const stAr = STATUS_AR[booking.status] ?? booking.status;
-                  return (
-                    <a
-                      key={booking.id}
-                      href="/admin-hub/portal-bookings"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        window.location.href = "/admin-hub/portal-bookings";
-                      }}
-                      className={cn(
-                        "block rounded-xl border p-3 shadow-sm transition-shadow hover:shadow-md cursor-pointer",
-                        stStyle,
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-foreground">{name}</p>
-                          <p className="mt-0.5 text-xs text-muted-foreground">{code} · {type}</p>
-                        </div>
-                        <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium", stStyle)}>
-                          {stAr}
-                        </span>
-                      </div>
-                      {booking.staffNotes ? (
-                        <p className="mt-2 truncate text-xs text-muted-foreground">{booking.staffNotes}</p>
-                      ) : null}
-                    </a>
-                  );
-                })}
-              </div>
-            )
+            <BookingsAndQueueView
+              bookingsForDate={bookingsForDate}
+              bookingsLoading={bookingsQuery.isLoading}
+              queuePatients={merged}
+              queueLoading={isLoading}
+              medicalStatuses={medicalStatuses}
+              onSelectPatient={setShortcutPatient}
+              onMarkVisitTreated={(visitId, patient) =>
+                markVisitTreated.mutate({
+                  visitId,
+                  queueStatus: "treated",
+                  patientId: patient.id,
+                  date: selectedDate,
+                })
+              }
+              markVisitTreatedPendingVisitId={
+                markVisitTreated.isPending
+                  ? (markVisitTreated.variables?.visitId ?? null)
+                  : null
+              }
+            />
           ) : isLoading ? (
             <p className="py-10 text-center text-sm text-muted-foreground">
               جاري التحميل…
@@ -608,80 +554,136 @@ export function AppointmentsSection({
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {(bookingsForDate as any[]).map((booking) => {
-                const STATUS_STYLE: Record<string, string> = {
-                  pending: "border-warning/30 bg-warning/5 text-warning",
-                  confirmed: "border-primary/30 bg-primary/5 text-primary",
-                  cancelled:
-                    "border-destructive/30 bg-destructive/5 text-destructive",
-                  completed: "border-border bg-muted/30 text-muted-foreground",
-                };
-                const STATUS_AR: Record<string, string> = {
-                  pending: "قيد المراجعة",
-                  confirmed: "مؤكد",
-                  cancelled: "ملغي",
-                  completed: "مكتمل",
-                };
-                const BOOKING_TYPES_AR: Record<string, string> = {
-                  consultant: "كشف استشاري",
-                  specialist: "كشف أخصائي",
-                  lasik: "فحوصات الليزك",
-                  external: "أشعة خارجي",
-                  followup: "متابعة",
-                };
-                const name = booking.patientName ?? booking.guestName ?? "—";
-                const code =
-                  booking.patientCode ?? (booking.isGuest ? "زائر" : "جديد");
-                const type =
-                  BOOKING_TYPES_AR[booking.bookingType] ??
-                  booking.typeLabel ??
-                  booking.bookingType;
-                const stStyle =
-                  STATUS_STYLE[booking.status] ?? STATUS_STYLE.completed;
-                const stAr = STATUS_AR[booking.status] ?? booking.status;
-                return (
-                  <a
-                    key={booking.id}
-                    href="/admin-hub/portal-bookings"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.location.href = "/admin-hub/portal-bookings";
-                    }}
-                    className={cn(
-                      "block rounded-xl border p-3 shadow-sm transition-shadow hover:shadow-md cursor-pointer",
-                      stStyle,
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-foreground">
-                          {name}
-                        </p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {code} · {type}
-                        </p>
-                      </div>
-                      <span
-                        className={cn(
-                          "shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium",
-                          stStyle,
-                        )}
-                      >
-                        {stAr}
-                      </span>
-                    </div>
-                    {booking.staffNotes ? (
-                      <p className="mt-2 truncate text-xs text-muted-foreground">
-                        {booking.staffNotes}
-                      </p>
-                    ) : null}
-                  </a>
-                );
-              })}
+              {bookingsForDate.map((booking) => (
+                <BookingCard key={booking.id} booking={booking} />
+              ))}
             </div>
           )}
         </>
       ) : null}
+    </div>
+  );
+}
+
+const BOOKING_STATUS_STYLE: Record<string, string> = {
+  pending: "border-warning/30 bg-warning/5 text-warning",
+  confirmed: "border-primary/30 bg-primary/5 text-primary",
+  cancelled: "border-destructive/30 bg-destructive/5 text-destructive",
+  completed: "border-border bg-muted/30 text-muted-foreground",
+};
+const BOOKING_STATUS_AR: Record<string, string> = {
+  pending: "قيد المراجعة",
+  confirmed: "مؤكد",
+  cancelled: "ملغي",
+  completed: "مكتمل",
+};
+const BOOKING_TYPES_AR: Record<string, string> = {
+  consultant: "كشف استشاري",
+  specialist: "كشف أخصائي",
+  lasik: "فحوصات الليزك",
+  external: "أشعة خارجي",
+  followup: "متابعة",
+};
+
+function BookingCard({ booking }: { booking: any }) {
+  const name = booking.patientName ?? booking.guestName ?? "—";
+  const code = booking.patientCode ?? (booking.isGuest ? "زائر" : "جديد");
+  const type = BOOKING_TYPES_AR[booking.bookingType] ?? booking.typeLabel ?? booking.bookingType;
+  const stStyle = BOOKING_STATUS_STYLE[booking.status] ?? BOOKING_STATUS_STYLE.completed;
+  const stAr = BOOKING_STATUS_AR[booking.status] ?? booking.status;
+  return (
+    <a
+      href="/admin-hub/portal-bookings"
+      onClick={(e) => {
+        e.preventDefault();
+        window.location.href = "/admin-hub/portal-bookings";
+      }}
+      className={cn("block rounded-xl border p-3 shadow-sm transition-shadow hover:shadow-md cursor-pointer", stStyle)}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-foreground">{name}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{code} · {type}</p>
+        </div>
+        <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium", stStyle)}>
+          {stAr}
+        </span>
+      </div>
+      {booking.staffNotes ? (
+        <p className="mt-2 truncate text-xs text-muted-foreground">{booking.staffNotes}</p>
+      ) : null}
+    </a>
+  );
+}
+
+function BookingsAndQueueView({
+  bookingsForDate,
+  bookingsLoading,
+  queuePatients,
+  queueLoading,
+  medicalStatuses,
+  onSelectPatient,
+  onMarkVisitTreated,
+  markVisitTreatedPendingVisitId,
+}: {
+  bookingsForDate: any[];
+  bookingsLoading: boolean;
+  queuePatients: TodayQueuePatient[];
+  queueLoading: boolean;
+  medicalStatuses: Record<number, PatientMedicalStatus> | undefined;
+  onSelectPatient: (p: TodayQueuePatient) => void;
+  onMarkVisitTreated: (visitId: number, patient: TodayQueuePatient) => void;
+  markVisitTreatedPendingVisitId: number | null;
+}) {
+  const loading = bookingsLoading || queueLoading;
+  if (loading) {
+    return (
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-20 rounded-xl" />
+        ))}
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-5">
+      <div>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          حجوزات البوابة ({bookingsForDate.length})
+        </p>
+        {bookingsForDate.length === 0 ? (
+          <p className="rounded-lg border border-dashed border-border/60 py-6 text-center text-sm text-muted-foreground">
+            لا توجد حجوزات لهذا اليوم
+          </p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {bookingsForDate.map((b) => <BookingCard key={b.id} booking={b} />)}
+          </div>
+        )}
+      </div>
+      <div>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          مرضى الطابور ({queuePatients.length})
+        </p>
+        {queuePatients.length === 0 ? (
+          <p className="rounded-lg border border-dashed border-border/60 py-6 text-center text-sm text-muted-foreground">
+            لا يوجد مرضى في الطابور
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 xl:grid-cols-5">
+            {queuePatients.map((patient) => (
+              <QueuePatientCard
+                key={`${patient.id}-${patient.queueStatus}`}
+                patient={patient}
+                medicalStatus={medicalStatuses?.[patient.id]}
+                onSelectPatient={() => onSelectPatient(patient)}
+                markVisitTreatedPendingVisitId={markVisitTreatedPendingVisitId}
+                onMarkVisitTreated={(visitId) => onMarkVisitTreated(visitId, patient)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
