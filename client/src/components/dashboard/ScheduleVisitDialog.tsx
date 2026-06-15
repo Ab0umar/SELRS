@@ -23,6 +23,14 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
 
+function localDateIso() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 const SERVICE_KEYS = [
   "consultant",
   "specialist",
@@ -43,9 +51,7 @@ export function ScheduleVisitDialog({
 }) {
   const [fullName, setFullName] = useState("");
   const [age, setAge] = useState<string>("");
-  const [visitDate, setVisitDate] = useState(
-    () => new Date().toISOString().split("T")[0],
-  );
+  const [visitDate, setVisitDate] = useState(() => localDateIso());
   const [phone, setPhone] = useState("");
   const [service, setService] = useState<string>("consultant");
   const [patientType, setPatientType] = useState<"existing" | "new" | "guest">("existing");
@@ -67,7 +73,7 @@ export function ScheduleVisitDialog({
       setFullName("");
       setAge("");
       setPhone("");
-      setVisitDate(new Date().toISOString().split("T")[0]);
+      setVisitDate(localDateIso());
       setService("consultant");
       setPatientType("existing");
       return;
@@ -82,8 +88,10 @@ export function ScheduleVisitDialog({
     if ((SERVICE_KEYS as readonly string[]).includes(st)) setService(st);
   }, [open, prefilledPatientId, patientQuery.data]);
 
+  const utils = trpc.useUtils();
   const createMutation = trpc.patient.createVisitScheduleRequest.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
+      await utils.patient.getVisitScheduleRequests.invalidate();
       toast.success("تم حفظ الموعد");
       onOpenChange(false);
     },

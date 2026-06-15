@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Clock,
   Syringe,
+  Trash2,
   Users,
 } from "lucide-react";
 import { queueStatusLabelsAr, serviceTypeLabels } from "@/lib/dashboard-data";
@@ -143,11 +144,20 @@ export function AppointmentsSection({
   );
   const bookingsForDate = (bookingsQuery.data ?? []) as any[];
 
+  // ── Schedule requests (from حجز موعد/كشف dialog) ────────────────────────
+  const scheduleRequestsQuery = trpc.patient.getVisitScheduleRequests.useQuery(
+    { date: selectedDate },
+    { staleTime: 60_000, refetchOnWindowFocus: false },
+  );
+
   useEffect(() => {
-    const handler = () => void (bookingsQuery as any).refetch();
+    const handler = () => {
+      void (bookingsQuery as any).refetch();
+      void scheduleRequestsQuery.refetch();
+    };
     window.addEventListener("booking-update", handler);
     return () => window.removeEventListener("booking-update", handler);
-  }, [bookingsQuery]);
+  }, [bookingsQuery, scheduleRequestsQuery]);
 
   const utils = trpc.useUtils();
   const markVisitTreated = trpc.medical.updateVisitQueueStatus.useMutation({
@@ -421,9 +431,9 @@ export function AppointmentsSection({
         >
           <CalendarPlus className="h-4 w-4" />
           حجز
-          {bookingsForDate.length > 0 && (
+          {(bookingsForDate.length + (scheduleRequestsQuery.data?.length ?? 0)) > 0 && (
             <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-warning px-1 text-[10px] font-bold text-warning-foreground tabular-nums">
-              {bookingsForDate.length}
+              {bookingsForDate.length + (scheduleRequestsQuery.data?.length ?? 0)}
             </span>
           )}
         </Button>
@@ -460,6 +470,8 @@ export function AppointmentsSection({
             <BookingsAndQueueView
               bookingsForDate={bookingsForDate}
               bookingsLoading={bookingsQuery.isLoading}
+              scheduleRequests={(scheduleRequestsQuery.data ?? []) as any[]}
+              scheduleRequestsLoading={scheduleRequestsQuery.isLoading}
               queuePatients={merged}
               queueLoading={isLoading}
               medicalStatuses={medicalStatuses}
@@ -548,21 +560,42 @@ export function AppointmentsSection({
         </>
       ) : mainTab === "bookings" ? (
         <>
-          {bookingsQuery.isLoading ? (
+          {bookingsQuery.isLoading || scheduleRequestsQuery.isLoading ? (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="h-20 rounded-xl" />
               ))}
             </div>
-          ) : bookingsForDate.length === 0 ? (
+          ) : bookingsForDate.length === 0 && (scheduleRequestsQuery.data?.length ?? 0) === 0 ? (
             <div className="flex min-h-[220px] flex-col items-center justify-center px-4 py-12 text-center text-sm text-muted-foreground">
               لا توجد حجوزات لهذا اليوم
             </div>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {bookingsForDate.map((booking) => (
-                <BookingCard key={booking.id} booking={booking} />
-              ))}
+            <div className="space-y-5">
+              {(scheduleRequestsQuery.data?.length ?? 0) > 0 && (
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    مواعيد الاستقبال ({scheduleRequestsQuery.data?.length ?? 0})
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {(scheduleRequestsQuery.data ?? []).map((r: any) => (
+                      <ScheduleRequestCard key={r.id} r={r} />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {bookingsForDate.length > 0 && (
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    حجوزات البوابة ({bookingsForDate.length})
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {bookingsForDate.map((booking) => (
+                      <BookingCard key={booking.id} booking={booking} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </>
@@ -591,40 +624,85 @@ const BOOKING_TYPES_AR: Record<string, string> = {
   followup: "متابعة",
 };
 
+function ScheduleRequestCard({ r }: { r: any }) {
+  const utils = trpc.useUtils();
+  const remove = trpc.patient.removeVisitScheduleRequest.useMutation({
+    onSuccess: async () => {
+      await utils.patient.getVisitScheduleRequests.invalidate();
+      toast.success("تم حذف الموعد");
+    },
+    onError: () => toast.error("تعذر الحذف"),
+  });
+  return (
+    <div className="rounded-xl border border-border bg-card px-3 py-2.5 flex items-start justify-between gap-2">
+      <div className="min-w-0 space-y-0.5">
+        <p className="text-sm font-semibold truncate">{r.fullName}</p>
+        <p className="text-xs text-muted-foreground">
+          {serviceTypeLabels[r.service as string] ?? r.service}
+          {r.phone ? ` · ${r.phone}` : ""}
+        </p>
+      </div>
+      <button
+        type="button"
+        disabled={remove.isPending}
+        onClick={() => remove.mutate({ requestId: r.id })}
+        className="shrink-0 mt-0.5 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40"
+        aria-label="حذف الموعد"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
 function BookingCard({ booking }: { booking: any }) {
+  const utils = trpc.useUtils();
+  const del = (trpc as any).patientPortal.deleteBooking.useMutation({
+    onSuccess: async () => {
+      await (utils as any).patientPortal.listBookings.invalidate();
+      toast.success("تم حذف الحجز");
+    },
+    onError: () => toast.error("تعذر الحذف"),
+  });
   const name = booking.patientName ?? booking.guestName ?? "—";
   const code = booking.patientCode ?? (booking.isGuest ? "زائر" : "جديد");
   const type = BOOKING_TYPES_AR[booking.bookingType] ?? booking.typeLabel ?? booking.bookingType;
   const stStyle = BOOKING_STATUS_STYLE[booking.status] ?? BOOKING_STATUS_STYLE.completed;
   const stAr = BOOKING_STATUS_AR[booking.status] ?? booking.status;
   return (
-    <a
-      href="/admin-hub/portal-bookings"
-      onClick={(e) => {
-        e.preventDefault();
-        window.location.href = "/admin-hub/portal-bookings";
-      }}
-      className={cn("block rounded-xl border p-3 shadow-sm transition-shadow hover:shadow-md cursor-pointer", stStyle)}
-    >
+    <div className={cn("rounded-xl border p-3 shadow-sm", stStyle)}>
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-foreground">{name}</p>
           <p className="mt-0.5 text-xs text-muted-foreground">{code} · {type}</p>
         </div>
-        <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium", stStyle)}>
-          {stAr}
-        </span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className={cn("rounded-full border px-2 py-0.5 text-[11px] font-medium", stStyle)}>
+            {stAr}
+          </span>
+          <button
+            type="button"
+            disabled={del.isPending}
+            onClick={() => del.mutate({ id: booking.id })}
+            className="text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40"
+            aria-label="حذف الحجز"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
       {booking.staffNotes ? (
         <p className="mt-2 truncate text-xs text-muted-foreground">{booking.staffNotes}</p>
       ) : null}
-    </a>
+    </div>
   );
 }
 
 function BookingsAndQueueView({
   bookingsForDate,
   bookingsLoading,
+  scheduleRequests,
+  scheduleRequestsLoading,
   queuePatients,
   queueLoading,
   medicalStatuses,
@@ -634,6 +712,8 @@ function BookingsAndQueueView({
 }: {
   bookingsForDate: any[];
   bookingsLoading: boolean;
+  scheduleRequests: any[];
+  scheduleRequestsLoading: boolean;
   queuePatients: TodayQueuePatient[];
   queueLoading: boolean;
   medicalStatuses: Record<number, PatientMedicalStatus> | undefined;
@@ -641,7 +721,7 @@ function BookingsAndQueueView({
   onMarkVisitTreated: (visitId: number, patient: TodayQueuePatient) => void;
   markVisitTreatedPendingVisitId: number | null;
 }) {
-  const loading = bookingsLoading || queueLoading;
+  const loading = bookingsLoading || scheduleRequestsLoading || queueLoading;
   if (loading) {
     return (
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -653,6 +733,25 @@ function BookingsAndQueueView({
   }
   return (
     <div className="space-y-5">
+      {/* Schedule requests from حجز موعد/كشف */}
+      <div>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          مواعيد الاستقبال ({scheduleRequests.length})
+        </p>
+        {scheduleRequests.length === 0 ? (
+          <p className="rounded-lg border border-dashed border-border/60 py-6 text-center text-sm text-muted-foreground">
+            لا توجد مواعيد لهذا اليوم
+          </p>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {scheduleRequests.map((r: any) => (
+              <ScheduleRequestCard key={r.id} r={r} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Portal bookings */}
       <div>
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           حجوزات البوابة ({bookingsForDate.length})
@@ -667,6 +766,8 @@ function BookingsAndQueueView({
           </div>
         )}
       </div>
+
+      {/* Queue patients */}
       <div>
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           مرضى الطابور ({queuePatients.length})

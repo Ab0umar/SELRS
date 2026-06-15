@@ -58,8 +58,11 @@ export function AddPortalBookingDialog({
     { enabled: search.trim().length >= 2 },
   );
 
+  const utils = trpc.useUtils();
+
   const createStaff = trpc.patientPortal.createStaffBooking.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
+      await utils.patientPortal.listBookings.invalidate();
       toast.success("تم إضافة الحجز بنجاح");
       reset();
       onOpenChange(false);
@@ -68,7 +71,8 @@ export function AddPortalBookingDialog({
   });
 
   const createNew = trpc.patient.createVisitScheduleRequest.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
+      await utils.patient.getVisitScheduleRequests.invalidate();
       toast.success("تم إضافة الحجز بنجاح");
       reset();
       onOpenChange(false);
