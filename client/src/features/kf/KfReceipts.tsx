@@ -8,6 +8,7 @@ import { RefreshCw, Search, ReceiptText, Printer } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { formatDateAr, toArabicDigits } from "../accounting/accountingFormat";
+import { DateInput } from "@/components/ui/date-input";
 
 const KF_LABELS: Record<string, string> = {
   consultation: "كشف استشاري",
@@ -79,11 +80,11 @@ export default function KfReceipts() {
         <CardContent className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
           <label className="space-y-1.5 text-sm font-medium">
             <span>من تاريخ</span>
-            <Input type="date" value={draft.fromDate} onChange={(e) => { setDraft((p) => ({ ...p, fromDate: e.target.value })); setDateError(""); }} />
+            <DateInput value={draft.fromDate} onChange={(e) => { setDraft((p) => ({ ...p, fromDate: e.target.value })); setDateError(""); }} />
           </label>
           <label className="space-y-1.5 text-sm font-medium">
             <span>إلى تاريخ</span>
-            <Input type="date" value={draft.toDate} onChange={(e) => { setDraft((p) => ({ ...p, toDate: e.target.value })); setDateError(""); }} />
+            <DateInput value={draft.toDate} onChange={(e) => { setDraft((p) => ({ ...p, toDate: e.target.value })); setDateError(""); }} />
           </label>
           <label className="space-y-1.5 text-sm font-medium">
             <span>كود المريض (KF)</span>

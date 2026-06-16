@@ -3,8 +3,10 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2, X, Search, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
+import { localISODate } from "@/lib/utils";
+import { DateInput } from "@/components/ui/date-input";
 
-const today = new Date().toISOString().split("T")[0];
+const today = localISODate();
 
 interface BasicForm {
   empCd: string;
@@ -62,9 +64,9 @@ function num(v: string) {
 }
 function fmtDate(v: any): string {
   if (!v) return "";
-  if (typeof v === "string") return v.split("T")[0];
-  if (v instanceof Date) return v.toISOString().split("T")[0];
-  return String(v).split("T")[0];
+  const d = v instanceof Date ? v : new Date(v);
+  if (isNaN(d.getTime())) return String(v).split("T")[0];
+  return localISODate(d);
 }
 function totalOf(f: BasicForm) {
   return FIELDS.reduce((s, { key }) => s + num((f as any)[key]), 0);
@@ -1037,8 +1039,7 @@ export default function SalaryBasics() {
                           <label className="block text-xs font-bold text-foreground">
                             تاريخ السريان
                           </label>
-                          <input
-                            type="date"
+                          <DateInput
                             value={form.effectiveFrom}
                             onChange={(e) =>
                               setForm({
@@ -1054,8 +1055,7 @@ export default function SalaryBasics() {
                           <label className="block text-xs font-bold text-foreground">
                             تاريخ الانتهاء (اختياري)
                           </label>
-                          <input
-                            type="date"
+                          <DateInput
                             value={form.effectiveTo}
                             onChange={(e) =>
                               setForm({ ...form, effectiveTo: e.target.value })

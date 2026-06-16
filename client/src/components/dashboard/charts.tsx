@@ -19,7 +19,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
+import { cn, localISODate } from "@/lib/utils";
 import { Inbox } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useMemo, useId } from "react";
@@ -190,7 +190,7 @@ const QUEUE_LABELS_AR: Record<string, string> = {
 };
 
 export function AppointmentDistributionChart() {
-  const todayIso = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const todayIso = useMemo(() => localISODate(), []);
   const checkedIn = trpc.medical.getTodayPatientsByQueueStatus.useQuery({
     date: todayIso,
     queueStatus: "checkedIn",

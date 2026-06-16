@@ -13,6 +13,7 @@ import {
   saveSheetDesignerConfig,
 } from "@/lib/sheetDesigner";
 import { printOrExportPdf } from "@/lib/nativePdf";
+import { DateInput } from "@/components/ui/date-input";
 
 export default function LasikFollowupPage() {
   const { user, isAuthenticated } = useAuth();
@@ -310,14 +311,12 @@ export default function LasikFollowupPage() {
             </div>
             <div className="whitespace-nowrap">
               {followupLabels.operationDateLabel}
-              <Input
-                type="date"
+              <DateInput
                 value={operationDateRight}
                 onChange={(e) => setOperationDateRight(e.target.value)}
                 className="inline-block w-32 h-7 text-xs mx-1"
               />
-              <Input
-                type="date"
+              <DateInput
                 value={operationDateLeft}
                 onChange={(e) => setOperationDateLeft(e.target.value)}
                 className="inline-block w-32 h-7 text-xs"
@@ -371,8 +370,7 @@ export default function LasikFollowupPage() {
                     className="border border-black/50 border-r-0 px-1 py-0.5 print:py-0 text-center"
                   >
                     {followupLabels.followupDateLabel}{" "}
-                    <Input
-                      type="date"
+                    <DateInput
                       value={f.date}
                       onChange={(e) =>
                         setFollowups((prev) =>

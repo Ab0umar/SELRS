@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DateInput } from "@/components/ui/date-input";
 
 const visitKindTabs = [
   { value: "all", label: "الكل" },
@@ -424,8 +425,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                       >
                         {isEditingDate ? (
                           <div className="flex-1 flex items-center gap-2">
-                            <Input
-                              type="date"
+                            <DateInput
                               value={editDate}
                               onChange={(e) => setEditDate(e.target.value)}
                               className="max-w-xs"

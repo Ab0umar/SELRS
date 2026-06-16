@@ -17,7 +17,7 @@ config();
 
 const __scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_DB_PATH =
-  "C:\\Users\\SELRS\\OneDrive\\Documents\\SELRS\\الخزنه.accdb";
+  "C:\\Users\\drels\\OneDrive\\SELRS\\الخزنه.accdb";
 const DUMP_SCRIPT = path.resolve(__scriptDir, "access-dump.ps1");
 
 function getArg(flag: string): string | null {
@@ -82,9 +82,31 @@ function dumpAccess(dbPath: string): Record<string, any[]> {
   };
 }
 
+// Access dump gives DateTime columns as "yyyy-MM-dd" (safe, see access-dump.ps1),
+// but text-typed date columns come through as the raw locale string — which on
+// this system is dd/mm/yyyy (Egypt locale), NOT mm/dd/yyyy. `new Date(val)`
+// would silently misparse those as US mm/dd/yyyy, swapping day and month.
+// Parse explicitly instead of trusting JS's ambiguous Date string parsing.
 function toDate(val: string | null): string | null {
   if (!val) return null;
-  const d = new Date(val);
+  const raw = String(val).trim();
+  if (!raw) return null;
+
+  const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+
+  const slashMatch = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (slashMatch) {
+    const day = Number(slashMatch[1]);
+    const month = Number(slashMatch[2]);
+    const year = Number(slashMatch[3]);
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    }
+  }
+
+  // Fallback for any other unambiguous format.
+  const d = new Date(raw);
   return isNaN(d.getTime()) ? null : d.toISOString().split("T")[0];
 }
 

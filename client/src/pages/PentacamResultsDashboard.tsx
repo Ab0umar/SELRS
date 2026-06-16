@@ -23,6 +23,7 @@ import {
   ChevronUp,
   Eye,
 } from "lucide-react";
+import { DateInput } from "@/components/ui/date-input";
 
 const filterTabs = [
   { value: "all", label: "الكل" },
@@ -749,8 +750,7 @@ export default function PentacamResultsDashboard({
                       <Label className="text-xs text-muted-foreground">
                         من تاريخ
                       </Label>
-                      <Input
-                        type="date"
+                      <DateInput
                         className="h-9 text-sm"
                         value={fromDate}
                         disabled={patientHubReadOnly}
@@ -761,8 +761,7 @@ export default function PentacamResultsDashboard({
                       <Label className="text-xs text-muted-foreground">
                         إلى تاريخ
                       </Label>
-                      <Input
-                        type="date"
+                      <DateInput
                         className="h-9 text-sm"
                         value={toDate}
                         disabled={patientHubReadOnly}

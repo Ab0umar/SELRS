@@ -78,6 +78,7 @@ import {
   InsertStockTransaction,
 } from "../drizzle/schema";
 import { PENTACAM_ALLOWED_SRV_CODES } from "../shared/pentacam";
+import { getServiceTypeFilterVariants } from "../shared/serviceType";
 const exec = promisify(execCb);
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -1959,7 +1960,19 @@ function buildPatientFilterClauses(filters?: {
   dateFrom?: string;
   dateTo?: string;
   doctorName?: string;
-  serviceType?: "consultant" | "specialist" | "lasik" | "surgery" | "external";
+  serviceType?:
+    | "consultant"
+    | "specialist"
+    | "lasik"
+    | "surgery"
+    | "external"
+    | "pentacam_c"
+    | "pentacam_ex"
+    | "pentacam_ex_c"
+    | "surgery_external"
+    | "surgery_center"
+    | "pentacam_center"
+    | "pentacam_external";
   locationType?: "center" | "external";
 }) {
   const whereClauses: any[] = [];
@@ -2026,25 +2039,9 @@ function buildPatientFilterClauses(filters?: {
   }
   const normalizedServiceType = String(filters?.serviceType ?? "").trim();
   if (normalizedServiceType) {
-    // Map legacy/old service types to modern ones for backward compatibility
-    const serviceTypeVariants: string[] = [normalizedServiceType];
-    if (normalizedServiceType === "consultant") {
-      // Consultant should also match old pentacam_center and surgery
-      serviceTypeVariants.push("pentacam_center", "surgery");
-    } else if (normalizedServiceType === "lasik") {
-      // Lasik should also match pentacam center aliases.
-      serviceTypeVariants.push("pentacam_center", "pentacam_c");
-    } else if (normalizedServiceType === "external") {
-      // External should also match pentacam_external and surgery_external
-      serviceTypeVariants.push(
-        "pentacam_external",
-        "pentacam_ex",
-        "pentacam_ex_c",
-        "surgery_external",
-      );
-    }
+    const serviceTypeVariants: string[] =
+      getServiceTypeFilterVariants(normalizedServiceType);
 
-    // For lasik, also filter by service codes 1501, 1502 (in addition to serviceType)
     if (normalizedServiceType === "lasik") {
       whereClauses.push(
         sql`(
@@ -2123,7 +2120,19 @@ export async function getAllPatients(options?: {
   dateFrom?: string;
   dateTo?: string;
   doctorName?: string;
-  serviceType?: "consultant" | "specialist" | "lasik" | "surgery" | "external";
+  serviceType?:
+    | "consultant"
+    | "specialist"
+    | "lasik"
+    | "surgery"
+    | "external"
+    | "pentacam_c"
+    | "pentacam_ex"
+    | "pentacam_ex_c"
+    | "surgery_external"
+    | "surgery_center"
+    | "pentacam_center"
+    | "pentacam_external";
   locationType?: "center" | "external";
   limit?: number;
   cursor?: {
@@ -2228,306 +2237,70 @@ export async function getPatientStats(
     };
   }
 
-  const normalizeServiceType = (value: unknown) => {
-    const raw = String(value ?? "")
-      .trim()
-      .toLowerCase();
-    if (raw === "specialist" || raw === "اخصائي" || raw === "أخصائي")
-      return "specialist";
-    if (
-      raw === "external" ||
-      raw === "خارجي" ||
-      raw === "outside" ||
-      raw === "out"
-    )
-      return "external";
-    if (raw === "lasik" || raw === "ليزك") return "lasik";
-    if (raw === "surgery" || raw === "عمليات" || raw === "عملية")
-      return "surgery";
-    return "consultant";
-  };
-
-  const defaultCodesByType: Record<string, string[]> = {
-    consultant: ["1589"],
-    specialist: ["1586", "1562"],
-    // Lasik stats must be based on Lasik examination services only (not operations).
-    lasik: ["1501", "1502"],
-    surgery: [
-      "1503",
-      "1504",
-      "1509",
-      "1510",
-      "1511",
-      "1512",
-      "1514",
-      "1515",
-      "1516",
-      "1517",
-      "1518",
-      "1519",
-      "1578",
-      "1579",
-      "1580",
-      "1581",
-      "1585",
-      "1587",
-      "1593",
-      "1599",
-      "1607",
-      "1567",
-      "1568",
-    ],
-    external: [
-      "1613",
-      "1590",
-      "1572",
-      "1600",
-      "1505",
-      "1506",
-      "1507",
-      "1508",
-      "1520",
-      "1521",
-      "1563",
-      "1564",
-      "1565",
-      "1566",
-      "1569",
-      "1570",
-      "1571",
-      "1573",
-      "1574",
-      "1598",
-      "1595",
-      "1596",
-      "1597",
-      "1601",
-      "1603",
-      "1610",
-      "1611",
-      "1612",
-      "1614",
-    ],
-  };
-  const serviceCodesByType = new Map<string, Set<string>>();
-  Object.entries(defaultCodesByType).forEach(([type, codes]) => {
-    serviceCodesByType.set(
-      type,
-      new Set(codes.map((code) => code.toLowerCase())),
-    );
-  });
-  const serviceDirectoryRow = await getSystemSetting("service_directory");
-  if (serviceDirectoryRow?.value) {
-    try {
-      const parsed = JSON.parse(serviceDirectoryRow.value) as Array<any>;
-      for (const entry of parsed ?? []) {
-        const code = String(entry?.code ?? "")
-          .trim()
-          .toLowerCase();
-        const mappedType = normalizeServiceType(entry?.serviceType);
-        if (!code) continue;
-        if (!serviceCodesByType.has(mappedType))
-          serviceCodesByType.set(mappedType, new Set<string>());
-        serviceCodesByType.get(mappedType)!.add(code);
-      }
-    } catch {
-      // Ignore malformed setting and keep defaults.
+  // Each metric below is an exact match against patients.serviceType — no
+  // location-based or service-code-based blending. "center"/"external" here
+  // mean the Pentacam-center ("pentacam_c") and Pentacam-external
+  // ("pentacam_ex") buckets specifically, mirroring surgery_c/surgery_ex.
+  const effectivePatientDate = sql`COALESCE(${patients.lastVisit}, DATE(${patients.createdAt}))`;
+  const whereClauses: any[] = [];
+  const hasDateFilter = Boolean(
+    (safeMonth && safeMonth >= 1 && safeMonth <= 12) ||
+      filters?.dateFrom ||
+      filters?.dateTo,
+  );
+  if (hasDateFilter) {
+    whereClauses.push(sql`YEAR(${effectivePatientDate}) = ${safeYear}`);
+    if (safeMonth && safeMonth >= 1 && safeMonth <= 12) {
+      whereClauses.push(sql`MONTH(${effectivePatientDate}) = ${safeMonth}`);
     }
-  }
-
-  // These service codes are center-only by business rule and must never be classified as external.
-  const centerOnlyServiceCodes = new Set([
-    "1503",
-    "1504",
-    "1509",
-    "1510",
-    "1511",
-    "1512",
-    "1514",
-    "1515",
-    "1516",
-    "1517",
-    "1518",
-    "1519",
-    "1567",
-    "1568",
-    "1578",
-    "1579",
-    "1580",
-    "1581",
-    "1585",
-    "1587",
-    "1593",
-    "1599",
-    "1607",
-  ]);
-  const externalCodes = serviceCodesByType.get("external");
-  if (externalCodes) {
-    centerOnlyServiceCodes.forEach((code) => externalCodes.delete(code));
-  }
-
-  const buildServiceCodeMatchExpr = (serviceType: string) => {
-    const codes = Array.from(serviceCodesByType.get(serviceType) ?? []);
-    if (!codes.length) return sql`0 = 1`;
-    return sql`LOWER(TRIM(${patientServiceEntries.serviceCode})) IN (${sql.join(
-      codes.map((code) => sql`${code}`),
-      sql`, `,
-    )})`;
-  };
-
-  const surgeryExpr = sql`LOWER(TRIM(${patientServiceEntries.serviceCode})) IN ('1503', '1504', '1509', '1510', '1511', '1512', '1514', '1515', '1516', '1517', '1518', '1519', '1567', '1568', '1578', '1579', '1580', '1581', '1585', '1587', '1593', '1599', '1607')`;
-  const effectiveServiceDate = sql`COALESCE(${patientServiceEntries.serviceDate}, DATE(${patientServiceEntries.updatedAt}))`;
-  const whereClauses: any[] = [
-    sql`YEAR(${effectiveServiceDate}) = ${safeYear}`,
-  ];
-  if (safeMonth && safeMonth >= 1 && safeMonth <= 12) {
-    whereClauses.push(sql`MONTH(${effectiveServiceDate}) = ${safeMonth}`);
-  }
-
-  const normalizedDateFrom = String(filters?.dateFrom ?? "").trim();
-  if (normalizedDateFrom) {
-    whereClauses.push(sql`${effectiveServiceDate} >= ${normalizedDateFrom}`);
-  }
-  const normalizedDateTo = String(filters?.dateTo ?? "").trim();
-  if (normalizedDateTo) {
-    whereClauses.push(sql`${effectiveServiceDate} <= ${normalizedDateTo}`);
-  }
-
-  const normalizedServiceType = String(filters?.serviceType ?? "")
-    .trim()
-    .toLowerCase();
-  if (normalizedServiceType) {
-    const matchExpr =
-      normalizedServiceType === "lasik"
-        ? sql`LOWER(TRIM(${patientServiceEntries.serviceCode})) IN ('1501', '1502')`
-        : buildServiceCodeMatchExpr(normalizedServiceType);
-    whereClauses.push(sql`(${matchExpr})`);
+    const normalizedDateFrom = String(filters?.dateFrom ?? "").trim();
+    if (normalizedDateFrom) {
+      whereClauses.push(sql`${effectivePatientDate} >= ${normalizedDateFrom}`);
+    }
+    const normalizedDateTo = String(filters?.dateTo ?? "").trim();
+    if (normalizedDateTo) {
+      whereClauses.push(sql`${effectivePatientDate} <= ${normalizedDateTo}`);
+    }
+  } else {
+    whereClauses.push(sql`YEAR(${effectivePatientDate}) = ${safeYear}`);
   }
 
   whereClauses.push(
     ...buildPatientFilterClauses({
       ...filters,
-      serviceType: undefined,
       dateFrom: undefined,
       dateTo: undefined,
     }),
   );
+  const whereClause = whereClauses.length > 0 ? and(...whereClauses) : undefined;
 
-  // When a serviceType filter is active, we must join patientServiceEntries to filter by code.
-  // When no serviceType filter is active, count ALL patients directly so patients without
-  // service entries (no PAPAT_SRV record) are still included in the total.
-  if (normalizedServiceType) {
-    const whereClause = and(...whereClauses);
-    const lasikExpr = sql`LOWER(TRIM(${patientServiceEntries.serviceCode})) IN ('1501', '1502')`;
-    const rows = await db
-      .select({
-        total: sql<number>`COUNT(DISTINCT ${patients.id})`,
-        center: sql<number>`COUNT(DISTINCT CASE WHEN ${patients.locationType} = 'center' THEN ${patients.id} END)`,
-        external: sql<number>`COUNT(DISTINCT CASE WHEN ${patients.locationType} = 'external' THEN ${patients.id} END)`,
-        lasik: sql<number>`COUNT(DISTINCT CASE WHEN ${lasikExpr} THEN ${patients.id} END)`,
-        surgery_c: sql<number>`COUNT(DISTINCT CASE WHEN ${surgeryExpr} AND ${patients.locationType} = 'center' THEN ${patients.id} END)`,
-        surgery_ex: sql<number>`COUNT(DISTINCT CASE WHEN ${surgeryExpr} AND ${patients.locationType} = 'external' THEN ${patients.id} END)`,
-      })
-      .from(patientServiceEntries)
-      .innerJoin(patients, eq(patientServiceEntries.patientId, patients.id))
-      .where(whereClause);
-    const row = rows[0] ?? {
-      total: 0,
-      center: 0,
-      external: 0,
-      lasik: 0,
-      surgery_c: 0,
-      surgery_ex: 0,
-    };
-    return {
-      total: Number(row.total ?? 0),
-      center: Number(row.center ?? 0),
-      external: Number(row.external ?? 0),
-      lasik: Number(row.lasik ?? 0),
-      surgery_c: Number(row.surgery_c ?? 0),
-      surgery_ex: Number(row.surgery_ex ?? 0),
-    };
-  }
-
-  // No serviceType filter: count patients on the patients table itself.
-  // Only apply date filters when a specific month or explicit date range is requested.
-  // For plain yearly totals (no month, no dateFrom/dateTo) count ALL patients so that
-  // patients imported from MSSQL with old createdAt values are still included.
-  const effectivePatientDate = sql`COALESCE(${patients.lastVisit}, DATE(${patients.createdAt}))`;
-  const patientWhereClauses: any[] = [];
-  const hasDateFilter = Boolean(
-    (safeMonth && safeMonth >= 1 && safeMonth <= 12) ||
-    normalizedDateFrom ||
-    normalizedDateTo,
-  );
-  if (hasDateFilter) {
-    patientWhereClauses.push(sql`YEAR(${effectivePatientDate}) = ${safeYear}`);
-    if (safeMonth && safeMonth >= 1 && safeMonth <= 12) {
-      patientWhereClauses.push(
-        sql`MONTH(${effectivePatientDate}) = ${safeMonth}`,
-      );
-    }
-    if (normalizedDateFrom) {
-      patientWhereClauses.push(
-        sql`${effectivePatientDate} >= ${normalizedDateFrom}`,
-      );
-    }
-    if (normalizedDateTo) {
-      patientWhereClauses.push(
-        sql`${effectivePatientDate} <= ${normalizedDateTo}`,
-      );
-    }
-  }
-  // Apply patient-level filters (search, doctor, locationType) if present.
-  patientWhereClauses.push(
-    ...buildPatientFilterClauses({
-      ...filters,
-      serviceType: undefined,
-      dateFrom: undefined,
-      dateTo: undefined,
-    }),
-  );
-  const patientWhereClause =
-    patientWhereClauses.length > 0 ? and(...patientWhereClauses) : undefined;
-
-  const rawCount = (await db.execute(sql`
-    SELECT
-      COUNT(*) AS total,
-      SUM(locationType = 'center') AS center,
-      SUM(locationType = 'external') AS external
-    FROM patients
-    ${patientWhereClause ? sql`WHERE ${patientWhereClause}` : sql``}
-  `)) as any;
-  const rawRow = Array.isArray(rawCount)
-    ? rawCount[0]?.[0]
-    : rawCount?.rows?.[0];
-
-  const statsRows = await db
+  const rows = await db
     .select({
-      lasik: sql<number>`COUNT(DISTINCT CASE WHEN LOWER(TRIM(${patientServiceEntries.serviceCode})) IN ('1501', '1502') THEN ${patientServiceEntries.patientId} END)`,
-      surgery_c: sql<number>`COUNT(DISTINCT CASE WHEN ${surgeryExpr} AND ${patients.locationType} = 'center' THEN ${patientServiceEntries.patientId} END)`,
-      surgery_ex: sql<number>`COUNT(DISTINCT CASE WHEN ${surgeryExpr} AND ${patients.locationType} = 'external' THEN ${patientServiceEntries.patientId} END)`,
+      total: sql<number>`COUNT(*)`,
+      lasik: sql<number>`SUM(CASE WHEN ${patients.serviceType} = 'lasik' THEN 1 ELSE 0 END)`,
+      center: sql<number>`SUM(CASE WHEN ${patients.serviceType} = 'pentacam_c' THEN 1 ELSE 0 END)`,
+      external: sql<number>`SUM(CASE WHEN ${patients.serviceType} = 'pentacam_ex' THEN 1 ELSE 0 END)`,
+      surgery_c: sql<number>`SUM(CASE WHEN ${patients.serviceType} = 'surgery_center' THEN 1 ELSE 0 END)`,
+      surgery_ex: sql<number>`SUM(CASE WHEN ${patients.serviceType} = 'surgery_external' THEN 1 ELSE 0 END)`,
     })
-    .from(patientServiceEntries)
-    .innerJoin(patients, eq(patientServiceEntries.patientId, patients.id))
-    .where(
-      and(
-        sql`YEAR(COALESCE(${patientServiceEntries.serviceDate}, DATE(${patientServiceEntries.updatedAt}))) = ${safeYear}`,
-        ...(patientWhereClause ? [patientWhereClause] : []),
-      ),
-    );
+    .from(patients)
+    .where(whereClause);
 
-  const patientRows = [rawRow ?? { total: 0, center: 0, external: 0 }];
-
-  const pr = patientRows[0] ?? { total: 0, center: 0, external: 0 };
-  const sr = statsRows[0] ?? { lasik: 0, surgery_c: 0, surgery_ex: 0 };
+  const row = rows[0] ?? {
+    total: 0,
+    lasik: 0,
+    center: 0,
+    external: 0,
+    surgery_c: 0,
+    surgery_ex: 0,
+  };
   return {
-    total: Number(pr.total ?? 0),
-    center: Number(pr.center ?? 0),
-    external: Number(pr.external ?? 0),
-    lasik: Number(sr.lasik ?? 0),
-    surgery_c: Number(sr.surgery_c ?? 0),
-    surgery_ex: Number(sr.surgery_ex ?? 0),
+    total: Number(row.total ?? 0),
+    center: Number(row.center ?? 0),
+    external: Number(row.external ?? 0),
+    lasik: Number(row.lasik ?? 0),
+    surgery_c: Number(row.surgery_c ?? 0),
+    surgery_ex: Number(row.surgery_ex ?? 0),
   };
 }
 
@@ -2663,9 +2436,22 @@ export async function getTodayPatientsBySheet(dateIso?: string) {
     surgery: { serviceType: "surgery", total: 0, patients: [] },
   };
 
+  // This panel only has 5 display buckets — fold the newer granular
+  // serviceType values into their closest legacy bucket instead of letting
+  // them fall through to "consultant" by default.
+  const legacyBucketKey: Record<string, string> = {
+    pentacam_c: "lasik",
+    pentacam_center: "lasik",
+    pentacam_ex: "external",
+    pentacam_ex_c: "external",
+    pentacam_external: "external",
+    surgery_center: "surgery",
+    surgery_external: "surgery",
+  };
   for (const raw of rows) {
     const row = decodePatientRow(raw as any);
-    const key = String(row.serviceType ?? "").toLowerCase();
+    const rawKey = String(row.serviceType ?? "").toLowerCase();
+    const key = legacyBucketKey[rawKey] ?? rawKey;
     const bucket = groups[key] ?? groups.consultant;
     bucket.total += 1;
     bucket.patients.push({
@@ -2975,22 +2761,34 @@ async function attachTreatingDoctor(patientRows: any[]) {
         serviceCodesByPatient.get(patient.id)?.[0];
       return fromEntries || dbSynced || "";
     })(),
+    // IMPORTANT: patients.serviceType/locationType are the authoritative,
+    // manually-editable columns (set by admin edits, bulk actions, and
+    // MSSQL sync's copyIfMissing). Only fall back to a service-code-derived
+    // guess when the DB column itself is blank — never overwrite a value
+    // that's actually stored, or every manual edit gets silently discarded
+    // on the next fetch.
     serviceType: (() => {
+      const dbServiceType = String((patient as any).serviceType ?? "").trim();
+      if (dbServiceType) return dbServiceType;
       const fromEntries =
         mssqlServiceCodesByPatient.get(patient.id) ??
         serviceCodesByPatient.get(patient.id) ??
         [];
-      const dbSynced = String((patient as any).serviceCode ?? "").trim();
-      const resolvedCode = String(fromEntries[0] ?? dbSynced).trim();
+      const dbServiceCode = String((patient as any).serviceCode ?? "").trim();
+      const resolvedCode = String(fromEntries[0] ?? dbServiceCode).trim();
       return serviceCodeMetaMap.get(resolvedCode)?.serviceType ?? "";
     })(),
     locationType: (() => {
+      const dbLocationType = String(
+        (patient as any).locationType ?? "",
+      ).trim();
+      if (dbLocationType) return dbLocationType;
       const fromEntries =
         mssqlServiceCodesByPatient.get(patient.id) ??
         serviceCodesByPatient.get(patient.id) ??
         [];
-      const dbSynced = String((patient as any).serviceCode ?? "").trim();
-      const resolvedCode = String(fromEntries[0] ?? dbSynced).trim();
+      const dbServiceCode = String((patient as any).serviceCode ?? "").trim();
+      const resolvedCode = String(fromEntries[0] ?? dbServiceCode).trim();
       return serviceCodeMetaMap.get(resolvedCode)?.locationType ?? "";
     })(),
     serviceCodes: (() => {

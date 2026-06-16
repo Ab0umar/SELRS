@@ -10,6 +10,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2, Download, Filter, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
+import { localISODate } from "@/lib/utils";
 
 interface BasicForm {
   empCd: string;
@@ -25,7 +26,7 @@ interface BasicForm {
   notes: string;
 }
 
-const today = new Date().toISOString().split("T")[0];
+const today = localISODate();
 
 const BLANK: BasicForm = {
   empCd: "",

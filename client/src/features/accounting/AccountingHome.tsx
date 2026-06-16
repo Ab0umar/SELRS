@@ -29,6 +29,7 @@ import { Link } from "wouter";
 import AccountingShell from "./AccountingShell";
 import { cn } from "@/lib/utils";
 import { formatMoneyAr, formatCountAr } from "./accountingFormat";
+import { DateInput } from "@/components/ui/date-input";
 
 const quickLinkGroups = [
   [
@@ -229,22 +230,28 @@ export default function AccountingHome() {
   const [syncResult, setSyncResult] = useState<{
     ok: boolean;
     msg: string;
+    log?: string;
   } | null>(null);
 
   const handleAccSync = async () => {
     setSyncResult(null);
     try {
-      await syncAccMut.mutateAsync();
+      const result = await syncAccMut.mutateAsync();
       await Promise.all([
         cashbookSummaryQuery.refetch(),
         utils.accounting.accLedger.invalidate(),
         utils.accounting.accLedgerSummary.invalidate(),
       ]);
-      setSyncResult({ ok: true, msg: "تمت المزامنة بنجاح" });
+      setSyncResult({
+        ok: true,
+        msg: "تمت المزامنة بنجاح",
+        log: result?.log,
+      });
     } catch (e: any) {
       setSyncResult({
         ok: false,
-        msg: e?.message?.slice(0, 120) ?? "فشلت المزامنة",
+        msg: "فشلت المزامنة",
+        log: e?.message,
       });
     }
     setTimeout(() => setSyncResult(null), 4000);
@@ -372,8 +379,7 @@ export default function AccountingHome() {
                 )}
               </div>
               <div className="flex items-center gap-2 sm:gap-3">
-                <input
-                  type="date"
+                <DateInput
                   aria-label="تاريخ العرض"
                   value={viewDate}
                   max={today}
@@ -587,14 +593,24 @@ export default function AccountingHome() {
                 )}
               </div>
               {syncResult && (
-                <p
-                  className={cn(
-                    "text-xs font-medium",
-                    syncResult.ok ? "text-success" : "text-destructive",
-                  )}
-                >
-                  {syncResult.msg}
-                </p>
+                <div className="space-y-1">
+                  <p
+                    className={cn(
+                      "text-xs font-medium",
+                      syncResult.ok ? "text-success" : "text-destructive",
+                    )}
+                  >
+                    {syncResult.msg}
+                  </p>
+                  {syncResult.log ? (
+                    <pre
+                      dir="ltr"
+                      className="max-h-48 overflow-auto whitespace-pre-wrap rounded-lg border border-border bg-muted/40 p-2 text-left text-[11px] text-muted-foreground"
+                    >
+                      {syncResult.log}
+                    </pre>
+                  ) : null}
+                </div>
               )}
               {activeTab === "cashbook" && (
                 <div className="flex flex-col gap-1.5">
@@ -604,9 +620,8 @@ export default function AccountingHome() {
                         id: "qk-cb-date",
                         label: "التاريخ",
                         node: (
-                          <input
+                          <DateInput
                             id="qk-cb-date"
-                            type="date"
                             value={txDate}
                             onChange={(e) => setTxDate(e.target.value)}
                             className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"

@@ -18,6 +18,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { DateInput } from "@/components/ui/date-input";
 
 const todayStr = new Date().toISOString().split("T")[0];
 const firstOfMonth = new Date(
@@ -459,8 +460,7 @@ export default function EmployeeDetail() {
                   <label className="block text-xs font-medium text-muted-foreground">
                     التاريخ
                   </label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={permForm.date}
                     onChange={(e) =>
                       setPermForm({ ...permForm, date: e.target.value })
@@ -620,8 +620,7 @@ export default function EmployeeDetail() {
                   <label className="block text-xs font-medium text-muted-foreground">
                     من
                   </label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={leaveForm.dateFrom}
                     onChange={(e) =>
                       setLeaveForm({ ...leaveForm, dateFrom: e.target.value })
@@ -633,8 +632,7 @@ export default function EmployeeDetail() {
                   <label className="block text-xs font-medium text-muted-foreground">
                     إلى
                   </label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={leaveForm.dateTo}
                     min={leaveForm.dateFrom}
                     onChange={(e) =>
@@ -718,8 +716,7 @@ export default function EmployeeDetail() {
                   <label className="text-xs font-medium text-muted-foreground">
                     من تاريخ
                   </label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={shiftForm.dateFrom}
                     onChange={(e) =>
                       setShiftForm({
@@ -741,8 +738,7 @@ export default function EmployeeDetail() {
                     <label className="text-xs font-medium text-muted-foreground">
                       حتى تاريخ
                     </label>
-                    <input
-                      type="date"
+                    <DateInput
                       value={shiftForm.dateTo}
                       min={shiftForm.dateFrom}
                       onChange={(e) =>
@@ -758,8 +754,7 @@ export default function EmployeeDetail() {
                     <label className="text-xs font-medium text-muted-foreground">
                       حتى تاريخ (اختياري)
                     </label>
-                    <input
-                      type="date"
+                    <DateInput
                       value={shiftForm.dateTo}
                       min={shiftForm.dateFrom}
                       onChange={(e) =>
@@ -1125,8 +1120,7 @@ export default function EmployeeDetail() {
                 <label className="block text-xs font-medium text-muted-foreground">
                   من
                 </label>
-                <input
-                  type="date"
+                <DateInput
                   value={dateRange.fromDate}
                   onChange={(e) =>
                     setDateRange({ ...dateRange, fromDate: e.target.value })
@@ -1138,8 +1132,7 @@ export default function EmployeeDetail() {
                 <label className="block text-xs font-medium text-muted-foreground">
                   إلى
                 </label>
-                <input
-                  type="date"
+                <DateInput
                   value={dateRange.toDate}
                   onChange={(e) =>
                     setDateRange({ ...dateRange, toDate: e.target.value })

@@ -22,6 +22,7 @@ import { usePrintMode } from "@/hooks/usePrintMode";
 import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 import { printOrExportPdf } from "@/lib/nativePdf";
 import { BRAND_NAME_AR, BRAND_NAME_EN } from "@/lib/brand";
+import { DateInput } from "@/components/ui/date-input";
 
 export default function LasikExamSheet() {
   const { user, isAuthenticated } = useAuth();
@@ -687,8 +688,7 @@ export default function LasikExamSheet() {
               <span className="font-bold">
                 {sheetTemplate.examinationDateLabel}
               </span>
-              <Input
-                type="date"
+              <DateInput
                 value={formData.examinationDate}
                 onChange={(event) =>
                   setFormData((prev) => ({

@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowRight, Printer } from "lucide-react";
 import { toast } from "sonner";
-import { getTrpcErrorMessage } from "@/lib/utils";
+import { getTrpcErrorMessage, localISODate } from "@/lib/utils";
 import PatientPicker from "@/components/PatientPicker";
 import { trpc } from "@/lib/trpc";
 import { connectSheetUpdates } from "@/lib/ws";
@@ -46,7 +46,7 @@ export default function SpecialistSheet() {
     phone: "",
     patientCode: "",
     job: "",
-    examinationDate: new Date().toISOString().split("T")[0],
+    examinationDate: localISODate(),
     ucvaOD: "",
     ucvaOS: "",
     bcvaOD: "",
@@ -147,7 +147,7 @@ export default function SpecialistSheet() {
     if (!value) return "";
     const date = value instanceof Date ? value : new Date(value);
     if (Number.isNaN(date.valueOf())) return "";
-    return date.toISOString().split("T")[0];
+    return localISODate(date);
   };
 
   const handleSelectPatient = (patient: {

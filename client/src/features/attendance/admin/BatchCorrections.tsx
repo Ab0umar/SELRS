@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, AlertCircle, Trash2, Plus } from "lucide-react";
+import { DateInput } from "@/components/ui/date-input";
 
 const tRPC = require("@/lib/trpc").trpc as any;
 
@@ -140,8 +141,7 @@ export default function BatchCorrections() {
                     <label className="block text-xs font-medium text-gray-600 mb-1">
                       Date
                     </label>
-                    <Input
-                      type="date"
+                    <DateInput
                       value={entry.date}
                       onChange={(e) =>
                         updateEntry(entry.id, "date", e.target.value)

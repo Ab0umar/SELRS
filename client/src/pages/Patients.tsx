@@ -1,11 +1,16 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { PatientsHeader } from "@/components/patients/PatientsHeader";
 import { PatientsFilters } from "@/components/patients/PatientsFilters";
 import { PatientsTabs } from "@/components/patients/PatientsTabs";
+import {
+  PatientsDataFilter,
+  type PatientsDataFilterValue,
+} from "@/components/patients/PatientsDataFilter";
 import { PatientsTable } from "@/components/patients/PatientsTable";
+import type { PatientMedicalStatus } from "@/components/patients/PatientMedicalStatusBadges";
 import { usePatientsList } from "@/hooks/patients/usePatientsList";
 import { usePatientsActions } from "@/hooks/patients/usePatientsActions";
 import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
@@ -82,6 +87,28 @@ export default function Patients() {
     { patientIds: visiblePatientIds },
     { enabled: visiblePatientIds.length > 0, staleTime: 60_000 },
   );
+
+  // "Has data" sub-filter shown next to the tabs (except "all") — reuses the
+  // same medical-status signal already powering the colored status dots.
+  const [dataFilter, setDataFilter] = useState<PatientsDataFilterValue>("all");
+  const hasMedicalData = (status: PatientMedicalStatus | undefined) =>
+    Boolean(
+      status &&
+        (status.autoref ||
+          status.afterRef ||
+          status.glasses ||
+          status.pentacam ||
+          status.prescription ||
+          status.tests ||
+          status.reports),
+    );
+  const displayedPatients = useMemo(() => {
+    if (activeTab === "all" || dataFilter === "all") return filteredPatients;
+    return filteredPatients.filter((p: any) => {
+      const has = hasMedicalData(medicalStatusQuery.data?.[Number(p.id)]);
+      return dataFilter === "full" ? has : !has;
+    });
+  }, [filteredPatients, activeTab, dataFilter, medicalStatusQuery.data]);
 
   const {
     createPatientMutation,
@@ -176,7 +203,7 @@ export default function Patients() {
             />
             <StatCard
               title="القسم الحالي"
-              value={filteredPatients.length}
+              value={displayedPatients.length}
               icon={Stethoscope}
               iconColor="bg-primary text-primary-foreground"
             />
@@ -234,12 +261,15 @@ export default function Patients() {
               onSuggestionSelect={(id) => setLocation(patientDetailPath(id))}
             />
             <PatientsTabs activeTab={activeTab} onSelect={setActiveTab} />
+            {activeTab !== "all" ? (
+              <PatientsDataFilter value={dataFilter} onSelect={setDataFilter} />
+            ) : null}
           </div>
 
           <div className="flex gap-4">
             <div className="flex-1">
               <PatientsTable
-                patients={filteredPatients}
+                patients={displayedPatients}
                 serviceType={activeTab}
                 serviceCodeToLabel={serviceCodeToLabel}
                 serviceCodeToType={serviceCodeToType}

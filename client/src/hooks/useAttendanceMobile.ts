@@ -5,6 +5,8 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { localISODate } from "@/lib/utils";
+
 const tRPC = require("@/lib/trpc").trpc as any;
 
 export interface MobileAttendanceData {
@@ -71,9 +73,7 @@ export function useRecentPunches(limit: number = 20) {
     queryFn: () =>
       tRPC.attendance.rawPunches.query({
         limit,
-        fromDate: new Date(Date.now() - 24 * 60 * 60 * 1000)
-          .toISOString()
-          .split("T")[0],
+        fromDate: localISODate(new Date(Date.now() - 24 * 60 * 60 * 1000)),
       }),
     refetchInterval: 60000, // Refetch every minute
   });

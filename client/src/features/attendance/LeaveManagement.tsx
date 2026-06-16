@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Trash2, CheckCircle, CalendarCheck } from "lucide-react";
 import { toast } from "sonner";
+import { DateInput } from "@/components/ui/date-input";
 
 type LeaveType = "annual" | "sick" | "unpaid" | "other";
 
@@ -106,9 +107,8 @@ export default function LeaveManagement() {
               >
                 من
               </label>
-              <input
+              <DateInput
                 id="attendance-leave-from"
-                type="date"
                 value={filter.from}
                 onChange={(e) => setFilter({ ...filter, from: e.target.value })}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
@@ -121,9 +121,8 @@ export default function LeaveManagement() {
               >
                 إلى
               </label>
-              <input
+              <DateInput
                 id="attendance-leave-to"
-                type="date"
                 value={filter.to}
                 onChange={(e) => setFilter({ ...filter, to: e.target.value })}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
@@ -229,9 +228,8 @@ export default function LeaveManagement() {
                 >
                   من تاريخ
                 </label>
-                <input
+                <DateInput
                   id="attendance-leave-form-from"
-                  type="date"
                   value={form.dateFrom}
                   onChange={(e) =>
                     setForm({ ...form, dateFrom: e.target.value })
@@ -246,9 +244,8 @@ export default function LeaveManagement() {
                 >
                   إلى تاريخ
                 </label>
-                <input
+                <DateInput
                   id="attendance-leave-form-to"
-                  type="date"
                   value={form.dateTo}
                   onChange={(e) => setForm({ ...form, dateTo: e.target.value })}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"

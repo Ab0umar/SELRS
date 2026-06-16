@@ -22,6 +22,7 @@ import { serviceTypeLabels } from "@/lib/dashboard-data";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
+import { DateInput } from "@/components/ui/date-input";
 
 function localDateIso() {
   const d = new Date();
@@ -256,8 +257,7 @@ export function ScheduleVisitDialog({
                 <Label className="font-bold text-[11px] text-primary">
                   تاريخ الزيارة
                 </Label>
-                <Input
-                  type="date"
+                <DateInput
                   value={visitDate}
                   onChange={(e) => setVisitDate(e.target.value)}
                   className="h-9 text-sm font-mono border-primary/20 bg-background"

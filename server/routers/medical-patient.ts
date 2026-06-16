@@ -14,6 +14,7 @@ import {
 } from "../_core/appNotifications";
 import * as db from "../db";
 import { upsertPatientToMssql } from "../integrations/mssqlPatients";
+import { isExternalServiceType } from "../../shared/serviceType";
 import {
   patientServiceEntries,
   visits,
@@ -1271,7 +1272,20 @@ export const medicalPatientRoutes = {
         dateTo: z.string().optional(),
         doctorName: z.string().optional(),
         serviceType: z
-          .enum(["consultant", "specialist", "lasik", "surgery", "external"])
+          .enum([
+            "consultant",
+            "specialist",
+            "lasik",
+            "surgery",
+            "external",
+            "pentacam_c",
+            "pentacam_ex",
+            "pentacam_ex_c",
+            "surgery_external",
+            "surgery_center",
+            "pentacam_center",
+            "pentacam_external",
+          ])
           .optional(),
         locationType: z.enum(["center", "external"]).optional(),
         limit: z.number().int().min(1).max(500).optional(),
@@ -1395,8 +1409,14 @@ export const medicalPatientRoutes = {
             }
           }
         }
-        if (nextUpdates.serviceType === "external") {
-          nextUpdates.locationType = "external";
+        if (
+          Object.prototype.hasOwnProperty.call(nextUpdates, "serviceType")
+        ) {
+          nextUpdates.locationType = isExternalServiceType(
+            nextUpdates.serviceType,
+          )
+            ? "external"
+            : "center";
         }
         await db.updatePatient(input.patientId, nextUpdates);
         const updated = await db.getPatientById(input.patientId);
@@ -1527,6 +1547,13 @@ export const medicalPatientRoutes = {
           "lasik",
           "external",
           "surgery",
+          "pentacam_c",
+          "pentacam_ex",
+          "pentacam_ex_c",
+          "surgery_external",
+          "surgery_center",
+          "pentacam_center",
+          "pentacam_external",
         ]),
       }),
     )
@@ -1535,6 +1562,7 @@ export const medicalPatientRoutes = {
         new Set(input.patientIds.filter((id) => Number.isFinite(id))),
       );
       const nextSheetType = input.sheetType;
+      const isExternalSheetType = isExternalServiceType(nextSheetType);
       const snapshots: Array<{
         patientId: number;
         serviceType: string | null;
@@ -1564,7 +1592,14 @@ export const medicalPatientRoutes = {
 
         await db.updatePatient(patientId, {
           serviceType: nextSheetType,
-          locationType: nextSheetType === "external" ? "external" : "center",
+          locationType: isExternalSheetType ? "external" : "center",
+        });
+        // Mark manually locked so this assignment isn't overridden by
+        // service-code-derived classification or MSSQL sync.
+        await db.upsertPatientPageState(patientId, "examination", {
+          ...existingData,
+          syncLockManual: true,
+          manualEditedAt: new Date().toISOString(),
         });
       }
 

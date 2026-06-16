@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { X, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 
 export type AccEntryMode = "add" | "edit";
 
@@ -151,9 +152,8 @@ export default function AccEntryDrawer({
             >
               التاريخ
             </label>
-            <Input
+            <DateInput
               id="entry-tx-date"
-              type="date"
               value={txDate}
               onChange={(e) => setTxDate(e.target.value)}
               className="text-sm"

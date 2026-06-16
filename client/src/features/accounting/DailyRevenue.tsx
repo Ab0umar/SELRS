@@ -27,6 +27,7 @@ import { useLocation, useSearch } from "wouter";
 import AccountingShell from "./AccountingShell";
 import { formatCountAr, formatDateAr, formatMoneyAr } from "./accountingFormat";
 import reportStyles from "./AccountingOpReport.module.css";
+import { DateInput } from "@/components/ui/date-input";
 
 type DailyRevenueQuery = {
   data?: DailyRevenueOutput;
@@ -234,9 +235,8 @@ export default function DailyRevenue() {
               className="space-y-1.5 text-sm font-medium"
             >
               <span>من تاريخ</span>
-              <Input
+              <DateInput
                 id="daily-from-date"
-                type="date"
                 value={draft.fromDate}
                 onChange={(event) => {
                   setDraft((prev) => ({
@@ -252,9 +252,8 @@ export default function DailyRevenue() {
               className="space-y-1.5 text-sm font-medium"
             >
               <span>إلى تاريخ</span>
-              <Input
+              <DateInput
                 id="daily-to-date"
-                type="date"
                 value={draft.toDate}
                 onChange={(event) => {
                   setDraft((prev) => ({ ...prev, toDate: event.target.value }));

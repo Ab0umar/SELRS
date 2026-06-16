@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { ChevronRight, Save, Loader2 } from "lucide-react";
+import { DateInput } from "@/components/ui/date-input";
 
 export default function KfFollowupForm() {
   const [, setLocation] = useLocation();
@@ -135,9 +136,8 @@ export default function KfFollowupForm() {
                 <Label htmlFor="followupDate" className="after:content-['*'] after:text-destructive after:mr-1">
                   تاريخ المتابعة
                 </Label>
-                <Input
+                <DateInput
                   id="followupDate"
-                  type="date"
                   value={followupDate}
                   onChange={(e) => {
                     setFollowupDate(e.target.value);

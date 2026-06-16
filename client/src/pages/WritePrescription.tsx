@@ -38,6 +38,7 @@ import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 import { printOrExportPdf } from "@/lib/nativePdf";
 import { loadXlsx } from "@/lib/xlsx";
 import { buildRowLookup, getRowValue } from "@/lib/importUtils";
+import { DateInput } from "@/components/ui/date-input";
 
 interface PrescriptionItem {
   id: string;
@@ -1177,8 +1178,7 @@ export default function WritePrescription({
                     />
                   </div>
                   <div className="space-y-1">
-                    <Input
-                      type="date"
+                    <DateInput
                       value={prescriptionDate}
                       onChange={(e) => setPrescriptionDate(e.target.value)}
                       disabled={editingForbidden}
@@ -1746,10 +1746,6 @@ export default function WritePrescription({
         </div>
       </main>
       <style>{`
-        .prescription-root input[type="date"]::-webkit-calendar-picker-indicator {
-          width: 14px;
-          height: 14px;
-        }
           @media print {
             /* print fidelity: black ink, white paper for physical output */
             .prescription-root,

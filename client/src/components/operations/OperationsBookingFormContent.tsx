@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { OPERATION_LABELS } from "@/lib/operationsPricing";
+import { DateInput } from "@/components/ui/date-input";
 
 export type OperationsBookingFormContentProps = {
   draft: {
@@ -63,9 +64,8 @@ export function OperationsBookingFormContent({
             >
               تاريخ العملية
             </Label>
-            <Input
+            <DateInput
               id="operation-booking-date"
-              type="date"
               value={draft.bookingDate}
               onChange={(event) => onChange("bookingDate", event.target.value)}
               className="h-9 text-sm font-mono bg-background"

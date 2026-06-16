@@ -2,6 +2,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { UseExaminationFormResult } from "@/hooks/examination/useExaminationForm";
+import { DateInput } from "@/components/ui/date-input";
 
 interface ExaminationFormHeaderProps {
   form: UseExaminationFormResult;
@@ -22,10 +23,9 @@ export default function ExaminationFormHeader({
           >
             تاريخ الزيارة
           </Label>
-          <Input
+          <DateInput
             name="visit-date-top"
             id="visit-date-top"
-            type="date"
             value={visitDate}
             onChange={(event) => setVisitDate(event.target.value)}
             dir="ltr"

@@ -15,6 +15,7 @@ import {
   ArrowLeftRight,
 } from "lucide-react";
 import { toast } from "sonner";
+import { DateInput } from "@/components/ui/date-input";
 
 // weekdayMask: bit 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
 const DAYS_SH = ["ح", "ن", "ث", "ر", "خ", "ج", "س"];
@@ -361,8 +362,7 @@ function TempSwapPanel({
                 <label className="text-xs font-semibold text-muted-foreground">
                   من تاريخ
                 </label>
-                <input
-                  type="date"
+                <DateInput
                   value={dateFrom}
                   onChange={(e) => {
                     setDateFrom(e.target.value);
@@ -377,8 +377,7 @@ function TempSwapPanel({
                 <label className="text-xs font-semibold text-muted-foreground">
                   حتى تاريخ (شامل)
                 </label>
-                <input
-                  type="date"
+                <DateInput
                   value={dateTo}
                   min={dateFrom}
                   onChange={(e) => setDateTo(e.target.value)}

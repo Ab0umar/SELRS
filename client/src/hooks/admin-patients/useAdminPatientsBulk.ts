@@ -7,7 +7,10 @@ import { type AdminPatientsListState } from "./useAdminPatientsList";
 import {
   type BulkSnapshot,
   type ImportPreviewRow,
+  type PatientDraft,
   type SheetTypeChoice,
+  getPatientRowKey,
+  toDbServiceType,
   toLegacyServiceType,
 } from "./adminPatientsShared";
 
@@ -17,6 +20,7 @@ type UseAdminPatientsBulkOptions = {
   getRowServiceCode: AdminPatientsListState["getRowServiceCode"];
   savePatientPageStateMutation: AdminPatientsListState["savePatientPageStateMutation"];
   setManualLockOverrides: Dispatch<SetStateAction<Record<number, boolean>>>;
+  setDrafts: Dispatch<SetStateAction<Record<string, PatientDraft>>>;
 };
 
 export function useAdminPatientsBulk({
@@ -25,6 +29,7 @@ export function useAdminPatientsBulk({
   getRowServiceCode,
   savePatientPageStateMutation,
   setManualLockOverrides,
+  setDrafts,
 }: UseAdminPatientsBulkOptions) {
   const utils = trpc.useUtils();
   const bulkAssignDoctorMutation =
@@ -105,6 +110,19 @@ export function useAdminPatientsBulk({
       toast.success(
         `Updated ${(result as { updatedCount?: number }).updatedCount ?? filteredPatients.length} patients to ${nextDoctorName}`,
       );
+
+      // Clear cached drafts so the table reflects the new doctor immediately
+      // instead of showing the stale pre-update value (see same fix in
+      // handleSetFilteredSheetType for why).
+      const affectedRowKeys = new Set(
+        filteredPatients.map((patient) => getPatientRowKey(patient)),
+      );
+      setDrafts((prev) => {
+        const next = { ...prev };
+        for (const key of affectedRowKeys) delete next[key];
+        return next;
+      });
+
       await utils.medical.getAllPatients.invalidate();
     } catch (error) {
       toast.error(
@@ -128,68 +146,40 @@ export function useAdminPatientsBulk({
     if (!confirmed) return;
 
     try {
-      const rowsWithServiceCode = filteredPatients.filter((patient) =>
-        Boolean(getRowServiceCode(patient)),
+      // Apply directly to every filtered patient's serviceType column (the
+      // source of truth) and mark them manually locked — regardless of
+      // whether they have a service code — so the assignment sticks and
+      // isn't overridden by service-code-derived classification or MSSQL sync.
+      const result = await bulkAssignSheetMutation.mutateAsync({
+        patientIds: Array.from(
+          new Set(filteredPatients.map((patient) => patient.id)),
+        ),
+        sheetType: toDbServiceType(bulkSheetType) as any,
+      });
+      const snapshots = ((result as { snapshots?: BulkSnapshot[] })
+        .snapshots ?? []) as BulkSnapshot[];
+      const updatedCount = Number(
+        (result as { updatedCount?: number }).updatedCount ??
+          filteredPatients.length,
       );
-      const rowsWithoutServiceCode = filteredPatients.filter(
-        (patient) => !getRowServiceCode(patient),
-      );
-      let updatedCount = 0;
-
-      for (const patient of rowsWithServiceCode) {
-        const rowServiceCode = getRowServiceCode(patient);
-        if (!rowServiceCode) continue;
-        const existingState = await utils.medical.getPatientPageState
-          .fetch({ patientId: patient.id, page: "examination" })
-          .catch(() => null);
-        const existingData =
-          existingState &&
-          typeof (existingState as { data?: unknown }).data === "object" &&
-          (existingState as { data?: unknown }).data
-            ? ((existingState as { data: Record<string, unknown> })
-                .data as Record<string, unknown>)
-            : {};
-        const existingMap =
-          existingData.serviceSheetTypeByCode &&
-          typeof existingData.serviceSheetTypeByCode === "object"
-            ? (existingData.serviceSheetTypeByCode as Record<string, unknown>)
-            : {};
-
-        await savePatientPageStateMutation.mutateAsync({
-          patientId: patient.id,
-          page: "examination",
-          data: {
-            ...existingData,
-            syncLockManual: true,
-            manualEditedAt: new Date().toISOString(),
-            serviceSheetTypeByCode: {
-              ...existingMap,
-              [rowServiceCode]: bulkSheetType,
-            },
-          },
-        });
-        updatedCount += 1;
-      }
-
-      let snapshots: BulkSnapshot[] = [];
-      if (rowsWithoutServiceCode.length > 0) {
-        const result = await bulkAssignSheetMutation.mutateAsync({
-          patientIds: Array.from(
-            new Set(rowsWithoutServiceCode.map((patient) => patient.id)),
-          ),
-          sheetType: toLegacyServiceType(bulkSheetType),
-        });
-        snapshots = ((result as { snapshots?: BulkSnapshot[] }).snapshots ??
-          []) as BulkSnapshot[];
-        updatedCount += Number(
-          (result as { updatedCount?: number }).updatedCount ??
-            rowsWithoutServiceCode.length,
-        );
-      }
 
       setLastBulkSnapshots(snapshots);
       setLastBulkLabel(`Sheet -> ${bulkSheetType}`);
       toast.success(`Updated ${updatedCount} patients to ${bulkSheetType}`);
+
+      // Clear any cached local drafts for these rows — otherwise the table's
+      // "نوع الخدمة (تحرير)" dropdown keeps showing the stale pre-update value
+      // (getDraft prefers a cached draft over fresh server data) even though
+      // the DB was updated correctly.
+      const affectedRowKeys = new Set(
+        filteredPatients.map((patient) => getPatientRowKey(patient)),
+      );
+      setDrafts((prev) => {
+        const next = { ...prev };
+        for (const key of affectedRowKeys) delete next[key];
+        return next;
+      });
+
       await utils.medical.getAllPatients.invalidate();
     } catch (error) {
       toast.error(

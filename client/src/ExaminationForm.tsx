@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Save } from "lucide-react";
 import { toast } from "sonner";
-import { getTrpcErrorMessage } from "@/lib/utils";
+import { getTrpcErrorMessage, localISODate } from "@/lib/utils";
 import PatientPicker from "@/components/PatientPicker";
 import { trpc } from "@/lib/trpc";
 import { formatDateLabel } from "@/lib/utils";
@@ -26,6 +26,7 @@ import {
   UCVA_BCVA_OPTIONS,
 } from "@/lib/refractionOptions";
 import type { User } from "@shared/types";
+import { DateInput } from "@/components/ui/date-input";
 
 interface DoctorOption {
   id: string;
@@ -80,7 +81,7 @@ export default function ExaminationForm() {
   const formRef = useRef<HTMLFormElement | null>(null);
   const [loading, setLoading] = useState(false);
   const [visitDate, setVisitDate] = useState(
-    () => new Date().toISOString().split("T")[0],
+    () => localISODate(),
   );
   const [receptionSignature, setReceptionSignature] = useState("");
   const [nurseSignature, setNurseSignature] = useState("");
@@ -933,7 +934,7 @@ export default function ExaminationForm() {
       await saveExamMutation.mutateAsync({
         patientId: effectivePatientId,
         visitDate:
-          payload["visit-date"] || new Date().toISOString().split("T")[0],
+          payload["visit-date"] || localISODate(),
         visitType: payload["visit-type"] || "فحص عام",
         data: payload,
       });
@@ -1025,10 +1026,9 @@ export default function ExaminationForm() {
                         <Label htmlFor="patient-dob" className="font-bold">
                           تاريخ الميلاد
                         </Label>
-                        <Input
+                        <DateInput
                           name="patient-dob"
                           id="patient-dob"
-                          type="date"
                           value={patientDetails.dateOfBirth}
                           onChange={(e) =>
                             setPatientDetails((prev) => ({
@@ -1159,10 +1159,9 @@ export default function ExaminationForm() {
                           تاريخ الكشف
                         </Label>
                         <div className="flex items-center gap-3 w-full">
-                          <Input
+                          <DateInput
                             name="visit-date"
                             id="visit-date"
-                            type="date"
                             value={visitDate}
                             onChange={(event) =>
                               setVisitDate(event.target.value)

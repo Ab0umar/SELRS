@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DateInput } from "@/components/ui/date-input";
 
 const statusTone: Record<string, string> = {
   present: "border-success/20 bg-success/10 text-success",
@@ -158,8 +159,7 @@ export default function DailyView() {
               <label className="block text-sm font-medium text-muted-foreground">
                 من
               </label>
-              <input
-                type="date"
+              <DateInput
                 value={dates.from}
                 onChange={(e) => setDates({ ...dates, from: e.target.value })}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
@@ -169,8 +169,7 @@ export default function DailyView() {
               <label className="block text-sm font-medium text-muted-foreground">
                 إلى
               </label>
-              <input
-                type="date"
+              <DateInput
                 value={dates.to}
                 onChange={(e) => setDates({ ...dates, to: e.target.value })}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"

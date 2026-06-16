@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { ChevronRight, Save, Link2, Check, AlertCircle, Loader2 } from "lucide-react";
+import { DateInput } from "@/components/ui/date-input";
 
 type FormState = {
   fullName: string;
@@ -264,9 +265,8 @@ export default function KfPatientForm() {
 
               <div className="space-y-2">
                 <Label htmlFor="dateOfBirth">تاريخ الميلاد</Label>
-                <Input
+                <DateInput
                   id="dateOfBirth"
-                  type="date"
                   value={form.dateOfBirth}
                   onChange={(e) => handleChange("dateOfBirth", e.target.value)}
                 />

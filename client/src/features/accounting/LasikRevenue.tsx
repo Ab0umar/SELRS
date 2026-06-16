@@ -37,6 +37,7 @@ import {
   formatMoneyAr,
   toArabicDigits,
 } from "./accountingFormat";
+import { DateInput } from "@/components/ui/date-input";
 
 type ServiceRevenueQuery = {
   data?: ServiceRevenueOutput;
@@ -383,9 +384,8 @@ export default function LasikRevenue() {
               className="space-y-1.5 text-sm font-medium"
             >
               <span>من تاريخ</span>
-              <Input
+              <DateInput
                 id="lasik-from-date"
-                type="date"
                 value={draft.fromDate}
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                   setDraft((prev) => ({
@@ -400,9 +400,8 @@ export default function LasikRevenue() {
               className="space-y-1.5 text-sm font-medium"
             >
               <span>إلى تاريخ</span>
-              <Input
+              <DateInput
                 id="lasik-to-date"
-                type="date"
                 value={draft.toDate}
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                   setDraft((prev) => ({ ...prev, toDate: event.target.value }))

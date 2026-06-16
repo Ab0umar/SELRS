@@ -26,6 +26,7 @@ import { trpc } from "@/lib/trpc";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { Plug } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { DateInput } from "@/components/ui/date-input";
 
 const TRPC_API_REFERENCE = [
   {
@@ -497,8 +498,7 @@ export default function AdminApiTools() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Input
-              type="date"
+            <DateInput
               value={appointmentDate}
               onChange={(e) => setAppointmentDate(e.target.value)}
             />

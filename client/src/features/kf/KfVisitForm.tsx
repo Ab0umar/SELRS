@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { ChevronRight, Save, Loader2, Calendar } from "lucide-react";
+import { localISODate } from "@/lib/utils";
+import { DateInput } from "@/components/ui/date-input";
 
 const KF_DOCTORS = ["د. محمد السعدني", "د. سعيد مجدي"] as const;
 
@@ -18,7 +20,7 @@ export default function KfVisitForm() {
   const kfPatientId = params?.kfPatientId ? Number(params.kfPatientId) : null;
 
   // Form State
-  const [visitDate, setVisitDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [visitDate, setVisitDate] = useState(() => localISODate());
   const [visitType, setVisitType] = useState<"consultation" | "examination" | "followup" | "operation">("consultation");
   const [doctorName, setDoctorName] = useState("");
   const [status, setStatus] = useState<"scheduled" | "arrived" | "in_progress" | "completed" | "cancelled">("scheduled");
@@ -125,9 +127,8 @@ export default function KfVisitForm() {
                 <Label htmlFor="visitDate" className="after:content-['*'] after:text-destructive after:mr-1">
                   تاريخ الزيارة
                 </Label>
-                <Input
+                <DateInput
                   id="visitDate"
-                  type="date"
                   value={visitDate}
                   onChange={(e) => {
                     setVisitDate(e.target.value);

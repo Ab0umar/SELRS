@@ -24,6 +24,7 @@ import {
   formatMoneyAr,
   toArabicDigits,
 } from "./accountingFormat";
+import { DateInput } from "@/components/ui/date-input";
 
 type ReceiptsInquiryQuery = {
   data?: ReceiptHeader[];
@@ -261,9 +262,8 @@ export default function ReceiptsInquiry() {
               className="space-y-1.5 text-sm font-medium"
             >
               <span>من تاريخ</span>
-              <Input
+              <DateInput
                 id="receipt-from-date"
-                type="date"
                 value={draft.fromDate ?? ""}
                 onChange={(e) =>
                   setDraft((p) => ({ ...p, fromDate: e.target.value }))
@@ -275,9 +275,8 @@ export default function ReceiptsInquiry() {
               className="space-y-1.5 text-sm font-medium"
             >
               <span>إلى تاريخ</span>
-              <Input
+              <DateInput
                 id="receipt-to-date"
-                type="date"
                 value={draft.toDate ?? ""}
                 onChange={(e) =>
                   setDraft((p) => ({ ...p, toDate: e.target.value }))

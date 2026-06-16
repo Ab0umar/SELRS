@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { ChevronRight, Save, Loader2, ClipboardList } from "lucide-react";
+import { DateInput } from "@/components/ui/date-input";
 
 export default function KfOperationForm() {
   const [, setLocation] = useLocation();
@@ -139,9 +140,8 @@ export default function KfOperationForm() {
                 <Label htmlFor="opDate" className="after:content-['*'] after:text-destructive after:mr-1">
                   تاريخ العملية
                 </Label>
-                <Input
+                <DateInput
                   id="opDate"
-                  type="date"
                   value={opDate}
                   onChange={(e) => {
                     setOpDate(e.target.value);

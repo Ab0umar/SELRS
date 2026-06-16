@@ -24,6 +24,7 @@ import {
   toArabicDigits,
 } from "./accountingFormat";
 import reportStyles from "./AccountingOpReport.module.css";
+import { DateInput } from "@/components/ui/date-input";
 
 type ReceiptsInquiryQuery = {
   data?: ReceiptHeader[];
@@ -201,8 +202,7 @@ export default function AccountingPatientsInquiry() {
           <CardContent className="grid gap-3 md:gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <label className="space-y-1.5 text-sm font-medium">
               <span>من تاريخ</span>
-              <Input
-                type="date"
+              <DateInput
                 value={draft.fromDate ?? ""}
                 onChange={(e) =>
                   setDraft((p) => ({ ...p, fromDate: e.target.value }))
@@ -211,8 +211,7 @@ export default function AccountingPatientsInquiry() {
             </label>
             <label className="space-y-1.5 text-sm font-medium">
               <span>إلى تاريخ</span>
-              <Input
-                type="date"
+              <DateInput
                 value={draft.toDate ?? ""}
                 onChange={(e) =>
                   setDraft((p) => ({ ...p, toDate: e.target.value }))

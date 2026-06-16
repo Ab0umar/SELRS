@@ -1,7 +1,16 @@
 import React, { memo, useEffect, useState, useRef, Fragment } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   ChevronDown,
   ChevronUp,
@@ -63,8 +72,10 @@ export const PatientsTable = memo(function PatientsTable({
 }: PatientsTableProps) {
   const [isMobile, setIsMobile] = useState(false);
   const desktopTableRef = useRef<HTMLDivElement | null>(null);
-  const [tableScrollTop, setTableScrollTop] = useState(0);
-  const [tableViewportHeight, setTableViewportHeight] = useState(640);
+  const [scrollElement, setScrollElement] = useState<HTMLElement | null>(
+    null,
+  );
+  const [tableScrollMargin, setTableScrollMargin] = useState(0);
   const [expandedPatientIds, setExpandedPatientIds] = useState<Set<number>>(
     new Set(),
   );
@@ -78,24 +89,31 @@ export const PatientsTable = memo(function PatientsTable({
     return () => mq.removeEventListener("change", apply);
   }, []);
 
+  // Table scrolls with the page itself — virtualize against the page's own
+  // <main> scroll container instead of an internal overflow-auto frame.
   useEffect(() => {
     if (isMobile) return;
-    const element = desktopTableRef.current;
-    if (!element) return;
-    const apply = () => {
-      setTableScrollTop(element.scrollTop);
-      setTableViewportHeight(element.clientHeight || 640);
+    const hostScrollElement = desktopTableRef.current?.closest("main");
+    setScrollElement(
+      hostScrollElement instanceof HTMLElement ? hostScrollElement : null,
+    );
+    const syncMargin = () => {
+      const element = desktopTableRef.current;
+      const scroller =
+        hostScrollElement instanceof HTMLElement ? hostScrollElement : null;
+      if (!element || !scroller) return;
+      const next =
+        element.getBoundingClientRect().top -
+        scroller.getBoundingClientRect().top +
+        scroller.scrollTop;
+      setTableScrollMargin(next);
     };
-    apply();
-    element.addEventListener("scroll", apply, { passive: true });
-    if (typeof window !== "undefined") {
-      window.addEventListener("resize", apply);
-    }
+    syncMargin();
+    hostScrollElement?.addEventListener("scroll", syncMargin);
+    window.addEventListener("resize", syncMargin);
     return () => {
-      element.removeEventListener("scroll", apply);
-      if (typeof window !== "undefined") {
-        window.removeEventListener("resize", apply);
-      }
+      hostScrollElement?.removeEventListener("scroll", syncMargin);
+      window.removeEventListener("resize", syncMargin);
     };
   }, [isMobile, patients.length]);
 
@@ -117,6 +135,27 @@ export const PatientsTable = memo(function PatientsTable({
       (patient as any).__rowKey ??
         `${patient.id}-${normalizeServiceCode((patient as any).__serviceCodeSingle || (patient as any).serviceCode || "base")}`,
     );
+
+  // useVirtualizer must run on every render (Rules of Hooks) — keep it above
+  // any early return below (e.g. the empty-state return for 0 patients).
+  const rowVirtualizer = useVirtualizer({
+    count: patients.length,
+    getScrollElement: () => scrollElement,
+    estimateSize: () => 48,
+    overscan: 8,
+    scrollMargin: tableScrollMargin,
+  });
+  const virtualRows = rowVirtualizer.getVirtualItems();
+  const totalSize = rowVirtualizer.getTotalSize();
+  const effectiveScrollMargin = rowVirtualizer.options.scrollMargin ?? 0;
+  const paddingTop =
+    virtualRows.length > 0
+      ? Math.max(0, virtualRows[0].start - effectiveScrollMargin)
+      : 0;
+  const paddingBottom =
+    virtualRows.length > 0
+      ? totalSize - virtualRows[virtualRows.length - 1].end
+      : 0;
 
   if (patients.length === 0) {
     return (
@@ -245,41 +284,6 @@ export const PatientsTable = memo(function PatientsTable({
     return "عام";
   };
 
-  const shouldVirtualizeDesktop = !isMobile && patients.length > 80;
-  const desktopRowHeight = 48;
-  const overscanRows = 8;
-  const visibleDesktopRange = (() => {
-    if (!shouldVirtualizeDesktop) {
-      return {
-        start: 0,
-        end: patients.length,
-        topSpacer: 0,
-        bottomSpacer: 0,
-      };
-    }
-    const visibleCount = Math.max(
-      1,
-      Math.ceil(tableViewportHeight / desktopRowHeight),
-    );
-    const start = Math.max(
-      0,
-      Math.floor(tableScrollTop / desktopRowHeight) - overscanRows,
-    );
-    const end = Math.min(
-      patients.length,
-      start + visibleCount + overscanRows * 2,
-    );
-    const topSpacer = start * desktopRowHeight;
-    const bottomSpacer = Math.max(
-      0,
-      (patients.length - end) * desktopRowHeight,
-    );
-    return { start, end, topSpacer, bottomSpacer };
-  })();
-
-  const desktopPatients = shouldVirtualizeDesktop
-    ? patients.slice(visibleDesktopRange.start, visibleDesktopRange.end)
-    : patients;
   const desktopColSpan = canBulkManage ? 10 : 9;
 
   const formatDisplayDate = (value: any) => {
@@ -474,79 +478,67 @@ export const PatientsTable = memo(function PatientsTable({
   }
 
   return (
-    <Card className="mt-1 overflow-hidden border-border/80 bg-background/92 shadow-sm">
-      <CardContent className="pt-6">
-        <div
-          ref={desktopTableRef}
-          className="w-full overflow-auto patients-table-wrap"
-          style={{ maxHeight: "70vh" }}
-        >
-          <table
-            className="patients-table min-w-[840px] w-max table-auto text-center text-xs md:text-sm"
-            dir="rtl"
-          >
-            <colgroup>
-              {canBulkManage ? <col className="w-[44px]" /> : null}
-              <col className="w-[72px]" />
-              <col className="w-[190px]" />
-              <col className="w-[130px]" />
-              <col className="w-[105px]" />
-              <col className="w-[120px]" />
-              <col className="w-[118px]" />
-              <col className="w-[250px]" />
-            </colgroup>
-            <thead className="sticky top-0 z-10 bg-muted/95 shadow-[0_1px_0_rgba(148,163,184,0.25)] backdrop-blur">
-              <tr className="border-b border-border">
-                {canBulkManage ? (
-                  <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">
-                    تحديد
-                  </th>
-                ) : null}
-                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">
-                  الكود
-                </th>
-                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">
-                  الاسم
-                </th>
-                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">
-                  تاريخ الميلاد
-                </th>
-                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">
-                  الدكتور
-                </th>
-                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">
-                  الخدمة
-                </th>
-                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">
-                  نوع الشيت
-                </th>
-                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">
-                  تاريخ فتح الملف
-                </th>
-                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">
-                  البيانات
-                </th>
-                <th className="bg-muted/95 text-center py-2 px-1 whitespace-nowrap">
-                  الإجراءات
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {shouldVirtualizeDesktop && visibleDesktopRange.topSpacer > 0 ? (
-                <tr aria-hidden="true">
-                  <td
-                    colSpan={desktopColSpan}
-                    style={{
-                      height: `${visibleDesktopRange.topSpacer}px`,
-                      padding: 0,
-                    }}
-                  />
-                </tr>
-              ) : null}
-              {desktopPatients.map((patient) => (
-                <Fragment key={String((patient as any).__rowKey ?? patient.id)}>
-                  <tr
-                    className="cursor-pointer border-b border-border transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:bg-primary/[0.06] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50"
+    <div
+      ref={desktopTableRef}
+      className="w-full rounded-xl border border-border"
+      dir="rtl"
+    >
+      <Table className="w-full table-auto text-center">
+        <TableHeader>
+          <TableRow className="sticky top-0 z-10 border-b bg-muted/40 hover:bg-muted/40">
+            {canBulkManage ? (
+              <TableHead className="w-10 py-4 text-center">تحديد</TableHead>
+            ) : null}
+            <TableHead className="py-4 text-center font-semibold">
+              الكود
+            </TableHead>
+            <TableHead className="min-w-[190px] py-4 text-center font-semibold">
+              الاسم
+            </TableHead>
+            <TableHead className="py-4 text-center font-semibold">
+              تاريخ الميلاد
+            </TableHead>
+            <TableHead className="min-w-[130px] py-4 text-center font-semibold">
+              الدكتور
+            </TableHead>
+            <TableHead className="py-4 text-center font-semibold">
+              الخدمة
+            </TableHead>
+            <TableHead className="min-w-[118px] py-4 text-center font-semibold">
+              نوع الشيت
+            </TableHead>
+            <TableHead className="py-4 text-center font-semibold">
+              تاريخ فتح الملف
+            </TableHead>
+            <TableHead className="py-4 text-center font-semibold">
+              البيانات
+            </TableHead>
+            <TableHead className="min-w-[160px] py-4 text-center font-semibold">
+              الإجراءات
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+      </Table>
+
+      <div className="w-full overflow-x-auto">
+        <Table className="w-full table-auto text-center">
+          <TableBody>
+            {paddingTop > 0 ? (
+              <TableRow>
+                <TableCell colSpan={desktopColSpan} className="p-0">
+                  <div style={{ height: paddingTop }} />
+                </TableCell>
+              </TableRow>
+            ) : null}
+            {virtualRows.map((virtualRow) => {
+              const patient = patients[virtualRow.index];
+              if (!patient) return null;
+              return (
+                <Fragment
+                  key={String((patient as any).__rowKey ?? patient.id)}
+                >
+                  <TableRow
+                    className="cursor-pointer border-border transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:bg-primary/[0.06] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50"
                     tabIndex={0}
                     role="button"
                     aria-label={`فتح ملف المريض ${patient.fullName}${patient.patientCode ? ` — ${patient.patientCode}` : ""}`}
@@ -559,8 +551,8 @@ export const PatientsTable = memo(function PatientsTable({
                     }}
                   >
                     {canBulkManage ? (
-                      <td
-                        className="py-0 px-0.5 text-center"
+                      <TableCell
+                        className="text-center"
                         dir="ltr"
                         onClick={(event) => event.stopPropagation()}
                       >
@@ -575,16 +567,16 @@ export const PatientsTable = memo(function PatientsTable({
                             )
                           }
                         />
-                      </td>
+                      </TableCell>
                     ) : null}
-                    <td className="py-0 px-0.5 text-center" dir="ltr">
+                    <TableCell className="text-center" dir="ltr">
                       {patient.patientCode
                         ? /^\d+$/.test(String(patient.patientCode))
                           ? String(patient.patientCode).padStart(4, "0")
                           : patient.patientCode
                         : ""}
-                    </td>
-                    <td className="py-0 px-0.5 text-center break-words">
+                    </TableCell>
+                    <TableCell className="text-center break-words">
                       <div className="flex flex-col items-end gap-1" dir="rtl">
                         <div className="flex items-center justify-end gap-2">
                           <span>{patient.fullName}</span>
@@ -618,8 +610,8 @@ export const PatientsTable = memo(function PatientsTable({
                           </div>
                         ) : null}
                       </div>
-                    </td>
-                    <td className="py-0 px-0.5 text-center" dir="ltr">
+                    </TableCell>
+                    <TableCell className="text-center" dir="ltr">
                       {patient.dateOfBirth
                         ? new Date(patient.dateOfBirth)
                             .toLocaleDateString("ar-EG", {
@@ -629,29 +621,29 @@ export const PatientsTable = memo(function PatientsTable({
                             })
                             .replace(/\//g, "/")
                         : "-"}
-                    </td>
-                    <td className="py-0 px-0.5 text-center break-words">
+                    </TableCell>
+                    <TableCell className="text-center break-words">
                       {String((patient as any).treatingDoctor ?? "").trim() ||
                         "-"}
-                    </td>
-                    <td className="py-0 px-0.5 text-center">-</td>
-                    <td className="py-0 px-0.5 text-center">
+                    </TableCell>
+                    <TableCell className="text-center">-</TableCell>
+                    <TableCell className="text-center">
                       <span>{getSheetTypeLabel(getRowSheetType(patient))}</span>
                       <span className="mr-2 inline-block rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
                         {getSheetSourceLabel(getRowSheetSource(patient))}
                       </span>
-                    </td>
-                    <td className="py-0 px-0.5 text-center" dir="ltr">
+                    </TableCell>
+                    <TableCell className="text-center" dir="ltr">
                       {patient.lastVisit
                         ? formatDisplayDate(patient.lastVisit)
                         : ""}
-                    </td>
-                    <td className="py-0 px-1 text-center">
+                    </TableCell>
+                    <TableCell className="text-center">
                       <PatientMedicalStatusDots
                         status={medicalStatuses?.[patient.id]}
                       />
-                    </td>
-                    <td className="py-0 px-0.5">
+                    </TableCell>
+                    <TableCell>
                       <PatientRowActions
                         patientId={patient.id}
                         onOpenSheet={onOpenSheet}
@@ -662,26 +654,21 @@ export const PatientsTable = memo(function PatientsTable({
                         canEditPatients={canEditPatients}
                         serviceType={serviceType}
                       />
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 </Fragment>
-              ))}
-              {shouldVirtualizeDesktop &&
-              visibleDesktopRange.bottomSpacer > 0 ? (
-                <tr aria-hidden="true">
-                  <td
-                    colSpan={desktopColSpan}
-                    style={{
-                      height: `${visibleDesktopRange.bottomSpacer}px`,
-                      padding: 0,
-                    }}
-                  />
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </CardContent>
-    </Card>
+              );
+            })}
+            {paddingBottom > 0 ? (
+              <TableRow>
+                <TableCell colSpan={desktopColSpan} className="p-0">
+                  <div style={{ height: paddingBottom }} />
+                </TableCell>
+              </TableRow>
+            ) : null}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
   );
 });

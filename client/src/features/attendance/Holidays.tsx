@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Trash2, CalendarDays, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
+import { DateInput } from "@/components/ui/date-input";
 
 const EGYPT_HOLIDAYS_2026 = [
   { date: "2026-01-07", label: "عيد الميلاد المجيد (أقباط)" },
@@ -118,8 +119,7 @@ export default function Holidays() {
                 <label className="block text-sm font-medium mb-1">
                   التاريخ
                 </label>
-                <input
-                  type="date"
+                <DateInput
                   value={form.date}
                   onChange={(e) => setForm({ ...form, date: e.target.value })}
                   className="w-full px-3 py-2 border rounded-md"

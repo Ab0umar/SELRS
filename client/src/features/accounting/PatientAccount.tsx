@@ -22,6 +22,7 @@ import {
   formatMoneyAr,
   toArabicDigits,
 } from "./accountingFormat";
+import { DateInput } from "@/components/ui/date-input";
 
 type PatientLasikQuery = {
   data?: import("@shared/accounting/contracts").PatientLasikSummaryOutput;
@@ -173,9 +174,8 @@ export default function PatientAccount() {
               className="space-y-1.5 text-sm font-medium"
             >
               <span>من تاريخ</span>
-              <Input
+              <DateInput
                 id="patient-from-date"
-                type="date"
                 value={draft.fromDate}
                 onChange={(e) =>
                   setDraft((p) => ({ ...p, fromDate: e.target.value }))
@@ -187,9 +187,8 @@ export default function PatientAccount() {
               className="space-y-1.5 text-sm font-medium"
             >
               <span>إلى تاريخ</span>
-              <Input
+              <DateInput
                 id="patient-to-date"
-                type="date"
                 value={draft.toDate}
                 onChange={(e) =>
                   setDraft((p) => ({ ...p, toDate: e.target.value }))

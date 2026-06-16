@@ -23,6 +23,7 @@ import {
   UCVA_BCVA_OPTIONS,
 } from "@/lib/refractionOptions";
 import { cn } from "@/lib/utils";
+import { DateInput } from "@/components/ui/date-input";
 
 interface MedicalFilePanelProps {
   patientId: number;
@@ -2972,8 +2973,7 @@ export default function MedicalFilePanel({
                   <Label className="text-[10px] text-muted-foreground">
                     تاريخ الفحص
                   </Label>
-                  <Input
-                    type="date"
+                  <DateInput
                     value={examinationDate}
                     disabled
                     className="mt-0.5 text-xs h-8"
@@ -2983,8 +2983,7 @@ export default function MedicalFilePanel({
                   <Label className="text-[10px] text-muted-foreground">
                     تاريخ الزيارة
                   </Label>
-                  <Input
-                    type="date"
+                  <DateInput
                     value={visitDate}
                     onChange={(e) => {
                       const v = e.target.value;

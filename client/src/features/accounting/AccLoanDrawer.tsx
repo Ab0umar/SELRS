@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 
 export interface AccLoanRow {
   id: number;
@@ -170,9 +171,8 @@ export default function AccLoanDrawer({
             >
               التاريخ
             </label>
-            <Input
+            <DateInput
               id="loan-tx-date"
-              type="date"
               value={txDate}
               onChange={(e) => setTxDate(e.target.value)}
               className="text-sm"

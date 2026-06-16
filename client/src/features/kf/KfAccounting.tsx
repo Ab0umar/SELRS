@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import { Loader2, Banknote, Receipt, CalendarDays } from "lucide-react";
+import { DateInput } from "@/components/ui/date-input";
 
 const KF_LABELS: Record<string, string> = {
   consultation: "كشف استشاري",
@@ -37,9 +38,8 @@ export default function KfAccounting() {
       <div className="flex items-end gap-3">
         <div className="space-y-1">
           <Label htmlFor="revDate">التاريخ</Label>
-          <Input
+          <DateInput
             id="revDate"
-            type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
             className="w-44"

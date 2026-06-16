@@ -21,6 +21,7 @@ import {
   formatMoneyAr,
   toArabicDigits,
 } from "./accountingFormat";
+import { DateInput } from "@/components/ui/date-input";
 
 type ServiceRevenueQuery = {
   data?: import("@shared/accounting/contracts").ServiceRevenueOutput;
@@ -173,9 +174,8 @@ export default function DoctorAccount() {
               className="space-y-1.5 text-sm font-medium"
             >
               <span>من تاريخ</span>
-              <Input
+              <DateInput
                 id="doctor-from-date"
-                type="date"
                 value={draft.fromDate}
                 onChange={(e) =>
                   setDraft((p) => ({ ...p, fromDate: e.target.value }))
@@ -187,9 +187,8 @@ export default function DoctorAccount() {
               className="space-y-1.5 text-sm font-medium"
             >
               <span>إلى تاريخ</span>
-              <Input
+              <DateInput
                 id="doctor-to-date"
-                type="date"
                 value={draft.toDate}
                 onChange={(e) =>
                   setDraft((p) => ({ ...p, toDate: e.target.value }))

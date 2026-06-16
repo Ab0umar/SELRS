@@ -35,6 +35,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { TRPCClientError } from "@trpc/client";
+import { DateInput } from "@/components/ui/date-input";
 
 // Translations
 const GENDER_AR = { male: "ذكر", female: "أنثى" };
@@ -962,7 +963,7 @@ export default function KfPatientDetail() {
             <div className="space-y-3">
               <div className="space-y-1">
                 <Label>تاريخ الزيارة</Label>
-                <Input type="date" value={editVisit.visitDate ?? ""} onChange={(e) => setEditVisit({ ...editVisit, visitDate: e.target.value })} />
+                <DateInput value={editVisit.visitDate ?? ""} onChange={(e) => setEditVisit({ ...editVisit, visitDate: e.target.value })} />
               </div>
               <div className="space-y-1">
                 <Label>نوع الزيارة</Label>
@@ -1017,7 +1018,7 @@ export default function KfPatientDetail() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label>تاريخ الفحص</Label>
-                  <Input type="date" value={editExam.examDate ?? ""} onChange={(e) => setEditExam({ ...editExam, examDate: e.target.value })} />
+                  <DateInput value={editExam.examDate ?? ""} onChange={(e) => setEditExam({ ...editExam, examDate: e.target.value })} />
                 </div>
                 <div className="space-y-1">
                   <Label>الطبيب الفاحص</Label>
@@ -1097,7 +1098,7 @@ export default function KfPatientDetail() {
             <div className="space-y-3">
               <div className="space-y-1">
                 <Label>تاريخ العملية</Label>
-                <Input type="date" value={editOp.opDate ?? ""} onChange={(e) => setEditOp({ ...editOp, opDate: e.target.value })} />
+                <DateInput value={editOp.opDate ?? ""} onChange={(e) => setEditOp({ ...editOp, opDate: e.target.value })} />
               </div>
               <div className="space-y-1">
                 <Label>نوع العملية</Label>
@@ -1152,7 +1153,7 @@ export default function KfPatientDetail() {
             <div className="space-y-3">
               <div className="space-y-1">
                 <Label>تاريخ المتابعة</Label>
-                <Input type="date" value={editFollowup.followupDate ?? ""} onChange={(e) => setEditFollowup({ ...editFollowup, followupDate: e.target.value })} />
+                <DateInput value={editFollowup.followupDate ?? ""} onChange={(e) => setEditFollowup({ ...editFollowup, followupDate: e.target.value })} />
               </div>
               <div className="space-y-1">
                 <Label>الحالة</Label>

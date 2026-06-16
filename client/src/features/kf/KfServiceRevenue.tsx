@@ -8,6 +8,7 @@ import { RefreshCw, Search, Printer } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { formatDateAr, formatCountAr } from "../accounting/accountingFormat";
+import { DateInput } from "@/components/ui/date-input";
 
 function todayIso() { return new Date().toISOString().split("T")[0]; }
 function readFilters(search: string) {
@@ -64,11 +65,11 @@ export default function KfServiceRevenue() {
         <CardContent className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
           <label className="space-y-1.5 text-sm font-medium">
             <span>من تاريخ</span>
-            <Input type="date" value={draft.fromDate} onChange={(e) => { setDraft((p) => ({ ...p, fromDate: e.target.value })); setDateError(""); }} />
+            <DateInput value={draft.fromDate} onChange={(e) => { setDraft((p) => ({ ...p, fromDate: e.target.value })); setDateError(""); }} />
           </label>
           <label className="space-y-1.5 text-sm font-medium">
             <span>إلى تاريخ</span>
-            <Input type="date" value={draft.toDate} onChange={(e) => { setDraft((p) => ({ ...p, toDate: e.target.value })); setDateError(""); }} />
+            <DateInput value={draft.toDate} onChange={(e) => { setDraft((p) => ({ ...p, toDate: e.target.value })); setDateError(""); }} />
           </label>
           {dateError && <p className="col-span-full text-sm text-destructive">{dateError}</p>}
           <div className="flex items-end gap-2 sm:col-span-2">

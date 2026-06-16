@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DateInput } from "@/components/ui/date-input";
 
 const directionTone = {
   in: "border-success/20 bg-success/10 text-success",
@@ -95,16 +96,14 @@ export default function RawLogs() {
               }
               className="border-border bg-background text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
             />
-            <Input
-              type="date"
+            <DateInput
               value={filters.fromDate}
               onChange={(e) =>
                 setFilters({ ...filters, fromDate: e.target.value })
               }
               className="border-border bg-background text-foreground focus:border-info focus:ring-2 focus:ring-info/15"
             />
-            <Input
-              type="date"
+            <DateInput
               value={filters.toDate}
               onChange={(e) =>
                 setFilters({ ...filters, toDate: e.target.value })

@@ -1566,15 +1566,17 @@ export const accountingRouter = router({
       "sync-access-db.ts",
     );
     try {
-      execSync(`npx tsx "${syncScript}"`, {
+      const output = execSync(`npx tsx "${syncScript}"`, {
         encoding: "utf8",
         timeout: 120_000,
       });
-      return { success: true };
+      return { success: true, log: output };
     } catch (e: any) {
+      const log = [e.stdout, e.stderr].filter(Boolean).join("\n");
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: e.message?.slice(0, 300) ?? "Sync failed",
+        message:
+          (log || e.message || "Sync failed").slice(0, 4000),
       });
     }
   }),

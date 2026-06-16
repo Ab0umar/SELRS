@@ -3,10 +3,12 @@ import { useLocation } from "wouter";
 import { Button } from "./ui/button";
 import { Calendar, Pill, Activity, FileCheck, FileText } from "lucide-react";
 import { Input } from "./ui/input";
+import { localISODate } from "@/lib/utils";
+import { DateInput } from "@/components/ui/date-input";
 
 export default function TodayPatientsPanel() {
   const [, setLocation] = useLocation();
-  const today = new Date().toISOString().split("T")[0];
+  const today = localISODate();
   const [selectedDate, setSelectedDate] = useState(today);
   const [isEditingDate, setIsEditingDate] = useState(false);
 
@@ -54,8 +56,7 @@ export default function TodayPatientsPanel() {
           onClick={() => setIsEditingDate(true)}
         >
           {isEditingDate ? (
-            <Input
-              type="date"
+            <DateInput
               value={selectedDate}
               onChange={(e) => {
                 setSelectedDate(e.target.value);

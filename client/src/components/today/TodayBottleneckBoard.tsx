@@ -15,7 +15,7 @@ import {
 import { TodayPatientShortcutsDialog } from "@/components/today/TodayPatientShortcutsDialog";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { trpc } from "@/lib/trpc";
-import { cn, getTrpcErrorMessage } from "@/lib/utils";
+import { cn, getTrpcErrorMessage, localISODate } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   ArrowUpRight,
@@ -419,11 +419,9 @@ function formatScheduleRequestDate(
   value: VisitScheduleRequestRow["visitDate"],
 ) {
   if (!value) return "—";
-  const text =
-    value instanceof Date
-      ? value.toISOString().slice(0, 10)
-      : String(value).slice(0, 10);
-  return text || "—";
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.valueOf())) return "—";
+  return localISODate(d);
 }
 
 function BookingRequestCard({

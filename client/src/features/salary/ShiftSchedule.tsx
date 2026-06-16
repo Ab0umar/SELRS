@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { DateInput } from "@/components/ui/date-input";
 
 const now = new Date();
 const MONTHS_AR = [
@@ -895,8 +896,7 @@ export default function ShiftSchedule() {
                       ))}
                     </div>
                     {addForm.period !== "month" && (
-                      <input
-                        type="date"
+                      <DateInput
                         value={addForm.anchorDate}
                         min={monthMin}
                         max={monthMax}
@@ -968,8 +968,7 @@ export default function ShiftSchedule() {
                   )}
                   <div className="mt-3 border-t border-border pt-3">
                     <div className="flex flex-col gap-3">
-                      <input
-                        type="date"
+                      <DateInput
                         value={holidayForm.date}
                         min={monthMin}
                         max={monthMax}

@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
+import { DateInput } from "@/components/ui/date-input";
 
 const PERIOD_LABEL: Record<string, string> = {
   day: "يومي",
@@ -526,9 +527,8 @@ export default function ShiftAssignments() {
                   >
                     من تاريخ
                   </label>
-                  <input
+                  <DateInput
                     id="attendance-shift-from"
-                    type="date"
                     value={form.effectiveFrom}
                     onChange={(e) =>
                       setForm({ ...form, effectiveFrom: e.target.value })
@@ -544,9 +544,8 @@ export default function ShiftAssignments() {
                   >
                     حتى تاريخ (اختياري)
                   </label>
-                  <input
+                  <DateInput
                     id="attendance-shift-to"
-                    type="date"
                     value={form.effectiveTo || ""}
                     onChange={(e) =>
                       setForm({
@@ -668,9 +667,8 @@ export default function ShiftAssignments() {
                 >
                   من تاريخ
                 </label>
-                <input
+                <DateInput
                   id="attendance-shift-bulk-from"
-                  type="date"
                   value={bulk.effectiveFrom}
                   onChange={(e) =>
                     setBulk({ ...bulk, effectiveFrom: e.target.value })
@@ -879,8 +877,7 @@ export default function ShiftAssignments() {
                                 </select>
                               </td>
                               <td className="px-2 py-2">
-                                <input
-                                  type="date"
+                                <DateInput
                                   value={editRow.effectiveFrom}
                                   onChange={(e) =>
                                     setEditRow({
@@ -892,8 +889,7 @@ export default function ShiftAssignments() {
                                 />
                               </td>
                               <td className="px-2 py-2">
-                                <input
-                                  type="date"
+                                <DateInput
                                   value={editRow.effectiveTo ?? ""}
                                   onChange={(e) =>
                                     setEditRow({
@@ -1232,8 +1228,7 @@ export default function ShiftAssignments() {
                     <label className="block text-sm font-medium">
                       من تاريخ
                     </label>
-                    <input
-                      type="date"
+                    <DateInput
                       value={cycleAssignForm.effectiveFrom}
                       onChange={(e) =>
                         setCycleAssignForm({
@@ -1248,8 +1243,7 @@ export default function ShiftAssignments() {
                     <label className="block text-sm font-medium">
                       حتى تاريخ (اختياري)
                     </label>
-                    <input
-                      type="date"
+                    <DateInput
                       value={cycleAssignForm.effectiveTo}
                       onChange={(e) =>
                         setCycleAssignForm({
@@ -1512,8 +1506,7 @@ export default function ShiftAssignments() {
                                   —
                                 </td>
                                 <td className="px-2 py-2">
-                                  <input
-                                    type="date"
+                                  <DateInput
                                     value={editCycleAssignRow.effectiveFrom}
                                     onChange={(e) =>
                                       setEditCycleAssignRow({
@@ -1525,8 +1518,7 @@ export default function ShiftAssignments() {
                                   />
                                 </td>
                                 <td className="px-2 py-2">
-                                  <input
-                                    type="date"
+                                  <DateInput
                                     value={editCycleAssignRow.effectiveTo}
                                     onChange={(e) =>
                                       setEditCycleAssignRow({
@@ -1664,8 +1656,7 @@ export default function ShiftAssignments() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium">من تاريخ</label>
-                <input
-                  type="date"
+                <DateInput
                   value={swap.dateFrom}
                   onChange={(e) =>
                     setSwap({
@@ -1682,8 +1673,7 @@ export default function ShiftAssignments() {
               </div>
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium">حتى تاريخ</label>
-                <input
-                  type="date"
+                <DateInput
                   value={swap.dateTo}
                   min={swap.dateFrom}
                   onChange={(e) => setSwap({ ...swap, dateTo: e.target.value })}

@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DateInput } from "@/components/ui/date-input";
 
 const todayStr = new Date().toISOString().split("T")[0];
 const firstOfMonth = new Date(
@@ -148,8 +149,7 @@ export default function PermissionReport() {
               <label className="block text-sm font-medium text-muted-foreground">
                 من
               </label>
-              <input
-                type="date"
+              <DateInput
                 value={from}
                 max={to}
                 onChange={(e) => setFrom(e.target.value)}
@@ -160,8 +160,7 @@ export default function PermissionReport() {
               <label className="block text-sm font-medium text-muted-foreground">
                 إلى
               </label>
-              <input
-                type="date"
+              <DateInput
                 value={to}
                 min={from}
                 onChange={(e) => setTo(e.target.value)}

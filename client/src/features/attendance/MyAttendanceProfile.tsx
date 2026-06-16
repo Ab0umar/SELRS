@@ -14,6 +14,7 @@ import {
   Hourglass,
   AlertCircle,
 } from "lucide-react";
+import { DateInput } from "@/components/ui/date-input";
 
 const todayStr = new Date().toISOString().split("T")[0];
 const DAYS_FULL = [
@@ -381,8 +382,7 @@ export default function MyAttendanceProfile() {
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-muted-foreground">التاريخ</label>
-                <input
-                  type="date"
+                <DateInput
                   value={permForm.date}
                   onChange={(e) =>
                     setPermForm({ ...permForm, date: e.target.value })
@@ -471,8 +471,7 @@ export default function MyAttendanceProfile() {
               <div className="flex flex-col gap-1 col-span-1" />
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-muted-foreground">من</label>
-                <input
-                  type="date"
+                <DateInput
                   value={leaveForm.dateFrom}
                   onChange={(e) => {
                     const from = e.target.value;
@@ -487,8 +486,7 @@ export default function MyAttendanceProfile() {
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-muted-foreground">إلى</label>
-                <input
-                  type="date"
+                <DateInput
                   value={leaveForm.dateTo}
                   min={leaveForm.dateFrom}
                   onChange={(e) =>
@@ -585,8 +583,7 @@ export default function MyAttendanceProfile() {
                 <label className="text-xs text-muted-foreground">
                   من تاريخ
                 </label>
-                <input
-                  type="date"
+                <DateInput
                   value={shiftRequestForm.dateFrom}
                   onChange={(e) =>
                     setShiftRequestForm({
@@ -608,8 +605,7 @@ export default function MyAttendanceProfile() {
                   <label className="text-xs text-muted-foreground">
                     حتى تاريخ (شامل)
                   </label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={shiftRequestForm.dateTo}
                     min={shiftRequestForm.dateFrom}
                     onChange={(e) =>
@@ -628,8 +624,7 @@ export default function MyAttendanceProfile() {
                   <label className="text-xs text-muted-foreground">
                     حتى تاريخ (اختياري)
                   </label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={shiftRequestForm.dateTo}
                     min={shiftRequestForm.dateFrom}
                     onChange={(e) =>

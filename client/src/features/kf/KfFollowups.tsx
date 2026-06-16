@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar, FilterX, Eye, Trash2, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { DateInput } from "@/components/ui/date-input";
 
 const FOLLOWUP_STATUS_AR = {
   scheduled: "مجدولة",
@@ -58,9 +59,8 @@ export default function KfFollowups() {
         <CardContent className="flex flex-col sm:flex-row gap-4 items-end">
           <div className="space-y-1 flex-1 max-w-xs">
             <label htmlFor="dateFilter" className="text-xs text-muted-foreground font-medium">تاريخ المتابعة</label>
-            <Input
+            <DateInput
               id="dateFilter"
-              type="date"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
             />

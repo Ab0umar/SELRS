@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
+import { DateInput } from "@/components/ui/date-input";
 
 const STAFF_BOOKING_TYPES = [
   { value: "consultant" as const, label: "كشف استشاري" },
@@ -272,8 +273,7 @@ export function AddPortalBookingDialog({
                     <label className="text-xs font-medium text-muted-foreground block text-right">
                       التاريخ
                     </label>
-                    <Input
-                      type="date"
+                    <DateInput
                       value={requestedDate}
                       onChange={(e) => setRequestedDate(e.target.value)}
                       className="h-10 rounded-xl text-sm"
@@ -285,8 +285,7 @@ export function AddPortalBookingDialog({
                   <label className="text-xs font-medium text-muted-foreground block text-right">
                     التاريخ
                   </label>
-                  <Input
-                    type="date"
+                  <DateInput
                     value={requestedDate}
                     onChange={(e) => setRequestedDate(e.target.value)}
                     className="h-10 rounded-xl text-sm"

@@ -1,3 +1,5 @@
+import { getServiceTypeFilterVariants } from "@shared/serviceType";
+
 export type ServiceType =
   | "consultant"
   | "specialist"
@@ -217,12 +219,10 @@ export const normalizeSheetTypeChoice = (
     raw === "operation_center"
   )
     return "surgery_center";
-  if (
-    raw === "surgery" ||
-    raw === "surgery_external" ||
-    raw === "operation_external"
-  )
+  if (raw === "surgery_external" || raw === "operation_external")
     return "surgery_external";
+  // "surgery" itself is a distinct, real value (the original/legacy bucket) —
+  // it must not be force-collapsed into surgery_center or surgery_external.
   return isSheetTypeChoice(raw) ? raw : "";
 };
 
@@ -238,6 +238,21 @@ export function toLegacyServiceType(value: SheetTypeChoice): ServiceType {
   }
   if (value === "surgery_center") return "surgery";
   return value as ServiceType;
+}
+
+export function toDbServiceType(value: SheetTypeChoice): SheetTypeChoice {
+  return value;
+}
+
+/** Checks whether a stored serviceType value qualifies for a given filter
+ *  selection. Exact match only — each filter shows patients whose stored
+ *  serviceType is precisely that value, with no legacy/related blending. */
+export function sheetTypeMatchesFilter(
+  actual: string,
+  filter: SheetTypeChoice,
+): boolean {
+  if (!actual) return false;
+  return getServiceTypeFilterVariants(filter).includes(actual);
 }
 
 export const getPatientRowKey = (patient: PatientRow) =>

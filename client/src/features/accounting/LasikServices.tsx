@@ -6,12 +6,14 @@ import { trpc } from "@/lib/trpc";
 import { Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import AccountingShell from "./AccountingShell";
+import { localISODate } from "@/lib/utils";
 import reportStyles from "./AccountingOpReport.module.css";
 import {
   formatCountAr,
   formatMoneyAr,
   toArabicDigits,
 } from "./accountingFormat";
+import { DateInput } from "@/components/ui/date-input";
 
 const DEFAULT_SECTION_CODE = 15;
 
@@ -22,11 +24,8 @@ type LasikServicesFilters = {
 };
 
 function defaultDateRange(): LasikServicesFilters {
-  const today = new Date();
-  return {
-    fromDate: today.toISOString().slice(0, 10),
-    toDate: today.toISOString().slice(0, 10),
-  };
+  const today = localISODate();
+  return { fromDate: today, toDate: today };
 }
 
 export default function LasikServices() {
@@ -74,9 +73,8 @@ export default function LasikServices() {
               className="space-y-1.5 text-sm font-medium"
             >
               <span>من تاريخ</span>
-              <Input
+              <DateInput
                 id="lasik-svc-from-date"
-                type="date"
                 value={draft.fromDate}
                 onChange={(e) =>
                   setDraft((p) => ({ ...p, fromDate: e.target.value }))
@@ -88,9 +86,8 @@ export default function LasikServices() {
               className="space-y-1.5 text-sm font-medium"
             >
               <span>إلى تاريخ</span>
-              <Input
+              <DateInput
                 id="lasik-svc-to-date"
-                type="date"
                 value={draft.toDate}
                 onChange={(e) =>
                   setDraft((p) => ({ ...p, toDate: e.target.value }))

@@ -48,6 +48,7 @@ export default function AdminPatients() {
     getRowServiceCode: list.getRowServiceCode,
     savePatientPageStateMutation: list.savePatientPageStateMutation,
     setManualLockOverrides: list.setManualLockOverrides,
+    setDrafts: list.setDrafts,
   });
 
   const syncRegistrationCatalogMutation =

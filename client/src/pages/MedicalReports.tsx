@@ -40,6 +40,7 @@ import { cn } from "@/lib/utils";
 import { OfflinePageState } from "@/components/OfflinePageState";
 import { BrandLogo } from "@/components/BrandLogo";
 import { BRAND_NAME_AR, BRAND_NAME_EN } from "@/lib/brand";
+import { DateInput } from "@/components/ui/date-input";
 
 function formatDisplayValue(value: unknown): string {
   if (value === null || value === undefined) return "";
@@ -917,9 +918,8 @@ export default function MedicalReports() {
               <TabsContent value="diagnosis" className="space-y-4" dir="rtl">
                 <div>
                   <Label htmlFor="visit-date">تاريخ الزيارة</Label>
-                  <Input
+                  <DateInput
                     id="visit-date"
-                    type="date"
                     value={formData.visitDate}
                     onChange={(e) =>
                       setFormData({ ...formData, visitDate: e.target.value })

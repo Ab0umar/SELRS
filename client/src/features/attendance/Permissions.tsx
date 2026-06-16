@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Trash2, Clock, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
+import { DateInput } from "@/components/ui/date-input";
 
 type PermType = "in" | "out";
 
@@ -91,9 +92,8 @@ export default function Permissions() {
               >
                 من
               </label>
-              <input
+              <DateInput
                 id="attendance-perm-from"
-                type="date"
                 value={filter.from}
                 onChange={(e) => setFilter({ ...filter, from: e.target.value })}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
@@ -106,9 +106,8 @@ export default function Permissions() {
               >
                 إلى
               </label>
-              <input
+              <DateInput
                 id="attendance-perm-to"
-                type="date"
                 value={filter.to}
                 onChange={(e) => setFilter({ ...filter, to: e.target.value })}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
@@ -192,9 +191,8 @@ export default function Permissions() {
                 >
                   التاريخ
                 </label>
-                <input
+                <DateInput
                   id="attendance-perm-form-date"
-                  type="date"
                   value={form.date}
                   onChange={(e) => setForm({ ...form, date: e.target.value })}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"

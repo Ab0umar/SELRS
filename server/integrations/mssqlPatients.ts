@@ -5057,10 +5057,7 @@ export async function syncPatientsFromMssql(
                 ? {}
                 : { treatingDoctor: String(payload.treatingDoctor) }),
             };
-            if (!isBlank(payload.serviceType))
-              alwaysUpdates.serviceType = String(payload.serviceType);
-            if (!isBlank(payload.locationType))
-              alwaysUpdates.locationType = String(payload.locationType);
+            // serviceType and locationType are NOT synced here — handled via copyIfMissing below
             const oldDoctorCode = String(existing.doctorCode ?? "").trim();
             const oldServiceCode = String(existing.serviceCode ?? "").trim();
             const newDoctorCode = String(alwaysUpdates.doctorCode ?? "").trim();
@@ -5163,8 +5160,9 @@ export async function syncPatientsFromMssql(
               syncAlways("doctorCode");
               syncAlways("doctorId");
               syncAlways("serviceCode");
-              syncAlways("serviceType");
-              syncAlways("locationType");
+              // serviceType and locationType are manually customizable — only backfill if blank
+              copyIfMissing("serviceType");
+              copyIfMissing("locationType");
               // Only backfill these fields if empty
               copyIfMissing("fullName");
               copyIfMissing("alternatePhone");

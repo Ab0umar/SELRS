@@ -16,6 +16,7 @@ import {
   SPHERE_COMBOBOX_OPTIONS,
   UCVA_BCVA_OPTIONS,
 } from "@/lib/refractionOptions";
+import { DateInput } from "@/components/ui/date-input";
 
 const KF_DOCTORS = ["د. محمد السعدني", "د. سعيد مجدي"] as const;
 
@@ -186,9 +187,8 @@ export default function KfExaminationForm() {
               <Label htmlFor="examDate" className="after:content-['*'] after:text-destructive after:mr-1">
                 تاريخ الفحص
               </Label>
-              <Input
+              <DateInput
                 id="examDate"
-                type="date"
                 value={examDate}
                 onChange={(e) => {
                   setExamDate(e.target.value);

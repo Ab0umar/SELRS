@@ -17,6 +17,7 @@ import AuthenticatedImage, {
   prefetchAuthenticatedImage,
 } from "@/components/AuthenticatedImage";
 import PentacamThumbnail from "@/components/PentacamThumbnail";
+import { DateInput } from "@/components/ui/date-input";
 
 type LocalExportItem = {
   name: string;
@@ -735,14 +736,12 @@ export default function LocalPentacamExportsPanel({
               placeholder="Filter by name/code/file"
               className="h-9 rounded border px-2 text-sm"
             />
-            <input
-              type="date"
+            <DateInput
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
               className="h-9 rounded border px-2 text-sm"
             />
-            <input
-              type="date"
+            <DateInput
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
               className="h-9 rounded border px-2 text-sm"

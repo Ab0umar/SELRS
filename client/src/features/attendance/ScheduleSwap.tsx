@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DateInput } from "@/components/ui/date-input";
 
 const DAYS_SH = ["ح", "ن", "ث", "ر", "خ", "ج", "س"];
 const DAYS_FULL = [
@@ -467,8 +468,7 @@ export default function ScheduleSwap() {
                         <label className="text-xs font-medium text-muted-foreground">
                           من تاريخ
                         </label>
-                        <input
-                          type="date"
+                        <DateInput
                           value={dailyFrom}
                           onChange={(e) => {
                             setDailyFrom(e.target.value);
@@ -482,8 +482,7 @@ export default function ScheduleSwap() {
                         <label className="text-xs font-medium text-muted-foreground">
                           حتى تاريخ (شامل)
                         </label>
-                        <input
-                          type="date"
+                        <DateInput
                           value={dailyTo}
                           min={dailyFrom}
                           onChange={(e) => setDailyTo(e.target.value)}
@@ -561,8 +560,7 @@ export default function ScheduleSwap() {
                         <label className="text-xs font-medium text-muted-foreground">
                           تاريخ بدء التطبيق
                         </label>
-                        <input
-                          type="date"
+                        <DateInput
                           value={weeklyFrom}
                           onChange={(e) => setWeeklyFrom(e.target.value)}
                           className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
@@ -650,8 +648,7 @@ export default function ScheduleSwap() {
                         <label className="text-xs font-medium text-muted-foreground">
                           تاريخ البدء
                         </label>
-                        <input
-                          type="date"
+                        <DateInput
                           value={monthlyFrom}
                           onChange={(e) => setMonthlyFrom(e.target.value)}
                           className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
@@ -661,8 +658,7 @@ export default function ScheduleSwap() {
                         <label className="text-xs font-medium text-muted-foreground">
                           تاريخ الانتهاء (اختياري)
                         </label>
-                        <input
-                          type="date"
+                        <DateInput
                           value={monthlyTo}
                           onChange={(e) => setMonthlyTo(e.target.value)}
                           className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
@@ -704,8 +700,7 @@ export default function ScheduleSwap() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <label className="block text-sm font-semibold">من تاريخ</label>
-                <input
-                  type="date"
+                <DateInput
                   value={swapFrom}
                   onChange={(e) => {
                     setSwapFrom(e.target.value);
@@ -718,8 +713,7 @@ export default function ScheduleSwap() {
                 <label className="block text-sm font-semibold">
                   حتى تاريخ (شامل)
                 </label>
-                <input
-                  type="date"
+                <DateInput
                   value={swapTo}
                   min={swapFrom}
                   onChange={(e) => setSwapTo(e.target.value)}

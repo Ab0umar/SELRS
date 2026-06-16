@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, Calendar, Printer } from "lucide-react";
+import { DateInput } from "@/components/ui/date-input";
 
 type ReportTab =
   | "summary"
@@ -339,9 +340,8 @@ export default function Reports() {
               >
                 من
               </label>
-              <input
+              <DateInput
                 id="attendance-report-from"
-                type="date"
                 value={dates.from}
                 onChange={(e) => setDates({ ...dates, from: e.target.value })}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
@@ -354,9 +354,8 @@ export default function Reports() {
               >
                 إلى
               </label>
-              <input
+              <DateInput
                 id="attendance-report-to"
-                type="date"
                 value={dates.to}
                 onChange={(e) => setDates({ ...dates, to: e.target.value })}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"

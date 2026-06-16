@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { trpc } from "@/lib/trpc";
+import { localISODate } from "@/lib/utils";
 
 /** One row per patient for today across all queue stages (matches `getTodayPatientsByQueueStatus` output shape). */
 export type TodayQueuePatient = {
@@ -36,7 +37,7 @@ function sortTodayQueuePatients(list: TodayQueuePatient[]) {
 /** Today’s clinic queue: merges all stages so tabs / KPIs reflect live DB state (not checked-in-only). */
 export function useTodayQueuePatientsMerged(dateIso?: string) {
   const todayIso = useMemo(
-    () => dateIso ?? new Date().toISOString().split("T")[0],
+    () => dateIso ?? localISODate(),
     [dateIso],
   );
 

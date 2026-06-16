@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Printer, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
+import { DateInput } from "@/components/ui/date-input";
 
 const now = new Date();
 function isoMonth(d: Date) {
@@ -123,15 +124,13 @@ export default function AbsentReport() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <input
-            type="date"
+          <DateInput
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
             className="rounded-md border border-border bg-background px-3 py-2 text-sm"
           />
           <span className="text-sm text-muted-foreground">—</span>
-          <input
-            type="date"
+          <DateInput
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}
             className="rounded-md border border-border bg-background px-3 py-2 text-sm"

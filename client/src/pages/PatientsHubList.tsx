@@ -33,6 +33,7 @@ import {
   toLegacyServiceType,
 } from "@/hooks/admin-patients/adminPatientsShared";
 import { usePermissions } from "@/hooks/usePermissions";
+import { DateInput } from "@/components/ui/date-input";
 
 type SheetFilter =
   | "all"
@@ -463,8 +464,7 @@ export default function PatientsHubList() {
             <label className="text-xs text-muted-foreground whitespace-nowrap">
               من
             </label>
-            <Input
-              type="date"
+            <DateInput
               value={dateFrom}
               onChange={(e) => {
                 setDateFrom(e.target.value);
@@ -476,8 +476,7 @@ export default function PatientsHubList() {
             <label className="text-xs text-muted-foreground whitespace-nowrap">
               إلى
             </label>
-            <Input
-              type="date"
+            <DateInput
               value={dateTo}
               onChange={(e) => {
                 setDateTo(e.target.value);

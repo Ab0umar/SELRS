@@ -28,6 +28,7 @@ import {
   shiftDateToWeekday,
   toDateInputValue,
 } from "@/hooks/operations/operationsShared";
+import { DateInput } from "@/components/ui/date-input";
 
 type OperationDialogProps = {
   activeTab: string;
@@ -116,8 +117,7 @@ export function OperationDialog({
       <div className="flex flex-wrap items-center gap-2 print:hidden" dir="rtl">
         {/* Date + time */}
         <div className="flex items-center gap-1.5">
-          <input
-            type="date"
+          <DateInput
             value={toDateInputValue(listDate)}
             onChange={(e) =>
               onListDateChange(e.target.value || getLocalDateIso())

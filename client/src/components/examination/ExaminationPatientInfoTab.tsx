@@ -15,9 +15,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
+import { cn, localISODate } from "@/lib/utils";
 import { Trash2 } from "lucide-react";
 import type { UseExaminationFormResult } from "@/hooks/examination/useExaminationForm";
+import { DateInput } from "@/components/ui/date-input";
 
 interface ExaminationPatientInfoTabProps {
   form: UseExaminationFormResult;
@@ -120,8 +121,7 @@ export default function ExaminationPatientInfoTab({
                 <PatientPicker onSelect={handleSelectPatient} />
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <Input
-                  type="date"
+                <DateInput
                   value={visitDate}
                   onChange={(e) => setVisitDate(e.target.value)}
                   className="text-xs border h-8 px-2 w-32"
@@ -215,15 +215,14 @@ export default function ExaminationPatientInfoTab({
                     <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                       تاريخ الميلاد
                     </Label>
-                    <Input
-                      type="date"
+                    <DateInput
                       value={(() => {
                         const dob = patientDetails.dateOfBirth;
                         if (!dob) return "";
                         if (dob.match(/^\d{4}-\d{2}-\d{2}$/)) return dob;
                         const date = new Date(dob);
                         if (isNaN(date.getTime())) return "";
-                        return date.toISOString().split("T")[0];
+                        return localISODate(date);
                       })()}
                       onChange={(e) =>
                         setPatientDetails((prev) => ({

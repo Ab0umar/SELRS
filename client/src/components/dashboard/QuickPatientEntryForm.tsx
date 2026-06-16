@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import PatientPicker from "@/components/PatientPicker";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { DateInput } from "@/components/ui/date-input";
 
 export type QuickPatientEntryFormProps = {
   /** من مسار `/quick-entry/:id` */
@@ -139,8 +140,7 @@ export function QuickPatientEntryForm({
           </div>
           <div>
             <Label>تاريخ الزيارة</Label>
-            <Input
-              type="date"
+            <DateInput
               value={visitDate}
               onChange={(e) => setVisitDate(e.target.value)}
               className="text-right"

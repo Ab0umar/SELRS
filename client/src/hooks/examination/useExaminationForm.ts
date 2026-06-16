@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
-import { getTrpcErrorMessage } from "@/lib/utils";
+import { getTrpcErrorMessage, localISODate } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { deletePatientCachePages } from "@/lib/patientCacheCleanup";
 import type { User } from "@shared/types";
@@ -81,7 +81,7 @@ export function useExaminationForm(
   const formRef = useRef<HTMLFormElement | null>(null);
   const [loading, setLoading] = useState(false);
   const [visitDate, setVisitDate] = useState(
-    () => new Date().toISOString().split("T")[0],
+    () => localISODate(),
   );
   const [receptionSignature, setReceptionSignature] = useState("");
   const [nurseSignature, setNurseSignature] = useState("");
@@ -768,7 +768,7 @@ export function useExaminationForm(
       const examDateStr = formatDateForInput(examDate);
       setVisitDate(examDateStr);
     } else {
-      setVisitDate(new Date().toISOString().split("T")[0]);
+      setVisitDate(localISODate());
     }
   }, [patientQuery.data]);
 
@@ -1377,7 +1377,7 @@ export function useExaminationForm(
 
       const savedExam = await saveExamMutation.mutateAsync({
         patientId: effectivePatientId,
-        visitDate: visitDate || new Date().toISOString().split("T")[0],
+        visitDate: visitDate || localISODate(),
         visitType: isFollowup ? "followup" : "examination",
         data: payload,
       });
@@ -1434,7 +1434,7 @@ export function useExaminationForm(
         setLocationType("center");
         setIsFollowup(false);
         setReceptionSignature("");
-        setVisitDate(new Date().toISOString().split("T")[0]);
+        setVisitDate(localISODate());
         setMedicalChecklist({
           generalDiseases: false,
           pregnancyOrLactation: false,

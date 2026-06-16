@@ -16,6 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { DateInput } from "@/components/ui/date-input";
 
 const now = new Date();
 const MONTHS = [
@@ -837,15 +838,13 @@ export default function PayrollReport() {
             ))}
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <input
-              type="date"
+            <DateInput
               value={fromDate}
               onChange={(e) => handleFromDateChange(e.target.value)}
               className="rounded-md border border-border bg-background px-3 py-2 text-sm flex-1 sm:flex-initial"
             />
             <span className="text-sm text-muted-foreground">—</span>
-            <input
-              type="date"
+            <DateInput
               value={toDate}
               onChange={(e) => handleToDateChange(e.target.value)}
               className="rounded-md border border-border bg-background px-3 py-2 text-sm flex-1 sm:flex-initial"

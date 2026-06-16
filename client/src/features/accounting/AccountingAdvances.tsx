@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import AccountingShell from "./AccountingShell";
 import { toast } from "sonner";
 import { fmt, fmtDate, todayIso } from "./accountingFormat";
+import { DateInput } from "@/components/ui/date-input";
 
 const PAGE_SIZE = 50;
 
@@ -271,9 +272,8 @@ export default function AccountingAdvances() {
                   >
                     التاريخ
                   </label>
-                  <input
+                  <DateInput
                     id="advances-date"
-                    type="date"
                     value={txDate}
                     onChange={(e) => setTxDate(e.target.value)}
                     className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"

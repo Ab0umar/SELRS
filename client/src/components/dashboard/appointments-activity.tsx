@@ -28,6 +28,7 @@ import type { QueueStatus } from "@/lib/dashboard-data";
 import { trpc } from "@/lib/trpc";
 import { TodayPatientShortcutsDialog } from "@/components/today/TodayPatientShortcutsDialog";
 import { getLocalDateIso } from "@/hooks/operations/operationsShared";
+import { DateInput } from "@/components/ui/date-input";
 
 type MainTab = "patients" | "operations" | "bookings";
 type QueueFilter = "all" | QueueStatus | "bookings";
@@ -356,8 +357,7 @@ export function AppointmentsSection({
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <Input
-              type="date"
+            <DateInput
               value={selectedDate}
               onChange={(e) => setTodayPatientsDate(e.target.value)}
               className="h-9 w-[11.5rem] shrink-0 font-mono text-sm"

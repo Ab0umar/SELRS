@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
+import { DateInput } from "@/components/ui/date-input";
 
 const STATUS_OPTS = [
   { value: "", label: "الكل" },
@@ -269,8 +270,7 @@ function BookingCard({
                   <label className="text-xs font-medium text-muted-foreground">
                     تاريخ مؤكد
                   </label>
-                  <Input
-                    type="date"
+                  <DateInput
                     value={confirmedDate}
                     onChange={(e) => setConfirmedDate(e.target.value)}
                     dir="ltr"
@@ -693,8 +693,7 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
           <label className="text-xs font-medium text-muted-foreground">
             تاريخ الموعد
           </label>
-          <Input
-            type="date"
+          <DateInput
             value={requestedDate}
             onChange={(e) => setRequestedDate(e.target.value)}
             className="h-10 rounded-xl border-border bg-white text-sm"
@@ -706,8 +705,7 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
           <label className="text-xs font-medium text-muted-foreground">
             تاريخ مؤكد (اختياري)
           </label>
-          <Input
-            type="date"
+          <DateInput
             value={confirmedDate}
             onChange={(e) => setConfirmedDate(e.target.value)}
             className="h-10 rounded-xl border-border bg-white text-sm"
@@ -871,8 +869,7 @@ function ClosuresPanel() {
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">من</label>
-              <Input
-                type="date"
+              <DateInput
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 className="h-9 rounded-xl text-sm"
@@ -881,8 +878,7 @@ function ClosuresPanel() {
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">إلى</label>
-              <Input
-                type="date"
+              <DateInput
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 className="h-9 rounded-xl text-sm"
@@ -1165,8 +1161,7 @@ export default function AdminPortalBookings() {
                 />
               </div>
 
-              <Input
-                type="date"
+              <DateInput
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
                 className="h-10 w-full rounded-xl border-border bg-white text-sm sm:w-44"

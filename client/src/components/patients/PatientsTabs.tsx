@@ -6,12 +6,19 @@ interface PatientsTabsProps {
   onSelect: (value: string) => void;
 }
 
+// Mirrors the admin patients serviceType filter set — plain "surgery" and
+// "external" are legacy buckets superseded by the granular types below and
+// are no longer surfaced as tabs.
 const tabsConfig = [
   { value: "all", label: "الكل" },
   { value: "consultant", label: "استشاري" },
   { value: "specialist", label: "اخصائي" },
   { value: "lasik", label: "فحوصات الليزك" },
-  { value: "external", label: "خارجي" },
+  { value: "surgery_center", label: "عمليات مركز" },
+  { value: "surgery_external", label: "عمليات خارجي" },
+  { value: "pentacam_c", label: "Pentacam C" },
+  { value: "pentacam_ex", label: "Pentacam Ex" },
+  { value: "pentacam_ex_c", label: "Pentacam Ex.C" },
 ];
 
 export const PatientsTabs: React.FC<PatientsTabsProps> = ({

@@ -21,6 +21,7 @@ import PageHeader from "@/components/PageHeader";
 import { usePrintMode } from "@/hooks/usePrintMode";
 import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 import { printOrExportPdf } from "@/lib/nativePdf";
+import { DateInput } from "@/components/ui/date-input";
 
 interface TestItem {
   id: number;
@@ -537,8 +538,7 @@ export default function RequestTests({
                 <div>
                   <span className="text-xs text-muted-foreground block mb-1">التاريخ / Date</span>
                   <div className="space-y-1">
-                    <Input
-                      type="date"
+                    <DateInput
                       value={requestDate}
                       readOnly={editingForbidden}
                       onChange={(e) => setRequestDate(e.target.value)}

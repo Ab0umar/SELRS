@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import AccountingShell from "./AccountingShell";
 import AccEntryDrawer, { type AccEntryRow } from "./AccEntryDrawer";
 import { fmt, fmtDate, todayIso } from "./accountingFormat";
+import { DateInput } from "@/components/ui/date-input";
 
 const PAGE_SIZE = 50;
 
@@ -220,9 +221,8 @@ export default function AccountingLedger() {
                   >
                     التاريخ
                   </label>
-                  <input
+                  <DateInput
                     id="txDate"
-                    type="date"
                     value={txDate}
                     onChange={(e) => setTxDate(e.target.value)}
                     className="h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"

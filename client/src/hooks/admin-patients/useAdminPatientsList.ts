@@ -16,8 +16,10 @@ import {
   getYearMonth,
   normalizeSheetTypeChoice,
   normalizeTypedDateInput,
+  sheetTypeMatchesFilter,
   toIsoDate,
   toLegacyServiceType,
+  toDbServiceType,
 } from "./adminPatientsShared";
 
 type UseAdminPatientsListResult = ReturnType<typeof useAdminPatientsList>;
@@ -74,11 +76,9 @@ export function useAdminPatientsList() {
       dateTo: toIsoDate(dateTo) || undefined,
       doctorName: doctorFilter === "all" ? undefined : doctorFilter,
       serviceType:
-        serviceTypeFilter === "all" ||
-        serviceTypeFilter === "surgery" ||
-        serviceTypeFilter === "surgery_external"
+        serviceTypeFilter === "all"
           ? undefined
-          : toLegacyServiceType(serviceTypeFilter),
+          : toDbServiceType(serviceTypeFilter),
       locationType: locationFilter === "all" ? undefined : locationFilter,
       limit: pageSize,
       cursor: cursor ?? undefined,
@@ -266,6 +266,14 @@ export function useAdminPatientsList() {
     );
 
   const getRowSheetType = (patient: PatientRow): SheetTypeChoice => {
+    // A manually-locked patient's saved serviceType is the source of truth —
+    // it always wins over service-directory/code-derived mappings. Patients
+    // that were never manually edited keep falling back to code-derived type
+    // so bulk/MSSQL-driven classification still works.
+    if (patient.syncLockManual) {
+      const dbType = normalizeSheetTypeChoice(patient.serviceType ?? "");
+      if (dbType) return dbType;
+    }
     const rowServiceCode = getRowServiceCode(patient);
     const mappedOverride = rowServiceCode
       ? normalizeSheetTypeChoice(
@@ -325,7 +333,7 @@ export function useAdminPatientsList() {
           const fallback = normalizeSheetTypeChoice(
             patient.serviceType ?? "consultant",
           );
-          if (fallback !== selectedSheetType) return [];
+          if (!sheetTypeMatchesFilter(fallback, selectedSheetType)) return [];
         }
         const rowKey = `${patient.id}-no-service`;
         newVisibleKeys.add(rowKey);
@@ -340,17 +348,30 @@ export function useAdminPatientsList() {
 
       const rowCodes = codes;
 
+      // A manually-locked patient's saved serviceType is the source of truth —
+      // it always wins over service-directory/code-derived mappings (same priority
+      // as getRowSheetType above). Non-locked patients keep using code-derived type.
+      // Matching uses the shared legacy-variant table so e.g. filtering by
+      // "pentacam_c" also finds old "lasik" data, and "surgery_center" also
+      // finds old "surgery" data.
+      const dbServiceType = patient.syncLockManual
+        ? normalizeSheetTypeChoice(patient.serviceType ?? "")
+        : "";
       const filteredRowCodes = !selectedSheetType
         ? rowCodes
-        : rowCodes.filter((serviceCode) => {
-            const mappedType = normalizeSheetTypeChoice(
-              patient.serviceSheetTypeByCode?.[serviceCode] ??
-                serviceCodeToType.get(serviceCode) ??
-                patient.serviceType ??
-                "",
-            );
-            return mappedType === selectedSheetType;
-          });
+        : dbServiceType
+          ? sheetTypeMatchesFilter(dbServiceType, selectedSheetType)
+            ? rowCodes
+            : []
+          : rowCodes.filter((serviceCode) => {
+              const mappedType = normalizeSheetTypeChoice(
+                patient.serviceSheetTypeByCode?.[serviceCode] ??
+                  serviceCodeToType.get(serviceCode) ??
+                  patient.serviceType ??
+                  "",
+              );
+              return sheetTypeMatchesFilter(mappedType, selectedSheetType);
+            });
 
       if (filteredRowCodes.length === 0) return [];
       const primaryCode = filteredRowCodes[0];
@@ -561,8 +582,8 @@ export function useAdminPatientsList() {
           status: nextDraft.status,
         };
 
-        if (!rowServiceCode && sheetTypeChanged) {
-          updates.serviceType = toLegacyServiceType(nextDraft.serviceType);
+        if (sheetTypeChanged) {
+          updates.serviceType = toDbServiceType(nextDraft.serviceType);
         }
 
         await updatePatientMutation.mutateAsync({
@@ -846,6 +867,7 @@ export function useAdminPatientsList() {
     doctorFilter,
     doctorOptions,
     drafts,
+    setDrafts,
     expandedPatients,
     filteredPatients,
     getDraft,

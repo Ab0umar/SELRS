@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Loader2, TrendingUp, TrendingDown, Wallet, Trash2, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { fmt, fmtDate, todayIso } from "../accounting/accountingFormat";
+import { DateInput } from "@/components/ui/date-input";
 
 const PAGE_SIZE = 50;
 
@@ -94,7 +95,7 @@ export default function KfLedger() {
           <div className="grid gap-3 sm:grid-cols-[120px_minmax(0,1fr)_minmax(0,1fr)]">
             <div className="flex flex-col gap-1.5">
               <label htmlFor="txDate" className="text-xs font-medium">التاريخ</label>
-              <input id="txDate" type="date" value={txDate} onChange={(e) => setTxDate(e.target.value)}
+              <DateInput id="txDate" value={txDate} onChange={(e) => setTxDate(e.target.value)}
                 className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20" />
             </div>
             <div className="flex flex-col gap-1.5">

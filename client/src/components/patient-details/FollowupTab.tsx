@@ -17,6 +17,7 @@ import {
   formatDate,
   formatDisplayValue,
 } from "@/hooks/patient-details/usePatientDetails";
+import { DateInput } from "@/components/ui/date-input";
 
 interface FollowupTabProps {
   examinations: any[];
@@ -156,16 +157,14 @@ export function FollowupTab({
               </SelectContent>
             </Select>
             <span className="text-xs text-muted-foreground">من:</span>
-            <Input
-              type="date"
+            <DateInput
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
               className="h-7 w-32 text-xs"
               dir="ltr"
             />
             <span className="text-xs text-muted-foreground">إلى:</span>
-            <Input
-              type="date"
+            <DateInput
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
               className="h-7 w-32 text-xs"
@@ -215,8 +214,7 @@ export function FollowupTab({
                   <div className="flex items-center gap-2">
                     {isEditing && isAdmin ? (
                       <>
-                        <Input
-                          type="date"
+                        <DateInput
                           value={editVisitDate}
                           onChange={(e) => setEditVisitDate(e.target.value)}
                           className="w-32 h-7 text-xs"

@@ -73,7 +73,10 @@ export const toDateInputValue = (value?: string | Date | null) => {
   if (!value) return "";
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.valueOf())) return "";
-  return date.toISOString().split("T")[0];
+  const y = date.getFullYear();
+  const mo = String(date.getMonth() + 1).padStart(2, "0");
+  const dy = String(date.getDate()).padStart(2, "0");
+  return `${y}-${mo}-${dy}`;
 };
 
 export const formatDayDate = (value?: string | null) => {

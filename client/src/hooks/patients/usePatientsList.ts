@@ -16,28 +16,6 @@ export type PatientCursor = {
   id: number;
 };
 
-const mapLegacyServiceTypeToModernTabs = (legacyType: string): string[] => {
-  const normalized = normalizeSheetType(legacyType);
-  if (normalized === "pentacam_center" || normalized === "pentacam_c")
-    return ["lasik"];
-  if (
-    normalized === "pentacam_external" ||
-    normalized === "pentacam_ex" ||
-    normalized === "pentacam_ex_c"
-  )
-    return ["external"];
-  if (normalized === "surgery") return ["consultant"];
-  if (normalized === "surgery_external") return ["external"];
-  if (
-    normalized === "consultant" ||
-    normalized === "specialist" ||
-    normalized === "lasik" ||
-    normalized === "external"
-  ) {
-    return [normalized];
-  }
-  return ["consultant"];
-};
 
 export function usePatientsList(isAuthenticated: boolean) {
   const utils = trpc.useUtils();
@@ -103,33 +81,31 @@ export function usePatientsList(isAuthenticated: boolean) {
   }, [searchTerm]);
 
   useEffect(() => {
+    if (userStateQuery.data === undefined) return; // still loading
+    if (didHydrateUserStateRef.current) return;
+    didHydrateUserStateRef.current = true; // mark done regardless of data content
     const data = (userStateQuery.data as any)?.data;
     if (!data) return;
-    if (didHydrateUserStateRef.current) return;
     if (data.searchTerm !== undefined) setSearchTerm(data.searchTerm ?? "");
     if (data.activeTab !== undefined) {
-      const nextTab = String(data.activeTab ?? "consultant");
+      const nextTab = String(data.activeTab ?? "all");
       const allowedTabs = new Set([
         "all",
         "consultant",
         "specialist",
-        "pentacam",
-        "pentacam_center",
-        "pentacam_external",
+        "lasik",
+        "surgery_center",
+        "surgery_external",
         "pentacam_c",
         "pentacam_ex",
         "pentacam_ex_c",
-        "lasik",
-        "external",
-        "surgery",
-        "surgery_external",
       ]);
-      setActiveTab(allowedTabs.has(nextTab) ? nextTab : "consultant");
+      setActiveTab(allowedTabs.has(nextTab) ? nextTab : "all");
     }
-    didHydrateUserStateRef.current = true;
   }, [userStateQuery.data]);
 
   useEffect(() => {
+    if (!didHydrateUserStateRef.current) return; // don't save before hydration restores saved state
     if (userStateTimerRef.current) clearTimeout(userStateTimerRef.current);
     userStateTimerRef.current = setTimeout(() => {
       const payload = { searchTerm, activeTab, mode: "print-only" };
@@ -189,7 +165,19 @@ export function usePatientsList(isAuthenticated: boolean) {
   const useClientFilterWindow = Boolean(liveSearchTerm || hasActiveDateFilters);
 
   const backendServiceType = useMemo<
-    "consultant" | "specialist" | "lasik" | "surgery" | "external" | undefined
+    | "consultant"
+    | "specialist"
+    | "lasik"
+    | "surgery"
+    | "external"
+    | "pentacam_c"
+    | "pentacam_ex"
+    | "pentacam_ex_c"
+    | "surgery_external"
+    | "surgery_center"
+    | "pentacam_center"
+    | "pentacam_external"
+    | undefined
   >(() => {
     if (activeTab === "all") return undefined;
     if (
@@ -197,19 +185,17 @@ export function usePatientsList(isAuthenticated: boolean) {
       activeTab === "specialist" ||
       activeTab === "lasik" ||
       activeTab === "surgery" ||
-      activeTab === "external"
-    ) {
-      return activeTab;
-    }
-    if (activeTab === "pentacam_center" || activeTab === "pentacam_c")
-      return "lasik";
-    if (
-      activeTab === "pentacam_external" ||
+      activeTab === "external" ||
+      activeTab === "pentacam_c" ||
       activeTab === "pentacam_ex" ||
       activeTab === "pentacam_ex_c" ||
-      activeTab === "surgery_external"
-    )
-      return "external";
+      activeTab === "surgery_external" ||
+      activeTab === "surgery_center" ||
+      activeTab === "pentacam_center" ||
+      activeTab === "pentacam_external"
+    ) {
+      return activeTab as any;
+    }
     return undefined;
   }, [activeTab]);
 
@@ -354,20 +340,15 @@ export function usePatientsList(isAuthenticated: boolean) {
       const rowMappedType = normalizeSheetType(
         (patient as any).__serviceTypeSingle,
       );
-      if (rowMappedType)
-        return new Set<string>(mapLegacyServiceTypeToModernTabs(rowMappedType));
+      if (rowMappedType) return new Set<string>([rowMappedType]);
       const mapped = normalizeSheetType(serviceCodeToType.get(singleCode));
-      if (mapped) {
-        return new Set<string>(mapLegacyServiceTypeToModernTabs(mapped));
-      }
+      if (mapped) return new Set<string>([mapped]);
       const singleType = normalizeSheetType(
         (patient as any).__serviceTypeSingle ??
           patient?.serviceType ??
           "consultant",
       );
-      return new Set<string>(
-        mapLegacyServiceTypeToModernTabs(singleType || "consultant"),
-      );
+      return new Set<string>([singleType || "consultant"]);
     }
     const codes = [
       ...((Array.isArray(patient?.serviceCodes)
@@ -380,19 +361,11 @@ export function usePatientsList(isAuthenticated: boolean) {
     const types = new Set<string>();
     for (const code of codes) {
       const mapped = normalizeSheetType(serviceCodeToType.get(code));
-      if (mapped) {
-        for (const tab of mapLegacyServiceTypeToModernTabs(mapped)) {
-          types.add(tab);
-        }
-      }
+      if (mapped) types.add(mapped);
     }
     if (types.size === 0) {
       const fallback = normalizeSheetType(patient?.serviceType ?? "consultant");
-      if (fallback) {
-        for (const tab of mapLegacyServiceTypeToModernTabs(fallback)) {
-          types.add(tab);
-        }
-      }
+      if (fallback) types.add(fallback);
     }
     return types;
   };
@@ -578,13 +551,9 @@ export function usePatientsList(isAuthenticated: boolean) {
     serviceTypeToDefaultName,
   ]);
 
-  const tabFilteredPatients =
-    activeTab === "all"
-      ? currentPatients
-      : currentPatients.filter((patient) => {
-          const serviceTypes = resolveServiceTypes(patient);
-          return serviceTypes.has(activeTab);
-        });
+  // Backend now handles all tab filtering directly (including granular types).
+  // No frontend re-filter needed when a tab is active.
+  const tabFilteredPatients = currentPatients;
   const filteredPatients = tabFilteredPatients;
 
   const searchSuggestions = useMemo(() => {

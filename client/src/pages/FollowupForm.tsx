@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
+import { DateInput } from "@/components/ui/date-input";
 
 const rowClass = "grid grid-cols-[80px_1fr_1fr] items-center gap-2";
 const sectionDivider =
@@ -235,8 +236,7 @@ export default function FollowupForm() {
                         <Label className="text-xs text-muted-foreground">
                           تاريخ المتابعة:
                         </Label>
-                        <Input
-                          type="date"
+                        <DateInput
                           value={followupDate}
                           onChange={(e) => setFollowupDate(e.target.value)}
                           className="h-7 w-36 text-xs"
