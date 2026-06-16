@@ -1,7 +1,10 @@
 export const EMPTY_SELECT_VALUE = "__empty__";
+/** Placeholder shown for the zero value in signed (sphere/cylinder) ranges —
+ *  sits in the middle of the list since the range is symmetric. */
+export const ZERO_DASH_VALUE = "---";
 
 function formatSigned(value: number, digits = 2) {
-  if (Math.abs(value) < 0.0001) return "--";
+  if (Math.abs(value) < 0.0001) return ZERO_DASH_VALUE;
   const formatted = value.toFixed(digits);
   return value > 0 ? `+${formatted}` : formatted;
 }

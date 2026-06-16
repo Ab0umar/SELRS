@@ -27,6 +27,7 @@ import {
 import type { QueueStatus } from "@/lib/dashboard-data";
 import { trpc } from "@/lib/trpc";
 import { TodayPatientShortcutsDialog } from "@/components/today/TodayPatientShortcutsDialog";
+import { FollowupFormDialog } from "@/components/today/FollowupFormDialog";
 import { getLocalDateIso } from "@/hooks/operations/operationsShared";
 import { DateInput } from "@/components/ui/date-input";
 
@@ -121,6 +122,16 @@ export function AppointmentsSection({
 } = {}) {
   const [shortcutPatient, setShortcutPatient] =
     useState<TodayQueuePatient | null>(null);
+  const [followupPatient, setFollowupPatient] =
+    useState<TodayQueuePatient | null>(null);
+
+  const handleSelectPatient = (patient: TodayQueuePatient) => {
+    if ((patient as any).visitType === "followup") {
+      setFollowupPatient(patient);
+    } else {
+      setShortcutPatient(patient);
+    }
+  };
   /** Same calendar-day default as Operations list (`getLocalDateIso`), not UTC midnight. */
   const [internalSelectedDate, setInternalSelectedDate] =
     useState(getLocalDateIso);
@@ -342,6 +353,15 @@ export function AppointmentsSection({
         patientName={shortcutPatient?.fullName}
         onOpenMeasurementsMedicalFile={onOpenMeasurementsMedicalFile}
       />
+      <FollowupFormDialog
+        open={followupPatient != null}
+        onOpenChange={(next) => {
+          if (!next) setFollowupPatient(null);
+        }}
+        patientId={followupPatient?.id ?? 0}
+        patientName={followupPatient?.fullName}
+        serviceType={(followupPatient as any)?.serviceType}
+      />
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div
           className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4"
@@ -475,7 +495,7 @@ export function AppointmentsSection({
               queuePatients={merged}
               queueLoading={isLoading}
               medicalStatuses={medicalStatuses}
-              onSelectPatient={setShortcutPatient}
+              onSelectPatient={handleSelectPatient}
               onMarkVisitTreated={(visitId, patient) =>
                 markVisitTreated.mutate({
                   visitId,
@@ -505,7 +525,7 @@ export function AppointmentsSection({
                   key={`${patient.id}-${patient.queueStatus}`}
                   patient={patient}
                   medicalStatus={medicalStatuses?.[patient.id]}
-                  onSelectPatient={() => setShortcutPatient(patient)}
+                  onSelectPatient={() => handleSelectPatient(patient)}
                   markVisitTreatedPendingVisitId={
                     markVisitTreated.isPending
                       ? (markVisitTreated.variables?.visitId ?? null)
@@ -848,6 +868,11 @@ function QueuePatientCard({
           <div className="flex shrink-0 flex-col items-end gap-1">
             {st === "treated" ? (
               <CheckCircle2 className="h-4 w-4 text-success" aria-hidden />
+            ) : null}
+            {(patient as any).visitType === "followup" ? (
+              <Badge className="max-w-full truncate text-[10px] bg-info/15 text-info border-info/20">
+                متابعة
+              </Badge>
             ) : null}
             <Badge
               className={cn(

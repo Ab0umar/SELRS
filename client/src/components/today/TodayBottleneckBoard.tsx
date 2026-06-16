@@ -13,6 +13,7 @@ import {
   type PatientMedicalStatus,
 } from "@/components/patients/PatientMedicalStatusBadges";
 import { TodayPatientShortcutsDialog } from "@/components/today/TodayPatientShortcutsDialog";
+import { FollowupFormDialog } from "@/components/today/FollowupFormDialog";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { trpc } from "@/lib/trpc";
 import { cn, getTrpcErrorMessage, localISODate } from "@/lib/utils";
@@ -353,6 +354,11 @@ function GridPatientCard({
             {st === "treated" ? (
               <CheckCircle2 className="h-4 w-4 text-success" aria-hidden />
             ) : null}
+            {(patient as any).visitType === "followup" ? (
+              <Badge className="max-w-full truncate text-[10px] sm:text-xs bg-info/15 text-info border-info/20">
+                متابعة
+              </Badge>
+            ) : null}
             <Badge
               className={cn(
                 "max-w-full truncate text-[10px] sm:text-xs",
@@ -637,6 +643,8 @@ export function TodayBottleneckBoard({
   onSelectedDateChange?: (date: string) => void;
 } = {}) {
   const [shortcutPatient, setShortcutPatient] =
+    useState<TodayQueuePatient | null>(null);
+  const [followupPatient, setFollowupPatient] =
     useState<TodayQueuePatient | null>(null);
   const [internalSelectedDate, setInternalSelectedDate] =
     useState(getLocalDateIso);
@@ -1145,7 +1153,11 @@ export function TodayBottleneckBoard({
                     key={`${patient.id}-${patient.queueStatus}-${idx}`}
                     patient={patient}
                     medicalStatus={medicalStatuses?.[patient.id]}
-                    onSelectPatient={() => setShortcutPatient(patient)}
+                    onSelectPatient={() =>
+                      patient.visitType === "followup"
+                        ? setFollowupPatient(patient)
+                        : setShortcutPatient(patient)
+                    }
                     onMarkVisitTreated={(visitId) => {
                       if (!isHistoricalDate)
                         handleMarkVisitTreated(visitId, patient);
@@ -1208,6 +1220,15 @@ export function TodayBottleneckBoard({
         patientName={shortcutPatient?.fullName}
         onOpenMeasurementsMedicalFile={onOpenMeasurementsMedicalFile}
         readOnly={isHistoricalDate}
+      />
+      <FollowupFormDialog
+        open={followupPatient != null}
+        onOpenChange={(next) => {
+          if (!next) setFollowupPatient(null);
+        }}
+        patientId={followupPatient?.id ?? 0}
+        patientName={followupPatient?.fullName}
+        serviceType={followupPatient?.serviceType}
       />
     </div>
   );

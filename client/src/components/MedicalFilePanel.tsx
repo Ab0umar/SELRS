@@ -103,18 +103,18 @@ export default function MedicalFilePanel({
     medicalHistory: "",
     measurements: {
       autoref: {
-        od: { s: "----", c: "----", axis: "", ucva: "", bcva: "" },
-        os: { s: "----", c: "----", axis: "", ucva: "", bcva: "" },
+        od: { s: "---", c: "---", axis: "", ucva: "", bcva: "" },
+        os: { s: "---", c: "---", axis: "", ucva: "", bcva: "" },
       },
       iop: { od: "", os: "" },
       after: {
-        od: { s: "----", c: "----", axis: "" },
-        os: { s: "----", c: "----", axis: "" },
+        od: { s: "---", c: "---", axis: "" },
+        os: { s: "---", c: "---", axis: "" },
       },
     },
     glasses: {
-      od: { s: "----", c: "----", axis: "", pd: "", bcva: "" },
-      os: { s: "----", c: "----", axis: "", pd: "", bcva: "" },
+      od: { s: "---", c: "---", axis: "", pd: "", bcva: "" },
+      os: { s: "---", c: "---", axis: "", pd: "", bcva: "" },
     },
     fundus: {
       od: {
@@ -171,8 +171,8 @@ export default function MedicalFilePanel({
     number | null
   >(null);
   const [refractionTableData, setRefractionTableData] = useState<any>({
-    od: { s: "----", c: "----", a: "", pd: "" },
-    os: { s: "----", c: "----", a: "", pd: "" },
+    od: { s: "---", c: "---", a: "", pd: "" },
+    os: { s: "---", c: "---", a: "", pd: "" },
   });
   const [testSearchText, setTestSearchText] = useState("");
   const [diseaseSearchText, setDiseaseSearchText] = useState("");

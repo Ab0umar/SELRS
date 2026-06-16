@@ -55,6 +55,27 @@ function SelectContent({
   align = "center",
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Content>) {
+  const viewportRef = React.useRef<HTMLDivElement>(null);
+
+  // Scroll the selected item to the center of the visible list when the
+  // dropdown mounts (= opens). Radix's position="item-aligned" does this on
+  // desktop, but fails on mobile browsers — explicit scrollIntoView is the
+  // reliable cross-platform fallback.
+  React.useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    // rAF defers until after the open animation's first paint so the
+    // scroll offset is calculated against the final laid-out position.
+    requestAnimationFrame(() => {
+      const checked = viewport.querySelector(
+        "[data-state='checked']",
+      ) as HTMLElement | null;
+      if (checked) {
+        checked.scrollIntoView({ block: "center", behavior: "instant" });
+      }
+    });
+  }, []);
+
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
@@ -71,6 +92,7 @@ function SelectContent({
       >
         <SelectScrollUpButton />
         <SelectPrimitive.Viewport
+          ref={viewportRef}
           className={cn(
             "p-1",
             position === "popper" &&

@@ -56,25 +56,25 @@ export default function FollowupForm() {
   const [examData, setExamData] = useState({
     autorefraction: {
       od: {
-        s: "----",
-        c: "----",
+        s: "---",
+        c: "---",
         axis: "",
         ucva: "",
         bcva: "",
-        afterS: "----",
-        afterC: "----",
+        afterS: "---",
+        afterC: "---",
         afterA: "",
         airPuff1: "",
         iop: "",
       },
       os: {
-        s: "----",
-        c: "----",
+        s: "---",
+        c: "---",
         axis: "",
         ucva: "",
         bcva: "",
-        afterS: "----",
-        afterC: "----",
+        afterS: "---",
+        afterC: "---",
         afterA: "",
         airPuff1: "",
         iop: "",
@@ -123,8 +123,8 @@ export default function FollowupForm() {
   });
 
   const [refractionTableData, setRefractionTableData] = useState({
-    od: { s: "----", c: "----", a: "", pd: "" },
-    os: { s: "----", c: "----", a: "", pd: "" },
+    od: { s: "---", c: "---", a: "", pd: "" },
+    os: { s: "---", c: "---", a: "", pd: "" },
   });
 
   const [followupDate, setFollowupDate] = useState(

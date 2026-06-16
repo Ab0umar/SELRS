@@ -12,6 +12,7 @@ export type TodayQueuePatient = {
   phone?: string | null;
   serviceType?: string;
   doctorName?: string | null;
+  visitType?: string | null;
   queueStatus: "checkedIn" | "next" | "clinic" | "treated";
   checkedInTime?: string | null;
 };

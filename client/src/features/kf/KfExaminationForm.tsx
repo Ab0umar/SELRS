@@ -39,13 +39,13 @@ export default function KfExaminationForm() {
   const [iopOS, setIopOS] = useState("");
 
   // Refraction OD (Right Eye)
-  const [odSph, setOdSph] = useState("--");
-  const [odCyl, setOdCyl] = useState("--");
+  const [odSph, setOdSph] = useState("---");
+  const [odCyl, setOdCyl] = useState("---");
   const [odAxis, setOdAxis] = useState("");
 
   // Refraction OS (Left Eye)
-  const [osSph, setOsSph] = useState("--");
-  const [osCyl, setOsCyl] = useState("--");
+  const [osSph, setOsSph] = useState("---");
+  const [osCyl, setOsCyl] = useState("---");
   const [osAxis, setOsAxis] = useState("");
   const [osPd, setOsPd] = useState("");
   const [nearAdd, setNearAdd] = useState("");

@@ -98,6 +98,33 @@ Return only:
 
 See Claude memory files: `project_mssql_sync_fix.md`, `feedback_stale_exam_state.md`.
 
+## attachTreatingDoctor Override (Critical Pattern)
+
+`attachTreatingDoctor()` in `server/db.ts` is called by `getAllPatients()` and enriches every patient row with doctor/service metadata. **It MUST NOT overwrite non-blank `patients.serviceType` or `patients.locationType` DB column values.** The computed `serviceType` and `locationType` properties in its result map must check the real DB value first and only fall back to service-code-derived classification when the column is genuinely blank. Violating this causes every manual serviceType edit (admin bulk actions, single-row saves, MSSQL sync writes) to be silently discarded on the next list fetch — the classic "change doesn't stick" symptom.
+
+Pattern to preserve:
+```ts
+serviceType: (() => {
+  const dbServiceType = String((patient as any).serviceType ?? "").trim();
+  if (dbServiceType) return dbServiceType;  // DB column wins
+  // ... service-code fallback only when blank
+})(),
+```
+
+## DateInput Component (Standard for All Date Fields)
+
+All date inputs app-wide use `<DateInput>` from `client/src/components/ui/date-input.tsx` — NOT `<input type="date">` or `<Input type="date">`. It is a drop-in replacement with the same `value`/`onChange` contract (ISO yyyy-MM-dd) that always displays dd/MM/yyyy regardless of browser locale. When adding any new date field, always use `DateInput`.
+
+## ServiceType Filter Pattern
+
+`shared/serviceType.ts` exports `getServiceTypeFilterVariants(serviceType)` which returns `[serviceType]` — exact match only. Both backend (`buildPatientFilterClauses` in `db.ts`) and frontend (`sheetTypeMatchesFilter` in `adminPatientsShared.ts`) must use this helper. Never add variant-blending logic that returns multiple alternatives for a single serviceType — each tab/filter must show only its exact type.
+
+The 12 valid serviceType values: `consultant`, `specialist`, `lasik`, `surgery`, `external`, `pentacam_c`, `pentacam_ex`, `pentacam_ex_c`, `surgery_external`, `surgery_center`, `pentacam_center`, `pentacam_external`. Use `isExternalServiceType()` from the same file to derive `locationType`.
+
+## Drizzle Migration Syntax
+
+The migration runner requires `--> statement-breakpoint` (not semicolons) between ALTER TABLE statements. Multiple statements in one migration file MUST be separated by this exact marker on its own line. Also: never add `NOT NULL` to an ALTER TABLE MODIFY COLUMN if any existing rows might have NULL for that column.
+
 ## Extra Project Rules
 
 - Use `.claude/rules/frontend.md` for route/page/component work.

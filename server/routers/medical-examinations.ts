@@ -2069,6 +2069,65 @@ export const medicalExaminationsRoutes = {
       return { success: true };
     }),
 
+  addFollowupToQueue: protectedProcedure
+    .input(
+      z.object({
+        patientId: z.number(),
+        visitDate: z.string().optional(), // ISO yyyy-MM-dd, defaults to today
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const allowedRoles = ["doctor", "nurse", "admin", "manager", "receptionist"];
+      if (!allowedRoles.includes(ctx.user.role)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "غير مصرح لك بإضافة متابعة للطابور",
+        });
+      }
+
+      let visitDate: Date;
+      if (input.visitDate) {
+        // Use noon so UTC conversion never rolls the date backward by a day
+        // (servers in UTC+2/+3 would shift midnight to the previous UTC day).
+        const [year, month, day] = input.visitDate.split("-").map(Number);
+        visitDate = new Date(year, month - 1, day, 12, 0, 0);
+      } else {
+        visitDate = new Date();
+      }
+
+      // Look up the patient's branch so the NOT NULL column is satisfied.
+      const patient = await db.getPatientById(input.patientId);
+      const branch =
+        String((patient as any)?.branch ?? "").trim() || "examinations";
+
+      const visit = await db.createVisit({
+        patientId: input.patientId,
+        visitDate,
+        visitType: "followup",
+        branch,
+        queueStatus: "checkedIn",
+        checkedInAt: new Date(),
+      });
+
+      const visitId = (visit as any)?.insertId as number | undefined;
+      if (!visitId) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "فشل إنشاء زيارة المتابعة",
+        });
+      }
+
+      await db.logAuditEvent(
+        ctx.user.id,
+        "CREATE_FOLLOWUP_VISIT",
+        "visit",
+        visitId,
+        { patientId: input.patientId, visitDate: visitDate.toISOString() },
+      );
+
+      return { success: true, visitId };
+    }),
+
   getTodayPatientsByQueueStatus: protectedProcedure
     .input(
       z.object({
@@ -2091,30 +2150,36 @@ export const medicalExaminationsRoutes = {
           input.queueStatus,
         );
 
-        // Reshape flattened data back to structured format
+        // Reshape flattened data back to structured format.
+        // If a patient has multiple visits today (e.g. consultation + followup),
+        // prefer the followup visit so the correct card type is shown.
         const patientMap = new Map();
         for (const visit of visits) {
           const patientId = visit.patientId;
+          const row = {
+            id: patientId,
+            patientCode: visit.patientCode,
+            fullName: visit.patientFullName,
+            phone: visit.patientPhone,
+            serviceType: visit.patientServiceType,
+            locationType: visit.patientLocationType,
+            doctorId: visit.patientDoctorId,
+            doctorName: visit.doctorName,
+            visitId: visit.id,
+            visitDate: visit.visitDate,
+            visitType: visit.visitType,
+            queueStatus: visit.queueStatus,
+            checkedInAt: visit.checkedInAt,
+            checkedInTime: (visit as any).checkedInTime ?? null,
+            movedToNextAt: visit.movedToNextAt,
+            movedToClinicAt: visit.movedToClinicAt,
+            treatedAt: visit.treatedAt,
+          };
           if (!patientMap.has(patientId)) {
-            patientMap.set(patientId, {
-              id: patientId,
-              patientCode: visit.patientCode,
-              fullName: visit.patientFullName,
-              phone: visit.patientPhone,
-              serviceType: visit.patientServiceType,
-              locationType: visit.patientLocationType,
-              doctorId: visit.patientDoctorId,
-              doctorName: visit.doctorName,
-              visitId: visit.id,
-              visitDate: visit.visitDate,
-              visitType: visit.visitType,
-              queueStatus: visit.queueStatus,
-              checkedInAt: visit.checkedInAt,
-              checkedInTime: (visit as any).checkedInTime ?? null,
-              movedToNextAt: visit.movedToNextAt,
-              movedToClinicAt: visit.movedToClinicAt,
-              treatedAt: visit.treatedAt,
-            });
+            patientMap.set(patientId, row);
+          } else if (visit.visitType === "followup") {
+            // Followup visit overrides an earlier consultation visit for the same patient.
+            patientMap.set(patientId, row);
           }
         }
 

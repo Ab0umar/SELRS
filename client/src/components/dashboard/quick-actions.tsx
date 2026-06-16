@@ -38,6 +38,7 @@ import type { PageKey } from "@/lib/dashboard-data";
 import { QuickPatientEntryDialog } from "@/components/dashboard/QuickPatientEntryDialog";
 import { ScheduleVisitDialog } from "@/components/dashboard/ScheduleVisitDialog";
 import { AddPortalBookingDialog } from "@/components/dashboard/AddPortalBookingDialog";
+import { FollowupQuickDialog } from "@/components/dashboard/FollowupQuickDialog";
 
 type QuickActionItem =
   | {
@@ -82,6 +83,13 @@ type QuickActionItem =
       kind: "pick-patient";
       page: PageKey;
       permPath: string;
+    }
+  | {
+      label: string;
+      icon: LucideIcon;
+      color: string;
+      kind: "followup-dialog";
+      permPath: string;
     };
 
 const quickActions: QuickActionItem[] = [
@@ -116,9 +124,8 @@ const quickActions: QuickActionItem[] = [
   {
     label: "متابعة",
     icon: Repeat,
-    color: "bg-secondary text-secondary-foreground hover:bg-secondary/90",
-    kind: "pick-patient",
-    page: "followups",
+    color: "bg-primary/15 text-primary",
+    kind: "followup-dialog",
     permPath: "/followup",
   },
   {
@@ -213,6 +220,7 @@ export function QuickActions({
   const [quickEntryOpen, setQuickEntryOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [portalBookingOpen, setPortalBookingOpen] = useState(false);
+  const [followupDialogOpen, setFollowupDialogOpen] = useState(false);
   const [pickPage, setPickPage] = useState<PageKey | null>(null);
 
   const userRole = String(user?.role ?? "").toLowerCase();
@@ -241,7 +249,8 @@ export function QuickActions({
       action.kind === "quick-entry-dialog" ||
       action.kind === "schedule-dialog" ||
       action.kind === "portal-booking-dialog" ||
-      action.kind === "operations-booking-dialog"
+      action.kind === "operations-booking-dialog" ||
+      action.kind === "followup-dialog"
     )
       return false;
     return (
@@ -291,6 +300,10 @@ export function QuickActions({
       setLocation("/examination");
       return;
     }
+    if (action.kind === "followup-dialog") {
+      setFollowupDialogOpen(true);
+      return;
+    }
     setPickPage(action.page);
   };
 
@@ -306,6 +319,10 @@ export function QuickActions({
       <AddPortalBookingDialog
         open={portalBookingOpen}
         onOpenChange={setPortalBookingOpen}
+      />
+      <FollowupQuickDialog
+        open={followupDialogOpen}
+        onOpenChange={setFollowupDialogOpen}
       />
       <Dialog
         open={pickPage != null}

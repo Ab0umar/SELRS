@@ -6,7 +6,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { EMPTY_SELECT_VALUE } from "@/lib/refractionOptions";
+import { EMPTY_SELECT_VALUE, ZERO_DASH_VALUE } from "@/lib/refractionOptions";
 
 type RefractionValueSelectProps = {
   value?: string;
@@ -30,7 +30,11 @@ export default function RefractionValueSelect({
   allowEmpty = true,
 }: RefractionValueSelectProps) {
   const normalizedValue = String(value ?? "").trim();
-  const effectiveValue = normalizedValue || EMPTY_SELECT_VALUE;
+  // Ranges with a zero/dash entry (sphere, cylinder) default blank values to
+  // that middle entry instead of a separate empty placeholder item.
+  const hasZeroDash = options.includes(ZERO_DASH_VALUE);
+  const effectiveValue =
+    normalizedValue || (hasZeroDash ? ZERO_DASH_VALUE : EMPTY_SELECT_VALUE);
 
   return (
     <Select
@@ -42,8 +46,10 @@ export default function RefractionValueSelect({
       <SelectTrigger className={cn("w-full", triggerClassName)}>
         <SelectValue placeholder={placeholder ?? "----"} />
       </SelectTrigger>
-      <SelectContent className={className}>
-        <SelectItem value={EMPTY_SELECT_VALUE}>----</SelectItem>
+      <SelectContent className={className} position="item-aligned">
+        {!hasZeroDash && (
+          <SelectItem value={EMPTY_SELECT_VALUE}>----</SelectItem>
+        )}
         {options.map((option) => (
           <SelectItem key={option} value={option}>
             {option}

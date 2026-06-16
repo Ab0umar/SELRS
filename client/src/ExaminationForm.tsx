@@ -24,6 +24,7 @@ import {
   CYLINDER_OPTIONS,
   SPHERE_OPTIONS,
   UCVA_BCVA_OPTIONS,
+  ZERO_DASH_VALUE,
 } from "@/lib/refractionOptions";
 import type { User } from "@shared/types";
 import { DateInput } from "@/components/ui/date-input";
@@ -53,17 +54,22 @@ function ComboBoxField({
   className = "",
 }: ComboBoxFieldProps) {
   const normalized = String(value ?? "");
-  const hasCurrent = options.includes(normalized);
+  const hasZeroDash = options.includes(ZERO_DASH_VALUE);
+  // Default blank fields to "---" (middle of symmetric ranges like sphere/cylinder)
+  // so the native select opens centred on that entry instead of jumping to the top.
+  const effectiveValue =
+    normalized || (hasZeroDash ? ZERO_DASH_VALUE : "");
+  const hasCurrent = options.includes(effectiveValue);
 
   return (
     <select
       id={id}
-      value={normalized}
+      value={effectiveValue}
       onChange={(event) => onChange(event.target.value)}
       className={`flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs ${className}`}
     >
-      {normalized && !hasCurrent ? (
-        <option value={normalized}>{normalized}</option>
+      {effectiveValue && !hasCurrent ? (
+        <option value={effectiveValue}>{effectiveValue}</option>
       ) : null}
       {options.map((option) => (
         <option key={`${id}-${option}`} value={option}>
@@ -129,12 +135,12 @@ export default function ExaminationForm() {
   );
   const [examData, setExamData] = useState({
     autorefraction: {
-      od: { s: "----", c: "----", axis: "", ucva: "", bcva: "", iop: "" },
-      os: { s: "----", c: "----", axis: "", ucva: "", bcva: "", iop: "" },
+      od: { s: "---", c: "---", axis: "", ucva: "", bcva: "", iop: "" },
+      os: { s: "---", c: "---", axis: "", ucva: "", bcva: "", iop: "" },
     },
     glasses: {
-      od: { s: "----", c: "----", axis: "", pd: "" },
-      os: { s: "----", c: "----", axis: "", pd: "" },
+      od: { s: "---", c: "---", axis: "", pd: "" },
+      os: { s: "---", c: "---", axis: "", pd: "" },
     },
     pentacam: {
       od: {
@@ -284,12 +290,12 @@ export default function ExaminationForm() {
     });
     setExamData({
       autorefraction: {
-        od: { s: "----", c: "----", axis: "", ucva: "", bcva: "", iop: "" },
-        os: { s: "----", c: "----", axis: "", ucva: "", bcva: "", iop: "" },
+        od: { s: "---", c: "---", axis: "", ucva: "", bcva: "", iop: "" },
+        os: { s: "---", c: "---", axis: "", ucva: "", bcva: "", iop: "" },
       },
       glasses: {
-        od: { s: "----", c: "----", axis: "", pd: "" },
-        os: { s: "----", c: "----", axis: "", pd: "" },
+        od: { s: "---", c: "---", axis: "", pd: "" },
+        os: { s: "---", c: "---", axis: "", pd: "" },
       },
       pentacam: {
         od: {
@@ -2050,8 +2056,8 @@ export default function ExaminationForm() {
                                   const newData = { ...prev };
                                   if (!newData.glasses[eye as "od" | "os"])
                                     newData.glasses[eye as "od" | "os"] = {
-                                      s: "----",
-                                      c: "----",
+                                      s: "---",
+                                      c: "---",
                                       axis: "",
                                       pd: "",
                                     };
@@ -2076,8 +2082,8 @@ export default function ExaminationForm() {
                                   const newData = { ...prev };
                                   if (!newData.glasses[eye as "od" | "os"])
                                     newData.glasses[eye as "od" | "os"] = {
-                                      s: "----",
-                                      c: "----",
+                                      s: "---",
+                                      c: "---",
                                       axis: "",
                                       pd: "",
                                     };
@@ -2102,8 +2108,8 @@ export default function ExaminationForm() {
                                   const newData = { ...prev };
                                   if (!newData.glasses[eye as "od" | "os"])
                                     newData.glasses[eye as "od" | "os"] = {
-                                      s: "----",
-                                      c: "----",
+                                      s: "---",
+                                      c: "---",
                                       axis: "",
                                       pd: "",
                                     };
@@ -2128,8 +2134,8 @@ export default function ExaminationForm() {
                                   const newData = { ...prev };
                                   if (!newData.glasses[eye as "od" | "os"])
                                     newData.glasses[eye as "od" | "os"] = {
-                                      s: "----",
-                                      c: "----",
+                                      s: "---",
+                                      c: "---",
                                       axis: "",
                                       pd: "",
                                     };
