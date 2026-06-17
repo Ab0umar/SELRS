@@ -202,10 +202,7 @@ export const attendanceShiftsRoutes = {
       if (!db) throw new Error("Database not available");
 
       const conditions: any[] = [
-        or(
-          isNull(attendanceShiftAssignments.effectiveTo),
-          gte(attendanceShiftAssignments.effectiveTo, sql`CURDATE()`),
-        ),
+        sql`(${attendanceShiftAssignments.effectiveTo} IS NULL OR ${attendanceShiftAssignments.effectiveTo} >= CURDATE())`,
       ];
       if (input?.empCd) {
         conditions.push(eq(attendanceShiftAssignments.empCd, input.empCd));
