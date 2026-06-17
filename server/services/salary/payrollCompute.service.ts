@@ -458,14 +458,8 @@ export class PayrollComputeService {
           if (basic > 0 && scheduled > 0) {
             const dailyRate = basic / scheduled;
             const minuteRate = dailyRate / 360;
-            const MAX_LATE_EARLY_MINS = 200;
-            const rawCombinedMins = lateMinutes + earlyLeaveMinutes;
-            const cappedMins = Math.min(rawCombinedMins, MAX_LATE_EARLY_MINS);
-            const capRatio =
-              rawCombinedMins > 0 ? cappedMins / rawCombinedMins : 1;
             const totalDeduction = round2(
-              lateMinutes * capRatio * minuteRate +
-                earlyLeaveMinutes * capRatio * minuteRate,
+              (lateMinutes + earlyLeaveMinutes) * minuteRate,
             );
             deductionPct = Math.min(1, totalDeduction / basic);
           }

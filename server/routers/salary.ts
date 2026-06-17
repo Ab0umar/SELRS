@@ -1364,14 +1364,8 @@ export const salaryRouter = router({
               ).length || 1;
             const dailyRate = basic / workingDays;
             const minuteRate = dailyRate / 360;
-            const MAX_LATE_EARLY_MINS = 200;
-            const rawCombinedMins = lateMinutes + earlyLeaveMinutes;
-            const cappedMins = Math.min(rawCombinedMins, MAX_LATE_EARLY_MINS);
-            const capRatio =
-              rawCombinedMins > 0 ? cappedMins / rawCombinedMins : 1;
             const totalDeduction =
-              lateMinutes * capRatio * minuteRate +
-              earlyLeaveMinutes * capRatio * minuteRate;
+              (lateMinutes + earlyLeaveMinutes) * minuteRate;
             deductionMap.set(empCd, Math.min(1, totalDeduction / basic));
           }
         }
