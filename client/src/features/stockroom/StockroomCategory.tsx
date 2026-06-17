@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import {
   Table,
   TableBody,
@@ -50,8 +51,17 @@ function getStatusClass(status: string) {
   }
 }
 
+const CATEGORY_MAP: Record<string, string> = {
+  "eye-drops": "قطرات العين",
+  "op-room": "غرفة العمليات",
+  "surgical": "مستلزمات وأدوات جراحية",
+  "office": "لوازم مكتبية",
+};
+
 export default function StockroomCategory() {
-  const categoryTitle = "قطرات العين";
+  const [location] = useLocation();
+  const slug = location.split("/").pop() ?? "";
+  const categoryTitle = CATEGORY_MAP[slug] ?? slug;
 
   // Queries
   const itemsQuery = trpc.stockroom.getItems.useQuery({
