@@ -263,16 +263,11 @@ export const attendanceShiftsRoutes = {
       if (!db) throw new Error("Database not available");
 
       try {
-        const effectiveFrom = new Date(input.effectiveFrom);
-        const effectiveTo = input.effectiveTo
-          ? new Date(input.effectiveTo)
-          : null;
-
         const result = await db.insert(attendanceShiftAssignments).values({
           empCd: input.empCd,
           shiftId: input.shiftId,
-          effectiveFrom,
-          effectiveTo,
+          effectiveFrom: input.effectiveFrom as any,
+          effectiveTo: input.effectiveTo ? (input.effectiveTo as any) : null,
           weekdayMask: input.weekdayMask,
         });
 
@@ -332,11 +327,10 @@ export const attendanceShiftsRoutes = {
       try {
         const updateData: any = {};
         if (input.shiftId !== undefined) updateData.shiftId = input.shiftId;
-        if (input.effectiveFrom)
-          updateData.effectiveFrom = new Date(input.effectiveFrom);
+        if (input.effectiveFrom) updateData.effectiveFrom = input.effectiveFrom;
         // Allow clearing effectiveTo: undefined = don't touch, "" or null = clear it
         if (input.effectiveTo !== undefined)
-          updateData.effectiveTo = input.effectiveTo ? new Date(input.effectiveTo) : null;
+          updateData.effectiveTo = input.effectiveTo || null;
         if (input.weekdayMask !== undefined)
           updateData.weekdayMask = input.weekdayMask;
 
