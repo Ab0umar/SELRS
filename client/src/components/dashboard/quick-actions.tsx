@@ -126,7 +126,7 @@ const quickActions: QuickActionItem[] = [
     icon: Repeat,
     color: "bg-primary/15 text-primary",
     kind: "followup-dialog",
-    permPath: "/followup",
+    permPath: "action/followup-queue",
   },
   {
     label: "مقاس النظارة",

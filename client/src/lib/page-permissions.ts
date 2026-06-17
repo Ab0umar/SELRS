@@ -40,6 +40,11 @@ export const PAGE_PERMISSION_DEFINITIONS = [
 
   // ── مرضى اليوم ──
   { id: "/today", label: "مرضى اليوم", group: "مرضى اليوم" },
+  {
+    id: "action/followup-queue",
+    label: "إضافة متابعة للطابور (اختصار لوحة التحكم)",
+    group: "مرضى اليوم",
+  },
 
   // ── الحسابات ──
   { id: "/accounting", label: "لوحة الحسابات", group: "الحسابات" },
