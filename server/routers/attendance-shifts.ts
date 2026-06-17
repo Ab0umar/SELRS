@@ -201,50 +201,39 @@ export const attendanceShiftsRoutes = {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
-      const conditions: any[] = [];
-      if (input?.empCd) {
-        conditions.push(eq(attendanceShiftAssignments.empCd, input.empCd));
-      }
-
-      const assignments = await db
-        .select({
-          id: attendanceShiftAssignments.id,
-          empCd: attendanceShiftAssignments.empCd,
-          empName: attendanceEmployees.fullName,
-          shiftId: attendanceShiftAssignments.shiftId,
-          shiftName: attendanceShifts.name,
-          effectiveFrom: attendanceShiftAssignments.effectiveFrom,
-          effectiveTo: attendanceShiftAssignments.effectiveTo,
-          weekdayMask: attendanceShiftAssignments.weekdayMask,
-        })
-        .from(attendanceShiftAssignments)
-        .innerJoin(
-          attendanceEmployees,
-          eq(attendanceShiftAssignments.empCd, attendanceEmployees.empCd),
-        )
-        .innerJoin(
-          attendanceShifts,
-          eq(attendanceShiftAssignments.shiftId, attendanceShifts.id),
-        )
-        .where(conditions.length ? and(...conditions) : sql`1`)
-        .orderBy(attendanceShiftAssignments.empCd);
+      const empFilter = input?.empCd ? sql`AND sa.emp_cd = ${input.empCd}` : sql``;
+      const rows = await db.execute(sql`
+        SELECT
+          sa.id,
+          sa.emp_cd        AS empCd,
+          e.full_name      AS empName,
+          sa.shift_id      AS shiftId,
+          s.name           AS shiftName,
+          sa.effective_from AS effectiveFrom,
+          sa.effective_to   AS effectiveTo,
+          sa.weekday_mask  AS weekdayMask
+        FROM attendance_shift_assignments sa
+        INNER JOIN attendance_employees e ON sa.emp_cd = e.emp_cd
+        INNER JOIN attendance_shifts    s ON sa.shift_id = s.id
+        WHERE 1=1 ${empFilter}
+        ORDER BY sa.emp_cd
+      `);
 
       const now = new Date();
       const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
-      return assignments.map((a) => {
-        const toRaw = a.effectiveTo;
-        const effectiveTo = toRaw
-          ? typeof toRaw === "string" ? toRaw.slice(0, 10) : (toRaw as Date).toISOString().slice(0, 10)
+      const assignments: any[] = Array.isArray((rows as any)[0]) ? (rows as any)[0] : (rows as any);
+      return assignments.map((a: any) => {
+        const effectiveTo = a.effectiveTo
+          ? String(a.effectiveTo).slice(0, 10)
           : null;
-        const fromRaw = a.effectiveFrom;
         return {
           id: a.id,
           empCd: a.empCd,
           empName: a.empName,
           shiftId: a.shiftId,
           shiftName: a.shiftName,
-          effectiveFrom: typeof fromRaw === "string" ? fromRaw.slice(0, 10) : (fromRaw as Date).toISOString().slice(0, 10),
+          effectiveFrom: String(a.effectiveFrom).slice(0, 10),
           effectiveTo,
           weekdayMask: a.weekdayMask,
           isExpired: effectiveTo !== null && effectiveTo < todayStr,
