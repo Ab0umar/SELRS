@@ -1,21 +1,33 @@
 import { eq } from "drizzle-orm";
 import { pushAppNotification } from "./appNotifications";
-import { getOperationBookingsByDateRange, getDb, getSystemSetting } from "../db";
+import { getOperationBookingsByDateRange, getDb, getSystemSetting, updateSystemSettings } from "../db";
 import { operationLists, operationListItems } from "../../drizzle/schema";
 
 const DEFAULT_SEND_HOUR = 20;
 const LABEL = "[op-reminder]";
-
-let lastSentDate = ""; // tracks which calendar date we already fired for
+const LAST_SENT_KEY = "op_reminder_last_sent_date";
 
 function tomorrowDateString(): string {
   const d = new Date();
   d.setDate(d.getDate() + 1);
-  return d.toISOString().slice(0, 10); // "YYYY-MM-DD"
+  return d.toISOString().slice(0, 10);
 }
 
 function todayDateString(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+async function getLastSentDate(): Promise<string> {
+  try {
+    const row = await getSystemSetting(LAST_SENT_KEY);
+    return typeof row?.value === "string" ? row.value : "";
+  } catch {
+    return "";
+  }
+}
+
+async function markSentToday(): Promise<void> {
+  await updateSystemSettings(LAST_SENT_KEY, todayDateString()).catch(() => {});
 }
 
 async function getOperationListsForDate(dateStr: string) {
@@ -125,6 +137,9 @@ async function sendOpReminders(): Promise<void> {
     );
   }
 
+  // Persist sent date to DB so server restarts don't retrigger
+  await markSentToday();
+
   const total = bookings.length + lists.length;
   if (total === 0) {
     console.log(`${LABEL} No operations scheduled for ${tomorrow}`);
@@ -138,13 +153,13 @@ async function sendOpReminders(): Promise<void> {
 export function startOpReminderScheduler(): void {
   setInterval(() => {
     const now = new Date();
-    const today = todayDateString();
-    if (lastSentDate === today) return; // already fired today
     void (async () => {
       const cfg = await loadOpReminderConfig().catch(() => null);
       if (!cfg?.enabled) return;
       if (now.getHours() !== cfg.sendHour) return;
-      lastSentDate = today;
+      // Check DB (survives server restarts) instead of in-memory variable
+      const lastSent = await getLastSentDate();
+      if (lastSent === todayDateString()) return;
       await sendOpReminders().catch((err) =>
         console.error(`${LABEL} Scheduler error:`, err),
       );
