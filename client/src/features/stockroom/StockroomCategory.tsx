@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { Pencil, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -14,7 +15,6 @@ import {
   Archive,
   PlusCircle,
   Search,
-  MinusCircle,
   List,
   ArrowDownToLine,
   ArrowUpFromLine,
@@ -98,6 +98,23 @@ export default function StockroomCategory() {
     onError: (err) => toast.error(err.message),
   });
 
+  const updateItemMutation = trpc.stockroom.updateItem.useMutation({
+    onSuccess: () => {
+      toast.success("تم تعديل الصنف بنجاح");
+      setEditingItem(null);
+      itemsQuery.refetch();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const deleteItemMutation = trpc.stockroom.deleteItem.useMutation({
+    onSuccess: () => {
+      toast.success("تم حذف الصنف");
+      itemsQuery.refetch();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   // Tab state
   const [activeTab, setActiveTab] = useState("inventory");
 
@@ -112,6 +129,11 @@ export default function StockroomCategory() {
   const [receiveNewName, setReceiveNewName] = useState("");
   const [receiveNewCode, setReceiveNewCode] = useState("");
   const [receiveNewSupplier, setReceiveNewSupplier] = useState("");
+
+  // Edit item state
+  const [editingItem, setEditingItem] = useState<{
+    id: number; name: string; itemCode: string; supplier: string; expiryDate: string;
+  } | null>(null);
 
   // New Item Dialog states
   const [isNewItemDialogOpen, setIsNewItemDialogOpen] = useState(false);
@@ -358,6 +380,33 @@ export default function StockroomCategory() {
                               <ArrowUpFromLine className="me-1.5 h-3.5 w-3.5" />
                               صرف
                             </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                              onClick={() => setEditingItem({
+                                id: item.id,
+                                name: item.name,
+                                itemCode: item.itemCode || "",
+                                supplier: (item as any).supplier || "",
+                                expiryDate: item.expiryDate ? String(item.expiryDate).split("T")[0] : "",
+                              })}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                              onClick={() => {
+                                if (confirm(`حذف "${item.name}"؟`)) {
+                                  deleteItemMutation.mutate({ id: item.id });
+                                }
+                              }}
+                              disabled={deleteItemMutation.isPending}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -573,6 +622,74 @@ export default function StockroomCategory() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Edit Item Dialog */}
+      <Dialog open={!!editingItem} onOpenChange={(o) => !o && setEditingItem(null)}>
+        <DialogContent className="sm:max-w-[425px]" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>تعديل الصنف</DialogTitle>
+            <DialogDescription>تعديل بيانات الصنف في المخزون.</DialogDescription>
+          </DialogHeader>
+          {editingItem && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">الاسم</Label>
+                <Input
+                  value={editingItem.name}
+                  onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
+                  className="col-span-3 text-right"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">الكود</Label>
+                <Input
+                  value={editingItem.itemCode}
+                  onChange={(e) => setEditingItem({ ...editingItem, itemCode: e.target.value })}
+                  className="col-span-3 font-mono text-right"
+                  placeholder="اختياري"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">المورد</Label>
+                <Input
+                  value={editingItem.supplier}
+                  onChange={(e) => setEditingItem({ ...editingItem, supplier: e.target.value })}
+                  className="col-span-3 text-right"
+                  placeholder="اختياري"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">الصلاحية</Label>
+                <DateInput
+                  value={editingItem.expiryDate}
+                  onChange={(e) => setEditingItem({ ...editingItem, expiryDate: e.target.value })}
+                  className="col-span-3"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">إلغاء</Button>
+            </DialogClose>
+            <Button
+              onClick={() => {
+                if (!editingItem) return;
+                updateItemMutation.mutate({
+                  id: editingItem.id,
+                  name: editingItem.name || undefined,
+                  itemCode: editingItem.itemCode || undefined,
+                  supplier: editingItem.supplier || undefined,
+                  expiryDate: editingItem.expiryDate || null,
+                });
+              }}
+              disabled={updateItemMutation.isPending}
+            >
+              {updateItemMutation.isPending ? "جاري الحفظ..." : "حفظ"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* New Item Definition Dialog */}
       <Dialog open={isNewItemDialogOpen} onOpenChange={setIsNewItemDialogOpen}>

@@ -118,6 +118,32 @@ export const stockroomRouter = router({
       });
     }),
 
+  updateItem: makeStockroomWriteProcedure("/stockroom")
+    .input(
+      z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        itemCode: z.string().optional(),
+        supplier: z.string().optional(),
+        expiryDate: z.string().nullable().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const { id, expiryDate, ...rest } = input;
+      const updates: Record<string, any> = { ...rest };
+      if (expiryDate !== undefined)
+        updates.expiryDate = expiryDate ? new Date(expiryDate) : null;
+      await db.updateStockItem(id, updates);
+      return { success: true };
+    }),
+
+  deleteItem: makeStockroomWriteProcedure("/stockroom")
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.deleteStockItem(input.id);
+      return { success: true };
+    }),
+
   getReports: makeStockroomProcedure("/stockroom/reports")
     .input(z.object({ limit: z.number().optional() }))
     .query(async ({ input }) => {

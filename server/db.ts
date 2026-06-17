@@ -7182,6 +7182,12 @@ export async function updateStockItem(
   await db.update(stockItems).set(updates).where(eq(stockItems.id, id));
 }
 
+export async function deleteStockItem(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(stockItems).where(eq(stockItems.id, id));
+}
+
 export async function insertStockTransaction(data: InsertStockTransaction) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
