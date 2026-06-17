@@ -547,9 +547,11 @@ export class PayrollComputeService {
       let overtimeMinutes = 0;
       let leaveDays = 0;
 
+      let missingCheckoutDays = 0;
       if (fromDate || toDate) {
         const empDailyRows = dailyRows.filter((d) => d.empCd === emp.empCd);
         rawAbsentDays = empDailyRows.filter((d) => d.status === "absent").length;
+        missingCheckoutDays = empDailyRows.filter((d) => d.status === "missing_checkout").length;
         lateMinutes = empDailyRows.reduce((s, d) => s + (d.lateMinutes ?? 0), 0);
         earlyLeaveMinutes = empDailyRows.reduce((s, d) => s + (d.earlyLeaveMin ?? 0), 0);
         overtimeMinutes = empDailyRows.reduce((s, d) => s + (d.overtimeMinutes ?? 0), 0);
@@ -568,15 +570,9 @@ export class PayrollComputeService {
 
       const overtimeRate = minuteRate * 2; // ساعة الإضافي = ضعف المعدل العادي
       const absentDeduction = round2(absentDays * dailyRate);
-      // Cap combined late + early leave at 200 minutes per month
-      const MAX_LATE_EARLY_MINS = 200;
-      const rawCombinedMins = lateMinutes + earlyLeaveMinutes;
-      const cappedMins = Math.min(rawCombinedMins, MAX_LATE_EARLY_MINS);
-      const capRatio = rawCombinedMins > 0 ? cappedMins / rawCombinedMins : 1;
-      const lateDeduction = round2(lateMinutes * capRatio * minuteRate);
-      const earlyLeaveDeduction = round2(
-        earlyLeaveMinutes * capRatio * minuteRate,
-      );
+      const missingCheckoutDeduction = round2(missingCheckoutDays * dailyRate * 0.25);
+      const lateDeduction = round2(lateMinutes * minuteRate);
+      const earlyLeaveDeduction = round2(earlyLeaveMinutes * minuteRate);
       const overtimePay = round2(overtimeMinutes * overtimeRate);
       const penaltyDeduction = round2(
         penalties
@@ -598,6 +594,7 @@ export class PayrollComputeService {
       );
       const totalDeductions = round2(
         absentDeduction +
+          missingCheckoutDeduction +
           lateDeduction +
           earlyLeaveDeduction +
           penaltyDeduction +

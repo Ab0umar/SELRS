@@ -1358,14 +1358,15 @@ export const salaryRouter = router({
               Number((basicRow as any).yearlyRaise ?? 0);
             const lateMinutes = report.totalLateMins ?? 0;
             const earlyLeaveMinutes = report.totalEarlyLeaveMins ?? 0;
+            const empDailyRows = dailyRows.filter((d) => d.empCd === empCd);
+            const missingCheckoutDays = empDailyRows.filter((d) => d.status === "missing_checkout").length;
             const workingDays =
-              dailyRows.filter(
-                (d) => d.empCd === empCd && d.status !== "holiday",
-              ).length || 1;
+              empDailyRows.filter((d) => d.status !== "holiday").length || 1;
             const dailyRate = basic / workingDays;
             const minuteRate = dailyRate / 360;
             const totalDeduction =
-              (lateMinutes + earlyLeaveMinutes) * minuteRate;
+              (lateMinutes + earlyLeaveMinutes) * minuteRate +
+              missingCheckoutDays * dailyRate * 0.25;
             deductionMap.set(empCd, Math.min(1, totalDeduction / basic));
           }
         }
