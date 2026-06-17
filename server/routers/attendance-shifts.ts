@@ -269,26 +269,6 @@ export const attendanceShiftsRoutes = {
           ? new Date(input.effectiveTo)
           : null;
 
-        // Check if already assigned (and mark previous as ended if needed)
-        const existing = await db
-          .select()
-          .from(attendanceShiftAssignments)
-          .where(
-            and(
-              eq(attendanceShiftAssignments.empCd, input.empCd),
-              isNull(attendanceShiftAssignments.effectiveTo),
-            ),
-          );
-
-        if (existing.length > 0) {
-          // End the previous assignment
-          await db
-            .update(attendanceShiftAssignments)
-            .set({ effectiveTo: new Date(effectiveFrom.getTime() - 86400000) }) // Day before
-            .where(eq(attendanceShiftAssignments.id, existing[0].id));
-        }
-
-        // Create new assignment
         const result = await db.insert(attendanceShiftAssignments).values({
           empCd: input.empCd,
           shiftId: input.shiftId,
@@ -719,15 +699,6 @@ export const attendanceShiftsRoutes = {
             effectiveFrom: input.effectiveFrom as any,
             effectiveTo: input.effectiveTo ? (input.effectiveTo as any) : null,
             weekdayMask: input.weekdayMask,
-          })
-          .onDuplicateKeyUpdate({
-            set: {
-              shiftId: input.shiftId,
-              weekdayMask: input.weekdayMask,
-              effectiveTo: input.effectiveTo
-                ? (input.effectiveTo as any)
-                : null,
-            },
           });
         inserted++;
       }
