@@ -141,11 +141,14 @@ export default function StockroomCategory() {
   const [newItemName, setNewItemName] = useState("");
   const [newItemCode, setNewItemCode] = useState("");
   const [newItemSupplier, setNewItemSupplier] = useState("");
+  const [newItemExpiry, setNewItemExpiry] = useState("");
+  const [receiveNewExpiry, setReceiveNewExpiry] = useState("");
 
   const resetNewItemForm = () => {
     setNewItemName("");
     setNewItemCode("");
     setNewItemSupplier("");
+    setNewItemExpiry("");
   };
 
   const handleOpenAdd = (item?: { id: number }) => {
@@ -160,6 +163,7 @@ export default function StockroomCategory() {
     setReceiveNewName("");
     setReceiveNewCode("");
     setReceiveNewSupplier("");
+    setReceiveNewExpiry("");
     setActiveTab("add");
   };
 
@@ -189,6 +193,7 @@ export default function StockroomCategory() {
             itemCode: receiveNewCode,
             supplier: receiveNewSupplier,
             category: categoryTitle,
+            expiryDate: receiveNewExpiry || undefined,
           }
         : undefined,
       quantity: Number(quantity),
@@ -219,6 +224,7 @@ export default function StockroomCategory() {
       itemCode: newItemCode,
       supplier: newItemSupplier,
       category: categoryTitle,
+      expiryDate: newItemExpiry || undefined,
     });
   };
 
@@ -500,6 +506,14 @@ export default function StockroomCategory() {
                       className="bg-white"
                     />
                   </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label>تاريخ الصلاحية (اختياري)</Label>
+                    <DateInput
+                      value={receiveNewExpiry}
+                      onChange={(e) => setReceiveNewExpiry(e.target.value)}
+                      className="bg-white"
+                    />
+                  </div>
                 </div>
               )}
 
@@ -737,6 +751,16 @@ export default function StockroomCategory() {
                 className="col-span-3 text-right"
                 placeholder="اسم الشركة المُورِّدة..."
               />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">الصلاحية</Label>
+              <div className="col-span-3">
+                <DateInput
+                  value={newItemExpiry}
+                  onChange={(e) => setNewItemExpiry(e.target.value)}
+                  className="w-full"
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>

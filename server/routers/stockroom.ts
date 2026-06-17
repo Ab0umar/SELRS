@@ -50,6 +50,7 @@ export const stockroomRouter = router({
             itemCode: z.string().optional(),
             supplier: z.string().optional(),
             category: z.string().optional(),
+            expiryDate: z.string().optional(),
           })
           .optional(),
         quantity: z.number(),
@@ -66,6 +67,7 @@ export const stockroomRouter = router({
           itemCode: input.newItem.itemCode,
           supplier: input.newItem.supplier,
           category: input.newItem.category,
+          expiryDate: input.newItem.expiryDate ? new Date(input.newItem.expiryDate) : undefined,
           quantity: 0,
           status: "متوفر",
         });
