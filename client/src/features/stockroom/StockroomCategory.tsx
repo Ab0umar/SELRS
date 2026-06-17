@@ -124,6 +124,7 @@ export default function StockroomCategory() {
   const [quantity, setQuantity] = useState("");
   const [unitPrice, setUnitPrice] = useState("");
   const [employeeName, setEmployeeName] = useState("");
+  const [txDate, setTxDate] = useState(new Date().toISOString().slice(0, 10));
 
   // States for receiving a brand new, unregistered item in the Add tab
   const [isReceivingNewItem, setIsReceivingNewItem] = useState(false);
@@ -199,6 +200,7 @@ export default function StockroomCategory() {
       quantity: Number(quantity),
       unitPrice: Number(unitPrice),
       totalValue: Number(quantity) * Number(unitPrice),
+      transactionDate: txDate || undefined,
     });
   };
 
@@ -211,6 +213,7 @@ export default function StockroomCategory() {
       itemId: Number(selectedItemId),
       quantity: Number(quantity),
       employeeName: employeeName,
+      transactionDate: txDate || undefined,
     });
   };
 
@@ -519,6 +522,13 @@ export default function StockroomCategory() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="space-y-2">
+                  <Label>تاريخ الاستلام</Label>
+                  <DateInput
+                    value={txDate}
+                    onChange={(e) => setTxDate(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label>الكمية المستلمة</Label>
                   <Input
                     type="number"
@@ -595,6 +605,14 @@ export default function StockroomCategory() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>تاريخ الصرف</Label>
+                <DateInput
+                  value={txDate}
+                  onChange={(e) => setTxDate(e.target.value)}
+                />
               </div>
 
               <div className="space-y-2">

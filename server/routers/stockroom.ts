@@ -56,6 +56,7 @@ export const stockroomRouter = router({
         quantity: z.number(),
         unitPrice: z.number().optional(),
         totalValue: z.number().optional(),
+        transactionDate: z.string().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -87,6 +88,7 @@ export const stockroomRouter = router({
         quantity: input.quantity,
         unitPrice: input.unitPrice ? String(input.unitPrice) : null,
         totalValue: input.totalValue ? String(input.totalValue) : null,
+        transactionDate: input.transactionDate ? (input.transactionDate as any) : null,
         performedBy: ctx.user?.username || "system",
       });
     }),
@@ -97,6 +99,7 @@ export const stockroomRouter = router({
         itemId: z.number(),
         quantity: z.number(),
         employeeName: z.string().optional(),
+        transactionDate: z.string().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -116,6 +119,7 @@ export const stockroomRouter = router({
         type: "dispense",
         quantity: input.quantity,
         employeeName: input.employeeName,
+        transactionDate: input.transactionDate ? (input.transactionDate as any) : null,
         performedBy: ctx.user?.username || "system",
       });
     }),

@@ -170,6 +170,7 @@ export const stockTransactions = mysqlTable("stock_transactions", {
   totalValue: decimal("totalValue", { precision: 10, scale: 2 }),
   employeeName: varchar("employeeName", { length: 255 }),
   performedBy: varchar("performedBy", { length: 255 }),
+  transactionDate: date("transactionDate"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
