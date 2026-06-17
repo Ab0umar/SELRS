@@ -201,11 +201,10 @@ export const attendanceShiftsRoutes = {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
-      const today = new Date();
       const conditions: any[] = [
         or(
           isNull(attendanceShiftAssignments.effectiveTo),
-          gte(attendanceShiftAssignments.effectiveTo, today),
+          gte(attendanceShiftAssignments.effectiveTo, sql`CURDATE()`),
         ),
       ];
       if (input?.empCd) {
@@ -322,7 +321,7 @@ export const attendanceShiftsRoutes = {
         id: z.number(),
         shiftId: z.number().optional(),
         effectiveFrom: z.string().optional(),
-        effectiveTo: z.string().optional(),
+        effectiveTo: z.string().nullable().optional(),
         weekdayMask: z.number().int().optional(),
       }),
     )
@@ -335,8 +334,9 @@ export const attendanceShiftsRoutes = {
         if (input.shiftId !== undefined) updateData.shiftId = input.shiftId;
         if (input.effectiveFrom)
           updateData.effectiveFrom = new Date(input.effectiveFrom);
-        if (input.effectiveTo)
-          updateData.effectiveTo = new Date(input.effectiveTo);
+        // Allow clearing effectiveTo: undefined = don't touch, "" or null = clear it
+        if (input.effectiveTo !== undefined)
+          updateData.effectiveTo = input.effectiveTo ? new Date(input.effectiveTo) : null;
         if (input.weekdayMask !== undefined)
           updateData.weekdayMask = input.weekdayMask;
 
