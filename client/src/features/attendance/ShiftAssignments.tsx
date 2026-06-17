@@ -842,12 +842,13 @@ export default function ShiftAssignments() {
                   <tbody>
                     {assignments.map((assignment: any) => {
                       const isEditing = editingId === assignment.id;
+                      const isExpired = assignment.isExpired;
 
                       return (
                         <tr
                           key={assignment.id}
                           className={`border-b transition-colors ${
-                            isEditing ? "bg-primary/5" : "hover:bg-muted/40"
+                            isEditing ? "bg-primary/5" : isExpired ? "bg-muted/20 opacity-60" : "hover:bg-muted/40"
                           }`}
                         >
                           <td className="px-4 py-2 font-mono text-xs text-foreground">
@@ -855,6 +856,9 @@ export default function ShiftAssignments() {
                           </td>
                           <td className="px-4 py-2 text-foreground">
                             {assignment.empName}
+                            {isExpired && (
+                              <span className="mr-2 text-[10px] text-muted-foreground">(منتهي)</span>
+                            )}
                           </td>
                           {isEditing ? (
                             <>

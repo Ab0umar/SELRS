@@ -201,9 +201,7 @@ export const attendanceShiftsRoutes = {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
-      const conditions: any[] = [
-        sql`(${attendanceShiftAssignments.effectiveTo} IS NULL OR ${attendanceShiftAssignments.effectiveTo} >= CURDATE())`,
-      ];
+      const conditions: any[] = [];
       if (input?.empCd) {
         conditions.push(eq(attendanceShiftAssignments.empCd, input.empCd));
       }
@@ -228,21 +226,26 @@ export const attendanceShiftsRoutes = {
           attendanceShifts,
           eq(attendanceShiftAssignments.shiftId, attendanceShifts.id),
         )
-        .where(and(...conditions))
+        .where(conditions.length ? and(...conditions) : undefined)
         .orderBy(attendanceShiftAssignments.empCd);
 
-      return assignments.map((a) => ({
-        id: a.id,
-        empCd: a.empCd,
-        empName: a.empName,
-        shiftId: a.shiftId,
-        shiftName: a.shiftName,
-        effectiveFrom: a.effectiveFrom.toISOString().split("T")[0],
-        effectiveTo: a.effectiveTo
-          ? a.effectiveTo.toISOString().split("T")[0]
-          : null,
-        weekdayMask: a.weekdayMask,
-      }));
+      const todayStr = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD local
+      return assignments.map((a) => {
+        const effectiveTo = a.effectiveTo
+          ? (typeof a.effectiveTo === "string" ? a.effectiveTo : a.effectiveTo.toISOString().split("T")[0])
+          : null;
+        return {
+          id: a.id,
+          empCd: a.empCd,
+          empName: a.empName,
+          shiftId: a.shiftId,
+          shiftName: a.shiftName,
+          effectiveFrom: typeof a.effectiveFrom === "string" ? a.effectiveFrom : a.effectiveFrom.toISOString().split("T")[0],
+          effectiveTo,
+          weekdayMask: a.weekdayMask,
+          isExpired: effectiveTo !== null && effectiveTo < todayStr,
+        };
+      });
     }),
 
   assignShift: makeAttWriteProcedure("/attendance/shift-schedule")
