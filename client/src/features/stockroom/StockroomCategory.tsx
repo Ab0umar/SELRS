@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Pencil, Trash2 } from "lucide-react";
+import { DateInput } from "@/components/ui/date-input";
 import {
   Table,
   TableBody,

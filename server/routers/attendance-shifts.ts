@@ -226,21 +226,25 @@ export const attendanceShiftsRoutes = {
           attendanceShifts,
           eq(attendanceShiftAssignments.shiftId, attendanceShifts.id),
         )
-        .where(conditions.length ? and(...conditions) : undefined)
+        .where(conditions.length ? and(...conditions) : sql`1`)
         .orderBy(attendanceShiftAssignments.empCd);
 
-      const todayStr = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD local
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
       return assignments.map((a) => {
-        const effectiveTo = a.effectiveTo
-          ? (typeof a.effectiveTo === "string" ? a.effectiveTo : a.effectiveTo.toISOString().split("T")[0])
+        const toRaw = a.effectiveTo;
+        const effectiveTo = toRaw
+          ? typeof toRaw === "string" ? toRaw.slice(0, 10) : (toRaw as Date).toISOString().slice(0, 10)
           : null;
+        const fromRaw = a.effectiveFrom;
         return {
           id: a.id,
           empCd: a.empCd,
           empName: a.empName,
           shiftId: a.shiftId,
           shiftName: a.shiftName,
-          effectiveFrom: typeof a.effectiveFrom === "string" ? a.effectiveFrom : a.effectiveFrom.toISOString().split("T")[0],
+          effectiveFrom: typeof fromRaw === "string" ? fromRaw.slice(0, 10) : (fromRaw as Date).toISOString().slice(0, 10),
           effectiveTo,
           weekdayMask: a.weekdayMask,
           isExpired: effectiveTo !== null && effectiveTo < todayStr,
