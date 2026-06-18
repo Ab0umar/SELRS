@@ -815,7 +815,7 @@ export function useExaminationForm(
     lastAgeSyncRef.current = "age";
     setPatientDetails((prev) => ({
       ...prev,
-      dateOfBirth: prev.dateOfBirth || formatted,
+      dateOfBirth: formatted,
     }));
   }, [patientDetails.age]);
 

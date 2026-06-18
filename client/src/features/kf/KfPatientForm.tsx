@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -51,6 +51,7 @@ export default function KfPatientForm() {
 
   // Form State
   const [form, setForm] = useState<FormState>(initialFormState);
+  const lastAgeSyncRef = useRef<"dob" | "age" | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [selrsQueryCode, setSelrsQueryCode] = useState("");
   const [isVerifyingSelrs, setIsVerifyingSelrs] = useState(false);
@@ -94,6 +95,34 @@ export default function KfPatientForm() {
       }
     }
   }, [isEditMode, patientData]);
+
+  // DOB → Age sync
+  useEffect(() => {
+    if (!form.dateOfBirth) return;
+    if (lastAgeSyncRef.current === "age") { lastAgeSyncRef.current = null; return; }
+    const dob = new Date(form.dateOfBirth);
+    if (Number.isNaN(dob.valueOf())) return;
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age -= 1;
+    if (!Number.isFinite(age) || age < 0) return;
+    lastAgeSyncRef.current = "dob";
+    setForm((prev) => ({ ...prev, age: String(age) }));
+  }, [form.dateOfBirth]);
+
+  // Age → DOB sync
+  useEffect(() => {
+    if (!form.age) return;
+    if (lastAgeSyncRef.current === "dob") { lastAgeSyncRef.current = null; return; }
+    const ageNum = Number(form.age);
+    if (!Number.isFinite(ageNum) || ageNum < 0) return;
+    const today = new Date();
+    const d = new Date(today.getFullYear() - ageNum, today.getMonth(), today.getDate());
+    const formatted = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    lastAgeSyncRef.current = "age";
+    setForm((prev) => ({ ...prev, dateOfBirth: formatted }));
+  }, [form.age]);
 
   // Track verified SELRS name when query returns
   useEffect(() => {
