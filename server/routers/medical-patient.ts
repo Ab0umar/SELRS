@@ -748,10 +748,17 @@ export const medicalPatientRoutes = {
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const existingByIdentity = await findExistingPatientByNameOrPhone(
-          input.fullName,
-          input.phone ?? "",
-        );
+        const existingByCode =
+          input.patientCode && input.patientCode.trim()
+            ? await db.getPatientByCode(input.patientCode.trim())
+            : null;
+
+        const existingByIdentity =
+          existingByCode ??
+          (await findExistingPatientByNameOrPhone(
+            input.fullName,
+            input.phone ?? "",
+          ));
 
         // Resolve doctor code
         let doctorCode = String(input.doctorCode ?? "").trim() || null;
@@ -953,6 +960,14 @@ export const medicalPatientRoutes = {
             },
           );
 
+          // Always create a fresh checkedIn visit for today's queue
+          if (existingId > 0) {
+            const branchRaw = String((existingByIdentity as any)?.branch ?? "").trim().toLowerCase();
+            const branch = branchRaw === "surgery" ? "surgery" : "examinations";
+            await db.createVisit({ patientId: existingId, visitDate: new Date(), visitType: "consultation", branch, queueStatus: "checkedIn", checkedInAt: new Date() })
+              .catch((err) => console.error("[createPatientFromExamination] createVisit failed", existingId, err));
+          }
+
           return {
             id: existingId,
             patientCode: existingCode,
@@ -970,10 +985,15 @@ export const medicalPatientRoutes = {
 
         const existing = await db.getPatientByCode(code);
         if (existing) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: "Patient code already exists",
-          });
+          // Shouldn't reach here — existingByIdentity should have caught it.
+          // Treat as existing patient: push to MSSQL + create visit.
+          const eid = Number((existing as any)?.id ?? 0);
+          if (eid > 0) {
+            const branchRaw = String((existing as any)?.branch ?? "").trim().toLowerCase();
+            const branch = branchRaw === "surgery" ? "surgery" : "examinations";
+            await db.createVisit({ patientId: eid, visitDate: new Date(), visitType: "consultation", branch, queueStatus: "checkedIn", checkedInAt: new Date() }).catch(() => null);
+          }
+          return { success: true, reused: true, patientId: eid, patientCode: code, receiptNo: null };
         }
 
         await db.createPatient({

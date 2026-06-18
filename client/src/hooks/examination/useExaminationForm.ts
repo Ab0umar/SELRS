@@ -1288,7 +1288,7 @@ export function useExaminationForm(
           ...(doctorCode ? { doctorCode } : {}),
           ...(validServices.length > 0 ? { services: validServices } : {}),
         });
-        effectivePatientId = created.id;
+        effectivePatientId = created.id ?? 0;
         setPatientInfo((prev) => ({
           ...prev,
           id: effectivePatientId,
