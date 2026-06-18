@@ -141,11 +141,6 @@ function initAutoUpdater() {
   }
 }
 
-// ── IPC ───────────────────────────────────────────────────────────────────────
-ipcMain.on("get-api-url", (event) => {
-  event.returnValue = activeApiUrl;
-});
-
 // ── Source menu ───────────────────────────────────────────────────────────────
 function buildSourceMenu() {
   const activeOrigin = normalizeSourceUrl(activeApiUrl);
@@ -181,9 +176,10 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
-      sandbox: false, // needed for ipcRenderer.sendSync
+      sandbox: true,
       backgroundThrottling: false,
       partition: "persist:selrs",
+      additionalArguments: [`--selrs-api-url=${activeApiUrl}`],
     },
   });
 
