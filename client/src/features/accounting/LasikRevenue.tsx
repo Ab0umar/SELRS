@@ -29,7 +29,6 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useSearch } from "wouter";
-import AccountingShell from "./AccountingShell";
 import styles from "./LasikRevenue.module.css";
 import {
   formatCountAr,
@@ -335,7 +334,7 @@ export default function LasikRevenue() {
   };
 
   return (
-    <AccountingShell>
+    <>
       <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
         <Card className={`${styles.noPrint} border-border shadow-sm`}>
           <CardHeader className="gap-3">
@@ -1607,6 +1606,6 @@ export default function LasikRevenue() {
             })()
           : null}
       </div>
-    </AccountingShell>
+    </>
   );
 }

@@ -2,6 +2,8 @@ import { lazy } from "react";
 import { Route } from "wouter";
 import ProtectedRoute from "../components/ProtectedRoute";
 import { ROUTES } from "../../../shared/routes";
+import AccountingShell from "../features/accounting/AccountingShell";
+
 const AccountingHome = lazy(() => import("../features/accounting/AccountingHome"));
 const AccountingPrototypes = lazy(() => import("../features/accounting/AccountingPrototypes"));
 const DailyRevenue = lazy(() => import("../features/accounting/DailyRevenue"));
@@ -28,7 +30,9 @@ export const AccountingRoutes = (
         path={ROUTES.accounting}
         component={() => (
           <ProtectedRoute>
-            <AccountingHome />
+            <AccountingShell>
+              <AccountingHome />
+            </AccountingShell>
           </ProtectedRoute>
         )}
       />
@@ -36,7 +40,9 @@ export const AccountingRoutes = (
         path={ROUTES.accountingPrototypes}
         component={() => (
           <ProtectedRoute>
-            <AccountingPrototypes />
+            <AccountingShell>
+              <AccountingPrototypes />
+            </AccountingShell>
           </ProtectedRoute>
         )}
       />
@@ -44,7 +50,9 @@ export const AccountingRoutes = (
         path={ROUTES.accountingDailyRevenue}
         component={() => (
           <ProtectedRoute>
-            <DailyRevenue />
+            <AccountingShell>
+              <DailyRevenue />
+            </AccountingShell>
           </ProtectedRoute>
         )}
       />
@@ -52,7 +60,9 @@ export const AccountingRoutes = (
         path={ROUTES.accountingServiceRevenue}
         component={() => (
           <ProtectedRoute>
-            <LasikRevenue />
+            <AccountingShell>
+              <LasikRevenue />
+            </AccountingShell>
           </ProtectedRoute>
         )}
       />
@@ -60,7 +70,9 @@ export const AccountingRoutes = (
         path={ROUTES.accountingReceiptDetail}
         component={() => (
           <ProtectedRoute>
-            <ReceiptDetail />
+            <AccountingShell>
+              <ReceiptDetail />
+            </AccountingShell>
           </ProtectedRoute>
         )}
       />
@@ -68,7 +80,9 @@ export const AccountingRoutes = (
         path={ROUTES.accountingReceipts}
         component={() => (
           <ProtectedRoute>
-            <ReceiptsInquiry />
+            <AccountingShell>
+              <ReceiptsInquiry />
+            </AccountingShell>
           </ProtectedRoute>
         )}
       />
@@ -76,7 +90,9 @@ export const AccountingRoutes = (
         path={ROUTES.accountingServices}
         component={() => (
           <ProtectedRoute>
-            <LasikServices />
+            <AccountingShell>
+              <LasikServices />
+            </AccountingShell>
           </ProtectedRoute>
         )}
       />
@@ -84,7 +100,9 @@ export const AccountingRoutes = (
         path={ROUTES.accountingPatientsInquiry}
         component={() => (
           <ProtectedRoute>
-            <AccountingPatientsInquiry />
+            <AccountingShell>
+              <AccountingPatientsInquiry />
+            </AccountingShell>
           </ProtectedRoute>
         )}
       />
@@ -92,7 +110,9 @@ export const AccountingRoutes = (
         path={ROUTES.accountingPatients}
         component={() => (
           <ProtectedRoute>
-            <AccountingPatientsInquiry />
+            <AccountingShell>
+              <AccountingPatientsInquiry />
+            </AccountingShell>
           </ProtectedRoute>
         )}
       />
@@ -100,7 +120,9 @@ export const AccountingRoutes = (
         path={ROUTES.accountingPatientCode}
         component={() => (
           <ProtectedRoute>
-            <PatientAccount />
+            <AccountingShell>
+              <PatientAccount />
+            </AccountingShell>
           </ProtectedRoute>
         )}
       />
@@ -108,7 +130,9 @@ export const AccountingRoutes = (
         path={ROUTES.accountingPatient}
         component={() => (
           <ProtectedRoute>
-            <PatientAccount />
+            <AccountingShell>
+              <PatientAccount />
+            </AccountingShell>
           </ProtectedRoute>
         )}
       />
@@ -116,7 +140,9 @@ export const AccountingRoutes = (
         path={ROUTES.accountingPatientAccount}
         component={() => (
           <ProtectedRoute>
-            <PatientAccount />
+            <AccountingShell>
+              <PatientAccount />
+            </AccountingShell>
           </ProtectedRoute>
         )}
       />
@@ -124,7 +150,9 @@ export const AccountingRoutes = (
         path={ROUTES.accountingDoctor}
         component={() => (
           <ProtectedRoute>
-            <DoctorAccount />
+            <AccountingShell>
+              <DoctorAccount />
+            </AccountingShell>
           </ProtectedRoute>
         )}
       />
@@ -132,7 +160,9 @@ export const AccountingRoutes = (
         path={ROUTES.accountingDoctorAccount}
         component={() => (
           <ProtectedRoute>
-            <DoctorAccount />
+            <AccountingShell>
+              <DoctorAccount />
+            </AccountingShell>
           </ProtectedRoute>
         )}
       />
@@ -140,7 +170,9 @@ export const AccountingRoutes = (
         path={ROUTES.accountingDoctorCode}
         component={() => (
           <ProtectedRoute>
-            <DoctorAccount />
+            <AccountingShell>
+              <DoctorAccount />
+            </AccountingShell>
           </ProtectedRoute>
         )}
       />
@@ -148,7 +180,9 @@ export const AccountingRoutes = (
         path={ROUTES.accountingCashbook}
         component={() => (
           <ProtectedRoute>
-            <AccountingCashbook />
+            <AccountingShell>
+              <AccountingCashbook />
+            </AccountingShell>
           </ProtectedRoute>
         )}
       />
@@ -156,7 +190,9 @@ export const AccountingRoutes = (
         path={ROUTES.accountingLedger}
         component={() => (
           <ProtectedRoute>
-            <AccountingLedger />
+            <AccountingShell>
+              <AccountingLedger />
+            </AccountingShell>
           </ProtectedRoute>
         )}
       />
@@ -164,7 +200,9 @@ export const AccountingRoutes = (
         path={ROUTES.accountingAdvances}
         component={() => (
           <ProtectedRoute>
-            <AccountingAdvances />
+            <AccountingShell>
+              <AccountingAdvances />
+            </AccountingShell>
           </ProtectedRoute>
         )}
       />
@@ -172,7 +210,9 @@ export const AccountingRoutes = (
         path={ROUTES.accountingLoans}
         component={() => (
           <ProtectedRoute>
-            <AccountingLoans />
+            <AccountingShell>
+              <AccountingLoans />
+            </AccountingShell>
           </ProtectedRoute>
         )}
       />
@@ -180,7 +220,9 @@ export const AccountingRoutes = (
         path={ROUTES.accountingHomeFund}
         component={() => (
           <ProtectedRoute>
-            <AccountingHomeFund />
+            <AccountingShell>
+              <AccountingHomeFund />
+            </AccountingShell>
           </ProtectedRoute>
         )}
       />
@@ -188,7 +230,9 @@ export const AccountingRoutes = (
         path={ROUTES.accountingInstapay}
         component={() => (
           <ProtectedRoute>
-            <AccountingInstapay />
+            <AccountingShell>
+              <AccountingInstapay />
+            </AccountingShell>
           </ProtectedRoute>
         )}
       />
@@ -196,7 +240,9 @@ export const AccountingRoutes = (
         path={ROUTES.accountingDrSaadany}
         component={() => (
           <ProtectedRoute>
-            <AccountingDrSaadany />
+            <AccountingShell>
+              <AccountingDrSaadany />
+            </AccountingShell>
           </ProtectedRoute>
         )}
       />

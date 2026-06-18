@@ -16,7 +16,6 @@ import type {
 import { ArrowLeft, CircleAlert, Printer, RefreshCw } from "lucide-react";
 import { useMemo } from "react";
 import { useLocation, useRoute } from "wouter";
-import AccountingShell from "./AccountingShell";
 import {
   formatDateAr,
   formatMoneyAr,
@@ -187,7 +186,7 @@ export default function ReceiptDetail() {
   };
 
   return (
-    <AccountingShell>
+    <>
       <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
         <Card className="border-border/80 shadow-sm">
           <CardHeader className="gap-3">
@@ -536,6 +535,6 @@ export default function ReceiptDetail() {
           </CardContent>
         </Card>
       </div>
-    </AccountingShell>
+    </>
   );
 }

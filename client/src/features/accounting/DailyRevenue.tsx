@@ -24,7 +24,6 @@ import {
 } from "@/components/ui/select";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useSearch } from "wouter";
-import AccountingShell from "./AccountingShell";
 import { formatCountAr, formatDateAr, formatMoneyAr } from "./accountingFormat";
 import reportStyles from "./AccountingOpReport.module.css";
 import { DateInput } from "@/components/ui/date-input";
@@ -188,7 +187,7 @@ export default function DailyRevenue() {
   };
 
   return (
-    <AccountingShell>
+    <>
       <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
         <Card className={`${reportStyles.noPrint} border-border shadow-sm`}>
           <CardHeader className="gap-3">
@@ -652,6 +651,6 @@ export default function DailyRevenue() {
           </CardContent>
         </Card>
       </div>
-    </AccountingShell>
+    </>
   );
 }

@@ -5,7 +5,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
 import { Search } from "lucide-react";
 import { useState, useEffect } from "react";
-import AccountingShell from "./AccountingShell";
 import { localISODate } from "@/lib/utils";
 import reportStyles from "./AccountingOpReport.module.css";
 import {
@@ -59,7 +58,7 @@ export default function LasikServices() {
   const rows = servicesQuery.data ?? [];
 
   return (
-    <AccountingShell>
+    <>
       <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
         <Card>
           <CardHeader>
@@ -206,6 +205,6 @@ export default function LasikServices() {
           </CardContent>
         </Card>
       </div>
-    </AccountingShell>
+    </>
   );
 }

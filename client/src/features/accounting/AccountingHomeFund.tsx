@@ -14,7 +14,6 @@ import {
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import AccountingShell from "./AccountingShell";
 import { toast } from "sonner";
 import { fmt, fmtDate, todayIso } from "./accountingFormat";
 import { DateInput } from "@/components/ui/date-input";
@@ -138,7 +137,7 @@ export default function AccountingHomeFund() {
   const net = home?.net ?? 0;
 
   return (
-    <AccountingShell>
+    <>
       <div className="space-y-4 lg:space-y-5" dir="rtl">
         <section className="overflow-hidden rounded-[24px] border border-border bg-background">
           {/* Metrics */}
@@ -657,6 +656,6 @@ export default function AccountingHomeFund() {
           )}
         </div>
       </div>
-    </AccountingShell>
+    </>
   );
 }

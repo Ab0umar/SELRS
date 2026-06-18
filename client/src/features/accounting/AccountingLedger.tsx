@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import AccountingShell from "./AccountingShell";
 import AccEntryDrawer, { type AccEntryRow } from "./AccEntryDrawer";
 import { fmt, fmtDate, todayIso } from "./accountingFormat";
 import { DateInput } from "@/components/ui/date-input";
@@ -132,7 +131,7 @@ export default function AccountingLedger() {
   }
 
   return (
-    <AccountingShell>
+    <>
       <div className="space-y-4 lg:space-y-5" dir="rtl">
         <section className="variant-inline-rail rounded-[24px] border border-border bg-background p-2.5 lg:p-4">
           <div className="grid grid-cols-3 gap-2 lg:gap-3">
@@ -756,6 +755,6 @@ export default function AccountingLedger() {
         onClose={closeDrawer}
         onSaved={onSaved}
       />
-    </AccountingShell>
+    </>
   );
 }

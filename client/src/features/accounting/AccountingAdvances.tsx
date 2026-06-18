@@ -15,7 +15,6 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import AccountingShell from "./AccountingShell";
 import { toast } from "sonner";
 import { fmt, fmtDate, todayIso } from "./accountingFormat";
 import { DateInput } from "@/components/ui/date-input";
@@ -158,7 +157,7 @@ export default function AccountingAdvances() {
   const employees = employeesQ.data ?? [];
 
   return (
-    <AccountingShell>
+    <>
       <div className="space-y-4 lg:space-y-5" dir="rtl">
         <section className="rounded-[24px] border border-border bg-background p-4 shadow-sm lg:p-5">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
@@ -809,6 +808,6 @@ export default function AccountingAdvances() {
           )}
         </section>
       </div>
-    </AccountingShell>
+    </>
   );
 }

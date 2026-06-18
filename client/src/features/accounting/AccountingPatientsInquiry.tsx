@@ -16,7 +16,6 @@ import type {
 import { CircleAlert, RefreshCw, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useSearch } from "wouter";
-import AccountingShell from "./AccountingShell";
 import {
   formatDateAr,
   formatCountAr,
@@ -187,7 +186,7 @@ export default function AccountingPatientsInquiry() {
   };
 
   return (
-    <AccountingShell>
+    <>
       <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
         <Card className="border-border/80 shadow-sm">
           <CardHeader className="gap-2">
@@ -572,6 +571,6 @@ export default function AccountingPatientsInquiry() {
           </CardContent>
         </Card>
       </div>
-    </AccountingShell>
+    </>
   );
 }

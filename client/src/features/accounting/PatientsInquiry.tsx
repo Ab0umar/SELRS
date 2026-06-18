@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useLocation } from "wouter";
-import AccountingShell from "./AccountingShell";
 import { Search } from "lucide-react";
 
 export default function PatientsInquiry() {
@@ -19,7 +18,7 @@ export default function PatientsInquiry() {
   };
 
   return (
-    <AccountingShell>
+    <>
       <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
         <Card>
           <CardHeader>
@@ -40,6 +39,6 @@ export default function PatientsInquiry() {
           </CardContent>
         </Card>
       </div>
-    </AccountingShell>
+    </>
   );
 }

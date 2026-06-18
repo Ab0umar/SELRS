@@ -14,7 +14,6 @@ import type { PatientLasikSummaryInput } from "@shared/accounting/contracts";
 import { ArrowLeft, CircleAlert, Search, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useRoute } from "wouter";
-import AccountingShell from "./AccountingShell";
 import reportStyles from "./AccountingOpReport.module.css";
 import {
   formatCountAr,
@@ -138,7 +137,7 @@ export default function PatientAccount() {
   };
 
   return (
-    <AccountingShell>
+    <>
       <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
         {detailCode ? (
           <Button variant="outline" type="button" onClick={onBack}>
@@ -526,6 +525,6 @@ export default function PatientAccount() {
           </>
         ) : null}
       </div>
-    </AccountingShell>
+    </>
   );
 }

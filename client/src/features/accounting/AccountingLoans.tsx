@@ -15,7 +15,6 @@ import {
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import AccountingShell from "./AccountingShell";
 import AccLoanDrawer, { type AccLoanRow } from "./AccLoanDrawer";
 import { toast } from "sonner";
 import { fmt, fmtDate, todayIso } from "./accountingFormat";
@@ -154,7 +153,7 @@ export default function AccountingLoans() {
 
   return (
     <>
-      <AccountingShell>
+      <>
         <div className="space-y-5" dir="rtl">
           <section className="overflow-hidden rounded-[24px] border border-border bg-background">
             <div className="p-4 lg:p-5">
@@ -965,7 +964,7 @@ export default function AccountingLoans() {
             )}
           </section>
         </div>
-      </AccountingShell>
+      </>
 
       <AccLoanDrawer
         open={drawer.open}

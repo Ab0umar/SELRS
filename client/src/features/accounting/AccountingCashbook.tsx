@@ -12,7 +12,6 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import AccountingShell from "./AccountingShell";
 import { toast } from "sonner";
 import { fmt, fmtDate } from "./accountingFormat";
 
@@ -72,7 +71,7 @@ export default function AccountingCashbook() {
   const resetPage = () => setPage(1);
 
   return (
-    <AccountingShell>
+    <>
       <div className="space-y-4 lg:space-y-5" dir="rtl">
         <section className="rounded-[24px] border border-border bg-background p-4 lg:p-5">
           <div className="grid gap-3 sm:grid-cols-3">
@@ -604,6 +603,6 @@ export default function AccountingCashbook() {
           )}
         </div>
       </div>
-    </AccountingShell>
+    </>
   );
 }

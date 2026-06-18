@@ -1,5 +1,4 @@
 import { trpc } from "@/lib/trpc";
-import AccountingShell from "./AccountingShell";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
 import type { ComponentType, ReactNode } from "react";
@@ -559,7 +558,7 @@ export default function AccountingPrototypes() {
   const rows = activityQuery.data ?? [];
 
   return (
-    <AccountingShell>
+    <>
       <div dir="rtl" className="space-y-5">
         <section className="overflow-hidden rounded-[30px] border border-primary/20 bg-background/85 p-5 shadow-sm backdrop-blur-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -633,6 +632,6 @@ export default function AccountingPrototypes() {
           />
         </div>
       </div>
-    </AccountingShell>
+    </>
   );
 }

@@ -26,7 +26,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
-import AccountingShell from "./AccountingShell";
 import { cn } from "@/lib/utils";
 import { formatMoneyAr, formatCountAr } from "./accountingFormat";
 import { DateInput } from "@/components/ui/date-input";
@@ -356,7 +355,7 @@ export default function AccountingHome() {
   );
 
   return (
-    <AccountingShell>
+    <>
       <div dir="rtl" className="space-y-4">
         <section
           className="rounded-lg border border-border bg-background p-4 lg:p-5"
@@ -1577,6 +1576,6 @@ export default function AccountingHome() {
           </section>
         )}
       </div>
-    </AccountingShell>
+    </>
   );
 }

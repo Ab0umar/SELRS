@@ -14,7 +14,6 @@ import type { ServiceRevenueInput } from "@shared/accounting/contracts";
 import { ArrowLeft, CircleAlert, Search, Stethoscope } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useRoute } from "wouter";
-import AccountingShell from "./AccountingShell";
 import reportStyles from "./AccountingOpReport.module.css";
 import {
   formatCountAr,
@@ -139,7 +138,7 @@ export default function DoctorAccount() {
   };
 
   return (
-    <AccountingShell>
+    <>
       <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
         {detailDoctor ? (
           <Button variant="outline" type="button" onClick={onBack}>
@@ -496,6 +495,6 @@ export default function DoctorAccount() {
           </>
         ) : null}
       </div>
-    </AccountingShell>
+    </>
   );
 }
