@@ -146,7 +146,7 @@ export const medicalPatientRoutes = {
           String(patientInput.patientCode ?? "").trim(),
         );
         const existingByIdentity = hasExplicitPatientCode
-          ? null
+          ? await db.getPatientByCode(String(patientInput.patientCode ?? "").trim())
           : await findExistingPatientByNameOrPhone(
               patientInput.fullName,
               patientInput.phone,
