@@ -593,6 +593,10 @@ export const medicalExaminationsRoutes = {
       return sheetsWithItems;
     }),
 
+  getAllFollowupItems: protectedProcedure.query(async () => {
+    return await db.getAllFollowupItems();
+  }),
+
   getAllExaminations: protectedProcedure.query(async () => {
     return await db.getAllExaminations();
   }),

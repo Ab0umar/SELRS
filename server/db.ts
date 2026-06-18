@@ -3171,6 +3171,35 @@ export async function deleteFollowupSheet(sheetId: number) {
   await db.delete(followupSheets).where(eq(followupSheets.id, sheetId));
 }
 
+export async function getAllFollowupItems() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db
+    .select({
+      id: followupItems.id,
+      followupSheetId: followupItems.followupSheetId,
+      tableIndex: followupItems.tableIndex,
+      followupDate: followupItems.followupDate,
+      followupName: followupItems.followupName,
+      vaOD: followupItems.vaOD,
+      vaOS: followupItems.vaOS,
+      iopOD: followupItems.iopOD,
+      iopOS: followupItems.iopOS,
+      treatment: followupItems.treatment,
+      notes: followupItems.notes,
+      sheetType: followupSheets.sheetType,
+      patientId: followupSheets.patientId,
+      patientFullName: patients.fullName,
+      patientCode: patients.patientCode,
+    })
+    .from(followupItems)
+    .innerJoin(followupSheets, eq(followupItems.followupSheetId, followupSheets.id))
+    .innerJoin(patients, eq(followupSheets.patientId, patients.id))
+    .where(sql`${followupItems.followupDate} IS NOT NULL`)
+    .orderBy(desc(followupItems.followupDate));
+}
+
 // ============ EXAMINATION OPERATIONS ============
 
 export async function createExamination(examinationData: any) {

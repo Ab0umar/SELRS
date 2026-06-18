@@ -94,7 +94,6 @@ export default function ExaminationForm() {
   const [technicianSignature, setTechnicianSignature] = useState("");
   const [doctorName, setDoctorName] = useState("");
   const [sheetSelection, setSheetSelection] = useState("");
-  const [isFollowup, setIsFollowup] = useState(false);
   const [patientInfo, setPatientInfo] = useState({
     id: 0,
     name: "",
@@ -423,9 +422,6 @@ export default function ExaminationForm() {
       if (data.medicalChecklist) {
         setMedicalChecklist((prev) => ({ ...prev, ...data.medicalChecklist }));
       }
-      if (typeof data.isFollowup === "boolean") {
-        setIsFollowup(data.isFollowup);
-      }
     } catch {
       // ignore bad cache
     }
@@ -440,9 +436,6 @@ export default function ExaminationForm() {
     if (data.medicalChecklist) {
       setMedicalChecklist((prev) => ({ ...prev, ...data.medicalChecklist }));
     }
-    if (typeof data.isFollowup === "boolean") {
-      setIsFollowup(data.isFollowup);
-    }
   }, [patientStateQuery.data]);
 
   useEffect(() => {
@@ -453,7 +446,6 @@ export default function ExaminationForm() {
       sheetSelection,
       visitDate,
       doctorName,
-      isFollowup,
     };
     localStorage.setItem(
       `patient_state_examination_${patientInfo.id}`,
@@ -475,7 +467,6 @@ export default function ExaminationForm() {
     sheetSelection,
     visitDate,
     doctorName,
-    isFollowup,
     savePatientStateMutation,
   ]);
 
@@ -852,7 +843,6 @@ export default function ExaminationForm() {
             occupation: patientDetails.job,
             serviceType: sheetSelection || undefined,
             locationType,
-            status: isFollowup ? "followup" : undefined,
           },
         });
       }
@@ -946,9 +936,7 @@ export default function ExaminationForm() {
       });
       toast.success("تم حفظ البيانات بنجاح");
       if (sheetSelection) {
-        const target = isFollowup ? "consultant" : sheetSelection;
-        const suffix = isFollowup ? "?tab=followup" : "";
-        setLocation(`/sheets/${target}/${effectivePatientId}${suffix}`);
+        setLocation(`/sheets/${sheetSelection}/${effectivePatientId}`);
       } else {
         setLocation("/patients");
       }
@@ -1224,15 +1212,6 @@ export default function ExaminationForm() {
                         }}
                       />
                       <span>خارجي</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <Checkbox
-                        checked={isFollowup}
-                        onCheckedChange={(checked) =>
-                          setIsFollowup(Boolean(checked))
-                        }
-                      />
-                      <span>متابعة</span>
                     </label>
                   </div>
 
