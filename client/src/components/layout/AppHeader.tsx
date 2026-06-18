@@ -81,8 +81,8 @@ export function AppHeader({
             title={theme === "light" ? "Dark mode" : "Light mode"}
             aria-label={theme === "light" ? "Dark mode" : "Light mode"}
           >
-            <Sun className="h-4 w-4 rotate-0 scale-100 transition-transform" />
-            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-transform" />
+            <Sun className={`h-4 w-4 transition-transform ${theme === "dark" ? "rotate-0 scale-100" : "rotate-90 scale-0"}`} />
+            <Moon className={`absolute h-4 w-4 transition-transform ${theme === "light" ? "rotate-0 scale-100" : "rotate-90 scale-0"}`} />
           </Button>
 
           <DropdownMenu>
