@@ -23,7 +23,7 @@ import {
 import { eq, and, desc, ne, sql, lte, gte, count, type SQL } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import { ENV } from "../_core/env";
-import { sendFcmPushToRegisteredDevices } from "../_core/fcmPush";
+import { pushAppNotification } from "../_core/appNotifications";
 import { sendWebPushToSubscription } from "../_core/webPush";
 import { broadcastBookingUpdate } from "../_core/ws";
 
@@ -340,14 +340,14 @@ export const patientPortalRouter = router({
 
       const typeLabel =
         BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType;
-      sendFcmPushToRegisteredDevices({
-        notificationId: `booking-new-${Date.now()}`,
+      pushAppNotification({
         title: "طلب حجز جديد",
-        body: `${typeLabel} — ${input.requestedDate}`,
+        message: `${typeLabel} — ${input.requestedDate}`,
         kind: "info",
         targetRoles: ["admin", "reception"],
-        path: "/admin-hub/portal-bookings",
+        source: "booking",
         entityType: "booking",
+        channels: { inApp: true, push: true, local: true },
       }).catch(() => {});
 
       return { ok: true };
@@ -390,14 +390,14 @@ export const patientPortalRouter = router({
 
       const typeLabel =
         BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType;
-      sendFcmPushToRegisteredDevices({
-        notificationId: `booking-guest-${Date.now()}`,
+      pushAppNotification({
         title: "طلب حجز جديد (زائر)",
-        body: `${input.guestName} — ${typeLabel} — ${input.requestedDate}`,
+        message: `${input.guestName} — ${typeLabel} — ${input.requestedDate}`,
         kind: "info",
         targetRoles: ["admin", "reception"],
-        path: "/admin-hub/portal-bookings",
+        source: "booking",
         entityType: "booking",
+        channels: { inApp: true, push: true, local: true },
       }).catch(() => {});
 
       return { ok: true };
