@@ -103,6 +103,15 @@ export default function GlobalCommandPalette() {
 
   if (!isAuthenticated) return null;
 
+  const commandFilter = (value: string, search: string) => {
+    // Patient items are already filtered server-side — always show them
+    if (value.startsWith("patient-")) return 1;
+    // Nav items: simple contains match
+    const v = value.toLowerCase();
+    const s = search.toLowerCase();
+    return v.includes(s) ? 1 : 0;
+  };
+
   return (
     <CommandDialog
       open={open}
@@ -110,6 +119,7 @@ export default function GlobalCommandPalette() {
       title="Global Search"
       description="Search patients, Pentacam documents, and navigate quickly."
       className="sm:max-w-2xl"
+      filter={commandFilter}
     >
       <CommandInput
         placeholder="Search patients, codes, phones, Pentacam files..."
