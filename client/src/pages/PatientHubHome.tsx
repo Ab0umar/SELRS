@@ -78,8 +78,8 @@ export default function PatientHubHome({ visitDate }: PatientHubHomeProps) {
     inputRef.current?.focus();
   }, []);
 
-  const normalizedQuery = query.replace(/\s+/g, "");
-  const showResults = normalizedQuery.trim().length >= 1;
+  const normalizedQuery = query.trim();
+  const showResults = normalizedQuery.length >= 1;
 
   const searchQuery = trpc.medical.searchPatients.useQuery(
     { searchTerm: normalizedQuery },
