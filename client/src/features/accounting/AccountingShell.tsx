@@ -25,12 +25,11 @@ export default function AccountingShell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
 
   return (
-    <div dir="rtl" className="bg-card text-foreground">
-      <div className="h-1 w-full bg-border" />
+    <div dir="rtl" className="text-foreground">
       <header className="border-b border-border bg-background">
         <nav
           aria-label="روابط الحسابات"
-          className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 py-3 lg:px-6"
+          className="flex gap-2 overflow-x-auto px-3 py-2"
         >
           {ACCOUNTING_LINKS.map(({ label, href, icon: Icon }) => {
             const active = location === href;
@@ -43,11 +42,11 @@ export default function AccountingShell({ children }: { children: ReactNode }) {
                 aria-label={iconOnly ? label : undefined}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border text-sm font-medium transition-colors",
+                  "inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border text-base font-medium transition-colors",
                   iconOnly ? "w-10 px-0" : "px-3",
                   active
                     ? "border-primary/30 bg-primary text-primary-foreground"
-                    : "border-border bg-background text-muted-foreground bg-muted",
+                    : "border-border bg-muted text-muted-foreground",
                 )}
               >
                 <Icon className="h-4 w-4" aria-hidden="true" />
@@ -57,7 +56,7 @@ export default function AccountingShell({ children }: { children: ReactNode }) {
           })}
         </nav>
       </header>
-      <main className="mx-auto max-w-7xl px-4 py-4 pb-[env(safe-area-inset-bottom)] lg:px-6 lg:py-5">
+      <main className="w-full px-3 py-4 pb-[env(safe-area-inset-bottom)] text-base">
         {children}
       </main>
     </div>
