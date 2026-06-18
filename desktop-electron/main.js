@@ -2,7 +2,7 @@ const { app, BrowserWindow, shell, session, Menu, ipcMain } = require("electron"
 const path = require("path");
 const fs = require("fs");
 
-const DEFAULT_API_URL = "http://192.168.1.100:4000";
+const DEFAULT_HOME_URL = "http://192.168.1.100:4000";
 const SOURCE_PRESETS = [
   { id: "local",     label: "Local (192.168.1.100:4000)", url: "http://192.168.1.100:4000" },
   { id: "localhost", label: "Localhost (localhost:4000)",  url: "http://localhost:4000" },
@@ -16,12 +16,9 @@ const ALLOWED_PERMISSIONS = new Set([
   "media", "notifications", "clipboard-read", "clipboard-sanitized-write", "fullscreen",
 ]);
 
-const DIST_INDEX = path.join(__dirname, "dist", "index.html");
-const USE_BUNDLED = fs.existsSync(DIST_INDEX);
-
 let mainWindow = null;
 let logFilePath = "";
-let activeApiUrl = DEFAULT_API_URL;
+let activeHomeUrl = DEFAULT_HOME_URL;
 let sourceConfigPath = "";
 let recoveringFromCrash = false;
 
@@ -29,7 +26,6 @@ app.disableHardwareAcceleration();
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) app.quit();
 
-// ── Logging ───────────────────────────────────────────────────────────────────
 function logEvent(type, payload = {}) {
   try {
     if (!logFilePath) return;
@@ -37,7 +33,6 @@ function logEvent(type, payload = {}) {
   } catch {}
 }
 
-// ── Source config ─────────────────────────────────────────────────────────────
 function normalizeSourceUrl(raw) {
   const value = String(raw || "").trim();
   if (!value) return "";
@@ -63,33 +58,25 @@ function resolveStartupUrl() {
   const argSource = process.argv.find((a) => a.startsWith("--source="));
   const argUrl = normalizeSourceUrl(argSource ? argSource.slice("--source=".length) : "");
   const envUrl = normalizeSourceUrl(process.env.SELRS_DESKTOP_URL || "");
-  return argUrl || envUrl || readSourceConfig() || DEFAULT_API_URL;
+  return argUrl || envUrl || readSourceConfig() || DEFAULT_HOME_URL;
 }
 
-function isAllowedOrigin(url) {
+function isAllowed(url) {
   try {
     const u = new URL(url);
     const origin = `${u.protocol}//${u.host}`;
-    if (origin === normalizeSourceUrl(activeApiUrl)) return true;
-    if (SOURCE_PRESETS.some((p) => origin === normalizeSourceUrl(p.url))) return true;
-    // Allow file:// when bundled
-    if (USE_BUNDLED && u.protocol === "file:") return true;
-    return false;
+    return origin === normalizeSourceUrl(activeHomeUrl) ||
+      SOURCE_PRESETS.some((p) => origin === normalizeSourceUrl(p.url));
   } catch { return false; }
 }
 
 function switchSource(nextUrl) {
   const normalized = normalizeSourceUrl(nextUrl);
-  if (!normalized || normalized === normalizeSourceUrl(activeApiUrl)) return;
-  activeApiUrl = normalized;
+  if (!normalized || normalized === normalizeSourceUrl(activeHomeUrl)) return;
+  activeHomeUrl = normalized;
   writeSourceConfig(normalized);
   logEvent("source-changed", { url: normalized });
-  if (!mainWindow || mainWindow.isDestroyed()) return;
-  if (USE_BUNDLED) {
-    mainWindow.webContents.reload();
-  } else {
-    mainWindow.loadURL(activeApiUrl);
-  }
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.loadURL(activeHomeUrl);
 }
 
 // ── Auto-updater ──────────────────────────────────────────────────────────────
@@ -98,44 +85,26 @@ function initAutoUpdater() {
     const { autoUpdater } = require("electron-updater");
     autoUpdater.autoDownload = true;
     autoUpdater.autoInstallOnAppQuit = true;
-
-    // Check for updates from the local server's /updates/ endpoint
-    autoUpdater.setFeedURL({
-      provider: "generic",
-      url: `${activeApiUrl}/updates`,
-    });
+    autoUpdater.setFeedURL({ provider: "generic", url: `${activeHomeUrl}/updates` });
 
     autoUpdater.on("update-available", (info) => {
       logEvent("update-available", { version: info.version });
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send("update-available", info);
-      }
+      mainWindow?.webContents?.send("update-available", info);
     });
-
     autoUpdater.on("update-downloaded", (info) => {
       logEvent("update-downloaded", { version: info.version });
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send("update-downloaded", info);
-      }
+      mainWindow?.webContents?.send("update-downloaded", info);
     });
-
-    autoUpdater.on("error", (err) => {
-      logEvent("updater-error", { message: String(err?.message || err) });
-    });
+    autoUpdater.on("error", (err) => logEvent("updater-error", { message: String(err?.message || err) }));
 
     ipcMain.handle("check-for-update", async () => {
       try { await autoUpdater.checkForUpdates(); return { ok: true }; }
       catch (e) { return { ok: false, error: String(e?.message || e) }; }
     });
+    ipcMain.on("install-update", () => autoUpdater.quitAndInstall());
 
-    ipcMain.on("install-update", () => {
-      autoUpdater.quitAndInstall();
-    });
-
-    // Check 30s after launch, then every 4 hours
     setTimeout(() => autoUpdater.checkForUpdates().catch(() => {}), 30_000);
     setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 4 * 60 * 60 * 1000);
-
   } catch (e) {
     logEvent("updater-init-failed", { message: String(e?.message || e) });
   }
@@ -143,7 +112,7 @@ function initAutoUpdater() {
 
 // ── Source menu ───────────────────────────────────────────────────────────────
 function buildSourceMenu() {
-  const activeOrigin = normalizeSourceUrl(activeApiUrl);
+  const activeOrigin = normalizeSourceUrl(activeHomeUrl);
   const items = SOURCE_PRESETS.map((preset) => ({
     type: "radio",
     label: preset.label,
@@ -152,9 +121,9 @@ function buildSourceMenu() {
   }));
   items.push(
     { type: "separator" },
-    { label: "Check for Updates", click: () => ipcMain.emit("check-for-update") },
+    { label: "Check for Updates", click: () => { try { const { autoUpdater } = require("electron-updater"); autoUpdater.checkForUpdates().catch(() => {}); } catch {} } },
     { type: "separator" },
-    { label: "Reload", click: () => mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents.reload() },
+    { label: "Reload", click: () => mainWindow && !mainWindow.isDestroyed() && mainWindow.loadURL(activeHomeUrl) },
   );
   return Menu.buildFromTemplate(items);
 }
@@ -179,7 +148,6 @@ function createWindow() {
       sandbox: true,
       backgroundThrottling: false,
       partition: "persist:selrs",
-      additionalArguments: [`--selrs-api-url=${activeApiUrl}`],
     },
   });
 
@@ -212,13 +180,17 @@ function createWindow() {
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (isAllowedOrigin(url)) return { action: "allow" };
+    if (isAllowed(url)) return { action: "allow" };
     shell.openExternal(url);
     return { action: "deny" };
   });
 
+  mainWindow.webContents.on("will-navigate", (event, url) => {
+    if (!isAllowed(url)) { event.preventDefault(); shell.openExternal(url); }
+  });
+
   mainWindow.webContents.on("did-finish-load", () => {
-    logEvent("did-finish-load");
+    logEvent("did-finish-load", { url: mainWindow?.webContents?.getURL?.() || "" });
     if (showWindowTimer) clearTimeout(showWindowTimer);
     if (!mainWindow) return;
     if (!mainWindow.isMaximized()) mainWindow.maximize();
@@ -237,13 +209,7 @@ function createWindow() {
     recoverMainWindow("render-process-gone");
   });
 
-  if (USE_BUNDLED) {
-    logEvent("load-mode", { mode: "bundled", distIndex: DIST_INDEX });
-    mainWindow.loadFile(DIST_INDEX);
-  } else {
-    logEvent("load-mode", { mode: "url", url: activeApiUrl });
-    mainWindow.loadURL(activeApiUrl);
-  }
+  mainWindow.loadURL(activeHomeUrl);
 }
 
 function recoverMainWindow(reason = "unknown") {
@@ -265,23 +231,15 @@ app.whenReady().then(() => {
   fs.mkdirSync(logDir, { recursive: true });
   logFilePath = path.join(logDir, "electron-events.log");
   sourceConfigPath = path.join(app.getPath("userData"), "source.json");
-  activeApiUrl = resolveStartupUrl();
-
-  logEvent("app-ready", { bundled: USE_BUNDLED, apiUrl: activeApiUrl });
+  activeHomeUrl = resolveStartupUrl();
+  logEvent("app-ready", { activeHomeUrl });
 
   session.defaultSession.setPermissionRequestHandler((wc, permission, callback, details) => {
     const origin = details?.requestingOrigin || wc?.getURL?.() || "";
-    const allowed = ALLOWED_PERMISSIONS.has(String(permission || "")) && isAllowedOrigin(origin);
+    const allowed = ALLOWED_PERMISSIONS.has(String(permission || "")) && isAllowed(origin);
+    logEvent("permission-request", { permission, origin, allowed });
     callback(allowed);
   });
-
-  // Allow API calls from file:// to the local server (CORS bypass for bundled mode)
-  if (USE_BUNDLED) {
-    session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
-      const headers = { ...details.requestHeaders, Origin: activeApiUrl };
-      callback({ requestHeaders: headers });
-    });
-  }
 
   Menu.setApplicationMenu(null);
   createWindow();
@@ -301,4 +259,10 @@ app.on("second-instance", () => {
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
+});
+
+app.on("before-quit", () => logEvent("before-quit"));
+app.on("render-process-gone", (_e, _wc, details) => {
+  logEvent("app-render-process-gone", details || {});
+  recoverMainWindow("app-render-process-gone");
 });
