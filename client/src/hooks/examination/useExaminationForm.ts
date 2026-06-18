@@ -844,7 +844,7 @@ export function useExaminationForm(
     if (!data) return;
     if (hydratedPatientStateRef.current === patientInfo.id) return;
     if (data.sheetSelection) setSheetSelection(data.sheetSelection);
-    if (data.visitDate) setVisitDate(data.visitDate);
+    if (data.visitDate && data.visitDate >= localISODate()) setVisitDate(data.visitDate);
     if (typeof data.isFollowup === "boolean") {
       setIsFollowup(data.isFollowup);
     }

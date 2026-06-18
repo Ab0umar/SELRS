@@ -431,7 +431,7 @@ export default function ExaminationForm() {
     const data = (patientStateQuery.data as any)?.data;
     if (!data) return;
     if (data.sheetSelection) setSheetSelection(data.sheetSelection);
-    if (data.visitDate) setVisitDate(data.visitDate);
+    if (data.visitDate && data.visitDate >= localISODate()) setVisitDate(data.visitDate);
     if (data.doctorName !== undefined) setDoctorName(data.doctorName ?? "");
     if (data.medicalChecklist) {
       setMedicalChecklist((prev) => ({ ...prev, ...data.medicalChecklist }));
