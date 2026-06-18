@@ -1295,7 +1295,16 @@ export function useExaminationForm(
           code: created.patientCode || prev.code,
         }));
       } else {
-        // Existing patient - link all services
+        // Existing patient — push to MSSQL (new receipt) + create today's visit
+        await createPatientFromExamMutation.mutateAsync({
+          patientCode: patientInfo.code || undefined,
+          fullName: patientInfo.name.trim(),
+          phone: patientDetails.phone || undefined,
+          serviceType: (sheetSelection as any) || "consultant",
+          locationType,
+        }).catch((err) => console.warn("[ExaminationForm] existing patient MSSQL push failed:", err));
+
+        // Link additional services
         for (const srv of services) {
           if (srv.code.trim()) {
             try {
