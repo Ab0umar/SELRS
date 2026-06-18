@@ -763,13 +763,7 @@ export function useExaminationForm(
     if (data.locationType) {
       setLocationType(data.locationType === "external" ? "external" : "center");
     }
-    if (data.lastVisit) {
-      const examDate = new Date(data.lastVisit);
-      const examDateStr = formatDateForInput(examDate);
-      setVisitDate(examDateStr);
-    } else {
-      setVisitDate(localISODate());
-    }
+    setVisitDate(localISODate());
   }, [patientQuery.data]);
 
   // DOB -> age sync
@@ -829,7 +823,8 @@ export function useExaminationForm(
     try {
       const data = JSON.parse(raw);
       if (data.sheetSelection) setSheetSelection(data.sheetSelection);
-      if (data.visitDate) setVisitDate(data.visitDate);
+      // Only restore visitDate if it's today or future — never a past date
+      if (data.visitDate && data.visitDate >= localISODate()) setVisitDate(data.visitDate);
       if (typeof data.isFollowup === "boolean") {
         setIsFollowup(data.isFollowup);
       }
