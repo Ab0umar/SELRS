@@ -361,10 +361,10 @@ export class PayrollComputeService {
     const sumBasicsForPenta = Array.from(empBasicMap.entries())
       .filter(([cd]) => commFlagsMap.get(cd)?.commPentacam !== false)
       .reduce((s, [, b]) => s + b, 0);
-    // Exam denominator: sum basics of employees eligible for exam
-    const sumBasicsForExam = Array.from(empBasicMap.entries())
-      .filter(([cd]) => commFlagsMap.get(cd)?.commExam !== false)
-      .reduce((s, [, b]) => s + b, 0);
+    // Exam count: only count employees eligible for exam
+    const activeExamCount = Array.from(empBasicMap.keys()).filter(
+      (cd) => commFlagsMap.get(cd)?.commExam !== false,
+    ).length;
 
     // Load shift staff for مركز — they share the same exam/pentacam pools
     const activeShiftStaff = isMarkaz
@@ -494,8 +494,12 @@ export class PayrollComputeService {
     );
     // Denominators: use eligibility-filtered employee sums + techs
     const totalSumForPentacam = sumBasicsForPenta + sumTechShiftPay;
-    const totalSumForExam = sumBasicsForExam + sumTechShiftPay;
-    // مركز: 60% of examPool to doctors (by salary), 40% to emps+techs (proportionally by salary)
+    // Only count techs who have at least one scheduled shift this month
+    const activeTechsThisMonth = techs.filter(
+      (ss) => (shiftStatsMap.get(ss.id)?.scheduled ?? 0) > 0,
+    );
+    const totalCountForExam = activeExamCount + activeTechsThisMonth.length;
+    // مركز: 60% of examPool to doctors (by salary), 40% to emps+techs (equally)
     const examPoolDrs = round2(examPool * 0.6);
     const examPoolEmpsTechs = round2(examPool * 0.4);
 
@@ -645,8 +649,8 @@ export class PayrollComputeService {
       } else {
         if (isMarkaz) {
           examCommission =
-            totalSumForExam > 0
-              ? round2((basic / totalSumForExam) * examPoolEmpsTechs)
+            totalCountForExam > 0
+              ? round2(examPoolEmpsTechs / totalCountForExam)
               : 0;
         } else {
           const empShares = emp.salaryType === "الاثنين" ? 2 : 1;
@@ -735,8 +739,8 @@ export class PayrollComputeService {
 
       const attendanceCommission = round2(0.25 * netBasic);
       const examCommission =
-        scheduled > 0 && totalSumForExam > 0 && netBasic > 0
-          ? round2((netBasic / totalSumForExam) * examPoolEmpsTechs)
+        scheduled > 0 && totalCountForExam > 0 && netBasic > 0
+          ? round2(examPoolEmpsTechs / totalCountForExam)
           : 0;
       const pentacamCommission = round2(
         totalSumForPentacam > 0
