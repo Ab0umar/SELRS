@@ -643,10 +643,10 @@ export class PayrollComputeService {
           ? Number(emp.attendanceLeaveMultiplier)
           : null;
       const lm = customLm !== null ? customLm : leaveMultiplier(leaveDays);
-      // Insurance does not reduce the commission multiplier
+      // Only insurance is excluded from the commission deduction basis
       const deductionsForComm = round2(
-        absentDeduction + lateDeduction + earlyLeaveDeduction +
-        penaltyDeduction + advancesDeduction,
+        absentDeduction + missingCheckoutDeduction + lateDeduction +
+        earlyLeaveDeduction + penaltyDeduction + advancesDeduction,
       );
       const deductionPctForComm = basic > 0 ? Math.min(1, deductionsForComm / basic) : 0;
       const commMult = lm * (1 - deductionPctForComm);
