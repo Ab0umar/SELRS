@@ -651,7 +651,7 @@ export default function AdminHubShell() {
       </div>
 
       {/* Two-column layout: Sidebar + Content */}
-      <div className="flex flex-col lg:flex-row mx-auto w-full max-w-[1600px]">
+      <div className="flex flex-col lg:flex-row w-full">
         {/* Sidebar Navigation (Desktop only) */}
         <aside className="hidden lg:block w-full border-b border-border/60 bg-card/20 lg:w-64 lg:border-b-0 lg:border-r border-border/60 min-h-[calc(100vh-115px)]">
           <nav className="space-y-4 p-4 sticky top-4">
