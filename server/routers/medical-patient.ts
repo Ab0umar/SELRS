@@ -13,7 +13,7 @@ import {
   DEFAULT_APP_NOTIFICATION_SETTINGS,
 } from "../_core/appNotifications";
 import * as db from "../db";
-import { upsertPatientToMssql } from "../integrations/mssqlPatients";
+import { upsertPatientToMssql, createOrSyncPatientFromMssql } from "../integrations/mssqlPatients";
 import { isExternalServiceType } from "../../shared/serviceType";
 import {
   patientServiceEntries,
@@ -748,403 +748,89 @@ export const medicalPatientRoutes = {
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const existingByCode =
-          input.patientCode && input.patientCode.trim()
-            ? await db.getPatientByCode(input.patientCode.trim())
-            : null;
-
-        const existingByIdentity =
-          existingByCode ??
-          (await findExistingPatientByNameOrPhone(
+        // ── Step 1: resolve patientCode ────────────────────────────────────
+        let patientCode = String(input.patientCode ?? "").trim();
+        if (!patientCode) {
+          // Check by name/phone first to avoid creating a duplicate
+          const byIdentity = await findExistingPatientByNameOrPhone(
             input.fullName,
             input.phone ?? "",
-          ));
-
-        // Resolve doctor code
-        let doctorCode = String(input.doctorCode ?? "").trim() || null;
-        if (!doctorCode) {
-          doctorCode =
-            (await resolveDoctorCodeById(
-              input.doctorId ?? (existingByIdentity as any)?.doctorId,
-            )) ?? null;
+          );
+          patientCode = String((byIdentity as any)?.patientCode ?? "").trim();
         }
-        if (!doctorCode) {
-          doctorCode =
-            (await resolveDoctorCodeByName(input.doctorName ?? null)) ?? null;
+        if (!patientCode) {
+          patientCode = await db.getNextPatientCode();
+        }
+
+        // ── Step 2: resolve doctorCode ─────────────────────────────────────
+        let doctorCode = String(input.doctorCode ?? "").trim() || null;
+        if (!doctorCode && input.doctorId) {
+          doctorCode = (await resolveDoctorCodeById(input.doctorId)) ?? null;
+        }
+        if (!doctorCode && input.doctorName) {
+          doctorCode = (await resolveDoctorCodeByName(input.doctorName)) ?? null;
         }
 
         const processServices =
           input.services && input.services.length > 0
             ? input.services
             : input.serviceCode
-              ? [
-                  {
-                    code: input.serviceCode,
-                    qty: input.serviceQty ?? 1,
-                    price: input.servicePrice ?? 0,
-                    discount: input.discountValue ?? 0,
-                  },
-                ]
+              ? [{ code: input.serviceCode, qty: input.serviceQty ?? 1, price: input.servicePrice ?? 0, discount: input.discountValue ?? 0 }]
               : [];
 
-        if (existingByIdentity) {
-          const existingId = Number((existingByIdentity as any)?.id ?? 0);
-          const existingCode = String(
-            (existingByIdentity as any)?.patientCode ?? "",
-          ).trim();
+        // ── Step 3: push to MSSQL (new receipt) ───────────────────────────
+        const pricingPayload = processServices.length > 0
+          ? registrationPricingPayload({ servicePrice: processServices[0].price, serviceQty: Number(processServices[0].qty) || 1, discountValue: processServices[0].discount })
+          : {};
 
-          if (existingId > 0) {
-            await db
-              .updatePatient(existingId, {
-                lastVisit: new Date(),
-                ...(input.serviceType
-                  ? { serviceType: input.serviceType }
-                  : {}),
-                ...(input.locationType
-                  ? { locationType: input.locationType }
-                  : {}),
-                ...(input.doctorId ? { doctorId: input.doctorId } : {}),
-              })
-              .catch(() => null);
-          }
-
-          if (!existingCode) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Existing patient has no patientCode",
-            });
-          }
-
-          let firstTrNo: number | null = null;
-
-          // If no services provided, still push existing patient to MSSQL
-          if (processServices.length === 0) {
-            const pushResult = await pushNewPatientToMssql({
-              patientCode: existingCode,
-              fullName: String(
-                (existingByIdentity as any)?.fullName ?? input.fullName ?? "",
-              ).trim(),
-              phone:
-                String(
-                  (existingByIdentity as any)?.phone ?? input.phone ?? "",
-                ).trim() || null,
-              address:
-                String(
-                  (existingByIdentity as any)?.address ?? input.address ?? "",
-                ).trim() || null,
-              age: Number.isFinite(Number((existingByIdentity as any)?.age))
-                ? Number((existingByIdentity as any)?.age)
-                : Number.isFinite(Number(input.age))
-                  ? Number(input.age)
-                  : null,
-              gender:
-                String((existingByIdentity as any)?.gender ?? "").trim() ||
-                null,
-              dateOfBirth:
-                (existingByIdentity as any)?.dateOfBirth ??
-                input.dateOfBirth ??
-                null,
-              branch:
-                String(
-                  (existingByIdentity as any)?.branch ?? "examinations",
-                ).trim() || "examinations",
-              serviceType:
-                input.serviceType ??
-                (existingByIdentity as any)?.serviceType ??
-                null,
-              locationType:
-                (input.serviceType === "external"
-                  ? "external"
-                  : input.locationType) ??
-                (String(
-                  (existingByIdentity as any)?.locationType ?? "",
-                ).trim() === "external"
-                  ? "external"
-                  : "center"),
-              doctorCode: doctorCode || null,
-              enteredBy:
-                String(
-                  (ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "",
-                ).trim() || null,
-              serviceCode: null,
-            });
-            firstTrNo = pushResult?.trNo ?? null;
-          }
-
-          // Push all services
-          for (let i = 0; i < processServices.length; i++) {
-            const srv = processServices[i];
-            const pricingPayload = registrationPricingPayload({
-              servicePrice: srv.price,
-              serviceQty: Number(srv.qty) || 1,
-              discountValue: srv.discount,
-            });
-
-            const pushResult = await pushNewPatientToMssql({
-              patientCode: existingCode,
-              fullName: String(
-                (existingByIdentity as any)?.fullName ?? input.fullName ?? "",
-              ).trim(),
-              phone:
-                String(
-                  (existingByIdentity as any)?.phone ?? input.phone ?? "",
-                ).trim() || null,
-              address:
-                String(
-                  (existingByIdentity as any)?.address ?? input.address ?? "",
-                ).trim() || null,
-              age: Number.isFinite(Number((existingByIdentity as any)?.age))
-                ? Number((existingByIdentity as any)?.age)
-                : Number.isFinite(Number(input.age))
-                  ? Number(input.age)
-                  : null,
-              gender:
-                String((existingByIdentity as any)?.gender ?? "").trim() ||
-                null,
-              dateOfBirth:
-                (existingByIdentity as any)?.dateOfBirth ??
-                input.dateOfBirth ??
-                null,
-              branch:
-                String(
-                  (existingByIdentity as any)?.branch ?? "examinations",
-                ).trim() || "examinations",
-              serviceType:
-                input.serviceType ??
-                (existingByIdentity as any)?.serviceType ??
-                null,
-              locationType:
-                (input.serviceType === "external"
-                  ? "external"
-                  : input.locationType) ??
-                (String(
-                  (existingByIdentity as any)?.locationType ?? "",
-                ).trim() === "external"
-                  ? "external"
-                  : "center"),
-              doctorCode: doctorCode || null,
-              enteredBy:
-                String(
-                  (ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "",
-                ).trim() || null,
-              serviceCode: srv.code,
-              servicePrice:
-                "servicePrice" in pricingPayload
-                  ? (pricingPayload.servicePrice ?? null)
-                  : null,
-              serviceQty:
-                "serviceQty" in pricingPayload
-                  ? (pricingPayload.serviceQty ?? null)
-                  : null,
-              discountValue:
-                "discountValue" in pricingPayload
-                  ? (pricingPayload.discountValue ?? null)
-                  : null,
-              paValue:
-                "paValue" in pricingPayload
-                  ? (pricingPayload.paValue ?? null)
-                  : null,
-            });
-
-            if (i === 0) firstTrNo = pushResult?.trNo ?? null;
-          }
-
-          await db.logAuditEvent(
-            ctx.user.id,
-            "CREATE_PATIENT_RECEIPT_EXISTING_MULTI",
-            "patient",
-            existingId,
-            {
-              message: `Created ${processServices.length} receipts for existing patient`,
-              patientCode: existingCode,
-            },
-          );
-
-          // Always create a fresh checkedIn visit for today's queue
-          if (existingId > 0) {
-            const branchRaw = String((existingByIdentity as any)?.branch ?? "").trim().toLowerCase();
-            const branch = branchRaw === "surgery" ? "surgery" : "examinations";
-            await db.createVisit({ patientId: existingId, visitDate: new Date(), visitType: "consultation", branch, queueStatus: "checkedIn", checkedInAt: new Date() })
-              .catch((err) => console.error("[createPatientFromExamination] createVisit failed", existingId, err));
-          }
-
-          return {
-            id: existingId,
-            patientCode: existingCode,
-            fullName: String(
-              (existingByIdentity as any)?.fullName ?? input.fullName ?? "",
-            ),
-            receiptNo: firstTrNo,
-          };
-        }
-
-        const code =
-          input.patientCode && input.patientCode.trim()
-            ? input.patientCode.trim()
-            : await db.getNextPatientCode();
-
-        const existing = await db.getPatientByCode(code);
-        if (existing) {
-          // Shouldn't reach here — existingByIdentity should have caught it.
-          // Treat as existing patient: push to MSSQL + create visit.
-          const eid = Number((existing as any)?.id ?? 0);
-          if (eid > 0) {
-            const branchRaw = String((existing as any)?.branch ?? "").trim().toLowerCase();
-            const branch = branchRaw === "surgery" ? "surgery" : "examinations";
-            await db.createVisit({ patientId: eid, visitDate: new Date(), visitType: "consultation", branch, queueStatus: "checkedIn", checkedInAt: new Date() }).catch(() => null);
-          }
-          return { success: true, reused: true, patientId: eid, patientCode: code, receiptNo: null };
-        }
-
-        await db.createPatient({
-          patientCode: code,
+        const pushResult = await pushNewPatientToMssql({
+          patientCode,
           fullName: input.fullName,
-          dateOfBirth: input.dateOfBirth || null,
+          phone: input.phone || null,
+          address: input.address || null,
           age: input.age ?? null,
-          phone: input.phone || "",
-          address: input.address || "",
-          occupation: input.occupation || "",
-          gender: null,
+          dateOfBirth: input.dateOfBirth || null,
           branch: "examinations",
           serviceType: input.serviceType || "consultant",
           locationType: input.locationType || "center",
-          doctorId: input.doctorId || null,
-        });
+          doctorCode: doctorCode || null,
+          enteredBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
+          serviceCode: processServices[0]?.code || null,
+          ...pricingPayload,
+        }).catch((err) => { console.warn("[createPatientFromExamination] MSSQL push failed:", err); return null; });
 
-        const newPatient = await db.getPatientByCode(code);
-        if (!newPatient) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to create patient record",
-          });
-        }
-
-        let firstTrNo: number | null = null;
-
-        // If no services provided, still push patient to MSSQL
-        if (processServices.length === 0) {
-          const pushResult = await pushNewPatientToMssql({
-            patientCode: code,
-            fullName: input.fullName,
-            phone: input.phone || null,
-            address: input.address || null,
-            age: input.age ?? null,
-            dateOfBirth: input.dateOfBirth || null,
-            branch: "examinations",
-            serviceType: input.serviceType || "consultant",
-            locationType: input.locationType,
-            doctorCode: doctorCode || null,
-            enteredBy:
-              String(
-                (ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "",
-              ).trim() || null,
-            serviceCode: null,
-          });
-          firstTrNo = pushResult?.trNo ?? null;
-        }
-
-        for (let i = 0; i < processServices.length; i++) {
+        // Push remaining services separately
+        for (let i = 1; i < processServices.length; i++) {
           const srv = processServices[i];
-          const pricingPayload = registrationPricingPayload({
-            servicePrice: srv.price,
-            serviceQty: Number(srv.qty) || 1,
-            discountValue: srv.discount,
-          });
-
-          const pushResult = await pushNewPatientToMssql({
-            patientCode: code,
-            fullName: input.fullName,
-            phone: input.phone || null,
-            address: input.address || null,
-            age: input.age ?? null,
-            dateOfBirth: input.dateOfBirth || null,
-            branch: "examinations",
-            serviceType: input.serviceType || "consultant",
-            locationType: input.locationType,
-            doctorCode: doctorCode || null,
-            enteredBy:
-              String(
-                (ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "",
-              ).trim() || null,
-            serviceCode: srv.code,
-            servicePrice:
-              "servicePrice" in pricingPayload
-                ? (pricingPayload.servicePrice ?? null)
-                : null,
-            serviceQty:
-              "serviceQty" in pricingPayload
-                ? (pricingPayload.serviceQty ?? null)
-                : null,
-            discountValue:
-              "discountValue" in pricingPayload
-                ? (pricingPayload.discountValue ?? null)
-                : null,
-            paValue:
-              "paValue" in pricingPayload
-                ? (pricingPayload.paValue ?? null)
-                : null,
-          });
-          if (i === 0) firstTrNo = pushResult?.trNo ?? null;
+          const p = registrationPricingPayload({ servicePrice: srv.price, serviceQty: Number(srv.qty) || 1, discountValue: srv.discount });
+          await pushNewPatientToMssql({ patientCode, fullName: input.fullName, branch: "examinations", serviceCode: srv.code, doctorCode: doctorCode || null, ...p })
+            .catch(() => null);
         }
 
-        await db.logAuditEvent(
-          ctx.user.id,
-          "CREATE_PATIENT_MULTI_SRV",
-          "patient",
-          Number(newPatient.id),
-          {
-            message: `Registered new patient with ${processServices.length} services`,
-            patientCode: code,
-          },
-        ).catch(() => null);
+        // ── Step 4: sync MSSQL → MySQL (create/update patient + today visit) ─
+        const { patientId } = await createOrSyncPatientFromMssql(patientCode, input.serviceType);
 
-        const notifSettings = await getAppNotificationSettings().catch(
-          () => DEFAULT_APP_NOTIFICATION_SETTINGS,
-        );
+        // ── Step 5: notify ─────────────────────────────────────────────────
+        const notifSettings = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
         if (notifSettings.patients.enabled) {
-          const targetRoles = resolveNotificationTargetRolesByUserRole(
-            (ctx.user as any)?.role,
-          );
-          const serviceCodes = processServices.map((s) => s.code).filter(Boolean) as string[];
-          const notifTitle = resolvePatientNotifTitle(serviceCodes);
           await pushAppNotification({
-            title: notifTitle,
-            message: String(input.fullName ?? "").trim(),
+            title: resolvePatientNotifTitle(processServices.map(s => s.code)),
+            message: input.fullName,
             kind: "success",
-            targetRoles,
             source: "manual_patient_create",
             entityType: "patient",
-            entityId: Number(newPatient.id),
-            meta: {
-              patientCode: code,
-              fullName: input.fullName,
-              createdBy: String(
-                (ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "",
-              ).trim() || null,
-            },
-            channels: {
-              inApp: notifSettings.patients.inApp,
-              push: notifSettings.patients.push,
-              local: notifSettings.patients.local,
-            },
+            entityId: patientId,
+            meta: { patientCode, fullName: input.fullName, createdBy: String((ctx.user as any)?.name ?? "").trim() || null },
+            channels: { inApp: notifSettings.patients.inApp, push: notifSettings.patients.push, local: notifSettings.patients.local },
           }).catch((e) => console.warn("[createPatientFromExamination] notif failed:", e));
         }
 
-        return {
-          id: Number(newPatient.id),
-          patientCode: code,
-          fullName: input.fullName,
-          receiptNo: firstTrNo,
-        };
+        return { id: patientId, patientCode, fullName: input.fullName, receiptNo: pushResult?.trNo ?? null };
       } catch (error: any) {
         console.error("[medical:createPatientFromExamination]", error);
-        throw new TRPCError({
-          code: error.code || "INTERNAL_SERVER_ERROR",
-          message: error.message || "Failed to create patient and receipts",
-        });
+        throw new TRPCError({ code: error.code || "INTERNAL_SERVER_ERROR", message: error.message || "Failed to create patient" });
       }
     }),
-
   getPatientServiceEntries: protectedProcedure
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {

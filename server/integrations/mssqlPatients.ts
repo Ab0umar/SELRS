@@ -2053,6 +2053,99 @@ export async function syncSinglePatientFromMssql(
   }
 }
 
+/**
+ * After an MSSQL insert, read the patient back from MSSQL and create/update
+ * the MySQL record, then stamp a checkedIn visit for today's queue.
+ * This is the single function that makes "insert to MSSQL only" work.
+ */
+export async function createOrSyncPatientFromMssql(
+  patientCodeRaw: string,
+  serviceType?: string,
+): Promise<{ patientId: number; created: boolean }> {
+  const patientCode = String(patientCodeRaw ?? "").trim();
+  if (!patientCode) throw new Error("Missing patientCode");
+
+  const pool = await createMssqlPool();
+  let mssqlRow: Record<string, any> | null = null;
+  try {
+    await pool.connect();
+    const req = pool.request();
+    req.input("PAT_CD", patientCode);
+    const result = await req.query(`
+      SELECT TOP 1
+        PAT_CD AS patientCode,
+        NAM    AS fullName,
+        TEL1   AS phone,
+        ADDRS  AS address,
+        AGE    AS age,
+        GNDR   AS gender,
+        CONVERT(varchar(10), BDT, 120) AS dateOfBirth,
+        IDNO   AS idno,
+        BRNCH  AS branch,
+        COALESCE(ENTEREDBY,'') AS receptionSignature
+      FROM op2026.dbo.PAJRNRCVH
+      WHERE PAT_CD = @PAT_CD
+      ORDER BY
+        CASE WHEN ISDATE(UPDATEDATE)=1 THEN CONVERT(datetime,UPDATEDATE) END DESC,
+        CASE WHEN ISDATE(ENTRYDATE) =1 THEN CONVERT(datetime,ENTRYDATE)  END DESC
+    `);
+    const rows = Array.isArray(result?.recordset) ? result.recordset : [];
+    if (rows.length > 0) mssqlRow = rows[0] as Record<string, any>;
+  } finally {
+    try { await pool.close(); } catch {}
+  }
+
+  const today = new Date();
+  const todayIso = today.toISOString().split("T")[0];
+  const branchRaw = String(mssqlRow?.branch ?? "").trim().toLowerCase();
+  const branch = branchRaw === "surgery" ? "surgery" : "examinations";
+  const idno = Number(mssqlRow?.idno ?? 0);
+  const locationType = idno === 2 ? "external" : "center";
+  const resolvedServiceType = serviceType || (locationType === "external" ? "external" : "consultant");
+
+  // Create or update MySQL patient
+  const existing = await db.getPatientByCode(patientCode);
+  let patientId: number;
+  let created = false;
+
+  if (!existing) {
+    // New patient — build from MSSQL data
+    const fullName = String(mssqlRow?.fullName ?? patientCode).trim();
+    await db.createPatient({
+      patientCode,
+      fullName,
+      phone: String(mssqlRow?.phone ?? "").trim() || "",
+      address: String(mssqlRow?.address ?? "").trim() || "",
+      age: Number(mssqlRow?.age ?? 0) || null,
+      gender: null,
+      branch,
+      serviceType: resolvedServiceType,
+      locationType,
+      lastVisit: today,
+      status: "new",
+    });
+    const newRow = await db.getPatientByCode(patientCode);
+    if (!newRow) throw new Error("Failed to create MySQL patient after MSSQL sync");
+    patientId = Number((newRow as any).id);
+    created = true;
+  } else {
+    patientId = Number((existing as any).id);
+    await db.updatePatient(patientId, { lastVisit: today }).catch(() => null);
+  }
+
+  // Always stamp a fresh checkedIn visit for today
+  await db.createVisit({
+    patientId,
+    visitDate: today,
+    visitType: "consultation",
+    branch,
+    queueStatus: "checkedIn",
+    checkedInAt: today,
+  }).catch((err) => console.error("[createOrSyncPatientFromMssql] createVisit failed:", err));
+
+  return { patientId, created };
+}
+
 export async function insertPatientToMssql(
   input: MssqlPatientInsertInput,
 ): Promise<{ inserted: boolean; note?: string; trNo?: number | null }> {
