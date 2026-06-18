@@ -2072,6 +2072,9 @@ async function startServer() {
       fallthrough: true,
     }),
   );
+  // Electron auto-updater: serve installer files from desktop-electron/
+  const electronUpdatesDir = path.resolve(process.cwd(), "desktop-electron");
+  app.use("/updates", express.static(electronUpdatesDir, { maxAge: "5m", fallthrough: true }));
 
   // Facebook OAuth callback — security: state is verified, token never logged or returned to client
   app.get("/api/marketing/facebook/callback", async (req, res) => {

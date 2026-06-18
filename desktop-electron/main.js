@@ -1,134 +1,165 @@
-const { app, BrowserWindow, shell, session, Menu } = require("electron");
+const { app, BrowserWindow, shell, session, Menu, ipcMain } = require("electron");
 const path = require("path");
 const fs = require("fs");
 
-const DEFAULT_HOME_URL = "http://192.168.1.100:4000";
+const DEFAULT_API_URL = "http://192.168.1.100:4000";
 const SOURCE_PRESETS = [
-  { id: "localhost", label: "Localhost (localhost:4000)", url: "http://localhost:4000" },
-  { id: "local", label: "Local (192.168.1.100:4000)", url: "http://192.168.1.100:4000" },
-  { id: "lan", label: "LAN (192.168.0.100:4000)", url: "http://192.168.0.100:4000" },
-  { id: "online", label: "Online (selrs.cc)", url: "https://selrs.cc" },
+  { id: "local",     label: "Local (192.168.1.100:4000)", url: "http://192.168.1.100:4000" },
+  { id: "localhost", label: "Localhost (localhost:4000)",  url: "http://localhost:4000" },
+  { id: "lan",       label: "LAN (192.168.0.100:4000)",   url: "http://192.168.0.100:4000" },
+  { id: "online",    label: "Online (selrs.cc)",           url: "https://selrs.cc" },
 ];
 const UA_SUFFIX = " SELRSDesktop/1";
 const WINDOW_SHOW_TIMEOUT_MS = 4000;
 const WINDOW_OVERLAY_HEIGHT = 36;
 const ALLOWED_PERMISSIONS = new Set([
-  "media", // camera/mic for app workflows
-  "notifications",
-  "clipboard-read",
-  "clipboard-sanitized-write",
-  "fullscreen",
+  "media", "notifications", "clipboard-read", "clipboard-sanitized-write", "fullscreen",
 ]);
+
+const DIST_INDEX = path.join(__dirname, "dist", "index.html");
+const USE_BUNDLED = fs.existsSync(DIST_INDEX);
 
 let mainWindow = null;
 let logFilePath = "";
-let activeHomeUrl = DEFAULT_HOME_URL;
+let activeApiUrl = DEFAULT_API_URL;
 let sourceConfigPath = "";
 let recoveringFromCrash = false;
 
-// Stability first: avoids a class of GPU/driver issues that can look like random reloads.
 app.disableHardwareAcceleration();
-
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
-if (!gotSingleInstanceLock) {
-  app.quit();
-}
+if (!gotSingleInstanceLock) app.quit();
 
+// ── Logging ───────────────────────────────────────────────────────────────────
 function logEvent(type, payload = {}) {
   try {
     if (!logFilePath) return;
-    const line = JSON.stringify({
-      time: new Date().toISOString(),
-      type,
-      ...payload
-    });
-    fs.appendFileSync(logFilePath, line + "\n", "utf8");
+    fs.appendFileSync(logFilePath, JSON.stringify({ time: new Date().toISOString(), type, ...payload }) + "\n", "utf8");
   } catch {}
 }
 
+// ── Source config ─────────────────────────────────────────────────────────────
 function normalizeSourceUrl(raw) {
   const value = String(raw || "").trim();
   if (!value) return "";
   const withProtocol = /^https?:\/\//i.test(value) ? value : `http://${value}`;
-  try {
-    const u = new URL(withProtocol);
-    return `${u.protocol}//${u.host}`;
-  } catch {
-    return "";
-  }
+  try { const u = new URL(withProtocol); return `${u.protocol}//${u.host}`; }
+  catch { return ""; }
 }
 
 function readSourceConfig() {
   try {
     if (!sourceConfigPath || !fs.existsSync(sourceConfigPath)) return null;
-    const raw = fs.readFileSync(sourceConfigPath, "utf8");
-    const parsed = JSON.parse(raw);
-    const nextUrl = normalizeSourceUrl(parsed?.url);
-    return nextUrl || null;
-  } catch {
-    return null;
-  }
+    const parsed = JSON.parse(fs.readFileSync(sourceConfigPath, "utf8"));
+    return normalizeSourceUrl(parsed?.url) || null;
+  } catch { return null; }
 }
 
 function writeSourceConfig(url) {
-  try {
-    if (!sourceConfigPath) return;
-    fs.writeFileSync(sourceConfigPath, JSON.stringify({ url }, null, 2), "utf8");
-  } catch {}
+  try { if (sourceConfigPath) fs.writeFileSync(sourceConfigPath, JSON.stringify({ url }, null, 2), "utf8"); }
+  catch {}
 }
 
 function resolveStartupUrl() {
-  const argSource = process.argv.find((arg) => arg.startsWith("--source="));
+  const argSource = process.argv.find((a) => a.startsWith("--source="));
   const argUrl = normalizeSourceUrl(argSource ? argSource.slice("--source=".length) : "");
   const envUrl = normalizeSourceUrl(process.env.SELRS_DESKTOP_URL || "");
-  const fileUrl = readSourceConfig();
-  return argUrl || envUrl || fileUrl || DEFAULT_HOME_URL;
+  return argUrl || envUrl || readSourceConfig() || DEFAULT_API_URL;
 }
 
-function isAllowed(url) {
+function isAllowedOrigin(url) {
   try {
     const u = new URL(url);
     const origin = `${u.protocol}//${u.host}`;
-    const activeOrigin = normalizeSourceUrl(activeHomeUrl);
-    return origin === activeOrigin || SOURCE_PRESETS.some((preset) => origin === normalizeSourceUrl(preset.url));
-  } catch {
+    if (origin === normalizeSourceUrl(activeApiUrl)) return true;
+    if (SOURCE_PRESETS.some((p) => origin === normalizeSourceUrl(p.url))) return true;
+    // Allow file:// when bundled
+    if (USE_BUNDLED && u.protocol === "file:") return true;
     return false;
-  }
+  } catch { return false; }
 }
 
 function switchSource(nextUrl) {
   const normalized = normalizeSourceUrl(nextUrl);
-  if (!normalized) return;
-  if (normalized === normalizeSourceUrl(activeHomeUrl)) return;
-  activeHomeUrl = normalized;
+  if (!normalized || normalized === normalizeSourceUrl(activeApiUrl)) return;
+  activeApiUrl = normalized;
   writeSourceConfig(normalized);
   logEvent("source-changed", { url: normalized });
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.loadURL(activeHomeUrl);
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (USE_BUNDLED) {
+    mainWindow.webContents.reload();
+  } else {
+    mainWindow.loadURL(activeApiUrl);
   }
 }
 
+// ── Auto-updater ──────────────────────────────────────────────────────────────
+function initAutoUpdater() {
+  try {
+    const { autoUpdater } = require("electron-updater");
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = true;
+
+    // Check for updates from the local server's /updates/ endpoint
+    autoUpdater.setFeedURL({
+      provider: "generic",
+      url: `${activeApiUrl}/updates`,
+    });
+
+    autoUpdater.on("update-available", (info) => {
+      logEvent("update-available", { version: info.version });
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("update-available", info);
+      }
+    });
+
+    autoUpdater.on("update-downloaded", (info) => {
+      logEvent("update-downloaded", { version: info.version });
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("update-downloaded", info);
+      }
+    });
+
+    autoUpdater.on("error", (err) => {
+      logEvent("updater-error", { message: String(err?.message || err) });
+    });
+
+    ipcMain.handle("check-for-update", async () => {
+      try { await autoUpdater.checkForUpdates(); return { ok: true }; }
+      catch (e) { return { ok: false, error: String(e?.message || e) }; }
+    });
+
+    ipcMain.on("install-update", () => {
+      autoUpdater.quitAndInstall();
+    });
+
+    // Check 30s after launch, then every 4 hours
+    setTimeout(() => autoUpdater.checkForUpdates().catch(() => {}), 30_000);
+    setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 4 * 60 * 60 * 1000);
+
+  } catch (e) {
+    logEvent("updater-init-failed", { message: String(e?.message || e) });
+  }
+}
+
+// ── IPC ───────────────────────────────────────────────────────────────────────
+ipcMain.on("get-api-url", (event) => {
+  event.returnValue = activeApiUrl;
+});
+
+// ── Source menu ───────────────────────────────────────────────────────────────
 function buildSourceMenu() {
-  const activeOrigin = normalizeSourceUrl(activeHomeUrl);
-  const items = SOURCE_PRESETS.map((preset) => {
-    const presetUrl = normalizeSourceUrl(preset.url);
-    return {
-      type: "radio",
-      label: preset.label,
-      checked: presetUrl === activeOrigin,
-      click: () => switchSource(presetUrl),
-    };
-  });
+  const activeOrigin = normalizeSourceUrl(activeApiUrl);
+  const items = SOURCE_PRESETS.map((preset) => ({
+    type: "radio",
+    label: preset.label,
+    checked: normalizeSourceUrl(preset.url) === activeOrigin,
+    click: () => switchSource(preset.url),
+  }));
   items.push(
     { type: "separator" },
-    {
-      label: "Reload",
-      click: () => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.loadURL(activeHomeUrl);
-        }
-      },
-    }
+    { label: "Check for Updates", click: () => ipcMain.emit("check-for-update") },
+    { type: "separator" },
+    { label: "Reload", click: () => mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents.reload() },
   );
   return Menu.buildFromTemplate(items);
 }
@@ -138,32 +169,22 @@ function showSourceMenu() {
   buildSourceMenu().popup({ window: mainWindow });
 }
 
+// ── Window ────────────────────────────────────────────────────────────────────
 function createWindow() {
   let showWindowTimer = null;
   mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
-    show: false,
-    frame: false,
-    thickFrame: false,
+    width: 1400, height: 900, show: false, frame: false, thickFrame: false,
     titleBarStyle: "hidden",
-    titleBarOverlay: {
-      color: "#094e78",
-      symbolColor: "#f5f7fa",
-      height: WINDOW_OVERLAY_HEIGHT,
-    },
-    minimizable: true,
-    maximizable: true,
-    closable: true,
-    autoHideMenuBar: true,
+    titleBarOverlay: { color: "#094e78", symbolColor: "#f5f7fa", height: WINDOW_OVERLAY_HEIGHT },
+    minimizable: true, maximizable: true, closable: true, autoHideMenuBar: true,
     backgroundColor: "#ffffff",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
-      sandbox: true,
+      sandbox: false, // needed for ipcRenderer.sendSync
       backgroundThrottling: false,
-      partition: "persist:selrs"
-    }
+      partition: "persist:selrs",
+    },
   });
 
   const currentUA = mainWindow.webContents.userAgent || "";
@@ -173,169 +194,109 @@ function createWindow() {
 
   mainWindow.webContents.on("before-input-event", (event, input) => {
     const key = (input.key || "").toLowerCase();
-    if (key === "f5" || ((input.control || input.meta) && key === "r")) {
-      event.preventDefault();
-    }
+    if (key === "f5" || ((input.control || input.meta) && key === "r")) event.preventDefault();
     if (input.type === "keyDown" && (input.control || input.meta) && input.shift && key === "s") {
       event.preventDefault();
       showSourceMenu();
     }
   });
 
-  mainWindow.webContents.on("context-menu", () => {
-    showSourceMenu();
-  });
-  logEvent("window-created");
+  mainWindow.webContents.on("context-menu", () => showSourceMenu());
+
   showWindowTimer = setTimeout(() => {
     if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
       logEvent("window-show-timeout-fallback");
       mainWindow.show();
     }
   }, WINDOW_SHOW_TIMEOUT_MS);
-  mainWindow.on("close", () => {
-    logEvent("window-close");
-  });
+
   mainWindow.on("closed", () => {
-    logEvent("window-closed");
     if (showWindowTimer) clearTimeout(showWindowTimer);
     mainWindow = null;
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (isAllowed(url)) {
-      return { action: "allow" };
-    }
+    if (isAllowedOrigin(url)) return { action: "allow" };
     shell.openExternal(url);
     return { action: "deny" };
   });
 
-  mainWindow.webContents.on("will-navigate", (event, url) => {
-    logEvent("will-navigate", { url });
-    const current = mainWindow?.webContents?.getURL?.() || "";
-    if (current && normalizeUrl(current) === normalizeUrl(url)) {
-      event.preventDefault();
-      return;
-    }
-    if (!isAllowed(url)) {
-      event.preventDefault();
-      shell.openExternal(url);
-    }
-  });
-
   mainWindow.webContents.on("did-finish-load", () => {
-    logEvent("did-finish-load", { url: mainWindow?.webContents?.getURL?.() || "" });
+    logEvent("did-finish-load");
     if (showWindowTimer) clearTimeout(showWindowTimer);
     if (!mainWindow) return;
     if (!mainWindow.isMaximized()) mainWindow.maximize();
     mainWindow.show();
   });
 
-  mainWindow.webContents.on("did-start-navigation", (_event, url, isInPlace, isMainFrame) => {
-    logEvent("did-start-navigation", { url, isInPlace, isMainFrame });
-    if (!isMainFrame) return;
-    if (isInPlace) return;
-    const current = mainWindow?.webContents?.getURL?.() || "";
-    if (current && normalizeUrl(current) === normalizeUrl(url)) {
-      try {
-        mainWindow?.webContents?.stop();
-      } catch {}
-    }
-  });
-
-  mainWindow.webContents.on("did-fail-load", (_event, code, desc, validatedURL, isMainFrame) => {
-    logEvent("did-fail-load", { code, desc, validatedURL, isMainFrame });
+  mainWindow.webContents.on("did-fail-load", (_e, code, desc, url, isMainFrame) => {
+    logEvent("did-fail-load", { code, desc, url, isMainFrame });
     if (!isMainFrame) return;
     if (showWindowTimer) clearTimeout(showWindowTimer);
-    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
-      // Avoid a "frozen" feeling when startup URL is down.
-      mainWindow.show();
-    }
-  });
-  mainWindow.webContents.on("console-message", (_event, level, message, line, sourceId) => {
-    if (
-      message.includes("[SELRS]") ||
-      message.includes("Navigation trace") ||
-      message.includes("Last reload trace") ||
-      message.includes("beforeunload")
-    ) {
-      logEvent("renderer-console", { level, message, line, sourceId });
-    }
+    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) mainWindow.show();
   });
 
-  mainWindow.webContents.on("render-process-gone", (_event, details) => {
+  mainWindow.webContents.on("render-process-gone", (_e, details) => {
     logEvent("render-process-gone", details || {});
     recoverMainWindow("render-process-gone");
   });
 
-  mainWindow.webContents.on("unresponsive", () => {
-    logEvent("unresponsive");
-  });
-
-  mainWindow.webContents.on("responsive", () => {
-    logEvent("responsive");
-  });
-
-  mainWindow.loadURL(activeHomeUrl);
-}
-
-function normalizeUrl(raw) {
-  try {
-    const u = new URL(raw);
-    const path = u.pathname.replace(/\/+$/, "");
-    return `${u.protocol}//${u.host}${path}${u.search}`;
-  } catch {
-    return String(raw || "").trim().replace(/\/+$/, "");
+  if (USE_BUNDLED) {
+    logEvent("load-mode", { mode: "bundled", distIndex: DIST_INDEX });
+    mainWindow.loadFile(DIST_INDEX);
+  } else {
+    logEvent("load-mode", { mode: "url", url: activeApiUrl });
+    mainWindow.loadURL(activeApiUrl);
   }
 }
 
 function recoverMainWindow(reason = "unknown") {
   if (recoveringFromCrash) return;
   recoveringFromCrash = true;
-  logEvent("recover-start", { reason });
   setTimeout(() => {
     try {
-      if (!mainWindow || mainWindow.isDestroyed()) {
-        createWindow();
-      } else {
-        mainWindow.webContents.reloadIgnoringCache();
-      }
-    } catch (error) {
-      logEvent("recover-error", { reason, message: String(error?.message || error) });
-      try {
-        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.destroy();
-      } catch {}
-      createWindow();
-    } finally {
-      recoveringFromCrash = false;
-      logEvent("recover-done", { reason });
-    }
+      if (!mainWindow || mainWindow.isDestroyed()) createWindow();
+      else mainWindow.webContents.reloadIgnoringCache();
+    } catch { try { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.destroy(); } catch {} createWindow(); }
+    finally { recoveringFromCrash = false; }
   }, 400);
 }
 
+// ── App lifecycle ─────────────────────────────────────────────────────────────
 app.whenReady().then(() => {
   app.setName("SELRS");
   const logDir = path.join(app.getPath("userData"), "logs");
   fs.mkdirSync(logDir, { recursive: true });
   logFilePath = path.join(logDir, "electron-events.log");
   sourceConfigPath = path.join(app.getPath("userData"), "source.json");
-  activeHomeUrl = resolveStartupUrl();
-  logEvent("app-ready", { userData: app.getPath("userData") });
-  logEvent("source-active", { url: activeHomeUrl, sourceConfigPath });
+  activeApiUrl = resolveStartupUrl();
+
+  logEvent("app-ready", { bundled: USE_BUNDLED, apiUrl: activeApiUrl });
+
   session.defaultSession.setPermissionRequestHandler((wc, permission, callback, details) => {
     const origin = details?.requestingOrigin || wc?.getURL?.() || "";
-    const allowed = ALLOWED_PERMISSIONS.has(String(permission || "")) && isAllowed(origin);
-    logEvent("permission-request", { permission, origin, allowed });
+    const allowed = ALLOWED_PERMISSIONS.has(String(permission || "")) && isAllowedOrigin(origin);
     callback(allowed);
   });
+
+  // Allow API calls from file:// to the local server (CORS bypass for bundled mode)
+  if (USE_BUNDLED) {
+    session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
+      const headers = { ...details.requestHeaders, Origin: activeApiUrl };
+      callback({ requestHeaders: headers });
+    });
+  }
+
   Menu.setApplicationMenu(null);
   createWindow();
+  initAutoUpdater();
+
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
 app.on("second-instance", () => {
-  logEvent("second-instance");
   if (mainWindow && !mainWindow.isDestroyed()) {
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.focus();
@@ -343,28 +304,5 @@ app.on("second-instance", () => {
 });
 
 app.on("window-all-closed", () => {
-  logEvent("window-all-closed");
   if (process.platform !== "darwin") app.quit();
 });
-
-app.on("before-quit", () => logEvent("before-quit"));
-
-app.on("browser-window-created", () => logEvent("browser-window-created"));
-app.on("render-process-gone", (_event, _wc, details) => {
-  logEvent("app-render-process-gone", details || {});
-  recoverMainWindow("app-render-process-gone");
-});
-app.on("child-process-gone", (_event, details) => {
-  logEvent("child-process-gone", details || {});
-  const serviceName = String(details?.serviceName || "");
-  const name = String(details?.name || "");
-  if (
-    serviceName.includes("network.mojom.NetworkService") ||
-    name.includes("Network Service") ||
-    serviceName.includes("GPU") ||
-    name.includes("GPU")
-  ) {
-    recoverMainWindow("child-process-gone");
-  }
-});
-app.on("gpu-process-crashed", (_event, killed) => logEvent("gpu-process-crashed", { killed: Boolean(killed) }));
