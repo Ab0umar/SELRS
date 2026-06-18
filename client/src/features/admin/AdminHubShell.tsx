@@ -714,7 +714,7 @@ export default function AdminHubShell() {
         </aside>
 
         {/* Main content area */}
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 min-w-0">
+        <main className="flex-1 px-3 py-4 sm:px-4 min-w-0">
           {crumbs && (
             <nav className="flex items-center gap-1.5 text-xs text-muted-foreground/80 mb-4 print:hidden">
               {crumbs.map((crumb, i) => (

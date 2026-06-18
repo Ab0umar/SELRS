@@ -97,7 +97,7 @@ export default function AdminPatients() {
 
   return (
     <div
-      className="w-full space-y-6 px-2 pb-4 text-right sm:px-4 lg:px-6"
+      className="w-full space-y-6 pb-4 text-right"
       dir="rtl"
     >
       <Card dir="rtl" className="border-border bg-card text-right shadow-sm">
