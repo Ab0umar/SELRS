@@ -336,34 +336,28 @@ export const medicalPatientRoutes = {
             void autoLinkAndNotifyDoctors(existingCode, existingName, doctorCode);
           }
 
-          // Create today's visit if patient has no active (non-treated) visit today
+          // Always create a fresh checkedIn visit for today so the patient
+          // appears in the queue. getTodayPatientsByQueueStatus deduplicates
+          // by patientId, so duplicate visits are harmless for display.
           if (existingId > 0) {
-            const hasActiveVisit = await db
-              .hasActiveVisitForDate(
-                existingId,
-                new Date().toISOString().split("T")[0],
-              )
-              .catch(() => false);
-            if (!hasActiveVisit) {
-              const branchRaw = String(
-                (existingByIdentity as any)?.branch ??
-                  patientInput.branch ??
-                  "",
-              ).trim().toLowerCase();
-              const branch = branchRaw === "surgery" ? "surgery" : "examinations";
-              await db
-                .createVisit({
-                  patientId: existingId,
-                  visitDate: new Date(),
-                  visitType: "consultation",
-                  branch,
-                  queueStatus: "checkedIn",
-                  checkedInAt: new Date(),
-                })
-                .catch((err) => {
-                  console.error("[createPatient] createVisit failed for existing patient", existingId, err);
-                });
-            }
+            const branchRaw = String(
+              (existingByIdentity as any)?.branch ??
+                patientInput.branch ??
+                "",
+            ).trim().toLowerCase();
+            const branch = branchRaw === "surgery" ? "surgery" : "examinations";
+            await db
+              .createVisit({
+                patientId: existingId,
+                visitDate: new Date(),
+                visitType: "consultation",
+                branch,
+                queueStatus: "checkedIn",
+                checkedInAt: new Date(),
+              })
+              .catch((err) => {
+                console.error("[createPatient] createVisit failed for existing patient", existingId, err);
+              });
           }
           return {
             success: true,
