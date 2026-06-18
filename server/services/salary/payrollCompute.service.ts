@@ -357,10 +357,44 @@ export class PayrollComputeService {
       0,
     );
     const activeCount = empBasicMap.size;
-    // Pentacam denominator: only sum basics of employees eligible for pentacam
-    const sumBasicsForPenta = Array.from(empBasicMap.entries())
+
+    // Pre-pass: compute net-for-ratios per employee (basic minus all deductions except insurance)
+    const netForRatioMap = new Map<string, number>();
+    for (const emp of employees) {
+      const basic = empBasicMap.get(emp.empCd);
+      if (!basic) continue;
+      const report = monthlyReports.find((r) => r.empCd === emp.empCd);
+      const empDailyRows = dailyRows.filter((d) => d.empCd === emp.empCd);
+      const wDays = empDailyRows.filter((d) => d.status !== "holiday").length;
+      let rawAbsent = 0, lateMins = 0, earlyMins = 0, missingCoDays = 0;
+      if (fromDate || toDate) {
+        rawAbsent = empDailyRows.filter((d) => d.status === "absent").length;
+        missingCoDays = empDailyRows.filter((d) => d.status === "missing_checkout").length;
+        lateMins = empDailyRows.reduce((s, d) => s + (d.lateMinutes ?? 0), 0);
+        earlyMins = empDailyRows.reduce((s, d) => s + (d.earlyLeaveMin ?? 0), 0);
+      } else {
+        rawAbsent = Number(report?.absentDays ?? 0);
+        lateMins = Number(report?.totalLateMins ?? 0);
+        earlyMins = Number(report?.totalEarlyLeaveMins ?? 0);
+      }
+      const absentD = Math.max(0, rawAbsent - holidayWorkingDaysCount);
+      const dayRate = wDays > 0 ? basic / wDays : 0;
+      const minRate = dayRate / 360;
+      const deductions = round2(
+        absentD * dayRate +
+        missingCoDays * dayRate * 0.25 +
+        lateMins * minRate +
+        earlyMins * minRate +
+        penalties.filter((p) => p.empCd === emp.empCd).reduce((s, p) => s + Number(p.amount), 0) +
+        advances.filter((a) => a.empCd === emp.empCd).reduce((s, a) => s + Number(a.amount), 0),
+      );
+      netForRatioMap.set(emp.empCd, round2(Math.max(0, basic - deductions)));
+    }
+
+    // Pentacam denominator: sum nets-for-ratio of pentacam-eligible employees
+    const sumNetsForPenta = Array.from(netForRatioMap.entries())
       .filter(([cd]) => commFlagsMap.get(cd)?.commPentacam !== false)
-      .reduce((s, [, b]) => s + b, 0);
+      .reduce((s, [, n]) => s + n, 0);
     // Exam count: only count employees eligible for exam
     const activeExamCount = Array.from(empBasicMap.keys()).filter(
       (cd) => commFlagsMap.get(cd)?.commExam !== false,
@@ -492,8 +526,8 @@ export class PayrollComputeService {
       (s, ss) => s + (shiftStatsMap.get(ss.id)?.netPay ?? 0),
       0,
     );
-    // Denominators: use eligibility-filtered employee sums + techs
-    const totalSumForPentacam = sumBasicsForPenta + sumTechShiftPay;
+    // Denominators: employee nets (excl. insurance deduction) + tech net pay
+    const totalSumForPentacam = sumNetsForPenta + sumTechShiftPay;
     // Only count techs who have at least one scheduled shift this month
     const activeTechsThisMonth = techs.filter(
       (ss) => (shiftStatsMap.get(ss.id)?.scheduled ?? 0) > 0,
@@ -657,11 +691,12 @@ export class PayrollComputeService {
           examCommission = round2((examPool / 3) * empShares);
         }
       }
+      const netForRatio = netForRatioMap.get(emp.empCd) ?? 0;
       const pentacamCommission =
         isMarkaz && flags.commPentacam
           ? round2(
               totalSumForPentacam > 0
-                ? (basic / totalSumForPentacam) * pentacamPool
+                ? (netForRatio / totalSumForPentacam) * pentacamPool
                 : 0,
             )
           : 0;
