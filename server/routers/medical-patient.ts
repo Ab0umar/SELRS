@@ -336,15 +336,15 @@ export const medicalPatientRoutes = {
             void autoLinkAndNotifyDoctors(existingCode, existingName, doctorCode);
           }
 
-          // Create today's visit if the patient isn't already checked in today
+          // Create today's visit if patient has no active (non-treated) visit today
           if (existingId > 0) {
-            const hasTodayVisit = await db
-              .hasVisitForDate(
+            const hasActiveVisit = await db
+              .hasActiveVisitForDate(
                 existingId,
                 new Date().toISOString().split("T")[0],
               )
               .catch(() => false);
-            if (!hasTodayVisit) {
+            if (!hasActiveVisit) {
               await db
                 .createVisit({
                   patientId: existingId,
