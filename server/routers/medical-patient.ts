@@ -744,6 +744,7 @@ export const medicalPatientRoutes = {
             }),
           )
           .optional(),
+        visitDate: z.string().optional(), // client local date yyyy-MM-dd
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -808,7 +809,7 @@ export const medicalPatientRoutes = {
         }
 
         // ── Step 4: sync MSSQL → MySQL (create/update patient + today visit) ─
-        const { patientId } = await createOrSyncPatientFromMssql(patientCode, input.serviceType);
+        const { patientId } = await createOrSyncPatientFromMssql(patientCode, input.serviceType, input.visitDate);
 
         // ── Step 5: notify ─────────────────────────────────────────────────
         const notifSettings = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);

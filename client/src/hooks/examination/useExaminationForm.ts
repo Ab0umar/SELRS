@@ -1280,6 +1280,7 @@ export function useExaminationForm(
           occupation: patientDetails.job || undefined,
           serviceType: (sheetSelection as any) || "consultant",
           locationType,
+          visitDate: localISODate(),
           ...(doctorCode ? { doctorCode } : {}),
           ...(validServices.length > 0 ? { services: validServices } : {}),
         });
@@ -1297,6 +1298,7 @@ export function useExaminationForm(
           phone: patientDetails.phone || undefined,
           serviceType: (sheetSelection as any) || "consultant",
           locationType,
+          visitDate: localISODate(),
         }).catch((err) => console.warn("[ExaminationForm] existing patient MSSQL push failed:", err));
 
         // Link additional services

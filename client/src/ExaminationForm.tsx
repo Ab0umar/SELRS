@@ -820,6 +820,7 @@ export default function ExaminationForm() {
           occupation: patientDetails.job || undefined,
           serviceType: (sheetSelection as any) || "consultant",
           locationType,
+          visitDate: localISODate(),
         });
         effectivePatientId = created.id ?? 0;
         if (created.receiptNo) {

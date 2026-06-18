@@ -2061,6 +2061,7 @@ export async function syncSinglePatientFromMssql(
 export async function createOrSyncPatientFromMssql(
   patientCodeRaw: string,
   serviceType?: string,
+  visitDateIso?: string, // client local date yyyy-MM-dd; avoids UTC/local mismatch
 ): Promise<{ patientId: number; created: boolean }> {
   const patientCode = String(patientCodeRaw ?? "").trim();
   if (!patientCode) throw new Error("Missing patientCode");
@@ -2095,8 +2096,12 @@ export async function createOrSyncPatientFromMssql(
     try { await pool.close(); } catch {}
   }
 
-  const today = new Date();
-  const todayIso = today.toISOString().split("T")[0];
+  // Use client-supplied local date if available to avoid UTC/local mismatch
+  const todayIso = visitDateIso?.trim() || (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  })();
+  const today = new Date(`${todayIso}T12:00:00`);
   const branchRaw = String(mssqlRow?.branch ?? "").trim().toLowerCase();
   const branch = branchRaw === "surgery" ? "surgery" : "examinations";
   const idno = Number(mssqlRow?.idno ?? 0);
