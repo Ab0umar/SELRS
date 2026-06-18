@@ -116,7 +116,7 @@ export function useOperations() {
     },
   );
   const patientSearchQuery = trpc.medical.searchPatients.useQuery(
-    { searchTerm: debouncedPatientSearch.replace(/\s+/g, "") },
+    { searchTerm: debouncedPatientSearch.trim() },
     {
       enabled: debouncedPatientSearch.trim().length >= 1,
       refetchOnWindowFocus: false,
