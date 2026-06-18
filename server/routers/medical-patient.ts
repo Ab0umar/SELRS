@@ -345,20 +345,24 @@ export const medicalPatientRoutes = {
               )
               .catch(() => false);
             if (!hasActiveVisit) {
+              const branchRaw = String(
+                (existingByIdentity as any)?.branch ??
+                  patientInput.branch ??
+                  "",
+              ).trim().toLowerCase();
+              const branch = branchRaw === "surgery" ? "surgery" : "examinations";
               await db
                 .createVisit({
                   patientId: existingId,
                   visitDate: new Date(),
                   visitType: "consultation",
-                  branch: String(
-                    (existingByIdentity as any)?.branch ??
-                      patientInput.branch ??
-                      "examinations",
-                  ),
+                  branch,
                   queueStatus: "checkedIn",
                   checkedInAt: new Date(),
                 })
-                .catch(() => null);
+                .catch((err) => {
+                  console.error("[createPatient] createVisit failed for existing patient", existingId, err);
+                });
             }
           }
           return {
