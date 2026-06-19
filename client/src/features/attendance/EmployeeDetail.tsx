@@ -566,7 +566,7 @@ export default function EmployeeDetail() {
                     <tbody>
                       {(permListQuery.data as any[]).map((p: any) => (
                         <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20">
-                          <td className="px-3 py-2 font-mono text-xs">{p.date}</td>
+                          <td className="px-3 py-2 font-mono text-xs">{p.date instanceof Date ? p.date.toLocaleDateString("ar-EG") : String(p.date ?? "")}</td>
                           <td className="px-3 py-2">
                             <span className={`inline-flex rounded px-1.5 py-0.5 text-xs font-medium ${p.type === "out" ? "bg-warning/15 text-warning" : "bg-primary/15 text-foreground"}`}>
                               {p.type === "out" ? "خروج" : "دخول"}
