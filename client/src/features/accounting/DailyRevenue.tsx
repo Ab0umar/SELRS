@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useEffect, useMemo, useState, useRef } from "react";
-import { printOrExportPdf } from "@/lib/nativePdf";
+import { exportElementToPdf, preferPdfOverBrowserPrint } from "@/lib/nativePdf";
 import { useLocation, useSearch } from "wouter";
 import { formatCountAr, formatDateAr, formatMoneyAr } from "./accountingFormat";
 import reportStyles from "./AccountingOpReport.module.css";
@@ -177,7 +177,7 @@ export default function DailyRevenue() {
 
   const printScopeRef = useRef<HTMLDivElement>(null);
 
-  const printReport = async () => {
+  const printReport = () => {
     const printClass = "print-daily-revenue";
     document.body.classList.add(printClass);
     const cleanup = () => {
@@ -185,10 +185,18 @@ export default function DailyRevenue() {
       window.removeEventListener("afterprint", cleanup);
     };
     window.addEventListener("afterprint", cleanup);
-    await printOrExportPdf("تقرير-الإيراد-اليومي.pdf", {
-      element: printScopeRef.current,
-      forceBrowserPrint: false,
-    });
+
+    // Mobile: export element to PDF asynchronously (no user-gesture requirement)
+    if (preferPdfOverBrowserPrint()) {
+      void exportElementToPdf({ fileName: "تقرير-الإيراد-اليومي.pdf", element: printScopeRef.current })
+        .then((ok) => { if (!ok) window.print(); })
+        .catch(() => window.print())
+        .finally(() => setTimeout(cleanup, 2000));
+      return;
+    }
+
+    // Desktop: must call synchronously within user gesture
+    window.print();
     setTimeout(cleanup, 1000);
   };
 

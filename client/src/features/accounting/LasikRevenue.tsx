@@ -28,7 +28,7 @@ import {
   ChevronDown as DropdownIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { printOrExportPdf } from "@/lib/nativePdf";
+import { exportElementToPdf, preferPdfOverBrowserPrint } from "@/lib/nativePdf";
 import { useLocation, useSearch } from "wouter";
 import styles from "./LasikRevenue.module.css";
 import {
@@ -324,7 +324,7 @@ export default function LasikRevenue() {
 
   const printScopeRef = useRef<HTMLDivElement>(null);
 
-  const printReport = async () => {
+  const printReport = () => {
     const printClass = "print-service-revenue";
     document.body.classList.add(printClass);
     const cleanup = () => {
@@ -332,10 +332,16 @@ export default function LasikRevenue() {
       window.removeEventListener("afterprint", cleanup);
     };
     window.addEventListener("afterprint", cleanup);
-    await printOrExportPdf("تقرير-إيراد-الخدمات.pdf", {
-      element: printScopeRef.current,
-      forceBrowserPrint: false,
-    });
+
+    if (preferPdfOverBrowserPrint()) {
+      void exportElementToPdf({ fileName: "تقرير-إيراد-الخدمات.pdf", element: printScopeRef.current })
+        .then((ok) => { if (!ok) window.print(); })
+        .catch(() => window.print())
+        .finally(() => setTimeout(cleanup, 2000));
+      return;
+    }
+
+    window.print();
     setTimeout(cleanup, 1000);
   };
 
