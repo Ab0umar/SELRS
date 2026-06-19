@@ -4,16 +4,18 @@ using System;
 using System.Drawing;
 using System.IO;
 using System.Net;
-using System.Net.Http;
-using System.Net.WebSockets;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
-using System.Reflection;
 using System.Windows.Forms;
+#if !NETFRAMEWORK
+using System.Net.Http;
+using System.Net.WebSockets;
+using System.Text.Json;
+using System.Threading;
+using System.Reflection;
+#endif
 
 namespace SelrsDesktop;
 
@@ -47,9 +49,11 @@ public partial class Form1 : Form
     private NotifyIcon? _trayIcon;
     private ContextMenuStrip? _trayMenu;
 
+#if !NETFRAMEWORK
     // Background services
     private CancellationTokenSource? _wsCts;
     private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(10) };
+#endif
 
     public Form1()
     {
@@ -96,7 +100,9 @@ public partial class Form1 : Form
         }
 
         _trayMenu.Items.Add(new ToolStripSeparator());
+#if !NETFRAMEWORK
         _trayMenu.Items.Add("البحث عن تحديثات", null, async (_, _) => await CheckForUpdatesAsync(silent: false));
+#endif
         _trayMenu.Items.Add(new ToolStripSeparator());
         _trayMenu.Items.Add("إغلاق", null, (_, _) => { _closeToTray = false; Close(); });
 
@@ -129,10 +135,13 @@ public partial class Form1 : Form
             return;
         }
         // Real exit — clean up
+#if !NETFRAMEWORK
         _wsCts?.Cancel();
+#endif
         _trayIcon?.Dispose();
     }
 
+#if !NETFRAMEWORK
     // ── Notifications (native balloon) ────────────────────────────────────────
     private void ShowNotification(string title, string body)
     {
@@ -252,6 +261,7 @@ public partial class Form1 : Form
     {
         return Version.TryParse(server, out var s) && Version.TryParse(current, out var c) && s > c;
     }
+#endif
 
     // ── WebView2 ──────────────────────────────────────────────────────────────
     private async Task InitializeWebViewAsync()
@@ -271,12 +281,14 @@ public partial class Form1 : Form
             if (webView.CoreWebView2 == null)
                 throw new InvalidOperationException("WebView2 initialized without CoreWebView2.");
 
+#if !NETFRAMEWORK
             // Auto-grant notification permission so web push works natively
             webView.CoreWebView2.PermissionRequested += (_, e) =>
             {
                 if (e.PermissionKind == CoreWebView2PermissionKind.Notifications)
                     e.State = CoreWebView2PermissionState.Allow;
             };
+#endif
 
             webView.CoreWebView2.ContextMenuRequested += HandleContextMenuRequested;
             webView.CoreWebView2.WebMessageReceived += HandleWebMessage;
@@ -365,9 +377,11 @@ public partial class Form1 : Form
         _currentUrl = normalized;
         SaveUrl(normalized);
 
+#if !NETFRAMEWORK
         // Restart WebSocket listener with new URL
         _wsCts?.Cancel();
         StartWsListener();
+#endif
 
         if (webView.CoreWebView2 != null)
             webView.CoreWebView2.Navigate(normalized);
@@ -441,7 +455,9 @@ public partial class Form1 : Form
         }
 
         menu.Items.Add(new ToolStripSeparator());
+#if !NETFRAMEWORK
         menu.Items.Add("البحث عن تحديثات", null, async (_, _) => await CheckForUpdatesAsync(silent: false));
+#endif
 
         menu.Closed += (s, e) => BeginInvoke(() => menu.Dispose());
         menu.Show(webView, new System.Drawing.Point((int)args.Location.X, (int)args.Location.Y));
@@ -457,9 +473,11 @@ public partial class Form1 : Form
 
         await InitializeWebViewAsync();
 
+#if !NETFRAMEWORK
         // Background: start WS listener + check for updates
         StartWsListener();
         _ = Task.Run(async () => { await Task.Delay(5000); await CheckForUpdatesAsync(silent: true); });
+#endif
     }
 
     // ── Window chrome ─────────────────────────────────────────────────────────
