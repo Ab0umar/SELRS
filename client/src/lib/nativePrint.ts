@@ -6,15 +6,15 @@ export function canUseNativeAndroidPrint() {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
 }
 
-export async function requestNativeAndroidPrint(jobName = "SELRS Print") {
+export async function requestNativeAndroidPrint(jobName = "SELRS Print", htmlContent?: string) {
   if (!canUseNativeAndroidPrint()) {
     return { attempted: false, started: false };
   }
 
   try {
-    const htmlContent = document.documentElement.outerHTML;
+    const content = htmlContent ?? document.documentElement.outerHTML;
     await Printer.print({
-      content: htmlContent,
+      content,
       name: jobName,
     });
     return { attempted: true, started: true };

@@ -22,7 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { printOrExportPdf } from "@/lib/nativePdf";
 import { useLocation, useSearch } from "wouter";
 import { formatCountAr, formatDateAr, formatMoneyAr } from "./accountingFormat";
 import reportStyles from "./AccountingOpReport.module.css";
@@ -174,15 +175,20 @@ export default function DailyRevenue() {
     setLocation(buildDailyRevenueUrl(next));
   };
 
-  const printReport = () => {
+  const printScopeRef = useRef<HTMLDivElement>(null);
+
+  const printReport = async () => {
     const printClass = "print-daily-revenue";
+    document.body.classList.add(printClass);
     const cleanup = () => {
       document.body.classList.remove(printClass);
       window.removeEventListener("afterprint", cleanup);
     };
-    document.body.classList.add(printClass);
     window.addEventListener("afterprint", cleanup);
-    window.print();
+    await printOrExportPdf("تقرير-الإيراد-اليومي.pdf", {
+      element: printScopeRef.current,
+      forceBrowserPrint: false,
+    });
     setTimeout(cleanup, 1000);
   };
 
@@ -347,7 +353,7 @@ export default function DailyRevenue() {
           </Card>
         ) : null}
 
-        <Card className={`${reportStyles.printScope} border-border shadow-sm`}>
+        <Card ref={printScopeRef} className={`${reportStyles.printScope} border-border shadow-sm`}>
           <CardHeader>
             <CardTitle className="text-base">البيانات اليومية</CardTitle>
           </CardHeader>

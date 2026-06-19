@@ -183,7 +183,7 @@ export default function AccountingShell({ children }: AccountingShellProps) {
       dir="rtl"
     >
       {/* Header */}
-      <div className="border-b border-border/60 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
+      <div className="print:hidden border-b border-border/60 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
         <div className="mx-auto w-full px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-3">
             {/* Title section */}
@@ -250,7 +250,7 @@ export default function AccountingShell({ children }: AccountingShellProps) {
       {/* Two-column layout: Sidebar + Content */}
       <div className="flex flex-col lg:flex-row mx-auto w-full max-w-[1600px]">
         {/* Sidebar Navigation (Desktop only) */}
-        <aside className="hidden lg:block w-full border-b border-border/60 bg-card/20 lg:w-64 lg:border-b-0 lg:border-r border-border/60 min-h-[calc(100vh-115px)]">
+        <aside className="print:hidden hidden lg:block w-full border-b border-border/60 bg-card/20 lg:w-64 lg:border-b-0 lg:border-r border-border/60 min-h-[calc(100vh-115px)]">
           <nav className="space-y-4 p-4 sticky top-4">
             {navigationSections.map((section) => (
               <div key={section.id} className="space-y-1">
