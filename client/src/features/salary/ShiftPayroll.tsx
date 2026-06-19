@@ -245,21 +245,21 @@ export default function ShiftPayroll() {
       return;
     }
 
-    const mask = document.createElement("style");
-    mask.textContent =
-      "@media print{body>*{visibility:hidden!important}#__pr__,#__pr__ *{visibility:visible!important}#__pr__{position:fixed;inset:0;direction:rtl}}";
-    const container = document.createElement("div");
-    container.id = "__pr__";
-    container.innerHTML = `<style>${SLIP_CSS}</style>${slips}${footer}`;
-    document.head.appendChild(mask);
-    document.body.appendChild(container);
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText =
+      "position:fixed;top:0;left:0;width:0;height:0;border:none;visibility:hidden;";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument!;
+    doc.open();
+    doc.write(fullHtml);
+    doc.close();
     const cleanup = () => {
-      mask.remove();
-      container.remove();
+      iframe.remove();
       window.removeEventListener("afterprint", cleanup);
     };
     window.addEventListener("afterprint", cleanup);
-    window.print();
+    iframe.contentWindow!.focus();
+    iframe.contentWindow!.print();
   }
 
   function renderSection(data: any[], title: string) {
