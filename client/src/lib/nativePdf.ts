@@ -508,6 +508,7 @@ export async function printOrExportPdf(
   }
 
   const selector = options?.selector ?? "[data-mobile-pdf-root]";
+  const hasSpecificTarget = Boolean(options?.selector || options?.element);
 
   if (!options?.forceBrowserPrint && preferPdfOverBrowserPrint()) {
     const ok = await exportElementToPdf({
@@ -518,7 +519,10 @@ export async function printOrExportPdf(
     if (ok) return true;
   }
 
-  if (canUseNativeAndroidPrint()) {
+  // Only use native Android print (full page dump) when no specific element
+  // target was provided — otherwise fall back to browser print which respects
+  // the CSS @media print visibility hack on the target element.
+  if (!hasSpecificTarget && canUseNativeAndroidPrint()) {
     try {
       await requestNativeAndroidPrint(document.title || "SELRS Print");
       return true;

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { canUseNativeAndroidPrint, requestNativeAndroidPrint } from "@/lib/nativePrint";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import {
@@ -310,15 +311,22 @@ export default function PayrollReport() {
   `;
 
   function openPrint(html: string, title: string, css: string) {
+    const fullHtml = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/><title>${title}</title><style>${css}</style></head><body>${html}</body></html>`;
+
+    // On Android native, use the printer plugin which accepts raw HTML
+    if (canUseNativeAndroidPrint()) {
+      void requestNativeAndroidPrint(title, fullHtml);
+      return;
+    }
+
+    // Desktop / web: print via hidden iframe
     const iframe = document.createElement("iframe");
     iframe.style.cssText =
       "position:fixed;top:0;left:0;width:0;height:0;border:none;visibility:hidden;";
     document.body.appendChild(iframe);
     const doc = iframe.contentDocument!;
     doc.open();
-    doc.write(
-      `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/><title>${title}</title><style>${css}</style></head><body>${html}</body></html>`,
-    );
+    doc.write(fullHtml);
     doc.close();
     const cleanup = () => {
       iframe.remove();
