@@ -166,8 +166,10 @@ export default function ShiftPayroll() {
           })
           .join("");
 
+        const shiftNameAr = (sn: string) =>
+          sn === "Morning" ? "شفت صباحي" : sn === "Night" ? "شفت مسائي" : `شفت ${sn}`;
         const shiftHeaders = allShiftNames
-          .map((sn: string) => `<th colspan="2">شفتي ${sn}</th>`)
+          .map((sn: string) => `<th colspan="2">${shiftNameAr(sn)}</th>`)
           .join("");
 
         const shiftSubHeaders = allShiftNames
