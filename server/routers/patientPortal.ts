@@ -23,7 +23,7 @@ import {
 import { eq, and, desc, ne, sql, lte, gte, count, type SQL } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import { ENV } from "../_core/env";
-import { pushAppNotification } from "../_core/appNotifications";
+import { pushAppNotification, getAppNotificationSettings, DEFAULT_APP_NOTIFICATION_SETTINGS } from "../_core/appNotifications";
 import { sendWebPushToSubscription } from "../_core/webPush";
 import { broadcastBookingUpdate } from "../_core/ws";
 
@@ -340,15 +340,20 @@ export const patientPortalRouter = router({
 
       const typeLabel =
         BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType;
-      pushAppNotification({
-        title: "طلب حجز جديد",
-        message: `${typeLabel} — ${input.requestedDate}`,
-        kind: "info",
-        targetRoles: ["admin", "reception"],
-        source: "booking",
-        entityType: "booking",
-        channels: { inApp: true, push: true, local: true },
-      }).catch(() => {});
+      getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS).then((ns) => {
+        if (!ns.bookings.enabled) return;
+        const targetUserIds = ns.bookings.userIds.length > 0 ? ns.bookings.userIds : null;
+        pushAppNotification({
+          title: "طلب حجز جديد",
+          message: `${typeLabel} — ${input.requestedDate}`,
+          kind: "info",
+          targetRoles: targetUserIds ? null : ["admin", "reception"],
+          targetUserIds,
+          source: "booking",
+          entityType: "booking",
+          channels: { inApp: ns.bookings.inApp, push: ns.bookings.push, local: ns.bookings.local },
+        }).catch(() => {});
+      });
 
       return { ok: true };
     }),
@@ -388,17 +393,22 @@ export const patientPortalRouter = router({
 
       broadcastBookingUpdate();
 
-      const typeLabel =
+      const typeLabel2 =
         BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType;
-      pushAppNotification({
-        title: "طلب حجز جديد (زائر)",
-        message: `${input.guestName} — ${typeLabel} — ${input.requestedDate}`,
-        kind: "info",
-        targetRoles: ["admin", "reception"],
-        source: "booking",
-        entityType: "booking",
-        channels: { inApp: true, push: true, local: true },
-      }).catch(() => {});
+      getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS).then((ns) => {
+        if (!ns.bookings.enabled) return;
+        const targetUserIds = ns.bookings.userIds.length > 0 ? ns.bookings.userIds : null;
+        pushAppNotification({
+          title: "طلب حجز جديد (زائر)",
+          message: `${input.guestName} — ${typeLabel2} — ${input.requestedDate}`,
+          kind: "info",
+          targetRoles: targetUserIds ? null : ["admin", "reception"],
+          targetUserIds,
+          source: "booking",
+          entityType: "booking",
+          channels: { inApp: ns.bookings.inApp, push: ns.bookings.push, local: ns.bookings.local },
+        }).catch(() => {});
+      });
 
       return { ok: true };
     }),

@@ -19,6 +19,7 @@ import {
   Archive,
   Bell,
   BellOff,
+  BookOpen,
   CalendarClock,
   MonitorSmartphone,
   Syringe,
@@ -40,6 +41,7 @@ type NotifSettings = {
   operations: CategoryChannels & { userIds: number[] };
   attendance: CategoryChannels & { managerId: number | null };
   stockroom: CategoryChannels;
+  bookings: CategoryChannels & { userIds: number[] };
   opReminder: CategoryChannels & { sendHour: number; targetAll: boolean; userIds: number[] };
 };
 
@@ -69,6 +71,7 @@ const DEFAULT: NotifSettings = {
     managerId: null,
   },
   stockroom: { enabled: false, inApp: false, push: false, local: false },
+  bookings: { enabled: true, inApp: true, push: false, local: false, userIds: [] },
   opReminder: {
     enabled: false,
     inApp: true,
@@ -107,6 +110,10 @@ function parseSettings(raw: unknown): NotifSettings {
       attnRaw?.managerId != null && Number.isFinite(Number(attnRaw.managerId))
         ? Number(attnRaw.managerId)
         : null;
+    const bookingsRaw = r.bookings as Record<string, unknown> | undefined;
+    const bookingUserIds = Array.isArray(bookingsRaw?.userIds)
+      ? (bookingsRaw!.userIds as unknown[]).map(Number).filter((n) => Number.isFinite(n))
+      : [];
     const opReminderRaw = r.opReminder as Record<string, unknown> | undefined;
     const opReminderUserIds = Array.isArray(opReminderRaw?.userIds)
       ? (opReminderRaw!.userIds as unknown[])
@@ -127,6 +134,7 @@ function parseSettings(raw: unknown): NotifSettings {
       operations: { ...parseCat(r.operations, DEFAULT.operations), userIds },
       attendance: { ...parseCat(r.attendance, DEFAULT.attendance), managerId },
       stockroom: parseCat(r.stockroom, DEFAULT.stockroom),
+      bookings: { ...parseCat(r.bookings, DEFAULT.bookings), userIds: bookingUserIds },
       opReminder: {
         ...parseCat(r.opReminder, DEFAULT.opReminder),
         sendHour: opReminderSendHour,
@@ -162,6 +170,7 @@ function parseSettings(raw: unknown): NotifSettings {
     },
     attendance: DEFAULT.attendance,
     stockroom: DEFAULT.stockroom,
+    bookings: DEFAULT.bookings,
     opReminder: DEFAULT.opReminder,
   };
 }
@@ -571,6 +580,7 @@ export default function AdminNotificationSettings() {
     settings.operations.local ||
     settings.attendance.local ||
     settings.stockroom.local ||
+    settings.bookings.local ||
     settings.opReminder.local;
 
   const requestBrowserPermission = async () => {
@@ -751,6 +761,30 @@ export default function AdminNotificationSettings() {
             <Archive className="size-3" />
             مستخدمو المخزن
           </Badge>
+        }
+      />
+
+      {/* Bookings */}
+      <CategorySection
+        icon={BookOpen}
+        title="الحجوزات"
+        description="إشعارات طلبات الحجز الواردة من البوابة الإلكترونية للمرضى"
+        channels={settings.bookings}
+        onChannelChange={(patch) => patchCategory("bookings", patch)}
+        fcmConfigured={fcmConfigured}
+        audience={
+          <div className="space-y-2">
+            <UserMultiPicker
+              users={users}
+              selected={settings.bookings.userIds}
+              onChange={(ids) => patchCategory("bookings", { userIds: ids })}
+            />
+            {settings.bookings.userIds.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                بدون تحديد: يُرسَل للأدمن والاستقبال
+              </p>
+            )}
+          </div>
         }
       />
 

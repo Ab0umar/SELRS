@@ -47,6 +47,7 @@ export type AppNotificationSettings = {
   operations: CategoryChannels & { userIds: number[] };
   attendance: CategoryChannels & { managerId: number | null };
   stockroom: CategoryChannels;
+  bookings: CategoryChannels & { userIds: number[] };
 };
 
 export const DEFAULT_APP_NOTIFICATION_SETTINGS: AppNotificationSettings = {
@@ -66,6 +67,7 @@ export const DEFAULT_APP_NOTIFICATION_SETTINGS: AppNotificationSettings = {
     managerId: null,
   },
   stockroom: { enabled: false, inApp: false, push: false, local: false },
+  bookings: { enabled: true, inApp: true, push: false, local: false, userIds: [] },
 };
 
 const normalizeFeed = (value: unknown): AppNotificationEntry[] => {
@@ -253,6 +255,10 @@ export async function getAppNotificationSettings(): Promise<AppNotificationSetti
         attnRaw?.managerId != null && Number.isFinite(Number(attnRaw.managerId))
           ? Number(attnRaw.managerId)
           : null;
+      const bookingsRaw = parsed.bookings as Record<string, unknown> | undefined;
+      const bookingUserIds = Array.isArray(bookingsRaw?.userIds)
+        ? (bookingsRaw!.userIds as unknown[]).map(Number).filter((v) => Number.isFinite(v))
+        : [];
       return {
         patients: parseCat(
           parsed.patients,
@@ -276,6 +282,10 @@ export async function getAppNotificationSettings(): Promise<AppNotificationSetti
           parsed.stockroom,
           DEFAULT_APP_NOTIFICATION_SETTINGS.stockroom,
         ),
+        bookings: {
+          ...parseCat(parsed.bookings, DEFAULT_APP_NOTIFICATION_SETTINGS.bookings),
+          userIds: bookingUserIds,
+        },
       };
     }
 
@@ -305,6 +315,7 @@ export async function getAppNotificationSettings(): Promise<AppNotificationSetti
       },
       attendance: DEFAULT_APP_NOTIFICATION_SETTINGS.attendance,
       stockroom: DEFAULT_APP_NOTIFICATION_SETTINGS.stockroom,
+      bookings: DEFAULT_APP_NOTIFICATION_SETTINGS.bookings,
     };
   } catch {
     return DEFAULT_APP_NOTIFICATION_SETTINGS;
