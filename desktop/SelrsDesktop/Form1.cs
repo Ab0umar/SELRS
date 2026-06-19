@@ -282,12 +282,22 @@ public partial class Form1 : Form
                 throw new InvalidOperationException("WebView2 initialized without CoreWebView2.");
 
 #if !NETFRAMEWORK
-            // Auto-grant notification permission so web push works natively
+            // Auto-grant notification permission so web push works natively.
+            // Also force-set via Profile API to override any cached denial.
             webView.CoreWebView2.PermissionRequested += (_, e) =>
             {
                 if (e.PermissionKind == CoreWebView2PermissionKind.Notifications)
                     e.State = CoreWebView2PermissionState.Allow;
             };
+            try
+            {
+                var origin = new Uri(_homeUrl).GetLeftPart(UriPartial.Authority);
+                await webView.CoreWebView2.Profile.SetPermissionStateAsync(
+                    CoreWebView2PermissionKind.Notifications,
+                    origin,
+                    CoreWebView2PermissionState.Allow);
+            }
+            catch { /* SetPermissionStateAsync unavailable on older runtimes — ignore */ }
 #endif
 
             webView.CoreWebView2.ContextMenuRequested += HandleContextMenuRequested;
