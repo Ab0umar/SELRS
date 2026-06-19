@@ -1,4 +1,5 @@
 ﻿import { useState } from "react";
+import { canUseNativeAndroidPrint, requestNativeAndroidPrint } from "@/lib/nativePrint";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Printer, ChevronDown, ChevronUp } from "lucide-react";
@@ -236,6 +237,13 @@ export default function ShiftPayroll() {
         <span>تاريخ الطباعة: ${today}</span>
         <span>صفحة 1 من 1</span>
       </div>`;
+
+    const fullHtml = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/><style>${SLIP_CSS}</style></head><body>${slips}${footer}</body></html>`;
+
+    if (canUseNativeAndroidPrint()) {
+      void requestNativeAndroidPrint("كشف الشيفت", fullHtml);
+      return;
+    }
 
     const mask = document.createElement("style");
     mask.textContent =
