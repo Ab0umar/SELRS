@@ -1,29 +1,35 @@
 param(
-  [string]$Url = "https://192.168.0.100:4000"
+  [string]$Url = "http://192.168.1.100:4000",
+  [switch]$SkipFrontendBuild
 )
 
 $ErrorActionPreference = "Stop"
-Set-Location "D:\c\srv100_acc\desktop-electron"
+$root = "D:\c\srv100_acc"
 
+# ── 1. Build frontend ─────────────────────────────────────────────────────────
+if (-not $SkipFrontendBuild) {
+  Write-Host "Building frontend..." -ForegroundColor Cyan
+  Set-Location $root
+  pnpm vite build
+  if ($LASTEXITCODE -ne 0) { throw "Frontend build failed" }
+}
+
+# ── 2. Copy dist/public → desktop-electron/dist ───────────────────────────────
+Write-Host "Copying frontend to desktop-electron/dist/ ..." -ForegroundColor Cyan
+$src = "$root\dist\public"
+$dst = "$root\desktop-electron\dist"
+if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
+Copy-Item $src $dst -Recurse
+Write-Host "Copied." -ForegroundColor Green
+
+# ── 3. Build Electron installer ───────────────────────────────────────────────
+Set-Location "$root\desktop-electron"
 $env:SELRS_DESKTOP_URL = $Url
 
-if (!(Test-Path ".\node_modules")) {
-  pnpm install
-}
+if (!(Test-Path ".\node_modules")) { pnpm install }
 
-# Build unpacked app only (no code-signing pipeline).
-pnpm exec electron-builder --win dir
+Write-Host "Building Electron installer..." -ForegroundColor Cyan
+pnpm exec electron-builder --win nsis
+if ($LASTEXITCODE -ne 0) { throw "Electron build failed" }
 
-$isccCandidates = @(
-  "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
-  "${env:ProgramFiles}\Inno Setup 6\ISCC.exe",
-  "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe"
-)
-$iscc = $isccCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-if (-not $iscc) {
-  throw "ISCC.exe not found."
-}
-
-& $iscc "D:\c\srv100_acc\desktop-electron\SelrsElectronInstaller.iss"
-
-Write-Host "Done: D:\c\srv100_acc\desktop-electron\dist\SELRS-Electron-Setup.exe" -ForegroundColor Green
+Write-Host "Done! Installer: $root\desktop-electron\SELRS-Electron-Setup-*.exe" -ForegroundColor Green

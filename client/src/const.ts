@@ -52,9 +52,15 @@ export const getApiOrigin = () => {
   const isNative = Boolean((window as any).Capacitor?.isNativePlatform?.());
 
   if (isNative) {
-    // Native builds should always talk to the deployed backend.
     window.localStorage.removeItem(PREFERRED_URL_KEY);
     return DEFAULT_NATIVE_API_ORIGIN;
+  }
+
+  // Electron bundled mode: API URL injected via preload
+  const electronApiUrl = (window as any).SELRS?.getApiUrl?.();
+  if (electronApiUrl) {
+    const parsed = parseHttpOrigin(electronApiUrl);
+    if (parsed) return parsed;
   }
 
   const preferredRaw = window.localStorage.getItem(PREFERRED_URL_KEY)?.trim();

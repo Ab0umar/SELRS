@@ -2138,15 +2138,18 @@ export async function createOrSyncPatientFromMssql(
     await db.updatePatient(patientId, { lastVisit: today }).catch(() => null);
   }
 
-  // Always stamp a fresh checkedIn visit for today
-  await db.createVisit({
-    patientId,
-    visitDate: today,
-    visitType: "consultation",
-    branch,
-    queueStatus: "checkedIn",
-    checkedInAt: today,
-  }).catch((err) => console.error("[createOrSyncPatientFromMssql] createVisit failed:", err));
+  // Create a checkedIn visit for today only if one doesn't already exist
+  const hasToday = await db.hasActiveVisitForDate(patientId, todayIso).catch(() => false);
+  if (!hasToday) {
+    await db.createVisit({
+      patientId,
+      visitDate: today,
+      visitType: "consultation",
+      branch,
+      queueStatus: "checkedIn",
+      checkedInAt: today,
+    }).catch((err) => console.error("[createOrSyncPatientFromMssql] createVisit failed:", err));
+  }
 
   return { patientId, created };
 }
