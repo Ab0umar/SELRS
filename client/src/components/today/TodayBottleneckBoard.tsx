@@ -689,7 +689,7 @@ export function TodayBottleneckBoard({
   );
   const visitScheduleRequestsQuery = (trpc as any).patientPortal.listBookings.useQuery(
     { limit: 200 },
-    { staleTime: 60_000, refetchOnWindowFocus: false },
+    { staleTime: 0, refetchOnWindowFocus: true },
   );
 
   useEffect(() => {

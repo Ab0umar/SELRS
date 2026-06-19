@@ -63,7 +63,7 @@ export function AddPortalBookingDialog({
 
   const createStaff = trpc.patientPortal.createStaffBooking.useMutation({
     onSuccess: async () => {
-      await utils.patientPortal.listBookings.invalidate();
+      await (utils as any).patientPortal.listBookings.invalidate();
       toast.success("تم إضافة الحجز بنجاح");
       reset();
       onOpenChange(false);
