@@ -12,7 +12,7 @@ import {
 const isNativeCapacitorPlatform = () => Capacitor.isNativePlatform();
 
 /** Prefer PDF snapshot over browser print dialog on phones / narrow viewports. */
-function preferPdfOverBrowserPrint(): boolean {
+export function preferPdfOverBrowserPrint(): boolean {
   if (typeof window === "undefined") return false;
   if (isNativeCapacitorPlatform()) return true;
   if (window.matchMedia("(max-width: 768px)").matches) return true;
