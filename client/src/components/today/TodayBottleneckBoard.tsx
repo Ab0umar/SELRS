@@ -688,7 +688,7 @@ export function TodayBottleneckBoard({
     { staleTime: 60_000, refetchOnWindowFocus: false },
   );
   const visitScheduleRequestsQuery = (trpc as any).patientPortal.listBookings.useQuery(
-    { date: selectedDate, limit: 200 },
+    { status: "pending", limit: 200 },
     { staleTime: 60_000, refetchOnWindowFocus: false },
   );
 
