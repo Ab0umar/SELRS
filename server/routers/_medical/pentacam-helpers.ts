@@ -91,7 +91,9 @@ export type LocalPentacamMismatchEntry = {
 
 export const PENTACAM_ROOT_DIR = path.resolve(process.cwd(), "Pentacam");
 
-export const PENTACAM_FAILED_DIR = path.join(PENTACAM_ROOT_DIR, "_failed");
+export const PENTACAM_JPG_DIR = path.join(PENTACAM_ROOT_DIR, "Jpgs");
+
+export const PENTACAM_FAILED_DIR = path.join(PENTACAM_ROOT_DIR, "Watcher", "_failed");
 
 export function normalizePentacamMatchText(raw: unknown): string {
   return String(raw ?? "")
@@ -962,7 +964,7 @@ export async function previewFailedPentacamRenameTargets(
     const fileName = assertSafePentacamFileName(rawFileName);
     const baseName = stripLeadingCodeLabel(fileName);
     const targetPath = path.join(
-      PENTACAM_ROOT_DIR,
+      PENTACAM_JPG_DIR,
       `${normalizedId}_${baseName}`,
     );
     let candidate = targetPath;
@@ -1000,7 +1002,7 @@ export async function moveFailedPentacamFile(
     });
   }
   const finalPath = await nextAvailablePentacamPath(
-    path.join(PENTACAM_ROOT_DIR, targetFileName),
+    path.join(PENTACAM_JPG_DIR, targetFileName),
   );
   await rename(sourcePath, finalPath);
   return path.basename(finalPath);

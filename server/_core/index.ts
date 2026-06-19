@@ -135,7 +135,7 @@ function parseBooleanEnv(
 }
 
 function getBlackIceFolderImportOptions(): BlackIceFolderImportOptions {
-  const defaultSourceDir = path.resolve(process.cwd(), "Pentacam");
+  const defaultSourceDir = path.resolve(process.cwd(), "Pentacam", "Jpgs");
   const sourceDir = String(
     process.env.BLACKICE_IMPORT_SOURCE_DIR || defaultSourceDir,
   ).trim();
@@ -890,7 +890,7 @@ async function startServer() {
   const server = createServer(app);
   // Increase timeout for long-running operations like patient sync (10 minutes)
   server.setTimeout(600_000);
-  const pentacamExportsDir = path.resolve(process.cwd(), "Pentacam");
+  const pentacamExportsDir = path.resolve(process.cwd(), "Pentacam", "Jpgs");
   const allowedCorsOrigins = getAllowedCorsOrigins();
   registerWsServer(server);
   // Configure body parser with larger size limit for file uploads
@@ -2067,7 +2067,7 @@ async function startServer() {
   );
   app.use(
     "/pentacam-failed",
-    express.static(path.join(pentacamExportsDir, "_failed"), {
+    express.static(path.resolve(process.cwd(), "Pentacam", "Watcher", "_failed"), {
       maxAge: "5m",
       fallthrough: true,
     }),
