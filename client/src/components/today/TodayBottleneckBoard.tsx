@@ -687,11 +687,10 @@ export function TodayBottleneckBoard({
     { date: selectedDate },
     { staleTime: 60_000, refetchOnWindowFocus: false },
   );
-  const visitScheduleRequestsQuery =
-    trpc.patient.getVisitScheduleRequests.useQuery(
-      { date: selectedDate },
-      { staleTime: 60_000, refetchOnWindowFocus: false },
-    );
+  const visitScheduleRequestsQuery = (trpc as any).patientPortal.listBookings.useQuery(
+    { date: selectedDate, limit: 200 },
+    { staleTime: 60_000, refetchOnWindowFocus: false },
+  );
 
   useEffect(() => {
     const handler = () => void visitScheduleRequestsQuery.refetch();
@@ -700,9 +699,9 @@ export function TodayBottleneckBoard({
   }, [visitScheduleRequestsQuery]);
 
   const removeScheduleRequest =
-    trpc.patient.removeVisitScheduleRequest.useMutation({
+    (trpc as any).patientPortal.deleteBooking.useMutation({
       onSuccess: async () => {
-        await utils.patient.getVisitScheduleRequests.invalidate();
+        await (utils as any).patientPortal.listBookings.invalidate();
         toast.success("تم إزالة الحجز");
       },
       onError: (error: unknown) => {
@@ -801,14 +800,14 @@ export function TodayBottleneckBoard({
 
   const counts = useMemo(
     () => ({
-      bookings: visitScheduleRequestsQuery.data?.length ?? 0,
+      bookings: (visitScheduleRequestsQuery.data as any[])?.length ?? 0,
       checkedIn: byStatus.checkedIn.length,
       next: byStatus.next.length,
       clinic: byStatus.clinic.length,
       treated: byStatus.treated.length,
     }),
     [
-      visitScheduleRequestsQuery.data?.length,
+      (visitScheduleRequestsQuery.data as any[])?.length,
       byStatus.checkedIn.length,
       byStatus.next.length,
       byStatus.clinic.length,
@@ -1111,31 +1110,32 @@ export function TodayBottleneckBoard({
                     <Skeleton key={i} className="h-32 rounded-xl" />
                   ))}
                 </div>
-              ) : (visitScheduleRequestsQuery.data ?? []).length === 0 ? (
+              ) : ((visitScheduleRequestsQuery.data ?? []) as any[]).length === 0 ? (
                 <div className="flex min-h-[220px] flex-col items-center justify-center rounded-xl border border-dashed border-border/70 bg-muted/10 px-4 py-12 text-center text-sm text-muted-foreground">
                   لا توجد حجوزات لهذا التاريخ
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 xl:grid-cols-5">
-                  {(
-                    (visitScheduleRequestsQuery.data ??
-                      []) as VisitScheduleRequestRow[]
-                  ).map((request) => (
+                  {((visitScheduleRequestsQuery.data ?? []) as any[]).map((b: any) => (
                     <BookingRequestCard
-                      key={request.id}
-                      request={request}
+                      key={b.id}
+                      request={{
+                        id: b.id,
+                        fullName: b.patientName ?? b.guestName ?? "—",
+                        phone: b.patientPhone ?? b.guestPhone ?? null,
+                        service: b.bookingType,
+                        visitDate: b.requestedDate,
+                      }}
                       removing={
                         removeScheduleRequest.isPending &&
-                        removeScheduleRequest.variables?.requestId ===
-                          request.id
+                        removeScheduleRequest.variables?.id === b.id
                       }
                       movingToCheckedIn={false}
                       isReadOnly={isHistoricalDate}
                       onRemove={() =>
-                        removeScheduleRequest.mutate({ requestId: request.id })
+                        removeScheduleRequest.mutate({ id: b.id })
                       }
                       onMoveToCheckedIn={() => {
-                        // TODO: Implement moving schedule request to checked-in status
                         toast.info("سيتم نقل الحجز إلى التسجيل");
                       }}
                     />

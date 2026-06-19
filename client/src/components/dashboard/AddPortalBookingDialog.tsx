@@ -71,14 +71,14 @@ export function AddPortalBookingDialog({
     onError: (e) => toast.error(e.message),
   });
 
-  const createNew = trpc.patient.createVisitScheduleRequest.useMutation({
+  const createNew = (trpc as any).patientPortal.createStaffGuestBooking.useMutation({
     onSuccess: async () => {
-      await utils.patient.getVisitScheduleRequests.invalidate();
+      await (utils as any).patientPortal.listBookings.invalidate();
       toast.success("تم إضافة الحجز بنجاح");
       reset();
       onOpenChange(false);
     },
-    onError: (e) => toast.error(e.message),
+    onError: (e: any) => toast.error(e.message),
   });
 
   const isPending = createStaff.isPending || createNew.isPending;
@@ -352,11 +352,10 @@ export function AddPortalBookingDialog({
                 });
               } else {
                 createNew.mutate({
-                  fullName: guestName.trim(),
-                  phone: guestPhone.trim(),
-                  visitDate: requestedDate,
-                  service: bookingType,
-                  patientType,
+                  guestName: guestName.trim(),
+                  guestPhone: guestPhone.trim(),
+                  bookingType,
+                  requestedDate,
                 });
               }
             }}

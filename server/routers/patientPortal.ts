@@ -566,6 +566,40 @@ export const patientPortalRouter = router({
       return { ok: true };
     }),
 
+  createStaffGuestBooking: protectedProcedure
+    .input(
+      z.object({
+        guestName: z.string().min(1).max(255),
+        guestPhone: z.string().max(32).optional(),
+        bookingType: z.enum([
+          "consultant",
+          "specialist",
+          "lasik",
+          "external",
+          "followup",
+        ]),
+        requestedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        notes: z.string().max(500).optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db)
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      await db.insert(patientPortalBookings).values({
+        guestName: input.guestName,
+        guestPhone: input.guestPhone ?? undefined,
+        bookingType: input.bookingType,
+        requestedDate: new Date(input.requestedDate),
+        status: "confirmed",
+        notes: input.notes ?? undefined,
+      });
+
+      broadcastBookingUpdate();
+      return { ok: true };
+    }),
+
   deleteBooking: protectedProcedure
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
