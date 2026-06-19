@@ -687,27 +687,79 @@ export function TodayBottleneckBoard({
     { date: selectedDate },
     { staleTime: 60_000, refetchOnWindowFocus: false },
   );
-  const visitScheduleRequestsQuery = (trpc as any).patientPortal.listBookings.useQuery(
+  // Legacy visit schedule requests (older bookings, date-filtered to selected day)
+  const legacyBookingsQuery = trpc.patient.getVisitScheduleRequests.useQuery(
+    { date: selectedDate },
+    { staleTime: 0, refetchOnWindowFocus: true },
+  );
+  // Portal bookings (new unified table)
+  const portalBookingsQuery = (trpc as any).patientPortal.listBookings.useQuery(
     { limit: 200 },
     { staleTime: 0, refetchOnWindowFocus: true },
   );
 
+  // Merge both sources; portal bookings prefixed with "p-" key to avoid id clash
+  const visitScheduleRequestsQuery = {
+    isLoading: legacyBookingsQuery.isLoading || portalBookingsQuery.isLoading,
+    data: [
+      ...((legacyBookingsQuery.data ?? []) as any[]).map((r: any) => ({
+        _source: "legacy" as const,
+        id: r.id,
+        fullName: r.fullName ?? "—",
+        phone: r.phone ?? null,
+        service: r.service,
+        visitDate: r.visitDate,
+      })),
+      ...((portalBookingsQuery.data ?? []) as any[]).map((r: any) => ({
+        _source: "portal" as const,
+        id: r.id,
+        fullName: r.patientName ?? r.guestName ?? "—",
+        phone: r.patientPhone ?? r.guestPhone ?? null,
+        service: r.bookingType,
+        visitDate: r.requestedDate,
+      })),
+    ],
+    refetch: () => {
+      void legacyBookingsQuery.refetch();
+      void portalBookingsQuery.refetch();
+    },
+  };
+
   useEffect(() => {
-    const handler = () => void visitScheduleRequestsQuery.refetch();
+    const handler = () => {
+      void legacyBookingsQuery.refetch();
+      void portalBookingsQuery.refetch();
+    };
     window.addEventListener("booking-update", handler);
     return () => window.removeEventListener("booking-update", handler);
-  }, [visitScheduleRequestsQuery]);
+  }, [legacyBookingsQuery, portalBookingsQuery]);
 
-  const removeScheduleRequest =
-    (trpc as any).patientPortal.deleteBooking.useMutation({
-      onSuccess: async () => {
-        await (utils as any).patientPortal.listBookings.invalidate();
-        toast.success("تم إزالة الحجز");
-      },
-      onError: (error: unknown) => {
-        toast.error(getTrpcErrorMessage(error, "تعذر إزالة الحجز"));
-      },
-    });
+  const removeLegacyRequest = trpc.patient.removeVisitScheduleRequest.useMutation({
+    onSuccess: async () => {
+      await utils.patient.getVisitScheduleRequests.invalidate();
+      toast.success("تم إزالة الحجز");
+    },
+    onError: (error: unknown) => {
+      toast.error(getTrpcErrorMessage(error, "تعذر إزالة الحجز"));
+    },
+  });
+  const removePortalBooking = (trpc as any).patientPortal.deleteBooking.useMutation({
+    onSuccess: async () => {
+      await (utils as any).patientPortal.listBookings.invalidate();
+      toast.success("تم إزالة الحجز");
+    },
+    onError: (error: unknown) => {
+      toast.error(getTrpcErrorMessage(error, "تعذر إزالة الحجز"));
+    },
+  });
+  const removeScheduleRequest = {
+    isPending: removeLegacyRequest.isPending || removePortalBooking.isPending,
+    variables: removeLegacyRequest.variables ?? removePortalBooking.variables,
+    mutate: (item: { id: number; _source?: string }) => {
+      if (item._source === "portal") removePortalBooking.mutate({ id: item.id });
+      else removeLegacyRequest.mutate({ requestId: item.id });
+    },
+  };
   const doctorsDirectoryQuery = trpc.medical.getDoctors.useQuery(undefined, {
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
@@ -800,14 +852,14 @@ export function TodayBottleneckBoard({
 
   const counts = useMemo(
     () => ({
-      bookings: (visitScheduleRequestsQuery.data as any[])?.length ?? 0,
+      bookings: visitScheduleRequestsQuery.data?.length ?? 0,
       checkedIn: byStatus.checkedIn.length,
       next: byStatus.next.length,
       clinic: byStatus.clinic.length,
       treated: byStatus.treated.length,
     }),
     [
-      (visitScheduleRequestsQuery.data as any[])?.length,
+      visitScheduleRequestsQuery.data?.length,
       byStatus.checkedIn.length,
       byStatus.next.length,
       byStatus.clinic.length,
@@ -1110,31 +1162,20 @@ export function TodayBottleneckBoard({
                     <Skeleton key={i} className="h-32 rounded-xl" />
                   ))}
                 </div>
-              ) : ((visitScheduleRequestsQuery.data ?? []) as any[]).length === 0 ? (
+              ) : (visitScheduleRequestsQuery.data ?? []).length === 0 ? (
                 <div className="flex min-h-[220px] flex-col items-center justify-center rounded-xl border border-dashed border-border/70 bg-muted/10 px-4 py-12 text-center text-sm text-muted-foreground">
                   لا توجد حجوزات لهذا التاريخ
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 xl:grid-cols-5">
-                  {((visitScheduleRequestsQuery.data ?? []) as any[]).map((b: any) => (
+                  {(visitScheduleRequestsQuery.data ?? []).map((b: any) => (
                     <BookingRequestCard
-                      key={b.id}
-                      request={{
-                        id: b.id,
-                        fullName: b.patientName ?? b.guestName ?? "—",
-                        phone: b.patientPhone ?? b.guestPhone ?? null,
-                        service: b.bookingType,
-                        visitDate: b.requestedDate,
-                      }}
-                      removing={
-                        removeScheduleRequest.isPending &&
-                        removeScheduleRequest.variables?.id === b.id
-                      }
+                      key={`${b._source}-${b.id}`}
+                      request={b}
+                      removing={removeScheduleRequest.isPending}
                       movingToCheckedIn={false}
                       isReadOnly={isHistoricalDate}
-                      onRemove={() =>
-                        removeScheduleRequest.mutate({ id: b.id })
-                      }
+                      onRemove={() => removeScheduleRequest.mutate(b)}
                       onMoveToCheckedIn={() => {
                         toast.info("سيتم نقل الحجز إلى التسجيل");
                       }}
