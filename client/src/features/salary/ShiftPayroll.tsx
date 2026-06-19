@@ -136,9 +136,9 @@ export default function ShiftPayroll() {
       .slip { padding: 6px 0 4px; page-break-inside: avoid; }
       .top { display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 2px; }
       .title { text-align: center; font-size: 16px; font-weight: bold; color: #00008B; margin-bottom: 6px; }
-      .meta { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
-      .meta-right { font-size: 12px; font-weight: bold; text-align: center; flex: 1; }
-      .meta-left { font-size: 9px; color: #555; writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg); }
+      .meta { display: grid; grid-template-columns: 20px 1fr 20px; align-items: start; margin-bottom: 4px; }
+      .meta-right { font-size: 12px; font-weight: bold; text-align: center; grid-column: 2; }
+      .meta-left { font-size: 9px; color: #555; writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg); grid-column: 1; }
       .dept { font-size: 10px; margin-top: 2px; text-align: center; }
       table { width: 100%; border-collapse: collapse; }
       th, td { border: 1px solid #999; padding: 2px 3px; text-align: center; font-size: 8px; }
