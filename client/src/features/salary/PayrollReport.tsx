@@ -963,51 +963,25 @@ export default function PayrollReport() {
         </div>
       )}
 
-      {rows.length > 0 && (
-        <div className="space-y-3">
-          {(["مركز", "عيادة"] as const).map((sec) => {
-            const t = totalsBySection(sec);
-            const hasData = allPrintRows.some((r: any) => r._section === sec);
-            if (!hasData) return null;
-            return (
-              <div key={sec}>
-                <div className="mb-1.5 text-xs font-semibold text-muted-foreground">{sec}</div>
-                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-                  {[
-                    { label: "الرواتب الأساسية", value: fmt(t.basic), tone: "text-foreground" },
-                    { label: "الخصومات", value: fmt(t.deductions), tone: "text-destructive" },
-                    { label: "الإجمالي الكلي", value: fmt(t.totalPay), tone: "text-primary font-bold" },
-                    { label: "دفعة يوم 1 — الراتب", value: fmt(t.netBasic), tone: "text-foreground" },
-                    { label: "دفعة يوم 10 — المكافآت", value: fmt(t.commission + t.overtime), tone: "text-success" },
-                  ].map((m) => (
-                    <div key={m.label} className="rounded-xl border border-border bg-card px-4 py-3">
-                      <div className="text-xs text-muted-foreground">{m.label}</div>
-                      <div className={`mt-1 text-base font-bold ${m.tone}`}>{m.value}</div>
-                    </div>
-                  ))}
-                </div>
+      {rows.length > 0 && (() => {
+        const t = totalsBySection(section as "مركز" | "عيادة");
+        return (
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+            {[
+              { label: "الرواتب الأساسية", value: fmt(t.basic), tone: "text-foreground" },
+              { label: "الخصومات", value: fmt(t.deductions), tone: "text-destructive" },
+              { label: "الإجمالي الكلي", value: fmt(t.totalPay), tone: "text-primary font-bold" },
+              { label: "دفعة يوم 1 — الراتب", value: fmt(t.netBasic), tone: "text-foreground" },
+              { label: "دفعة يوم 10 — المكافآت", value: fmt(t.commission + t.overtime), tone: "text-success" },
+            ].map((m) => (
+              <div key={m.label} className="rounded-xl border border-border bg-card px-4 py-3">
+                <div className="text-xs text-muted-foreground">{m.label}</div>
+                <div className={`mt-1 text-base font-bold ${m.tone}`}>{m.value}</div>
               </div>
-            );
-          })}
-          <div>
-            <div className="mb-1.5 text-xs font-semibold text-muted-foreground">الإجمالي الكلي (مركز + عيادة)</div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-              {[
-                { label: "الرواتب الأساسية", value: fmt(totals.basic), tone: "text-foreground" },
-                { label: "الخصومات", value: fmt(totals.deductions), tone: "text-destructive" },
-                { label: "الإجمالي الكلي", value: fmt(totals.totalPay), tone: "text-primary font-bold" },
-                { label: "دفعة يوم 1 — الراتب", value: fmt(totals.netBasic), tone: "text-foreground" },
-                { label: "دفعة يوم 10 — المكافآت", value: fmt(totals.commission + totals.overtime), tone: "text-success" },
-              ].map((m) => (
-                <div key={m.label} className="rounded-xl border border-border bg-card px-4 py-3">
-                  <div className="text-xs text-muted-foreground">{m.label}</div>
-                  <div className={`mt-1 text-base font-bold ${m.tone}`}>{m.value}</div>
-                </div>
-              ))}
-            </div>
+            ))}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── Tabs Navigation ── */}
       {section === "مركز" && (
