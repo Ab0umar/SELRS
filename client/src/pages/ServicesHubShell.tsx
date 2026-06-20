@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useLocation, Link, Redirect } from "wouter";
+import { usePermissions } from "@/hooks/usePermissions";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight,
@@ -61,6 +62,7 @@ const MORE_LINKS: { href: string; label: string }[] = [];
 
 export default function ServicesHubShell() {
   const [location] = useLocation();
+  const { canAccess } = usePermissions();
   const medicationsQuery = trpc.medical.getAllMedications.useQuery(undefined, {
     refetchOnWindowFocus: false,
   });
@@ -149,7 +151,7 @@ export default function ServicesHubShell() {
             />
 
             <div className="space-y-2">
-              {MAIN_MODULES.map((mod) => {
+              {MAIN_MODULES.filter((mod) => canAccess(mod.href)).map((mod) => {
                 const Icon = mod.icon;
                 return (
                   <div

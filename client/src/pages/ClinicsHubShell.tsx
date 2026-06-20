@@ -1,4 +1,5 @@
 import { useLocation, Link } from "wouter";
+import { usePermissions } from "@/hooks/usePermissions";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight,
@@ -103,6 +104,7 @@ const MORE_LINKS: { href: string; label: string }[] = [];
 
 export default function ClinicsHubShell() {
   const [location] = useLocation();
+  const { canAccess } = usePermissions();
 
   const isHubHome = location === "/clinics-hub" || location === "/clinics-hub/";
 
@@ -145,7 +147,7 @@ export default function ClinicsHubShell() {
       />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {MAIN_MODULES.map((mod) => {
+        {MAIN_MODULES.filter((mod) => canAccess(mod.href)).map((mod) => {
           const Icon = mod.icon;
           return (
             <Card

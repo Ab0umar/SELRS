@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
+import { usePermissions } from "@/hooks/usePermissions";
 import { cn } from "@/lib/utils";
 import {
   Users,
@@ -106,6 +107,7 @@ function fmtCount(value: number | undefined | null) {
 
 export default function KfShell({ children }: KfShellProps) {
   const [location] = useLocation();
+  const { canAccess } = usePermissions();
 
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -176,7 +178,7 @@ export default function KfShell({ children }: KfShellProps) {
 
             {/* Mobile Horizontal Pill Navigation Bar (Inline top navigation) */}
             <div className="lg:hidden mt-2 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none whitespace-nowrap border-t border-border/40 pt-3">
-              {mobileNavItems.map((item) => {
+              {mobileNavItems.filter((item) => canAccess(item.href)).map((item) => {
                 const Icon = item.icon;
                 const itemActive = isItemActive(location, item.activeFor);
                 return (
@@ -204,7 +206,10 @@ export default function KfShell({ children }: KfShellProps) {
         {/* Sidebar Navigation (Desktop only) */}
         <aside className="hidden lg:block w-full border-b border-border/60 bg-card/20 lg:w-64 lg:border-b-0 lg:border-r border-border/60 min-h-[calc(100vh-115px)]">
           <nav className="space-y-4 p-4 sticky top-4">
-            {navigationSections.map((section) => (
+            {navigationSections.map((section) => {
+              const visibleItems = section.items.filter((item) => canAccess(item.href));
+              if (!visibleItems.length) return null;
+              return (
               <div key={section.id} className="space-y-1">
                 {/* Section header */}
                 <div className="px-3 py-1">
@@ -215,7 +220,7 @@ export default function KfShell({ children }: KfShellProps) {
 
                 {/* Section items */}
                 <div className="space-y-1">
-                  {section.items.map((item) => {
+                  {visibleItems.map((item) => {
                     const itemActive = isItemActive(location, item.activeFor);
                     const Icon = item.icon;
                     return (
@@ -242,7 +247,7 @@ export default function KfShell({ children }: KfShellProps) {
                   })}
                 </div>
               </div>
-            ))}
+            );})}
           </nav>
         </aside>
 

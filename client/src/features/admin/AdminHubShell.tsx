@@ -1,4 +1,5 @@
 import { useLocation, Link } from "wouter";
+import { usePermissions } from "@/hooks/usePermissions";
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
@@ -336,6 +337,7 @@ function isItemActive(pathname: string, activeFor: string[]) {
 
 export default function AdminHubShell() {
   const [location] = useLocation();
+  const { canAccess } = usePermissions();
   const opsHealthQuery = trpc.medical.getOpsHealth.useQuery(undefined, {
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
@@ -518,7 +520,7 @@ export default function AdminHubShell() {
       <div className="space-y-8">
         {CATEGORIES.map((cat) => {
           const CatIcon = cat.icon;
-          const modules = ALL_MODULES.filter((m) => m.category === cat.id);
+          const modules = ALL_MODULES.filter((m) => m.category === cat.id && canAccess(m.href));
 
           return (
             <div key={cat.id} className="space-y-3">
@@ -627,7 +629,7 @@ export default function AdminHubShell() {
 
             {/* Mobile Horizontal Pill Navigation Bar (Inline top navigation) */}
             <div className="lg:hidden mt-2 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none whitespace-nowrap border-t border-border/40 pt-3">
-              {mobileNavItems.map((item) => {
+              {mobileNavItems.filter((item) => canAccess(item.href)).map((item) => {
                 const Icon = item.icon;
                 const itemActive = isItemActive(location, item.activeFor);
                 return (
@@ -671,7 +673,10 @@ export default function AdminHubShell() {
               </Link>
             </div>
 
-            {navigationSections.map((section) => (
+            {navigationSections.map((section) => {
+              const visibleItems = section.items.filter((item) => canAccess(item.href));
+              if (!visibleItems.length) return null;
+              return (
               <div key={section.id} className="space-y-1">
                 {/* Section header */}
                 <div className="px-3 py-1">
@@ -682,7 +687,7 @@ export default function AdminHubShell() {
 
                 {/* Section items */}
                 <div className="space-y-1">
-                  {section.items.map((item) => {
+                  {visibleItems.map((item) => {
                     const itemActive = isItemActive(location, item.activeFor);
                     const Icon = item.icon;
                     return (
@@ -709,7 +714,7 @@ export default function AdminHubShell() {
                   })}
                 </div>
               </div>
-            ))}
+            );})}
           </nav>
         </aside>
 

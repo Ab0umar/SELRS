@@ -1,3 +1,10 @@
+import { PAGE_PERMISSION_DEFINITIONS } from "@/lib/page-permissions";
+
+// Paths that have their own explicit permission entry — parent permission does NOT cover these.
+const DEFINED_PERMISSION_PATHS = new Set(
+  PAGE_PERMISSION_DEFINITIONS.map((p) => p.id).filter((id) => id.startsWith("/")),
+);
+
 /** Normalize URL path for permission checks (matches ProtectedRoute behavior). */
 export function normalizeNavPath(path: string): string {
   const raw = String(path ?? "").trim();
@@ -31,11 +38,21 @@ export function pathGrantedByRoots(
   return allowedRoots.some((permission) => {
     if (!permission) return false;
     if (permission === cleanPath) return true;
-    if (permission !== "/" && cleanPath.startsWith(`${permission}/`))
+    // Parent-prefix match: only when cleanPath has no own defined permission.
+    if (
+      permission !== "/" &&
+      cleanPath.startsWith(`${permission}/`) &&
+      !DEFINED_PERMISSION_PATHS.has(cleanPath as any)
+    )
       return true;
     if (permission.includes("/:")) {
       const base = permission.split("/:")[0];
-      return cleanPath === base || cleanPath.startsWith(`${base}/`);
+      if (cleanPath === base) return true;
+      if (
+        cleanPath.startsWith(`${base}/`) &&
+        !DEFINED_PERMISSION_PATHS.has(cleanPath as any)
+      )
+        return true;
     }
     return false;
   });
