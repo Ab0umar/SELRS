@@ -81,6 +81,14 @@ const CollapsibleChevron = ({ open }: { open: boolean }) => (
   </svg>
 );
 
+function stripDash(obj: any): any {
+  if (typeof obj === "string") return obj === "---" ? "" : obj;
+  if (Array.isArray(obj)) return obj.map(stripDash);
+  if (obj && typeof obj === "object")
+    return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, stripDash(v)]));
+  return obj;
+}
+
 export default function MedicalFilePanel({
   patientId,
   onClose,
@@ -1121,13 +1129,6 @@ export default function MedicalFilePanel({
     if (examinations.length === 0 || !selectedExaminationId) {
       setIsSaving(true);
 
-      const stripDash = (obj: any): any => {
-        if (typeof obj === "string") return obj === "---" ? "" : obj;
-        if (Array.isArray(obj)) return obj.map(stripDash);
-        if (obj && typeof obj === "object")
-          return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, stripDash(v)]));
-        return obj;
-      };
       saveMedicalVisitMutation.mutate({
         patientId: patientId,
         visitDate: visitDate,
@@ -1223,18 +1224,11 @@ export default function MedicalFilePanel({
       },
       {
         onSuccess: () => {
-          const stripDash2 = (obj: any): any => {
-            if (typeof obj === "string") return obj === "---" ? "" : obj;
-            if (Array.isArray(obj)) return obj.map(stripDash2);
-            if (obj && typeof obj === "object")
-              return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, stripDash2(v)]));
-            return obj;
-          };
           saveAfterRefractionMutation.mutate({
             examinationId: examIdToSave,
             patientId,
-            od: stripDash2(formData.measurements?.after?.od),
-            os: stripDash2(formData.measurements?.after?.os),
+            od: stripDash(formData.measurements?.after?.od),
+            os: stripDash(formData.measurements?.after?.os),
           });
           console.log("Exam saved, now saving doctor report");
           const doctorReport = (doctorReportQuery.data as any)?.[0];
