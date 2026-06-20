@@ -81,6 +81,11 @@ export const attendanceShiftsRoutes = {
       breakMinutes: s.breakMinutes,
       weekdayMask: s.weekdayMask,
       requirePunch: s.requirePunch,
+      isFlexible: s.isFlexible ?? false,
+      flexInFrom: s.flexInFrom ?? null,
+      flexInTo: s.flexInTo ?? null,
+      flexOutFrom: s.flexOutFrom ?? null,
+      flexOutTo: s.flexOutTo ?? null,
       active: s.active,
     }));
   }),
@@ -97,6 +102,11 @@ export const attendanceShiftsRoutes = {
         allowOT: z.boolean().default(false),
         breakMinutes: z.number().int().min(0).default(60),
         requirePunch: z.boolean().default(true),
+        isFlexible: z.boolean().default(false),
+        flexInFrom: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
+        flexInTo: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
+        flexOutFrom: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
+        flexOutTo: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -106,8 +116,8 @@ export const attendanceShiftsRoutes = {
       try {
         const result = await db.insert(attendanceShifts).values({
           name: input.name,
-          startTime: input.startTime,
-          endTime: input.endTime,
+          startTime: input.isFlexible ? (input.flexInFrom ?? "00:00") : input.startTime,
+          endTime: input.isFlexible ? (input.flexOutTo ?? "00:00") : input.endTime,
           crossesMidnight: input.crossesMidnight ?? false,
           graceLateMin: input.graceLateMin,
           graceEarlyMin: input.graceEarlyMin,
@@ -115,6 +125,11 @@ export const attendanceShiftsRoutes = {
           breakMinutes: input.breakMinutes,
           weekdayMask: 127,
           requirePunch: input.requirePunch,
+          isFlexible: input.isFlexible,
+          flexInFrom: input.flexInFrom ?? null,
+          flexInTo: input.flexInTo ?? null,
+          flexOutFrom: input.flexOutFrom ?? null,
+          flexOutTo: input.flexOutTo ?? null,
           active: true,
         });
 
@@ -156,6 +171,11 @@ export const attendanceShiftsRoutes = {
         allowOT: z.boolean().optional(),
         breakMinutes: z.number().int().min(0).optional(),
         requirePunch: z.boolean().optional(),
+        isFlexible: z.boolean().optional(),
+        flexInFrom: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
+        flexInTo: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
+        flexOutFrom: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
+        flexOutTo: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -176,6 +196,17 @@ export const attendanceShiftsRoutes = {
           updateData.breakMinutes = input.breakMinutes;
         if (input.requirePunch !== undefined)
           updateData.requirePunch = input.requirePunch;
+        if (input.isFlexible !== undefined) {
+          updateData.isFlexible = input.isFlexible;
+          updateData.flexInFrom = input.flexInFrom ?? null;
+          updateData.flexInTo = input.flexInTo ?? null;
+          updateData.flexOutFrom = input.flexOutFrom ?? null;
+          updateData.flexOutTo = input.flexOutTo ?? null;
+          if (input.isFlexible) {
+            updateData.startTime = input.flexInFrom ?? "00:00";
+            updateData.endTime = input.flexOutTo ?? "00:00";
+          }
+        }
 
         await db
           .update(attendanceShifts)

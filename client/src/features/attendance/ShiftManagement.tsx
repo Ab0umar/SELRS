@@ -1,19 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil } from "lucide-react";
 import { toast } from "sonner";
-
-const BLANK: ShiftForm = {
-  name: "",
-  startTime: "08:00",
-  endTime: "17:00",
-  graceLateMin: 15,
-  graceEarlyMin: 15,
-  allowOT: false,
-  breakMinutes: 60,
-  requirePunch: true,
-};
 
 interface ShiftForm {
   name: string;
@@ -24,7 +13,28 @@ interface ShiftForm {
   allowOT: boolean;
   breakMinutes: number;
   requirePunch: boolean;
+  isFlexible: boolean;
+  flexInFrom: string;
+  flexInTo: string;
+  flexOutFrom: string;
+  flexOutTo: string;
 }
+
+const BLANK: ShiftForm = {
+  name: "",
+  startTime: "08:00",
+  endTime: "17:00",
+  graceLateMin: 15,
+  graceEarlyMin: 15,
+  allowOT: false,
+  breakMinutes: 60,
+  requirePunch: true,
+  isFlexible: false,
+  flexInFrom: "08:00",
+  flexInTo: "09:00",
+  flexOutFrom: "16:00",
+  flexOutTo: "17:00",
+};
 
 export default function ShiftManagement() {
   const [showForm, setShowForm] = useState(false);
@@ -57,10 +67,17 @@ export default function ShiftManagement() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const payload = {
+      ...form,
+      flexInFrom: form.isFlexible ? form.flexInFrom || null : null,
+      flexInTo: form.isFlexible ? form.flexInTo || null : null,
+      flexOutFrom: form.isFlexible ? form.flexOutFrom || null : null,
+      flexOutTo: form.isFlexible ? form.flexOutTo || null : null,
+    };
     if (editingId) {
-      updateMut.mutate({ id: editingId, ...form });
+      updateMut.mutate({ id: editingId, ...payload });
     } else {
-      createMut.mutate(form);
+      createMut.mutate(payload);
     }
   };
 
@@ -75,9 +92,17 @@ export default function ShiftManagement() {
       allowOT: s.allowOT ?? false,
       breakMinutes: s.breakMinutes,
       requirePunch: s.requirePunch ?? true,
+      isFlexible: s.isFlexible ?? false,
+      flexInFrom: s.flexInFrom ?? "08:00",
+      flexInTo: s.flexInTo ?? "09:00",
+      flexOutFrom: s.flexOutFrom ?? "16:00",
+      flexOutTo: s.flexOutTo ?? "17:00",
     });
     setShowForm(true);
   };
+
+  const inputClass =
+    "w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-[color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/20";
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -109,6 +134,7 @@ export default function ShiftManagement() {
           </div>
           <div className="space-y-5 px-4 py-4">
             <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Name */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-foreground">
                   اسم الوردية
@@ -118,42 +144,139 @@ export default function ShiftManagement() {
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="مثل: وردية الصباح"
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-[color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className={inputClass}
                   required
                 />
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-foreground">
-                    وقت الحضور
-                  </label>
-                  <input
-                    type="time"
-                    value={form.startTime}
-                    onChange={(e) =>
-                      setForm({ ...form, startTime: e.target.value })
-                    }
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-[color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-foreground">
-                    وقت الانصراف
-                  </label>
-                  <input
-                    type="time"
-                    value={form.endTime}
-                    onChange={(e) =>
-                      setForm({ ...form, endTime: e.target.value })
-                    }
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-[color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    required
-                  />
-                </div>
+              {/* Flexible toggle */}
+              <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 px-3 py-3">
+                <input
+                  type="checkbox"
+                  id="isFlexible"
+                  checked={form.isFlexible}
+                  onChange={(e) =>
+                    setForm({ ...form, isFlexible: e.target.checked })
+                  }
+                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
+                />
+                <label
+                  htmlFor="isFlexible"
+                  className="text-sm font-medium cursor-pointer text-foreground"
+                >
+                  وردية مرنة (نافذة حضور وانصراف)
+                </label>
+                <span className="mr-auto text-xs text-muted-foreground">
+                  {form.isFlexible
+                    ? "يُحسب التأخير بعد نهاية نافذة الحضور"
+                    : "وقت ثابت للحضور والانصراف"}
+                </span>
               </div>
 
+              {/* Times */}
+              {form.isFlexible ? (
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-foreground">
+                    نافذة الحضور
+                  </p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="block text-xs text-muted-foreground">
+                        من (أبكر وقت حضور)
+                      </label>
+                      <input
+                        type="time"
+                        value={form.flexInFrom}
+                        onChange={(e) =>
+                          setForm({ ...form, flexInFrom: e.target.value })
+                        }
+                        className={inputClass}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-xs text-muted-foreground">
+                        إلى (آخر وقت بدون تأخير)
+                      </label>
+                      <input
+                        type="time"
+                        value={form.flexInTo}
+                        onChange={(e) =>
+                          setForm({ ...form, flexInTo: e.target.value })
+                        }
+                        className={inputClass}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <p className="text-sm font-medium text-foreground">
+                    نافذة الانصراف
+                  </p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="block text-xs text-muted-foreground">
+                        من (أبكر انصراف بدون خصم)
+                      </label>
+                      <input
+                        type="time"
+                        value={form.flexOutFrom}
+                        onChange={(e) =>
+                          setForm({ ...form, flexOutFrom: e.target.value })
+                        }
+                        className={inputClass}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-xs text-muted-foreground">
+                        إلى (آخر وقت انصراف)
+                      </label>
+                      <input
+                        type="time"
+                        value={form.flexOutTo}
+                        onChange={(e) =>
+                          setForm({ ...form, flexOutTo: e.target.value })
+                        }
+                        className={inputClass}
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-foreground">
+                      وقت الحضور
+                    </label>
+                    <input
+                      type="time"
+                      value={form.startTime}
+                      onChange={(e) =>
+                        setForm({ ...form, startTime: e.target.value })
+                      }
+                      className={inputClass}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-foreground">
+                      وقت الانصراف
+                    </label>
+                    <input
+                      type="time"
+                      value={form.endTime}
+                      onChange={(e) =>
+                        setForm({ ...form, endTime: e.target.value })
+                      }
+                      className={inputClass}
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Require punch */}
               <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 px-3 py-3">
                 <input
                   type="checkbox"
@@ -177,75 +300,116 @@ export default function ShiftManagement() {
                 </span>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-foreground">
-                    سماح التأخير (دقيقة)
-                  </label>
-                  <input
-                    type="number"
-                    value={form.graceLateMin}
-                    min={0}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        graceLateMin: parseInt(e.target.value) || 0,
-                      })
-                    }
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-[color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-foreground">
-                    سماح المغادرة (دقيقة)
-                  </label>
-                  <input
-                    type="number"
-                    value={form.graceEarlyMin}
-                    min={0}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        graceEarlyMin: parseInt(e.target.value) || 0,
-                      })
-                    }
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-[color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-foreground">
-                    وقت إضافي
-                  </label>
-                  <label className="flex h-[38px] cursor-pointer items-center gap-2 rounded-md border border-border bg-background px-3 text-sm text-foreground">
+              {/* Grace / OT / Break — hidden for flexible (windows replace grace) */}
+              {!form.isFlexible && (
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-foreground">
+                      سماح التأخير (دقيقة)
+                    </label>
                     <input
-                      type="checkbox"
-                      checked={form.allowOT}
+                      type="number"
+                      value={form.graceLateMin}
+                      min={0}
                       onChange={(e) =>
-                        setForm({ ...form, allowOT: e.target.checked })
+                        setForm({
+                          ...form,
+                          graceLateMin: parseInt(e.target.value) || 0,
+                        })
                       }
-                      className="h-4 w-4 accent-primary"
+                      className={inputClass}
                     />
-                    تفعيل الإضافي
-                  </label>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-foreground">
+                      سماح المغادرة (دقيقة)
+                    </label>
+                    <input
+                      type="number"
+                      value={form.graceEarlyMin}
+                      min={0}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          graceEarlyMin: parseInt(e.target.value) || 0,
+                        })
+                      }
+                      className={inputClass}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-foreground">
+                      وقت إضافي
+                    </label>
+                    <label className="flex h-[38px] cursor-pointer items-center gap-2 rounded-md border border-border bg-background px-3 text-sm text-foreground">
+                      <input
+                        type="checkbox"
+                        checked={form.allowOT}
+                        onChange={(e) =>
+                          setForm({ ...form, allowOT: e.target.checked })
+                        }
+                        className="h-4 w-4 accent-primary"
+                      />
+                      تفعيل الإضافي
+                    </label>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-foreground">
+                      استراحة (دقيقة)
+                    </label>
+                    <input
+                      type="number"
+                      value={form.breakMinutes}
+                      min={0}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          breakMinutes: parseInt(e.target.value) || 0,
+                        })
+                      }
+                      className={inputClass}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-foreground">
-                    استراحة (دقيقة)
-                  </label>
-                  <input
-                    type="number"
-                    value={form.breakMinutes}
-                    min={0}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        breakMinutes: parseInt(e.target.value) || 0,
-                      })
-                    }
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-[color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  />
+              )}
+
+              {form.isFlexible && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-foreground">
+                      وقت إضافي
+                    </label>
+                    <label className="flex h-[38px] cursor-pointer items-center gap-2 rounded-md border border-border bg-background px-3 text-sm text-foreground">
+                      <input
+                        type="checkbox"
+                        checked={form.allowOT}
+                        onChange={(e) =>
+                          setForm({ ...form, allowOT: e.target.checked })
+                        }
+                        className="h-4 w-4 accent-primary"
+                      />
+                      تفعيل الإضافي
+                    </label>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-foreground">
+                      استراحة (دقيقة)
+                    </label>
+                    <input
+                      type="number"
+                      value={form.breakMinutes}
+                      min={0}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          breakMinutes: parseInt(e.target.value) || 0,
+                        })
+                      }
+                      className={inputClass}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="flex gap-2 pt-1">
                 <Button
@@ -288,17 +452,31 @@ export default function ShiftManagement() {
                     {s.name}
                   </h4>
                   <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2 xl:grid-cols-4">
-                    <div>
-                      {s.startTime} ← → {s.endTime}
-                    </div>
+                    {s.isFlexible ? (
+                      <>
+                        <div>حضور: {s.flexInFrom} ← {s.flexInTo}</div>
+                        <div>انصراف: {s.flexOutFrom} ← {s.flexOutTo}</div>
+                      </>
+                    ) : (
+                      <div>{s.startTime} ← → {s.endTime}</div>
+                    )}
                     <div>استراحة: {s.breakMinutes} د</div>
-                    <div>سماح حضور: {s.graceLateMin} د</div>
-                    <div>سماح انصراف: {s.graceEarlyMin} د</div>
+                    {!s.isFlexible && (
+                      <>
+                        <div>سماح حضور: {s.graceLateMin} د</div>
+                        <div>سماح انصراف: {s.graceEarlyMin} د</div>
+                      </>
+                    )}
                     <div>
                       وقت إضافي: {(s.allowOT ?? false) ? "مفعّل" : "معطّل"}
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    {s.isFlexible && (
+                      <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                        مرنة
+                      </span>
+                    )}
                     <span
                       className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
                         (s.requirePunch ?? true)

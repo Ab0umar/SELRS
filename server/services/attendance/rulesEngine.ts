@@ -16,6 +16,11 @@ export interface Shift {
   breakMinutes: number;
   weekdayMask: number; // bits 0-6: Sun-Sat; used to skip rest days
   requirePunch: boolean; // false = auto-present even with no fingerprint
+  isFlexible?: boolean; // flexible check-in/out windows
+  flexInFrom?: string | null; // HH:mm earliest check-in
+  flexInTo?: string | null; // HH:mm latest on-time check-in (lateness counted after this)
+  flexOutFrom?: string | null; // HH:mm earliest valid check-out (early-leave counted before this)
+  flexOutTo?: string | null; // HH:mm latest check-out
   roundingMinutes?: number; // Default: 30 (Taratus: Round value)
 }
 
@@ -236,49 +241,74 @@ export function computeDay(ctx: DayContext): DayResult {
     return result;
   }
 
-  // Parse shift times
-  const shiftStartHm = parseTime(ctx.shift.startTime);
-  const shiftEndHm = parseTime(ctx.shift.endTime);
-
-  if (!shiftStartHm || !shiftEndHm) {
-    result.status = "partial";
-    return result;
-  }
-
-  // Build shift window times (on workDate for overnight, might cross to next day)
-  const shiftStartDt = buildDateTime(ctx.workDate, shiftStartHm);
-  let shiftEndDt = buildDateTime(ctx.workDate, shiftEndHm);
-
-  // If shift crosses midnight, move end to next day
-  if (ctx.shift.crossesMidnight && shiftEndDt <= shiftStartDt) {
-    shiftEndDt = new Date(shiftEndDt.getTime() + 24 * 60 * 60 * 1000);
-  }
-
-  // Compute lateness and early leave
   const inMs = paired.firstIn.getTime();
   const outMs = paired.lastOut.getTime();
 
-  if (inMs > shiftStartDt.getTime()) {
-    const lateMin = Math.round((inMs - shiftStartDt.getTime()) / 60_000);
-    result.lateMinutes = Math.max(0, lateMin - ctx.shift.graceLateMin);
-  }
+  if (ctx.shift.isFlexible) {
+    // Flexible shift: lateness counted only after flexInTo; early-leave before flexOutFrom
+    const flexInToHm = ctx.shift.flexInTo ? parseTime(ctx.shift.flexInTo) : null;
+    const flexOutFromHm = ctx.shift.flexOutFrom ? parseTime(ctx.shift.flexOutFrom) : null;
 
-  if (outMs < shiftEndDt.getTime()) {
-    const earlyMin = Math.round((shiftEndDt.getTime() - outMs) / 60_000);
-    result.earlyLeaveMin = Math.max(0, earlyMin - ctx.shift.graceEarlyMin);
-  }
+    if (flexInToHm) {
+      const inDeadline = buildDateTime(ctx.workDate, flexInToHm).getTime();
+      if (inMs > inDeadline) {
+        result.lateMinutes = Math.round((inMs - inDeadline) / 60_000);
+      }
+    }
 
-  // Compute overtime — only if allowOT is enabled for this shift
-  const shiftDurationMin =
-    (shiftEndDt.getTime() - shiftStartDt.getTime()) / 60_000 - ctx.breakMinutes;
-  if (
-    ctx.shift.allowOT &&
-    result.workedMinutes &&
-    result.workedMinutes > shiftDurationMin
-  ) {
-    result.overtimeMinutes = Math.round(
-      result.workedMinutes - shiftDurationMin,
-    );
+    if (flexOutFromHm) {
+      const outDeadline = buildDateTime(ctx.workDate, flexOutFromHm).getTime();
+      if (outMs < outDeadline) {
+        result.earlyLeaveMin = Math.round((outDeadline - outMs) / 60_000);
+      }
+    }
+
+    // OT: worked beyond flexOutTo
+    if (ctx.shift.allowOT && ctx.shift.flexOutTo) {
+      const flexOutToHm = parseTime(ctx.shift.flexOutTo);
+      if (flexOutToHm) {
+        const maxOut = buildDateTime(ctx.workDate, flexOutToHm).getTime();
+        if (outMs > maxOut && result.workedMinutes) {
+          result.overtimeMinutes = Math.round((outMs - maxOut) / 60_000);
+        }
+      }
+    }
+  } else {
+    // Fixed shift: use startTime / endTime
+    const shiftStartHm = parseTime(ctx.shift.startTime);
+    const shiftEndHm = parseTime(ctx.shift.endTime);
+
+    if (!shiftStartHm || !shiftEndHm) {
+      result.status = "partial";
+      return result;
+    }
+
+    const shiftStartDt = buildDateTime(ctx.workDate, shiftStartHm);
+    let shiftEndDt = buildDateTime(ctx.workDate, shiftEndHm);
+
+    if (ctx.shift.crossesMidnight && shiftEndDt <= shiftStartDt) {
+      shiftEndDt = new Date(shiftEndDt.getTime() + 24 * 60 * 60 * 1000);
+    }
+
+    if (inMs > shiftStartDt.getTime()) {
+      const lateMin = Math.round((inMs - shiftStartDt.getTime()) / 60_000);
+      result.lateMinutes = Math.max(0, lateMin - ctx.shift.graceLateMin);
+    }
+
+    if (outMs < shiftEndDt.getTime()) {
+      const earlyMin = Math.round((shiftEndDt.getTime() - outMs) / 60_000);
+      result.earlyLeaveMin = Math.max(0, earlyMin - ctx.shift.graceEarlyMin);
+    }
+
+    const shiftDurationMin =
+      (shiftEndDt.getTime() - shiftStartDt.getTime()) / 60_000 - ctx.breakMinutes;
+    if (
+      ctx.shift.allowOT &&
+      result.workedMinutes &&
+      result.workedMinutes > shiftDurationMin
+    ) {
+      result.overtimeMinutes = Math.round(result.workedMinutes - shiftDurationMin);
+    }
   }
 
   // Determine status

@@ -191,6 +191,11 @@ export const attendanceShifts = mysqlTable(
     breakMinutes: int("break_minutes").default(0).notNull(),
     weekdayMask: int("weekday_mask").default(62).notNull(), // bits 0-6 Sun-Sat; 62=Mon-Fri
     requirePunch: boolean("require_punch").default(true).notNull(), // false = auto-present if shift assigned
+    isFlexible: boolean("is_flexible").default(false).notNull(), // flexible in/out windows
+    flexInFrom: varchar("flex_in_from", { length: 8 }), // earliest check-in HH:mm
+    flexInTo: varchar("flex_in_to", { length: 8 }), // latest on-time check-in HH:mm
+    flexOutFrom: varchar("flex_out_from", { length: 8 }), // earliest valid check-out HH:mm
+    flexOutTo: varchar("flex_out_to", { length: 8 }), // latest check-out HH:mm
     active: boolean("active").default(true).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
