@@ -149,13 +149,19 @@ export class DeviceSyncEngine {
         highWaterMark: minPunchTime,
       });
 
-      // Rebuild daily records for affected dates
+      // Rebuild daily records for affected dates — always recompute today
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date(todayStart);
+      todayEnd.setDate(todayEnd.getDate() + 1);
+
       if (this.currentSync.recordsImported > 0) {
-        const maxDate = new Date();
-        await DailyMaterializer.recomputeRange(minPunchTime, maxDate);
-        console.log(
-          `Recomputed daily records from ${minPunchTime} to ${maxDate}`,
-        );
+        const from = minPunchTime < todayStart ? minPunchTime : todayStart;
+        await DailyMaterializer.recomputeRange(from, todayEnd);
+        console.log(`Recomputed daily records from ${from} to ${todayEnd}`);
+      } else {
+        await DailyMaterializer.recomputeRange(todayStart, todayEnd);
+        console.log(`No new punches — recomputed today only`);
       }
 
       this.currentSync.completedAt = new Date();

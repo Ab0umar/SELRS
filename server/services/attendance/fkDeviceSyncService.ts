@@ -161,6 +161,13 @@ export class FKDeviceSyncService {
       }
 
       // Step 4: Recompute daily records for affected dates
+      // Always recompute today so dashboard reflects current punch state,
+      // even when all punches were duplicates (0 inserted).
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date(todayStart);
+      todayEnd.setDate(todayEnd.getDate() + 1);
+
       if (result.recordsInserted > 0 && affected.size > 0) {
         console.log(
           `[FKSync] Recomputing daily attendance for ${affected.size} affected dates...`,
@@ -172,10 +179,18 @@ export class FKDeviceSyncService {
         const minDate = new Date(fy, fm - 1, fd);
         const maxDate = new Date(ty, tm - 1, td + 1); // exclusive end
 
-        await DailyMaterializer.recomputeRange(minDate, maxDate);
+        // Extend range to include today if not already covered
+        const from = minDate < todayStart ? minDate : todayStart;
+        const to = maxDate > todayEnd ? maxDate : todayEnd;
+
+        await DailyMaterializer.recomputeRange(from, to);
         console.log(
           `[FKSync] Recomputed from ${sorted[0]} to ${sorted[sorted.length - 1]}`,
         );
+      } else {
+        // No new punches — still recompute today so live status stays accurate
+        await DailyMaterializer.recomputeRange(todayStart, todayEnd);
+        console.log(`[FKSync] No new punches — recomputed today only`);
       }
 
       result.success = true;
