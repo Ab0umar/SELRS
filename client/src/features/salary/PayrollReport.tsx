@@ -76,27 +76,10 @@ export default function PayrollReport() {
 
   const handleFromDateChange = (val: string) => {
     setFromDate(val);
-    if (!val) return;
-    const [y, m] = val.split("-").map(Number);
-    if (isNaN(y) || isNaN(m)) return;
-    const [currentY, currentM] = fromDate.split("-").map(Number);
-    if (y !== currentY || m !== currentM) {
-      const last = new Date(y, m, 0);
-      const lastDayStr = `${y}-${String(m).padStart(2, "0")}-${String(last.getDate()).padStart(2, "0")}`;
-      setToDate(lastDayStr);
-    }
   };
 
   const handleToDateChange = (val: string) => {
     setToDate(val);
-    if (!val) return;
-    const [y, m] = val.split("-").map(Number);
-    if (isNaN(y) || isNaN(m)) return;
-    const [currentY, currentM] = toDate.split("-").map(Number);
-    if (y !== currentY || m !== currentM) {
-      const firstDayStr = `${y}-${String(m).padStart(2, "0")}-01`;
-      setFromDate(firstDayStr);
-    }
   };
 
   const centerQ = (trpc as any).salary.getPayroll.useQuery({
