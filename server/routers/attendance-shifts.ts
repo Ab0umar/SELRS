@@ -89,6 +89,8 @@ export const attendanceShiftsRoutes = {
       flexOutFrom: s.flexOutFrom ?? null,
       flexOutTo: s.flexOutTo ?? null,
       active: s.active,
+      shiftSize: (s.shiftSize ?? "auto") as "big" | "small" | "auto",
+      autoSmallThresholdMin: s.autoSmallThresholdMin ?? 270,
     }));
   }),
 
@@ -111,6 +113,8 @@ export const attendanceShiftsRoutes = {
         flexInTo: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
         flexOutFrom: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
         flexOutTo: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
+        shiftSize: z.enum(["big", "small", "auto"]).default("auto"),
+        autoSmallThresholdMin: z.number().int().min(0).default(270),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -136,6 +140,8 @@ export const attendanceShiftsRoutes = {
           flexInTo: input.flexInTo ?? null,
           flexOutFrom: input.flexOutFrom ?? null,
           flexOutTo: input.flexOutTo ?? null,
+          shiftSize: input.shiftSize,
+          autoSmallThresholdMin: input.autoSmallThresholdMin,
           active: true,
         });
 
@@ -184,6 +190,8 @@ export const attendanceShiftsRoutes = {
         flexInTo: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
         flexOutFrom: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
         flexOutTo: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
+        shiftSize: z.enum(["big", "small", "auto"]).optional(),
+        autoSmallThresholdMin: z.number().int().min(0).optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -217,6 +225,8 @@ export const attendanceShiftsRoutes = {
             updateData.endTime = input.flexOutTo ?? "00:00";
           }
         }
+        if (input.shiftSize !== undefined) updateData.shiftSize = input.shiftSize;
+        if (input.autoSmallThresholdMin !== undefined) updateData.autoSmallThresholdMin = input.autoSmallThresholdMin;
 
         await db
           .update(attendanceShifts)

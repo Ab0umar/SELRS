@@ -23,6 +23,7 @@ interface StaffForm {
   name: string;
   type: "doctor" | "tech";
   ratePerShift: string;
+  rateSmallShift: string;
   active: boolean;
   empCd: string;
   userId: number | null;
@@ -31,6 +32,7 @@ const EMPTY: StaffForm = {
   name: "",
   type: "doctor",
   ratePerShift: "",
+  rateSmallShift: "",
   active: true,
   empCd: "",
   userId: null,
@@ -289,6 +291,7 @@ export default function ShiftStaff() {
       name: addForm.name.trim(),
       type: addForm.type,
       ratePerShift: rate,
+      rateSmallShift: parseFloat(addForm.rateSmallShift) || 0,
       empCd: addForm.empCd || undefined,
     });
   }
@@ -300,6 +303,7 @@ export default function ShiftStaff() {
       name: s.name,
       type: s.type,
       ratePerShift: String(s.ratePerShift),
+      rateSmallShift: String(s.rateSmallShift ?? ""),
       active: s.active,
       empCd: s.empCd ?? "",
       userId: s.userId ?? null,
@@ -317,6 +321,7 @@ export default function ShiftStaff() {
       name: editForm.name.trim(),
       type: editForm.type,
       ratePerShift: rate,
+      rateSmallShift: parseFloat(editForm.rateSmallShift) || 0,
       active: editForm.active,
       empCd: editForm.empCd || undefined,
       userId: editForm.userId,
@@ -368,7 +373,21 @@ export default function ShiftStaff() {
                 onChange={(e) =>
                   setEditForm((f) => ({ ...f, ratePerShift: e.target.value }))
                 }
-                className="w-28 rounded border border-input bg-background px-2 py-1 text-sm text-right"
+                className="w-24 rounded border border-input bg-background px-2 py-1 text-sm text-right"
+                placeholder="شفت كبير"
+              />
+            </td>
+            <td className="px-4 py-2">
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                value={editForm.rateSmallShift}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, rateSmallShift: e.target.value }))
+                }
+                className="w-24 rounded border border-input bg-background px-2 py-1 text-sm text-right"
+                placeholder="شفت صغير"
               />
             </td>
             <td className="px-4 py-2">
@@ -450,6 +469,12 @@ export default function ShiftStaff() {
             </td>
             <td className="px-4 py-3 text-right tabular-nums">
               {Number(s.ratePerShift).toLocaleString("en-EG", {
+                minimumFractionDigits: 2,
+              })}{" "}
+              EGP
+            </td>
+            <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+              {Number(s.rateSmallShift ?? 0).toLocaleString("en-EG", {
                 minimumFractionDigits: 2,
               })}{" "}
               EGP
@@ -559,13 +584,24 @@ export default function ShiftStaff() {
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-foreground">قيمة الشفت</label>
+            <label className="block text-xs font-bold text-foreground">شفت كبير (ج.م)</label>
             <input
               type="number"
               min={0}
               step="0.01"
               value={editForm.ratePerShift}
               onChange={(e) => setEditForm({ ...editForm, ratePerShift: e.target.value })}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-foreground">شفت صغير (ج.م)</label>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              value={editForm.rateSmallShift}
+              onChange={(e) => setEditForm({ ...editForm, rateSmallShift: e.target.value })}
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none"
             />
           </div>
@@ -767,7 +803,8 @@ export default function ShiftStaff() {
               <tr>
                 <th className="px-4 py-2 text-right font-medium">الاسم</th>
                 <th className="px-4 py-2 text-right font-medium">النوع</th>
-                <th className="px-4 py-2 text-right font-medium">قيمة الشفت</th>
+                <th className="px-4 py-2 text-right font-medium">شفت كبير</th>
+                <th className="px-4 py-2 text-right font-medium">شفت صغير</th>
                 <th className="px-4 py-2 text-right font-medium">ربط الحضور</th>
                 <th className="px-4 py-2 text-right font-medium">
                   حساب المستخدم
@@ -826,12 +863,28 @@ export default function ShiftStaff() {
                 type="number"
                 min={0}
                 step={0.01}
-                placeholder="قيمة الشفت"
+                placeholder="شفت كبير"
                 value={addForm.ratePerShift}
                 onChange={(e) =>
                   setAddForm((f) => ({ ...f, ratePerShift: e.target.value }))
                 }
-                className="w-40 rounded border border-input bg-background px-3 py-1.5 text-sm pr-12"
+                className="w-36 rounded border border-input bg-background px-3 py-1.5 text-sm pr-12"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                ج.م
+              </span>
+            </div>
+            <div className="relative">
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                placeholder="شفت صغير"
+                value={addForm.rateSmallShift}
+                onChange={(e) =>
+                  setAddForm((f) => ({ ...f, rateSmallShift: e.target.value }))
+                }
+                className="w-36 rounded border border-input bg-background px-3 py-1.5 text-sm pr-12"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                 ج.م

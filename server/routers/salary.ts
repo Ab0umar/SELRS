@@ -21,6 +21,7 @@ import {
   shiftStaff,
   shiftAttendance,
   shiftStaffCycle,
+  attendanceShifts,
 } from "../../drizzle/schema";
 import { eq, and, gte, lte, gt, isNull, or, desc, inArray, sql } from "drizzle-orm";
 import {
@@ -946,6 +947,7 @@ export const salaryRouter = router({
         name: z.string().min(1),
         type: z.enum(["doctor", "tech"]),
         ratePerShift: z.number().min(0),
+        rateSmallShift: z.number().min(0).default(0),
         empCd: z.string().optional(),
       }),
     )
@@ -958,6 +960,7 @@ export const salaryRouter = router({
           name: input.name,
           type: input.type,
           ratePerShift: String(input.ratePerShift) as any,
+          rateSmallShift: String(input.rateSmallShift ?? 0) as any,
           empCd: input.empCd ?? null,
         });
       return { id: (result as any).insertId };
@@ -970,6 +973,7 @@ export const salaryRouter = router({
         name: z.string().min(1),
         type: z.enum(["doctor", "tech"]),
         ratePerShift: z.number().min(0),
+        rateSmallShift: z.number().min(0).default(0),
         active: z.boolean(),
         empCd: z.string().optional(),
         userId: z.number().int().nullable().optional(),
@@ -984,6 +988,7 @@ export const salaryRouter = router({
           name: input.name,
           type: input.type,
           ratePerShift: String(input.ratePerShift) as any,
+          rateSmallShift: String(input.rateSmallShift ?? 0) as any,
           active: input.active,
           empCd: input.empCd ?? null,
           userId: input.userId ?? null,
@@ -1331,7 +1336,7 @@ export const salaryRouter = router({
         cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
       }
 
-      const [staff, attendanceAll, monthlyReports, basics] = await Promise.all([
+      const [staff, attendanceAll, monthlyReports, basics, shiftDefs] = await Promise.all([
         db.select().from(shiftStaff).where(eq(shiftStaff.active, true)),
         Promise.all(
           yearMonthPairs.map(({ year, month }) =>
@@ -1361,7 +1366,26 @@ export const salaryRouter = router({
               or(isNull(salaryBasics.effectiveTo), gte(salaryBasics.effectiveTo, rangeFrom as any)),
             ),
           ),
+        db.select().from(attendanceShifts),
       ]);
+
+      // Build shift-name → size map
+      const shiftSizeMap = new Map<string, "big" | "small">();
+      for (const sd of shiftDefs as any[]) {
+        let size: "big" | "small" = "big";
+        if (sd.shiftSize === "big") size = "big";
+        else if (sd.shiftSize === "small") size = "small";
+        else {
+          // auto: compute duration in minutes
+          const [sh, sm] = (sd.startTime as string).split(":").map(Number);
+          const [eh, em] = (sd.endTime as string).split(":").map(Number);
+          let dur = (eh * 60 + em) - (sh * 60 + sm);
+          if (dur < 0) dur += 24 * 60; // crosses midnight
+          const threshold = sd.autoSmallThresholdMin ?? 270;
+          size = dur < threshold ? "small" : "big";
+        }
+        shiftSizeMap.set(sd.name as string, size);
+      }
 
       const attendance = attendanceAll;
 
@@ -1452,7 +1476,8 @@ export const salaryRouter = router({
 
       return staff.map((s: any) => {
         const rows = attendance.filter((a: any) => a.staffId === s.id);
-        const rate = Number(s.ratePerShift);
+        const rateBig = Number(s.ratePerShift);
+        const rateSmall = Number(s.rateSmallShift ?? 0) || rateBig;
         const byShift: Record<
           string,
           { scheduled: number; attended: number; rate: number }
@@ -1463,13 +1488,15 @@ export const salaryRouter = router({
         for (const a of rows) {
           const present = resolvePresent(s, a);
           if (present) attended++;
+          const size = shiftSizeMap.get(a.shiftName) ?? "big";
+          const rate = size === "small" ? rateSmall : rateBig;
           if (!byShift[a.shiftName])
             byShift[a.shiftName] = { scheduled: 0, attended: 0, rate };
           byShift[a.shiftName].scheduled++;
           if (present) byShift[a.shiftName].attended++;
         }
 
-        // Rule 3: punch days with no scheduled shift → also pay
+        // Rule 3: punch days with no scheduled shift → also pay (use big rate)
         let extraAttended = 0;
         if (s.empCd) {
           const presentDates = presentDatesMap.get(s.empCd);
@@ -1485,14 +1512,21 @@ export const salaryRouter = router({
 
         const totalAttended = attended + extraAttended;
         if (extraAttended > 0) {
-          byShift["إضافي"] = { scheduled: 0, attended: extraAttended, rate };
+          byShift["إضافي"] = { scheduled: 0, attended: extraAttended, rate: rateBig };
         }
 
-        // Calculate pay: basic (all scheduled) - absent deduction - punch deduction
+        // Calculate pay per shift type
         const scheduled = rows.length;
         const absent = scheduled - attended;
-        const basicSalary = Math.round(scheduled * rate * 100) / 100;
-        const absentDeduction = Math.round(absent * rate * 100) / 100;
+        const basicSalary = Math.round(
+          Object.values(byShift).reduce((s, b) => s + b.scheduled * b.rate, 0) * 100,
+        ) / 100;
+        const absentDeduction = Math.round(
+          Object.entries(byShift).reduce((s, [, b]) => {
+            const absentInShift = Math.max(0, b.scheduled - b.attended);
+            return s + absentInShift * b.rate;
+          }, 0) * 100,
+        ) / 100;
         const punchDeductionPct = s.empCd
           ? (deductionMap.get(s.empCd) ?? 0)
           : 0;
@@ -1508,7 +1542,8 @@ export const salaryRouter = router({
           name: s.name,
           type: s.type,
           empCd: s.empCd ?? null,
-          ratePerShift: rate,
+          ratePerShift: rateBig,
+          rateSmallShift: rateSmall,
           scheduled,
           attended: totalAttended,
           absent,

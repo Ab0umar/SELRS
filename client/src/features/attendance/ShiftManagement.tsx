@@ -20,6 +20,8 @@ interface ShiftForm {
   flexInTo: string;
   flexOutFrom: string;
   flexOutTo: string;
+  shiftSize: "big" | "small" | "auto";
+  autoSmallThresholdMin: number;
 }
 
 const BLANK: ShiftForm = {
@@ -38,6 +40,8 @@ const BLANK: ShiftForm = {
   flexInTo: "09:00",
   flexOutFrom: "16:00",
   flexOutTo: "17:00",
+  shiftSize: "auto",
+  autoSmallThresholdMin: 270,
 };
 
 export default function ShiftManagement() {
@@ -103,6 +107,8 @@ export default function ShiftManagement() {
       flexInTo: s.flexInTo ?? "09:00",
       flexOutFrom: s.flexOutFrom ?? "16:00",
       flexOutTo: s.flexOutTo ?? "17:00",
+      shiftSize: s.shiftSize ?? "auto",
+      autoSmallThresholdMin: s.autoSmallThresholdMin ?? 270,
     });
     setShowForm(true);
   };
@@ -452,6 +458,35 @@ export default function ShiftManagement() {
                   </div>
                 </div>
               )}
+
+              {/* Shift size classification */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-foreground">نوع الشفت (للأجر)</label>
+                  <select
+                    value={form.shiftSize}
+                    onChange={(e) => setForm({ ...form, shiftSize: e.target.value as any })}
+                    className={inputClass}
+                  >
+                    <option value="auto">أوتو (حسب المدة)</option>
+                    <option value="big">شفت كبير دائماً</option>
+                    <option value="small">شفت صغير دائماً</option>
+                  </select>
+                </div>
+                {form.shiftSize === "auto" && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-foreground">حد الشفت الصغير (دقيقة)</label>
+                    <p className="text-xs text-muted-foreground">شفت أقل من هذه المدة = صغير — الافتراضي 270 د (4.5 ساعة)</p>
+                    <input
+                      type="number"
+                      value={form.autoSmallThresholdMin}
+                      min={0}
+                      onChange={(e) => setForm({ ...form, autoSmallThresholdMin: parseInt(e.target.value) || 0 })}
+                      className={inputClass}
+                    />
+                  </div>
+                )}
+              </div>
 
               <div className="flex gap-2 pt-1">
                 <Button

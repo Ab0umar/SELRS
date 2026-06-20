@@ -301,7 +301,10 @@ export default function ShiftPayroll() {
                   الاسم
                 </th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                  قيمة الشفت
+                  شفت كبير
+                </th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                  شفت صغير
                 </th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">
                   مجدول
@@ -326,6 +329,9 @@ export default function ShiftPayroll() {
                   <td className="px-4 py-3 font-medium">{r.name}</td>
                   <td className="px-4 py-3 text-right tabular-nums">
                     {fmt(r.ratePerShift)}
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums">
+                    {fmt(r.rateSmallShift ?? r.ratePerShift)}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">
                     {r.scheduled}

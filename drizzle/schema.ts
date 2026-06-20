@@ -199,6 +199,8 @@ export const attendanceShifts = mysqlTable(
     flexOutFrom: varchar("flex_out_from", { length: 8 }), // earliest valid check-out HH:mm
     flexOutTo: varchar("flex_out_to", { length: 8 }), // latest check-out HH:mm
     active: boolean("active").default(true).notNull(),
+    shiftSize: varchar("shift_size", { length: 8 }).default("auto").notNull(), // 'big' | 'small' | 'auto'
+    autoSmallThresholdMin: int("auto_small_threshold_min").default(270).notNull(), // minutes; shifts shorter than this are 'small' when shiftSize='auto'
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
@@ -1960,6 +1962,9 @@ export const shiftStaff = mysqlTable("shift_staff", {
   name: varchar("name", { length: 255 }).notNull(),
   type: varchar("type", { length: 32 }).notNull(),
   ratePerShift: decimal("rate_per_shift", { precision: 10, scale: 2 })
+    .notNull()
+    .default("0.00"),
+  rateSmallShift: decimal("rate_small_shift", { precision: 10, scale: 2 })
     .notNull()
     .default("0.00"),
   active: boolean("active").notNull().default(true),
