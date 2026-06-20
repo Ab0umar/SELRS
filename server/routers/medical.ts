@@ -60,6 +60,7 @@ import { medicalExaminationsRoutes } from "./medical-examinations";
 import { medicalPentacamRoutes } from "./medical-pentacam";
 import { medicalCatalogRoutes } from "./medical-catalog";
 import { medicalPatientRoutes } from "./medical-patient";
+import { medicalUploadsRoutes } from "./medical-uploads";
 import { PentacamPatientCandidate, FailedPentacamSuggestion, FailedPentacamPreview, LocalPentacamMismatchEntry, PENTACAM_ROOT_DIR, PENTACAM_FAILED_DIR, normalizePentacamMatchText, normalizePentacamPhoneticToken, buildPentacamTokenSignatureSet, buildPentacamNameKeys, extractPentacamNameFragment, extractPatientCodeCandidatesFromFileName, tokenizePentacamMatchText, buildPentacamPatientCandidates, resolvePatientForPentacamFileName, suggestPatientsForPentacamFileName, reorderPatientNameSecondThirdFirst, sanitizeLabel, normalizePentacamKey, resolvePentacamSourceKeyCandidates, buildPentacamPatientPrefix, buildPentacamPatientKey, buildPentacamObjectUrl, movePentacamObjectToPatient, parsePentacamLocalMeta, pentacamEyeHasAnyData, pentacamEyeIsComplete, expandPentacamDashboardRows, stripLeadingCodeLabel, assertSafePentacamFileName, pathExists, nextAvailablePentacamPath, extractPentacamPageType, buildFailedPentacamGroupLabel, buildFailedPentacamGroupKey, listFailedPentacamRows, previewFailedPentacamRenameTargets, moveFailedPentacamFile, scanMismatchedLocalPentacamLinks, inferPentacamEyeSideFromName, inferPentacamCapturedAtFromName, inferPentacamMimeType } from "./_medical/pentacam-helpers";
 import { resolvePatientNotifTitle, resolveNotificationTargetRolesByUserRole, normalizePhoneKey, findExistingPatientByNameOrPhone, resolveServiceCodeForType, pushNewPatientToMssql, registrationPricingPayload, canPushToMssql, readFreshDoctorNameForPatient, readDoctorNameFromStateData, readRoleSignatureFromStateData, resolveDoctorCodeById, resolveDoctorCodeByName } from "./_medical/patient-helpers";
 import { LASIK_CODES, CONSULTANT_CODES, SPECIALIST_CODES, XRAY_CODES, MOJIBAKE_HINT, DEFAULT_MSSQL_SYNC_RUNTIME_CONFIG, getSystemSettingFallbackValue, decodeMojibake, normalizeServiceCodeKey, inferSrvTyp, normalizeServiceDefaultSheet, serviceTypeFromSheetOrType, normalizeVisitType, doctorLocationTypeSchema, doctorTypeSchema, doctorDirectoryEntrySchema, serviceDirectoryEntrySchema, readyTemplateScopeSchema, symptomDirectoryEntrySchema, readyTemplateOverrideUpdateSchema, readyTemplateOverrideImportSchema, readReadyPrescriptionTemplatesFromFile, readReadyTestTemplatesFromFile, assertPentacamViewPermission } from "./_medical/service-helpers";
@@ -71,4 +72,5 @@ export const medicalRouter = router({
   ...medicalPentacamRoutes,
   ...medicalCatalogRoutes,
   ...medicalPatientRoutes,
+  ...medicalUploadsRoutes,
 });

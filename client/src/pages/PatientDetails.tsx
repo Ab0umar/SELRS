@@ -234,6 +234,7 @@ export default function PatientDetails() {
                 <DiagnosisTab
                   latestReport={pd.latestReport}
                   latestReportContent={pd.latestReportContent}
+                  patientId={patientId}
                 />
               )}
               {pd.activeTab === "treatment" && (
