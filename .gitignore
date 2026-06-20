@@ -91,7 +91,6 @@ yarn-error.log
 *.swo
 
 # Local/editor/worktree metadata
-.claude/
 .idea/
 
 # Non-code local archives / notes

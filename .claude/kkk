@@ -1,0 +1,64 @@
+{
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "50871729c906447f903832befa6a754d.sRxeVfylJd09sF1n",
+    "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
+    "API_TIMEOUT_MS": "3000000",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "CLAUDE_CODE_USE_POWERSHELL_TOOL": "1",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "GLM-4.7",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "GLM-5",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "GLM-5.1"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(pnpm check *)",
+      "Skill(glm-plan-usage:usage-query-skill)",
+      "Bash(node *)",
+      "Bash(powershell -ExecutionPolicy Bypass -File .specify/scripts/powershell/check-prerequisites.ps1 -Json)",
+      "Bash(powershell *)",
+      "Bash(mkdir -p \"D:/New.selrs.cc/client/src/components/dashboard\")",
+      "Bash(mkdir -p \"D:/New.selrs.cc/client/src/components/shared\")",
+      "Bash(python3 -c ' *)",
+      "Bash(git checkout *)",
+      "Bash(pnpm tsc *)",
+      "Bash(python3 *)",
+      "Bash(awk '/assistant.*tool_use/' ~/.claude/projects/D--New-selrs-cc/01cc544f-76e0-42dd-b07b-59ae01518f64.jsonl)",
+      "Bash(awk '{print $1}')",
+      "Bash(npx tsx *)",
+      "Bash(npx tsc *)",
+      "Bash(curl -s \"http://localhost:4000/healthz\")",
+      "Bash(curl -s -X POST \"http://localhost:4000/api/trpc/accounting.serviceRevenue\" -H \"Content-Type: application/json\" -d '{\"json\":{\"fromDate\":\"2024-01-01\",\"toDate\":\"2024-01-31\"}}')",
+      "Bash(xxd)",
+      "mcp__plugin_socraticode_socraticode__codebase_health",
+      "mcp__plugin_socraticode_socraticode__codebase_index",
+      "mcp__plugin_socraticode_socraticode__codebase_status",
+      "Bash(pnpm build *)",
+      "Bash(git diff *)",
+      "Bash(sqlcmd -S localhost -U sa -P op2026 -i -o - -Q \"SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE, COLUMN_DEFAULT, COLUMNPROPERTY\\(COLUMN_NAME, 'IsIdentity'\\), COLUMNPROPERTY\\(COLUMN_NAME, 'IsComputed'\\) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'op2026.dbo.PAJRNRCVH' ORDER BY COLUMN_NAME\")",
+      "Bash(chcp 65001)",
+      "Bash(cmd /c type D:\\\\C\\\\SRV100_Acc\\\\server\\\\check_pajrnrch_schema_real.sql)",
+      "Bash(sqlcmd -S localhost -U sa -P op2026 -i \"D:\\\\C\\\\SRV100_Acc\\\\server\\\\check_pajrnrch_schema_real.sql\" -Q \"SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE, COLUMN_DEFAULT, COLUMNPROPERTY\\(COLUMN_NAME, 'IsIdentity'\\), COLUMNPROPERTY\\(COLUMN_NAME, 'IsComputed'\\) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'op2026.dbo.PAJRNRCVH' ORDER BY COLUMN_NAME\")",
+      "Bash(sqlcmd -S localhost -U sa -P op2026 -i \"D:\\\\C\\\\SRV100_Acc\\\\server\\\\check_pajrnrch_schema_real.sql\" -o \"D:\\\\C\\\\SRV100_Acc\\\\server\\\\pajrnrch_schema_output.txt\" -Q \"SELECT COLUMN_NAME, COLUMNPROPERTY\\(COLUMN_NAME, 'IsIdentity'\\), COLUMNPROPERTY\\(COLUMN_NAME, 'IsComputed'\\) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'op2026.dbo.PAJRNRCVH'\")",
+      "Bash(sqlcmd -S localhost -U sa -P op2026 -Q \"SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'op2026.dbo.PAJRNRCVH'\" -o D:\\\\C\\\\SRV100_Acc\\\\server\\\\pajrnrch_columns.txt)",
+      "Bash(exist \"pajrnrch_columns.txt\" type \"D:\\\\C\\\\SRV100_Acc\\\\server\\\\pajrnrch_columns.txt\" cat)",
+      "Bash(exist \"D:\\\\C\\\\SRV100_Acc\\\\server\\\\pajrnrch_columns.txt\" cat \"D:\\\\C\\\\SRV100_Acc\\\\server\\\\pajrnrch_columns.txt\")",
+      "Bash(Select-Object -Pattern \"identity|computed|not_null\")",
+      "Bash(Select-Object -Property \"Column_Name\")",
+      "Bash(Out-File \"D:\\\\C\\\\SRV100_Acc\\\\server\\\\pajrnrch_columns.txt\")"
+    ]
+  },
+  "enabledPlugins": {
+    "glm-plan-usage@zai-coding-plugins": true
+  },
+  "extraKnownMarketplaces": {
+    "zai-coding-plugins": {
+      "source": {
+        "source": "directory",
+        "path": "C:\\Users\\drels\\AppData\\Local\\npm-cache\\_npx\\2f024689b4d0d3b0\\node_modules\\@z_ai\\coding-helper\\zai-coding-plugins"
+      }
+    }
+  },
+  "effortLevel": "medium",
+  "awaySummaryEnabled": false,
+  "remoteControlAtStartup": true
+}
