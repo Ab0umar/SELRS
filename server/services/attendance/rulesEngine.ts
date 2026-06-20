@@ -13,6 +13,8 @@ export interface Shift {
   graceLateMin: number; // Default: 15 (Taratus: Adjusted value)
   graceEarlyMin: number; // Default: 15 (Taratus: Adjusted value)
   allowOT: boolean; // If false, overtime is never counted regardless of hours worked
+  otMinMinutes?: number; // minimum minutes of OT before it counts (0 = any)
+  otMaxMinutes?: number; // cap on OT minutes per day (0 = unlimited)
   breakMinutes: number;
   weekdayMask: number; // bits 0-6: Sun-Sat; used to skip rest days
   requirePunch: boolean; // false = auto-present even with no fingerprint
@@ -273,6 +275,7 @@ export function computeDay(ctx: DayContext): DayResult {
         }
       }
     }
+    result.overtimeMinutes = clampOT(result.overtimeMinutes, ctx.shift);
   } else {
     // Fixed shift: use startTime / endTime
     const shiftStartHm = parseTime(ctx.shift.startTime);
@@ -307,7 +310,10 @@ export function computeDay(ctx: DayContext): DayResult {
       result.workedMinutes &&
       result.workedMinutes > shiftDurationMin
     ) {
-      result.overtimeMinutes = Math.round(result.workedMinutes - shiftDurationMin);
+      result.overtimeMinutes = clampOT(
+        Math.round(result.workedMinutes - shiftDurationMin),
+        ctx.shift,
+      );
     }
   }
 
@@ -396,6 +402,14 @@ function calcCycleSlotIndex(
 /** YYYY-MM-DD using local getters — avoids UTC-vs-local shift on DB date strings */
 export function ymd(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function clampOT(minutes: number, shift: Pick<Shift, "otMinMinutes" | "otMaxMinutes">): number {
+  const min = shift.otMinMinutes ?? 0;
+  const max = shift.otMaxMinutes ?? 0;
+  if (minutes < min) return 0;
+  if (max > 0 && minutes > max) return max;
+  return minutes;
 }
 
 function parseTime(hm: string): { h: number; m: number } | null {

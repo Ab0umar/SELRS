@@ -11,6 +11,8 @@ interface ShiftForm {
   graceLateMin: number;
   graceEarlyMin: number;
   allowOT: boolean;
+  otMinMinutes: number;
+  otMaxMinutes: number;
   breakMinutes: number;
   requirePunch: boolean;
   isFlexible: boolean;
@@ -27,6 +29,8 @@ const BLANK: ShiftForm = {
   graceLateMin: 15,
   graceEarlyMin: 15,
   allowOT: false,
+  otMinMinutes: 0,
+  otMaxMinutes: 0,
   breakMinutes: 60,
   requirePunch: true,
   isFlexible: false,
@@ -90,6 +94,8 @@ export default function ShiftManagement() {
       graceLateMin: s.graceLateMin,
       graceEarlyMin: s.graceEarlyMin,
       allowOT: s.allowOT ?? false,
+      otMinMinutes: s.otMinMinutes ?? 0,
+      otMaxMinutes: s.otMaxMinutes ?? 0,
       breakMinutes: s.breakMinutes,
       requirePunch: s.requirePunch ?? true,
       isFlexible: s.isFlexible ?? false,
@@ -373,6 +379,42 @@ export default function ShiftManagement() {
                 </div>
               )}
 
+              {/* OT thresholds — shown only when allowOT is enabled */}
+              {form.allowOT && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-foreground">
+                      الحد الأدنى للإضافي (دقيقة)
+                    </label>
+                    <p className="text-xs text-muted-foreground">لا يُحسب الإضافي إلا إذا تجاوز هذا الحد — 0 يعني أي دقيقة تُحسب</p>
+                    <input
+                      type="number"
+                      value={form.otMinMinutes}
+                      min={0}
+                      onChange={(e) =>
+                        setForm({ ...form, otMinMinutes: parseInt(e.target.value) || 0 })
+                      }
+                      className={inputClass}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-foreground">
+                      الحد الأقصى للإضافي (دقيقة)
+                    </label>
+                    <p className="text-xs text-muted-foreground">أقصى ساعات إضافي تُحسب في اليوم — 0 يعني بلا حد</p>
+                    <input
+                      type="number"
+                      value={form.otMaxMinutes}
+                      min={0}
+                      onChange={(e) =>
+                        setForm({ ...form, otMaxMinutes: parseInt(e.target.value) || 0 })
+                      }
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+              )}
+
               {form.isFlexible && (
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
@@ -469,6 +511,13 @@ export default function ShiftManagement() {
                     )}
                     <div>
                       وقت إضافي: {(s.allowOT ?? false) ? "مفعّل" : "معطّل"}
+                      {s.allowOT && (s.otMinMinutes > 0 || s.otMaxMinutes > 0) && (
+                        <span className="mr-1 text-muted-foreground">
+                          ({s.otMinMinutes > 0 ? `من ${s.otMinMinutes}د` : ""}
+                          {s.otMinMinutes > 0 && s.otMaxMinutes > 0 ? " " : ""}
+                          {s.otMaxMinutes > 0 ? `حتى ${s.otMaxMinutes}د` : ""})
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">

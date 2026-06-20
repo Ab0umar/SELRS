@@ -78,6 +78,8 @@ export const attendanceShiftsRoutes = {
       graceLateMin: s.graceLateMin,
       graceEarlyMin: s.graceEarlyMin,
       allowOT: s.allowOT,
+      otMinMinutes: s.otMinMinutes ?? 0,
+      otMaxMinutes: s.otMaxMinutes ?? 0,
       breakMinutes: s.breakMinutes,
       weekdayMask: s.weekdayMask,
       requirePunch: s.requirePunch,
@@ -100,6 +102,8 @@ export const attendanceShiftsRoutes = {
         graceLateMin: z.number().int().min(0).default(15),
         graceEarlyMin: z.number().int().min(0).default(15),
         allowOT: z.boolean().default(false),
+        otMinMinutes: z.number().int().min(0).default(0),
+        otMaxMinutes: z.number().int().min(0).default(0),
         breakMinutes: z.number().int().min(0).default(60),
         requirePunch: z.boolean().default(true),
         isFlexible: z.boolean().default(false),
@@ -122,6 +126,8 @@ export const attendanceShiftsRoutes = {
           graceLateMin: input.graceLateMin,
           graceEarlyMin: input.graceEarlyMin,
           allowOT: input.allowOT,
+          otMinMinutes: input.otMinMinutes,
+          otMaxMinutes: input.otMaxMinutes,
           breakMinutes: input.breakMinutes,
           weekdayMask: 127,
           requirePunch: input.requirePunch,
@@ -169,6 +175,8 @@ export const attendanceShiftsRoutes = {
         graceLateMin: z.number().int().min(0).optional(),
         graceEarlyMin: z.number().int().min(0).optional(),
         allowOT: z.boolean().optional(),
+        otMinMinutes: z.number().int().min(0).optional(),
+        otMaxMinutes: z.number().int().min(0).optional(),
         breakMinutes: z.number().int().min(0).optional(),
         requirePunch: z.boolean().optional(),
         isFlexible: z.boolean().optional(),
@@ -192,6 +200,8 @@ export const attendanceShiftsRoutes = {
         if (input.graceEarlyMin !== undefined)
           updateData.graceEarlyMin = input.graceEarlyMin;
         if (input.allowOT !== undefined) updateData.allowOT = input.allowOT;
+        if (input.otMinMinutes !== undefined) updateData.otMinMinutes = input.otMinMinutes;
+        if (input.otMaxMinutes !== undefined) updateData.otMaxMinutes = input.otMaxMinutes;
         if (input.breakMinutes !== undefined)
           updateData.breakMinutes = input.breakMinutes;
         if (input.requirePunch !== undefined)

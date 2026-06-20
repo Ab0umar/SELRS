@@ -188,6 +188,8 @@ export const attendanceShifts = mysqlTable(
     graceLateMin: int("grace_late_min").default(0).notNull(),
     graceEarlyMin: int("grace_early_min").default(0).notNull(),
     allowOT: boolean("allow_ot").default(false).notNull(),
+    otMinMinutes: int("ot_min_minutes").default(0).notNull(), // minimum OT minutes before counting
+    otMaxMinutes: int("ot_max_minutes").default(0).notNull(), // max OT minutes per day (0 = unlimited)
     breakMinutes: int("break_minutes").default(0).notNull(),
     weekdayMask: int("weekday_mask").default(62).notNull(), // bits 0-6 Sun-Sat; 62=Mon-Fri
     requirePunch: boolean("require_punch").default(true).notNull(), // false = auto-present if shift assigned
