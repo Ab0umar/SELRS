@@ -596,51 +596,37 @@ export default function MedicalFilePanel({
       if (!examIdToSave || !selectedExam) return;
 
       // Build updates
+      const fv2 = (v: string | undefined | null) =>
+        !v || v === "---" ? null : v;
+      const fvs2 = (v: string | undefined | null) =>
+        !v || v === "---" ? "" : v;
       const flattenedUpdates: any = {
-        sphereOD: formData.measurements?.autoref?.od?.s || null,
-        sphereOS: formData.measurements?.autoref?.os?.s || null,
-        cylinderOD: formData.measurements?.autoref?.od?.c || null,
-        cylinderOS: formData.measurements?.autoref?.os?.c || null,
-        axisOD: formData.measurements?.autoref?.od?.axis || null,
-        axisOS: formData.measurements?.autoref?.os?.axis || null,
-        ucvaOD: formData.measurements?.autoref?.od?.ucva || null,
-        ucvaOS: formData.measurements?.autoref?.os?.ucva || null,
-        bcvaOD: formData.measurements?.autoref?.od?.bcva || null,
-        bcvaOS: formData.measurements?.autoref?.os?.bcva || null,
-        iopOD: formData.measurements?.iop?.od || null,
-        iopOS: formData.measurements?.iop?.os || null,
+        sphereOD: fv2(formData.measurements?.autoref?.od?.s),
+        sphereOS: fv2(formData.measurements?.autoref?.os?.s),
+        cylinderOD: fv2(formData.measurements?.autoref?.od?.c),
+        cylinderOS: fv2(formData.measurements?.autoref?.os?.c),
+        axisOD: fv2(formData.measurements?.autoref?.od?.axis),
+        axisOS: fv2(formData.measurements?.autoref?.os?.axis),
+        ucvaOD: fv2(formData.measurements?.autoref?.od?.ucva),
+        ucvaOS: fv2(formData.measurements?.autoref?.os?.ucva),
+        bcvaOD: fv2(formData.measurements?.autoref?.od?.bcva),
+        bcvaOS: fv2(formData.measurements?.autoref?.os?.bcva),
+        iopOD: fv2(formData.measurements?.iop?.od),
+        iopOS: fv2(formData.measurements?.iop?.os),
         glassesData: JSON.stringify({
           od: {
-            s:
-              refractionTableData.od?.s ||
-              formData.measurements?.autoref?.od?.s ||
-              "",
-            c:
-              refractionTableData.od?.c ||
-              formData.measurements?.autoref?.od?.c ||
-              "",
-            axis:
-              refractionTableData.od?.a ||
-              formData.measurements?.autoref?.od?.axis ||
-              "",
-            pd: refractionTableData.od?.pd || "",
-            bcva: formData.measurements?.autoref?.od?.bcva || "",
+            s: fvs2(refractionTableData.od?.s) || fvs2(formData.measurements?.autoref?.od?.s),
+            c: fvs2(refractionTableData.od?.c) || fvs2(formData.measurements?.autoref?.od?.c),
+            axis: fvs2(refractionTableData.od?.a) || fvs2(formData.measurements?.autoref?.od?.axis),
+            pd: fvs2(refractionTableData.od?.pd),
+            bcva: fvs2(formData.measurements?.autoref?.od?.bcva),
           },
           os: {
-            s:
-              refractionTableData.os?.s ||
-              formData.measurements?.autoref?.os?.s ||
-              "",
-            c:
-              refractionTableData.os?.c ||
-              formData.measurements?.autoref?.os?.c ||
-              "",
-            axis:
-              refractionTableData.os?.a ||
-              formData.measurements?.autoref?.os?.axis ||
-              "",
-            pd: refractionTableData.os?.pd || "",
-            bcva: formData.measurements?.autoref?.os?.bcva || "",
+            s: fvs2(refractionTableData.os?.s) || fvs2(formData.measurements?.autoref?.os?.s),
+            c: fvs2(refractionTableData.os?.c) || fvs2(formData.measurements?.autoref?.os?.c),
+            axis: fvs2(refractionTableData.os?.a) || fvs2(formData.measurements?.autoref?.os?.axis),
+            pd: fvs2(refractionTableData.os?.pd),
+            bcva: fvs2(formData.measurements?.autoref?.os?.bcva),
           },
         }),
         radiologyLabsNotes: formData.radiologyLabsNotes || null,
@@ -657,8 +643,8 @@ export default function MedicalFilePanel({
             saveAfterRefractionMutation.mutate({
               examinationId: examIdToSave,
               patientId,
-              od: formData.measurements?.after?.od,
-              os: formData.measurements?.after?.os,
+              od: stripDash(formData.measurements?.after?.od),
+              os: stripDash(formData.measurements?.after?.os),
             });
             const doctorReport = (doctorReportQuery.data as any)?.[0];
             if (doctorReport?.id) {
@@ -1135,13 +1121,20 @@ export default function MedicalFilePanel({
     if (examinations.length === 0 || !selectedExaminationId) {
       setIsSaving(true);
 
+      const stripDash = (obj: any): any => {
+        if (typeof obj === "string") return obj === "---" ? "" : obj;
+        if (Array.isArray(obj)) return obj.map(stripDash);
+        if (obj && typeof obj === "object")
+          return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, stripDash(v)]));
+        return obj;
+      };
       saveMedicalVisitMutation.mutate({
         patientId: patientId,
         visitDate: visitDate,
         isFollowup: isFollowup,
-        autoref: formData.measurements?.autoref,
-        iop: formData.measurements?.iop,
-        after: formData.measurements?.after,
+        autoref: stripDash(formData.measurements?.autoref),
+        iop: stripDash(formData.measurements?.iop),
+        after: stripDash(formData.measurements?.after),
         glasses: glassesData,
         fundus: formData.fundus,
         pentacam: formData.pentacam,
@@ -1174,51 +1167,37 @@ export default function MedicalFilePanel({
     setIsSaving(true);
 
     // Flatten the nested formData structure to database column names
+    const fv = (v: string | undefined | null) =>
+      !v || v === "---" ? null : v;
+    const fvs = (v: string | undefined | null) =>
+      !v || v === "---" ? "" : v;
     const flattenedUpdates: any = {
-      sphereOD: formData.measurements?.autoref?.od?.s || null,
-      sphereOS: formData.measurements?.autoref?.os?.s || null,
-      cylinderOD: formData.measurements?.autoref?.od?.c || null,
-      cylinderOS: formData.measurements?.autoref?.os?.c || null,
-      axisOD: formData.measurements?.autoref?.od?.axis || null,
-      axisOS: formData.measurements?.autoref?.os?.axis || null,
-      ucvaOD: formData.measurements?.autoref?.od?.ucva || null,
-      ucvaOS: formData.measurements?.autoref?.os?.ucva || null,
-      bcvaOD: formData.measurements?.autoref?.od?.bcva || null,
-      bcvaOS: formData.measurements?.autoref?.os?.bcva || null,
-      iopOD: formData.measurements?.iop?.od || null,
-      iopOS: formData.measurements?.iop?.os || null,
+      sphereOD: fv(formData.measurements?.autoref?.od?.s),
+      sphereOS: fv(formData.measurements?.autoref?.os?.s),
+      cylinderOD: fv(formData.measurements?.autoref?.od?.c),
+      cylinderOS: fv(formData.measurements?.autoref?.os?.c),
+      axisOD: fv(formData.measurements?.autoref?.od?.axis),
+      axisOS: fv(formData.measurements?.autoref?.os?.axis),
+      ucvaOD: fv(formData.measurements?.autoref?.od?.ucva),
+      ucvaOS: fv(formData.measurements?.autoref?.os?.ucva),
+      bcvaOD: fv(formData.measurements?.autoref?.od?.bcva),
+      bcvaOS: fv(formData.measurements?.autoref?.os?.bcva),
+      iopOD: fv(formData.measurements?.iop?.od),
+      iopOS: fv(formData.measurements?.iop?.os),
       glassesData: JSON.stringify({
         od: {
-          s:
-            refractionTableData.od?.s ||
-            formData.measurements?.autoref?.od?.s ||
-            "",
-          c:
-            refractionTableData.od?.c ||
-            formData.measurements?.autoref?.od?.c ||
-            "",
-          axis:
-            refractionTableData.od?.a ||
-            formData.measurements?.autoref?.od?.axis ||
-            "",
-          pd: refractionTableData.od?.pd || "",
-          bcva: formData.measurements?.autoref?.od?.bcva || "",
+          s: fvs(refractionTableData.od?.s) || fvs(formData.measurements?.autoref?.od?.s),
+          c: fvs(refractionTableData.od?.c) || fvs(formData.measurements?.autoref?.od?.c),
+          axis: fvs(refractionTableData.od?.a) || fvs(formData.measurements?.autoref?.od?.axis),
+          pd: fvs(refractionTableData.od?.pd),
+          bcva: fvs(formData.measurements?.autoref?.od?.bcva),
         },
         os: {
-          s:
-            refractionTableData.os?.s ||
-            formData.measurements?.autoref?.os?.s ||
-            "",
-          c:
-            refractionTableData.os?.c ||
-            formData.measurements?.autoref?.os?.c ||
-            "",
-          axis:
-            refractionTableData.os?.a ||
-            formData.measurements?.autoref?.os?.axis ||
-            "",
-          pd: refractionTableData.os?.pd || "",
-          bcva: formData.measurements?.autoref?.os?.bcva || "",
+          s: fvs(refractionTableData.os?.s) || fvs(formData.measurements?.autoref?.os?.s),
+          c: fvs(refractionTableData.os?.c) || fvs(formData.measurements?.autoref?.os?.c),
+          axis: fvs(refractionTableData.os?.a) || fvs(formData.measurements?.autoref?.os?.axis),
+          pd: fvs(refractionTableData.os?.pd),
+          bcva: fvs(formData.measurements?.autoref?.os?.bcva),
         },
       }),
       posteriorSegmentOD: Object.values(formData.fundus?.od || {}).some(
@@ -1244,11 +1223,18 @@ export default function MedicalFilePanel({
       },
       {
         onSuccess: () => {
+          const stripDash2 = (obj: any): any => {
+            if (typeof obj === "string") return obj === "---" ? "" : obj;
+            if (Array.isArray(obj)) return obj.map(stripDash2);
+            if (obj && typeof obj === "object")
+              return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, stripDash2(v)]));
+            return obj;
+          };
           saveAfterRefractionMutation.mutate({
             examinationId: examIdToSave,
             patientId,
-            od: formData.measurements?.after?.od,
-            os: formData.measurements?.after?.os,
+            od: stripDash2(formData.measurements?.after?.od),
+            os: stripDash2(formData.measurements?.after?.os),
           });
           console.log("Exam saved, now saving doctor report");
           const doctorReport = (doctorReportQuery.data as any)?.[0];
