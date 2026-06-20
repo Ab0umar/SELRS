@@ -324,6 +324,83 @@ export default function LasikRevenue() {
 
   const printScopeRef = useRef<HTMLDivElement>(null);
 
+  function openIframePrint(html: string, title: string) {
+    const full = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/><title>${title}</title>
+    <style>
+      body { font-family: "Traditional Arabic", Arial, sans-serif; font-size: 11px; direction: rtl; margin: 10mm; }
+      h1 { font-size: 14px; font-weight: bold; margin-bottom: 8px; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border: 1px solid #ccc; padding: 4px 8px; text-align: right; }
+      thead th { background: #f3f4f6; font-weight: bold; }
+      tfoot td { background: #f3f4f6; font-weight: bold; }
+      @page { size: A4; margin: 12mm; }
+    </style></head><body>${html}</body></html>`;
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;border:none;visibility:hidden;";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument!;
+    doc.open(); doc.write(full); doc.close();
+    const cleanup = () => { iframe.remove(); window.removeEventListener("afterprint", cleanup); };
+    window.addEventListener("afterprint", cleanup);
+    iframe.contentWindow!.focus();
+    iframe.contentWindow!.print();
+  }
+
+  const printServiceSummary = () => {
+    const byService = new Map<string, { name: string | null; details: ServiceRevenueDetail[] }>();
+    for (const section of sections) {
+      for (const svc of section.services) {
+        const ex = byService.get(svc.serviceCode);
+        if (ex) ex.details.push(...(svc.details ?? []));
+        else byService.set(svc.serviceCode, { name: svc.serviceName ?? null, details: [...(svc.details ?? [])] });
+      }
+    }
+    const rows = Array.from(byService.entries()).map(([, { name, details }]) => {
+      const totalQty = details.reduce((s, d) => s + d.quantity, 0);
+      const noDiscQty = details.filter((d) => !d.discount || d.discount === 0).reduce((s, d) => s + d.quantity, 0);
+      const discMap = new Map<number, number>();
+      for (const d of details) if (d.discount && d.discount > 0) discMap.set(d.discount, (discMap.get(d.discount) ?? 0) + d.quantity);
+      const discText = Array.from(discMap.entries()).sort((a,b)=>a[0]-b[0]).map(([amt,qty]) => `${formatCountAr(qty)} × ${formatMoneyAr(amt)}`).join(" | ") || "—";
+      return `<tr><td>${name ?? ""}</td><td style="text-align:center">${formatCountAr(totalQty)}</td><td style="text-align:center">${formatCountAr(noDiscQty)}</td><td>${discText}</td></tr>`;
+    }).join("");
+    const grandQty = sections.flatMap(s=>s.services).flatMap(svc=>svc.details??[]).reduce((s,d)=>s+d.quantity,0);
+    const html = `<h1>ملخص الخدمات</h1>
+    <table><thead><tr><th>الخدمة</th><th>العدد الإجمالي</th><th>بدون خصم</th><th>بخصم</th></tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr><td>الإجمالي</td><td style="text-align:center">${formatCountAr(grandQty)}</td><td></td><td></td></tr></tfoot></table>`;
+    openIframePrint(html, "ملخص الخدمات");
+  };
+
+  const printPentacamSummary = () => {
+    const PRICE_BUCKETS = [250, 350, 400, 450];
+    const CODE_TO_BUCKET: Record<string, number> = { "1502":450,"1572":350,"1590":350,"1600":350,"1601":350,"1616":350,"1614":250,"1615":250 };
+    const PENTACAM_CODES = new Set(Object.keys(CODE_TO_BUCKET));
+    const pentacamDetails: Array<ServiceRevenueDetail & { bucket: number }> = [];
+    for (const section of sections) for (const svc of section.services) {
+      if (!PENTACAM_CODES.has(svc.serviceCode)) continue;
+      for (const d of svc.details ?? []) pentacamDetails.push({ ...d, bucket: CODE_TO_BUCKET[svc.serviceCode] ?? 0 });
+    }
+    const half = (n: number) => Math.round(n / 2);
+    const byBucket = new Map<number, typeof pentacamDetails>();
+    for (const d of pentacamDetails) { if (!byBucket.has(d.bucket)) byBucket.set(d.bucket, []); byBucket.get(d.bucket)!.push(d); }
+    const rows = PRICE_BUCKETS.map((bucket) => {
+      const bRows = byBucket.get(bucket) ?? [];
+      if (!bRows.length) return "";
+      const totalQty = half(bRows.reduce((s,d)=>s+d.quantity,0));
+      const noDiscQty = half(bRows.filter(d=>!d.discount||d.discount===0).reduce((s,d)=>s+d.quantity,0));
+      const discMap = new Map<number,number>();
+      for (const d of bRows) if (d.discount&&d.discount>0) discMap.set(d.discount,(discMap.get(d.discount)??0)+d.quantity);
+      const discText = Array.from(discMap.entries()).sort((a,b)=>a[0]-b[0]).map(([amt,qty])=>`${formatCountAr(half(qty))} × ${formatMoneyAr(amt)}`).join(" | ") || "—";
+      return `<tr><td>${formatMoneyAr(bucket)}</td><td style="text-align:center">${formatCountAr(totalQty)}</td><td style="text-align:center">${formatCountAr(noDiscQty)}</td><td>${discText}</td></tr>`;
+    }).join("");
+    const totalAll = half(pentacamDetails.reduce((s,d)=>s+d.quantity,0));
+    const html = `<h1>ملخص بنتاكام — حسب السعر (العدد للشخص ÷ ٢)</h1>
+    <table><thead><tr><th>السعر</th><th>العدد الإجمالي</th><th>بدون خصم</th><th>بخصم</th></tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr><td>الإجمالي</td><td style="text-align:center">${formatCountAr(totalAll)}</td><td></td><td></td></tr></tfoot></table>`;
+    openIframePrint(html, "ملخص بنتاكام");
+  };
+
   const printReport = () => {
     const printClass = "print-service-revenue";
     document.body.classList.add(printClass);
@@ -1314,8 +1391,11 @@ export default function LasikRevenue() {
         {/* ── Per-service summary card ─────────────────────────────────── */}
         {!serviceRevenueQuery.isLoading && sections.length > 0 ? (
           <Card className={`${styles.noPrint} border-border shadow-sm`}>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">ملخص الخدمات</CardTitle>
+              <button type="button" onClick={printServiceSummary} className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted/60 transition-colors">
+                <Printer className="size-3.5" /> طباعة
+              </button>
             </CardHeader>
             <CardContent className="overflow-x-auto p-0">
               <table className="w-full text-sm" dir="rtl">
@@ -1514,13 +1594,16 @@ export default function LasikRevenue() {
 
               return (
                 <Card className={`${styles.noPrint} border-border shadow-sm`}>
-                  <CardHeader>
+                  <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-base">
                       ملخص بنتاكام — حسب السعر{" "}
                       <span className="text-xs font-normal text-muted-foreground">
                         (العدد للشخص ÷ ٢)
                       </span>
                     </CardTitle>
+                    <button type="button" onClick={printPentacamSummary} className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted/60 transition-colors">
+                      <Printer className="size-3.5" /> طباعة
+                    </button>
                   </CardHeader>
                   <CardContent className="overflow-x-auto p-0">
                     <table className="w-full text-sm" dir="rtl">
