@@ -56,8 +56,8 @@ export default function SalaryPenalties() {
 
   // ── Penalties ──────────────────────────────────────────────────────────────
   const penaltiesQ = (trpc as any).salary.listPenalties.useQuery({
-    year,
-    month,
+    fromDate,
+    toDate,
   });
   const penalties: any[] = penaltiesQ.data ?? [];
 
@@ -80,7 +80,7 @@ export default function SalaryPenalties() {
   });
 
   // ── Advances ───────────────────────────────────────────────────────────────
-  const advancesQ = (trpc as any).salary.listAdvances.useQuery({ year, month });
+  const advancesQ = (trpc as any).salary.listAdvances.useQuery({ fromDate, toDate });
   const advances: any[] = advancesQ.data ?? [];
 
   const addAdvanceMut = (trpc as any).salary.addAdvance.useMutation({
@@ -140,8 +140,8 @@ export default function SalaryPenalties() {
 
   // ── Payroll deductions (for print layout) ─────────────────────────────────
   const deductionsQ = (trpc as any).salary.listPayrollDeductions.useQuery({
-    year,
-    month,
+    fromDate,
+    toDate,
   });
   const payrollDeductions: any[] = deductionsQ.data ?? [];
 

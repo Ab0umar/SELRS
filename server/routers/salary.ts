@@ -39,6 +39,19 @@ const allowanceInput = z.object({
   insuranceDeduction: z.number().min(0).optional().default(0),
 });
 
+function dateRangeToYearMonths(fromDate: string, toDate: string): { year: number; month: number }[] {
+  const pairs: { year: number; month: number }[] = [];
+  const [fy, fm] = fromDate.split("-").map(Number);
+  const [ty, tm] = toDate.split("-").map(Number);
+  let y = fy, m = fm;
+  while (y < ty || (y === ty && m <= tm)) {
+    pairs.push({ year: y, month: m });
+    m++;
+    if (m > 12) { m = 1; y++; }
+  }
+  return pairs.length ? pairs : [{ year: fy, month: fm }];
+}
+
 export const salaryRouter = router({
   // ── Basics ──────────────────────────────────────────────
   listBasics: makeSalaryProcedure("/salary").query(async () => {
@@ -161,10 +174,11 @@ export const salaryRouter = router({
 
   // ── Penalties ────────────────────────────────────────────
   listPenalties: makeSalaryProcedure("/salary/penalties")
-    .input(z.object({ year: z.number().int(), month: z.number().int() }))
+    .input(z.object({ fromDate: z.string(), toDate: z.string() }))
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
+      const ymPairs = dateRangeToYearMonths(input.fromDate, input.toDate);
       const rows = await db
         .select({
           id: salaryPenalties.id,
@@ -183,9 +197,10 @@ export const salaryRouter = router({
           eq(salaryPenalties.empCd, attendanceEmployees.empCd),
         )
         .where(
-          and(
-            eq(salaryPenalties.year, input.year),
-            eq(salaryPenalties.month, input.month),
+          or(
+            ...ymPairs.map(({ year, month }) =>
+              and(eq(salaryPenalties.year, year), eq(salaryPenalties.month, month)),
+            ),
           ),
         )
         .orderBy(desc(salaryPenalties.createdAt));
@@ -226,17 +241,19 @@ export const salaryRouter = router({
 
   // ── Advances ─────────────────────────────────────────────
   listAdvances: makeSalaryProcedure("/salary")
-    .input(z.object({ year: z.number().int(), month: z.number().int() }))
+    .input(z.object({ fromDate: z.string(), toDate: z.string() }))
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
+      const ymPairs = dateRangeToYearMonths(input.fromDate, input.toDate);
       return db
         .select()
         .from(salaryAdvances)
         .where(
-          and(
-            eq(salaryAdvances.year, input.year),
-            eq(salaryAdvances.month, input.month),
+          or(
+            ...ymPairs.map(({ year, month }) =>
+              and(eq(salaryAdvances.year, year), eq(salaryAdvances.month, month)),
+            ),
           ),
         );
     }),
@@ -645,10 +662,11 @@ export const salaryRouter = router({
     }),
 
   listPayrollDeductions: makeSalaryProcedure("/salary/payroll")
-    .input(z.object({ year: z.number().int(), month: z.number().int() }))
+    .input(z.object({ fromDate: z.string(), toDate: z.string() }))
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
+      const ymPairs = dateRangeToYearMonths(input.fromDate, input.toDate);
       return db
         .select({
           empCd: salaryPayroll.empCd,
@@ -668,9 +686,10 @@ export const salaryRouter = router({
           eq(salaryPayroll.empCd, attendanceEmployees.empCd),
         )
         .where(
-          and(
-            eq(salaryPayroll.year, input.year),
-            eq(salaryPayroll.month, input.month),
+          or(
+            ...ymPairs.map(({ year, month }) =>
+              and(eq(salaryPayroll.year, year), eq(salaryPayroll.month, month)),
+            ),
           ),
         )
         .orderBy(attendanceEmployees.fullName);
