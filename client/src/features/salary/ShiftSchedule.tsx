@@ -153,9 +153,12 @@ export default function ShiftSchedule() {
   const { user } = useAuth();
   const isManager = ["admin", "manager"].includes(user?.role ?? "");
 
-  const [fromDate, setFromDate] = useState(
-    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`,
-  );
+  const isoMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const [fromDate, setFromDate] = useState(`${isoMonth}-01`);
+  const [toDate, setToDate] = useState((() => {
+    const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return `${isoMonth}-${String(last.getDate()).padStart(2, "0")}`;
+  })());
   const [year, month] = fromDate.split("-").map(Number);
   const [showAdd, setShowAdd] = useState(false);
   const [addForm, setAddForm] = useState<AddForm>(EMPTY_ADD);
@@ -166,7 +169,7 @@ export default function ShiftSchedule() {
     ? (trpc as any).salary.getShiftSchedule.useQuery({ year, month })
     : (trpc as any).salary.getShiftScheduleForStaff.useQuery({ year, month });
   const payrollQ = (trpc as any).salary.computeShiftPayroll.useQuery(
-    { year, month },
+    { year, month, fromDate, toDate },
     { enabled: isManager },
   );
   const myStaffIdQ = (trpc as any).salary.getMyShiftStaffId.useQuery(
@@ -440,6 +443,12 @@ export default function ShiftSchedule() {
                 <DateInput
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
+                  className="min-h-11 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                />
+                <span className="text-sm text-muted-foreground">—</span>
+                <DateInput
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
                   className="min-h-11 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
                 />
                 {isManager && (
