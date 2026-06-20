@@ -22,7 +22,7 @@ import {
   shiftAttendance,
   shiftStaffCycle,
 } from "../../drizzle/schema";
-import { eq, and, gte, lte, isNull, or, desc, inArray, sql } from "drizzle-orm";
+import { eq, and, gte, lte, gt, isNull, or, desc, inArray, sql } from "drizzle-orm";
 import {
   PayrollComputeService,
   calcPentacamPool,
@@ -840,6 +840,45 @@ export const salaryRouter = router({
           ),
         )
         .orderBy(attendanceDaily.workDate, attendanceEmployees.fullName);
+      return rows.map((r: any) => {
+        const d = r.workDate as any;
+        const workDate =
+          d instanceof Date
+            ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+            : String(d).slice(0, 10);
+        return { ...r, workDate };
+      });
+    }),
+
+  listLateDays: makeSalaryProcedure("/salary")
+    .input(z.object({ year: z.number(), month: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const from = `${input.year}-${String(input.month).padStart(2, "0")}-01`;
+      const lastDay = new Date(input.year, input.month, 0).getDate();
+      const to = `${input.year}-${String(input.month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+      const rows = await db
+        .select({
+          empCd: attendanceDaily.empCd,
+          empName: attendanceEmployees.fullName,
+          department: attendanceEmployees.department,
+          workDate: attendanceDaily.workDate,
+          lateMinutes: attendanceDaily.lateMinutes,
+        })
+        .from(attendanceDaily)
+        .leftJoin(
+          attendanceEmployees,
+          eq(attendanceDaily.empCd, attendanceEmployees.empCd),
+        )
+        .where(
+          and(
+            gte(attendanceDaily.workDate, from as any),
+            lte(attendanceDaily.workDate, to as any),
+            gt(attendanceDaily.lateMinutes, 0),
+          ),
+        )
+        .orderBy(attendanceEmployees.fullName, attendanceDaily.workDate);
       return rows.map((r: any) => {
         const d = r.workDate as any;
         const workDate =

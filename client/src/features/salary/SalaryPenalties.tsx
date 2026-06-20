@@ -20,7 +20,7 @@ const MONTHS = [
   "ديسمبر",
 ];
 
-type Tab = "penalties" | "advances" | "insurance";
+type Tab = "penalties" | "advances" | "lates" | "insurance";
 
 const PRINT_CSS = `
   @page { size: A4 landscape; margin: 10mm; }
@@ -45,8 +45,8 @@ export default function SalaryPenalties() {
     id: number;
     value: string;
   } | null>(null);
-  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
-  const toggleRow = (id: number) => {
+  const [expandedRows, setExpandedRows] = useState<Record<string | number, boolean>>({});
+  const toggleRow = (id: string | number) => {
     setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
@@ -103,6 +103,20 @@ export default function SalaryPenalties() {
     },
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
+
+  // ── Late Days ──────────────────────────────────────────────────────────────
+  const lateDaysQ = (trpc as any).salary.listLateDays.useQuery({ year, month });
+  const lateDaysRaw: any[] = lateDaysQ.data ?? [];
+
+  // Group by employee
+  const lateByEmp: Record<string, { empCd: string; empName: string; department: string; days: { workDate: string; lateMinutes: number }[] }> = {};
+  for (const r of lateDaysRaw) {
+    if (!lateByEmp[r.empCd]) {
+      lateByEmp[r.empCd] = { empCd: r.empCd, empName: r.empName ?? r.empCd, department: r.department ?? "—", days: [] };
+    }
+    lateByEmp[r.empCd].days.push({ workDate: r.workDate, lateMinutes: Number(r.lateMinutes) });
+  }
+  const lateEmpRows = Object.values(lateByEmp).sort((a, b) => a.empName.localeCompare(b.empName, "ar"));
 
   // ── Insurance (latest salaryBasics per employee — not month-filtered) ───────
   const basicsQ = (trpc as any).salary.listBasics.useQuery();
@@ -273,6 +287,7 @@ export default function SalaryPenalties() {
   const tabDefs: { key: Tab; label: string }[] = [
     { key: "penalties", label: "جزاءات" },
     { key: "advances", label: "سلف" },
+    { key: "lates", label: "تأخيرات" },
     { key: "insurance", label: "تأمينات" },
   ];
 
@@ -327,13 +342,17 @@ export default function SalaryPenalties() {
                   </option>
                 ))}
               </select>
-              <Button onClick={() => setShowForm(!showForm)} className="gap-2">
-                <Plus size={16} />
-                {tab === "penalties" ? "إضافة جزاء" : "إضافة سلفة"}
-              </Button>
-              <Button variant="outline" onClick={handlePrint} className="gap-2">
-                <Printer size={16} /> طباعة
-              </Button>
+              {tab !== "lates" && (
+                <>
+                  <Button onClick={() => setShowForm(!showForm)} className="gap-2">
+                    <Plus size={16} />
+                    {tab === "penalties" ? "إضافة جزاء" : "إضافة سلفة"}
+                  </Button>
+                  <Button variant="outline" onClick={handlePrint} className="gap-2">
+                    <Printer size={16} /> طباعة
+                  </Button>
+                </>
+              )}
             </>
           )}
         </div>
@@ -589,6 +608,92 @@ export default function SalaryPenalties() {
               </div>
             )}
           </div>
+        </section>
+      )}
+
+      {/* Late Days tab */}
+      {tab === "lates" && (
+        <section className="rounded-xl border border-border bg-background">
+          <div className="border-b border-border px-4 py-3">
+            <h3 className="text-base font-semibold">
+              التأخيرات — {MONTHS[month - 1]} {year}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              أيام التأخير لكل موظف مع مدة التأخير يومياً
+            </p>
+          </div>
+
+          {lateEmpRows.length === 0 ? (
+            <div className="px-4 py-8 text-center text-muted-foreground text-sm">
+              لا توجد تأخيرات هذا الشهر
+            </div>
+          ) : (
+            <div className="divide-y divide-border/60">
+              {lateEmpRows.map((emp) => {
+                const totalDays = emp.days.length;
+                const totalMins = emp.days.reduce((s, d) => s + d.lateMinutes, 0);
+                const hours = Math.floor(totalMins / 60);
+                const mins = totalMins % 60;
+                const isExpanded = !!expandedRows[emp.empCd];
+                return (
+                  <div key={emp.empCd} className="bg-card">
+                    <div
+                      className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/20"
+                      onClick={() => toggleRow(emp.empCd)}
+                    >
+                      <div>
+                        <div className="font-semibold text-sm">{emp.empName}</div>
+                        <div className="text-xs text-muted-foreground">{emp.department}</div>
+                      </div>
+                      <div className="flex items-center gap-6">
+                        <div className="text-center">
+                          <div className="text-[10px] text-muted-foreground">عدد الأيام</div>
+                          <div className="font-bold text-destructive text-sm">{totalDays}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-[10px] text-muted-foreground">إجمالي التأخير</div>
+                          <div className="font-bold text-destructive text-sm">
+                            {hours > 0 ? `${hours}س ` : ""}{mins}د
+                          </div>
+                        </div>
+                        {isExpanded ? (
+                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </div>
+                    </div>
+                    {isExpanded && (
+                      <div className="px-4 pb-4">
+                        <table className="w-full text-sm border border-border/40 rounded-lg overflow-hidden">
+                          <thead>
+                            <tr className="bg-muted/30 text-xs">
+                              <th className="px-3 py-2 text-right text-muted-foreground font-medium">التاريخ</th>
+                              <th className="px-3 py-2 text-center text-muted-foreground font-medium">مدة التأخير (دقيقة)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {emp.days.map((d) => (
+                              <tr key={d.workDate} className="border-t border-border/30 hover:bg-muted/10">
+                                <td className="px-3 py-2 font-medium">{d.workDate}</td>
+                                <td className="px-3 py-2 text-center text-destructive font-bold">{d.lateMinutes}</td>
+                              </tr>
+                            ))}
+                            <tr className="border-t border-border bg-muted/30 font-bold text-xs">
+                              <td className="px-3 py-2">الإجمالي: {totalDays} يوم</td>
+                              <td className="px-3 py-2 text-center text-destructive">
+                                {totalMins} د ({hours > 0 ? `${hours}س ` : ""}{mins}د)
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
       )}
 
