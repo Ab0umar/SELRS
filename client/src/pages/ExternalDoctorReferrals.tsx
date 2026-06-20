@@ -27,7 +27,7 @@ function CreateReferralForm({ onDone }: { onDone: () => void }) {
     onError: (e) => toast.error(e.message),
   });
 
-  const activeDoctors = (doctors ?? []).filter((d) => d.isActive);
+  const activeDoctors = (doctors ?? []).filter((d: any) => d.isActive);
 
   return (
     <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
@@ -42,7 +42,7 @@ function CreateReferralForm({ onDone }: { onDone: () => void }) {
               <SelectValue placeholder="Select doctor" />
             </SelectTrigger>
             <SelectContent>
-              {activeDoctors.map((d) => (
+              {activeDoctors.map((d: any) => (
                 <SelectItem key={d.id} value={String(d.id)}>
                   {d.fullName} (@{d.username})
                 </SelectItem>
@@ -148,7 +148,7 @@ export default function ExternalDoctorReferrals() {
 
         {data && data.length > 0 && (
           <div className="space-y-2">
-            {data.map((r) => (
+            {data.map((r: any) => (
               <div
                 key={r.id}
                 className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3"

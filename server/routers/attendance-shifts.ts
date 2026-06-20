@@ -69,7 +69,7 @@ export const attendanceShiftsRoutes = {
       .where(eq(attendanceShifts.active, true))
       .orderBy(attendanceShifts.name);
 
-    return shifts.map((s) => ({
+    return shifts.map((s: any) => ({
       id: s.id,
       name: s.name,
       startTime: s.startTime,
@@ -782,7 +782,7 @@ export const attendanceShiftsRoutes = {
         .where(conditions.length > 0 ? and(...conditions) : undefined)
         .orderBy(desc(attendanceShiftChangeRequests.createdAt));
 
-      return rows.map((r) => ({
+      return rows.map((r: any) => ({
         ...r,
         dateFrom: fmtDate(r.dateFrom as any),
         dateTo: r.dateTo ? fmtDate(r.dateTo as any) : null,
@@ -1108,7 +1108,7 @@ export const attendanceShiftsRoutes = {
     if (!db) throw new Error("Database not available");
     const cycles = await db.select().from(attendanceShiftCycles);
     const slots = await db.select().from(attendanceShiftCycleSlots);
-    return cycles.map((c) => ({
+    return cycles.map((c: any) => ({
       id: c.id,
       name: c.name,
       period: c.period,
@@ -1117,9 +1117,9 @@ export const attendanceShiftsRoutes = {
           ? `${c.anchorDate.getFullYear()}-${String(c.anchorDate.getMonth() + 1).padStart(2, "0")}-${String(c.anchorDate.getDate()).padStart(2, "0")}`
           : String(c.anchorDate).slice(0, 10),
       slots: slots
-        .filter((s) => s.cycleId === c.id)
-        .sort((a, b) => a.slotIndex - b.slotIndex)
-        .map((s) => ({ id: s.id, slotIndex: s.slotIndex, shiftId: s.shiftId })),
+        .filter((s: any) => s.cycleId === c.id)
+        .sort((a: any, b: any) => a.slotIndex - b.slotIndex)
+        .map((s: any) => ({ id: s.id, slotIndex: s.slotIndex, shiftId: s.shiftId })),
     }));
   }),
 

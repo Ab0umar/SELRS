@@ -157,7 +157,7 @@ export async function runScheduledPost(
       ),
     );
 
-  const existing = todayPosts.filter((p) => p.status !== "failed");
+  const existing = todayPosts.filter((p: any) => p.status !== "failed");
   if (existing.length > 0) {
     return {
       ok: true,

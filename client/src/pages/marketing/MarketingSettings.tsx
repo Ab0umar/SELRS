@@ -534,7 +534,7 @@ export default function MarketingSettings() {
           </div>
         ) : (
           <div className="max-h-64 divide-y divide-border overflow-y-auto">
-            {(logsQuery.data ?? []).map((log) => (
+            {(logsQuery.data ?? []).map((log: any) => (
               <div key={log.id} className="flex items-start gap-3 px-4 py-2.5">
                 <span
                   className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${log.status === "success" ? "bg-success" : log.status === "error" ? "bg-destructive" : "bg-muted-foreground"}`}

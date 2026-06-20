@@ -920,7 +920,7 @@ function ClosuresPanel() {
         </p>
       ) : (
         <div className="space-y-2">
-          {closures.map((c) => {
+          {closures.map((c: any) => {
             const start =
               typeof c.startDate === "string"
                 ? c.startDate
@@ -1074,7 +1074,7 @@ export default function AdminPortalBookings() {
   const filteredBookings = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
     if (!q) return bookingData;
-    return bookingData.filter((booking) => {
+    return bookingData.filter((booking: any) => {
       const haystack = [
         booking.patientName ?? "",
         booking.guestName ?? "",
@@ -1094,11 +1094,11 @@ export default function AdminPortalBookings() {
   const stats = useMemo(
     () => ({
       total: filteredBookings.length,
-      pending: filteredBookings.filter((item) => item.status === "pending")
+      pending: filteredBookings.filter((item: any) => item.status === "pending")
         .length,
-      confirmed: filteredBookings.filter((item) => item.status === "confirmed")
+      confirmed: filteredBookings.filter((item: any) => item.status === "confirmed")
         .length,
-      cancelled: filteredBookings.filter((item) => item.status === "cancelled")
+      cancelled: filteredBookings.filter((item: any) => item.status === "cancelled")
         .length,
     }),
     [filteredBookings],
@@ -1289,7 +1289,7 @@ export default function AdminPortalBookings() {
           ) : null}
 
           {!bookingsQuery.isLoading && !bookingsQuery.error
-            ? filteredBookings.map((booking) => (
+            ? filteredBookings.map((booking: any) => (
                 <BookingCard
                   key={booking.id}
                   booking={booking}

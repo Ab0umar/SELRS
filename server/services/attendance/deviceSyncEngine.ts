@@ -100,10 +100,11 @@ export class DeviceSyncEngine {
       this.lastSyncTime = lastRun[0]?.highWaterMark ?? new Date(0);
 
       // Fetch punches from device
+      const syncFrom: Date = this.lastSyncTime ?? new Date(0);
       console.log(
-        `Fetching punches from device since ${this.lastSyncTime.toISOString()}`,
+        `Fetching punches from device since ${syncFrom.toISOString()}`,
       );
-      const punches = await this.device!.getPunchRecords(this.lastSyncTime);
+      const punches = await this.device!.getPunchRecords(syncFrom);
 
       console.log(`Device returned ${punches.length} punch records`);
 

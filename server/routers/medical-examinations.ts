@@ -1560,8 +1560,9 @@ export const medicalExaminationsRoutes = {
             notes: "Created from examination form",
             items: requestedMedicationIds.map((medicationId) => ({
               medicationId,
-              medicationName:
+              medicationName: String(
                 medById.get(medicationId) || `Medication ${medicationId}`,
+              ),
             })),
           });
         } else {

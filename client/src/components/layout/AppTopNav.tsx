@@ -90,7 +90,7 @@ function DashboardAppbarIndicators() {
   });
   const stockQ = trpc.stockroom.getReports.useQuery({});
   const stockBadge = (stockQ.data?.inventory ?? []).filter(
-    (i) => i.status === "كمية قليلة" || i.status === "نفذ المخزون",
+    (i: any) => i.status === "كمية قليلة" || i.status === "نفذ المخزون",
   ).length;
 
   const items = [

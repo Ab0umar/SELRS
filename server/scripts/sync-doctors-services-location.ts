@@ -221,15 +221,15 @@ async function syncDoctorsAndServices() {
       .from(services)
       .where(eq(services.isActive, true));
 
-    const centerDoctors = allDoctors.filter((d) => d.locationType === "center");
+    const centerDoctors = allDoctors.filter((d: any) => d.locationType === "center");
     const externalDoctors = allDoctors.filter(
-      (d) => d.locationType === "external",
+      (d: any) => d.locationType === "external",
     );
     const centerServices = allServices.filter(
-      (s) => s.locationType === "center",
+      (s: any) => s.locationType === "center",
     );
     const externalServices = allServices.filter(
-      (s) => s.locationType === "external",
+      (s: any) => s.locationType === "external",
     );
 
     console.log(`[SyncScript] Summary:`);

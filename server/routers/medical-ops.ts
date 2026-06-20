@@ -700,15 +700,15 @@ export const medicalOpsRoutes = {
           .where(inArray(doctorReports.patientId, ids)),
       ]);
 
-      const withAutoref = new Set(autorefRows.map((r) => r.patientId));
-      const withAfterRef = new Set(afterRefRows.map((r) => r.patientId));
-      const withGlasses = new Set(glassesRows.map((r) => r.patientId));
-      const withPentacam = new Set(pentacamRows.map((r) => r.patientId));
+      const withAutoref = new Set(autorefRows.map((r: any) => r.patientId));
+      const withAfterRef = new Set(afterRefRows.map((r: any) => r.patientId));
+      const withGlasses = new Set(glassesRows.map((r: any) => r.patientId));
+      const withPentacam = new Set(pentacamRows.map((r: any) => r.patientId));
       const withPrescription = new Set(
-        prescriptionRows.map((r) => r.patientId),
+        prescriptionRows.map((r: any) => r.patientId),
       );
-      const withTests = new Set(testRows.map((r) => r.patientId));
-      const withReports = new Set(reportRows.map((r) => r.patientId));
+      const withTests = new Set(testRows.map((r: any) => r.patientId));
+      const withReports = new Set(reportRows.map((r: any) => r.patientId));
 
       const result: Record<
         number,
@@ -1109,7 +1109,7 @@ export const medicalOpsRoutes = {
         db.getTodayOperationBookingsGrouped(date),
       ]);
 
-      const mappedBookings = bookings.map((b, i) => ({
+      const mappedBookings = bookings.map((b: any, i: any) => ({
         id: -(i + 1), // unique negative id for UI keys
         doctorName: b.doctorName,
         operationType: b.operationType,
@@ -1563,7 +1563,7 @@ export const medicalOpsRoutes = {
             ? await readReadyPrescriptionTemplatesFromFile(resolvedPath)
             : await readReadyTestTemplatesFromFile(
                 resolvedPath,
-                (await db.getAllTests()).map((test) => ({
+                (await db.getAllTests()).map((test: any) => ({
                   id: Number(test.id),
                   name: String(test.name ?? ""),
                 })),
@@ -1747,7 +1747,7 @@ export const medicalOpsRoutes = {
       })
       .from(doctorsLookup)
       .orderBy(asc(doctorsLookup.code));
-    return rows.map((doctor) => ({
+    return rows.map((doctor: any) => ({
       id: doctor.id,
       code: decodeMojibake(String(doctor.code ?? "")),
       name: decodeMojibake(String(doctor.name ?? "")),

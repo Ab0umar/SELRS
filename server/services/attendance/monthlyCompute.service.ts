@@ -214,20 +214,20 @@ export class MonthlyComputeService {
         );
 
       const partialDays = allDailyRecords.filter(
-        (d) => d.status === "partial",
+        (d: any) => d.status === "partial",
       ).length;
       const missingCheckoutDays = allDailyRecords.filter(
-        (d) => d.status === "missing_checkout",
+        (d: any) => d.status === "missing_checkout",
       ).length;
       // Recalculate presentDays to include partial + missing_checkout
       m.presentDays = allDailyRecords.filter(
-        (d) =>
+        (d: any) =>
           d.status === "present" ||
           d.status === "partial" ||
           d.status === "missing_checkout",
       ).length;
       m.absentDays = allDailyRecords.filter(
-        (d) => d.status === "absent",
+        (d: any) => d.status === "absent",
       ).length;
 
       await db

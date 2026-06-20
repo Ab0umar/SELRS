@@ -309,7 +309,7 @@ export default function BrandLibrary() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {designs.map((design) => {
+            {designs.map((design: any) => {
               const analyzed = Boolean(design.styleAttributes);
               return (
                 <div

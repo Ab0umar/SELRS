@@ -961,7 +961,7 @@ export default function MedicalReports() {
                           acc[key].push(d);
                           return acc;
                         }, {}),
-                    ).map(([branch, items]) => (
+                    ).map(([branch, items]: [string, any[]]) => (
                       <div key={branch} className="border rounded-lg p-3">
                         <button
                           type="button"
@@ -978,7 +978,7 @@ export default function MedicalReports() {
                         </button>
                         {expandedDiseaseGroups.includes(branch) && (
                           <div className="mt-3 grid grid-cols-1 gap-2">
-                            {items.map((d: any) => {
+                            {(items as any[]).map((d: any) => {
                               const label = d.abbrev || d.name;
                               return (
                                 <label

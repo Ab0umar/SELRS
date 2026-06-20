@@ -258,7 +258,7 @@ export const attendanceLeavesRoutes = {
         )
         .where(conditions.length ? and(...conditions) : undefined)
         .orderBy(desc(attendanceLeaves.dateFrom));
-      return rows.map((r) => ({
+      return rows.map((r: any) => ({
         ...r,
         dateFrom: fmtDate(r.dateFrom as any),
         dateTo: fmtDate(r.dateTo as any),
@@ -367,9 +367,9 @@ export const attendanceLeavesRoutes = {
           ),
         );
 
-      return balances.map((b) => {
-        const empLeaves = usedRows.filter((l) => l.empCd === b.empCd);
-        const usedDays = empLeaves.reduce((acc, l) => {
+      return balances.map((b: any) => {
+        const empLeaves = usedRows.filter((l: any) => l.empCd === b.empCd);
+        const usedDays = empLeaves.reduce((acc: any, l: any) => {
           const from = new Date(l.dateFrom as any);
           const to = new Date(l.dateTo as any);
           const days =
@@ -663,7 +663,7 @@ export const attendanceLeavesRoutes = {
           ),
         )
         .orderBy(attendanceHolidays.date);
-      return rows.map((h) => ({
+      return rows.map((h: any) => ({
         date:
           h.date instanceof Date
             ? `${h.date.getFullYear()}-${String(h.date.getMonth() + 1).padStart(2, "0")}-${String(h.date.getDate()).padStart(2, "0")}`

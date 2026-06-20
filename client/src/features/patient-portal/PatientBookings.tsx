@@ -37,9 +37,9 @@ export default function PatientBookings() {
     const bookings = data ?? [];
     return {
       total: bookings.length,
-      pending: bookings.filter((item) => item.status === "pending").length,
-      confirmed: bookings.filter((item) => item.status === "confirmed").length,
-      completed: bookings.filter((item) => item.status === "completed").length,
+      pending: bookings.filter((item: any) => item.status === "pending").length,
+      confirmed: bookings.filter((item: any) => item.status === "confirmed").length,
+      completed: bookings.filter((item: any) => item.status === "completed").length,
     };
   }, [data]);
 
@@ -168,7 +168,7 @@ export default function PatientBookings() {
 
             {data && data.length > 0 && (
               <div className="space-y-4">
-                {data.map((item) => {
+                {data.map((item: any) => {
                   const meta = STATUS_META[item.status] ?? STATUS_META.pending;
                   return (
                     <div

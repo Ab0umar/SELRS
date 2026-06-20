@@ -1114,16 +1114,16 @@ function StockroomPanel() {
   const inventory = q.data?.inventory ?? [];
 
   const getCategoryStats = (key: string) => {
-    const items = inventory.filter((i) => i.category === key);
+    const items = inventory.filter((i: any) => i.category === key);
     return {
       total: items.length,
-      low: items.filter((i) => i.status === "كمية قليلة").length,
-      out: items.filter((i) => i.status === "نفذ المخزون").length,
+      low: items.filter((i: any) => i.status === "كمية قليلة").length,
+      out: items.filter((i: any) => i.status === "نفذ المخزون").length,
     };
   };
 
   const totalAlerts = inventory.filter(
-    (i) => i.status === "كمية قليلة" || i.status === "نفذ المخزون",
+    (i: any) => i.status === "كمية قليلة" || i.status === "نفذ المخزون",
   ).length;
 
   return (
@@ -1316,7 +1316,7 @@ export default function Dashboard() {
   const todayBadge = merged.length;
   const attBadge = attQ.data?.absentToday ?? 0;
   const stockBadge = (stockQ.data?.inventory ?? []).filter(
-    (i) => i.status === "كمية قليلة" || i.status === "نفذ المخزون",
+    (i: any) => i.status === "كمية قليلة" || i.status === "نفذ المخزون",
   ).length;
 
   const bookingsBadge = ((bookingsQ.data ?? []) as any[]).length;

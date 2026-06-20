@@ -399,7 +399,7 @@ export default function MarketingDashboard() {
           </div>
         ) : (
           <div className="divide-y divide-border">
-            {recentPosts.map((post) => {
+            {recentPosts.map((post: any) => {
               const badge = STATUS_BADGE[post.status] ?? {
                 label: post.status,
                 className: "",

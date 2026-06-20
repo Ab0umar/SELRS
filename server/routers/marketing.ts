@@ -644,7 +644,7 @@ export const marketingRouter = router({
         for (let i = 0; i < pending.length; i += BATCH) {
           const batch = pending.slice(i, i + BATCH);
           const batchResults = await Promise.all(
-            batch.map(async (design) => {
+            batch.map(async (design: any) => {
               const attrs = await analyzeDesignImage(
                 design.filePath!,
                 design.mimeType,

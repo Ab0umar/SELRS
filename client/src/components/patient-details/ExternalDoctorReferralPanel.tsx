@@ -40,10 +40,10 @@ export function ExternalDoctorReferralPanel({ patientCode }: Props) {
   );
 
   const patientReferrals = (referrals ?? []).filter(
-    (r) => r.patientCode === patientCode,
+    (r: any) => r.patientCode === patientCode,
   );
   const activeIds = new Set(
-    patientReferrals.filter((r) => r.isActive).map((r) => r.externalDoctorId),
+    patientReferrals.filter((r: any) => r.isActive).map((r: any) => r.externalDoctorId),
   );
 
   const create = trpc.externalDoctors.createReferral.useMutation({
@@ -62,7 +62,7 @@ export function ExternalDoctorReferralPanel({ patientCode }: Props) {
   });
 
   const availableDoctors = (doctors ?? []).filter(
-    (d) => d.isActive && !activeIds.has(d.id),
+    (d: any) => d.isActive && !activeIds.has(d.id),
   );
 
   return (
@@ -89,7 +89,7 @@ export function ExternalDoctorReferralPanel({ patientCode }: Props) {
             </p>
           )}
 
-          {patientReferrals.map((r) => (
+          {patientReferrals.map((r: any) => (
             <div
               key={r.id}
               className="flex items-center justify-between gap-1 rounded-lg bg-muted/40 px-2 py-1"
@@ -141,7 +141,7 @@ export function ExternalDoctorReferralPanel({ patientCode }: Props) {
                       لا يوجد أطباء متاحون
                     </div>
                   )}
-                  {availableDoctors.map((d) => (
+                  {availableDoctors.map((d: any) => (
                     <SelectItem key={d.id} value={String(d.id)}>
                       {d.fullName}
                     </SelectItem>

@@ -131,7 +131,7 @@ export const doctorPortalRouter = router({
       )
       .orderBy(desc(externalDoctorReferrals.createdAt));
 
-    const referralCodes = new Set(referrals.map((r) => r.patientCode));
+    const referralCodes = new Set(referrals.map((r: any) => r.patientCode));
 
     // Auto-mapped patients by doctorCode — only those with pentacam images
     let autoPatients: {
@@ -175,7 +175,7 @@ export const doctorPortalRouter = router({
     }> = [];
 
     if (referrals.length > 0) {
-      const codes = referrals.map((r) => r.patientCode);
+      const codes = referrals.map((r: any) => r.patientCode);
       const patientRows = await db
         .select({
           patientCode: patients.patientCode,
@@ -193,9 +193,9 @@ export const doctorPortalRouter = router({
           ),
         );
 
-      const patientMap = new Map(patientRows.map((p) => [p.patientCode, p]));
+      const patientMap = new Map(patientRows.map((p: any) => [p.patientCode, p]));
       for (const r of referrals) {
-        const p = patientMap.get(r.patientCode);
+        const p = patientMap.get(r.patientCode) as any;
         result.push({
           referralId: r.id,
           patientCode: r.patientCode,

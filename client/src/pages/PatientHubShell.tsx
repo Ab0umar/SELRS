@@ -272,7 +272,7 @@ export default function PatientHubShell() {
   const currentVisitIdx = useMemo(() => {
     if (visits.length === 0) return -1;
     if (visitId == null) return 0;
-    const idx = visits.findIndex((v) => v.id === visitId);
+    const idx = visits.findIndex((v: any) => v.id === visitId);
     return idx >= 0 ? idx : 0;
   }, [visits, visitId]);
 
@@ -296,7 +296,7 @@ export default function PatientHubShell() {
 
       const visitById =
         Number.isFinite(urlId) && urlId > 0
-          ? visits.find((v) => v.id === urlId)
+          ? visits.find((v: any) => v.id === urlId)
           : undefined;
 
       if (visitById) {
@@ -309,7 +309,7 @@ export default function PatientHubShell() {
 
       // قاعدة العمل: لا يُفترض أكثر من زيارة لنفس المريض في نفس اليوم.
       if (urlDate && /^\d{4}-\d{2}-\d{2}$/.test(urlDate)) {
-        const v = visits.find((x) => visitDateKey(x) === urlDate);
+        const v = visits.find((x: any) => visitDateKey(x) === urlDate);
         if (v && urlIdStr !== String(v.id)) {
           applyVisitSelection(urlDate, v.id);
           return;

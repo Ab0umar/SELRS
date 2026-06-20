@@ -160,10 +160,10 @@ export const shiftStaffRouter = router({
           ),
       ]);
 
-      return staff.map((s) => {
-        const rows = attendance.filter((a) => a.staffId === s.id);
+      return staff.map((s: any) => {
+        const rows = attendance.filter((a: any) => a.staffId === s.id);
         const scheduled = rows.length;
-        const attended = rows.filter((a) => a.present).length;
+        const attended = rows.filter((a: any) => a.present).length;
         const absent = scheduled - attended;
         const rate = Number(s.ratePerShift);
         const totalPay = Math.round(attended * rate * 100) / 100;

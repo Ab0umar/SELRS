@@ -36,8 +36,8 @@ export default function StockroomReports() {
   const inventorySummary = reportsQuery.data?.inventory || [];
   const transactions = reportsQuery.data?.transactions || [];
 
-  const additionsLog = transactions.filter((t) => t.type === "add");
-  const dispenseLog = transactions.filter((t) => t.type === "dispense");
+  const additionsLog = transactions.filter((t: any) => t.type === "add");
+  const dispenseLog = transactions.filter((t: any) => t.type === "dispense");
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -137,7 +137,7 @@ export default function StockroomReports() {
                           </TableCell>
                         </TableRow>
                       ))
-                  : inventorySummary.map((row) => (
+                  : inventorySummary.map((row: any) => (
                       <TableRow key={row.id}>
                         <TableCell className="font-mono text-xs text-muted-foreground text-right">
                           {row.itemCode || "-"}
@@ -212,7 +212,7 @@ export default function StockroomReports() {
                           </TableCell>
                         </TableRow>
                       ))
-                  : additionsLog.map((row) => (
+                  : additionsLog.map((row: any) => (
                       <TableRow key={row.id}>
                         <TableCell className="font-mono text-xs text-right">
                           {row.id}
@@ -284,7 +284,7 @@ export default function StockroomReports() {
                           </TableCell>
                         </TableRow>
                       ))
-                  : dispenseLog.map((row) => (
+                  : dispenseLog.map((row: any) => (
                       <TableRow key={row.id}>
                         <TableCell className="font-mono text-xs text-right">
                           {row.id}

@@ -107,11 +107,11 @@ export class PermissionAdjustmentService {
       );
 
     // Group by empCd and recompute
-    const empCodes = [...new Set(dailyRecords.map((d) => d.empCd))];
+    const empCodes = [...new Set(dailyRecords.map((d: any) => d.empCd))];
     let totalUpdated = 0;
 
     for (const empCd of empCodes) {
-      const updated = await this.recomputeRange(empCd, fromDate, toDate);
+      const updated = await this.recomputeRange(empCd as string, fromDate, toDate);
       totalUpdated += updated;
     }
 
@@ -158,13 +158,13 @@ export class PermissionAdjustmentService {
       periodStart: fromDate.toISOString().split("T")[0],
       periodEnd: toDate.toISOString().split("T")[0],
       approvedLeaves: leaves.length,
-      totalLeaveDays: leaves.reduce((sum, l) => {
+      totalLeaveDays: leaves.reduce((sum: any, l: any) => {
         const diff = l.dateTo.getTime() - l.dateFrom.getTime();
         return sum + Math.floor(diff / (1000 * 60 * 60 * 24)) + 1;
       }, 0),
       appliedToDailyRecords: dailyWithLeave.length,
       byLeaveType: leaves.reduce(
-        (acc, l) => {
+        (acc: any, l: any) => {
           acc[l.type] = (acc[l.type] || 0) + 1;
           return acc;
         },

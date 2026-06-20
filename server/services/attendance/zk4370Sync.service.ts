@@ -184,7 +184,7 @@ export class ZK4370SyncService {
         .from(attendanceEmployees)
         .where(sql`active = 1`);
 
-      const payload = employees.map((e) => ({
+      const payload = employees.map((e: any) => ({
         empCd:    e.empCd,
         fullName: e.fullName ?? e.empCd,
         uid:      empCdToUid(e.empCd),

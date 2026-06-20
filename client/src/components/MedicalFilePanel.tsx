@@ -230,7 +230,7 @@ export default function MedicalFilePanel({
     if (!embedded || !examinations.length) return;
     if (hubVisitId != null && hubVisitId > 0) {
       const matchByVisit = examinations.find(
-        (e) => Number((e as { visitId?: unknown }).visitId) === hubVisitId,
+        (e: any) => Number((e as { visitId?: unknown }).visitId) === hubVisitId,
       );
       if (matchByVisit?.id != null) {
         setSelectedExaminationId((prev) =>
@@ -240,7 +240,7 @@ export default function MedicalFilePanel({
       }
     }
     if (!hubVisitDate) return;
-    const match = examinations.find((e) => {
+    const match = examinations.find((e: any) => {
       const created = (e as { createdAt?: Date | string }).createdAt;
       const key = created ? new Date(created).toISOString().split("T")[0] : "";
       return key === hubVisitDate;

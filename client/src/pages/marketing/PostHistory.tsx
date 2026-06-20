@@ -98,7 +98,7 @@ export default function PostHistory() {
           </div>
         ) : (
           <>
-            {posts.map((post) => {
+            {posts.map((post: any) => {
               const badge = STATUS_BADGE[post.status] ?? {
                 label: post.status,
                 className: "",

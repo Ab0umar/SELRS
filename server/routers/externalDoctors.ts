@@ -189,7 +189,7 @@ export const externalDoctorsRouter = router({
         .orderBy(desc(externalDoctorReferrals.createdAt));
 
       // Enrich with patient name
-      const codes = [...new Set(rows.map((r) => r.patientCode))];
+      const codes = [...new Set(rows.map((r: any) => r.patientCode))];
       const patientMap = new Map<string, string>();
       if (codes.length > 0) {
         const patientRows = await db
@@ -202,7 +202,7 @@ export const externalDoctorsRouter = router({
         for (const p of patientRows) patientMap.set(p.patientCode, p.fullName);
       }
 
-      return rows.map((r) => ({
+      return rows.map((r: any) => ({
         ...r,
         patientName: patientMap.get(r.patientCode) ?? null,
       }));

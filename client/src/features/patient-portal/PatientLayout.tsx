@@ -269,7 +269,7 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
               </div>
             ) : recentNotifications.length > 0 ? (
               <div className="grid gap-2">
-                {recentNotifications.map((item) => (
+                {recentNotifications.map((item: any) => (
                   <div
                     key={item.id}
                     className="rounded-xl border border-[#e1ebf6] bg-[#fbfdff] p-3 text-xs leading-5"

@@ -291,12 +291,12 @@ export async function getRegistrationCatalogFromDb(): Promise<{
     .where(and(isNotNull(doctorsLookup.code), ne(doctorsLookup.code, "")))
     .orderBy(asc(doctorsLookup.code));
   return {
-    services: svcRows.map((r) => ({
+    services: svcRows.map((r: any) => ({
       code: String(r.code ?? "").trim(),
       name: String(r.name ?? "").trim(),
       price: Number(r.price ?? 0),
     })),
-    doctors: docRows.map((r) => ({
+    doctors: docRows.map((r: any) => ({
       code: String(r.code ?? "").trim(),
       name: String(r.name ?? "").trim(),
     })),
@@ -369,7 +369,7 @@ export async function upsertRegistrationCatalogRows(params: {
       .from(doctorsLookup)
       .where(inArray(doctorsLookup.code, doctorCodes));
     const existingCodes = new Set(
-      existingRows.map((row) => String(row.code ?? "").trim()),
+      existingRows.map((row: any) => String(row.code ?? "").trim()),
     );
 
     const toInsert = doctorRows
@@ -537,7 +537,7 @@ export async function getAllUsers() {
   }
 
   const rows = await db.select().from(users);
-  return rows.map((row) => ({
+  return rows.map((row: any) => ({
     ...row,
     username: decodeMojibake(row.username),
     name: decodeMojibake(row.name),
@@ -562,8 +562,8 @@ export async function getDoctors() {
     .where(eq(users.role, "doctor"));
 
   return rows
-    .filter((row) => row.isActive)
-    .map((row) => ({
+    .filter((row: any) => row.isActive)
+    .map((row: any) => ({
       id: row.id,
       username: decodeMojibake(row.username),
       name: decodeMojibake(row.name ?? row.username),
@@ -859,7 +859,7 @@ export async function getPatientImportErrors(batchId: string) {
       ),
     )
     .orderBy(patientImportStaging.rowNumber);
-  return rows.map((row) => ({
+  return rows.map((row: any) => ({
     rowNumber: Number(row.rowNumber ?? 0),
     patientCode: String(row.patientCode ?? ""),
     fullName: String(row.fullName ?? ""),
@@ -879,7 +879,7 @@ export async function getPatientImportPreview(batchId: string, limit = 100) {
     .where(eq(patientImportStaging.batchId, normalizedBatchId))
     .orderBy(patientImportStaging.rowNumber)
     .limit(safeLimit);
-  return rows.map((row) => ({
+  return rows.map((row: any) => ({
     rowNumber: Number(row.rowNumber ?? 0),
     patientCode: String(row.patientCode ?? ""),
     fullName: String(row.fullName ?? ""),
@@ -1172,8 +1172,8 @@ export async function searchPatients(
         .where(eq(sheetEntries.sheetType, sheetType as any))
         .groupBy(sheetEntries.patientId);
       const patientIds = rows
-        .map((row) => Number(row.patientId))
-        .filter((id) => Number.isFinite(id));
+        .map((row: any) => Number(row.patientId))
+        .filter((id: any) => Number.isFinite(id));
       if (patientIds.length === 0) return [];
       whereClause = and(textMatch, inArray(patients.id, patientIds));
     }
@@ -1446,7 +1446,7 @@ export async function deletePatientWithAllData(patientId: number) {
     .select({ id: visits.id })
     .from(visits)
     .where(eq(visits.patientId, patientId));
-  const visitIds = patientVisits.map((v) => v.id);
+  const visitIds = patientVisits.map((v: any) => v.id);
 
   if (visitIds.length > 0) {
     // Delete data related to visits
@@ -1560,14 +1560,14 @@ export async function deleteVisitWithAllData(visitId: number) {
     .select({ id: prescriptions.id })
     .from(prescriptions)
     .where(eq(prescriptions.visitId, visitId));
-  const prescriptionIds = visitPrescriptions.map((p) => p.id);
+  const prescriptionIds = visitPrescriptions.map((p: any) => p.id);
 
   // Get test requests for this visit
   const visitTestRequests = await db
     .select({ id: testRequests.id })
     .from(testRequests)
     .where(eq(testRequests.visitId, visitId));
-  const testRequestIds = visitTestRequests.map((t) => t.id);
+  const testRequestIds = visitTestRequests.map((t: any) => t.id);
 
   // Delete prescription items
   if (prescriptionIds.length > 0) {
@@ -1747,10 +1747,10 @@ export async function checkInvalidVisitIds() {
     .select({ visitId: examinations.visitId })
     .from(examinations);
   const allVisitIds = await db.select({ id: visits.id }).from(visits);
-  const validVisitIds = new Set(allVisitIds.map((v) => v.id));
+  const validVisitIds = new Set(allVisitIds.map((v: any) => v.id));
 
   const orphanedExams = allExams.filter(
-    (e) => e.visitId && !validVisitIds.has(e.visitId),
+    (e: any) => e.visitId && !validVisitIds.has(e.visitId),
   );
 
   return {
@@ -2485,9 +2485,9 @@ export async function getTodayPatientsBySheet(dateIso?: string) {
   };
 
   // Debug logging
-  const withNames = rows.filter((r) => r.fullName && String(r.fullName).trim());
+  const withNames = rows.filter((r: any) => r.fullName && String(r.fullName).trim());
   const withoutNames = rows.filter(
-    (r) => !r.fullName || !String(r.fullName).trim(),
+    (r: any) => !r.fullName || !String(r.fullName).trim(),
   );
   console.log(
     `[getTodayPatientsBySheet] Date: ${target}, Total: ${rows.length}, With fullName: ${withNames.length}, Without fullName: ${withoutNames.length}`,
@@ -3431,7 +3431,7 @@ export async function getRefractionsOverviewRows(input: {
     .offset(offset);
 
   return {
-    rows: rows.map((row) => ({
+    rows: rows.map((row: any) => ({
       ...row,
       patientName: decodeMojibake(String(row.patientName ?? "")),
       doctorName: decodeMojibake(String(row.doctorName ?? "")),
@@ -3603,7 +3603,7 @@ export async function getAutorefractometryOverviewRows(input: {
     .offset(offset);
 
   return {
-    rows: rows.map((row) => ({
+    rows: rows.map((row: any) => ({
       ...row,
       patientName: decodeMojibake(String(row.patientName ?? "")),
       doctorName: decodeMojibake(String(row.doctorName ?? "")),
@@ -4118,7 +4118,7 @@ export async function getPentacamResultsForDashboard(
     .limit(safeLimit)
     .offset(safeOffset);
 
-  return rows.map((row) => ({
+  return rows.map((row: any) => ({
     ...row,
     patientFullName: decodeMojibake((row as any).patientFullName),
     doctorDisplayName: decodeMojibake((row as any).doctorDisplayName),
@@ -4172,7 +4172,7 @@ export async function getRecentPentacamResultNotes(limit = 50000) {
     .from(pentacamResults)
     .orderBy(desc(pentacamResults.createdAt))
     .limit(safeLimit);
-  return rows.map((row) => String(row.notes ?? ""));
+  return rows.map((row: any) => String(row.notes ?? ""));
 }
 
 export async function getRecentPentacamLocalResults(limit = 50000) {
@@ -4765,7 +4765,7 @@ export async function getPrescriptionsOverviewRows(input: {
     };
   }
 
-  const ids = base.map((r) => r.id);
+  const ids = base.map((r: any) => r.id);
   const countRows = await dbConn
     .select({
       prescriptionId: prescriptionItems.prescriptionId,
@@ -4775,15 +4775,15 @@ export async function getPrescriptionsOverviewRows(input: {
     .where(inArray(prescriptionItems.prescriptionId, ids))
     .groupBy(prescriptionItems.prescriptionId);
 
-  const countMap = new Map(countRows.map((r) => [r.prescriptionId, r.cnt]));
+  const countMap = new Map(countRows.map((r: any) => [r.prescriptionId, r.cnt]));
 
   return {
     rows: base
-      .map((r) => ({
+      .map((r: any) => ({
         ...r,
         itemCount: countMap.get(r.id) ?? 0,
       }))
-      .filter((row) => row.itemCount > 0),
+      .filter((row: any) => row.itemCount > 0),
     total: Number(totalRows[0]?.total ?? 0),
     page,
     pageSize,
@@ -5328,7 +5328,7 @@ export async function updateSystemSettings(key: string, value: any) {
       await db.delete(systemSettings).where(
         inArray(
           systemSettings.key,
-          chunkRows.map((row) => String(row.key)),
+          chunkRows.map((row: any) => String(row.key)),
         ),
       );
     }
@@ -5373,8 +5373,8 @@ export async function updateSystemSettings(key: string, value: any) {
     .where(like(systemSettings.key, `${key}__chunk_%`));
   const keep = new Set(chunks.map((_, i) => `${key}__chunk_${i}`));
   const stale = staleChunkRows
-    .map((row) => String(row.key))
-    .filter((chunkKey) => !keep.has(chunkKey));
+    .map((row: any) => String(row.key))
+    .filter((chunkKey: any) => !keep.has(chunkKey));
   if (stale.length > 0) {
     await db.delete(systemSettings).where(inArray(systemSettings.key, stale));
   }
@@ -5466,8 +5466,8 @@ export async function getUserPermissionState(userId: number) {
     .from(userPermissions)
     .where(eq(userPermissions.userId, userId));
   const rawPageIds = rows
-    .map((row) => String(row.pageId ?? "").trim())
-    .filter((pageId) => pageId.length > 0);
+    .map((row: any) => String(row.pageId ?? "").trim())
+    .filter((pageId: any) => pageId.length > 0);
   const hasExplicitEmptyOverride = rawPageIds.includes(
     EMPTY_PERMISSION_OVERRIDE,
   );
@@ -5475,7 +5475,7 @@ export async function getUserPermissionState(userId: number) {
     INHERIT_WITH_EXTRAS_MARKER,
   );
   const pageIds = rawPageIds.filter(
-    (pageId) =>
+    (pageId: any) =>
       pageId !== EMPTY_PERMISSION_OVERRIDE &&
       pageId !== INHERIT_WITH_EXTRAS_MARKER,
   );
@@ -5735,7 +5735,7 @@ export async function getOperationList(
     .from(operationListItems)
     .where(eq(operationListItems.listId, lists[0].id))
     .orderBy(operationListItems.id);
-  const items = rawItems.map((item) => ({
+  const items = rawItems.map((item: any) => ({
     ...item,
     payment: item.payment != null ? String(item.payment) : null,
   }));
@@ -5764,7 +5764,7 @@ export async function getOperationListById(listId: number) {
     .from(operationListItems)
     .where(eq(operationListItems.listId, listId))
     .orderBy(operationListItems.id);
-  const items = rawItemsById.map((item) => ({
+  const items = rawItemsById.map((item: any) => ({
     ...item,
     payment: item.payment != null ? String(item.payment) : null,
   }));
@@ -5858,7 +5858,7 @@ export async function saveOperationList(data: {
       })
       .from(operationListItems)
       .where(inArray(operationListItems.number, receiptNumbers));
-    const conflict = conflicts.find((row) => {
+    const conflict = conflicts.find((row: any) => {
       if (!row?.number) return false;
       if (!listId) return true;
       return Number(row.listId) !== Number(listId);
@@ -5875,7 +5875,7 @@ export async function saveOperationList(data: {
       })
       .from(operationListItems)
       .where(inArray(operationListItems.code, patientCodes));
-    const codeConflict = codeConflicts.find((row) => {
+    const codeConflict = codeConflicts.find((row: any) => {
       if (!row?.code) return false;
       if (!listId) return true;
       return Number(row.listId) !== Number(listId);
@@ -6758,7 +6758,7 @@ export async function getTodayPatients(dateIso: string) {
     )
     .limit(500);
 
-  return rows.map((row) => ({
+  return rows.map((row: any) => ({
     ...decodePatientRow(row as any),
     doctorName: null,
   }));
@@ -6807,7 +6807,7 @@ export async function getTodayVisitsByQueueStatus(
     .orderBy(visits.id)
     .limit(500);
 
-  return rows.map((row) => ({
+  return rows.map((row: any) => ({
     ...row,
     patientFullName: decodeMojibake(row.patientFullName),
     doctorName: row.doctorName ?? null,
@@ -6949,7 +6949,7 @@ export async function autoAdvanceQueuePatients(dateIso: string) {
       )
       .orderBy(visits.id)
       .limit(limit);
-    return rows.map((r) => r.id);
+    return rows.map((r: any) => r.id);
   }
 
   // 1) عيادة فارغة لكن يوجد «التالي» → صعود إلى عيادة
@@ -7243,7 +7243,7 @@ export async function insertStockTransaction(data: InsertStockTransaction) {
   if (!db) throw new Error("Database not available");
 
   // Start a transaction to update quantity and log movement
-  return await db.transaction(async (tx) => {
+  return await db.transaction(async (tx: any) => {
     // 1. Insert transaction log
     const result: any = await tx.insert(stockTransactions).values(data);
     const txId = Number(result?.[0]?.insertId ?? result?.insertId ?? 0);

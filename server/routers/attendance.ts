@@ -75,7 +75,7 @@ export const attendanceRouter = router({
         sql`${attendanceLeaves.dateFrom} <= ${todayStr} AND ${attendanceLeaves.dateTo} >= ${todayStr}`,
       )
       .orderBy(attendanceEmployees.fullName);
-    return rows.map((r) => ({
+    return rows.map((r: any) => ({
       empCd: r.empCd,
       fullName: String(r.fullName ?? r.empCd),
       department: r.department ?? null,
@@ -95,10 +95,10 @@ export const attendanceRouter = router({
         .orderBy(desc(attendanceSyncRuns.startedAt))
         .limit(input.limit);
 
-      const current = runs.find((r) => r.status === "running");
+      const current = runs.find((r: any) => r.status === "running");
 
       return {
-        runs: runs.map((r) => ({
+        runs: runs.map((r: any) => ({
           id: r.id,
           startedAt: r.startedAt.toISOString(),
           finishedAt: r.finishedAt?.toISOString() ?? null,
@@ -144,7 +144,7 @@ export const attendanceRouter = router({
         .orderBy(attendanceEmployees.empCd);
 
       return {
-        employees: employees.map((e) => ({
+        employees: employees.map((e: any) => ({
           empCd: e.empCd,
           fullName: e.fullName,
           department: e.department,
@@ -203,7 +203,7 @@ export const attendanceRouter = router({
           : [];
 
       return {
-        punches: punches.map((p) => ({
+        punches: punches.map((p: any) => ({
           id: p.id,
           empCd: p.empCd,
           punchAt: p.punchAt.toISOString(),
@@ -248,7 +248,7 @@ export const attendanceRouter = router({
         .where(eq(attendanceDaily.workDate, input.date as any))
         .orderBy(attendanceDaily.empCd);
 
-      return daily.map((d) => ({
+      return daily.map((d: any) => ({
         empCd: d.empCd,
         empName: d.empName ?? null,
         workDate: d.workDate.toISOString().split("T")[0],
@@ -292,7 +292,7 @@ export const attendanceRouter = router({
         )
         .orderBy(attendanceDaily.workDate);
 
-      return daily.map((d) => ({
+      return daily.map((d: any) => ({
         empCd: d.empCd,
         workDate: d.workDate.toISOString().split("T")[0],
         shiftId: d.shiftId,
@@ -368,7 +368,7 @@ export const attendanceRouter = router({
           sql`${attendanceLeaves.dateTo} <= ${yearEndStr}`,
         ),
       );
-    const usedAnnual = annualLeaves.reduce((s, l) => {
+    const usedAnnual = annualLeaves.reduce((s: any, l: any) => {
       const d1 = new Date(String(l.dateFrom));
       const d2 = new Date(String(l.dateTo));
       return s + Math.round((d2.getTime() - d1.getTime()) / 86400000) + 1;
@@ -387,7 +387,7 @@ export const attendanceRouter = router({
           sql`${attendanceLeaves.dateTo} <= ${yearEndStr}`,
         ),
       );
-    const usedSick = sickLeaves.reduce((s, l) => {
+    const usedSick = sickLeaves.reduce((s: any, l: any) => {
       const d1 = new Date(String(l.dateFrom));
       const d2 = new Date(String(l.dateTo));
       return s + Math.round((d2.getTime() - d1.getTime()) / 86400000) + 1;
@@ -434,11 +434,11 @@ export const attendanceRouter = router({
         ),
       );
     const permInMins = monthPerms
-      .filter((p) => p.type === "in")
-      .reduce((s, p) => s + p.durationMinutes, 0);
+      .filter((p: any) => p.type === "in")
+      .reduce((s: any, p: any) => s + p.durationMinutes, 0);
     const permOutMins = monthPerms
-      .filter((p) => p.type === "out")
-      .reduce((s, p) => s + p.durationMinutes, 0);
+      .filter((p: any) => p.type === "out")
+      .reduce((s: any, p: any) => s + p.durationMinutes, 0);
 
     // Pending leaves (approved: false)
     const pendingLeaves = await db
@@ -500,7 +500,7 @@ export const attendanceRouter = router({
         ...p,
         date: fmtDate(p.date as any),
       })),
-      pendingShiftChanges: pendingShiftChanges.map((s) => ({
+      pendingShiftChanges: pendingShiftChanges.map((s: any) => ({
         ...s,
         dateFrom: fmtDate(s.dateFrom as any),
         dateTo: s.dateTo ? fmtDate(s.dateTo as any) : null,
@@ -737,20 +737,20 @@ export const attendanceRouter = router({
     const allUsers = await getAllUsers();
 
     const mappings = await db.select().from(employeeAttendanceMapping);
-    const byUserId = new Map(mappings.map((m) => [m.userId, m]));
+    const byUserId = new Map(mappings.map((m: any) => [m.userId, m]));
 
     return allUsers
-      .sort((a, b) =>
+      .sort((a: any, b: any) =>
         (a.name || a.username).localeCompare(b.name || b.username, "ar"),
       )
-      .map((u) => ({
+      .map((u: any) => ({
         id: u.id,
         username: u.username,
         name: u.name,
         role: u.role,
         isActive: u.isActive,
-        empCd: byUserId.get(u.id)?.machineUserId ?? null,
-        mappingId: byUserId.get(u.id)?.id ?? null,
+        empCd: (byUserId.get(u.id) as any)?.machineUserId ?? null,
+        mappingId: (byUserId.get(u.id) as any)?.id ?? null,
       }));
   }),
   setUserMapping: adminProcedure

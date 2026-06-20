@@ -107,7 +107,7 @@ export default function DraftPosts() {
           </div>
         ) : (
           <>
-            {posts.map((post) => (
+            {posts.map((post: any) => (
               <div
                 key={post.id}
                 className="rounded-xl border border-border bg-card overflow-hidden"

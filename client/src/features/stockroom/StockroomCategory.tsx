@@ -340,7 +340,7 @@ export default function StockroomCategory() {
                           </TableCell>
                         </TableRow>
                       ))
-                  : itemsQuery.data?.map((item) => (
+                  : itemsQuery.data?.map((item: any) => (
                       <TableRow key={item.id} className="hover:bg-primary/5">
                         <TableCell className="font-mono text-xs text-muted-foreground text-right">
                           {item.itemCode || "-"}
@@ -473,7 +473,7 @@ export default function StockroomCategory() {
                     <option value="" disabled>
                       -- اختر الصنف --
                     </option>
-                    {itemsQuery.data?.map((item) => (
+                    {itemsQuery.data?.map((item: any) => (
                       <option key={item.id} value={item.id}>
                         {item.name} ({item.itemCode || item.id})
                       </option>
@@ -598,7 +598,7 @@ export default function StockroomCategory() {
                   <option value="" disabled>
                     -- اختر الصنف --
                   </option>
-                  {itemsQuery.data?.map((item) => (
+                  {itemsQuery.data?.map((item: any) => (
                     <option key={item.id} value={item.id}>
                       {item.name} ({item.itemCode || item.id}) - المتاح:{" "}
                       {item.quantity}

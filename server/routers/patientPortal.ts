@@ -290,9 +290,9 @@ export const patientPortalRouter = router({
       // Only closures that apply to this booking type (null = all types)
       const closures = closureRows
         .filter(
-          (r) => r.bookingType == null || r.bookingType === input.bookingType,
+          (r: any) => r.bookingType == null || r.bookingType === input.bookingType,
         )
-        .map((r) => ({
+        .map((r: any) => ({
           startDate:
             typeof r.startDate === "string"
               ? r.startDate
@@ -447,7 +447,7 @@ export const patientPortalRouter = router({
       .orderBy(desc(patientPortalBookings.createdAt))
       .limit(50);
 
-    return rows.map((r) => ({
+    return rows.map((r: any) => ({
       ...r,
       typeLabel: BOOKING_TYPE_LABELS[r.bookingType] ?? r.bookingType,
     }));
@@ -473,7 +473,7 @@ export const patientPortalRouter = router({
       .orderBy(desc(patientPortalBookings.createdAt))
       .limit(20);
 
-    return rows.map((r) => ({
+    return rows.map((r: any) => ({
       id: r.id,
       bookingType: r.bookingType,
       typeLabel: BOOKING_TYPE_LABELS[r.bookingType] ?? r.bookingType,
@@ -526,7 +526,7 @@ export const patientPortalRouter = router({
         .orderBy(desc(patientPortalBookings.createdAt))
         .limit(input.limit);
 
-      return rows.map((r) => ({
+      return rows.map((r: any) => ({
         ...r.booking,
         typeLabel:
           BOOKING_TYPE_LABELS[r.booking.bookingType] ?? r.booking.bookingType,
@@ -774,7 +774,7 @@ export const patientPortalRouter = router({
       "followup",
     ] as const;
     return types.map((t) => {
-      const found = rows.find((r) => r.bookingType === t);
+      const found = rows.find((r: any) => r.bookingType === t);
       return {
         bookingType: t,
         label: BOOKING_TYPE_LABELS[t],

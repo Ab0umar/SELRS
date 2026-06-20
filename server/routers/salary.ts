@@ -476,7 +476,7 @@ export const salaryRouter = router({
           })
           .from(attendanceEmployees);
 
-        const empMap = new Map(empDetails.map((e) => [e.empCd, e]));
+        const empMap = new Map(empDetails.map((e: any) => [e.empCd, e]));
 
         // Fetch shift staff names
         const shiftStaffRows = await db
@@ -506,7 +506,7 @@ export const salaryRouter = router({
             fullName = shiftNameMap.get(id) ?? row.empCd;
             department = "مناوبة";
           } else {
-            const emp = empMap.get(row.empCd);
+            const emp = empMap.get(row.empCd) as any;
             if (emp) {
               fullName = emp.fullName;
               department = emp.department ?? row.section;
@@ -612,9 +612,9 @@ export const salaryRouter = router({
 
       // Resolve names for shift staff rows (empCd = 'shift_<id>')
       const shiftIds = rows
-        .filter((r) => r.empCd.startsWith("shift_"))
-        .map((r) => parseInt(r.empCd.slice(6), 10))
-        .filter((id) => !isNaN(id));
+        .filter((r: any) => r.empCd.startsWith("shift_"))
+        .map((r: any) => parseInt(r.empCd.slice(6), 10))
+        .filter((id: any) => !isNaN(id));
 
       const shiftNameMap = new Map<number, string>();
       if (shiftIds.length > 0) {
@@ -633,7 +633,7 @@ export const salaryRouter = router({
           );
       }
 
-      return rows.map((r) => {
+      return rows.map((r: any) => {
         if (!r.empCd.startsWith("shift_")) return r;
         const id = parseInt(r.empCd.slice(6), 10);
         return {
@@ -759,7 +759,7 @@ export const salaryRouter = router({
           eq(salaryConfig.key, "attendance_rate_7") ||
           (eq(salaryConfig.key, "attendance_rate_10") as any),
       );
-    const map = Object.fromEntries(rows.map((r) => [r.key, Number(r.value)]));
+    const map = Object.fromEntries(rows.map((r: any) => [r.key, Number(r.value)]));
     return {
       rate3: map["attendance_rate_3"] ?? 0.25,
       rate5: map["attendance_rate_5"] ?? 0.15,
@@ -840,7 +840,7 @@ export const salaryRouter = router({
           ),
         )
         .orderBy(attendanceDaily.workDate, attendanceEmployees.fullName);
-      return rows.map((r) => {
+      return rows.map((r: any) => {
         const d = r.workDate as any;
         const workDate =
           d instanceof Date
@@ -1299,7 +1299,7 @@ export const salaryRouter = router({
       ]);
 
       // For staff linked to attendance employees, fetch fingerprint daily presence and deductions
-      const linkedEmpCds = staff.filter((s) => s.empCd).map((s) => s.empCd!);
+      const linkedEmpCds = staff.filter((s: any) => s.empCd).map((s: any) => s.empCd!);
       const presentDatesMap = new Map<string, Set<string>>();
       const deductionMap = new Map<string, number>();
       if (linkedEmpCds.length > 0) {
@@ -1341,10 +1341,10 @@ export const salaryRouter = router({
 
         // Calculate deductions for linked employees
         for (const empCd of linkedEmpCds) {
-          const report = monthlyReports.find((r) => r.empCd === empCd);
+          const report = monthlyReports.find((r: any) => r.empCd === empCd);
           const basicRow = basics
-            .filter((b) => b.empCd === empCd)
-            .sort((a, b) =>
+            .filter((b: any) => b.empCd === empCd)
+            .sort((a: any, b: any) =>
               String(b.effectiveFrom).localeCompare(String(a.effectiveFrom)),
             )[0];
           if (report && basicRow) {
@@ -1358,10 +1358,10 @@ export const salaryRouter = router({
               Number((basicRow as any).yearlyRaise ?? 0);
             const lateMinutes = report.totalLateMins ?? 0;
             const earlyLeaveMinutes = report.totalEarlyLeaveMins ?? 0;
-            const empDailyRows = dailyRows.filter((d) => d.empCd === empCd);
-            const missingCheckoutDays = empDailyRows.filter((d) => d.status === "missing_checkout").length;
+            const empDailyRows = dailyRows.filter((d: any) => d.empCd === empCd);
+            const missingCheckoutDays = empDailyRows.filter((d: any) => d.status === "missing_checkout").length;
             const workingDays =
-              empDailyRows.filter((d) => d.status !== "holiday").length || 1;
+              empDailyRows.filter((d: any) => d.status !== "holiday").length || 1;
             const dailyRate = basic / workingDays;
             const minuteRate = dailyRate / 360;
             const totalDeduction =
@@ -1388,8 +1388,8 @@ export const salaryRouter = router({
         return presentDates.has(fmtDate(a.workDate));
       }
 
-      return staff.map((s) => {
-        const rows = attendance.filter((a) => a.staffId === s.id);
+      return staff.map((s: any) => {
+        const rows = attendance.filter((a: any) => a.staffId === s.id);
         const rate = Number(s.ratePerShift);
         const byShift: Record<
           string,
@@ -1413,7 +1413,7 @@ export const salaryRouter = router({
           const presentDates = presentDatesMap.get(s.empCd);
           if (presentDates) {
             const scheduledDates = new Set(
-              rows.map((a) => fmtDate(a.workDate)),
+              rows.map((a: any) => fmtDate(a.workDate)),
             );
             for (const d of presentDates) {
               if (!scheduledDates.has(d)) extraAttended++;
@@ -1515,13 +1515,13 @@ export const salaryRouter = router({
       let inserted = 0;
 
       for (const s of staff) {
-        const staffCycles = cycles.filter((c) => c.staffId === s.id);
+        const staffCycles = cycles.filter((c: any) => c.staffId === s.id);
         if (staffCycles.length === 0) continue;
 
         for (let day = 1; day <= daysInMonth; day++) {
           const d = new Date(input.year, input.month - 1, day);
           const dow = d.getDay(); // 0=Sun
-          const cycleEntries = staffCycles.filter((c) => c.dayOfWeek === dow);
+          const cycleEntries = staffCycles.filter((c: any) => c.dayOfWeek === dow);
           if (cycleEntries.length === 0) continue;
 
           const mm = String(input.month).padStart(2, "0");

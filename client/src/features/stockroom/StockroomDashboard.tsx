@@ -19,11 +19,11 @@ export default function StockroomDashboard() {
   const inventory = reportsQuery.data?.inventory || [];
 
   const getStats = (category: string) => {
-    const items = inventory.filter((item) => item.category === category);
+    const items = inventory.filter((item: any) => item.category === category);
     return {
       total: items.length,
-      low: items.filter((item) => item.status === "كمية قليلة").length,
-      out: items.filter((item) => item.status === "نفذ المخزون").length,
+      low: items.filter((item: any) => item.status === "كمية قليلة").length,
+      out: items.filter((item: any) => item.status === "نفذ المخزون").length,
     };
   };
 

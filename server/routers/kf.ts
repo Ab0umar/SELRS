@@ -332,7 +332,7 @@ export const kfRouter = router({
         }
       }
       const now = new Date();
-      const result = await db.transaction(async (tx) => {
+      const result = await db.transaction(async (tx: any) => {
         const tempCode = `TMP${Date.now().toString(36)}${Math.random()
           .toString(36)
           .slice(2, 6)}`.slice(0, 20);
@@ -795,7 +795,7 @@ export const kfRouter = router({
     .input(z.object({ kfId: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
-      await db.transaction(async (tx) => {
+      await db.transaction(async (tx: any) => {
         await tx.delete(kfFollowups).where(eq(kfFollowups.kfPatientId, input.kfId));
         await tx.delete(kfExaminations).where(eq(kfExaminations.kfPatientId, input.kfId));
         await tx.delete(kfOperations).where(eq(kfOperations.kfPatientId, input.kfId));

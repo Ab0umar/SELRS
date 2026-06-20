@@ -68,7 +68,7 @@ export class LeaveManagementService {
       .where(and(...conditions))
       .orderBy(attendanceLeaves.dateFrom);
 
-    return leaves.map((l) => ({
+    return leaves.map((l: any) => ({
       id: l.id,
       empCd: l.empCd,
       dateFrom: fmtDate(l.dateFrom as any),
@@ -113,7 +113,7 @@ export class LeaveManagementService {
       .where(eq(attendanceLeaves.approved, false))
       .orderBy(attendanceLeaves.dateFrom);
 
-    return leaves.map((l) => ({
+    return leaves.map((l: any) => ({
       id: l.id,
       empCd: l.empCd,
       empName: "TBD", // Will be enriched
@@ -150,7 +150,7 @@ export class LeaveManagementService {
         ),
       );
 
-    const usedDays = leaves.reduce((sum, l) => {
+    const usedDays = leaves.reduce((sum: any, l: any) => {
       return sum + this.calculateLeaveDays(l.dateFrom, l.dateTo);
     }, 0);
 

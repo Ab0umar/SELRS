@@ -636,16 +636,16 @@ export function usePatientDetails({
   const autorefractionRows = useMemo(() => {
     const buildEye = (eyeKey: "od" | "os", eye: "OD" | "OS") => {
       const eyeSources = parsedExamSources.map(
-        (source) => source?.autorefraction?.[eyeKey] ?? null,
+        (source: any) => source?.autorefraction?.[eyeKey] ?? null,
       );
       return {
         eye,
-        ucva: firstNonEmpty(...eyeSources.map((item) => item?.ucva)),
-        bcva: firstNonEmpty(...eyeSources.map((item) => item?.bcva)),
-        s: firstNonEmpty(...eyeSources.map((item) => item?.s)),
-        c: firstNonEmpty(...eyeSources.map((item) => item?.c)),
-        axis: firstNonEmpty(...eyeSources.map((item) => item?.axis)),
-        iop: firstNonEmpty(...eyeSources.map((item) => item?.iop)),
+        ucva: firstNonEmpty(...eyeSources.map((item: any) => item?.ucva)),
+        bcva: firstNonEmpty(...eyeSources.map((item: any) => item?.bcva)),
+        s: firstNonEmpty(...eyeSources.map((item: any) => item?.s)),
+        c: firstNonEmpty(...eyeSources.map((item: any) => item?.c)),
+        axis: firstNonEmpty(...eyeSources.map((item: any) => item?.axis)),
+        iop: firstNonEmpty(...eyeSources.map((item: any) => item?.iop)),
       };
     };
     return [buildEye("od", "OD"), buildEye("os", "OS")].filter((row) =>
@@ -656,13 +656,13 @@ export function usePatientDetails({
   const afterRows = useMemo(() => {
     const buildEye = (eyeKey: "od" | "os", eye: "OD" | "OS") => {
       const afterSources = parsedExamSources.map(
-        (source) => (source as any)?.after?.[eyeKey] ?? null,
+        (source: any) => (source as any)?.after?.[eyeKey] ?? null,
       );
       return {
         eye,
-        s: firstNonEmpty(...afterSources.map((item) => item?.s)),
-        c: firstNonEmpty(...afterSources.map((item) => item?.c)),
-        axis: firstNonEmpty(...afterSources.map((item) => item?.axis)),
+        s: firstNonEmpty(...afterSources.map((item: any) => item?.s)),
+        c: firstNonEmpty(...afterSources.map((item: any) => item?.c)),
+        axis: firstNonEmpty(...afterSources.map((item: any) => item?.axis)),
       };
     };
     return [buildEye("od", "OD"), buildEye("os", "OS")].filter((row) =>
@@ -718,29 +718,29 @@ export function usePatientDetails({
         ablation: source?.[`ablation${eyeSuffix}`],
       }));
       const examPentacamSources = parsedExamSources
-        .map((source) => source?.pentacam?.[eyeKey])
+        .map((source: any) => source?.pentacam?.[eyeKey])
         .filter(Boolean);
       return {
         eye: eyeDisplay,
         k1: firstNonEmpty(
           ...dbSources.map((item) => item?.k1),
-          ...examPentacamSources.map((item) => item?.k1),
+          ...examPentacamSources.map((item: any) => item?.k1),
         ),
         k2: firstNonEmpty(
           ...dbSources.map((item) => item?.k2),
-          ...examPentacamSources.map((item) => item?.k2),
+          ...examPentacamSources.map((item: any) => item?.k2),
         ),
         thinnest: firstNonEmpty(
           ...dbSources.map((item) => item?.thinnest),
-          ...examPentacamSources.map((item) => item?.thinnest),
+          ...examPentacamSources.map((item: any) => item?.thinnest),
         ),
         apex: firstNonEmpty(
           ...dbSources.map((item) => item?.apex),
-          ...examPentacamSources.map((item) => item?.apex),
+          ...examPentacamSources.map((item: any) => item?.apex),
         ),
         residual: firstNonEmpty(
           ...dbSources.map((item) => item?.residual),
-          ...examPentacamSources.map((item) => item?.residualStroma),
+          ...examPentacamSources.map((item: any) => item?.residualStroma),
         ),
         ttt: firstNonEmpty(...dbSources.map((item) => item?.ttt)),
         ablation: firstNonEmpty(...dbSources.map((item) => item?.ablation)),
@@ -762,7 +762,7 @@ export function usePatientDetails({
 
   const testsData = useMemo(() => {
     const allTests: any[] = [];
-    parsedExamSources.forEach((source) => {
+    parsedExamSources.forEach((source: any) => {
       if (source?.radiologyLabsNotes) {
         try {
           const parsed = JSON.parse(source.radiologyLabsNotes);
@@ -778,7 +778,7 @@ export function usePatientDetails({
 
   const treatmentData = useMemo(() => {
     const allTreatment: any[] = [];
-    parsedExamSources.forEach((source) => {
+    parsedExamSources.forEach((source: any) => {
       if (source?.radiologyLabsNotes) {
         try {
           const parsed = JSON.parse(source.radiologyLabsNotes);
@@ -795,10 +795,10 @@ export function usePatientDetails({
   const fundusRows = useMemo(() => {
     const buildEye = (eyeKey: "od" | "os", eye: "OD" | "OS") => {
       const fundusDetails = parsedExamSources.map(
-        (source) => source?.fundus?.[eyeKey],
+        (source: any) => source?.fundus?.[eyeKey],
       );
       const findings = firstNonEmpty(
-        ...fundusDetails.map((detail) =>
+        ...fundusDetails.map((detail: any) =>
           detail
             ? [
                 detail.discStatus,

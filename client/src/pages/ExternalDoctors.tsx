@@ -49,7 +49,7 @@ function DoctorCodeSelect({
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="__none__">— None —</SelectItem>
-        {(internalDoctors ?? []).map((d) => (
+        {(internalDoctors ?? []).map((d: any) => (
           <SelectItem key={d.id} value={d.code ?? d.id}>
             {d.name} {d.code ? `(${d.code})` : ""}
           </SelectItem>
