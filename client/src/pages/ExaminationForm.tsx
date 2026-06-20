@@ -4,8 +4,9 @@ import ExaminationAutoAirTab from "@/components/examination/ExaminationAutoAirTa
 import ExaminationFormHeader from "@/components/examination/ExaminationFormHeader";
 import ExaminationPatientInfoTab from "@/components/examination/ExaminationPatientInfoTab";
 import ExaminationPentacamTab from "@/components/examination/ExaminationPentacamTab";
+import { DiagnosisImagesPanel } from "@/components/patient-details/DiagnosisImagesPanel";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useExaminationForm } from "@/hooks/examination/useExaminationForm";
 
 const PATIENT_DATA_EDIT_PERMISSION = "/patient-data/edit";
@@ -49,11 +50,27 @@ export default function ExaminationForm() {
               >
                 بيانات المريض
               </TabsTrigger>
+              <TabsTrigger
+                value="images"
+                className="flex-1 min-w-[100px] whitespace-normal text-center"
+              >
+                صور التشخيص
+              </TabsTrigger>
             </TabsList>
 
             <ExaminationPatientInfoTab form={form} />
             <ExaminationAutoAirTab form={form} />
             <ExaminationPentacamTab form={form} />
+
+            <TabsContent value="images" className="mt-4">
+              {form.patientInfo.id ? (
+                <DiagnosisImagesPanel patientId={form.patientInfo.id} />
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  اختر مريضاً أولاً لعرض الصور
+                </p>
+              )}
+            </TabsContent>
           </Tabs>
 
           <div className="mt-8 flex gap-4">

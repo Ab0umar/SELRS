@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/useAuth";
+import { DiagnosisImagesPanel } from "./patient-details/DiagnosisImagesPanel";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
@@ -53,7 +54,7 @@ const READY_TABS = [
   "أخرى 2",
   "أخرى 3",
 ];
-const MEDICAL_TABS = ["data", "plan"];
+const MEDICAL_TABS = ["data", "plan", "images"];
 const MEASUREMENT_VIEWS = [
   { value: "all", label: "الكل" },
   { value: "autoref", label: "AutoRef | IOP" },
@@ -1551,7 +1552,7 @@ export default function MedicalFilePanel({
 
         {/* Section toggle */}
         <div className="flex gap-1 border-b border-border/40 px-4 py-2 flex-shrink-0">
-          {(["data", "plan"] as const).map((sec) => (
+          {(["data", "plan", "images"] as const).map((sec) => (
             <button
               key={sec}
               type="button"
@@ -1566,7 +1567,11 @@ export default function MedicalFilePanel({
                   : "text-muted-foreground hover:bg-muted text-muted-foreground",
               )}
             >
-              {sec === "data" ? "القياسات والبيانات" : "الخطة العلاجية"}
+              {sec === "data"
+                ? "القياسات والبيانات"
+                : sec === "plan"
+                  ? "الخطة العلاجية"
+                  : "صور التشخيص"}
             </button>
           ))}
         </div>
@@ -3385,6 +3390,13 @@ export default function MedicalFilePanel({
                   )}
               </div>
             </div>
+          )}
+
+          {activeMedicalTab === "images" && (
+            <DiagnosisImagesPanel
+              patientId={patientId}
+              readOnly={hubRo}
+            />
           )}
         </div>
 
