@@ -978,6 +978,14 @@ export function useExaminationForm(
         const pickValue = (next: string | undefined, prev?: string) =>
           next && String(next).trim() && next !== "---" ? next : prev;
 
+        const stripDash = (obj: any): any => {
+          if (typeof obj === "string") return obj === "---" ? "" : obj;
+          if (Array.isArray(obj)) return obj.map(stripDash);
+          if (obj && typeof obj === "object")
+            return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, stripDash(v)]));
+          return obj;
+        };
+
         await Promise.all(
           sheetTypes.map(async (sheetType) => {
             if (lastSyncedRef.current[sheetType] === serialized) return;
@@ -1004,7 +1012,7 @@ export function useExaminationForm(
                 job: patientDetails.job,
               },
               medicalChecklist,
-              examData,
+              examData: stripDash(examData),
               formData: {
                 ...(existing.formData ?? {}),
                 ucvaOD: pickValue(
@@ -1126,7 +1134,15 @@ export function useExaminationForm(
     sheetTypes: Array<"consultant" | "specialist" | "lasik" | "external">,
   ) => {
     const pickValue = (next: string | undefined, prev?: string) =>
-      next && String(next).trim() ? next : prev;
+      next && String(next).trim() && next !== "---" ? next : prev;
+
+    const stripDash = (obj: any): any => {
+      if (typeof obj === "string") return obj === "---" ? "" : obj;
+      if (Array.isArray(obj)) return obj.map(stripDash);
+      if (obj && typeof obj === "object")
+        return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, stripDash(v)]));
+      return obj;
+    };
 
     await Promise.all(
       sheetTypes.map(async (sheetType) => {
@@ -1144,7 +1160,7 @@ export function useExaminationForm(
         const updated = {
           ...existing,
           medicalChecklist,
-          examData,
+          examData: stripDash(examData),
           formData: {
             ...(existing.formData ?? {}),
             ucvaOD: pickValue(
