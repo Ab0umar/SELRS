@@ -102,7 +102,7 @@ export default function SalaryPenalties() {
   });
 
   // ── Late Days ──────────────────────────────────────────────────────────────
-  const lateDaysQ = (trpc as any).salary.listLateDays.useQuery({ year, month });
+  const lateDaysQ = (trpc as any).salary.listLateDays.useQuery({ fromDate, toDate });
   const lateDaysRaw: any[] = lateDaysQ.data ?? [];
 
   // Group by employee

@@ -851,13 +851,10 @@ export const salaryRouter = router({
     }),
 
   listLateDays: makeSalaryProcedure("/salary")
-    .input(z.object({ year: z.number(), month: z.number() }))
+    .input(z.object({ fromDate: z.string(), toDate: z.string() }))
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const from = `${input.year}-${String(input.month).padStart(2, "0")}-01`;
-      const lastDay = new Date(input.year, input.month, 0).getDate();
-      const to = `${input.year}-${String(input.month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
       const rows = await db
         .select({
           empCd: attendanceDaily.empCd,
@@ -873,8 +870,8 @@ export const salaryRouter = router({
         )
         .where(
           and(
-            gte(attendanceDaily.workDate, from as any),
-            lte(attendanceDaily.workDate, to as any),
+            gte(attendanceDaily.workDate, input.fromDate as any),
+            lte(attendanceDaily.workDate, input.toDate as any),
             gt(attendanceDaily.lateMinutes, 0),
           ),
         )
