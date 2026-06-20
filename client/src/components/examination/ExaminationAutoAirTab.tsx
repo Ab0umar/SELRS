@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { TabsContent } from "@/components/ui/tabs";
 import type { UseExaminationFormResult } from "@/hooks/examination/useExaminationForm";
 import {
+  ADD_OPTIONS,
   AIR_PUFF_OPTIONS,
   CYLINDER_OPTIONS,
   SPHERE_OPTIONS,
@@ -272,6 +273,18 @@ export default function ExaminationAutoAirTab({
                           }))
                         }
                         className={mobileExamInputClass}
+                      />
+                      <Label className="text-xs">Add</Label>
+                      <RefractionValueSelect
+                        value={refractionTableData.od.add}
+                        onChange={(value) =>
+                          setRefractionTableData((prev) => ({
+                            ...prev,
+                            od: { ...prev.od, add: value },
+                          }))
+                        }
+                        options={ADD_OPTIONS}
+                        triggerClassName={mobileExamInputClass}
                       />
                     </div>
                   </div>
@@ -913,6 +926,14 @@ export default function ExaminationAutoAirTab({
                           >
                             P.D.
                           </th>
+                          <th
+                            style={{
+                              border: "2px solid var(--primary)",
+                              padding: 6,
+                            }}
+                          >
+                            Add
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -993,6 +1014,25 @@ export default function ExaminationAutoAirTab({
                               className="h-7 w-full text-sm text-center border-input"
                             />
                           </td>
+                          <td
+                            style={{
+                              border: "2px solid var(--primary)",
+                              padding: 4,
+                            }}
+                          >
+                            <RefractionValueSelect
+                              value={refractionTableData.od.add}
+                              onChange={(value) =>
+                                setRefractionTableData((prev) => ({
+                                  ...prev,
+                                  od: { ...prev.od, add: value },
+                                  os: { ...prev.os, add: value },
+                                }))
+                              }
+                              options={ADD_OPTIONS}
+                              triggerClassName="h-7 w-full text-sm text-center border-input"
+                            />
+                          </td>
                         </tr>
                         <tr style={{ height: 48 }}>
                           <td
@@ -1003,6 +1043,9 @@ export default function ExaminationAutoAirTab({
                           >
                             NEAR
                           </td>
+                          <td
+                            style={{ border: "2px solid var(--primary)" }}
+                          ></td>
                           <td
                             style={{ border: "2px solid var(--primary)" }}
                           ></td>

@@ -22,6 +22,7 @@ import {
   SPHERE_OPTIONS,
   CYLINDER_OPTIONS,
   UCVA_BCVA_OPTIONS,
+  ADD_OPTIONS,
 } from "@/lib/refractionOptions";
 import { cn } from "@/lib/utils";
 import { DateInput } from "@/components/ui/date-input";
@@ -172,8 +173,8 @@ export default function MedicalFilePanel({
     number | null
   >(null);
   const [refractionTableData, setRefractionTableData] = useState<any>({
-    od: { s: "---", c: "---", a: "", pd: "" },
-    os: { s: "---", c: "---", a: "", pd: "" },
+    od: { s: "---", c: "---", a: "", pd: "", add: "" },
+    os: { s: "---", c: "---", a: "", pd: "", add: "" },
   });
   const [testSearchText, setTestSearchText] = useState("");
   const [diseaseSearchText, setDiseaseSearchText] = useState("");
@@ -1115,6 +1116,7 @@ export default function MedicalFilePanel({
         c: refractionTableData.od?.c || "",
         axis: refractionTableData.od?.a || "",
         pd: refractionTableData.od?.pd || "",
+        add: refractionTableData.od?.add || "",
         bcva: formData.measurements?.autoref?.od?.bcva || "",
       },
       os: {
@@ -1122,6 +1124,7 @@ export default function MedicalFilePanel({
         c: refractionTableData.os?.c || "",
         axis: refractionTableData.os?.a || "",
         pd: refractionTableData.os?.pd || "",
+        add: refractionTableData.os?.add || "",
         bcva: formData.measurements?.autoref?.os?.bcva || "",
       },
     };
@@ -2328,6 +2331,12 @@ export default function MedicalFilePanel({
                         >
                           P.D.
                         </th>
+                        <th
+                          scope="col"
+                          className="border px-2 py-1.5 font-semibold text-[10px]"
+                        >
+                          Add
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2386,6 +2395,20 @@ export default function MedicalFilePanel({
                               }))
                             }
                             className="h-6 w-full text-[10px] text-center border-input"
+                          />
+                        </td>
+                        <td className="border px-1 py-1" rowSpan={2}>
+                          <RefractionValueSelect
+                            value={refractionTableData.od.add}
+                            onChange={(value) =>
+                              setRefractionTableData((prev: any) => ({
+                                ...prev,
+                                od: { ...prev.od, add: value },
+                                os: { ...prev.os, add: value },
+                              }))
+                            }
+                            options={ADD_OPTIONS}
+                            triggerClassName="h-6 w-full text-[10px] text-center border-input"
                           />
                         </td>
                       </tr>
@@ -2525,6 +2548,23 @@ export default function MedicalFilePanel({
                       </div>
                     </div>
                   ))}
+                  <div className="flex items-center gap-2 mt-1" dir="ltr">
+                    <label className="text-xs font-medium min-w-[32px]">
+                      Add
+                    </label>
+                    <RefractionValueSelect
+                      value={refractionTableData.od?.add || ""}
+                      onChange={(value) =>
+                        setRefractionTableData((prev: any) => ({
+                          ...prev,
+                          od: { ...prev.od, add: value },
+                          os: { ...prev.os, add: value },
+                        }))
+                      }
+                      options={ADD_OPTIONS}
+                      triggerClassName="h-8 flex-1 text-xs text-center border-input"
+                    />
+                  </div>
                 </div>
               </div>
             )}

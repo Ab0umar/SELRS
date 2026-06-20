@@ -336,8 +336,8 @@ export function useExaminationForm(
   });
 
   const [refractionTableData, setRefractionTableData] = useState({
-    od: { s: "", c: "", a: "", pd: "" },
-    os: { s: "", c: "", a: "", pd: "" },
+    od: { s: "", c: "", a: "", pd: "", add: "" },
+    os: { s: "", c: "", a: "", pd: "", add: "" },
   });
 
   const saveExamMutation = trpc.medical.saveExaminationForm.useMutation();
@@ -1053,6 +1053,10 @@ export function useExaminationForm(
                     refractionTableData.od.a,
                     existing.formData?.refractionOD?.a,
                   ),
+                  add: pickValue(
+                    refractionTableData.od.add,
+                    existing.formData?.refractionOD?.add,
+                  ),
                 },
                 refractionOS: {
                   ...(existing.formData?.refractionOS ?? {}),
@@ -1067,6 +1071,10 @@ export function useExaminationForm(
                   a: pickValue(
                     refractionTableData.os.a,
                     existing.formData?.refractionOS?.a,
+                  ),
+                  add: pickValue(
+                    refractionTableData.os.add,
+                    existing.formData?.refractionOS?.add,
                   ),
                 },
               },

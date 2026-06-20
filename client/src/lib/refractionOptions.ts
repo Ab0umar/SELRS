@@ -51,3 +51,7 @@ export const AIR_PUFF_OPTIONS = [
   "45",
   "50",
 ];
+
+export const ADD_OPTIONS = buildRange(0.5, 10.0, 0.25, (value) =>
+  formatSigned(value, 2),
+);
