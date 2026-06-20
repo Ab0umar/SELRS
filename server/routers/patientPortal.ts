@@ -11,7 +11,6 @@ import {
   getDb,
   getGlassesRecordsByPatient,
   getPrescriptionsWithItemsByPatient,
-  insertVisitScheduleRequest,
 } from "../db";
 import {
   patientPortalSessions,
@@ -338,17 +337,15 @@ export const patientPortalRouter = router({
         status: "pending",
       });
 
-      // Mirror to visitScheduleRequests so booking appears in today queue
       const [pat] = await db.select({ fullName: patients.fullName, phone: patients.phone })
         .from(patients).where(eq(patients.id, ctx.patientSession.patientId)).limit(1);
-      insertVisitScheduleRequest({
+      await db.insert(visitScheduleRequests).values({
         fullName: pat?.fullName ?? "مريض",
         phone: pat?.phone ?? null,
         visitDate: input.requestedDate as any,
         service: input.bookingType,
         patientType: "existing",
-        createdByUserId: null,
-      }).catch(() => {});
+      } as any);
 
       broadcastBookingUpdate();
 
@@ -405,14 +402,13 @@ export const patientPortalRouter = router({
         status: "pending",
       });
 
-      insertVisitScheduleRequest({
+      await db.insert(visitScheduleRequests).values({
         fullName: input.guestName,
         phone: normalizePhone(input.guestPhone),
         visitDate: input.requestedDate as any,
         service: input.bookingType,
         patientType: "guest",
-        createdByUserId: null,
-      }).catch(() => {});
+      } as any);
 
       broadcastBookingUpdate();
 
@@ -586,14 +582,13 @@ export const patientPortalRouter = router({
 
       const [staffPat] = await db.select({ fullName: patients.fullName, phone: patients.phone })
         .from(patients).where(eq(patients.id, input.patientId)).limit(1);
-      insertVisitScheduleRequest({
+      await db.insert(visitScheduleRequests).values({
         fullName: staffPat?.fullName ?? "مريض",
         phone: staffPat?.phone ?? null,
         visitDate: input.requestedDate as any,
         service: input.bookingType,
         patientType: "existing",
-        createdByUserId: null,
-      }).catch(() => {});
+      } as any);
 
       broadcastBookingUpdate();
 
@@ -630,14 +625,13 @@ export const patientPortalRouter = router({
         notes: input.notes ?? undefined,
       });
 
-      insertVisitScheduleRequest({
+      await db.insert(visitScheduleRequests).values({
         fullName: input.guestName,
         phone: input.guestPhone ?? null,
         visitDate: input.requestedDate as any,
         service: input.bookingType,
         patientType: "guest",
-        createdByUserId: null,
-      }).catch(() => {});
+      } as any);
 
       broadcastBookingUpdate();
       return { ok: true };
