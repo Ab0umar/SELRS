@@ -11,6 +11,7 @@ import {
   getDb,
   getGlassesRecordsByPatient,
   getPrescriptionsWithItemsByPatient,
+  insertVisitScheduleRequest,
 } from "../db";
 import {
   patientPortalSessions,
@@ -19,6 +20,7 @@ import {
   bookingClosures,
   patients,
   visits,
+  visitScheduleRequests,
 } from "../../drizzle/schema";
 import { eq, and, desc, ne, sql, lte, gte, count, type SQL } from "drizzle-orm";
 import jwt from "jsonwebtoken";
@@ -336,6 +338,18 @@ export const patientPortalRouter = router({
         status: "pending",
       });
 
+      // Mirror to visitScheduleRequests so booking appears in today queue
+      const [pat] = await db.select({ fullName: patients.fullName, phone: patients.phone })
+        .from(patients).where(eq(patients.id, ctx.patientSession.patientId)).limit(1);
+      insertVisitScheduleRequest({
+        fullName: pat?.fullName ?? "مريض",
+        phone: pat?.phone ?? null,
+        visitDate: input.requestedDate as any,
+        service: input.bookingType,
+        patientType: "existing",
+        createdByUserId: null,
+      }).catch(() => {});
+
       broadcastBookingUpdate();
 
       const typeLabel =
@@ -390,6 +404,15 @@ export const patientPortalRouter = router({
         notes: input.notes ?? undefined,
         status: "pending",
       });
+
+      insertVisitScheduleRequest({
+        fullName: input.guestName,
+        phone: normalizePhone(input.guestPhone),
+        visitDate: input.requestedDate as any,
+        service: input.bookingType,
+        patientType: "guest",
+        createdByUserId: null,
+      }).catch(() => {});
 
       broadcastBookingUpdate();
 
@@ -561,6 +584,17 @@ export const patientPortalRouter = router({
         staffNotes: input.staffNotes ?? undefined,
       });
 
+      const [staffPat] = await db.select({ fullName: patients.fullName, phone: patients.phone })
+        .from(patients).where(eq(patients.id, input.patientId)).limit(1);
+      insertVisitScheduleRequest({
+        fullName: staffPat?.fullName ?? "مريض",
+        phone: staffPat?.phone ?? null,
+        visitDate: input.requestedDate as any,
+        service: input.bookingType,
+        patientType: "existing",
+        createdByUserId: null,
+      }).catch(() => {});
+
       broadcastBookingUpdate();
 
       return { ok: true };
@@ -595,6 +629,15 @@ export const patientPortalRouter = router({
         status: "confirmed",
         notes: input.notes ?? undefined,
       });
+
+      insertVisitScheduleRequest({
+        fullName: input.guestName,
+        phone: input.guestPhone ?? null,
+        visitDate: input.requestedDate as any,
+        service: input.bookingType,
+        patientType: "guest",
+        createdByUserId: null,
+      }).catch(() => {});
 
       broadcastBookingUpdate();
       return { ok: true };

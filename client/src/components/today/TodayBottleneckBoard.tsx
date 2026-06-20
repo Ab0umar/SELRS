@@ -687,10 +687,11 @@ export function TodayBottleneckBoard({
     { date: selectedDate },
     { staleTime: 60_000, refetchOnWindowFocus: false },
   );
-  const visitScheduleRequestsQuery = (trpc as any).patientPortal.listBookings.useQuery(
-    { limit: 200 },
-    { staleTime: 0, refetchOnWindowFocus: true },
-  );
+  const visitScheduleRequestsQuery =
+    trpc.patient.getVisitScheduleRequests.useQuery(
+      { date: selectedDate },
+      { staleTime: 60_000, refetchOnWindowFocus: false },
+    );
 
   useEffect(() => {
     const handler = () => void visitScheduleRequestsQuery.refetch();
@@ -699,9 +700,9 @@ export function TodayBottleneckBoard({
   }, [visitScheduleRequestsQuery]);
 
   const removeScheduleRequest =
-    (trpc as any).patientPortal.deleteBooking.useMutation({
+    trpc.patient.removeVisitScheduleRequest.useMutation({
       onSuccess: async () => {
-        await (utils as any).patientPortal.listBookings.invalidate();
+        await utils.patient.getVisitScheduleRequests.invalidate();
         toast.success("تم إزالة الحجز");
       },
       onError: (error: unknown) => {
@@ -800,14 +801,14 @@ export function TodayBottleneckBoard({
 
   const counts = useMemo(
     () => ({
-      bookings: (visitScheduleRequestsQuery.data as any[])?.length ?? 0,
+      bookings: visitScheduleRequestsQuery.data?.length ?? 0,
       checkedIn: byStatus.checkedIn.length,
       next: byStatus.next.length,
       clinic: byStatus.clinic.length,
       treated: byStatus.treated.length,
     }),
     [
-      (visitScheduleRequestsQuery.data as any[])?.length,
+      visitScheduleRequestsQuery.data?.length,
       byStatus.checkedIn.length,
       byStatus.next.length,
       byStatus.clinic.length,
@@ -1110,29 +1111,29 @@ export function TodayBottleneckBoard({
                     <Skeleton key={i} className="h-32 rounded-xl" />
                   ))}
                 </div>
-              ) : ((visitScheduleRequestsQuery.data ?? []) as any[]).length === 0 ? (
+              ) : (visitScheduleRequestsQuery.data ?? []).length === 0 ? (
                 <div className="flex min-h-[220px] flex-col items-center justify-center rounded-xl border border-dashed border-border/70 bg-muted/10 px-4 py-12 text-center text-sm text-muted-foreground">
                   لا توجد حجوزات لهذا التاريخ
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 xl:grid-cols-5">
-                  {((visitScheduleRequestsQuery.data ?? []) as any[]).map((b: any) => (
+                  {(
+                    (visitScheduleRequestsQuery.data ??
+                      []) as VisitScheduleRequestRow[]
+                  ).map((request) => (
                     <BookingRequestCard
-                      key={b.id}
-                      request={{
-                        id: b.id,
-                        fullName: b.patientName ?? b.guestName ?? "—",
-                        phone: b.patientPhone ?? b.guestPhone ?? null,
-                        service: b.bookingType,
-                        visitDate: b.requestedDate,
-                      }}
+                      key={request.id}
+                      request={request}
                       removing={
                         removeScheduleRequest.isPending &&
-                        removeScheduleRequest.variables?.id === b.id
+                        removeScheduleRequest.variables?.requestId ===
+                          request.id
                       }
                       movingToCheckedIn={false}
                       isReadOnly={isHistoricalDate}
-                      onRemove={() => removeScheduleRequest.mutate({ id: b.id })}
+                      onRemove={() =>
+                        removeScheduleRequest.mutate({ requestId: request.id })
+                      }
                       onMoveToCheckedIn={() => {
                         toast.info("سيتم نقل الحجز إلى التسجيل");
                       }}
