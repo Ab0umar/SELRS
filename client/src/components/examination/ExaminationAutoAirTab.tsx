@@ -896,27 +896,29 @@ export default function ExaminationAutoAirTab({
                       <tr style={{ height: 48 }}>
                         <td style={{ border: "2px solid var(--primary)", fontWeight: 700 }}>Dis.</td>
                         <td style={{ border: "2px solid var(--primary)", padding: 4 }}>
-                          <Input
+                          <RefractionValueSelect
                             value={refractionTableData.od.s}
-                            onChange={(e) =>
+                            onChange={(value) =>
                               setRefractionTableData((prev) => ({
                                 ...prev,
-                                od: { ...prev.od, s: e.target.value },
+                                od: { ...prev.od, s: value },
                               }))
                             }
-                            className="h-7 w-full text-sm text-center border-input"
+                            options={SPHERE_OPTIONS}
+                            triggerClassName="h-7 w-full text-sm text-center border-input"
                           />
                         </td>
                         <td style={{ border: "2px solid var(--primary)", padding: 4 }}>
-                          <Input
+                          <RefractionValueSelect
                             value={refractionTableData.od.c}
-                            onChange={(e) =>
+                            onChange={(value) =>
                               setRefractionTableData((prev) => ({
                                 ...prev,
-                                od: { ...prev.od, c: e.target.value },
+                                od: { ...prev.od, c: value },
                               }))
                             }
-                            className="h-7 w-full text-sm text-center border-input"
+                            options={CYLINDER_OPTIONS}
+                            triggerClassName="h-7 w-full text-sm text-center border-input"
                           />
                         </td>
                         <td style={{ border: "2px solid var(--primary)", padding: 4 }}>
@@ -932,27 +934,29 @@ export default function ExaminationAutoAirTab({
                           />
                         </td>
                         <td style={{ border: "2px solid var(--primary)", padding: 4 }}>
-                          <Input
+                          <RefractionValueSelect
                             value={refractionTableData.os.s}
-                            onChange={(e) =>
+                            onChange={(value) =>
                               setRefractionTableData((prev) => ({
                                 ...prev,
-                                os: { ...prev.os, s: e.target.value },
+                                os: { ...prev.os, s: value },
                               }))
                             }
-                            className="h-7 w-full text-sm text-center border-input"
+                            options={SPHERE_OPTIONS}
+                            triggerClassName="h-7 w-full text-sm text-center border-input"
                           />
                         </td>
                         <td style={{ border: "2px solid var(--primary)", padding: 4 }}>
-                          <Input
+                          <RefractionValueSelect
                             value={refractionTableData.os.c}
-                            onChange={(e) =>
+                            onChange={(value) =>
                               setRefractionTableData((prev) => ({
                                 ...prev,
-                                os: { ...prev.os, c: e.target.value },
+                                os: { ...prev.os, c: value },
                               }))
                             }
-                            className="h-7 w-full text-sm text-center border-input"
+                            options={CYLINDER_OPTIONS}
+                            triggerClassName="h-7 w-full text-sm text-center border-input"
                           />
                         </td>
                         <td style={{ border: "2px solid var(--primary)", padding: 4 }}>
