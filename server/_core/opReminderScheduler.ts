@@ -20,7 +20,8 @@ function todayDateString(): string {
 async function getLastSentDate(): Promise<string> {
   try {
     const row = await getSystemSetting(LAST_SENT_KEY);
-    return typeof row?.value === "string" ? row.value : "";
+    const raw = typeof row?.value === "string" ? row.value : "";
+    try { return JSON.parse(raw); } catch { return raw; }
   } catch {
     return "";
   }
