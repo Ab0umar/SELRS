@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { DateInput } from "@/components/ui/date-input";
 
 const now = new Date();
 const MONTHS = [
@@ -107,10 +108,16 @@ const BLANK: FormState = {
   notes: "",
 };
 
+const isoMonthStr = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+const DEFAULT_FROM = `${isoMonthStr(now)}-01`;
+
 export default function CommissionPools() {
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [fromDate, setFromDate] = useState(DEFAULT_FROM);
   const [section, setSection] = useState<Section>("مركز");
+
+  const [year, month] = fromDate.split("-").map(Number);
+  const periodLabel = new Date(fromDate + "T00:00:00").toLocaleDateString("ar-EG", { year: "numeric", month: "long" });
   const [form, setForm] = useState<FormState>(BLANK);
 
   const [editingMonth, setEditingMonth] = useState<number | null>(null);
@@ -428,39 +435,18 @@ export default function CommissionPools() {
             <option value="مركز">مركز</option>
             <option value="عيادة">عيادة</option>
           </select>
-          <select
-            value={month}
-            onChange={(e) => setMonth(parseInt(e.target.value))}
+          <DateInput
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
             className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-          >
-            {MONTHS.map((m, i) => (
-              <option key={i} value={i + 1}>
-                {m}
-              </option>
-            ))}
-          </select>
-          <select
-            value={year}
-            onChange={(e) => setYear(parseInt(e.target.value))}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-          >
-            {[
-              now.getFullYear() - 1,
-              now.getFullYear(),
-              now.getFullYear() + 1,
-            ].map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
+          />
         </div>
       </div>
 
       {/* Form as Editable Table */}
       <Card>
         <CardHeader>
-          <CardTitle>إضافة/تعديل نسب {MONTHS[month - 1]}</CardTitle>
+          <CardTitle>إضافة/تعديل نسب {periodLabel}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSave} className="space-y-6">

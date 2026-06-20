@@ -153,8 +153,10 @@ export default function ShiftSchedule() {
   const { user } = useAuth();
   const isManager = ["admin", "manager"].includes(user?.role ?? "");
 
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [fromDate, setFromDate] = useState(
+    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`,
+  );
+  const [year, month] = fromDate.split("-").map(Number);
   const [showAdd, setShowAdd] = useState(false);
   const [addForm, setAddForm] = useState<AddForm>(EMPTY_ADD);
   const [showHolidayAdd, setShowHolidayAdd] = useState(false);
@@ -233,7 +235,7 @@ export default function ShiftSchedule() {
   function handleClearRoster() {
     if (
       !window.confirm(
-        `هل أنت متأكد من مسح كل ورديات شهر ${MONTHS_AR[month - 1]} ${year}؟\nهذه العملية لا يمكن التراجع عنها.`,
+        `هل أنت متأكد من مسح كل ورديات شهر ${fromDate.slice(0, 7)}؟\nهذه العملية لا يمكن التراجع عنها.`,
       )
     )
       return;
@@ -376,7 +378,7 @@ export default function ShiftSchedule() {
 
     const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/>
       <style>${PRINT_CSS} table{margin-bottom:14px}</style></head><body>
-      <h1>روستر شهر ${MONTHS_AR[month - 1]} ${year}</h1>
+      <h1>روستر شهر ${fromDate.slice(0, 7)}</h1>
       ${halves.map((half) => buildTable(half)).join("")}
     </body></html>`;
 
@@ -425,7 +427,7 @@ export default function ShiftSchedule() {
                 </div>
                 <div className="space-y-1">
                   <h1 className="text-3xl font-bold tracking-tight text-foreground">
-                    روستر شهر {MONTHS_AR[month - 1]} {year}
+                    روستر شهر {fromDate.slice(0, 7)}
                   </h1>
                   <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
                     جدول عملي للشهر، يبيّن الورديات والعطلات والحضور في قراءة
@@ -435,32 +437,11 @@ export default function ShiftSchedule() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <select
-                  value={month}
-                  onChange={(e) => setMonth(parseInt(e.target.value))}
+                <DateInput
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
                   className="min-h-11 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
-                >
-                  {MONTHS_AR.map((m, i) => (
-                    <option key={i} value={i + 1}>
-                      {m}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={year}
-                  onChange={(e) => setYear(parseInt(e.target.value))}
-                  className="min-h-11 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
-                >
-                  {[
-                    now.getFullYear() - 1,
-                    now.getFullYear(),
-                    now.getFullYear() + 1,
-                  ].map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
+                />
                 {isManager && (
                   <>
                     <Button
@@ -937,7 +918,7 @@ export default function ShiftSchedule() {
               {showHolidayAdd && (
                 <div className="rounded-2xl border border-border bg-background p-4">
                   <h3 className="text-sm font-semibold text-foreground">
-                    العطلات الرسمية - {MONTHS_AR[month - 1]} {year}
+                    العطلات الرسمية - {fromDate.slice(0, 7)}
                   </h3>
                   {holidays.length > 0 ? (
                     <div className="mt-3 flex flex-wrap gap-2">

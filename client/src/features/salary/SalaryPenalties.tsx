@@ -3,22 +3,16 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Pencil, Check, X, Printer, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
+import { DateInput } from "@/components/ui/date-input";
 
 const now = new Date();
-const MONTHS = [
-  "يناير",
-  "فبراير",
-  "مارس",
-  "أبريل",
-  "مايو",
-  "يونيو",
-  "يوليو",
-  "أغسطس",
-  "سبتمبر",
-  "أكتوبر",
-  "نوفمبر",
-  "ديسمبر",
-];
+const isoMonthStr = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+const DEFAULT_FROM = `${isoMonthStr(now)}-01`;
+const DEFAULT_TO = (() => {
+  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return `${isoMonthStr(last)}-${String(last.getDate()).padStart(2, "0")}`;
+})();
 
 type Tab = "penalties" | "advances" | "lates" | "insurance";
 
@@ -36,9 +30,12 @@ const PRINT_CSS = `
 `;
 
 export default function SalaryPenalties() {
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [fromDate, setFromDate] = useState(DEFAULT_FROM);
+  const [toDate, setToDate] = useState(DEFAULT_TO);
   const [tab, setTab] = useState<Tab>("penalties");
+
+  const [year, month] = fromDate.split("-").map(Number);
+  const periodLabel = `${new Date(fromDate + "T00:00:00").toLocaleDateString("ar-EG")} — ${new Date(toDate + "T00:00:00").toLocaleDateString("ar-EG")}`;
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ empCd: "", amount: "", reason: "" });
   const [editingInsurance, setEditingInsurance] = useState<{
@@ -214,7 +211,7 @@ export default function SalaryPenalties() {
     const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/>
       <title>كشف الخصومات</title>
       <style>${PRINT_CSS}</style></head><body>
-      <h1>كشف الخصومات — ${MONTHS[month - 1]} ${year}</h1>
+      <h1>كشف الخصومات — ${periodLabel}</h1>
       <table>
         <thead><tr>
           <th style="width:22%">الموظف</th>
@@ -307,41 +304,20 @@ export default function SalaryPenalties() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Month/year only shown when not on fixed insurance tab */}
+          {/* Date range — shown when not on fixed insurance tab */}
           {tab !== "insurance" && (
             <>
-              <select
-                value={month}
-                onChange={(e) => {
-                  setMonth(Number(e.target.value));
-                  resetForm();
-                }}
+              <DateInput
+                value={fromDate}
+                onChange={(e) => { setFromDate(e.target.value); resetForm(); }}
                 className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-              >
-                {MONTHS.map((m, i) => (
-                  <option key={i + 1} value={i + 1}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={year}
-                onChange={(e) => {
-                  setYear(Number(e.target.value));
-                  resetForm();
-                }}
+              />
+              <span className="text-sm text-muted-foreground">—</span>
+              <DateInput
+                value={toDate}
+                onChange={(e) => { setToDate(e.target.value); resetForm(); }}
                 className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-              >
-                {[
-                  now.getFullYear() - 1,
-                  now.getFullYear(),
-                  now.getFullYear() + 1,
-                ].map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
+              />
               {tab !== "lates" && (
                 <>
                   <Button onClick={() => setShowForm(!showForm)} className="gap-2">
@@ -385,7 +361,7 @@ export default function SalaryPenalties() {
           <div className="border-b border-border px-4 py-3">
             <h3 className="text-base font-semibold">
               {tab === "penalties" ? "جزاء جديد" : "سلفة جديدة"} —{" "}
-              {MONTHS[month - 1]} {year}
+              {periodLabel}
             </h3>
           </div>
           <form
@@ -447,8 +423,7 @@ export default function SalaryPenalties() {
         <section className="rounded-xl border border-border bg-background">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h3 className="text-base font-semibold">
-              {tab === "penalties" ? "الجزاءات" : "السلف"} — {MONTHS[month - 1]}{" "}
-              {year}
+              {tab === "penalties" ? "الجزاءات" : "السلف"} — {periodLabel}
             </h3>
             {rows.length > 0 && (
               <span className="text-sm font-bold text-destructive">
@@ -616,7 +591,7 @@ export default function SalaryPenalties() {
         <section className="rounded-xl border border-border bg-background">
           <div className="border-b border-border px-4 py-3">
             <h3 className="text-base font-semibold">
-              التأخيرات — {MONTHS[month - 1]} {year}
+              التأخيرات — {periodLabel}
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               أيام التأخير لكل موظف مع مدة التأخير يومياً
