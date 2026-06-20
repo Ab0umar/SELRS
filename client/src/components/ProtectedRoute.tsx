@@ -68,6 +68,12 @@ export default function ProtectedRoute({
     if (cleanPath === ROUTES.attendanceShiftSchedule) return true;
     if (userRole === "reception" && cleanPath === ROUTES.examination) return true;
     if (
+      userRole === "reception" &&
+      (cleanPath === ROUTES.portalBookings ||
+        cleanPath.startsWith(`${ROUTES.portalBookings}/`))
+    )
+      return true;
+    if (
       (cleanPath === ROUTES.adminSettingsPricingRules ||
         cleanPath === ROUTES.adminHubSettingsPricingRules) &&
       userRole === "accountant"

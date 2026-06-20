@@ -20,7 +20,9 @@ import {
   Syringe,
   ChevronDown,
   ChevronLeft,
+  CalendarDays,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 // ─── Shared primitives ────────────────────────────────────────────────────────
 function Surface({
@@ -81,7 +83,8 @@ function StatRow({
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function TodayPatients() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const userRole = String((user as any)?.role ?? "").toLowerCase();
   const [, setLocation] = useLocation();
   const {
     medicalFilePortal,
@@ -175,10 +178,25 @@ export default function TodayPatients() {
       <div className="mx-auto w-full max-w-[1440px] space-y-4">
         {/* Quick actions */}
         <Surface className="overflow-hidden px-4 py-3">
-          <QuickActions
-            onOpenMeasurementsMedicalFile={openMedicalFilePicker}
-            onOpenOperationsBooking={() => setBookingOpen(true)}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex-1 min-w-0">
+              <QuickActions
+                onOpenMeasurementsMedicalFile={openMedicalFilePicker}
+                onOpenOperationsBooking={() => setBookingOpen(true)}
+              />
+            </div>
+            {(userRole === "reception" || userRole === "admin") && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setLocation("/booking-triage/portal-bookings")}
+                className="gap-2 shrink-0"
+              >
+                <CalendarDays className="size-4" />
+                حجوزات البوابة
+              </Button>
+            )}
+          </div>
         </Surface>
 
         <button
