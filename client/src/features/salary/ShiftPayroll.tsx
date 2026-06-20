@@ -3,6 +3,7 @@ import { canUseNativeAndroidPrint, requestNativeAndroidPrint } from "@/lib/nativ
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Printer, ChevronDown, ChevronUp } from "lucide-react";
+import { DateInput } from "@/components/ui/date-input";
 
 const now = new Date();
 const MONTHS = [
@@ -101,17 +102,30 @@ function toArabicWords(amount: number): string {
   return out + " جنيه";
 }
 
+const isoMonthStr = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+const DEFAULT_FROM = `${isoMonthStr(now)}-01`;
+const DEFAULT_TO = (() => {
+  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return `${isoMonthStr(last)}-${String(last.getDate()).padStart(2, "0")}`;
+})();
+
 export default function ShiftPayroll() {
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [fromDate, setFromDate] = useState(DEFAULT_FROM);
+  const [toDate, setToDate] = useState(DEFAULT_TO);
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
   const toggleRow = (id: number) => {
     setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const [year, month] = fromDate.split("-").map(Number);
+  const periodLabel = `${new Date(fromDate + "T00:00:00").toLocaleDateString("ar-EG")} — ${new Date(toDate + "T00:00:00").toLocaleDateString("ar-EG")}`;
+
   const payrollQ = (trpc as any).salary.computeShiftPayroll.useQuery({
     year,
     month,
+    fromDate,
+    toDate,
   });
   const rows: any[] = payrollQ.data ?? [];
 
@@ -153,7 +167,7 @@ export default function ShiftPayroll() {
       hr.sep { border: none; border-top: 1px dashed #888; margin: 8px 0; }
     `;
 
-    const titleAr = `مرتب شهر ${MONTHS_AR[month - 1]} ${year}`;
+    const titleAr = `مرتب الشفتات — ${periodLabel}`;
     const today = new Date().toLocaleDateString("ar-EG");
 
     const slips = rows
@@ -409,32 +423,17 @@ export default function ShiftPayroll() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={month}
-            onChange={(e) => setMonth(Number(e.target.value))}
+          <DateInput
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
             className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-          >
-            {MONTHS.map((m, i) => (
-              <option key={i} value={i + 1}>
-                {m}
-              </option>
-            ))}
-          </select>
-          <select
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
+          />
+          <span className="text-sm text-muted-foreground">—</span>
+          <DateInput
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
             className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-          >
-            {[
-              now.getFullYear() - 1,
-              now.getFullYear(),
-              now.getFullYear() + 1,
-            ].map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
+          />
           <Button
             variant="outline"
             onClick={() => payrollQ.refetch()}
@@ -496,7 +495,7 @@ export default function ShiftPayroll() {
         <p className="text-sm text-muted-foreground">جاري التحميل...</p>
       ) : rows.length === 0 ? (
         <div className="rounded-xl border border-border bg-background px-4 py-16 text-center text-muted-foreground text-sm">
-          لا يوجد طاقم شفتات أو حضور مسجل لشهر {MONTHS[month - 1]} {year}.
+          لا يوجد طاقم شفتات أو حضور مسجل للفترة {periodLabel}.
         </div>
       ) : (
         <div className="space-y-6">

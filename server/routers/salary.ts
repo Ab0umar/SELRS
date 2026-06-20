@@ -1293,21 +1293,40 @@ export const salaryRouter = router({
     }),
 
   computeShiftPayroll: makeSalaryWriteProcedure("/salary/payroll")
-    .input(z.object({ year: z.number(), month: z.number() }))
+    .input(z.object({ year: z.number(), month: z.number(), fromDate: z.string().optional(), toDate: z.string().optional() }))
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const [staff, attendance, monthlyReports, basics] = await Promise.all([
+
+      // Resolve effective date range
+      const mm = String(input.month).padStart(2, "0");
+      const lastDay = new Date(input.year, input.month, 0).getDate();
+      const rangeFrom = input.fromDate ?? `${input.year}-${mm}-01`;
+      const rangeTo = input.toDate ?? `${input.year}-${mm}-${String(lastDay).padStart(2, "0")}`;
+      const rangeFromParts = rangeFrom.split("-").map(Number);
+      const rangeToParts = rangeTo.split("-").map(Number);
+
+      // Collect all year/month pairs in the range for shiftAttendance query
+      const yearMonthPairs: { year: number; month: number }[] = [];
+      let cur = new Date(rangeFromParts[0], rangeFromParts[1] - 1, 1);
+      const end = new Date(rangeToParts[0], rangeToParts[1] - 1, 1);
+      while (cur <= end) {
+        yearMonthPairs.push({ year: cur.getFullYear(), month: cur.getMonth() + 1 });
+        cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+      }
+
+      const [staff, attendanceAll, monthlyReports, basics] = await Promise.all([
         db.select().from(shiftStaff).where(eq(shiftStaff.active, true)),
-        db
-          .select()
-          .from(shiftAttendance)
-          .where(
-            and(
-              eq(shiftAttendance.year, input.year),
-              eq(shiftAttendance.month, input.month),
+        Promise.all(
+          yearMonthPairs.map(({ year, month }) =>
+            db.select().from(shiftAttendance).where(
+              and(eq(shiftAttendance.year, year), eq(shiftAttendance.month, month)),
             ),
           ),
+        ).then((results) => results.flat().filter((a: any) => {
+          const d = String(a.workDate).slice(0, 10);
+          return d >= rangeFrom && d <= rangeTo;
+        })),
         db
           .select()
           .from(attendanceMonthlyReport)
@@ -1322,28 +1341,19 @@ export const salaryRouter = router({
           .from(salaryBasics)
           .where(
             and(
-              lte(
-                salaryBasics.effectiveFrom,
-                `${input.year}-${String(input.month).padStart(2, "0")}-${String(new Date(input.year, input.month, 0).getDate()).padStart(2, "0")}` as any,
-              ),
-              or(
-                isNull(salaryBasics.effectiveTo),
-                gte(
-                  salaryBasics.effectiveTo,
-                  `${input.year}-${String(input.month).padStart(2, "0")}-01` as any,
-                ),
-              ),
+              lte(salaryBasics.effectiveFrom, rangeTo as any),
+              or(isNull(salaryBasics.effectiveTo), gte(salaryBasics.effectiveTo, rangeFrom as any)),
             ),
           ),
       ]);
+
+      const attendance = attendanceAll;
 
       // For staff linked to attendance employees, fetch fingerprint daily presence and deductions
       const linkedEmpCds = staff.filter((s: any) => s.empCd).map((s: any) => s.empCd!);
       const presentDatesMap = new Map<string, Set<string>>();
       const deductionMap = new Map<string, number>();
       if (linkedEmpCds.length > 0) {
-        const mm = String(input.month).padStart(2, "0");
-        const lastDay = new Date(input.year, input.month, 0).getDate();
         const dailyRows = await db
           .select({
             empCd: attendanceDaily.empCd,
@@ -1354,11 +1364,8 @@ export const salaryRouter = router({
           .where(
             and(
               inArray(attendanceDaily.empCd, linkedEmpCds),
-              gte(attendanceDaily.workDate, `${input.year}-${mm}-01` as any),
-              lte(
-                attendanceDaily.workDate,
-                `${input.year}-${mm}-${String(lastDay).padStart(2, "0")}` as any,
-              ),
+              gte(attendanceDaily.workDate, rangeFrom as any),
+              lte(attendanceDaily.workDate, rangeTo as any),
             ),
           );
         for (const row of dailyRows) {
