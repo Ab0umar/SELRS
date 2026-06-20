@@ -13,6 +13,7 @@ const envSchema = z.object({
   FCM_PRIVATE_KEY: z.string().optional().default(""),
   FCM_SERVICE_ACCOUNT_JSON: z.string().optional().default(""),
   VAPID_PUBLIC_KEY: z.string().optional().default(""),
+  VITE_VAPID_PUBLIC_KEY: z.string().optional().default(""),
   VAPID_PRIVATE_KEY: z.string().optional().default(""),
   NODE_ENV: z
     .enum(["development", "production", "test"])
@@ -80,7 +81,7 @@ export const ENV = {
   fcmClientEmail: parsed.FCM_CLIENT_EMAIL,
   fcmPrivateKey: parsed.FCM_PRIVATE_KEY,
   fcmServiceAccountJson: parsed.FCM_SERVICE_ACCOUNT_JSON,
-  vapidPublicKey: parsed.VAPID_PUBLIC_KEY,
+  vapidPublicKey: parsed.VAPID_PUBLIC_KEY || parsed.VITE_VAPID_PUBLIC_KEY,
   vapidPrivateKey: parsed.VAPID_PRIVATE_KEY,
   attendanceEnabled: parsed.ATTENDANCE_ENABLED === "true",
   attendanceSource: parsed.ATTENDANCE_SOURCE,

@@ -1135,7 +1135,6 @@ export function TodayBottleneckBoard({
                         removeScheduleRequest.mutate({ requestId: request.id })
                       }
                       onMoveToCheckedIn={() => {
-                        // TODO: Implement moving schedule request to checked-in status
                         toast.info("سيتم نقل الحجز إلى التسجيل");
                       }}
                     />

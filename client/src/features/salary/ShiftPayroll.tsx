@@ -136,10 +136,10 @@ export default function ShiftPayroll() {
       .slip { padding: 6px 0 4px; page-break-inside: avoid; }
       .top { display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 2px; }
       .title { text-align: center; font-size: 16px; font-weight: bold; color: #00008B; margin-bottom: 6px; }
-      .meta { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
-      .meta-right { font-size: 12px; font-weight: bold; }
-      .meta-left { font-size: 9px; color: #555; writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg); }
-      .dept { font-size: 10px; margin-top: 2px; }
+      .meta { display: grid; grid-template-columns: 20px 1fr 20px; align-items: start; margin-bottom: 4px; }
+      .meta-right { font-size: 12px; font-weight: bold; text-align: center; grid-column: 2; }
+      .meta-left { font-size: 9px; color: #555; writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg); grid-column: 1; }
+      .dept { font-size: 10px; margin-top: 2px; text-align: center; }
       table { width: 100%; border-collapse: collapse; }
       th, td { border: 1px solid #999; padding: 2px 3px; text-align: center; font-size: 8px; }
       .emp-cell { font-weight: bold; font-size: 9px; background: #f0f4ff; }
@@ -166,8 +166,10 @@ export default function ShiftPayroll() {
           })
           .join("");
 
+        const shiftNameAr = (sn: string) =>
+          sn === "Morning" ? "شفت صباحي" : sn === "Night" ? "شفت مسائي" : `شفت ${sn}`;
         const shiftHeaders = allShiftNames
-          .map((sn: string) => `<th colspan="2">شفتي ${sn}</th>`)
+          .map((sn: string) => `<th colspan="2">${shiftNameAr(sn)}</th>`)
           .join("");
 
         const shiftSubHeaders = allShiftNames
@@ -245,21 +247,21 @@ export default function ShiftPayroll() {
       return;
     }
 
-    const mask = document.createElement("style");
-    mask.textContent =
-      "@media print{body>*{visibility:hidden!important}#__pr__,#__pr__ *{visibility:visible!important}#__pr__{position:fixed;inset:0;direction:rtl}}";
-    const container = document.createElement("div");
-    container.id = "__pr__";
-    container.innerHTML = `<style>${SLIP_CSS}</style>${slips}${footer}`;
-    document.head.appendChild(mask);
-    document.body.appendChild(container);
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText =
+      "position:fixed;top:0;left:0;width:0;height:0;border:none;visibility:hidden;";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument!;
+    doc.open();
+    doc.write(fullHtml);
+    doc.close();
     const cleanup = () => {
-      mask.remove();
-      container.remove();
+      iframe.remove();
       window.removeEventListener("afterprint", cleanup);
     };
     window.addEventListener("afterprint", cleanup);
-    window.print();
+    iframe.contentWindow!.focus();
+    iframe.contentWindow!.print();
   }
 
   function renderSection(data: any[], title: string) {

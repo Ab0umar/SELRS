@@ -48,4 +48,14 @@ finally {
   Pop-Location
 }
 
-Write-Host "[SELRS Installer] Done -> desktop\installer\SELRS-Desktop-Setup-$version.exe" -ForegroundColor Green
+# Copy output to desktop/installer/ so the server can serve it for auto-updates
+$oneDriveOut = "C:\Users\drels\OneDrive\SELRS.cc\SELRS-Setup-$version.exe"
+$localInstaller = Join-Path $outputDir "SELRS-Setup-$version.exe"
+if (Test-Path $oneDriveOut) {
+  Copy-Item -Path $oneDriveOut -Destination $localInstaller -Force
+  Write-Host "[SELRS Installer] Copied to $localInstaller" -ForegroundColor Green
+} else {
+  Write-Host "[SELRS Installer] WARNING: Could not find $oneDriveOut to copy" -ForegroundColor Yellow
+}
+
+Write-Host "[SELRS Installer] Done -> desktop\installer\SELRS-Setup-$version.exe" -ForegroundColor Green

@@ -19,11 +19,12 @@ import {
   bookingClosures,
   patients,
   visits,
+  visitScheduleRequests,
 } from "../../drizzle/schema";
 import { eq, and, desc, ne, sql, lte, gte, count, type SQL } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import { ENV } from "../_core/env";
-import { pushAppNotification } from "../_core/appNotifications";
+import { pushAppNotification, getAppNotificationSettings, DEFAULT_APP_NOTIFICATION_SETTINGS } from "../_core/appNotifications";
 import { sendWebPushToSubscription } from "../_core/webPush";
 import { broadcastBookingUpdate } from "../_core/ws";
 
@@ -336,19 +337,34 @@ export const patientPortalRouter = router({
         status: "pending",
       });
 
+      const [pat] = await db.select({ fullName: patients.fullName, phone: patients.phone })
+        .from(patients).where(eq(patients.id, ctx.patientSession.patientId)).limit(1);
+      await db.insert(visitScheduleRequests).values({
+        fullName: pat?.fullName ?? "مريض",
+        phone: pat?.phone ?? null,
+        visitDate: input.requestedDate as any,
+        service: input.bookingType,
+        patientType: "existing",
+      } as any);
+
       broadcastBookingUpdate();
 
       const typeLabel =
         BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType;
-      pushAppNotification({
-        title: "طلب حجز جديد",
-        message: `${typeLabel} — ${input.requestedDate}`,
-        kind: "info",
-        targetRoles: ["admin", "reception"],
-        source: "booking",
-        entityType: "booking",
-        channels: { inApp: true, push: true, local: true },
-      }).catch(() => {});
+      getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS).then((ns) => {
+        if (!ns.bookings.enabled) return;
+        const targetUserIds = ns.bookings.userIds.length > 0 ? ns.bookings.userIds : null;
+        pushAppNotification({
+          title: "طلب حجز جديد",
+          message: `${typeLabel} — ${input.requestedDate}`,
+          kind: "info",
+          targetRoles: targetUserIds ? null : ["admin", "reception"],
+          targetUserIds,
+          source: "booking",
+          entityType: "booking",
+          channels: { inApp: ns.bookings.inApp, push: ns.bookings.push, local: ns.bookings.local },
+        }).catch(() => {});
+      });
 
       return { ok: true };
     }),
@@ -386,19 +402,32 @@ export const patientPortalRouter = router({
         status: "pending",
       });
 
+      await db.insert(visitScheduleRequests).values({
+        fullName: input.guestName,
+        phone: normalizePhone(input.guestPhone),
+        visitDate: input.requestedDate as any,
+        service: input.bookingType,
+        patientType: "guest",
+      } as any);
+
       broadcastBookingUpdate();
 
-      const typeLabel =
+      const typeLabel2 =
         BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType;
-      pushAppNotification({
-        title: "طلب حجز جديد (زائر)",
-        message: `${input.guestName} — ${typeLabel} — ${input.requestedDate}`,
-        kind: "info",
-        targetRoles: ["admin", "reception"],
-        source: "booking",
-        entityType: "booking",
-        channels: { inApp: true, push: true, local: true },
-      }).catch(() => {});
+      getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS).then((ns) => {
+        if (!ns.bookings.enabled) return;
+        const targetUserIds = ns.bookings.userIds.length > 0 ? ns.bookings.userIds : null;
+        pushAppNotification({
+          title: "طلب حجز جديد (زائر)",
+          message: `${input.guestName} — ${typeLabel2} — ${input.requestedDate}`,
+          kind: "info",
+          targetRoles: targetUserIds ? null : ["admin", "reception"],
+          targetUserIds,
+          source: "booking",
+          entityType: "booking",
+          channels: { inApp: ns.bookings.inApp, push: ns.bookings.push, local: ns.bookings.local },
+        }).catch(() => {});
+      });
 
       return { ok: true };
     }),
@@ -551,8 +580,60 @@ export const patientPortalRouter = router({
         staffNotes: input.staffNotes ?? undefined,
       });
 
+      const [staffPat] = await db.select({ fullName: patients.fullName, phone: patients.phone })
+        .from(patients).where(eq(patients.id, input.patientId)).limit(1);
+      await db.insert(visitScheduleRequests).values({
+        fullName: staffPat?.fullName ?? "مريض",
+        phone: staffPat?.phone ?? null,
+        visitDate: input.requestedDate as any,
+        service: input.bookingType,
+        patientType: "existing",
+      } as any);
+
       broadcastBookingUpdate();
 
+      return { ok: true };
+    }),
+
+  createStaffGuestBooking: protectedProcedure
+    .input(
+      z.object({
+        guestName: z.string().min(1).max(255),
+        guestPhone: z.string().max(32).optional(),
+        bookingType: z.enum([
+          "consultant",
+          "specialist",
+          "lasik",
+          "external",
+          "followup",
+        ]),
+        requestedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        notes: z.string().max(500).optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db)
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      await db.insert(patientPortalBookings).values({
+        guestName: input.guestName,
+        guestPhone: input.guestPhone ?? undefined,
+        bookingType: input.bookingType,
+        requestedDate: new Date(input.requestedDate),
+        status: "confirmed",
+        notes: input.notes ?? undefined,
+      });
+
+      await db.insert(visitScheduleRequests).values({
+        fullName: input.guestName,
+        phone: input.guestPhone ?? null,
+        visitDate: input.requestedDate as any,
+        service: input.bookingType,
+        patientType: "guest",
+      } as any);
+
+      broadcastBookingUpdate();
       return { ok: true };
     }),
 
