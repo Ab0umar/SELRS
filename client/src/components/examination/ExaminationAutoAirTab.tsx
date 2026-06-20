@@ -879,17 +879,19 @@ export default function ExaminationAutoAirTab({
                     <thead>
                       <tr>
                         <th style={{ border: "2px solid var(--primary)", padding: 6 }}>Eye</th>
-                        <th style={{ border: "2px solid var(--primary)", padding: 6 }} colSpan={3}>OD</th>
-                        <th style={{ border: "2px solid var(--primary)", padding: 6 }} colSpan={3}>OS</th>
+                        <th style={{ border: "2px solid var(--primary)", padding: 6 }} colSpan={4}>OD</th>
+                        <th style={{ border: "2px solid var(--primary)", padding: 6 }} colSpan={4}>OS</th>
                       </tr>
                       <tr>
                         <th style={{ border: "2px solid var(--primary)", padding: 6 }}></th>
                         <th style={{ border: "2px solid var(--primary)", padding: 6 }}>S</th>
                         <th style={{ border: "2px solid var(--primary)", padding: 6 }}>C</th>
                         <th style={{ border: "2px solid var(--primary)", padding: 6 }}>Ax</th>
+                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>PD</th>
                         <th style={{ border: "2px solid var(--primary)", padding: 6 }}>S</th>
                         <th style={{ border: "2px solid var(--primary)", padding: 6 }}>C</th>
                         <th style={{ border: "2px solid var(--primary)", padding: 6 }}>Ax</th>
+                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>PD</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -934,6 +936,18 @@ export default function ExaminationAutoAirTab({
                           />
                         </td>
                         <td style={{ border: "2px solid var(--primary)", padding: 4 }}>
+                          <Input
+                            value={refractionTableData.od.pd}
+                            onChange={(e) =>
+                              setRefractionTableData((prev) => ({
+                                ...prev,
+                                od: { ...prev.od, pd: e.target.value },
+                              }))
+                            }
+                            className="h-7 w-full text-sm text-center border-input"
+                          />
+                        </td>
+                        <td style={{ border: "2px solid var(--primary)", padding: 4 }}>
                           <RefractionValueSelect
                             value={refractionTableData.os.s}
                             onChange={(value) =>
@@ -971,10 +985,22 @@ export default function ExaminationAutoAirTab({
                             className="h-7 w-full text-sm text-center border-input"
                           />
                         </td>
+                        <td style={{ border: "2px solid var(--primary)", padding: 4 }}>
+                          <Input
+                            value={refractionTableData.os.pd}
+                            onChange={(e) =>
+                              setRefractionTableData((prev) => ({
+                                ...prev,
+                                os: { ...prev.os, pd: e.target.value },
+                              }))
+                            }
+                            className="h-7 w-full text-sm text-center border-input"
+                          />
+                        </td>
                       </tr>
                       <tr style={{ height: 48 }}>
                         <td style={{ border: "2px solid var(--primary)", fontWeight: 700 }}>Reading</td>
-                        <td style={{ border: "2px solid var(--primary)", padding: 4 }} colSpan={6}>
+                        <td style={{ border: "2px solid var(--primary)", padding: 4 }} colSpan={8}>
                           <RefractionValueSelect
                             value={refractionTableData.od.add}
                             onChange={(value) =>
