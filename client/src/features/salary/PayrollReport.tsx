@@ -130,8 +130,13 @@ export default function PayrollReport() {
   const shiftSchedule: any[] = shiftScheduleQ.data?.attendance ?? [];
 
   // Build shift count map by staffId and shiftName (صباحي/ليلي) from roster
+  // Filter by selected date range
+  const filteredShiftSchedule = shiftSchedule.filter((entry: any) => {
+    const d = String(entry.workDate).slice(0, 10);
+    return (!fromDate || d >= fromDate) && (!toDate || d <= toDate);
+  });
   const shiftCountByStaffShift: Record<string, number> = {};
-  shiftSchedule.forEach((entry: any) => {
+  filteredShiftSchedule.forEach((entry: any) => {
     const key = `${entry.staffId}_${entry.shiftName}`;
     shiftCountByStaffShift[key] = (shiftCountByStaffShift[key] ?? 0) + 1;
   });
