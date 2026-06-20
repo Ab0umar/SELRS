@@ -20,6 +20,15 @@ import { PullToRefresh } from "@/components/PullToRefresh";
 import { OfflinePageState } from "@/components/OfflinePageState";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function Patients() {
   const { user, isAuthenticated } = useAuth();
@@ -170,6 +179,38 @@ export default function Patients() {
     new Set(),
   );
 
+  const [editingPatient, setEditingPatient] = useState<any | null>(null);
+  const [editDraft, setEditDraft] = useState<{
+    fullName: string; phone: string; age: string; dateOfBirth: string; address: string; occupation: string; patientCode: string;
+  }>({ fullName: "", phone: "", age: "", dateOfBirth: "", address: "", occupation: "", patientCode: "" });
+
+  const openEdit = (patient: any) => {
+    setEditingPatient(patient);
+    setEditDraft({
+      fullName: patient.fullName ?? "",
+      phone: patient.phone ?? "",
+      age: patient.age != null ? String(patient.age) : "",
+      dateOfBirth: patient.dateOfBirth ?? "",
+      address: patient.address ?? "",
+      occupation: patient.occupation ?? "",
+      patientCode: patient.patientCode ?? "",
+    });
+  };
+
+  const handleEditSave = async () => {
+    if (!editingPatient) return;
+    await handleUpdatePatient(editingPatient.id, {
+      fullName: editDraft.fullName.trim(),
+      phone: editDraft.phone.trim(),
+      age: editDraft.age ? Number(editDraft.age) : undefined,
+      dateOfBirth: editDraft.dateOfBirth || undefined,
+      address: editDraft.address.trim(),
+      occupation: editDraft.occupation.trim(),
+      patientCode: editDraft.patientCode.trim(),
+    });
+    setEditingPatient(null);
+  };
+
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       <PatientsHeader
@@ -279,7 +320,7 @@ export default function Patients() {
                 onOpenSheet={handleOpenSheet}
                 onPrintSheet={handlePrintSheet}
                 onDeletePatient={handleDeletePatient}
-                onEditPatient={(patient) => {}} // This should trigger a modal, not implemented in this thin container yet
+                onEditPatient={openEdit}
                 onOpenDetails={(patientId) =>
                   setLocation(patientDetailPath(patientId))
                 }
@@ -333,6 +374,43 @@ export default function Patients() {
           </div>
         </main>
       </PullToRefresh>
+      <Dialog open={!!editingPatient} onOpenChange={(open) => { if (!open) setEditingPatient(null); }}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>تعديل بيانات المريض</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>الاسم الكامل</Label>
+              <Input value={editDraft.fullName} onChange={(e) => setEditDraft((d) => ({ ...d, fullName: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>رقم الهاتف</Label>
+              <Input value={editDraft.phone} onChange={(e) => setEditDraft((d) => ({ ...d, phone: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>رمز المريض</Label>
+              <Input value={editDraft.patientCode} onChange={(e) => setEditDraft((d) => ({ ...d, patientCode: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>السن</Label>
+              <Input type="number" value={editDraft.age} onChange={(e) => setEditDraft((d) => ({ ...d, age: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>العنوان</Label>
+              <Input value={editDraft.address} onChange={(e) => setEditDraft((d) => ({ ...d, address: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>المهنة</Label>
+              <Input value={editDraft.occupation} onChange={(e) => setEditDraft((d) => ({ ...d, occupation: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter className="flex gap-2 mt-2">
+            <Button variant="outline" onClick={() => setEditingPatient(null)}>إلغاء</Button>
+            <Button onClick={handleEditSave}>حفظ</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
