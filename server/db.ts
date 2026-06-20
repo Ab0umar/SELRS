@@ -81,7 +81,8 @@ import { PENTACAM_ALLOWED_SRV_CODES } from "../shared/pentacam";
 import { getServiceTypeFilterVariants } from "../shared/serviceType";
 const exec = promisify(execCb);
 
-let _db: ReturnType<typeof drizzle> | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _db: any = null;
 let _pool: ReturnType<typeof mysql.createPool> | null = null;
 const OVERVIEW_ROW_LIMIT = 5000;
 const OVERVIEW_PAGE_SIZE = 50;
