@@ -9,6 +9,12 @@ import { AppShell } from "@/components/layout/AppShell";
 import { AppShellSkeleton } from "@/components/layout/AppShellSkeleton";
 import type { User } from "@shared/types";
 import { ROUTES } from "../../../shared/routes";
+import { PAGE_PERMISSION_DEFINITIONS } from "@/lib/page-permissions";
+
+// Paths that have their own explicit permission entry — parent permission does NOT cover these.
+const DEFINED_PERMISSION_PATHS = new Set(
+  PAGE_PERMISSION_DEFINITIONS.map((p) => p.id).filter((id) => id.startsWith("/")),
+);
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -171,11 +177,19 @@ export default function ProtectedRoute({
     return allowedPaths.some((permission) => {
       if (!permission) return false;
       if (permission === cleanPath) return true;
-      if (permission !== ROUTES.home && cleanPath.startsWith(`${permission}/`))
+      // Parent-prefix match: only applies when cleanPath has no own permission definition.
+      // If the target path has its own defined permission, the user must hold that explicitly.
+      if (
+        permission !== ROUTES.home &&
+        cleanPath.startsWith(`${permission}/`) &&
+        !DEFINED_PERMISSION_PATHS.has(cleanPath as any)
+      )
         return true;
       if (permission.includes(`${ROUTES.home}:`)) {
         const base = permission.split(`${ROUTES.home}:`)[0];
-        return cleanPath === base || cleanPath.startsWith(`${base}/`);
+        if (cleanPath === base) return true;
+        if (cleanPath.startsWith(`${base}/`) && !DEFINED_PERMISSION_PATHS.has(cleanPath as any))
+          return true;
       }
       return false;
     });
