@@ -171,9 +171,9 @@ export const PatientsTable = memo(function PatientsTable({
     const key = normalizeSheetType(value);
     if (key === "consultant") return "استشاري";
     if (key === "specialist") return "اخصائي";
-    if (key === "pentacam_c") return "Pentacam C";
-    if (key === "pentacam_ex") return "Pentacam Ex";
-    if (key === "pentacam_ex_c") return "Pentacam Ex.C";
+    if (key === "pentacam_c") return "اشعة مركز";
+    if (key === "pentacam_ex") return "اشعه خارجي";
+    if (key === "pentacam_ex_c") return "اشعة خارجي م";
     if (
       key === "pentacam" ||
       key === "pentacam_center" ||
@@ -194,10 +194,10 @@ export const PatientsTable = memo(function PatientsTable({
     const key = normalizeSheetType(value);
     if (key === "consultant") return "استشاري";
     if (key === "specialist") return "اخصائي";
-    if (key === "pentacam_center" || key === "pentacam_c") return "Pentacam C";
+    if (key === "pentacam_center" || key === "pentacam_c") return "اشعة مركز";
     if (key === "pentacam_external" || key === "pentacam_ex")
-      return "Pentacam Ex";
-    if (key === "pentacam_ex_c") return "Pentacam Ex.C";
+      return "اشعه خارجي";
+    if (key === "pentacam_ex_c") return "اشعة خارجي م";
     if (key === "lasik") return "فحوصات الليزك";
     if (key === "external") return "خارجي";
     if (key === "surgery") return "عمليات";

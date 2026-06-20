@@ -223,9 +223,9 @@ const sheetOptions: Array<{ value: SheetType; label: string }> = [
   { value: "external", label: "خارجي" },
   { value: "surgery_center", label: "عمليات مركز" },
   { value: "surgery_external", label: "عمليات خارجي" },
-  { value: "pentacam_c", label: "Pentacam C" },
-  { value: "pentacam_ex", label: "Pentacam Ex" },
-  { value: "pentacam_ex_c", label: "Pentacam Ex.C" },
+  { value: "pentacam_c", label: "اشعة مركز" },
+  { value: "pentacam_ex", label: "اشعه خارجي" },
+  { value: "pentacam_ex_c", label: "اشعة خارجي م" },
 ];
 
 const HUB_STATUS_FILTERS = [

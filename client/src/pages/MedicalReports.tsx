@@ -948,7 +948,7 @@ export default function MedicalReports() {
                     dir="rtl"
                   />
                   <div className="mt-2 space-y-3 max-h-60 overflow-y-auto">
-                    {Object.entries(
+                    {(Object.entries(
                       (diseasesQuery.data ?? [])
                         .filter((d: any) =>
                           `${d.abbrev || ""} ${d.name || ""}`
@@ -960,8 +960,8 @@ export default function MedicalReports() {
                           if (!acc[key]) acc[key] = [];
                           acc[key].push(d);
                           return acc;
-                        }, {}),
-                    ).map(([branch, items]: [string, any[]]) => (
+                        }, {} as Record<string, any[]>),
+                    ) as [string, any[]][]).map(([branch, items]) => (
                       <div key={branch} className="border rounded-lg p-3">
                         <button
                           type="button"

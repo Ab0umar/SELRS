@@ -87,9 +87,9 @@ const SERVICE_TYPE_LABELS: Record<string, string> = {
   surgery: "عمليات مركز",
   surgery_center: "عمليات مركز",
   surgery_external: "عمليات خارجي",
-  pentacam_c: "Pentacam C",
-  pentacam_ex: "Pentacam Ex",
-  pentacam_ex_c: "Pentacam Ex.C",
+  pentacam_c: "اشعة مركز",
+  pentacam_ex: "اشعه خارجي",
+  pentacam_ex_c: "اشعة خارجي م",
 };
 
 function serviceLabel(raw: string | undefined) {
@@ -403,9 +403,9 @@ export default function PatientsHubList() {
               )}
               {locationTypeFilter === "external" && (
                 <>
-                  <SelectItem value="pentacam_c">Pentacam C</SelectItem>
-                  <SelectItem value="pentacam_ex">Pentacam Ex</SelectItem>
-                  <SelectItem value="pentacam_ex_c">Pentacam Ex.C</SelectItem>
+                  <SelectItem value="pentacam_c">اشعة مركز</SelectItem>
+                  <SelectItem value="pentacam_ex">اشعه خارجي</SelectItem>
+                  <SelectItem value="pentacam_ex_c">اشعة خارجي م</SelectItem>
                   <SelectItem value="surgery_external">عمليات خارجي</SelectItem>
                 </>
               )}
@@ -416,9 +416,9 @@ export default function PatientsHubList() {
                   <SelectItem value="lasik">ليزك</SelectItem>
                   <SelectItem value="external">خارجي</SelectItem>
                   <SelectItem value="surgery_center">عمليات مركز</SelectItem>
-                  <SelectItem value="pentacam_c">Pentacam C</SelectItem>
-                  <SelectItem value="pentacam_ex">Pentacam Ex</SelectItem>
-                  <SelectItem value="pentacam_ex_c">Pentacam Ex.C</SelectItem>
+                  <SelectItem value="pentacam_c">اشعة مركز</SelectItem>
+                  <SelectItem value="pentacam_ex">اشعه خارجي</SelectItem>
+                  <SelectItem value="pentacam_ex_c">اشعة خارجي م</SelectItem>
                   <SelectItem value="surgery_external">عمليات خارجي</SelectItem>
                 </>
               )}

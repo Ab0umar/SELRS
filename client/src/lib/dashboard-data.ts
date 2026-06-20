@@ -17,6 +17,13 @@ export const serviceTypeLabels: Record<string, string> = {
   lasik: "ليزك",
   surgery: "عمليات",
   external: "خارجي",
+  pentacam_c: "اشعة مركز",
+  pentacam_ex: "اشعه خارجي",
+  pentacam_ex_c: "اشعة خارجي م",
+  pentacam_center: "اشعة مركز",
+  pentacam_external: "اشعه خارجي",
+  surgery_external: "عمليات خارجي",
+  surgery_center: "عمليات مركز",
 };
 
 export const queueStatusLabelsAr: Record<QueueStatus, string> = {

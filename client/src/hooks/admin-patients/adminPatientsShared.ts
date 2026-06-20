@@ -125,10 +125,10 @@ export const getServiceTypeLabel = (value: string) => {
   if (key === "consultant") return "Consultant";
   if (key === "specialist") return "Specialist";
   if (key === "pentacam" || key === "pentacam_center" || key === "pentacam_c")
-    return "Pentacam C";
+    return "اشعة مركز";
   if (key === "pentacam_external" || key === "pentacam_ex")
-    return "Pentacam Ex";
-  if (key === "pentacam_ex_c") return "Pentacam Ex.C";
+    return "اشعه خارجي";
+  if (key === "pentacam_ex_c") return "اشعة خارجي م";
   if (key === "lasik") return "Lasik";
   if (key === "external") return "External";
   if (

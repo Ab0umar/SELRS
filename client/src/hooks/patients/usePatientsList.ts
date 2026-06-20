@@ -441,9 +441,9 @@ export function usePatientsList(isAuthenticated: boolean) {
       const serviceTypeLabel = (() => {
         if (serviceTypeRaw === "consultant") return "استشاري";
         if (serviceTypeRaw === "specialist") return "اخصائي";
-        if (serviceTypeRaw === "pentacam_c") return "Pentacam C";
-        if (serviceTypeRaw === "pentacam_ex") return "Pentacam Ex";
-        if (serviceTypeRaw === "pentacam_ex_c") return "Pentacam Ex.C";
+        if (serviceTypeRaw === "pentacam_c") return "اشعة مركز";
+        if (serviceTypeRaw === "pentacam_ex") return "اشعه خارجي";
+        if (serviceTypeRaw === "pentacam_ex_c") return "اشعة خارجي م";
         if (
           serviceTypeRaw === "pentacam" ||
           serviceTypeRaw === "pentacam_center" ||
