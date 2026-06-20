@@ -84,6 +84,9 @@ async function sendOpReminders(): Promise<void> {
   const targetUserIds = cfg.targetAll ? null : cfg.userIds.length > 0 ? cfg.userIds : null;
   const tomorrow = tomorrowDateString();
 
+  // Mark as sent first so concurrent minute ticks don't re-trigger
+  await markSentToday();
+
   // --- operationBookings ---
   const bookings = await getOperationBookingsByDateRange(tomorrow, tomorrow);
   for (const op of bookings) {
@@ -136,9 +139,6 @@ async function sendOpReminders(): Promise<void> {
       console.error(`${LABEL} list ${list.id} failed:`, err),
     );
   }
-
-  // Persist sent date to DB so server restarts don't retrigger
-  await markSentToday();
 
   const total = bookings.length + lists.length;
   if (total === 0) {
