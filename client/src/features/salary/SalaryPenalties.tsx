@@ -419,7 +419,7 @@ export default function SalaryPenalties() {
       )}
 
       {/* Penalties / Advances table */}
-      {tab !== "insurance" && (
+      {(tab === "penalties" || tab === "advances") && (
         <section className="rounded-xl border border-border bg-background">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h3 className="text-base font-semibold">
