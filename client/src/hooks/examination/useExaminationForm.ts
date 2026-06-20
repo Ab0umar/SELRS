@@ -976,7 +976,7 @@ export function useExaminationForm(
     const timeout = setTimeout(async () => {
       try {
         const pickValue = (next: string | undefined, prev?: string) =>
-          next && String(next).trim() ? next : prev;
+          next && String(next).trim() && next !== "---" ? next : prev;
 
         await Promise.all(
           sheetTypes.map(async (sheetType) => {

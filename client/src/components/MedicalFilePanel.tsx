@@ -1110,21 +1110,23 @@ export default function MedicalFilePanel({
       return;
     }
     // Build glasses data from refraction table (used for both first visit and no exam selected cases)
+    const refVal = (v: string | undefined) =>
+      !v || v === "---" ? "" : v;
     const glassesData = {
       od: {
-        s: refractionTableData.od?.s || "",
-        c: refractionTableData.od?.c || "",
-        axis: refractionTableData.od?.a || "",
-        pd: refractionTableData.od?.pd || "",
-        add: refractionTableData.od?.add || "",
+        s: refVal(refractionTableData.od?.s),
+        c: refVal(refractionTableData.od?.c),
+        axis: refVal(refractionTableData.od?.a),
+        pd: refVal(refractionTableData.od?.pd),
+        add: refVal(refractionTableData.od?.add),
         bcva: formData.measurements?.autoref?.od?.bcva || "",
       },
       os: {
-        s: refractionTableData.os?.s || "",
-        c: refractionTableData.os?.c || "",
-        axis: refractionTableData.os?.a || "",
-        pd: refractionTableData.os?.pd || "",
-        add: refractionTableData.os?.add || "",
+        s: refVal(refractionTableData.os?.s),
+        c: refVal(refractionTableData.os?.c),
+        axis: refVal(refractionTableData.os?.a),
+        pd: refVal(refractionTableData.os?.pd),
+        add: refVal(refractionTableData.os?.add),
         bcva: formData.measurements?.autoref?.os?.bcva || "",
       },
     };
