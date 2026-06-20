@@ -961,7 +961,7 @@ export default function MedicalReports() {
                           acc[key].push(d);
                           return acc;
                         }, {} as Record<string, any[]>),
-                    ) as [string, any[]][]).map(([branch, items]) => (
+                    ) as [string, any[]][]).map(([branch, items]: [string, any[]]) => (
                       <div key={branch} className="border rounded-lg p-3">
                         <button
                           type="button"
