@@ -461,29 +461,22 @@ export default function PatientSummary() {
       if (!source?.glasses) continue;
       const visitDate = formatDate(source.visitDate);
       const od = source.glasses?.od;
-      if (od && [od.s, od.c, od.axis, od.pd, od.bcva].some(Boolean)) {
-        rows.push({
-          visit: visitDate,
-          eye: "OD",
-          s: od.s || "-",
-          c: od.c || "-",
-          axis: od.axis || "-",
-          pd: od.pd || "-",
-          bcva: od.bcva || "-",
-        });
-      }
       const os = source.glasses?.os;
-      if (os && [os.s, os.c, os.axis, os.pd, os.bcva].some(Boolean)) {
-        rows.push({
-          visit: visitDate,
-          eye: "OS",
-          s: os.s || "-",
-          c: os.c || "-",
-          axis: os.axis || "-",
-          pd: os.pd || "-",
-          bcva: os.bcva || "-",
-        });
-      }
+      const hasData =
+        (od && [od.s, od.c, od.axis, od.bcva].some(Boolean)) ||
+        (os && [os.s, os.c, os.axis, os.pd, os.bcva].some(Boolean));
+      if (!hasData) continue;
+      rows.push({
+        visit: visitDate,
+        odS: od?.s || "-",
+        odC: od?.c || "-",
+        odAx: od?.axis || "-",
+        osS: os?.s || "-",
+        osC: os?.c || "-",
+        osAx: os?.axis || "-",
+        osPd: os?.pd || "-",
+        add: od?.add || os?.add || "-",
+      });
     }
     return rows;
   }, [parsedExamSources]);
@@ -956,15 +949,17 @@ export default function PatientSummary() {
               <section id="sum-glasses" className="scroll-mt-4">
                 <SectionHeading id="glasses" label="النظارة" />
                 <DataTable
-                  headers={["التاريخ", "العين", "S", "C", "Axis", "PD", "BCVA"]}
+                  headers={["التاريخ", "OD S", "OD C", "OD Ax", "OS S", "OS C", "OS Ax", "OS PD", "Add"]}
                   rows={glassesRows.map((r) => [
                     r.visit,
-                    r.eye,
-                    r.s,
-                    r.c,
-                    r.axis,
-                    r.pd,
-                    r.bcva,
+                    r.odS,
+                    r.odC,
+                    r.odAx,
+                    r.osS,
+                    r.osC,
+                    r.osAx,
+                    r.osPd,
+                    r.add,
                   ])}
                 />
               </section>

@@ -29,12 +29,10 @@ interface ExaminationsTabProps {
   }>;
   afterRows: Array<{ eye: string; s: string; c: string; axis: string }>;
   glassesRows: Array<{
-    eye: string;
-    s: string;
-    c: string;
-    axis: string;
-    pd: string;
-    bcva: string;
+    visit: string;
+    odS: string; odC: string; odAx: string;
+    osS: string; osC: string; osAx: string; osPd: string;
+    add: string;
   }>;
   fundusRows: Array<{ eye: string; findings: string }>;
   requestedImagingAndLabs: any[];
@@ -199,31 +197,35 @@ export function ExaminationsTab({
           {openExamSections.glasses && (
             <div className="overflow-x-auto border-t border-border">
               {glassesRows.length ? (
-                <table className="w-full min-w-[520px] border-collapse text-center">
+                <table className="w-full min-w-[680px] border-collapse text-center">
                   <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-muted-foreground">
                     <tr>
-                      <th className="border px-3 py-3">Eye</th>
-                      <th className="border px-3 py-3">S</th>
-                      <th className="border px-3 py-3">C</th>
-                      <th className="border px-3 py-3">Axis</th>
-                      <th className="border px-3 py-3">PD</th>
-                      <th className="border px-3 py-3">BCVA</th>
+                      <th className="border px-3 py-3">التاريخ</th>
+                      <th className="border px-3 py-3">OD S</th>
+                      <th className="border px-3 py-3">OD C</th>
+                      <th className="border px-3 py-3">OD Ax</th>
+                      <th className="border px-3 py-3">OS S</th>
+                      <th className="border px-3 py-3">OS C</th>
+                      <th className="border px-3 py-3">OS Ax</th>
+                      <th className="border px-3 py-3">OS PD</th>
+                      <th className="border px-3 py-3">Add</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {glassesRows.map((row) => (
+                    {glassesRows.map((row, i) => (
                       <tr
-                        key={`glass-${row.eye}`}
+                        key={`glass-${i}`}
                         className="bg-background text-sm font-medium text-foreground"
                       >
-                        <td className="border px-3 py-3 font-bold">
-                          {row.eye}
-                        </td>
-                        <td className="border px-3 py-3">{row.s || "-"}</td>
-                        <td className="border px-3 py-3">{row.c || "-"}</td>
-                        <td className="border px-3 py-3">{row.axis || "-"}</td>
-                        <td className="border px-3 py-3">{row.pd || "-"}</td>
-                        <td className="border px-3 py-3">{row.bcva || "-"}</td>
+                        <td className="border px-3 py-3 font-bold">{row.visit}</td>
+                        <td className="border px-3 py-3">{row.odS}</td>
+                        <td className="border px-3 py-3">{row.odC}</td>
+                        <td className="border px-3 py-3">{row.odAx}</td>
+                        <td className="border px-3 py-3">{row.osS}</td>
+                        <td className="border px-3 py-3">{row.osC}</td>
+                        <td className="border px-3 py-3">{row.osAx}</td>
+                        <td className="border px-3 py-3">{row.osPd}</td>
+                        <td className="border px-3 py-3">{row.add}</td>
                       </tr>
                     ))}
                   </tbody>

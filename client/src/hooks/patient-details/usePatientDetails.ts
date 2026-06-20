@@ -677,24 +677,29 @@ export function usePatientDetails({
   );
 
   const glassesRows = useMemo(() => {
-    const buildEye = (eyeKey: "od" | "os", eye: "OD" | "OS") => {
-      const glassesSources = parsedExamSources.map(
-        (source) => source?.glasses?.[eyeKey] ?? null,
-      );
-      return {
-        eye,
-        s: firstNonEmpty(...glassesSources.map((item) => item?.s)),
-        c: firstNonEmpty(...glassesSources.map((item) => item?.c)),
-        axis: firstNonEmpty(...glassesSources.map((item) => item?.axis)),
-        pd: firstNonEmpty(...glassesSources.map((item) => item?.pd)),
-        bcva: firstNonEmpty(...glassesSources.map((item) => item?.bcva)),
-      };
-    };
-    return [buildEye("od", "OD"), buildEye("os", "OS")].filter((row) =>
-      [row.s, row.c, row.axis, row.pd, row.bcva].some(
-        (val) => val !== undefined && val !== null && val !== "",
-      ),
-    );
+    const rows: Array<{
+      visit: string;
+      odS: string; odC: string; odAx: string;
+      osS: string; osC: string; osAx: string; osPd: string;
+      add: string;
+    }> = [];
+    for (const source of parsedExamSources) {
+      if (!source?.glasses) continue;
+      const od = source.glasses?.od;
+      const os = source.glasses?.os;
+      const hasData =
+        (od && [od.s, od.c, od.axis].some(Boolean)) ||
+        (os && [os.s, os.c, os.axis, os.pd].some(Boolean));
+      if (!hasData) continue;
+      rows.push({
+        visit: formatDate(source.visitDate),
+        odS: od?.s || "-", odC: od?.c || "-", odAx: od?.axis || "-",
+        osS: os?.s || "-", osC: os?.c || "-", osAx: os?.axis || "-",
+        osPd: os?.pd || "-",
+        add: od?.add || os?.add || "-",
+      });
+    }
+    return rows;
   }, [parsedExamSources]);
 
   const pentacamRows = useMemo(() => {
