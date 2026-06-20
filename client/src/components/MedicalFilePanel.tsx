@@ -2295,58 +2295,23 @@ export default function MedicalFilePanel({
                   >
                     <thead className="bg-muted/50">
                       <tr>
-                        <th
-                          scope="col"
-                          className="border px-2 py-1.5 font-semibold text-[10px]"
-                        >
-                          Type
-                        </th>
-                        <th
-                          scope="col"
-                          className="border px-2 py-1.5 font-semibold text-[10px]"
-                        >
-                          Eye
-                        </th>
-                        <th
-                          scope="col"
-                          className="border px-2 py-1.5 font-semibold text-[10px]"
-                        >
-                          S
-                        </th>
-                        <th
-                          scope="col"
-                          className="border px-2 py-1.5 font-semibold text-[10px]"
-                        >
-                          C
-                        </th>
-                        <th
-                          scope="col"
-                          className="border px-2 py-1.5 font-semibold text-[10px]"
-                        >
-                          A
-                        </th>
-                        <th
-                          scope="col"
-                          className="border px-2 py-1.5 font-semibold text-[10px]"
-                        >
-                          P.D.
-                        </th>
-                        <th
-                          scope="col"
-                          className="border px-2 py-1.5 font-semibold text-[10px]"
-                        >
-                          Add
-                        </th>
+                        <th className="border px-2 py-1.5 font-semibold text-[10px]">Eye</th>
+                        <th className="border px-2 py-1.5 font-semibold text-[10px]" colSpan={3}>OD</th>
+                        <th className="border px-2 py-1.5 font-semibold text-[10px]" colSpan={3}>OS</th>
+                      </tr>
+                      <tr>
+                        <th className="border px-2 py-1.5 text-[10px]"></th>
+                        <th className="border px-2 py-1.5 font-semibold text-[10px]">S</th>
+                        <th className="border px-2 py-1.5 font-semibold text-[10px]">C</th>
+                        <th className="border px-2 py-1.5 font-semibold text-[10px]">Ax</th>
+                        <th className="border px-2 py-1.5 font-semibold text-[10px]">S</th>
+                        <th className="border px-2 py-1.5 font-semibold text-[10px]">C</th>
+                        <th className="border px-2 py-1.5 font-semibold text-[10px]">Ax</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr className="hover:bg-muted/20">
-                        <td className="border px-2 py-1.5 font-bold text-[10px]">
-                          DIST
-                        </td>
-                        <td className="border px-2 py-1.5 font-bold text-[10px]">
-                          OD
-                        </td>
+                        <td className="border px-2 py-1.5 font-bold text-[10px]">Dis.</td>
                         <td className="border px-1 py-1">
                           <RefractionValueSelect
                             value={refractionTableData.od.s}
@@ -2386,40 +2351,6 @@ export default function MedicalFilePanel({
                           />
                         </td>
                         <td className="border px-1 py-1">
-                          <Input
-                            value={refractionTableData.od.pd}
-                            onChange={(e) =>
-                              setRefractionTableData((prev: any) => ({
-                                ...prev,
-                                od: { ...prev.od, pd: e.target.value },
-                              }))
-                            }
-                            className="h-6 w-full text-[10px] text-center border-input"
-                          />
-                        </td>
-                        <td className="border px-1 py-1" rowSpan={2}>
-                          <RefractionValueSelect
-                            value={refractionTableData.od.add}
-                            onChange={(value) =>
-                              setRefractionTableData((prev: any) => ({
-                                ...prev,
-                                od: { ...prev.od, add: value },
-                                os: { ...prev.os, add: value },
-                              }))
-                            }
-                            options={ADD_OPTIONS}
-                            triggerClassName="h-6 w-full text-[10px] text-center border-input"
-                          />
-                        </td>
-                      </tr>
-                      <tr className="hover:bg-muted/20">
-                        <td className="border px-2 py-1.5 font-bold text-[10px]">
-                          DIST
-                        </td>
-                        <td className="border px-2 py-1.5 font-bold text-[10px]">
-                          OS
-                        </td>
-                        <td className="border px-1 py-1">
                           <RefractionValueSelect
                             value={refractionTableData.os.s}
                             onChange={(value) =>
@@ -2457,16 +2388,21 @@ export default function MedicalFilePanel({
                             className="h-6 w-full text-[10px] text-center border-input"
                           />
                         </td>
-                        <td className="border px-1 py-1">
-                          <Input
-                            value={refractionTableData.os.pd}
-                            onChange={(e) =>
+                      </tr>
+                      <tr className="hover:bg-muted/20">
+                        <td className="border px-2 py-1.5 font-bold text-[10px]">Reading</td>
+                        <td className="border px-1 py-1" colSpan={6}>
+                          <RefractionValueSelect
+                            value={refractionTableData.od.add}
+                            onChange={(value) =>
                               setRefractionTableData((prev: any) => ({
                                 ...prev,
-                                os: { ...prev.os, pd: e.target.value },
+                                od: { ...prev.od, add: value },
+                                os: { ...prev.os, add: value },
                               }))
                             }
-                            className="h-6 w-full text-[10px] text-center border-input"
+                            options={ADD_OPTIONS}
+                            triggerClassName="h-6 w-full text-[10px] text-center border-input"
                           />
                         </td>
                       </tr>

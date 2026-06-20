@@ -874,352 +874,119 @@ export default function ExaminationAutoAirTab({
                   </div>
                 </div>
 
-                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <div
-                      className="text-center text-card-foreground font-bold py-1"
-                      style={{
-                        background: "var(--primary)",
-                        borderRadius: "8px 8px 0 0",
-                      }}
-                    >
-                      RIGHT
-                    </div>
-                    <table className="w-full border-collapse text-center text-sm bg-background">
-                      <thead>
-                        <tr>
-                          <th
-                            style={{
-                              border: "2px solid var(--primary)",
-                              padding: 6,
-                            }}
-                          ></th>
-                          <th
-                            style={{
-                              border: "2px solid var(--primary)",
-                              padding: 6,
-                            }}
-                          >
-                            S
-                          </th>
-                          <th
-                            style={{
-                              border: "2px solid var(--primary)",
-                              padding: 6,
-                            }}
-                          >
-                            C
-                          </th>
-                          <th
-                            style={{
-                              border: "2px solid var(--primary)",
-                              padding: 6,
-                            }}
-                          >
-                            A
-                          </th>
-                          <th
-                            style={{
-                              border: "2px solid var(--primary)",
-                              padding: 6,
-                            }}
-                          >
-                            P.D.
-                          </th>
-                          <th
-                            style={{
-                              border: "2px solid var(--primary)",
-                              padding: 6,
-                            }}
-                          >
-                            Add
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr style={{ height: 48 }}>
-                          <td
-                            style={{
-                              border: "2px solid var(--primary)",
-                              fontWeight: 700,
-                            }}
-                          >
-                            DIST
-                          </td>
-                          <td
-                            style={{
-                              border: "2px solid var(--primary)",
-                              padding: 4,
-                            }}
-                          >
-                            <Input
-                              value={refractionTableData.od.s}
-                              onChange={(e) =>
-                                setRefractionTableData((prev) => ({
-                                  ...prev,
-                                  od: { ...prev.od, s: e.target.value },
-                                }))
-                              }
-                              className="h-7 w-full text-sm text-center border-input"
-                            />
-                          </td>
-                          <td
-                            style={{
-                              border: "2px solid var(--primary)",
-                              padding: 4,
-                            }}
-                          >
-                            <Input
-                              value={refractionTableData.od.c}
-                              onChange={(e) =>
-                                setRefractionTableData((prev) => ({
-                                  ...prev,
-                                  od: { ...prev.od, c: e.target.value },
-                                }))
-                              }
-                              className="h-7 w-full text-sm text-center border-input"
-                            />
-                          </td>
-                          <td
-                            style={{
-                              border: "2px solid var(--primary)",
-                              padding: 4,
-                            }}
-                          >
-                            <Input
-                              value={refractionTableData.od.a}
-                              onChange={(e) =>
-                                setRefractionTableData((prev) => ({
-                                  ...prev,
-                                  od: { ...prev.od, a: e.target.value },
-                                }))
-                              }
-                              className="h-7 w-full text-sm text-center border-input"
-                            />
-                          </td>
-                          <td
-                            style={{
-                              border: "2px solid var(--primary)",
-                              padding: 4,
-                            }}
-                          >
-                            <Input
-                              value={refractionTableData.od.pd}
-                              onChange={(e) =>
-                                setRefractionTableData((prev) => ({
-                                  ...prev,
-                                  od: { ...prev.od, pd: e.target.value },
-                                }))
-                              }
-                              className="h-7 w-full text-sm text-center border-input"
-                            />
-                          </td>
-                          <td
-                            style={{
-                              border: "2px solid var(--primary)",
-                              padding: 4,
-                            }}
-                          >
-                            <RefractionValueSelect
-                              value={refractionTableData.od.add}
-                              onChange={(value) =>
-                                setRefractionTableData((prev) => ({
-                                  ...prev,
-                                  od: { ...prev.od, add: value },
-                                  os: { ...prev.os, add: value },
-                                }))
-                              }
-                              options={ADD_OPTIONS}
-                              triggerClassName="h-7 w-full text-sm text-center border-input"
-                            />
-                          </td>
-                        </tr>
-                        <tr style={{ height: 48 }}>
-                          <td
-                            style={{
-                              border: "2px solid var(--primary)",
-                              fontWeight: 700,
-                            }}
-                          >
-                            NEAR
-                          </td>
-                          <td
-                            style={{ border: "2px solid var(--primary)" }}
-                          ></td>
-                          <td
-                            style={{ border: "2px solid var(--primary)" }}
-                          ></td>
-                          <td
-                            style={{ border: "2px solid var(--primary)" }}
-                          ></td>
-                          <td
-                            style={{ border: "2px solid var(--primary)" }}
-                          ></td>
-                          <td
-                            style={{ border: "2px solid var(--primary)" }}
-                          ></td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div>
-                    <div
-                      className="text-center text-card-foreground font-bold py-1"
-                      style={{
-                        background: "var(--primary)",
-                        borderRadius: "8px 8px 0 0",
-                      }}
-                    >
-                      LEFT
-                    </div>
-                    <table className="w-full border-collapse text-center text-sm bg-background">
-                      <thead>
-                        <tr>
-                          <th
-                            style={{
-                              border: "2px solid var(--primary)",
-                              padding: 6,
-                            }}
-                          ></th>
-                          <th
-                            style={{
-                              border: "2px solid var(--primary)",
-                              padding: 6,
-                            }}
-                          >
-                            S
-                          </th>
-                          <th
-                            style={{
-                              border: "2px solid var(--primary)",
-                              padding: 6,
-                            }}
-                          >
-                            C
-                          </th>
-                          <th
-                            style={{
-                              border: "2px solid var(--primary)",
-                              padding: 6,
-                            }}
-                          >
-                            A
-                          </th>
-                          <th
-                            style={{
-                              border: "2px solid var(--primary)",
-                              padding: 6,
-                            }}
-                          >
-                            P.D.
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr style={{ height: 48 }}>
-                          <td
-                            style={{
-                              border: "2px solid var(--primary)",
-                              fontWeight: 700,
-                            }}
-                          >
-                            DIST
-                          </td>
-                          <td
-                            style={{
-                              border: "2px solid var(--primary)",
-                              padding: 4,
-                            }}
-                          >
-                            <Input
-                              value={refractionTableData.os.s}
-                              onChange={(e) =>
-                                setRefractionTableData((prev) => ({
-                                  ...prev,
-                                  os: { ...prev.os, s: e.target.value },
-                                }))
-                              }
-                              className="h-7 w-full text-sm text-center border-input"
-                            />
-                          </td>
-                          <td
-                            style={{
-                              border: "2px solid var(--primary)",
-                              padding: 4,
-                            }}
-                          >
-                            <Input
-                              value={refractionTableData.os.c}
-                              onChange={(e) =>
-                                setRefractionTableData((prev) => ({
-                                  ...prev,
-                                  os: { ...prev.os, c: e.target.value },
-                                }))
-                              }
-                              className="h-7 w-full text-sm text-center border-input"
-                            />
-                          </td>
-                          <td
-                            style={{
-                              border: "2px solid var(--primary)",
-                              padding: 4,
-                            }}
-                          >
-                            <Input
-                              value={refractionTableData.os.a}
-                              onChange={(e) =>
-                                setRefractionTableData((prev) => ({
-                                  ...prev,
-                                  os: { ...prev.os, a: e.target.value },
-                                }))
-                              }
-                              className="h-7 w-full text-sm text-center border-input"
-                            />
-                          </td>
-                          <td
-                            style={{
-                              border: "2px solid var(--primary)",
-                              padding: 4,
-                            }}
-                          >
-                            <Input
-                              value={refractionTableData.os.pd}
-                              onChange={(e) =>
-                                setRefractionTableData((prev) => ({
-                                  ...prev,
-                                  os: { ...prev.os, pd: e.target.value },
-                                }))
-                              }
-                              className="h-7 w-full text-sm text-center border-input"
-                            />
-                          </td>
-                        </tr>
-                        <tr style={{ height: 48 }}>
-                          <td
-                            style={{
-                              border: "2px solid var(--primary)",
-                              fontWeight: 700,
-                            }}
-                          >
-                            NEAR
-                          </td>
-                          <td
-                            style={{ border: "2px solid var(--primary)" }}
-                          ></td>
-                          <td
-                            style={{ border: "2px solid var(--primary)" }}
-                          ></td>
-                          <td
-                            style={{ border: "2px solid var(--primary)" }}
-                          ></td>
-                          <td
-                            style={{ border: "2px solid var(--primary)" }}
-                          ></td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+                <div className="mt-3">
+                  <table className="w-full border-collapse text-center text-sm bg-background">
+                    <thead>
+                      <tr>
+                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>Eye</th>
+                        <th style={{ border: "2px solid var(--primary)", padding: 6 }} colSpan={3}>OD</th>
+                        <th style={{ border: "2px solid var(--primary)", padding: 6 }} colSpan={3}>OS</th>
+                      </tr>
+                      <tr>
+                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}></th>
+                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>S</th>
+                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>C</th>
+                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>Ax</th>
+                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>S</th>
+                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>C</th>
+                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>Ax</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr style={{ height: 48 }}>
+                        <td style={{ border: "2px solid var(--primary)", fontWeight: 700 }}>Dis.</td>
+                        <td style={{ border: "2px solid var(--primary)", padding: 4 }}>
+                          <Input
+                            value={refractionTableData.od.s}
+                            onChange={(e) =>
+                              setRefractionTableData((prev) => ({
+                                ...prev,
+                                od: { ...prev.od, s: e.target.value },
+                              }))
+                            }
+                            className="h-7 w-full text-sm text-center border-input"
+                          />
+                        </td>
+                        <td style={{ border: "2px solid var(--primary)", padding: 4 }}>
+                          <Input
+                            value={refractionTableData.od.c}
+                            onChange={(e) =>
+                              setRefractionTableData((prev) => ({
+                                ...prev,
+                                od: { ...prev.od, c: e.target.value },
+                              }))
+                            }
+                            className="h-7 w-full text-sm text-center border-input"
+                          />
+                        </td>
+                        <td style={{ border: "2px solid var(--primary)", padding: 4 }}>
+                          <Input
+                            value={refractionTableData.od.a}
+                            onChange={(e) =>
+                              setRefractionTableData((prev) => ({
+                                ...prev,
+                                od: { ...prev.od, a: e.target.value },
+                              }))
+                            }
+                            className="h-7 w-full text-sm text-center border-input"
+                          />
+                        </td>
+                        <td style={{ border: "2px solid var(--primary)", padding: 4 }}>
+                          <Input
+                            value={refractionTableData.os.s}
+                            onChange={(e) =>
+                              setRefractionTableData((prev) => ({
+                                ...prev,
+                                os: { ...prev.os, s: e.target.value },
+                              }))
+                            }
+                            className="h-7 w-full text-sm text-center border-input"
+                          />
+                        </td>
+                        <td style={{ border: "2px solid var(--primary)", padding: 4 }}>
+                          <Input
+                            value={refractionTableData.os.c}
+                            onChange={(e) =>
+                              setRefractionTableData((prev) => ({
+                                ...prev,
+                                os: { ...prev.os, c: e.target.value },
+                              }))
+                            }
+                            className="h-7 w-full text-sm text-center border-input"
+                          />
+                        </td>
+                        <td style={{ border: "2px solid var(--primary)", padding: 4 }}>
+                          <Input
+                            value={refractionTableData.os.a}
+                            onChange={(e) =>
+                              setRefractionTableData((prev) => ({
+                                ...prev,
+                                os: { ...prev.os, a: e.target.value },
+                              }))
+                            }
+                            className="h-7 w-full text-sm text-center border-input"
+                          />
+                        </td>
+                      </tr>
+                      <tr style={{ height: 48 }}>
+                        <td style={{ border: "2px solid var(--primary)", fontWeight: 700 }}>Reading</td>
+                        <td style={{ border: "2px solid var(--primary)", padding: 4 }} colSpan={6}>
+                          <RefractionValueSelect
+                            value={refractionTableData.od.add}
+                            onChange={(value) =>
+                              setRefractionTableData((prev) => ({
+                                ...prev,
+                                od: { ...prev.od, add: value },
+                                os: { ...prev.os, add: value },
+                              }))
+                            }
+                            options={ADD_OPTIONS}
+                            triggerClassName="h-7 w-full text-sm text-center border-input"
+                          />
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
