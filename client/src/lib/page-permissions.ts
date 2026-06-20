@@ -12,6 +12,7 @@ export type PagePermissionDefinition = PagePermissionEntry;
 
 export const PERMISSION_SECTIONS = [
   "لوحة التحكم",
+  "الحجوزات",
   "مرضى اليوم",
   "الحسابات",
   "العمليات",
@@ -36,6 +37,13 @@ export const PAGE_PERMISSION_DEFINITIONS = [
     id: "/patient-data/edit",
     label: "تعديل بيانات المريض (لوحة / فحص)",
     group: "لوحة التحكم",
+  },
+
+  // ── الحجوزات ──
+  {
+    id: "/booking-triage/portal-bookings",
+    label: "حجوزات البوابة الإلكترونية",
+    group: "الحجوزات",
   },
 
   // ── مرضى اليوم ──

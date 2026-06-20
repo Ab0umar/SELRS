@@ -36,6 +36,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { formatMoneyAr } from "../features/accounting/accountingFormat";
 
+const LazyPortalBookings = lazy(() =>
+  import("@/features/admin/AdminPortalBookings"),
+);
+
 // ─── Lazy charts ────────────────────────────────────────────────────────────
 const ChartLoading = () => (
   <div className="h-[200px] animate-pulse rounded-lg bg-muted/40" />
@@ -52,7 +56,7 @@ const DepartmentWorkloadChart = lazy(() =>
 );
 
 // ─── Tabs config ────────────────────────────────────────────────────────────
-type TabId = "today" | "hub" | "accounting" | "attendance" | "stockroom";
+type TabId = "today" | "hub" | "accounting" | "attendance" | "stockroom" | "bookings";
 
 const TABS: Array<{
   id: TabId;
@@ -95,6 +99,13 @@ const TABS: Array<{
     icon: Archive,
     iconWrapCls: "bg-muted text-muted-foreground",
     permPath: "/stockroom",
+  },
+  {
+    id: "bookings",
+    label: "الحجوزات",
+    icon: CalendarDays,
+    iconWrapCls: "bg-info/15 text-info",
+    permPath: "/booking-triage/portal-bookings",
   },
 ];
 
@@ -1297,6 +1308,10 @@ export default function Dashboard() {
     refetchInterval: 60_000,
   });
   const stockQ = trpc.stockroom.getReports.useQuery({});
+  const bookingsQ = (trpc as any).patientPortal.listBookings.useQuery(
+    { status: "pending", limit: 200 },
+    { staleTime: 60_000, refetchOnWindowFocus: false, enabled: canAccess("/booking-triage/portal-bookings") },
+  );
 
   const todayBadge = merged.length;
   const attBadge = attQ.data?.absentToday ?? 0;
@@ -1304,8 +1319,10 @@ export default function Dashboard() {
     (i) => i.status === "كمية قليلة" || i.status === "نفذ المخزون",
   ).length;
 
+  const bookingsBadge = ((bookingsQ.data ?? []) as any[]).length;
   const badges: Partial<Record<TabId, React.ReactNode>> = {
     today: <TabBadge count={todayBadge} cls="bg-primary/10 text-primary" />,
+    bookings: bookingsBadge > 0 ? <TabBadge count={bookingsBadge} cls="bg-info/20 text-info" /> : null,
     attendance:
       attBadge > 0 ? (
         <TabBadge count={attBadge} cls="bg-warning/20 text-warning" />
@@ -1594,6 +1611,11 @@ export default function Dashboard() {
               {activeTab === "accounting" && <AccountingPanel />}
               {activeTab === "attendance" && <AttendancePanel />}
               {activeTab === "stockroom" && <StockroomPanel />}
+              {activeTab === "bookings" && (
+                <Suspense fallback={<Skeleton className="h-96 rounded-xl" />}>
+                  <LazyPortalBookings />
+                </Suspense>
+              )}
             </div>
           </main>
         </div>

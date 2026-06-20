@@ -83,6 +83,7 @@ export const ROUTES = {
   accountingDrSaadany: "/accounting/dr-saadany",
   accountingPrint: "/accounting/print",
   adminHub: "/booking-triage",
+  portalBookings: "/booking-triage/portal-bookings",
   adminSettingsPricingRules: "/admin/settings/pricing-rules",
   adminHubSettingsPricingRules: "/booking-triage/settings/pricing-rules",
   opsMssqlAdd: "/ops/mssql-add",
