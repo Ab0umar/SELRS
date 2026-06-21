@@ -293,11 +293,9 @@ export async function generateMarketingContent(
     const parsed = parseSafeJson(text);
 
     if (!parsed || !parsed.title || !parsed.content) {
-      console.warn(
-        "[marketing] Gemini returned unexpected structure, using fallback",
-        text.slice(0, 200),
-      );
-      return makeFallback(topic, day, brandProfile, clinicName, postIndex);
+      const snippet = text.slice(0, 300);
+      console.warn("[marketing] Gemini returned unexpected structure:", snippet);
+      throw new Error(`Gemini returned unparseable response: ${snippet}`);
     }
 
     // Always build imagePrompt from brand profile + topic hint — never rely on
@@ -306,7 +304,7 @@ export async function generateMarketingContent(
 
     return parsed;
   } catch (err) {
-    console.error("[marketing] Gemini API error:", err);
-    return makeFallback(topic, day, brandProfile, clinicName, postIndex);
+    // Re-throw so the router can surface the real error to the UI
+    throw err;
   }
 }

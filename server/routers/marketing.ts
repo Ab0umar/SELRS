@@ -303,13 +303,9 @@ export const marketingRouter = router({
           postIndex,
         );
       } catch (err) {
-        await addLog(
-          null,
-          "generate_post",
-          "error",
-          `Content generation failed: ${String(err)}`,
-        );
-        throw new Error("فشل توليد المحتوى — يرجى المحاولة مرة أخرى");
+        const detail = String(err);
+        await addLog(null, "generate_post", "error", `Content generation failed: ${detail}`);
+        throw new Error(`فشل توليد المحتوى: ${detail}`);
       }
 
       const [result] = await db.insert(marketingPosts).values({
