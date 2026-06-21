@@ -4,12 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
+import {
   FileText,
   ImageIcon,
   Loader2,
   RefreshCw,
   Send,
   Trash2,
+  ZoomIn,
 } from "lucide-react";
 
 const DAY_LABELS: Record<string, string> = {
@@ -22,6 +27,7 @@ export default function DraftPosts() {
   const [publishId, setPublishId] = useState<number | null>(null);
   const [imageGenId, setImageGenId] = useState<number | null>(null);
   const [limit, setLimit] = useState(25);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const utils = trpc.useUtils();
 
@@ -114,7 +120,10 @@ export default function DraftPosts() {
               >
                 {/* Image area */}
                 {post.imageUrl ? (
-                  <div className="relative h-52 w-full bg-muted">
+                  <div
+                    className="relative h-52 w-full bg-muted cursor-zoom-in group"
+                    onClick={() => setLightboxUrl(post.imageUrl)}
+                  >
                     <img
                       src={post.imageUrl}
                       alt={post.title ?? "صورة منشور تسويقي"}
@@ -125,6 +134,9 @@ export default function DraftPosts() {
                           "none";
                       }}
                     />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-colors">
+                      <ZoomIn className="h-7 w-7 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+                    </div>
                   </div>
                 ) : post.imagePrompt ? (
                   <div className="flex h-28 items-center justify-center bg-muted/30 border-b border-border">
@@ -268,6 +280,19 @@ export default function DraftPosts() {
           </>
         )}
       </div>
+
+      {/* Full-image lightbox */}
+      <Dialog open={!!lightboxUrl} onOpenChange={(open) => { if (!open) setLightboxUrl(null); }}>
+        <DialogContent className="max-w-3xl p-2 bg-black border-0">
+          {lightboxUrl && (
+            <img
+              src={lightboxUrl}
+              alt="صورة المنشور"
+              className="w-full h-auto max-h-[85vh] object-contain rounded"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
