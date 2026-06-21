@@ -3,6 +3,7 @@ import {
   attendanceEmployees,
   attendanceMonthlyReport,
   attendanceDaily,
+  attendanceShifts,
   salaryBasics,
   salaryPenalties,
   salaryAdvances,
@@ -182,6 +183,7 @@ export class PayrollComputeService {
       advances,
       shiftAttendanceRows,
       holidayRows,
+      shiftDefs,
     ] = await Promise.all([
       db
         .select()
@@ -258,6 +260,7 @@ export class PayrollComputeService {
         .where(
           and(eq(salaryHolidays.year, year), eq(salaryHolidays.month, month)),
         ),
+      db.select().from(attendanceShifts),
     ]);
 
     // Set of holiday date strings YYYY-MM-DD (not Fridays — already excluded from roster)
@@ -437,6 +440,24 @@ export class PayrollComputeService {
         : String(d).slice(0, 10);
     }
 
+    // Build shift-name → size map (same logic as salary.ts router)
+    const shiftSizeMap = new Map<string, "big" | "small">();
+    for (const sd of shiftDefs as any[]) {
+      let size: "big" | "small" = "big";
+      if (sd.shiftSize === "big") size = "big";
+      else if (sd.shiftSize === "small") size = "small";
+      else {
+        // auto: compute duration in minutes
+        const [sh, sm] = (sd.startTime as string).split(":").map(Number);
+        const [eh, em] = (sd.endTime as string).split(":").map(Number);
+        let dur = eh * 60 + em - (sh * 60 + sm);
+        if (dur < 0) dur += 24 * 60;
+        const threshold = sd.autoSmallThresholdMin ?? 270;
+        size = dur < threshold ? "small" : "big";
+      }
+      shiftSizeMap.set(sd.name as string, size);
+    }
+
     type ShiftStats = {
       scheduled: number;
       attended: number;
@@ -464,7 +485,9 @@ export class PayrollComputeService {
       } else {
         attended = rows.filter((a: any) => a.present).length;
       }
-      const rate = Number(ss.ratePerShift);
+
+      const rateBig = Number(ss.ratePerShift);
+      const rateSmall = Number(ss.rateSmallShift ?? 0) || rateBig;
 
       // For linked employees, apply punch deductions; otherwise, just attendance ratio
       let deductionPct = 0;
@@ -500,9 +523,23 @@ export class PayrollComputeService {
         }
       }
 
-      const basicSalary = round2(scheduled * rate);
-      const absent = scheduled - attended;
-      const absentDeduction = round2(absent * rate);
+      // Calculate pay per shift type (big vs small) like the shift preview does
+      const byShift: Record<string, { scheduled: number; attended: number; rate: number }> = {};
+      for (const a of rows) {
+        const isPresent = ss.empCd
+          ? punchDatesMap.get(ss.empCd)?.has(fmtDate(a.workDate)) ?? false
+          : a.present;
+        const size = shiftSizeMap.get(a.shiftName) ?? "big";
+        const r = size === "small" ? rateSmall : rateBig;
+        if (!byShift[a.shiftName]) byShift[a.shiftName] = { scheduled: 0, attended: 0, rate: r };
+        byShift[a.shiftName].scheduled++;
+        if (isPresent) byShift[a.shiftName].attended++;
+      }
+
+      const basicSalary = round2(Object.values(byShift).reduce((s, b) => s + b.scheduled * b.rate, 0));
+      const absentDeduction = round2(
+        Object.values(byShift).reduce((s, b) => s + Math.max(0, b.scheduled - b.attended) * b.rate, 0),
+      );
       const punchDeduction = round2(basicSalary * deductionPct);
       const netPay = round2(basicSalary - absentDeduction - punchDeduction);
 
@@ -512,7 +549,9 @@ export class PayrollComputeService {
         scheduled,
         attended,
         commMult,
-        shiftPay: round2(attended * rate),
+        shiftPay: round2(
+          Object.values(byShift).reduce((s, b) => s + b.attended * b.rate, 0),
+        ),
         deductionPct,
         netPay,
       });
