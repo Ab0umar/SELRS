@@ -366,18 +366,14 @@ export const marketingRouter = router({
       if (!prompt)
         throw new Error("Post has no imagePrompt — generate content first");
 
-      // Pick a random reference design for style grounding
+      // Load ALL reference designs so gpt-image-1 can match brand style from all samples
       const refDesigns = await db
         .select({ filePath: marketingReferenceDesigns.filePath })
-        .from(marketingReferenceDesigns)
-        .limit(10);
-      const refPath =
-        refDesigns.length > 0
-          ? refDesigns[Math.floor(Math.random() * refDesigns.length)]!.filePath
-          : null;
+        .from(marketingReferenceDesigns);
+      const refPaths = refDesigns.map((r) => r.filePath).filter(Boolean);
 
       try {
-        const imageUrl = await generateMarketingImage(prompt, input.postId, refPath ?? undefined);
+        const imageUrl = await generateMarketingImage(prompt, input.postId, refPaths);
         await db
           .update(marketingPosts)
           .set({ imageUrl })
