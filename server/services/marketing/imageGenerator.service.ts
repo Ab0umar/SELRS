@@ -45,58 +45,35 @@ async function saveImageLocally(
   return `/uploads/marketing/${filename}`;
 }
 
-// ─── OpenAI image generation (text-to-image or style-reference edit) ─────────
+// ─── OpenAI image generation ──────────────────────────────────────────────────
 
 async function generateWithOpenAI(
   prompt: string,
   postId: number,
-  referenceImagePath?: string,
 ): Promise<string> {
   const client = new OpenAI({ apiKey: ENV.openaiApiKey });
 
-  let b64: string | undefined;
+  // dall-e-3 with hd quality produces far better photorealistic marketing images.
+  // gpt-image-1 edit endpoint is for inpainting, not style transfer — avoid it.
+  const response = await client.images.generate({
+    model: "dall-e-3",
+    prompt,
+    n: 1,
+    size: "1024x1024",
+    quality: "hd",
+    style: "natural",
+    response_format: "b64_json",
+  });
 
-  if (referenceImagePath) {
-    try {
-      const refBuffer = await fs.readFile(referenceImagePath);
-      const refFile = await OpenAI.toFile(refBuffer, "reference.png", { type: "image/png" });
-      const editResponse = await client.images.edit({
-        model: "gpt-image-1",
-        image: refFile,
-        prompt: `Using the attached image ONLY as a brand style/color reference (do not reproduce its content), create a new professional medical marketing photograph: ${prompt}`,
-        n: 1,
-        size: "1024x1024",
-      } as any);
-      b64 = editResponse.data?.[0]?.b64_json ?? undefined;
-    } catch (err) {
-      console.warn("[marketing] Reference image edit failed, falling back to generate:", err);
-    }
+  const item = response.data?.[0];
+  if (!item) throw new Error("dall-e-3 returned no image data");
+
+  if (item.b64_json) {
+    const buffer = Buffer.from(item.b64_json, "base64");
+    return saveImageLocally(buffer, postId);
   }
 
-  if (!b64) {
-    const genResponse = await client.images.generate({
-      model: "gpt-image-1",
-      prompt,
-      n: 1,
-      size: "1024x1024",
-      quality: "medium",
-    });
-    const item = genResponse.data?.[0];
-    if (!item) throw new Error("gpt-image-1 returned no image data");
-    if (item.b64_json) {
-      b64 = item.b64_json;
-    } else if (item.url) {
-      const res = await fetch(item.url);
-      if (!res.ok) throw new Error(`Failed to download image: ${res.status}`);
-      const buffer = Buffer.from(await res.arrayBuffer());
-      return saveImageLocally(buffer, postId);
-    } else {
-      throw new Error("gpt-image-1 returned neither url nor b64_json");
-    }
-  }
-
-  const buffer = Buffer.from(b64, "base64");
-  return saveImageLocally(buffer, postId);
+  throw new Error("dall-e-3 returned no b64_json");
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -104,18 +81,18 @@ async function generateWithOpenAI(
 export async function generateMarketingImage(
   imagePrompt: string,
   postId: number,
-  referenceImagePath?: string,
+  _referenceImagePath?: string,
 ): Promise<string> {
-  // Priority 1: Forge API (no reference image support)
+  // Priority 1: Forge API
   if (ENV.forgeApiUrl && ENV.forgeApiKey) {
     const result = await forgeGenerateImage({ prompt: imagePrompt });
     if (!result.url) throw new Error("Forge image generation returned no URL");
     return result.url;
   }
 
-  // Priority 2: OpenAI gpt-image-1
+  // Priority 2: OpenAI dall-e-3 (hd quality)
   if (ENV.openaiApiKey) {
-    return generateWithOpenAI(imagePrompt, postId, referenceImagePath);
+    return generateWithOpenAI(imagePrompt, postId);
   }
 
   throw new MarketingImageConfigError();
