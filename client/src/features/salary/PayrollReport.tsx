@@ -144,11 +144,8 @@ export default function PayrollReport() {
     shiftSizeMap.set(sd.name as string, size);
   }
 
-  // Filter roster by selected date range
-  const filteredShiftSchedule = shiftSchedule.filter((entry: any) => {
-    const d = String(entry.workDate).slice(0, 10);
-    return (!fromDate || d >= fromDate) && (!toDate || d <= toDate);
-  });
+  // getShiftSchedule already scopes to year/month; no extra date filter needed
+  const filteredShiftSchedule = shiftSchedule;
 
   const rows: any[] = (section === "مركز" ? centerQ : clinicQ).data ?? [];
   const sectionPool = sectionPoolQ.data;
