@@ -129,16 +129,10 @@ export default function PayrollReport() {
   const shiftStaff: any[] = shiftStaffQ.data ?? [];
   const shiftSchedule: any[] = shiftScheduleQ.data?.attendance ?? [];
 
-  // Build shift count map by staffId and shiftName (صباحي/ليلي) from roster
-  // Filter by selected date range
+  // Filter roster by selected date range
   const filteredShiftSchedule = shiftSchedule.filter((entry: any) => {
     const d = String(entry.workDate).slice(0, 10);
     return (!fromDate || d >= fromDate) && (!toDate || d <= toDate);
-  });
-  const shiftCountByStaffShift: Record<string, number> = {};
-  filteredShiftSchedule.forEach((entry: any) => {
-    const key = `${entry.staffId}_${entry.shiftName}`;
-    shiftCountByStaffShift[key] = (shiftCountByStaffShift[key] ?? 0) + 1;
   });
 
   const rows: any[] = (section === "مركز" ? centerQ : clinicQ).data ?? [];
@@ -177,34 +171,34 @@ export default function PayrollReport() {
     String(r.empCd).startsWith("shift_"),
   );
 
-  // Build enhanced shift rows with day/night breakdown from roster
+  // Build enhanced shift rows from actual roster data (any shift name) + computed payroll
   const enhancedShiftRows = shiftStaff.map((staff: any) => {
-    // Get shift counts from roster (shift-schedule)
-    const dayCount = shiftCountByStaffShift[`${staff.id}_Morning`] ?? 0;
-    const nightCount = shiftCountByStaffShift[`${staff.id}_Night`] ?? 0;
-    const dayRate = staff.ratePerShift ?? 0;
-    const nightRate = staff.ratePerShift ?? 0;
-
-    const dayTotal = dayCount * dayRate;
-    const nightTotal = nightCount * nightRate;
-    const totalPay = dayTotal + nightTotal;
-
-    // Find corresponding payroll row for deductions
     const payrollRow = rows.find((r: any) => r.empCd === `shift_${staff.id}`);
+
+    // Aggregate ALL actual schedule entries for this staff member
+    const staffEntries = filteredShiftSchedule.filter((e: any) => e.staffId === staff.id);
+    const totalScheduled = staffEntries.length;
+    const totalAbsent = staffEntries.filter((e: any) => !e.present).length;
+
+    // Use computed payroll values (correct big/small rates) when available
+    const basicSalary = payrollRow?.basicSalary != null ? Number(payrollRow.basicSalary) : totalScheduled * (staff.ratePerShift ?? 0);
+    const absentDeduction = payrollRow?.absentDeduction != null ? Number(payrollRow.absentDeduction) : totalAbsent * (staff.ratePerShift ?? 0);
+    const totalDeductions = payrollRow?.totalDeductions != null ? Number(payrollRow.totalDeductions) : absentDeduction;
+    const netBasic = payrollRow?.netBasic != null ? Number(payrollRow.netBasic) : basicSalary - totalDeductions;
 
     return {
       id: staff.id,
       fullName: staff.name,
       type: staff.type,
-      shiftDayCount: dayCount,
-      shiftDayRate: dayRate,
-      shiftDayTotal: dayTotal,
-      shiftNightCount: nightCount,
-      shiftNightRate: nightRate,
-      shiftNightTotal: nightTotal,
-      totalDeductions: payrollRow?.totalDeductions ?? 0,
-      leaveMultiplier: payrollRow?.leaveMultiplier ?? 1,
-      netBasic: totalPay - (payrollRow?.totalDeductions ?? 0),
+      shiftDayCount: totalScheduled,
+      shiftDayRate: staff.ratePerShift ?? 0,
+      shiftDayTotal: basicSalary,
+      shiftNightCount: totalAbsent,
+      shiftNightRate: staff.ratePerShift ?? 0,
+      shiftNightTotal: absentDeduction,
+      totalDeductions,
+      leaveMultiplier: payrollRow?.leaveMultiplier != null ? Number(payrollRow.leaveMultiplier) : 1,
+      netBasic,
     };
   });
 
@@ -1362,22 +1356,22 @@ export default function PayrollReport() {
                         الموظف
                       </th>
                       <th className="px-3 py-3 text-center font-medium text-muted-foreground">
-                        شفت نهاري
+                        مجدول
                       </th>
                       <th className="px-3 py-3 text-center font-medium text-muted-foreground">
                         قيمة
                       </th>
                       <th className="px-3 py-3 text-center font-medium text-muted-foreground">
-                        إجمالي
+                        الأساسي
                       </th>
                       <th className="px-3 py-3 text-center font-medium text-muted-foreground">
-                        شفت مسائي
+                        غياب
                       </th>
                       <th className="px-3 py-3 text-center font-medium text-muted-foreground">
                         قيمة
                       </th>
                       <th className="px-3 py-3 text-center font-medium text-muted-foreground">
-                        إجمالي
+                        خصم الغياب
                       </th>
                       <th className="px-3 py-3 text-center font-medium text-muted-foreground">
                         الخصومات
@@ -1530,10 +1524,10 @@ export default function PayrollReport() {
 
                       {isExpanded && (
                         <div className="mt-4 pt-4 border-t border-border/40 space-y-3 text-xs">
-                          {/* Morning Shift details */}
+                          {/* Scheduled shifts */}
                           <div className="bg-muted/30 p-2.5 rounded-lg space-y-1.5">
                             <div className="font-medium text-foreground">
-                              شفت نهاري
+                              مجدول
                             </div>
                             <div className="grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
                               <div>
@@ -1557,10 +1551,10 @@ export default function PayrollReport() {
                             </div>
                           </div>
 
-                          {/* Night Shift details */}
+                          {/* Absent shifts */}
                           <div className="bg-muted/30 p-2.5 rounded-lg space-y-1.5">
                             <div className="font-medium text-foreground">
-                              شفت مسائي
+                              غياب
                             </div>
                             <div className="grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
                               <div>
