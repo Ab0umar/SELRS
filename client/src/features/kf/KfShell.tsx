@@ -110,7 +110,7 @@ function fmtCount(value: number | undefined | null) {
 export default function KfShell({ children }: KfShellProps) {
   const [location] = useLocation();
   const { canAccess } = usePermissions();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;

@@ -138,7 +138,7 @@ const mobileNavItems = [
 
 export default function SalaryLayout({ children }: SalaryLayoutProps) {
   const [location] = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   const now = new Date();
   const summaryQ = (trpc as any).salary.monthSummary.useQuery(

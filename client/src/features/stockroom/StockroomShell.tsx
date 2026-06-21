@@ -98,7 +98,7 @@ function isItemActive(pathname: string, activeFor: string[]) {
 export default function StockroomShell() {
   const [location] = useLocation();
   const { canAccess } = usePermissions();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   const reportsQuery = trpc.stockroom.getReports.useQuery(
     {},

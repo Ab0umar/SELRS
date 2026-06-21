@@ -339,7 +339,7 @@ function isItemActive(pathname: string, activeFor: string[]) {
 export default function AdminHubShell() {
   const [location] = useLocation();
   const { canAccess } = usePermissions();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const opsHealthQuery = trpc.medical.getOpsHealth.useQuery(undefined, {
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,

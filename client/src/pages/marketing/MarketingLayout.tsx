@@ -61,7 +61,7 @@ function isActive(pathname: string, href: string, exact: boolean) {
 
 export default function MarketingLayout({ children }: MarketingLayoutProps) {
   const [location] = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   return (
     <div

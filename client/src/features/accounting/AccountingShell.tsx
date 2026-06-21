@@ -163,7 +163,7 @@ const mobileNavItems = [
 
 export default function AccountingShell({ children }: AccountingShellProps) {
   const [location] = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const { canAccess } = usePermissions();
 
   const now = new Date();

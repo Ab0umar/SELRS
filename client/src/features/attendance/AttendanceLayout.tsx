@@ -102,7 +102,7 @@ const mobileNavItems = [
 
 export default function AttendanceLayout({ children, fullWidth }: AttendanceLayoutProps) {
   const [location] = useLocation();
-  const [collapsed, setCollapsed] = useState(fullWidth ?? false);
+  const [collapsed, setCollapsed] = useState(true);
 
   const deviceQuery = (trpc as any).attendance.deviceStatus.useQuery(
     undefined,
