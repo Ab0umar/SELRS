@@ -1313,7 +1313,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  computeShiftPayroll: makeSalaryWriteProcedure("/salary/payroll")
+  computeShiftPayroll: makeSalaryProcedure("/salary/payroll")
     .input(z.object({ year: z.number(), month: z.number(), fromDate: z.string().optional(), toDate: z.string().optional() }))
     .query(async ({ input }) => {
       const db = await getDb();

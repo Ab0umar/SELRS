@@ -120,29 +120,15 @@ export default function PayrollReport() {
     return acc;
   }, {});
 
-  // Fetch shift staff data, roster, and shift definitions for big/small classification
+  // Fetch shift staff data, live shift payroll (has byShift big/small breakdown), and roster
   const shiftStaffQ = (trpc as any).salary.listShiftStaff.useQuery();
   const shiftScheduleQ = (trpc as any).salary.getShiftSchedule.useQuery({ year, month });
-  const shiftDefsQ = (trpc as any).salary.listShiftDefinitions.useQuery();
+  const shiftPayrollQ = (trpc as any).salary.computeShiftPayroll.useQuery({
+    year, month, fromDate, toDate,
+  });
   const shiftStaff: any[] = shiftStaffQ.data ?? [];
   const shiftSchedule: any[] = shiftScheduleQ.data?.attendance ?? [];
-  const shiftDefs: any[] = shiftDefsQ.data ?? [];
-
-  // Build shift name → size map from definitions
-  const shiftSizeMap = new Map<string, "big" | "small">();
-  for (const sd of shiftDefs) {
-    let size: "big" | "small" = "big";
-    if (sd.shiftSize === "big") size = "big";
-    else if (sd.shiftSize === "small") size = "small";
-    else if (sd.startTime && sd.endTime) {
-      const [sh, sm] = String(sd.startTime).split(":").map(Number);
-      const [eh, em] = String(sd.endTime).split(":").map(Number);
-      let dur = (eh * 60 + em) - (sh * 60 + sm);
-      if (dur < 0) dur += 24 * 60;
-      size = dur < (sd.autoSmallThresholdMin ?? 270) ? "small" : "big";
-    }
-    shiftSizeMap.set(sd.name as string, size);
-  }
+  const shiftPayrollRows: any[] = shiftPayrollQ.data ?? [];
 
   // getShiftSchedule already scopes to year/month; no extra date filter needed
   const filteredShiftSchedule = shiftSchedule;
@@ -183,26 +169,36 @@ export default function PayrollReport() {
     String(r.empCd).startsWith("shift_"),
   );
 
-  // Build enhanced shift rows from roster data (filteredShiftSchedule) + saved payroll
+  // Build enhanced shift rows using computeShiftPayroll byShift for big/small split
   const enhancedShiftRows = shiftStaff.map((staff: any) => {
+    const liveRow = shiftPayrollRows.find((r: any) => Number(r.id) === Number(staff.id));
     const payrollRow = rows.find((r: any) => r.empCd === `shift_${staff.id}`);
 
     const rateBig = Number(staff.ratePerShift ?? 0);
     const rateSmall = Number(staff.rateSmallShift ?? 0) || rateBig;
 
-    // Count big/small scheduled shifts from roster for this staff member
-    const staffEntries = filteredShiftSchedule.filter(
-      (e: any) => Number(e.staffId) === Number(staff.id),
-    );
-    let bigScheduled = 0;
-    let smallScheduled = 0;
-    for (const e of staffEntries) {
-      const size = shiftSizeMap.get(e.shiftName) ?? "big";
-      if (size === "small") smallScheduled++;
-      else bigScheduled++;
+    // Use byShift from computeShiftPayroll to split big vs small by rate
+    const byShift: Record<string, { scheduled: number; rate: number }> = liveRow?.byShift ?? {};
+    let bigScheduled = 0, bigTotal = 0, smallScheduled = 0, smallTotal = 0;
+    for (const b of Object.values(byShift) as any[]) {
+      const cnt = Number(b.scheduled);
+      const rate = Number(b.rate);
+      if (rateSmall !== rateBig && Math.abs(rate - rateSmall) < Math.abs(rate - rateBig)) {
+        smallScheduled += cnt;
+        smallTotal += cnt * rate;
+      } else {
+        bigScheduled += cnt;
+        bigTotal += cnt * rate;
+      }
     }
-    const bigTotal = bigScheduled * rateBig;
-    const smallTotal = smallScheduled * rateSmall;
+    // Fallback to roster count if computeShiftPayroll not loaded yet
+    if (!liveRow) {
+      const staffEntries = filteredShiftSchedule.filter(
+        (e: any) => Number(e.staffId) === Number(staff.id),
+      );
+      bigScheduled = staffEntries.length;
+      bigTotal = bigScheduled * rateBig;
+    }
 
     const basicSalary = bigTotal + smallTotal;
     const totalDeductions = payrollRow?.totalDeductions != null ? Number(payrollRow.totalDeductions) : 0;
