@@ -270,13 +270,13 @@ export async function generateMarketingContent(
   const apiKey = ENV.geminiApiKey;
 
   if (!apiKey) {
-    console.warn("[marketing] GEMINI_API_KEY not set — using fallback content");
-    return makeFallback(topic, day, brandProfile, clinicName, postIndex);
+    throw new Error("GEMINI_API_KEY is not configured on the server");
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
+  // gemini-2.0-flash is stable and widely available; 2.5-flash may not be enabled on all keys
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
+    model: "gemini-2.0-flash",
     generationConfig: {
       temperature: 1.4,
       maxOutputTokens: 1400,
@@ -287,24 +287,23 @@ export async function generateMarketingContent(
 
   const prompt = buildPrompt(topic, day, brandProfile, clinicName, postIndex);
 
+  let text: string;
   try {
     const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    const parsed = parseSafeJson(text);
-
-    if (!parsed || !parsed.title || !parsed.content) {
-      const snippet = text.slice(0, 300);
-      console.warn("[marketing] Gemini returned unexpected structure:", snippet);
-      throw new Error(`Gemini returned unparseable response: ${snippet}`);
-    }
-
-    // Always build imagePrompt from brand profile + topic hint — never rely on
-    // what Gemini text-generated since it lacks the full visual identity data
-    parsed.imagePrompt = buildFinalImagePrompt(topic, brandProfile);
-
-    return parsed;
+    text = result.response.text();
   } catch (err) {
-    // Re-throw so the router can surface the real error to the UI
-    throw err;
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`Gemini API error: ${msg}`);
   }
+
+  const parsed = parseSafeJson(text);
+  if (!parsed || !parsed.title || !parsed.content) {
+    throw new Error(`Gemini returned unparseable response: ${text.slice(0, 300)}`);
+  }
+
+  // Always build imagePrompt from brand profile + topic hint — never rely on
+  // what Gemini text-generated since it lacks the full visual identity data
+  parsed.imagePrompt = buildFinalImagePrompt(topic, brandProfile);
+
+  return parsed;
 }
