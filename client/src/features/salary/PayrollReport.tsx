@@ -120,20 +120,31 @@ export default function PayrollReport() {
     return acc;
   }, {});
 
-  // Fetch shift staff data and live shift payroll (handles punch days without roster)
+  // Fetch shift staff data, roster, and shift definitions for big/small classification
   const shiftStaffQ = (trpc as any).salary.listShiftStaff.useQuery();
   const shiftScheduleQ = (trpc as any).salary.getShiftSchedule.useQuery({ year, month });
-  const shiftPayrollQ = (trpc as any).salary.computeShiftPayroll.useQuery({
-    year,
-    month,
-    fromDate,
-    toDate,
-  });
+  const shiftDefsQ = (trpc as any).salary.listShiftDefinitions.useQuery();
   const shiftStaff: any[] = shiftStaffQ.data ?? [];
   const shiftSchedule: any[] = shiftScheduleQ.data?.attendance ?? [];
-  const shiftPayrollRows: any[] = shiftPayrollQ.data ?? [];
+  const shiftDefs: any[] = shiftDefsQ.data ?? [];
 
-  // Filter roster by selected date range (used for schedule view only)
+  // Build shift name → size map from definitions
+  const shiftSizeMap = new Map<string, "big" | "small">();
+  for (const sd of shiftDefs) {
+    let size: "big" | "small" = "big";
+    if (sd.shiftSize === "big") size = "big";
+    else if (sd.shiftSize === "small") size = "small";
+    else if (sd.startTime && sd.endTime) {
+      const [sh, sm] = String(sd.startTime).split(":").map(Number);
+      const [eh, em] = String(sd.endTime).split(":").map(Number);
+      let dur = (eh * 60 + em) - (sh * 60 + sm);
+      if (dur < 0) dur += 24 * 60;
+      size = dur < (sd.autoSmallThresholdMin ?? 270) ? "small" : "big";
+    }
+    shiftSizeMap.set(sd.name as string, size);
+  }
+
+  // Filter roster by selected date range
   const filteredShiftSchedule = shiftSchedule.filter((entry: any) => {
     const d = String(entry.workDate).slice(0, 10);
     return (!fromDate || d >= fromDate) && (!toDate || d <= toDate);
@@ -175,38 +186,31 @@ export default function PayrollReport() {
     String(r.empCd).startsWith("shift_"),
   );
 
-  // Build enhanced shift rows from live computeShiftPayroll data
-  // This correctly counts punch days even when no roster entry exists
+  // Build enhanced shift rows from roster data (filteredShiftSchedule) + saved payroll
   const enhancedShiftRows = shiftStaff.map((staff: any) => {
-    const liveRow = shiftPayrollRows.find((r: any) => r.id === staff.id);
     const payrollRow = rows.find((r: any) => r.empCd === `shift_${staff.id}`);
 
     const rateBig = Number(staff.ratePerShift ?? 0);
     const rateSmall = Number(staff.rateSmallShift ?? 0) || rateBig;
 
-    // Pull big/small counts from live byShift breakdown
-    const byShift: Record<string, { scheduled: number; attended: number; rate: number }> =
-      liveRow?.byShift ?? {};
+    // Count big/small scheduled shifts from roster for this staff member
+    const staffEntries = filteredShiftSchedule.filter(
+      (e: any) => Number(e.staffId) === Number(staff.id),
+    );
     let bigScheduled = 0;
-    let bigTotal = 0;
     let smallScheduled = 0;
-    let smallTotal = 0;
-    for (const [, b] of Object.entries(byShift)) {
-      const bv = b as any;
-      if (Math.abs(Number(bv.rate) - rateSmall) < 0.01 && rateSmall !== rateBig) {
-        smallScheduled += Number(bv.scheduled);
-        smallTotal += Number(bv.scheduled) * Number(bv.rate);
-      } else {
-        bigScheduled += Number(bv.scheduled);
-        bigTotal += Number(bv.scheduled) * Number(bv.rate);
-      }
+    for (const e of staffEntries) {
+      const size = shiftSizeMap.get(e.shiftName) ?? "big";
+      if (size === "small") smallScheduled++;
+      else bigScheduled++;
     }
+    const bigTotal = bigScheduled * rateBig;
+    const smallTotal = smallScheduled * rateSmall;
 
-    const basicSalary = liveRow?.basicSalary ?? (bigTotal + smallTotal);
-    const totalDeductions = payrollRow?.totalDeductions != null ? Number(payrollRow.totalDeductions)
-      : (liveRow?.absentDeduction ?? 0) + (liveRow?.punchDeduction ?? 0);
+    const basicSalary = bigTotal + smallTotal;
+    const totalDeductions = payrollRow?.totalDeductions != null ? Number(payrollRow.totalDeductions) : 0;
     const netBasic = payrollRow?.netBasic != null ? Number(payrollRow.netBasic)
-      : liveRow?.totalPay ?? (basicSalary - totalDeductions);
+      : basicSalary - totalDeductions;
 
     return {
       id: staff.id,
