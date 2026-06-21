@@ -120,34 +120,20 @@ export default function PayrollReport() {
     return acc;
   }, {});
 
-  // Fetch shift staff data, roster schedule, and shift definitions
+  // Fetch shift staff data and live shift payroll (handles punch days without roster)
   const shiftStaffQ = (trpc as any).salary.listShiftStaff.useQuery();
-  const shiftScheduleQ = (trpc as any).salary.getShiftSchedule.useQuery({
+  const shiftScheduleQ = (trpc as any).salary.getShiftSchedule.useQuery({ year, month });
+  const shiftPayrollQ = (trpc as any).salary.computeShiftPayroll.useQuery({
     year,
     month,
+    fromDate,
+    toDate,
   });
-  const shiftDefsQ = (trpc as any).salary.listShiftDefinitions.useQuery();
   const shiftStaff: any[] = shiftStaffQ.data ?? [];
   const shiftSchedule: any[] = shiftScheduleQ.data?.attendance ?? [];
+  const shiftPayrollRows: any[] = shiftPayrollQ.data ?? [];
 
-  // Build shift-name → size map (big/small) from shift definitions
-  const shiftSizeMap = new Map<string, "big" | "small">();
-  for (const sd of (shiftDefsQ.data ?? []) as any[]) {
-    let size: "big" | "small" = "big";
-    if (sd.shiftSize === "big") size = "big";
-    else if (sd.shiftSize === "small") size = "small";
-    else {
-      const [sh, sm] = (sd.startTime as string).split(":").map(Number);
-      const [eh, em] = (sd.endTime as string).split(":").map(Number);
-      let dur = eh * 60 + em - (sh * 60 + sm);
-      if (dur < 0) dur += 24 * 60;
-      const threshold = sd.autoSmallThresholdMin ?? 270;
-      size = dur < threshold ? "small" : "big";
-    }
-    shiftSizeMap.set(sd.name as string, size);
-  }
-
-  // Filter roster by selected date range
+  // Filter roster by selected date range (used for schedule view only)
   const filteredShiftSchedule = shiftSchedule.filter((entry: any) => {
     const d = String(entry.workDate).slice(0, 10);
     return (!fromDate || d >= fromDate) && (!toDate || d <= toDate);
@@ -189,25 +175,38 @@ export default function PayrollReport() {
     String(r.empCd).startsWith("shift_"),
   );
 
-  // Build enhanced shift rows: big/small breakdown from roster + computed payroll financials
+  // Build enhanced shift rows from live computeShiftPayroll data
+  // This correctly counts punch days even when no roster entry exists
   const enhancedShiftRows = shiftStaff.map((staff: any) => {
+    const liveRow = shiftPayrollRows.find((r: any) => r.id === staff.id);
     const payrollRow = rows.find((r: any) => r.empCd === `shift_${staff.id}`);
 
-    // Split schedule entries by shift size (big/small)
-    const staffEntries = filteredShiftSchedule.filter((e: any) => e.staffId === staff.id);
-    const bigEntries = staffEntries.filter((e: any) => (shiftSizeMap.get(e.shiftName) ?? "big") === "big");
-    const smallEntries = staffEntries.filter((e: any) => shiftSizeMap.get(e.shiftName) === "small");
-
-    const bigScheduled = bigEntries.length;
-    const smallScheduled = smallEntries.length;
     const rateBig = Number(staff.ratePerShift ?? 0);
     const rateSmall = Number(staff.rateSmallShift ?? 0) || rateBig;
 
-    // Use computed payroll for financial values (correctly handles big/small rates)
-    const basicSalary = payrollRow?.basicSalary != null ? Number(payrollRow.basicSalary)
-      : bigScheduled * rateBig + smallScheduled * rateSmall;
-    const totalDeductions = payrollRow?.totalDeductions != null ? Number(payrollRow.totalDeductions) : 0;
-    const netBasic = payrollRow?.netBasic != null ? Number(payrollRow.netBasic) : basicSalary - totalDeductions;
+    // Pull big/small counts from live byShift breakdown
+    const byShift: Record<string, { scheduled: number; attended: number; rate: number }> =
+      liveRow?.byShift ?? {};
+    let bigScheduled = 0;
+    let bigTotal = 0;
+    let smallScheduled = 0;
+    let smallTotal = 0;
+    for (const [, b] of Object.entries(byShift)) {
+      const bv = b as any;
+      if (Math.abs(Number(bv.rate) - rateSmall) < 0.01 && rateSmall !== rateBig) {
+        smallScheduled += Number(bv.scheduled);
+        smallTotal += Number(bv.scheduled) * Number(bv.rate);
+      } else {
+        bigScheduled += Number(bv.scheduled);
+        bigTotal += Number(bv.scheduled) * Number(bv.rate);
+      }
+    }
+
+    const basicSalary = liveRow?.basicSalary ?? (bigTotal + smallTotal);
+    const totalDeductions = payrollRow?.totalDeductions != null ? Number(payrollRow.totalDeductions)
+      : (liveRow?.absentDeduction ?? 0) + (liveRow?.punchDeduction ?? 0);
+    const netBasic = payrollRow?.netBasic != null ? Number(payrollRow.netBasic)
+      : liveRow?.totalPay ?? (basicSalary - totalDeductions);
 
     return {
       id: staff.id,
@@ -215,10 +214,10 @@ export default function PayrollReport() {
       type: staff.type,
       shiftDayCount: bigScheduled,
       shiftDayRate: rateBig,
-      shiftDayTotal: bigScheduled * rateBig,
+      shiftDayTotal: bigTotal,
       shiftNightCount: smallScheduled,
       shiftNightRate: rateSmall,
-      shiftNightTotal: smallScheduled * rateSmall,
+      shiftNightTotal: smallTotal,
       totalDeductions,
       leaveMultiplier: payrollRow?.leaveMultiplier != null ? Number(payrollRow.leaveMultiplier) : 1,
       netBasic,
