@@ -56,12 +56,12 @@ async function generateWithOpenAI(
   // dall-e-3 with hd quality produces far better photorealistic marketing images.
   // gpt-image-1 edit endpoint is for inpainting, not style transfer — avoid it.
   const response = await client.images.generate({
-    model: "dall-e-3",
+    model: "gpt-image-1",
     prompt,
     n: 1,
     size: "1024x1024",
-    quality: "hd",
-  } as any);
+    quality: "high",
+  });
 
   const item = response.data?.[0];
   if (!item) throw new Error("dall-e-3 returned no image data");
