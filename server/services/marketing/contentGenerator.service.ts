@@ -170,10 +170,7 @@ function buildPrompt(
   const category = DAY_CATEGORY_LABELS[day];
   const style = pickStyle(topic, postIndex);
 
-  const imagePromptInstruction = brandProfile
-    ? `"imagePrompt": "Professional medical marketing photograph. Visual: ${TOPIC_IMAGE_HINTS[topic] ?? `ophthalmology clinic, topic: ${topic}`}. Brand colors: ${brandProfile.dominantColors}, style: ${brandProfile.brandingStyle}. No text, no Arabic writing on image. Photorealistic."`
-    : `"imagePrompt": "${buildImagePrompt(topic, null)}"`;
-
+  // imagePrompt is intentionally excluded — we generate it from brand DNA after parsing
   const seed = Math.random().toString(36).slice(2, 10);
   return `أنت كاتب محتوى إبداعي متخصص في السوشيال ميديا الطبية المصرية. مهمتك: اكتب بوست Facebook مختلف تماماً عن أي بوست كتبته قبل كده. [جلسة: ${seed}]
 
@@ -200,8 +197,7 @@ function buildPrompt(
   "idea": "الفكرة التسويقية الرئيسية في جملة واحدة",
   "content": "نص البوست كامل بالعامية المصرية",
   "cta": "كول تو أكشن قصير وطبيعي بالعامية",
-  "hashtags": "6-8 هاشتاقات عربي وإنجليزي",
-  ${imagePromptInstruction}
+  "hashtags": "6-8 هاشتاقات عربي وإنجليزي"
 }`;
 }
 
@@ -279,7 +275,7 @@ export async function generateMarketingContent(
     model: "gemini-2.0-flash",
     generationConfig: {
       temperature: 1.4,
-      maxOutputTokens: 1400,
+      maxOutputTokens: 2048,
       // No responseMimeType — JSON mode kills creativity and causes repetition.
       // parseSafeJson() handles extraction from free-form text.
     },
