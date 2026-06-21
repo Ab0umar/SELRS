@@ -647,14 +647,14 @@ export default function ShiftSchedule() {
                               className={`sticky top-0 z-20 border-l border-border px-0 py-0 text-center ${holiday ? "bg-warning/10" : "bg-background"}`}
                               title={holiday?.name || undefined}
                             >
-                              <div className="flex h-full min-h-10 flex-col justify-center px-0.5 py-1">
+                              <div className="flex h-full min-h-10 flex-col items-center justify-center px-0.5 py-1">
                                 <div
-                                  className={`text-[10px] font-semibold leading-tight ${holiday ? "text-warning" : "text-foreground"}`}
+                                  className={`text-[10px] font-semibold leading-none ${holiday ? "text-warning" : "text-foreground"}`}
                                 >
                                   {DAYS_AR[dow]}
                                 </div>
                                 <div
-                                  className={`text-[10px] tabular-nums ${holiday ? "text-warning" : "text-muted-foreground"}`}
+                                  className={`text-[10px] tabular-nums leading-none mt-0.5 ${holiday ? "text-warning" : "text-muted-foreground"}`}
                                 >
                                   {fmtDate(ds)}
                                 </div>
@@ -775,7 +775,7 @@ export default function ShiftSchedule() {
                                   {(isMyRow || isManager) &&
                                     entries.length === 0 &&
                                     !isHoliday && (
-                                      <div className="flex w-full gap-1">
+                                      <div className="flex w-full flex-col gap-0.5">
                                         {(
                                           ["Morning", "Night"] as ShiftName[]
                                         ).map((shiftName) => (
