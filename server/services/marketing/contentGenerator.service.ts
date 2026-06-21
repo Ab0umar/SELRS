@@ -130,6 +130,34 @@ function buildImagePrompt(
   return `Professional medical marketing photograph for an Arabic ophthalmology center. Visual: ${hint}. ${brandPart} Ultra-high quality, no text, no Arabic writing, no words, no numbers on the image. Photorealistic, cinematic lighting. Medical center branding aesthetic.`;
 }
 
+// ─── Final image prompt builder (brand DNA + topic hint) ─────────────────────
+
+function buildFinalImagePrompt(
+  topic: string,
+  brandProfile: PartialBrandProfile | null,
+): string {
+  const topicHint =
+    TOPIC_IMAGE_HINTS[topic] ??
+    `professional ophthalmology clinic setting related to "${topic}", medical photography`;
+
+  if (!brandProfile) {
+    return `Professional medical marketing photograph for Arabic ophthalmology center. Visual: ${topicHint}. Color palette: deep blue, white, clean medical tones. No text, no Arabic writing, photorealistic, cinematic lighting.`;
+  }
+
+  return `Create a professional marketing image for an Arabic ophthalmology center.
+
+Visual subject: ${topicHint}
+
+STRICTLY match this brand's visual identity — do NOT produce generic medical stock imagery:
+- Color palette: ${brandProfile.dominantColors ?? "professional blues and whites"}
+- Layout & composition: ${brandProfile.imageComposition ?? "centered, professional"}
+- Branding personality: ${brandProfile.brandingStyle ?? "trustworthy, clinical"}
+- Medical visual style: ${brandProfile.medicalVisualStyle ?? "real clinical photography"}
+- Overall brand aesthetic: ${brandProfile.overallAesthetic ?? "clean, modern ophthalmology center"}
+
+The result must look like it belongs to this brand's design family. Fresh composition — do not copy any existing design. No text, no Arabic writing, no overlaid words. Photorealistic, cinematic lighting, ultra high quality.`.trim();
+}
+
 // ─── Prompt builder ───────────────────────────────────────────────────────────
 
 function buildPrompt(
@@ -222,7 +250,7 @@ function makeFallback(
     content: `✨ ${topic}\n\nعيونك أغلى حاجة عندك، متهملهاش! 👁️\n\nفي ${clinicName} عندنا فريق متخصص في ${category} بأحدث التقنيات وخبرة طويلة.\n\n🔬 تشخيص دقيق\n💡 تقنيات حديثة\n❤️ رعاية كاملة لعيونك\n\nصحتك أمانة — اتصل بينا دلوقتي.`,
     cta,
     hashtags: `#${topic.replace(/\s+/g, "_")} #طب_العيون #${tag} #صحة_العيون #الليزك #ophthalmology`,
-    imagePrompt: buildImagePrompt(topic, brandProfile),
+    imagePrompt: buildFinalImagePrompt(topic, brandProfile),
   };
 }
 
@@ -267,10 +295,9 @@ export async function generateMarketingContent(
       return makeFallback(topic, day, brandProfile, clinicName, postIndex);
     }
 
-    // Override imagePrompt with a stronger one if Gemini's is too short
-    if (!parsed.imagePrompt || parsed.imagePrompt.length < 60) {
-      parsed.imagePrompt = buildImagePrompt(topic, brandProfile);
-    }
+    // Always build imagePrompt from brand profile + topic hint — never rely on
+    // what Gemini text-generated since it lacks the full visual identity data
+    parsed.imagePrompt = buildFinalImagePrompt(topic, brandProfile);
 
     return parsed;
   } catch (err) {
