@@ -89,7 +89,7 @@ export default function MarketingLayout({ children }: MarketingLayoutProps) {
       {/* Body */}
       <div className="flex flex-col lg:flex-row">
         {/* Sidebar */}
-        <aside className={`hidden lg:block border-b border-border bg-card/50 lg:border-b-0 lg:border-r transition-all duration-200 ${collapsed ? "w-auto shrink-0" : "w-full lg:w-64"}`}>
+        <aside className={`hidden lg:flex lg:flex-col border-b border-border bg-card/50 lg:border-b-0 lg:border-r transition-all duration-200 shrink-0 ${collapsed ? "w-14" : "w-64"}`}>
           <nav className={`sticky top-4 ${collapsed ? "p-1 space-y-1" : "space-y-1 p-3 sm:p-4"}`}>
             {/* Toggle button */}
             <div className={`flex ${collapsed ? "justify-center" : "justify-end"} mb-2`}>
