@@ -190,19 +190,14 @@ export default function PayrollReport() {
     const rateBig = Number(staff.ratePerShift ?? 0);
     const rateSmall = Number(staff.rateSmallShift ?? 0) || rateBig;
 
-    // Count big/small scheduled shifts from roster for this staff member
+    // All shifts counted as big
     const staffEntries = filteredShiftSchedule.filter(
       (e: any) => Number(e.staffId) === Number(staff.id),
     );
-    let bigScheduled = 0;
-    let smallScheduled = 0;
-    for (const e of staffEntries) {
-      const size = shiftSizeMap.get(e.shiftName) ?? "big";
-      if (size === "small") smallScheduled++;
-      else bigScheduled++;
-    }
+    const bigScheduled = staffEntries.length;
+    const smallScheduled = 0;
     const bigTotal = bigScheduled * rateBig;
-    const smallTotal = smallScheduled * rateSmall;
+    const smallTotal = 0;
 
     const basicSalary = bigTotal + smallTotal;
     const totalDeductions = payrollRow?.totalDeductions != null ? Number(payrollRow.totalDeductions) : 0;
