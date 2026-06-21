@@ -6,8 +6,11 @@ import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  BookImage,
   FileText,
   ImageIcon,
   Loader2,
@@ -28,6 +31,7 @@ export default function DraftPosts() {
   const [imageGenId, setImageGenId] = useState<number | null>(null);
   const [limit, setLimit] = useState(25);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [pickerPostId, setPickerPostId] = useState<number | null>(null);
 
   const utils = trpc.useUtils();
 
@@ -73,7 +77,22 @@ export default function DraftPosts() {
     onError: (err: { message: string }) => toast.error(err.message),
   });
 
+  const updatePostMutation = trpc.marketing.updatePost.useMutation({
+    onSuccess: () => {
+      toast.success("تم تعيين صورة القالب");
+      setPickerPostId(null);
+      void utils.marketing.listPosts.invalidate();
+    },
+    onError: (err: { message: string }) => toast.error(err.message),
+  });
+
+  const designsQuery = trpc.marketing.listReferenceDesigns.useQuery(
+    undefined,
+    { enabled: pickerPostId !== null },
+  );
+
   const posts = listQuery.data ?? [];
+  const designs = designsQuery.data ?? [];
 
   return (
     <div className="space-y-4">
@@ -208,6 +227,17 @@ export default function DraftPosts() {
 
                   {/* Actions */}
                   <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {/* Pick from brand library — always visible */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 text-xs border-primary/30 text-primary hover:bg-primary/5"
+                      onClick={() => setPickerPostId(post.id)}
+                    >
+                      <BookImage className="h-3 w-3" />
+                      اختر من المكتبة
+                    </Button>
+
                     {post.imagePrompt && (
                       <Button
                         size="sm"
@@ -228,7 +258,7 @@ export default function DraftPosts() {
                         ) : (
                           <ImageIcon className="h-3 w-3" />
                         )}
-                        {post.imageUrl ? "إعادة توليد الصورة" : "توليد صورة"}
+                        {post.imageUrl ? "توليد AI" : "توليد AI"}
                       </Button>
                     )}
 
@@ -280,6 +310,51 @@ export default function DraftPosts() {
           </>
         )}
       </div>
+
+      {/* Brand library picker */}
+      <Dialog open={pickerPostId !== null} onOpenChange={(open) => { if (!open) setPickerPostId(null); }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>اختر صورة من مكتبة التصميمات</DialogTitle>
+          </DialogHeader>
+          {designsQuery.isLoading ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : designs.length === 0 ? (
+            <div className="py-10 text-center text-sm text-muted-foreground">
+              لا توجد تصميمات في المكتبة — ارفع تصاميمك في صفحة مكتبة العلامة التجارية
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {designs.map((d: any) => (
+                <button
+                  key={d.id}
+                  type="button"
+                  className="group relative overflow-hidden rounded-lg border-2 border-transparent hover:border-primary transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  onClick={() => {
+                    if (pickerPostId !== null) {
+                      updatePostMutation.mutate({ id: pickerPostId, imageUrl: d.fileUrl });
+                    }
+                  }}
+                  disabled={updatePostMutation.isPending}
+                >
+                  <img
+                    src={d.fileUrl}
+                    alt={d.originalName}
+                    className="aspect-square w-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/10 transition-colors flex items-end">
+                    <p className="w-full truncate bg-black/50 px-2 py-1 text-[11px] text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                      {d.originalName}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Full-image lightbox */}
       <Dialog open={!!lightboxUrl} onOpenChange={(open) => { if (!open) setLightboxUrl(null); }}>
