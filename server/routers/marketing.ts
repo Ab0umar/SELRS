@@ -271,7 +271,7 @@ export const marketingRouter = router({
 
       // Determine topic: explicit override or round-robin from list
       let selectedTopic = input.topic;
-      let postIndex = 0;
+      let postIndex = Math.floor(Math.random() * 10000);
       if (!selectedTopic) {
         const [countRow] = await db
           .select({ total: drizzleCount() })

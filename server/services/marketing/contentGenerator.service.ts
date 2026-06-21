@@ -146,7 +146,8 @@ function buildPrompt(
     ? `"imagePrompt": "Professional medical marketing photograph. Visual: ${TOPIC_IMAGE_HINTS[topic] ?? `ophthalmology clinic, topic: ${topic}`}. Brand colors: ${brandProfile.dominantColors}, style: ${brandProfile.brandingStyle}. No text, no Arabic writing on image. Photorealistic."`
     : `"imagePrompt": "${buildImagePrompt(topic, null)}"`;
 
-  return `أنت كاتب محتوى تسويقي طبي محترف متخصص في السوشيال ميديا المصرية. اكتب بوست Facebook لـ "${clinicName}" لطب العيون والليزك.
+  const seed = Math.random().toString(36).slice(2, 8);
+  return `أنت كاتب محتوى تسويقي طبي محترف متخصص في السوشيال ميديا المصرية. اكتب بوست Facebook لـ "${clinicName}" لطب العيون والليزك. [تنويع: ${seed}]
 
 الموضوع: "${topic}" (ضمن فئة: ${category})
 أسلوب الكتابة المطلوب: **${style.name}**
