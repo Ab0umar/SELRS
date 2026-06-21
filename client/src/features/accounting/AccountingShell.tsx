@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { usePermissions } from "@/hooks/usePermissions";
 import {
@@ -15,6 +15,8 @@ import {
   Users,
   Stethoscope,
   ChevronLeft,
+  PanelRightClose,
+  PanelRightOpen,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
@@ -161,6 +163,7 @@ const mobileNavItems = [
 
 export default function AccountingShell({ children }: AccountingShellProps) {
   const [location] = useLocation();
+  const [collapsed, setCollapsed] = useState(false);
   const { canAccess } = usePermissions();
 
   const now = new Date();
@@ -252,21 +255,32 @@ export default function AccountingShell({ children }: AccountingShellProps) {
       {/* Two-column layout: Sidebar + Content */}
       <div className="flex flex-col lg:flex-row mx-auto w-full max-w-[1600px]">
         {/* Sidebar Navigation (Desktop only) */}
-        <aside className="print:hidden hidden lg:block w-full border-b border-border/60 bg-card/20 lg:w-64 lg:border-b-0 lg:border-r border-border/60 min-h-[calc(100vh-115px)]">
-          <nav className="space-y-4 p-4 sticky top-4">
+        <aside
+          style={{ width: collapsed ? 56 : 256 }}
+          className="print:hidden hidden lg:flex lg:flex-col border-b border-border/60 bg-card/20 lg:border-b-0 lg:border-r border-border/60 min-h-[calc(100vh-115px)] transition-all duration-200 shrink-0 overflow-hidden"
+        >
+          <div className="flex items-center justify-end border-b border-border/40 px-2 py-2">
+            <button
+              onClick={() => setCollapsed((c) => !c)}
+              className="flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              title={collapsed ? "توسيع" : "تصغير"}
+            >
+              {collapsed ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+            </button>
+          </div>
+          <nav className={`flex-1 ${collapsed ? "p-1 space-y-1 pt-2" : "space-y-4 p-4"} sticky top-4`}>
             {navigationSections.map((section) => {
               const visibleItems = section.items.filter((item) => canAccess(item.href));
               if (!visibleItems.length) return null;
               return (
               <div key={section.id} className="space-y-1">
-                {/* Section header */}
+                {!collapsed && (
                 <div className="px-3 py-1">
                   <h3 className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider">
                     {section.label}
                   </h3>
                 </div>
-
-                {/* Section items */}
+                )}
                 <div className="space-y-1">
                   {visibleItems.map((item) => {
                     const itemActive = isItemActive(location, item.activeFor);
@@ -275,21 +289,16 @@ export default function AccountingShell({ children }: AccountingShellProps) {
                       <Link
                         key={item.href}
                         href={item.href}
-                        className={`group flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 ${
+                        title={collapsed ? item.label : undefined}
+                        className={`group flex items-center rounded-lg text-xs transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 ${collapsed ? "justify-center px-2 py-2" : "gap-2.5 px-3 py-2"} ${
                           itemActive
                             ? "bg-primary/10 text-primary font-medium shadow-sm border border-primary/10"
                             : "text-muted-foreground hover:bg-muted/40 hover:text-foreground border border-transparent"
                         }`}
                       >
                         <Icon className={`h-4 w-4 shrink-0 transition-colors ${itemActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`} />
-                        <span className="flex-1 min-w-0 truncate">{item.label}</span>
-                        <ChevronLeft
-                          className={`h-3.5 w-3.5 shrink-0 transition-all opacity-0 ${
-                            itemActive
-                              ? "opacity-100 text-primary translate-x-0"
-                              : "group-hover:opacity-100 group-hover:-translate-x-0.5"
-                          }`}
-                        />
+                        {!collapsed && <span className="flex-1 min-w-0 truncate">{item.label}</span>}
+                        {!collapsed && <ChevronLeft className={`h-3.5 w-3.5 shrink-0 transition-all opacity-0 ${itemActive ? "opacity-100 text-primary" : "group-hover:opacity-100 group-hover:-translate-x-0.5"}`} />}
                       </Link>
                     );
                   })}

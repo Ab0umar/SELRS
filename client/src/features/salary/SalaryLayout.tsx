@@ -225,18 +225,21 @@ export default function SalaryLayout({ children }: SalaryLayoutProps) {
       {/* Two-column layout: Sidebar + Content */}
       <div className="flex flex-col lg:flex-row mx-auto w-full max-w-[1600px]">
         {/* Sidebar Navigation (Desktop only) */}
-        <aside className={`hidden lg:flex lg:flex-col border-b border-border/60 bg-card/20 lg:border-b-0 lg:border-r border-border/60 min-h-[calc(100vh-115px)] transition-all duration-200 shrink-0 ${collapsed ? "w-14" : "w-64"}`}>
-          <nav className={`sticky top-4 ${collapsed ? "p-1 space-y-1" : "space-y-4 p-4"}`}>
-            {/* Toggle button */}
-            <div className={`flex ${collapsed ? "justify-center" : "justify-end"} mb-2`}>
-              <button
-                onClick={() => setCollapsed((c) => !c)}
-                className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors"
-                title={collapsed ? "توسيع الشريط الجانبي" : "تصغير الشريط الجانبي"}
-              >
-                {collapsed ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
-              </button>
-            </div>
+        <aside
+          style={{ width: collapsed ? 56 : 256 }}
+          className="hidden lg:flex lg:flex-col border-b border-border/60 bg-card/20 lg:border-b-0 lg:border-r border-border/60 min-h-[calc(100vh-115px)] transition-all duration-200 shrink-0 overflow-hidden"
+        >
+          {/* Toggle button row */}
+          <div className="flex items-center justify-end border-b border-border/40 px-2 py-2">
+            <button
+              onClick={() => setCollapsed((c) => !c)}
+              className="flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              title={collapsed ? "توسيع" : "تصغير"}
+            >
+              {collapsed ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+            </button>
+          </div>
+          <nav className={`flex-1 ${collapsed ? "p-1 space-y-1 pt-2" : "space-y-4 p-4"}`}>
 
             {navigationSections.map((section) => (
               <div key={section.id} className="space-y-1">
