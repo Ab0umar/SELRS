@@ -174,12 +174,16 @@ function buildPrompt(
     ? `"imagePrompt": "Professional medical marketing photograph. Visual: ${TOPIC_IMAGE_HINTS[topic] ?? `ophthalmology clinic, topic: ${topic}`}. Brand colors: ${brandProfile.dominantColors}, style: ${brandProfile.brandingStyle}. No text, no Arabic writing on image. Photorealistic."`
     : `"imagePrompt": "${buildImagePrompt(topic, null)}"`;
 
-  const seed = Math.random().toString(36).slice(2, 8);
-  return `أنت كاتب محتوى تسويقي طبي محترف متخصص في السوشيال ميديا المصرية. اكتب بوست Facebook لـ "${clinicName}" لطب العيون والليزك. [تنويع: ${seed}]
+  const seed = Math.random().toString(36).slice(2, 10);
+  return `أنت كاتب محتوى إبداعي متخصص في السوشيال ميديا الطبية المصرية. مهمتك: اكتب بوست Facebook مختلف تماماً عن أي بوست كتبته قبل كده. [جلسة: ${seed}]
 
-الموضوع: "${topic}" (ضمن فئة: ${category})
-أسلوب الكتابة المطلوب: **${style.name}**
-تعليمات الأسلوب: ${style.instruction}
+العميل: "${clinicName}" — طب العيون والليزك
+الموضوع: "${topic}" (فئة: ${category})
+
+⚠️ الأسلوب المطلوب هذه المرة تحديداً: **${style.name}** ⚠️
+التزم بهذا الأسلوب حرفياً: ${style.instruction}
+
+لو الأسلوب ده بيطلب منك تبدأ بموقف معين، ابدأ بيه فعلاً. لو بيطلب أسئلة وأجوبة، اعملها. لا تكتب أسلوب عام أو تتجاهل التعليمات.
 
 متطلبات ثابتة:
 - اللغة: العامية المصرية الدارجة — زي ما بتتكلم مع صاحبك في الشارع، مش فصحى رسمية
@@ -274,9 +278,10 @@ export async function generateMarketingContent(
   const model = genAI.getGenerativeModel({
     model: "gemini-2.5-flash",
     generationConfig: {
-      temperature: 0.9,
-      maxOutputTokens: 1200,
-      responseMimeType: "application/json",
+      temperature: 1.4,
+      maxOutputTokens: 1400,
+      // No responseMimeType — JSON mode kills creativity and causes repetition.
+      // parseSafeJson() handles extraction from free-form text.
     },
   });
 
