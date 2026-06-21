@@ -271,14 +271,15 @@ export const marketingRouter = router({
 
       // Determine topic: explicit override or round-robin from list
       let selectedTopic = input.topic;
-      let postIndex = Math.floor(Math.random() * 10000);
+      // postIndex drives style rotation — always random so every generation is different
+      const postIndex = Math.floor(Math.random() * 10000);
       if (!selectedTopic) {
         const [countRow] = await db
           .select({ total: drizzleCount() })
           .from(marketingPosts)
           .where(eq(marketingPosts.postDay, day));
-        postIndex = countRow?.total ?? 0;
-        selectedTopic = pickTopic(day, postIndex);
+        const topicIndex = countRow?.total ?? 0;
+        selectedTopic = pickTopic(day, topicIndex);
       }
 
       // Read brand profile (if available) to guide image prompt generation
