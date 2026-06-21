@@ -618,17 +618,12 @@ export default function ShiftSchedule() {
               )}
 
               <div className="overflow-hidden rounded-2xl border border-border bg-background">
-                <div className="overflow-x-auto">
-                  <table className="w-max min-w-full border-collapse text-sm">
+                <div className="overflow-x-hidden">
+                  <table className="w-full border-collapse text-sm table-fixed">
                     <colgroup>
-                      <col style={{ width: 140 }} />
+                      <col style={{ width: 120 }} />
                       {allDates.map((ds) => (
-                        <col
-                          key={ds}
-                          style={{
-                            width: `${100 / Math.max(allDates.length, 1)}%`,
-                          }}
-                        />
+                        <col key={ds} />
                       ))}
                     </colgroup>
                     <thead>
@@ -652,7 +647,7 @@ export default function ShiftSchedule() {
                               className={`sticky top-0 z-20 border-l border-border px-0 py-0 text-center ${holiday ? "bg-warning/10" : "bg-background"}`}
                               title={holiday?.name || undefined}
                             >
-                              <div className="flex h-full min-h-14 flex-col justify-center px-1.5 py-1.5">
+                              <div className="flex h-full min-h-10 flex-col justify-center px-0.5 py-1">
                                 <div
                                   className={`text-[10px] font-semibold leading-tight ${holiday ? "text-warning" : "text-foreground"}`}
                                 >
@@ -705,7 +700,7 @@ export default function ShiftSchedule() {
                             return (
                               <td
                                 key={ds}
-                                className={`border-l border-border/60 px-1.5 py-2 align-top ${rowClasses}`}
+                                className={`border-l border-border/60 px-0.5 py-1 align-top ${rowClasses}`}
                               >
                                 <div className="flex min-h-10 flex-col items-center gap-1">
                                   {entries.map((e: any) => {
@@ -744,7 +739,7 @@ export default function ShiftSchedule() {
                                                 : "انقر لتسجيل الحضور"
                                               : undefined
                                           }
-                                          className={`inline-flex min-h-8 w-full items-center justify-center rounded-md px-1.5 py-1 text-[10px] font-semibold transition-colors ${
+                                          className={`inline-flex min-h-6 w-full items-center justify-center rounded px-0.5 py-0.5 text-[9px] font-semibold transition-colors ${
                                             e.present
                                               ? meta.tone
                                               : "bg-muted text-muted-foreground line-through"
@@ -805,7 +800,7 @@ export default function ShiftSchedule() {
                                               addMyShiftMut.isPending ||
                                               bulkMut.isPending
                                             }
-                                            className="inline-flex min-h-8 flex-1 items-center justify-center rounded-md bg-muted px-1.5 py-1 text-[10px] font-semibold text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                                            className="inline-flex min-h-6 flex-1 items-center justify-center rounded bg-muted px-0.5 py-0.5 text-[9px] font-semibold text-muted-foreground hover:bg-primary/10 hover:text-primary"
                                             title={SHIFT_META[shiftName].label}
                                           >
                                             +{SHIFT_META[shiftName].short}
