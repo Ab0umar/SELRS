@@ -109,7 +109,7 @@ export const AttendanceRoutes = (
         path={ROUTES.attendanceShiftSchedule}
         component={() => (
           <ProtectedRoute>
-            <AttendanceLayout>
+            <AttendanceLayout fullWidth>
               <ShiftSchedule />
             </AttendanceLayout>
           </ProtectedRoute>

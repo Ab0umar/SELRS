@@ -14,6 +14,7 @@ import { trpc } from "@/lib/trpc";
 
 interface AttendanceLayoutProps {
   children: ReactNode;
+  fullWidth?: boolean;
 }
 
 // Navigation structure
@@ -97,7 +98,7 @@ const mobileNavItems = [
   { href: "/attendance/settings", label: "الإعدادات", icon: Settings, activeFor: ["/attendance/settings"] },
 ];
 
-export default function AttendanceLayout({ children }: AttendanceLayoutProps) {
+export default function AttendanceLayout({ children, fullWidth }: AttendanceLayoutProps) {
   const [location] = useLocation();
 
   const deviceQuery = (trpc as any).attendance.deviceStatus.useQuery(
@@ -199,7 +200,7 @@ export default function AttendanceLayout({ children }: AttendanceLayoutProps) {
       </div>
 
       {/* Two-column layout: Sidebar + Content */}
-      <div className="flex flex-col lg:flex-row mx-auto w-full max-w-[1600px]">
+      <div className={`flex flex-col lg:flex-row mx-auto w-full ${fullWidth ? "" : "max-w-[1600px]"}`}>
         {/* Sidebar Navigation (Desktop only) */}
         <aside className="hidden lg:block w-full border-b border-border/60 bg-card/20 lg:w-64 lg:border-b-0 lg:border-r border-border/60 min-h-[calc(100vh-115px)]">
           <nav className="space-y-4 p-4 sticky top-4">
@@ -246,7 +247,7 @@ export default function AttendanceLayout({ children }: AttendanceLayoutProps) {
         </aside>
 
         {/* Main content area */}
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 min-w-0">
+        <main className={`flex-1 min-w-0 py-6 ${fullWidth ? "px-2 sm:px-3" : "px-4 sm:px-6 lg:px-8"}`}>
           {children}
         </main>
       </div>
