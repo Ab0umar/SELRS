@@ -171,7 +171,11 @@ export async function generateMarketingImage(
 ): Promise<string> {
   // Priority 1: fal.ai FLUX Redux — best brand-style consistency
   if (ENV.falApiKey && referenceImagePaths.length > 0) {
-    return generateWithFal(imagePrompt, postId, referenceImagePaths);
+    try {
+      return await generateWithFal(imagePrompt, postId, referenceImagePaths);
+    } catch (err) {
+      console.warn("[marketing] fal.ai failed, falling back to next option:", String(err));
+    }
   }
 
   // Priority 2: Forge API
