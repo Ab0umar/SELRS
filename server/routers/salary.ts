@@ -1488,7 +1488,9 @@ export const salaryRouter = router({
         for (const a of rows) {
           const present = resolvePresent(s, a);
           if (present) attended++;
-          const size = shiftSizeMap.get(a.shiftName) ?? "big";
+          const defSize = shiftSizeMap.get(a.shiftName);
+          // Fallback: Morning=big, Night=small when no definition exists
+          const size = defSize ?? (a.shiftName === "Night" ? "small" : "big");
           const rate = size === "small" ? rateSmall : rateBig;
           if (!byShift[a.shiftName])
             byShift[a.shiftName] = { scheduled: 0, attended: 0, rate };
