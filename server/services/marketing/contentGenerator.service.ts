@@ -272,7 +272,7 @@ export async function generateMarketingContent(
   const genAI = new GoogleGenerativeAI(apiKey);
   // gemini-2.0-flash is stable and widely available; 2.5-flash may not be enabled on all keys
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash",
+    model: "gemini-2.5-flash",
     generationConfig: {
       temperature: 1.4,
       maxOutputTokens: 2048,
