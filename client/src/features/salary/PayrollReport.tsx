@@ -177,13 +177,14 @@ export default function PayrollReport() {
     const rateBig = Number(staff.ratePerShift ?? 0);
     const rateSmall = Number(staff.rateSmallShift ?? 0) || rateBig;
 
-    // Use byShift from computeShiftPayroll to split big vs small by rate
+    // Use byShift from computeShiftPayroll to split big vs small by shift name
     const byShift: Record<string, { scheduled: number; rate: number }> = liveRow?.byShift ?? {};
     let bigScheduled = 0, bigTotal = 0, smallScheduled = 0, smallTotal = 0;
-    for (const b of Object.values(byShift) as any[]) {
+    for (const [shiftName, b] of Object.entries(byShift) as any[]) {
       const cnt = Number(b.scheduled);
       const rate = Number(b.rate);
-      if (rateSmall !== rateBig && Math.abs(rate - rateSmall) < Math.abs(rate - rateBig)) {
+      // Night = small shift, everything else = big
+      if (shiftName === "Night") {
         smallScheduled += cnt;
         smallTotal += cnt * rate;
       } else {
