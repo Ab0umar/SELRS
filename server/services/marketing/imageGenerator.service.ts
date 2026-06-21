@@ -61,18 +61,24 @@ async function generateWithOpenAI(
     n: 1,
     size: "1024x1024",
     quality: "hd",
-    response_format: "b64_json",
-  });
+  } as any);
 
   const item = response.data?.[0];
   if (!item) throw new Error("dall-e-3 returned no image data");
 
-  if (item.b64_json) {
-    const buffer = Buffer.from(item.b64_json, "base64");
+  if ((item as any).b64_json) {
+    const buffer = Buffer.from((item as any).b64_json, "base64");
     return saveImageLocally(buffer, postId);
   }
 
-  throw new Error("dall-e-3 returned no b64_json");
+  if (item.url) {
+    const res = await fetch(item.url);
+    if (!res.ok) throw new Error(`Failed to download image: ${res.status}`);
+    const buffer = Buffer.from(await res.arrayBuffer());
+    return saveImageLocally(buffer, postId);
+  }
+
+  throw new Error("dall-e-3 returned neither b64_json nor url");
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
