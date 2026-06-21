@@ -1512,7 +1512,8 @@ export const salaryRouter = router({
 
         const totalAttended = attended + extraAttended;
         if (extraAttended > 0) {
-          byShift["إضافي"] = { scheduled: 0, attended: extraAttended, rate: rateBig };
+          // Punch days with no roster entry: treat as fully-attended scheduled shifts so basicSalary is non-zero
+          byShift["إضافي"] = { scheduled: extraAttended, attended: extraAttended, rate: rateBig };
         }
 
         // Calculate pay per shift type
@@ -1555,6 +1556,13 @@ export const salaryRouter = router({
         };
       });
     }),
+
+  // ── Shift Definitions ────────────────────────────────────
+  listShiftDefinitions: makeSalaryProcedure("/salary").query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+    return db.select().from(attendanceShifts);
+  }),
 
   // ── Shift Cycles ─────────────────────────────────────────
   getStaffCycles: makeSalaryProcedure("/salary/payroll").query(async () => {
@@ -1636,7 +1644,7 @@ export const salaryRouter = router({
                 shiftName: cycleEntry.shiftName,
                 present: true,
               })
-              .onDuplicateKeyUpdate({ set: { present: true } });
+              .onDuplicateKeyUpdate({ set: { shiftName: cycleEntry.shiftName } }); // no-op: safe to re-run without resetting absences
             inserted++;
           }
         }

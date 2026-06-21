@@ -120,14 +120,32 @@ export default function PayrollReport() {
     return acc;
   }, {});
 
-  // Fetch shift staff data and roster schedule
+  // Fetch shift staff data, roster schedule, and shift definitions
   const shiftStaffQ = (trpc as any).salary.listShiftStaff.useQuery();
   const shiftScheduleQ = (trpc as any).salary.getShiftSchedule.useQuery({
     year,
     month,
   });
+  const shiftDefsQ = (trpc as any).salary.listShiftDefinitions.useQuery();
   const shiftStaff: any[] = shiftStaffQ.data ?? [];
   const shiftSchedule: any[] = shiftScheduleQ.data?.attendance ?? [];
+
+  // Build shift-name → size map (big/small) from shift definitions
+  const shiftSizeMap = new Map<string, "big" | "small">();
+  for (const sd of (shiftDefsQ.data ?? []) as any[]) {
+    let size: "big" | "small" = "big";
+    if (sd.shiftSize === "big") size = "big";
+    else if (sd.shiftSize === "small") size = "small";
+    else {
+      const [sh, sm] = (sd.startTime as string).split(":").map(Number);
+      const [eh, em] = (sd.endTime as string).split(":").map(Number);
+      let dur = eh * 60 + em - (sh * 60 + sm);
+      if (dur < 0) dur += 24 * 60;
+      const threshold = sd.autoSmallThresholdMin ?? 270;
+      size = dur < threshold ? "small" : "big";
+    }
+    shiftSizeMap.set(sd.name as string, size);
+  }
 
   // Filter roster by selected date range
   const filteredShiftSchedule = shiftSchedule.filter((entry: any) => {
@@ -171,31 +189,36 @@ export default function PayrollReport() {
     String(r.empCd).startsWith("shift_"),
   );
 
-  // Build enhanced shift rows from actual roster data (any shift name) + computed payroll
+  // Build enhanced shift rows: big/small breakdown from roster + computed payroll financials
   const enhancedShiftRows = shiftStaff.map((staff: any) => {
     const payrollRow = rows.find((r: any) => r.empCd === `shift_${staff.id}`);
 
-    // Aggregate ALL actual schedule entries for this staff member
+    // Split schedule entries by shift size (big/small)
     const staffEntries = filteredShiftSchedule.filter((e: any) => e.staffId === staff.id);
-    const totalScheduled = staffEntries.length;
-    const totalAbsent = staffEntries.filter((e: any) => !e.present).length;
+    const bigEntries = staffEntries.filter((e: any) => (shiftSizeMap.get(e.shiftName) ?? "big") === "big");
+    const smallEntries = staffEntries.filter((e: any) => shiftSizeMap.get(e.shiftName) === "small");
 
-    // Use computed payroll values (correct big/small rates) when available
-    const basicSalary = payrollRow?.basicSalary != null ? Number(payrollRow.basicSalary) : totalScheduled * (staff.ratePerShift ?? 0);
-    const absentDeduction = payrollRow?.absentDeduction != null ? Number(payrollRow.absentDeduction) : totalAbsent * (staff.ratePerShift ?? 0);
-    const totalDeductions = payrollRow?.totalDeductions != null ? Number(payrollRow.totalDeductions) : absentDeduction;
+    const bigScheduled = bigEntries.length;
+    const smallScheduled = smallEntries.length;
+    const rateBig = Number(staff.ratePerShift ?? 0);
+    const rateSmall = Number(staff.rateSmallShift ?? 0) || rateBig;
+
+    // Use computed payroll for financial values (correctly handles big/small rates)
+    const basicSalary = payrollRow?.basicSalary != null ? Number(payrollRow.basicSalary)
+      : bigScheduled * rateBig + smallScheduled * rateSmall;
+    const totalDeductions = payrollRow?.totalDeductions != null ? Number(payrollRow.totalDeductions) : 0;
     const netBasic = payrollRow?.netBasic != null ? Number(payrollRow.netBasic) : basicSalary - totalDeductions;
 
     return {
       id: staff.id,
       fullName: staff.name,
       type: staff.type,
-      shiftDayCount: totalScheduled,
-      shiftDayRate: staff.ratePerShift ?? 0,
-      shiftDayTotal: basicSalary,
-      shiftNightCount: totalAbsent,
-      shiftNightRate: staff.ratePerShift ?? 0,
-      shiftNightTotal: absentDeduction,
+      shiftDayCount: bigScheduled,
+      shiftDayRate: rateBig,
+      shiftDayTotal: bigScheduled * rateBig,
+      shiftNightCount: smallScheduled,
+      shiftNightRate: rateSmall,
+      shiftNightTotal: smallScheduled * rateSmall,
       totalDeductions,
       leaveMultiplier: payrollRow?.leaveMultiplier != null ? Number(payrollRow.leaveMultiplier) : 1,
       netBasic,
@@ -1356,22 +1379,22 @@ export default function PayrollReport() {
                         الموظف
                       </th>
                       <th className="px-3 py-3 text-center font-medium text-muted-foreground">
-                        مجدول
+                        شفت كبير
                       </th>
                       <th className="px-3 py-3 text-center font-medium text-muted-foreground">
                         قيمة
                       </th>
                       <th className="px-3 py-3 text-center font-medium text-muted-foreground">
-                        الأساسي
+                        إجمالي
                       </th>
                       <th className="px-3 py-3 text-center font-medium text-muted-foreground">
-                        غياب
+                        شفت صغير
                       </th>
                       <th className="px-3 py-3 text-center font-medium text-muted-foreground">
                         قيمة
                       </th>
                       <th className="px-3 py-3 text-center font-medium text-muted-foreground">
-                        خصم الغياب
+                        إجمالي
                       </th>
                       <th className="px-3 py-3 text-center font-medium text-muted-foreground">
                         الخصومات
@@ -1524,10 +1547,10 @@ export default function PayrollReport() {
 
                       {isExpanded && (
                         <div className="mt-4 pt-4 border-t border-border/40 space-y-3 text-xs">
-                          {/* Scheduled shifts */}
+                          {/* Big shifts */}
                           <div className="bg-muted/30 p-2.5 rounded-lg space-y-1.5">
                             <div className="font-medium text-foreground">
-                              مجدول
+                              شفت كبير
                             </div>
                             <div className="grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
                               <div>
@@ -1551,10 +1574,10 @@ export default function PayrollReport() {
                             </div>
                           </div>
 
-                          {/* Absent shifts */}
+                          {/* Small shifts */}
                           <div className="bg-muted/30 p-2.5 rounded-lg space-y-1.5">
                             <div className="font-medium text-foreground">
-                              غياب
+                              شفت صغير
                             </div>
                             <div className="grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
                               <div>
