@@ -1,10 +1,12 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   BookImage,
   ChevronRight,
   FileText,
   LayoutDashboard,
+  PanelRightClose,
+  PanelRightOpen,
   Settings,
   Share2,
 } from "lucide-react";
@@ -59,6 +61,7 @@ function isActive(pathname: string, href: string, exact: boolean) {
 
 export default function MarketingLayout({ children }: MarketingLayoutProps) {
   const [location] = useLocation();
+  const [collapsed, setCollapsed] = useState(false);
 
   return (
     <div
@@ -86,32 +89,48 @@ export default function MarketingLayout({ children }: MarketingLayoutProps) {
       {/* Body */}
       <div className="flex flex-col lg:flex-row">
         {/* Sidebar */}
-        <aside className="w-full border-b border-border bg-card/50 lg:w-64 lg:border-b-0 lg:border-r">
-          <nav className="space-y-1 p-3 sm:p-4">
+        <aside className={`hidden lg:block border-b border-border bg-card/50 lg:border-b-0 lg:border-r transition-all duration-200 ${collapsed ? "w-auto shrink-0" : "w-full lg:w-64"}`}>
+          <nav className={`sticky top-4 ${collapsed ? "p-1 space-y-1" : "space-y-1 p-3 sm:p-4"}`}>
+            {/* Toggle button */}
+            <div className={`flex ${collapsed ? "justify-center" : "justify-end"} mb-2`}>
+              <button
+                onClick={() => setCollapsed((c) => !c)}
+                className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors"
+                title={collapsed ? "توسيع الشريط الجانبي" : "تصغير الشريط الجانبي"}
+              >
+                {collapsed ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+              </button>
+            </div>
+
             {navItems.map((item) => {
               const active = isActive(location, item.href, item.exact);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`group flex items-start gap-3 rounded-lg px-3 py-2.5 text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 ${
+                  title={collapsed ? item.label : undefined}
+                  className={`group flex items-center rounded-lg text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 ${collapsed ? "justify-center px-2 py-2" : "items-start gap-3 px-3 py-2.5"} ${
                     active
                       ? "bg-background text-primary font-medium ring-1 ring-inset ring-primary/15 shadow-sm"
                       : "bg-muted/20 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                   }`}
                 >
                   <item.icon
-                    className={`h-4 w-4 mt-0.5 shrink-0 ${active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`}
+                    className={`h-4 w-4 shrink-0 ${collapsed ? "" : "mt-0.5"} ${active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`}
                   />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium">{item.label}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">
-                      {item.description}
-                    </div>
-                  </div>
-                  <ChevronRight
-                    className={`h-4 w-4 mt-0.5 shrink-0 transition-opacity ${active ? "opacity-100 text-primary" : "opacity-0 group-hover:opacity-50"}`}
-                  />
+                  {!collapsed && (
+                    <>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium">{item.label}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          {item.description}
+                        </div>
+                      </div>
+                      <ChevronRight
+                        className={`h-4 w-4 mt-0.5 shrink-0 transition-opacity ${active ? "opacity-100 text-primary" : "opacity-0 group-hover:opacity-50"}`}
+                      />
+                    </>
+                  )}
                 </Link>
               );
             })}
