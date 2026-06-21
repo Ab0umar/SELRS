@@ -217,7 +217,7 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
       )}
 
       <main
-        className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${isAdminPatientsRoute ? "overflow-x-auto" : "overflow-x-hidden"} ${isDashboardLikeRoute ? "bg-transparent" : "bg-background"} px-3 pt-2 pb-2 sm:px-4 sm:py-3 md:px-4 md:py-4`}
+        className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${isAdminPatientsRoute ? "overflow-x-auto" : "overflow-x-hidden"} ${isDashboardLikeRoute ? "bg-transparent" : "bg-background"} ${isShiftScheduleRoute ? "p-0" : "px-3 pt-2 pb-2 sm:px-4 sm:py-3 md:px-4 md:py-4"}`}
       >
         <div
           className={`mx-auto min-h-0 w-full flex-1 ${isAdminPatientsRoute || isShiftScheduleRoute ? "max-w-none" : "max-w-[1600px]"}`}
