@@ -202,16 +202,18 @@ export default function AttendanceLayout({ children, fullWidth }: AttendanceLayo
       {/* Two-column layout: Sidebar + Content */}
       <div className={`flex flex-col lg:flex-row mx-auto w-full ${fullWidth ? "" : "max-w-[1600px]"}`}>
         {/* Sidebar Navigation (Desktop only) */}
-        <aside className="hidden lg:block w-full border-b border-border/60 bg-card/20 lg:w-64 lg:border-b-0 lg:border-r border-border/60 min-h-[calc(100vh-115px)]">
-          <nav className="space-y-4 p-4 sticky top-4">
+        <aside className={`hidden lg:block border-b border-border/60 bg-card/20 lg:border-b-0 lg:border-r border-border/60 min-h-[calc(100vh-115px)] ${fullWidth ? "lg:w-12 overflow-hidden" : "w-full lg:w-64"}`}>
+          <nav className={`sticky top-4 ${fullWidth ? "p-1 space-y-1" : "space-y-4 p-4"}`}>
             {navigationSections.map((section) => (
               <div key={section.id} className="space-y-1">
-                {/* Section header */}
-                <div className="px-3 py-1">
-                  <h3 className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider">
-                    {section.label}
-                  </h3>
-                </div>
+                {/* Section header — hidden when minimized */}
+                {!fullWidth && (
+                  <div className="px-3 py-1">
+                    <h3 className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider">
+                      {section.label}
+                    </h3>
+                  </div>
+                )}
 
                 {/* Section items */}
                 <div className="space-y-1">
@@ -222,21 +224,24 @@ export default function AttendanceLayout({ children, fullWidth }: AttendanceLayo
                       <Link
                         key={item.href}
                         href={item.href}
-                        className={`group flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/30 ${
+                        title={fullWidth ? item.label : undefined}
+                        className={`group flex items-center rounded-lg text-xs transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/30 ${fullWidth ? "justify-center px-2 py-2" : "gap-2.5 px-3 py-2"} ${
                           itemActive
                             ? "bg-secondary/10 text-secondary font-medium shadow-sm border border-secondary/10"
                             : "text-muted-foreground hover:bg-muted/40 hover:text-foreground border border-transparent"
                         }`}
                       >
                         <Icon className={`h-4 w-4 shrink-0 transition-colors ${itemActive ? "text-secondary" : "text-muted-foreground group-hover:text-foreground"}`} />
-                        <span className="flex-1 min-w-0 truncate">{item.label}</span>
-                        <ChevronLeft
-                          className={`h-3.5 w-3.5 shrink-0 transition-all opacity-0 ${
-                            itemActive
-                              ? "opacity-100 text-secondary translate-x-0"
-                              : "group-hover:opacity-100 group-hover:-translate-x-0.5"
-                          }`}
-                        />
+                        {!fullWidth && <span className="flex-1 min-w-0 truncate">{item.label}</span>}
+                        {!fullWidth && (
+                          <ChevronLeft
+                            className={`h-3.5 w-3.5 shrink-0 transition-all opacity-0 ${
+                              itemActive
+                                ? "opacity-100 text-secondary translate-x-0"
+                                : "group-hover:opacity-100 group-hover:-translate-x-0.5"
+                            }`}
+                          />
+                        )}
                       </Link>
                     );
                   })}

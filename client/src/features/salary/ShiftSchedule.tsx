@@ -619,7 +619,7 @@ export default function ShiftSchedule() {
 
               <div className="overflow-hidden rounded-2xl border border-border bg-background">
                 <div className="overflow-x-auto">
-                  <table className="w-full table-fixed border-collapse text-sm">
+                  <table className="w-max min-w-full border-collapse text-sm">
                     <colgroup>
                       <col style={{ width: 140 }} />
                       {allDates.map((ds) => (
