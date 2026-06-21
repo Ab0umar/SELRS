@@ -204,23 +204,12 @@ function buildPrompt(
 // ─── JSON parser ──────────────────────────────────────────────────────────────
 
 function parseSafeJson(raw: string): GeneratedContent | null {
-  const cleaned = raw
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/```\s*$/i, "")
-    .trim();
-
+  // Extract JSON object directly — works regardless of markdown fences or preamble text
+  const match = raw.match(/\{[\s\S]*\}/);
+  if (!match) return null;
   try {
-    return JSON.parse(cleaned) as GeneratedContent;
+    return JSON.parse(match[0]) as GeneratedContent;
   } catch {
-    const match = cleaned.match(/\{[\s\S]*\}/);
-    if (match) {
-      try {
-        return JSON.parse(match[0]) as GeneratedContent;
-      } catch {
-        return null;
-      }
-    }
     return null;
   }
 }
@@ -270,15 +259,14 @@ export async function generateMarketingContent(
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  // gemini-2.0-flash is stable and widely available; 2.5-flash may not be enabled on all keys
   const model = genAI.getGenerativeModel({
     model: "gemini-2.5-flash",
     generationConfig: {
       temperature: 1.4,
-      maxOutputTokens: 2048,
-      // No responseMimeType — JSON mode kills creativity and causes repetition.
-      // parseSafeJson() handles extraction from free-form text.
-    },
+      maxOutputTokens: 8192,
+      // thinkingBudget: 0 — disable internal thinking so all tokens go to output
+      thinkingConfig: { thinkingBudget: 0 },
+    } as any,
   });
 
   const prompt = buildPrompt(topic, day, brandProfile, clinicName, postIndex);
