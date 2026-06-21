@@ -1517,8 +1517,8 @@ export const salaryRouter = router({
         }
 
         // Calculate pay per shift type
-        const scheduled = rows.length;
-        const absent = scheduled - attended;
+        const scheduled = rows.length + extraAttended; // roster entries + unscheduled punch days
+        const absent = rows.length - attended; // only roster entries can be absent
         const basicSalary = Math.round(
           Object.values(byShift).reduce((s, b) => s + b.scheduled * b.rate, 0) * 100,
         ) / 100;
