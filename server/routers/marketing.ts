@@ -369,8 +369,18 @@ export const marketingRouter = router({
       if (!prompt)
         throw new Error("Post has no imagePrompt — generate content first");
 
+      // Pick a random reference design for style grounding
+      const refDesigns = await db
+        .select({ filePath: marketingReferenceDesigns.filePath })
+        .from(marketingReferenceDesigns)
+        .limit(10);
+      const refPath =
+        refDesigns.length > 0
+          ? refDesigns[Math.floor(Math.random() * refDesigns.length)]!.filePath
+          : null;
+
       try {
-        const imageUrl = await generateMarketingImage(prompt, input.postId);
+        const imageUrl = await generateMarketingImage(prompt, input.postId, refPath ?? undefined);
         await db
           .update(marketingPosts)
           .set({ imageUrl })
