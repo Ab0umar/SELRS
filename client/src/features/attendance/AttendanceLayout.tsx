@@ -205,7 +205,7 @@ export default function AttendanceLayout({ children, fullWidth }: AttendanceLayo
       {/* Two-column layout: Sidebar + Content */}
       <div className={`flex flex-col lg:flex-row mx-auto w-full ${fullWidth ? "" : "max-w-[1600px]"}`}>
         {/* Sidebar Navigation (Desktop only) */}
-        <aside className={`hidden lg:block border-b border-border/60 bg-card/20 lg:border-b-0 lg:border-r border-border/60 min-h-[calc(100vh-115px)] transition-all duration-200 ${collapsed ? "lg:w-fit" : "w-full lg:w-64"}`}>
+        <aside className={`hidden lg:block border-b border-border/60 bg-card/20 lg:border-b-0 lg:border-r border-border/60 min-h-[calc(100vh-115px)] transition-all duration-200 ${collapsed ? "w-auto shrink-0" : "w-full lg:w-64"}`}>
           <nav className={`sticky top-4 ${collapsed ? "p-1 space-y-1" : "space-y-4 p-4"}`}>
             {/* Toggle button */}
             <div className={`flex ${collapsed ? "justify-center" : "justify-end"} mb-2`}>
