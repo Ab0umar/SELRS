@@ -40,6 +40,8 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
     location === "/today-patients" ||
     location === "/today";
 
+  const isShiftScheduleRoute = location === "/attendance/shift-schedule" || location.startsWith("/attendance/shift-schedule");
+
   const permissionsQuery = trpc.medical.getMyPermissions.useQuery(undefined, {
     enabled: Boolean(user) && !isAdmin,
     refetchOnWindowFocus: false,
@@ -218,7 +220,7 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
         className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${isAdminPatientsRoute ? "overflow-x-auto" : "overflow-x-hidden"} ${isDashboardLikeRoute ? "bg-transparent" : "bg-background"} px-3 pt-2 pb-2 sm:px-4 sm:py-3 md:px-4 md:py-4`}
       >
         <div
-          className={`mx-auto min-h-0 w-full flex-1 ${isAdminPatientsRoute ? "max-w-none" : "max-w-[1600px]"}`}
+          className={`mx-auto min-h-0 w-full flex-1 ${isAdminPatientsRoute || isShiftScheduleRoute ? "max-w-none" : "max-w-[1600px]"}`}
         >
           {children}
         </div>
