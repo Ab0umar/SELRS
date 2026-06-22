@@ -789,7 +789,9 @@ export const patientPortalRouter = router({
       return { ok: true };
     }),
 
-  getSchedule: protectedProcedure.query(async () => {
+  getSchedule: protectedProcedure
+    .input(z.object({ branch: z.string().optional() }).optional())
+    .query(async ({ input }) => {
     const db = await getDb();
     if (!db)
       throw new TRPCError({
@@ -797,7 +799,9 @@ export const patientPortalRouter = router({
         message: "DB unavailable",
       });
 
-    const rows = await db.select().from(bookingScheduleConfig);
+    const branchFilter = input?.branch ?? "";
+    const rows = await db.select().from(bookingScheduleConfig)
+      .where(eq(bookingScheduleConfig.branch, branchFilter));
     const types = [
       "consultant",
       "specialist",
@@ -813,6 +817,7 @@ export const patientPortalRouter = router({
         weekdayMask: found?.weekdayMask ?? 127,
         isActive: found?.isActive ?? true,
         id: found?.id ?? null,
+        branch: branchFilter,
       };
     });
   }),
@@ -886,6 +891,7 @@ export const patientPortalRouter = router({
           "external",
           "followup",
         ]),
+        branch: z.string().optional(),
         weekdayMask: z.number().int().min(0).max(127),
         isActive: z.boolean(),
       }),
@@ -898,10 +904,16 @@ export const patientPortalRouter = router({
           message: "DB unavailable",
         });
 
+      const branchVal = input.branch ?? "";
       const [existing] = await db
         .select({ id: bookingScheduleConfig.id })
         .from(bookingScheduleConfig)
-        .where(eq(bookingScheduleConfig.bookingType, input.bookingType))
+        .where(
+          and(
+            eq(bookingScheduleConfig.bookingType, input.bookingType),
+            eq(bookingScheduleConfig.branch, branchVal),
+          ),
+        )
         .limit(1);
 
       if (existing) {
@@ -912,6 +924,7 @@ export const patientPortalRouter = router({
       } else {
         await db.insert(bookingScheduleConfig).values({
           bookingType: input.bookingType,
+          branch: branchVal,
           weekdayMask: input.weekdayMask,
           isActive: input.isActive,
         });

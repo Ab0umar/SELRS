@@ -120,6 +120,7 @@ type ScheduleRow = {
   weekdayMask: number;
   isActive: boolean;
   id: number | null;
+  branch?: string;
 };
 
 function formatDate(value: Date | string | null | undefined) {
@@ -376,9 +377,11 @@ function BookingCard({
 
 function ScheduleRowCard({
   row,
+  branch,
   onSaved,
 }: {
   row: ScheduleRow;
+  branch?: string;
   onSaved: () => void;
 }) {
   const [local, setLocal] = useState({
@@ -409,6 +412,7 @@ function ScheduleRowCard({
   const save = () => {
     updateSchedule.mutate({
       bookingType: row.bookingType,
+      branch: branch ?? "",
       weekdayMask: local.weekdayMask,
       isActive: local.isActive,
     });
@@ -1045,6 +1049,12 @@ function ScheduleLoading() {
   );
 }
 
+const SCHEDULE_BRANCHES = [
+  { value: "", label: "الافتراضي (كل الفروع)" },
+  { value: "tanta", label: "طنطا" },
+  { value: "kfs", label: "كفرالشيخ" },
+] as const;
+
 export default function AdminPortalBookings() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("");
   const [dateFilter, setDateFilter] = useState("");
@@ -1052,6 +1062,7 @@ export default function AdminPortalBookings() {
   const [activeTab, setActiveTab] = useState<"bookings" | "schedule">(
     "bookings",
   );
+  const [scheduleBranch, setScheduleBranch] = useState<"" | "tanta" | "kfs">("");
 
   const bookingsQuery = trpc.patientPortal.listBookings.useQuery({
     status: statusFilter || undefined,
@@ -1065,10 +1076,10 @@ export default function AdminPortalBookings() {
     return () => window.removeEventListener("booking-update", handler);
   }, [bookingsQuery]);
 
-  const scheduleQuery = trpc.patientPortal.getSchedule.useQuery(undefined, {
-    enabled: activeTab === "schedule",
-    refetchOnWindowFocus: false,
-  });
+  const scheduleQuery = trpc.patientPortal.getSchedule.useQuery(
+    { branch: scheduleBranch },
+    { enabled: activeTab === "schedule", refetchOnWindowFocus: false },
+  );
 
   const bookingData = bookingsQuery.data ?? [];
   const filteredBookings = useMemo(() => {
@@ -1333,12 +1344,31 @@ export default function AdminPortalBookings() {
                     مفعل
                   </span>
                 </div>
+                {/* Branch selector */}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {SCHEDULE_BRANCHES.map((b) => (
+                    <button
+                      key={b.value}
+                      type="button"
+                      onClick={() => { setScheduleBranch(b.value as typeof scheduleBranch); }}
+                      className={cn(
+                        "rounded-lg border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer",
+                        scheduleBranch === b.value
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background text-muted-foreground border-border hover:bg-muted/40",
+                      )}
+                    >
+                      {b.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {scheduleQuery.data.map((row) => (
                 <ScheduleRowCard
                   key={row.bookingType}
                   row={row}
+                  branch={scheduleBranch}
                   onSaved={() => void scheduleQuery.refetch()}
                 />
               ))}
