@@ -177,14 +177,37 @@ export default function PayrollReport() {
     const rateBig = Number(staff.ratePerShift ?? 0);
     const rateSmall = Number(staff.rateSmallShift ?? 0) || rateBig;
 
-    const bigScheduled = Number(liveRow?.bigScheduled ?? 0);
-    const bigAttended = Number(liveRow?.bigAttended ?? 0);
-    const bigAbsent = Number(liveRow?.bigAbsent ?? 0);
-    const bigTotal = Number(liveRow?.bigTotal ?? bigScheduled * rateBig);
-    const smallScheduled = Number(liveRow?.smallScheduled ?? 0);
-    const smallAttended = Number(liveRow?.smallAttended ?? 0);
-    const smallAbsent = Number(liveRow?.smallAbsent ?? 0);
-    const smallTotal = Number(liveRow?.smallTotal ?? smallScheduled * rateSmall);
+    // Prefer explicit bigScheduled/smallScheduled fields (new backend).
+    // Fall back to byShift classification (Night=small) for old backend builds.
+    let bigScheduled: number, bigAttended: number, bigAbsent: number, bigTotal: number;
+    let smallScheduled: number, smallAttended: number, smallAbsent: number, smallTotal: number;
+
+    if (liveRow && liveRow.bigScheduled != null) {
+      bigScheduled = Number(liveRow.bigScheduled);
+      bigAttended  = Number(liveRow.bigAttended ?? 0);
+      bigAbsent    = Number(liveRow.bigAbsent ?? 0);
+      bigTotal     = Number(liveRow.bigTotal ?? bigScheduled * rateBig);
+      smallScheduled = Number(liveRow.smallScheduled ?? 0);
+      smallAttended  = Number(liveRow.smallAttended ?? 0);
+      smallAbsent    = Number(liveRow.smallAbsent ?? 0);
+      smallTotal     = Number(liveRow.smallTotal ?? smallScheduled * rateSmall);
+    } else {
+      // byShift fallback: classify Night as small, everything else as big
+      bigScheduled = 0; bigAttended = 0; bigTotal = 0;
+      smallScheduled = 0; smallAttended = 0; smallTotal = 0;
+      for (const [sn, b] of Object.entries(liveRow?.byShift ?? {}) as any[]) {
+        const cnt = Number((b as any).scheduled ?? 0);
+        const att = Number((b as any).attended ?? 0);
+        const rate = Number((b as any).rate ?? 0);
+        if (sn === "Night") {
+          smallScheduled += cnt; smallAttended += att; smallTotal += cnt * rate;
+        } else {
+          bigScheduled += cnt; bigAttended += att; bigTotal += cnt * rate;
+        }
+      }
+      bigAbsent   = Math.max(0, bigScheduled - bigAttended);
+      smallAbsent = Math.max(0, smallScheduled - smallAttended);
+    }
 
     const basicSalary = bigTotal + smallTotal;
     const totalDeductions = payrollRow?.totalDeductions != null ? Number(payrollRow.totalDeductions) : 0;

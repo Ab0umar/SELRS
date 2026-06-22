@@ -127,7 +127,30 @@ export default function ShiftPayroll() {
     fromDate,
     toDate,
   });
-  const rows: any[] = payrollQ.data ?? [];
+  const rawRows: any[] = payrollQ.data ?? [];
+
+  // Enrich each row with explicit big/small counts.
+  // If the backend already returns bigScheduled use it; otherwise derive from byShift (Night=small).
+  const rows = rawRows.map((r: any) => {
+    if (r.bigScheduled != null) return r;
+    let bigScheduled = 0, bigAttended = 0;
+    let smallScheduled = 0, smallAttended = 0;
+    for (const [sn, b] of Object.entries(r.byShift ?? {}) as any[]) {
+      const cnt = Number((b as any).scheduled ?? 0);
+      const att = Number((b as any).attended ?? 0);
+      if (sn === "Night") { smallScheduled += cnt; smallAttended += att; }
+      else                { bigScheduled   += cnt; bigAttended   += att; }
+    }
+    return {
+      ...r,
+      bigScheduled,
+      bigAttended,
+      bigAbsent:    Math.max(0, bigScheduled - bigAttended),
+      smallScheduled,
+      smallAttended,
+      smallAbsent:  Math.max(0, smallScheduled - smallAttended),
+    };
+  });
 
   const doctors = rows.filter((r: any) => r.type === "doctor");
   const techs = rows.filter((r: any) => r.type === "tech");
