@@ -315,9 +315,30 @@ export function OperationDialog({
                       <tr>
                         <td
                           colSpan={4}
-                          className="px-3 py-3 text-muted-foreground"
+                          className="px-3 py-2 text-muted-foreground"
                         >
-                          لا توجد نتائج
+                          <div className="flex items-center justify-between gap-3">
+                            <span>لا توجد نتائج</span>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="min-h-8 gap-1 text-xs shrink-0"
+                              onClick={() => {
+                                onAddPatientRow({
+                                  id: null,
+                                  patientCode: null,
+                                  fullName: patientSearchTerm.trim(),
+                                  phone: null,
+                                });
+                                onPatientSearchTermChange("");
+                                setSearchOpen(false);
+                              }}
+                            >
+                              <Plus className="h-3 w-3" />
+                              إضافة بالاسم فقط
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     )}
