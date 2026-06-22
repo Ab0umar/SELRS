@@ -145,8 +145,9 @@ export default function PentacamSheet() {
       />
 
       <main className="relative z-10 flex min-h-screen w-full flex-col px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
-        <header className="mb-5 flex items-start justify-between gap-4 rounded-[1.5rem] border border-border bg-background/95 px-4 py-4 shadow-sm">
-          <div className="space-y-3">
+        <header className="mb-5 rounded-[1.5rem] border border-border bg-background/95 px-4 py-4 shadow-sm">
+          {/* Top row: back + badge */}
+          <div className="mb-4 flex items-center justify-between gap-4">
             <button
               onClick={() => goBack()}
               className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -154,84 +155,92 @@ export default function PentacamSheet() {
               <ArrowRight className="h-4 w-4" />
               رجوع
             </button>
+            <div className="hidden items-center gap-2 rounded-full border border-success/30 bg-success/10 px-3 py-1 text-[11px] font-semibold text-success sm:inline-flex">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              عرض JPG فقط
+            </div>
+          </div>
+
+          {/* Main header row: title + search + summary */}
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
             <div className="space-y-1">
-              <div className="inline-flex items-center gap-2 rounded-full border border-ring/30 bg-primary text-primary-foreground">
+              <div className="inline-flex items-center gap-2 rounded-full border border-ring/30 bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
                 <FileSpreadsheet className="h-3.5 w-3.5" />
                 عرض JPG
               </div>
               <h1 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl">
                 البنتاكام
               </h1>
-              <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+              <p className="text-sm leading-6 text-muted-foreground">
                 افتح المريض الصحيح، وراجع صور JPG المرتبطة بسرعة.
               </p>
             </div>
-          </div>
 
-          <div className="hidden items-center gap-2 rounded-full border border-success/30 bg-success/10 px-3 py-1 text-[11px] font-semibold text-success sm:inline-flex">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            عرض JPG فقط
-          </div>
-        </header>
-
-        <div className="grid flex-1 gap-5 lg:grid-cols-[18rem_minmax(0,1fr)] xl:grid-cols-[19rem_minmax(0,1fr)]">
-          <aside className="space-y-4">
-            <section className="rounded-[1.5rem] border border-border bg-background p-4 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
-              <div className="mb-4 flex items-center gap-2">
-                <Search className="h-4 w-4 text-primary" />
-                <h2 className="text-sm font-semibold text-foreground">
-                  البحث بالكود
-                </h2>
-              </div>
-              <div className="mb-3">
-                <FilterBar
-                  filters={locationFilters.map((item) => ({
-                    value: item.value,
-                    label: item.label,
-                  }))}
-                  selected={locationType}
-                  onSelect={(value) =>
-                    setLocationType(value as typeof locationType)
+            <div className="space-y-3">
+              {/* Search */}
+              <div>
+                <div className="mb-2 flex items-center gap-2">
+                  <Search className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold text-foreground">البحث بالكود</span>
+                </div>
+                <div className="mb-2">
+                  <FilterBar
+                    filters={locationFilters.map((item) => ({
+                      value: item.value,
+                      label: item.label,
+                    }))}
+                    selected={locationType}
+                    onSelect={(value) =>
+                      setLocationType(value as typeof locationType)
+                    }
+                    className="w-full flex-wrap"
+                  />
+                </div>
+                <PatientPicker
+                  initialPatientId={selectedPatientId ?? initialPatientId}
+                  onSelect={handleSelectPatient}
+                  placeholder="ابحث برمز المريض"
+                  wrapperClassName="max-w-none ml-0"
+                  locationType={locationType === "all" ? undefined : locationType}
+                  allowPatient={(patient) =>
+                    locationType === "all" ||
+                    patient.locationType === locationType ||
+                    !patient.locationType ||
+                    (initialPatientId != null && patient.id === initialPatientId)
                   }
-                  className="w-full flex-wrap"
                 />
               </div>
-              <PatientPicker
-                initialPatientId={selectedPatientId ?? initialPatientId}
-                onSelect={handleSelectPatient}
-                placeholder="ابحث برمز المريض"
-                wrapperClassName="max-w-none ml-0"
-                locationType={locationType === "all" ? undefined : locationType}
-                allowPatient={(patient) =>
-                  locationType === "all" ||
-                  patient.locationType === locationType ||
-                  !patient.locationType ||
-                  (initialPatientId != null && patient.id === initialPatientId)
-                }
-              />
-              <p className="mt-3 text-[11px] leading-5 text-muted-foreground">
-                قاعدة البيانات تكبر باستمرار, لذلك البحث يبدأ بالكود مباشرة.
-              </p>
-            </section>
 
-            <section className="rounded-[1.5rem] border border-border bg-background p-4 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
-              <div className="mb-4 flex items-center gap-2">
-                <BookOpenText className="h-4 w-4 text-primary" />
-                <h2 className="text-sm font-semibold text-foreground">
-                  ملخص المريض
-                </h2>
-              </div>
+              {/* Patient summary */}
               {selectedPatient ? (
-                <div className="space-y-4">
-                  <div>
-                    <div className="text-lg font-bold text-foreground">
-                      {selectedPatient.fullName}
-                    </div>
-                    <div className="mt-1 text-sm text-muted-foreground">
-                      {selectedPatient.patientCode ?? `#${selectedPatient.id}`}
+                <div className="rounded-xl border border-border bg-muted/50 p-3">
+                  <div className="mb-2 flex items-center gap-2">
+                    <BookOpenText className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-semibold text-foreground">ملخص المريض</span>
+                    {user?.role === "admin" && selectedPatientId && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="mr-auto h-7 px-2 text-xs"
+                        onClick={() =>
+                          setLocation(`/admin/pentacam/${selectedPatientId}`)
+                        }
+                      >
+                        <FolderCog className="ml-1 h-3.5 w-3.5" />
+                        صفحة الربط
+                      </Button>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="font-bold text-foreground">{selectedPatient.fullName}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {selectedPatient.patientCode ?? `#${selectedPatient.id}`}
+                      </div>
                     </div>
                   </div>
-                  <div className="grid gap-3">
+                  <div className="mt-2 grid grid-cols-2 gap-2">
                     {summaryFields.map((field) => (
                       <SummaryField
                         key={field.label}
@@ -241,36 +250,12 @@ export default function PentacamSheet() {
                     ))}
                   </div>
                 </div>
-              ) : (
-                <div className="rounded-2xl border border-dashed border-border bg-muted px-4 py-6 text-sm leading-6 text-muted-foreground">
-                  اختر مريضًا لعرض الكود والبيانات السريعة هنا.
-                </div>
-              )}
-            </section>
-            {user?.role === "admin" && selectedPatientId ? (
-              <section className="rounded-[1.5rem] border border-border bg-background p-4 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <FolderCog className="h-4 w-4 text-primary" />
-                    <h2 className="text-sm font-semibold text-foreground">
-                      الربط الإداري
-                    </h2>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setLocation(`/admin/pentacam/${selectedPatientId}`)
-                    }
-                  >
-                    فتح صفحة الربط
-                  </Button>
-                </div>
-              </section>
-            ) : null}
-          </aside>
+              ) : null}
+            </div>
+          </div>
+        </header>
 
+        <div className="flex-1">
           <section className="min-h-0">
             {selectedPatientId ? (
               <PentacamFilesPanel patientId={selectedPatientId} active />
