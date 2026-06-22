@@ -297,25 +297,34 @@ export default function ShiftPayroll() {
           <table className="w-full text-sm" dir="rtl">
             <thead>
               <tr className="border-b border-border bg-muted/30 text-xs">
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground">
                   الاسم
                 </th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground">
                   شفت كبير
                 </th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground">
                   شفت صغير
                 </th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                  مجدول
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground">
+                  مجدول ك
                 </th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground text-success">
-                  حضور
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground">
+                  مجدول ص
                 </th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground text-destructive">
-                  غياب
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground text-success">
+                  حضور ك
                 </th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground font-bold">
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground text-success">
+                  حضور ص
+                </th>
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground text-destructive">
+                  غياب ك
+                </th>
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground text-destructive">
+                  غياب ص
+                </th>
+                <th className="px-3 py-3 text-right font-medium text-muted-foreground font-bold">
                   المستحق
                 </th>
               </tr>
@@ -326,23 +335,32 @@ export default function ShiftPayroll() {
                   key={r.id}
                   className="border-b border-border/50 hover:bg-muted/20"
                 >
-                  <td className="px-4 py-3 font-medium">{r.name}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">
+                  <td className="px-3 py-3 font-medium">{r.name}</td>
+                  <td className="px-3 py-3 text-right tabular-nums">
                     {fmt(r.ratePerShift)}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums">
+                  <td className="px-3 py-3 text-right tabular-nums">
                     {fmt(r.rateSmallShift ?? r.ratePerShift)}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums">
-                    {r.scheduled}
+                  <td className="px-3 py-3 text-right tabular-nums">
+                    {r.bigScheduled ?? 0}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-success font-medium">
-                    {r.attended}
+                  <td className="px-3 py-3 text-right tabular-nums">
+                    {r.smallScheduled ?? 0}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-destructive">
-                    {r.absent}
+                  <td className="px-3 py-3 text-right tabular-nums text-success font-medium">
+                    {r.bigAttended ?? 0}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums font-bold text-primary">
+                  <td className="px-3 py-3 text-right tabular-nums text-success font-medium">
+                    {r.smallAttended ?? 0}
+                  </td>
+                  <td className="px-3 py-3 text-right tabular-nums text-destructive">
+                    {r.bigAbsent ?? 0}
+                  </td>
+                  <td className="px-3 py-3 text-right tabular-nums text-destructive">
+                    {r.smallAbsent ?? 0}
+                  </td>
+                  <td className="px-3 py-3 text-right tabular-nums font-bold text-primary">
                     {fmt(r.totalPay)}
                   </td>
                 </tr>
@@ -391,18 +409,38 @@ export default function ShiftPayroll() {
 
                 {isExpanded && (
                   <div className="mt-4 pt-4 border-t border-border/40 space-y-3 text-xs">
-                    <div className="grid grid-cols-2 gap-y-2 gap-x-4">
-                      <div className="flex justify-between border-b border-border/20 pb-1">
-                        <span className="text-muted-foreground">مجدول:</span>
-                        <span className="font-semibold tabular-nums">{r.scheduled}</span>
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Big shift column */}
+                      <div className="bg-muted/30 p-2.5 rounded-lg space-y-1.5">
+                        <div className="font-medium text-foreground">شفت كبير</div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">مجدول:</span>
+                          <span className="font-semibold tabular-nums">{r.bigScheduled ?? 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">حضور:</span>
+                          <span className="font-semibold text-success tabular-nums">{r.bigAttended ?? 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">غياب:</span>
+                          <span className="font-semibold text-destructive tabular-nums">{r.bigAbsent ?? 0}</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between border-b border-border/20 pb-1">
-                        <span className="text-muted-foreground">حضور:</span>
-                        <span className="font-semibold text-success tabular-nums">{r.attended}</span>
-                      </div>
-                      <div className="flex justify-between border-b border-border/20 pb-1 col-span-2">
-                        <span className="text-muted-foreground">غياب:</span>
-                        <span className="font-semibold text-destructive tabular-nums">{r.absent}</span>
+                      {/* Small shift column */}
+                      <div className="bg-muted/30 p-2.5 rounded-lg space-y-1.5">
+                        <div className="font-medium text-foreground">شفت صغير</div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">مجدول:</span>
+                          <span className="font-semibold tabular-nums">{r.smallScheduled ?? 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">حضور:</span>
+                          <span className="font-semibold text-success tabular-nums">{r.smallAttended ?? 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">غياب:</span>
+                          <span className="font-semibold text-destructive tabular-nums">{r.smallAbsent ?? 0}</span>
+                        </div>
                       </div>
                     </div>
                   </div>

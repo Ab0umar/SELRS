@@ -169,7 +169,7 @@ export default function PayrollReport() {
     String(r.empCd).startsWith("shift_"),
   );
 
-  // Build enhanced shift rows using computeShiftPayroll byShift for big/small split
+  // Build enhanced shift rows from computeShiftPayroll big/small breakdown
   const enhancedShiftRows = shiftStaff.map((staff: any) => {
     const liveRow = shiftPayrollRows.find((r: any) => Number(r.id) === Number(staff.id));
     const payrollRow = rows.find((r: any) => r.empCd === `shift_${staff.id}`);
@@ -177,29 +177,14 @@ export default function PayrollReport() {
     const rateBig = Number(staff.ratePerShift ?? 0);
     const rateSmall = Number(staff.rateSmallShift ?? 0) || rateBig;
 
-    // Use byShift from computeShiftPayroll to split big vs small by shift name
-    const byShift: Record<string, { scheduled: number; rate: number }> = liveRow?.byShift ?? {};
-    let bigScheduled = 0, bigTotal = 0, smallScheduled = 0, smallTotal = 0;
-    for (const [shiftName, b] of Object.entries(byShift) as any[]) {
-      const cnt = Number(b.scheduled);
-      const rate = Number(b.rate);
-      // Night = small shift, everything else = big
-      if (shiftName === "Night") {
-        smallScheduled += cnt;
-        smallTotal += cnt * rate;
-      } else {
-        bigScheduled += cnt;
-        bigTotal += cnt * rate;
-      }
-    }
-    // Fallback to roster count if computeShiftPayroll not loaded yet
-    if (!liveRow) {
-      const staffEntries = filteredShiftSchedule.filter(
-        (e: any) => Number(e.staffId) === Number(staff.id),
-      );
-      bigScheduled = staffEntries.length;
-      bigTotal = bigScheduled * rateBig;
-    }
+    const bigScheduled = Number(liveRow?.bigScheduled ?? 0);
+    const bigAttended = Number(liveRow?.bigAttended ?? 0);
+    const bigAbsent = Number(liveRow?.bigAbsent ?? 0);
+    const bigTotal = Number(liveRow?.bigTotal ?? bigScheduled * rateBig);
+    const smallScheduled = Number(liveRow?.smallScheduled ?? 0);
+    const smallAttended = Number(liveRow?.smallAttended ?? 0);
+    const smallAbsent = Number(liveRow?.smallAbsent ?? 0);
+    const smallTotal = Number(liveRow?.smallTotal ?? smallScheduled * rateSmall);
 
     const basicSalary = bigTotal + smallTotal;
     const totalDeductions = payrollRow?.totalDeductions != null ? Number(payrollRow.totalDeductions) : 0;
@@ -211,9 +196,13 @@ export default function PayrollReport() {
       fullName: staff.name,
       type: staff.type,
       shiftDayCount: bigScheduled,
+      shiftDayAttended: bigAttended,
+      shiftDayAbsent: bigAbsent,
       shiftDayRate: rateBig,
       shiftDayTotal: bigTotal,
       shiftNightCount: smallScheduled,
+      shiftNightAttended: smallAttended,
+      shiftNightAbsent: smallAbsent,
       shiftNightRate: rateSmall,
       shiftNightTotal: smallTotal,
       totalDeductions,

@@ -1483,6 +1483,8 @@ export const salaryRouter = router({
           { scheduled: number; attended: number; rate: number }
         > = {};
         let attended = 0;
+        // Explicit big/small breakdown (big = Morning / default, small = Night)
+        let bigScheduled = 0, bigAttended = 0, smallScheduled = 0, smallAttended = 0;
 
         // Rules 1 & 2: scheduled shifts vs punches
         for (const a of rows) {
@@ -1496,6 +1498,13 @@ export const salaryRouter = router({
             byShift[a.shiftName] = { scheduled: 0, attended: 0, rate };
           byShift[a.shiftName].scheduled++;
           if (present) byShift[a.shiftName].attended++;
+          if (size === "small") {
+            smallScheduled++;
+            if (present) smallAttended++;
+          } else {
+            bigScheduled++;
+            if (present) bigAttended++;
+          }
         }
 
         // Rule 3: punch days with no scheduled shift → also pay (use big rate)
@@ -1516,11 +1525,17 @@ export const salaryRouter = router({
         if (extraAttended > 0) {
           // Punch days with no roster entry: treat as fully-attended scheduled shifts so basicSalary is non-zero
           byShift["إضافي"] = { scheduled: extraAttended, attended: extraAttended, rate: rateBig };
+          bigScheduled += extraAttended;
+          bigAttended += extraAttended;
         }
 
         // Calculate pay per shift type
         const scheduled = rows.length + extraAttended; // roster entries + unscheduled punch days
         const absent = rows.length - attended; // only roster entries can be absent
+        const bigAbsent = Math.max(0, bigScheduled - bigAttended);
+        const smallAbsent = Math.max(0, smallScheduled - smallAttended);
+        const bigTotal = Math.round(bigScheduled * rateBig * 100) / 100;
+        const smallTotal = Math.round(smallScheduled * rateSmall * 100) / 100;
         const basicSalary = Math.round(
           Object.values(byShift).reduce((s, b) => s + b.scheduled * b.rate, 0) * 100,
         ) / 100;
@@ -1550,6 +1565,15 @@ export const salaryRouter = router({
           scheduled,
           attended: totalAttended,
           absent,
+          // Big/small breakdown
+          bigScheduled,
+          bigAttended,
+          bigAbsent,
+          bigTotal,
+          smallScheduled,
+          smallAttended,
+          smallAbsent,
+          smallTotal,
           basicSalary,
           absentDeduction,
           punchDeduction,
