@@ -530,7 +530,13 @@ export class PayrollComputeService {
           ? punchDatesMap.get(ss.empCd)?.has(fmtDate(a.workDate)) ?? false
           : a.present;
         const defSize = shiftSizeMap.get(a.shiftName);
-        const size = defSize ?? (a.shiftName === "Night" ? "small" : "big");
+        // Night is always small, Morning always big; other names use their definition.
+        const size: "big" | "small" =
+          a.shiftName === "Night"
+            ? "small"
+            : a.shiftName === "Morning"
+              ? "big"
+              : defSize ?? "big";
         const r = size === "small" ? rateSmall : rateBig;
         if (!byShift[a.shiftName]) byShift[a.shiftName] = { scheduled: 0, attended: 0, rate: r };
         byShift[a.shiftName].scheduled++;
