@@ -522,6 +522,7 @@ export const patientPortalRouter = router({
         status: z
           .enum(["pending", "confirmed", "cancelled", "completed"])
           .optional(),
+        branch: z.enum(["tanta", "kfs"]).optional(),
         limit: z.number().int().min(1).max(200).default(100),
       }),
     )
@@ -540,6 +541,8 @@ export const patientPortalRouter = router({
         );
       if (input.status)
         conditions.push(eq(patientPortalBookings.status, input.status));
+      if (input.branch)
+        conditions.push(eq(patientPortalBookings.branch, input.branch));
 
       const rows = await db
         .select({

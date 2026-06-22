@@ -210,6 +210,14 @@ function BookingCard({
             <span>{booking.typeLabel}</span>
             <span className="text-muted-foreground/50">•</span>
             <span>{reqDate}</span>
+            {booking.branch ? (
+              <>
+                <span className="text-muted-foreground/50">•</span>
+                <span className="font-medium text-primary">
+                  {booking.branch === "tanta" ? "طنطا" : booking.branch === "kfs" ? "كفرالشيخ" : booking.branch}
+                </span>
+              </>
+            ) : null}
           </div>
           {displayPhone ? (
             <p className="mt-1 text-xs text-muted-foreground">{displayPhone}</p>
@@ -1059,6 +1067,7 @@ export default function AdminPortalBookings() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("");
   const [dateFilter, setDateFilter] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [branchFilter, setBranchFilter] = useState<"" | "tanta" | "kfs">("");
   const [activeTab, setActiveTab] = useState<"bookings" | "schedule">(
     "bookings",
   );
@@ -1067,6 +1076,7 @@ export default function AdminPortalBookings() {
   const bookingsQuery = trpc.patientPortal.listBookings.useQuery({
     status: statusFilter || undefined,
     date: dateFilter || undefined,
+    branch: branchFilter || undefined,
     limit: 100,
   });
 
@@ -1204,6 +1214,28 @@ export default function AdminPortalBookings() {
                     </button>
                   );
                 })}
+              </div>
+
+              <div className="flex flex-wrap justify-end gap-2">
+                {[
+                  { value: "" as const, label: "كل الفروع" },
+                  { value: "tanta" as const, label: "طنطا" },
+                  { value: "kfs" as const, label: "كفرالشيخ" },
+                ].map((b) => (
+                  <button
+                    key={b.value}
+                    type="button"
+                    onClick={() => setBranchFilter(b.value)}
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                      branchFilter === b.value
+                        ? "border-secondary/40 bg-secondary/10 text-secondary"
+                        : "border-border bg-white text-muted-foreground hover:bg-muted/40",
+                    )}
+                  >
+                    {b.label}
+                  </button>
+                ))}
               </div>
 
               <div className="flex flex-wrap justify-end gap-2">
