@@ -1256,14 +1256,15 @@ export function useExaminationForm(
       Object.values(examData.pentacam.od).some((v) => String(v || "").trim()) ||
       Object.values(examData.pentacam.os).some((v) => String(v || "").trim());
 
-    if (hasAutoInput && !nurseSignature.trim()) {
+    if (hasAutoInput && !nurseSignature.trim() && !embedded) {
       toast.error("يرجى إدخال توقيع التمريض");
       return;
     }
     if (
       hasPentacamInput &&
       !technicianSignature.trim() &&
-      !nurseSignature.trim()
+      !nurseSignature.trim() &&
+      !embedded
     ) {
       toast.error("يرجى إدخال توقيع الفني");
       return;
