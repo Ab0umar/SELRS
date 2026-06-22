@@ -528,8 +528,8 @@ export function useExaminationForm(
       .trim()
       .toLowerCase();
     if (!normalized) return null;
-    return (
-      availableDoctors.find((doctor) => {
+    const findIn = (list: DoctorOption[]) =>
+      list.find((doctor) => {
         const name = String(doctor.name ?? "")
           .trim()
           .toLowerCase();
@@ -544,9 +544,11 @@ export function useExaminationForm(
           normalized === code ||
           (username && normalized === username)
         );
-      }) ?? null
-    );
-  }, [availableDoctors, doctorName]);
+      }) ?? null;
+    // Search filtered list first; fall back to full list so external doctors
+    // selected from the dropdown still resolve their code correctly.
+    return findIn(availableDoctors) ?? findIn(doctors);
+  }, [availableDoctors, doctors, doctorName]);
 
   // Auto-set sheet type from selected doctor
   useEffect(() => {
