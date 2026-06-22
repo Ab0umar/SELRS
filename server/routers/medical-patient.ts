@@ -723,6 +723,7 @@ export const medicalPatientRoutes = {
         phone: z.string().optional(),
         address: z.string().optional(),
         occupation: z.string().optional(),
+        gender: z.enum(["male", "female"]).optional(),
         serviceType: z
           .enum(["consultant", "specialist", "lasik", "surgery", "external"])
           .optional(),
@@ -790,6 +791,7 @@ export const medicalPatientRoutes = {
           phone: input.phone || null,
           address: input.address || null,
           age: input.age ?? null,
+          gender: input.gender || null,
           dateOfBirth: input.dateOfBirth || null,
           branch: "examinations",
           serviceType: input.serviceType || "consultant",

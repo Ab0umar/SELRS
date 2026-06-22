@@ -100,6 +100,7 @@ export function useExaminationForm(
     address: "",
     phone: "",
     job: "",
+    gender: "" as "male" | "female" | "",
   });
   const [locationType, setLocationType] = useState<"center" | "external">(
     "center",
@@ -761,6 +762,7 @@ export function useExaminationForm(
       address: data.address ?? "",
       phone: data.phone ?? "",
       job: data.occupation ?? "",
+      gender: (data.gender === "male" || data.gender === "female") ? data.gender : "",
     });
     if (data.locationType) {
       setLocationType(data.locationType === "external" ? "external" : "center");
@@ -1305,6 +1307,7 @@ export function useExaminationForm(
           phone: patientDetails.phone || undefined,
           address: patientDetails.address || undefined,
           occupation: patientDetails.job || undefined,
+          gender: (patientDetails.gender || undefined) as "male" | "female" | undefined,
           serviceType: (sheetSelection as any) || "consultant",
           locationType,
           visitDate: localISODate(),
@@ -1460,6 +1463,7 @@ export function useExaminationForm(
           address: "",
           phone: "",
           job: "",
+          gender: "",
         });
         setServices([{ code: "", qty: "1", price: 0, discount: 0 }]);
         setDoctorName("");

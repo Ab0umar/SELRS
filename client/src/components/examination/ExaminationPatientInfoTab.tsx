@@ -210,6 +210,38 @@ export default function ExaminationPatientInfoTab({
                     />
                   </div>
                 </div>
+                <div className="sm:col-span-2">
+                  <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                    الجنس
+                  </Label>
+                  <div className="flex gap-2">
+                    {(
+                      [
+                        { value: "male", label: "ذكر" },
+                        { value: "female", label: "أنثى" },
+                      ] as const
+                    ).map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        disabled={!canEditPatientData}
+                        onClick={() =>
+                          setPatientDetails((prev) => ({
+                            ...prev,
+                            gender: prev.gender === opt.value ? "" : opt.value,
+                          }))
+                        }
+                        className={`flex-1 h-9 rounded-lg border text-xs font-bold transition-all ${
+                          patientDetails.gender === opt.value
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background text-muted-foreground border-border hover:bg-muted/40"
+                        } ${!canEditPatientData ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="sm:col-span-2 grid grid-cols-2 gap-3">
                   <div>
                     <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
