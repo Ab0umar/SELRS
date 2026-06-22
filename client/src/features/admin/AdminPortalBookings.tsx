@@ -541,6 +541,7 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
     code: string;
   } | null>(null);
   const [bookingType, setBookingType] = useState<BookingType>("consultant");
+  const [branch, setBranch] = useState<"tanta" | "kfs" | "">("");
   const [requestedDate, setRequestedDate] = useState("");
   const [confirmedDate, setConfirmedDate] = useState("");
   const [staffNotes, setStaffNotes] = useState("");
@@ -566,12 +567,13 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
     onError: (e) => toast.error(e.message),
   });
 
-  const canSubmit = !!selectedPatient && !!requestedDate && !create.isPending;
+  const canSubmit = !!selectedPatient && !!requestedDate && !!branch && !create.isPending;
 
   const reset = () => {
     setOpen(false);
     setSearch("");
     setSelectedPatient(null);
+    setBranch("");
     setRequestedDate("");
     setConfirmedDate("");
     setStaffNotes("");
@@ -676,6 +678,28 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
           )}
         </div>
 
+        {/* Branch */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">الفرع</label>
+          <div className="flex gap-2">
+            {([{ value: "tanta", label: "طنطا" }, { value: "kfs", label: "كفرالشيخ" }] as const).map((b) => (
+              <button
+                key={b.value}
+                type="button"
+                onClick={() => setBranch(b.value)}
+                className={cn(
+                  "flex-1 h-9 rounded-xl border text-xs font-bold transition-all cursor-pointer",
+                  branch === b.value
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-white text-muted-foreground border-border hover:bg-muted/40",
+                )}
+              >
+                {b.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Booking type */}
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground">
@@ -748,6 +772,7 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
             create.mutate({
               patientId: selectedPatient!.id,
               bookingType,
+              branch: branch || undefined,
               requestedDate,
               confirmedDate: confirmedDate || undefined,
               status: "confirmed",
