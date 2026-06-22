@@ -519,7 +519,7 @@ export default function PentacamResultsDashboard({
           "mx-auto w-full",
           hidePageChrome
             ? "max-w-none px-2 pb-4 pt-1"
-            : "container max-w-[1400px] px-3 py-6 sm:px-4 sm:py-8",
+            : "w-full px-3 py-6 sm:px-4 sm:py-8",
         )}
         dir="rtl"
       >

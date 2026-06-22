@@ -144,7 +144,7 @@ export default function PentacamSheet() {
         className="pointer-events-none absolute inset-x-0 top-0 h-24 border-b border-border/40 bg-muted/20"
       />
 
-      <main className="relative z-10 mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
+      <main className="relative z-10 flex min-h-screen w-full flex-col px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
         <header className="mb-5 flex items-start justify-between gap-4 rounded-[1.5rem] border border-border bg-background/95 px-4 py-4 shadow-sm">
           <div className="space-y-3">
             <button
