@@ -246,6 +246,7 @@ export const patientPortalRouter = router({
           "external",
           "followup",
         ]),
+        branch: z.enum(["tanta", "kfs"]).optional(),
         fromDate: z.string().optional(),
       }),
     )
@@ -257,11 +258,32 @@ export const patientPortalRouter = router({
           message: "DB unavailable",
         });
 
-      const [config] = await db
-        .select()
-        .from(bookingScheduleConfig)
-        .where(eq(bookingScheduleConfig.bookingType, input.bookingType))
-        .limit(1);
+      // Try branch-specific config first, fallback to default (branch='')
+      let config: typeof bookingScheduleConfig.$inferSelect | undefined;
+      if (input.branch) {
+        [config] = await db
+          .select()
+          .from(bookingScheduleConfig)
+          .where(
+            and(
+              eq(bookingScheduleConfig.bookingType, input.bookingType),
+              eq(bookingScheduleConfig.branch, input.branch),
+            ),
+          )
+          .limit(1);
+      }
+      if (!config) {
+        [config] = await db
+          .select()
+          .from(bookingScheduleConfig)
+          .where(
+            and(
+              eq(bookingScheduleConfig.bookingType, input.bookingType),
+              eq(bookingScheduleConfig.branch, ""),
+            ),
+          )
+          .limit(1);
+      }
 
       const mask = config?.weekdayMask ?? 127;
       const isActive = config?.isActive ?? true;
@@ -287,10 +309,12 @@ export const patientPortalRouter = router({
             gte(bookingClosures.endDate, from),
           ),
         );
-      // Only closures that apply to this booking type (null = all types)
+      // Only closures that apply to this booking type AND branch (null = all)
       const closures = closureRows
         .filter(
-          (r: any) => r.bookingType == null || r.bookingType === input.bookingType,
+          (r: any) =>
+            (r.bookingType == null || r.bookingType === input.bookingType) &&
+            (r.branch == null || r.branch === "" || r.branch === input.branch),
         )
         .map((r: any) => ({
           startDate:
@@ -317,6 +341,7 @@ export const patientPortalRouter = router({
           "external",
           "followup",
         ]),
+        branch: z.enum(["tanta", "kfs"]).optional(),
         requestedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         notes: z.string().max(500).optional(),
       }),
@@ -332,6 +357,7 @@ export const patientPortalRouter = router({
       await db.insert(patientPortalBookings).values({
         patientId: ctx.patientSession.patientId,
         bookingType: input.bookingType,
+        branch: input.branch ?? null,
         requestedDate: new Date(input.requestedDate),
         notes: input.notes ?? undefined,
         status: "pending",
@@ -381,6 +407,7 @@ export const patientPortalRouter = router({
           "external",
           "followup",
         ]),
+        branch: z.enum(["tanta", "kfs"]).optional(),
         requestedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         notes: z.string().max(500).optional(),
       }),
@@ -397,6 +424,7 @@ export const patientPortalRouter = router({
         guestName: input.guestName,
         guestPhone: normalizePhone(input.guestPhone),
         bookingType: input.bookingType,
+        branch: input.branch ?? null,
         requestedDate: new Date(input.requestedDate),
         notes: input.notes ?? undefined,
         status: "pending",
@@ -548,6 +576,7 @@ export const patientPortalRouter = router({
           "external",
           "followup",
         ]),
+        branch: z.enum(["tanta", "kfs"]).optional(),
         requestedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         confirmedDate: z
           .string()
@@ -571,6 +600,7 @@ export const patientPortalRouter = router({
       await db.insert(patientPortalBookings).values({
         patientId: input.patientId,
         bookingType: input.bookingType,
+        branch: input.branch ?? null,
         requestedDate: new Date(input.requestedDate),
         confirmedDate: input.confirmedDate
           ? new Date(input.confirmedDate)
@@ -607,6 +637,7 @@ export const patientPortalRouter = router({
           "external",
           "followup",
         ]),
+        branch: z.enum(["tanta", "kfs"]).optional(),
         requestedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         notes: z.string().max(500).optional(),
       }),
@@ -620,6 +651,7 @@ export const patientPortalRouter = router({
         guestName: input.guestName,
         guestPhone: input.guestPhone ?? undefined,
         bookingType: input.bookingType,
+        branch: input.branch ?? null,
         requestedDate: new Date(input.requestedDate),
         status: "confirmed",
         notes: input.notes ?? undefined,

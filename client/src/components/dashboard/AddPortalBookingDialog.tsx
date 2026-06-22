@@ -29,6 +29,13 @@ type BookingType =
   | "external"
   | "followup";
 
+type Branch = "tanta" | "kfs";
+
+const BRANCHES: { value: Branch; label: string }[] = [
+  { value: "tanta", label: "طنطا" },
+  { value: "kfs", label: "كفرالشيخ" },
+];
+
 type PatientType = "existing" | "new" | "guest";
 
 export function AddPortalBookingDialog({
@@ -47,6 +54,7 @@ export function AddPortalBookingDialog({
   } | null>(null);
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
+  const [branch, setBranch] = useState<Branch | null>(null);
   const [bookingType, setBookingType] = useState<BookingType>("consultant");
   const [requestedDate, setRequestedDate] = useState("");
   const [confirmedDate, setConfirmedDate] = useState("");
@@ -85,6 +93,7 @@ export function AddPortalBookingDialog({
 
   const canSubmit =
     !!requestedDate &&
+    !!branch &&
     !isPending &&
     (patientType === "existing"
       ? !!selectedPatient
@@ -96,6 +105,7 @@ export function AddPortalBookingDialog({
     setSelectedPatient(null);
     setGuestName("");
     setGuestPhone("");
+    setBranch(null);
     setRequestedDate("");
     setConfirmedDate("");
     setStaffNotes("");
@@ -163,6 +173,30 @@ export function AddPortalBookingDialog({
                   )}
                 >
                   {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Branch */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground block text-right">
+              الفرع
+            </label>
+            <div className="flex gap-2">
+              {BRANCHES.map((b) => (
+                <button
+                  key={b.value}
+                  type="button"
+                  onClick={() => setBranch(b.value)}
+                  className={cn(
+                    "flex-1 h-9 rounded-xl border text-xs font-bold transition-all cursor-pointer",
+                    branch === b.value
+                      ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                      : "bg-background text-muted-foreground border-border hover:bg-muted/40",
+                  )}
+                >
+                  {b.label}
                 </button>
               ))}
             </div>
@@ -345,6 +379,7 @@ export function AddPortalBookingDialog({
                 createStaff.mutate({
                   patientId: selectedPatient!.id,
                   bookingType,
+                  branch: branch ?? undefined,
                   requestedDate,
                   confirmedDate: confirmedDate || undefined,
                   status: "confirmed",
@@ -355,6 +390,7 @@ export function AddPortalBookingDialog({
                   guestName: guestName.trim(),
                   guestPhone: guestPhone.trim(),
                   bookingType,
+                  branch: branch ?? undefined,
                   requestedDate,
                 });
               }

@@ -2123,12 +2123,13 @@ export const bookingScheduleConfig = mysqlTable(
       "external",
       "followup",
     ]).notNull(),
+    branch: varchar("branch", { length: 20 }).notNull().default(""),
     weekdayMask: int("weekdayMask").default(127).notNull(),
     isActive: boolean("isActive").default(true).notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
   (table) => ({
-    typeIdx: uniqueIndex("idx_booking_schedule_type").on(table.bookingType),
+    typeBranchIdx: uniqueIndex("idx_booking_schedule_type_branch").on(table.bookingType, table.branch),
   }),
 );
 
@@ -2148,6 +2149,7 @@ export const bookingClosures = mysqlTable("booking_closures", {
     "external",
     "followup",
   ]),
+  branch: varchar("branch", { length: 20 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
@@ -2177,6 +2179,7 @@ export const patientPortalBookings = mysqlTable(
       .notNull(),
     staffNotes: text("staffNotes"),
     confirmedDate: date("confirmedDate"),
+    branch: varchar("branch", { length: 20 }),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },

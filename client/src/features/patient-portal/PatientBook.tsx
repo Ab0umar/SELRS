@@ -35,6 +35,12 @@ const TYPE_HELP: Record<(typeof TYPES)[number]["value"], string> = {
   external: "أشعة بنتاكام فقط",
 };
 
+const BRANCHES = [
+  { value: "tanta" as const, label: "طنطا" },
+  { value: "kfs" as const, label: "كفرالشيخ" },
+] as const;
+type Branch = "tanta" | "kfs";
+
 const ARABIC_CALENDAR_FORMATTERS = {
   formatCaption: (date: Date) =>
     date.toLocaleDateString("ar-EG", { month: "long", year: "numeric" }),
@@ -73,6 +79,7 @@ function dateToIso(value: Date) {
 
 export default function PatientBook() {
   const [, navigate] = useLocation();
+  const [branch, setBranch] = useState<Branch | null>(null);
   const [bookingType, setBookingType] =
     useState<(typeof TYPES)[number]["value"]>("consultant");
   const [selectedDate, setSelectedDate] = useState<string>("");
@@ -84,9 +91,10 @@ export default function PatientBook() {
     isLoading: loadingDates,
     error,
     refetch,
-  } = trpc.patientPortal.getAvailableDates.useQuery({
-    bookingType,
-  });
+  } = trpc.patientPortal.getAvailableDates.useQuery(
+    { bookingType, branch: branch ?? undefined },
+    { enabled: !!branch },
+  );
 
   const createBooking = trpc.patientPortal.createBooking.useMutation({
     onSuccess: () => {
@@ -130,8 +138,13 @@ export default function PatientBook() {
       toast.error("اختر تاريخ الحجز");
       return;
     }
+    if (!branch) {
+      toast.error("اختر الفرع أولاً");
+      return;
+    }
     createBooking.mutate({
       bookingType,
+      branch,
       requestedDate: selectedDate,
       notes: notes.trim() || undefined,
     });
@@ -166,11 +179,40 @@ export default function PatientBook() {
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           {/* Form Content Column */}
           <div className="space-y-4">
-            {/* 1. Booking Type */}
+            {/* 0. Branch */}
             <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
               <div className="border-b border-[#f0f5fa] pb-2">
                 <h3 className="text-sm font-bold text-foreground">
-                  1. نوع الحجز والخدمة
+                  1. الفرع
+                </h3>
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                {BRANCHES.map((b) => {
+                  const active = branch === b.value;
+                  return (
+                    <button
+                      key={b.value}
+                      type="button"
+                      onClick={() => { setBranch(b.value); setSelectedDate(""); }}
+                      className={[
+                        "rounded-xl border px-4 py-3 text-center text-sm font-bold transition-all duration-200 cursor-pointer",
+                        active
+                          ? "border-primary bg-primary/5 text-primary shadow-xs"
+                          : "border-border bg-background text-muted-foreground hover:bg-muted/30 hover:text-foreground",
+                      ].join(" ")}
+                    >
+                      {b.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 1. Booking Type */}
+            <div className={["bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4", !branch ? "opacity-40 pointer-events-none" : ""].join(" ")}>
+              <div className="border-b border-[#f0f5fa] pb-2">
+                <h3 className="text-sm font-bold text-foreground">
+                  2. نوع الحجز والخدمة
                 </h3>
               </div>
               <div className="grid gap-2.5 sm:grid-cols-2">
@@ -215,10 +257,10 @@ export default function PatientBook() {
             </div>
 
             {/* 2. Available Calendar Dates */}
-            <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
+            <div className={["bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4", !branch ? "opacity-40 pointer-events-none" : ""].join(" ")}>
               <div className="border-b border-[#f0f5fa] pb-2">
                 <h3 className="text-sm font-bold text-foreground">
-                  2. تاريخ الحجز المفضل
+                  3. تاريخ الحجز المفضل
                 </h3>
               </div>
 
@@ -310,10 +352,10 @@ export default function PatientBook() {
             </div>
 
             {/* 3. Notes */}
-            <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
+            <div className={["bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4", !branch ? "opacity-40 pointer-events-none" : ""].join(" ")}>
               <div className="border-b border-[#f0f5fa] pb-2">
                 <h3 className="text-sm font-bold text-foreground">
-                  3. ملاحظات وتوجيهات إضافية
+                  4. ملاحظات وتوجيهات إضافية
                 </h3>
               </div>
               <Textarea
@@ -336,6 +378,14 @@ export default function PatientBook() {
               </div>
 
               <div className="space-y-2.5">
+                <div className="flex items-center justify-between border-b border-[#f0f5fa] py-2 last:border-0">
+                  <span className="text-xs text-muted-foreground font-semibold">
+                    الفرع
+                  </span>
+                  <span className="text-xs font-bold text-foreground">
+                    {branch ? BRANCHES.find((b) => b.value === branch)?.label : "لم يتم الاختيار"}
+                  </span>
+                </div>
                 <div className="flex items-center justify-between border-b border-[#f0f5fa] py-2 last:border-0">
                   <span className="text-xs text-muted-foreground font-semibold">
                     نوع الحجز
@@ -379,7 +429,7 @@ export default function PatientBook() {
               <Button
                 className="w-full h-12 text-base font-bold bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors rounded-xl shadow-xs cursor-pointer gap-2 mt-4"
                 onClick={handleSubmit}
-                disabled={!selectedDate || createBooking.isPending}
+                disabled={!branch || !selectedDate || createBooking.isPending}
               >
                 {createBooking.isPending
                   ? "جاري إرسال الحجز..."

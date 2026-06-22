@@ -58,6 +58,12 @@ const MOBILE_SAFE_CALENDAR_CLASS_NAMES = {
   day: "min-w-0",
 };
 
+const BRANCHES = [
+  { value: "tanta" as const, label: "طنطا" },
+  { value: "kfs" as const, label: "كفرالشيخ" },
+] as const;
+type Branch = "tanta" | "kfs";
+
 function isConsultantTantaDay(date: Date) {
   return [0, 2, 3].includes(date.getDay());
 }
@@ -83,6 +89,7 @@ export default function PatientGuestBook() {
     guestName?: string;
     guestPhone?: string;
   }>({});
+  const [branch, setBranch] = useState<Branch | null>(null);
   const [bookingType, setBookingType] =
     useState<(typeof TYPES)[number]["value"]>("consultant");
   const [selectedDate, setSelectedDate] = useState("");
@@ -94,9 +101,10 @@ export default function PatientGuestBook() {
     isLoading: loadingDates,
     error,
     refetch,
-  } = trpc.patientPortal.getAvailableDates.useQuery({
-    bookingType,
-  });
+  } = trpc.patientPortal.getAvailableDates.useQuery(
+    { bookingType, branch: branch ?? undefined },
+    { enabled: !!branch },
+  );
 
   const createGuestBooking = trpc.patientPortal.createGuestBooking.useMutation({
     onSuccess: () => {
@@ -189,6 +197,7 @@ export default function PatientGuestBook() {
       guestName: guestName.trim(),
       guestPhone: guestPhone.trim(),
       bookingType,
+      branch: branch ?? undefined,
       requestedDate: selectedDate,
       notes: notes.trim() || undefined,
     });
@@ -367,15 +376,40 @@ export default function PatientGuestBook() {
           )}
 
           {step === 2 && (
-            /* Step 2: Service Selection Card */
+            /* Step 2: Branch + Service Selection Card */
             <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-5">
               <div className="border-b border-[#f0f5fa] pb-2">
                 <h3 className="text-sm font-bold text-foreground">
-                  الخدمة المطلوبة
+                  الفرع والخدمة المطلوبة
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  اختر الفحص المطلوب لتحديد موعدك المناسب.
+                  اختر الفرع ثم الفحص المطلوب لتحديد موعدك المناسب.
                 </p>
+              </div>
+
+              {/* Branch selector */}
+              <div className="space-y-2">
+                <p className="text-xs font-bold text-foreground">الفرع</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {BRANCHES.map((b) => {
+                    const active = branch === b.value;
+                    return (
+                      <button
+                        key={b.value}
+                        type="button"
+                        onClick={() => { setBranch(b.value); setSelectedDate(""); }}
+                        className={[
+                          "rounded-xl border px-4 py-3 text-center text-sm font-bold transition-all duration-200 cursor-pointer w-full",
+                          active
+                            ? "border-primary bg-primary/5 text-primary shadow-xs"
+                            : "border-border bg-background text-muted-foreground hover:bg-muted/30 hover:text-foreground",
+                        ].join(" ")}
+                      >
+                        {b.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="grid gap-2.5">
@@ -429,6 +463,7 @@ export default function PatientGuestBook() {
                 <Button
                   className="flex-[2] h-11 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors rounded-xl shadow-xs cursor-pointer"
                   onClick={handleNextStep2}
+                  disabled={!branch}
                 >
                   التالي: اليوم والوقت
                 </Button>
@@ -570,6 +605,10 @@ export default function PatientGuestBook() {
                 {[
                   { label: "الاسم الكامل", value: guestName },
                   { label: "رقم الموبايل", value: guestPhone },
+                  {
+                    label: "الفرع",
+                    value: branch ? BRANCHES.find((b) => b.value === branch)?.label ?? branch : "—",
+                  },
                   {
                     label: "نوع الخدمة",
                     value: schedule?.label ?? bookingType,
