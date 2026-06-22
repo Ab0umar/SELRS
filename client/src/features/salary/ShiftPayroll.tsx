@@ -129,10 +129,9 @@ export default function ShiftPayroll() {
   });
   const rawRows: any[] = payrollQ.data ?? [];
 
-  // Enrich each row with explicit big/small counts.
-  // If the backend already returns bigScheduled use it; otherwise derive from byShift (Night=small).
+  // ALWAYS derive big/small counts from byShift by name (Night=small, else=big),
+  // independent of which backend build is deployed.
   const rows = rawRows.map((r: any) => {
-    if (r.bigScheduled != null) return r;
     let bigScheduled = 0, bigAttended = 0;
     let smallScheduled = 0, smallAttended = 0;
     for (const [sn, b] of Object.entries(r.byShift ?? {}) as any[]) {
