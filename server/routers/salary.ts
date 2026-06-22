@@ -1345,7 +1345,10 @@ export const salaryRouter = router({
             ),
           ),
         ).then((results) => results.flat().filter((a: any) => {
-          const d = String(a.workDate).slice(0, 10);
+          const raw = a.workDate;
+          const d = raw instanceof Date
+            ? `${raw.getFullYear()}-${String(raw.getMonth() + 1).padStart(2, "0")}-${String(raw.getDate()).padStart(2, "0")}`
+            : String(raw).slice(0, 10);
           return d >= rangeFrom && d <= rangeTo;
         })),
         db
