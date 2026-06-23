@@ -252,6 +252,7 @@ export function useOperations() {
   useEffect(() => {
     const data = listQuery.data as any;
     if (!data || !data.items) return;
+    setSelectedListId(data.id ? data.id : 0);
     setLists((prev) => {
       const existing = prev[activeTab] ?? [];
       const keyFor = (row: {
