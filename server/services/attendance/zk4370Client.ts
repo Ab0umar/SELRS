@@ -295,14 +295,18 @@ export class ZK4370Client {
 
   private openSocket(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const sock = net.createConnection({ host: this.ip, port: this.port, timeout: this.timeoutMs });
-      sock.on("connect", () => { this.socket = sock; resolve(); });
+      const sock = net.createConnection({ host: this.ip, port: this.port });
+      const connTimer = setTimeout(() => {
+        sock.destroy();
+        reject(new Error(`ZK4370 connection timeout (${this.timeoutMs}ms) — check IP, port, and port-forwarding`));
+      }, this.timeoutMs);
+      sock.on("connect", () => { clearTimeout(connTimer); this.socket = sock; resolve(); });
       sock.on("data", (chunk: Buffer) => {
         this.tcpBuf = Buffer.concat([this.tcpBuf, chunk] as Buffer[]);
         this.consumeBuffer();
       });
-      sock.on("error", reject);
-      sock.on("timeout", () => reject(new Error("ZK4370 socket timeout")));
+      sock.on("error", (err) => { clearTimeout(connTimer); reject(err); });
+      sock.on("timeout", () => { clearTimeout(connTimer); sock.destroy(); reject(new Error("ZK4370 socket timeout")); });
     });
   }
 }
