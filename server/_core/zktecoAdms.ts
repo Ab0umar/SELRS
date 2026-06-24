@@ -168,14 +168,21 @@ export function registerZKTecoAdms(app: Express): void {
     }
   });
 
-  // GET /iclock/getrequest — device polls for commands (respond empty = no commands)
+  // GET /iclock/getrequest — device polls for commands (pushver 2.x requires server to command upload)
   app.get("/iclock/getrequest", (req: Request, res: Response) => {
+    const sn = String(req.query.SN ?? req.query.sn ?? "unknown");
     res.set("Content-Type", "text/plain");
-    res.send("");
+    // Command the device to upload all attendance logs (stamp=0 = all records)
+    // Device will POST /iclock/cdata?table=ATTLOG with the records
+    res.send(`C:DATA UPDATE ATTLOG Stamp=0\r\n`);
+    console.log(`[ADMS] Commanded SN=${sn} to upload ATTLOG`);
   });
 
   // POST /iclock/devicecmd — device acknowledges executed commands
-  app.post("/iclock/devicecmd", (_req: Request, res: Response) => {
+  app.post("/iclock/devicecmd", (req: Request, res: Response) => {
+    const body = typeof req.body === "string" ? req.body : "";
+    const sn = String(req.query.SN ?? req.query.sn ?? "unknown");
+    console.log(`[ADMS] devicecmd from SN=${sn}: ${body.trim()}`);
     res.set("Content-Type", "text/plain");
     res.send("OK");
   });
