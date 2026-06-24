@@ -920,6 +920,58 @@ export const medicalPentacamRoutes = {
       }
       return out;
     }),
+
+  findDuplicateBlackiceUploads: adminProcedure.query(async () => {
+    return await db.findDuplicateBlackiceUploads();
+  }),
+
+  deleteBlackiceUploadsByIds: adminProcedure
+    .input(
+      z.object({
+        ids: z.array(z.number()),
+        deleteFromS3: z.boolean().optional(),
+        deleteLocalFile: z.boolean().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      if (!input.ids.length) return { deleted: 0, s3Deleted: 0 };
+
+      // Fetch file info before deleting
+      const rows = await db.getBlackiceUploadsByIds(input.ids);
+
+      // Delete from S3
+      let s3Deleted = 0;
+      if (input.deleteFromS3) {
+        for (const row of rows) {
+          const key = String(row.s3_key ?? row.file_name ?? "").trim();
+          if (!key) continue;
+          try {
+            await deleteFromS3(key);
+            s3Deleted++;
+          } catch {
+            // best-effort
+          }
+        }
+      }
+
+      // Delete local file
+      if (input.deleteLocalFile) {
+        const fs = await import("fs/promises");
+        for (const row of rows) {
+          const filePath = String(row.file_name ?? "").trim();
+          if (!filePath) continue;
+          try {
+            await fs.unlink(filePath);
+          } catch {
+            // best-effort
+          }
+        }
+      }
+
+      // Delete from DB
+      const deleted = await db.deleteBlackiceUploadsByIds(input.ids);
+      return { deleted, s3Deleted };
+    }),
 };
 
 export async function autoLinkUnlinkedPentacamFiles(): Promise<{

@@ -8,6 +8,7 @@ import { getTrpcErrorMessage } from "@/lib/utils";
 import { getApiUrl } from "@/const";
 import { EyeOff, RefreshCw, ScanLine } from "lucide-react";
 import { toast } from "sonner";
+import AdminPentacamDuplicates from "./AdminPentacamDuplicates";
 import AuthenticatedImage from "@/components/AuthenticatedImage";
 
 type FailedPentacamSuggestion = {
@@ -646,6 +647,15 @@ export default function AdminPentacamFailed() {
           </CardContent>
         </Card>
       ) : null}
+
+      <Card className="border-border">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">المكررات في قاعدة البيانات</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AdminPentacamDuplicates />
+        </CardContent>
+      </Card>
     </div>
   );
 }

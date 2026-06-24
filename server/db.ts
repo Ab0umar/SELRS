@@ -4417,6 +4417,76 @@ export async function getAllBlackiceUploads(limit = 100000) {
   }>;
 }
 
+export async function findDuplicateBlackiceUploads() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.execute(
+    sql`SELECT
+          a.id,
+          a.file_name,
+          a.s3_key,
+          a.patient_id,
+          a.created_at,
+          b.id AS dup_id,
+          b.file_name AS dup_file_name,
+          b.s3_key AS dup_s3_key,
+          b.patient_id AS dup_patient_id,
+          b.created_at AS dup_created_at,
+          p.fullName AS patient_name,
+          p.patientCode
+        FROM blackice_uploads a
+        JOIN blackice_uploads b
+          ON a.id < b.id
+          AND LOWER(SUBSTRING_INDEX(a.file_name, '/', -1)) = LOWER(SUBSTRING_INDEX(b.file_name, '/', -1))
+        LEFT JOIN patients p ON a.patient_id = p.id
+        WHERE a.file_name IS NOT NULL AND b.file_name IS NOT NULL
+        ORDER BY a.file_name, a.id`,
+  );
+  const rows = Array.isArray(result) ? result[0] : result;
+  return (Array.isArray(rows) ? rows : []) as Array<{
+    id: number;
+    file_name: string | null;
+    s3_key: string | null;
+    patient_id: number | null;
+    created_at: Date | string | null;
+    dup_id: number;
+    dup_file_name: string | null;
+    dup_s3_key: string | null;
+    dup_patient_id: number | null;
+    dup_created_at: Date | string | null;
+    patient_name: string | null;
+    patientCode: string | null;
+  }>;
+}
+
+export async function getBlackiceUploadsByIds(ids: number[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const normalized = ids.map(Number).filter((n) => Number.isFinite(n) && n > 0);
+  if (!normalized.length) return [];
+  const result = await db.execute(
+    sql`SELECT id, file_name, s3_key, patient_id FROM blackice_uploads WHERE id IN (${sql.join(normalized.map((id) => sql`${id}`), sql`, `)})`,
+  );
+  const rows = Array.isArray(result) ? result[0] : result;
+  return (Array.isArray(rows) ? rows : []) as Array<{
+    id: number;
+    file_name: string | null;
+    s3_key: string | null;
+    patient_id: number | null;
+  }>;
+}
+
+export async function deleteBlackiceUploadsByIds(ids: number[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const normalized = ids.map(Number).filter((n) => Number.isFinite(n) && n > 0);
+  if (!normalized.length) return 0;
+  await db.execute(
+    sql`DELETE FROM blackice_uploads WHERE id IN (${sql.join(normalized.map((id) => sql`${id}`), sql`, `)})`,
+  );
+  return normalized.length;
+}
+
 // ============ DOCTOR REPORT OPERATIONS ============
 
 export async function createDoctorReport(reportData: any) {
