@@ -75,7 +75,9 @@ export class ZK4370SyncService {
       console.log(`[ZK4370] Last HWM: ${lastHwm?.toISOString() ?? "none"}`);
 
       const client = new ZK4370Client(deviceIp, devicePort);
+      await client.connect();
       const rawLogs = await client.getAttendanceLogs();
+      await client.disconnect();
       // Normalise to the shape the rest of pull() expects
       const allPunches = rawLogs.map((r) => ({
         enrollNo: r.userId,
