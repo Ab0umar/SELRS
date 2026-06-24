@@ -66,6 +66,13 @@ export function registerZKTecoAdms(app: Express): void {
   // Accept plain text body for ZKTeco ADMS push
   app.use("/iclock", express.text({ type: "*/*", limit: "2mb" }));
 
+  // Log every /iclock/* request to diagnose missing POST
+  app.use("/iclock", (req: Request, _res: Response, next) => {
+    const body = typeof req.body === "string" ? req.body : "";
+    console.log(`[ADMS] ${req.method} ${req.path} query=${JSON.stringify(req.query)} bodyLen=${body.length} ct=${req.headers["content-type"] ?? "-"}`);
+    next();
+  });
+
   // GET /iclock/cdata — device handshake / options request
   app.get("/iclock/cdata", (req: Request, res: Response) => {
     const sn = String(req.query.SN ?? req.query.sn ?? "unknown");
