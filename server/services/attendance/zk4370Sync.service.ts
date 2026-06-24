@@ -181,7 +181,9 @@ export class ZK4370SyncService {
   // Push
   // ---------------------------------------------------------------------------
 
-  static async push(): Promise<ZK4370PushResult> {
+  static async push(ip?: string, port?: number): Promise<ZK4370PushResult> {
+    const deviceIp = ip ?? DEVICE_IP;
+    const devicePort = port ?? DEVICE_PORT;
     const start = Date.now();
     const result: ZK4370PushResult = { success: false, pushed: 0, failed: 0, errors: [], durationMs: 0 };
 
@@ -194,19 +196,26 @@ export class ZK4370SyncService {
         .from(attendanceEmployees)
         .where(sql`active = 1`);
 
-      const payload = employees.map((e: any) => ({
-        empCd:    e.empCd,
-        fullName: e.fullName ?? e.empCd,
-        uid:      empCdToUid(e.empCd),
-      }));
+      const client = new ZK4370Client(deviceIp, devicePort);
+      await client.connect();
+      try {
+        for (const e of employees as any[]) {
+          const uid = empCdToUid(e.empCd);
+          try {
+            await client.setUser(uid, e.empCd, e.fullName ?? e.empCd);
+            result.pushed++;
+          } catch (err) {
+            result.failed++;
+            result.errors.push(`${e.empCd}: ${err instanceof Error ? err.message : String(err)}`);
+          }
+        }
+      } finally {
+        await client.disconnect();
+      }
 
-      const { pushed, failed } = await ZK4370LogPuller.pushEmployees(payload, DEVICE_IP, DEVICE_PORT);
-
-      result.pushed  = pushed;
-      result.failed  = failed;
-      result.success = failed === 0;
+      result.success = result.failed === 0;
       result.durationMs = Date.now() - start;
-      console.log(`[ZK4370] Push done: ${pushed} pushed, ${failed} failed`);
+      console.log(`[ZK4370] Push done: ${result.pushed} pushed, ${result.failed} failed`);
       return result;
 
     } catch (error) {
@@ -220,19 +229,24 @@ export class ZK4370SyncService {
   // Status
   // ---------------------------------------------------------------------------
 
-  static async testConnection(): Promise<{ ok: boolean; userCount?: number; serial?: string; product?: string; error?: string }> {
-    const info = await ZK4370LogPuller.getDeviceInfo(DEVICE_IP, DEVICE_PORT);
-    if (!info.ok) return { ok: false, error: info.error };
+  static async testConnection(ip?: string, port?: number): Promise<{ ok: boolean; userCount?: number; error?: string }> {
+    const deviceIp = ip ?? DEVICE_IP;
+    const devicePort = port ?? DEVICE_PORT;
+    const client = new ZK4370Client(deviceIp, devicePort);
     try {
-      const users = await ZK4370LogPuller.pullUsers(DEVICE_IP, DEVICE_PORT);
-      return { ok: true, userCount: users.length, serial: info.serial, product: info.product };
-    } catch {
-      return { ok: true, serial: info.serial, product: info.product };
+      await client.connect();
+      const users = await client.getUsers();
+      await client.disconnect();
+      return { ok: true, userCount: users.length };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
   }
 
-  static getDeviceInfo() {
-    return { ip: DEVICE_IP, port: DEVICE_PORT, deviceId: DEVICE_ID };
+  static getDeviceInfo(ip?: string, port?: number) {
+    const deviceIp = ip ?? DEVICE_IP;
+    const devicePort = port ?? DEVICE_PORT;
+    return { ip: deviceIp, port: devicePort, deviceId: `zk4370_${deviceIp}` };
   }
 }
 
