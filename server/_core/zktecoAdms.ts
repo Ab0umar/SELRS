@@ -3,14 +3,11 @@
  * Receives attendance punches pushed by ZKTeco devices (X628-T/ID etc.)
  * over HTTP using the ZKTeco ADMS (Automatic Data Management System) protocol.
  *
- * Device setup: Comm → Cloud Server → Server Address = this server's hostname
- *
- * Protocol flow:
- *   1. Device sends GET /iclock/cdata?SN=...&options=all  (handshake)
- *      Server replies: "GET OPTION FROM: <SN>\nATTLOG\nOPERLOG\n..."
- *   2. Device sends POST /iclock/cdata?SN=...&table=ATTLOG  (punch upload)
- *      Body lines: "UserID\tTimestamp\tStatus\tVerify\tWorkCode\tReserved\n"
- *      Server replies: "OK: <count>"
+ * Protocol flow (pushver 2.x):
+ *   1. Device GET /iclock/cdata?SN=...&options=all  → handshake, server sends options
+ *   2. Device GET /iclock/getrequest                → server sends pending commands (user push etc.)
+ *   3. Device POST /iclock/cdata?SN=...&table=ATTLOG → punch upload
+ *   4. Device POST /iclock/devicecmd               → command acknowledgement
  */
 
 import type { Express, Request, Response } from "express";
@@ -18,7 +15,44 @@ import express from "express";
 import crypto from "crypto";
 import { getDb } from "../db";
 import { attendancePunches, attendanceEmployees } from "../../drizzle/schema";
-import { sql } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
+
+// ---------------------------------------------------------------------------
+// Command queue — populated by pushEmployeesToAdms(), drained by /getrequest
+// ---------------------------------------------------------------------------
+
+interface AdmsCommand {
+  id: number;
+  line: string; // full "C:ID:DATA UPDATE USERINFO\t..." line
+}
+
+let cmdSeq = 1;
+const cmdQueue: AdmsCommand[] = [];
+const pendingAck = new Map<number, AdmsCommand>(); // awaiting devicecmd ACK
+
+export function queueAdmsUserCommands(
+  employees: Array<{ empCd: string; fullName: string }>,
+): number {
+  let count = 0;
+  for (const e of employees) {
+    const id = cmdSeq++;
+    const name = (e.fullName || e.empCd).replace(/\t/g, " ").slice(0, 24);
+    const line =
+      `C:${id}:DATA UPDATE USERINFO\t` +
+      `EmpNo=${e.empCd}\t` +
+      `Name=${name}\t` +
+      `Privilege=0\t` +
+      `Password=\t` +
+      `Card=\t` +
+      `PIN2=${e.empCd}\t` +
+      `TZ=1\t` +
+      `VerifyStyle=0`;
+    cmdQueue.push({ id, line });
+    count++;
+  }
+  console.log(`[ADMS] Queued ${count} USERINFO commands`);
+  return count;
+}
 
 // ZKTeco ADMS status codes → direction
 // 0 = check-in, 1 = check-out, 4 = OT-in, 5 = OT-out
@@ -161,19 +195,26 @@ export function registerZKTecoAdms(app: Express): void {
     }
   });
 
-  // GET /iclock/getrequest — device polls for server commands
-  // Realtime=1 in handshake already causes the device to push punches on every swipe.
-  // Returning empty means "no pending commands" — avoids infinite upload loop.
+  // GET /iclock/getrequest — drain one queued command per poll; empty = idle
   app.get("/iclock/getrequest", (_req: Request, res: Response) => {
     res.set("Content-Type", "text/plain");
-    res.send("");
+    if (cmdQueue.length > 0) {
+      const cmd = cmdQueue.shift()!;
+      pendingAck.set(cmd.id, cmd);
+      console.log(`[ADMS] Sending cmd ${cmd.id} (${cmdQueue.length} remaining)`);
+      res.send(cmd.line + "\r\n");
+    } else {
+      res.send("");
+    }
   });
 
-  // POST /iclock/devicecmd — device acknowledges executed commands
+  // POST /iclock/devicecmd — device confirms command execution
   app.post("/iclock/devicecmd", (req: Request, res: Response) => {
     const body = typeof req.body === "string" ? req.body : "";
     const sn = String(req.query.SN ?? req.query.sn ?? "unknown");
-    console.log(`[ADMS] devicecmd from SN=${sn}: ${body.trim()}`);
+    const idMatch = body.match(/ID=(\d+)/);
+    if (idMatch) pendingAck.delete(parseInt(idMatch[1], 10));
+    console.log(`[ADMS] devicecmd SN=${sn}: ${body.trim()}`);
     res.set("Content-Type", "text/plain");
     res.send("OK");
   });

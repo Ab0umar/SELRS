@@ -120,6 +120,18 @@ export const attendanceSyncRoutes = {
     },
   ),
 
+  pushEmployeesToZK40: makeAttWriteProcedure("/attendance/admin/sync").mutation(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+    const { queueAdmsUserCommands } = await import("../_core/zktecoAdms");
+    const employees = await db
+      .select({ empCd: attendanceEmployees.empCd, fullName: attendanceEmployees.fullName })
+      .from(attendanceEmployees)
+      .where(eq(attendanceEmployees.active, true));
+    const queued = queueAdmsUserCommands(employees as any[]);
+    return { queued, message: `Queued ${queued} employees — K40 will receive them on next poll` };
+  }),
+
   zk40SyncLogs: makeAttProcedure("/attendance/admin/sync").query(async () => {
     const db = await getDb();
     if (!db) return [];

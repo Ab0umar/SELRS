@@ -38,6 +38,7 @@ export default function DeviceSettings() {
   const updateSettings = tRPC.attendance.updateDeviceSettings.useMutation();
   const syncNow = tRPC.attendance.syncNow.useMutation();
   const syncZK40 = tRPC.attendance.syncFromZK40.useMutation();
+  const pushEmployeesZK40 = tRPC.attendance.pushEmployeesToZK40.useMutation();
   const zk40Logs = tRPC.attendance.zk40SyncLogs.useQuery();
   const materializeDaily = tRPC.attendance.materializeDaily.useMutation();
   const bootstrapShifts = tRPC.attendance.bootstrapShifts.useMutation();
@@ -368,7 +369,7 @@ export default function DeviceSettings() {
               تفعيل جهاز ZK40
             </label>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button onClick={handleSaveConfig} disabled={updateSettings.isPending} className="flex-1">
               {updateSettings.isPending ? "جارٍ الحفظ..." : "حفظ إعدادات ZK40"}
             </Button>
@@ -387,6 +388,21 @@ export default function DeviceSettings() {
               className="flex-1"
             >
               {syncZK40.isPending ? "جارٍ المزامنة..." : "مزامنة ZK40 الآن"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  const result = await pushEmployeesZK40.mutateAsync();
+                  alert(result.message);
+                } catch (err) {
+                  console.error("Push employees failed:", err);
+                }
+              }}
+              disabled={pushEmployeesZK40.isPending}
+              className="flex-1"
+            >
+              {pushEmployeesZK40.isPending ? "جارٍ الإرسال..." : "إرسال الموظفين → ZK40"}
             </Button>
           </div>
           {syncZK40.data && (
