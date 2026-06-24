@@ -69,16 +69,31 @@ export function registerZKTecoAdms(app: Express): void {
   // GET /iclock/cdata — device handshake / options request
   app.get("/iclock/cdata", (req: Request, res: Response) => {
     const sn = String(req.query.SN ?? req.query.sn ?? "unknown");
-    console.log(`[ADMS] Handshake from device SN=${sn}`);
-    // Tell device to push ATTLOG table
+    const options = String(req.query.options ?? req.query.Options ?? "");
+    console.log(`[ADMS] Handshake from SN=${sn} options=${options} ip=${req.ip}`);
     res.set("Content-Type", "text/plain");
-    res.send(`GET OPTION FROM: ${sn}\r\nATTLOG\r\n`);
+    // Full options response required by K40/ADMS firmware
+    res.send(
+      `GET OPTION FROM: ${sn}\r\n` +
+      `ATTLOGStamp=0\r\n` +
+      `OPERLOGStamp=0\r\n` +
+      `ATTPHOTOStamp=0\r\n` +
+      `ErrorDelay=30\r\n` +
+      `Delay=10\r\n` +
+      `TransTimes=00:00;23:59\r\n` +
+      `TransInterval=1\r\n` +
+      `TransFlag=TransData AttLog OpLog\r\n` +
+      `Realtime=1\r\n` +
+      `Encrypt=None\r\n`,
+    );
   });
 
   // POST /iclock/cdata — device pushes attendance records
   app.post("/iclock/cdata", async (req: Request, res: Response) => {
     const sn = String(req.query.SN ?? req.query.sn ?? "unknown");
     const table = String(req.query.table ?? "").toUpperCase();
+    const body = typeof req.body === "string" ? req.body : "";
+    console.log(`[ADMS] POST SN=${sn} table=${table} bodyLen=${body.length} ip=${req.ip}`);
 
     // Only handle ATTLOG; acknowledge other tables silently
     if (table !== "ATTLOG") {
@@ -86,11 +101,10 @@ export function registerZKTecoAdms(app: Express): void {
       res.send("OK: 0");
       return;
     }
-
-    const body = typeof req.body === "string" ? req.body : "";
     const punches = parseAttlogBody(body, sn);
 
     if (punches.length === 0) {
+      console.log(`[ADMS] SN=${sn} no punches parsed — raw: ${body.slice(0, 300)}`);
       res.set("Content-Type", "text/plain");
       res.send("OK: 0");
       return;
