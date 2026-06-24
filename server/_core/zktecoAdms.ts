@@ -66,12 +66,6 @@ export function registerZKTecoAdms(app: Express): void {
   // Accept plain text body for ZKTeco ADMS push
   app.use("/iclock", express.text({ type: "*/*", limit: "2mb" }));
 
-  // Log every /iclock/* request to diagnose missing POST
-  app.use("/iclock", (req: Request, _res: Response, next) => {
-    const body = typeof req.body === "string" ? req.body : "";
-    console.log(`[ADMS] ${req.method} ${req.path} query=${JSON.stringify(req.query)} bodyLen=${body.length} ct=${req.headers["content-type"] ?? "-"}`);
-    next();
-  });
 
   // GET /iclock/cdata — device handshake / options request
   app.get("/iclock/cdata", (req: Request, res: Response) => {
@@ -100,7 +94,6 @@ export function registerZKTecoAdms(app: Express): void {
     const sn = String(req.query.SN ?? req.query.sn ?? "unknown");
     const table = String(req.query.table ?? "").toUpperCase();
     const body = typeof req.body === "string" ? req.body : "";
-    console.log(`[ADMS] POST SN=${sn} table=${table} bodyLen=${body.length} ip=${req.ip}`);
 
     // Only handle ATTLOG; acknowledge other tables silently
     if (table !== "ATTLOG") {
@@ -168,14 +161,12 @@ export function registerZKTecoAdms(app: Express): void {
     }
   });
 
-  // GET /iclock/getrequest — device polls for commands (pushver 2.x requires server to command upload)
-  app.get("/iclock/getrequest", (req: Request, res: Response) => {
-    const sn = String(req.query.SN ?? req.query.sn ?? "unknown");
+  // GET /iclock/getrequest — device polls for server commands
+  // Realtime=1 in handshake already causes the device to push punches on every swipe.
+  // Returning empty means "no pending commands" — avoids infinite upload loop.
+  app.get("/iclock/getrequest", (_req: Request, res: Response) => {
     res.set("Content-Type", "text/plain");
-    // Command the device to upload all attendance logs (stamp=0 = all records)
-    // Device will POST /iclock/cdata?table=ATTLOG with the records
-    res.send(`C:DATA UPDATE ATTLOG Stamp=0\r\n`);
-    console.log(`[ADMS] Commanded SN=${sn} to upload ATTLOG`);
+    res.send("");
   });
 
   // POST /iclock/devicecmd — device acknowledges executed commands
