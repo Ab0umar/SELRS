@@ -1,11 +1,11 @@
 /**
  * ZK4370 Sync Service
- * Pull attendance logs / users from ZKTeco device via zk-pull.ps1 (32-bit COM SDK).
- * Push employees from attendance_employees → ZKTeco device.
+ * Pull attendance logs from ZKTeco device via direct TCP (port 4370).
+ * No COM/DLL required — uses the pure-Node ZK4370Client.
  */
 
 import crypto from "crypto";
-import { ZK4370LogPuller } from "./zk4370LogPuller";
+import { ZK4370Client } from "./zk4370Client";
 import { DailyMaterializer } from "./dailyMaterializer";
 import { getDb } from "../../db";
 import {
@@ -74,7 +74,15 @@ export class ZK4370SyncService {
       const lastHwm: Date | null = lastRun[0]?.hwm ?? null;
       console.log(`[ZK4370] Last HWM: ${lastHwm?.toISOString() ?? "none"}`);
 
-      const allPunches = await ZK4370LogPuller.pullLogs(deviceIp, devicePort);
+      const client = new ZK4370Client(deviceIp, devicePort);
+      const rawLogs = await client.getAttendanceLogs();
+      // Normalise to the shape the rest of pull() expects
+      const allPunches = rawLogs.map((r) => ({
+        enrollNo: r.userId,
+        inOutMode: r.type === 0 ? 1 : r.type === 1 ? 0 : -1,
+        verifyMode: r.state,
+        timestamp: r.timestamp,
+      }));
 
       const newPunches = lastHwm
         ? allPunches.filter((r) => r.timestamp > lastHwm)
