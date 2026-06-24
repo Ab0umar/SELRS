@@ -37,20 +37,22 @@ export function queueAdmsUserCommands(
   for (const e of employees) {
     const id = cmdSeq++;
     const name = (e.fullName || e.empCd).replace(/\t/g, " ").slice(0, 24);
+    // K40 firmware uses PIN (not EmpNo) as the primary user ID field
     const line =
       `C:${id}:DATA UPDATE USERINFO\t` +
-      `EmpNo=${e.empCd}\t` +
+      `PIN=${e.empCd}\t` +
       `Name=${name}\t` +
-      `Privilege=0\t` +
-      `Password=\t` +
+      `Pri=0\t` +
+      `Passwd=\t` +
       `Card=\t` +
-      `PIN2=${e.empCd}\t` +
-      `TZ=1\t` +
-      `VerifyStyle=0`;
+      `Grp=1\t` +
+      `TZ=0000000100000000\t` +
+      `Verify=0\t` +
+      `ViceCard=`;
     cmdQueue.push({ id, line });
     count++;
   }
-  console.log(`[ADMS] Queued ${count} USERINFO commands`);
+  console.log(`[ADMS] Queued ${count} USERINFO commands (queue total: ${cmdQueue.length})`);
   return count;
 }
 
@@ -196,12 +198,13 @@ export function registerZKTecoAdms(app: Express): void {
   });
 
   // GET /iclock/getrequest — drain one queued command per poll; empty = idle
-  app.get("/iclock/getrequest", (_req: Request, res: Response) => {
+  app.get("/iclock/getrequest", (req: Request, res: Response) => {
+    const sn = String(req.query.SN ?? req.query.sn ?? "unknown");
     res.set("Content-Type", "text/plain");
     if (cmdQueue.length > 0) {
       const cmd = cmdQueue.shift()!;
       pendingAck.set(cmd.id, cmd);
-      console.log(`[ADMS] Sending cmd ${cmd.id} (${cmdQueue.length} remaining)`);
+      console.log(`[ADMS] → SN=${sn} cmd ${cmd.id}: ${cmd.line.slice(0, 80)} (${cmdQueue.length} remaining)`);
       res.send(cmd.line + "\r\n");
     } else {
       res.send("");
