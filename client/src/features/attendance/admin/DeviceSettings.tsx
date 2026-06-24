@@ -19,6 +19,9 @@ export default function DeviceSettings() {
     ip: "",
     port: 5005,
     enabled: false,
+    zk40Ip: "",
+    zk40Port: 4370,
+    zk40Enabled: false,
   });
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -34,6 +37,7 @@ export default function DeviceSettings() {
   const resetConnection = tRPC.attendance.resetDeviceConnection.useMutation();
   const updateSettings = tRPC.attendance.updateDeviceSettings.useMutation();
   const syncNow = tRPC.attendance.syncNow.useMutation();
+  const syncZK40 = tRPC.attendance.syncFromZK40.useMutation();
   const materializeDaily = tRPC.attendance.materializeDaily.useMutation();
   const bootstrapShifts = tRPC.attendance.bootstrapShifts.useMutation();
 
@@ -44,6 +48,9 @@ export default function DeviceSettings() {
         ip: settingsQuery.data.ip,
         port: settingsQuery.data.port,
         enabled: settingsQuery.data.enabled,
+        zk40Ip: (settingsQuery.data as any).zk40Ip ?? "",
+        zk40Port: (settingsQuery.data as any).zk40Port ?? 4370,
+        zk40Enabled: (settingsQuery.data as any).zk40Enabled ?? false,
       });
     }
   }, [settingsQuery.data]);
@@ -62,6 +69,9 @@ export default function DeviceSettings() {
         ip: formData.ip,
         port: formData.port,
         enabled: formData.enabled,
+        zk40Ip: formData.zk40Ip || null,
+        zk40Port: formData.zk40Port,
+        zk40Enabled: formData.zk40Enabled,
       });
       setShowSuccess(true);
       await settingsQuery.refetch();
@@ -315,6 +325,83 @@ export default function DeviceSettings() {
           >
             {updateSettings.isPending ? "جارٍ الحفظ..." : "حفظ الإعدادات"}
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* ZK40 Pro Device Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>جهاز ZK40 Pro (بصمة بعيدة)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <label className="mb-2 block text-sm font-medium">عنوان IP العام</label>
+            <input
+              type="text"
+              value={formData.zk40Ip}
+              onChange={(e) => setFormData({ ...formData, zk40Ip: e.target.value })}
+              placeholder="مثال: 41.x.x.x أو hostname"
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+            />
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium">المنفذ (عادةً 4370)</label>
+            <input
+              type="number"
+              value={formData.zk40Port}
+              onChange={(e) => setFormData({ ...formData, zk40Port: parseInt(e.target.value) || 4370 })}
+              min="1"
+              max="65535"
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="zk40Enabled"
+              checked={formData.zk40Enabled}
+              onChange={(e) => setFormData({ ...formData, zk40Enabled: e.target.checked })}
+              className="rounded border-border"
+            />
+            <label htmlFor="zk40Enabled" className="text-sm font-medium cursor-pointer">
+              تفعيل جهاز ZK40
+            </label>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={handleSaveConfig} disabled={updateSettings.isPending} className="flex-1">
+              {updateSettings.isPending ? "جارٍ الحفظ..." : "حفظ إعدادات ZK40"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  const result = await syncZK40.mutateAsync();
+                  setShowSuccess(true);
+                  console.log("ZK40 sync result:", result);
+                } catch (err) {
+                  console.error("ZK40 sync failed:", err);
+                }
+              }}
+              disabled={syncZK40.isPending || !formData.zk40Ip}
+              className="flex-1"
+            >
+              {syncZK40.isPending ? "جارٍ المزامنة..." : "مزامنة ZK40 الآن"}
+            </Button>
+          </div>
+          {syncZK40.data && (
+            <Alert variant="default" className="border-success/30 bg-success/10">
+              <CheckCircle className="h-4 w-4 text-success" />
+              <AlertDescription className="text-success">
+                ZK40: {syncZK40.data.recordsInserted} سجل جديد من {syncZK40.data.recordsSeen}
+              </AlertDescription>
+            </Alert>
+          )}
+          {syncZK40.error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{String(syncZK40.error)}</AlertDescription>
+            </Alert>
+          )}
         </CardContent>
       </Card>
 

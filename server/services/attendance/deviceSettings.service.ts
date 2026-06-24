@@ -21,6 +21,9 @@ export interface DeviceSettings {
   fallbackToAccess: boolean; // Use Access DB if device offline
   realTimeSync: boolean; // Process punches immediately vs batch
   lastConfigUpdate?: Date;
+  zk40Ip?: string | null;
+  zk40Port?: number;
+  zk40Enabled?: boolean;
 }
 
 // In-memory settings cache (synced with DB)
@@ -65,6 +68,9 @@ export class DeviceSettingsService {
           fallbackToAccess: dbSettings.fallbackToAccess,
           realTimeSync: dbSettings.realTimeSync,
           lastConfigUpdate: dbSettings.lastConfigUpdate || undefined,
+          zk40Ip: (dbSettings as any).zk40Ip ?? null,
+          zk40Port: (dbSettings as any).zk40Port ?? 4370,
+          zk40Enabled: (dbSettings as any).zk40Enabled ?? false,
         };
         console.log("[DeviceSettings] Loaded from database:", {
           ip: deviceSettings.ip,
@@ -138,8 +144,11 @@ export class DeviceSettingsService {
               fallbackToAccess: deviceSettings.fallbackToAccess,
               realTimeSync: deviceSettings.realTimeSync,
               lastConfigUpdate: deviceSettings.lastConfigUpdate,
+              zk40Ip: deviceSettings.zk40Ip ?? null,
+              zk40Port: deviceSettings.zk40Port ?? 4370,
+              zk40Enabled: deviceSettings.zk40Enabled ?? false,
             },
-          });
+          } as any);
         console.log("[DeviceSettings] Updated in database:", {
           ip: deviceSettings.ip,
           port: deviceSettings.port,

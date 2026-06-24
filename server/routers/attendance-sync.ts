@@ -29,6 +29,7 @@ import {
   getDeviceSyncEngine,
 } from "../services/attendance/deviceSyncEngine";
 import { ZKTecoDevice } from "../services/attendance/zktecoDevice";
+import { ZK4370SyncService } from "../services/attendance/zk4370Sync.service";
 import { dailyMaterializer } from "../services/attendance/dailyMaterializer";
 import { getDb, getAllUsers } from "../db";
 import {
@@ -100,11 +101,24 @@ export const attendanceSyncRoutes = {
         port: z.number().int().min(1).max(65535).optional(),
         fallbackToAccess: z.boolean().optional(),
         realTimeSync: z.boolean().optional(),
+        zk40Ip: z.string().optional().nullable(),
+        zk40Port: z.number().int().min(1).max(65535).optional(),
+        zk40Enabled: z.boolean().optional(),
       }),
     )
     .mutation(async ({ input }) => {
       return DeviceSettingsService.updateSettings(input);
     }),
+
+  syncFromZK40: makeAttWriteProcedure("/attendance/admin/sync").mutation(
+    async ({ ctx }) => {
+      const settings = DeviceSettingsService.getSettings();
+      const ip = settings.zk40Ip ?? process.env.ZK4370_IP ?? "";
+      const port = settings.zk40Port ?? 4370;
+      if (!ip) throw new Error("ZK40 IP not configured");
+      return ZK4370SyncService.pull(ctx.user?.id, ip, port);
+    },
+  ),
 
   connectDevice: makeAttWriteProcedure("/attendance/admin/device").mutation(async () => {
     const connected = await DeviceSettingsService.connectDevice();

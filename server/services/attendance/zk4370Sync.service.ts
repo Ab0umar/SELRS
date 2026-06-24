@@ -46,7 +46,9 @@ export interface ZK4370PushResult {
 // ---------------------------------------------------------------------------
 
 export class ZK4370SyncService {
-  static async pull(userId?: number): Promise<ZK4370SyncResult> {
+  static async pull(userId?: number, ip?: string, port?: number): Promise<ZK4370SyncResult> {
+    const deviceIp = ip ?? DEVICE_IP;
+    const devicePort = port ?? DEVICE_PORT;
     const startedAt = new Date();
     const result: ZK4370SyncResult = {
       success: false,
@@ -72,7 +74,7 @@ export class ZK4370SyncService {
       const lastHwm: Date | null = lastRun[0]?.hwm ?? null;
       console.log(`[ZK4370] Last HWM: ${lastHwm?.toISOString() ?? "none"}`);
 
-      const allPunches = await ZK4370LogPuller.pullLogs(DEVICE_IP, DEVICE_PORT);
+      const allPunches = await ZK4370LogPuller.pullLogs(deviceIp, devicePort);
 
       const newPunches = lastHwm
         ? allPunches.filter((r) => r.timestamp > lastHwm)
@@ -98,7 +100,7 @@ export class ZK4370SyncService {
           empCd:       r.enrollNo,
           punchAt:     r.timestamp,
           direction:   (r.inOutMode === 1 ? "in" : r.inOutMode === 0 ? "out" : "unknown") as "in" | "out" | "unknown",
-          deviceId:    DEVICE_ID,
+          deviceId:    `zk4370_${deviceIp}`,
           source:      "tcp" as const,
           sourceRowId: `${r.enrollNo}_${r.timestamp.getTime()}`,
           sourceHash:  sha1(`${r.enrollNo}|${r.timestamp.toISOString()}|${r.inOutMode}`),

@@ -1620,6 +1620,9 @@ export const attendanceDeviceSettings = mysqlTable(
     realTimeSync: boolean("real_time_sync").default(true).notNull(),
     lastConfigUpdate: timestamp("last_config_update"),
     updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+    zk40Ip: varchar("zk40_ip", { length: 255 }),
+    zk40Port: int("zk40_port").default(4370),
+    zk40Enabled: boolean("zk40_enabled").default(false).notNull(),
   },
 );
 
