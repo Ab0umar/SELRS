@@ -38,6 +38,7 @@ export default function DeviceSettings() {
   const updateSettings = tRPC.attendance.updateDeviceSettings.useMutation();
   const syncNow = tRPC.attendance.syncNow.useMutation();
   const syncZK40 = tRPC.attendance.syncFromZK40.useMutation();
+  const zk40Logs = tRPC.attendance.zk40SyncLogs.useQuery();
   const materializeDaily = tRPC.attendance.materializeDaily.useMutation();
   const bootstrapShifts = tRPC.attendance.bootstrapShifts.useMutation();
 
@@ -402,6 +403,56 @@ export default function DeviceSettings() {
               <AlertDescription>{String(syncZK40.error)}</AlertDescription>
             </Alert>
           )}
+
+          {/* Sync Log */}
+          <div className="pt-2">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium">سجل المزامنة</p>
+              <Button variant="ghost" size="sm" onClick={() => zk40Logs.refetch()} disabled={zk40Logs.isFetching}>
+                <RefreshCw className={`w-3 h-3 ${zk40Logs.isFetching ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
+            {zk40Logs.data && zk40Logs.data.length === 0 && (
+              <p className="text-xs text-muted-foreground">لا توجد عمليات مزامنة بعد.</p>
+            )}
+            {zk40Logs.data && zk40Logs.data.length > 0 && (
+              <div className="rounded-md border overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b bg-muted/50">
+                      <th className="px-2 py-1.5 text-right font-medium">الوقت</th>
+                      <th className="px-2 py-1.5 text-center font-medium">الحالة</th>
+                      <th className="px-2 py-1.5 text-center font-medium">مرئي</th>
+                      <th className="px-2 py-1.5 text-center font-medium">مُضاف</th>
+                      <th className="px-2 py-1.5 text-center font-medium">مكرر</th>
+                      <th className="px-2 py-1.5 text-right font-medium">خطأ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {zk40Logs.data.map((row: any) => (
+                      <tr key={row.id} className="border-b last:border-0 hover:bg-muted/30">
+                        <td className="px-2 py-1.5 font-mono whitespace-nowrap">
+                          {new Date(row.startedAt).toLocaleString("ar-EG", { dateStyle: "short", timeStyle: "short" })}
+                        </td>
+                        <td className="px-2 py-1.5 text-center">
+                          <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold
+                            ${row.status === "ok" ? "bg-success/15 text-success" :
+                              row.status === "failed" ? "bg-destructive/15 text-destructive" :
+                              "bg-muted text-muted-foreground"}`}>
+                            {row.status}
+                          </span>
+                        </td>
+                        <td className="px-2 py-1.5 text-center font-mono">{row.rowsSeen}</td>
+                        <td className="px-2 py-1.5 text-center font-mono text-success">{row.rowsInserted}</td>
+                        <td className="px-2 py-1.5 text-center font-mono text-muted-foreground">{row.rowsSkipped}</td>
+                        <td className="px-2 py-1.5 text-destructive truncate max-w-[160px]">{row.error ?? "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 

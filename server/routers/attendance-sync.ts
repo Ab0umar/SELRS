@@ -120,6 +120,26 @@ export const attendanceSyncRoutes = {
     },
   ),
 
+  zk40SyncLogs: makeAttProcedure("/attendance/admin/sync").query(async () => {
+    const db = await getDb();
+    if (!db) return [];
+    return db
+      .select({
+        id: attendanceSyncRuns.id,
+        startedAt: attendanceSyncRuns.startedAt,
+        finishedAt: attendanceSyncRuns.finishedAt,
+        status: attendanceSyncRuns.status,
+        rowsSeen: attendanceSyncRuns.rowsSeen,
+        rowsInserted: attendanceSyncRuns.rowsInserted,
+        rowsSkipped: attendanceSyncRuns.rowsSkipped,
+        error: attendanceSyncRuns.error,
+      })
+      .from(attendanceSyncRuns)
+      .where(eq(attendanceSyncRuns.source, "tcp"))
+      .orderBy(desc(attendanceSyncRuns.startedAt))
+      .limit(20);
+  }),
+
   connectDevice: makeAttWriteProcedure("/attendance/admin/device").mutation(async () => {
     const connected = await DeviceSettingsService.connectDevice();
     AuditLogService.log({
