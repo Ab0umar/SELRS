@@ -188,6 +188,7 @@ export const salaryRouter = router({
           month: salaryPenalties.month,
           amount: salaryPenalties.amount,
           penaltyDays: salaryPenalties.penaltyDays,
+          penaltyDate: salaryPenalties.penaltyDate,
           reason: salaryPenalties.reason,
           createdAt: salaryPenalties.createdAt,
           fullName: attendanceEmployees.fullName,
@@ -218,6 +219,7 @@ export const salaryRouter = router({
         // one of amount or penaltyDays is required
         amount: z.number().min(0).default(0),
         penaltyDays: z.number().min(0.25).optional(),
+        penaltyDate: z.string().optional(),
         reason: z.string().optional(),
       }),
     )
@@ -230,6 +232,7 @@ export const salaryRouter = router({
         month: input.month,
         amount: String(input.amount) as any,
         penaltyDays: input.penaltyDays ?? null,
+        penaltyDate: input.penaltyDate ? sql.raw(`'${input.penaltyDate}'`) as any : null,
         reason: input.reason,
       });
       return { id: (result as any).insertId };

@@ -38,7 +38,7 @@ export default function SalaryPenalties() {
   const periodLabel = `${new Date(fromDate + "T00:00:00").toLocaleDateString("ar-EG")} — ${new Date(toDate + "T00:00:00").toLocaleDateString("ar-EG")}`;
   const [showForm, setShowForm] = useState(false);
   const [penaltyMode, setPenaltyMode] = useState<"days" | "amount">("days");
-  const [form, setForm] = useState({ empCd: "", amount: "", penaltyDays: "", reason: "" });
+  const [form, setForm] = useState({ empCd: "", amount: "", penaltyDays: "", penaltyDate: "", reason: "" });
   const [editingInsurance, setEditingInsurance] = useState<{
     id: number;
     value: string;
@@ -66,7 +66,7 @@ export default function SalaryPenalties() {
     onSuccess: () => {
       penaltiesQ.refetch();
       setShowForm(false);
-      setForm({ empCd: "", amount: "", penaltyDays: "", reason: "" });
+      setForm({ empCd: "", amount: "", penaltyDays: "", penaltyDate: "", reason: "" });
       toast.success("تم إضافة الجزاء");
     },
     onError: (e: any) => toast.error("خطأ: " + e.message),
@@ -88,7 +88,7 @@ export default function SalaryPenalties() {
     onSuccess: () => {
       advancesQ.refetch();
       setShowForm(false);
-      setForm({ empCd: "", amount: "", penaltyDays: "", reason: "" });
+      setForm({ empCd: "", amount: "", penaltyDays: "", penaltyDate: "", reason: "" });
       toast.success("تم إضافة السلفة");
     },
     onError: (e: any) => toast.error("خطأ: " + e.message),
@@ -257,11 +257,11 @@ export default function SalaryPenalties() {
       if (penaltyMode === "days") {
         const days = parseFloat(form.penaltyDays);
         if (isNaN(days) || days < 0.25) { toast.error("أدخل عدد أيام صحيح (0.25 كحد أدنى)"); return; }
-        addPenaltyMut.mutate({ empCd: form.empCd, year, month, amount: 0, penaltyDays: days, reason: form.reason });
+        addPenaltyMut.mutate({ empCd: form.empCd, year, month, amount: 0, penaltyDays: days, penaltyDate: form.penaltyDate || undefined, reason: form.reason });
       } else {
         const amount = parseFloat(form.amount);
         if (isNaN(amount) || amount <= 0) { toast.error("أدخل مبلغ صحيح"); return; }
-        addPenaltyMut.mutate({ empCd: form.empCd, year, month, amount, reason: form.reason });
+        addPenaltyMut.mutate({ empCd: form.empCd, year, month, amount, penaltyDate: form.penaltyDate || undefined, reason: form.reason });
       }
     } else {
       const amount = parseFloat(form.amount);
@@ -378,6 +378,16 @@ export default function SalaryPenalties() {
                 ))}
               </select>
             </div>
+            {tab === "penalties" && (
+              <div className="space-y-2">
+                <label className="block text-sm font-medium">التاريخ</label>
+                <DateInput
+                  value={form.penaltyDate}
+                  onChange={(e) => setForm({ ...form, penaltyDate: e.target.value })}
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+            )}
             {tab === "penalties" ? (
               <div className="space-y-2">
                 <div className="flex items-center gap-3 mb-1">
@@ -462,6 +472,9 @@ export default function SalaryPenalties() {
                     القسم
                   </th>
                   {tab === "penalties" && (
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">التاريخ</th>
+                  )}
+                  {tab === "penalties" && (
                     <th className="px-4 py-3 text-right font-medium text-muted-foreground">أيام</th>
                   )}
                   <th className="px-4 py-3 text-right font-medium text-muted-foreground">
@@ -485,6 +498,11 @@ export default function SalaryPenalties() {
                     <td className="px-4 py-3 text-muted-foreground">
                       {r.department ?? empDept(r.empCd)}
                     </td>
+                    {tab === "penalties" && (
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                        {r.penaltyDate ? String(r.penaltyDate).slice(0, 10) : "—"}
+                      </td>
+                    )}
                     {tab === "penalties" && (
                       <td className="px-4 py-3 font-medium text-center">
                         {r.penaltyDays ? `${r.penaltyDays} يوم` : "—"}

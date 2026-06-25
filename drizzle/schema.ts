@@ -1700,6 +1700,7 @@ export const salaryPenalties = mysqlTable(
     month: int("month").notNull(),
     amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
     penaltyDays: decimal("penalty_days", { precision: 5, scale: 2 }),
+    penaltyDate: date("penalty_date"),
     reason: varchar("reason", { length: 500 }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
