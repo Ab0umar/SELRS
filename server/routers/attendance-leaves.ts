@@ -561,7 +561,7 @@ export const attendanceLeavesRoutes = {
       await db
         .update(attendancePermissions)
         .set({
-          date: sql`${input.date}`,
+          date: sql.raw(`'${input.date}'`) as any,
           type: input.type,
           durationMinutes: input.durationMinutes,
           notAffectSalary: input.notAffectSalary ?? false,
