@@ -846,58 +846,363 @@ npm run test:ui
 
 ---
 
----
-
 ## 🕐 Attendance Module (`client/src/features/attendance/`)
 
-### **Permissions** (`Permissions.tsx`)
+### Layout & Navigation
 
-- List, add, approve, delete, and **edit** attendance permission requests (إذن دخول متأخر / خروج مبكر)
-- Filter by employee, date range
-- **Edit mode:** pencil icon per row opens the form pre-filled; employee field is disabled; save calls `updatePermission`
-- Form fields: employee, date (`DateInput`), type (in/out), duration (minutes), "لا يؤثر على الراتب" checkbox, note
+#### **AttendanceLayout** / **AttendanceLayout.redesigned**
+- Shell with sidebar nav for all attendance sub-pages
+- Links: Dashboard, Employees, Reports, Settings
+
+#### **AttendanceHome** (`AttendanceHome.tsx`)
+- Landing page; quick-action cards based on user role (admin vs employee)
+- Links to daily view, live punches, employee list, settings
+
+#### **AttendanceDashboard** (`AttendanceDashboard.tsx`)
+- Overview statistics: present/absent/late counts, punch activity chart
+
+---
+
+### Employee Management
+
+#### **EmployeesList** (`EmployeesList.tsx`)
+- Searchable list of all attendance employees
+- Per-row link to `EmployeeDetail`
+- tRPC: `attendance.employeesList`
+
+#### **EmployeeDetail** (`EmployeeDetail.tsx`)
+- Individual employee attendance history
+- Monthly summary, daily breakdown
+- Leave balance display
+- Route: `/attendance/employees/:empCd`
+- tRPC: `attendance.employeeDetail`, `attendance.leaveBalance`
+
+#### **EmployeesHub** (`EmployeesHub.tsx`)
+- Tab container: Employees | Leaves | Permissions
+- Hosts `EmployeesList`, `LeaveManagement`, `Permissions`
+
+#### **UserMappings** (`UserMappings.tsx`)
+- Links system user accounts to attendance employee codes
+- Admin tool for resolving "who is who" between auth users and machine IDs
+- tRPC: `attendance.listUserMappings`, `saveUserMapping`
+
+---
+
+### Time & Punches
+
+#### **DailyView** (`DailyView.tsx`)
+- Date-picker + per-employee attendance grid for a single day
+- Shows punch-in / punch-out, late minutes, status
+- CSV export
+- tRPC: `attendance.dailyAttendance`
+
+#### **LiveBoard** (`LiveBoard.tsx`)
+- Real-time attendance board via WebSocket
+- Shows who is currently in/out
+- Auto-refreshing
+
+#### **LivePunches** (`LivePunches.tsx`)
+- Scrolling feed of recent punch events from the device
+- Polls or WebSocket-driven
+- tRPC: `attendance.recentPunches`
+
+#### **RawLogs** (`RawLogs.tsx`)
+- Raw punch log viewer with date/employee filter
+- Download as CSV
+- tRPC: `attendance.rawPunches`
+
+---
+
+### Leaves & Permissions
+
+#### **LeaveManagement** (`LeaveManagement.tsx`)
+- List, add, approve, delete, and **edit** leave records (إجازات)
+- Filter by employee and date range
+- **Edit mode:** pencil icon per row; employee field locked during edit
+- Form fields: employee, type (annual/sick/unpaid/other), dateFrom/dateTo (`DateInput`), note; day count auto-calculated
+- tRPC: `attendance.listLeaves`, `createLeave`, `updateLeave`, `approveLeave`, `deleteLeave`
+
+#### **Permissions** (`Permissions.tsx`)
+- List, add, approve, delete, and **edit** permission requests (إذن دخول متأخر / خروج مبكر)
+- Filter by employee and date range
+- **Edit mode:** pencil icon per row; employee field locked during edit
+- Form fields: employee, date, type (in/out), duration (minutes), "لا يؤثر على الراتب" checkbox, note
 - tRPC: `attendance.listPermissions`, `createPermission`, `updatePermission`, `approvePermission`, `deletePermission`
 
-### **LeaveManagement** (`LeaveManagement.tsx`)
+#### **PermissionReport** (`PermissionReport.tsx`)
+- Printable summary report of permissions by period
+- Groups by employee, totals per type
+- tRPC: `attendance.listPermissions`
 
-- List, add, approve, delete, and **edit** employee leave records (إجازات)
-- **Edit mode:** pencil icon per row opens the form pre-filled; employee field is disabled during edit; save calls `updateLeave`
-- Form fields: employee, type (annual/sick/unpaid/other), dateFrom, dateTo (`DateInput`), note
-- Day count auto-calculated from dateFrom/dateTo
-- tRPC: `attendance.listLeaves`, `createLeave`, `updateLeave`, `approveLeave`, `deleteLeave`
+#### **LeaveBalanceReport** (`LeaveBalanceReport.tsx`)
+- Annual leave balance per employee
+- Remaining days, used days, carry-over
+- tRPC: `attendance.leaveBalance`
+
+---
+
+### Shifts
+
+#### **ShiftManagement** (`ShiftManagement.tsx`)
+- Create / edit / delete shift definitions (morning, evening, flexible…)
+- Configure start/end times, grace periods, OT thresholds
+- tRPC: `attendance.listShifts`, `createShift`, `updateShift`, `deleteShift`
+
+#### **ShiftAssignments** (`ShiftAssignments.tsx`)
+- Assign shifts to employees per date range or cycle
+- Drag-row or select-based assignment UI
+- tRPC: `attendance.listShiftAssignments`, `saveShiftAssignment`
+
+#### **ScheduleSwap** (`ScheduleSwap.tsx`)
+- Employee shift-swap requests
+- Approve / reject swap requests
+- tRPC: `attendance.listSwapRequests`, `approveSwap`
+
+---
+
+### Reports
+
+#### **ReportsHub** (`ReportsHub.tsx`)
+- Tab container: Daily View | Monthly Reports | Permission Report | Leave Balance
+- Hosts `DailyView`, `Reports`, `PermissionReport`, `LeaveBalanceReport`
+
+#### **Reports** (`Reports.tsx`)
+- Monthly attendance report per employee
+- Columns: working days, absent, late minutes, OT, leave days
+- Print / export
+- tRPC: `attendance.monthlyReports`
+
+---
+
+### Settings & Admin
+
+#### **SettingsHub** (`SettingsHub.tsx`)
+- Tab container: Shifts | Holidays | Settings | Admin Dashboard
+- Entry point for all attendance config
+
+#### **Holidays** (`Holidays.tsx`)
+- Manage official holidays (excluded from absence calculations)
+- Add / delete holidays by date
+- tRPC: `attendance.listHolidays`, `addHoliday`, `deleteHoliday`
+
+#### **Settings** (`Settings.tsx`)
+- Attendance module config display (read-only info cards linking to device settings)
+
+#### **MyAttendanceProfile** (`MyAttendanceProfile.tsx`)
+- Employee self-service: own attendance history, leave balance, pending permissions
+- Route: `/attendance/me`
+
+---
+
+### Admin Sub-module (`attendance/admin/`)
+
+#### **AdminDashboard** (`admin/AdminDashboard.tsx`)
+- Sync control panel: trigger pull from FK/ZK device, view last sync time
+- Shows sync run history table
+- tRPC: `attendance.syncFromFKDevice`, `attendance.syncFromZK40`, `attendance.zk40SyncLogs`
+
+#### **DeviceSettings** (`admin/DeviceSettings.tsx`)
+- Configure FK device IP/port and ZK40 IP
+- Test device connection
+- ZK40 ADMS: "إرسال الموظفين → ZK40" button (pushes employee list via ADMS command queue)
+- ZK40 sync log table (last 20 TCP sync runs)
+- tRPC: `attendance.getDeviceSettings`, `attendance.saveDeviceSettings`, `attendance.testDeviceConnection`, `attendance.pushEmployeesToZK40`, `attendance.zk40SyncLogs`
+
+#### **DeviceConsole** (`admin/DeviceConsole.tsx`)
+- Live device diagnostics; send raw commands to FK/ZK device
+- Shows device info (firmware, serial, user count)
+
+#### **EmpSync** (`admin/EmpSync.tsx`)
+- Sync employee list from device to DB (or vice versa)
+- Search and manual link employees
+- tRPC: `attendance.syncEmployees`
+
+#### **SyncStatus** (`admin/SyncStatus.tsx`)
+- Real-time sync run status: in-progress, last result, error log
+- tRPC: `attendance.syncStatus`
+
+#### **BatchCorrections** (`admin/BatchCorrections.tsx`)
+- Bulk correct attendance records (e.g. mark a day as holiday for all)
+- Date range + action selection
 
 ---
 
 ## 💰 Salary Module (`client/src/features/salary/`)
 
-### **SalaryPenalties** (`SalaryPenalties.tsx`)
+### Layout & Navigation
 
+#### **SalaryLayout** / **SalaryLayout.redesigned**
+- Shell with sidebar nav for all salary sub-pages
+- Summary bar: total penalties, advances, insurance for current month
+
+#### **SalaryDashboard** (`SalaryDashboard.tsx`)
+- Landing page with quick-action cards: payroll, penalties, basics, reports
+
+---
+
+### Core Salary Pages
+
+#### **SalaryBasics** (`SalaryBasics.tsx`)
+- Manage employee base salaries and insurance deduction per employee
+- Effective-from date versioning (multiple rows per employee)
+- Inline edit with pencil icon
+- tRPC: `salary.listBasics`, `addBasic`, `updateBasic`, `deleteBasic`
+
+#### **SalaryPenalties** (`SalaryPenalties.tsx`)
 Tabs: **جزاءات | سلف | تأخيرات | تأمينات**
 
-#### Penalties tab — new fields and edit support
-
-- **Toggle بالأيام / بالمبلغ** when adding/editing a penalty:
-  - **بالأيام:** enter fractional days (0.25, 0.5, 1, 1.5…); deduction is computed at payroll time as `penaltyDays × dailyRate`
-  - **بالمبلغ:** fixed amount as before
-- **التاريخ field:** optional date (`DateInput`) recorded per penalty
-- **Edit:** pencil icon per row opens the form pre-filled; save calls `updatePenalty`
+**Penalties tab:**
+- Add / edit / delete penalties
+- **Toggle بالأيام / بالمبلغ:**
+  - بالأيام: fractional days (0.25, 0.5, 1, 1.5…); deducted at payroll as `penaltyDays × dailyRate`
+  - بالمبلغ: fixed amount
+- **التاريخ field:** optional date per penalty (`DateInput`)
+- **Edit:** pencil icon per row; save calls `updatePenalty`
 - Table columns: الموظف | القسم | التاريخ | أيام | المبلغ | السبب | actions
-- Day-based rows show "يُحسب عند الرواتب" in the amount column until payroll is computed
 - tRPC: `salary.listPenalties`, `addPenalty`, `updatePenalty`, `deletePenalty`
 
-#### `addPenalty` / `updatePenalty` input shape
+**Advances tab:**
+- Add / delete salary advances (سلف)
+- tRPC: `salary.listAdvances`, `addAdvance`, `deleteAdvance`
 
-```ts
-{
-  empCd: string;
-  year: number;
-  month: number;
-  amount: number;          // 0 when penaltyDays is set
-  penaltyDays?: number;    // decimal, e.g. 0.25 / 0.5 / 1.5
-  penaltyDate?: string;    // YYYY-MM-DD, optional
-  reason?: string;
-}
-```
+**Late Days tab:**
+- Read-only: employees grouped by late-day count for the period
+- Derived from attendance daily records
+
+**Insurance tab:**
+- Inline-edit insurance deduction per employee (from salaryBasics)
+- tRPC: `salary.listBasics`, `salary.updateBasic`
+
+**Print button:** generates printable A4 landscape deduction summary (جزاءات + تأخيرات + تأمينات + غياب per employee)
+
+#### **CurrentSalaryData** (`CurrentSalaryData.tsx`)
+- Two-table view: مركز employees vs عيادة employees
+- Shows basic salary, insurance, advances, penalties for the selected month
+
+#### **PayrollReport** (`PayrollReport.tsx`)
+- Compute and display full monthly payroll (كشف الرواتب)
+- Sections: مركز / عيادة
+- Columns: basic, absent deduction, late deduction, OT pay, penalty, advance, insurance, net
+- Compute button triggers `salary.computePayroll`; print via native Android or browser
+- tRPC: `salary.computePayroll`, `salary.getPayroll`
+
+#### **AbsentReport** (`AbsentReport.tsx`)
+- Absent employees report for a date range
+- Grouped by employee; shows absent days and deduction amount
+- Printable
+- tRPC: `salary.listPayrollDeductions`
+
+---
+
+### Shift Salary
+
+#### **ShiftStaff** (`ShiftStaff.tsx`)
+- Manage shift staff (doctors / pharmacists on duty)
+- Add / edit / delete staff; set type (doctor/pharmacist)
+- tRPC: `salary.listShiftStaff`, `addShiftStaff`, `updateShiftStaff`, `deleteShiftStaff`
+
+#### **ShiftSchedule** (`ShiftSchedule.tsx`)
+- Monthly shift schedule grid: assign staff to shifts per day
+- tRPC: `salary.getShiftSchedule`, `saveShiftSchedule`
+
+#### **ShiftPayroll** (`ShiftPayroll.tsx`)
+- Compute shift-based payroll (مناوبات)
+- Per-shift attendance + rate → net pay
+- Print support
+- tRPC: `salary.computePayroll` (shift section)
+
+#### **CommissionPools** (`CommissionPools.tsx`)
+- Configure commission pools shared across staff (عمولة مشتركة)
+- Edit pool amounts per month
+- tRPC: `salary.listCommissionPools`, `updateCommissionPool`
+
+#### **SalarySettings** (`SalarySettings.tsx`)
+- Module-level salary config: working days assumption, OT multiplier, etc.
+- tRPC: `salary.getSettings`, `salary.saveSettings`
+
+---
+
+## 🧾 Accounting Module (`client/src/features/accounting/`)
+
+#### **AccountingShell** — layout/nav shell for all accounting pages
+#### **AccountingHome** — daily revenue summary + cash entries for main clinic
+#### **AccountingHomeFund** — fund (صندوق) cash entries view
+#### **AccountingCashbook** — full cashbook ledger with date filter and print
+#### **AccountingLedger** — double-entry ledger view
+#### **AccountingInstapay** — Instapay receipts log
+#### **AccountingAdvances** — staff advances ledger
+#### **AccountingLoans** — loans management (قروض)
+#### **AccountingDrSaadany** — Dr. Saadany-specific account view
+#### **DoctorAccount** — per-doctor revenue account
+#### **PatientAccount** — per-patient payment history
+#### **DailyRevenue** — daily revenue breakdown by service type
+#### **LasikRevenue** — LASIK procedure revenue report
+#### **LasikServices** — LASIK service pricing management
+#### **ReceiptsInquiry** / **AccountingPatientsInquiry** / **PatientsInquiry** — receipt search and patient payment inquiry
+#### **AccEntryDrawer** — slide-over drawer for adding/editing cash entries
+#### **AccServiceDrawer** — drawer for adding service-linked revenue entries
+#### **AccLoanDrawer** — drawer for adding loan entries
+
+---
+
+## 🏥 KF Branch Module (`client/src/features/kf/`)
+
+Separate branch (KF) with its own patient flow, examination forms, and accounting.
+
+#### **KfShell** — layout/nav for KF branch
+#### **KfHome** — KF branch landing page
+#### **KfPatients** — patient list for KF branch
+#### **KfPatientDetail** — KF patient profile with visit history
+#### **KfPatientForm** — create/edit KF patient
+#### **KfExaminationForm** — KF eye examination form
+#### **KfFollowupForm** — KF follow-up form
+#### **KfFollowups** — list of KF follow-up visits
+#### **KfConsultantSheet** — KF consultant examination sheet
+#### **KfConsultantFollowupSheet** — KF consultant follow-up sheet
+#### **KfOperationForm** — KF surgical procedure form
+#### **KfOperations** — KF operations list
+#### **KfVisitForm** — KF visit entry form
+#### **KfReceipts** — KF branch receipts
+#### **KfAccounting** — KF branch accounting summary
+#### **KfDailyRevenue** — KF daily revenue report
+#### **KfServiceRevenue** — KF revenue by service
+#### **KfLedger** — KF ledger
+
+---
+
+## 📦 Stockroom Module (`client/src/features/stockroom/`)
+
+#### **StockroomShell** — layout/nav
+#### **StockroomDashboard** — inventory overview: low-stock alerts, total items
+#### **StockroomCategory** — manage item categories; add/edit/delete
+#### **StockroomReports** — stock movement and valuation reports
+
+---
+
+## 👨‍⚕️ Doctor Portal (`client/src/features/doctor-portal/`)
+
+Standalone portal for external doctors (separate login).
+
+#### **DoctorLogin** — doctor-specific login page
+#### **DoctorLayout** — portal shell
+#### **DoctorDashboard** — doctor's patient queue and today's appointments
+#### **DoctorPatientImages** — view patient scan/image files
+
+---
+
+## 🧑‍💻 Patient Portal (`client/src/features/patient-portal/`)
+
+Self-service portal for patients (accessible via QR / link).
+
+#### **PatientLogin** / **PatientGuestBook** — patient login or guest booking
+#### **PatientLayout** — portal shell
+#### **PatientDashboard** — patient home: upcoming appointments, recent prescriptions
+#### **PatientBook** — book a new appointment
+#### **PatientBookings** — view/cancel own bookings
+#### **PatientFile** — view own medical file summary
+#### **PatientPrescription** — view/print own prescriptions
+#### **PatientRefraction** — view own refraction results
+#### **PatientScans** — view own scan images (Pentacam, etc.)
 
 ---
 
