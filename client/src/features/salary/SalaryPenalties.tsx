@@ -37,6 +37,7 @@ export default function SalaryPenalties() {
   const [year, month] = fromDate.split("-").map(Number);
   const periodLabel = `${new Date(fromDate + "T00:00:00").toLocaleDateString("ar-EG")} — ${new Date(toDate + "T00:00:00").toLocaleDateString("ar-EG")}`;
   const [showForm, setShowForm] = useState(false);
+  const [editPenaltyId, setEditPenaltyId] = useState<number | null>(null);
   const [penaltyMode, setPenaltyMode] = useState<"days" | "amount">("days");
   const [form, setForm] = useState({ empCd: "", amount: "", penaltyDays: "", penaltyDate: "", reason: "" });
   const [editingInsurance, setEditingInsurance] = useState<{
@@ -61,6 +62,26 @@ export default function SalaryPenalties() {
     toDate,
   });
   const penalties: any[] = penaltiesQ.data ?? [];
+
+  const updatePenaltyMut = (trpc as any).salary.updatePenalty.useMutation({
+    onSuccess: () => { penaltiesQ.refetch(); resetForm(); toast.success("تم تعديل الجزاء"); },
+    onError: (e: any) => toast.error("خطأ: " + e.message),
+  });
+
+  const openEditPenalty = (r: any) => {
+    setEditPenaltyId(r.id);
+    const hasDays = r.penaltyDays && Number(r.penaltyDays) > 0;
+    setPenaltyMode(hasDays ? "days" : "amount");
+    setForm({
+      empCd: r.empCd,
+      amount: hasDays ? "" : String(Number(r.amount)),
+      penaltyDays: hasDays ? String(Number(r.penaltyDays)) : "",
+      penaltyDate: r.penaltyDate ? String(r.penaltyDate).slice(0, 10) : "",
+      reason: r.reason ?? "",
+    });
+    setShowForm(true);
+    setTab("penalties");
+  };
 
   const addPenaltyMut = (trpc as any).salary.addPenalty.useMutation({
     onSuccess: () => {
@@ -257,11 +278,15 @@ export default function SalaryPenalties() {
       if (penaltyMode === "days") {
         const days = parseFloat(form.penaltyDays);
         if (isNaN(days) || days < 0.25) { toast.error("أدخل عدد أيام صحيح (0.25 كحد أدنى)"); return; }
-        addPenaltyMut.mutate({ empCd: form.empCd, year, month, amount: 0, penaltyDays: days, penaltyDate: form.penaltyDate || undefined, reason: form.reason });
+        const payload = { empCd: form.empCd, year, month, amount: 0, penaltyDays: days, penaltyDate: form.penaltyDate || undefined, reason: form.reason };
+        if (editPenaltyId !== null) updatePenaltyMut.mutate({ id: editPenaltyId, ...payload });
+        else addPenaltyMut.mutate(payload);
       } else {
         const amount = parseFloat(form.amount);
         if (isNaN(amount) || amount <= 0) { toast.error("أدخل مبلغ صحيح"); return; }
-        addPenaltyMut.mutate({ empCd: form.empCd, year, month, amount, penaltyDate: form.penaltyDate || undefined, reason: form.reason });
+        const payload = { empCd: form.empCd, year, month, amount, penaltyDate: form.penaltyDate || undefined, reason: form.reason };
+        if (editPenaltyId !== null) updatePenaltyMut.mutate({ id: editPenaltyId, ...payload });
+        else addPenaltyMut.mutate(payload);
       }
     } else {
       const amount = parseFloat(form.amount);
@@ -272,7 +297,8 @@ export default function SalaryPenalties() {
 
   const resetForm = () => {
     setShowForm(false);
-    setForm({ empCd: "", amount: "", penaltyDays: "", reason: "" });
+    setEditPenaltyId(null);
+    setForm({ empCd: "", amount: "", penaltyDays: "", penaltyDate: "", reason: "" });
   };
 
   const tabDefs: { key: Tab; label: string }[] = [
@@ -354,7 +380,9 @@ export default function SalaryPenalties() {
         <section className="rounded-xl border border-border bg-background">
           <div className="border-b border-border px-4 py-3">
             <h3 className="text-base font-semibold">
-              {tab === "penalties" ? "جزاء جديد" : "سلفة جديدة"} —{" "}
+              {tab === "penalties"
+                ? editPenaltyId !== null ? "تعديل الجزاء" : "جزاء جديد"
+                : "سلفة جديدة"} —{" "}
               {periodLabel}
             </h3>
           </div>
@@ -517,23 +545,26 @@ export default function SalaryPenalties() {
                       {r.reason ?? "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          if (
-                            confirm(
-                              `حذف ${tab === "penalties" ? "هذا الجزاء" : "هذه السلفة"}؟`,
-                            )
-                          ) {
-                            tab === "penalties"
-                              ? deletePenaltyMut.mutate({ id: r.id })
-                              : deleteAdvanceMut.mutate({ id: r.id });
-                          }
-                        }}
-                      >
-                        <Trash2 size={14} className="text-destructive" />
-                      </Button>
+                      <div className="flex gap-1">
+                        {tab === "penalties" && (
+                          <Button variant="ghost" size="sm" onClick={() => openEditPenalty(r)}>
+                            <Pencil size={14} className="text-muted-foreground" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (confirm(`حذف ${tab === "penalties" ? "هذا الجزاء" : "هذه السلفة"}؟`)) {
+                              tab === "penalties"
+                                ? deletePenaltyMut.mutate({ id: r.id })
+                                : deleteAdvanceMut.mutate({ id: r.id });
+                            }
+                          }}
+                        >
+                          <Trash2 size={14} className="text-destructive" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}

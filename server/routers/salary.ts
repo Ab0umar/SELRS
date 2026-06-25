@@ -238,6 +238,37 @@ export const salaryRouter = router({
       return { id: (result as any).insertId };
     }),
 
+  updatePenalty: makeSalaryWriteProcedure("/salary/penalties")
+    .input(
+      z.object({
+        id: z.number().int(),
+        empCd: z.string().min(1),
+        year: z.number().int(),
+        month: z.number().int(),
+        amount: z.number().min(0).default(0),
+        penaltyDays: z.number().min(0.25).optional(),
+        penaltyDate: z.string().optional(),
+        reason: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db
+        .update(salaryPenalties)
+        .set({
+          empCd: input.empCd,
+          year: input.year,
+          month: input.month,
+          amount: String(input.amount) as any,
+          penaltyDays: input.penaltyDays ?? null,
+          penaltyDate: input.penaltyDate ? sql.raw(`'${input.penaltyDate}'`) as any : null,
+          reason: input.reason ?? null,
+        })
+        .where(eq(salaryPenalties.id, input.id));
+      return { success: true };
+    }),
+
   deletePenalty: makeSalaryWriteProcedure("/salary/penalties")
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
