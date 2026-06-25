@@ -261,8 +261,8 @@ export const attendanceLeavesRoutes = {
       await db
         .update(attendanceLeaves)
         .set({
-          dateFrom: input.dateFrom as any,
-          dateTo: input.dateTo as any,
+          dateFrom: sql.raw(`'${input.dateFrom}'`) as any,
+          dateTo: sql.raw(`'${input.dateTo}'`) as any,
           type: input.type,
           note: input.note ?? null,
         })
