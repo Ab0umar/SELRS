@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Trash2, CheckCircle, CalendarCheck } from "lucide-react";
+import { Plus, Trash2, CheckCircle, CalendarCheck, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { DateInput } from "@/components/ui/date-input";
 
@@ -34,6 +34,7 @@ export default function LeaveManagement() {
     to: today,
   });
   const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState<NewLeave>({
     empCd: "",
     dateFrom: today,
@@ -51,18 +52,32 @@ export default function LeaveManagement() {
   const empsQuery = trpc.attendance.employeesList.useQuery();
   const employees: any[] = (empsQuery.data?.employees ?? []) as any;
 
+  const resetForm = () => {
+    setShowForm(false);
+    setEditId(null);
+    setForm({ empCd: "", dateFrom: today, dateTo: today, type: "annual", note: "" });
+  };
+
+  const openEdit = (l: any) => {
+    setEditId(l.id);
+    setForm({ empCd: l.empCd, dateFrom: l.dateFrom, dateTo: l.dateTo, type: l.type, note: l.note ?? "" });
+    setShowForm(true);
+  };
+
   const createMut = trpc.attendance.createLeave.useMutation({
     onSuccess: () => {
-      setShowForm(false);
-      setForm({
-        empCd: "",
-        dateFrom: today,
-        dateTo: today,
-        type: "annual",
-        note: "",
-      });
+      resetForm();
       leavesQuery.refetch();
       toast.success("تم إضافة الإجازة");
+    },
+    onError: (e) => toast.error("خطأ: " + e.message),
+  });
+
+  const updateMut = trpc.attendance.updateLeave.useMutation({
+    onSuccess: () => {
+      resetForm();
+      leavesQuery.refetch();
+      toast.success("تم تعديل الإجازة");
     },
     onError: (e) => toast.error("خطأ: " + e.message),
   });
@@ -173,7 +188,7 @@ export default function LeaveManagement() {
       {showForm && (
         <Card className="mb-4">
           <CardHeader>
-            <CardTitle>إضافة إجازة جديدة</CardTitle>
+            <CardTitle>{editId !== null ? "تعديل الإجازة" : "إضافة إجازة جديدة"}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -190,6 +205,7 @@ export default function LeaveManagement() {
                   onChange={(e) => setForm({ ...form, empCd: e.target.value })}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                   required
+                  disabled={editId !== null}
                 >
                   <option value="">اختر الموظف</option>
                   {employees.map((e) => (
@@ -275,12 +291,18 @@ export default function LeaveManagement() {
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               <Button
-                onClick={() => createMut.mutate(form)}
-                disabled={!form.empCd || createMut.isPending}
+                onClick={() => {
+                  if (editId !== null) {
+                    updateMut.mutate({ leaveId: editId, dateFrom: form.dateFrom, dateTo: form.dateTo, type: form.type, note: form.note || undefined });
+                  } else {
+                    createMut.mutate(form);
+                  }
+                }}
+                disabled={!form.empCd || createMut.isPending || updateMut.isPending}
               >
-                {createMut.isPending ? "جاري الحفظ..." : "حفظ"}
+                {(createMut.isPending || updateMut.isPending) ? "جاري الحفظ..." : "حفظ"}
               </Button>
-              <Button variant="outline" onClick={() => setShowForm(false)}>
+              <Button variant="outline" onClick={resetForm}>
                 إلغاء
               </Button>
             </div>
@@ -368,6 +390,14 @@ export default function LeaveManagement() {
                               اعتماد
                             </Button>
                           )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEdit(l)}
+                            className="h-10 w-10 p-0"
+                          >
+                            <Pencil size={15} className="text-primary" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"

@@ -223,6 +223,75 @@ export const attendanceLeavesRoutes = {
       return { success: true };
     }),
 
+  updateLeave: makeAttWriteProcedure("/attendance")
+    .input(
+      z.object({
+        leaveId: z.number().int(),
+        dateFrom: z.string(),
+        dateTo: z.string(),
+        type: z.enum(["annual", "sick", "unpaid", "other"]),
+        note: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      if (input.dateTo < input.dateFrom) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "تاريخ النهاية يجب أن يكون بعد تاريخ البداية",
+        });
+      }
+
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const existing = await db
+        .select()
+        .from(attendanceLeaves)
+        .where(eq(attendanceLeaves.id, input.leaveId))
+        .limit(1);
+
+      if (!existing[0]) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "السجل غير موجود" });
+      }
+
+      const oldDateFrom = String(existing[0].dateFrom);
+      const oldDateTo = String(existing[0].dateTo);
+      const empCd = existing[0].empCd;
+
+      await db
+        .update(attendanceLeaves)
+        .set({
+          dateFrom: input.dateFrom as any,
+          dateTo: input.dateTo as any,
+          type: input.type,
+          note: input.note ?? null,
+        })
+        .where(eq(attendanceLeaves.id, input.leaveId));
+
+      // Recompute old range
+      await PermissionAdjustmentService.recomputeRange(
+        empCd,
+        new Date(oldDateFrom + "T12:00:00"),
+        new Date(oldDateTo + "T12:00:00"),
+      );
+      // Recompute new range if dates changed
+      if (input.dateFrom !== oldDateFrom || input.dateTo !== oldDateTo) {
+        await PermissionAdjustmentService.recomputeRange(
+          empCd,
+          new Date(input.dateFrom + "T12:00:00"),
+          new Date(input.dateTo + "T12:00:00"),
+        );
+      }
+
+      AuditLogService.log({
+        action: "leave_updated",
+        details: { leaveId: input.leaveId, empCd, dateFrom: input.dateFrom, dateTo: input.dateTo },
+        status: "success",
+      });
+
+      return { success: true };
+    }),
+
   listLeaves: makeAttProcedure("/attendance")
     .input(
       z.object({
@@ -464,6 +533,60 @@ export const attendanceLeavesRoutes = {
       }
 
       return { success: true, id: (result as any)?.[0]?.insertId };
+    }),
+
+  updatePermission: makeAttWriteProcedure("/attendance")
+    .input(
+      z.object({
+        id: z.number().int(),
+        date: z.string(),
+        type: z.enum(["in", "out"]),
+        durationMinutes: z.number().int().min(1).max(480),
+        notAffectSalary: z.boolean().optional(),
+        note: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const permRows = await db
+        .select()
+        .from(attendancePermissions)
+        .where(eq(attendancePermissions.id, input.id))
+        .limit(1);
+      const perm = permRows[0];
+      if (!perm) throw new Error("الإذن غير موجود");
+
+      await db
+        .update(attendancePermissions)
+        .set({
+          date: input.date as any,
+          type: input.type,
+          durationMinutes: input.durationMinutes,
+          notAffectSalary: input.notAffectSalary ?? false,
+          note: input.note ?? null,
+          updatedAt: new Date(),
+        })
+        .where(eq(attendancePermissions.id, input.id));
+
+      // Recompute both old and new date
+      const oldDate = new Date(String(perm.date) + "T12:00:00");
+      const newDate = new Date(input.date + "T12:00:00");
+      const datesToRecompute = [oldDate];
+      if (oldDate.toDateString() !== newDate.toDateString()) datesToRecompute.push(newDate);
+
+      for (const d of datesToRecompute) {
+        try {
+          await dailyMaterializer.recomputeRange(d, d, { empCd: perm.empCd });
+          await PermissionAdjustmentService.recomputeRange(perm.empCd, d, d);
+          await MonthlyComputeService.saveMonthlyReports(d.getFullYear(), d.getMonth() + 1);
+        } catch (err) {
+          console.error("Failed to recompute after permission update:", err);
+        }
+      }
+
+      return { success: true };
     }),
 
   approvePermission: makeAttWriteProcedure("/attendance")
