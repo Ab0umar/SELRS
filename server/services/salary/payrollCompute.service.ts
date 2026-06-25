@@ -657,7 +657,10 @@ export class PayrollComputeService {
       const penaltyDeduction = round2(
         penalties
           .filter((p: any) => p.empCd === emp.empCd)
-          .reduce((s: any, p: any) => s + Number(p.amount), 0),
+          .reduce((s: any, p: any) => {
+            if (p.penaltyDays) return s + p.penaltyDays * dailyRate;
+            return s + Number(p.amount);
+          }, 0),
       );
       const advancesDeduction = round2(
         advances

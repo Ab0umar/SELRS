@@ -37,7 +37,8 @@ export default function SalaryPenalties() {
   const [year, month] = fromDate.split("-").map(Number);
   const periodLabel = `${new Date(fromDate + "T00:00:00").toLocaleDateString("ar-EG")} — ${new Date(toDate + "T00:00:00").toLocaleDateString("ar-EG")}`;
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ empCd: "", amount: "", reason: "" });
+  const [penaltyMode, setPenaltyMode] = useState<"days" | "amount">("days");
+  const [form, setForm] = useState({ empCd: "", amount: "", penaltyDays: "", reason: "" });
   const [editingInsurance, setEditingInsurance] = useState<{
     id: number;
     value: string;
@@ -65,7 +66,7 @@ export default function SalaryPenalties() {
     onSuccess: () => {
       penaltiesQ.refetch();
       setShowForm(false);
-      setForm({ empCd: "", amount: "", reason: "" });
+      setForm({ empCd: "", amount: "", penaltyDays: "", reason: "" });
       toast.success("تم إضافة الجزاء");
     },
     onError: (e: any) => toast.error("خطأ: " + e.message),
@@ -87,7 +88,7 @@ export default function SalaryPenalties() {
     onSuccess: () => {
       advancesQ.refetch();
       setShowForm(false);
-      setForm({ empCd: "", amount: "", reason: "" });
+      setForm({ empCd: "", amount: "", penaltyDays: "", reason: "" });
       toast.success("تم إضافة السلفة");
     },
     onError: (e: any) => toast.error("خطأ: " + e.message),
@@ -252,33 +253,26 @@ export default function SalaryPenalties() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const amount = parseFloat(form.amount);
-    if (isNaN(amount) || amount <= 0) {
-      toast.error("أدخل مبلغ صحيح");
-      return;
-    }
     if (tab === "penalties") {
-      addPenaltyMut.mutate({
-        empCd: form.empCd,
-        year,
-        month,
-        amount,
-        reason: form.reason,
-      });
+      if (penaltyMode === "days") {
+        const days = parseInt(form.penaltyDays);
+        if (isNaN(days) || days < 1) { toast.error("أدخل عدد أيام صحيح"); return; }
+        addPenaltyMut.mutate({ empCd: form.empCd, year, month, amount: 0, penaltyDays: days, reason: form.reason });
+      } else {
+        const amount = parseFloat(form.amount);
+        if (isNaN(amount) || amount <= 0) { toast.error("أدخل مبلغ صحيح"); return; }
+        addPenaltyMut.mutate({ empCd: form.empCd, year, month, amount, reason: form.reason });
+      }
     } else {
-      addAdvanceMut.mutate({
-        empCd: form.empCd,
-        year,
-        month,
-        amount,
-        reason: form.reason,
-      });
+      const amount = parseFloat(form.amount);
+      if (isNaN(amount) || amount <= 0) { toast.error("أدخل مبلغ صحيح"); return; }
+      addAdvanceMut.mutate({ empCd: form.empCd, year, month, amount, reason: form.reason });
     }
   };
 
   const resetForm = () => {
     setShowForm(false);
-    setForm({ empCd: "", amount: "", reason: "" });
+    setForm({ empCd: "", amount: "", penaltyDays: "", reason: "" });
   };
 
   const tabDefs: { key: Tab; label: string }[] = [
@@ -384,18 +378,44 @@ export default function SalaryPenalties() {
                 ))}
               </select>
             </div>
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">المبلغ</label>
-              <input
-                type="number"
-                value={form.amount}
-                min={0}
-                step="0.01"
-                onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                required
-              />
-            </div>
+            {tab === "penalties" ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 mb-1">
+                  <label className="block text-sm font-medium">الجزاء</label>
+                  <div className="flex rounded-md border border-border overflow-hidden text-xs">
+                    <button type="button" onClick={() => setPenaltyMode("days")}
+                      className={`px-3 py-1 ${penaltyMode === "days" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}>
+                      بالأيام
+                    </button>
+                    <button type="button" onClick={() => setPenaltyMode("amount")}
+                      className={`px-3 py-1 ${penaltyMode === "amount" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}>
+                      بالمبلغ
+                    </button>
+                  </div>
+                </div>
+                {penaltyMode === "days" ? (
+                  <input type="number" value={form.penaltyDays} min={1} max={30}
+                    onChange={(e) => setForm({ ...form, penaltyDays: e.target.value })}
+                    placeholder="عدد الأيام (1، 2، 3...)"
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    required />
+                ) : (
+                  <input type="number" value={form.amount} min={0} step="0.01"
+                    onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                    placeholder="المبلغ"
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    required />
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <label className="block text-sm font-medium">المبلغ</label>
+                <input type="number" value={form.amount} min={0} step="0.01"
+                  onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  required />
+              </div>
+            )}
             <div className="space-y-2">
               <label className="block text-sm font-medium">السبب</label>
               <input
@@ -441,6 +461,9 @@ export default function SalaryPenalties() {
                   <th className="px-4 py-3 text-right font-medium text-muted-foreground">
                     القسم
                   </th>
+                  {tab === "penalties" && (
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">أيام</th>
+                  )}
                   <th className="px-4 py-3 text-right font-medium text-muted-foreground">
                     المبلغ
                   </th>
@@ -462,8 +485,15 @@ export default function SalaryPenalties() {
                     <td className="px-4 py-3 text-muted-foreground">
                       {r.department ?? empDept(r.empCd)}
                     </td>
+                    {tab === "penalties" && (
+                      <td className="px-4 py-3 font-medium text-center">
+                        {r.penaltyDays ? `${r.penaltyDays} يوم` : "—"}
+                      </td>
+                    )}
                     <td className="px-4 py-3 font-bold text-destructive">
-                      {Number(r.amount).toLocaleString("ar-EG")} ج.م
+                      {r.penaltyDays
+                        ? <span className="text-xs text-muted-foreground italic">يُحسب عند الرواتب</span>
+                        : `${Number(r.amount).toLocaleString("ar-EG")} ج.م`}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {r.reason ?? "—"}
@@ -531,7 +561,9 @@ export default function SalaryPenalties() {
                           المبلغ
                         </div>
                         <div className="text-sm font-bold text-destructive tabular-nums">
-                          {Number(r.amount).toLocaleString("ar-EG")} ج.م
+                          {r.penaltyDays
+                            ? `${r.penaltyDays} يوم`
+                            : `${Number(r.amount).toLocaleString("ar-EG")} ج.م`}
                         </div>
                       </div>
                       {isExpanded ? (
