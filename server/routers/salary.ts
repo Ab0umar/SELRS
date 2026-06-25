@@ -217,7 +217,7 @@ export const salaryRouter = router({
         month: z.number().int(),
         // one of amount or penaltyDays is required
         amount: z.number().min(0).default(0),
-        penaltyDays: z.number().int().min(1).optional(),
+        penaltyDays: z.number().min(0.25).optional(),
         reason: z.string().optional(),
       }),
     )

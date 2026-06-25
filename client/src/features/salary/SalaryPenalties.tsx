@@ -255,8 +255,8 @@ export default function SalaryPenalties() {
     e.preventDefault();
     if (tab === "penalties") {
       if (penaltyMode === "days") {
-        const days = parseInt(form.penaltyDays);
-        if (isNaN(days) || days < 1) { toast.error("أدخل عدد أيام صحيح"); return; }
+        const days = parseFloat(form.penaltyDays);
+        if (isNaN(days) || days < 0.25) { toast.error("أدخل عدد أيام صحيح (0.25 كحد أدنى)"); return; }
         addPenaltyMut.mutate({ empCd: form.empCd, year, month, amount: 0, penaltyDays: days, reason: form.reason });
       } else {
         const amount = parseFloat(form.amount);
@@ -394,9 +394,9 @@ export default function SalaryPenalties() {
                   </div>
                 </div>
                 {penaltyMode === "days" ? (
-                  <input type="number" value={form.penaltyDays} min={1} max={30}
+                  <input type="number" value={form.penaltyDays} min={0.25} max={30} step={0.25}
                     onChange={(e) => setForm({ ...form, penaltyDays: e.target.value })}
-                    placeholder="عدد الأيام (1، 2، 3...)"
+                    placeholder="عدد الأيام (0.25، 0.5، 1، 2...)"
                     className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                     required />
                 ) : (

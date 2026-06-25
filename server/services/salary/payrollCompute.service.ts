@@ -658,7 +658,7 @@ export class PayrollComputeService {
         penalties
           .filter((p: any) => p.empCd === emp.empCd)
           .reduce((s: any, p: any) => {
-            if (p.penaltyDays) return s + p.penaltyDays * dailyRate;
+            if (p.penaltyDays) return s + Number(p.penaltyDays) * dailyRate;
             return s + Number(p.amount);
           }, 0),
       );
