@@ -846,5 +846,60 @@ npm run test:ui
 
 ---
 
-**Last Updated:** March 29, 2026
-**Frontend Version:** 1.0.30
+---
+
+## 🕐 Attendance Module (`client/src/features/attendance/`)
+
+### **Permissions** (`Permissions.tsx`)
+
+- List, add, approve, delete, and **edit** attendance permission requests (إذن دخول متأخر / خروج مبكر)
+- Filter by employee, date range
+- **Edit mode:** pencil icon per row opens the form pre-filled; employee field is disabled; save calls `updatePermission`
+- Form fields: employee, date (`DateInput`), type (in/out), duration (minutes), "لا يؤثر على الراتب" checkbox, note
+- tRPC: `attendance.listPermissions`, `createPermission`, `updatePermission`, `approvePermission`, `deletePermission`
+
+### **LeaveManagement** (`LeaveManagement.tsx`)
+
+- List, add, approve, delete, and **edit** employee leave records (إجازات)
+- **Edit mode:** pencil icon per row opens the form pre-filled; employee field is disabled during edit; save calls `updateLeave`
+- Form fields: employee, type (annual/sick/unpaid/other), dateFrom, dateTo (`DateInput`), note
+- Day count auto-calculated from dateFrom/dateTo
+- tRPC: `attendance.listLeaves`, `createLeave`, `updateLeave`, `approveLeave`, `deleteLeave`
+
+---
+
+## 💰 Salary Module (`client/src/features/salary/`)
+
+### **SalaryPenalties** (`SalaryPenalties.tsx`)
+
+Tabs: **جزاءات | سلف | تأخيرات | تأمينات**
+
+#### Penalties tab — new fields and edit support
+
+- **Toggle بالأيام / بالمبلغ** when adding/editing a penalty:
+  - **بالأيام:** enter fractional days (0.25, 0.5, 1, 1.5…); deduction is computed at payroll time as `penaltyDays × dailyRate`
+  - **بالمبلغ:** fixed amount as before
+- **التاريخ field:** optional date (`DateInput`) recorded per penalty
+- **Edit:** pencil icon per row opens the form pre-filled; save calls `updatePenalty`
+- Table columns: الموظف | القسم | التاريخ | أيام | المبلغ | السبب | actions
+- Day-based rows show "يُحسب عند الرواتب" in the amount column until payroll is computed
+- tRPC: `salary.listPenalties`, `addPenalty`, `updatePenalty`, `deletePenalty`
+
+#### `addPenalty` / `updatePenalty` input shape
+
+```ts
+{
+  empCd: string;
+  year: number;
+  month: number;
+  amount: number;          // 0 when penaltyDays is set
+  penaltyDays?: number;    // decimal, e.g. 0.25 / 0.5 / 1.5
+  penaltyDate?: string;    // YYYY-MM-DD, optional
+  reason?: string;
+}
+```
+
+---
+
+**Last Updated:** June 25, 2026
+**Frontend Version:** 1.0.31
