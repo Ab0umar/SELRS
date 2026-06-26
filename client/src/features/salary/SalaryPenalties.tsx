@@ -14,7 +14,7 @@ const DEFAULT_TO = (() => {
   return `${isoMonthStr(last)}-${String(last.getDate()).padStart(2, "0")}`;
 })();
 
-type Tab = "penalties" | "advances" | "lates" | "earlyleave" | "insurance";
+type Tab = "penalties" | "advances" | "lates" | "earlyleave" | "missingcheckout" | "insurance";
 
 const PRINT_CSS = `
   @page { size: A4 landscape; margin: 10mm; }
@@ -136,6 +136,19 @@ export default function SalaryPenalties() {
     lateByEmp[r.empCd].days.push({ workDate: r.workDate, lateMinutes: Number(r.lateMinutes) });
   }
   const lateEmpRows = Object.values(lateByEmp).sort((a, b) => a.empName.localeCompare(b.empName, "ar"));
+
+  // ── Missing Checkout Days ─────────────────────────────────────────────────
+  const missingCheckoutQ = (trpc as any).salary.listMissingCheckoutDays.useQuery({ fromDate, toDate });
+  const missingCheckoutRaw: any[] = missingCheckoutQ.data ?? [];
+
+  const missingByEmp: Record<string, { empCd: string; empName: string; department: string; days: string[] }> = {};
+  for (const r of missingCheckoutRaw) {
+    if (!missingByEmp[r.empCd]) {
+      missingByEmp[r.empCd] = { empCd: r.empCd, empName: r.empName ?? r.empCd, department: r.department ?? "—", days: [] };
+    }
+    missingByEmp[r.empCd].days.push(r.workDate);
+  }
+  const missingEmpRows = Object.values(missingByEmp).sort((a, b) => a.empName.localeCompare(b.empName, "ar"));
 
   // ── Early Leave Days ───────────────────────────────────────────────────────
   const earlyLeaveQ = (trpc as any).salary.listEarlyLeaveDays.useQuery({ fromDate, toDate });
@@ -264,6 +277,29 @@ export default function SalaryPenalties() {
         </tbody>
       </table>`;
     openTabPrint(html, `تأخيرات — ${periodLabel}`);
+  }
+
+  function printMissingCheckoutTab() {
+    const bodyRows = missingEmpRows.map((emp) =>
+      emp.days.map((d) => `
+        <tr>
+          <td class="emp-col">${emp.empName}</td>
+          <td>${emp.department}</td>
+          <td>${d}</td>
+        </tr>`).join("")
+    ).join("");
+    const html = `
+      <h1>كشف الحضور بدون انصراف (بصمة واحدة) — ${periodLabel}</h1>
+      <table>
+        <thead><tr>
+          <th>الموظف</th><th>القسم</th><th>التاريخ</th>
+        </tr></thead>
+        <tbody>
+          ${bodyRows}
+          <tr class="total-row"><td colspan="2" class="emp-col">الإجمالي</td><td>${missingCheckoutRaw.length} يوم</td></tr>
+        </tbody>
+      </table>`;
+    openTabPrint(html, `بصمة واحدة — ${periodLabel}`);
   }
 
   function printEarlyLeaveTab() {
@@ -460,6 +496,7 @@ export default function SalaryPenalties() {
     { key: "advances", label: "سلف" },
     { key: "lates", label: "تأخيرات" },
     { key: "earlyleave", label: "خروج مبكر" },
+    { key: "missingcheckout", label: "بصمة واحدة" },
     { key: "insurance", label: "تأمينات" },
   ];
 
@@ -493,7 +530,7 @@ export default function SalaryPenalties() {
                 onChange={(e) => { setToDate(e.target.value); resetForm(); }}
                 className="rounded-md border border-border bg-background px-3 py-2 text-sm"
               />
-              {tab !== "lates" && tab !== "earlyleave" && (
+              {tab !== "lates" && tab !== "earlyleave" && tab !== "missingcheckout" && (
                 <>
                   <Button onClick={() => setShowForm(!showForm)} className="gap-2">
                     <Plus size={16} />
@@ -531,7 +568,7 @@ export default function SalaryPenalties() {
       </div>
 
       {/* Add form — penalties & advances only */}
-      {showForm && tab !== "insurance" && tab !== "lates" && tab !== "earlyleave" && (
+      {showForm && tab !== "insurance" && tab !== "lates" && tab !== "earlyleave" && tab !== "missingcheckout" && (
         <section className="rounded-xl border border-border bg-background">
           <div className="border-b border-border px-4 py-3">
             <h3 className="text-base font-semibold">
@@ -994,6 +1031,80 @@ export default function SalaryPenalties() {
                               <td className="px-3 py-2 text-center text-destructive">
                                 {totalMins} د ({hours > 0 ? `${hours}س ` : ""}{mins}د)
                               </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Missing Checkout (one punch) tab */}
+      {tab === "missingcheckout" && (
+        <section className="rounded-xl border border-border bg-background">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <div>
+              <h3 className="text-base font-semibold">بصمة واحدة (بدون انصراف) — {periodLabel}</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">أيام الحضور التي لا يوجد فيها بصمة انصراف — خصم ¼ يوم لكل يوم</p>
+            </div>
+            {missingEmpRows.length > 0 && (
+              <Button variant="outline" size="sm" onClick={printMissingCheckoutTab} className="gap-1.5 h-8 text-xs">
+                <Printer size={13} /> طباعة
+              </Button>
+            )}
+          </div>
+
+          {missingEmpRows.length === 0 ? (
+            <div className="px-4 py-8 text-center text-muted-foreground text-sm">
+              لا توجد أيام بصمة واحدة هذا الشهر
+            </div>
+          ) : (
+            <div className="divide-y divide-border/60">
+              {missingEmpRows.map((emp) => {
+                const isExpanded = !!expandedRows["mc_" + emp.empCd];
+                return (
+                  <div key={emp.empCd} className="bg-card">
+                    <div
+                      className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/20"
+                      onClick={() => toggleRow("mc_" + emp.empCd)}
+                    >
+                      <div>
+                        <div className="font-semibold text-sm">{emp.empName}</div>
+                        <div className="text-xs text-muted-foreground">{emp.department}</div>
+                      </div>
+                      <div className="flex items-center gap-6">
+                        <div className="text-center">
+                          <div className="text-[10px] text-muted-foreground">عدد الأيام</div>
+                          <div className="font-bold text-destructive text-sm">{emp.days.length}</div>
+                        </div>
+                        {isExpanded ? (
+                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </div>
+                    </div>
+                    {isExpanded && (
+                      <div className="px-4 pb-4">
+                        <table className="w-full text-sm border border-border/40 rounded-lg overflow-hidden">
+                          <thead>
+                            <tr className="bg-muted/30 text-xs">
+                              <th className="px-3 py-2 text-right text-muted-foreground font-medium">التاريخ</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {emp.days.map((d) => (
+                              <tr key={d} className="border-t border-border/30 hover:bg-muted/10">
+                                <td className="px-3 py-2 font-medium">{d}</td>
+                              </tr>
+                            ))}
+                            <tr className="border-t border-border bg-muted/30 font-bold text-xs">
+                              <td className="px-3 py-2">الإجمالي: {emp.days.length} يوم — خصم {(emp.days.length * 0.25).toLocaleString("ar-EG")} يوم</td>
                             </tr>
                           </tbody>
                         </table>

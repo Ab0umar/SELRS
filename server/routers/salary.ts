@@ -1020,6 +1020,41 @@ export const salaryRouter = router({
       });
     }),
 
+  listMissingCheckoutDays: makeSalaryProcedure("/salary")
+    .input(z.object({ fromDate: z.string(), toDate: z.string() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const rows = await db
+        .select({
+          empCd: attendanceDaily.empCd,
+          empName: attendanceEmployees.fullName,
+          department: attendanceEmployees.department,
+          workDate: attendanceDaily.workDate,
+        })
+        .from(attendanceDaily)
+        .leftJoin(
+          attendanceEmployees,
+          eq(attendanceDaily.empCd, attendanceEmployees.empCd),
+        )
+        .where(
+          and(
+            gte(attendanceDaily.workDate, input.fromDate as any),
+            lte(attendanceDaily.workDate, input.toDate as any),
+            eq(attendanceDaily.status, "missing_checkout"),
+          ),
+        )
+        .orderBy(attendanceEmployees.fullName, attendanceDaily.workDate);
+      return rows.map((r: any) => {
+        const d = r.workDate as any;
+        const workDate =
+          d instanceof Date
+            ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+            : String(d).slice(0, 10);
+        return { ...r, workDate };
+      });
+    }),
+
   listEarlyLeaveDays: makeSalaryProcedure("/salary")
     .input(z.object({ fromDate: z.string(), toDate: z.string() }))
     .query(async ({ input }) => {
