@@ -714,6 +714,51 @@ export default function PayrollReport() {
     openPrint(html, `كشف العمولات — ${section} — ${periodLabel}`, SHEET_CSS);
   }
 
+  function printSupervisionSheet() {
+    const today = new Date().toLocaleDateString("ar-EG");
+    const supRows = regularRows.filter((r: any) => !String(r.empCd).startsWith("shift_"));
+    const totalBonus = supRows.reduce(
+      (s: number, r: any) => s + Number(bonusEdits[r.empCd] ?? r.supervisionBonus ?? 0),
+      0,
+    );
+    const bodyRows = supRows
+      .map(
+        (r: any) => `
+      <tr>
+        <td class="emp-col">${r.fullName ?? r.empCd}</td>
+        <td>${fmt(Number(bonusEdits[r.empCd] ?? r.supervisionBonus ?? 0))}</td>
+        <td class="sig-col"></td>
+      </tr>`,
+      )
+      .join("");
+    const html = `
+      <div class="top"><span>نظام مرتبات</span><span>عيون السروق للخدمات الطبية</span></div>
+      <h1>كشف مكافآت الإشراف عن الفترة ${periodLabel}</h1>
+      <div class="dept">قسم ${section}</div>
+      <p class="note" style="margin-bottom:6px">ملاحظة: هذه المكافآت خارج إجمالي الراتب ولا تؤثر على الحسابات</p>
+      <table>
+        <thead><tr>
+          <th>الاسم</th><th>مكافأة الإشراف</th><th class="sig-col">التوقيع</th>
+        </tr></thead>
+        <tbody>
+          ${bodyRows}
+          <tr class="total-row">
+            <td class="emp-col">الإجمالي</td>
+            <td>${fmt(totalBonus)}</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="footer">
+        <div class="footer-block"><div class="footer-line"></div>المدير الإداري</div>
+        <div class="footer-block"><div class="footer-line"></div>الحسابات</div>
+        <div class="footer-block"><div class="footer-line"></div>شئون العاملين</div>
+      </div>
+      <div class="footer-meta"><span>صفحة 1 من 1</span><span>تاريخ الطباعة: ${today}</span></div>`;
+    openPrint(html, `كشف مكافآت الإشراف — ${section} — ${periodLabel}`, SHEET_CSS);
+  }
+
+
   function buildSlip(
     r: any,
     title: string,
@@ -3085,9 +3130,14 @@ export default function PayrollReport() {
         const totalBonus = supRows.reduce((s: number, r: any) => s + Number(bonusEdits[r.empCd] ?? r.supervisionBonus ?? 0), 0);
         return (
           <section className="rounded-xl border border-border bg-background overflow-hidden">
-            <div className="border-b border-border bg-muted/25 px-4 py-3">
-              <h2 className="text-base font-semibold text-foreground">مكافأة الإشراف</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">خارج إجمالي الراتب — لا تؤثر على الحسابات</p>
+            <div className="border-b border-border bg-muted/25 px-4 py-3 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-semibold text-foreground">مكافأة الإشراف</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">خارج إجمالي الراتب — لا تؤثر على الحسابات</p>
+              </div>
+              <Button size="sm" variant="outline" onClick={printSupervisionSheet} className="gap-1.5 shrink-0">
+                <Printer size={13} /> طباعة
+              </Button>
             </div>
             <div className="overflow-x-auto" dir="rtl">
               <table dir="rtl" className="w-full text-sm">
