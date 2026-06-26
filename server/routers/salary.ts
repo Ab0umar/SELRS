@@ -582,6 +582,19 @@ export const salaryRouter = router({
           );
         }
 
+        // Fetch saved supervisionBonus values from DB (manually entered, not computed)
+        const savedBonusRows = await db
+          .select({ empCd: salaryPayroll.empCd, supervisionBonus: salaryPayroll.supervisionBonus })
+          .from(salaryPayroll)
+          .where(
+            and(
+              eq(salaryPayroll.year, input.year),
+              eq(salaryPayroll.month, input.month),
+              eq(salaryPayroll.section, input.section),
+            ),
+          );
+        const savedBonusMap = new Map(savedBonusRows.map((r: any) => [r.empCd, r.supervisionBonus ?? "0"]));
+
         const mappedRows = dynamicRows.map((row) => {
           const isShift = row.empCd.startsWith("shift_");
           let fullName = row.empCd;
@@ -631,7 +644,7 @@ export const salaryRouter = router({
             transportAllowance: String(row.transportAllowance),
             totalCommission: String(row.totalCommission),
             overtimePay: String(row.overtimePay),
-            supervisionBonus: "0",
+            supervisionBonus: savedBonusMap.get(row.empCd) ?? "0",
             totalPay: String(row.totalPay),
             payrollStatus: "draft" as "draft" | "approved" | "paid",
             computedAt: new Date(),
