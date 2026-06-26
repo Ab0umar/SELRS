@@ -102,39 +102,20 @@ export default function SyncStatus() {
           الجهاز
         </p>
         <h2 className="text-2xl font-bold text-foreground">تزامن البصمات</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          سحب البصمات من جهاز البصمة وحفظها في قاعدة البيانات المحلية
-        </p>
       </div>
 
       {/* Manual sync card */}
-      <div className="rounded-xl border border-border bg-background p-5 space-y-4">
+      <div className="rounded-xl border border-border bg-background p-5 space-y-4 w-fit">
         <h3 className="font-semibold text-base">سحب يدوي من الجهاز</h3>
 
-        <div className="grid gap-3 sm:grid-cols-2 max-w-sm">
+        <div className="flex gap-3 flex-wrap">
           <div className="space-y-1">
-            <label className="block text-xs font-medium text-muted-foreground">
-              IP الجهاز (اختياري)
-            </label>
-            <Input
-              value={ip}
-              onChange={(e) => setIp(e.target.value)}
-              placeholder="192.168.0.10"
-              dir="ltr"
-              className="text-sm"
-            />
+            <label className="block text-xs font-medium text-muted-foreground">IP الجهاز</label>
+            <Input value={ip} onChange={(e) => setIp(e.target.value)} placeholder="192.168.0.10" dir="ltr" className="text-sm w-36" />
           </div>
           <div className="space-y-1">
-            <label className="block text-xs font-medium text-muted-foreground">
-              المنفذ (اختياري)
-            </label>
-            <Input
-              value={port}
-              onChange={(e) => setPort(e.target.value)}
-              placeholder="5005"
-              dir="ltr"
-              className="text-sm"
-            />
+            <label className="block text-xs font-medium text-muted-foreground">المنفذ</label>
+            <Input value={port} onChange={(e) => setPort(e.target.value)} placeholder="5005" dir="ltr" className="text-sm w-20" />
           </div>
         </div>
 

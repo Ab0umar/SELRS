@@ -85,14 +85,10 @@ export default function SettingsHub() {
         className="space-y-6"
       >
         {tab === "device" && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-            <div className="lg:col-span-1">
-              <DeviceSettings />
-            </div>
-            <div className="lg:col-span-1">
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_auto] gap-6 items-start">
+            <DeviceSettings />
+            <div className="space-y-6 min-w-0">
               <SyncStatus />
-            </div>
-            <div className="lg:col-span-1">
               <EmpSync />
             </div>
           </div>

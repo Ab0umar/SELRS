@@ -88,171 +88,173 @@ export default function DeviceSettings() {
         </Alert>
       )}
 
-      {/* ── Status row ─────────────────────────────────────────────────────── */}
+      {/* ── Two columns: EF10K | K40 Pro ──────────────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 
-        {/* EF10K status */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-base">
-                {status.connected
-                  ? <><Wifi className="w-4 h-4 text-success" />EF10K — متصل</>
-                  : <><WifiOff className="w-4 h-4 text-destructive" />EF10K — غير متصل</>}
-              </CardTitle>
-              <Button variant="outline" size="sm" onClick={() => statusQuery.refetch()} disabled={statusQuery.isRefetching}>
-                <RefreshCw className={`w-3.5 h-3.5 ${statusQuery.isRefetching ? "animate-spin" : ""}`} />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {status.connectionError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{status.connectionError}</AlertDescription>
-              </Alert>
-            )}
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <p className="text-xs text-muted-foreground">آخر اتصال</p>
-                <p className="font-mono text-xs mt-0.5">{status.lastConnected ? new Date(status.lastConnected).toLocaleString("ar-EG") : "—"}</p>
+        {/* ── EF10K column ── */}
+        <div className="space-y-4">
+          {/* EF10K status */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  {status.connected
+                    ? <><Wifi className="w-4 h-4 text-success" />EF10K — متصل</>
+                    : <><WifiOff className="w-4 h-4 text-destructive" />EF10K — غير متصل</>}
+                </CardTitle>
+                <Button variant="outline" size="sm" onClick={() => statusQuery.refetch()} disabled={statusQuery.isRefetching}>
+                  <RefreshCw className={`w-3.5 h-3.5 ${statusQuery.isRefetching ? "animate-spin" : ""}`} />
+                </Button>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">زمن التشغيل</p>
-                <p className="font-mono text-xs mt-0.5">{status.uptime ?? 0}s</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {status.connectionError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{status.connectionError}</AlertDescription>
+                </Alert>
+              )}
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground">آخر اتصال</p>
+                  <p className="font-mono text-xs mt-0.5">{status.lastConnected ? new Date(status.lastConnected).toLocaleString("ar-EG") : "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">زمن التشغيل</p>
+                  <p className="font-mono text-xs mt-0.5">{status.uptime ?? 0}s</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">آخر بصمة</p>
+                  <p className="font-mono text-xs mt-0.5">{status.lastPunch ? new Date(status.lastPunch).toLocaleString("ar-EG") : "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">إجمالي البصمات</p>
+                  <p className="font-mono text-xs mt-0.5">{status.punchCount ?? 0}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">آخر بصمة</p>
-                <p className="font-mono text-xs mt-0.5">{status.lastPunch ? new Date(status.lastPunch).toLocaleString("ar-EG") : "—"}</p>
+              <div className="flex gap-2 flex-wrap">
+                <Button size="sm" onClick={() => connectDevice.mutateAsync().then(() => statusQuery.refetch())} disabled={connectDevice.isPending}>
+                  {connectDevice.isPending ? "جارٍ..." : "اتصال"}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => disconnectDevice.mutateAsync().then(() => statusQuery.refetch())} disabled={disconnectDevice.isPending}>
+                  {disconnectDevice.isPending ? "جارٍ..." : "فصل"}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => resetConnection.mutateAsync().then(() => statusQuery.refetch())} disabled={resetConnection.isPending}>
+                  {resetConnection.isPending ? "جارٍ..." : "إعادة الضبط"}
+                </Button>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">إجمالي البصمات</p>
-                <p className="font-mono text-xs mt-0.5">{status.punchCount ?? 0}</p>
-              </div>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              <Button size="sm" onClick={() => connectDevice.mutateAsync().then(() => statusQuery.refetch())} disabled={connectDevice.isPending}>
-                {connectDevice.isPending ? "جارٍ..." : "اتصال"}
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => disconnectDevice.mutateAsync().then(() => statusQuery.refetch())} disabled={disconnectDevice.isPending}>
-                {disconnectDevice.isPending ? "جارٍ..." : "فصل"}
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => resetConnection.mutateAsync().then(() => statusQuery.refetch())} disabled={resetConnection.isPending}>
-                {resetConnection.isPending ? "جارٍ..." : "إعادة الضبط"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* K40 Pro status */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-base">
-                {admsOnline
-                  ? <><Wifi className="w-4 h-4 text-success" />K40 Pro — متصل</>
-                  : <><WifiOff className="w-4 h-4 text-muted-foreground" />K40 Pro — في انتظار البصمة</>}
-              </CardTitle>
-              <Button variant="outline" size="sm" onClick={() => admsStatus.refetch()} disabled={admsStatus.isRefetching}>
-                <RefreshCw className={`w-3.5 h-3.5 ${admsStatus.isRefetching ? "animate-spin" : ""}`} />
+          {/* EF10K config */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">إعداد EF10K</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">عنوان IP الجهاز</label>
+                <input type="text" value={formData.ip} onChange={(e) => setFormData({ ...formData, ip: e.target.value })} placeholder="192.168.0.10" className={inputCls} />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">المنفذ (TCP)</label>
+                <input type="number" value={formData.port} onChange={(e) => setFormData({ ...formData, port: parseInt(e.target.value) || 5005 })} min="1" max="65535" className={inputCls} />
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="ef10k-enabled" checked={formData.enabled} onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })} className="rounded border-border" />
+                <label htmlFor="ef10k-enabled" className="text-sm font-medium cursor-pointer">تفعيل EF10K</label>
+              </div>
+              <Button onClick={handleSave} disabled={updateSettings.isPending} className="w-full">
+                {updateSettings.isPending ? "جارٍ الحفظ..." : "حفظ إعدادات EF10K"}
               </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <p className="text-xs text-muted-foreground">آخر بصمة</p>
-                <p className="font-mono text-xs mt-0.5">{lastAdmsPunch ? lastAdmsPunch.toLocaleString("ar-EG") : "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">إجمالي البصمات</p>
-                <p className="font-mono text-xs mt-0.5">{adms?.punchCount ?? 0}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">كود الجهاز (SN)</p>
-                <p className="font-mono text-xs mt-0.5">{adms?.lastDeviceId ?? "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">البروتوكول</p>
-                <p className="font-mono text-xs mt-0.5">HTTP ADMS Push</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* ── Config row ─────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {/* ── K40 Pro column ── */}
+        <div className="space-y-4">
+          {/* K40 Pro status */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  {admsOnline
+                    ? <><Wifi className="w-4 h-4 text-success" />K40 Pro — متصل</>
+                    : <><WifiOff className="w-4 h-4 text-muted-foreground" />K40 Pro — في انتظار البصمة</>}
+                </CardTitle>
+                <Button variant="outline" size="sm" onClick={() => admsStatus.refetch()} disabled={admsStatus.isRefetching}>
+                  <RefreshCw className={`w-3.5 h-3.5 ${admsStatus.isRefetching ? "animate-spin" : ""}`} />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground">آخر بصمة</p>
+                  <p className="font-mono text-xs mt-0.5">{lastAdmsPunch ? lastAdmsPunch.toLocaleString("ar-EG") : "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">إجمالي البصمات</p>
+                  <p className="font-mono text-xs mt-0.5">{adms?.punchCount ?? 0}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">كود الجهاز (SN)</p>
+                  <p className="font-mono text-xs mt-0.5">{adms?.lastDeviceId ?? "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">البروتوكول</p>
+                  <p className="font-mono text-xs mt-0.5">HTTP ADMS Push</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* EF10K config */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">إعداد EF10K</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">عنوان IP الجهاز</label>
-              <input type="text" value={formData.ip} onChange={(e) => setFormData({ ...formData, ip: e.target.value })} placeholder="192.168.0.10" className={inputCls} />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">المنفذ (TCP)</label>
-              <input type="number" value={formData.port} onChange={(e) => setFormData({ ...formData, port: parseInt(e.target.value) || 5005 })} min="1" max="65535" className={inputCls} />
-            </div>
-            <div className="flex items-center gap-2">
-              <input type="checkbox" id="ef10k-enabled" checked={formData.enabled} onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })} className="rounded border-border" />
-              <label htmlFor="ef10k-enabled" className="text-sm font-medium cursor-pointer">تفعيل EF10K</label>
-            </div>
-            <Button onClick={handleSave} disabled={updateSettings.isPending} className="w-full">
-              {updateSettings.isPending ? "جارٍ الحفظ..." : "حفظ إعدادات EF10K"}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* K40 Pro config */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">إعداد K40 Pro (ADMS)</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">عنوان IP العام</label>
-              <input type="text" value={formData.zk40Ip} onChange={(e) => setFormData({ ...formData, zk40Ip: e.target.value })} placeholder="41.x.x.x أو hostname" className={inputCls} />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">المنفذ (عادةً 4370)</label>
-              <input type="number" value={formData.zk40Port} onChange={(e) => setFormData({ ...formData, zk40Port: parseInt(e.target.value) || 4370 })} min="1" max="65535" className={inputCls} />
-            </div>
-            <div className="flex items-center gap-2">
-              <input type="checkbox" id="zk40-enabled" checked={formData.zk40Enabled} onChange={(e) => setFormData({ ...formData, zk40Enabled: e.target.checked })} className="rounded border-border" />
-              <label htmlFor="zk40-enabled" className="text-sm font-medium cursor-pointer">تفعيل K40 Pro</label>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              <Button onClick={handleSave} disabled={updateSettings.isPending} className="flex-1">
-                {updateSettings.isPending ? "جارٍ الحفظ..." : "حفظ"}
-              </Button>
-              <Button variant="outline" onClick={async () => { try { await syncZK40.mutateAsync(); setShowSuccess(true); } catch {} }} disabled={syncZK40.isPending || !formData.zk40Ip} className="flex-1">
-                {syncZK40.isPending ? "جارٍ..." : "مزامنة الآن"}
-              </Button>
-              <Button variant="outline" onClick={async () => { try { const r = await pushEmployeesZK40.mutateAsync(); alert(r.message); } catch {} }} disabled={pushEmployeesZK40.isPending} className="flex-1">
-                {pushEmployeesZK40.isPending ? "جارٍ..." : "إرسال الموظفين"}
-              </Button>
-            </div>
-            {syncZK40.data && (
-              <Alert variant="default" className="border-success/30 bg-success/10">
-                <CheckCircle className="h-4 w-4 text-success" />
-                <AlertDescription className="text-success">
-                  {syncZK40.data.recordsInserted} سجل جديد من {syncZK40.data.recordsSeen}
-                </AlertDescription>
-              </Alert>
-            )}
-            {syncZK40.error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{String(syncZK40.error)}</AlertDescription>
-              </Alert>
-            )}
-          </CardContent>
-        </Card>
+          {/* K40 Pro config */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">إعداد K40 Pro (ADMS)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">عنوان IP العام</label>
+                <input type="text" value={formData.zk40Ip} onChange={(e) => setFormData({ ...formData, zk40Ip: e.target.value })} placeholder="41.x.x.x أو hostname" className={inputCls} />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">المنفذ (عادةً 4370)</label>
+                <input type="number" value={formData.zk40Port} onChange={(e) => setFormData({ ...formData, zk40Port: parseInt(e.target.value) || 4370 })} min="1" max="65535" className={inputCls} />
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="zk40-enabled" checked={formData.zk40Enabled} onChange={(e) => setFormData({ ...formData, zk40Enabled: e.target.checked })} className="rounded border-border" />
+                <label htmlFor="zk40-enabled" className="text-sm font-medium cursor-pointer">تفعيل K40 Pro</label>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Button onClick={handleSave} disabled={updateSettings.isPending}>
+                  {updateSettings.isPending ? "جارٍ الحفظ..." : "حفظ"}
+                </Button>
+                <Button variant="outline" onClick={async () => { try { await syncZK40.mutateAsync(); setShowSuccess(true); } catch {} }} disabled={syncZK40.isPending || !formData.zk40Ip}>
+                  {syncZK40.isPending ? "جارٍ..." : "تزامن البصمات"}
+                </Button>
+                <Button variant="outline" onClick={async () => { try { const r = await pushEmployeesZK40.mutateAsync(); alert(r.message); } catch {} }} disabled={pushEmployeesZK40.isPending}>
+                  {pushEmployeesZK40.isPending ? "جارٍ..." : "تزامن الموظفين"}
+                </Button>
+              </div>
+              {syncZK40.data && (
+                <Alert variant="default" className="border-success/30 bg-success/10">
+                  <CheckCircle className="h-4 w-4 text-success" />
+                  <AlertDescription className="text-success">
+                    {syncZK40.data.recordsInserted} سجل جديد من {syncZK40.data.recordsSeen}
+                  </AlertDescription>
+                </Alert>
+              )}
+              {syncZK40.error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{String(syncZK40.error)}</AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

@@ -44,43 +44,24 @@ export default function EmpSync() {
           الجهاز
         </p>
         <h2 className="text-2xl font-bold text-foreground">تزامن الموظفين</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          سحب أسماء وأكواد الموظفين من ذاكرة الجهاز وحفظها محلياً
-        </p>
       </div>
 
-      <div className="rounded-xl border border-border bg-background p-5 space-y-4 max-w-sm">
-        <div className="grid gap-3 sm:grid-cols-2">
+      <div className="rounded-xl border border-border bg-background p-5 space-y-4 w-fit">
+        <div className="flex gap-3 flex-wrap">
           <div className="space-y-1">
-            <label className="block text-xs font-medium text-muted-foreground">
-              IP الجهاز
-            </label>
-            <Input
-              value={ip}
-              onChange={(e) => setIp(e.target.value)}
-              placeholder="192.168.0.10"
-              dir="ltr"
-              className="text-sm"
-            />
+            <label className="block text-xs font-medium text-muted-foreground">IP الجهاز</label>
+            <Input value={ip} onChange={(e) => setIp(e.target.value)} placeholder="192.168.0.10" dir="ltr" className="text-sm w-36" />
           </div>
           <div className="space-y-1">
-            <label className="block text-xs font-medium text-muted-foreground">
-              المنفذ
-            </label>
-            <Input
-              value={port}
-              onChange={(e) => setPort(e.target.value)}
-              placeholder="5005"
-              dir="ltr"
-              className="text-sm"
-            />
+            <label className="block text-xs font-medium text-muted-foreground">المنفذ</label>
+            <Input value={port} onChange={(e) => setPort(e.target.value)} placeholder="5005" dir="ltr" className="text-sm w-20" />
           </div>
         </div>
 
         <Button
           onClick={handleSync}
           disabled={mut.isPending}
-          className="gap-2 w-full"
+          className="gap-2"
         >
           {mut.isPending ? (
             <RefreshCw className="h-4 w-4 animate-spin" />
@@ -92,7 +73,7 @@ export default function EmpSync() {
       </div>
 
       {result && (
-        <div className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm text-success max-w-sm">
+        <div className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm text-success w-fit">
           <div className="flex items-start gap-2">
             <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
             <div>
