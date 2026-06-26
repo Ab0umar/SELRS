@@ -155,14 +155,19 @@ export const attendanceSyncRoutes = {
   admsStatus: makeAttProcedure("/attendance/admin/device").query(async () => {
     const db = await getDb();
     if (!db) return { lastPunch: null, punchCount: 0, lastDeviceId: null, recentPunches: [] };
+    const admsFilter = and(
+      eq(attendancePunches.source, "tcp"),
+      sql`${attendancePunches.deviceId} NOT LIKE 'fk_device%'`,
+      sql`${attendancePunches.deviceId} NOT LIKE 'zk4370_%'`,
+    );
     const [row] = await db
       .select({ lastPunch: max(attendancePunches.punchAt), total: count() })
       .from(attendancePunches)
-      .where(eq(attendancePunches.source, "tcp"));
+      .where(admsFilter);
     const recent = await db
       .select({ empCd: attendancePunches.empCd, punchAt: attendancePunches.punchAt, direction: attendancePunches.direction, deviceId: attendancePunches.deviceId })
       .from(attendancePunches)
-      .where(eq(attendancePunches.source, "tcp"))
+      .where(admsFilter)
       .orderBy(desc(attendancePunches.punchAt))
       .limit(10);
     return {
