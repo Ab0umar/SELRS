@@ -1,5 +1,5 @@
 #define AppName "SELRS"
-#define AppVersion "1.0.187"
+#define AppVersion "1.0.190"
 #define AppPublisher "SELRS"
 #define AppExeName "SELRS.exe"
 #define BuildDir "publish-win7"
