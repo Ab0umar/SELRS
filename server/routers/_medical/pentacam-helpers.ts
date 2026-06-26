@@ -1011,8 +1011,8 @@ export async function moveFailedPentacamFile(
 export async function scanMismatchedLocalPentacamLinks(
   limit: number,
 ): Promise<LocalPentacamMismatchEntry[]> {
-  // Scan blackice_uploads (where autolinking writes) not pentacamResults (old workflow)
-  const rows = await db.getLinkedBlackiceUploadsWithPatient(limit);
+  // Scan srv100_uploads (where autolinking writes) not pentacamResults (old workflow)
+  const rows = await db.getLinkedSrv100UploadsWithPatient(limit);
   const out: LocalPentacamMismatchEntry[] = [];
 
   // Build code→patient map only from the rows we have (avoid loading all patients)

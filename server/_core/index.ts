@@ -43,7 +43,7 @@ import {
 import * as db from "../db";
 const execFile = promisify(execFileCb);
 
-type BlackIceUploadRow = {
+type Srv100UploadRow = {
   id: number;
   document_id: string;
   file_name: string | null;
@@ -57,7 +57,7 @@ type BlackIceUploadRow = {
   created_at: Date | string;
 };
 
-type BlackIceFolderImportOptions = {
+type Srv100FolderImportOptions = {
   enabled: boolean;
   sourceDir: string;
   processedDir: string;
@@ -68,7 +68,7 @@ type BlackIceFolderImportOptions = {
   sourcePrinter: string;
 };
 
-type BlackIceOcrLinkOptions = {
+type Srv100OcrLinkOptions = {
   enabled: boolean;
   pollIntervalMs: number;
   batchSize: number;
@@ -88,7 +88,7 @@ type OcrTsvRow = {
 };
 
 const IMPORTABLE_IMAGE_EXT = /\.(jpg|jpeg|png|webp|bmp|tif|tiff)$/i;
-let blackIceDbCycleBusy = false;
+let srv100DbCycleBusy = false;
 const DEFAULT_ALLOWED_CORS_ORIGINS = [
   "https://selrs.cc",
   "http://localhost",
@@ -134,34 +134,34 @@ function parseBooleanEnv(
   return fallback;
 }
 
-function getBlackIceFolderImportOptions(): BlackIceFolderImportOptions {
+function getSrv100FolderImportOptions(): Srv100FolderImportOptions {
   const defaultSourceDir = path.resolve(process.cwd(), "Pentacam", "Jpgs");
   const sourceDir = String(
-    process.env.BLACKICE_IMPORT_SOURCE_DIR || defaultSourceDir,
+    process.env.SRV100_IMPORT_SOURCE_DIR || defaultSourceDir,
   ).trim();
   const pollIntervalMs = Math.max(
     2_000,
-    Number(process.env.BLACKICE_IMPORT_POLL_MS || 10_000),
+    Number(process.env.SRV100_IMPORT_POLL_MS || 10_000),
   );
   const minFileAgeMs = Math.max(
     1_000,
-    Number(process.env.BLACKICE_IMPORT_MIN_FILE_AGE_MS || 5_000),
+    Number(process.env.SRV100_IMPORT_MIN_FILE_AGE_MS || 5_000),
   );
   const maxFilesPerCycle = Math.max(
     1,
-    Number(process.env.BLACKICE_IMPORT_MAX_FILES_PER_CYCLE || 9999),
+    Number(process.env.SRV100_IMPORT_MAX_FILES_PER_CYCLE || 9999),
   );
   const sourcePrinter =
-    String(process.env.BLACKICE_IMPORT_SOURCE_PRINTER || "Pentacam").trim() ||
+    String(process.env.SRV100_IMPORT_SOURCE_PRINTER || "Pentacam").trim() ||
     "Pentacam";
 
-  const enabled = parseBooleanEnv(process.env.BLACKICE_IMPORT_ENABLED, true);
+  const enabled = parseBooleanEnv(process.env.SRV100_IMPORT_ENABLED, true);
   // Default flow: incoming source folder -> Pentacam root for web visibility.
   const processedDir = String(
-    process.env.BLACKICE_IMPORT_PROCESSED_DIR || defaultSourceDir,
+    process.env.SRV100_IMPORT_PROCESSED_DIR || defaultSourceDir,
   ).trim();
   const failedDir = String(
-    process.env.BLACKICE_IMPORT_FAILED_DIR || sourceDir,
+    process.env.SRV100_IMPORT_FAILED_DIR || sourceDir,
   ).trim();
 
   return {
@@ -176,22 +176,22 @@ function getBlackIceFolderImportOptions(): BlackIceFolderImportOptions {
   };
 }
 
-function getBlackIceOcrLinkOptions(): BlackIceOcrLinkOptions {
+function getSrv100OcrLinkOptions(): Srv100OcrLinkOptions {
   return {
-    enabled: parseBooleanEnv(process.env.BLACKICE_OCR_ENABLED, false),
+    enabled: parseBooleanEnv(process.env.SRV100_OCR_ENABLED, false),
     pollIntervalMs: Math.max(
       3_000,
-      Number(process.env.BLACKICE_OCR_POLL_MS || 20_000),
+      Number(process.env.SRV100_OCR_POLL_MS || 20_000),
     ),
     batchSize: Math.max(
       1,
-      Math.min(100, Number(process.env.BLACKICE_OCR_BATCH_SIZE || 10)),
+      Math.min(100, Number(process.env.SRV100_OCR_BATCH_SIZE || 10)),
     ),
     tesseractPath:
-      String(process.env.BLACKICE_OCR_TESSERACT_PATH || "tesseract").trim() ||
+      String(process.env.SRV100_OCR_TESSERACT_PATH || "tesseract").trim() ||
       "tesseract",
-    lang: String(process.env.BLACKICE_OCR_LANG || "eng").trim() || "eng",
-    psm: Math.max(3, Math.min(13, Number(process.env.BLACKICE_OCR_PSM || 6))),
+    lang: String(process.env.SRV100_OCR_LANG || "eng").trim() || "eng",
+    psm: Math.max(3, Math.min(13, Number(process.env.SRV100_OCR_PSM || 6))),
   };
 }
 
@@ -470,14 +470,32 @@ function extractPatientNameAndEyeFromFileName(fileName: string): {
   return { name, eye };
 }
 
+// Recognize the Pentacam exam type from a filename (or already-canonical name)
+// so the import rename can preserve it instead of dropping it. Returns the
+// canonical token (Refractive | Belin_Ambrosio | KC_Staging) or "".
+function extractExamTypeFromFileName(fileName: string): string {
+  const stem = path.parse(String(fileName ?? "")).name.toLowerCase();
+  if (/belin|ambr[oö]sio|ectasia|enhanced/.test(stem)) return "Belin_Ambrosio";
+  if (/kc[_\s-]?staging|topometric|topographic|staging|topo/.test(stem))
+    return "KC_Staging";
+  if (/refr|4[_\s-]?maps?/.test(stem)) return "Refractive";
+  return "";
+}
+
 async function renameToPatientIdentity(
   filePath: string,
   preferredIdCode?: string,
   preferredName?: string,
   preferredEye?: string,
+  preferredExamType?: string,
 ): Promise<string> {
   const parsed = path.parse(filePath);
   const parts = extractPatientNameAndEyeFromFileName(parsed.base);
+  const examPart =
+    sanitizeFilePart(String(preferredExamType ?? "").trim()).replace(
+      /\s+/g,
+      "_",
+    ) || extractExamTypeFromFileName(parsed.base);
   const cleanPreferredName = sanitizeFilePart(
     String(preferredName ?? "").trim(),
   ).replace(/\s+/g, "_");
@@ -498,9 +516,17 @@ async function renameToPatientIdentity(
   if (!idPart && !cleanPreferredName && looksGenericOnly) {
     return filePath;
   }
-  const baseCore = idPart ? `${idPart}_${namePart}` : namePart;
+  // Canonical scheme is {code}_{eye}_{exam} — the patient name is intentionally
+  // NOT embedded. The Python watcher (incoming_auto_rename.py) names files this
+  // way; embedding the name here would fight that and leak PII into filenames
+  // and S3 keys. namePart is only a last-resort base when no ID code was found.
+  const baseCore = idPart || namePart;
   const withEye = eyePart ? `${baseCore}_${eyePart}` : baseCore;
-  const targetBase = sanitizeFilePart(withEye).replace(/\s+/g, "_");
+  const withExam = examPart ? `${withEye}_${examPart}` : withEye;
+  // With an ID but neither eye nor exam detected, a rename would collapse many
+  // scans onto a bare "{code}" name — leave such a file untouched instead.
+  if (idPart && !eyePart && !examPart) return filePath;
+  const targetBase = sanitizeFilePart(withExam).replace(/\s+/g, "_");
   let candidate = path.join(parsed.dir, `${targetBase}${parsed.ext}`);
   let i = 1;
   while (await exists(candidate)) {
@@ -583,10 +609,10 @@ async function resolvePatientByIds(
 async function runOcrFromBuffer(
   image: Buffer,
   fileName: string,
-  cfg: BlackIceOcrLinkOptions,
+  cfg: Srv100OcrLinkOptions,
   psmOverride?: number,
 ): Promise<string> {
-  const tmpBase = await mkdtemp(path.join(os.tmpdir(), "blackice-ocr-"));
+  const tmpBase = await mkdtemp(path.join(os.tmpdir(), "srv100-ocr-"));
   const inputPath = path.join(tmpBase, getSafeTempImageName(fileName));
   const inputFileName = path.basename(inputPath);
   const outputBase = path.join(tmpBase, "ocr");
@@ -634,7 +660,7 @@ function looksCorruptedBinaryImage(data: Buffer): boolean {
 async function loadImageFromImportFolders(
   fileName: string,
 ): Promise<Buffer | null> {
-  const importCfg = getBlackIceFolderImportOptions();
+  const importCfg = getSrv100FolderImportOptions();
   const raw = String(fileName ?? "").trim();
   if (!raw) return null;
   const candidates = [raw, `FAILED_${raw}`, `IMPORTED_${raw}`];
@@ -808,10 +834,10 @@ function extractStrictHeaderIdFromTsv(rows: OcrTsvRow[]): string {
 async function runOcrTsvFromBuffer(
   image: Buffer,
   fileName: string,
-  cfg: BlackIceOcrLinkOptions,
+  cfg: Srv100OcrLinkOptions,
   psmOverride?: number,
 ): Promise<OcrTsvRow[]> {
-  const tmpBase = await mkdtemp(path.join(os.tmpdir(), "blackice-ocr-tsv-"));
+  const tmpBase = await mkdtemp(path.join(os.tmpdir(), "srv100-ocr-tsv-"));
   const inputPath = path.join(tmpBase, getSafeTempImageName(fileName));
   const inputFileName = path.basename(inputPath);
   const outputBase = path.join(tmpBase, "ocr");
@@ -883,6 +909,465 @@ async function findAvailablePort(
     }
   }
   throw new Error(`No available port found starting from ${startPort}`);
+}
+
+  async function withDb<T>(run: (conn: mysql.Connection) => Promise<T>) {
+    const databaseUrl = process.env.DATABASE_URL;
+    if (!databaseUrl) {
+      throw new Error("DATABASE_URL is missing");
+    }
+    const conn = await mysql.createConnection(databaseUrl);
+    try {
+      return await run(conn);
+    } finally {
+      await conn.end();
+    }
+  }
+
+  async function startSrv100FolderImporter() {
+    const cfg = getSrv100FolderImportOptions();
+    if (!cfg.enabled) {
+      console.log("[srv100-import] Disabled");
+      return;
+    }
+    if (!cfg.sourceDir) {
+      console.warn(
+        "[srv100-import] Disabled: SRV100_IMPORT_SOURCE_DIR is missing",
+      );
+      return;
+    }
+
+    await mkdir(cfg.sourceDir, { recursive: true });
+    await mkdir(cfg.processedDir, { recursive: true });
+
+    console.log(
+      `[srv100-import] Watching ${cfg.sourceDir} every ${cfg.pollIntervalMs}ms (source -> ${cfg.processedDir})`,
+    );
+
+    let busy = false;
+    const runCycle = async () => {
+      if (busy) return;
+      if (srv100DbCycleBusy) return;
+      busy = true;
+      srv100DbCycleBusy = true;
+      try {
+        const now = Date.now();
+        // Collect files from root and one level of subfolders (XXXX/ patient folders)
+        const collectFiles = async (dir: string): Promise<string[]> => {
+          const entries = await readdir(dir, { withFileTypes: true });
+          const files: string[] = [];
+          for (const entry of entries) {
+            if (entry.isDirectory()) {
+              const sub = await readdir(path.join(dir, entry.name), { withFileTypes: true });
+              for (const subEntry of sub) {
+                if (subEntry.isFile() && IMPORTABLE_IMAGE_EXT.test(subEntry.name)
+                  && !subEntry.name.startsWith("IMPORTED_") && !subEntry.name.startsWith("FAILED_")) {
+                  files.push(path.join(entry.name, subEntry.name));
+                }
+              }
+            } else if (entry.isFile() && IMPORTABLE_IMAGE_EXT.test(entry.name)
+              && !entry.name.startsWith("IMPORTED_") && !entry.name.startsWith("FAILED_")) {
+              files.push(entry.name);
+            }
+          }
+          return files.sort((a, b) => a.localeCompare(b)).slice(0, cfg.maxFilesPerCycle);
+        };
+        const fileNames = await collectFiles(cfg.sourceDir);
+        if (fileNames.length > 0) {
+          console.log(
+            `[srv100-import] cycle candidates=${fileNames.length} source=${cfg.sourceDir}`,
+          );
+        }
+
+        for (const fileName of fileNames) {
+          const fullPath = path.join(cfg.sourceDir, fileName);
+          const fileInfo = await stat(fullPath).catch(() => null);
+          if (!fileInfo?.isFile()) continue;
+          if (now - Number(fileInfo.mtimeMs || 0) < cfg.minFileAgeMs) continue;
+
+          let fileData: Buffer | null = null;
+          try {
+            fileData = await readFile(fullPath);
+            if (fileData.length === 0) {
+              throw new Error("File is empty");
+            }
+            const mimeType = guessMimeType(fileName);
+            // Use the basename only — collectFiles may return "{code}/{name}.JPG"
+            // for files already inside a patient subfolder; the subfolder prefix
+            // must not leak into the DB file_name or the S3 key.
+            const dbFileName = path.basename(fileName).slice(0, 255);
+            // document_id convention in srv100_uploads is the full filename (with
+            // extension) — existing rows use that scheme, so we match it here.
+            const documentId = dbFileName;
+
+            // Dedup on file_name (indexed, basename) — stable regardless of how
+            // old rows stored document_id (some used stem, some full name).
+            const [existing] = await withDb(async (conn) => {
+              return conn.query(
+                `SELECT id FROM srv100_uploads WHERE file_name = ? LIMIT 1`,
+                [dbFileName],
+              );
+            });
+
+            if ((existing as any[]).length > 0) {
+              // already-imported skips are too verbose to log individually
+              continue;
+            }
+
+            let s3Key: string | null = null;
+            try {
+              const patientIdMatch = dbFileName.match(/^(\d{4})_/);
+              const patientPrefix = patientIdMatch ? patientIdMatch[1] : "unknown";
+              const candidateKey = `SELRS/${patientPrefix}/${dbFileName}`;
+              await uploadToS3(candidateKey, fileData, mimeType);
+              s3Key = candidateKey;
+              console.log(
+                `[srv100-import] Uploaded ${fileName} to S3: ${s3Key}`,
+              );
+            } catch (error: any) {
+              console.warn(
+                `[srv100-import] S3 upload failed for ${fileName}: ${String(error?.message ?? error)}`,
+              );
+            }
+
+            const uploadId = await withDb(async (conn) => {
+              const [insertResult] = await conn.query(
+                `INSERT INTO srv100_uploads
+                 (document_id, file_name, mime_type, file_data, s3_key, source_printer)
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                [
+                  documentId,
+                  dbFileName,
+                  mimeType,
+                  fileData,
+                  s3Key,
+                  cfg.sourcePrinter,
+                ],
+              );
+              return Number((insertResult as any)?.insertId ?? 0);
+            });
+
+            let importCode = "";
+            const ocrCfg = getSrv100OcrLinkOptions();
+            if (ocrCfg.enabled) {
+              try {
+                const psmCandidates = Array.from(new Set([4, ocrCfg.psm]));
+                for (const psm of psmCandidates) {
+                  const tsvRows = await runOcrTsvFromBuffer(
+                    fileData,
+                    fileName,
+                    ocrCfg,
+                    psm,
+                  );
+                  const renameCode = extractStrictHeaderIdFromTsv(tsvRows);
+                  if (renameCode) {
+                    importCode = renameCode;
+                    break;
+                  }
+                }
+              } catch {
+                // Keep import fast/resilient; OCR-based naming is best-effort.
+              }
+            }
+
+            // Files already inside a patient subfolder ("{code}/{name}.JPG") are
+            // produced by the Python watcher and are canonically named + placed.
+            // For those we upload only and leave the file where it is — renaming or
+            // moving them to processedDir would fight the FolderOrganizer (the
+            // "bounce") and strip the curated folder layout. Only flat files in the
+            // source root still get the legacy rename+flatten treatment.
+            const subdir = path.dirname(fileName);
+            const alreadyFoldered =
+              subdir !== "." && /^\d{3,5}$/.test(path.basename(subdir));
+            let movedFileName = dbFileName;
+            if (!alreadyFoldered) {
+              // Use OCR-extracted ID if found, otherwise fall back to leading numeric ID in filename.
+              const effectiveCode =
+                importCode || extractLeadingIdFromFileName(fileName);
+              const renamedPath = await renameToPatientIdentity(
+                fullPath,
+                effectiveCode,
+                undefined,
+                undefined,
+              );
+              const movedPath =
+                path.resolve(path.dirname(renamedPath)) ===
+                path.resolve(cfg.processedDir)
+                  ? renamedPath
+                  : await moveToDirAvoidingOverwrite(
+                      renamedPath,
+                      cfg.processedDir,
+                    );
+              movedFileName = path.basename(movedPath).slice(0, 255);
+            }
+            if (uploadId > 0 && movedFileName && movedFileName !== dbFileName) {
+              await withDb((conn) =>
+                conn.query(
+                  "UPDATE srv100_uploads SET file_name = ?, document_id = ? WHERE id = ?",
+                  [
+                    movedFileName,
+                    path.parse(movedFileName).name.slice(0, 255),
+                    uploadId,
+                  ],
+                ),
+              );
+            }
+            console.log(`[srv100-import] Imported ${fileName}`);
+          } catch (error: any) {
+            const reason = String(error?.message ?? "unknown error");
+            if (isLockWaitError(error)) {
+              try {
+                const ocrCfg = getSrv100OcrLinkOptions();
+                if (ocrCfg.enabled && fileData && fileData.length > 0) {
+                  const tsvRows = await runOcrTsvFromBuffer(
+                    fileData,
+                    fileName,
+                    ocrCfg,
+                    4,
+                  );
+                  const strictCode = extractStrictHeaderIdFromTsv(tsvRows);
+                  if (strictCode) {
+                    const renamedPath = await renameToPatientIdentity(
+                      fullPath,
+                      strictCode,
+                      undefined,
+                      undefined,
+                    );
+                    const renamed = path.basename(renamedPath);
+                    console.log(
+                      `[srv100-import] Renamed by OCR on lock timeout: ${fileName} -> ${renamed}`,
+                    );
+                  }
+                }
+              } catch {
+                // Keep import loop resilient; rename fallback is best-effort only.
+              }
+              console.warn(
+                `[srv100-import] Lock timeout on ${fileName}; will retry next cycle.`,
+              );
+              continue;
+            }
+            console.error(`[srv100-import] Failed ${fileName}: ${reason}`);
+            await renameWithPrefix(fullPath, "FAILED").catch(() => undefined);
+          }
+        }
+      } catch (error: any) {
+        console.error(
+          "[srv100-import] Cycle error:",
+          String(error?.message ?? error),
+        );
+      } finally {
+        srv100DbCycleBusy = false;
+        busy = false;
+      }
+    };
+
+    void runCycle();
+    setInterval(() => {
+      void runCycle();
+    }, cfg.pollIntervalMs);
+  }
+
+  async function startSrv100OcrLinker() {
+    const cfg = getSrv100OcrLinkOptions();
+    const importCfg = getSrv100FolderImportOptions();
+    if (!cfg.enabled) {
+      console.log("[srv100-ocr] Disabled");
+      return;
+    }
+    try {
+      await execFile(cfg.tesseractPath, ["--version"], {
+        windowsHide: true,
+        timeout: 15_000,
+      });
+    } catch (error: any) {
+      console.error(
+        `[srv100-ocr] Disabled: Tesseract is not available at "${cfg.tesseractPath}" (${String(error?.message ?? error)})`,
+      );
+      return;
+    }
+    console.log(
+      `[srv100-ocr] Enabled (poll=${cfg.pollIntervalMs}ms, batch=${cfg.batchSize}, lang=${cfg.lang}, psm=${cfg.psm})`,
+    );
+
+    let busy = false;
+    const runCycle = async () => {
+      if (busy) return;
+      if (srv100DbCycleBusy) return;
+      busy = true;
+      srv100DbCycleBusy = true;
+      try {
+        await withDb(async (conn) => {
+          const [rows] = await conn.query(
+            `SELECT id, document_id, file_name, file_data, s3_key, ocr_text, plain_text
+             FROM srv100_uploads
+             WHERE patient_id IS NULL
+             ORDER BY id DESC
+             LIMIT ?`,
+            [cfg.batchSize],
+          );
+          const uploads = rows as Array<{
+            id: number;
+            document_id: string;
+            file_name: string | null;
+            file_data: Buffer | null;
+            s3_key: string | null;
+            ocr_text: string | null;
+            plain_text: string | null;
+          }>;
+
+          for (const row of uploads) {
+            try {
+              let imageData: Buffer | null = null;
+              if (row.s3_key) {
+                try {
+                  imageData = await downloadFromS3(row.s3_key);
+                } catch (error: any) {
+                  console.warn(
+                    `[srv100-ocr] Failed to download from S3: ${row.s3_key}, trying DB fallback`,
+                  );
+                  if (row.file_data && row.file_data.length > 0) {
+                    imageData = row.file_data;
+                  }
+                }
+              } else if (row.file_data && row.file_data.length > 0) {
+                imageData = row.file_data;
+              }
+
+              let ocrText = String(row.ocr_text ?? "").trim();
+              if (imageData && imageData.length > 0 && !ocrText) {
+                imageData = Buffer.isBuffer(imageData)
+                  ? imageData
+                  : Buffer.from(imageData as any);
+                if (looksCorruptedBinaryImage(imageData) && row.file_name) {
+                  const diskFallback = await loadImageFromImportFolders(
+                    row.file_name,
+                  );
+                  if (diskFallback) imageData = diskFallback;
+                }
+                try {
+                  ocrText = await runOcrFromBuffer(
+                    imageData,
+                    row.file_name || `${row.id}.jpg`,
+                    cfg,
+                  );
+                  if (ocrText) {
+                    await conn.query(
+                      "UPDATE srv100_uploads SET ocr_text = ? WHERE id = ?",
+                      [ocrText, row.id],
+                    );
+                  }
+                } catch (error: any) {
+                  console.warn(
+                    `[srv100-ocr] OCR failed for upload ${row.id}, will try filename matching: ${String(error?.message ?? error)}`,
+                  );
+                }
+              }
+
+              const labeledOcrCandidates =
+                extractLabeledIdCandidatesFromText(ocrText);
+              const ocrCandidates =
+                labeledOcrCandidates.length > 0
+                  ? labeledOcrCandidates
+                  : extractIdCandidatesFromText(ocrText);
+              const candidates = Array.from(
+                new Set([
+                  ...labeledOcrCandidates,
+                  ...extractIdCandidatesFromText(row.document_id),
+                  ...extractIdCandidatesFromText(row.file_name ?? ""),
+                  ...ocrCandidates,
+                  ...extractIdCandidatesFromText(row.plain_text ?? ""),
+                ]),
+              );
+              if (candidates.length === 0) continue;
+
+              const renameCode = normalizeIdCode(labeledOcrCandidates[0] ?? "");
+              if (renameCode && row.file_name) {
+                const renamedFile = await prefixProcessedFileWithCode(
+                  importCfg.processedDir,
+                  row.file_name,
+                  renameCode,
+                );
+                if (renamedFile && renamedFile !== row.file_name) {
+                  await conn.query(
+                    "UPDATE srv100_uploads SET file_name = ?, document_id = ? WHERE id = ?",
+                    [
+                      renamedFile,
+                      path.parse(renamedFile).name.slice(0, 255),
+                      row.id,
+                    ],
+                  );
+                }
+              }
+
+              const patientId = await resolvePatientByIds(conn, candidates);
+              if (!patientId) continue;
+
+              await conn.query(
+                "UPDATE srv100_uploads SET patient_id = ? WHERE id = ? AND patient_id IS NULL",
+                [patientId, row.id],
+              );
+              console.log(
+                `[srv100-ocr] Linked upload ${row.id} -> patient_id=${patientId}`,
+              );
+            } catch (error: any) {
+              if (isLockWaitError(error)) {
+                console.warn(
+                  `[srv100-ocr] Lock timeout on upload ${row.id}; will retry next cycle.`,
+                );
+                continue;
+              }
+              throw error;
+            }
+          }
+        });
+      } catch (error: any) {
+        console.error(
+          "[srv100-ocr] Cycle error:",
+          String(error?.message ?? error),
+        );
+      } finally {
+        srv100DbCycleBusy = false;
+        busy = false;
+      }
+    };
+
+    void runCycle();
+    setInterval(() => {
+      void runCycle();
+    }, cfg.pollIntervalMs);
+  }
+
+  function startPentacamAutoLinker() {
+    const INTERVAL_MS = 5 * 60 * 1000;
+    let busy = false;
+    const run = async () => {
+      if (busy) return;
+      busy = true;
+      try {
+        const result = await autoLinkUnlinkedPentacamFiles();
+        if (result.imported > 0) {
+          console.log(
+            `[pentacam-auto] Linked ${result.imported} new files (unmatched=${result.unmatched})`,
+          );
+        }
+      } catch (err: any) {
+        console.error("[pentacam-auto] Error:", String(err?.message ?? err));
+      } finally {
+        busy = false;
+      }
+    };
+    void run();
+    setInterval(() => void run(), INTERVAL_MS);
+  }
+
+
+// --- Pentacam / Srv100 background services (run standalone via
+// server/services/pentacam.ts; the main web server no longer starts them) ---
+export async function startPentacamServices(): Promise<void> {
+  await startSrv100FolderImporter();
+  await startSrv100OcrLinker();
+  startPentacamAutoLinker();
 }
 
 async function startServer() {
@@ -971,430 +1456,8 @@ async function startServer() {
     next();
   });
 
-  async function withDb<T>(run: (conn: mysql.Connection) => Promise<T>) {
-    const databaseUrl = process.env.DATABASE_URL;
-    if (!databaseUrl) {
-      throw new Error("DATABASE_URL is missing");
-    }
-    const conn = await mysql.createConnection(databaseUrl);
-    try {
-      return await run(conn);
-    } finally {
-      await conn.end();
-    }
-  }
-
-  async function startBlackIceFolderImporter() {
-    const cfg = getBlackIceFolderImportOptions();
-    if (!cfg.enabled) {
-      console.log("[blackice-import] Disabled");
-      return;
-    }
-    if (!cfg.sourceDir) {
-      console.warn(
-        "[blackice-import] Disabled: BLACKICE_IMPORT_SOURCE_DIR is missing",
-      );
-      return;
-    }
-
-    await mkdir(cfg.sourceDir, { recursive: true });
-    await mkdir(cfg.processedDir, { recursive: true });
-
-    console.log(
-      `[blackice-import] Watching ${cfg.sourceDir} every ${cfg.pollIntervalMs}ms (source -> ${cfg.processedDir})`,
-    );
-
-    let busy = false;
-    const runCycle = async () => {
-      if (busy) return;
-      if (blackIceDbCycleBusy) return;
-      busy = true;
-      blackIceDbCycleBusy = true;
-      try {
-        const now = Date.now();
-        const entries = await readdir(cfg.sourceDir, { withFileTypes: true });
-        const fileNames = entries
-          .filter((entry) => {
-            if (!entry.isFile() || !IMPORTABLE_IMAGE_EXT.test(entry.name))
-              return false;
-            const n = entry.name;
-            if (n.startsWith("IMPORTED_")) return false;
-            if (n.startsWith("FAILED_")) return false;
-            return true;
-          })
-          .map((entry) => entry.name)
-          .sort((a, b) => a.localeCompare(b))
-          .slice(0, cfg.maxFilesPerCycle);
-        if (fileNames.length > 0) {
-          console.log(
-            `[blackice-import] cycle candidates=${fileNames.length} source=${cfg.sourceDir}`,
-          );
-        }
-
-        for (const fileName of fileNames) {
-          const fullPath = path.join(cfg.sourceDir, fileName);
-          const fileInfo = await stat(fullPath).catch(() => null);
-          if (!fileInfo?.isFile()) continue;
-          if (now - Number(fileInfo.mtimeMs || 0) < cfg.minFileAgeMs) continue;
-
-          let fileData: Buffer | null = null;
-          try {
-            fileData = await readFile(fullPath);
-            if (fileData.length === 0) {
-              throw new Error("File is empty");
-            }
-            const documentId = path.parse(fileName).name.slice(0, 255);
-            const mimeType = guessMimeType(fileName);
-            const dbFileName = fileName.slice(0, 255);
-
-            // Check for duplicates before inserting
-            const [existing] = await withDb(async (conn) => {
-              return conn.query(
-                `SELECT id FROM blackice_uploads WHERE document_id = ? AND file_name = ? LIMIT 1`,
-                [documentId, dbFileName],
-              );
-            });
-
-            if ((existing as any[]).length > 0) {
-              // already-imported skips are too verbose to log individually
-              continue;
-            }
-
-            let s3Key: string | null = null;
-            try {
-              const candidateKey = `blackice-imports/${Date.now()}-${dbFileName}`;
-              await uploadToS3(candidateKey, fileData, mimeType);
-              s3Key = candidateKey;
-              console.log(
-                `[blackice-import] Uploaded ${fileName} to S3: ${s3Key}`,
-              );
-            } catch (error: any) {
-              console.warn(
-                `[blackice-import] S3 upload failed for ${fileName}: ${String(error?.message ?? error)}`,
-              );
-            }
-
-            const uploadId = await withDb(async (conn) => {
-              const [insertResult] = await conn.query(
-                `INSERT INTO blackice_uploads
-                 (document_id, file_name, mime_type, file_data, s3_key, source_printer)
-                 VALUES (?, ?, ?, ?, ?, ?)`,
-                [
-                  documentId,
-                  dbFileName,
-                  mimeType,
-                  fileData,
-                  s3Key,
-                  cfg.sourcePrinter,
-                ],
-              );
-              return Number((insertResult as any)?.insertId ?? 0);
-            });
-
-            let importCode = "";
-            const ocrCfg = getBlackIceOcrLinkOptions();
-            if (ocrCfg.enabled) {
-              try {
-                const psmCandidates = Array.from(new Set([4, ocrCfg.psm]));
-                for (const psm of psmCandidates) {
-                  const tsvRows = await runOcrTsvFromBuffer(
-                    fileData,
-                    fileName,
-                    ocrCfg,
-                    psm,
-                  );
-                  const renameCode = extractStrictHeaderIdFromTsv(tsvRows);
-                  if (renameCode) {
-                    importCode = renameCode;
-                    break;
-                  }
-                }
-              } catch {
-                // Keep import fast/resilient; OCR-based naming is best-effort.
-              }
-            }
-
-            // Use OCR-extracted ID if found, otherwise fall back to leading numeric ID in filename.
-            const effectiveCode =
-              importCode || extractLeadingIdFromFileName(fileName);
-            const renamedPath = await renameToPatientIdentity(
-              fullPath,
-              effectiveCode,
-              undefined,
-              undefined,
-            );
-            const movedPath =
-              path.resolve(path.dirname(renamedPath)) ===
-              path.resolve(cfg.processedDir)
-                ? renamedPath
-                : await moveToDirAvoidingOverwrite(
-                    renamedPath,
-                    cfg.processedDir,
-                  );
-            const movedFileName = path.basename(movedPath).slice(0, 255);
-            if (uploadId > 0 && movedFileName && movedFileName !== dbFileName) {
-              await withDb((conn) =>
-                conn.query(
-                  "UPDATE blackice_uploads SET file_name = ?, document_id = ? WHERE id = ?",
-                  [
-                    movedFileName,
-                    path.parse(movedFileName).name.slice(0, 255),
-                    uploadId,
-                  ],
-                ),
-              );
-            }
-            console.log(`[blackice-import] Imported ${fileName}`);
-          } catch (error: any) {
-            const reason = String(error?.message ?? "unknown error");
-            if (isLockWaitError(error)) {
-              try {
-                const ocrCfg = getBlackIceOcrLinkOptions();
-                if (ocrCfg.enabled && fileData && fileData.length > 0) {
-                  const tsvRows = await runOcrTsvFromBuffer(
-                    fileData,
-                    fileName,
-                    ocrCfg,
-                    4,
-                  );
-                  const strictCode = extractStrictHeaderIdFromTsv(tsvRows);
-                  if (strictCode) {
-                    const renamedPath = await renameToPatientIdentity(
-                      fullPath,
-                      strictCode,
-                      undefined,
-                      undefined,
-                    );
-                    const renamed = path.basename(renamedPath);
-                    console.log(
-                      `[blackice-import] Renamed by OCR on lock timeout: ${fileName} -> ${renamed}`,
-                    );
-                  }
-                }
-              } catch {
-                // Keep import loop resilient; rename fallback is best-effort only.
-              }
-              console.warn(
-                `[blackice-import] Lock timeout on ${fileName}; will retry next cycle.`,
-              );
-              continue;
-            }
-            console.error(`[blackice-import] Failed ${fileName}: ${reason}`);
-            await renameWithPrefix(fullPath, "FAILED").catch(() => undefined);
-          }
-        }
-      } catch (error: any) {
-        console.error(
-          "[blackice-import] Cycle error:",
-          String(error?.message ?? error),
-        );
-      } finally {
-        blackIceDbCycleBusy = false;
-        busy = false;
-      }
-    };
-
-    void runCycle();
-    setInterval(() => {
-      void runCycle();
-    }, cfg.pollIntervalMs);
-  }
-
-  async function startBlackIceOcrLinker() {
-    const cfg = getBlackIceOcrLinkOptions();
-    const importCfg = getBlackIceFolderImportOptions();
-    if (!cfg.enabled) {
-      console.log("[blackice-ocr] Disabled");
-      return;
-    }
-    try {
-      await execFile(cfg.tesseractPath, ["--version"], {
-        windowsHide: true,
-        timeout: 15_000,
-      });
-    } catch (error: any) {
-      console.error(
-        `[blackice-ocr] Disabled: Tesseract is not available at "${cfg.tesseractPath}" (${String(error?.message ?? error)})`,
-      );
-      return;
-    }
-    console.log(
-      `[blackice-ocr] Enabled (poll=${cfg.pollIntervalMs}ms, batch=${cfg.batchSize}, lang=${cfg.lang}, psm=${cfg.psm})`,
-    );
-
-    let busy = false;
-    const runCycle = async () => {
-      if (busy) return;
-      if (blackIceDbCycleBusy) return;
-      busy = true;
-      blackIceDbCycleBusy = true;
-      try {
-        await withDb(async (conn) => {
-          const [rows] = await conn.query(
-            `SELECT id, document_id, file_name, file_data, s3_key, ocr_text, plain_text
-             FROM blackice_uploads
-             WHERE patient_id IS NULL
-             ORDER BY id DESC
-             LIMIT ?`,
-            [cfg.batchSize],
-          );
-          const uploads = rows as Array<{
-            id: number;
-            document_id: string;
-            file_name: string | null;
-            file_data: Buffer | null;
-            s3_key: string | null;
-            ocr_text: string | null;
-            plain_text: string | null;
-          }>;
-
-          for (const row of uploads) {
-            try {
-              let imageData: Buffer | null = null;
-              if (row.s3_key) {
-                try {
-                  imageData = await downloadFromS3(row.s3_key);
-                } catch (error: any) {
-                  console.warn(
-                    `[blackice-ocr] Failed to download from S3: ${row.s3_key}, trying DB fallback`,
-                  );
-                  if (row.file_data && row.file_data.length > 0) {
-                    imageData = row.file_data;
-                  }
-                }
-              } else if (row.file_data && row.file_data.length > 0) {
-                imageData = row.file_data;
-              }
-
-              let ocrText = String(row.ocr_text ?? "").trim();
-              if (imageData && imageData.length > 0 && !ocrText) {
-                imageData = Buffer.isBuffer(imageData)
-                  ? imageData
-                  : Buffer.from(imageData as any);
-                if (looksCorruptedBinaryImage(imageData) && row.file_name) {
-                  const diskFallback = await loadImageFromImportFolders(
-                    row.file_name,
-                  );
-                  if (diskFallback) imageData = diskFallback;
-                }
-                try {
-                  ocrText = await runOcrFromBuffer(
-                    imageData,
-                    row.file_name || `${row.id}.jpg`,
-                    cfg,
-                  );
-                  if (ocrText) {
-                    await conn.query(
-                      "UPDATE blackice_uploads SET ocr_text = ? WHERE id = ?",
-                      [ocrText, row.id],
-                    );
-                  }
-                } catch (error: any) {
-                  console.warn(
-                    `[blackice-ocr] OCR failed for upload ${row.id}, will try filename matching: ${String(error?.message ?? error)}`,
-                  );
-                }
-              }
-
-              const labeledOcrCandidates =
-                extractLabeledIdCandidatesFromText(ocrText);
-              const ocrCandidates =
-                labeledOcrCandidates.length > 0
-                  ? labeledOcrCandidates
-                  : extractIdCandidatesFromText(ocrText);
-              const candidates = Array.from(
-                new Set([
-                  ...labeledOcrCandidates,
-                  ...extractIdCandidatesFromText(row.document_id),
-                  ...extractIdCandidatesFromText(row.file_name ?? ""),
-                  ...ocrCandidates,
-                  ...extractIdCandidatesFromText(row.plain_text ?? ""),
-                ]),
-              );
-              if (candidates.length === 0) continue;
-
-              const renameCode = normalizeIdCode(labeledOcrCandidates[0] ?? "");
-              if (renameCode && row.file_name) {
-                const renamedFile = await prefixProcessedFileWithCode(
-                  importCfg.processedDir,
-                  row.file_name,
-                  renameCode,
-                );
-                if (renamedFile && renamedFile !== row.file_name) {
-                  await conn.query(
-                    "UPDATE blackice_uploads SET file_name = ?, document_id = ? WHERE id = ?",
-                    [
-                      renamedFile,
-                      path.parse(renamedFile).name.slice(0, 255),
-                      row.id,
-                    ],
-                  );
-                }
-              }
-
-              const patientId = await resolvePatientByIds(conn, candidates);
-              if (!patientId) continue;
-
-              await conn.query(
-                "UPDATE blackice_uploads SET patient_id = ? WHERE id = ? AND patient_id IS NULL",
-                [patientId, row.id],
-              );
-              console.log(
-                `[blackice-ocr] Linked upload ${row.id} -> patient_id=${patientId}`,
-              );
-            } catch (error: any) {
-              if (isLockWaitError(error)) {
-                console.warn(
-                  `[blackice-ocr] Lock timeout on upload ${row.id}; will retry next cycle.`,
-                );
-                continue;
-              }
-              throw error;
-            }
-          }
-        });
-      } catch (error: any) {
-        console.error(
-          "[blackice-ocr] Cycle error:",
-          String(error?.message ?? error),
-        );
-      } finally {
-        blackIceDbCycleBusy = false;
-        busy = false;
-      }
-    };
-
-    void runCycle();
-    setInterval(() => {
-      void runCycle();
-    }, cfg.pollIntervalMs);
-  }
-
-  function startPentacamAutoLinker() {
-    const INTERVAL_MS = 5 * 60 * 1000;
-    let busy = false;
-    const run = async () => {
-      if (busy) return;
-      busy = true;
-      try {
-        const result = await autoLinkUnlinkedPentacamFiles();
-        if (result.imported > 0) {
-          console.log(
-            `[pentacam-auto] Linked ${result.imported} new files (unmatched=${result.unmatched})`,
-          );
-        }
-      } catch (err: any) {
-        console.error("[pentacam-auto] Error:", String(err?.message ?? err));
-      } finally {
-        busy = false;
-      }
-    };
-    void run();
-    setInterval(() => void run(), INTERVAL_MS);
-  }
-
   // Black Ice uploads: list recent uploaded docs for UI.
-  app.get("/api/blackice/uploads", async (req, res) => {
+  app.get("/api/srv100/uploads", async (req, res) => {
     try {
       const limitRaw = Number(req.query.limit ?? 100);
       const limit = Number.isFinite(limitRaw)
@@ -1412,14 +1475,14 @@ async function startServer() {
           const [result] = await conn.query(
             `SELECT b.id, b.document_id, b.file_name, b.mime_type, b.ocr_text, b.plain_text, b.source_printer,
                     b.patient_id, p.fullName AS patient_name, p.patientCode AS patient_code, b.created_at
-             FROM blackice_uploads b
+             FROM srv100_uploads b
              LEFT JOIN patients p ON p.id = b.patient_id
              WHERE b.patient_id = ?
              ORDER BY b.id DESC
              LIMIT ?`,
             [patientId, limit],
           );
-          return result as BlackIceUploadRow[];
+          return result as Srv100UploadRow[];
         }
 
         if (search) {
@@ -1427,7 +1490,7 @@ async function startServer() {
           const [result] = await conn.query(
             `SELECT b.id, b.document_id, b.file_name, b.mime_type, b.ocr_text, b.plain_text, b.source_printer,
                     b.patient_id, p.fullName AS patient_name, p.patientCode AS patient_code, b.created_at
-             FROM blackice_uploads b
+             FROM srv100_uploads b
              LEFT JOIN patients p ON p.id = b.patient_id
              WHERE b.document_id LIKE ? OR b.file_name LIKE ? OR p.fullName LIKE ? OR p.patientCode LIKE ?
                    OR b.ocr_text LIKE ? OR b.plain_text LIKE ?
@@ -1456,19 +1519,19 @@ async function startServer() {
                   limit,
                 ],
           );
-          return result as BlackIceUploadRow[];
+          return result as Srv100UploadRow[];
         }
 
         const [result] = await conn.query(
           `SELECT b.id, b.document_id, b.file_name, b.mime_type, b.ocr_text, b.plain_text, b.source_printer,
                   b.patient_id, p.fullName AS patient_name, p.patientCode AS patient_code, b.created_at
-           FROM blackice_uploads b
+           FROM srv100_uploads b
            LEFT JOIN patients p ON p.id = b.patient_id
            ORDER BY b.id DESC
            LIMIT ?`,
           [limit],
         );
-        return result as BlackIceUploadRow[];
+        return result as Srv100UploadRow[];
       });
 
       res.status(200).json({
@@ -1489,8 +1552,8 @@ async function startServer() {
           patientName: row.patient_name,
           patientCode: row.patient_code,
           createdAt: new Date(row.created_at).toISOString(),
-          viewUrl: `/api/blackice/uploads/${row.id}`,
-          downloadUrl: `/api/blackice/uploads/${row.id}?download=1`,
+          viewUrl: `/api/srv100/uploads/${row.id}`,
+          downloadUrl: `/api/srv100/uploads/${row.id}?download=1`,
         })),
       });
     } catch (error: any) {
@@ -1504,7 +1567,7 @@ async function startServer() {
   });
 
   // Black Ice uploads: stream a single file for inline view or download.
-  app.get("/api/blackice/uploads/:id", async (req, res) => {
+  app.get("/api/srv100/uploads/:id", async (req, res) => {
     try {
       const id = Number(req.params.id);
       if (!Number.isFinite(id) || id <= 0) {
@@ -1516,7 +1579,7 @@ async function startServer() {
       const row = await withDb(async (conn) => {
         const [result] = await conn.query(
           `SELECT id, document_id, file_name, mime_type, s3_key, created_at
-           FROM blackice_uploads
+           FROM srv100_uploads
            WHERE id = ?
            LIMIT 1`,
           [id],
@@ -1546,7 +1609,7 @@ async function startServer() {
           return;
         } catch (error: any) {
           console.warn(
-            `[blackice-api] Failed to generate presigned URL for ${row.s3_key}, falling back to proxy`,
+            `[srv100-api] Failed to generate presigned URL for ${row.s3_key}, falling back to proxy`,
             error,
           );
         }
@@ -1555,7 +1618,7 @@ async function startServer() {
       // No S3 key (or presign failed) — fetch BLOB from DB and stream it
       const blobRow = await withDb(async (conn) => {
         const [r] = await conn.query(
-          `SELECT file_data FROM blackice_uploads WHERE id = ? LIMIT 1`,
+          `SELECT file_data FROM srv100_uploads WHERE id = ? LIMIT 1`,
           [id],
         );
         return (r as any[])[0] as { file_data: Buffer | null } | undefined;
@@ -1593,9 +1656,9 @@ async function startServer() {
     }
   });
 
-  app.post("/api/blackice/uploads/ocr-link/run", async (_req, res) => {
+  app.post("/api/srv100/uploads/ocr-link/run", async (_req, res) => {
     try {
-      if (blackIceDbCycleBusy) {
+      if (srv100DbCycleBusy) {
         res
           .status(409)
           .json({
@@ -1604,14 +1667,14 @@ async function startServer() {
           });
         return;
       }
-      blackIceDbCycleBusy = true;
-      const cfg = getBlackIceOcrLinkOptions();
-      const importCfg = getBlackIceFolderImportOptions();
+      srv100DbCycleBusy = true;
+      const cfg = getSrv100OcrLinkOptions();
+      const importCfg = getSrv100FolderImportOptions();
       if (!cfg.enabled) {
-        blackIceDbCycleBusy = false;
+        srv100DbCycleBusy = false;
         res
           .status(400)
-          .json({ ok: false, error: "BLACKICE_OCR_ENABLED is false" });
+          .json({ ok: false, error: "SRV100_OCR_ENABLED is false" });
         return;
       }
       let linked = 0;
@@ -1619,7 +1682,7 @@ async function startServer() {
       await withDb(async (conn) => {
         const [rows] = await conn.query(
           `SELECT id, document_id, file_name, file_data, s3_key, ocr_text, plain_text
-           FROM blackice_uploads
+           FROM srv100_uploads
            WHERE patient_id IS NULL
            ORDER BY id DESC
            LIMIT ?`,
@@ -1642,7 +1705,7 @@ async function startServer() {
               imageData = await downloadFromS3(row.s3_key);
             } catch (error: any) {
               console.warn(
-                `[blackice-ocr-manual] Failed to download from S3: ${row.s3_key}, trying DB fallback`,
+                `[srv100-ocr-manual] Failed to download from S3: ${row.s3_key}, trying DB fallback`,
               );
               if (row.file_data && row.file_data.length > 0) {
                 imageData = row.file_data;
@@ -1672,13 +1735,13 @@ async function startServer() {
               );
               if (ocrText) {
                 await conn.query(
-                  "UPDATE blackice_uploads SET ocr_text = ? WHERE id = ?",
+                  "UPDATE srv100_uploads SET ocr_text = ? WHERE id = ?",
                   [ocrText, row.id],
                 );
               }
             } catch (error: any) {
               console.warn(
-                `[blackice-ocr-manual] OCR failed for upload ${row.id}, will try filename matching: ${String(error?.message ?? error)}`,
+                `[srv100-ocr-manual] OCR failed for upload ${row.id}, will try filename matching: ${String(error?.message ?? error)}`,
               );
             }
           }
@@ -1708,7 +1771,7 @@ async function startServer() {
             );
             if (renamedFile && renamedFile !== row.file_name) {
               await conn.query(
-                "UPDATE blackice_uploads SET file_name = ?, document_id = ? WHERE id = ?",
+                "UPDATE srv100_uploads SET file_name = ?, document_id = ? WHERE id = ?",
                 [
                   renamedFile,
                   path.parse(renamedFile).name.slice(0, 255),
@@ -1721,7 +1784,7 @@ async function startServer() {
           const patientId = await resolvePatientByIds(conn, candidates);
           if (!patientId) continue;
           await conn.query(
-            "UPDATE blackice_uploads SET patient_id = ? WHERE id = ? AND patient_id IS NULL",
+            "UPDATE srv100_uploads SET patient_id = ? WHERE id = ? AND patient_id IS NULL",
             [patientId, row.id],
           );
           linked += 1;
@@ -1733,12 +1796,12 @@ async function startServer() {
         .status(500)
         .json({ ok: false, error: String(error?.message ?? error) });
     } finally {
-      blackIceDbCycleBusy = false;
+      srv100DbCycleBusy = false;
     }
   });
 
-  // Bulk link blackice_uploads to patients by filename/document_id code extraction (no OCR).
-  app.post("/api/blackice/uploads/link-by-filename", async (_req, res) => {
+  // Bulk link srv100_uploads to patients by filename/document_id code extraction (no OCR).
+  app.post("/api/srv100/uploads/link-by-filename", async (_req, res) => {
     try {
       let linked = 0;
       let processed = 0;
@@ -1748,7 +1811,7 @@ async function startServer() {
         const rows = await withDb(async (conn) => {
           const [result] = await conn.query(
             `SELECT id, document_id, file_name
-             FROM blackice_uploads
+             FROM srv100_uploads
              WHERE patient_id IS NULL
              ORDER BY id ASC
              LIMIT ? OFFSET ?`,
@@ -1775,7 +1838,7 @@ async function startServer() {
             const patientId = await resolvePatientByIds(conn, candidates);
             if (!patientId) continue;
             await conn.query(
-              "UPDATE blackice_uploads SET patient_id = ? WHERE id = ? AND patient_id IS NULL",
+              "UPDATE srv100_uploads SET patient_id = ? WHERE id = ? AND patient_id IS NULL",
               [patientId, row.id],
             );
             linked += 1;
@@ -1791,11 +1854,11 @@ async function startServer() {
     }
   });
 
-  app.post("/api/blackice/uploads/fix-duplicates", async (_req, res) => {
+  app.post("/api/srv100/uploads/fix-duplicates", async (_req, res) => {
     try {
       const [r1] = await withDb(async (conn) =>
         conn.query(
-          `UPDATE blackice_uploads b
+          `UPDATE srv100_uploads b
          INNER JOIN patients p ON p.patientCode = REGEXP_SUBSTR(b.file_name, '^[0-9]+')
          SET b.patient_id = p.id
          WHERE b.patient_id IS NULL`,
@@ -1803,8 +1866,8 @@ async function startServer() {
       );
       const [r2] = await withDb(async (conn) =>
         conn.query(
-          `UPDATE blackice_uploads u1
-         INNER JOIN blackice_uploads u2 ON u1.file_name = u2.file_name
+          `UPDATE srv100_uploads u1
+         INNER JOIN srv100_uploads u2 ON u1.file_name = u2.file_name
          SET u1.patient_id = u2.patient_id
          WHERE u1.patient_id IS NULL AND u2.patient_id IS NOT NULL`,
         ),
@@ -1978,9 +2041,9 @@ async function startServer() {
         });
       }
 
-      // Source 2: all blackice_uploads (linked + unlinked)
-      const blackiceRows = await db.getAllBlackiceUploads(limit);
-      for (const row of blackiceRows) {
+      // Source 2: all srv100_uploads (linked + unlinked)
+      const srv100Rows = await db.getAllSrv100Uploads(limit);
+      for (const row of srv100Rows) {
         const name = path.basename(String(row.file_name ?? "").trim());
         if (!name) continue;
         const normalized = name.toLowerCase();
@@ -1990,7 +2053,7 @@ async function startServer() {
           name,
           size: 0,
           mtime: String(row.created_at ?? new Date().toISOString()),
-          url: `/api/blackice/uploads/${row.id}`,
+          url: `/api/srv100/uploads/${row.id}`,
         });
       }
 
@@ -2211,11 +2274,12 @@ async function startServer() {
   // startAttendanceSyncScheduler(); // Disabled: Use manual sync via attendance.syncNow procedure
   startPunchReception();
   initMarketingScheduler();
-  await startBlackIceFolderImporter();
-  await startBlackIceOcrLinker();
-  startPentacamAutoLinker();
+  // Pentacam/Srv100 import+OCR loops now run as a standalone service
+  // (server/services/pentacam.ts, `pnpm pentacam:service`), not in the web server.
   startOpReminderScheduler();
   startAccSyncScheduler();
 }
 
-startServer().catch(console.error);
+if (!process.env.SELRS_PENTACAM_SERVICE) {
+  startServer().catch(console.error);
+}

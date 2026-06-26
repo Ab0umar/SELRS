@@ -20,7 +20,7 @@ async function dedupSimple() {
     while (true) {
       // Find one file with duplicates
       const [files] = (await conn.query(`
-        SELECT file_name, COUNT(*) as cnt FROM blackice_uploads
+        SELECT file_name, COUNT(*) as cnt FROM srv100_uploads
         WHERE file_name IS NOT NULL AND file_name != ''
         GROUP BY file_name HAVING cnt > 1
         LIMIT 1
@@ -39,10 +39,10 @@ async function dedupSimple() {
       // Delete all but the first (lowest ID)
       const result = await conn.query(
         `
-        DELETE FROM blackice_uploads
+        DELETE FROM srv100_uploads
         WHERE file_name = ? AND id NOT IN (
           SELECT id FROM (
-            SELECT MIN(id) as id FROM blackice_uploads WHERE file_name = ?
+            SELECT MIN(id) as id FROM srv100_uploads WHERE file_name = ?
           ) as keep
         )
       `,
@@ -60,7 +60,7 @@ async function dedupSimple() {
     }
 
     console.log(`[Dedup] ✓ Complete! Deleted ${totalDeleted} duplicate rows`);
-    console.log("[Dedup] Now run: pnpm s3:migrate-blackice");
+    console.log("[Dedup] Now run: pnpm s3:migrate-srv100");
   } catch (error: any) {
     console.error("[Dedup] Error:", error?.message ?? error);
     process.exit(1);

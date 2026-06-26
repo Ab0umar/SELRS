@@ -2,7 +2,7 @@ import "dotenv/config";
 import mysql from "mysql2/promise";
 import { uploadToS3 } from "../server/_core/s3";
 
-async function migrateBlackIceToS3() {
+async function migrateSrv100ToS3() {
   const awsAccessKeyId = process.env.AWS_ACCESS_KEY_ID;
   const awsSecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
   const awsS3Bucket = process.env.AWS_S3_BUCKET;
@@ -21,7 +21,7 @@ async function migrateBlackIceToS3() {
     process.exit(1);
   }
 
-  console.log("[S3 Migration] Starting blackice_uploads migration to S3...");
+  console.log("[S3 Migration] Starting srv100_uploads migration to S3...");
   console.log(
     `[S3 Migration] Using bucket: ${awsS3Bucket} in region: ${awsRegion}`,
   );
@@ -38,17 +38,17 @@ async function migrateBlackIceToS3() {
 
     // Check if s3_key column exists, if not add it
     try {
-      await conn.query("SELECT s3_key FROM blackice_uploads LIMIT 1");
+      await conn.query("SELECT s3_key FROM srv100_uploads LIMIT 1");
     } catch {
       console.log("[S3 Migration] Adding s3_key column...");
       await conn.query(
-        "ALTER TABLE blackice_uploads ADD COLUMN s3_key VARCHAR(255) AFTER file_name",
+        "ALTER TABLE srv100_uploads ADD COLUMN s3_key VARCHAR(255) AFTER file_name",
       );
     }
 
     // Get total count
     const [[{ total }]] = await conn.query(
-      "SELECT COUNT(*) as total FROM blackice_uploads WHERE s3_key IS NULL",
+      "SELECT COUNT(*) as total FROM srv100_uploads WHERE s3_key IS NULL",
     );
     console.log(`[S3 Migration] Found ${total} records to migrate`);
 
@@ -58,7 +58,7 @@ async function migrateBlackIceToS3() {
 
     while (processed < total) {
       const [rows] = await conn.query(
-        `SELECT id, file_name, mime_type, file_data FROM blackice_uploads
+        `SELECT id, file_name, mime_type, file_data FROM srv100_uploads
          WHERE s3_key IS NULL ORDER BY id ASC LIMIT ?`,
         [batchSize],
       );
@@ -70,14 +70,14 @@ async function migrateBlackIceToS3() {
           if (!row.file_data || row.file_data.length === 0) {
             console.log(`[S3 Migration] Skipping ${row.id} (empty file)`);
             await conn.query(
-              "UPDATE blackice_uploads SET s3_key = ? WHERE id = ?",
+              "UPDATE srv100_uploads SET s3_key = ? WHERE id = ?",
               ["EMPTY", row.id],
             );
             processed++;
             continue;
           }
 
-          const s3Key = `blackice/${row.id}/${row.file_name || "document"}`;
+          const s3Key = `srv100/${row.id}/${row.file_name || "document"}`;
           const mimeType = row.mime_type || "application/octet-stream";
 
           // Upload to S3
@@ -85,7 +85,7 @@ async function migrateBlackIceToS3() {
 
           // Update DB to store S3 key (keep file_data for now in case of rollback)
           await conn.query(
-            "UPDATE blackice_uploads SET s3_key = ? WHERE id = ?",
+            "UPDATE srv100_uploads SET s3_key = ? WHERE id = ?",
             [s3Key, row.id],
           );
 
@@ -113,12 +113,12 @@ async function migrateBlackIceToS3() {
       );
       console.log("[S3 Migration] When ready, you can clean up with:");
       console.log(
-        "  ALTER TABLE blackice_uploads MODIFY COLUMN file_data LONGBLOB NULL;",
+        "  ALTER TABLE srv100_uploads MODIFY COLUMN file_data LONGBLOB NULL;",
       );
       console.log(
-        "  UPDATE blackice_uploads SET file_data = NULL, ocr_text = NULL, plain_text = NULL WHERE s3_key IS NOT NULL;",
+        "  UPDATE srv100_uploads SET file_data = NULL, ocr_text = NULL, plain_text = NULL WHERE s3_key IS NOT NULL;",
       );
-      console.log("  OPTIMIZE TABLE blackice_uploads;");
+      console.log("  OPTIMIZE TABLE srv100_uploads;");
     }
 
     conn.release();
@@ -127,7 +127,7 @@ async function migrateBlackIceToS3() {
   }
 }
 
-migrateBlackIceToS3().catch((error) => {
+migrateSrv100ToS3().catch((error) => {
   console.error("[S3 Migration] Fatal error:", error);
   process.exit(1);
 });

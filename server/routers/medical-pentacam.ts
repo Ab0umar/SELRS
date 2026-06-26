@@ -229,15 +229,15 @@ export const medicalPentacamRoutes = {
         /* listing failed, continue */
       }
 
-      // Source 2: blackice_uploads rows linked to this patient (OCR-imported pentacam JPGs).
+      // Source 2: srv100_uploads rows linked to this patient (OCR-imported pentacam JPGs).
       const seenNames = new Set<string>(
         s3Items.map((r) => r.fileName.toLowerCase()),
       );
-      const blackiceRows = await db.getBlackiceUploadsByPatient(
+      const srv100Rows = await db.getSrv100UploadsByPatient(
         input.patientId,
         safeLimit,
       );
-      const blackiceItems = blackiceRows
+      const srv100Items = srv100Rows
         .filter((row) => {
           const name = String(row.file_name ?? "").trim();
           return (
@@ -253,7 +253,7 @@ export const medicalPentacamRoutes = {
           return {
             id: row.id,
             fileName,
-            storageUrl: `/api/blackice/uploads/${row.id}`,
+            storageUrl: `/api/srv100/uploads/${row.id}`,
             mimeType:
               String(row.mime_type ?? "").trim() ||
               inferPentacamMimeType(fileName),
@@ -274,7 +274,7 @@ export const medicalPentacamRoutes = {
           capturedAt: item.ts,
           importedAt: item.ts,
         })),
-        ...blackiceItems.map((item) => ({
+        ...srv100Items.map((item) => ({
           id: item.id,
           patientId: input.patientId,
           visitId: 0,
@@ -383,9 +383,9 @@ export const medicalPentacamRoutes = {
           skipped += 1;
           continue;
         }
-        // Try linking via blackice_uploads first (no S3 copy needed).
+        // Try linking via srv100_uploads first (no S3 copy needed).
         const baseName = path.posix.basename(fileName);
-        const linked = await db.linkBlackiceUploadToPatient(
+        const linked = await db.linkSrv100UploadToPatient(
           baseName,
           input.patientId,
         );
@@ -529,7 +529,7 @@ export const medicalPentacamRoutes = {
 
       // Phase 2: one batch DB update
       const imported =
-        linkPairs.length > 0 ? await db.linkBlackiceUploadsBatch(linkPairs) : 0;
+        linkPairs.length > 0 ? await db.linkSrv100UploadsBatch(linkPairs) : 0;
       const alreadyLinked = Math.max(0, linkPairs.length - imported);
       const missing = 0;
 
@@ -838,7 +838,7 @@ export const medicalPentacamRoutes = {
           .filter((row) => (obviousOnly ? row.kind === "obvious" : true))
           .map((row) => row.resultId);
       }
-      const deleted = await db.unlinkBlackiceUploadsByIds(ids);
+      const deleted = await db.unlinkSrv100UploadsByIds(ids);
       await db.logAuditEvent(
         ctx.user.id,
         "UNLINK_MISMATCHED_LOCAL_PENTACAM",
@@ -871,7 +871,7 @@ export const medicalPentacamRoutes = {
           message: "Patient not found",
         });
       }
-      await db.reassignBlackiceUploadPatient(input.resultId, input.patientId);
+      await db.reassignSrv100UploadPatient(input.resultId, input.patientId);
       await db.logAuditEvent(
         ctx.user.id,
         "REASSIGN_LOCAL_PENTACAM_LINK",
@@ -921,11 +921,11 @@ export const medicalPentacamRoutes = {
       return out;
     }),
 
-  findDuplicateBlackiceUploads: adminProcedure.query(async () => {
-    return await db.findDuplicateBlackiceUploads();
+  findDuplicateSrv100Uploads: adminProcedure.query(async () => {
+    return await db.findDuplicateSrv100Uploads();
   }),
 
-  deleteBlackiceUploadsByIds: adminProcedure
+  deleteSrv100UploadsByIds: adminProcedure
     .input(
       z.object({
         ids: z.array(z.number()),
@@ -937,7 +937,7 @@ export const medicalPentacamRoutes = {
       if (!input.ids.length) return { deleted: 0, s3Deleted: 0 };
 
       // Fetch file info before deleting
-      const rows = await db.getBlackiceUploadsByIds(input.ids);
+      const rows = await db.getSrv100UploadsByIds(input.ids);
 
       // Delete from S3
       let s3Deleted = 0;
@@ -969,7 +969,7 @@ export const medicalPentacamRoutes = {
       }
 
       // Delete from DB
-      const deleted = await db.deleteBlackiceUploadsByIds(input.ids);
+      const deleted = await db.deleteSrv100UploadsByIds(input.ids);
       return { deleted, s3Deleted };
     }),
 };
@@ -981,7 +981,7 @@ export async function autoLinkUnlinkedPentacamFiles(): Promise<{
   unmatched: number;
   skipped: number;
 }> {
-  const rows = await db.getUnlinkedBlackiceUploads(10000);
+  const rows = await db.getUnlinkedSrv100Uploads(10000);
   if (rows.length === 0) {
     return { processed: 0, imported: 0, alreadyLinked: 0, unmatched: 0, skipped: 0 };
   }
@@ -1040,7 +1040,7 @@ export async function autoLinkUnlinkedPentacamFiles(): Promise<{
   }
 
   const imported =
-    linkPairs.length > 0 ? await db.linkBlackiceUploadsBatch(linkPairs) : 0;
+    linkPairs.length > 0 ? await db.linkSrv100UploadsBatch(linkPairs) : 0;
   const alreadyLinked = Math.max(0, linkPairs.length - imported);
 
   return { processed: fileNames.length, imported, alreadyLinked, unmatched, skipped };

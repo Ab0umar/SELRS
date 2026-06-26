@@ -665,7 +665,7 @@ server/services/accounting/
 
 - `startPentacamAutoLinker()` runs in `server/_core/index.ts` on server startup, then every 5 minutes
 - Calls `autoLinkUnlinkedPentacamFiles()` from `server/routers/medical-pentacam.ts`
-- Queries `blackice_uploads` where `patient_id IS NULL`, matches by patient code in file name
+- Queries `srv100_uploads` where `patient_id IS NULL`, matches by patient code in file name
 - Guarded by `busy` flag; logs only when `imported > 0`
 - **Do not add manual triggers or UI buttons** for Pentacam linking — the scheduler handles it
 
@@ -673,7 +673,7 @@ server/services/accounting/
 
 - External doctors access at `/doctor-portal/*` with JWT auth (`doctorPortalProcedure`)
 - JWT signed with same `JWT_SECRET`; `type: "externalDoctor"` claim distinguishes from staff tokens
-- `getMyPatients`: returns patients linked via `external_doctor_referrals` OR auto-matched by `doctorCode`, **only those with at least one `blackice_uploads` record**
+- `getMyPatients`: returns patients linked via `external_doctor_referrals` OR auto-matched by `doctorCode`, **only those with at least one `srv100_uploads` record**
 - Auto-referral: on any new patient registration, `autoLinkAndNotifyDoctors()` checks for active external doctors with matching `doctorCode` and inserts referrals idempotently
 - Real-time: doctor WS connection uses `?doctorToken=<jwt>`; receives `new-patient` events instantly
 
@@ -887,7 +887,7 @@ Every completed task reports:
 17. **Reverting route files to function calls** — `export const AttendanceRoutes = (<>...</>)` not `export function AttendanceRoutes() { return (<>...</>) }`; function calls bypass React component semantics
 18. **Calling `{AttendanceRoutes()}`** in App.tsx — use `{AttendanceRoutes}` (JSX constant reference)
 19. **Adding Pentacam link UI buttons** — the 5-minute server scheduler in `server/_core/index.ts` handles all linking automatically
-20. **Removing `EXISTS blackice_uploads` from doctor portal `getMyPatients`** — doctors must only see patients with Pentacam images; auto-referral and notifications still fire for all new patients regardless
+20. **Removing `EXISTS srv100_uploads` from doctor portal `getMyPatients`** — doctors must only see patients with Pentacam images; auto-referral and notifications still fire for all new patients regardless
 
 ---
 

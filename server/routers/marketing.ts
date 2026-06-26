@@ -370,7 +370,7 @@ export const marketingRouter = router({
       const refDesigns = await db
         .select({ filePath: marketingReferenceDesigns.filePath })
         .from(marketingReferenceDesigns);
-      const refPaths = refDesigns.map((r) => r.filePath).filter(Boolean);
+      const refPaths = refDesigns.map((r: { filePath: string }) => r.filePath).filter(Boolean);
 
       try {
         const imageUrl = await generateMarketingImage(prompt, input.postId, refPaths);

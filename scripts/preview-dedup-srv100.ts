@@ -8,20 +8,20 @@ async function previewDeduplicate() {
     process.exit(1);
   }
 
-  console.log("[Preview] Analyzing blackice_uploads for duplicates...\n");
+  console.log("[Preview] Analyzing srv100_uploads for duplicates...\n");
 
   const conn = await mysql.createConnection(databaseUrl);
 
   try {
     // Get total count
     const [[{ total }]] = (await conn.query(
-      "SELECT COUNT(*) as total FROM blackice_uploads",
+      "SELECT COUNT(*) as total FROM srv100_uploads",
     )) as any;
     console.log(`✓ Total rows: ${total}`);
 
     // Get unique file count (lightweight)
     const [[{ unique }]] = (await conn.query(
-      "SELECT COUNT(DISTINCT file_name) as unique FROM blackice_uploads WHERE file_name != ''",
+      "SELECT COUNT(DISTINCT file_name) as unique FROM srv100_uploads WHERE file_name != ''",
     )) as any;
     console.log(`✓ Unique files: ${unique}`);
     console.log(`✓ Duplicates: ${total - unique}`);
@@ -29,7 +29,7 @@ async function previewDeduplicate() {
     console.log(`Before: ${total} rows`);
     console.log(`After:  ${unique} rows`);
     console.log(`Delete: ${total - unique} rows`);
-    console.log(`\nIf this looks correct, run: pnpm s3:dedup-blackice`);
+    console.log(`\nIf this looks correct, run: pnpm s3:dedup-srv100`);
   } finally {
     await conn.end();
   }
