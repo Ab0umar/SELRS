@@ -139,6 +139,14 @@ export default function SalaryPenalties() {
 
   // ── Missing Checkout Days ─────────────────────────────────────────────────
   const missingCheckoutQ = (trpc as any).salary.listMissingCheckoutDays.useQuery({ fromDate, toDate });
+  const mcExclusionsQ = (trpc as any).salary.listMissingCheckoutExclusions.useQuery({ fromDate, toDate });
+  const toggleMcExclusionMut = (trpc as any).salary.toggleMissingCheckoutExclusion.useMutation({
+    onSuccess: () => { mcExclusionsQ.refetch(); },
+    onError: (e: any) => toast.error("خطأ: " + e.message),
+  });
+  const mcExcludedSet = new Set<string>(
+    (mcExclusionsQ.data ?? []).map((r: any) => `${r.empCd}|${r.workDate}`)
+  );
   const missingCheckoutRaw: any[] = missingCheckoutQ.data ?? [];
 
   const missingByEmp: Record<string, { empCd: string; empName: string; department: string; days: string[] }> = {};
@@ -1078,10 +1086,18 @@ export default function SalaryPenalties() {
                         <div className="text-xs text-muted-foreground">{emp.department}</div>
                       </div>
                       <div className="flex items-center gap-6">
-                        <div className="text-center">
-                          <div className="text-[10px] text-muted-foreground">عدد الأيام</div>
-                          <div className="font-bold text-destructive text-sm">{emp.days.length}</div>
-                        </div>
+                        {(() => {
+                          const activeDays = emp.days.filter((d) => !mcExcludedSet.has(`${emp.empCd}|${d}`)).length;
+                          return (
+                            <div className="text-center">
+                              <div className="text-[10px] text-muted-foreground">عدد الأيام</div>
+                              <div className="font-bold text-destructive text-sm">
+                                {activeDays}
+                                {activeDays !== emp.days.length && <span className="text-muted-foreground text-[10px] font-normal">/{emp.days.length}</span>}
+                              </div>
+                            </div>
+                          );
+                        })()}
                         {isExpanded ? (
                           <ChevronUp className="h-4 w-4 text-muted-foreground" />
                         ) : (
@@ -1095,17 +1111,42 @@ export default function SalaryPenalties() {
                           <thead>
                             <tr className="bg-muted/30 text-xs">
                               <th className="px-3 py-2 text-right text-muted-foreground font-medium">التاريخ</th>
+                              <th className="px-3 py-2 text-center text-muted-foreground font-medium w-28">الحالة</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {emp.days.map((d) => (
-                              <tr key={d} className="border-t border-border/30 hover:bg-muted/10">
-                                <td className="px-3 py-2 font-medium">{d}</td>
-                              </tr>
-                            ))}
-                            <tr className="border-t border-border bg-muted/30 font-bold text-xs">
-                              <td className="px-3 py-2">الإجمالي: {emp.days.length} يوم — خصم {(emp.days.length * 0.25).toLocaleString("ar-EG")} يوم</td>
-                            </tr>
+                            {emp.days.map((d) => {
+                              const key = `${emp.empCd}|${d}`;
+                              const excluded = mcExcludedSet.has(key);
+                              return (
+                                <tr key={d} className={`border-t border-border/30 ${excluded ? "opacity-50" : "hover:bg-muted/10"}`}>
+                                  <td className={`px-3 py-2 font-medium ${excluded ? "line-through text-muted-foreground" : ""}`}>{d}</td>
+                                  <td className="px-3 py-2 text-center">
+                                    <button
+                                      type="button"
+                                      disabled={toggleMcExclusionMut.isPending}
+                                      onClick={() => toggleMcExclusionMut.mutate({ empCd: emp.empCd, workDate: d, exclude: !excluded })}
+                                      className={`text-[10px] font-bold px-2 py-0.5 rounded border transition-colors ${excluded ? "border-green-500 text-green-600 hover:bg-green-50" : "border-destructive text-destructive hover:bg-destructive/10"}`}
+                                    >
+                                      {excluded ? "تفعيل" : "استثناء"}
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                            {(() => {
+                              const activeDays = emp.days.filter((d) => !mcExcludedSet.has(`${emp.empCd}|${d}`)).length;
+                              return (
+                                <tr className="border-t border-border bg-muted/30 font-bold text-xs">
+                                  <td className="px-3 py-2">
+                                    الإجمالي: {emp.days.length} يوم
+                                    {emp.days.length !== activeDays && <span className="text-muted-foreground font-normal"> ({activeDays} مفعّل)</span>}
+                                    {" "}— خصم {(activeDays * 0.25).toLocaleString("ar-EG")} يوم
+                                  </td>
+                                  <td />
+                                </tr>
+                              );
+                            })()}
                           </tbody>
                         </table>
                       </div>

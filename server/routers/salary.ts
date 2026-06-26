@@ -23,6 +23,7 @@ import {
   shiftStaffCycle,
   attendanceShifts,
   salarySupervisionBonus,
+  salaryMissingCheckoutExclude,
 } from "../../drizzle/schema";
 import { eq, and, gte, lte, gt, isNull, or, desc, inArray, sql } from "drizzle-orm";
 import {
@@ -1018,6 +1019,47 @@ export const salaryRouter = router({
             : String(d).slice(0, 10);
         return { ...r, workDate };
       });
+    }),
+
+  listMissingCheckoutExclusions: makeSalaryProcedure("/salary")
+    .input(z.object({ fromDate: z.string(), toDate: z.string() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const rows = await db
+        .select()
+        .from(salaryMissingCheckoutExclude)
+        .where(
+          and(
+            gte(salaryMissingCheckoutExclude.workDate, input.fromDate as any),
+            lte(salaryMissingCheckoutExclude.workDate, input.toDate as any),
+          ),
+        );
+      return rows.map((r: any) => ({
+        empCd: r.empCd,
+        workDate: r.workDate instanceof Date
+          ? `${r.workDate.getFullYear()}-${String(r.workDate.getMonth() + 1).padStart(2, "0")}-${String(r.workDate.getDate()).padStart(2, "0")}`
+          : String(r.workDate).slice(0, 10),
+      }));
+    }),
+
+  toggleMissingCheckoutExclusion: makeSalaryWriteProcedure("/salary")
+    .input(z.object({ empCd: z.string(), workDate: z.string(), exclude: z.boolean() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      if (input.exclude) {
+        await db.insert(salaryMissingCheckoutExclude)
+          .values({ empCd: input.empCd, workDate: input.workDate as any })
+          .onDuplicateKeyUpdate({ set: { empCd: input.empCd } });
+      } else {
+        await db.delete(salaryMissingCheckoutExclude)
+          .where(and(
+            eq(salaryMissingCheckoutExclude.empCd, input.empCd),
+            eq(salaryMissingCheckoutExclude.workDate, input.workDate as any),
+          ));
+      }
+      return { success: true };
     }),
 
   listMissingCheckoutDays: makeSalaryProcedure("/salary")

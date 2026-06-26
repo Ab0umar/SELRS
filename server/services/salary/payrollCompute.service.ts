@@ -13,6 +13,7 @@ import {
   salaryHolidays,
   shiftStaff,
   shiftAttendance,
+  salaryMissingCheckoutExclude,
 } from "../../../drizzle/schema";
 import { eq, and, gte, lte, isNull, or, inArray } from "drizzle-orm";
 
@@ -220,6 +221,7 @@ export class PayrollComputeService {
       shiftAttendanceRows,
       holidayRows,
       shiftDefs,
+      mcExcludeRows,
     ] = await Promise.all([
       db
         .select()
@@ -297,6 +299,12 @@ export class PayrollComputeService {
           and(eq(salaryHolidays.year, year), eq(salaryHolidays.month, month)),
         ),
       db.select().from(attendanceShifts),
+      db.select().from(salaryMissingCheckoutExclude).where(
+        and(
+          gte(salaryMissingCheckoutExclude.workDate, firstDay as any),
+          lte(salaryMissingCheckoutExclude.workDate, lastDay as any),
+        ),
+      ),
     ]);
 
     // Set of holiday date strings YYYY-MM-DD (not Fridays — already excluded from roster)
@@ -310,6 +318,17 @@ export class PayrollComputeService {
         })
         .filter((ds: any) => ds >= firstDay && ds <= lastDay),
     );
+    // Set of "empCd|workDate" strings excluded from missing-checkout deduction
+    const mcExcludeSet = new Set<string>(
+      (mcExcludeRows as any[]).map((r) => {
+        const d = r.workDate as any;
+        const ds = d instanceof Date
+          ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+          : String(d).slice(0, 10);
+        return `${r.empCd}|${ds}`;
+      }),
+    );
+
     // Number of holiday working days (exclude Fridays = day 5)
     const holidayWorkingDaysCount = [...holidayDates].filter(
       (ds) => new Date(ds + "T00:00:00").getDay() !== 5,
@@ -667,7 +686,13 @@ export class PayrollComputeService {
       if (fromDate || toDate) {
         const empDailyRows = dailyRows.filter((d: any) => d.empCd === emp.empCd);
         rawAbsentDays = empDailyRows.filter((d: any) => d.status === "absent").length;
-        missingCheckoutDays = empDailyRows.filter((d: any) => d.status === "missing_checkout").length;
+        missingCheckoutDays = empDailyRows.filter((d: any) => {
+          if (d.status !== "missing_checkout") return false;
+          const ds = d.workDate instanceof Date
+            ? `${d.workDate.getFullYear()}-${String(d.workDate.getMonth() + 1).padStart(2, "0")}-${String(d.workDate.getDate()).padStart(2, "0")}`
+            : String(d.workDate).slice(0, 10);
+          return !mcExcludeSet.has(`${emp.empCd}|${ds}`);
+        }).length;
         lateMinutes = empDailyRows.reduce((s: any, d: any) => s + (d.lateMinutes ?? 0), 0);
         earlyLeaveMinutes = empDailyRows.reduce((s: any, d: any) => s + (d.earlyLeaveMin ?? 0), 0);
         overtimeMinutes = empDailyRows.reduce((s: any, d: any) => s + (d.overtimeMinutes ?? 0), 0);

@@ -1920,6 +1920,19 @@ export const salarySupervisionBonus = mysqlTable(
 
 export type SalarySupervisionBonus = typeof salarySupervisionBonus.$inferSelect;
 
+export const salaryMissingCheckoutExclude = mysqlTable(
+  "salary_missing_checkout_exclude",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    empCd: varchar("emp_cd", { length: 32 }).notNull(),
+    workDate: date("work_date").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    uqMcExclude: uniqueIndex("uq_mc_exclude").on(table.empCd, table.workDate),
+  }),
+);
+
 export const salaryAdvances = mysqlTable(
   "salary_advances",
   {
