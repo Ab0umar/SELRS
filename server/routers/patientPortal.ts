@@ -196,7 +196,7 @@ export const patientPortalRouter = router({
 
     const rows = (await db.execute(
       sql`SELECT id, file_name, mime_type, created_at
-          FROM blackice_uploads
+          FROM srv100_uploads
           WHERE patient_id = ${ctx.patientSession.patientId}
           ORDER BY id DESC
           LIMIT 100`,
@@ -220,7 +220,7 @@ export const patientPortalRouter = router({
         fileName: String(row.file_name ?? ""),
         mimeType: String(row.mime_type ?? "application/octet-stream"),
         createdAt: row.created_at ? new Date(row.created_at).toISOString() : "",
-        viewUrl: `/api/blackice/uploads/${row.id}`,
+        viewUrl: `/api/srv100/uploads/${row.id}`,
       });
     }
     return list;

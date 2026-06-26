@@ -20,17 +20,17 @@ async function deduplicateBatch() {
       // Delete one batch of duplicates
       const result = await conn.query(
         `
-        DELETE FROM blackice_uploads
+        DELETE FROM srv100_uploads
         WHERE id IN (
           SELECT id FROM (
-            SELECT id FROM blackice_uploads
+            SELECT id FROM srv100_uploads
             WHERE file_name IN (
-              SELECT file_name FROM blackice_uploads
+              SELECT file_name FROM srv100_uploads
               WHERE file_name IS NOT NULL AND file_name != ''
               GROUP BY file_name HAVING COUNT(*) > 1
             )
             AND id NOT IN (
-              SELECT MIN(id) FROM blackice_uploads
+              SELECT MIN(id) FROM srv100_uploads
               WHERE file_name IS NOT NULL AND file_name != ''
               GROUP BY file_name
             )
@@ -55,7 +55,7 @@ async function deduplicateBatch() {
     }
 
     console.log(`[Dedup] ✓ Complete! Deleted ${totalDeleted} duplicate rows`);
-    console.log("[Dedup] Now run: pnpm s3:migrate-blackice");
+    console.log("[Dedup] Now run: pnpm s3:migrate-srv100");
   } catch (error: any) {
     console.error("[Dedup] Error:", error?.message ?? error);
     process.exit(1);

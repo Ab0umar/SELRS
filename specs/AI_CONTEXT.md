@@ -82,7 +82,7 @@ MySQL (selrs26)                    MSSQL (op2026)
 ├── external_doctors           → Doctor portal accounts (username, passwordHash, doctorCode, isActive)
 ├── external_doctor_referrals  → Links external doctor ↔ patient (auto-created on patient registration)
 ├── external_doctor_access_logs → Audit trail for doctor portal access
-├── blackice_uploads           → Pentacam scan images (linked to patients.id)
+├── srv100_uploads           → Pentacam scan images (linked to patients.id)
 └── ... (medical schema)
 ```
 
@@ -515,7 +515,7 @@ server/services/accounting/
 
 - `startPentacamAutoLinker()` runs in `server/_core/index.ts` on server startup
 - Calls `autoLinkUnlinkedPentacamFiles()` from `server/routers/medical-pentacam.ts` immediately, then every 5 minutes
-- Queries `blackice_uploads` where `patient_id IS NULL`, matches by patient code in file name, updates `patient_id`
+- Queries `srv100_uploads` where `patient_id IS NULL`, matches by patient code in file name, updates `patient_id`
 - Guarded by `busy` flag to prevent concurrent runs; logs only when `imported > 0`
 - **Do not add manual triggers or UI buttons** for Pentacam linking — the scheduler handles it
 
@@ -523,7 +523,7 @@ server/services/accounting/
 
 - External doctors access via `/doctor-portal` route with their own JWT-based auth (`doctorPortalProcedure`)
 - JWT signed with same `JWT_SECRET`; `type: "externalDoctor"` claim distinguishes from staff tokens
-- `getMyPatients`: returns patients linked via `external_doctor_referrals` OR auto-matched by `doctorCode`, **only those with at least one `blackice_uploads` record** (Pentacam images)
+- `getMyPatients`: returns patients linked via `external_doctor_referrals` OR auto-matched by `doctorCode`, **only those with at least one `srv100_uploads` record** (Pentacam images)
 - Auto-referral: on any new patient registration, `autoLinkAndNotifyDoctors()` checks for active external doctors with matching `doctorCode` and inserts referrals idempotently
 - Real-time: doctor portal WS connection authenticates via `?doctorToken=<jwt>`; receives `new-patient` events instantly
 

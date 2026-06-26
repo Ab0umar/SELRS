@@ -1326,7 +1326,7 @@ External doctor portal. Uses `doctorPortalProcedure` (JWT session, `type: "exter
 | `getMyPatients` | query | `doctorPortalProcedure` |
 | `getPatientImages` | query | `doctorPortalProcedure` |
 
-**`getMyPatients`** returns patients linked via `external_doctor_referrals` OR auto-matched by `doctorCode`, filtered to only those with at least one `blackice_uploads` record (Pentacam images). Each row includes `source: "referral" | "auto"`.
+**`getMyPatients`** returns patients linked via `external_doctor_referrals` OR auto-matched by `doctorCode`, filtered to only those with at least one `srv100_uploads` record (Pentacam images). Each row includes `source: "referral" | "auto"`.
 
 **`getPatientImages`** returns patient profile + `images[]` (Pentacam scans) + `refractions[]` + `prescriptions[]`. Security: verifies the patient is linked to the requesting doctor before returning data.
 

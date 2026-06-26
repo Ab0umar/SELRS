@@ -48,7 +48,7 @@ $mysqldump = Find-MySqlDump
 if (!$mysqldump) { throw "mysqldump not found. Install MySQL client or add it to PATH." }
 
 $env:MYSQL_PWD = $pass
-& $mysqldump --host=$dbHost --port=$port --user=$user --single-transaction --quick --routines --no-tablespaces --ignore-table=$db.blackice_uploads --databases $db --result-file="$OutFile"
+& $mysqldump --host=$dbHost --port=$port --user=$user --single-transaction --quick --routines --no-tablespaces --ignore-table=$db.srv100_uploads --databases $db --result-file="$OutFile"
 if ($LASTEXITCODE -ne 0) { throw "mysqldump failed with code $LASTEXITCODE" }
 
 Write-Host "Backup created: $OutFile"

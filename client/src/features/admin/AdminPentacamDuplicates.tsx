@@ -60,11 +60,11 @@ export default function AdminPentacamDuplicates() {
   const [deleteLocal, setDeleteLocal] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
-  const dupsQuery = trpc.medical.findDuplicateBlackiceUploads.useQuery(undefined, {
+  const dupsQuery = trpc.medical.findDuplicateSrv100Uploads.useQuery(undefined, {
     refetchOnWindowFocus: false,
   });
 
-  const deleteMutation = trpc.medical.deleteBlackiceUploadsByIds.useMutation({
+  const deleteMutation = trpc.medical.deleteSrv100UploadsByIds.useMutation({
     onSuccess: (result) => {
       toast.success(`تم حذف ${result.deleted} سجل${result.s3Deleted ? ` (S3: ${result.s3Deleted})` : ""}`);
       setSelected(new Set());
@@ -106,7 +106,7 @@ export default function AdminPentacamDuplicates() {
   return (
     <div className="space-y-4" dir="rtl">
       <div className="flex flex-wrap items-center gap-3">
-        <h2 className="text-sm font-semibold">المكررات في blackice_uploads</h2>
+        <h2 className="text-sm font-semibold">المكررات في srv100_uploads</h2>
         <Button
           variant="outline"
           size="sm"

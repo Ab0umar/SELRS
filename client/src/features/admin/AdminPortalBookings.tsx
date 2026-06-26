@@ -112,6 +112,7 @@ type BookingRow = {
   patientPhone: string | null;
   isGuest: boolean;
   createdAt: string | Date;
+  branch: string | null;
 };
 
 type ScheduleRow = {

@@ -34,7 +34,7 @@ export const medicalUploadsRoutes = {
 
       const rows = (await db.execute(
         sql`SELECT id, file_name, mime_type, created_at
-            FROM blackice_uploads
+            FROM srv100_uploads
             WHERE patient_id = ${input.patientId}
               AND source_printer = 'diagnosis-upload'
             ORDER BY id DESC
@@ -48,7 +48,7 @@ export const medicalUploadsRoutes = {
         createdAt: row.created_at
           ? new Date(row.created_at).toISOString()
           : "",
-        viewUrl: `/api/blackice/uploads/${row.id}`,
+        viewUrl: `/api/srv100/uploads/${row.id}`,
       }));
     }),
 
@@ -94,7 +94,7 @@ export const medicalUploadsRoutes = {
       }
 
       const result = (await db.execute(
-        sql`INSERT INTO blackice_uploads
+        sql`INSERT INTO srv100_uploads
             (patient_id, document_id, file_name, mime_type, file_data, s3_key, source_printer)
             VALUES (
               ${input.patientId},
@@ -113,7 +113,7 @@ export const medicalUploadsRoutes = {
 
       return {
         id: insertId,
-        viewUrl: `/api/blackice/uploads/${insertId}`,
+        viewUrl: `/api/srv100/uploads/${insertId}`,
       };
     }),
 };

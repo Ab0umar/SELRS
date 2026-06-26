@@ -156,7 +156,7 @@ export const doctorPortalRouter = router({
         .where(
           and(
             eq(patients.doctorCode, doctor.doctorCode),
-            sql`EXISTS (SELECT 1 FROM blackice_uploads WHERE patient_id = ${patients.id} LIMIT 1)`,
+            sql`EXISTS (SELECT 1 FROM srv100_uploads WHERE patient_id = ${patients.id} LIMIT 1)`,
           ),
         )
         .orderBy(desc(patients.lastVisit));
@@ -189,7 +189,7 @@ export const doctorPortalRouter = router({
         .where(
           and(
             sql`${patients.patientCode} IN ${codes}`,
-            sql`EXISTS (SELECT 1 FROM blackice_uploads WHERE patient_id = ${patients.id} LIMIT 1)`,
+            sql`EXISTS (SELECT 1 FROM srv100_uploads WHERE patient_id = ${patients.id} LIMIT 1)`,
           ),
         );
 
@@ -316,7 +316,7 @@ export const doctorPortalRouter = router({
       // Fetch images
       const rows = (await db.execute(
         sql`SELECT id, file_name, mime_type, created_at
-            FROM blackice_uploads
+            FROM srv100_uploads
             WHERE patient_id = ${patient.id}
             ORDER BY id DESC
             LIMIT 200`,
@@ -338,7 +338,7 @@ export const doctorPortalRouter = router({
         fileName: String(row.file_name ?? ""),
         mimeType: String(row.mime_type ?? "application/octet-stream"),
         createdAt: row.created_at ? new Date(row.created_at).toISOString() : "",
-        viewUrl: `/api/blackice/uploads/${row.id}`,
+        viewUrl: `/api/srv100/uploads/${row.id}`,
       }));
 
       // Fetch refractions and prescriptions

@@ -4226,13 +4226,13 @@ export async function deletePentacamResultsByIds(ids: number[]) {
   return normalized.length;
 }
 
-export async function getLinkedBlackiceUploadsWithPatient(limit = 80000) {
+export async function getLinkedSrv100UploadsWithPatient(limit = 80000) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const safeLimit = Math.min(Math.max(1, Number(limit)), 200000);
   const result = await db.execute(
     sql`SELECT bu.id, bu.file_name, bu.patient_id, p.patientCode, p.fullName
-        FROM blackice_uploads bu
+        FROM srv100_uploads bu
         JOIN patients p ON bu.patient_id = p.id
         WHERE bu.patient_id IS NOT NULL AND bu.file_name IS NOT NULL
         LIMIT ${safeLimit}`,
@@ -4241,7 +4241,7 @@ export async function getLinkedBlackiceUploadsWithPatient(limit = 80000) {
   return Array.isArray(rows) ? rows : [];
 }
 
-export async function unlinkBlackiceUploadsByIds(
+export async function unlinkSrv100UploadsByIds(
   ids: number[],
 ): Promise<number> {
   if (!ids.length) return 0;
@@ -4252,7 +4252,7 @@ export async function unlinkBlackiceUploadsByIds(
   try {
     const placeholders = ids.map(() => "?").join(",");
     const [result] = await conn.query(
-      `UPDATE blackice_uploads SET patient_id = NULL WHERE id IN (${placeholders})`,
+      `UPDATE srv100_uploads SET patient_id = NULL WHERE id IN (${placeholders})`,
       ids,
     );
     return Number((result as any)?.affectedRows ?? 0);
@@ -4261,18 +4261,18 @@ export async function unlinkBlackiceUploadsByIds(
   }
 }
 
-export async function reassignBlackiceUploadPatient(
+export async function reassignSrv100UploadPatient(
   uploadId: number,
   patientId: number,
 ): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.execute(
-    sql`UPDATE blackice_uploads SET patient_id = ${patientId} WHERE id = ${uploadId}`,
+    sql`UPDATE srv100_uploads SET patient_id = ${patientId} WHERE id = ${uploadId}`,
   );
 }
 
-export async function getBlackiceUploadsByPatient(
+export async function getSrv100UploadsByPatient(
   patientId: number,
   limit = 100,
 ) {
@@ -4281,7 +4281,7 @@ export async function getBlackiceUploadsByPatient(
   const safeLimit = Math.min(Math.max(1, Number(limit)), 500);
   const result = await db.execute(
     sql`SELECT id, file_name, mime_type, s3_key, created_at
-        FROM blackice_uploads
+        FROM srv100_uploads
         WHERE patient_id = ${patientId}
         ORDER BY created_at DESC
         LIMIT ${safeLimit}`,
@@ -4296,15 +4296,15 @@ export async function getBlackiceUploadsByPatient(
   }>;
 }
 
-export async function linkBlackiceUploadToPatient(
+export async function linkSrv100UploadToPatient(
   baseName: string,
   patientId: number,
 ): Promise<number> {
-  return linkBlackiceUploadsBatch([{ fileName: baseName, patientId }]);
+  return linkSrv100UploadsBatch([{ fileName: baseName, patientId }]);
 }
 
 /**
- * Batch-link multiple blackice files to their patients in a single SQL round-trip.
+ * Batch-link multiple srv100 files to their patients in a single SQL round-trip.
  * Uses mysql2/promise directly — avoids the Drizzle $client ambiguity that caused
  * either "not iterable" crashes or indefinite hangs on sequential per-file calls.
  */
@@ -4334,7 +4334,7 @@ export async function getPatientIdsByCodes(
   return map;
 }
 
-export async function linkBlackiceUploadsBatch(
+export async function linkSrv100UploadsBatch(
   pairs: Array<{ fileName: string; patientId: number }>,
 ): Promise<number> {
   if (!pairs.length) return 0;
@@ -4356,7 +4356,7 @@ export async function linkBlackiceUploadsBatch(
       params.push(fileName);
     }
     const [result] = await conn.query(
-      `UPDATE blackice_uploads SET patient_id = CASE file_name ${caseWhenClauses} END WHERE file_name IN (${inPlaceholders}) AND patient_id IS NULL`,
+      `UPDATE srv100_uploads SET patient_id = CASE file_name ${caseWhenClauses} END WHERE file_name IN (${inPlaceholders}) AND patient_id IS NULL`,
       params,
     );
     return Number((result as any)?.affectedRows ?? 0);
@@ -4365,13 +4365,13 @@ export async function linkBlackiceUploadsBatch(
   }
 }
 
-export async function getUnlinkedBlackiceUploads(limit = 10000) {
+export async function getUnlinkedSrv100Uploads(limit = 10000) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const safeLimit = Math.min(Math.max(1, Number(limit)), 100000);
   const result = await db.execute(
     sql`SELECT id, file_name, created_at
-        FROM blackice_uploads
+        FROM srv100_uploads
         WHERE patient_id IS NULL
           AND file_name REGEXP '\\.(jpg|jpeg|png|webp)$'
         ORDER BY created_at DESC
@@ -4385,11 +4385,11 @@ export async function getUnlinkedBlackiceUploads(limit = 10000) {
   }>;
 }
 
-export async function getAllBlackiceUploadFileNames(): Promise<string[]> {
+export async function getAllSrv100UploadFileNames(): Promise<string[]> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const result = await db.execute(
-    sql`SELECT file_name FROM blackice_uploads WHERE file_name IS NOT NULL`,
+    sql`SELECT file_name FROM srv100_uploads WHERE file_name IS NOT NULL`,
   );
   const rows = Array.isArray(result) ? result[0] : result;
   return (Array.isArray(rows) ? rows : [])
@@ -4397,13 +4397,13 @@ export async function getAllBlackiceUploadFileNames(): Promise<string[]> {
     .filter(Boolean);
 }
 
-export async function getAllBlackiceUploads(limit = 100000) {
+export async function getAllSrv100Uploads(limit = 100000) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const safeLimit = Math.min(Math.max(1, Number(limit)), 100000);
   const result = await db.execute(
     sql`SELECT id, file_name, created_at, patient_id
-        FROM blackice_uploads
+        FROM srv100_uploads
         WHERE file_name REGEXP '\\.(jpg|jpeg|png|webp)$'
         ORDER BY created_at DESC
         LIMIT ${safeLimit}`,
@@ -4417,7 +4417,7 @@ export async function getAllBlackiceUploads(limit = 100000) {
   }>;
 }
 
-export async function findDuplicateBlackiceUploads() {
+export async function findDuplicateSrv100Uploads() {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const result = await db.execute(
@@ -4434,8 +4434,8 @@ export async function findDuplicateBlackiceUploads() {
           b.created_at AS dup_created_at,
           p.fullName AS patient_name,
           p.patientCode
-        FROM blackice_uploads a
-        JOIN blackice_uploads b
+        FROM srv100_uploads a
+        JOIN srv100_uploads b
           ON a.id < b.id
           AND LOWER(SUBSTRING_INDEX(a.file_name, '/', -1)) = LOWER(SUBSTRING_INDEX(b.file_name, '/', -1))
         LEFT JOIN patients p ON a.patient_id = p.id
@@ -4459,13 +4459,13 @@ export async function findDuplicateBlackiceUploads() {
   }>;
 }
 
-export async function getBlackiceUploadsByIds(ids: number[]) {
+export async function getSrv100UploadsByIds(ids: number[]) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const normalized = ids.map(Number).filter((n) => Number.isFinite(n) && n > 0);
   if (!normalized.length) return [];
   const result = await db.execute(
-    sql`SELECT id, file_name, s3_key, patient_id FROM blackice_uploads WHERE id IN (${sql.join(normalized.map((id) => sql`${id}`), sql`, `)})`,
+    sql`SELECT id, file_name, s3_key, patient_id FROM srv100_uploads WHERE id IN (${sql.join(normalized.map((id) => sql`${id}`), sql`, `)})`,
   );
   const rows = Array.isArray(result) ? result[0] : result;
   return (Array.isArray(rows) ? rows : []) as Array<{
@@ -4476,13 +4476,13 @@ export async function getBlackiceUploadsByIds(ids: number[]) {
   }>;
 }
 
-export async function deleteBlackiceUploadsByIds(ids: number[]) {
+export async function deleteSrv100UploadsByIds(ids: number[]) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const normalized = ids.map(Number).filter((n) => Number.isFinite(n) && n > 0);
   if (!normalized.length) return 0;
   await db.execute(
-    sql`DELETE FROM blackice_uploads WHERE id IN (${sql.join(normalized.map((id) => sql`${id}`), sql`, `)})`,
+    sql`DELETE FROM srv100_uploads WHERE id IN (${sql.join(normalized.map((id) => sql`${id}`), sql`, `)})`,
   );
   return normalized.length;
 }
