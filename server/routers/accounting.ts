@@ -2,7 +2,8 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { execSync } from "child_process";
 import path from "path";
-import { sql } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
+import { accAdvances as accAdvancesTable } from "../../drizzle/schema";
 import { getDb, upsertPatientServiceEntry } from "../db";
 import {
   addMultiServiceReceiptInMssql,
@@ -1223,10 +1224,14 @@ export const accountingRouter = router({
           : `'${String(v).replace(/'/g, "''")}'`;
       const [res] = (await db.execute(
         sql.raw(
-          `INSERT INTO accAdvances (txDate, employee, emp_cd, advance, repayment, notes) VALUES (${sq(input.txDate)}, ${sq(input.employee)}, ${sq(input.empCd ?? null)}, ${sq(input.advance || null)}, ${sq(input.repayment || null)}, ${sq(input.notes || null)})`,
+          `INSERT INTO accAdvances (txDate, employee, advance, repayment, notes) VALUES (${sq(input.txDate)}, ${sq(input.employee)}, ${sq(input.advance || null)}, ${sq(input.repayment || null)}, ${sq(input.notes || null)})`,
         ),
       )) as any;
-      return { id: res.insertId };
+      const newId: number = (res as any)?.[0]?.insertId ?? (res as any)?.insertId ?? res.insertId;
+      if (input.empCd != null && newId) {
+        await db.update(accAdvancesTable).set({ empCd: input.empCd }).where(eq(accAdvancesTable.id, newId));
+      }
+      return { id: newId };
     }),
 
   updateAccAdvance: makeAccWriteProcedure("/accounting/advances")
@@ -1254,9 +1259,10 @@ export const accountingRouter = router({
           : `'${String(v).replace(/'/g, "''")}'`;
       await db.execute(
         sql.raw(
-          `UPDATE accAdvances SET txDate=${sq(input.txDate)}, employee=${sq(input.employee)}, emp_cd=${sq(input.empCd ?? null)}, advance=${sq(input.advance || null)}, repayment=${sq(input.repayment || null)}, notes=${sq(input.notes || null)} WHERE id=${input.id}`,
+          `UPDATE accAdvances SET txDate=${sq(input.txDate)}, employee=${sq(input.employee)}, advance=${sq(input.advance || null)}, repayment=${sq(input.repayment || null)}, notes=${sq(input.notes || null)} WHERE id=${input.id}`,
         ),
       );
+      await db.update(accAdvancesTable).set({ empCd: input.empCd ?? null }).where(eq(accAdvancesTable.id, input.id));
       return { id: input.id };
     }),
 
