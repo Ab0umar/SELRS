@@ -160,6 +160,122 @@ export default function SalaryPenalties() {
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
 
+  // ── Tab-specific print functions ──────────────────────────────────────────
+  function openTabPrint(html: string, title: string) {
+    const full = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/><title>${title}</title><style>${PRINT_CSS}</style></head><body>${html}</body></html>`;
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;border:none;visibility:hidden;";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument!;
+    doc.open(); doc.write(full); doc.close();
+    const cleanup = () => { iframe.remove(); window.removeEventListener("afterprint", cleanup); };
+    window.addEventListener("afterprint", cleanup);
+    iframe.contentWindow!.focus();
+    iframe.contentWindow!.print();
+  }
+
+  function printPenaltiesTab() {
+    const fmtN = (n: number) => n === 0 ? `<span class="zero">—</span>` : n.toLocaleString("ar-EG", { minimumFractionDigits: 2 });
+    const total = penalties.reduce((s: number, r: any) => s + Number(r.amount), 0);
+    const bodyRows = penalties.map((r: any) => `
+      <tr>
+        <td class="emp-col">${r.fullName ?? empName(r.empCd)}</td>
+        <td>${r.department ?? empDept(r.empCd)}</td>
+        <td>${r.penaltyDate ? String(r.penaltyDate).slice(0, 10) : "—"}</td>
+        <td>${r.penaltyDays ? r.penaltyDays + " يوم" : "—"}</td>
+        <td>${r.penaltyDays ? "يُحسب عند الرواتب" : fmtN(Number(r.amount))}</td>
+        <td>${r.reason ?? "—"}</td>
+      </tr>`).join("");
+    const html = `
+      <h1>كشف الجزاءات — ${periodLabel}</h1>
+      <table>
+        <thead><tr>
+          <th>الموظف</th><th>القسم</th><th>التاريخ</th><th>أيام</th><th>المبلغ</th><th>السبب</th>
+        </tr></thead>
+        <tbody>
+          ${bodyRows}
+          <tr class="total-row"><td colspan="4" class="emp-col">الإجمالي</td><td>${fmtN(total)}</td><td></td></tr>
+        </tbody>
+      </table>`;
+    openTabPrint(html, `جزاءات — ${periodLabel}`);
+  }
+
+  function printAdvancesTab() {
+    const fmtN = (n: number) => n === 0 ? `<span class="zero">—</span>` : n.toLocaleString("ar-EG", { minimumFractionDigits: 2 });
+    const total = advances.reduce((s: number, r: any) => s + Number(r.amount), 0);
+    const bodyRows = advances.map((r: any) => `
+      <tr>
+        <td class="emp-col">${r.fullName ?? empName(r.empCd)}</td>
+        <td>${r.department ?? empDept(r.empCd)}</td>
+        <td>${fmtN(Number(r.amount))}</td>
+        <td>${r.reason ?? "—"}</td>
+      </tr>`).join("");
+    const html = `
+      <h1>كشف السلف — ${periodLabel}</h1>
+      <table>
+        <thead><tr>
+          <th>الموظف</th><th>القسم</th><th>المبلغ</th><th>السبب</th>
+        </tr></thead>
+        <tbody>
+          ${bodyRows}
+          <tr class="total-row"><td colspan="2" class="emp-col">الإجمالي</td><td>${fmtN(total)}</td><td></td></tr>
+        </tbody>
+      </table>`;
+    openTabPrint(html, `سلف — ${periodLabel}`);
+  }
+
+  function printLatesTab() {
+    const bodyRows = lateEmpRows.map((emp) => {
+      const totalMins = emp.days.reduce((s, d) => s + d.lateMinutes, 0);
+      const hours = Math.floor(totalMins / 60);
+      const mins = totalMins % 60;
+      const dayRows = emp.days.map((d) => `
+        <tr>
+          <td class="emp-col">${emp.empName}</td>
+          <td>${emp.department}</td>
+          <td>${d.workDate}</td>
+          <td>${d.lateMinutes}</td>
+        </tr>`).join("");
+      return dayRows;
+    }).join("");
+    const totalMinsAll = lateEmpRows.reduce((s, emp) => s + emp.days.reduce((ss, d) => ss + d.lateMinutes, 0), 0);
+    const html = `
+      <h1>كشف التأخيرات — ${periodLabel}</h1>
+      <table>
+        <thead><tr>
+          <th>الموظف</th><th>القسم</th><th>التاريخ</th><th>مدة التأخير (دقيقة)</th>
+        </tr></thead>
+        <tbody>
+          ${bodyRows}
+          <tr class="total-row"><td colspan="3" class="emp-col">الإجمالي</td><td>${totalMinsAll} د</td></tr>
+        </tbody>
+      </table>`;
+    openTabPrint(html, `تأخيرات — ${periodLabel}`);
+  }
+
+  function printInsuranceTab() {
+    const fmtN = (n: number) => n.toLocaleString("ar-EG", { minimumFractionDigits: 2 });
+    const total = latestByEmp.reduce((s: number, b: any) => s + Number(b.insuranceDeduction ?? 0), 0);
+    const bodyRows = latestByEmp.map((b: any) => `
+      <tr>
+        <td class="emp-col">${b.fullName ?? b.empCd}</td>
+        <td>${b.department ?? "—"}</td>
+        <td>${fmtN(Number(b.insuranceDeduction ?? 0))}</td>
+      </tr>`).join("");
+    const html = `
+      <h1>كشف التأمينات الاجتماعية</h1>
+      <table>
+        <thead><tr>
+          <th>الموظف</th><th>القسم</th><th>خصم التأمين</th>
+        </tr></thead>
+        <tbody>
+          ${bodyRows}
+          <tr class="total-row"><td colspan="2" class="emp-col">الإجمالي</td><td>${fmtN(total)}</td></tr>
+        </tbody>
+      </table>`;
+    openTabPrint(html, "تأمينات");
+  }
+
   // ── Payroll deductions (for print layout) ─────────────────────────────────
   const deductionsQ = (trpc as any).salary.listPayrollDeductions.useQuery({
     fromDate,
@@ -483,11 +599,18 @@ export default function SalaryPenalties() {
             <h3 className="text-base font-semibold">
               {tab === "penalties" ? "الجزاءات" : "السلف"} — {periodLabel}
             </h3>
-            {rows.length > 0 && (
-              <span className="text-sm font-bold text-destructive">
-                الإجمالي: {total.toLocaleString("ar-EG")} ج.م
-              </span>
-            )}
+            <div className="flex items-center gap-3">
+              {rows.length > 0 && (
+                <span className="text-sm font-bold text-destructive">
+                  الإجمالي: {total.toLocaleString("ar-EG")} ج.م
+                </span>
+              )}
+              {rows.length > 0 && (
+                <Button variant="outline" size="sm" onClick={tab === "penalties" ? printPenaltiesTab : printAdvancesTab} className="gap-1.5 h-8 text-xs">
+                  <Printer size={13} /> طباعة
+                </Button>
+              )}
+            </div>
           </div>
           <div className="hidden lg:block overflow-x-auto" dir="rtl">
             <table dir="rtl" className="w-full text-sm">
@@ -670,13 +793,16 @@ export default function SalaryPenalties() {
       {/* Late Days tab */}
       {tab === "lates" && (
         <section className="rounded-xl border border-border bg-background">
-          <div className="border-b border-border px-4 py-3">
-            <h3 className="text-base font-semibold">
-              التأخيرات — {periodLabel}
-            </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              أيام التأخير لكل موظف مع مدة التأخير يومياً
-            </p>
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <div>
+              <h3 className="text-base font-semibold">التأخيرات — {periodLabel}</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">أيام التأخير لكل موظف مع مدة التأخير يومياً</p>
+            </div>
+            {lateEmpRows.length > 0 && (
+              <Button variant="outline" size="sm" onClick={printLatesTab} className="gap-1.5 h-8 text-xs">
+                <Printer size={13} /> طباعة
+              </Button>
+            )}
           </div>
 
           {lateEmpRows.length === 0 ? (
@@ -756,11 +882,16 @@ export default function SalaryPenalties() {
       {/* Insurance tab — fixed per-employee, no month filter */}
       {tab === "insurance" && (
         <section className="rounded-xl border border-border bg-background">
-          <div className="border-b border-border px-4 py-3">
-            <h3 className="text-base font-semibold">خصم التأمينات</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              مبلغ ثابت يُخصم شهرياً من راتب كل موظف
-            </p>
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <div>
+              <h3 className="text-base font-semibold">خصم التأمينات</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">مبلغ ثابت يُخصم شهرياً من راتب كل موظف</p>
+            </div>
+            {latestByEmp.length > 0 && (
+              <Button variant="outline" size="sm" onClick={printInsuranceTab} className="gap-1.5 h-8 text-xs">
+                <Printer size={13} /> طباعة
+              </Button>
+            )}
           </div>
           <div className="hidden lg:block overflow-x-auto" dir="rtl">
             <table dir="rtl" className="w-full text-sm">
