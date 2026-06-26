@@ -758,6 +758,30 @@ export default function PayrollReport() {
     openPrint(html, `كشف مكافآت الإشراف — ${section} — ${periodLabel}`, SHEET_CSS);
   }
 
+  function printSupervisionSlips() {
+    const supRows = regularRows
+      .filter((r: any) => !String(r.empCd).startsWith("shift_"))
+      .filter((r: any) => Number(bonusEdits[r.empCd] ?? r.supervisionBonus ?? 0) > 0);
+    if (!supRows.length) { toast.info("لا توجد مكافآت إشراف للطباعة"); return; }
+    const html = supRows
+      .map((r: any) => {
+        const bonus = Number(bonusEdits[r.empCd] ?? r.supervisionBonus ?? 0);
+        const table = `
+        <table class="main">
+          <tr>
+            <th>مكافأة الإشراف</th>
+            <th rowspan="2" class="net-cell"><span class="net-label">صافي المستحق</span><span class="net-val">${fmt(bonus)}</span></th>
+          </tr>
+          <tr>
+            <td>${fmt(bonus)}</td>
+          </tr>
+        </table>`;
+        return buildSlip(r, `مكافأة إشراف ${MONTHS[month - 1]} ${year}`, table, bonus);
+      })
+      .join("");
+    openPrint(html, `مكافآت الإشراف — ${MONTHS[month - 1]} ${year}`, SLIPS_CSS);
+  }
+
 
   function buildSlip(
     r: any,
@@ -3135,9 +3159,14 @@ export default function PayrollReport() {
                 <h2 className="text-base font-semibold text-foreground">مكافأة الإشراف</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">خارج إجمالي الراتب — لا تؤثر على الحسابات</p>
               </div>
-              <Button size="sm" variant="outline" onClick={printSupervisionSheet} className="gap-1.5 shrink-0">
-                <Printer size={13} /> طباعة
-              </Button>
+              <div className="flex gap-2 shrink-0">
+                <Button size="sm" variant="outline" onClick={printSupervisionSlips} className="gap-1.5">
+                  <Printer size={13} /> إيصالات
+                </Button>
+                <Button size="sm" variant="outline" onClick={printSupervisionSheet} className="gap-1.5">
+                  <Printer size={13} /> كشف
+                </Button>
+              </div>
             </div>
             <div className="overflow-x-auto" dir="rtl">
               <table dir="rtl" className="w-full text-sm">
