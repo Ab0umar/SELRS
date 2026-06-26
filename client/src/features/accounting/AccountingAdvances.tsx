@@ -55,7 +55,9 @@ export default function AccountingAdvances() {
   const reportsQ = trpc.accounting.accReports.useQuery(undefined, {
     refetchOnWindowFocus: false,
   });
-  const attEmpsQ = (trpc as any).salary.listEmployees.useQuery();
+  const attEmpsQ = trpc.accounting.accAttEmployeesList.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
   const attEmps: any[] = attEmpsQ.data ?? [];
   const employeesQ = trpc.accounting.accEmployeesList.useQuery(undefined, {
     refetchOnWindowFocus: false,

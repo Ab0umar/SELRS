@@ -999,6 +999,26 @@ export const accountingRouter = router({
     }
   }),
 
+  // ── Attendance employees list (for advance empCd link) ───────────────────
+
+  accAttEmployeesList: makeAccProcedure("/accounting").query(async () => {
+    const db = await getDb();
+    if (!db)
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "DB unavailable",
+      });
+    const [rows] = (await db.execute(
+      sql.raw(
+        `SELECT emp_cd AS empCd, full_name AS fullName FROM attendance_employees ORDER BY full_name`,
+      ),
+    )) as any;
+    return (rows as any[]).map((r: any) => ({
+      empCd: String(r.empCd ?? ""),
+      fullName: String(r.fullName ?? r.empCd ?? ""),
+    }));
+  }),
+
   // ── Employees list (for advance form) ────────────────────────────────────
 
   accEmployeesList: makeAccProcedure("/accounting").query(async () => {
