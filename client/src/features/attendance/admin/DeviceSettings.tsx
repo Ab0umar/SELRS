@@ -25,7 +25,11 @@ export default function DeviceSettings() {
   const [showSuccess, setShowSuccess] = useState(false);
 
   const settingsQuery = tRPC.attendance.deviceSettings.useQuery();
+  const statusQuery = tRPC.attendance.deviceStatus.useQuery({ refetchInterval: 10000 });
   const admsStatus = tRPC.attendance.admsStatus.useQuery(undefined, { refetchInterval: 15000 });
+  const connectDevice = tRPC.attendance.connectDevice.useMutation();
+  const disconnectDevice = tRPC.attendance.disconnectDevice.useMutation();
+  const resetConnection = tRPC.attendance.resetDeviceConnection.useMutation();
   const updateSettings = tRPC.attendance.updateDeviceSettings.useMutation();
   const syncZK40 = tRPC.attendance.syncFromZK40.useMutation();
   const pushEmployeesZK40 = tRPC.attendance.pushEmployeesToZK40.useMutation();
@@ -67,6 +71,7 @@ export default function DeviceSettings() {
     }
   };
 
+  const status = statusQuery.data || { connected: false, lastConnected: null, uptime: 0, lastPunch: null, punchCount: 0, connectionError: null };
   const adms = admsStatus.data;
   const lastPunchDate = adms?.lastPunch ? new Date(adms.lastPunch) : null;
   const minutesSincePunch = lastPunchDate ? (Date.now() - lastPunchDate.getTime()) / 60000 : Infinity;
@@ -82,6 +87,105 @@ export default function DeviceSettings() {
           إعدادات جهاز البصمة
         </h2>
       </div>
+
+      {/* EF10K Device Status Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              {status?.connected ? (
+                <><Wifi className="w-5 h-5 text-success" />الجهاز متصل (EF10K)</>
+              ) : (
+                <><WifiOff className="w-5 h-5 text-destructive" />الجهاز غير متصل (EF10K)</>
+              )}
+            </CardTitle>
+            <Button variant="outline" size="sm" onClick={() => statusQuery.refetch()} disabled={statusQuery.isRefetching}>
+              <RefreshCw className={`w-4 h-4 ${statusQuery.isRefetching ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {status?.connectionError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{status.connectionError}</AlertDescription>
+            </Alert>
+          )}
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="text-muted-foreground">آخر اتصال</p>
+              <p className="font-mono">{status?.lastConnected ? new Date(status.lastConnected).toLocaleString() : "Never"}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">زمن التشغيل (ثانية)</p>
+              <p className="font-mono">{status?.uptime ?? 0}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">آخر بصمة</p>
+              <p className="font-mono">{status?.lastPunch ? new Date(status.lastPunch).toLocaleString() : "Never"}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">إجمالي البصمات</p>
+              <p className="font-mono">{status?.punchCount ?? 0}</p>
+            </div>
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Button variant="default" onClick={() => connectDevice.mutateAsync().then(() => statusQuery.refetch())} disabled={connectDevice.isPending}>
+              {connectDevice.isPending ? "جارٍ الاتصال..." : "اتصال"}
+            </Button>
+            <Button variant="outline" onClick={() => disconnectDevice.mutateAsync().then(() => statusQuery.refetch())} disabled={disconnectDevice.isPending}>
+              {disconnectDevice.isPending ? "جارٍ الفصل..." : "فصل"}
+            </Button>
+            <Button variant="outline" onClick={() => resetConnection.mutateAsync().then(() => statusQuery.refetch())} disabled={resetConnection.isPending}>
+              {resetConnection.isPending ? "جارٍ إعادة الضبط..." : "إعادة الضبط"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* EF10K Device Configuration Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>إعداد الجهاز (EF10K)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <label className="mb-2 block text-sm font-medium">عنوان الجهاز</label>
+            <input
+              type="text"
+              value={formData.ip}
+              onChange={(e) => setFormData({ ...formData, ip: e.target.value })}
+              placeholder="192.168.0.10"
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">أدخل عنوان IP أو اسم المضيف</p>
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium">المنفذ</label>
+            <input
+              type="number"
+              value={formData.port}
+              onChange={(e) => setFormData({ ...formData, port: parseInt(e.target.value) || 5005 })}
+              min="1" max="65535"
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">منفذ TCP, غالبا 5005</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="enabled"
+              checked={formData.enabled}
+              onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
+              className="rounded border-border text-primary focus:ring-primary/20"
+            />
+            <label htmlFor="enabled" className="text-sm font-medium cursor-pointer">تفعيل التكامل مع الجهاز</label>
+          </div>
+          <Button onClick={handleSaveConfig} disabled={updateSettings.isPending} className="w-full">
+            {updateSettings.isPending ? "جارٍ الحفظ..." : "حفظ إعدادات EF10K"}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* K40 Pro ADMS Status Card */}
       <Card>
