@@ -90,7 +90,7 @@ export default function Permissions() {
   const isPending = createMut.isPending || updateMut.isPending;
 
   return (
-    <div className="p-6 max-w-5xl mx-auto" dir="rtl">
+    <div className="space-y-4" dir="rtl">
       <h1 className="text-3xl font-bold mb-6">الأذونات</h1>
 
       <Card className="mb-4">

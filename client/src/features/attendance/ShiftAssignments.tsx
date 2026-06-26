@@ -331,7 +331,7 @@ export default function ShiftAssignments() {
   // weekdayMask editing removed — managed from Employees page
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6" dir="rtl">
+    <div className="space-y-6" dir="rtl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-foreground">الورديات</h1>
         <div className="flex gap-1 rounded-lg border border-border bg-muted p-1">
