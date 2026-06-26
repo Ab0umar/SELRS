@@ -496,6 +496,80 @@ export default function AccountingAdvances() {
           </div>
         </section>
 
+        {/* ── السلف النشطة ──────────────────────────────────────────────── */}
+        {allEmployees.length > 0 && (
+          <section className="rounded-[24px] border border-border bg-background shadow-sm overflow-hidden">
+            <div className="border-b border-border px-4 py-3 flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-bold text-foreground">السلف النشطة</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">اضغط على صف لتحديد الموظف في نموذج الإضافة</p>
+              </div>
+              <span className="text-xs text-muted-foreground">{byEmployee.length} موظف برصيد متبقٍ</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30 text-xs">
+                    <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">الموظف</th>
+                    <th className="px-4 py-2.5 text-left font-medium text-warning tabular-nums">إجمالي السلف</th>
+                    <th className="px-4 py-2.5 text-left font-medium text-success tabular-nums">إجمالي السداد</th>
+                    <th className="px-4 py-2.5 text-left font-medium text-destructive tabular-nums">المتبقي</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/50">
+                  {allEmployees.map((r) => (
+                    <tr
+                      key={r.employee}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        setEmployee(r.employee);
+                        setEmpCd(null);
+                        setAdvance("");
+                        setRepayment("");
+                        setNotes("");
+                        setEditingId(null);
+                        setSearch(r.employee);
+                        setPage(1);
+                        formRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          setEmployee(r.employee);
+                          setSearch(r.employee);
+                          setPage(1);
+                        }
+                      }}
+                      className={cn(
+                        "cursor-pointer transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                        employee === r.employee && "bg-warning/10",
+                        r.remaining <= 0 && "opacity-50",
+                      )}
+                    >
+                      <td className="px-4 py-2.5 font-medium text-foreground">{r.employee}</td>
+                      <td className="px-4 py-2.5 text-left tabular-nums text-warning">{fmt(r.totalAdvance)}</td>
+                      <td className="px-4 py-2.5 text-left tabular-nums text-success">{fmt(r.totalRepaid)}</td>
+                      <td className={cn("px-4 py-2.5 text-left tabular-nums font-bold", r.remaining > 0 ? "text-destructive" : "text-success")}>
+                        {fmt(r.remaining)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t border-border bg-muted/30 text-xs font-bold">
+                    <td className="px-4 py-2.5 text-muted-foreground">الإجمالي</td>
+                    <td className="px-4 py-2.5 text-left tabular-nums text-warning">{fmt(totalAdvance)}</td>
+                    <td className="px-4 py-2.5 text-left tabular-nums text-success">{fmt(totalRepaid)}</td>
+                    <td className={cn("px-4 py-2.5 text-left tabular-nums", totalAdvance - totalRepaid > 0 ? "text-destructive" : "text-success")}>
+                      {fmt(totalAdvance - totalRepaid)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </section>
+        )}
+
         <section className="rounded-[24px] border border-border bg-background shadow-sm">
           <div className="flex flex-col gap-3 border-b border-border px-4 py-4 lg:flex-row lg:items-center lg:justify-between lg:px-5">
             <button
