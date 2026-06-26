@@ -716,7 +716,11 @@ export default function PayrollReport() {
 
   function printSupervisionSheet() {
     const today = new Date().toLocaleDateString("ar-EG");
-    const supRows = [...regularRows, ...shiftRows];
+    const shiftSupRows = shiftStaff.map((s: any) => {
+      const pr = shiftRows.find((r: any) => r.empCd === `shift_${s.id}`);
+      return { empCd: `shift_${s.id}`, fullName: s.name, department: "مناوبة", supervisionBonus: pr?.supervisionBonus ?? "0" };
+    });
+    const supRows = [...regularRows, ...shiftSupRows];
     const totalBonus = supRows.reduce(
       (s: number, r: any) => s + Number(bonusEdits[r.empCd] ?? r.supervisionBonus ?? 0),
       0,
@@ -759,7 +763,11 @@ export default function PayrollReport() {
   }
 
   function printSupervisionSlips() {
-    const supRows = [...regularRows, ...shiftRows]
+    const shiftSupRows2 = shiftStaff.map((s: any) => {
+      const pr = shiftRows.find((r: any) => r.empCd === `shift_${s.id}`);
+      return { empCd: `shift_${s.id}`, fullName: s.name, department: "مناوبة", supervisionBonus: pr?.supervisionBonus ?? "0" };
+    });
+    const supRows = [...regularRows, ...shiftSupRows2]
       .filter((r: any) => Number(bonusEdits[r.empCd] ?? r.supervisionBonus ?? 0) > 0);
     if (!supRows.length) { toast.info("لا توجد مكافآت إشراف للطباعة"); return; }
     const html = supRows
@@ -3149,7 +3157,11 @@ export default function PayrollReport() {
 
       {/* ── Supervision Bonus Tab ── */}
       {section === "مركز" && activeTab === "supervision" && (() => {
-        const supRows = [...regularRows, ...shiftRows];
+        const shiftSupRows3 = shiftStaff.map((s: any) => {
+          const pr = shiftRows.find((r: any) => r.empCd === `shift_${s.id}`);
+          return { empCd: `shift_${s.id}`, fullName: s.name, department: "مناوبة", supervisionBonus: pr?.supervisionBonus ?? "0" };
+        });
+        const supRows = [...regularRows, ...shiftSupRows3];
         const totalBonus = supRows.reduce((s: number, r: any) => s + Number(bonusEdits[r.empCd] ?? r.supervisionBonus ?? 0), 0);
         return (
           <section className="rounded-xl border border-border bg-background overflow-hidden">

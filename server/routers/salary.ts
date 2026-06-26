@@ -510,17 +510,21 @@ export const salaryRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
+      const now = new Date();
       await db
-        .update(salaryPayroll)
-        .set({ supervisionBonus: String(input.amount) as any })
-        .where(
-          and(
-            eq(salaryPayroll.empCd, input.empCd),
-            eq(salaryPayroll.year, input.year),
-            eq(salaryPayroll.month, input.month),
-            eq(salaryPayroll.section, input.section),
-          ),
-        );
+        .insert(salaryPayroll)
+        .values({
+          empCd: input.empCd,
+          year: input.year,
+          month: input.month,
+          section: input.section,
+          basicSalary: "0" as any,
+          netBasic: "0" as any,
+          totalPay: "0" as any,
+          supervisionBonus: String(input.amount) as any,
+          computedAt: now,
+        })
+        .onDuplicateKeyUpdate({ set: { supervisionBonus: String(input.amount) as any } });
       return { ok: true };
     }),
 
