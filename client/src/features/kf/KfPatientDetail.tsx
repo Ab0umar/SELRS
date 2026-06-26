@@ -9,7 +9,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
+import { localISODate } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChevronRight,
@@ -36,6 +38,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { TRPCClientError } from "@trpc/client";
 import { DateInput } from "@/components/ui/date-input";
+
+const KF_DOCTORS = ["د. محمد السعدني", "د. سعيد مجدي"] as const;
 
 // Translations
 const GENDER_AR = { male: "ذكر", female: "أنثى" };
@@ -239,6 +243,16 @@ export default function KfPatientDetail() {
   const [editOp, setEditOp] = useState<any | null>(null);
   const [editFollowup, setEditFollowup] = useState<any | null>(null);
 
+  // Add dialog states
+  const [addVisitOpen, setAddVisitOpen] = useState(false);
+  const [addVisitForm, setAddVisitForm] = useState<any>({});
+  const [addExamOpen, setAddExamOpen] = useState(false);
+  const [addExamForm, setAddExamForm] = useState<any>({});
+  const [addOpOpen, setAddOpOpen] = useState(false);
+  const [addOpForm, setAddOpForm] = useState<any>({});
+  const [addFollowupOpen, setAddFollowupOpen] = useState(false);
+  const [addFollowupForm, setAddFollowupForm] = useState<any>({});
+
   // Queries
   const { data: patient, isLoading: loadingPatient, isError } = trpc.kf.getPatient.useQuery(
     { kfId: kfPatientId ?? 0 },
@@ -304,6 +318,23 @@ export default function KfPatientDetail() {
   const updateFollowupMut = trpc.kf.updateFollowup.useMutation({
     onSuccess: () => { utils.kf.listFollowups.invalidate(); toast.success("تم تعديل المتابعة"); setEditFollowup(null); },
     onError: () => toast.error("تعذر تعديل المتابعة"),
+  });
+
+  const createVisitMut = trpc.kf.createVisit.useMutation({
+    onSuccess: () => { utils.kf.listVisits.invalidate(); toast.success("تم تسجيل الزيارة"); setAddVisitOpen(false); },
+    onError: () => toast.error("تعذر حفظ الزيارة"),
+  });
+  const createExamMut = trpc.kf.createExamination.useMutation({
+    onSuccess: () => { utils.kf.listExaminations.invalidate(); toast.success("تم حفظ الفحص الطبي"); setAddExamOpen(false); },
+    onError: () => toast.error("تعذر حفظ الفحص"),
+  });
+  const createOpMut = trpc.kf.createOperation.useMutation({
+    onSuccess: () => { utils.kf.listOperations.invalidate(); toast.success("تم حجز العملية"); setAddOpOpen(false); },
+    onError: () => toast.error("تعذر حفظ العملية"),
+  });
+  const createFollowupMut = trpc.kf.createFollowup.useMutation({
+    onSuccess: () => { utils.kf.listFollowups.invalidate(); toast.success("تمت جدولة المتابعة"); setAddFollowupOpen(false); },
+    onError: () => toast.error("تعذر جدولة المتابعة"),
   });
 
   if (loadingPatient) {
@@ -488,35 +519,27 @@ export default function KfPatientDetail() {
           {/* Add Records Action Button based on selected tab */}
           <div>
             {activeTab === "visits" && (
-              <Button asChild size="sm" className="gap-1.5 cursor-pointer">
-                <Link href={`/kf/patients/${patient.kfId}/visits/new`}>
-                  <Plus className="h-4 w-4" />
-                  <span>إضافة زيارة جديدة</span>
-                </Link>
+              <Button size="sm" className="gap-1.5 cursor-pointer" onClick={() => { setAddVisitForm({ visitDate: localISODate(), visitType: "consultation", doctorName: "", status: "scheduled", notes: "" }); setAddVisitOpen(true); }}>
+                <Plus className="h-4 w-4" />
+                <span>إضافة زيارة جديدة</span>
               </Button>
             )}
             {activeTab === "exams" && (
-              <Button asChild size="sm" className="gap-1.5 cursor-pointer">
-                <Link href={`/kf/patients/${patient.kfId}/examinations/new`}>
-                  <Plus className="h-4 w-4" />
-                  <span>إضافة فحص جديد</span>
-                </Link>
+              <Button size="sm" className="gap-1.5 cursor-pointer" onClick={() => { setAddExamForm({ examDate: localISODate(), doctorName: "", rightVa: "", leftVa: "", iopRight: "", iopLeft: "", rightRefraction: {}, leftRefraction: {}, diagnosis: "", plan: "", notes: "" }); setAddExamOpen(true); }}>
+                <Plus className="h-4 w-4" />
+                <span>إضافة فحص جديد</span>
               </Button>
             )}
             {activeTab === "operations" && (
-              <Button asChild size="sm" className="gap-1.5 cursor-pointer">
-                <Link href={`/kf/patients/${patient.kfId}/operations/new`}>
-                  <Plus className="h-4 w-4" />
-                  <span>حجز عملية جراحية</span>
-                </Link>
+              <Button size="sm" className="gap-1.5 cursor-pointer" onClick={() => { setAddOpForm({ opDate: localISODate(), opType: "", eye: "", doctorName: "", status: "scheduled", notes: "" }); setAddOpOpen(true); }}>
+                <Plus className="h-4 w-4" />
+                <span>حجز عملية جراحية</span>
               </Button>
             )}
             {activeTab === "followups" && (
-              <Button asChild size="sm" className="gap-1.5 cursor-pointer">
-                <Link href={`/kf/patients/${patient.kfId}/followups/new`}>
-                  <Plus className="h-4 w-4" />
-                  <span>جدولة متابعة</span>
-                </Link>
+              <Button size="sm" className="gap-1.5 cursor-pointer" onClick={() => { setAddFollowupForm({ followupDate: localISODate(), status: "scheduled", notes: "", kfOpId: "none", kfVisitId: "none" }); setAddFollowupOpen(true); }}>
+                <Plus className="h-4 w-4" />
+                <span>جدولة متابعة</span>
               </Button>
             )}
           </div>
@@ -1142,6 +1165,198 @@ export default function KfPatientDetail() {
         </DialogContent>
       </Dialog>
 
+      {/* Add Visit Dialog */}
+      <Dialog open={addVisitOpen} onOpenChange={setAddVisitOpen}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>إضافة زيارة جديدة</DialogTitle>
+            <DialogDescription>تسجيل زيارة جديدة للمريض: {patient.fullName}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>تاريخ الزيارة</Label>
+              <DateInput value={addVisitForm.visitDate ?? ""} onChange={(e) => setAddVisitForm({ ...addVisitForm, visitDate: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label>نوع الزيارة</Label>
+              <Select value={addVisitForm.visitType ?? "consultation"} onValueChange={(v) => setAddVisitForm({ ...addVisitForm, visitType: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="consultation">كشف / استشارة</SelectItem>
+                  <SelectItem value="examination">فحص طبي</SelectItem>
+                  <SelectItem value="followup">متابعة</SelectItem>
+                  <SelectItem value="operation">عملية جراحية</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>الطبيب</Label>
+              <Select value={addVisitForm.doctorName ?? ""} onValueChange={(v) => setAddVisitForm({ ...addVisitForm, doctorName: v })}>
+                <SelectTrigger><SelectValue placeholder="اختر الطبيب..." /></SelectTrigger>
+                <SelectContent>
+                  {KF_DOCTORS.map((dr) => <SelectItem key={dr} value={dr}>{dr}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>الحالة</Label>
+              <Select value={addVisitForm.status ?? "scheduled"} onValueChange={(v) => setAddVisitForm({ ...addVisitForm, status: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="scheduled">مجدول</SelectItem>
+                  <SelectItem value="arrived">وصل بالعيادة</SelectItem>
+                  <SelectItem value="in_progress">قيد الكشف</SelectItem>
+                  <SelectItem value="completed">اكتمل</SelectItem>
+                  <SelectItem value="cancelled">ملغي</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>ملاحظات</Label>
+              <Textarea rows={2} value={addVisitForm.notes ?? ""} onChange={(e) => setAddVisitForm({ ...addVisitForm, notes: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setAddVisitOpen(false)}>إلغاء</Button>
+            <Button disabled={createVisitMut.isPending} onClick={() => {
+              if (!kfPatientId || !addVisitForm.visitDate) { toast.error("تاريخ الزيارة مطلوب"); return; }
+              createVisitMut.mutate({ kfPatientId, visitDate: addVisitForm.visitDate, visitType: addVisitForm.visitType, doctorName: addVisitForm.doctorName || null, status: addVisitForm.status, notes: addVisitForm.notes || null });
+            }}>
+              {createVisitMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Examination Dialog */}
+      <Dialog open={addExamOpen} onOpenChange={setAddExamOpen}>
+        <DialogContent dir="rtl" className="max-w-xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>إضافة فحص طبي جديد</DialogTitle>
+            <DialogDescription>تسجيل فحص جديد للمريض: {patient.fullName}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>تاريخ الفحص</Label>
+                <DateInput value={addExamForm.examDate ?? ""} onChange={(e) => setAddExamForm({ ...addExamForm, examDate: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label>الطبيب الفاحص</Label>
+                <Select value={addExamForm.doctorName ?? ""} onValueChange={(v) => setAddExamForm({ ...addExamForm, doctorName: v })}>
+                  <SelectTrigger><SelectValue placeholder="اختر الطبيب..." /></SelectTrigger>
+                  <SelectContent>
+                    {KF_DOCTORS.map((dr) => <SelectItem key={dr} value={dr}>{dr}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1"><Label>VA اليمنى</Label><Input value={addExamForm.rightVa ?? ""} onChange={(e) => setAddExamForm({ ...addExamForm, rightVa: e.target.value })} /></div>
+              <div className="space-y-1"><Label>VA اليسرى</Label><Input value={addExamForm.leftVa ?? ""} onChange={(e) => setAddExamForm({ ...addExamForm, leftVa: e.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1"><Label>IOP اليمنى</Label><Input value={addExamForm.iopRight ?? ""} onChange={(e) => setAddExamForm({ ...addExamForm, iopRight: e.target.value })} /></div>
+              <div className="space-y-1"><Label>IOP اليسرى</Label><Input value={addExamForm.iopLeft ?? ""} onChange={(e) => setAddExamForm({ ...addExamForm, iopLeft: e.target.value })} /></div>
+            </div>
+            <div className="border rounded-md p-3 space-y-2">
+              <p className="text-xs font-bold text-muted-foreground">انكسار العين اليمنى (OD)</p>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1"><Label className="text-xs">Sph</Label><Input className="h-8 text-xs" value={(addExamForm.rightRefraction as any)?.sph ?? ""} onChange={(e) => setAddExamForm({ ...addExamForm, rightRefraction: { ...(addExamForm.rightRefraction ?? {}), sph: e.target.value } })} /></div>
+                <div className="space-y-1"><Label className="text-xs">Cyl</Label><Input className="h-8 text-xs" value={(addExamForm.rightRefraction as any)?.cyl ?? ""} onChange={(e) => setAddExamForm({ ...addExamForm, rightRefraction: { ...(addExamForm.rightRefraction ?? {}), cyl: e.target.value } })} /></div>
+                <div className="space-y-1"><Label className="text-xs">Axis</Label><Input className="h-8 text-xs" value={(addExamForm.rightRefraction as any)?.axis ?? ""} onChange={(e) => setAddExamForm({ ...addExamForm, rightRefraction: { ...(addExamForm.rightRefraction ?? {}), axis: e.target.value } })} /></div>
+              </div>
+            </div>
+            <div className="border rounded-md p-3 space-y-2">
+              <p className="text-xs font-bold text-muted-foreground">انكسار العين اليسرى (OS)</p>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1"><Label className="text-xs">Sph</Label><Input className="h-8 text-xs" value={(addExamForm.leftRefraction as any)?.sph ?? ""} onChange={(e) => setAddExamForm({ ...addExamForm, leftRefraction: { ...(addExamForm.leftRefraction ?? {}), sph: e.target.value } })} /></div>
+                <div className="space-y-1"><Label className="text-xs">Cyl</Label><Input className="h-8 text-xs" value={(addExamForm.leftRefraction as any)?.cyl ?? ""} onChange={(e) => setAddExamForm({ ...addExamForm, leftRefraction: { ...(addExamForm.leftRefraction ?? {}), cyl: e.target.value } })} /></div>
+                <div className="space-y-1"><Label className="text-xs">Axis</Label><Input className="h-8 text-xs" value={(addExamForm.leftRefraction as any)?.axis ?? ""} onChange={(e) => setAddExamForm({ ...addExamForm, leftRefraction: { ...(addExamForm.leftRefraction ?? {}), axis: e.target.value } })} /></div>
+              </div>
+            </div>
+            <div className="space-y-1"><Label>التشخيص</Label><Textarea rows={2} value={addExamForm.diagnosis ?? ""} onChange={(e) => setAddExamForm({ ...addExamForm, diagnosis: e.target.value })} /></div>
+            <div className="space-y-1"><Label>الخطة العلاجية</Label><Textarea rows={2} value={addExamForm.plan ?? ""} onChange={(e) => setAddExamForm({ ...addExamForm, plan: e.target.value })} /></div>
+            <div className="space-y-1"><Label>ملاحظات</Label><Textarea rows={2} value={addExamForm.notes ?? ""} onChange={(e) => setAddExamForm({ ...addExamForm, notes: e.target.value })} /></div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setAddExamOpen(false)}>إلغاء</Button>
+            <Button disabled={createExamMut.isPending} onClick={() => {
+              if (!kfPatientId || !addExamForm.examDate) { toast.error("تاريخ الفحص مطلوب"); return; }
+              createExamMut.mutate({ kfPatientId, kfVisitId: null, examDate: addExamForm.examDate, rightVa: addExamForm.rightVa || null, leftVa: addExamForm.leftVa || null, iopRight: addExamForm.iopRight || null, iopLeft: addExamForm.iopLeft || null, rightRefraction: addExamForm.rightRefraction || null, leftRefraction: addExamForm.leftRefraction || null, diagnosis: addExamForm.diagnosis || null, plan: addExamForm.plan || null, notes: addExamForm.notes || null, doctorName: addExamForm.doctorName || null });
+            }}>
+              {createExamMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Operation Dialog */}
+      <Dialog open={addOpOpen} onOpenChange={setAddOpOpen}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>حجز عملية جراحية</DialogTitle>
+            <DialogDescription>تسجيل عملية جراحية للمريض: {patient.fullName}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>تاريخ العملية</Label>
+              <DateInput value={addOpForm.opDate ?? ""} onChange={(e) => setAddOpForm({ ...addOpForm, opDate: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label>نوع العملية</Label>
+              <Input placeholder="مثال: LASIK، فاكو، إلخ..." value={addOpForm.opType ?? ""} onChange={(e) => setAddOpForm({ ...addOpForm, opType: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label>العين</Label>
+              <Select value={addOpForm.eye ?? ""} onValueChange={(v) => setAddOpForm({ ...addOpForm, eye: v })}>
+                <SelectTrigger><SelectValue placeholder="اختر العين..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="right">اليمنى</SelectItem>
+                  <SelectItem value="left">اليسرى</SelectItem>
+                  <SelectItem value="both">العينين</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>الجراح</Label>
+              <Select value={addOpForm.doctorName ?? ""} onValueChange={(v) => setAddOpForm({ ...addOpForm, doctorName: v })}>
+                <SelectTrigger><SelectValue placeholder="اختر الجراح..." /></SelectTrigger>
+                <SelectContent>
+                  {KF_DOCTORS.map((dr) => <SelectItem key={dr} value={dr}>{dr}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>الحالة</Label>
+              <Select value={addOpForm.status ?? "scheduled"} onValueChange={(v) => setAddOpForm({ ...addOpForm, status: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="scheduled">مجدولة</SelectItem>
+                  <SelectItem value="completed">اكتملت</SelectItem>
+                  <SelectItem value="cancelled">ملغاة</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>ملاحظات</Label>
+              <Textarea rows={2} value={addOpForm.notes ?? ""} onChange={(e) => setAddOpForm({ ...addOpForm, notes: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setAddOpOpen(false)}>إلغاء</Button>
+            <Button disabled={createOpMut.isPending} onClick={() => {
+              if (!kfPatientId || !addOpForm.opDate) { toast.error("تاريخ العملية مطلوب"); return; }
+              if (!addOpForm.opType?.trim()) { toast.error("نوع العملية مطلوب"); return; }
+              if (!addOpForm.eye) { toast.error("يجب اختيار العين"); return; }
+              createOpMut.mutate({ kfPatientId, kfVisitId: null, opDate: addOpForm.opDate, opType: addOpForm.opType.trim(), eye: addOpForm.eye || null, doctorName: addOpForm.doctorName || null, status: addOpForm.status, notes: addOpForm.notes || null });
+            }}>
+              {createOpMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Edit Followup Dialog */}
       <Dialog open={!!editFollowup} onOpenChange={(open) => !open && setEditFollowup(null)}>
         <DialogContent dir="rtl" className="max-w-md">
@@ -1176,6 +1391,60 @@ export default function KfPatientDetail() {
               updateFollowupMut.mutate({ kfFollowupId: editFollowup.kfFollowupId, followupDate: editFollowup.followupDate, status: editFollowup.status, notes: editFollowup.notes || null });
             }}>
               {updateFollowupMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Followup Dialog */}
+      <Dialog open={addFollowupOpen} onOpenChange={setAddFollowupOpen}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>جدولة متابعة</DialogTitle>
+            <DialogDescription>تحديد موعد مراجعة للمريض: {patient.fullName}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>تاريخ المتابعة</Label>
+              <DateInput value={addFollowupForm.followupDate ?? ""} onChange={(e) => setAddFollowupForm({ ...addFollowupForm, followupDate: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label>الحالة</Label>
+              <Select value={addFollowupForm.status ?? "scheduled"} onValueChange={(v) => setAddFollowupForm({ ...addFollowupForm, status: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="scheduled">مجدولة</SelectItem>
+                  <SelectItem value="completed">اكتملت</SelectItem>
+                  <SelectItem value="missed">لم يحضر</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>مرتبطة بعملية (اختياري)</Label>
+              <Select value={addFollowupForm.kfOpId ?? "none"} onValueChange={(v) => setAddFollowupForm({ ...addFollowupForm, kfOpId: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">غير مرتبطة</SelectItem>
+                  {operations.map((op: any) => (
+                    <SelectItem key={op.kfOpId} value={String(op.kfOpId)}>
+                      {op.opType} ({new Date(op.opDate).toLocaleDateString("ar-EG")})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>ملاحظات</Label>
+              <Textarea rows={2} value={addFollowupForm.notes ?? ""} onChange={(e) => setAddFollowupForm({ ...addFollowupForm, notes: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setAddFollowupOpen(false)}>إلغاء</Button>
+            <Button disabled={createFollowupMut.isPending} onClick={() => {
+              if (!kfPatientId || !addFollowupForm.followupDate) { toast.error("تاريخ المتابعة مطلوب"); return; }
+              createFollowupMut.mutate({ kfPatientId, followupDate: addFollowupForm.followupDate, status: addFollowupForm.status, notes: addFollowupForm.notes || null, kfOpId: addFollowupForm.kfOpId === "none" ? null : Number(addFollowupForm.kfOpId), kfVisitId: null });
+            }}>
+              {createFollowupMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
             </Button>
           </DialogFooter>
         </DialogContent>
