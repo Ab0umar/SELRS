@@ -9,6 +9,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<"health" | "sync" | "audit">(
     "health",
   );
+  const [syncSubTab, setSyncSubTab] = useState<"ef10k" | "k40pro">("ef10k");
 
   const healthQuery = (trpc as any).attendance.systemHealth.useQuery(
     undefined,
@@ -32,6 +33,7 @@ export default function AdminDashboard() {
   const syncStatusQuery = (trpc as any).attendance.syncStatus.useQuery({
     limit: 20,
   });
+  const zk40Logs = (trpc as any).attendance.zk40SyncLogs.useQuery();
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -175,53 +177,89 @@ export default function AdminDashboard() {
       {activeTab === "sync" && (
         <Card>
           <CardHeader>
-            <CardTitle>Sync Runs</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>سجل المزامنة</CardTitle>
+              <div className="flex gap-1">
+                {(["ef10k", "k40pro"] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setSyncSubTab(t)}
+                    className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${syncSubTab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground border border-border"}`}
+                  >
+                    {t === "ef10k" ? "EF10K" : "K40 Pro"}
+                  </button>
+                ))}
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            {syncStatusQuery.isLoading ? (
-              <div className="space-y-2">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-12 w-full" />
-                ))}
-              </div>
-            ) : syncStatusQuery.data?.runs ? (
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {syncStatusQuery.data.runs.map((run: any) => (
-                  <div
-                    key={run.id}
-                    className="border rounded-lg p-3 bg-gray-50 text-sm"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="font-medium">
-                        {run.source} • {run.trigger}
+            {syncSubTab === "ef10k" && (
+              syncStatusQuery.isLoading ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+                </div>
+              ) : syncStatusQuery.data?.runs ? (
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {syncStatusQuery.data.runs.map((run: any) => (
+                    <div key={run.id} className="border rounded-lg p-3 bg-muted/30 text-sm">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="font-medium">{run.source} • {run.trigger}</div>
+                        <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                          run.status === "ok" ? "bg-success/10 text-success"
+                          : run.status === "partial" ? "bg-warning/10 text-warning"
+                          : run.status === "failed" ? "bg-destructive/10 text-destructive"
+                          : "bg-primary/10 text-primary"
+                        }`}>{run.status}</span>
                       </div>
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-semibold ${
-                          run.status === "ok"
-                            ? "bg-success/10 text-success"
-                            : run.status === "partial"
-                              ? "bg-warning/10 text-warning"
-                              : run.status === "failed"
-                                ? "bg-destructive/10 text-destructive"
-                                : "bg-primary/10 text-primary"
-                        }`}
-                      >
-                        {run.status}
-                      </span>
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      {new Date(run.startedAt).toLocaleString()} •{" "}
-                      {run.rowsInserted} rows inserted
-                    </div>
-                    {run.error && (
-                      <div className="text-destructive text-xs mt-1">
-                        {run.error}
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(run.startedAt).toLocaleString()} • {run.rowsInserted} rows inserted
                       </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : null}
+                      {run.error && <div className="text-destructive text-xs mt-1">{run.error}</div>}
+                    </div>
+                  ))}
+                </div>
+              ) : null
+            )}
+            {syncSubTab === "k40pro" && (
+              zk40Logs.isLoading ? (
+                <div className="space-y-2">{[1,2,3].map(i=><Skeleton key={i} className="h-12 w-full"/>)}</div>
+              ) : !zk40Logs.data?.length ? (
+                <p className="text-sm text-muted-foreground">لا توجد عمليات مزامنة بعد.</p>
+              ) : (
+                <div className="rounded-md border overflow-x-auto max-h-96 overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead className="sticky top-0 bg-muted/50">
+                      <tr className="border-b">
+                        <th className="px-3 py-2 text-right font-medium">الوقت</th>
+                        <th className="px-3 py-2 text-center font-medium">الحالة</th>
+                        <th className="px-3 py-2 text-center font-medium">مرئي</th>
+                        <th className="px-3 py-2 text-center font-medium">مُضاف</th>
+                        <th className="px-3 py-2 text-center font-medium">مكرر</th>
+                        <th className="px-3 py-2 text-right font-medium">خطأ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {zk40Logs.data.map((row: any) => (
+                        <tr key={row.id} className="border-b last:border-0 hover:bg-muted/30">
+                          <td className="px-3 py-2 font-mono whitespace-nowrap">{new Date(row.startedAt).toLocaleString("ar-EG", { dateStyle: "short", timeStyle: "short" })}</td>
+                          <td className="px-3 py-2 text-center">
+                            <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${row.status === "ok" ? "bg-success/15 text-success" : row.status === "failed" ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"}`}>
+                              {row.status}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-center font-mono">{row.rowsSeen}</td>
+                          <td className="px-3 py-2 text-center font-mono text-success">{row.rowsInserted}</td>
+                          <td className="px-3 py-2 text-center font-mono text-muted-foreground">{row.rowsSkipped}</td>
+                          <td className="px-3 py-2 text-destructive truncate max-w-[160px]">{row.error ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )
+            )}
           </CardContent>
         </Card>
       )}

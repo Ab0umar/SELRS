@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Fragment } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -22,8 +22,10 @@ interface LivePunch {
 }
 
 export default function LiveBoard() {
+  const [punchTab, setPunchTab] = useState<"ef10k" | "k40pro">("ef10k");
   const [punches, setPunches] = useState<LivePunch[]>([]);
   const [isMonitoring, setIsMonitoring] = useState(true);
+  const admsStatus = tRPC.attendance.admsStatus.useQuery(undefined, { refetchInterval: 15000 });
   const wsRef = useRef<WebSocket | null>(null);
   const [wsConnected, setWsConnected] = useState(false);
   const connectionTone = wsConnected
@@ -231,66 +233,93 @@ export default function LiveBoard() {
       </section>
 
       <section className="rounded-xl border border-border bg-background">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/25 px-4 py-4">
-          <div>
-            <h2 className="text-base font-semibold text-foreground">
-              آخر البصمات ({punches.length})
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {punchesQuery.isLoading
-                ? "جارٍ تحديث البيانات..."
-                : "آخر 50 بصمة من قاعدة البيانات."}
-            </p>
-          </div>
-          <div className="text-xs text-muted-foreground">
-            يحتفظ حتى 100 بصمة حديثة
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/25 px-4 py-3">
+          <h2 className="text-base font-semibold text-foreground">آخر البصمات</h2>
+          <div className="flex gap-1">
+            {(["ef10k", "k40pro"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setPunchTab(t)}
+                className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${punchTab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                {t === "ef10k" ? "EF10K" : "K40 Pro"}
+              </button>
+            ))}
           </div>
         </div>
         <div className="px-4 py-4">
-          {punches.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-border bg-muted/20 px-4 py-8 text-center text-muted-foreground">
-              <p>لا توجد سجلات حضور</p>
-            </div>
-          ) : (
-            <div className="max-h-96 space-y-2 overflow-y-auto pr-1">
-              {punches.map((punch, idx) => (
-                <div
-                  key={`${punch.empCd}-${punch.timestamp.getTime()}-${idx}`}
-                  className="flex flex-col gap-2 rounded-lg border border-border/70 bg-background px-3 py-3 shadow-sm sm:flex-row sm:items-center"
-                >
-                  <div className="flex-shrink-0">
-                    {punch.direction === "in" ? (
-                      <ArrowRightFromLine className="h-5 w-5 text-success" />
-                    ) : punch.direction === "out" ? (
-                      <ArrowLeftFromLine className="h-5 w-5 text-primary" />
-                    ) : (
-                      <AlertCircle className="h-5 w-5 text-warning" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-mono text-sm font-semibold text-foreground">
-                      {punch.empCd}
+          {punchTab === "ef10k" && (
+            punches.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border bg-muted/20 px-4 py-8 text-center text-muted-foreground">
+                <p>لا توجد سجلات حضور</p>
+              </div>
+            ) : (
+              <div className="max-h-96 space-y-2 overflow-y-auto pr-1">
+                {punches.map((punch, idx) => (
+                  <div
+                    key={`${punch.empCd}-${punch.timestamp.getTime()}-${idx}`}
+                    className="flex flex-col gap-2 rounded-lg border border-border/70 bg-background px-3 py-3 shadow-sm sm:flex-row sm:items-center"
+                  >
+                    <div className="flex-shrink-0">
+                      {punch.direction === "in" ? (
+                        <ArrowRightFromLine className="h-5 w-5 text-success" />
+                      ) : punch.direction === "out" ? (
+                        <ArrowLeftFromLine className="h-5 w-5 text-primary" />
+                      ) : (
+                        <AlertCircle className="h-5 w-5 text-warning" />
+                      )}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {punch.timestamp.toLocaleTimeString()}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-mono text-sm font-semibold text-foreground">{punch.empCd}</div>
+                      <div className="text-xs text-muted-foreground">{punch.timestamp.toLocaleTimeString()}</div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs font-medium capitalize text-muted-foreground">
-                      {punch.direction === "in"
-                        ? "دخول"
-                        : punch.direction === "out"
-                          ? "خروج"
-                          : "غير معروف"}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {punch.deviceId}
+                    <div className="text-right">
+                      <div className="text-xs font-medium capitalize text-muted-foreground">
+                        {punch.direction === "in" ? "دخول" : punch.direction === "out" ? "خروج" : "غير معروف"}
+                      </div>
+                      <div className="text-xs text-muted-foreground">{punch.deviceId}</div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )
           )}
+          {punchTab === "k40pro" && (() => {
+            const recent = admsStatus.data?.recentPunches ?? [];
+            if (!recent.length) return (
+              <div className="rounded-lg border border-dashed border-border bg-muted/20 px-4 py-8 text-center text-muted-foreground">
+                <p>لا توجد بصمات K40 Pro بعد</p>
+              </div>
+            );
+            return (
+              <div className="rounded-md border overflow-x-auto max-h-96 overflow-y-auto">
+                <table className="w-full text-xs">
+                  <thead className="sticky top-0 bg-muted/50">
+                    <tr className="border-b">
+                      <th className="px-3 py-2 text-right font-medium">الموظف</th>
+                      <th className="px-3 py-2 text-right font-medium">الوقت</th>
+                      <th className="px-3 py-2 text-center font-medium">الاتجاه</th>
+                      <th className="px-3 py-2 text-right font-medium">الجهاز</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recent.map((p: any, i: number) => (
+                      <tr key={i} className="border-b last:border-0 hover:bg-muted/30">
+                        <td className="px-3 py-2 font-mono">{p.empCd}</td>
+                        <td className="px-3 py-2 font-mono whitespace-nowrap">{new Date(p.punchAt).toLocaleString("ar-EG", { dateStyle: "short", timeStyle: "short" })}</td>
+                        <td className="px-3 py-2 text-center">
+                          <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${p.direction === "in" ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
+                            {p.direction === "in" ? "دخول" : "خروج"}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 font-mono text-muted-foreground">{p.deviceId}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
         </div>
       </section>
 
