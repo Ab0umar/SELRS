@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useLocation, useRoute } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, ChevronRight, Save, History, User, Phone } from "lucide-react";
+import { Loader2, ChevronRight, Save, History, User, Phone, Camera, X } from "lucide-react";
 
 const KF_DOCTORS = ["د. محمد السعدني", "د. سعيد مجدي"] as const;
 
@@ -92,6 +92,8 @@ export default function KfExamPage() {
   const [plan, setPlan] = useState("");
 
   const [saving, setSaving] = useState(false);
+  const [images, setImages] = useState<{ file: File; preview: string }[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: patient, isLoading } = trpc.kf.getPatient.useQuery(
     { kfId: kfPatientId ?? 0 },
@@ -101,6 +103,7 @@ export default function KfExamPage() {
   const utils = trpc.useUtils();
   const createVisit = trpc.kf.createVisit.useMutation();
   const createExam = trpc.kf.createExamination.useMutation();
+  const uploadImage = trpc.kf.uploadExamImage.useMutation();
 
   const handleSave = async () => {
     if (!kfPatientId || !visitDate) { toast.error("التاريخ مطلوب"); return; }
@@ -136,10 +139,26 @@ export default function KfExamPage() {
         notes: null,
       });
 
+      // Upload images
+      for (const img of images) {
+        const base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve((reader.result as string).split(",")[1]);
+          reader.readAsDataURL(img.file);
+        });
+        await uploadImage.mutateAsync({
+          kfPatientId,
+          fileName: img.file.name,
+          mimeType: img.file.type,
+          fileDataBase64: base64,
+        });
+      }
+
       utils.kf.listVisits.invalidate();
       utils.kf.listExaminations.invalidate();
       toast.success("تم حفظ الكشف بنجاح");
 
+      setImages([]);
       // Reset exam fields for next patient
       setArOdSph("---"); setArOdCyl("---"); setArOdAxis("");
       setArOsSph("---"); setArOsCyl("---"); setArOsAxis("");
@@ -296,6 +315,45 @@ export default function KfExamPage() {
           <Label className="text-xs font-semibold">العلاج / الروشتة</Label>
           <Textarea rows={3} placeholder="أدخل العلاج والتوصيات..." value={plan} onChange={(e) => setPlan(e.target.value)} />
         </div>
+      </div>
+
+      {/* Images */}
+      <div className="rounded-lg border p-4 space-y-3">
+        <SectionTitle>صور / مرفقات</SectionTitle>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            const files = Array.from(e.target.files ?? []);
+            const newImgs = files.map((f) => ({ file: f, preview: URL.createObjectURL(f) }));
+            setImages((prev) => [...prev, ...newImgs]);
+            e.target.value = "";
+          }}
+        />
+        {images.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {images.map((img, i) => (
+              <div key={i} className="relative">
+                <img src={img.preview} className="h-20 w-20 object-cover rounded border" />
+                <button
+                  type="button"
+                  className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5"
+                  onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => fileInputRef.current?.click()}>
+          <Camera className="h-4 w-4" />
+          <span>إضافة صورة</span>
+        </Button>
       </div>
 
       {/* Save */}

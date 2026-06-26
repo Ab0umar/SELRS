@@ -26,6 +26,7 @@ import {
   makeKfWriteProcedure,
 } from "../_core/procedures";
 import { getDb } from "../db";
+import { uploadToS3 } from "../_core/s3";
 import {
   kfBridgeLookupSelrsPatientInputSchema,
   kfCreateExaminationInputSchema,
@@ -835,5 +836,45 @@ export const kfRouter = router({
       const db = await requireDb();
       await db.delete(kfFollowups).where(eq(kfFollowups.kfFollowupId, input.kfFollowupId));
       return { ok: true };
+    }),
+
+  uploadExamImage: makeKfWriteProcedure("/kf/patients")
+    .input(z.object({
+      kfPatientId: z.number().int().positive(),
+      fileName: z.string().min(1),
+      mimeType: z.string().min(1),
+      fileDataBase64: z.string().min(1),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const fileBuffer = Buffer.from(input.fileDataBase64, "base64");
+      if (fileBuffer.length > 20 * 1024 * 1024) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "الملف أكبر من 20 MB" });
+      }
+      const safeFileName = input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const ts = Date.now();
+      const s3Key = `kf-exam/${input.kfPatientId}/${ts}_${safeFileName}`;
+      let uploadedS3Key: string | null = null;
+      try {
+        await uploadToS3(s3Key, fileBuffer, input.mimeType);
+        uploadedS3Key = s3Key;
+      } catch {
+        // fall through — store in DB if S3 unavailable
+      }
+      const result = await db.execute(
+        sql`INSERT INTO srv100_uploads
+            (patient_id, document_id, file_name, mime_type, file_data, s3_key, source_printer)
+            VALUES (
+              ${input.kfPatientId},
+              NULL,
+              ${safeFileName},
+              ${input.mimeType},
+              ${uploadedS3Key ? null : fileBuffer},
+              ${uploadedS3Key},
+              'kf-exam'
+            )`
+      ) as any;
+      const insertId = Number(result?.insertId ?? result?.[0]?.insertId ?? 0);
+      return { id: insertId, viewUrl: `/api/srv100/uploads/${insertId}` };
     }),
 });
