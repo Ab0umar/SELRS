@@ -44,11 +44,16 @@ export class DevicePushListener extends EventEmitter {
         let buffer = Buffer.alloc(0);
 
         socket.on("data", (data: any) => {
+          const buf = data as Buffer;
+          // Log raw hex so we can identify the device's packet format
+          console.log(`[DevicePush] RAW from ${clientId} (${buf.length} bytes):`);
+          console.log(`[DevicePush] HEX: ${buf.toString("hex")}`);
+          console.log(`[DevicePush] TXT: ${buf.toString("utf-8").replace(/[\x00-\x1f]/g, "·")}`);
+
           // Accumulate data
-          buffer = Buffer.concat([buffer, data as Buffer]);
+          buffer = Buffer.concat([buffer, buf]);
 
           // Try to parse punch records from buffer
-          // Format appears to be variable-length packets with punch data
           this.processPunchData(buffer, clientId, (remaining) => {
             buffer = remaining;
           });
