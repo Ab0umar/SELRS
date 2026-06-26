@@ -1,32 +1,215 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
-import { ROUTES } from "../../../../shared/routes";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, UserPlus, Phone, CreditCard, Calendar, Eye, Edit, Trash2, Loader2, Printer, ShieldOff } from "lucide-react";
+import { Search, UserPlus, Phone, CreditCard, Calendar, Eye, Edit, Trash2, Loader2, Printer, ShieldOff, Save } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { TRPCClientError } from "@trpc/client";
+import { DateInput } from "@/components/ui/date-input";
 
-// Local useDebounce hook
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(timer);
-    };
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
   }, [value, delay]);
-
   return debouncedValue;
+}
+
+type FormState = {
+  fullName: string;
+  dateOfBirth: string;
+  age: string;
+  gender: "male" | "female" | "";
+  nationalId: string;
+  phone: string;
+  alternatePhone: string;
+  address: string;
+  medicalHistory: string;
+  allergies: string;
+  notes: string;
+};
+
+const blankForm: FormState = {
+  fullName: "", dateOfBirth: "", age: "", gender: "",
+  nationalId: "", phone: "", alternatePhone: "",
+  address: "", medicalHistory: "", allergies: "", notes: "",
+};
+
+function AddPatientDialog({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: (kfId: number) => void }) {
+  const [form, setForm] = useState<FormState>(blankForm);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const lastAgeSyncRef = useRef<"dob" | "age" | null>(null);
+  const createMut = trpc.kf.createPatient.useMutation();
+
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (open) { setForm(blankForm); setErrors({}); }
+  }, [open]);
+
+  // DOB → Age sync
+  useEffect(() => {
+    if (!form.dateOfBirth) return;
+    if (lastAgeSyncRef.current === "age") { lastAgeSyncRef.current = null; return; }
+    const dob = new Date(form.dateOfBirth);
+    if (isNaN(dob.valueOf())) return;
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age -= 1;
+    if (!Number.isFinite(age) || age < 0) return;
+    lastAgeSyncRef.current = "dob";
+    setForm((p) => ({ ...p, age: String(age) }));
+  }, [form.dateOfBirth]);
+
+  // Age → DOB sync
+  useEffect(() => {
+    if (!form.age) return;
+    if (lastAgeSyncRef.current === "dob") { lastAgeSyncRef.current = null; return; }
+    const ageNum = Number(form.age);
+    if (!Number.isFinite(ageNum) || ageNum < 0) return;
+    const today = new Date();
+    const d = new Date(today.getFullYear() - ageNum, today.getMonth(), today.getDate());
+    const formatted = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    lastAgeSyncRef.current = "age";
+    setForm((p) => ({ ...p, dateOfBirth: formatted }));
+  }, [form.age]);
+
+  const set = (key: keyof FormState, value: string) => {
+    setForm((p) => ({ ...p, [key]: value }));
+    if (errors[key]) setErrors((p) => { const c = { ...p }; delete c[key]; return c; });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const newErrors: Record<string, string> = {};
+    if (!form.fullName.trim()) newErrors.fullName = "الاسم بالكامل مطلوب";
+    if (form.age && (isNaN(Number(form.age)) || Number(form.age) < 0)) newErrors.age = "السن يجب أن يكون رقماً صحيحاً موجباً";
+    if (Object.keys(newErrors).length) { setErrors(newErrors); return; }
+
+    try {
+      const result = await createMut.mutateAsync({
+        fullName: form.fullName.trim(),
+        dateOfBirth: form.dateOfBirth || null,
+        age: form.age ? Number(form.age) : null,
+        gender: form.gender || null,
+        nationalId: form.nationalId.trim() || null,
+        phone: form.phone.trim() || null,
+        alternatePhone: form.alternatePhone.trim() || null,
+        address: form.address.trim() || null,
+        occupation: null,
+        medicalHistory: form.medicalHistory.trim() || null,
+        allergies: form.allergies.trim() || null,
+        notes: form.notes.trim() || null,
+        selrsPatientCode: null,
+      });
+      toast.success(`تم تسجيل المريض بنجاح بكود ${result.kfCode}`);
+      onCreated(result.kfId);
+    } catch (err: any) {
+      toast.error(err.message || "حدث خطأ أثناء حفظ البيانات");
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
+        <DialogHeader>
+          <DialogTitle className="text-xl">تسجيل مريض جديد</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+          {/* Personal */}
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-primary border-b pb-1">البيانات الشخصية</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1 sm:col-span-2">
+                <Label htmlFor="dp-fullName" className="after:content-['*'] after:text-destructive after:mr-1">الاسم بالكامل</Label>
+                <Input id="dp-fullName" placeholder="مثال: محمد أحمد علي" value={form.fullName} onChange={(e) => set("fullName", e.target.value)} className={errors.fullName ? "border-destructive" : ""} />
+                {errors.fullName && <p className="text-xs text-destructive">{errors.fullName}</p>}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="dp-age">السن</Label>
+                <Input id="dp-age" type="number" min="0" placeholder="مثال: 45" value={form.age} onChange={(e) => set("age", e.target.value)} className={errors.age ? "border-destructive" : ""} />
+                {errors.age && <p className="text-xs text-destructive">{errors.age}</p>}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="dp-gender">النوع</Label>
+                <Select value={form.gender} onValueChange={(v) => set("gender", v)}>
+                  <SelectTrigger id="dp-gender"><SelectValue placeholder="اختر..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">ذكر</SelectItem>
+                    <SelectItem value="female">أنثى</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="dp-dob">تاريخ الميلاد</Label>
+                <DateInput id="dp-dob" value={form.dateOfBirth} onChange={(e) => set("dateOfBirth", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="dp-nationalId">الرقم القومي</Label>
+                <Input id="dp-nationalId" placeholder="14 رقماً" maxLength={20} value={form.nationalId} onChange={(e) => set("nationalId", e.target.value)} />
+              </div>
+            </div>
+          </div>
+
+          {/* Contact */}
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-primary border-b pb-1">بيانات الاتصال</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <Label htmlFor="dp-phone">رقم الموبايل</Label>
+                <Input id="dp-phone" placeholder="01xxxxxxxxx" value={form.phone} onChange={(e) => set("phone", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="dp-alt">رقم بديل</Label>
+                <Input id="dp-alt" placeholder="01xxxxxxxxx" value={form.alternatePhone} onChange={(e) => set("alternatePhone", e.target.value)} />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label htmlFor="dp-address">العنوان</Label>
+                <Textarea id="dp-address" rows={2} placeholder="العنوان التفصيلي" value={form.address} onChange={(e) => set("address", e.target.value)} />
+              </div>
+            </div>
+          </div>
+
+          {/* Medical */}
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-primary border-b pb-1">التاريخ المرضي</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <Label htmlFor="dp-mhx">التاريخ المرضي</Label>
+                <Textarea id="dp-mhx" rows={2} placeholder="مثال: ضغط دم، سكر..." value={form.medicalHistory} onChange={(e) => set("medicalHistory", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="dp-allergy">الحساسية</Label>
+                <Textarea id="dp-allergy" rows={2} placeholder="مثال: بنسلين..." value={form.allergies} onChange={(e) => set("allergies", e.target.value)} />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label htmlFor="dp-notes">ملاحظات</Label>
+                <Textarea id="dp-notes" rows={2} placeholder="أي ملاحظات أخرى" value={form.notes} onChange={(e) => set("notes", e.target.value)} />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="flex gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={onClose} disabled={createMut.isPending}>إلغاء</Button>
+            <Button type="submit" disabled={createMut.isPending} className="gap-2">
+              {createMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              <span>تسجيل المريض</span>
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 export default function KfPatients() {
@@ -36,12 +219,12 @@ export default function KfPatients() {
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [delConfirm, setDelConfirm] = useState<number | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
   const pageSize = 15;
 
   const debouncedSearch = useDebounce(searchTerm, 300);
   const utils = trpc.useUtils();
 
-  // Queries
   const { data, isLoading, isError, error } = trpc.kf.listPatients.useQuery({
     search: debouncedSearch,
     page,
@@ -57,12 +240,20 @@ export default function KfPatients() {
   const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / pageSize);
 
-  const handleRowClick = (kfId: number) => {
-    setLocation(`/kf/patients/${kfId}`);
-  };
+  const handleRowClick = (kfId: number) => setLocation(`/kf/patients/${kfId}`);
 
   return (
     <section dir="rtl" className="space-y-4">
+      <AddPatientDialog
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onCreated={(kfId) => {
+          utils.kf.listPatients.invalidate();
+          setAddOpen(false);
+          setLocation(`/kf/patients/${kfId}`);
+        }}
+      />
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 print:hidden">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">سجل مرضى KF</h1>
@@ -73,11 +264,9 @@ export default function KfPatients() {
             <Printer className="h-4 w-4" />
             <span>طباعة</span>
           </Button>
-          <Button asChild className="gap-2">
-            <Link href={ROUTES.kfPatientsNew}>
-              <UserPlus className="h-4 w-4" />
-              <span>تسجيل مريض جديد</span>
-            </Link>
+          <Button className="gap-2" onClick={() => setAddOpen(true)}>
+            <UserPlus className="h-4 w-4" />
+            <span>تسجيل مريض جديد</span>
           </Button>
         </div>
       </div>
@@ -93,10 +282,7 @@ export default function KfPatients() {
               placeholder="ابحث هنا..."
               className="pr-10"
               value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setPage(1); // Reset page to 1 on search
-              }}
+              onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
             />
           </div>
         </CardHeader>
@@ -181,9 +367,7 @@ export default function KfPatients() {
                       <TableCell>
                         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                           <Calendar className="h-3 w-3" />
-                          <span>
-                            {new Date(patient.createdAt).toLocaleDateString("ar-EG")}
-                          </span>
+                          <span>{new Date(patient.createdAt).toLocaleDateString("ar-EG")}</span>
                         </span>
                       </TableCell>
                       <TableCell className="text-left" onClick={(e) => e.stopPropagation()}>
@@ -219,32 +403,15 @@ export default function KfPatients() {
             </Table>
           </div>
 
-          {/* Pagination */}
           {!isLoading && totalPages > 1 && (
             <div className="flex items-center justify-between mt-4 print:hidden">
               <span className="text-sm text-muted-foreground">
                 عرض {patients.length} من أصل {total} مريض
               </span>
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page === 1}
-                  onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                >
-                  السابق
-                </Button>
-                <span className="text-sm font-medium">
-                  صفحة {page} من {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page === totalPages}
-                  onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
-                >
-                  التالي
-                </Button>
+                <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => Math.max(p - 1, 1))}>السابق</Button>
+                <span className="text-sm font-medium">صفحة {page} من {totalPages}</span>
+                <Button variant="outline" size="sm" disabled={page === totalPages} onClick={() => setPage((p) => Math.min(p + 1, totalPages))}>التالي</Button>
               </div>
             </div>
           )}
