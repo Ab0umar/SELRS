@@ -813,13 +813,14 @@ export class PayrollComputeService {
           examCommission = round2((examPool / 3) * empShares);
         }
       }
+      examCommission = round2(examCommission * lm);
       const netForRatio = netForRatioMap.get(emp.empCd) ?? 0;
       const pentacamCommission =
         isMarkaz && flags.commPentacam
           ? round2(
-              totalSumForPentacam > 0
+              (totalSumForPentacam > 0
                 ? (netForRatio / totalSumForPentacam) * pentacamPool
-                : 0,
+                : 0) * lm,
             )
           : 0;
       const costOfLivingAllowancePay =
