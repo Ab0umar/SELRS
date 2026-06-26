@@ -821,6 +821,140 @@ export default function PayrollReport() {
       </div>`;
   }
 
+  function printPenaltiesSheet() {
+    const today = new Date().toLocaleDateString("ar-EG");
+    const nonShift = rows.filter((r: any) => !String(r.empCd).startsWith("shift_"));
+    const tPenalty = nonShift.reduce((s: number, r: any) => s + Number(r.penaltyDeduction), 0);
+    const bodyRows = nonShift.map((r: any) => `
+      <tr>
+        <td class="emp-col">${r.fullName ?? r.empCd}</td>
+        <td>${fmt(r.penaltyDeduction)}</td>
+        <td class="sig-col"></td>
+      </tr>`).join("");
+    const html = `
+      <div class="top"><span>نظام مرتبات</span><span>عيون السروق للخدمات الطبية</span></div>
+      <h1>كشف الجزاءات عن الفترة ${periodLabel}</h1>
+      <div class="dept">قسم ${section}</div>
+      <table>
+        <thead><tr><th>الاسم</th><th>الجزاءات</th><th class="sig-col">التوقيع</th></tr></thead>
+        <tbody>
+          ${bodyRows}
+          <tr class="total-row"><td class="emp-col">الإجمالي</td><td>${fmt(tPenalty)}</td><td></td></tr>
+        </tbody>
+      </table>
+      <div class="footer">
+        <div class="footer-block"><div class="footer-line"></div>المدير الإداري</div>
+        <div class="footer-block"><div class="footer-line"></div>الحسابات</div>
+        <div class="footer-block"><div class="footer-line"></div>شئون العاملين</div>
+      </div>
+      <div class="footer-meta"><span>صفحة 1 من 1</span><span>تاريخ الطباعة: ${today}</span></div>`;
+    openPrint(html, `كشف الجزاءات — ${section} — ${periodLabel}`, SHEET_CSS);
+  }
+
+  function printAdvancesSheet() {
+    const today = new Date().toLocaleDateString("ar-EG");
+    const nonShift = rows.filter((r: any) => !String(r.empCd).startsWith("shift_"));
+    const tAdv = nonShift.reduce((s: number, r: any) => s + Number(r.advancesDeduction ?? 0), 0);
+    const bodyRows = nonShift.map((r: any) => `
+      <tr>
+        <td class="emp-col">${r.fullName ?? r.empCd}</td>
+        <td>${fmt(r.advancesDeduction ?? 0)}</td>
+        <td class="sig-col"></td>
+      </tr>`).join("");
+    const html = `
+      <div class="top"><span>نظام مرتبات</span><span>عيون السروق للخدمات الطبية</span></div>
+      <h1>كشف السلف عن الفترة ${periodLabel}</h1>
+      <div class="dept">قسم ${section}</div>
+      <table>
+        <thead><tr><th>الاسم</th><th>السلف</th><th class="sig-col">التوقيع</th></tr></thead>
+        <tbody>
+          ${bodyRows}
+          <tr class="total-row"><td class="emp-col">الإجمالي</td><td>${fmt(tAdv)}</td><td></td></tr>
+        </tbody>
+      </table>
+      <div class="footer">
+        <div class="footer-block"><div class="footer-line"></div>المدير الإداري</div>
+        <div class="footer-block"><div class="footer-line"></div>الحسابات</div>
+        <div class="footer-block"><div class="footer-line"></div>شئون العاملين</div>
+      </div>
+      <div class="footer-meta"><span>صفحة 1 من 1</span><span>تاريخ الطباعة: ${today}</span></div>`;
+    openPrint(html, `كشف السلف — ${section} — ${periodLabel}`, SHEET_CSS);
+  }
+
+  function printLateSheet() {
+    const today = new Date().toLocaleDateString("ar-EG");
+    const nonShift = rows.filter((r: any) => !String(r.empCd).startsWith("shift_"));
+    const tLate = nonShift.reduce((s: number, r: any) => s + Number(r.lateDeduction ?? 0), 0);
+    const tEarly = nonShift.reduce((s: number, r: any) => s + Number(r.earlyLeaveDeduction ?? 0), 0);
+    const bodyRows = nonShift.map((r: any) => `
+      <tr>
+        <td class="emp-col">${r.fullName ?? r.empCd}</td>
+        <td>${r.lateMinutes ?? 0}</td>
+        <td>${fmt(r.lateDeduction ?? 0)}</td>
+        <td>${r.earlyLeaveMinutes ?? 0}</td>
+        <td>${fmt(r.earlyLeaveDeduction ?? 0)}</td>
+        <td class="sig-col"></td>
+      </tr>`).join("");
+    const html = `
+      <div class="top"><span>نظام مرتبات</span><span>عيون السروق للخدمات الطبية</span></div>
+      <h1>كشف التأخيرات عن الفترة ${periodLabel}</h1>
+      <div class="dept">قسم ${section}</div>
+      <table>
+        <thead><tr>
+          <th>الاسم</th>
+          <th>تأخير (د)</th><th>خصم تأخير</th>
+          <th>مبكر (د)</th><th>خصم مبكر</th>
+          <th class="sig-col">التوقيع</th>
+        </tr></thead>
+        <tbody>
+          ${bodyRows}
+          <tr class="total-row">
+            <td class="emp-col">الإجمالي</td>
+            <td></td><td>${fmt(tLate)}</td>
+            <td></td><td>${fmt(tEarly)}</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="footer">
+        <div class="footer-block"><div class="footer-line"></div>المدير الإداري</div>
+        <div class="footer-block"><div class="footer-line"></div>الحسابات</div>
+        <div class="footer-block"><div class="footer-line"></div>شئون العاملين</div>
+      </div>
+      <div class="footer-meta"><span>صفحة 1 من 1</span><span>تاريخ الطباعة: ${today}</span></div>`;
+    openPrint(html, `كشف التأخيرات — ${section} — ${periodLabel}`, SHEET_CSS);
+  }
+
+  function printInsuranceSheet() {
+    const today = new Date().toLocaleDateString("ar-EG");
+    const nonShift = rows.filter((r: any) => !String(r.empCd).startsWith("shift_"));
+    const tIns = nonShift.reduce((s: number, r: any) => s + Number(r.insuranceDeduction ?? 0), 0);
+    const bodyRows = nonShift.map((r: any) => `
+      <tr>
+        <td class="emp-col">${r.fullName ?? r.empCd}</td>
+        <td>${fmt(r.insuranceDeduction ?? 0)}</td>
+        <td class="sig-col"></td>
+      </tr>`).join("");
+    const html = `
+      <div class="top"><span>نظام مرتبات</span><span>عيون السروق للخدمات الطبية</span></div>
+      <h1>كشف التأمينات الاجتماعية عن الفترة ${periodLabel}</h1>
+      <div class="dept">قسم ${section}</div>
+      <table>
+        <thead><tr><th>الاسم</th><th>التأمينات</th><th class="sig-col">التوقيع</th></tr></thead>
+        <tbody>
+          ${bodyRows}
+          <tr class="total-row"><td class="emp-col">الإجمالي</td><td>${fmt(tIns)}</td><td></td></tr>
+        </tbody>
+      </table>
+      <div class="footer">
+        <div class="footer-block"><div class="footer-line"></div>المدير الإداري</div>
+        <div class="footer-block"><div class="footer-line"></div>الحسابات</div>
+        <div class="footer-block"><div class="footer-line"></div>شئون العاملين</div>
+      </div>
+      <div class="footer-meta"><span>صفحة 1 من 1</span><span>تاريخ الطباعة: ${today}</span></div>`;
+    openPrint(html, `كشف التأمينات — ${section} — ${periodLabel}`, SHEET_CSS);
+  }
+
   function printDay1Slips() {
     const html = allPrintRows
       .map((r: any, i: number) => {
@@ -978,58 +1112,67 @@ export default function PayrollReport() {
             <>
               {/* Desktop Print Actions */}
               <div className="hidden lg:flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={printSheet}
-                  className="gap-2"
-                >
+                <Button variant="outline" onClick={printSheet} className="gap-2">
                   <Printer size={15} /> كامل
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={printDay1Slips}
-                  className="gap-2"
-                >
+                <Button variant="outline" onClick={printDay1Slips} className="gap-2">
                   <Printer size={15} /> يوم 1
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={printDay10Slips}
-                  className="gap-2"
-                >
+                <Button variant="outline" onClick={printDay10Slips} className="gap-2">
                   <Printer size={15} /> يوم 10
                 </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="gap-2">
+                      <Printer size={15} /> كشوف
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={printPenaltiesSheet} className="gap-2 justify-start cursor-pointer">
+                      <Printer size={14} /> جزاءات
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={printAdvancesSheet} className="gap-2 justify-start cursor-pointer">
+                      <Printer size={14} /> سلف
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={printLateSheet} className="gap-2 justify-start cursor-pointer">
+                      <Printer size={14} /> تأخيرات
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={printInsuranceSheet} className="gap-2 justify-start cursor-pointer">
+                      <Printer size={14} /> تأمينات
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               {/* Mobile Print Actions Dropdown */}
               <div className="lg:hidden w-full sm:w-auto">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="gap-2 w-full justify-center"
-                    >
+                    <Button variant="outline" className="gap-2 w-full justify-center">
                       <Printer size={15} /> طباعة التقارير
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem
-                      onClick={printSheet}
-                      className="gap-2 justify-start cursor-pointer"
-                    >
+                    <DropdownMenuItem onClick={printSheet} className="gap-2 justify-start cursor-pointer">
                       <Printer size={14} /> كامل
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={printDay1Slips}
-                      className="gap-2 justify-start cursor-pointer"
-                    >
+                    <DropdownMenuItem onClick={printDay1Slips} className="gap-2 justify-start cursor-pointer">
                       <Printer size={14} /> يوم 1
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={printDay10Slips}
-                      className="gap-2 justify-start cursor-pointer"
-                    >
+                    <DropdownMenuItem onClick={printDay10Slips} className="gap-2 justify-start cursor-pointer">
                       <Printer size={14} /> يوم 10
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={printPenaltiesSheet} className="gap-2 justify-start cursor-pointer">
+                      <Printer size={14} /> جزاءات
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={printAdvancesSheet} className="gap-2 justify-start cursor-pointer">
+                      <Printer size={14} /> سلف
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={printLateSheet} className="gap-2 justify-start cursor-pointer">
+                      <Printer size={14} /> تأخيرات
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={printInsuranceSheet} className="gap-2 justify-start cursor-pointer">
+                      <Printer size={14} /> تأمينات
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
