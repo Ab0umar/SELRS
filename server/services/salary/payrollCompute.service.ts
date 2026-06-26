@@ -261,6 +261,7 @@ export class PayrollComputeService {
           lateMinutes: attendanceDaily.lateMinutes,
           earlyLeaveMin: attendanceDaily.earlyLeaveMin,
           overtimeMinutes: attendanceDaily.overtimeMinutes,
+          leaveType: attendanceDaily.leaveType,
         })
         .from(attendanceDaily)
         .where(
@@ -696,13 +697,15 @@ export class PayrollComputeService {
         lateMinutes = empDailyRows.reduce((s: any, d: any) => s + (d.lateMinutes ?? 0), 0);
         earlyLeaveMinutes = empDailyRows.reduce((s: any, d: any) => s + (d.earlyLeaveMin ?? 0), 0);
         overtimeMinutes = empDailyRows.reduce((s: any, d: any) => s + (d.overtimeMinutes ?? 0), 0);
-        leaveDays = empDailyRows.filter((d: any) => d.status === "leave").length;
+        leaveDays = empDailyRows.filter((d: any) => d.status === "leave" && d.leaveType !== "sick").length;
       } else {
         rawAbsentDays = report?.absentDays ?? 0;
         lateMinutes = report?.totalLateMins ?? 0;
         earlyLeaveMinutes = report?.totalEarlyLeaveMins ?? 0;
         overtimeMinutes = report?.totalOTMins ?? 0;
-        leaveDays = report?.leaveDays ?? 0;
+        // Exclude sick leave from leaveDays using dailyRows (always loaded)
+        const empDailyRowsForLeave = dailyRows.filter((d: any) => d.empCd === emp.empCd);
+        leaveDays = empDailyRowsForLeave.filter((d: any) => d.status === "leave" && d.leaveType !== "sick").length;
       }
       const absentDays = Math.max(0, rawAbsentDays - holidayWorkingDaysCount);
 

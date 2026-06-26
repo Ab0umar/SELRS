@@ -1524,6 +1524,7 @@ export const attendanceDaily = mysqlTable(
       "partial",
       "missing_checkout",
     ]).notNull(),
+    leaveType: varchar("leave_type", { length: 16 }),
     insideNow: boolean("inside_now").default(false).notNull(),
     computedAt: timestamp("computedAt").notNull(),
   },

@@ -53,6 +53,7 @@ export class PermissionAdjustmentService {
           .update(attendanceDaily)
           .set({
             status: "leave",
+            leaveType: (leave as any).type ?? null,
             lateMinutes: 0,
             earlyLeaveMin: 0,
           })
