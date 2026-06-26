@@ -14,7 +14,7 @@ const DEFAULT_TO = (() => {
   return `${isoMonthStr(last)}-${String(last.getDate()).padStart(2, "0")}`;
 })();
 
-type Tab = "penalties" | "advances" | "lates" | "insurance";
+type Tab = "penalties" | "advances" | "lates" | "earlyleave" | "insurance";
 
 const PRINT_CSS = `
   @page { size: A4 landscape; margin: 10mm; }
@@ -137,6 +137,19 @@ export default function SalaryPenalties() {
   }
   const lateEmpRows = Object.values(lateByEmp).sort((a, b) => a.empName.localeCompare(b.empName, "ar"));
 
+  // ── Early Leave Days ───────────────────────────────────────────────────────
+  const earlyLeaveQ = (trpc as any).salary.listEarlyLeaveDays.useQuery({ fromDate, toDate });
+  const earlyLeaveRaw: any[] = earlyLeaveQ.data ?? [];
+
+  const earlyByEmp: Record<string, { empCd: string; empName: string; department: string; days: { workDate: string; earlyLeaveMin: number }[] }> = {};
+  for (const r of earlyLeaveRaw) {
+    if (!earlyByEmp[r.empCd]) {
+      earlyByEmp[r.empCd] = { empCd: r.empCd, empName: r.empName ?? r.empCd, department: r.department ?? "—", days: [] };
+    }
+    earlyByEmp[r.empCd].days.push({ workDate: r.workDate, earlyLeaveMin: Number(r.earlyLeaveMin) });
+  }
+  const earlyEmpRows = Object.values(earlyByEmp).sort((a, b) => a.empName.localeCompare(b.empName, "ar"));
+
   // ── Insurance (latest salaryBasics per employee — not month-filtered) ───────
   const basicsQ = (trpc as any).salary.listBasics.useQuery();
   const basics: any[] = basicsQ.data ?? [];
@@ -251,6 +264,31 @@ export default function SalaryPenalties() {
         </tbody>
       </table>`;
     openTabPrint(html, `تأخيرات — ${periodLabel}`);
+  }
+
+  function printEarlyLeaveTab() {
+    const bodyRows = earlyEmpRows.map((emp) => {
+      return emp.days.map((d) => `
+        <tr>
+          <td class="emp-col">${emp.empName}</td>
+          <td>${emp.department}</td>
+          <td>${d.workDate}</td>
+          <td>${d.earlyLeaveMin}</td>
+        </tr>`).join("");
+    }).join("");
+    const totalMinsAll = earlyEmpRows.reduce((s, emp) => s + emp.days.reduce((ss, d) => ss + d.earlyLeaveMin, 0), 0);
+    const html = `
+      <h1>كشف الخروج المبكر — ${periodLabel}</h1>
+      <table>
+        <thead><tr>
+          <th>الموظف</th><th>القسم</th><th>التاريخ</th><th>مدة الخروج المبكر (دقيقة)</th>
+        </tr></thead>
+        <tbody>
+          ${bodyRows}
+          <tr class="total-row"><td colspan="3" class="emp-col">الإجمالي</td><td>${totalMinsAll} د</td></tr>
+        </tbody>
+      </table>`;
+    openTabPrint(html, `خروج مبكر — ${periodLabel}`);
   }
 
   function printInsuranceTab() {
@@ -421,6 +459,7 @@ export default function SalaryPenalties() {
     { key: "penalties", label: "جزاءات" },
     { key: "advances", label: "سلف" },
     { key: "lates", label: "تأخيرات" },
+    { key: "earlyleave", label: "خروج مبكر" },
     { key: "insurance", label: "تأمينات" },
   ];
 
@@ -454,7 +493,7 @@ export default function SalaryPenalties() {
                 onChange={(e) => { setToDate(e.target.value); resetForm(); }}
                 className="rounded-md border border-border bg-background px-3 py-2 text-sm"
               />
-              {tab !== "lates" && (
+              {tab !== "lates" && tab !== "earlyleave" && (
                 <>
                   <Button onClick={() => setShowForm(!showForm)} className="gap-2">
                     <Plus size={16} />
@@ -492,7 +531,7 @@ export default function SalaryPenalties() {
       </div>
 
       {/* Add form — penalties & advances only */}
-      {showForm && tab !== "insurance" && (
+      {showForm && tab !== "insurance" && tab !== "lates" && tab !== "earlyleave" && (
         <section className="rounded-xl border border-border bg-background">
           <div className="border-b border-border px-4 py-3">
             <h3 className="text-base font-semibold">
@@ -859,6 +898,95 @@ export default function SalaryPenalties() {
                               <tr key={d.workDate} className="border-t border-border/30 hover:bg-muted/10">
                                 <td className="px-3 py-2 font-medium">{d.workDate}</td>
                                 <td className="px-3 py-2 text-center text-destructive font-bold">{d.lateMinutes}</td>
+                              </tr>
+                            ))}
+                            <tr className="border-t border-border bg-muted/30 font-bold text-xs">
+                              <td className="px-3 py-2">الإجمالي: {totalDays} يوم</td>
+                              <td className="px-3 py-2 text-center text-destructive">
+                                {totalMins} د ({hours > 0 ? `${hours}س ` : ""}{mins}د)
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Early Leave tab */}
+      {tab === "earlyleave" && (
+        <section className="rounded-xl border border-border bg-background">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <div>
+              <h3 className="text-base font-semibold">الخروج المبكر — {periodLabel}</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">أيام الخروج المبكر لكل موظف مع مدة الخروج يومياً</p>
+            </div>
+            {earlyEmpRows.length > 0 && (
+              <Button variant="outline" size="sm" onClick={printEarlyLeaveTab} className="gap-1.5 h-8 text-xs">
+                <Printer size={13} /> طباعة
+              </Button>
+            )}
+          </div>
+
+          {earlyEmpRows.length === 0 ? (
+            <div className="px-4 py-8 text-center text-muted-foreground text-sm">
+              لا يوجد خروج مبكر هذا الشهر
+            </div>
+          ) : (
+            <div className="divide-y divide-border/60">
+              {earlyEmpRows.map((emp) => {
+                const totalDays = emp.days.length;
+                const totalMins = emp.days.reduce((s, d) => s + d.earlyLeaveMin, 0);
+                const hours = Math.floor(totalMins / 60);
+                const mins = totalMins % 60;
+                const isExpanded = !!expandedRows["el_" + emp.empCd];
+                return (
+                  <div key={emp.empCd} className="bg-card">
+                    <div
+                      className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/20"
+                      onClick={() => toggleRow("el_" + emp.empCd)}
+                    >
+                      <div>
+                        <div className="font-semibold text-sm">{emp.empName}</div>
+                        <div className="text-xs text-muted-foreground">{emp.department}</div>
+                      </div>
+                      <div className="flex items-center gap-6">
+                        <div className="text-center">
+                          <div className="text-[10px] text-muted-foreground">عدد الأيام</div>
+                          <div className="font-bold text-destructive text-sm">{totalDays}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-[10px] text-muted-foreground">إجمالي الخروج المبكر</div>
+                          <div className="font-bold text-destructive text-sm">
+                            {hours > 0 ? `${hours}س ` : ""}{mins}د
+                          </div>
+                        </div>
+                        {isExpanded ? (
+                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </div>
+                    </div>
+                    {isExpanded && (
+                      <div className="px-4 pb-4">
+                        <table className="w-full text-sm border border-border/40 rounded-lg overflow-hidden">
+                          <thead>
+                            <tr className="bg-muted/30 text-xs">
+                              <th className="px-3 py-2 text-right text-muted-foreground font-medium">التاريخ</th>
+                              <th className="px-3 py-2 text-center text-muted-foreground font-medium">مدة الخروج المبكر (دقيقة)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {emp.days.map((d) => (
+                              <tr key={d.workDate} className="border-t border-border/30 hover:bg-muted/10">
+                                <td className="px-3 py-2 font-medium">{d.workDate}</td>
+                                <td className="px-3 py-2 text-center text-destructive font-bold">{d.earlyLeaveMin}</td>
                               </tr>
                             ))}
                             <tr className="border-t border-border bg-muted/30 font-bold text-xs">
