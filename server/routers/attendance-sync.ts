@@ -152,6 +152,27 @@ export const attendanceSyncRoutes = {
       .limit(20);
   }),
 
+  admsStatus: makeAttProcedure("/attendance/admin/device").query(async () => {
+    const db = await getDb();
+    if (!db) return { lastPunch: null, punchCount: 0, lastDeviceId: null, recentPunches: [] };
+    const [row] = await db
+      .select({ lastPunch: max(attendancePunches.punchAt), total: count() })
+      .from(attendancePunches)
+      .where(eq(attendancePunches.source, "tcp"));
+    const recent = await db
+      .select({ empCd: attendancePunches.empCd, punchAt: attendancePunches.punchAt, direction: attendancePunches.direction, deviceId: attendancePunches.deviceId })
+      .from(attendancePunches)
+      .where(eq(attendancePunches.source, "tcp"))
+      .orderBy(desc(attendancePunches.punchAt))
+      .limit(10);
+    return {
+      lastPunch: row?.lastPunch ?? null,
+      punchCount: row?.total ?? 0,
+      lastDeviceId: recent[0]?.deviceId ?? null,
+      recentPunches: recent,
+    };
+  }),
+
   connectDevice: makeAttWriteProcedure("/attendance/admin/device").mutation(async () => {
     const connected = await DeviceSettingsService.connectDevice();
     AuditLogService.log({

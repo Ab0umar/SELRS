@@ -40,6 +40,7 @@ export default function DeviceSettings() {
   const syncZK40 = tRPC.attendance.syncFromZK40.useMutation();
   const pushEmployeesZK40 = tRPC.attendance.pushEmployeesToZK40.useMutation();
   const zk40Logs = tRPC.attendance.zk40SyncLogs.useQuery();
+  const admsStatus = tRPC.attendance.admsStatus.useQuery(undefined, { refetchInterval: 15000 });
   const materializeDaily = tRPC.attendance.materializeDaily.useMutation();
   const bootstrapShifts = tRPC.attendance.bootstrapShifts.useMutation();
 
@@ -330,10 +331,86 @@ export default function DeviceSettings() {
         </CardContent>
       </Card>
 
+      {/* K40 Pro ADMS Status Card */}
+      {(() => {
+        const adms = admsStatus.data;
+        const lastPunchDate = adms?.lastPunch ? new Date(adms.lastPunch) : null;
+        const minutesSincePunch = lastPunchDate ? (Date.now() - lastPunchDate.getTime()) / 60000 : Infinity;
+        const isOnline = minutesSincePunch < 60; // consider online if punched within last hour
+        return (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  {isOnline ? (
+                    <><Wifi className="w-5 h-5 text-success" />K40 Pro — متصل</>
+                  ) : (
+                    <><WifiOff className="w-5 h-5 text-muted-foreground" />K40 Pro — في انتظار البصمة</>
+                  )}
+                </CardTitle>
+                <Button variant="outline" size="sm" onClick={() => admsStatus.refetch()} disabled={admsStatus.isRefetching}>
+                  <RefreshCw className={`w-4 h-4 ${admsStatus.isRefetching ? "animate-spin" : ""}`} />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">آخر بصمة (ADMS)</p>
+                  <p className="font-mono">{lastPunchDate ? lastPunchDate.toLocaleString("ar-EG") : "لا يوجد"}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">إجمالي البصمات (ADMS)</p>
+                  <p className="font-mono">{adms?.punchCount ?? 0}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">كود الجهاز</p>
+                  <p className="font-mono">{adms?.lastDeviceId ?? "—"}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">البروتوكول</p>
+                  <p className="font-mono text-xs">HTTP ADMS Push</p>
+                </div>
+              </div>
+
+              {adms?.recentPunches && adms.recentPunches.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium mb-2">آخر البصمات</p>
+                  <div className="rounded-md border overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b bg-muted/50">
+                          <th className="px-2 py-1.5 text-right font-medium">الموظف</th>
+                          <th className="px-2 py-1.5 text-right font-medium">الوقت</th>
+                          <th className="px-2 py-1.5 text-center font-medium">الاتجاه</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {adms.recentPunches.map((p: any, i: number) => (
+                          <tr key={i} className="border-b last:border-0 hover:bg-muted/30">
+                            <td className="px-2 py-1.5 font-mono">{p.empCd}</td>
+                            <td className="px-2 py-1.5 font-mono whitespace-nowrap">{new Date(p.punchAt).toLocaleString("ar-EG", { dateStyle: "short", timeStyle: "short" })}</td>
+                            <td className="px-2 py-1.5 text-center">
+                              <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${p.direction === "in" ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
+                                {p.direction === "in" ? "دخول" : "خروج"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       {/* ZK40 Pro Device Card */}
       <Card>
         <CardHeader>
-          <CardTitle>جهاز ZK40 Pro (بصمة بعيدة)</CardTitle>
+          <CardTitle>إعداد K40 Pro (ADMS)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
