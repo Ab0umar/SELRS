@@ -401,6 +401,127 @@ function EmployeeSettingsGrid() {
   );
 }
 
+interface LateTier {
+  minMin: number;
+  maxMin: number | null;
+  type?: "linear";
+  dayFraction?: number;
+}
+
+const DEFAULT_LATE_TIERS: LateTier[] = [
+  { minMin: 1, maxMin: 14, type: "linear" },
+  { minMin: 15, maxMin: 29, dayFraction: 0.25 },
+  { minMin: 30, maxMin: 59, dayFraction: 0.5 },
+  { minMin: 60, maxMin: 119, dayFraction: 1 },
+  { minMin: 120, maxMin: null, dayFraction: 2 },
+];
+
+function tierLabel(t: LateTier): string {
+  if (t.type === "linear") return "خطي (دقيقة × معدل)";
+  if (t.dayFraction === 0.25) return "ربع يوم (¼)";
+  if (t.dayFraction === 0.5) return "نصف يوم (½)";
+  if (t.dayFraction === 1) return "يوم كامل (1)";
+  if (t.dayFraction === 2) return "يومان (2)";
+  return String(t.dayFraction ?? "");
+}
+
+function LateTiersCard() {
+  const tiersQ = (trpc as any).salary.getLateTiers.useQuery();
+  const setTiersMut = (trpc as any).salary.setLateTiers.useMutation({
+    onSuccess: () => { tiersQ.refetch(); toast.success("تم حفظ شرائح التأخير بنجاح"); },
+    onError: (err: any) => toast.error(err.message ?? "خطأ في حفظ الشرائح"),
+  });
+  const [tiers, setTiers] = useState<LateTier[]>(DEFAULT_LATE_TIERS);
+
+  useEffect(() => {
+    if (tiersQ.data) setTiers(tiersQ.data);
+  }, [tiersQ.data]);
+
+  function setTierField(idx: number, field: keyof LateTier, val: string | null) {
+    setTiers((prev) => {
+      const next = [...prev];
+      const t = { ...next[idx] };
+      if (field === "maxMin") {
+        t.maxMin = val === null || val === "" ? null : parseInt(val);
+      } else if (field === "minMin") {
+        t.minMin = parseInt(val as string) || 0;
+      } else if (field === "dayFraction") {
+        t.dayFraction = parseFloat(val as string);
+      }
+      next[idx] = t;
+      return next;
+    });
+  }
+
+  function save() {
+    setTiersMut.mutate(tiers);
+  }
+
+  return (
+    <Card className="border-border/60 bg-card/30 backdrop-blur-sm shadow-sm">
+      <CardHeader className="pb-4">
+        <div className="flex items-center gap-2">
+          <AlertCircle className="h-5 w-5 text-primary" />
+          <div>
+            <CardTitle className="text-sm font-bold">شرائح خصم التأخير (لكل يوم)</CardTitle>
+            <CardDescription className="text-[11px]">
+              تحديد الخصم المناسب لكل نطاق دقائق تأخير يومياً. الخروج المبكر يظل خطياً دائماً.
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {tiersQ.isLoading ? (
+          <Skeleton className="h-20 w-full animate-pulse" />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-right text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-border bg-muted/30 text-muted-foreground">
+                  <th className="px-3 py-2 font-semibold">من (دقيقة)</th>
+                  <th className="px-3 py-2 font-semibold">إلى (دقيقة)</th>
+                  <th className="px-3 py-2 font-semibold">الخصم</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tiers.map((t, i) => (
+                  <tr key={i} className="border-b border-border/30 hover:bg-muted/10">
+                    <td className="px-3 py-2">
+                      <input
+                        type="number"
+                        min={0}
+                        value={t.minMin}
+                        onChange={(e) => setTierField(i, "minMin", e.target.value)}
+                        className="w-20 rounded border border-input bg-background px-2 py-1 text-xs text-right outline-none focus:border-primary/50"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="number"
+                        min={0}
+                        value={t.maxMin ?? ""}
+                        placeholder="∞"
+                        onChange={(e) => setTierField(i, "maxMin", e.target.value)}
+                        className="w-20 rounded border border-input bg-background px-2 py-1 text-xs text-right outline-none focus:border-primary/50"
+                      />
+                    </td>
+                    <td className="px-3 py-2 font-semibold text-primary">{tierLabel(t)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <div className="flex justify-end border-t border-border/40 pt-3">
+          <Button onClick={save} disabled={setTiersMut.isPending || tiersQ.isLoading} size="sm" className="h-8 text-xs font-semibold">
+            {setTiersMut.isPending ? "جاري الحفظ…" : "حفظ الشرائح"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function SalarySettings() {
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -413,6 +534,7 @@ export default function SalarySettings() {
       </div>
 
       <GlobalRates />
+      <LateTiersCard />
       <EmployeeSettingsGrid />
     </div>
   );

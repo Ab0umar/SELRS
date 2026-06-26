@@ -897,6 +897,38 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
+  getLateTiers: makeSalaryProcedure("/salary").query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+    const rows = await db.select().from(salaryConfig).where(eq(salaryConfig.key, "salary_late_tiers"));
+    if (rows.length && rows[0].value) {
+      try { return JSON.parse(rows[0].value as string); } catch {}
+    }
+    return [
+      { minMin: 1, maxMin: 14, type: "linear" },
+      { minMin: 15, maxMin: 29, dayFraction: 0.25 },
+      { minMin: 30, maxMin: 59, dayFraction: 0.5 },
+      { minMin: 60, maxMin: 119, dayFraction: 1 },
+      { minMin: 120, maxMin: null, dayFraction: 2 },
+    ];
+  }),
+
+  setLateTiers: makeSalaryWriteProcedure("/salary")
+    .input(z.array(z.object({
+      minMin: z.number().int().min(0),
+      maxMin: z.number().int().min(0).nullable(),
+      type: z.literal("linear").optional(),
+      dayFraction: z.number().min(0).optional(),
+    })))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db.insert(salaryConfig)
+        .values({ key: "salary_late_tiers", value: JSON.stringify(input) })
+        .onDuplicateKeyUpdate({ set: { value: JSON.stringify(input) } });
+      return { success: true };
+    }),
+
   listEmployees: makeSalaryProcedure("/salary").query(async () => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");

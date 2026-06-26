@@ -95,6 +95,41 @@ async function loadAttendanceRates(
   };
 }
 
+interface LateTier {
+  minMin: number;
+  maxMin: number | null;
+  type?: "linear";
+  dayFraction?: number;
+}
+
+const DEFAULT_LATE_TIERS: LateTier[] = [
+  { minMin: 1, maxMin: 14, type: "linear" },
+  { minMin: 15, maxMin: 29, dayFraction: 0.25 },
+  { minMin: 30, maxMin: 59, dayFraction: 0.5 },
+  { minMin: 60, maxMin: 119, dayFraction: 1 },
+  { minMin: 120, maxMin: null, dayFraction: 2 },
+];
+
+async function loadLateTiers(
+  db: Awaited<ReturnType<typeof getDb>>,
+): Promise<LateTier[]> {
+  const rows = await db!.select().from(salaryConfig).where(eq(salaryConfig.key, "salary_late_tiers"));
+  if (rows.length && rows[0].value) {
+    try { return JSON.parse(rows[0].value as string) as LateTier[]; } catch {}
+  }
+  return DEFAULT_LATE_TIERS;
+}
+
+function calcLateDayTier(lateMinutes: number, dailyRate: number, minuteRate: number, tiers: LateTier[]): number {
+  if (lateMinutes <= 0) return 0;
+  const tier = tiers.find(
+    (t) => lateMinutes >= t.minMin && (t.maxMin === null || lateMinutes <= t.maxMin),
+  );
+  if (!tier) return round2(lateMinutes * minuteRate);
+  if (tier.type === "linear") return round2(lateMinutes * minuteRate);
+  return round2((tier.dayFraction ?? 0) * dailyRate);
+}
+
 // Leave multiplier for exam/pentacam commissions (separate rule the user specified)
 function leaveMultiplier(leaveDays: number): number {
   if (leaveDays <= 3) return 1.0;
@@ -173,6 +208,7 @@ export class PayrollComputeService {
     const isMarkaz = section === "مركز";
 
     const acRates = await loadAttendanceRates(db);
+    const lateTiers = await loadLateTiers(db);
 
     const [
       poolRows,
@@ -651,7 +687,16 @@ export class PayrollComputeService {
       const overtimeRate = minuteRate * 2; // ساعة الإضافي = ضعف المعدل العادي
       const absentDeduction = round2(absentDays * dailyRate);
       const missingCheckoutDeduction = round2(missingCheckoutDays * dailyRate * 0.25);
-      const lateDeduction = round2(lateMinutes * minuteRate);
+
+      // Per-day late tier deduction — always use daily rows for tier classification
+      const empDailyRowsForLate = dailyRows.filter((d: any) => d.empCd === emp.empCd);
+      const lateDeduction = round2(
+        empDailyRowsForLate.reduce((sum: number, d: any) => {
+          const mins = d.lateMinutes ?? 0;
+          return sum + calcLateDayTier(mins, dailyRate, minuteRate, lateTiers);
+        }, 0),
+      );
+
       const earlyLeaveDeduction = round2(earlyLeaveMinutes * minuteRate);
       const overtimePay = round2(overtimeMinutes * overtimeRate);
       const penaltyDeduction = round2(
