@@ -716,7 +716,7 @@ export default function PayrollReport() {
 
   function printSupervisionSheet() {
     const today = new Date().toLocaleDateString("ar-EG");
-    const supRows = regularRows.filter((r: any) => !String(r.empCd).startsWith("shift_"));
+    const supRows = [...regularRows, ...shiftRows];
     const totalBonus = supRows.reduce(
       (s: number, r: any) => s + Number(bonusEdits[r.empCd] ?? r.supervisionBonus ?? 0),
       0,
@@ -759,8 +759,7 @@ export default function PayrollReport() {
   }
 
   function printSupervisionSlips() {
-    const supRows = regularRows
-      .filter((r: any) => !String(r.empCd).startsWith("shift_"))
+    const supRows = [...regularRows, ...shiftRows]
       .filter((r: any) => Number(bonusEdits[r.empCd] ?? r.supervisionBonus ?? 0) > 0);
     if (!supRows.length) { toast.info("لا توجد مكافآت إشراف للطباعة"); return; }
     const html = supRows
@@ -3150,7 +3149,7 @@ export default function PayrollReport() {
 
       {/* ── Supervision Bonus Tab ── */}
       {section === "مركز" && activeTab === "supervision" && (() => {
-        const supRows = regularRows.filter((r: any) => !String(r.empCd).startsWith("shift_"));
+        const supRows = [...regularRows, ...shiftRows];
         const totalBonus = supRows.reduce((s: number, r: any) => s + Number(bonusEdits[r.empCd] ?? r.supervisionBonus ?? 0), 0);
         return (
           <section className="rounded-xl border border-border bg-background overflow-hidden">
