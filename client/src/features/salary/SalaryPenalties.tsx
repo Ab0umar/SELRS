@@ -130,32 +130,31 @@ export default function SalaryPenalties() {
     { enabled: showAccImport },
   );
   const accAdvRows: any[] = accAdvQ.data ?? [];
-  // per-row: enabled flag + editable amount
-  const [importState, setImportState] = useState<Record<number, { enabled: boolean; amount: string }>>({});
+  // per-emp: enabled flag + editable amount (keyed by empCd)
+  const [importState, setImportState] = useState<Record<string, { enabled: boolean; amount: string }>>({});
 
   function initImportState(rows: any[]) {
-    const state: Record<number, { enabled: boolean; amount: string }> = {};
+    const state: Record<string, { enabled: boolean; amount: string }> = {};
     for (const r of rows) {
-      if (r.net > 0) state[r.id] = { enabled: true, amount: String(r.net) };
-      else state[r.id] = { enabled: false, amount: String(r.advance) };
+      state[r.empCd] = { enabled: r.net > 0, amount: String(r.net > 0 ? r.net : r.totalAdvance) };
     }
     setImportState(state);
   }
 
-  const [importingId, setImportingId] = useState<number | null>(null);
+  const [importingId, setImportingId] = useState<string | null>(null);
 
   async function importSelected() {
-    const toImport = accAdvRows.filter((r: any) => importState[r.id]?.enabled);
+    const toImport = accAdvRows.filter((r: any) => importState[r.empCd]?.enabled);
     for (const r of toImport) {
-      const amount = parseFloat(importState[r.id]?.amount ?? "");
+      const amount = parseFloat(importState[r.empCd]?.amount ?? "");
       if (!amount || amount <= 0) continue;
-      setImportingId(r.id);
+      setImportingId(r.empCd);
       await addAdvanceMut.mutateAsync({
         empCd: r.empCd,
         year,
         month,
         amount,
-        reason: `من المحاسبة — ${r.employee} — ${r.txDate}`,
+        reason: `من المحاسبة — ${r.empName}`,
       });
     }
     setImportingId(null);
@@ -941,22 +940,22 @@ export default function SalaryPenalties() {
                       <thead>
                         <tr className="bg-muted/30 text-xs">
                           <th className="px-3 py-2 text-right font-medium text-muted-foreground">الموظف</th>
-                          <th className="px-3 py-2 text-center font-medium text-muted-foreground">التاريخ</th>
-                          <th className="px-3 py-2 text-center font-medium text-muted-foreground">السلفة</th>
-                          <th className="px-3 py-2 text-center font-medium text-muted-foreground">الصافي</th>
+                          <th className="px-3 py-2 text-center font-medium text-muted-foreground">إجمالي السلف</th>
+                          <th className="px-3 py-2 text-center font-medium text-muted-foreground">إجمالي السداد</th>
+                          <th className="px-3 py-2 text-center font-medium text-muted-foreground">المتبقي</th>
                           <th className="px-3 py-2 text-center font-medium text-muted-foreground">مبلغ الخصم</th>
                           <th className="px-3 py-2 text-center font-medium text-muted-foreground">الخصم</th>
                         </tr>
                       </thead>
                       <tbody>
                         {accAdvRows.map((r: any) => {
-                          const st = importState[r.id] ?? { enabled: false, amount: String(r.net > 0 ? r.net : r.advance) };
+                          const st = importState[r.empCd] ?? { enabled: false, amount: String(r.net) };
                           return (
-                            <tr key={r.id} className={`border-t border-border/30 ${st.enabled ? "" : "opacity-50"}`}>
-                              <td className="px-3 py-2 font-medium">{r.empName ?? r.employee}</td>
-                              <td className="px-3 py-2 text-center text-muted-foreground">{String(r.txDate).slice(0, 10)}</td>
-                              <td className="px-3 py-2 text-center">{Number(r.advance).toLocaleString("ar-EG")} ج.م</td>
-                              <td className="px-3 py-2 text-center">{Number(r.net).toLocaleString("ar-EG")} ج.م</td>
+                            <tr key={r.empCd} className={`border-t border-border/30 ${st.enabled ? "" : "opacity-50"}`}>
+                              <td className="px-3 py-2 font-medium">{r.empName}</td>
+                              <td className="px-3 py-2 text-center text-warning">{Number(r.totalAdvance).toLocaleString("ar-EG")} ج.م</td>
+                              <td className="px-3 py-2 text-center text-success">{Number(r.totalRepaid).toLocaleString("ar-EG")} ج.م</td>
+                              <td className="px-3 py-2 text-center font-bold text-destructive">{Number(r.net).toLocaleString("ar-EG")} ج.م</td>
                               <td className="px-3 py-2 text-center">
                                 <input
                                   type="number"
@@ -964,14 +963,14 @@ export default function SalaryPenalties() {
                                   step="0.01"
                                   value={st.amount}
                                   disabled={!st.enabled}
-                                  onChange={(e) => setImportState((prev) => ({ ...prev, [r.id]: { ...st, amount: e.target.value } }))}
+                                  onChange={(e) => setImportState((prev) => ({ ...prev, [r.empCd]: { ...st, amount: e.target.value } }))}
                                   className="w-24 rounded border border-border bg-background px-2 py-0.5 text-sm outline-none focus:border-primary disabled:opacity-40"
                                 />
                               </td>
                               <td className="px-3 py-2 text-center">
                                 <button
                                   type="button"
-                                  onClick={() => setImportState((prev) => ({ ...prev, [r.id]: { ...st, enabled: !st.enabled } }))}
+                                  onClick={() => setImportState((prev) => ({ ...prev, [r.empCd]: { ...st, enabled: !st.enabled } }))}
                                   className={`text-[11px] font-bold px-2 py-0.5 rounded border transition-colors ${st.enabled ? "border-destructive text-destructive hover:bg-destructive/10" : "border-green-500 text-green-600 hover:bg-green-50"}`}
                                 >
                                   {st.enabled ? "إلغاء الخصم" : "تفعيل الخصم"}

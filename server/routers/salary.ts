@@ -1028,24 +1028,27 @@ export const salaryRouter = router({
       if (!db) throw new Error("DB unavailable");
       const [rows] = (await db.execute(
         sql.raw(
-          `SELECT a.id, a.txDate, a.employee, a.emp_cd, a.advance, a.repayment, a.notes,
-                  e.full_name AS fullName
+          `SELECT a.emp_cd,
+                  MAX(a.employee) AS employee,
+                  e.full_name AS fullName,
+                  COALESCE(SUM(a.advance), 0) AS totalAdvance,
+                  COALESCE(SUM(a.repayment), 0) AS totalRepaid,
+                  COALESCE(SUM(a.advance), 0) - COALESCE(SUM(a.repayment), 0) AS net
            FROM accAdvances a
            LEFT JOIN attendance_employees e ON e.emp_cd = a.emp_cd
            WHERE a.emp_cd IS NOT NULL AND a.emp_cd != ''
-           ORDER BY a.txDate DESC`,
+           GROUP BY a.emp_cd, e.full_name
+           HAVING net > 0
+           ORDER BY e.full_name, MAX(a.employee)`,
         ),
       )) as any;
       return (rows as any[]).map((r: any) => ({
-        id: Number(r.id),
-        txDate: String(r.txDate ?? "").slice(0, 10),
-        employee: String(r.employee ?? ""),
         empCd: String(r.emp_cd ?? ""),
+        employee: String(r.employee ?? ""),
         empName: r.fullName ? String(r.fullName) : String(r.employee ?? ""),
-        advance: r.advance != null ? Number(r.advance) : 0,
-        repayment: r.repayment != null ? Number(r.repayment) : 0,
-        net: (r.advance != null ? Number(r.advance) : 0) - (r.repayment != null ? Number(r.repayment) : 0),
-        notes: r.notes ? String(r.notes) : null,
+        totalAdvance: Number(r.totalAdvance ?? 0),
+        totalRepaid: Number(r.totalRepaid ?? 0),
+        net: Number(r.net ?? 0),
       }));
     }),
 
