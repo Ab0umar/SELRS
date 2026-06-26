@@ -126,6 +126,8 @@ export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
             mode="single"
             selected={selectedDate}
             captionLayout="dropdown"
+            startMonth={new Date(1900, 0)}
+            endMonth={new Date(2099, 11)}
             disabled={
               minDate || maxDate
                 ? ({ before: minDate, after: maxDate } as any)
