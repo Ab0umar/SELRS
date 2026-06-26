@@ -1021,6 +1021,35 @@ export const salaryRouter = router({
       });
     }),
 
+  listAccAdvancesLinked: makeSalaryProcedure("/salary")
+    .input(z.object({ fromDate: z.string(), toDate: z.string() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const [rows] = (await db.execute(
+        sql.raw(
+          `SELECT a.id, a.txDate, a.employee, a.emp_cd, a.advance, a.repayment, a.notes,
+                  e.fullName
+           FROM accAdvances a
+           LEFT JOIN attendance_employees e ON e.emp_cd = a.emp_cd
+           WHERE a.emp_cd IS NOT NULL AND a.emp_cd != ''
+             AND a.txDate >= '${input.fromDate}' AND a.txDate <= '${input.toDate}'
+           ORDER BY a.txDate DESC`,
+        ),
+      )) as any;
+      return (rows as any[]).map((r: any) => ({
+        id: Number(r.id),
+        txDate: String(r.txDate ?? "").slice(0, 10),
+        employee: String(r.employee ?? ""),
+        empCd: String(r.emp_cd ?? ""),
+        empName: r.fullName ? String(r.fullName) : String(r.employee ?? ""),
+        advance: r.advance != null ? Number(r.advance) : 0,
+        repayment: r.repayment != null ? Number(r.repayment) : 0,
+        net: (r.advance != null ? Number(r.advance) : 0) - (r.repayment != null ? Number(r.repayment) : 0),
+        notes: r.notes ? String(r.notes) : null,
+      }));
+    }),
+
   listMissingCheckoutExclusions: makeSalaryProcedure("/salary")
     .input(z.object({ fromDate: z.string(), toDate: z.string() }))
     .query(async ({ input }) => {

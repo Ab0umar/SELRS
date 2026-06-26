@@ -619,7 +619,7 @@ export const accountingRouter = router({
       const [rowsRes, countRes] = await Promise.all([
         db.execute(
           sql.raw(
-            `SELECT id, accessId, txDate, advance, repayment, notes, employee,
+            `SELECT id, accessId, txDate, advance, repayment, notes, employee, emp_cd,
              SUM(COALESCE(advance,0) - COALESCE(repayment,0)) OVER (
                PARTITION BY employee
                ORDER BY txDate ASC, id ASC
@@ -643,6 +643,7 @@ export const accountingRouter = router({
         repayment: r.repayment != null ? Number(r.repayment) : null,
         notes: r.notes != null ? String(r.notes) : null,
         employee: r.employee != null ? String(r.employee) : null,
+        empCd: r.emp_cd != null ? String(r.emp_cd) : null,
         runningTotal: r.runningTotal != null ? Number(r.runningTotal) : null,
       }));
       const total = Number((countRes as any)[0]?.[0]?.n ?? 0);
@@ -1183,6 +1184,7 @@ export const accountingRouter = router({
       z.object({
         txDate: z.string(),
         employee: z.string().max(200),
+        empCd: z.string().max(32).nullable().optional(),
         advance: z.number().min(0).default(0),
         repayment: z.number().min(0).default(0),
         notes: z.string().max(500).default(""),
@@ -1201,7 +1203,7 @@ export const accountingRouter = router({
           : `'${String(v).replace(/'/g, "''")}'`;
       const [res] = (await db.execute(
         sql.raw(
-          `INSERT INTO accAdvances (txDate, employee, advance, repayment, notes) VALUES (${sq(input.txDate)}, ${sq(input.employee)}, ${sq(input.advance || null)}, ${sq(input.repayment || null)}, ${sq(input.notes || null)})`,
+          `INSERT INTO accAdvances (txDate, employee, emp_cd, advance, repayment, notes) VALUES (${sq(input.txDate)}, ${sq(input.employee)}, ${sq(input.empCd ?? null)}, ${sq(input.advance || null)}, ${sq(input.repayment || null)}, ${sq(input.notes || null)})`,
         ),
       )) as any;
       return { id: res.insertId };
@@ -1213,6 +1215,7 @@ export const accountingRouter = router({
         id: z.number().int(),
         txDate: z.string(),
         employee: z.string().max(200),
+        empCd: z.string().max(32).nullable().optional(),
         advance: z.number().min(0).default(0),
         repayment: z.number().min(0).default(0),
         notes: z.string().max(500).default(""),
@@ -1231,7 +1234,7 @@ export const accountingRouter = router({
           : `'${String(v).replace(/'/g, "''")}'`;
       await db.execute(
         sql.raw(
-          `UPDATE accAdvances SET txDate=${sq(input.txDate)}, employee=${sq(input.employee)}, advance=${sq(input.advance || null)}, repayment=${sq(input.repayment || null)}, notes=${sq(input.notes || null)} WHERE id=${input.id}`,
+          `UPDATE accAdvances SET txDate=${sq(input.txDate)}, employee=${sq(input.employee)}, emp_cd=${sq(input.empCd ?? null)}, advance=${sq(input.advance || null)}, repayment=${sq(input.repayment || null)}, notes=${sq(input.notes || null)} WHERE id=${input.id}`,
         ),
       );
       return { id: input.id };

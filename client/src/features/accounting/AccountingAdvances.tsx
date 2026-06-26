@@ -34,6 +34,7 @@ export default function AccountingAdvances() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [txDate, setTxDate] = useState(todayIso());
   const [employee, setEmployee] = useState("");
+  const [empCd, setEmpCd] = useState<string | null>(null);
   const [advance, setAdvance] = useState("");
   const [repayment, setRepayment] = useState("");
   const [notes, setNotes] = useState("");
@@ -54,6 +55,8 @@ export default function AccountingAdvances() {
   const reportsQ = trpc.accounting.accReports.useQuery(undefined, {
     refetchOnWindowFocus: false,
   });
+  const attEmpsQ = (trpc as any).salary.listEmployees.useQuery();
+  const attEmps: any[] = attEmpsQ.data ?? [];
   const employeesQ = trpc.accounting.accEmployeesList.useQuery(undefined, {
     refetchOnWindowFocus: false,
   });
@@ -76,6 +79,7 @@ export default function AccountingAdvances() {
     setEditingId(null);
     setTxDate(todayIso());
     setEmployee("");
+    setEmpCd(null);
     setAdvance("");
     setRepayment("");
     setNotes("");
@@ -86,6 +90,7 @@ export default function AccountingAdvances() {
     id: number;
     txDate: string;
     employee: string | null;
+    empCd?: string | null;
     advance: number | null;
     repayment: number | null;
     notes: string | null;
@@ -93,6 +98,7 @@ export default function AccountingAdvances() {
     setEditingId(row.id);
     setTxDate(row.txDate.slice(0, 10));
     setEmployee(row.employee ?? "");
+    setEmpCd(row.empCd ?? null);
     setAdvance(row.advance ? String(row.advance) : "");
     setRepayment(row.repayment ? String(row.repayment) : "");
     setNotes(row.notes ?? "");
@@ -108,6 +114,7 @@ export default function AccountingAdvances() {
     const payload = {
       txDate,
       employee: employee.trim(),
+      empCd: empCd || null,
       advance: parseFloat(advance) || 0,
       repayment: parseFloat(repayment) || 0,
       notes: notes.trim(),
@@ -342,6 +349,22 @@ export default function AccountingAdvances() {
                       </div>
                     )}
                   </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5 sm:col-span-2">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    ربط بموظف الرواتب <span className="text-[10px] font-normal">(اختياري — لاستيراد السلفة في الرواتب)</span>
+                  </label>
+                  <select
+                    value={empCd ?? ""}
+                    onChange={(e) => setEmpCd(e.target.value || null)}
+                    className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
+                  >
+                    <option value="">-- غير مرتبط --</option>
+                    {attEmps.map((e: any) => (
+                      <option key={e.empCd} value={e.empCd}>{e.fullName} ({e.empCd})</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="flex flex-col gap-1.5">

@@ -1173,6 +1173,7 @@ export const accAdvances = mysqlTable(
     repayment: decimal("repayment", { precision: 15, scale: 2 }),
     notes: varchar("notes", { length: 500 }),
     employee: varchar("employee", { length: 200 }),
+    empCd: varchar("emp_cd", { length: 32 }),
     total: decimal("total", { precision: 15, scale: 2 }),
     syncedAt: timestamp("syncedAt").defaultNow().onUpdateNow().notNull(),
   },

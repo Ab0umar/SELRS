@@ -123,6 +123,46 @@ export default function SalaryPenalties() {
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
 
+  // ── Accounting Advances Import ─────────────────────────────────────────────
+  const [showAccImport, setShowAccImport] = useState(false);
+  const accAdvQ = (trpc as any).salary.listAccAdvancesLinked.useQuery(
+    { fromDate, toDate },
+    { enabled: showAccImport },
+  );
+  const accAdvRows: any[] = accAdvQ.data ?? [];
+  // per-row: enabled flag + editable amount
+  const [importState, setImportState] = useState<Record<number, { enabled: boolean; amount: string }>>({});
+
+  function initImportState(rows: any[]) {
+    const state: Record<number, { enabled: boolean; amount: string }> = {};
+    for (const r of rows) {
+      if (r.net > 0) state[r.id] = { enabled: true, amount: String(r.net) };
+      else state[r.id] = { enabled: false, amount: String(r.advance) };
+    }
+    setImportState(state);
+  }
+
+  const [importingId, setImportingId] = useState<number | null>(null);
+
+  async function importSelected() {
+    const toImport = accAdvRows.filter((r: any) => importState[r.id]?.enabled);
+    for (const r of toImport) {
+      const amount = parseFloat(importState[r.id]?.amount ?? "");
+      if (!amount || amount <= 0) continue;
+      setImportingId(r.id);
+      await addAdvanceMut.mutateAsync({
+        empCd: r.empCd,
+        year,
+        month,
+        amount,
+        reason: `من المحاسبة — ${r.employee} — ${r.txDate}`,
+      });
+    }
+    setImportingId(null);
+    setShowAccImport(false);
+    setImportState({});
+  }
+
   // ── Late Days ──────────────────────────────────────────────────────────────
   const lateDaysQ = (trpc as any).salary.listLateDays.useQuery({ fromDate, toDate });
   const lateDaysRaw: any[] = lateDaysQ.data ?? [];
@@ -544,6 +584,17 @@ export default function SalaryPenalties() {
                     <Plus size={16} />
                     {tab === "penalties" ? "إضافة جزاء" : "إضافة سلفة"}
                   </Button>
+                  {tab === "advances" && (
+                    <Button variant="outline" onClick={() => {
+                      setShowAccImport((v) => {
+                        if (!v) { accAdvQ.refetch().then((res) => { if (res.data) initImportState(res.data); }); }
+                        else { setImportState({}); }
+                        return !v;
+                      });
+                    }} className="gap-2">
+                      استيراد من المحاسبة
+                    </Button>
+                  )}
                   <Button variant="outline" onClick={handlePrint} className="gap-2">
                     <Printer size={16} /> طباعة
                   </Button>
@@ -871,6 +922,83 @@ export default function SalaryPenalties() {
               </div>
             )}
           </div>
+
+          {/* Accounting Advances Import Panel */}
+          {tab === "advances" && showAccImport && (
+            <div className="border-t border-border px-4 py-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold">استيراد من سلف المحاسبة — {periodLabel}</h4>
+                <p className="text-xs text-muted-foreground">فعّل الخصم للسلفات التي تريد تضمينها، وعدّل المبلغ إذا لزم</p>
+              </div>
+              {accAdvQ.isLoading ? (
+                <div className="py-6 text-center text-sm text-muted-foreground">جارٍ التحميل…</div>
+              ) : accAdvRows.length === 0 ? (
+                <div className="py-6 text-center text-sm text-muted-foreground">لا توجد سلف محاسبة مرتبطة بموظفين في هذه الفترة</div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm border border-border/40 rounded-lg overflow-hidden">
+                      <thead>
+                        <tr className="bg-muted/30 text-xs">
+                          <th className="px-3 py-2 text-right font-medium text-muted-foreground">الموظف</th>
+                          <th className="px-3 py-2 text-center font-medium text-muted-foreground">التاريخ</th>
+                          <th className="px-3 py-2 text-center font-medium text-muted-foreground">السلفة</th>
+                          <th className="px-3 py-2 text-center font-medium text-muted-foreground">الصافي</th>
+                          <th className="px-3 py-2 text-center font-medium text-muted-foreground">مبلغ الخصم</th>
+                          <th className="px-3 py-2 text-center font-medium text-muted-foreground">الخصم</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {accAdvRows.map((r: any) => {
+                          const st = importState[r.id] ?? { enabled: false, amount: String(r.net > 0 ? r.net : r.advance) };
+                          return (
+                            <tr key={r.id} className={`border-t border-border/30 ${st.enabled ? "" : "opacity-50"}`}>
+                              <td className="px-3 py-2 font-medium">{r.empName ?? r.employee}</td>
+                              <td className="px-3 py-2 text-center text-muted-foreground">{String(r.txDate).slice(0, 10)}</td>
+                              <td className="px-3 py-2 text-center">{Number(r.advance).toLocaleString("ar-EG")} ج.م</td>
+                              <td className="px-3 py-2 text-center">{Number(r.net).toLocaleString("ar-EG")} ج.م</td>
+                              <td className="px-3 py-2 text-center">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  step="0.01"
+                                  value={st.amount}
+                                  disabled={!st.enabled}
+                                  onChange={(e) => setImportState((prev) => ({ ...prev, [r.id]: { ...st, amount: e.target.value } }))}
+                                  className="w-24 rounded border border-border bg-background px-2 py-0.5 text-sm outline-none focus:border-primary disabled:opacity-40"
+                                />
+                              </td>
+                              <td className="px-3 py-2 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => setImportState((prev) => ({ ...prev, [r.id]: { ...st, enabled: !st.enabled } }))}
+                                  className={`text-[11px] font-bold px-2 py-0.5 rounded border transition-colors ${st.enabled ? "border-destructive text-destructive hover:bg-destructive/10" : "border-green-500 text-green-600 hover:bg-green-50"}`}
+                                >
+                                  {st.enabled ? "إلغاء الخصم" : "تفعيل الخصم"}
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      size="sm"
+                      disabled={addAdvanceMut.isPending || !Object.values(importState).some((s) => s.enabled)}
+                      onClick={importSelected}
+                    >
+                      {addAdvanceMut.isPending && importingId !== null ? "جارٍ الاستيراد…" : "استيراد المحدد"}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => { setShowAccImport(false); setImportState({}); }}>
+                      إغلاق
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </section>
       )}
 
