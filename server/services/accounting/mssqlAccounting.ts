@@ -38,8 +38,8 @@ export async function mssqlQuery<T>(
   const rowCount = Array.isArray(result.recordset) ? result.recordset.length : 0;
   console.debug(`[accounting:mssql] ${debugLabel ?? "query"} ${elapsed}ms → ${rowCount} rows`);
   if (rowCount === 0) {
-    // Log params (not full SQL) to help diagnose empty results
     console.debug(`[accounting:mssql] params: ${JSON.stringify(params)}`);
+    console.debug(`[accounting:mssql] sql: ${sqlText.replace(/\s+/g, " ").slice(0, 800)}`);
   }
 
   return Array.isArray(result.recordset) ? (result.recordset as T[]) : [];
