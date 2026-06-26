@@ -130,6 +130,7 @@ export default function AccountingAdvances() {
         setTimeout(() => setSaved(false), 2000);
         setTxDate(todayIso());
         setEmployee("");
+        setEmpCd(null);
         setAdvance("");
         setRepayment("");
         setNotes("");
