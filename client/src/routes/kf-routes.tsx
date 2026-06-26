@@ -7,6 +7,7 @@ const KfHome = lazy(() => import("../features/kf/KfHome"));
 const KfPatients = lazy(() => import("../features/kf/KfPatients"));
 const KfPatientForm = lazy(() => import("../features/kf/KfPatientForm"));
 const KfPatientDetail = lazy(() => import("../features/kf/KfPatientDetail"));
+const KfExamPage = lazy(() => import("../features/kf/KfExamPage"));
 const KfVisitForm = lazy(() => import("../features/kf/KfVisitForm"));
 const KfExaminationForm = lazy(() => import("../features/kf/KfExaminationForm"));
 const KfOperationForm = lazy(() => import("../features/kf/KfOperationForm"));
@@ -95,11 +96,21 @@ export const KfRoutes = (
         )}
       />
       <Route
-        path={ROUTES.kfPatientDetail}
+        path={`${ROUTES.kfPatientDetail}/history`}
         component={() => (
           <ProtectedRoute>
             <KfShell>
               <KfPatientDetail />
+            </KfShell>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={ROUTES.kfPatientDetail}
+        component={() => (
+          <ProtectedRoute>
+            <KfShell>
+              <KfExamPage />
             </KfShell>
           </ProtectedRoute>
         )}
