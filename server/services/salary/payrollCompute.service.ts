@@ -4,6 +4,7 @@ import {
   attendanceMonthlyReport,
   attendanceDaily,
   attendanceShifts,
+  attendanceLeaves,
   salaryBasics,
   salaryPenalties,
   salaryAdvances,
@@ -222,6 +223,7 @@ export class PayrollComputeService {
       holidayRows,
       shiftDefs,
       mcExcludeRows,
+      sickLeaveRows,
     ] = await Promise.all([
       db
         .select()
@@ -306,6 +308,17 @@ export class PayrollComputeService {
           lte(salaryMissingCheckoutExclude.workDate, lastDay as any),
         ),
       ),
+      db
+        .select({ empCd: attendanceLeaves.empCd, dateFrom: attendanceLeaves.dateFrom, dateTo: attendanceLeaves.dateTo })
+        .from(attendanceLeaves)
+        .where(
+          and(
+            eq(attendanceLeaves.type, "sick"),
+            eq(attendanceLeaves.approved, true),
+            lte(attendanceLeaves.dateFrom, lastDay as any),
+            gte(attendanceLeaves.dateTo, firstDay as any),
+          ),
+        ),
     ]);
 
     // Set of holiday date strings YYYY-MM-DD (not Fridays — already excluded from roster)
@@ -329,6 +342,20 @@ export class PayrollComputeService {
         return `${r.empCd}|${ds}`;
       }),
     );
+
+    // Set of "empCd|YYYY-MM-DD" for approved sick leave days within this month
+    const sickDatesSet = new Set<string>();
+    for (const sl of sickLeaveRows as any[]) {
+      const from = String(sl.dateFrom instanceof Date ? sl.dateFrom.toISOString().slice(0, 10) : sl.dateFrom).slice(0, 10);
+      const to = String(sl.dateTo instanceof Date ? sl.dateTo.toISOString().slice(0, 10) : sl.dateTo).slice(0, 10);
+      const cur = new Date(from + "T00:00:00");
+      const end = new Date(to + "T00:00:00");
+      while (cur <= end) {
+        const ds = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, "0")}-${String(cur.getDate()).padStart(2, "0")}`;
+        if (ds >= firstDay && ds <= lastDay) sickDatesSet.add(`${sl.empCd}|${ds}`);
+        cur.setDate(cur.getDate() + 1);
+      }
+    }
 
     // Number of holiday working days (exclude Fridays = day 5)
     const holidayWorkingDaysCount = [...holidayDates].filter(
@@ -697,7 +724,7 @@ export class PayrollComputeService {
         lateMinutes = empDailyRows.reduce((s: any, d: any) => s + (d.lateMinutes ?? 0), 0);
         earlyLeaveMinutes = empDailyRows.reduce((s: any, d: any) => s + (d.earlyLeaveMin ?? 0), 0);
         overtimeMinutes = empDailyRows.reduce((s: any, d: any) => s + (d.overtimeMinutes ?? 0), 0);
-        leaveDays = empDailyRows.filter((d: any) => d.status === "leave" && d.leaveType !== "sick").length;
+        leaveDays = empDailyRows.filter((d: any) => d.status === "leave" && !sickDatesSet.has(`${emp.empCd}|${String(d.workDate instanceof Date ? d.workDate.toISOString().slice(0,10) : d.workDate).slice(0,10)}`)).length;
       } else {
         rawAbsentDays = report?.absentDays ?? 0;
         lateMinutes = report?.totalLateMins ?? 0;
