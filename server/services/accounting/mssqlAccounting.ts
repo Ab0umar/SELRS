@@ -2,6 +2,7 @@ import { createMssqlPool } from "../../integrations/mssqlPatients";
 import sql from "mssql";
 
 const MSSQL_STRING_PARAM_NAMES = new Set(["patientCode", "doctorCode", "trNo"]);
+const MSSQL_DATE_PARAM_NAMES = new Set(["fromDate", "toDate", "viewDate"]);
 
 /** When `ACCOUNTING_SQL_DEBUG=1`, logs labeled query duration (no SQL text or params). */
 export async function mssqlQuery<T>(
@@ -21,16 +22,24 @@ export async function mssqlQuery<T>(
       request.input(name, sql.VarChar(40), String(value));
       continue;
     }
+    if (MSSQL_DATE_PARAM_NAMES.has(name)) {
+      // Pass as Date so MSSQL gets a typed datetime, avoiding implicit
+      // NVarChar→datetime conversion issues under non-English server collations.
+      const d = value instanceof Date ? value : new Date(`${value}T00:00:00`);
+      request.input(name, sql.DateTime, d);
+      continue;
+    }
     request.input(name, value);
   }
 
   const startedAt = Date.now();
   const result = await request.query(sqlText);
   const elapsed = Date.now() - startedAt;
-  if (process.env.ACCOUNTING_SQL_DEBUG === "1" && debugLabel) {
-    console.debug(`[accounting:mssql] ${debugLabel} ${elapsed}ms`);
-  } else {
-    console.debug(`[accounting:mssql] query completed in ${elapsed}ms`);
+  const rowCount = Array.isArray(result.recordset) ? result.recordset.length : 0;
+  console.debug(`[accounting:mssql] ${debugLabel ?? "query"} ${elapsed}ms → ${rowCount} rows`);
+  if (rowCount === 0) {
+    // Log params (not full SQL) to help diagnose empty results
+    console.debug(`[accounting:mssql] params: ${JSON.stringify(params)}`);
   }
 
   return Array.isArray(result.recordset) ? (result.recordset as T[]) : [];
