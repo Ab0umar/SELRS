@@ -1029,11 +1029,10 @@ export const salaryRouter = router({
       const [rows] = (await db.execute(
         sql.raw(
           `SELECT a.id, a.txDate, a.employee, a.emp_cd, a.advance, a.repayment, a.notes,
-                  e.fullName
+                  e.full_name AS fullName
            FROM accAdvances a
            LEFT JOIN attendance_employees e ON e.emp_cd = a.emp_cd
            WHERE a.emp_cd IS NOT NULL AND a.emp_cd != ''
-             AND a.txDate >= '${input.fromDate}' AND a.txDate <= '${input.toDate}'
            ORDER BY a.txDate DESC`,
         ),
       )) as any;
