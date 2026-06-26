@@ -284,8 +284,8 @@ WITH base_rows AS (
     ISNULL(s.QTY, 0) * ISNULL(s.PRC, 0) - ISNULL(s.DISC_VL, 0) AS gross_value
   ${joinedTables()}
   WHERE h.SEC_CD = @secCd
-    AND ISNULL(CONVERT(varchar(10), h.CNCL), '') = ''
-    AND ISNULL(CONVERT(varchar(10), s.CNCL), '') = ''
+    AND ISNULL(CONVERT(varchar(10), h.CNCL), '0') IN ('', '0')
+    AND ISNULL(CONVERT(varchar(10), s.CNCL), '0') IN ('', '0')
     AND ISNULL(s.PRC, 0) > 0
 )
 SELECT
@@ -321,8 +321,8 @@ export function buildDailyRevenueSql(input: DailyRevenueSqlInput): SqlBuild {
     ...sectionWhere(input.sectionCode, params),
     ...doctorWhere(input.doctorCodes ?? input.doctorCode, params),
     ...shiftWhere(input.shiftCode, params),
-    "ISNULL(CONVERT(varchar(10), h.CNCL), '') = ''",
-    "ISNULL(CONVERT(varchar(10), s.CNCL), '') = ''",
+    "ISNULL(CONVERT(varchar(10), h.CNCL), '0') IN ('', '0')",
+    "ISNULL(CONVERT(varchar(10), s.CNCL), '0') IN ('', '0')",
   ];
 
   const sql = `
@@ -351,8 +351,8 @@ export function buildServiceRevenueSql(
     ...sectionWhere(input.sectionCode, params),
     ...doctorWhere(input.doctorCodes ?? input.doctorCode, params),
     ...serviceWhere(input.serviceCodes, params),
-    "ISNULL(CONVERT(varchar(10), s.CNCL), '') = ''",
-    "ISNULL(CONVERT(varchar(10), h.CNCL), '') = ''",
+    "ISNULL(CONVERT(varchar(10), s.CNCL), '0') IN ('', '0')",
+    "ISNULL(CONVERT(varchar(10), h.CNCL), '0') IN ('', '0')",
   ];
 
   const sql = `
@@ -400,7 +400,7 @@ export function buildReceiptsInquirySql(
     ...sectionWhere(input.sectionCode, params),
     ...patientWhere(input.patientCode, params),
     ...doctorWhere(input.doctorCodes ?? input.doctorCode, params),
-    "ISNULL(CONVERT(varchar(10), h.CNCL), '') = ''",
+    "ISNULL(CONVERT(varchar(10), h.CNCL), '0') IN ('', '0')",
   ];
 
   const trNoTrimmed =
