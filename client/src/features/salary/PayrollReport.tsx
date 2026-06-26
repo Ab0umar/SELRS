@@ -56,7 +56,7 @@ function pct(n: any): string {
 const SECTIONS = ["مركز", "عيادة"] as const;
 type Section = (typeof SECTIONS)[number];
 
-type TabType = "salaries" | "shifts";
+type TabType = "salaries" | "shifts" | "supervision";
 
 export default function PayrollReport() {
   const [fromDate, setFromDate] = useState(DEFAULT_FROM);
@@ -64,6 +64,7 @@ export default function PayrollReport() {
   const [section, setSection] = useState<Section>("مركز");
   const [activeTab, setActiveTab] = useState<TabType>("salaries");
   const [searchTerm, setSearchTerm] = useState("");
+  const [bonusEdits, setBonusEdits] = useState<Record<string, string>>({});
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
     {},
   );
@@ -105,6 +106,11 @@ export default function PayrollReport() {
     year,
     month,
     section: section === "مركز" ? "عيادة" : "مركز",
+  });
+
+  const setSupervisionBonus = (trpc as any).salary.setSupervisionBonus.useMutation({
+    onSuccess: () => { centerQ.refetch(); clinicQ.refetch(); toast.success("تم الحفظ"); },
+    onError: (e: any) => toast.error("خطأ: " + e.message),
   });
 
   // salaryBasics — for allowance breakdown in day-1 slips
@@ -1019,6 +1025,16 @@ export default function PayrollReport() {
             }`}
           >
             الشفتات
+          </button>
+          <button
+            onClick={() => setActiveTab("supervision")}
+            className={`px-4 py-3 font-medium text-sm transition-colors ${
+              activeTab === "supervision"
+                ? "border-b-2 border-primary text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            مكافأة الإشراف
           </button>
         </div>
       )}
@@ -3062,6 +3078,74 @@ export default function PayrollReport() {
             </section>
           );
         })()}
+
+      {/* ── Supervision Bonus Tab ── */}
+      {section === "مركز" && activeTab === "supervision" && (() => {
+        const supRows = regularRows.filter((r: any) => !String(r.empCd).startsWith("shift_"));
+        const totalBonus = supRows.reduce((s: number, r: any) => s + Number(bonusEdits[r.empCd] ?? r.supervisionBonus ?? 0), 0);
+        return (
+          <section className="rounded-xl border border-border bg-background overflow-hidden">
+            <div className="border-b border-border bg-muted/25 px-4 py-3">
+              <h2 className="text-base font-semibold text-foreground">مكافأة الإشراف</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">خارج إجمالي الراتب — لا تؤثر على الحسابات</p>
+            </div>
+            <div className="overflow-x-auto" dir="rtl">
+              <table dir="rtl" className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30 text-xs">
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">الموظف</th>
+                    <th className="px-4 py-3 text-center font-medium text-muted-foreground">مكافأة الإشراف</th>
+                    <th className="px-4 py-3 text-center font-medium text-muted-foreground">حفظ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {supRows.map((r: any) => {
+                    const key = r.empCd;
+                    const current = bonusEdits[key] ?? String(r.supervisionBonus ?? "0");
+                    return (
+                      <tr key={key} className="border-b border-border/50 hover:bg-muted/20">
+                        <td className="px-4 py-3">
+                          <div className="font-medium">{r.fullName ?? r.empCd}</div>
+                          <div className="text-xs text-muted-foreground">{r.salaryType ?? r.department ?? ""}</div>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={current}
+                            onChange={(e) => setBonusEdits((prev) => ({ ...prev, [key]: e.target.value }))}
+                            className="w-28 rounded-md border border-border bg-background px-2 py-1 text-sm text-center outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 tabular-nums"
+                          />
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => {
+                              const amount = parseFloat(current) || 0;
+                              setSupervisionBonus.mutate({ empCd: r.empCd, year, month, section, amount });
+                            }}
+                            disabled={setSupervisionBonus.isPending}
+                            className="rounded-md border border-border px-3 py-1 text-xs font-medium hover:bg-muted transition-colors disabled:opacity-50"
+                          >
+                            حفظ
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t border-border bg-muted/30 text-xs font-semibold">
+                    <td className="px-4 py-2 text-right">الإجمالي (معلوماتي فقط)</td>
+                    <td className="px-4 py-2 text-center tabular-nums">{fmt(totalBonus)}</td>
+                    <td />
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </section>
+        );
+      })()}
     </div>
   );
 }

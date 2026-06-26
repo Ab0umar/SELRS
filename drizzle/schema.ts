@@ -1877,6 +1877,9 @@ export const salaryPayroll = mysqlTable(
     overtimePay: decimal("overtime_pay", { precision: 12, scale: 2 })
       .default("0")
       .notNull(),
+    supervisionBonus: decimal("supervision_bonus", { precision: 12, scale: 2 })
+      .default("0")
+      .notNull(),
     totalPay: decimal("total_pay", { precision: 12, scale: 2 }).notNull(),
     payrollStatus: mysqlEnum("payroll_status", ["draft", "final"])
       .default("draft")

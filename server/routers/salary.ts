@@ -497,6 +497,33 @@ export const salaryRouter = router({
       return { saved, rows };
     }),
 
+  setSupervisionBonus: makeSalaryWriteProcedure("/salary/payroll")
+    .input(
+      z.object({
+        empCd: z.string(),
+        year: z.number().int(),
+        month: z.number().int(),
+        section: z.string().default("مركز"),
+        amount: z.number().min(0),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db
+        .update(salaryPayroll)
+        .set({ supervisionBonus: String(input.amount) as any })
+        .where(
+          and(
+            eq(salaryPayroll.empCd, input.empCd),
+            eq(salaryPayroll.year, input.year),
+            eq(salaryPayroll.month, input.month),
+            eq(salaryPayroll.section, input.section),
+          ),
+        );
+      return { ok: true };
+    }),
+
   getPayroll: makeSalaryProcedure("/salary/payroll")
     .input(
       z.object({
@@ -600,6 +627,7 @@ export const salaryRouter = router({
             transportAllowance: String(row.transportAllowance),
             totalCommission: String(row.totalCommission),
             overtimePay: String(row.overtimePay),
+            supervisionBonus: "0",
             totalPay: String(row.totalPay),
             payrollStatus: "draft" as "draft" | "approved" | "paid",
             computedAt: new Date(),
@@ -645,6 +673,7 @@ export const salaryRouter = router({
           transportAllowance: salaryPayroll.transportAllowance,
           totalCommission: salaryPayroll.totalCommission,
           overtimePay: salaryPayroll.overtimePay,
+          supervisionBonus: salaryPayroll.supervisionBonus,
           totalPay: salaryPayroll.totalPay,
           payrollStatus: salaryPayroll.payrollStatus,
           computedAt: salaryPayroll.computedAt,
