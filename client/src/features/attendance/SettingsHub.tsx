@@ -10,18 +10,8 @@ import EmpSync from "./admin/EmpSync";
 const TABS = [
   {
     key: "device",
-    label: "الجهاز",
-    description: "اتصال جهاز البصمة ومسارات البيانات",
-  },
-  {
-    key: "sync",
-    label: "المزامنة",
-    description: "حالة تزامن البصمات وآخر تشغيل",
-  },
-  {
-    key: "empsync",
-    label: "موظفو الجهاز",
-    description: "مطابقة موظفي الجهاز مع النظام",
+    label: "الأجهزة والمزامنة",
+    description: "إعداد أجهزة البصمة وسحب البيانات وتزامن الموظفين",
   },
   {
     key: "shifts",
@@ -94,13 +84,23 @@ export default function SettingsHub() {
         aria-labelledby={`attendance-settings-tab-${tab}`}
         className="space-y-6"
       >
+        {tab === "device" && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            <div className="lg:col-span-1">
+              <DeviceSettings />
+            </div>
+            <div className="lg:col-span-1">
+              <SyncStatus />
+            </div>
+            <div className="lg:col-span-1">
+              <EmpSync />
+            </div>
+          </div>
+        )}
         {tab === "shifts" && <ShiftManagement />}
         {tab === "holidays" && <Holidays />}
         {tab === "settings" && <Settings />}
         {tab === "admin" && <AdminDashboard />}
-        {tab === "device" && <DeviceSettings />}
-        {tab === "sync" && <SyncStatus />}
-        {tab === "empsync" && <EmpSync />}
       </div>
     </div>
   );
