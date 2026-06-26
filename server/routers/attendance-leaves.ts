@@ -425,12 +425,14 @@ export const attendanceLeavesRoutes = {
 
       // Count used days per employee from approved leaves
       const mm = String(year).padStart(4, "0");
+      // Sick leave deducts from annual balance; unpaid/other do not
       const usedRows = await db
         .select()
         .from(attendanceLeaves)
         .where(
           and(
             eq(attendanceLeaves.approved, true),
+            or(eq(attendanceLeaves.type, "annual"), eq(attendanceLeaves.type, "sick")),
             gte(attendanceLeaves.dateFrom, `${year}-01-01` as any),
             lte(attendanceLeaves.dateTo, `${year}-12-31` as any),
           ),

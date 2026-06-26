@@ -137,13 +137,14 @@ export class LeaveManagementService {
     const yearStartStr = `${year}-01-01`;
     const yearEndStr = `${year}-12-31`;
 
+    // Sick leave deducts from annual balance (does not affect commission rate)
     const leaves = await db
       .select()
       .from(attendanceLeaves)
       .where(
         and(
           eq(attendanceLeaves.empCd, empCd),
-          eq(attendanceLeaves.type, "annual"),
+          or(eq(attendanceLeaves.type, "annual"), eq(attendanceLeaves.type, "sick")),
           eq(attendanceLeaves.approved, true),
           gte(attendanceLeaves.dateFrom, yearStartStr as any),
           lte(attendanceLeaves.dateTo, yearEndStr as any),
