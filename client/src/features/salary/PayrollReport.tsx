@@ -108,8 +108,14 @@ export default function PayrollReport() {
     section: section === "مركز" ? "عيادة" : "مركز",
   });
 
+  const supervisionBonusQ = (trpc as any).salary.getSupervisionBonuses.useQuery({ year, month, section });
+  const supervisionBonusMap: Record<string, string> = ((supervisionBonusQ.data ?? []) as any[]).reduce(
+    (acc: Record<string, string>, r: any) => { acc[r.empCd] = String(r.amount ?? "0"); return acc; },
+    {},
+  );
+
   const setSupervisionBonus = (trpc as any).salary.setSupervisionBonus.useMutation({
-    onSuccess: () => { centerQ.refetch(); clinicQ.refetch(); toast.success("تم الحفظ"); },
+    onSuccess: () => { supervisionBonusQ.refetch(); toast.success("تم الحفظ"); },
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
 
@@ -3191,7 +3197,7 @@ export default function PayrollReport() {
                 <tbody>
                   {supRows.map((r: any) => {
                     const key = r.empCd;
-                    const current = bonusEdits[key] ?? String(r.supervisionBonus ?? "0");
+                    const current = bonusEdits[key] ?? String(supervisionBonusMap[r.empCd] ?? "0");
                     return (
                       <tr key={key} className="border-b border-border/50 hover:bg-muted/20">
                         <td className="px-4 py-3">

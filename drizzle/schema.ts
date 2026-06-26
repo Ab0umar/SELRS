@@ -1877,9 +1877,6 @@ export const salaryPayroll = mysqlTable(
     overtimePay: decimal("overtime_pay", { precision: 12, scale: 2 })
       .default("0")
       .notNull(),
-    supervisionBonus: decimal("supervision_bonus", { precision: 12, scale: 2 })
-      .default("0")
-      .notNull(),
     totalPay: decimal("total_pay", { precision: 12, scale: 2 }).notNull(),
     payrollStatus: mysqlEnum("payroll_status", ["draft", "final"])
       .default("draft")
@@ -1903,6 +1900,25 @@ export const salaryPayroll = mysqlTable(
 
 export type SalaryPayroll = typeof salaryPayroll.$inferSelect;
 export type InsertSalaryPayroll = typeof salaryPayroll.$inferInsert;
+
+export const salarySupervisionBonus = mysqlTable(
+  "salary_supervision_bonus",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    empCd: varchar("emp_cd", { length: 32 }).notNull(),
+    year: int("year").notNull(),
+    month: int("month").notNull(),
+    section: varchar("section", { length: 32 }).default("مركز").notNull(),
+    amount: decimal("amount", { precision: 12, scale: 2 }).notNull().default("0"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    uqSupervisionBonus: uniqueIndex("uq_supervision_bonus").on(table.empCd, table.year, table.month, table.section),
+  }),
+);
+
+export type SalarySupervisionBonus = typeof salarySupervisionBonus.$inferSelect;
 
 export const salaryAdvances = mysqlTable(
   "salary_advances",

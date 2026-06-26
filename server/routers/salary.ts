@@ -22,6 +22,7 @@ import {
   shiftAttendance,
   shiftStaffCycle,
   attendanceShifts,
+  salarySupervisionBonus,
 } from "../../drizzle/schema";
 import { eq, and, gte, lte, gt, isNull, or, desc, inArray, sql } from "drizzle-orm";
 import {
@@ -497,6 +498,23 @@ export const salaryRouter = router({
       return { saved, rows };
     }),
 
+  getSupervisionBonuses: makeSalaryProcedure("/salary/payroll")
+    .input(z.object({ year: z.number().int(), month: z.number().int(), section: z.string().default("مركز") }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      return db
+        .select()
+        .from(salarySupervisionBonus)
+        .where(
+          and(
+            eq(salarySupervisionBonus.year, input.year),
+            eq(salarySupervisionBonus.month, input.month),
+            eq(salarySupervisionBonus.section, input.section),
+          ),
+        );
+    }),
+
   setSupervisionBonus: makeSalaryWriteProcedure("/salary/payroll")
     .input(
       z.object({
@@ -510,21 +528,16 @@ export const salaryRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const now = new Date();
       await db
-        .insert(salaryPayroll)
+        .insert(salarySupervisionBonus)
         .values({
           empCd: input.empCd,
           year: input.year,
           month: input.month,
           section: input.section,
-          basicSalary: "0" as any,
-          netBasic: "0" as any,
-          totalPay: "0" as any,
-          supervisionBonus: String(input.amount) as any,
-          computedAt: now,
+          amount: String(input.amount) as any,
         })
-        .onDuplicateKeyUpdate({ set: { supervisionBonus: String(input.amount) as any } });
+        .onDuplicateKeyUpdate({ set: { amount: String(input.amount) as any } });
       return { ok: true };
     }),
 
@@ -582,19 +595,6 @@ export const salaryRouter = router({
           );
         }
 
-        // Fetch saved supervisionBonus values from DB (manually entered, not computed)
-        const savedBonusRows = await db
-          .select({ empCd: salaryPayroll.empCd, supervisionBonus: salaryPayroll.supervisionBonus })
-          .from(salaryPayroll)
-          .where(
-            and(
-              eq(salaryPayroll.year, input.year),
-              eq(salaryPayroll.month, input.month),
-              eq(salaryPayroll.section, input.section),
-            ),
-          );
-        const savedBonusMap = new Map(savedBonusRows.map((r: any) => [r.empCd, r.supervisionBonus ?? "0"]));
-
         const mappedRows = dynamicRows.map((row) => {
           const isShift = row.empCd.startsWith("shift_");
           let fullName = row.empCd;
@@ -644,7 +644,6 @@ export const salaryRouter = router({
             transportAllowance: String(row.transportAllowance),
             totalCommission: String(row.totalCommission),
             overtimePay: String(row.overtimePay),
-            supervisionBonus: savedBonusMap.get(row.empCd) ?? "0",
             totalPay: String(row.totalPay),
             payrollStatus: "draft" as "draft" | "approved" | "paid",
             computedAt: new Date(),
@@ -690,7 +689,6 @@ export const salaryRouter = router({
           transportAllowance: salaryPayroll.transportAllowance,
           totalCommission: salaryPayroll.totalCommission,
           overtimePay: salaryPayroll.overtimePay,
-          supervisionBonus: salaryPayroll.supervisionBonus,
           totalPay: salaryPayroll.totalPay,
           payrollStatus: salaryPayroll.payrollStatus,
           computedAt: salaryPayroll.computedAt,
