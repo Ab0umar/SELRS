@@ -119,7 +119,8 @@ function sectionWhere(
   sectionCode: number | undefined,
   params: Record<string, unknown>,
 ): string[] {
-  params.secCd = sectionCode ?? LASIK_SECTION_CODE;
+  if (sectionCode == null || sectionCode === 0) return [];
+  params.secCd = sectionCode;
   return ["h.SEC_CD = @secCd"];
 }
 

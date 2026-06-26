@@ -102,8 +102,9 @@ function readFilters(search: string): ServiceRevenueInput {
   const sectionRaw = params.get("sectionCode");
   const sectionParsed =
     sectionRaw != null && sectionRaw !== "" ? Number(sectionRaw) : NaN;
+  // 0 = all sections (no filter); absent URL param → default to 15
   const sectionCode = Number.isFinite(sectionParsed)
-    ? sectionParsed
+    ? sectionParsed === 0 ? undefined : sectionParsed
     : DEFAULT_SECTION_CODE;
   const drRaw = params.get("doctorCodes");
   const svcRaw = params.get("serviceCodes");
@@ -134,7 +135,7 @@ function buildServiceRevenueUrl(input: ServiceRevenueInput) {
   params.set("fromDate", input.fromDate);
   params.set("toDate", input.toDate);
 
-  if (input.sectionCode != null && input.sectionCode !== DEFAULT_SECTION_CODE) {
+  if (input.sectionCode != null) {
     params.set("sectionCode", String(input.sectionCode));
   }
 
@@ -500,18 +501,17 @@ export default function LasikRevenue() {
               htmlFor="lasik-section-code"
               className="space-y-1.5 text-sm font-medium"
             >
-              <span>كود القسم</span>
+              <span>كود القسم (0 = كل الأقسام)</span>
               <Input
                 id="lasik-section-code"
                 type="number"
-                min={1}
-                value={draft.sectionCode ?? DEFAULT_SECTION_CODE}
+                min={0}
+                placeholder="0 = كل الأقسام"
+                value={draft.sectionCode ?? ""}
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                   setDraft((prev) => ({
                     ...prev,
-                    sectionCode: Number(
-                      event.target.value || DEFAULT_SECTION_CODE,
-                    ),
+                    sectionCode: event.target.value === "" ? undefined : Number(event.target.value),
                   }))
                 }
               />
