@@ -200,10 +200,8 @@ export class ZK4370Client {
     } else if (resp.cmd === CMD_ACK_UNAUTH) {
       this.sessionId = resp.sessionId;
       if (this.commKey === 0) throw new Error("Device requires a Comm Key — set it in K40 Pro settings");
-      const keyBuf = Buffer.alloc(4);
-      keyBuf.writeUInt32LE(this.commKey ^ this.sessionId, 0);
-      const auth = await this.send(CMD_AUTH, keyBuf);
-      if (auth.cmd !== CMD_ACK_OK) throw new Error(`Comm key auth failed (cmd=${auth.cmd}) — verify Comm Key (current: ${this.commKey})`);
+      const ok = await this.tryAuth();
+      if (!ok) throw new Error(`Comm key auth failed — verify Comm Key on device (current: ${this.commKey})`);
     } else {
       throw new Error(`Connect failed (cmd=${resp.cmd})`);
     }
@@ -241,6 +239,19 @@ export class ZK4370Client {
   }
 
   // ---------- private helpers ----------
+
+  private async tryAuth(): Promise<boolean> {
+    // Try raw key (most firmware)
+    const rawBuf = Buffer.alloc(4);
+    rawBuf.writeUInt32LE(this.commKey, 0);
+    const r1 = await this.send(CMD_AUTH, rawBuf);
+    if (r1.cmd === CMD_ACK_OK) return true;
+    // Try XOR with sessionId (some firmware)
+    const xorBuf = Buffer.alloc(4);
+    xorBuf.writeUInt32LE(this.commKey ^ this.sessionId, 0);
+    const r2 = await this.send(CMD_AUTH, xorBuf);
+    return r2.cmd === CMD_ACK_OK;
+  }
 
   private async readLargeData(cmd: number): Promise<Buffer> {
     const first = await this.send(cmd);
