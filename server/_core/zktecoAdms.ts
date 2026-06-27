@@ -105,6 +105,8 @@ function parseAttlogBody(body: string, deviceId: string): ParsedPunch[] {
 export function registerZKTecoAdms(app: Express): void {
   // Accept plain text body for ZKTeco ADMS push
   app.use("/iclock", express.text({ type: "*/*", limit: "2mb" }));
+  // Remove HTTP Date header — device reads it as UTC and applies internal UTC+7 offset, causing wrong clock
+  app.use("/iclock", (_req, res, next) => { res.removeHeader("Date"); next(); });
 
 
 
