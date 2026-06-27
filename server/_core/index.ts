@@ -2269,6 +2269,17 @@ async function startServer() {
     console.log(`[${branchName}] Server running on http://${host}:${port}/`);
   });
   await DeviceSettingsService.initializeSettings();
+
+  // Sync K40 Pro device clock every 2 minutes via zkemkeeper SDK
+  setInterval(async () => {
+    try {
+      const k40 = DeviceSettingsService.getK40Settings();
+      if (!k40.ip || !k40.enabled) return;
+      const { ZK4370LogPuller } = await import("../services/attendance/zk4370LogPuller");
+      await ZK4370LogPuller.setDeviceTime(k40.ip, k40.port, k40.commPassword ?? 0);
+    } catch { /* ignore — device may be offline */ }
+  }, 2 * 60 * 1000);
+
   startMssqlSyncScheduler();
   // startAttendanceSyncScheduler(); // Disabled: Use manual sync via attendance.syncNow procedure
   startPunchReception();
