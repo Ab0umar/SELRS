@@ -2,6 +2,7 @@
  * Device Settings Service
  * Manages fingerprint device configuration and state
  * Persists settings to MySQL database for durability across server restarts
+ * Row id=1 → EF10K, Row id=2 → K40 Pro
  */
 
 import {
@@ -17,19 +18,17 @@ export interface DeviceSettings {
   enabled: boolean;
   ip: string;
   port: number;
-  protocol: "tcp" | "udp"; // For future UDP support
-  fallbackToAccess: boolean; // Use Access DB if device offline
-  realTimeSync: boolean; // Process punches immediately vs batch
+  protocol: "tcp" | "udp";
+  fallbackToAccess: boolean;
+  realTimeSync: boolean;
   lastConfigUpdate?: Date;
-  zk40Ip?: string | null;
-  zk40Port?: number;
-  zk40Enabled?: boolean;
-  zk40Protocol?: "adms" | "tcp"; // ADMS push (device polls server) vs direct TCP pull
-  fkProtocol?: number; // 0 or 1 — passed as --protocol to FKOldLogPuller.exe
+  // K40 Pro extras (only meaningful for id=2)
+  zk40Protocol?: "adms" | "tcp";
+  fkProtocol?: number; // 0 or 1 — --protocol flag for FKOldLogPuller.exe
 }
 
-// In-memory settings cache (synced with DB)
-let deviceSettings: DeviceSettings = {
+// In-memory caches keyed by device id
+let ef10kSettings: DeviceSettings = {
   enabled: process.env.ATTENDANCE_DEVICE_ENABLED === "true",
   ip: process.env.ATTENDANCE_DEVICE_IP || "192.168.1.100",
   port: parseInt(process.env.ATTENDANCE_DEVICE_PORT || "5005"),
@@ -38,62 +37,107 @@ let deviceSettings: DeviceSettings = {
   realTimeSync: true,
 };
 
+let k40Settings: DeviceSettings = {
+  enabled: false,
+  ip: "",
+  port: 4370,
+  protocol: "tcp",
+  fallbackToAccess: false,
+  realTimeSync: true,
+  zk40Protocol: "adms",
+  fkProtocol: 0,
+};
+
 let settingsLoaded = false;
 
 export class DeviceSettingsService {
-  // Load settings from database on startup
   static async initializeSettings(): Promise<void> {
     if (settingsLoaded) return;
 
     try {
       const db = await getDb();
       if (!db) {
-        console.warn(
-          "[DeviceSettings] Database not available, using environment defaults",
-        );
+        console.warn("[DeviceSettings] Database not available, using environment defaults");
         settingsLoaded = true;
         return;
       }
 
-      const [dbSettings] = await db
+      const rows = await db
         .select()
         .from(attendanceDeviceSettings)
-        .where(eq(attendanceDeviceSettings.id, 1))
-        .limit(1);
+        .where(eq(attendanceDeviceSettings.id, 1));
 
-      if (dbSettings) {
-        deviceSettings = {
-          enabled: dbSettings.enabled,
-          ip: dbSettings.ip,
-          port: dbSettings.port,
-          protocol: dbSettings.protocol as "tcp" | "udp",
-          fallbackToAccess: dbSettings.fallbackToAccess,
-          realTimeSync: dbSettings.realTimeSync,
-          lastConfigUpdate: dbSettings.lastConfigUpdate || undefined,
-          zk40Ip: (dbSettings as any).zk40Ip ?? null,
-          zk40Port: (dbSettings as any).zk40Port ?? 4370,
-          zk40Enabled: (dbSettings as any).zk40Enabled ?? false,
-          zk40Protocol: (dbSettings as any).zk40Protocol ?? "adms",
-          fkProtocol: (dbSettings as any).fkProtocol ?? 0,
+      // Also fetch id=2
+      const rows2 = await db
+        .select()
+        .from(attendanceDeviceSettings)
+        .where(eq(attendanceDeviceSettings.id, 2));
+
+      const dbEF10K = rows[0];
+      const dbK40 = rows2[0];
+
+      if (dbEF10K) {
+        ef10kSettings = {
+          enabled: dbEF10K.enabled,
+          ip: dbEF10K.ip,
+          port: dbEF10K.port,
+          protocol: dbEF10K.protocol as "tcp" | "udp",
+          fallbackToAccess: dbEF10K.fallbackToAccess,
+          realTimeSync: dbEF10K.realTimeSync,
+          lastConfigUpdate: dbEF10K.lastConfigUpdate || undefined,
+          fkProtocol: (dbEF10K as any).fkProtocol ?? 0,
         };
-        console.log("[DeviceSettings] Loaded from database:", {
-          ip: deviceSettings.ip,
-          port: deviceSettings.port,
-        });
       } else {
-        // Create default entry if none exists
         await db.insert(attendanceDeviceSettings).values({
           id: 1,
-          enabled: deviceSettings.enabled,
-          ip: deviceSettings.ip,
-          port: deviceSettings.port,
-          protocol: deviceSettings.protocol,
-          fallbackToAccess: deviceSettings.fallbackToAccess,
-          realTimeSync: deviceSettings.realTimeSync,
-        });
-        console.log("[DeviceSettings] Created default settings in database");
+          enabled: ef10kSettings.enabled,
+          ip: ef10kSettings.ip,
+          port: ef10kSettings.port,
+          protocol: ef10kSettings.protocol,
+          fallbackToAccess: ef10kSettings.fallbackToAccess,
+          realTimeSync: ef10kSettings.realTimeSync,
+        } as any);
       }
 
+      if (dbK40) {
+        k40Settings = {
+          enabled: dbK40.enabled,
+          ip: dbK40.ip,
+          port: dbK40.port,
+          protocol: dbK40.protocol as "tcp" | "udp",
+          fallbackToAccess: dbK40.fallbackToAccess,
+          realTimeSync: dbK40.realTimeSync,
+          lastConfigUpdate: dbK40.lastConfigUpdate || undefined,
+          zk40Protocol: ((dbK40 as any).zk40Protocol ?? "adms") as "adms" | "tcp",
+          fkProtocol: (dbK40 as any).fkProtocol ?? 0,
+        };
+      } else {
+        // Migrate from old single-row: copy zk40_* columns from id=1 into id=2
+        const src = dbEF10K as any;
+        await db.insert(attendanceDeviceSettings).values({
+          id: 2,
+          enabled: src?.zk40Enabled ?? false,
+          ip: src?.zk40Ip ?? "",
+          port: src?.zk40Port ?? 4370,
+          protocol: "tcp",
+          fallbackToAccess: false,
+          realTimeSync: true,
+          zk40Protocol: src?.zk40Protocol ?? "adms",
+          fkProtocol: src?.fkProtocol ?? 0,
+        } as any);
+        k40Settings = {
+          enabled: src?.zk40Enabled ?? false,
+          ip: src?.zk40Ip ?? "",
+          port: src?.zk40Port ?? 4370,
+          protocol: "tcp",
+          fallbackToAccess: false,
+          realTimeSync: true,
+          zk40Protocol: src?.zk40Protocol ?? "adms",
+          fkProtocol: src?.fkProtocol ?? 0,
+        };
+      }
+
+      console.log("[DeviceSettings] Loaded — EF10K:", ef10kSettings.ip, "K40:", k40Settings.ip);
       settingsLoaded = true;
     } catch (err) {
       console.error("[DeviceSettings] Failed to initialize settings:", err);
@@ -101,75 +145,60 @@ export class DeviceSettingsService {
     }
   }
 
+  /** EF10K settings (id=1) */
   static getSettings(): DeviceSettings {
-    return { ...deviceSettings };
+    return { ...ef10kSettings };
+  }
+
+  /** K40 Pro settings (id=2) */
+  static getK40Settings(): DeviceSettings {
+    return { ...k40Settings };
   }
 
   static async updateSettings(
-    updates: Partial<DeviceSettings>,
+    updates: Partial<DeviceSettings> & { deviceId?: number },
   ): Promise<DeviceSettings> {
-    // Validate IP format
-    if (updates.ip && !this.isValidIP(updates.ip)) {
-      throw new Error("Invalid IP address format");
+    const deviceId = updates.deviceId ?? 1;
+    const { deviceId: _, ...rest } = updates as any;
+
+    if (rest.ip && !this.isValidIP(rest.ip)) throw new Error("Invalid IP address format");
+    if (rest.port && (rest.port < 1 || rest.port > 65535)) throw new Error("Port must be between 1 and 65535");
+
+    if (deviceId === 2) {
+      k40Settings = { ...k40Settings, ...rest, lastConfigUpdate: new Date() };
+      await this.persistRow(2, k40Settings);
+      return { ...k40Settings };
+    } else {
+      ef10kSettings = { ...ef10kSettings, ...rest, lastConfigUpdate: new Date() };
+      await this.persistRow(1, ef10kSettings);
+      return { ...ef10kSettings };
     }
+  }
 
-    // Validate port range
-    if (updates.port && (updates.port < 1 || updates.port > 65535)) {
-      throw new Error("Port must be between 1 and 65535");
-    }
-
-    deviceSettings = {
-      ...deviceSettings,
-      ...updates,
-      lastConfigUpdate: new Date(),
-    };
-
-    // Persist to database
+  private static async persistRow(id: number, s: DeviceSettings): Promise<void> {
     try {
       const db = await getDb();
-      if (db) {
-        await db
-          .insert(attendanceDeviceSettings)
-          .values({
-            id: 1,
-            enabled: deviceSettings.enabled,
-            ip: deviceSettings.ip,
-            port: deviceSettings.port,
-            protocol: deviceSettings.protocol,
-            fallbackToAccess: deviceSettings.fallbackToAccess,
-            realTimeSync: deviceSettings.realTimeSync,
-            lastConfigUpdate: deviceSettings.lastConfigUpdate,
-            zk40Ip: deviceSettings.zk40Ip ?? null,
-            zk40Port: deviceSettings.zk40Port ?? 4370,
-            zk40Enabled: deviceSettings.zk40Enabled ?? false,
-            zk40Protocol: deviceSettings.zk40Protocol ?? "adms",
-            fkProtocol: deviceSettings.fkProtocol ?? 0,
-          } as any)
-          .onDuplicateKeyUpdate({
-            set: {
-              enabled: deviceSettings.enabled,
-              ip: deviceSettings.ip,
-              port: deviceSettings.port,
-              fallbackToAccess: deviceSettings.fallbackToAccess,
-              realTimeSync: deviceSettings.realTimeSync,
-              lastConfigUpdate: deviceSettings.lastConfigUpdate,
-              zk40Ip: deviceSettings.zk40Ip ?? null,
-              zk40Port: deviceSettings.zk40Port ?? 4370,
-              zk40Enabled: deviceSettings.zk40Enabled ?? false,
-              zk40Protocol: deviceSettings.zk40Protocol ?? "adms",
-              fkProtocol: deviceSettings.fkProtocol ?? 0,
-            },
-          } as any);
-        console.log("[DeviceSettings] Updated in database:", {
-          ip: deviceSettings.ip,
-          port: deviceSettings.port,
-        });
-      }
+      if (!db) return;
+      const row: any = {
+        id,
+        enabled: s.enabled,
+        ip: s.ip,
+        port: s.port,
+        protocol: s.protocol,
+        fallbackToAccess: s.fallbackToAccess,
+        realTimeSync: s.realTimeSync,
+        lastConfigUpdate: s.lastConfigUpdate,
+        zk40Protocol: s.zk40Protocol ?? "adms",
+        fkProtocol: s.fkProtocol ?? 0,
+      };
+      await db
+        .insert(attendanceDeviceSettings)
+        .values(row)
+        .onDuplicateKeyUpdate({ set: row } as any);
+      console.log(`[DeviceSettings] Saved device ${id}: ip=${s.ip} port=${s.port}`);
     } catch (err) {
       console.error("[DeviceSettings] Failed to persist settings:", err);
     }
-
-    return { ...deviceSettings };
   }
 
   static getDeviceStatus(): DeviceStatus {
@@ -178,66 +207,47 @@ export class DeviceSettingsService {
   }
 
   static async connectDevice(): Promise<boolean> {
-    if (!deviceSettings.enabled) {
-      throw new Error("Device is disabled in settings");
-    }
-
+    if (!ef10kSettings.enabled) throw new Error("Device is disabled in settings");
     const device = getDefaultDevice();
     return device.connect();
   }
 
   static disconnectDevice(): void {
-    const device = getDefaultDevice();
-    device.disconnect();
+    getDefaultDevice().disconnect();
   }
 
   static isDeviceOnline(): boolean {
-    const device = getDefaultDevice();
-    return device.isHealthy();
+    return getDefaultDevice().isHealthy();
   }
 
   static sendDeviceCommand(command: Buffer): boolean {
-    const device = getDefaultDevice();
-    return device.sendCommand(command);
+    return getDefaultDevice().sendCommand(command);
   }
 
   static sendDeviceCommandHex(hex: string): boolean {
-    // Parse hex string like "AABB0000"
-    const buffer = Buffer.from(hex, "hex");
-    return this.sendDeviceCommand(buffer);
+    return this.sendDeviceCommand(Buffer.from(hex, "hex"));
   }
 
   static resetDeviceConnection(): void {
     const device = getDefaultDevice();
     device.disconnect();
     setTimeout(() => {
-      if (deviceSettings.enabled) {
-        device.connect();
-      }
+      if (ef10kSettings.enabled) device.connect();
     }, 1000);
   }
 
   private static isValidIP(ip: string): boolean {
-    const ipRegex =
-      /^(\d{1,3}\.){3}\d{1,3}$|^localhost$|^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*$/;
+    if (!ip) return true; // empty is ok (K40 not configured yet)
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$|^localhost$|^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*$/;
     if (!ipRegex.test(ip)) return false;
-
-    // Check each octet for numeric IPs
     if (/^\d/.test(ip)) {
       const parts = ip.split(".");
-      return (
-        parts.length === 4 &&
-        parts.every((p) => {
-          const num = parseInt(p);
-          return num >= 0 && num <= 255;
-        })
-      );
+      return parts.length === 4 && parts.every((p) => { const n = parseInt(p); return n >= 0 && n <= 255; });
     }
-
     return true;
   }
 
   static getConnectionUrl(): string {
-    return `${deviceSettings.protocol}://${deviceSettings.ip}:${deviceSettings.port}`;
+    return `${ef10kSettings.protocol}://${ef10kSettings.ip}:${ef10kSettings.port}`;
   }
 }

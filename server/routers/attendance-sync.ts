@@ -60,7 +60,10 @@ import { fmtDate } from "./_attendance/schedule-helpers";
 
 export const attendanceSyncRoutes = {
   deviceSettings: makeAttProcedure("/attendance/admin/device").query(async () => {
-    return DeviceSettingsService.getSettings();
+    return {
+      ef10k: DeviceSettingsService.getSettings(),
+      k40: DeviceSettingsService.getK40Settings(),
+    };
   }),
 
   deviceStatus: makeAttProcedure("/attendance/admin/device").query(async () => {
@@ -96,14 +99,12 @@ export const attendanceSyncRoutes = {
   updateDeviceSettings: makeAttWriteProcedure("/attendance/admin/device")
     .input(
       z.object({
+        deviceId: z.number().int().min(1).max(2).optional(),
         enabled: z.boolean().optional(),
         ip: z.string().optional(),
         port: z.number().int().min(1).max(65535).optional(),
         fallbackToAccess: z.boolean().optional(),
         realTimeSync: z.boolean().optional(),
-        zk40Ip: z.string().optional().nullable(),
-        zk40Port: z.number().int().min(1).max(65535).optional(),
-        zk40Enabled: z.boolean().optional(),
         zk40Protocol: z.enum(["adms", "tcp"]).optional(),
         fkProtocol: z.number().int().min(0).max(1).optional(),
       }),
@@ -114,12 +115,12 @@ export const attendanceSyncRoutes = {
 
   syncFromZK40: makeAttWriteProcedure("/attendance/admin/sync").mutation(
     async ({ ctx }) => {
-      const settings = DeviceSettingsService.getSettings();
-      const ip = settings.zk40Ip ?? process.env.ZK4370_IP ?? "";
-      const port = settings.zk40Port ?? 4370;
+      const k40 = DeviceSettingsService.getK40Settings();
+      const ip = k40.ip ?? process.env.ZK4370_IP ?? "";
+      const port = k40.port ?? 4370;
       if (!ip) throw new Error("ZK40 IP not configured");
-      if (settings.zk40Protocol === "tcp") {
-        const punches = await FKAttendLogPuller.pullLogs({ ip, port, protocol: settings.fkProtocol ?? 0 });
+      if (k40.zk40Protocol === "tcp") {
+        const punches = await FKAttendLogPuller.pullLogs({ ip, port, protocol: k40.fkProtocol ?? 0 });
         return { recordsSeen: punches.length, recordsInserted: punches.length, recordsSkipped: 0 };
       }
       return ZK4370SyncService.pull(ctx.user?.id, ip, port);

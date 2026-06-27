@@ -8,40 +8,28 @@ import { trpc } from "@/lib/trpc";
 const tRPC = trpc as any;
 
 export default function DeviceSettings() {
-  const [formData, setFormData] = useState({
-    ip: "",
-    port: 5005,
-    enabled: false,
-    fkProtocol: 0 as 0 | 1,
-    zk40Ip: "",
-    zk40Port: 4370,
-    zk40Enabled: false,
-    zk40Protocol: "adms" as "adms" | "tcp",
-  });
+  const [ef10k, setEf10k] = useState({ ip: "", port: 5005, enabled: false });
+  const [k40, setK40] = useState({ ip: "", port: 4370, enabled: false, zk40Protocol: "adms" as "adms" | "tcp", fkProtocol: 0 as 0 | 1 });
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const settingsQuery   = tRPC.attendance.deviceSettings.useQuery();
-  const statusQuery     = tRPC.attendance.deviceStatus.useQuery({ refetchInterval: 10000 });
-  const admsStatus      = tRPC.attendance.admsStatus.useQuery(undefined, { refetchInterval: 15000 });
-  const connectDevice   = tRPC.attendance.connectDevice.useMutation();
+  const settingsQuery    = tRPC.attendance.deviceSettings.useQuery();
+  const statusQuery      = tRPC.attendance.deviceStatus.useQuery({ refetchInterval: 10000 });
+  const admsStatus       = tRPC.attendance.admsStatus.useQuery(undefined, { refetchInterval: 15000 });
+  const connectDevice    = tRPC.attendance.connectDevice.useMutation();
   const disconnectDevice = tRPC.attendance.disconnectDevice.useMutation();
-  const resetConnection = tRPC.attendance.resetDeviceConnection.useMutation();
-  const updateSettings  = tRPC.attendance.updateDeviceSettings.useMutation();
-  const syncZK40        = tRPC.attendance.syncFromZK40.useMutation();
+  const resetConnection  = tRPC.attendance.resetDeviceConnection.useMutation();
+  const updateSettings   = tRPC.attendance.updateDeviceSettings.useMutation();
+  const syncZK40         = tRPC.attendance.syncFromZK40.useMutation();
   const pushEmployeesZK40 = tRPC.attendance.pushEmployeesToZK40.useMutation();
 
   useEffect(() => {
-    if (settingsQuery.data) {
-      setFormData({
-        ip: settingsQuery.data.ip,
-        port: settingsQuery.data.port,
-        enabled: settingsQuery.data.enabled,
-        fkProtocol: ((settingsQuery.data as any).fkProtocol ?? 0) as 0 | 1,
-        zk40Ip: (settingsQuery.data as any).zk40Ip ?? "",
-        zk40Port: (settingsQuery.data as any).zk40Port ?? 4370,
-        zk40Enabled: (settingsQuery.data as any).zk40Enabled ?? false,
-        zk40Protocol: (settingsQuery.data as any).zk40Protocol ?? "adms",
-      });
+    if (!settingsQuery.data) return;
+    const d = settingsQuery.data as any;
+    if (d.ef10k) {
+      setEf10k({ ip: d.ef10k.ip ?? "", port: d.ef10k.port ?? 5005, enabled: d.ef10k.enabled ?? false });
+    }
+    if (d.k40) {
+      setK40({ ip: d.k40.ip ?? "", port: d.k40.port ?? 4370, enabled: d.k40.enabled ?? false, zk40Protocol: d.k40.zk40Protocol ?? "adms", fkProtocol: d.k40.fkProtocol ?? 0 });
     }
   }, [settingsQuery.data]);
 
@@ -52,18 +40,17 @@ export default function DeviceSettings() {
     }
   }, [showSuccess]);
 
-  const handleSave = async () => {
+  const saveEF10K = async () => {
     try {
-      await updateSettings.mutateAsync({
-        ip: formData.ip,
-        port: formData.port,
-        enabled: formData.enabled,
-        fkProtocol: formData.fkProtocol,
-        zk40Ip: formData.zk40Ip || null,
-        zk40Port: formData.zk40Port,
-        zk40Enabled: formData.zk40Enabled,
-        zk40Protocol: formData.zk40Protocol,
-      });
+      await updateSettings.mutateAsync({ deviceId: 1, ip: ef10k.ip, port: ef10k.port, enabled: ef10k.enabled });
+      setShowSuccess(true);
+      settingsQuery.refetch();
+    } catch {}
+  };
+
+  const saveK40 = async () => {
+    try {
+      await updateSettings.mutateAsync({ deviceId: 2, ip: k40.ip, port: k40.port, enabled: k40.enabled, zk40Protocol: k40.zk40Protocol, fkProtocol: k40.fkProtocol });
       setShowSuccess(true);
       settingsQuery.refetch();
     } catch {}
@@ -79,7 +66,6 @@ export default function DeviceSettings() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      {/* Page header */}
       <div className="space-y-1">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           Device console / وحدة الجهاز
@@ -94,12 +80,10 @@ export default function DeviceSettings() {
         </Alert>
       )}
 
-      {/* ── Two columns: EF10K | K40 Pro ──────────────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 
         {/* ── EF10K column ── */}
         <div className="space-y-4">
-          {/* EF10K status */}
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
@@ -152,25 +136,24 @@ export default function DeviceSettings() {
             </CardContent>
           </Card>
 
-          {/* EF10K config */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">إعداد EF10K</CardTitle>
+              <CardTitle className="text-base">إعداد EF10K (جهاز 1)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <label className="mb-1.5 block text-sm font-medium">عنوان IP الجهاز</label>
-                <input type="text" value={formData.ip} onChange={(e) => setFormData({ ...formData, ip: e.target.value })} placeholder="192.168.0.10" className={inputCls} />
+                <input type="text" value={ef10k.ip} onChange={(e) => setEf10k({ ...ef10k, ip: e.target.value })} placeholder="192.168.0.10" className={inputCls} />
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium">المنفذ (TCP)</label>
-                <input type="number" value={formData.port} onChange={(e) => setFormData({ ...formData, port: parseInt(e.target.value) || 5005 })} min="1" max="65535" className={inputCls} />
+                <input type="number" value={ef10k.port} onChange={(e) => setEf10k({ ...ef10k, port: parseInt(e.target.value) || 5005 })} min="1" max="65535" className={inputCls} />
               </div>
               <div className="flex items-center gap-2">
-                <input type="checkbox" id="ef10k-enabled" checked={formData.enabled} onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })} className="rounded border-border" />
+                <input type="checkbox" id="ef10k-enabled" checked={ef10k.enabled} onChange={(e) => setEf10k({ ...ef10k, enabled: e.target.checked })} className="rounded border-border" />
                 <label htmlFor="ef10k-enabled" className="text-sm font-medium cursor-pointer">تفعيل EF10K</label>
               </div>
-              <Button onClick={handleSave} disabled={updateSettings.isPending} className="w-full">
+              <Button onClick={saveEF10K} disabled={updateSettings.isPending} className="w-full">
                 {updateSettings.isPending ? "جارٍ الحفظ..." : "حفظ إعدادات EF10K"}
               </Button>
             </CardContent>
@@ -179,7 +162,6 @@ export default function DeviceSettings() {
 
         {/* ── K40 Pro column ── */}
         <div className="space-y-4">
-          {/* K40 Pro status */}
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
@@ -208,35 +190,34 @@ export default function DeviceSettings() {
                   <p className="font-mono text-xs mt-0.5">{adms?.lastDeviceId ?? "—"}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">البروتوكول</p>
-                  <p className="font-mono text-xs mt-0.5">HTTP ADMS Push</p>
+                  <p className="text-xs text-muted-foreground">البروتوكول النشط</p>
+                  <p className="font-mono text-xs mt-0.5">{k40.zk40Protocol === "tcp" ? "TCP مباشر" : "ADMS Push"}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* K40 Pro config */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">إعداد K40 Pro</CardTitle>
+              <CardTitle className="text-base">إعداد K40 Pro (جهاز 2)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <label className="mb-1.5 block text-sm font-medium">بروتوكول الاتصال</label>
-                <select value={formData.zk40Protocol} onChange={(e) => setFormData({ ...formData, zk40Protocol: e.target.value as "adms" | "tcp" })} className={inputCls}>
+                <select value={k40.zk40Protocol} onChange={(e) => setK40({ ...k40, zk40Protocol: e.target.value as "adms" | "tcp" })} className={inputCls}>
                   <option value="adms">ADMS (الجهاز يرسل للخادم)</option>
                   <option value="tcp">TCP مباشر (الخادم يسحب من الجهاز)</option>
                 </select>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {formData.zk40Protocol === "tcp"
-                    ? "اتصال مباشر بالجهاز عبر منفذ TCP (عادةً 4370) — يتطلب وصول الخادم لشبكة الجهاز."
+                  {k40.zk40Protocol === "tcp"
+                    ? "اتصال مباشر بالجهاز عبر منفذ TCP — يتطلب وصول الخادم لشبكة الجهاز."
                     : "الجهاز يرسل البصمات للخادم تلقائياً (Push) — مناسب عند وجود الجهاز خلف راوتر."}
                 </p>
               </div>
-              {formData.zk40Protocol === "tcp" && (
+              {k40.zk40Protocol === "tcp" && (
                 <div>
                   <label className="mb-1.5 block text-sm font-medium">بروتوكول SDK</label>
-                  <select value={formData.fkProtocol} onChange={(e) => setFormData({ ...formData, fkProtocol: parseInt(e.target.value) as 0 | 1 })} className={inputCls}>
+                  <select value={k40.fkProtocol} onChange={(e) => setK40({ ...k40, fkProtocol: parseInt(e.target.value) as 0 | 1 })} className={inputCls}>
                     <option value={0}>Protocol 0 (افتراضي)</option>
                     <option value={1}>Protocol 1</option>
                   </select>
@@ -244,22 +225,22 @@ export default function DeviceSettings() {
                 </div>
               )}
               <div>
-                <label className="mb-1.5 block text-sm font-medium">عنوان IP العام</label>
-                <input type="text" value={formData.zk40Ip} onChange={(e) => setFormData({ ...formData, zk40Ip: e.target.value })} placeholder="41.x.x.x أو hostname" className={inputCls} />
+                <label className="mb-1.5 block text-sm font-medium">عنوان IP الجهاز</label>
+                <input type="text" value={k40.ip} onChange={(e) => setK40({ ...k40, ip: e.target.value })} placeholder="192.168.0.20" className={inputCls} />
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium">المنفذ (عادةً 4370)</label>
-                <input type="number" value={formData.zk40Port} onChange={(e) => setFormData({ ...formData, zk40Port: parseInt(e.target.value) || 4370 })} min="1" max="65535" className={inputCls} />
+                <input type="number" value={k40.port} onChange={(e) => setK40({ ...k40, port: parseInt(e.target.value) || 4370 })} min="1" max="65535" className={inputCls} />
               </div>
               <div className="flex items-center gap-2">
-                <input type="checkbox" id="zk40-enabled" checked={formData.zk40Enabled} onChange={(e) => setFormData({ ...formData, zk40Enabled: e.target.checked })} className="rounded border-border" />
+                <input type="checkbox" id="zk40-enabled" checked={k40.enabled} onChange={(e) => setK40({ ...k40, enabled: e.target.checked })} className="rounded border-border" />
                 <label htmlFor="zk40-enabled" className="text-sm font-medium cursor-pointer">تفعيل K40 Pro</label>
               </div>
               <div className="flex flex-col gap-2">
-                <Button onClick={handleSave} disabled={updateSettings.isPending}>
-                  {updateSettings.isPending ? "جارٍ الحفظ..." : "حفظ"}
+                <Button onClick={saveK40} disabled={updateSettings.isPending}>
+                  {updateSettings.isPending ? "جارٍ الحفظ..." : "حفظ إعدادات K40 Pro"}
                 </Button>
-                <Button variant="outline" onClick={async () => { try { await syncZK40.mutateAsync(); setShowSuccess(true); } catch {} }} disabled={syncZK40.isPending || !formData.zk40Ip}>
+                <Button variant="outline" onClick={async () => { try { await syncZK40.mutateAsync(); setShowSuccess(true); } catch {} }} disabled={syncZK40.isPending || !k40.ip}>
                   {syncZK40.isPending ? "جارٍ..." : "تزامن البصمات"}
                 </Button>
                 <Button variant="outline" onClick={async () => { try { const r = await pushEmployeesZK40.mutateAsync(); alert(r.message); } catch {} }} disabled={pushEmployeesZK40.isPending}>
