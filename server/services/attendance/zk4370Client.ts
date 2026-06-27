@@ -193,12 +193,12 @@ export class ZK4370Client {
     if (resp.cmd === CMD_ACK_OK) {
       this.sessionId = resp.sessionId;
     } else if (resp.cmd === CMD_ACK_UNAUTH) {
-      // Device requires comm key auth
+      // Device requires comm key auth; some firmware XORs key with sessionId
       this.sessionId = resp.sessionId;
       const keyBuf = Buffer.alloc(4);
-      keyBuf.writeUInt32LE(this.commKey, 0);
+      keyBuf.writeUInt32LE(this.commKey ^ this.sessionId, 0);
       const auth = await this.send(CMD_AUTH, keyBuf);
-      if (auth.cmd !== CMD_ACK_OK) throw new Error(`Comm key auth failed (cmd=${auth.cmd}) — check Comm Key on device`);
+      if (auth.cmd !== CMD_ACK_OK) throw new Error(`Comm key auth failed (cmd=${auth.cmd}) — verify Comm Key on device (current: ${this.commKey})`);
     } else {
       throw new Error(`Connect failed (cmd=${resp.cmd})`);
     }
