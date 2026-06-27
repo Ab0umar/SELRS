@@ -113,12 +113,15 @@ export function registerZKTecoAdms(app: Express): void {
   // from the live OS offset, so it auto-adjusts for DST (Egypt summer = UTC+3).
   // removeHeader() alone fails — Express re-adds Date on send(); setHeader sticks.
   const deviceInternalOffsetHours = parseFloat(process.env.ZK_ADMS_DEVICE_TZ_OFFSET ?? "7");
-  app.use("/iclock", (_req, res, next) => {
+  app.use("/iclock", (req, res, next) => {
     const now = new Date();
     const serverOffsetHours = -now.getTimezoneOffset() / 60; // e.g. Cairo summer = +3
     const shiftHours = serverOffsetHours - deviceInternalOffsetHours; // e.g. 3 - 7 = -4
     const shifted = new Date(now.getTime() + shiftHours * 3_600_000);
     res.setHeader("Date", shifted.toUTCString());
+    res.on("finish", () => {
+      console.log(`[ADMS] ${req.method} ${req.path} | serverLocal=${now.toString()} | sentDateHeader=${res.getHeader("Date")} | shift=${shiftHours}h`);
+    });
     next();
   });
 
