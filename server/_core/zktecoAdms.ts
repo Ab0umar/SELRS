@@ -90,7 +90,12 @@ let detectedOffsetHours: number | null = null;
 function effectiveOffsetHours(): number {
   const manual = process.env.ZK_ADMS_PUNCH_OFFSET_HOURS;
   if (manual !== undefined && manual !== "") return parseFloat(manual);
-  return detectedOffsetHours ?? 0;
+  if (detectedOffsetHours !== null) return detectedOffsetHours;
+  // Default expectation: device internal tz (UTC+7) minus server-local offset.
+  // e.g. Cairo summer UTC+3 → 7 - 3 = 4h ahead. DST-safe via live OS offset.
+  const deviceInternalOffset = parseFloat(process.env.ZK_ADMS_DEVICE_TZ_OFFSET ?? "7");
+  const serverOffset = -new Date().getTimezoneOffset() / 60;
+  return deviceInternalOffset - serverOffset;
 }
 
 /** From a fresh real-time push, snap (deviceTime − now) to nearest hour. */
