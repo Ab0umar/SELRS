@@ -159,14 +159,6 @@ export default function DeviceSettings() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="mb-1.5 block text-sm font-medium">بروتوكول الاتصال</label>
-                <select value={formData.fkProtocol} onChange={(e) => setFormData({ ...formData, fkProtocol: parseInt(e.target.value) as 0 | 1 })} className={inputCls}>
-                  <option value={0}>Protocol 0 (افتراضي)</option>
-                  <option value={1}>Protocol 1 (TCP مباشر)</option>
-                </select>
-                <p className="mt-1 text-xs text-muted-foreground">إذا ظهر "Connect failed. Try --protocol 1" اختر Protocol 1.</p>
-              </div>
-              <div>
                 <label className="mb-1.5 block text-sm font-medium">عنوان IP الجهاز</label>
                 <input type="text" value={formData.ip} onChange={(e) => setFormData({ ...formData, ip: e.target.value })} placeholder="192.168.0.10" className={inputCls} />
               </div>
@@ -241,6 +233,16 @@ export default function DeviceSettings() {
                     : "الجهاز يرسل البصمات للخادم تلقائياً (Push) — مناسب عند وجود الجهاز خلف راوتر."}
                 </p>
               </div>
+              {formData.zk40Protocol === "tcp" && (
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium">بروتوكول SDK</label>
+                  <select value={formData.fkProtocol} onChange={(e) => setFormData({ ...formData, fkProtocol: parseInt(e.target.value) as 0 | 1 })} className={inputCls}>
+                    <option value={0}>Protocol 0 (افتراضي)</option>
+                    <option value={1}>Protocol 1</option>
+                  </select>
+                  <p className="mt-1 text-xs text-muted-foreground">إذا ظهر "Connect failed. Try --protocol 1" اختر Protocol 1.</p>
+                </div>
+              )}
               <div>
                 <label className="mb-1.5 block text-sm font-medium">عنوان IP العام</label>
                 <input type="text" value={formData.zk40Ip} onChange={(e) => setFormData({ ...formData, zk40Ip: e.target.value })} placeholder="41.x.x.x أو hostname" className={inputCls} />
