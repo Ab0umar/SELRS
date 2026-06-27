@@ -29,6 +29,7 @@ const CMD_ACK_OK = 2000;
 const CMD_PREPARE_DATA = 1500;
 const CMD_DATA = 1501;
 const CMD_FREE_DATA = 1502;
+const CMD_AUTH = 1102;
 
 export interface ZKAttendanceRecord {
   uid: number;
@@ -169,15 +170,26 @@ export class ZK4370Client {
     private readonly ip: string,
     private readonly port: number,
     private readonly timeoutMs = 10_000,
+    private readonly commKey = 0,
   ) {}
 
   // ---------- public API ----------
 
   async connect(): Promise<void> {
     await this.openSocket();
+    // Drain unsolicited greeting the device sends on connect
+    await new Promise(r => setTimeout(r, 200));
+    this.packetQueue = [];
     const resp = await this.send(CMD_CONNECT);
     if (resp.cmd !== CMD_ACK_OK) throw new Error(`Connect failed (cmd=${resp.cmd})`);
     this.sessionId = resp.sessionId;
+    // Authenticate with comm key if set
+    if (this.commKey !== 0) {
+      const keyBuf = Buffer.alloc(4);
+      keyBuf.writeUInt32LE(this.commKey, 0);
+      const auth = await this.send(CMD_AUTH, keyBuf);
+      if (auth.cmd !== CMD_ACK_OK) throw new Error(`Comm key auth failed (cmd=${auth.cmd})`);
+    }
   }
 
   async disconnect(): Promise<void> {

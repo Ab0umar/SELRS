@@ -46,7 +46,7 @@ export interface ZK4370PushResult {
 // ---------------------------------------------------------------------------
 
 export class ZK4370SyncService {
-  static async pull(userId?: number, ip?: string, port?: number): Promise<ZK4370SyncResult> {
+  static async pull(userId?: number, ip?: string, port?: number, commKey = 0): Promise<ZK4370SyncResult> {
     const deviceIp = ip ?? DEVICE_IP;
     const devicePort = port ?? DEVICE_PORT;
     const startedAt = new Date();
@@ -74,7 +74,7 @@ export class ZK4370SyncService {
       const lastHwm: Date | null = lastRun[0]?.hwm ?? null;
       console.log(`[ZK4370] Last HWM: ${lastHwm?.toISOString() ?? "none"}`);
 
-      const client = new ZK4370Client(deviceIp, devicePort, 30_000);
+      const client = new ZK4370Client(deviceIp, devicePort, 30_000, commKey);
       await client.connect();
       let rawLogs: Awaited<ReturnType<typeof client.getAttendanceLogs>>;
       try {

@@ -120,11 +120,7 @@ export const attendanceSyncRoutes = {
       const ip = k40.ip ?? process.env.ZK4370_IP ?? "";
       const port = k40.port ?? 4370;
       if (!ip) throw new Error("ZK40 IP not configured");
-      if (k40.zk40Protocol === "tcp") {
-        const punches = await FKAttendLogPuller.pullLogs({ ip, port, protocol: k40.fkProtocol ?? 0, password: k40.commPassword ?? 0 });
-        return { recordsSeen: punches.length, recordsInserted: punches.length, recordsSkipped: 0 };
-      }
-      return ZK4370SyncService.pull(ctx.user?.id, ip, port);
+      return ZK4370SyncService.pull(ctx.user?.id, ip, port, k40.commPassword ?? 0);
     },
   ),
 
