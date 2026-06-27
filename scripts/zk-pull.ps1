@@ -77,6 +77,17 @@ if ($Mode -eq "info") {
 }
 
 # -----------------------------------------------------------------------
+# SET DEVICE TIME to server local time
+# -----------------------------------------------------------------------
+if ($Mode -eq "settime") {
+  $now = Get-Date
+  $ok = $zk.SetDeviceTime2($MachineNo, $now.Year, $now.Month, $now.Day, $now.Hour, $now.Minute, $now.Second)
+  Write-Host "[ZK] SetDeviceTime2 => $ok  time=$($now.ToString('yyyy-MM-dd HH:mm:ss'))"
+  $zk.Disconnect()
+  exit 0
+}
+
+# -----------------------------------------------------------------------
 # PULL attendance logs
 # -----------------------------------------------------------------------
 if ($Mode -eq "pull") {

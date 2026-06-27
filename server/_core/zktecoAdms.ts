@@ -114,16 +114,6 @@ export function registerZKTecoAdms(app: Express): void {
     const options = String(req.query.options ?? req.query.Options ?? "");
     console.log(`[ADMS] Handshake from SN=${sn} options=${options} ip=${req.ip}`);
 
-    // Queue DATE TIME command to sync device clock to server local time
-    {
-      const n = new Date();
-      const pad = (x: number) => String(x).padStart(2, "0");
-      const dt = `${n.getFullYear()}-${pad(n.getMonth()+1)}-${pad(n.getDate())} ${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`;
-      const tid = cmdSeq++;
-      cmdQueue.push({ id: tid, line: `C:${tid}:DATE TIME ${dt}` });
-      console.log(`[ADMS] Queued DATE TIME ${dt} for SN=${sn}`);
-    }
-
     // Queue DATA QUERY ATTLOG once per session so device pushes its logs (pushver 2.x command-driven)
     if (!queriedDevices.has(sn)) {
       queriedDevices.add(sn);
@@ -132,13 +122,7 @@ export function registerZKTecoAdms(app: Express): void {
       console.log(`[ADMS] Queued DATA QUERY ATTLOG cmd ${id} for SN=${sn}`);
     }
 
-    // Send current local time so device syncs its clock to server local time
-    const now = new Date();
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const localTime = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-
     res.set("Content-Type", "text/plain");
-    // Full options response required by K40/ADMS firmware
     res.send(
       `GET OPTION FROM: ${sn}\r\n` +
       `ATTLOGStamp=0\r\n` +
@@ -150,10 +134,7 @@ export function registerZKTecoAdms(app: Express): void {
       `TransInterval=1\r\n` +
       `TransFlag=TransData AttLog OpLog\r\n` +
       `Realtime=1\r\n` +
-      `Encrypt=None\r\n` +
-      `ServerVer=2.4.1 2015-04-27\r\n` +
-      `PushProtVer=2.4.1\r\n` +
-      `Date=${localTime}\r\n`,
+      `Encrypt=None\r\n`,
     );
   });
 
