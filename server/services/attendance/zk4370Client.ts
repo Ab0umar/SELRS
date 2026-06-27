@@ -194,6 +194,19 @@ export class ZK4370Client {
         this.sessionId = greeting.sessionId;
       }
     }
+
+    // Some firmware embeds the password in CMD_CONNECT data; try that first
+    if (this.commKey !== 0) {
+      const pwdBuf = Buffer.alloc(4);
+      pwdBuf.writeUInt32LE(this.commKey, 0);
+      const r0 = await this.send(CMD_CONNECT, pwdBuf);
+      console.log(`[ZK4370] CMD_CONNECT with password → cmd=${r0.cmd} sessionId=${r0.sessionId}`);
+      if (r0.cmd === CMD_ACK_OK) { this.sessionId = r0.sessionId; return; }
+      // Reset session and replyId for the standard two-step attempt below
+      this.sessionId = 0;
+      this.replyId = 0xfffe;
+    }
+
     const resp = await this.send(CMD_CONNECT);
     if (resp.cmd === CMD_ACK_OK) {
       this.sessionId = resp.sessionId;
