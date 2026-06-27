@@ -241,16 +241,25 @@ export class ZK4370Client {
   // ---------- private helpers ----------
 
   private async tryAuth(): Promise<boolean> {
-    // Try raw key (most firmware)
-    const rawBuf = Buffer.alloc(4);
-    rawBuf.writeUInt32LE(this.commKey, 0);
-    const r1 = await this.send(CMD_AUTH, rawBuf);
+    console.log(`[ZK4370] Auth attempts: commKey=${this.commKey} sessionId=${this.sessionId}`);
+    // Attempt 1: raw LE
+    const buf1 = Buffer.alloc(4);
+    buf1.writeUInt32LE(this.commKey, 0);
+    const r1 = await this.send(CMD_AUTH, buf1);
+    console.log(`[ZK4370] Auth raw LE → cmd=${r1.cmd}`);
     if (r1.cmd === CMD_ACK_OK) return true;
-    // Try XOR with sessionId (some firmware)
-    const xorBuf = Buffer.alloc(4);
-    xorBuf.writeUInt32LE(this.commKey ^ this.sessionId, 0);
-    const r2 = await this.send(CMD_AUTH, xorBuf);
-    return r2.cmd === CMD_ACK_OK;
+    // Attempt 2: XOR with sessionId (some firmware)
+    const buf2 = Buffer.alloc(4);
+    buf2.writeUInt32LE(this.commKey ^ this.sessionId, 0);
+    const r2 = await this.send(CMD_AUTH, buf2);
+    console.log(`[ZK4370] Auth XOR(${this.commKey}^${this.sessionId}=${this.commKey ^ this.sessionId}) → cmd=${r2.cmd}`);
+    if (r2.cmd === CMD_ACK_OK) return true;
+    // Attempt 3: big endian
+    const buf3 = Buffer.alloc(4);
+    buf3.writeUInt32BE(this.commKey, 0);
+    const r3 = await this.send(CMD_AUTH, buf3);
+    console.log(`[ZK4370] Auth raw BE → cmd=${r3.cmd}`);
+    return r3.cmd === CMD_ACK_OK;
   }
 
   private async readLargeData(cmd: number): Promise<Buffer> {
