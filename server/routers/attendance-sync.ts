@@ -117,6 +117,12 @@ export const attendanceSyncRoutes = {
   syncFromZK40: makeAttWriteProcedure("/attendance/admin/sync").mutation(
     async ({ ctx }) => {
       const k40 = DeviceSettingsService.getK40Settings();
+      // ADMS mode is push-based — trigger the device to upload via its next poll.
+      if ((k40.zk40Protocol ?? "adms") === "adms") {
+        const { queueAdmsAttlogQuery } = await import("../_core/zktecoAdms");
+        queueAdmsAttlogQuery();
+        return { success: true, recordsSeen: 0, recordsInserted: 0, recordsSkipped: 0, message: "ADMS mode — requested upload; device will push logs on next poll" };
+      }
       const ip = k40.ip ?? process.env.ZK4370_IP ?? "";
       const port = k40.port ?? 4370;
       if (!ip) throw new Error("ZK40 IP not configured");
@@ -667,6 +673,13 @@ export const attendanceSyncRoutes = {
     .input(z.object({}).optional())
     .mutation(async ({ ctx }) => {
       try {
+        // ADMS mode is push-based — trigger the device to upload via its next poll.
+        const ef10k = DeviceSettingsService.getSettings();
+        if ((ef10k.zk40Protocol ?? "adms") === "adms") {
+          const { queueAdmsAttlogQuery } = await import("../_core/zktecoAdms");
+          queueAdmsAttlogQuery();
+          return { success: true, rowsInserted: 0, rowsSeen: 0, message: "ADMS mode — requested upload; device will push logs on next poll" };
+        }
         const result = await FKDeviceSyncService.syncNow(ctx.user.id);
 
         // Always recompute today so dashboard stat cards reflect current state

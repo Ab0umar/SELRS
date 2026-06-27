@@ -31,6 +31,14 @@ const cmdQueue: AdmsCommand[] = [];
 const pendingAck = new Map<number, AdmsCommand>(); // awaiting devicecmd ACK
 const queriedDevices = new Set<string>(); // SNs that already received DATA QUERY ATTLOG this session
 
+/** Queue a one-off ATTLOG pull command — device uploads its logs on next poll. */
+export function queueAdmsAttlogQuery(): number {
+  const id = cmdSeq++;
+  cmdQueue.push({ id, line: `C:${id}:DATA QUERY ATTLOG` });
+  console.log(`[ADMS] Queued manual DATA QUERY ATTLOG cmd ${id} (queue total: ${cmdQueue.length})`);
+  return id;
+}
+
 export function queueAdmsUserCommands(
   employees: Array<{ empCd: string; fullName: string }>,
 ): number {

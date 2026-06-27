@@ -8,7 +8,7 @@ import { trpc } from "@/lib/trpc";
 const tRPC = trpc as any;
 
 export default function DeviceSettings() {
-  const [ef10k, setEf10k] = useState({ ip: "", port: 5005, enabled: false, zk40Protocol: "adms" as "adms" | "tcp", fkProtocol: 0 as 0 | 1, commPassword: 0 });
+  const [ef10k, setEf10k] = useState({ ip: "", port: 5005, enabled: false, zk40Protocol: "tcp" as "adms" | "tcp", fkProtocol: 0 as 0 | 1, commPassword: 0 });
   const [k40, setK40] = useState({ ip: "", port: 4370, enabled: false, zk40Protocol: "adms" as "adms" | "tcp", fkProtocol: 0 as 0 | 1, commPassword: 0 });
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -26,7 +26,7 @@ export default function DeviceSettings() {
     if (!settingsQuery.data) return;
     const d = settingsQuery.data as any;
     if (d.ef10k) {
-      setEf10k({ ip: d.ef10k.ip ?? "", port: d.ef10k.port ?? 5005, enabled: d.ef10k.enabled ?? false, zk40Protocol: d.ef10k.zk40Protocol ?? "adms", fkProtocol: d.ef10k.fkProtocol ?? 0, commPassword: d.ef10k.commPassword ?? 0 });
+      setEf10k({ ip: d.ef10k.ip ?? "", port: d.ef10k.port ?? 5005, enabled: d.ef10k.enabled ?? false, zk40Protocol: d.ef10k.zk40Protocol ?? "tcp", fkProtocol: d.ef10k.fkProtocol ?? 0, commPassword: d.ef10k.commPassword ?? 0 });
     }
     if (d.k40) {
       setK40({ ip: d.k40.ip ?? "", port: d.k40.port ?? 4370, enabled: d.k40.enabled ?? false, zk40Protocol: d.k40.zk40Protocol ?? "adms", fkProtocol: d.k40.fkProtocol ?? 0, commPassword: d.k40.commPassword ?? 0 });
