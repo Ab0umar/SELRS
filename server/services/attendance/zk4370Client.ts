@@ -199,8 +199,9 @@ export class ZK4370Client {
       this.sessionId = resp.sessionId;
     } else if (resp.cmd === CMD_ACK_UNAUTH) {
       this.sessionId = resp.sessionId;
+      console.log(`[ZK4370] UNAUTH: sessionId=${resp.sessionId} data(hex)=${resp.data.toString("hex")} data(len)=${resp.data.length}`);
       if (this.commKey === 0) throw new Error("Device requires a Comm Key — set it in K40 Pro settings");
-      const ok = await this.tryAuth();
+      const ok = await this.tryAuth(resp.data);
       if (!ok) throw new Error(`Comm key auth failed — verify Comm Key on device (current: ${this.commKey})`);
     } else {
       throw new Error(`Connect failed (cmd=${resp.cmd})`);
@@ -240,8 +241,8 @@ export class ZK4370Client {
 
   // ---------- private helpers ----------
 
-  private async tryAuth(): Promise<boolean> {
-    console.log(`[ZK4370] Auth attempts: commKey=${this.commKey} sessionId=${this.sessionId}`);
+  private async tryAuth(challengeData?: Buffer): Promise<boolean> {
+    console.log(`[ZK4370] Auth attempts: commKey=${this.commKey} sessionId=${this.sessionId} challenge=${challengeData?.toString("hex") ?? "none"}`);
     // Attempt 1: raw LE
     const buf1 = Buffer.alloc(4);
     buf1.writeUInt32LE(this.commKey, 0);
