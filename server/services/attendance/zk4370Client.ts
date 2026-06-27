@@ -170,7 +170,7 @@ function buildUserPacket72(uid: number, userId: string, name: string, role = 0):
 export class ZK4370Client {
   private socket: net.Socket | null = null;
   private sessionId = 0;
-  private replyId = 0;
+  private replyId = 0xfffe;
   private tcpBuf = Buffer.alloc(0);
   private packetQueue: ZKPacket[] = [];
   private waiters: Array<(pkt: ZKPacket) => void> = [];
@@ -186,19 +186,24 @@ export class ZK4370Client {
 
   async connect(): Promise<void> {
     await this.openSocket();
-    // Drain unsolicited greeting the device sends on connect
+    // Some firmware sends a greeting packet with sessionId on connect — read and use it
     await new Promise(r => setTimeout(r, 200));
-    this.packetQueue = [];
+    if (this.packetQueue.length > 0) {
+      const greeting = this.packetQueue.shift()!;
+      if (greeting.cmd === CMD_ACK_OK && greeting.sessionId) {
+        this.sessionId = greeting.sessionId;
+      }
+    }
     const resp = await this.send(CMD_CONNECT);
     if (resp.cmd === CMD_ACK_OK) {
       this.sessionId = resp.sessionId;
     } else if (resp.cmd === CMD_ACK_UNAUTH) {
-      // Device requires comm key auth; some firmware XORs key with sessionId
       this.sessionId = resp.sessionId;
+      if (this.commKey === 0) throw new Error("Device requires a Comm Key — set it in K40 Pro settings");
       const keyBuf = Buffer.alloc(4);
       keyBuf.writeUInt32LE(this.commKey ^ this.sessionId, 0);
       const auth = await this.send(CMD_AUTH, keyBuf);
-      if (auth.cmd !== CMD_ACK_OK) throw new Error(`Comm key auth failed (cmd=${auth.cmd}) — verify Comm Key on device (current: ${this.commKey})`);
+      if (auth.cmd !== CMD_ACK_OK) throw new Error(`Comm key auth failed (cmd=${auth.cmd}) — verify Comm Key (current: ${this.commKey})`);
     } else {
       throw new Error(`Connect failed (cmd=${resp.cmd})`);
     }
