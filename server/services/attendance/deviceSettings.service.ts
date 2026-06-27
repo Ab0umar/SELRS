@@ -25,6 +25,7 @@ export interface DeviceSettings {
   zk40Port?: number;
   zk40Enabled?: boolean;
   zk40Protocol?: "adms" | "tcp"; // ADMS push (device polls server) vs direct TCP pull
+  fkProtocol?: number; // 0 or 1 — passed as --protocol to FKOldLogPuller.exe
 }
 
 // In-memory settings cache (synced with DB)
@@ -73,6 +74,7 @@ export class DeviceSettingsService {
           zk40Port: (dbSettings as any).zk40Port ?? 4370,
           zk40Enabled: (dbSettings as any).zk40Enabled ?? false,
           zk40Protocol: (dbSettings as any).zk40Protocol ?? "adms",
+          fkProtocol: (dbSettings as any).fkProtocol ?? 0,
         };
         console.log("[DeviceSettings] Loaded from database:", {
           ip: deviceSettings.ip,
@@ -150,6 +152,7 @@ export class DeviceSettingsService {
               zk40Port: deviceSettings.zk40Port ?? 4370,
               zk40Enabled: deviceSettings.zk40Enabled ?? false,
               zk40Protocol: deviceSettings.zk40Protocol ?? "adms",
+              fkProtocol: deviceSettings.fkProtocol ?? 0,
             },
           } as any);
         console.log("[DeviceSettings] Updated in database:", {

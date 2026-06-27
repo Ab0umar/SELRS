@@ -4,6 +4,7 @@
  */
 
 import { FKAttendLogPuller, FKPunch } from "./fkAttendLogPuller";
+import { DeviceSettingsService } from "./deviceSettings.service";
 import { DailyMaterializer } from "./dailyMaterializer";
 import { getDb } from "../../db";
 import {
@@ -65,7 +66,9 @@ export class FKDeviceSyncService {
 
       // Step 1: Pull logs from device (always returns all records from device memory)
       console.log("[FKSync] Pulling logs from device...");
-      const allPunches = await FKAttendLogPuller.pullLogs(deviceConfig);
+      const settings = DeviceSettingsService.getSettings();
+      const resolvedConfig = { protocol: settings.fkProtocol ?? 0, ...deviceConfig };
+      const allPunches = await FKAttendLogPuller.pullLogs(resolvedConfig);
       // Filter to new punches only (after last HWM)
       const fkPunches = lastHwm
         ? allPunches.filter((p) => p.timestamp > lastHwm)

@@ -12,6 +12,7 @@ export default function DeviceSettings() {
     ip: "",
     port: 5005,
     enabled: false,
+    fkProtocol: 0 as 0 | 1,
     zk40Ip: "",
     zk40Port: 4370,
     zk40Enabled: false,
@@ -35,6 +36,7 @@ export default function DeviceSettings() {
         ip: settingsQuery.data.ip,
         port: settingsQuery.data.port,
         enabled: settingsQuery.data.enabled,
+        fkProtocol: ((settingsQuery.data as any).fkProtocol ?? 0) as 0 | 1,
         zk40Ip: (settingsQuery.data as any).zk40Ip ?? "",
         zk40Port: (settingsQuery.data as any).zk40Port ?? 4370,
         zk40Enabled: (settingsQuery.data as any).zk40Enabled ?? false,
@@ -56,6 +58,7 @@ export default function DeviceSettings() {
         ip: formData.ip,
         port: formData.port,
         enabled: formData.enabled,
+        fkProtocol: formData.fkProtocol,
         zk40Ip: formData.zk40Ip || null,
         zk40Port: formData.zk40Port,
         zk40Enabled: formData.zk40Enabled,
@@ -155,6 +158,14 @@ export default function DeviceSettings() {
               <CardTitle className="text-base">إعداد EF10K</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">بروتوكول الاتصال</label>
+                <select value={formData.fkProtocol} onChange={(e) => setFormData({ ...formData, fkProtocol: parseInt(e.target.value) as 0 | 1 })} className={inputCls}>
+                  <option value={0}>Protocol 0 (افتراضي)</option>
+                  <option value={1}>Protocol 1 (TCP مباشر)</option>
+                </select>
+                <p className="mt-1 text-xs text-muted-foreground">إذا ظهر "Connect failed. Try --protocol 1" اختر Protocol 1.</p>
+              </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium">عنوان IP الجهاز</label>
                 <input type="text" value={formData.ip} onChange={(e) => setFormData({ ...formData, ip: e.target.value })} placeholder="192.168.0.10" className={inputCls} />
