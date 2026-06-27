@@ -102,6 +102,12 @@ export function registerZKTecoAdms(app: Express): void {
   // Accept plain text body for ZKTeco ADMS push
   app.use("/iclock", express.text({ type: "*/*", limit: "2mb" }));
 
+  // Debug: log every /iclock request
+  app.use("/iclock", (req: Request, _res: Response, next) => {
+    console.log(`[ADMS] ${req.method} ${req.path} query=${JSON.stringify(req.query)} body(${String(req.body ?? "").length})=${String(req.body ?? "").slice(0, 100)}`);
+    next();
+  });
+
 
   // GET /iclock/cdata — device handshake / options request
   app.get("/iclock/cdata", (req: Request, res: Response) => {
