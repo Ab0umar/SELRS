@@ -40,10 +40,10 @@ export class ZK4370LogPuller {
   static readonly DEFAULT_IP   = process.env.ZK4370_IP   ?? "192.168.1.170";
   static readonly DEFAULT_PORT = parseInt(process.env.ZK4370_PORT ?? "4370", 10);
 
-  static async pullLogs(ip = this.DEFAULT_IP, port = this.DEFAULT_PORT): Promise<ZKPunch[]> {
+  static async pullLogs(ip = this.DEFAULT_IP, port = this.DEFAULT_PORT, commKey = 0): Promise<ZKPunch[]> {
     const tmp = tmpPath("zk_logs");
     try {
-      const out = run(`-Mode pull -IP ${ip} -Port ${port} -OutFile "${tmp}"`, 60_000);
+      const out = run(`-Mode pull -IP ${ip} -Port ${port} -CommPwd ${commKey} -OutFile "${tmp}"`, 60_000);
       console.log(`[ZK4370Puller] ${out.trim()}`);
       return parsePunchCsv(tmp);
     } finally {
@@ -51,10 +51,10 @@ export class ZK4370LogPuller {
     }
   }
 
-  static async pullUsers(ip = this.DEFAULT_IP, port = this.DEFAULT_PORT): Promise<ZKDeviceUser[]> {
+  static async pullUsers(ip = this.DEFAULT_IP, port = this.DEFAULT_PORT, commKey = 0): Promise<ZKDeviceUser[]> {
     const tmp = tmpPath("zk_users");
     try {
-      const out = run(`-Mode users -IP ${ip} -Port ${port} -OutFile "${tmp}"`, 30_000);
+      const out = run(`-Mode users -IP ${ip} -Port ${port} -CommPwd ${commKey} -OutFile "${tmp}"`, 30_000);
       console.log(`[ZK4370Puller] ${out.trim()}`);
       return parseUserCsv(tmp);
     } finally {

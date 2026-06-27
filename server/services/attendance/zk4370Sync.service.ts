@@ -1,10 +1,10 @@
 /**
  * ZK4370 Sync Service
- * Pull attendance logs from ZKTeco device via direct TCP (port 4370).
- * No COM/DLL required — uses the pure-Node ZK4370Client.
+ * Pull attendance logs from ZKTeco K40 Pro via zkemkeeper.dll COM (32-bit PS1 wrapper).
  */
 
 import crypto from "crypto";
+import { ZK4370LogPuller } from "./zk4370LogPuller";
 import { ZK4370Client } from "./zk4370Client";
 import { DailyMaterializer } from "./dailyMaterializer";
 import { getDb } from "../../db";
@@ -74,19 +74,12 @@ export class ZK4370SyncService {
       const lastHwm: Date | null = lastRun[0]?.hwm ?? null;
       console.log(`[ZK4370] Last HWM: ${lastHwm?.toISOString() ?? "none"}`);
 
-      const client = new ZK4370Client(deviceIp, devicePort, 30_000, commKey);
-      await client.connect();
-      let rawLogs: Awaited<ReturnType<typeof client.getAttendanceLogs>>;
-      try {
-        rawLogs = await client.getAttendanceLogs();
-      } finally {
-        await client.disconnect();
-      }
+      const zkPunches = await ZK4370LogPuller.pullLogs(deviceIp, devicePort, commKey);
       // Normalise to the shape the rest of pull() expects
-      const allPunches = rawLogs.map((r) => ({
-        enrollNo: r.userId,
-        inOutMode: r.type === 0 ? 1 : r.type === 1 ? 0 : -1,
-        verifyMode: r.state,
+      const allPunches = zkPunches.map((r) => ({
+        enrollNo: r.enrollNo,
+        inOutMode: r.inOutMode,
+        verifyMode: r.verifyMode,
         timestamp: r.timestamp,
       }));
 
@@ -235,14 +228,11 @@ export class ZK4370SyncService {
   // Status
   // ---------------------------------------------------------------------------
 
-  static async testConnection(ip?: string, port?: number): Promise<{ ok: boolean; userCount?: number; error?: string }> {
+  static async testConnection(ip?: string, port?: number, commKey = 0): Promise<{ ok: boolean; userCount?: number; error?: string }> {
     const deviceIp = ip ?? DEVICE_IP;
     const devicePort = port ?? DEVICE_PORT;
-    const client = new ZK4370Client(deviceIp, devicePort);
     try {
-      await client.connect();
-      const users = await client.getUsers();
-      await client.disconnect();
+      const users = await ZK4370LogPuller.pullUsers(deviceIp, devicePort, commKey);
       return { ok: true, userCount: users.length };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
