@@ -130,6 +130,7 @@ export function registerZKTecoAdms(app: Express): void {
     const sn = String(req.query.SN ?? req.query.sn ?? "unknown");
     const table = String(req.query.table ?? "").toUpperCase();
     const body = typeof req.body === "string" ? req.body : "";
+    console.log(`[ADMS] POST cdata SN=${sn} table=${table} body(${body.length})=${body.slice(0, 200)} contentType=${req.headers["content-type"]}`);
 
     // Only handle ATTLOG; acknowledge other tables silently
     if (table !== "ATTLOG") {
