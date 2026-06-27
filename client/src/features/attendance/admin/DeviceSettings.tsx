@@ -168,15 +168,23 @@ export default function DeviceSettings() {
                 <CardTitle className="flex items-center gap-2 text-base">
                   {admsOnline
                     ? <><Wifi className="w-4 h-4 text-success" />K40 Pro — متصل</>
-                    : <><WifiOff className="w-4 h-4 text-muted-foreground" />K40 Pro — في انتظار البصمة</>}
+                    : <><WifiOff className="w-4 h-4 text-destructive" />K40 Pro — غير متصل</>}
                 </CardTitle>
                 <Button variant="outline" size="sm" onClick={() => admsStatus.refetch()} disabled={admsStatus.isRefetching}>
                   <RefreshCw className={`w-3.5 h-3.5 ${admsStatus.isRefetching ? "animate-spin" : ""}`} />
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground">آخر اتصال</p>
+                  <p className="font-mono text-xs mt-0.5">{lastAdmsPunch ? lastAdmsPunch.toLocaleString("ar-EG") : "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">كود الجهاز (SN)</p>
+                  <p className="font-mono text-xs mt-0.5">{adms?.lastDeviceId ?? "—"}</p>
+                </div>
                 <div>
                   <p className="text-xs text-muted-foreground">آخر بصمة</p>
                   <p className="font-mono text-xs mt-0.5">{lastAdmsPunch ? lastAdmsPunch.toLocaleString("ar-EG") : "—"}</p>
@@ -185,14 +193,17 @@ export default function DeviceSettings() {
                   <p className="text-xs text-muted-foreground">إجمالي البصمات</p>
                   <p className="font-mono text-xs mt-0.5">{adms?.punchCount ?? 0}</p>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">كود الجهاز (SN)</p>
-                  <p className="font-mono text-xs mt-0.5">{adms?.lastDeviceId ?? "—"}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">البروتوكول النشط</p>
-                  <p className="font-mono text-xs mt-0.5">{k40.zk40Protocol === "tcp" ? "TCP مباشر" : "ADMS Push"}</p>
-                </div>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <Button size="sm" onClick={async () => { try { await syncZK40.mutateAsync(); admsStatus.refetch(); } catch {} }} disabled={syncZK40.isPending || !k40.ip}>
+                  {syncZK40.isPending ? "جارٍ..." : "اتصال"}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => admsStatus.refetch()} disabled={admsStatus.isRefetching}>
+                  فصل
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => { syncZK40.reset(); admsStatus.refetch(); }}>
+                  إعادة الضبط
+                </Button>
               </div>
             </CardContent>
           </Card>
