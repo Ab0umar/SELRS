@@ -1378,6 +1378,8 @@ async function startServer() {
   const pentacamExportsDir = path.resolve(process.cwd(), "Pentacam", "Jpgs");
   const allowedCorsOrigins = getAllowedCorsOrigins();
   registerWsServer(server);
+  // ZKTeco ADMS push endpoint — must be before global body parsers so express.text() can read the raw body
+  registerZKTecoAdms(app);
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
@@ -2236,9 +2238,6 @@ async function startServer() {
       return res.redirect(`${settingsUrl}?fb=error&reason=server_error`);
     }
   });
-  // ZKTeco ADMS push endpoint (remote fingerprint devices)
-  registerZKTecoAdms(app);
-
   // tRPC API
   app.use(
     "/api/trpc",
