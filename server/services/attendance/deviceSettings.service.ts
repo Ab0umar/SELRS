@@ -139,7 +139,12 @@ export class DeviceSettingsService {
             fallbackToAccess: deviceSettings.fallbackToAccess,
             realTimeSync: deviceSettings.realTimeSync,
             lastConfigUpdate: deviceSettings.lastConfigUpdate,
-          })
+            zk40Ip: deviceSettings.zk40Ip ?? null,
+            zk40Port: deviceSettings.zk40Port ?? 4370,
+            zk40Enabled: deviceSettings.zk40Enabled ?? false,
+            zk40Protocol: deviceSettings.zk40Protocol ?? "adms",
+            fkProtocol: deviceSettings.fkProtocol ?? 0,
+          } as any)
           .onDuplicateKeyUpdate({
             set: {
               enabled: deviceSettings.enabled,
