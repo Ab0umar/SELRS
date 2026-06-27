@@ -70,8 +70,16 @@ function decodeZKTime(t: number): Date {
 
 function calcChecksum(buf: Buffer): number {
   let sum = 0;
-  for (let i = 0; i < buf.length; i++) sum = (sum + buf[i]) & 0xffff;
-  return sum;
+  let i = 0;
+  while (i < buf.length - 1) {
+    sum += (buf[i] & 0xff) | ((buf[i + 1] & 0xff) << 8);
+    sum = sum % 0x100000000;
+    i += 2;
+  }
+  if (i < buf.length) sum += buf[i] & 0xff;
+  sum = (sum >> 16) + (sum & 0xffff);
+  sum += (sum >> 16);
+  return (~sum) & 0xffff;
 }
 
 function makePacket(cmd: number, sessionId: number, replyId: number, data: Uint8Array = Buffer.alloc(0)): Buffer {
