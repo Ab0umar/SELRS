@@ -114,6 +114,16 @@ export function registerZKTecoAdms(app: Express): void {
     const options = String(req.query.options ?? req.query.Options ?? "");
     console.log(`[ADMS] Handshake from SN=${sn} options=${options} ip=${req.ip}`);
 
+    // Queue DATE TIME command to sync device clock to server local time
+    {
+      const n = new Date();
+      const pad = (x: number) => String(x).padStart(2, "0");
+      const dt = `${n.getFullYear()}-${pad(n.getMonth()+1)}-${pad(n.getDate())} ${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`;
+      const tid = cmdSeq++;
+      cmdQueue.push({ id: tid, line: `C:${tid}:DATE TIME ${dt}` });
+      console.log(`[ADMS] Queued DATE TIME ${dt} for SN=${sn}`);
+    }
+
     // Queue DATA QUERY ATTLOG once per session so device pushes its logs (pushver 2.x command-driven)
     if (!queriedDevices.has(sn)) {
       queriedDevices.add(sn);
