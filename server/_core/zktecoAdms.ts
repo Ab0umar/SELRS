@@ -76,6 +76,39 @@ interface ParsedPunch {
   verifyMode: number;
 }
 
+// ---------------------------------------------------------------------------
+// Device clock correction
+// The device clock can run a fixed whole number of hours ahead of server-local
+// time (its internal timezone is wrong and cannot be changed reliably). Rather
+// than fight the device clock, we correct the punch timestamps on ingestion.
+// Offset is auto-detected from fresh real-time punches and can be overridden
+// with ZK_ADMS_PUNCH_OFFSET_HOURS. "Offset" = how many hours the device is AHEAD
+// of correct local time; we subtract it from every stored punch.
+// ---------------------------------------------------------------------------
+let detectedOffsetHours: number | null = null;
+
+function effectiveOffsetHours(): number {
+  const manual = process.env.ZK_ADMS_PUNCH_OFFSET_HOURS;
+  if (manual !== undefined && manual !== "") return parseFloat(manual);
+  return detectedOffsetHours ?? 0;
+}
+
+/** From a fresh real-time push, snap (deviceTime − now) to nearest hour. */
+function maybeDetectOffset(punches: ParsedPunch[]): void {
+  if (process.env.ZK_ADMS_PUNCH_OFFSET_HOURS) return; // manual override wins
+  if (punches.length === 0 || punches.length > 3) return; // bulk dumps are historical
+  const newest = punches.reduce((mx, p) => (p.punchAt > mx ? p.punchAt : mx), punches[0].punchAt);
+  const diffH = (newest.getTime() - Date.now()) / 3_600_000;
+  const rounded = Math.round(diffH);
+  // Only trust it if the remainder is near-zero (a clean whole-hour offset) and sane
+  if (Math.abs(diffH - rounded) < 0.25 && Math.abs(rounded) <= 14) {
+    if (detectedOffsetHours !== rounded) {
+      detectedOffsetHours = rounded;
+      console.log(`[ADMS] Detected device clock offset = ${rounded}h ahead — subtracting from punch times`);
+    }
+  }
+}
+
 function parseAttlogBody(body: string, deviceId: string): ParsedPunch[] {
   const punches: ParsedPunch[] = [];
   for (const raw of body.split("\n")) {
@@ -99,6 +132,12 @@ function parseAttlogBody(body: string, deviceId: string): ParsedPunch[] {
       verifyMode: parseInt(verifyStr ?? "0", 10),
     });
   }
+  // Auto-detect offset from fresh pushes, then correct all timestamps
+  maybeDetectOffset(punches);
+  const offMs = effectiveOffsetHours() * 3_600_000;
+  if (offMs !== 0) {
+    for (const p of punches) p.punchAt = new Date(p.punchAt.getTime() - offMs);
+  }
   return punches;
 }
 
@@ -113,15 +152,12 @@ export function registerZKTecoAdms(app: Express): void {
   // from the live OS offset, so it auto-adjusts for DST (Egypt summer = UTC+3).
   // removeHeader() alone fails — Express re-adds Date on send(); setHeader sticks.
   const deviceInternalOffsetHours = parseFloat(process.env.ZK_ADMS_DEVICE_TZ_OFFSET ?? "7");
-  app.use("/iclock", (req, res, next) => {
+  app.use("/iclock", (_req, res, next) => {
     const now = new Date();
     const serverOffsetHours = -now.getTimezoneOffset() / 60; // e.g. Cairo summer = +3
     const shiftHours = serverOffsetHours - deviceInternalOffsetHours; // e.g. 3 - 7 = -4
     const shifted = new Date(now.getTime() + shiftHours * 3_600_000);
     res.setHeader("Date", shifted.toUTCString());
-    res.on("finish", () => {
-      console.log(`[ADMS] ${req.method} ${req.path} | serverLocal=${now.toString()} | sentDateHeader=${res.getHeader("Date")} | shift=${shiftHours}h`);
-    });
     next();
   });
 
