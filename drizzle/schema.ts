@@ -1625,6 +1625,7 @@ export const attendanceDeviceSettings = mysqlTable(
     zk40Ip: varchar("zk40_ip", { length: 255 }),
     zk40Port: int("zk40_port").default(4370),
     zk40Enabled: boolean("zk40_enabled").default(false).notNull(),
+    zk40Protocol: mysqlEnum("zk40_protocol", ["adms", "tcp"]).default("adms").notNull(),
   },
 );
 

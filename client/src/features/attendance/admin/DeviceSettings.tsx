@@ -15,6 +15,7 @@ export default function DeviceSettings() {
     zk40Ip: "",
     zk40Port: 4370,
     zk40Enabled: false,
+    zk40Protocol: "adms" as "adms" | "tcp",
   });
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -37,6 +38,7 @@ export default function DeviceSettings() {
         zk40Ip: (settingsQuery.data as any).zk40Ip ?? "",
         zk40Port: (settingsQuery.data as any).zk40Port ?? 4370,
         zk40Enabled: (settingsQuery.data as any).zk40Enabled ?? false,
+        zk40Protocol: (settingsQuery.data as any).zk40Protocol ?? "adms",
       });
     }
   }, [settingsQuery.data]);
@@ -57,6 +59,7 @@ export default function DeviceSettings() {
         zk40Ip: formData.zk40Ip || null,
         zk40Port: formData.zk40Port,
         zk40Enabled: formData.zk40Enabled,
+        zk40Protocol: formData.zk40Protocol,
       });
       setShowSuccess(true);
       settingsQuery.refetch();
@@ -212,9 +215,21 @@ export default function DeviceSettings() {
           {/* K40 Pro config */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">إعداد K40 Pro (ADMS)</CardTitle>
+              <CardTitle className="text-base">إعداد K40 Pro</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">بروتوكول الاتصال</label>
+                <select value={formData.zk40Protocol} onChange={(e) => setFormData({ ...formData, zk40Protocol: e.target.value as "adms" | "tcp" })} className={inputCls}>
+                  <option value="adms">ADMS (الجهاز يرسل للخادم)</option>
+                  <option value="tcp">TCP مباشر (الخادم يسحب من الجهاز)</option>
+                </select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {formData.zk40Protocol === "tcp"
+                    ? "اتصال مباشر بالجهاز عبر منفذ TCP (عادةً 4370) — يتطلب وصول الخادم لشبكة الجهاز."
+                    : "الجهاز يرسل البصمات للخادم تلقائياً (Push) — مناسب عند وجود الجهاز خلف راوتر."}
+                </p>
+              </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium">عنوان IP العام</label>
                 <input type="text" value={formData.zk40Ip} onChange={(e) => setFormData({ ...formData, zk40Ip: e.target.value })} placeholder="41.x.x.x أو hostname" className={inputCls} />

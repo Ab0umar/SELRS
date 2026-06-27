@@ -24,6 +24,7 @@ export interface DeviceSettings {
   zk40Ip?: string | null;
   zk40Port?: number;
   zk40Enabled?: boolean;
+  zk40Protocol?: "adms" | "tcp"; // ADMS push (device polls server) vs direct TCP pull
 }
 
 // In-memory settings cache (synced with DB)
@@ -71,6 +72,7 @@ export class DeviceSettingsService {
           zk40Ip: (dbSettings as any).zk40Ip ?? null,
           zk40Port: (dbSettings as any).zk40Port ?? 4370,
           zk40Enabled: (dbSettings as any).zk40Enabled ?? false,
+          zk40Protocol: (dbSettings as any).zk40Protocol ?? "adms",
         };
         console.log("[DeviceSettings] Loaded from database:", {
           ip: deviceSettings.ip,
@@ -147,6 +149,7 @@ export class DeviceSettingsService {
               zk40Ip: deviceSettings.zk40Ip ?? null,
               zk40Port: deviceSettings.zk40Port ?? 4370,
               zk40Enabled: deviceSettings.zk40Enabled ?? false,
+              zk40Protocol: deviceSettings.zk40Protocol ?? "adms",
             },
           } as any);
         console.log("[DeviceSettings] Updated in database:", {

@@ -104,6 +104,7 @@ export const attendanceSyncRoutes = {
         zk40Ip: z.string().optional().nullable(),
         zk40Port: z.number().int().min(1).max(65535).optional(),
         zk40Enabled: z.boolean().optional(),
+        zk40Protocol: z.enum(["adms", "tcp"]).optional(),
       }),
     )
     .mutation(async ({ input }) => {
