@@ -105,8 +105,17 @@ function parseAttlogBody(body: string, deviceId: string): ParsedPunch[] {
 export function registerZKTecoAdms(app: Express): void {
   // Accept plain text body for ZKTeco ADMS push
   app.use("/iclock", express.text({ type: "*/*", limit: "2mb" }));
-  // Remove HTTP Date header — device reads it as UTC and applies internal UTC+7 offset, causing wrong clock
-  app.use("/iclock", (_req, res, next) => { res.removeHeader("Date"); next(); });
+  // Override HTTP Date header — the device syncs its clock from this header.
+  // It reads the value and applies an internal offset (observed UTC+7), so we
+  // pre-shift the header by ZK_ADMS_DATE_OFFSET_HOURS to land on local time.
+  // Default -5: realUTC-5h, device adds its internal +7 → UTC+2 (Cairo).
+  // removeHeader() alone fails — Express re-adds Date on send(); setHeader sticks.
+  const dateOffsetHours = parseFloat(process.env.ZK_ADMS_DATE_OFFSET_HOURS ?? "-5");
+  app.use("/iclock", (_req, res, next) => {
+    const shifted = new Date(Date.now() + dateOffsetHours * 3_600_000);
+    res.setHeader("Date", shifted.toUTCString());
+    next();
+  });
 
 
 
