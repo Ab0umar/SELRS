@@ -673,13 +673,7 @@ export const attendanceSyncRoutes = {
     .input(z.object({}).optional())
     .mutation(async ({ ctx }) => {
       try {
-        // ADMS mode is push-based — trigger the device to upload via its next poll.
-        const ef10k = DeviceSettingsService.getSettings();
-        if ((ef10k.zk40Protocol ?? "adms") === "adms") {
-          const { queueAdmsAttlogQuery } = await import("../_core/zktecoAdms");
-          queueAdmsAttlogQuery();
-          return { success: true, rowsInserted: 0, rowsSeen: 0, message: "ADMS mode — requested upload; device will push logs on next poll" };
-        }
+        // EF10K always syncs via FKAttend TCP pull (FK push on :7005 is not wired).
         const result = await FKDeviceSyncService.syncNow(ctx.user.id);
 
         // Always recompute today so dashboard stat cards reflect current state
