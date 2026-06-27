@@ -29,6 +29,7 @@ interface AdmsCommand {
 let cmdSeq = 1;
 const cmdQueue: AdmsCommand[] = [];
 const pendingAck = new Map<number, AdmsCommand>(); // awaiting devicecmd ACK
+const queriedDevices = new Set<string>(); // SNs that already received DATA QUERY ATTLOG this session
 
 export function queueAdmsUserCommands(
   employees: Array<{ empCd: string; fullName: string }>,
@@ -102,11 +103,6 @@ export function registerZKTecoAdms(app: Express): void {
   // Accept plain text body for ZKTeco ADMS push
   app.use("/iclock", express.text({ type: "*/*", limit: "2mb" }));
 
-  // Debug: log every /iclock request
-  app.use("/iclock", (req: Request, _res: Response, next) => {
-    console.log(`[ADMS] ${req.method} ${req.path} query=${JSON.stringify(req.query)} body(${String(req.body ?? "").length})=${String(req.body ?? "").slice(0, 100)}`);
-    next();
-  });
 
 
   // GET /iclock/cdata — device handshake / options request
@@ -115,10 +111,13 @@ export function registerZKTecoAdms(app: Express): void {
     const options = String(req.query.options ?? req.query.Options ?? "");
     console.log(`[ADMS] Handshake from SN=${sn} options=${options} ip=${req.ip}`);
 
-    // Queue a DATA QUERY ATTLOG so the device pushes its logs (pushver 2.x command-driven)
-    const id = cmdSeq++;
-    cmdQueue.push({ id, line: `C:${id}:DATA QUERY ATTLOG` });
-    console.log(`[ADMS] Queued DATA QUERY ATTLOG cmd ${id} for SN=${sn}`);
+    // Queue DATA QUERY ATTLOG once per session so device pushes its logs (pushver 2.x command-driven)
+    if (!queriedDevices.has(sn)) {
+      queriedDevices.add(sn);
+      const id = cmdSeq++;
+      cmdQueue.push({ id, line: `C:${id}:DATA QUERY ATTLOG` });
+      console.log(`[ADMS] Queued DATA QUERY ATTLOG cmd ${id} for SN=${sn}`);
+    }
 
     res.set("Content-Type", "text/plain");
     // Full options response required by K40/ADMS firmware
@@ -142,7 +141,6 @@ export function registerZKTecoAdms(app: Express): void {
     const sn = String(req.query.SN ?? req.query.sn ?? "unknown");
     const table = String(req.query.table ?? "").toUpperCase();
     const body = typeof req.body === "string" ? req.body : "";
-    console.log(`[ADMS] POST cdata SN=${sn} table=${table} body(${body.length})=${body.slice(0, 200)} contentType=${req.headers["content-type"]}`);
 
     // Only handle ATTLOG; acknowledge other tables silently
     if (table !== "ATTLOG") {
