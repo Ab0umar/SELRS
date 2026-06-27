@@ -85,7 +85,10 @@ function parseAttlogBody(body: string, deviceId: string): ParsedPunch[] {
     const parts = line.split("\t");
     if (parts.length < 3) continue;
     const [userId, ts, statusStr, verifyStr] = parts;
-    const punchAt = new Date(ts.trim());
+    // Parse as local time — device sends local time with no timezone suffix.
+    // Use component constructor (new Date(y,m,d,h,min,s)) which is always local.
+    const tsParts = ts.trim().split(/[\s:-]/);
+    const punchAt = new Date(+tsParts[0], +tsParts[1] - 1, +tsParts[2], +tsParts[3], +tsParts[4], +tsParts[5]);
     if (isNaN(punchAt.getTime())) continue;
     const empCd = (userId ?? "").trim();
     if (!empCd) continue;
