@@ -114,6 +114,12 @@ export function registerZKTecoAdms(app: Express): void {
     const sn = String(req.query.SN ?? req.query.sn ?? "unknown");
     const options = String(req.query.options ?? req.query.Options ?? "");
     console.log(`[ADMS] Handshake from SN=${sn} options=${options} ip=${req.ip}`);
+
+    // Queue a DATA QUERY ATTLOG so the device pushes its logs (pushver 2.x command-driven)
+    const id = cmdSeq++;
+    cmdQueue.push({ id, line: `C:${id}:DATA QUERY ATTLOG` });
+    console.log(`[ADMS] Queued DATA QUERY ATTLOG cmd ${id} for SN=${sn}`);
+
     res.set("Content-Type", "text/plain");
     // Full options response required by K40/ADMS firmware
     res.send(
