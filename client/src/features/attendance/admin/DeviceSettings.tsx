@@ -9,7 +9,7 @@ const tRPC = trpc as any;
 
 export default function DeviceSettings() {
   const [ef10k, setEf10k] = useState({ ip: "", port: 5005, enabled: false });
-  const [k40, setK40] = useState({ ip: "", port: 4370, enabled: false, zk40Protocol: "adms" as "adms" | "tcp", fkProtocol: 0 as 0 | 1 });
+  const [k40, setK40] = useState({ ip: "", port: 4370, enabled: false, zk40Protocol: "adms" as "adms" | "tcp", fkProtocol: 0 as 0 | 1, commPassword: 0 });
   const [showSuccess, setShowSuccess] = useState(false);
 
   const settingsQuery    = tRPC.attendance.deviceSettings.useQuery();
@@ -29,7 +29,7 @@ export default function DeviceSettings() {
       setEf10k({ ip: d.ef10k.ip ?? "", port: d.ef10k.port ?? 5005, enabled: d.ef10k.enabled ?? false });
     }
     if (d.k40) {
-      setK40({ ip: d.k40.ip ?? "", port: d.k40.port ?? 4370, enabled: d.k40.enabled ?? false, zk40Protocol: d.k40.zk40Protocol ?? "adms", fkProtocol: d.k40.fkProtocol ?? 0 });
+      setK40({ ip: d.k40.ip ?? "", port: d.k40.port ?? 4370, enabled: d.k40.enabled ?? false, zk40Protocol: d.k40.zk40Protocol ?? "adms", fkProtocol: d.k40.fkProtocol ?? 0, commPassword: d.k40.commPassword ?? 0 });
     }
   }, [settingsQuery.data]);
 
@@ -50,7 +50,7 @@ export default function DeviceSettings() {
 
   const saveK40 = async () => {
     try {
-      await updateSettings.mutateAsync({ deviceId: 2, ip: k40.ip, port: k40.port, enabled: k40.enabled, zk40Protocol: k40.zk40Protocol, fkProtocol: k40.fkProtocol });
+      await updateSettings.mutateAsync({ deviceId: 2, ip: k40.ip, port: k40.port, enabled: k40.enabled, zk40Protocol: k40.zk40Protocol, fkProtocol: k40.fkProtocol, commPassword: k40.commPassword });
       setShowSuccess(true);
       settingsQuery.refetch();
     } catch {}
@@ -233,6 +233,13 @@ export default function DeviceSettings() {
                     <option value={1}>Protocol 1</option>
                   </select>
                   <p className="mt-1 text-xs text-muted-foreground">إذا ظهر "Connect failed. Try --protocol 1" اختر Protocol 1.</p>
+                </div>
+              )}
+              {k40.zk40Protocol === "tcp" && (
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium">كلمة مرور الجهاز (Comm Key)</label>
+                  <input type="number" value={k40.commPassword} onChange={(e) => setK40({ ...k40, commPassword: parseInt(e.target.value) || 0 })} placeholder="0" className={inputCls} />
+                  <p className="mt-1 text-xs text-muted-foreground">Net Pwd من إعدادات الجهاز — اتركه 0 إذا لم يكن مضبوطاً.</p>
                 </div>
               )}
               <div>

@@ -25,6 +25,7 @@ export interface DeviceSettings {
   // K40 Pro extras (only meaningful for id=2)
   zk40Protocol?: "adms" | "tcp";
   fkProtocol?: number; // 0 or 1 — --protocol flag for FKOldLogPuller.exe
+  commPassword?: number; // Comm Key / Net Pwd on the device
 }
 
 // In-memory caches keyed by device id
@@ -46,6 +47,7 @@ let k40Settings: DeviceSettings = {
   realTimeSync: true,
   zk40Protocol: "adms",
   fkProtocol: 0,
+  commPassword: 0,
 };
 
 let settingsLoaded = false;
@@ -110,6 +112,7 @@ export class DeviceSettingsService {
           lastConfigUpdate: dbK40.lastConfigUpdate || undefined,
           zk40Protocol: ((dbK40 as any).zk40Protocol ?? "adms") as "adms" | "tcp",
           fkProtocol: (dbK40 as any).fkProtocol ?? 0,
+          commPassword: (dbK40 as any).commPassword ?? 0,
         };
       } else {
         // Migrate from old single-row: copy zk40_* columns from id=1 into id=2
@@ -190,6 +193,7 @@ export class DeviceSettingsService {
         lastConfigUpdate: s.lastConfigUpdate,
         zk40Protocol: s.zk40Protocol ?? "adms",
         fkProtocol: s.fkProtocol ?? 0,
+        commPassword: s.commPassword ?? 0,
       };
       await db
         .insert(attendanceDeviceSettings)

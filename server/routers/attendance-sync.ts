@@ -107,6 +107,7 @@ export const attendanceSyncRoutes = {
         realTimeSync: z.boolean().optional(),
         zk40Protocol: z.enum(["adms", "tcp"]).optional(),
         fkProtocol: z.number().int().min(0).max(1).optional(),
+        commPassword: z.number().int().min(0).optional(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -120,7 +121,7 @@ export const attendanceSyncRoutes = {
       const port = k40.port ?? 4370;
       if (!ip) throw new Error("ZK40 IP not configured");
       if (k40.zk40Protocol === "tcp") {
-        const punches = await FKAttendLogPuller.pullLogs({ ip, port, protocol: k40.fkProtocol ?? 0 });
+        const punches = await FKAttendLogPuller.pullLogs({ ip, port, protocol: k40.fkProtocol ?? 0, password: k40.commPassword ?? 0 });
         return { recordsSeen: punches.length, recordsInserted: punches.length, recordsSkipped: 0 };
       }
       return ZK4370SyncService.pull(ctx.user?.id, ip, port);
