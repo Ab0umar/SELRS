@@ -77,25 +77,40 @@ interface ParsedPunch {
 }
 
 // ---------------------------------------------------------------------------
-// Device clock correction
-// The device clock can run a fixed whole number of hours ahead of server-local
-// time (its internal timezone is wrong and cannot be changed reliably). Rather
-// than fight the device clock, we correct the punch timestamps on ingestion.
-// Offset is auto-detected from fresh real-time punches and can be overridden
-// with ZK_ADMS_PUNCH_OFFSET_HOURS. "Offset" = how many hours the device is AHEAD
-// of correct local time; we subtract it from every stored punch.
+// Device clock handling
+//
+// Measured fact: the device's internal timezone is UTC+DEVICE_TZ (default +9),
+// while the server runs at the correct local offset (e.g. Cairo = UTC+3). So the
+// device clock runs (DEVICE_TZ − serverOffset) hours ahead of real local time
+// (e.g. 9 − 3 = 6h). The device also re-syncs its RTC from our HTTP responses,
+// so the push can overwrite the device clock.
+//
+// We defend on TWO independent layers so attendance data is always correct,
+// regardless of whether the device clock is right at any moment:
+//   1) parseAttlogBody subtracts the device-ahead offset from every punch on
+//      ingestion (auto-detected from fresh real-time punches, override via
+//      ZK_ADMS_PUNCH_OFFSET_HOURS). This is the authoritative data fix.
+//   2) the HTTP Date header is sent pre-compensated so that IF the device syncs
+//      from it, it lands on correct local time instead of UTC+DEVICE_TZ.
+//
+// DEVICE_TZ is configurable via ZK_ADMS_DEVICE_TZ_OFFSET. serverOffset is read
+// live from the OS each time, so everything is DST-safe.
 // ---------------------------------------------------------------------------
+function deviceTzOffsetHours(): number {
+  return parseFloat(process.env.ZK_ADMS_DEVICE_TZ_OFFSET ?? "9");
+}
+function serverOffsetHours(): number {
+  return -new Date().getTimezoneOffset() / 60;
+}
+
 let detectedOffsetHours: number | null = null;
 
+/** Hours the device clock runs AHEAD of correct local time (subtract on store). */
 function effectiveOffsetHours(): number {
   const manual = process.env.ZK_ADMS_PUNCH_OFFSET_HOURS;
   if (manual !== undefined && manual !== "") return parseFloat(manual);
   if (detectedOffsetHours !== null) return detectedOffsetHours;
-  // Default expectation: device internal tz (UTC+7) minus server-local offset.
-  // e.g. Cairo summer UTC+3 → 7 - 3 = 4h ahead. DST-safe via live OS offset.
-  const deviceInternalOffset = parseFloat(process.env.ZK_ADMS_DEVICE_TZ_OFFSET ?? "7");
-  const serverOffset = -new Date().getTimezoneOffset() / 60;
-  return deviceInternalOffset - serverOffset;
+  return deviceTzOffsetHours() - serverOffsetHours(); // e.g. 9 - 3 = 6
 }
 
 /** From a fresh real-time push, snap (deviceTime − now) to nearest hour. */
@@ -149,18 +164,16 @@ function parseAttlogBody(body: string, deviceId: string): ParsedPunch[] {
 export function registerZKTecoAdms(app: Express): void {
   // Accept plain text body for ZKTeco ADMS push
   app.use("/iclock", express.text({ type: "*/*", limit: "2mb" }));
-  // Override HTTP Date header — the device syncs its clock FROM this header on
-  // every push, so a normal UTC Date corrupts the device clock. We instead send
-  // the server's correct LOCAL wall-clock time, printed as a GMT string, so the
-  // device latches onto the right time. An optional fine-tune (whole hours) is
-  // available via ZK_ADMS_DATE_SHIFT_HOURS if the device applies an extra offset.
+  // Pre-compensate the HTTP Date header — CONFIRMED root cause: the device
+  // re-syncs its RTC from this header on every ADMS push and adds its internal
+  // timezone (UTC+DEVICE_TZ), landing the clock UTC+9 (= local + 6h). We send
+  // header = realUTC + (serverOffset − DEVICE_TZ) so device clock =
+  // header + DEVICE_TZ = realUTC + serverOffset = correct local time.
+  // e.g. Cairo summer: 3 − 9 = −6 → header = realUTC − 6.
   // removeHeader() alone fails — Express re-adds Date on send(); setHeader sticks.
-  const dateShiftHours = parseFloat(process.env.ZK_ADMS_DATE_SHIFT_HOURS ?? "0");
   app.use("/iclock", (_req, res, next) => {
-    const now = new Date();
-    const serverOffsetHours = -now.getTimezoneOffset() / 60; // e.g. Cairo summer = +3
-    // Shift so the GMT-printed header equals server local wall time (+ fine-tune).
-    const shifted = new Date(now.getTime() + (serverOffsetHours + dateShiftHours) * 3_600_000);
+    const shiftHours = serverOffsetHours() - deviceTzOffsetHours();
+    const shifted = new Date(Date.now() + shiftHours * 3_600_000);
     res.setHeader("Date", shifted.toUTCString());
     next();
   });
