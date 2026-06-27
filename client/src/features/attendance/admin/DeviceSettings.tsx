@@ -8,7 +8,7 @@ import { trpc } from "@/lib/trpc";
 const tRPC = trpc as any;
 
 export default function DeviceSettings() {
-  const [ef10k, setEf10k] = useState({ ip: "", port: 5005, enabled: false });
+  const [ef10k, setEf10k] = useState({ ip: "", port: 5005, enabled: false, zk40Protocol: "adms" as "adms" | "tcp", fkProtocol: 0 as 0 | 1, commPassword: 0 });
   const [k40, setK40] = useState({ ip: "", port: 4370, enabled: false, zk40Protocol: "adms" as "adms" | "tcp", fkProtocol: 0 as 0 | 1, commPassword: 0 });
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -26,7 +26,7 @@ export default function DeviceSettings() {
     if (!settingsQuery.data) return;
     const d = settingsQuery.data as any;
     if (d.ef10k) {
-      setEf10k({ ip: d.ef10k.ip ?? "", port: d.ef10k.port ?? 5005, enabled: d.ef10k.enabled ?? false });
+      setEf10k({ ip: d.ef10k.ip ?? "", port: d.ef10k.port ?? 5005, enabled: d.ef10k.enabled ?? false, zk40Protocol: d.ef10k.zk40Protocol ?? "adms", fkProtocol: d.ef10k.fkProtocol ?? 0, commPassword: d.ef10k.commPassword ?? 0 });
     }
     if (d.k40) {
       setK40({ ip: d.k40.ip ?? "", port: d.k40.port ?? 4370, enabled: d.k40.enabled ?? false, zk40Protocol: d.k40.zk40Protocol ?? "adms", fkProtocol: d.k40.fkProtocol ?? 0, commPassword: d.k40.commPassword ?? 0 });
@@ -42,7 +42,7 @@ export default function DeviceSettings() {
 
   const saveEF10K = async () => {
     try {
-      await updateSettings.mutateAsync({ deviceId: 1, ip: ef10k.ip, port: ef10k.port, enabled: ef10k.enabled });
+      await updateSettings.mutateAsync({ deviceId: 1, ip: ef10k.ip, port: ef10k.port, enabled: ef10k.enabled, zk40Protocol: ef10k.zk40Protocol, fkProtocol: ef10k.fkProtocol, commPassword: ef10k.commPassword });
       setShowSuccess(true);
       settingsQuery.refetch();
     } catch {}
@@ -141,6 +141,35 @@ export default function DeviceSettings() {
               <CardTitle className="text-base">إعداد EF10K (جهاز 1)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">بروتوكول الاتصال</label>
+                <select value={ef10k.zk40Protocol} onChange={(e) => setEf10k({ ...ef10k, zk40Protocol: e.target.value as "adms" | "tcp" })} className={inputCls}>
+                  <option value="adms">ADMS (الجهاز يرسل للخادم)</option>
+                  <option value="tcp">TCP مباشر (الخادم يسحب من الجهاز)</option>
+                </select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {ef10k.zk40Protocol === "tcp"
+                    ? "اتصال مباشر بالجهاز عبر منفذ TCP — يتطلب وصول الخادم لشبكة الجهاز."
+                    : "الجهاز يرسل البصمات للخادم تلقائياً (Push) — مناسب عند وجود الجهاز خلف راوتر."}
+                </p>
+              </div>
+              {ef10k.zk40Protocol === "tcp" && (
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium">بروتوكول SDK</label>
+                  <select value={ef10k.fkProtocol} onChange={(e) => setEf10k({ ...ef10k, fkProtocol: parseInt(e.target.value) as 0 | 1 })} className={inputCls}>
+                    <option value={0}>Protocol 0 (افتراضي)</option>
+                    <option value={1}>Protocol 1</option>
+                  </select>
+                  <p className="mt-1 text-xs text-muted-foreground">إذا ظهر "Connect failed. Try --protocol 1" اختر Protocol 1.</p>
+                </div>
+              )}
+              {ef10k.zk40Protocol === "tcp" && (
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium">كلمة مرور الجهاز (Comm Key)</label>
+                  <input type="number" value={ef10k.commPassword} onChange={(e) => setEf10k({ ...ef10k, commPassword: parseInt(e.target.value) || 0 })} placeholder="0" className={inputCls} />
+                  <p className="mt-1 text-xs text-muted-foreground">Net Pwd من إعدادات الجهاز — اتركه 0 إذا لم يكن مضبوطاً.</p>
+                </div>
+              )}
               <div>
                 <label className="mb-1.5 block text-sm font-medium">عنوان IP الجهاز</label>
                 <input type="text" value={ef10k.ip} onChange={(e) => setEf10k({ ...ef10k, ip: e.target.value })} placeholder="192.168.0.10" className={inputCls} />

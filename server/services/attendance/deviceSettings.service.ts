@@ -87,7 +87,9 @@ export class DeviceSettingsService {
           fallbackToAccess: dbEF10K.fallbackToAccess,
           realTimeSync: dbEF10K.realTimeSync,
           lastConfigUpdate: dbEF10K.lastConfigUpdate || undefined,
+          zk40Protocol: ((dbEF10K as any).zk40Protocol ?? "adms") as "adms" | "tcp",
           fkProtocol: (dbEF10K as any).fkProtocol ?? 0,
+          commPassword: (dbEF10K as any).commPassword ?? 0,
         };
       } else {
         await db.insert(attendanceDeviceSettings).values({
