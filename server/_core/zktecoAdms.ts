@@ -106,13 +106,18 @@ export function registerZKTecoAdms(app: Express): void {
   // Accept plain text body for ZKTeco ADMS push
   app.use("/iclock", express.text({ type: "*/*", limit: "2mb" }));
   // Override HTTP Date header — the device syncs its clock from this header.
-  // It reads the value and applies an internal offset (observed UTC+7), so we
-  // pre-shift the header by ZK_ADMS_DATE_OFFSET_HOURS to land on local time.
-  // Default -5: realUTC-5h, device adds its internal +7 → UTC+2 (Cairo).
+  // The device has a fixed internal timezone (observed UTC+7) and applies it to
+  // whatever UTC value the Date header carries, landing on UTC+7 instead of local.
+  // We pre-shift the header by (serverLocalOffset - deviceInternalOffset) so that
+  // device clock = header + deviceOffset = serverLocalTime. Computed per-request
+  // from the live OS offset, so it auto-adjusts for DST (Egypt summer = UTC+3).
   // removeHeader() alone fails — Express re-adds Date on send(); setHeader sticks.
-  const dateOffsetHours = parseFloat(process.env.ZK_ADMS_DATE_OFFSET_HOURS ?? "-5");
+  const deviceInternalOffsetHours = parseFloat(process.env.ZK_ADMS_DEVICE_TZ_OFFSET ?? "7");
   app.use("/iclock", (_req, res, next) => {
-    const shifted = new Date(Date.now() + dateOffsetHours * 3_600_000);
+    const now = new Date();
+    const serverOffsetHours = -now.getTimezoneOffset() / 60; // e.g. Cairo summer = +3
+    const shiftHours = serverOffsetHours - deviceInternalOffsetHours; // e.g. 3 - 7 = -4
+    const shifted = new Date(now.getTime() + shiftHours * 3_600_000);
     res.setHeader("Date", shifted.toUTCString());
     next();
   });
