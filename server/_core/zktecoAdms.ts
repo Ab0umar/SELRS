@@ -210,8 +210,6 @@ export function registerZKTecoAdms(app: Express): void {
       res.send("OK: 0");
       return;
     }
-    // DIAGNOSTIC: raw device timestamp vs real server time, for a fresh punch.
-    console.log(`[ADMS-DIAG] serverNow=${new Date().toString()} | rawATTLOG=${JSON.stringify(body)}`);
     const punches = parseAttlogBody(body, sn);
 
     if (punches.length === 0) {
