@@ -122,6 +122,11 @@ export function registerZKTecoAdms(app: Express): void {
       console.log(`[ADMS] Queued DATA QUERY ATTLOG cmd ${id} for SN=${sn}`);
     }
 
+    // Send current local time so device syncs its clock to server local time
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const localTime = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
     res.set("Content-Type", "text/plain");
     // Full options response required by K40/ADMS firmware
     res.send(
@@ -135,7 +140,10 @@ export function registerZKTecoAdms(app: Express): void {
       `TransInterval=1\r\n` +
       `TransFlag=TransData AttLog OpLog\r\n` +
       `Realtime=1\r\n` +
-      `Encrypt=None\r\n`,
+      `Encrypt=None\r\n` +
+      `ServerVer=2.4.1 2015-04-27\r\n` +
+      `PushProtVer=2.4.1\r\n` +
+      `Date=${localTime}\r\n`,
     );
   });
 
