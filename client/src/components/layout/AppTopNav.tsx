@@ -324,19 +324,19 @@ export function AppTopNav({
   return (
     <header
       dir="rtl"
-      className="relative z-40 shrink-0 border-b border-border bg-background pt-[env(safe-area-inset-top)] print:hidden"
+      className="relative z-40 shrink-0 border-b border-border/80 bg-card/95 pt-[env(safe-area-inset-top)] shadow-[0_1px_2px_oklch(0.28_0.04_257_/_0.06)] print:hidden"
     >
       <div className="selrs-gradient-bar h-0.5 w-full" aria-hidden />
 
-      <div className="flex h-12 w-full items-stretch">
+      <div className="flex h-14 w-full items-center gap-2 px-2">
         {/* Logo */}
         <button
           type="button"
           onClick={() => onNavigate(logoTarget)}
-          className="flex shrink-0 items-center gap-2 border-e border-border/60 px-3 transition-opacity hover:opacity-80 md:px-4"
+          className="flex h-10 shrink-0 items-center gap-2 rounded-2xl border border-border bg-background/80 px-2.5 transition-opacity hover:opacity-90 md:px-3"
           aria-label="الرئيسية"
         >
-          <BrandLogo className="h-7 w-7 shrink-0 rounded-lg border border-border/60 bg-background" />
+          <BrandLogo className="h-7 w-7 shrink-0 rounded-xl border border-border/60 bg-background" />
           <span className="hidden text-sm font-black text-foreground md:block">
             {BRAND_NAME_AR}
           </span>
@@ -357,10 +357,10 @@ export function AppTopNav({
                     type="button"
                     onClick={() => onNavigate(tab.path)}
                     className={cn(
-                      "flex h-full items-center gap-1.5 border-b-2 px-3.5 text-sm transition-colors",
+                      "my-1 flex h-10 items-center gap-1.5 rounded-2xl border px-3.5 text-sm font-semibold transition-colors",
                       active
-                        ? "border-b-primary bg-primary text-primary-foreground"
-                        : "border-transparent text-muted-foreground hover:bg-muted text-muted-foreground",
+                        ? "border-primary/20 bg-primary text-primary-foreground shadow-sm"
+                        : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/70",
                     )}
                   >
                     <Icon
@@ -384,10 +384,10 @@ export function AppTopNav({
                     type="button"
                     onClick={() => onNavigate(tab.path)}
                     className={cn(
-                      "flex h-full items-center gap-1.5 border-b-2 px-3.5 text-sm transition-colors",
+                      "my-1 flex h-10 items-center gap-1.5 rounded-2xl border px-3.5 text-sm font-semibold transition-colors",
                       active
-                        ? "border-b-primary bg-primary text-primary-foreground"
-                        : "border-transparent text-muted-foreground hover:bg-muted text-muted-foreground",
+                        ? "border-primary/20 bg-primary text-primary-foreground shadow-sm"
+                        : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/70",
                     )}
                   >
                     <Icon
@@ -409,10 +409,10 @@ export function AppTopNav({
                   type="button"
                   onClick={() => onNavigate("/accounting")}
                   className={cn(
-                    "flex h-full items-center border-b-2 px-3 text-sm transition-colors focus-visible:outline-none",
+                    "my-1 flex h-10 items-center rounded-s-2xl border px-3 text-sm font-semibold transition-colors focus-visible:outline-none",
                     accountingActive
-                      ? "border-b-primary bg-primary text-primary-foreground"
-                      : "border-transparent text-muted-foreground hover:bg-muted text-muted-foreground",
+                      ? "border-primary/20 bg-primary text-primary-foreground shadow-sm"
+                      : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/70",
                   )}
                 >
                   <span>الحسابات</span>
@@ -422,10 +422,10 @@ export function AppTopNav({
                     <button
                       type="button"
                       className={cn(
-                        "flex h-full items-center border-b-2 px-2.5 text-sm transition-colors focus-visible:outline-none",
+                        "my-1 flex h-10 items-center rounded-e-2xl border px-2.5 text-sm transition-colors focus-visible:outline-none",
                         accountingActive
-                          ? "border-b-primary bg-primary text-primary-foreground"
-                          : "border-transparent text-muted-foreground hover:bg-muted text-muted-foreground",
+                          ? "border-primary/20 bg-primary text-primary-foreground shadow-sm"
+                          : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/70",
                       )}
                       aria-label="فتح قائمة الحسابات"
                     >
@@ -534,7 +534,7 @@ export function AppTopNav({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="hidden h-8 gap-1 px-2.5 text-sm font-medium md:flex"
+                  className="hidden h-9 gap-1 rounded-2xl border border-border bg-background/70 px-3 text-sm font-semibold md:flex"
                 >
                   <span>المزيد</span>
                   <ChevronDown
@@ -615,7 +615,7 @@ export function AppTopNav({
             type="button"
             variant="ghost"
             size="icon"
-            className="h-8 w-8 shrink-0"
+            className="h-9 w-9 shrink-0 rounded-2xl border border-border bg-background/70"
             title="بحث (⌘K)"
             aria-label="فتح لوحة البحث"
             onClick={dispatchOpenCommandPalette}
@@ -626,7 +626,7 @@ export function AppTopNav({
           {/* Date badge, hidden on small screens */}
           <Badge
             variant="outline"
-            className="hidden whitespace-nowrap py-1 text-[10px] font-normal sm:inline-flex"
+            className="hidden rounded-2xl bg-background/70 py-1 text-[10px] font-semibold sm:inline-flex"
           >
             <span className="me-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-success/100" />
             {dateStr || "…"}
@@ -635,9 +635,12 @@ export function AppTopNav({
           {/* Avatar + user dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 shrink-0 gap-1.5 px-1.5">
+              <Button
+                variant="ghost"
+                className="h-9 shrink-0 gap-1.5 rounded-2xl border border-border bg-background/70 px-1.5"
+              >
                 <Avatar className="h-7 w-7">
-                  <AvatarFallback className="bg-primary text-primary-foreground">
+                  <AvatarFallback className="bg-secondary text-secondary-foreground">
                     {userName.slice(0, 2).toUpperCase() || "؟"}
                   </AvatarFallback>
                 </Avatar>
