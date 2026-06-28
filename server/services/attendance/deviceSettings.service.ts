@@ -26,6 +26,7 @@ export interface DeviceSettings {
   zk40Protocol?: "adms" | "tcp";
   fkProtocol?: number; // 0 or 1 — --protocol flag for FKOldLogPuller.exe
   commPassword?: number; // Comm Key / Net Pwd on the device
+  admsEnabled?: boolean; // accept ADMS push for this device
 }
 
 // In-memory caches keyed by device id
@@ -36,6 +37,7 @@ let ef10kSettings: DeviceSettings = {
   protocol: "tcp",
   fallbackToAccess: true,
   realTimeSync: true,
+  admsEnabled: true,
 };
 
 let k40Settings: DeviceSettings = {
@@ -48,6 +50,7 @@ let k40Settings: DeviceSettings = {
   zk40Protocol: "adms",
   fkProtocol: 0,
   commPassword: 0,
+  admsEnabled: true,
 };
 
 let settingsLoaded = false;
@@ -90,6 +93,7 @@ export class DeviceSettingsService {
           zk40Protocol: ((dbEF10K as any).zk40Protocol ?? "adms") as "adms" | "tcp",
           fkProtocol: (dbEF10K as any).fkProtocol ?? 0,
           commPassword: (dbEF10K as any).commPassword ?? 0,
+          admsEnabled: (dbEF10K as any).admsEnabled ?? true,
         };
       } else {
         await db.insert(attendanceDeviceSettings).values({
@@ -115,6 +119,7 @@ export class DeviceSettingsService {
           zk40Protocol: ((dbK40 as any).zk40Protocol ?? "adms") as "adms" | "tcp",
           fkProtocol: (dbK40 as any).fkProtocol ?? 0,
           commPassword: (dbK40 as any).commPassword ?? 0,
+          admsEnabled: (dbK40 as any).admsEnabled ?? true,
         };
       } else {
         // Migrate from old single-row: copy zk40_* columns from id=1 into id=2
@@ -196,6 +201,7 @@ export class DeviceSettingsService {
         zk40Protocol: s.zk40Protocol ?? "adms",
         fkProtocol: s.fkProtocol ?? 0,
         commPassword: s.commPassword ?? 0,
+        admsEnabled: s.admsEnabled ?? true,
       };
       await db
         .insert(attendanceDeviceSettings)

@@ -29,6 +29,16 @@ interface AdmsCommand {
 let cmdSeq = 1;
 const cmdQueue: AdmsCommand[] = [];
 const pendingAck = new Map<number, AdmsCommand>(); // awaiting devicecmd ACK
+
+/** ADMS push is enabled unless explicitly disabled in K40 device settings. */
+async function isAdmsEnabled(): Promise<boolean> {
+  try {
+    const { DeviceSettingsService } = await import("../services/attendance/deviceSettings.service");
+    return DeviceSettingsService.getK40Settings().admsEnabled ?? true;
+  } catch {
+    return true; // fail open — don't drop punches if settings unavailable
+  }
+}
 const queriedDevices = new Set<string>(); // SNs that already received DATA QUERY ATTLOG this session
 
 /** Queue a one-off ATTLOG pull command — device uploads its logs on next poll. */
@@ -217,6 +227,12 @@ export function registerZKTecoAdms(app: Express): void {
 
     // Only handle ATTLOG; acknowledge other tables silently
     if (table !== "ATTLOG") {
+      res.set("Content-Type", "text/plain");
+      res.send("OK: 0");
+      return;
+    }
+    // Respect the ADMS enable/disable toggle — ack but drop punches when disabled.
+    if (!(await isAdmsEnabled())) {
       res.set("Content-Type", "text/plain");
       res.send("OK: 0");
       return;

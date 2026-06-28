@@ -9,7 +9,7 @@ const tRPC = trpc as any;
 
 export default function DeviceSettings() {
   const [ef10k, setEf10k] = useState({ ip: "", port: 5005, enabled: false, zk40Protocol: "tcp" as "adms" | "tcp", fkProtocol: 0 as 0 | 1, commPassword: 0 });
-  const [k40, setK40] = useState({ ip: "", port: 4370, enabled: false, zk40Protocol: "adms" as "adms" | "tcp", fkProtocol: 0 as 0 | 1, commPassword: 0 });
+  const [k40, setK40] = useState({ ip: "", port: 4370, enabled: false, zk40Protocol: "adms" as "adms" | "tcp", fkProtocol: 0 as 0 | 1, commPassword: 0, admsEnabled: true });
   const [showSuccess, setShowSuccess] = useState(false);
 
   const settingsQuery    = tRPC.attendance.deviceSettings.useQuery();
@@ -29,7 +29,7 @@ export default function DeviceSettings() {
       setEf10k({ ip: d.ef10k.ip ?? "", port: d.ef10k.port ?? 5005, enabled: d.ef10k.enabled ?? false, zk40Protocol: d.ef10k.zk40Protocol ?? "tcp", fkProtocol: d.ef10k.fkProtocol ?? 0, commPassword: d.ef10k.commPassword ?? 0 });
     }
     if (d.k40) {
-      setK40({ ip: d.k40.ip ?? "", port: d.k40.port ?? 4370, enabled: d.k40.enabled ?? false, zk40Protocol: d.k40.zk40Protocol ?? "adms", fkProtocol: d.k40.fkProtocol ?? 0, commPassword: d.k40.commPassword ?? 0 });
+      setK40({ ip: d.k40.ip ?? "", port: d.k40.port ?? 4370, enabled: d.k40.enabled ?? false, zk40Protocol: d.k40.zk40Protocol ?? "adms", fkProtocol: d.k40.fkProtocol ?? 0, commPassword: d.k40.commPassword ?? 0, admsEnabled: d.k40.admsEnabled ?? true });
     }
   }, [settingsQuery.data]);
 
@@ -50,7 +50,7 @@ export default function DeviceSettings() {
 
   const saveK40 = async () => {
     try {
-      await updateSettings.mutateAsync({ deviceId: 2, ip: k40.ip, port: k40.port, enabled: k40.enabled, zk40Protocol: k40.zk40Protocol, fkProtocol: k40.fkProtocol, commPassword: k40.commPassword });
+      await updateSettings.mutateAsync({ deviceId: 2, ip: k40.ip, port: k40.port, enabled: k40.enabled, zk40Protocol: k40.zk40Protocol, fkProtocol: k40.fkProtocol, commPassword: k40.commPassword, admsEnabled: k40.admsEnabled });
       setShowSuccess(true);
       settingsQuery.refetch();
     } catch {}
@@ -254,6 +254,11 @@ export default function DeviceSettings() {
                     : "الجهاز يرسل البصمات للخادم تلقائياً (Push) — مناسب عند وجود الجهاز خلف راوتر."}
                 </p>
               </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="k40-adms-enabled" checked={k40.admsEnabled} onChange={(e) => setK40({ ...k40, admsEnabled: e.target.checked })} className="rounded border-border" />
+                <label htmlFor="k40-adms-enabled" className="text-sm font-medium cursor-pointer">تفعيل استقبال ADMS (Push)</label>
+              </div>
+              <p className="-mt-2 text-xs text-muted-foreground">عند الإيقاف، يتجاهل الخادم البصمات المُرسَلة عبر ADMS — استخدمه عند الاعتماد على TCP فقط.</p>
               {k40.zk40Protocol === "tcp" && (
                 <div>
                   <label className="mb-1.5 block text-sm font-medium">بروتوكول SDK</label>

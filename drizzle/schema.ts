@@ -1628,6 +1628,7 @@ export const attendanceDeviceSettings = mysqlTable(
     zk40Protocol: mysqlEnum("zk40_protocol", ["adms", "tcp"]).default("adms").notNull(),
     fkProtocol: int("fk_protocol").default(0).notNull(),
     commPassword: int("comm_password").default(0).notNull(),
+    admsEnabled: boolean("adms_enabled").default(true).notNull(),
   },
 );
 
