@@ -161,6 +161,11 @@ export const PAGE_PERMISSION_DEFINITIONS = [
     label: "مزامنة الحضور",
     group: "الحضور والانصراف",
   },
+  {
+    id: "/attendance/admin/console",
+    label: "وحدة فحص الجهاز",
+    group: "الحضور والانصراف",
+  },
 
   // ── المرتبات ──
   { id: "/salary", label: "المرتبات (الرئيسية)", group: "المرتبات" },

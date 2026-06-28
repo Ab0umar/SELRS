@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,28 +31,6 @@ function fmt(min: number): string {
   const h = Math.floor(min / 60);
   const m = min % 60;
   return h > 0 ? `${h}س ${m}د` : `${m}د`;
-}
-
-function StatBox({
-  label,
-  value,
-  sub,
-  cls,
-}: {
-  label: string;
-  value: string | number;
-  sub?: string;
-  cls?: string;
-}) {
-  return (
-    <div
-      className={`flex flex-col gap-0.5 rounded-lg border px-4 py-3 ${cls ?? "border-border bg-card"}`}
-    >
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="text-xl font-semibold tabular-nums">{value}</span>
-      {sub && <span className="text-xs text-muted-foreground">{sub}</span>}
-    </div>
-  );
 }
 
 export default function MyAttendanceProfile() {
@@ -173,23 +150,19 @@ export default function MyAttendanceProfile() {
 
   if (profileQuery.isLoading) {
     return (
-      <div className="space-y-4 p-4">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-32 w-full" />
+      <div className="space-y-4 p-4" dir="rtl">
+        <Skeleton className="h-32 w-full animate-pulse" />
+        <Skeleton className="h-32 w-full animate-pulse" />
       </div>
     );
   }
 
   if (!data?.linked) {
     return (
-      <div className="flex flex-col items-center gap-3 p-8 text-center">
-        <AlertCircle className="h-10 w-10 text-muted-foreground" />
-        <p className="text-muted-foreground">
-          حسابك غير مرتبط بسجل موظف في الحضور.
-        </p>
-        <p className="text-xs text-muted-foreground">
-          تواصل مع المسؤول لربط حسابك.
-        </p>
+      <div className="flex flex-col items-center gap-3 p-8 text-center" dir="rtl">
+        <AlertCircle className="h-10 w-10 text-slate-400" />
+        <p className="text-slate-600 font-bold">حسابك غير مرتبط بسجل موظف في الحضور.</p>
+        <p className="text-xs text-slate-400">تواصل مع المسؤول لربط حسابك.</p>
       </div>
     );
   }
@@ -198,464 +171,362 @@ export default function MyAttendanceProfile() {
   const stats = data.monthStats;
 
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
-      <div className="border-b border-border bg-muted/30 px-4 py-3 flex items-center gap-3">
-        <Link
-          href="/"
-          className="text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-        <div>
-          <h1 className="text-base font-semibold">حضوري</h1>
-          <p className="text-xs text-muted-foreground">
-            رصيد الإجازات والإحصائيات وطلب الأذونات
-          </p>
+    <div className="min-h-screen bg-slate-50 text-slate-800 p-4 sm:p-6" dir="rtl">
+      
+      {/* ── 1. Floating Bento Top Header Capsule ── */}
+      <header className="max-w-6xl mx-auto mb-6 bg-white border border-slate-200 rounded-3xl p-4 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/attendance"
+            className="w-8 h-8 rounded-xl border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-all shrink-0"
+          >
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+          <div>
+            <h1 className="text-sm font-black text-slate-900 leading-none">الملف الشخصي لحضوري</h1>
+            <span className="text-[10px] text-slate-400 block mt-1 font-medium">رصيد الإجازات، إحصائيات الغياب وطلب أذونات النوبات</span>
+          </div>
         </div>
-      </div>
-      <div className="space-y-5 p-4">
-        {/* Leave balance */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Calendar className="h-4 w-4 text-primary" />
-              رصيد الإجازات {new Date().getFullYear()}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <StatBox
-              label="المخصص سنوياً"
-              value={bal.annualAllocation}
-              sub="يوم"
-            />
-            <StatBox
-              label="المستخدم"
-              value={bal.usedAnnual}
-              sub="يوم"
-              cls="border-destructive/30 bg-destructive/5 text-foreground"
-            />
-            <StatBox
-              label="المتبقي"
-              value={bal.remainingAnnual}
-              sub="يوم"
-              cls="border-success/30 bg-success/5 text-foreground"
-            />
-            <StatBox
-              label="إجازة مرضية"
-              value={bal.usedSick}
-              sub="يوم هذا العام"
-            />
-          </CardContent>
-        </Card>
+        <span className="px-2.5 py-0.5 rounded-full bg-slate-900 text-white text-[10px] font-bold shadow-sm font-mono">
+          كود: {data.empCd}
+        </span>
+      </header>
 
-        {/* Monthly stats */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Clock className="h-4 w-4 text-secondary" />
-              إحصائيات هذا الشهر
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <StatBox
-              label="تأخير"
-              value={fmt(stats.lateMins)}
-              cls="border-destructive/20 bg-destructive/5 text-foreground"
-            />
-            <StatBox
-              label="خروج مبكر"
-              value={fmt(stats.earlyMins)}
-              cls="border-warning/20 bg-warning/10 text-foreground"
-            />
-            <StatBox
-              label="إجمالي (تأخير+مبكر)"
-              value={fmt(stats.lateMins + stats.earlyMins)}
-            />
-            <StatBox
-              label="أذونات دخول"
-              value={fmt(stats.permInMins)}
-              cls="border-info/20 bg-info/10 text-foreground"
-            />
-          </CardContent>
-          {stats.permOutMins > 0 && (
-            <CardContent className="pt-0">
-              <div className="rounded-md border border-border px-4 py-2 text-sm">
-                <span className="text-muted-foreground">
-                  أذونات خروج هذا الشهر:{" "}
-                </span>
-                <span className="font-medium">{fmt(stats.permOutMins)}</span>
+      {/* ── 2. Bento Container Flow ── */}
+      <div className="max-w-6xl mx-auto space-y-6">
+        
+        {/* Top Section: Balances & Stats (2 columns) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          {/* Bento Box 1: Leave Balance (Mint Theme) */}
+          <div className="p-6 bg-[#ECFDF5] border border-emerald-150 rounded-3xl space-y-4 hover:scale-[1.01] transition-transform duration-200">
+            <div className="flex items-center gap-2 border-b border-emerald-100/50 pb-2">
+              <Calendar className="h-4 w-4 text-emerald-600" />
+              <h3 className="text-xs font-black text-emerald-950">رصيد إجازاتي السنوية ({new Date().getFullYear()})</h3>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 bg-white border border-emerald-100 rounded-xl">
+                <span className="text-[9px] text-slate-400 block font-bold">المخصص سنوياً</span>
+                <span className="font-mono font-black text-emerald-950 text-base block mt-0.5">{bal.annualAllocation} يوم</span>
               </div>
-            </CardContent>
-          )}
-        </Card>
+              <div className="p-3 bg-white border border-emerald-100 rounded-xl">
+                <span className="text-[9px] text-slate-400 block font-bold">المستخدم</span>
+                <span className="font-mono font-black text-rose-600 text-base block mt-0.5">{bal.usedAnnual} يوم</span>
+              </div>
+              <div className="p-3 bg-white border border-emerald-100 rounded-xl">
+                <span className="text-[9px] text-slate-400 block font-bold">المتبقي</span>
+                <span className="font-mono font-black text-emerald-600 text-base block mt-0.5">{bal.remainingAnnual} يوم</span>
+              </div>
+              <div className="p-3 bg-white border border-emerald-100 rounded-xl">
+                <span className="text-[9px] text-slate-400 block font-bold">مرضية مستخدمة</span>
+                <span className="font-mono font-black text-emerald-950 text-base block mt-0.5">{bal.usedSick} يوم</span>
+              </div>
+            </div>
+          </div>
 
-        {/* Pending requests */}
+          {/* Bento Box 2: Monthly Stats (Amber/Rose Theme) */}
+          <div className="p-6 bg-[#FFFBEB] border border-amber-150 rounded-3xl space-y-4 hover:scale-[1.01] transition-transform duration-200 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-2 border-b border-amber-100/50 pb-2">
+                <Clock className="h-4 w-4 text-amber-600" />
+                <h3 className="text-xs font-black text-amber-950">مؤشرات الحضور والمخالفات هذا الشهر</h3>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                <div className="p-3 bg-white border border-amber-100 rounded-xl">
+                  <span className="text-[9px] text-slate-400 block font-bold">دقائق التأخير</span>
+                  <span className="font-mono font-black text-rose-600 text-base block mt-0.5">{fmt(stats.lateMins)}</span>
+                </div>
+                <div className="p-3 bg-white border border-amber-100 rounded-xl">
+                  <span className="text-[9px] text-slate-400 block font-bold">خروج مبكر</span>
+                  <span className="font-mono font-black text-amber-600 text-base block mt-0.5">{fmt(stats.earlyMins)}</span>
+                </div>
+              </div>
+            </div>
+
+            {stats.permOutMins > 0 && (
+              <div className="p-3 bg-white border border-amber-100 rounded-2xl text-xs text-slate-700 font-bold flex justify-between mt-2">
+                <span>أذونات الخروج المعتمدة هذا الشهر:</span>
+                <span className="font-mono text-slate-900">{fmt(stats.permOutMins)}</span>
+              </div>
+            )}
+          </div>
+
+        </div>
+
+        {/* Bento Box 3: Pending Requests (Sky Theme) - Spans full width when visible */}
         {(data.pendingLeaves.length > 0 ||
           data.pendingPerms.length > 0 ||
-          (data.pendingShiftChanges &&
-            data.pendingShiftChanges.length > 0)) && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Hourglass className="h-4 w-4 text-warning" />
-                طلبات قيد الانتظار
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
+          (data.pendingShiftChanges && data.pendingShiftChanges.length > 0)) && (
+          <div className="p-6 bg-[#F0F9FF] border border-sky-150 rounded-3xl space-y-4 hover:scale-[1.01] transition-transform duration-200">
+            <div className="flex items-center gap-2 border-b border-sky-100/50 pb-2">
+              <Hourglass className="h-4 w-4 text-sky-600" />
+              <h3 className="text-xs font-black text-sky-950">الطلبات المعلقة قيد المراجعة والاعتماد</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {data.pendingLeaves.map((l: any, i: number) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-2 rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-sm"
-                >
-                  <Calendar className="h-4 w-4 text-warning shrink-0" />
-                  <span>
-                    إجازة {l.type === "annual" ? "سنوية" : "مرضية"}:{" "}
-                    {String(l.dateFrom).slice(0, 10)} →{" "}
-                    {String(l.dateTo).slice(0, 10)}
-                  </span>
+                <div key={i} className="flex items-center gap-2 p-3 bg-white border border-sky-100 rounded-2xl text-xs font-bold text-slate-800">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                  <span>طلب إجازة {l.type === "annual" ? "سنوية" : "مرضية"}:</span>
+                  <span className="font-mono text-slate-500">{String(l.dateFrom).slice(0, 10)} ← {String(l.dateTo).slice(0, 10)}</span>
                 </div>
               ))}
+
               {data.pendingPerms.map((p: any, i: number) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-2 rounded-md border border-info/20 bg-info/10 px-3 py-2 text-sm"
-                >
-                  <ShieldCheck className="h-4 w-4 text-info shrink-0" />
-                  <span>
-                    إذن {p.type === "in" ? "دخول متأخر" : "خروج مبكر"} —{" "}
-                    {p.durationMinutes} دقيقة ({String(p.date).slice(0, 10)})
-                  </span>
+                <div key={i} className="flex items-center gap-2 p-3 bg-white border border-sky-100 rounded-2xl text-xs font-bold text-slate-800">
+                  <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse"></span>
+                  <span>طلب إذن {p.type === "in" ? "دخول متأخر" : "خروج مبكر"}:</span>
+                  <span className="font-mono text-slate-500">{p.durationMinutes} دقيقة يوم {String(p.date).slice(0, 10)}</span>
                 </div>
               ))}
-              {data.pendingShiftChanges &&
-                data.pendingShiftChanges.map((s: any, i: number) => {
-                  const typeAr =
-                    s.requestType === "daily"
-                      ? "يومي (مؤقت)"
-                      : s.requestType === "weekly"
-                        ? "أسبوعي"
-                        : s.requestType === "monthly"
-                          ? "شهري (دورة)"
-                          : "تبادل مع زميل";
-                  return (
-                    <div
-                      key={i}
-                      className="flex items-center gap-2 rounded-md border border-secondary/20 bg-secondary/10 px-3 py-2 text-sm"
-                    >
-                      <Clock className="h-4 w-4 text-secondary shrink-0" />
-                      <span>
-                        طلب تغيير موعد ({typeAr}): {s.dateFrom}{" "}
-                        {s.dateTo ? `→ ${s.dateTo}` : ""}
-                      </span>
-                    </div>
-                  );
-                })}
-            </CardContent>
-          </Card>
+
+              {data.pendingShiftChanges && data.pendingShiftChanges.map((s: any, i: number) => {
+                const typeAr =
+                  s.requestType === "daily"
+                    ? "يومي"
+                    : s.requestType === "weekly"
+                      ? "أسبوعي"
+                      : s.requestType === "monthly"
+                        ? "شهري"
+                        : "تبادل";
+                return (
+                  <div key={i} className="flex items-center gap-2 p-3 bg-white border border-sky-100 rounded-2xl text-xs font-bold text-slate-800">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                    <span>طلب تغيير موعد ({typeAr}):</span>
+                    <span className="font-mono text-slate-500">{s.dateFrom} {s.dateTo ? `→ ${s.dateTo}` : ""}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
 
-        {/* Permission request */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <TrendingDown className="h-4 w-4 text-info" />
-              طلب إذن
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
+        {/* Bottom Section: The 3 forms side-by-side (beside each other) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          {/* Form 1: Permission Request */}
+          <div className="p-6 bg-white border border-slate-200 rounded-3xl space-y-4 shadow-sm hover:scale-[1.01] transition-transform duration-200">
+            <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2 flex items-center gap-2">
+              <TrendingDown className="h-4 w-4 text-sky-600" />
+              طلب إذن نوبة
+            </h3>
+            
+            <div className="space-y-3.5 text-xs">
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground">النوع</label>
+                <label className="text-[10px] font-bold text-slate-455">النوع</label>
                 <select
                   value={permForm.type}
-                  onChange={(e) =>
-                    setPermForm({
-                      ...permForm,
-                      type: e.target.value as "in" | "out",
-                    })
-                  }
-                  className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  onChange={(e) => setPermForm({ ...permForm, type: e.target.value as "in" | "out" })}
+                  className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 outline-none focus:border-teal-500 focus:bg-white transition-all font-bold text-slate-700"
                 >
                   <option value="out">خروج مبكر</option>
                   <option value="in">دخول متأخر</option>
                 </select>
               </div>
+
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground">التاريخ</label>
+                <label className="text-[10px] font-bold text-slate-455">التاريخ</label>
                 <DateInput
                   value={permForm.date}
-                  onChange={(e) =>
-                    setPermForm({ ...permForm, date: e.target.value })
-                  }
-                  className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  onChange={(e) => setPermForm({ ...permForm, date: e.target.value })}
+                  className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 outline-none focus:border-teal-500 focus:bg-white transition-all"
                 />
               </div>
+
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground">
-                  المدة (دقيقة)
-                </label>
+                <label className="text-[10px] font-bold text-slate-455">المدة (بالدقائق)</label>
                 <input
                   type="number"
                   min={15}
                   max={480}
                   step={15}
                   value={permForm.durationMinutes}
-                  onChange={(e) =>
-                    setPermForm({
-                      ...permForm,
-                      durationMinutes: Number(e.target.value),
-                    })
-                  }
-                  className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  onChange={(e) => setPermForm({ ...permForm, durationMinutes: Number(e.target.value) })}
+                  className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 outline-none focus:border-teal-500 focus:bg-white transition-all font-mono"
                 />
               </div>
+
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground">ملاحظة</label>
+                <label className="text-[10px] font-bold text-slate-455">السبب أو الملاحظة</label>
                 <input
                   type="text"
                   value={permForm.note}
-                  placeholder="اختياري"
-                  onChange={(e) =>
-                    setPermForm({ ...permForm, note: e.target.value })
-                  }
-                  className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  placeholder="ملاحظات اختيارية"
+                  onChange={(e) => setPermForm({ ...permForm, note: e.target.value })}
+                  className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 outline-none focus:border-teal-500 focus:bg-white transition-all"
                 />
               </div>
-            </div>
-            {permMsg && (
-              <p
-                className={`text-sm ${permMsg.startsWith("✓") ? "text-success" : "text-destructive"}`}
-              >
-                {permMsg}
-              </p>
-            )}
-            <Button
-              size="sm"
-              disabled={permMut.isPending}
-              onClick={() => {
-                setPermMsg(null);
-                permMut.mutate(permForm);
-              }}
-            >
-              {permMut.isPending ? "جاري الإرسال…" : "إرسال الطلب"}
-            </Button>
-          </CardContent>
-        </Card>
 
-        {/* Leave request */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <TrendingUp className="h-4 w-4 text-success" />
-              طلب إجازة
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
+              {permMsg && (
+                <p className={`text-[10px] font-bold ${permMsg.startsWith("✓") ? "text-emerald-600" : "text-rose-600"}`}>
+                  {permMsg}
+                </p>
+              )}
+
+              <Button
+                size="sm"
+                disabled={permMut.isPending}
+                onClick={() => {
+                  setPermMsg(null);
+                  permMut.mutate(permForm);
+                }}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl py-2 h-auto"
+              >
+                {permMut.isPending ? "جاري الإرسال…" : "إرسال طلب الإذن"}
+              </Button>
+            </div>
+          </div>
+
+          {/* Form 2: Leave Request */}
+          <div className="p-6 bg-white border border-slate-200 rounded-3xl space-y-4 shadow-sm hover:scale-[1.01] transition-transform duration-200">
+            <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2 flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-emerald-600" />
+              طلب إجازة جديدة
+            </h3>
+            
+            <div className="space-y-3.5 text-xs">
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground">النوع</label>
+                <label className="text-[10px] font-bold text-slate-455">النوع</label>
                 <select
                   value={leaveForm.type}
-                  onChange={(e) =>
-                    setLeaveForm((prev) => ({
-                      ...prev,
-                      type: e.target.value as "annual" | "sick",
-                    }))
-                  }
-                  className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  onChange={(e) => setLeaveForm((prev) => ({ ...prev, type: e.target.value as "annual" | "sick" }))}
+                  className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 outline-none focus:border-teal-500 focus:bg-white transition-all font-bold text-slate-700"
                 >
                   <option value="annual">سنوية</option>
                   <option value="sick">مرضية</option>
                 </select>
               </div>
-              <div className="flex flex-col gap-1 col-span-1" />
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground">من</label>
-                <DateInput
-                  value={leaveForm.dateFrom}
-                  onChange={(e) => {
-                    const from = e.target.value;
-                    setLeaveForm((prev) => ({
-                      ...prev,
-                      dateFrom: from,
-                      dateTo: prev.dateTo < from ? from : prev.dateTo,
-                    }));
-                  }}
-                  className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-                />
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-455">من تاريخ</label>
+                  <DateInput
+                    value={leaveForm.dateFrom}
+                    onChange={(e) => {
+                      const from = e.target.value;
+                      setLeaveForm((prev) => ({
+                        ...prev,
+                        dateFrom: from,
+                        dateTo: prev.dateTo < from ? from : prev.dateTo,
+                      }));
+                    }}
+                    className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 outline-none focus:border-teal-500"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-455">إلى تاريخ</label>
+                  <DateInput
+                    value={leaveForm.dateTo}
+                    min={leaveForm.dateFrom}
+                    onChange={(e) => setLeaveForm((prev) => ({ ...prev, dateTo: e.target.value }))}
+                    className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 outline-none focus:border-teal-500"
+                  />
+                </div>
               </div>
+
+              {leaveForm.dateFrom && leaveForm.dateTo && leaveForm.dateTo >= leaveForm.dateFrom && (
+                <div className="text-[10px] text-slate-450 font-bold bg-slate-50 px-3 py-1 rounded-lg">
+                  أيام الإجازة: {Math.round((new Date(leaveForm.dateTo).getTime() - new Date(leaveForm.dateFrom).getTime()) / 86400000) + 1} يوم
+                </div>
+              )}
+
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground">إلى</label>
-                <DateInput
-                  value={leaveForm.dateTo}
-                  min={leaveForm.dateFrom}
-                  onChange={(e) =>
-                    setLeaveForm((prev) => ({
-                      ...prev,
-                      dateTo: e.target.value,
-                    }))
-                  }
-                  className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-                />
-              </div>
-              {leaveForm.dateFrom &&
-                leaveForm.dateTo &&
-                leaveForm.dateTo >= leaveForm.dateFrom && (
-                  <div className="col-span-2 text-xs text-muted-foreground">
-                    {Math.round(
-                      (new Date(leaveForm.dateTo).getTime() -
-                        new Date(leaveForm.dateFrom).getTime()) /
-                        86400000,
-                    ) + 1}{" "}
-                    يوم
-                  </div>
-                )}
-              <div className="flex flex-col gap-1 col-span-2">
-                <label className="text-xs text-muted-foreground">ملاحظة</label>
+                <label className="text-[10px] font-bold text-slate-455">السبب أو الملاحظة</label>
                 <input
                   type="text"
                   value={leaveForm.note}
-                  placeholder="اختياري"
-                  onChange={(e) =>
-                    setLeaveForm((prev) => ({ ...prev, note: e.target.value }))
-                  }
-                  className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  placeholder="ملاحظات اختيارية"
+                  onChange={(e) => setLeaveForm((prev) => ({ ...prev, note: e.target.value }))}
+                  className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 outline-none"
                 />
               </div>
-            </div>
-            {leaveMsg && (
-              <p
-                className={`text-sm ${leaveMsg.startsWith("✓") ? "text-success" : "text-destructive"}`}
-              >
-                {leaveMsg}
-              </p>
-            )}
-            <Button
-              size="sm"
-              disabled={leaveMut.isPending}
-              onClick={() => {
-                if (!leaveForm.dateFrom || !leaveForm.dateTo) {
-                  setLeaveMsg("✗ يرجى تحديد تاريخ البداية والنهاية");
-                  return;
-                }
-                setLeaveMsg(null);
-                leaveMut.mutate(leaveForm);
-              }}
-            >
-              {leaveMut.isPending ? "جاري الإرسال…" : "إرسال الطلب"}
-            </Button>
-          </CardContent>
-        </Card>
 
-        {/* Shift swap/change request */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Clock className="h-4 w-4 text-secondary" />
-              طلب تغيير / تبديل موعد
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">
-                نوع التغيير المطلوب
-              </label>
-              <select
-                value={shiftRequestForm.requestType}
-                onChange={(e) =>
-                  setShiftRequestForm({
-                    ...shiftRequestForm,
-                    requestType: e.target.value as any,
-                  })
-                }
-                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-              >
-                <option value="daily">يومي (مؤقت لفترة)</option>
-                <option value="weekly">أسبوعي (أيام عمل ووردية)</option>
-                <option value="monthly">شهري (ربط بدورة كاملة)</option>
-                <option value="swap">تبادل مع زميل</option>
-              </select>
-            </div>
+              {leaveMsg && (
+                <p className={`text-[10px] font-bold ${leaveMsg.startsWith("✓") ? "text-emerald-600" : "text-rose-600"}`}>
+                  {leaveMsg}
+                </p>
+              )}
 
-            <div className="grid grid-cols-2 gap-3">
-              {/* Daily/Weekly/Monthly/Swap common dates */}
+              <Button
+                size="sm"
+                disabled={leaveMut.isPending}
+                onClick={() => {
+                  if (!leaveForm.dateFrom || !leaveForm.dateTo) {
+                    setLeaveMsg("✗ يرجى تحديد تاريخ البداية والنهاية");
+                    return;
+                  }
+                  setLeaveMsg(null);
+                  leaveMut.mutate(leaveForm);
+                }}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl py-2 h-auto"
+              >
+                {leaveMut.isPending ? "جاري الإرسال…" : "إرسال طلب الإجازة"}
+              </Button>
+            </div>
+          </div>
+
+          {/* Form 3: Shift Swap/Change Request */}
+          <div className="p-6 bg-white border border-slate-200 rounded-3xl space-y-4 shadow-sm hover:scale-[1.01] transition-transform duration-200">
+            <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2 flex items-center gap-2">
+              <Clock className="h-4 w-4 text-indigo-600" />
+              تغيير / تبديل الوردية
+            </h3>
+            
+            <div className="space-y-3.5 text-xs">
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground">
-                  من تاريخ
-                </label>
-                <DateInput
-                  value={shiftRequestForm.dateFrom}
-                  onChange={(e) =>
-                    setShiftRequestForm({
-                      ...shiftRequestForm,
-                      dateFrom: e.target.value,
-                      dateTo:
-                        e.target.value > shiftRequestForm.dateTo
-                          ? e.target.value
-                          : shiftRequestForm.dateTo,
-                    })
-                  }
-                  className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-                />
+                <label className="text-[10px] font-bold text-slate-455">نوع التغيير المطلوب</label>
+                <select
+                  value={shiftRequestForm.requestType}
+                  onChange={(e) => setShiftRequestForm({ ...shiftRequestForm, requestType: e.target.value as any })}
+                  className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 outline-none focus:border-teal-500 font-bold text-slate-700"
+                >
+                  <option value="daily">يومي (مؤقت لفترة)</option>
+                  <option value="weekly">أسبوعي (أيام عمل ووردية)</option>
+                  <option value="monthly">شهري (دورة كاملة)</option>
+                  <option value="swap">تبادل مع زميل</option>
+                </select>
               </div>
 
-              {(shiftRequestForm.requestType === "daily" ||
-                shiftRequestForm.requestType === "swap") && (
+              <div className="grid grid-cols-2 gap-2">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs text-muted-foreground">
-                    حتى تاريخ (شامل)
-                  </label>
+                  <label className="text-[10px] font-bold text-slate-455">من تاريخ</label>
                   <DateInput
-                    value={shiftRequestForm.dateTo}
-                    min={shiftRequestForm.dateFrom}
+                    value={shiftRequestForm.dateFrom}
                     onChange={(e) =>
                       setShiftRequestForm({
                         ...shiftRequestForm,
-                        dateTo: e.target.value,
+                        dateFrom: e.target.value,
+                        dateTo: e.target.value > shiftRequestForm.dateTo ? e.target.value : shiftRequestForm.dateTo,
                       })
                     }
-                    className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                    className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 outline-none"
                   />
                 </div>
-              )}
 
-              {shiftRequestForm.requestType === "monthly" && (
+                {(shiftRequestForm.requestType === "daily" ||
+                  shiftRequestForm.requestType === "swap" ||
+                  shiftRequestForm.requestType === "monthly") && (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-slate-455">حتى تاريخ</label>
+                    <DateInput
+                      value={shiftRequestForm.dateTo}
+                      min={shiftRequestForm.dateFrom}
+                      onChange={(e) => setShiftRequestForm({ ...shiftRequestForm, dateTo: e.target.value })}
+                      className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 outline-none"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {(shiftRequestForm.requestType === "daily" || shiftRequestForm.requestType === "weekly") && (
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs text-muted-foreground">
-                    حتى تاريخ (اختياري)
-                  </label>
-                  <DateInput
-                    value={shiftRequestForm.dateTo}
-                    min={shiftRequestForm.dateFrom}
-                    onChange={(e) =>
-                      setShiftRequestForm({
-                        ...shiftRequestForm,
-                        dateTo: e.target.value,
-                      })
-                    }
-                    className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-                  />
-                </div>
-              )}
-
-              {/* Daily / Weekly Shift Selection */}
-              {(shiftRequestForm.requestType === "daily" ||
-                shiftRequestForm.requestType === "weekly") && (
-                <div className="flex flex-col gap-1 col-span-2">
-                  <label className="text-xs text-muted-foreground">
-                    الوردية المطلوبة
-                  </label>
+                  <label className="text-[10px] font-bold text-slate-455">الوردية المطلوبة</label>
                   <select
                     value={shiftRequestForm.newShiftId || ""}
-                    onChange={(e) =>
-                      setShiftRequestForm({
-                        ...shiftRequestForm,
-                        newShiftId: e.target.value
-                          ? parseInt(e.target.value)
-                          : 0,
-                      })
-                    }
-                    className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                    onChange={(e) => setShiftRequestForm({ ...shiftRequestForm, newShiftId: e.target.value ? parseInt(e.target.value) : 0 })}
+                    className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 outline-none font-bold text-slate-700"
                   >
                     <option value="">— اختر الوردية —</option>
                     {shifts.map((s: any) => (
@@ -667,13 +538,10 @@ export default function MyAttendanceProfile() {
                 </div>
               )}
 
-              {/* Weekly Days Selection */}
               {shiftRequestForm.requestType === "weekly" && (
-                <div className="flex flex-col gap-1 col-span-2">
-                  <label className="text-xs text-muted-foreground">
-                    أيام العمل المطلوبة
-                  </label>
-                  <div className="flex flex-wrap gap-1.5 pt-1">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-455">أيام العمل المطلوبة</label>
+                  <div className="flex flex-wrap gap-1">
                     {DAYS_FULL.map((name, index) => {
                       const active = weeklyDays.has(index);
                       return (
@@ -681,10 +549,10 @@ export default function MyAttendanceProfile() {
                           key={index}
                           type="button"
                           onClick={() => toggleWeeklyDay(index)}
-                          className={`rounded-full px-3 py-1.5 text-xs font-semibold border transition-all ${
+                          className={`rounded-full px-2.5 py-1 text-[9px] font-bold border transition-all ${
                             active
-                              ? "bg-primary border-primary text-primary-foreground shadow-sm"
-                              : "bg-background border-border text-muted-foreground hover:bg-muted"
+                              ? "bg-slate-900 border-slate-900 text-white shadow-sm"
+                              : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
                           }`}
                         >
                           {name}
@@ -695,53 +563,31 @@ export default function MyAttendanceProfile() {
                 </div>
               )}
 
-              {/* Monthly Cycle Selection */}
               {shiftRequestForm.requestType === "monthly" && (
-                <div className="flex flex-col gap-1 col-span-2">
-                  <label className="text-xs text-muted-foreground">
-                    الدورة المطلوبة
-                  </label>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-455">الدورة المطلوبة</label>
                   <select
                     value={shiftRequestForm.cycleId || ""}
-                    onChange={(e) =>
-                      setShiftRequestForm({
-                        ...shiftRequestForm,
-                        cycleId: e.target.value ? parseInt(e.target.value) : 0,
-                      })
-                    }
-                    className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                    onChange={(e) => setShiftRequestForm({ ...shiftRequestForm, cycleId: e.target.value ? parseInt(e.target.value) : 0 })}
+                    className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 outline-none font-bold text-slate-700"
                   >
                     <option value="">— اختر الدورة —</option>
                     {cycles.map((c: any) => (
                       <option key={c.id} value={c.id}>
-                        {c.name} (
-                        {c.period === "week"
-                          ? "أسبوعية"
-                          : c.period === "month"
-                            ? "شهرية"
-                            : "يومية"}
-                        )
+                        {c.name} ({c.period === "week" ? "أسبوعية" : c.period === "month" ? "شهرية" : "يومية"})
                       </option>
                     ))}
                   </select>
                 </div>
               )}
 
-              {/* Swap Employee Selection */}
               {shiftRequestForm.requestType === "swap" && (
-                <div className="flex flex-col gap-1 col-span-2">
-                  <label className="text-xs text-muted-foreground">
-                    الزميل المراد التبادل معه
-                  </label>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-455">الزميل المراد التبادل معه</label>
                   <select
                     value={shiftRequestForm.swapEmpCd}
-                    onChange={(e) =>
-                      setShiftRequestForm({
-                        ...shiftRequestForm,
-                        swapEmpCd: e.target.value,
-                      })
-                    }
-                    className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                    onChange={(e) => setShiftRequestForm({ ...shiftRequestForm, swapEmpCd: e.target.value })}
+                    className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 outline-none font-bold text-slate-700"
                   >
                     <option value="">— اختر الزميل —</option>
                     {employees
@@ -755,81 +601,55 @@ export default function MyAttendanceProfile() {
                 </div>
               )}
 
-              {/* Note */}
-              <div className="flex flex-col gap-1 col-span-2">
-                <label className="text-xs text-muted-foreground">
-                  ملاحظة أو سبب الطلب
-                </label>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-455">ملاحظة أو سبب الطلب</label>
                 <input
                   type="text"
                   value={shiftRequestForm.note}
-                  placeholder="اختياري"
-                  onChange={(e) =>
-                    setShiftRequestForm({
-                      ...shiftRequestForm,
-                      note: e.target.value,
-                    })
-                  }
-                  className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  placeholder="ملاحظات اختيارية"
+                  onChange={(e) => setShiftRequestForm({ ...shiftRequestForm, note: e.target.value })}
+                  className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 outline-none"
                 />
               </div>
-            </div>
 
-            {shiftRequestMsg && (
-              <p
-                className={`text-sm ${shiftRequestMsg.startsWith("✓") ? "text-success" : "text-destructive"}`}
+              {shiftRequestMsg && (
+                <p className={`text-[10px] font-bold ${shiftRequestMsg.startsWith("✓") ? "text-emerald-600" : "text-rose-600"}`}>
+                  {shiftRequestMsg}
+                </p>
+              )}
+
+              <Button
+                size="sm"
+                disabled={shiftRequestMut.isPending}
+                onClick={() => {
+                  if (shiftRequestForm.requestType === "daily" && !shiftRequestForm.newShiftId) {
+                    return setShiftRequestMsg("✗ يرجى تحديد الوردية المطلوبة");
+                  }
+                  if (shiftRequestForm.requestType === "weekly" && !shiftRequestForm.newShiftId) {
+                    return setShiftRequestMsg("✗ يرجى تحديد الوردية المطلوبة");
+                  }
+                  if (shiftRequestForm.requestType === "weekly" && weeklyDays.size === 0) {
+                    return setShiftRequestMsg("✗ يرجى تحديد يوم عمل واحد على الأقل");
+                  }
+                  if (shiftRequestForm.requestType === "monthly" && !shiftRequestForm.cycleId) {
+                    return setShiftRequestMsg("✗ يرجى تحديد الدورة المطلوبة");
+                  }
+                  if (shiftRequestForm.requestType === "swap" && !shiftRequestForm.swapEmpCd) {
+                    return setShiftRequestMsg("✗ يرجى تحديد الزميل المراد التبادل معه");
+                  }
+
+                  setShiftRequestMsg(null);
+                  shiftRequestMut.mutate(shiftRequestForm);
+                }}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl py-2 h-auto"
               >
-                {shiftRequestMsg}
-              </p>
-            )}
+                {shiftRequestMut.isPending ? "جاري الإرسال…" : "إرسال طلب التبديل"}
+              </Button>
+            </div>
+          </div>
 
-            <Button
-              size="sm"
-              disabled={shiftRequestMut.isPending}
-              onClick={() => {
-                if (
-                  shiftRequestForm.requestType === "daily" &&
-                  !shiftRequestForm.newShiftId
-                ) {
-                  return setShiftRequestMsg("✗ يرجى تحديد الوردية المطلوبة");
-                }
-                if (
-                  shiftRequestForm.requestType === "weekly" &&
-                  !shiftRequestForm.newShiftId
-                ) {
-                  return setShiftRequestMsg("✗ يرجى تحديد الوردية المطلوبة");
-                }
-                if (
-                  shiftRequestForm.requestType === "weekly" &&
-                  weeklyDays.size === 0
-                ) {
-                  return setShiftRequestMsg(
-                    "✗ يرجى تحديد يوم عمل واحد على الأقل",
-                  );
-                }
-                if (
-                  shiftRequestForm.requestType === "monthly" &&
-                  !shiftRequestForm.cycleId
-                ) {
-                  return setShiftRequestMsg("✗ يرجى تحديد الدورة المطلوبة");
-                }
-                if (
-                  shiftRequestForm.requestType === "swap" &&
-                  !shiftRequestForm.swapEmpCd
-                ) {
-                  return setShiftRequestMsg(
-                    "✗ يرجى تحديد الزميل المراد التبادل معه",
-                  );
-                }
+        </div>
 
-                setShiftRequestMsg(null);
-                shiftRequestMut.mutate(shiftRequestForm);
-              }}
-            >
-              {shiftRequestMut.isPending ? "جاري الإرسال…" : "إرسال الطلب"}
-            </Button>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

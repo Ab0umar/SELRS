@@ -16,6 +16,7 @@ export const ROUTES = {
   attendanceSettings: "/attendance/settings",
   attendanceAdminDevice: "/attendance/admin/device",
   attendanceAdminSync: "/attendance/admin/sync",
+  attendanceAdminConsole: "/attendance/admin/console",
   attendanceShiftSchedule: "/attendance/shift-schedule",
 
   // Medical / patient

@@ -19,14 +19,14 @@ export async function mssqlQuery<T>(
   for (const [name, value] of Object.entries(params)) {
     if (value === undefined) continue;
     if (MSSQL_STRING_PARAM_NAMES.has(name)) {
-      request.input(name, sql.VarChar(40), String(value));
+      request.input(name, (sql as any).VarChar(40), String(value));
       continue;
     }
     if (MSSQL_DATE_PARAM_NAMES.has(name)) {
       // Pass as Date so MSSQL gets a typed datetime, avoiding implicit
       // NVarChar→datetime conversion issues under non-English server collations.
       const d = value instanceof Date ? value : new Date(`${value}T00:00:00`);
-      request.input(name, sql.DateTime, d);
+      request.input(name, (sql as any).DateTime, d);
       continue;
     }
     request.input(name, value);

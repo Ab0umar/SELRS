@@ -3,7 +3,6 @@ import { Link, useLocation } from "wouter";
 import {
   BarChart3,
   LayoutDashboard,
-  Smartphone,
   Users,
   ChevronLeft,
   Activity,
@@ -13,13 +12,13 @@ import {
   PanelRightClose,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface AttendanceLayoutProps {
   children: ReactNode;
   fullWidth?: boolean;
 }
 
-// Navigation structure
 const navigationSections = [
   {
     id: "monitoring",
@@ -102,7 +101,7 @@ const mobileNavItems = [
 
 export default function AttendanceLayout({ children, fullWidth }: AttendanceLayoutProps) {
   const [location] = useLocation();
-  const [collapsed, setCollapsed] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
 
   const deviceQuery = (trpc as any).attendance.deviceStatus.useQuery(
     undefined,
@@ -117,148 +116,94 @@ export default function AttendanceLayout({ children, fullWidth }: AttendanceLayo
   const isDeviceConnecting = device?.status === "connecting";
 
   return (
-    <div
-      className="page-layout min-h-screen bg-background text-foreground"
-      dir="rtl"
-    >
-      {/* Header */}
-      <div className="border-b border-border/60 bg-gradient-to-b from-secondary/5 to-transparent backdrop-blur-sm">
-        <div className="mx-auto w-full px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-3">
-            {/* Title section */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <div className="inline-flex items-center gap-1.5 rounded-full border border-secondary/20 bg-secondary/15 px-2.5 py-0.5 text-[11px] font-medium text-secondary">
-                    <span className="h-1.5 w-1.5 rounded-full bg-secondary animate-pulse" />
-                    نظام الحضور والانصراف
-                  </div>
-                </div>
-                <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-                  إدارة الحضور والانصراف
-                </h1>
-                <p className="max-w-xl text-xs text-muted-foreground">
-                  مراقبة حضور الموظفين، الورديات، والطلبات
-                </p>
-              </div>
-
-              {/* Device Status Badge */}
-              <div className="self-start sm:self-center">
-                {deviceQuery.isLoading ? (
-                  <div className="h-7 w-32 animate-pulse rounded-full bg-muted" />
-                ) : (
-                  <div
-                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium shadow-sm transition-all ${
-                      isDeviceOnline
-                        ? "border-success/20 bg-success/10 text-success"
-                        : isDeviceConnecting
-                          ? "border-warning/20 bg-warning/10 text-warning"
-                          : "border-muted bg-muted/40 text-muted-foreground"
-                    }`}
-                  >
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full ${
-                        isDeviceOnline
-                          ? "bg-success animate-ping"
-                          : isDeviceConnecting
-                            ? "bg-warning animate-pulse"
-                            : "bg-muted-foreground"
-                      }`}
-                    />
-                    <span>
-                      {isDeviceOnline
-                        ? "جهاز البصمة: متصل"
-                        : isDeviceConnecting
-                          ? "جهاز البصمة: جارٍ الاتصال"
-                          : "جهاز البصمة: غير متصل"}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Mobile Horizontal Pill Navigation Bar (Inline top navigation) */}
-            <div className="lg:hidden mt-2 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none whitespace-nowrap border-t border-border/40 pt-3">
-              {mobileNavItems.map((item) => {
-                const Icon = item.icon;
-                const itemActive = isItemActive(location, item.activeFor);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all ${
-                      itemActive
-                        ? "bg-secondary text-secondary-foreground shadow-sm"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    }`}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
+    <div className="min-h-screen bg-slate-50 text-slate-800 p-4 sm:p-6" dir="rtl">
+      
+      {/* ── 1. Floating Bento Top Header Capsule ── */}
+      <header className="max-w-[1600px] mx-auto mb-6 bg-white border border-slate-200 rounded-3xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-slate-900 text-white rounded-2xl flex items-center justify-center font-mono font-black text-sm">
+            HR
+          </div>
+          <div>
+            <h1 className="text-sm font-black text-slate-900 leading-none">إدارة عمليات الموارد البشرية</h1>
+            <span className="text-[10px] text-slate-400 block mt-1 font-medium">سجل وبصمات الحضور والانصراف الطبي</span>
           </div>
         </div>
-      </div>
 
-      {/* Two-column layout: Sidebar + Content */}
-      <div className={`flex flex-col lg:flex-row mx-auto w-full ${fullWidth ? "" : "max-w-[1600px]"}`}>
-        {/* Sidebar Navigation (Desktop only) */}
-        <aside
-          style={{ width: collapsed ? 56 : 256 }}
-          className="hidden lg:flex lg:flex-col border-b border-border/60 bg-card/20 lg:border-b-0 lg:border-r border-border/60 min-h-[calc(100vh-115px)] transition-all duration-200 shrink-0 overflow-hidden"
-        >
-          {/* Toggle button row */}
-          <div className="flex items-center justify-end border-b border-border/40 px-2 py-2">
-            <button
-              onClick={() => setCollapsed((c) => !c)}
-              className="flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              title={collapsed ? "توسيع" : "تصغير"}
+        {/* Dynamic connection indicator badge inside header */}
+        <div className="flex items-center gap-3 self-start md:self-center">
+          {deviceQuery.isLoading ? (
+            <Skeleton className="h-6 w-24 rounded-full animate-pulse" />
+          ) : (
+            <span
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold border shadow-sm ${
+                isDeviceOnline
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-150"
+                  : isDeviceConnecting
+                    ? "bg-amber-50 text-amber-750 border-amber-150"
+                    : "bg-slate-100 text-slate-500 border-slate-200"
+              }`}
             >
-              {collapsed ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  isDeviceOnline
+                    ? "bg-emerald-500 animate-ping"
+                    : isDeviceConnecting
+                      ? "bg-amber-500 animate-pulse"
+                      : "bg-slate-400"
+                }`}
+              />
+              {isDeviceOnline ? "جهاز البصمة: متصل" : isDeviceConnecting ? "جهاز البصمة: جارٍ الاتصال" : "جهاز البصمة: غير متصل"}
+            </span>
+          )}
+        </div>
+      </header>
+
+      {/* ── 2. Two-Column Floating Console Layout ── */}
+      <div className={`max-w-[1600px] mx-auto flex flex-col lg:flex-row gap-6 items-start`}>
+        
+        {/* Floating Sidebar (Desktop only) */}
+        <aside
+          style={{ width: collapsed ? 76 : 260 }}
+          className="hidden lg:flex lg:flex-col shrink-0 bg-white border border-slate-200 rounded-3xl p-4 min-h-[600px] transition-all duration-200 shadow-sm"
+        >
+          {/* Toggle Button Inside Roster Dock */}
+          <div className="flex justify-end mb-4 pb-2 border-b border-slate-100">
+            <button
+              onClick={() => setCollapsed(!collapsed)}
+              className="p-1.5 hover:bg-slate-50 text-slate-450 hover:text-slate-700 rounded-xl transition-all"
+            >
+              {collapsed ? <PanelRightOpen className="w-4 h-4" /> : <PanelRightClose className="w-4 h-4" />}
             </button>
           </div>
-          <nav className={`flex-1 ${collapsed ? "p-1 space-y-1 pt-2" : "space-y-4 p-4"}`}>
 
+          <nav className="space-y-4">
             {navigationSections.map((section) => (
               <div key={section.id} className="space-y-1">
-                {/* Section header — hidden when collapsed */}
                 {!collapsed && (
-                  <div className="px-3 py-1">
-                    <h3 className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider">
-                      {section.label}
-                    </h3>
-                  </div>
+                  <span className="px-3 text-[9px] font-black text-slate-400 uppercase tracking-wider block">
+                    {section.label}
+                  </span>
                 )}
-
-                {/* Section items */}
+                
                 <div className="space-y-1">
                   {section.items.map((item) => {
-                    const itemActive = isItemActive(location, item.activeFor);
+                    const isActive = isItemActive(location, item.activeFor);
                     const Icon = item.icon;
                     return (
                       <Link
                         key={item.href}
                         href={item.href}
-                        title={collapsed ? item.label : undefined}
-                        className={`group flex items-center rounded-lg text-xs transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/30 ${collapsed ? "justify-center px-2 py-2" : "gap-2.5 px-3 py-2"} ${
-                          itemActive
-                            ? "bg-secondary/10 text-secondary font-medium shadow-sm border border-secondary/10"
-                            : "text-muted-foreground hover:bg-muted/40 hover:text-foreground border border-transparent"
+                        className={`flex items-center rounded-2xl text-xs font-bold transition-all duration-150 ${
+                          collapsed ? "justify-center p-2.5" : "gap-3 px-4 py-2.5"
+                        } ${
+                          isActive
+                            ? "bg-slate-900 text-white shadow-md shadow-slate-900/10"
+                            : "text-slate-655 hover:bg-slate-50 hover:text-slate-900"
                         }`}
                       >
-                        <Icon className={`h-4 w-4 shrink-0 transition-colors ${itemActive ? "text-secondary" : "text-muted-foreground group-hover:text-foreground"}`} />
-                        {!collapsed && <span className="flex-1 min-w-0 truncate">{item.label}</span>}
-                        {!collapsed && (
-                          <ChevronLeft
-                            className={`h-3.5 w-3.5 shrink-0 transition-all opacity-0 ${
-                              itemActive
-                                ? "opacity-100 text-secondary translate-x-0"
-                                : "group-hover:opacity-100 group-hover:-translate-x-0.5"
-                            }`}
-                          />
-                        )}
+                        <Icon className="w-4 h-4 shrink-0" />
+                        {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
                       </Link>
                     );
                   })}
@@ -268,10 +213,33 @@ export default function AttendanceLayout({ children, fullWidth }: AttendanceLayo
           </nav>
         </aside>
 
-        {/* Main content area */}
-        <main className={`flex-1 min-w-0 py-6 ${fullWidth ? "px-2 sm:px-3" : "px-4 sm:px-6 lg:px-8"}`}>
+        {/* Mobile Horizontal Pill Navigation Bar */}
+        <div className="lg:hidden w-full flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none whitespace-nowrap mb-2">
+          {mobileNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = isItemActive(location, item.activeFor);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold shrink-0 transition-all ${
+                  isActive
+                    ? "bg-slate-900 text-white shadow-md shadow-slate-900/10"
+                    : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Main Content Floating Bento Container */}
+        <main className={`flex-1 w-full min-w-0 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm`}>
           {children}
         </main>
+
       </div>
     </div>
   );

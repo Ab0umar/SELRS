@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Pencil, Check, X, Printer, ChevronDown, ChevronUp } from "lucide-react";
@@ -586,7 +586,7 @@ export default function SalaryPenalties() {
                   {tab === "advances" && (
                     <Button variant="outline" onClick={() => {
                       setShowAccImport((v) => {
-                        if (!v) { accAdvQ.refetch().then((res) => { if (res.data) initImportState(res.data); }); }
+                        if (!v) { accAdvQ.refetch().then((res: any) => { if (res.data) initImportState(res.data); }); }
                         else { setImportState({}); }
                         return !v;
                       });

@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { DateInput } from "@/components/ui/date-input";
 
 const now = new Date();
+const todayStr = now.toISOString().split("T")[0];
 const MONTHS_AR = [
   "يناير",
   "فبراير",
@@ -41,6 +42,25 @@ const DAYS_AR = [
   "الجمعة",
   "السبت",
 ];
+
+const DAYS_AR_CALENDAR = [
+  "السبت",
+  "الأحد",
+  "الاثنين",
+  "الثلاثاء",
+  "الأربعاء",
+  "الخميس",
+];
+
+function getSixDayIndex(dayOfWeek: number): number {
+  if (dayOfWeek === 6) return 0; // Saturday
+  if (dayOfWeek === 0) return 1; // Sunday
+  if (dayOfWeek === 1) return 2; // Monday
+  if (dayOfWeek === 2) return 3; // Tuesday
+  if (dayOfWeek === 3) return 4; // Wednesday
+  if (dayOfWeek === 4) return 5; // Thursday
+  return 0;
+}
 
 function pad(n: number) {
   return String(n).padStart(2, "0");
@@ -404,169 +424,131 @@ export default function ShiftSchedule() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      <section className="rounded-3xl border border-border bg-background px-4 py-4 shadow-none sm:px-5 sm:py-5">
-        <div className="space-y-4">
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-semibold text-primary">
-                    <CalendarDays className="h-3.5 w-3.5" />
-                    الروستر الشهري
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-3 py-1 text-[11px] font-semibold text-foreground">
-                    {isManager ? (
-                      <>
-                        <ShieldCheck className="h-3.5 w-3.5 text-secondary" />
-                        وضع المدير
-                      </>
-                    ) : (
-                      <>
-                        <Users className="h-3.5 w-3.5 text-secondary" />
-                        عرض الموظف
-                      </>
-                    )}
-                  </span>
-                </div>
-                <div className="space-y-1">
-                  <h1 className="text-3xl font-bold tracking-tight text-foreground">
-                    روستر شهر {fromDate.slice(0, 7)}
-                  </h1>
-                  <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-                    جدول عملي للشهر، يبيّن الورديات والعطلات والحضور في قراءة
-                    واحدة، مع تحكم مباشر للمدير وواجهة خفيفة للموظف.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <DateInput
-                  value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="min-h-11 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
-                />
-                <span className="text-sm text-muted-foreground">—</span>
-                <DateInput
-                  value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="min-h-11 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
-                />
-                {isManager && (
-                  <>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => generateMut.mutate({ year, month })}
-                      disabled={generateMut.isPending}
-                      className="gap-1.5"
-                    >
-                      <RefreshCw
-                        size={14}
-                        className={generateMut.isPending ? "animate-spin" : ""}
-                      />
-                      توليد من الدورات
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setShowAdd((v) => !v)}
-                      className="gap-1.5"
-                    >
-                      <Plus size={14} />
-                      إضافة ورديات
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setShowHolidayAdd((v) => !v)}
-                      className="gap-1.5"
-                    >
-                      <Star size={14} />
-                      العطلات الرسمية
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleClearRoster}
-                      disabled={
-                        clearRosterMut.isPending || attendance.length === 0
-                      }
-                      className="gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 size={14} />
-                      مسح الروستر
-                    </Button>
-                  </>
-                )}
-                <Button
-                  size="sm"
-                  variant="default"
-                  onClick={handlePrint}
-                  className="gap-1.5"
-                >
-                  <Printer size={14} />
-                  طباعة
-                </Button>
-              </div>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-[minmax(0,1.3fr)_repeat(3,minmax(0,1fr))]">
-              <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-4">
-                <div className="flex items-center gap-2 text-xs font-semibold text-primary">
-                  <Clock3 className="h-4 w-4" />
-                  حالة العرض
-                </div>
-                <div className="mt-2 text-base font-semibold text-foreground">
-                  {isManager
-                    ? "إدارة الشهر من لوحة واحدة"
-                    : "عرض الموظف مع صلاحية التعديل على الخانة الخاصة"}
-                </div>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                  {isManager
-                    ? "التوليد، التعديل، الحذف، والعطلات كلها من نفس الصفحة."
-                    : "الأعضاء الآخرون للقراءة فقط، والخانة الخاصة بك تظهر أزرار الإضافة عند الحاجة."}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-background px-4 py-4">
-                <div className="text-xs font-semibold text-muted-foreground">
-                  الموظفون المجدولون
-                </div>
-                <div className="mt-2 text-2xl font-bold tabular-nums text-foreground">
-                  {scheduledStaff}
-                </div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  من أصل {displayStaff.length} ظاهرين في الجدول
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-background px-4 py-4">
-                <div className="text-xs font-semibold text-muted-foreground">
-                  الخانات المؤكدة
-                </div>
-                <div className="mt-2 text-2xl font-bold tabular-nums text-success">
-                  {totalPresent}
-                </div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  مقابل {totalAbsent} غير مؤكدة أو محذوفة
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-background px-4 py-4">
-                <div className="text-xs font-semibold text-muted-foreground">
-                  العطلات
-                </div>
-                <div className="mt-2 text-2xl font-bold tabular-nums text-warning">
-                  {holidays.length}
-                </div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {coveredDays} يوم فيه ورديات خلال الشهر
-                </div>
-              </div>
-            </div>
+      
+      {/* ── Page Header ── */}
+      <div className="pb-4 border-b border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-150 bg-indigo-50/50 px-2.5 py-0.5 text-[10px] font-bold text-indigo-700">
+              <CalendarDays className="h-3.5 w-3.5" />
+              الروستر الشهري
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-700">
+              {isManager ? "وضع المدير الإداري" : "عرض الموظف"}
+            </span>
           </div>
+          <h1 className="text-xl font-black text-slate-900">
+            جدول ورديات شهر {fromDate.slice(0, 7)}
+          </h1>
         </div>
-      </section>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <DateInput
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            className="rounded-xl border border-slate-200 bg-white px-1 py-1.5 w-28 text-center text-xs text-slate-800 font-mono font-bold focus:border-teal-500 transition-all outline-none"
+          />
+          <span className="text-xs text-slate-400 font-bold">—</span>
+          <DateInput
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            className="rounded-xl border border-slate-200 bg-white px-1 py-1.5 w-28 text-center text-xs text-slate-800 font-mono font-bold focus:border-teal-500 transition-all outline-none"
+          />
+          {isManager && (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => generateMut.mutate({ year, month })}
+                disabled={generateMut.isPending}
+                className="gap-1.5 text-[10px] font-bold h-8 border-slate-250 hover:bg-slate-50 text-slate-800 rounded-lg shadow-sm"
+              >
+                <RefreshCw
+                  size={12}
+                  className={generateMut.isPending ? "animate-spin" : ""}
+                />
+                توليد من الدورات
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowAdd((v) => !v)}
+                className="gap-1.5 text-[10px] font-bold h-8 border-slate-250 hover:bg-slate-50 text-slate-800 rounded-lg shadow-sm"
+              >
+                <Plus size={12} />
+                إضافة ورديات
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowHolidayAdd((v) => !v)}
+                className="gap-1.5 text-[10px] font-bold h-8 border-slate-250 hover:bg-slate-50 text-slate-800 rounded-lg shadow-sm"
+              >
+                <Star size={12} />
+                العطلات الرسمية
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleClearRoster}
+                disabled={
+                  clearRosterMut.isPending || attendance.length === 0
+                }
+                className="gap-1.5 text-[10px] font-bold h-8 border-rose-250 text-rose-700 hover:bg-rose-50 rounded-lg"
+              >
+                <Trash2 size={12} />
+                مسح الروستر
+              </Button>
+            </>
+          )}
+          <Button
+            size="sm"
+            variant="default"
+            onClick={handlePrint}
+            className="gap-1.5 text-[10px] font-bold h-8 bg-slate-900 hover:bg-slate-800 text-white rounded-lg shadow-sm"
+          >
+            <Printer size={12} />
+            طباعة
+          </Button>
+        </div>
+      </div>
+
+      {/* ── Bento Stats Grid Row ── */}
+      <div className="grid gap-4 md:grid-cols-4">
+        
+        {/* Box 1: View status (Indigo Theme) */}
+        <div className="p-5 bg-[#EEF2FF] border border-indigo-150 rounded-3xl space-y-2 hover:scale-[1.01] transition-transform duration-200">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-800">
+            <Clock3 className="h-4 w-4" />
+            <span>صلاحية العرض</span>
+          </div>
+          <span className="font-bold text-indigo-950 text-xs block mt-2">
+            {isManager ? "إدارة الشهر من لوحة واحدة" : "صلاحية التعديل للخانة الشخصية"}
+          </span>
+        </div>
+
+        {/* Box 2: Scheduled count (Sky Theme) */}
+        <div className="p-5 bg-[#F0F9FF] border border-sky-150 rounded-3xl space-y-1.5 hover:scale-[1.01] transition-transform duration-200">
+          <span className="text-[10px] text-sky-850 font-bold block">الموظفون المجدولون</span>
+          <span className="text-2xl font-black font-mono text-sky-950 block leading-none">{scheduledStaff}</span>
+          <span className="text-[9px] text-sky-700 font-semibold block">من أصل {displayStaff.length} ظاهرين</span>
+        </div>
+
+        {/* Box 3: Confirmed slots (Mint Theme) */}
+        <div className="p-5 bg-[#ECFDF5] border border-emerald-150 rounded-3xl space-y-1.5 hover:scale-[1.01] transition-transform duration-200">
+          <span className="text-[10px] text-emerald-850 font-bold block">الخانات المؤكدة</span>
+          <span className="text-2xl font-black font-mono text-emerald-950 block leading-none">{totalPresent}</span>
+          <span className="text-[9px] text-emerald-700 font-semibold block">مقابل {totalAbsent} غير مؤكدة</span>
+        </div>
+
+        {/* Box 4: Holidays (Rose Theme) */}
+        <div className="p-5 bg-[#FEF2F2] border border-rose-150 rounded-3xl space-y-1.5 hover:scale-[1.01] transition-transform duration-200">
+          <span className="text-[10px] text-rose-850 font-bold block">أيام العطلات الرسمية</span>
+          <span className="text-2xl font-black font-mono text-rose-950 block leading-none">{holidays.length}</span>
+          <span className="text-[9px] text-rose-700 font-semibold block">{coveredDays} يوم فيه ورديات مغطاة</span>
+        </div>
+
+      </div>
 
       {!isManager && myStaffId === null && !myStaffIdQ.isLoading && (
         <div className="rounded-2xl border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
@@ -590,235 +572,230 @@ export default function ShiftSchedule() {
                 الجدول العملي
               </h3>
             </div>
-            <div className="text-xs text-muted-foreground">
-              {attendance.length > 0
-                ? `${attendance.length} خانة وردية`
-                : "لا توجد ورديات بعد"}
-            </div>
           </div>
 
           {schedQ.isLoading ? (
-            <div className="space-y-3 rounded-2xl border border-border bg-background p-4">
+            <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-12 rounded-xl bg-muted/50" />
+                <div key={i} className="h-12 rounded-xl bg-slate-100 animate-pulse" />
               ))}
             </div>
-          ) : staff.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-background px-4 py-14 text-center text-sm text-muted-foreground">
+          ) : displayStaff.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-14 text-center text-sm text-slate-400">
               لا يوجد موظفون. أضف الموظفين أولاً من تبويب الشفتات.
             </div>
           ) : (
             <>
               {attendance.length === 0 && (
-                <div className="rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-                  لا توجد ورديات لهذا الشهر. استخدم{" "}
-                  <strong>توليد من الدورات</strong> أو{" "}
-                  <strong>إضافة ورديات</strong> للبدء.
+                <div className="rounded-2xl border border-amber-200 bg-amber-50/20 px-4 py-3 text-sm text-amber-700 font-bold mb-4">
+                  لا توجد ورديات لهذا الشهر. استخدم <strong>توليد من الدورات</strong> أو <strong>إضافة ورديات</strong> للبدء.
                 </div>
               )}
 
-              <div className="overflow-hidden rounded-2xl border border-border bg-background">
-                <div className="overflow-x-hidden">
-                  <table className="w-full border-collapse text-sm table-fixed">
-                    <colgroup>
-                      <col style={{ width: 120 }} />
-                      {allDates.map((ds) => (
-                        <col key={ds} />
+              {/* ── 3. Bento Calendar Board ── */}
+              {(() => {
+                const activeDates = allDates.filter((ds) => new Date(`${ds}T00:00:00`).getDay() !== 5);
+                const firstActiveDate = activeDates[0];
+                const prefixEmpty = firstActiveDate ? getSixDayIndex(new Date(`${firstActiveDate}T00:00:00`).getDay()) : 0;
+
+                return (
+                  <div className="space-y-4">
+                    {/* Weekday Column Headers */}
+                    <div className="grid grid-cols-6 gap-1.5 text-center text-[10px] font-black text-slate-500">
+                      {DAYS_AR_CALENDAR.map((dayName) => (
+                        <div key={dayName} className="py-2 bg-slate-100 rounded-xl border border-slate-200 shadow-sm">
+                          {dayName}
+                        </div>
                       ))}
-                    </colgroup>
-                    <thead>
-                      <tr className="border-b border-border bg-muted/40">
-                        <th className="sticky right-0 top-0 z-30 border-l border-border bg-muted/60 px-3 py-3 text-right">
-                          <div className="space-y-1">
-                            <div className="text-[11px] font-semibold text-muted-foreground">
-                              الاسم
+                    </div>
+
+                    {/* Calendar Days Grid */}
+                    <div className="grid grid-cols-6 gap-1.5">
+                      {/* Empty cell placeholders to align first day to its weekday starting Saturday */}
+                      {Array.from({ length: prefixEmpty }).map((_, idx) => (
+                        <div key={`empty-${idx}`} className="bg-slate-50/40 border border-dashed border-slate-200 rounded-xl min-h-[90px] h-full" />
+                      ))}
+
+                      {/* Actual date cards */}
+                      {activeDates.map((ds) => {
+                    const dateObj = new Date(`${ds}T00:00:00`);
+                    const isToday = ds === todayStr;
+                    const holiday = holidayByDate.get(ds);
+
+                    // Collect all entries for this date
+                    const dayEntries: Array<{ staff: any; entry: any }> = [];
+                    displayStaff.forEach((s: any) => {
+                      const entries = attendMap.get(`${s.id}_${ds}`) ?? [];
+                      entries.forEach((e: any) => {
+                        dayEntries.push({ staff: s, entry: e });
+                      });
+                    });
+
+                    const morningEntries = dayEntries.filter((x) => x.entry.shiftName === "Morning");
+                    const nightEntries = dayEntries.filter((x) => x.entry.shiftName === "Night");
+
+                    return (
+                      <div
+                        key={ds}
+                        className={`p-1.5 bg-white border rounded-xl flex flex-col justify-start gap-1 min-h-[90px] transition-all hover:shadow-md hover:scale-[1.01] ${
+                          isToday
+                            ? "ring-2 ring-indigo-500 bg-indigo-50/10 border-indigo-200"
+                            : holiday
+                              ? "bg-amber-50/20 border-amber-200"
+                              : "border-slate-200"
+                        }`}
+                      >
+                        {/* Day Card Header */}
+                        <div className="flex items-start justify-between">
+                          <div className="flex flex-col">
+                            <div className="flex items-baseline gap-1 leading-none">
+                              <span className={`text-sm font-black ${isToday ? "text-indigo-700" : "text-slate-800"}`}>
+                                {dateObj.getDate()}
+                              </span>
+                              <span className="text-[8px] text-slate-450 font-bold">
+                                {MONTHS_AR[dateObj.getMonth()]}
+                              </span>
                             </div>
-                            <div className="text-[10px] text-muted-foreground">
-                              التاريخ / الخانة
+                            <span className="text-[8px] text-slate-400 font-mono mt-1 font-semibold leading-none">
+                              {ds}
+                            </span>
+                          </div>
+                          {holiday ? (
+                            <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[8px] font-bold" title={holiday.name}>
+                              عطلة
+                            </span>
+                          ) : isToday ? (
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse" />
+                          ) : null}
+                        </div>
+
+                        {/* Shifts List (Morning & Evening side-by-side) */}
+                        <div className="grid grid-cols-2 gap-1 my-0.5 flex-grow text-right">
+                          
+                          {/* ☀️ Morning Shift section */}
+                          <div className="space-y-0.5">
+                            <span className="text-[8px] font-bold text-sky-600 block">☀️ الصباحية</span>
+                            <div className="flex flex-col gap-0.5">
+                              {morningEntries.map(({ staff, entry }) => {
+                                const isMyRow = !isManager && myStaffId === staff.id;
+                                const canEdit = isManager || isMyRow;
+                                return (
+                                  <div key={entry.id} className="relative group/pill w-full">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        canEdit
+                                          ? isManager
+                                            ? toggleMut.mutate({ id: entry.id, present: !entry.present })
+                                            : toggleMyMut.mutate({ id: entry.id, present: !entry.present })
+                                          : undefined
+                                      }
+                                      disabled={!canEdit || toggleMut.isPending || toggleMyMut.isPending}
+                                      className={`py-0.5 px-1 rounded text-[8px] font-bold transition-all w-fit mx-auto block ${
+                                        isMyRow
+                                          ? "bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-300 border border-indigo-500"
+                                          : entry.present
+                                            ? "bg-sky-50 text-sky-850 border border-sky-200"
+                                            : "bg-slate-100 text-slate-450 line-through border border-slate-200"
+                                      }`}
+                                    >
+                                      {staff.type === "doctor" ? `د. ${staff.name.split(" ").slice(0, 2).join(" ")}` : staff.name.split(" ").slice(0, 2).join(" ")}
+                                    </button>
+                                    {isManager && (
+                                      <button
+                                        type="button"
+                                        onClick={() => deleteEntryMut.mutate({ id: entry.id })}
+                                        disabled={deleteEntryMut.isPending}
+                                        className="absolute -top-1.5 -left-1 hidden group-hover/pill:flex h-3 w-3 items-center justify-center rounded-full bg-rose-600 text-[6px] text-white shadow"
+                                      >
+                                        ✕
+                                      </button>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                              {morningEntries.length === 0 && (
+                                <span className="text-[8px] text-slate-300 block font-medium">—</span>
+                              )}
                             </div>
                           </div>
-                        </th>
-                        {allDates.map((ds) => {
-                          const dow = new Date(`${ds}T00:00:00`).getDay();
-                          const holiday = holidayByDate.get(ds);
-                          return (
-                            <th
-                              key={ds}
-                              className={`sticky top-0 z-20 border-l border-border px-0 py-0 text-center ${holiday ? "bg-warning/10" : "bg-background"}`}
-                              title={holiday?.name || undefined}
-                            >
-                              <div className="flex h-full min-h-10 flex-col items-center justify-center px-0.5 py-1">
-                                <div
-                                  className={`text-[10px] font-semibold leading-none ${holiday ? "text-warning" : "text-foreground"}`}
-                                >
-                                  {DAYS_AR[dow]}
-                                </div>
-                                <div
-                                  className={`text-[10px] tabular-nums leading-none mt-0.5 ${holiday ? "text-warning" : "text-muted-foreground"}`}
-                                >
-                                  {fmtDate(ds)}
-                                </div>
-                                {holiday && (
-                                  <div className="mt-1 inline-flex items-center justify-center rounded-full bg-warning/12 px-1.5 py-0.5 text-[9px] font-semibold text-warning">
-                                    عطلة
-                                  </div>
-                                )}
-                              </div>
-                            </th>
-                          );
-                        })}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {displayStaff.map((s: any, idx: number) => (
-                        <tr
-                          key={s.id}
-                          className={`border-b border-border/60 ${idx % 2 === 1 ? "bg-muted/10" : ""}`}
-                        >
-                          <td className="sticky right-0 z-20 border-l border-border bg-inherit px-3 py-3 align-top">
-                            <div className="flex items-center gap-2">
-                              <div className="min-w-0">
-                                <div className="truncate text-sm font-semibold text-foreground">
-                                  {s.name}
-                                </div>
-                                <div className="text-[11px] text-muted-foreground">
-                                  {s.type === "doctor" ? "طبيب" : "فني"}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          {allDates.map((ds) => {
-                            const entries =
-                              attendMap.get(`${s.id}_${ds}`) ?? [];
-                            const isMyRow = !isManager && myStaffId === s.id;
-                            const canEdit = isManager || isMyRow;
-                            const isHoliday = holidayDates.has(ds);
-                            const rowClasses = isHoliday
-                              ? "bg-warning/5"
-                              : "";
 
-                            return (
-                              <td
-                                key={ds}
-                                className={`border-l border-border/60 px-0.5 py-1 align-top ${rowClasses}`}
-                              >
-                                <div className="flex min-h-10 flex-col items-center gap-1">
-                                  {entries.map((e: any) => {
-                                    const meta =
-                                      SHIFT_META[e.shiftName as ShiftName] ??
-                                      SHIFT_META.Morning;
-                                    return (
-                                      <div
-                                        key={e.id}
-                                        className="relative w-full"
+                          {/* 🌙 Night/Evening Shift section */}
+                          <div className="space-y-0.5 border-r border-slate-100 pr-1">
+                            <span className="text-[8px] font-bold text-indigo-600 block">🌙 المسائية</span>
+                            <div className="flex flex-col gap-0.5">
+                              {nightEntries.map(({ staff, entry }) => {
+                                const isMyRow = !isManager && myStaffId === staff.id;
+                                const canEdit = isManager || isMyRow;
+                                return (
+                                  <div key={entry.id} className="relative group/pill w-full">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        canEdit
+                                          ? isManager
+                                            ? toggleMut.mutate({ id: entry.id, present: !entry.present })
+                                            : toggleMyMut.mutate({ id: entry.id, present: !entry.present })
+                                          : undefined
+                                      }
+                                      disabled={!canEdit || toggleMut.isPending || toggleMyMut.isPending}
+                                      className={`py-0.5 px-1 rounded text-[8px] font-bold transition-all w-fit mx-auto block ${
+                                        isMyRow
+                                          ? "bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-300 border border-indigo-500"
+                                          : entry.present
+                                            ? "bg-indigo-50 text-indigo-850 border border-indigo-200"
+                                            : "bg-slate-100 text-slate-455 line-through border border-slate-200"
+                                      }`}
+                                    >
+                                      {staff.type === "doctor" ? `د. ${staff.name.split(" ").slice(0, 2).join(" ")}` : staff.name.split(" ").slice(0, 2).join(" ")}
+                                    </button>
+                                    {isManager && (
+                                      <button
+                                        type="button"
+                                        onClick={() => deleteEntryMut.mutate({ id: entry.id })}
+                                        disabled={deleteEntryMut.isPending}
+                                        className="absolute -top-1.5 -left-1 hidden group-hover/pill:flex h-3 w-3 items-center justify-center rounded-full bg-rose-600 text-[6px] text-white shadow"
                                       >
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            canEdit
-                                              ? isManager
-                                                ? toggleMut.mutate({
-                                                    id: e.id,
-                                                    present: !e.present,
-                                                  })
-                                                : toggleMyMut.mutate({
-                                                    id: e.id,
-                                                    present: !e.present,
-                                                  })
-                                              : undefined
-                                          }
-                                          disabled={
-                                            !canEdit ||
-                                            toggleMut.isPending ||
-                                            toggleMyMut.isPending
-                                          }
-                                          title={
-                                            canEdit
-                                              ? e.present
-                                                ? "انقر لتغيير الحضور"
-                                                : "انقر لتسجيل الحضور"
-                                              : undefined
-                                          }
-                                          className={`inline-flex min-h-6 w-full items-center justify-center rounded px-0.5 py-0.5 text-[9px] font-semibold transition-colors ${
-                                            e.present
-                                              ? meta.tone
-                                              : "bg-muted text-muted-foreground line-through"
-                                          } ${canEdit ? "cursor-pointer" : "cursor-default"}`}
-                                        >
-                                          {meta.short}
-                                        </button>
-                                        {isManager && (
-                                          <button
-                                            type="button"
-                                            onClick={() =>
-                                              deleteEntryMut.mutate({
-                                                id: e.id,
-                                              })
-                                            }
-                                            disabled={deleteEntryMut.isPending}
-                                            title="حذف الوردية"
-                                            className="absolute -top-2 -left-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground shadow-sm hover:bg-destructive/90"
-                                          >
-                                            <X size={10} strokeWidth={2.5} />
-                                          </button>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-
-                                  {isHoliday && entries.length === 0 && (
-                                    <span className="text-[9px] font-semibold text-warning">
-                                      عطلة
-                                    </span>
-                                  )}
-
-                                  {(isMyRow || isManager) &&
-                                    entries.length === 0 &&
-                                    !isHoliday && (
-                                      <div className="flex w-full flex-col gap-0.5">
-                                        {(
-                                          ["Morning", "Night"] as ShiftName[]
-                                        ).map((shiftName) => (
-                                          <button
-                                            key={shiftName}
-                                            type="button"
-                                            onClick={() =>
-                                              isManager
-                                                ? bulkMut.mutate({
-                                                    staffId: s.id,
-                                                    shiftName,
-                                                    dates: [ds],
-                                                  })
-                                                : addMyShiftMut.mutate({
-                                                    year,
-                                                    month,
-                                                    workDate: ds,
-                                                    shiftName,
-                                                  })
-                                            }
-                                            disabled={
-                                              addMyShiftMut.isPending ||
-                                              bulkMut.isPending
-                                            }
-                                            className="inline-flex min-h-6 flex-1 items-center justify-center rounded bg-muted px-0.5 py-0.5 text-[9px] font-semibold text-muted-foreground hover:bg-primary/10 hover:text-primary"
-                                            title={SHIFT_META[shiftName].label}
-                                          >
-                                            +{SHIFT_META[shiftName].short}
-                                          </button>
-                                        ))}
-                                      </div>
+                                        ✕
+                                      </button>
                                     )}
-                                </div>
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                                  </div>
+                                );
+                              })}
+                              {nightEntries.length === 0 && (
+                                <span className="text-[8px] text-slate-300 block font-medium">—</span>
+                              )}
+                            </div>
+                          </div>
+
+                        </div>
+
+                        {/* Quick Trigger Add Action for Managers */}
+                        {isManager && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAddForm((prev) => ({
+                                ...prev,
+                                dateFrom: ds,
+                                dateTo: ds,
+                              }));
+                              setShowAdd(true);
+                              toast.info(`تم تحديد تاريخ ${ds} في لوحة الإضافة`);
+                            }}
+                            className="w-full mt-0.5 py-0.5 rounded bg-slate-50 border border-dashed border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-300 text-[8px] font-bold text-slate-400 transition-all text-center"
+                          >
+                            + إضافة وردية
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            </>
+            );
+          })()}
+        </>
           )}
         </section>
 

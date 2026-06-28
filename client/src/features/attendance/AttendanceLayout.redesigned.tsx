@@ -9,9 +9,11 @@ import {
   Activity,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { cn } from "@/lib/utils";
 
 interface AttendanceLayoutProps {
   children: ReactNode;
+  fullWidth?: boolean;
 }
 
 // Simplified and reorganized navigation structure
@@ -98,7 +100,7 @@ function isSectionActive(pathname: string, items: any[]) {
   return items.some((item) => isItemActive(pathname, item.activeFor));
 }
 
-export default function AttendanceLayout({ children }: AttendanceLayoutProps) {
+export default function AttendanceLayout({ children, fullWidth }: AttendanceLayoutProps) {
   const [location] = useLocation();
 
   const summaryQuery = (trpc as any).attendance.dashboardSummary.useQuery(
@@ -255,7 +257,7 @@ export default function AttendanceLayout({ children }: AttendanceLayoutProps) {
         </aside>
 
         {/* Main content area */}
-        <main className="flex-1 px-3 py-5 sm:px-4 lg:px-5">{children}</main>
+        <main className={cn("flex-1 px-3 py-5 sm:px-4 lg:px-5 min-w-0", !fullWidth && "max-w-[1200px] mx-auto w-full")}>{children}</main>
       </div>
     </div>
   );

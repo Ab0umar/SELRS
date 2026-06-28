@@ -12,6 +12,7 @@ const AttendanceReportsHub = lazy(() => import("../features/attendance/ReportsHu
 const AttendanceSettingsHub = lazy(() => import("../features/attendance/SettingsHub"));
 const AttendanceDeviceSettings = lazy(() => import("../features/attendance/admin/DeviceSettings"));
 const AttendanceSyncStatus = lazy(() => import("../features/attendance/admin/SyncStatus"));
+const AttendanceDeviceConsole = lazy(() => import("../features/attendance/admin/DeviceConsole"));
 const ShiftSchedule = lazy(() => import("../features/salary/ShiftSchedule"));
 
 export const AttendanceRoutes = (
@@ -101,6 +102,16 @@ export const AttendanceRoutes = (
           <ProtectedRoute>
             <AttendanceLayout>
               <AttendanceSyncStatus />
+            </AttendanceLayout>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={ROUTES.attendanceAdminConsole}
+        component={() => (
+          <ProtectedRoute>
+            <AttendanceLayout>
+              <AttendanceDeviceConsole />
             </AttendanceLayout>
           </ProtectedRoute>
         )}

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   RefreshCw,
   Download,
@@ -9,6 +11,8 @@ import {
   XCircle,
   Clock,
   FileDown,
+  ArrowDownToLine,
+  History,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -41,7 +45,7 @@ export default function SyncStatus() {
   const [lastResult, setLastResult] = useState<SyncResult | null>(null);
 
   const runsQ = tRPC.attendance.listSyncRuns?.useQuery?.(
-    { limit: 10 },
+    { limit: 8 },
     { refetchInterval: 15000, refetchOnWindowFocus: false },
   );
 
@@ -66,7 +70,7 @@ export default function SyncStatus() {
       a.download = `punches_${date}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success(`تم تصدير ${result.count} بصمة`);
+      toast.success(`تم تصدير ${result.count} بصمة بنجاح`);
     },
     onError: (e: any) => toast.error("خطأ في التصدير: " + e.message),
   });
@@ -96,148 +100,166 @@ export default function SyncStatus() {
   const busy = syncMut.isPending;
 
   return (
-    <div className="space-y-6 p-6" dir="rtl">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          الجهاز
-        </p>
-        <h2 className="text-2xl font-bold text-foreground">تزامن البصمات</h2>
-      </div>
-
-      {/* Manual sync card */}
-      <div className="rounded-xl border border-border bg-background p-5 space-y-4 w-fit">
-        <h3 className="font-semibold text-base">سحب يدوي من الجهاز</h3>
-
-        <div className="flex gap-3 flex-wrap">
-          <div className="space-y-1">
-            <label className="block text-xs font-medium text-muted-foreground">IP الجهاز</label>
-            <Input value={ip} onChange={(e) => setIp(e.target.value)} placeholder="192.168.0.10" dir="ltr" className="text-sm w-36" />
+    <div className="space-y-6" dir="rtl">
+      <Card className="border border-slate-100 shadow-lg shadow-slate-100/80 bg-white rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300">
+        <CardHeader className="pb-3 border-b border-slate-100 bg-gradient-to-r from-slate-50/80 via-slate-50/30 to-white">
+          <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-teal-50 text-teal-600 shrink-0">
+              <ArrowDownToLine className="w-4 h-4" />
+            </div>
+            سحب بصمات الحضور اليدوي
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-5 space-y-4">
+          <div className="flex gap-3">
+            <div className="flex-1 space-y-1">
+              <label className="text-[10px] font-bold text-slate-500 block">عنوان IP (اختياري)</label>
+              <Input
+                value={ip}
+                onChange={(e) => setIp(e.target.value)}
+                placeholder="تلقائي من الإعدادات"
+                dir="ltr"
+                className="text-xs border-slate-200 focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 font-mono py-1.5 h-auto rounded-lg"
+              />
+            </div>
+            <div className="w-24 space-y-1">
+              <label className="text-[10px] font-bold text-slate-500 block">المنفذ</label>
+              <Input
+                value={port}
+                onChange={(e) => setPort(e.target.value)}
+                placeholder="5005"
+                dir="ltr"
+                className="text-xs border-slate-200 focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 font-mono py-1.5 h-auto rounded-lg"
+              />
+            </div>
           </div>
-          <div className="space-y-1">
-            <label className="block text-xs font-medium text-muted-foreground">المنفذ</label>
-            <Input value={port} onChange={(e) => setPort(e.target.value)} placeholder="5005" dir="ltr" className="text-sm w-20" />
+          <p className="text-[10px] text-slate-400">
+            * اتركه فارغاً ليقوم النظام بالاتصال مباشرة بعنوان IP المثبت في نموذج الإعدادات.
+          </p>
+
+          <div className="flex gap-2 pt-2 border-t border-slate-50">
+            <Button
+              onClick={handleSync}
+              disabled={busy || exportMut.isPending}
+              className="text-xs font-semibold bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white rounded-lg py-2 h-auto flex-1 gap-1.5 shadow-md shadow-teal-100/50 hover:shadow-lg transition-all"
+            >
+              {busy ? (
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Download className="h-3.5 w-3.5" />
+              )}
+              {busy ? "جاري السحب..." : "سحب البصمات"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() =>
+                exportMut.mutate(
+                  ip.trim()
+                    ? { ip: ip.trim(), port: parseInt(port) || 5005 }
+                    : ({} as any),
+                )
+              }
+              disabled={busy || exportMut.isPending}
+              className="text-xs font-semibold border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg py-2 h-auto gap-1.5"
+            >
+              {exportMut.isPending ? (
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <FileDown className="h-3.5 w-3.5" />
+              )}
+              {exportMut.isPending ? "جاري..." : "تصدير CSV"}
+            </Button>
           </div>
-        </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Button
-            onClick={handleSync}
-            disabled={busy || exportMut.isPending}
-            className="gap-2"
-          >
-            {busy ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4" />
-            )}
-            {busy ? "جاري السحب..." : "سحب وحفظ في قاعدة البيانات"}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() =>
-              exportMut.mutate(
-                ip.trim()
-                  ? { ip: ip.trim(), port: parseInt(port) || 5005 }
-                  : ({} as any),
-              )
-            }
-            disabled={busy || exportMut.isPending}
-            className="gap-2"
-          >
-            {exportMut.isPending ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              <FileDown className="h-4 w-4" />
-            )}
-            {exportMut.isPending ? "جاري التصدير..." : "تصدير CSV"}
-          </Button>
-        </div>
-
-        {lastResult && (
-          <div
-            className={`rounded-lg border px-4 py-3 text-sm ${
-              lastResult.success
-                ? "border-success/30 bg-success/10 text-success"
-                : "border-destructive/30 bg-destructive/5 text-destructive"
-            }`}
-          >
-            {lastResult.success ? (
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
-                <div>
-                  <div className="font-medium">تم التزامن بنجاح</div>
-                  <div className="mt-1 space-y-0.5 text-xs opacity-80">
-                    <div>إجمالي السجلات: {lastResult.recordsSeen}</div>
-                    <div>
-                      مُضافة جديدة:{" "}
-                      <span className="font-bold">
-                        {lastResult.recordsInserted}
-                      </span>
+          {lastResult && (
+            <Alert
+              variant="default"
+              className={`py-2.5 px-3 text-right animate-in fade-in slide-in-from-top-1 duration-200 ${
+                lastResult.success
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800 shadow-md shadow-emerald-50/30"
+                  : "border-rose-200 bg-rose-50 text-rose-800 shadow-md shadow-rose-50/30"
+              }`}
+            >
+              {lastResult.success ? (
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 float-right ml-2 mt-0.5" />
+                  <div className="text-xs">
+                    <div className="font-bold">تم سحب البيانات بنجاح</div>
+                    <div className="mt-1 space-y-0.5 font-medium opacity-90 text-[11px]">
+                      <div>سجلات مقروءة: {lastResult.recordsSeen}</div>
+                      <div>سجلات جديدة: {lastResult.recordsInserted}</div>
+                      <div>سجلات مكررة: {lastResult.recordsSkipped}</div>
+                      {lastResult.duration != null && (
+                        <div>الزمن المستغرق: {(lastResult.duration / 1000).toFixed(1)} ثانية</div>
+                      )}
                     </div>
-                    <div>مكررة (تجاهل): {lastResult.recordsSkipped}</div>
-                    {lastResult.duration != null && (
-                      <div>
-                        الوقت: {(lastResult.duration / 1000).toFixed(1)} ث
-                      </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start gap-2">
+                  <XCircle className="h-4 w-4 text-rose-600 float-right ml-2 mt-0.5" />
+                  <div className="text-xs">
+                    <div className="font-bold">فشل عملية المزامنة</div>
+                    <div className="mt-0.5 font-mono">{lastResult.error}</div>
+                  </div>
+                </div>
+              )}
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Recent sync runs timeline */}
+      {runsQ?.data?.runs?.length > 0 && (
+        <Card className="border border-slate-100 shadow-lg shadow-slate-100/80 bg-white rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300">
+          <CardHeader className="pb-2 border-b border-slate-100 bg-gradient-to-r from-slate-50/80 via-slate-50/30 to-white flex flex-row items-center justify-between">
+            <CardTitle className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <div className="p-1 rounded bg-teal-50 text-teal-600 shrink-0">
+                <History className="w-3.5 h-3.5" />
+              </div>
+              سجل العمليات الأخيرة
+            </CardTitle>
+            <Clock className="h-3.5 w-3.5 text-slate-400" />
+          </CardHeader>
+          <CardContent className="p-0 bg-white">
+            <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
+              {runsQ.data.runs.map((run: any, i: number) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors text-xs"
+                >
+                  <div className="flex items-center gap-2">
+                    {run.status === "ok" ? (
+                      <span className="relative flex h-2 w-2">
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      </span>
+                    ) : (
+                      <span className="relative flex h-2 w-2">
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                      </span>
+                    )}
+                    <span className="text-slate-500 font-mono text-[10px]">
+                      {fmt(run.startedAt)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 font-mono text-[10px]">
+                    <span className="text-slate-400">
+                      سجلات: {run.recordsSeen ?? 0}
+                    </span>
+                    <span className="font-bold text-emerald-600">
+                      +{run.recordsInserted ?? 0}
+                    </span>
+                    {run.errorMessage && (
+                      <span className="text-rose-500 truncate max-w-[120px]" title={run.errorMessage}>
+                        {run.errorMessage}
+                      </span>
                     )}
                   </div>
                 </div>
-              </div>
-            ) : (
-              <div className="flex items-start gap-2">
-                <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                <div>
-                  <div className="font-medium">فشل التزامن</div>
-                  <div className="mt-1 text-xs opacity-80">
-                    {lastResult.error}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Recent sync runs */}
-      {runsQ?.data?.runs?.length > 0 && (
-        <div className="rounded-xl border border-border bg-background overflow-hidden">
-          <div className="border-b border-border px-4 py-3 flex items-center gap-2">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <h3 className="font-semibold text-sm">آخر عمليات التزامن</h3>
-          </div>
-          <div className="divide-y divide-border">
-            {runsQ.data.runs.map((run: any, i: number) => (
-              <div
-                key={i}
-                className="flex items-center justify-between px-4 py-3 text-sm"
-              >
-                <div className="flex items-center gap-2">
-                  {run.status === "ok" ? (
-                    <CheckCircle2 className="h-4 w-4 text-success" />
-                  ) : (
-                    <XCircle className="h-4 w-4 text-destructive" />
-                  )}
-                  <span className="text-muted-foreground text-xs">
-                    {fmt(run.startedAt)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-4 text-xs tabular-nums">
-                  <span className="text-muted-foreground">
-                    رُئي: {run.recordsSeen ?? "—"}
-                  </span>
-                  <span className="font-medium text-success">
-                    +{run.recordsInserted ?? 0}
-                  </span>
-                  {run.errorMessage && (
-                    <span className="text-destructive truncate max-w-[160px]">
-                      {run.errorMessage}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

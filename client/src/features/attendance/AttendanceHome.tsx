@@ -9,7 +9,6 @@ import {
   permissionsToAllowedRoots,
 } from "@/lib/nav-permission-utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Activity,
   ArrowLeft,
@@ -17,7 +16,6 @@ import {
   Clock3,
   Cpu,
   FileText,
-  Printer,
   RefreshCw,
   ShieldCheck,
   Smartphone,
@@ -99,37 +97,6 @@ export default function AttendanceHome() {
   const device = deviceQuery.data as any;
   const isLoading = dashboardQuery.isLoading;
 
-  const statCards = [
-    {
-      label: "حاضر اليوم",
-      value: data?.presentToday ?? 0,
-      tone: "text-success",
-      accent: "border-success/20 bg-success/5 dark:bg-success/10",
-      icon: CalendarCheck,
-    },
-    {
-      label: "متأخر اليوم",
-      value: data?.lateToday ?? 0,
-      tone: "text-warning",
-      accent: "border-warning/20 bg-warning/5 dark:bg-warning/10",
-      icon: Clock3,
-    },
-    {
-      label: "داخل الآن",
-      value: data?.insideNow ?? 0,
-      tone: "text-info",
-      accent: "border-info/20 bg-info/5 dark:bg-info/10",
-      icon: ShieldCheck,
-    },
-    {
-      label: "لم يسجل الخروج بالأمس",
-      value: data?.missingCheckoutYesterday ?? 0,
-      tone: "text-destructive",
-      accent: "border-destructive/20 bg-destructive/5 dark:bg-destructive/10",
-      icon: Cpu,
-    },
-  ];
-
   const deviceState =
     device?.status === "online" || device?.connected === true
       ? "متصل"
@@ -156,208 +123,219 @@ export default function AttendanceHome() {
     pathGrantedByRoots(normalizeNavPath(ROUTES.attendanceLive), allowedRoots);
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Metrics Row */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {isLoading
-          ? Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-24 rounded-xl animate-pulse" />
-            ))
-          : statCards.map(({ label, value, tone, accent, icon: Icon }) => (
-              <div
-                key={label}
-                className={`group relative overflow-hidden rounded-xl border p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${accent}`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-medium text-muted-foreground/90">
-                      {label}
-                    </span>
-                    <h2 className={`text-2xl font-bold tracking-tight ${tone}`}>
-                      {value}
-                    </h2>
-                  </div>
-                  <div className={`rounded-lg p-2 ${accent} border-none`}>
-                    <Icon className={`h-4.5 w-4.5 ${tone}`} />
-                  </div>
-                </div>
-              </div>
-            ))}
+    <div className="space-y-8 max-w-6xl mx-auto" dir="rtl">
+      
+      {/* ── Page Title ── */}
+      <div className="pb-2 border-b border-slate-200">
+        <h1 className="text-xl font-black text-slate-900">مكتب عمليات الحضور اليومي</h1>
+        <p className="text-xs text-slate-400 mt-1">تخطيط هيكلي جديد ينظم العمليات كخطوط تغطية ونوبات مرئية بدلاً من البطاقات التقليدية</p>
       </div>
 
-      {/* Operations Panel */}
-      <Card className="border-border/60 bg-card/30 backdrop-blur-sm shadow-sm overflow-hidden">
-        <CardHeader className="pb-4 border-b border-border/40 bg-muted/20">
-          <div className="flex items-center gap-2">
-            <Activity className="h-5 w-5 text-secondary" />
-            <div>
-              <CardTitle className="text-sm font-bold text-foreground">
-                لوحة التحكم والعمليات اليومية
-              </CardTitle>
-              <CardDescription className="text-[11px]">
-                مزامنة البصمات، إدارة قواعد الاحتساب، واختصارات الوصول السريع للملفات والتقارير
-              </CardDescription>
+      {/* ── Main Redesigned Layout Structure ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* Left 8/12: Coverage Timelines & Circular Gauges */}
+        <div className="lg:col-span-8 space-y-8">
+          
+          {/* Section A: Visual Shift Coverage Timelines */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-bold text-slate-450 uppercase tracking-wider">تغطية نوبات العمل اليوم (Shift Timeline Roster)</h3>
+            
+            <div className="space-y-4">
+              {/* Morning Shift Timeline */}
+              <div className="p-5 bg-white border border-slate-200 rounded-3xl space-y-4 shadow-sm">
+                <div className="flex justify-between items-center text-xs">
+                  <div>
+                    <span className="font-bold text-slate-800">الوردية الصباحية</span>
+                    <span className="text-[10px] text-slate-400 block font-mono">08:00 ص - 04:00 م</span>
+                  </div>
+                  <span className="px-2.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-bold">
+                    {data?.presentToday ?? 0} موظف حاضر حالياً
+                  </span>
+                </div>
+                
+                {/* Horizontal Timeline Bar Representing Roster Coverage */}
+                <div className="w-full bg-slate-100 rounded-full h-4 relative overflow-hidden">
+                  <div 
+                    className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min(100, Math.max(10, ((data?.presentToday ?? 1) / 120) * 100))}%` }}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-[9px] text-slate-400 font-semibold">
+                  <span>بداية الوردية</span>
+                  <span>منتصف النوبة</span>
+                  <span>نهاية الوردية</span>
+                </div>
+              </div>
+
+              {/* Evening Shift Timeline */}
+              <div className="p-5 bg-white border border-slate-200 rounded-3xl space-y-4 shadow-sm">
+                <div className="flex justify-between items-center text-xs">
+                  <div>
+                    <span className="font-bold text-slate-800">الوردية المسائية</span>
+                    <span className="text-[10px] text-slate-400 block font-mono">04:00 م - 12:00 ص</span>
+                  </div>
+                  <span className="px-2.5 py-0.5 rounded bg-slate-50 text-slate-500 border border-slate-150 text-[10px] font-bold">
+                    تبدأ لاحقاً
+                  </span>
+                </div>
+                
+                <div className="w-full bg-slate-100 rounded-full h-4 relative overflow-hidden">
+                  <div className="bg-slate-300 h-full rounded-full w-[0%]"></div>
+                </div>
+                <div className="flex justify-between text-[9px] text-slate-400 font-semibold">
+                  <span>04:00 م</span>
+                  <span>08:00 م</span>
+                  <span>12:00 ص</span>
+                </div>
+              </div>
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="pt-6 space-y-6">
-          {/* Action Buttons Grid */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            {canUseOperationalShortcuts && (
-              <div className="flex flex-col gap-1.5 rounded-lg border border-border/40 p-3 bg-muted/10 hover:bg-muted/20 transition-all">
-                <Button
-                  variant="outline"
-                  className="h-10 justify-between border-border/60 hover:bg-secondary/5 hover:text-secondary group transition-all duration-200"
+
+          {/* Section B: Circular Stats Indicators */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-bold text-slate-450 uppercase tracking-wider">مؤشرات الالتزام وحساب المخالفات</h3>
+            <div className="grid grid-cols-3 gap-6">
+              
+              {/* Lateness Gauge */}
+              <div className="p-5 bg-white border border-slate-200 rounded-3xl text-center space-y-3 shadow-sm">
+                <div className="w-14 h-14 rounded-full border-4 border-amber-100 border-t-amber-500 flex items-center justify-center font-bold text-sm mx-auto font-mono text-slate-800">
+                  {data?.lateToday ?? 0}
+                </div>
+                <span className="text-[10px] font-bold text-slate-600 block">حالات المتأخرين اليوم</span>
+              </div>
+
+              {/* Missing Checkouts */}
+              <div className="p-5 bg-white border border-slate-200 rounded-3xl text-center space-y-3 shadow-sm">
+                <div className="w-14 h-14 rounded-full border-4 border-rose-100 border-t-rose-500 flex items-center justify-center font-bold text-sm mx-auto font-mono text-slate-800">
+                  {data?.missingCheckoutYesterday ?? 0}
+                </div>
+                <span className="text-[10px] font-bold text-slate-600 block">معلقين بالأمس</span>
+              </div>
+
+              {/* Active Inside */}
+              <div className="p-5 bg-white border border-slate-200 rounded-3xl text-center space-y-3 shadow-sm">
+                <div className="w-14 h-14 rounded-full border-4 border-sky-100 border-t-sky-500 flex items-center justify-center font-bold text-sm mx-auto font-mono text-slate-800">
+                  {data?.insideNow ?? 0}
+                </div>
+                <span className="text-[10px] font-bold text-slate-600 block">متواجدين حالياً</span>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+        {/* Right 4/12: Control Badges & Device Status Radar */}
+        <div className="lg:col-span-4 space-y-8">
+          
+          {/* Section C: Oval Command Badges */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-bold text-slate-455 uppercase tracking-wider">أزرار الإجراءات والتحكم</h3>
+            <div className="flex flex-col gap-3">
+              
+              {canUseOperationalShortcuts && (
+                <button
                   onClick={handleSync}
                   disabled={syncMutation.isPending}
+                  className="w-full flex items-center justify-between p-4 bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-900 rounded-2xl transition-all duration-200 text-right text-xs font-bold"
                 >
-                  <span className="inline-flex items-center gap-2 font-medium text-xs">
-                    <Zap className={`h-4 w-4 text-secondary ${syncMutation.isPending ? "animate-bounce" : "group-hover:scale-110"}`} />
-                    {syncMutation.isPending ? "جارٍ المزامنة…" : "مزامنة البصمات"}
+                  <span className="flex items-center gap-2.5">
+                    <Zap className={`h-4.5 w-4.5 text-teal-600 ${syncMutation.isPending ? "animate-bounce" : ""}`} />
+                    <span>مزامنة سجلات البصمة</span>
                   </span>
-                  <ArrowLeft className="h-4 w-4 opacity-50 group-hover:translate-x-0.5 transition-transform" />
-                </Button>
-                <span className="text-[10px] text-muted-foreground/80 pr-1 leading-normal">
-                  سحب سجلات الحضور والانصراف الجديدة من جهاز البصمة الفعلي.
-                </span>
-              </div>
-            )}
+                  <span className="text-[9px] bg-teal-200/50 text-teal-800 px-2 py-0.5 rounded-full font-mono font-bold">
+                    {syncMutation.isPending ? "جاري..." : "سحب"}
+                  </span>
+                </button>
+              )}
 
-            {canUseOperationalShortcuts && (
-              <div className="flex flex-col gap-1.5 rounded-lg border border-border/40 p-3 bg-muted/10 hover:bg-muted/20 transition-all">
-                <Button
-                  variant="outline"
-                  className="h-10 justify-between border-border/60 hover:bg-primary/5 hover:text-primary group transition-all duration-200"
+              {canUseOperationalShortcuts && (
+                <button
                   onClick={handleRecompute}
                   disabled={recomputeMutation.isPending}
+                  className="w-full flex items-center justify-between p-4 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-900 rounded-2xl transition-all duration-200 text-right text-xs font-bold"
                 >
-                  <span className="inline-flex items-center gap-2 font-medium text-xs">
-                    <RefreshCw className={`h-4 w-4 text-primary ${recomputeMutation.isPending ? "animate-spin" : "group-hover:rotate-45"}`} />
-                    {recomputeMutation.isPending ? "جارٍ الاحتساب…" : "إعادة احتساب البيانات"}
+                  <span className="flex items-center gap-2.5">
+                    <RefreshCw className={`h-4.5 w-4.5 text-indigo-600 ${recomputeMutation.isPending ? "animate-spin" : ""}`} />
+                    <span>تطبيق قواعد الاحتساب</span>
                   </span>
-                  <ArrowLeft className="h-4 w-4 opacity-50 group-hover:translate-x-0.5 transition-transform" />
-                </Button>
-                <span className="text-[10px] text-muted-foreground/80 pr-1 leading-normal">
-                  تحديث وتطبيق القواعد واحتساب ساعات التأخير والعمل لآخر 90 يوماً.
-                </span>
-              </div>
-            )}
+                  <span className="text-[9px] bg-indigo-200/50 text-indigo-800 px-2 py-0.5 rounded-full font-mono font-bold">
+                    {recomputeMutation.isPending ? "جاري..." : "تطبيق"}
+                  </span>
+                </button>
+              )}
 
-            {canSeeLiveShortcut && (
-              <div className="flex flex-col gap-1.5 rounded-lg border border-border/40 p-3 bg-muted/10 hover:bg-muted/20 transition-all">
-                <Button
-                  asChild
-                  variant="secondary"
-                  className="h-10 justify-between group transition-all duration-200"
+              {canSeeLiveShortcut && (
+                <Link
+                  href={ROUTES.attendanceLive}
+                  className="w-full flex items-center justify-between p-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl transition-all duration-200 text-right text-xs font-bold"
                 >
-                  <Link href={ROUTES.attendanceLive}>
-                    <span className="inline-flex items-center gap-2 font-medium text-xs">
-                      <Activity className="h-4 w-4 group-hover:scale-110 text-secondary" />
-                      الحضور الآن (مباشر)
-                    </span>
-                    <ArrowLeft className="h-4 w-4 opacity-50 group-hover:translate-x-0.5 transition-transform" />
-                  </Link>
-                </Button>
-                <span className="text-[10px] text-muted-foreground/80 pr-1 leading-normal">
-                  عرض مباشر للحضور والانصراف وحركات الموظفين لحظة بلحظة.
-                </span>
-              </div>
-            )}
-
-            <div className="flex flex-col gap-1.5 rounded-lg border border-border/40 p-3 bg-muted/10 hover:bg-muted/20 transition-all">
-              <Button
-                asChild
-                variant="secondary"
-                className="h-10 justify-between group transition-all duration-200"
-              >
-                <Link href={ROUTES.attendanceMy}>
-                  <span className="inline-flex items-center gap-2 font-medium text-xs">
-                    <ShieldCheck className="h-4 w-4 group-hover:scale-110 text-primary" />
-                    ملفي الشخصي
+                  <span className="flex items-center gap-2.5">
+                    <Activity className="h-4.5 w-4.5 text-teal-400" />
+                    <span>البث الفوري للبوابات</span>
                   </span>
-                  <ArrowLeft className="h-4 w-4 opacity-50 group-hover:translate-x-0.5 transition-transform" />
+                  <ArrowLeft className="w-4 h-4 text-teal-400" />
                 </Link>
-              </Button>
-              <span className="text-[10px] text-muted-foreground/80 pr-1 leading-normal">
-                عرض كشف الحضور الشخصي، طلبات الأذونات، الإجازات وتغيير المواعيد.
-              </span>
+              )}
+
+              <Link
+                href={ROUTES.attendanceMy}
+                className="w-full flex items-center justify-between p-4 bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 rounded-2xl transition-all duration-200 text-right text-xs font-bold"
+              >
+                <span className="flex items-center gap-2.5">
+                  <ShieldCheck className="h-4.5 w-4.5 text-slate-500" />
+                  <span>ملفي الشخصي وحركاتي</span>
+                </span>
+                <ArrowLeft className="w-4 h-4 text-slate-400" />
+              </Link>
+
             </div>
           </div>
 
-          {/* Status Strip */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-border/40 pt-5">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/40">
-              <div className="space-y-0.5">
-                <div className="text-[10px] font-medium text-muted-foreground">حالة آخر مزامنة</div>
-                <div className="text-xs font-semibold text-foreground">
-                  {isLoading ? (
-                    <Skeleton className="h-4 w-16" />
-                  ) : data?.lastSync?.status === "ok" ? (
-                    <span className="text-success">مكتملة بنجاح</span>
-                  ) : data?.lastSync?.status === "failed" ? (
-                    <span className="text-destructive">فشلت المزامنة</span>
-                  ) : data?.lastSync?.status === "running" ? (
-                    <span className="text-warning">جارٍ التنفيذ</span>
-                  ) : (
-                    <span className="text-muted-foreground">لا يوجد</span>
-                  )}
-                </div>
+          {/* Section D: Device Status Radar */}
+          <div className="p-6 bg-slate-950 text-slate-100 rounded-3xl space-y-4 relative overflow-hidden shadow-xl">
+            <h3 className="text-xs font-bold text-slate-400 border-b border-slate-900 pb-2.5">
+              📡 حالة الأجهزة (Live Radar)
+            </h3>
+            <div className="flex items-center gap-4 text-xs">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center relative shrink-0">
+                <span className="absolute w-10 h-10 rounded-full border border-emerald-500/20 animate-ping"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
               </div>
-              <RefreshCw className="h-4 w-4 text-muted-foreground/40" />
-            </div>
-
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/40">
-              <div className="space-y-0.5">
-                <div className="text-[10px] font-medium text-muted-foreground">نطاق عمل اليوم</div>
-                <div className="text-xs font-semibold text-foreground">
-                  {isLoading ? (
-                    <Skeleton className="h-4 w-24" />
-                  ) : (
-                    <span>{data?.presentToday ?? 0} حاضر / {data?.lateToday ?? 0} متأخر</span>
-                  )}
-                </div>
-              </div>
-              <FileText className="h-4 w-4 text-muted-foreground/40" />
-            </div>
-
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/40">
-              <div className="space-y-0.5">
-                <div className="text-[10px] font-medium text-muted-foreground">حالة اتصال البصمة</div>
-                <div className="text-xs font-semibold text-foreground">
-                  {isLoading ? (
-                    <Skeleton className="h-4 w-16" />
-                  ) : (
-                    <span>{deviceState}</span>
-                  )}
-                </div>
-              </div>
-              <Smartphone className="h-4 w-4 text-muted-foreground/40" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Feedback Messages */}
-      {(syncMsg || recomputeMsg) && (
-        <div className="grid gap-3 md:grid-cols-2">
-          {syncMsg && (
-            <div className="flex items-start gap-2.5 rounded-xl border border-secondary/20 bg-secondary/5 dark:bg-secondary/15 p-4 text-xs text-foreground shadow-sm animate-in fade-in duration-300">
-              <Zap className="h-4 w-4 text-secondary shrink-0 mt-0.5" />
               <div>
-                <span className="font-bold">المزامنة اليومية:</span> {syncMsg}
+                <span className="text-[10px] text-slate-500 block">حالة الاتصال</span>
+                <span className="font-bold text-white block mt-0.5">{deviceState}</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* Feedback Alert Sheets */}
+      {(syncMsg || recomputeMsg) && (
+        <div className="grid gap-4 md:grid-cols-2 pt-2">
+          {syncMsg && (
+            <div className="flex items-start gap-2.5 rounded-2xl border border-teal-200 bg-teal-50/50 p-4 text-xs text-slate-850 shadow-sm animate-in fade-in duration-300">
+              <Zap className="h-4.5 w-4.5 text-teal-650 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-teal-950">المزامنة:</span> {syncMsg}
               </div>
             </div>
           )}
           {recomputeMsg && (
-            <div className="flex items-start gap-2.5 rounded-xl border border-success/20 bg-success/5 dark:bg-success/15 p-4 text-xs text-foreground shadow-sm animate-in fade-in duration-300">
-              <RefreshCw className="h-4 w-4 text-success shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2.5 rounded-2xl border border-teal-200 bg-teal-50/50 p-4 text-xs text-slate-850 shadow-sm animate-in fade-in duration-300">
+              <RefreshCw className="h-4.5 w-4.5 text-teal-650 shrink-0 mt-0.5 animate-spin" />
               <div>
-                <span className="font-bold">إعادة الاحتساب:</span> {recomputeMsg}
+                <span className="font-bold text-teal-950">احتساب القواعد:</span> {recomputeMsg}
               </div>
             </div>
           )}
         </div>
       )}
+
     </div>
   );
 }
