@@ -172,21 +172,12 @@ function parseAttlogBody(body: string, deviceId: string): ParsedPunch[] {
 export function registerZKTecoAdms(app: Express): void {
   // Accept plain text body for ZKTeco ADMS push
   app.use("/iclock", express.text({ type: "*/*", limit: "2mb" }));
-  // Pre-compensate the HTTP Date header — CONFIRMED root cause: the device
-  // re-syncs its RTC from this header on every ADMS push and adds its internal
-  // timezone (UTC+DEVICE_TZ), landing the clock UTC+9 (= local + 6h). We send
-  // header = realUTC + (serverOffset − DEVICE_TZ) so device clock =
-  // header + DEVICE_TZ = realUTC + serverOffset = correct local time.
-  // e.g. Cairo summer: 3 − 9 = −6 → header = realUTC − 6.
-  // removeHeader() alone fails — Express re-adds Date on send(); setHeader sticks.
-  app.use("/iclock", (_req, res, next) => {
-    const shiftHours = serverOffsetHours() - deviceTzOffsetHours();
-    const shifted = new Date(Date.now() + shiftHours * 3_600_000);
-    res.setHeader("Date", shifted.toUTCString());
-    next();
-  });
-
-
+  // NOTE: We deliberately do NOT manipulate the HTTP Date header. Testing showed
+  // the device ignores it — when online via ADMS it NTP-syncs itself and applies
+  // its hidden internal UTC+9 timezone, landing the clock +6h ahead of Cairo. The
+  // device clock cannot be fixed from here (remote device, no exposed TZ setting).
+  // Attendance data is kept correct by the ingestion offset correction in
+  // parseAttlogBody(); the device's displayed clock is cosmetic only.
 
   // GET /iclock/cdata — device handshake / options request
   app.get("/iclock/cdata", (req: Request, res: Response) => {
