@@ -2270,11 +2270,14 @@ async function startServer() {
   });
   await DeviceSettingsService.initializeSettings();
 
-  // Sync K40 Pro device clock every 2 minutes via zkemkeeper SDK
+  // Sync K40 Pro device clock every 2 minutes via zkemkeeper SDK — TCP mode only.
+  // In ADMS mode the device is typically remote/behind NAT and unreachable over
+  // TCP, so skip to avoid repeated connection timeouts in the log.
   setInterval(async () => {
     try {
       const k40 = DeviceSettingsService.getK40Settings();
       if (!k40.ip || !k40.enabled) return;
+      if ((k40.zk40Protocol ?? "adms") !== "tcp") return; // skip unless TCP pull mode
       const { ZK4370LogPuller } = await import("../services/attendance/zk4370LogPuller");
       await ZK4370LogPuller.setDeviceTime(k40.ip, k40.port, k40.commPassword ?? 0);
     } catch { /* ignore — device may be offline */ }
