@@ -1609,6 +1609,31 @@ export const accountingRouter = router({
       });
     }
   }),
+
+  // Web → Access push: send web-created ledger rows (accessId IS NULL) into the
+  // الخزنه.accdb file, then write their new Access IDs back. Complements
+  // triggerAccSync (which pulls Access → web).
+  triggerAccPush: adminProcedure.mutation(async () => {
+    const pushScript = path.resolve(
+      process.cwd(),
+      "server",
+      "scripts",
+      "push-access-db.ts",
+    );
+    try {
+      const output = execSync(`npx tsx "${pushScript}"`, {
+        encoding: "utf8",
+        timeout: 120_000,
+      });
+      return { success: true, log: output };
+    } catch (e: any) {
+      const log = [e.stdout, e.stderr].filter(Boolean).join("\n");
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: (log || e.message || "Push failed").slice(0, 4000),
+      });
+    }
+  }),
 });
 
 // ── Mirror helpers ────────────────────────────────────────────────────────

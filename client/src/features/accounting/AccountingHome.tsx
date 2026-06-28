@@ -226,11 +226,28 @@ export default function AccountingHome() {
   });
 
   const syncAccMut = trpc.accounting.triggerAccSync.useMutation();
+  const pushAccMut = trpc.accounting.triggerAccPush.useMutation();
   const [syncResult, setSyncResult] = useState<{
     ok: boolean;
     msg: string;
     log?: string;
   } | null>(null);
+
+  const handleAccPush = async () => {
+    setSyncResult(null);
+    try {
+      const result = await pushAccMut.mutateAsync();
+      await Promise.all([
+        cashbookSummaryQuery.refetch(),
+        utils.accounting.accLedger.invalidate(),
+        utils.accounting.accLedgerSummary.invalidate(),
+      ]);
+      setSyncResult({ ok: true, msg: "تم الرفع للخزنة بنجاح", log: result?.log });
+    } catch (e: any) {
+      setSyncResult({ ok: false, msg: "فشل الرفع للخزنة", log: e?.message });
+    }
+    setTimeout(() => setSyncResult(null), 4000);
+  };
 
   const handleAccSync = async () => {
     setSyncResult(null);
@@ -588,6 +605,22 @@ export default function AccountingHome() {
                     {syncAccMut.isPending
                       ? "جارٍ المزامنة..."
                       : "مزامنة الخزنة"}
+                  </button>
+                )}
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={handleAccPush}
+                    disabled={pushAccMut.isPending}
+                    className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:border-muted-foreground hover:text-foreground disabled:opacity-50"
+                  >
+                    <RefreshCw
+                      className={cn(
+                        "h-3 w-3",
+                        pushAccMut.isPending && "animate-spin",
+                      )}
+                    />
+                    {pushAccMut.isPending ? "جارٍ الرفع..." : "رفع للخزنة"}
                   </button>
                 )}
               </div>
