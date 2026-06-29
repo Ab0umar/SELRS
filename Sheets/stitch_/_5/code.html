@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+
+<html class="light" dir="rtl" lang="ar"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>OphthalmoCare Pro - متابعة الليزك</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary-fixed-dim": "#bac9d3",
+                    "on-primary-container": "#c4d2ff",
+                    "error-container": "#ffdad6",
+                    "surface": "#f8f9fb",
+                    "on-secondary-container": "#56656e",
+                    "on-tertiary": "#ffffff",
+                    "on-background": "#191c1e",
+                    "surface-container": "#edeef0",
+                    "background": "#f8f9fb",
+                    "surface-tint": "#0c56d0",
+                    "primary-fixed-dim": "#b2c5ff",
+                    "surface-container-high": "#e7e8ea",
+                    "primary": "#003d9b",
+                    "on-tertiary-fixed-variant": "#004e5d",
+                    "on-surface-variant": "#434654",
+                    "surface-dim": "#d9dadc",
+                    "on-secondary": "#ffffff",
+                    "primary-container": "#0052cc",
+                    "inverse-primary": "#b2c5ff",
+                    "surface-variant": "#e1e2e4",
+                    "secondary": "#526069",
+                    "on-surface": "#191c1e",
+                    "tertiary-container": "#006476",
+                    "on-secondary-fixed-variant": "#3b4951",
+                    "surface-bright": "#f8f9fb",
+                    "on-error-container": "#93000a",
+                    "surface-container-highest": "#e1e2e4",
+                    "on-secondary-fixed": "#0f1d25",
+                    "surface-variant": "#e1e2e4",
+                    "tertiary": "#004b58",
+                    "secondary-container": "#d3e2ed",
+                    "on-tertiary-container": "#70e2ff",
+                    "secondary-fixed": "#d6e5ef",
+                    "outline-variant": "#c3c6d6",
+                    "on-error": "#ffffff",
+                    "outline": "#737685",
+                    "on-primary": "#ffffff",
+                    "inverse-surface": "#2e3132",
+                    "surface-container-low": "#f3f4f6",
+                    "on-primary-fixed": "#001848",
+                    "on-primary-fixed-variant": "#0040a2",
+                    "tertiary-fixed-dim": "#5dd6f3",
+                    "tertiary-fixed": "#adecff",
+                    "error": "#ba1a1a",
+                    "inverse-on-surface": "#f0f1f3",
+                    "primary-fixed": "#dae2ff",
+                    "on-tertiary-fixed": "#001f26"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "element-gap": "12px",
+                    "section-margin": "32px",
+                    "container-padding": "24px",
+                    "gutter": "16px",
+                    "base": "8px"
+            },
+            "fontFamily": {
+                    "headline-md": ["Inter"],
+                    "body-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "data-mono": ["Inter"],
+                    "headline-sm": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "label-caps": ["Inter"],
+                    "headline-lg-mobile": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "data-mono": ["14px", {"lineHeight": "20px", "fontWeight": "600"}],
+                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #f8f9fb;
+            font-family: 'Inter', sans-serif;
+            color: #191c1e;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .od-row { background-color: rgba(0, 61, 155, 0.04); }
+        .os-row { background-color: #ffffff; }
+        input[type="text"], input[type="date"], input[type="number"], select, textarea {
+            background-color: transparent;
+            border: 1px solid transparent;
+            padding: 4px 8px;
+            width: 100%;
+            transition: all 0.2s;
+        }
+        input:focus, textarea:focus {
+            border-color: #003d9b;
+            background-color: #ffffff;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0, 61, 155, 0.1);
+        }
+        .table-input-cell {
+            padding: 0 !important;
+        }
+        .table-input-cell input {
+            height: 100%;
+            border-radius: 0;
+            text-align: center;
+        }
+        .signature-line {
+            border-bottom: 1px solid #737685;
+            min-height: 24px;
+            width: 100px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body class="bg-surface">
+<!-- TopNavBar -->
+<header class="flex justify-between items-center px-gutter py-base w-full sticky top-0 z-50 bg-surface border-b border-outline-variant">
+<div class="flex items-center gap-gutter">
+<span class="font-headline-md text-headline-md font-bold text-primary">OphthalmoCare Pro</span>
+<nav class="hidden md:flex gap-6 items-center mr-8">
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">لوحة القيادة</a>
+<a class="font-body-md text-body-md text-primary border-b-2 border-primary pb-1" href="#">المرضى</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">المواعيد</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">المخزون</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:bg-surface-container-low p-2 rounded-full transition-colors">notifications</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:bg-surface-container-low p-2 rounded-full transition-colors">settings</span>
+<div class="w-10 h-10 rounded-full overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A professional studio portrait of a male ophthalmologist in a white medical coat, standing against a clean clinical background with soft, bright light. He has a friendly expression and is wearing a stethoscope. The aesthetic is clean and high-fidelity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6EVMKpE4cWteVWNSHbw1A8JFSFz5E0KmBpWqcXwK-JtZqiF_4AY6T6jojyxVxqUraYEzgQXhiC9p0ceVk4PpmazA1uWDiOdkWjjd76fK1iZ3zlAidiv9aNC2rH11aA_tljZov-AKaH_36PBlUcETxJtr7eb2Kh0iuwSj5tMBmUol50cHSrhZ6PDyl1n-FyUUqLK-gYpqu_IyNNoBma1ihIz8AAR6M47-pX-h_kHs9Gx-0pQRBuiOG2H-Ry9ylW71gbxwZOqj5sgpU"/>
+</div>
+</div>
+</header>
+<div class="flex">
+<!-- SideNavBar -->
+<aside class="fixed right-0 top-16 h-[calc(100vh-64px)] w-64 flex flex-col p-4 z-40 bg-surface-container-low border-l border-outline-variant">
+<div class="flex items-center gap-3 mb-8">
+<div class="w-12 h-12 rounded-lg bg-primary-container flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-[16px] font-bold text-on-surface">أحمد محمد السيد</h3>
+<p class="font-label-caps text-label-caps text-on-surface-variant">ID: LX-2023-8842</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2 flex-grow">
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-variant p-3 rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-caps text-label-caps">ملف المريض</span>
+</a>
+<a class="flex items-center gap-3 bg-primary-container text-on-primary-container font-bold p-3 rounded-lg" href="#">
+<span class="material-symbols-outlined">visibility</span>
+<span class="font-label-caps text-label-caps">متابعات الليزك</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-variant p-3 rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">biotech</span>
+<span class="font-label-caps text-label-caps">فحوصات طبية</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-variant p-3 rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">medical_services</span>
+<span class="font-label-caps text-label-caps">خطة العلاج</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-variant p-3 rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-label-caps text-label-caps">التقرير الكامل</span>
+</a>
+</nav>
+<div class="mt-auto border-t border-outline-variant pt-4">
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-variant p-3 rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-label-caps text-label-caps">مركز المساعدة</span>
+</a>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="mr-64 p-container-padding w-full max-w-6xl mx-auto">
+<!-- Patient Banner Card -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 mb-section-margin shadow-[0_2px_4px_rgba(0,0,0,0.05)]">
+<div class="flex justify-between items-start">
+<div class="flex gap-12">
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-1">اسم المريض</p>
+<h1 class="font-headline-md text-headline-md text-primary">أحمد محمد السيد</h1>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-1">نوع العملية</p>
+<div class="flex items-center gap-2">
+<span class="bg-tertiary-container text-on-tertiary-container px-3 py-1 rounded-full text-[12px] font-bold">Femto-Lasik</span>
+<span class="text-on-surface font-body-md">كلتا العينين (OU)</span>
+</div>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-1">تاريخ العملية</p>
+<p class="text-on-surface font-body-md font-bold">12 / 10 / 2023</p>
+</div>
+</div>
+<div class="flex gap-element-gap">
+<button class="bg-primary text-on-primary px-6 py-2 rounded-lg font-bold flex items-center gap-2 hover:opacity-90 transition-all active:scale-95">
+<span class="material-symbols-outlined text-[20px]">save</span>
+                            حفظ التغييرات
+                        </button>
+<button class="border border-primary text-primary px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-primary/5 transition-all">
+<span class="material-symbols-outlined text-[20px]">print</span>
+                            طباعة PDF
+                        </button>
+</div>
+</div>
+</section>
+<!-- Follow-up Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-section-margin">
+<!-- Follow-up Card 1 -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-[0_2px_4px_rgba(0,0,0,0.05)]">
+<div class="bg-primary-container/10 p-4 border-b border-outline-variant flex justify-between items-center">
+<h2 class="font-headline-sm text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">event_available</span>
+                            المتابعة الأولى (يوم 1)
+                        </h2>
+<input class="w-auto font-body-md border border-outline-variant rounded px-2 py-1 bg-white" type="date" value="2023-10-13"/>
+</div>
+<div class="p-4 space-y-4">
+<div class="flex justify-between items-center bg-surface-container-low p-2 rounded">
+<span class="font-label-caps text-label-caps">العين المهيمنة (Dominant Eye):</span>
+<div class="flex gap-4">
+<label class="flex items-center gap-1 cursor-pointer">
+<input class="text-primary focus:ring-primary" name="dominant_1" type="radio"/>
+<span class="text-body-md">OD</span>
+</label>
+<label class="flex items-center gap-1 cursor-pointer">
+<input class="text-primary focus:ring-primary" name="dominant_1" type="radio"/>
+<span class="text-body-md">OS</span>
+</label>
+</div>
+</div>
+<!-- Data Table -->
+<table class="w-full border-collapse border border-outline-variant rounded-lg overflow-hidden">
+<thead class="bg-surface-variant/30 text-on-surface-variant font-label-caps text-[10px]">
+<tr>
+<th class="p-2 border border-outline-variant">Eye</th>
+<th class="p-2 border border-outline-variant">VA (U)</th>
+<th class="p-2 border border-outline-variant">Sph</th>
+<th class="p-2 border border-outline-variant">Cyl</th>
+<th class="p-2 border border-outline-variant">Axis</th>
+<th class="p-2 border border-outline-variant">VA (C)</th>
+</tr>
+</thead>
+<tbody class="font-data-mono">
+<tr class="od-row">
+<td class="p-2 border border-outline-variant text-center font-bold text-primary">OD</td>
+<td class="table-input-cell border border-outline-variant"><input placeholder="6/6" type="text"/></td>
+<td class="table-input-cell border border-outline-variant"><input placeholder="0.00" type="text"/></td>
+<td class="table-input-cell border border-outline-variant"><input placeholder="0.00" type="text"/></td>
+<td class="table-input-cell border border-outline-variant"><input placeholder="-" type="text"/></td>
+<td class="table-input-cell border border-outline-variant"><input placeholder="6/6" type="text"/></td>
+</tr>
+<tr class="os-row">
+<td class="p-2 border border-outline-variant text-center font-bold text-secondary">OS</td>
+<td class="table-input-cell border border-outline-variant"><input placeholder="6/9" type="text"/></td>
+<td class="table-input-cell border border-outline-variant"><input placeholder="-0.25" type="text"/></td>
+<td class="table-input-cell border border-outline-variant"><input placeholder="-0.50" type="text"/></td>
+<td class="table-input-cell border border-outline-variant"><input placeholder="180" type="text"/></td>
+<td class="table-input-cell border border-outline-variant"><input placeholder="6/6" type="text"/></td>
+</tr>
+</tbody>
+</table>
+<div class="grid grid-cols-2 gap-4">
+<div class="border border-outline-variant rounded p-3">
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-2">تقييم الرفرفة (Flap Assessment)</p>
+<div class="space-y-2">
+<div class="flex justify-between items-center text-body-md">
+<span>الحواف (Edges):</span>
+<select class="w-24 text-[12px] p-1 border rounded">
+<option>سليم</option>
+<option>تورم</option>
+</select>
+</div>
+<div class="flex justify-between items-center text-body-md">
+<span>القاعدة (Bed):</span>
+<select class="w-24 text-[12px] p-1 border rounded">
+<option>صافي</option>
+<option>عكر</option>
+</select>
+</div>
+</div>
+</div>
+<div class="border border-outline-variant rounded p-3">
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-2">ضغط العين (IOP)</p>
+<div class="flex items-center gap-2">
+<input class="border rounded text-center" placeholder="OD" type="number"/>
+<input class="border rounded text-center" placeholder="OS" type="number"/>
+<span class="text-[10px]">mmHg</span>
+</div>
+</div>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-1">ملاحظات وعلاج:</p>
+<textarea class="w-full h-20 border border-outline-variant rounded p-2 text-body-md" placeholder="اكتب الملاحظات هنا..."></textarea>
+</div>
+<div class="flex justify-between text-[11px] text-on-surface-variant pt-4 border-t border-outline-variant border-dashed">
+<div class="flex flex-col items-center">
+<span>الاستقبال</span>
+<span class="signature-line"></span>
+</div>
+<div class="flex flex-col items-center">
+<span>التمريض</span>
+<span class="signature-line"></span>
+</div>
+<div class="flex flex-col items-center">
+<span>الطبيب</span>
+<span class="signature-line"></span>
+</div>
+</div>
+</div>
+</article>
+<!-- Follow-up Card 2 -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-[0_2px_4px_rgba(0,0,0,0.05)] opacity-80">
+<div class="bg-surface-variant/20 p-4 border-b border-outline-variant flex justify-between items-center">
+<h2 class="font-headline-sm text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined">event_available</span>
+                            المتابعة الثانية (أسبوع 1)
+                        </h2>
+<input class="w-auto font-body-md border border-outline-variant rounded px-2 py-1 bg-white" type="date"/>
+</div>
+<div class="p-4 space-y-4 grayscale-[0.2]">
+<div class="flex justify-between items-center bg-surface-container-low p-2 rounded">
+<span class="font-label-caps text-label-caps">العين المهيمنة (Dominant Eye):</span>
+<div class="flex gap-4">
+<label class="flex items-center gap-1"><input disabled="" name="dom_2" type="radio"/><span class="text-body-md">OD</span></label>
+<label class="flex items-center gap-1"><input disabled="" name="dom_2" type="radio"/><span class="text-body-md">OS</span></label>
+</div>
+</div>
+<table class="w-full border-collapse border border-outline-variant rounded-lg overflow-hidden">
+<thead class="bg-surface-variant/30 text-on-surface-variant font-label-caps text-[10px]">
+<tr>
+<th class="p-2 border border-outline-variant">Eye</th>
+<th class="p-2 border border-outline-variant">VA (U)</th>
+<th class="p-2 border border-outline-variant">Sph</th>
+<th class="p-2 border border-outline-variant">Cyl</th>
+<th class="p-2 border border-outline-variant">Axis</th>
+<th class="p-2 border border-outline-variant">VA (C)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="od-row">
+<td class="p-2 border border-outline-variant text-center font-bold text-primary">OD</td>
+<td class="table-input-cell border border-outline-variant"><input type="text"/></td>
+<td class="table-input-cell border border-outline-variant"><input type="text"/></td>
+<td class="table-input-cell border border-outline-variant"><input type="text"/></td>
+<td class="table-input-cell border border-outline-variant"><input type="text"/></td>
+<td class="table-input-cell border border-outline-variant"><input type="text"/></td>
+</tr>
+<tr class="os-row">
+<td class="p-2 border border-outline-variant text-center font-bold text-secondary">OS</td>
+<td class="table-input-cell border border-outline-variant"><input type="text"/></td>
+<td class="table-input-cell border border-outline-variant"><input type="text"/></td>
+<td class="table-input-cell border border-outline-variant"><input type="text"/></td>
+<td class="table-input-cell border border-outline-variant"><input type="text"/></td>
+<td class="table-input-cell border border-outline-variant"><input type="text"/></td>
+</tr>
+</tbody>
+</table>
+<div class="grid grid-cols-2 gap-4">
+<div class="border border-outline-variant rounded p-3">
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-2">تقييم الرفرفة</p>
+<div class="space-y-1 text-body-md opacity-50">لا يوجد بيانات</div>
+</div>
+<div class="border border-outline-variant rounded p-3">
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-2">ضغط العين</p>
+<div class="h-10"></div>
+</div>
+</div>
+<div class="flex justify-between text-[11px] text-on-surface-variant pt-4 border-t border-outline-variant border-dashed">
+<div class="flex flex-col items-center"><span>الاستقبال</span><span class="signature-line"></span></div>
+<div class="flex flex-col items-center"><span>التمريض</span><span class="signature-line"></span></div>
+<div class="flex flex-col items-center"><span>الطبيب</span><span class="signature-line"></span></div>
+</div>
+</div>
+</article>
+<!-- Follow-up Card 3 -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-[0_2px_4px_rgba(0,0,0,0.05)] opacity-80">
+<div class="bg-surface-variant/20 p-4 border-b border-outline-variant flex justify-between items-center">
+<h2 class="font-headline-sm text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined">event_available</span>
+                            المتابعة الثالثة (شهر 1)
+                        </h2>
+<input class="w-auto font-body-md border border-outline-variant rounded px-2 py-1 bg-white" type="date"/>
+</div>
+<div class="p-4 space-y-4">
+<div class="bg-surface-container-low h-10 rounded"></div>
+<div class="h-32 border border-outline-variant rounded border-dashed flex items-center justify-center text-on-surface-variant font-label-caps">بيانات المتابعة الشهرية</div>
+<div class="flex justify-between text-[11px] text-on-surface-variant pt-4 border-t border-outline-variant border-dashed">
+<div class="flex flex-col items-center"><span>الاستقبال</span><span class="signature-line"></span></div>
+<div class="flex flex-col items-center"><span>التمريض</span><span class="signature-line"></span></div>
+<div class="flex flex-col items-center"><span>الطبيب</span><span class="signature-line"></span></div>
+</div>
+</div>
+</article>
+<!-- Follow-up Card 4 -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-[0_2px_4px_rgba(0,0,0,0.05)] opacity-80">
+<div class="bg-surface-variant/20 p-4 border-b border-outline-variant flex justify-between items-center">
+<h2 class="font-headline-sm text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined">event_available</span>
+                            المتابعة الرابعة (أشهر 3)
+                        </h2>
+<input class="w-auto font-body-md border border-outline-variant rounded px-2 py-1 bg-white" type="date"/>
+</div>
+<div class="p-4 space-y-4">
+<div class="bg-surface-container-low h-10 rounded"></div>
+<div class="h-32 border border-outline-variant rounded border-dashed flex items-center justify-center text-on-surface-variant font-label-caps">بيانات المتابعة الدورية</div>
+<div class="flex justify-between text-[11px] text-on-surface-variant pt-4 border-t border-outline-variant border-dashed">
+<div class="flex flex-col items-center"><span>الاستقبال</span><span class="signature-line"></span></div>
+<div class="flex flex-col items-center"><span>التمريض</span><span class="signature-line"></span></div>
+<div class="flex flex-col items-center"><span>الطبيب</span><span class="signature-line"></span></div>
+</div>
+</div>
+</article>
+</div>
+<!-- Bottom Actions -->
+<footer class="flex justify-between items-center pt-8 border-t border-outline-variant">
+<button class="flex items-center gap-2 text-on-surface-variant font-bold hover:text-primary transition-colors">
+<span class="material-symbols-outlined">arrow_forward</span>
+                    العودة لصفحة الفحص
+                </button>
+<div class="flex gap-4">
+<button class="bg-surface-variant text-on-surface-variant px-6 py-2 rounded-lg font-bold hover:bg-outline-variant transition-all">
+                        إلغاء
+                    </button>
+<button class="bg-primary text-on-primary px-8 py-2 rounded-lg font-bold hover:opacity-90 shadow-lg active:scale-95 transition-all">
+                        حفظ المتابعات
+                    </button>
+</div>
+</footer>
+</main>
+</div>
+<!-- Floating Action Button (FAB) -->
+<button class="fixed bottom-8 left-8 w-16 h-16 bg-primary text-on-primary rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all z-50">
+<span class="material-symbols-outlined text-[32px]" style="font-variation-settings: 'FILL' 1;">add</span>
+</button>
+<script>
+        // Micro-interaction for table rows
+        document.querySelectorAll('tr').forEach(row => {
+            row.addEventListener('mouseenter', () => {
+                row.classList.add('transition-colors', 'duration-200');
+            });
+        });
+
+        // Numeric validation for IOP
+        document.querySelectorAll('input[type="number"]').forEach(input => {
+            input.addEventListener('change', (e) => {
+                if(e.target.value > 21) {
+                    e.target.classList.add('text-error', 'font-bold');
+                } else {
+                    e.target.classList.remove('text-error', 'font-bold');
+                }
+            });
+        });
+    </script>
+</body></html>

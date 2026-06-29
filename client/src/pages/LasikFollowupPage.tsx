@@ -216,9 +216,11 @@ export default function LasikFollowupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background sheet-layout" dir="rtl">
+    <div className="min-h-screen bg-[#f8f9fb] text-[#191c1e]" dir="rtl" style={{ fontFamily: 'Inter, sans-serif' }}>
       <style>{`
         @media print {
+          .print\\:hidden { display: none !important; }
+          body { background: white !important; }
           .followup-print-root {
             transform: translateX(${followupLabels.offsetXmm}mm) scale(${followupLabels.scale});
             transform-origin: top center;
@@ -227,328 +229,209 @@ export default function LasikFollowupPage() {
         }
       `}</style>
 
-      <header className="sticky top-0 z-[120] border-b border-border bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/60 print:hidden pointer-events-auto">
-        <div className="container mx-auto flex items-center justify-between px-4 py-4">
-          <div className="min-w-0 pointer-events-none">
-            <h1 className="text-xl font-bold text-foreground">
-              متابعات الليزك
-            </h1>
-            <p className="truncate text-sm text-muted-foreground">
-              {patientName}
-            </p>
+      {/* Top nav */}
+      <header className="print:hidden sticky top-0 z-50 flex justify-between items-center px-6 py-2 bg-[#f8f9fb] border-b border-[#c3c6d6]">
+        <div className="flex items-center gap-6">
+          <span className="text-xl font-bold text-[#003d9b]">OphthalmoCare Pro</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="w-60">
+            <PatientPicker initialPatientId={initialPatientId} onSelect={onPickPatient} />
           </div>
-          <div className="relative z-[130] flex shrink-0 flex-wrap items-center gap-1 pointer-events-auto">
-            <div className="w-72 max-w-[45vw]">
-              <PatientPicker
-                initialPatientId={initialPatientId}
-                onSelect={onPickPatient}
-              />
-            </div>
-            <Button
-              type="button"
-              variant="default"
-              size="sm"
-              onClick={handleSaveFollowup}
-              disabled={saveFollowupSheetMutation.isPending}
-              className="bg-success text-success-foreground"
-            >
-              {saveFollowupSheetMutation.isPending ? "جاري الحفظ..." : "حفظ"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                setLocation(`/sheets/lasik/${initialPatientId ?? ""}`)
-              }
-            >
-              الاستمارة
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                void printOrExportPdf(
-                  `lasik-followup-${initialPatientId ?? "sheet"}.pdf`,
-                )
-              }
-            >
-              <Printer className="h-4 w-4 mr-2" />
-              طباعة
-            </Button>
-          </div>
+          <Button
+            type="button"
+            className="bg-[#003d9b] text-white px-5 py-2 rounded-lg font-bold text-sm hover:opacity-90 active:scale-95 disabled:opacity-60"
+            onClick={handleSaveFollowup}
+            disabled={saveFollowupSheetMutation.isPending}
+          >
+            {saveFollowupSheetMutation.isPending ? "جاري الحفظ..." : "حفظ التغييرات"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="border-[#003d9b] text-[#003d9b] px-4 py-2 rounded-lg font-bold text-sm hover:bg-[#003d9b]/5"
+            onClick={() => void printOrExportPdf(`lasik-followup-${initialPatientId ?? "sheet"}.pdf`)}
+          >
+            <Printer className="h-4 w-4 mr-2" />
+            طباعة PDF
+          </Button>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
-        <div className="mb-3 print:hidden">
-          <PatientPicker
-            initialPatientId={initialPatientId}
-            onSelect={onPickPatient}
-            readOnly
-          />
-        </div>
-
-        <div
-          className="followup-print-root rounded-[28px] border border-border/80 bg-background p-1 text-foreground shadow-sm print:rounded-none print:border-0 print:p-0"
-          dir="ltr"
-          style={{ fontFamily: '"Times New Roman", Tahoma, Arial, sans-serif' }}
-        >
-          <div className="mb-2 print:mb-1 flex items-center justify-between text-[15px] px-1 print:px-0 print:text-[13px]">
-            <div className="whitespace-nowrap">
-              {followupLabels.rtLabel}: {operationEyes.right ? "" : "..."}{" "}
-              &nbsp;&nbsp; {followupLabels.ltLabel}:{" "}
-              {operationEyes.left ? "" : "..."} &nbsp; //
+      <div className="flex">
+        {/* Right sidebar */}
+        <aside className="print:hidden fixed right-0 top-[52px] h-[calc(100vh-52px)] w-60 flex flex-col p-4 z-40 bg-[#f3f4f6] border-l border-[#c3c6d6]">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 rounded-lg bg-[#0052cc] flex items-center justify-center text-white font-bold text-lg">
+              {patientName ? patientName.slice(0, 2) : "P"}
             </div>
-            <div className="whitespace-nowrap">
-              {followupLabels.operationTypeLabel}:{" "}
-              <Input
-                value={operationType}
-                onChange={(e) => setOperationType(e.target.value)}
-                className="inline-block w-40 h-7 text-xs mx-1"
-              />
-            </div>
-            <div className="whitespace-nowrap">
-              {followupLabels.operationDateLabel}
-              <DateInput
-                value={operationDateRight}
-                onChange={(e) => setOperationDateRight(e.target.value)}
-                className="inline-block w-32 h-7 text-xs mx-1"
-              />
-              <DateInput
-                value={operationDateLeft}
-                onChange={(e) => setOperationDateLeft(e.target.value)}
-                className="inline-block w-32 h-7 text-xs"
-              />
+            <div>
+              <h3 className="text-sm font-bold text-[#191c1e] truncate max-w-[130px]">{patientName || "اختر مريضاً"}</h3>
+              <p className="text-xs text-[#434654]">ID: {initialPatientId ?? "—"}</p>
             </div>
           </div>
-
-          {followups.map((f) => (
-            <table
-              key={f.id}
-              className="w-full border border-black/70 border-collapse text-[15px] table-fixed print:text-[12px]"
-              style={{ marginBottom: `${followupLabels.tableGapMm}mm` }}
+          <nav className="flex flex-col gap-1">
+            <button
+              type="button"
+              className="flex items-center gap-3 text-[#434654] hover:bg-[#edeef0] p-3 rounded-lg transition-all text-sm text-right"
+              onClick={() => setLocation(`/sheets/lasik/${initialPatientId ?? ""}`)}
             >
-              <colgroup>
-                <col style={{ width: "14%" }} />
-                <col style={{ width: "14%" }} />
-                <col style={{ width: "12%" }} />
-                <col style={{ width: "12%" }} />
-                <col style={{ width: "12%" }} />
-                <col style={{ width: "12%" }} />
-                <col style={{ width: "12%" }} />
-                <col style={{ width: "12%" }} />
-              </colgroup>
-              <tbody>
-                <tr>
-                  <td
-                    colSpan={2}
-                    className="border border-black/50 px-1 py-0.5 print:py-0 text-center"
-                  >
-                    {followupLabels.nextFollowupLabel}{" "}
-                    <span className="mx-2 print:mx-1">/ /</span>
-                  </td>
-                  <td
-                    colSpan={3}
-                    className="border border-black/50 px-1 py-0.5 print:py-0 text-center font-semibold"
-                  >
+              ← الاستمارة
+            </button>
+            <div className="flex items-center gap-3 bg-[#0052cc] text-white font-bold p-3 rounded-lg text-sm">
+              متابعات الليزك
+            </div>
+          </nav>
+        </aside>
+
+        {/* Main content */}
+        <main className="print:mr-0 mr-60 p-6 w-full">
+          {/* Patient banner */}
+          <section className="bg-white border border-[#c3c6d6] rounded-xl p-5 mb-6 shadow-sm">
+            <div className="flex flex-wrap gap-8 items-start">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-[#434654] mb-1">اسم المريض</p>
+                <h1 className="text-2xl font-semibold text-[#003d9b]">{patientName || "—"}</h1>
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-[#434654] mb-1">{followupLabels.operationTypeLabel ?? "نوع العملية"}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <Input
+                    value={operationType}
+                    onChange={(e) => setOperationType(e.target.value)}
+                    className="h-8 text-sm w-36 border-[#c3c6d6] font-bold text-[#003d9b]"
+                    placeholder="ليزك"
+                  />
+                  <button
+                    type="button"
+                    className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${operationEyes.right ? "bg-[#003d9b] text-white" : "bg-[#e1e2e4] text-[#434654]"}`}
+                    onClick={() => setOperationEyes((prev) => ({ ...prev, right: !prev.right }))}
+                  >OD</button>
+                  <button
+                    type="button"
+                    className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${operationEyes.left ? "bg-[#003d9b] text-white" : "bg-[#e1e2e4] text-[#434654]"}`}
+                    onClick={() => setOperationEyes((prev) => ({ ...prev, left: !prev.left }))}
+                  >OS</button>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-[#434654] mb-1">{followupLabels.operationDateLabel ?? "تاريخ العملية"}</p>
+                <div className="flex gap-2">
+                  <DateInput value={operationDateRight} onChange={(e) => setOperationDateRight(e.target.value)} className="h-8 w-32 text-sm border-[#c3c6d6]" />
+                  <DateInput value={operationDateLeft} onChange={(e) => setOperationDateLeft(e.target.value)} className="h-8 w-32 text-sm border-[#c3c6d6]" />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Followup cards */}
+          <div className="followup-print-root grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {followups.map((f, idx) => (
+              <article key={f.id} className="bg-white border border-[#c3c6d6] rounded-xl overflow-hidden shadow-sm">
+                {/* Card header */}
+                <div className={`px-4 py-3 border-b border-[#c3c6d6] flex justify-between items-center ${idx === 0 ? "bg-[#003d9b]/5" : "bg-[#edeef0]/40"}`}>
+                  <div className="flex items-center gap-2">
+                    <span className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold text-white ${idx === 0 ? "bg-[#003d9b]" : "bg-[#737685]"}`}>{idx + 1}</span>
                     <Input
                       value={f.type}
-                      onChange={(e) =>
-                        setFollowups((prev) =>
-                          prev.map((x) =>
-                            x.id === f.id ? { ...x, type: e.target.value } : x,
-                          ),
-                        )
-                      }
-                      className="h-7 text-xs"
+                      onChange={(e) => setFollowups((prev) => prev.map((x) => x.id === f.id ? { ...x, type: e.target.value } : x))}
+                      className="h-7 text-sm font-semibold border-0 bg-transparent focus:bg-white focus:border-[#003d9b] w-44"
                     />
-                  </td>
-                  <td
-                    colSpan={3}
-                    className="border border-black/50 border-r-0 px-1 py-0.5 print:py-0 text-center"
-                  >
-                    {followupLabels.followupDateLabel}{" "}
-                    <DateInput
-                      value={f.date}
-                      onChange={(e) =>
-                        setFollowups((prev) =>
-                          prev.map((x) =>
-                            x.id === f.id ? { ...x, date: e.target.value } : x,
-                          ),
-                        )
-                      }
-                      className="inline-block w-32 h-7 text-xs mx-1"
-                    />
-                  </td>
-                </tr>
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="border border-black/50 py-0.5 text-center font-semibold"
-                  >
-                    Dominant eye _____________
-                  </td>
-                </tr>
-                <tr>
-                  <td
-                    colSpan={2}
-                    className="border border-black/50 py-0.5"
-                  ></td>
-                  <td
-                    colSpan={3}
-                    className="border border-black/50 py-0.5 text-center font-semibold"
-                  >
-                    OD
-                  </td>
-                  <td
-                    colSpan={3}
-                    className="border border-black/50 border-r-0 py-0.5 text-center font-semibold"
-                  >
-                    OS
-                  </td>
-                </tr>
-                <tr>
-                  <td
-                    colSpan={2}
-                    className="border border-black/50 py-1 print:py-0.5 text-center font-semibold"
-                  >
-                    {followupLabels.vaLabel}
-                  </td>
-                  <td
-                    colSpan={3}
-                    className="border border-black/50 border-r-0 py-1 print:py-0.5"
-                  ></td>
-                  <td
-                    colSpan={3}
-                    className="border border-black/50 py-1 print:py-0.5"
-                  ></td>
-                </tr>
-                <tr>
-                  <td
-                    colSpan={2}
-                    className="border border-black/50 py-1 print:py-0.5 text-center font-semibold"
-                  >
-                    {followupLabels.refractionLabel}
-                  </td>
-                  <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
-                    S
-                  </td>
-                  <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
-                    C
-                  </td>
-                  <td className="border border-black/50 border-r-0 py-1 print:py-0.5 text-center font-semibold">
-                    A
-                  </td>
-                  <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
-                    S
-                  </td>
-                  <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
-                    C
-                  </td>
-                  <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
-                    A
-                  </td>
-                </tr>
-                <tr>
-                  <td
-                    colSpan={2}
-                    className="border border-black/50 py-1 print:py-0.5"
-                  ></td>
-                  <td className="border border-black/50 border-r-0 h-8 print:h-4">
-                    &nbsp;
-                  </td>
-                  <td className="border border-black/50 h-8 print:h-4">
-                    &nbsp;
-                  </td>
-                  <td className="border border-black/50 h-8 print:h-4">
-                    &nbsp;
-                  </td>
-                  <td className="border border-black/50 h-8 print:h-4">
-                    &nbsp;
-                  </td>
-                  <td className="border border-black/50 h-8 print:h-4">
-                    &nbsp;
-                  </td>
-                  <td className="border border-black/50 h-8 print:h-4">
-                    &nbsp;
-                  </td>
-                </tr>
-                <tr>
-                  <td
-                    rowSpan={2}
-                    className="border border-black/50 py-1 print:py-0.5 text-center font-semibold"
-                  >
-                    {followupLabels.flapLabel}
-                  </td>
-                  <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
-                    {followupLabels.edgesLabel}
-                  </td>
-                  <td
-                    colSpan={6}
-                    className="border border-black/50 border-r-0 py-1 print:py-0.5"
-                  ></td>
-                </tr>
-                <tr>
-                  <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
-                    {followupLabels.bedLabel}
-                  </td>
-                  <td
-                    colSpan={6}
-                    className="border border-black/50 border-r-0 py-1 print:py-0.5"
-                  ></td>
-                </tr>
-                <tr>
-                  <td
-                    colSpan={2}
-                    className="border border-black/50 py-1 print:py-0.5 text-center font-semibold"
-                  >
-                    {followupLabels.iopLabel}
-                  </td>
-                  <td
-                    colSpan={6}
-                    className="border border-black/50 border-r-0 py-1 print:py-0.5"
-                  ></td>
-                </tr>
-                <tr>
-                  <td
-                    colSpan={2}
-                    className="border border-black/50 py-1 print:py-0.5 text-center font-semibold"
-                  >
-                    {followupLabels.treatmentLabel}
-                  </td>
-                  <td
-                    colSpan={6}
-                    className="border border-black/50 border-r-0 py-1 print:py-0.5"
-                  ></td>
-                </tr>
-                <tr>
-                  <td
-                    colSpan={2}
-                    className="border border-black/50 px-1 py-0.5 print:py-0 text-right font-semibold"
-                  >
-                    {followupLabels.receptionLabel}
-                  </td>
-                  <td
-                    colSpan={3}
-                    className="border border-black/50 px-1 py-0.5 print:py-0 text-right font-semibold"
-                  >
-                    {followupLabels.nurseLabel}
-                  </td>
-                  <td
-                    colSpan={3}
-                    className="border border-black/50 border-r-0 px-1 py-0.5 print:py-0 text-right font-semibold"
-                  >
-                    {followupLabels.doctorLabel}
-                    {signatures.doctor ? `: ${signatures.doctor}` : ""}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          ))}
-        </div>
-      </main>
+                  </div>
+                  <DateInput
+                    value={f.date}
+                    onChange={(e) => setFollowups((prev) => prev.map((x) => x.id === f.id ? { ...x, date: e.target.value } : x))}
+                    className="h-7 w-36 text-sm border-[#c3c6d6]"
+                  />
+                </div>
+
+                <div className="p-4 space-y-4">
+                  {/* Clinical data table */}
+                  <table className="w-full border-collapse border border-[#c3c6d6] text-xs rounded overflow-hidden">
+                    <thead className="bg-[#e7e8ea] text-[#434654] font-bold uppercase tracking-wider">
+                      <tr>
+                        <th className="p-2 border border-[#c3c6d6] text-center">Eye</th>
+                        <th className="p-2 border border-[#c3c6d6]">{followupLabels.vaLabel ?? "VA (U)"}</th>
+                        <th className="p-2 border border-[#c3c6d6]">Sph</th>
+                        <th className="p-2 border border-[#c3c6d6]">Cyl</th>
+                        <th className="p-2 border border-[#c3c6d6]">Axis</th>
+                        <th className="p-2 border border-[#c3c6d6]">VA (C)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr style={{ backgroundColor: "rgba(0,61,155,0.04)" }}>
+                        <td className="p-2 border border-[#c3c6d6] font-bold text-[#003d9b] text-center">OD</td>
+                        <td className="border border-[#c3c6d6] p-0"><input className="w-full h-8 text-center bg-transparent border-0 focus:ring-1 focus:ring-[#003d9b] outline-none text-xs" /></td>
+                        <td className="border border-[#c3c6d6] p-0"><input className="w-full h-8 text-center bg-transparent border-0 focus:ring-1 focus:ring-[#003d9b] outline-none text-xs" /></td>
+                        <td className="border border-[#c3c6d6] p-0"><input className="w-full h-8 text-center bg-transparent border-0 focus:ring-1 focus:ring-[#003d9b] outline-none text-xs" /></td>
+                        <td className="border border-[#c3c6d6] p-0"><input className="w-full h-8 text-center bg-transparent border-0 focus:ring-1 focus:ring-[#003d9b] outline-none text-xs" /></td>
+                        <td className="border border-[#c3c6d6] p-0"><input className="w-full h-8 text-center bg-transparent border-0 focus:ring-1 focus:ring-[#003d9b] outline-none text-xs" /></td>
+                      </tr>
+                      <tr style={{ backgroundColor: "#ffffff" }}>
+                        <td className="p-2 border border-[#c3c6d6] font-bold text-[#526069] text-center">OS</td>
+                        <td className="border border-[#c3c6d6] p-0"><input className="w-full h-8 text-center bg-transparent border-0 focus:ring-1 focus:ring-[#003d9b] outline-none text-xs" /></td>
+                        <td className="border border-[#c3c6d6] p-0"><input className="w-full h-8 text-center bg-transparent border-0 focus:ring-1 focus:ring-[#003d9b] outline-none text-xs" /></td>
+                        <td className="border border-[#c3c6d6] p-0"><input className="w-full h-8 text-center bg-transparent border-0 focus:ring-1 focus:ring-[#003d9b] outline-none text-xs" /></td>
+                        <td className="border border-[#c3c6d6] p-0"><input className="w-full h-8 text-center bg-transparent border-0 focus:ring-1 focus:ring-[#003d9b] outline-none text-xs" /></td>
+                        <td className="border border-[#c3c6d6] p-0"><input className="w-full h-8 text-center bg-transparent border-0 focus:ring-1 focus:ring-[#003d9b] outline-none text-xs" /></td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  {/* Flap + IOP */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="border border-[#c3c6d6] rounded-lg p-3">
+                      <p className="text-xs font-bold uppercase tracking-wider text-[#434654] mb-2">{followupLabels.flapLabel ?? "Flap"}</p>
+                      <div className="space-y-1.5 text-xs">
+                        <div className="flex justify-between items-center gap-2">
+                          <span className="text-[#434654]">{followupLabels.edgesLabel ?? "Edges"}:</span>
+                          <input className="border border-[#c3c6d6] rounded px-2 py-1 w-20 text-xs focus:ring-1 focus:ring-[#003d9b] outline-none" />
+                        </div>
+                        <div className="flex justify-between items-center gap-2">
+                          <span className="text-[#434654]">{followupLabels.bedLabel ?? "Bed"}:</span>
+                          <input className="border border-[#c3c6d6] rounded px-2 py-1 w-20 text-xs focus:ring-1 focus:ring-[#003d9b] outline-none" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="border border-[#c3c6d6] rounded-lg p-3">
+                      <p className="text-xs font-bold uppercase tracking-wider text-[#434654] mb-2">{followupLabels.iopLabel ?? "IOP"}</p>
+                      <div className="flex items-center gap-2">
+                        <input className="border border-[#c3c6d6] rounded text-center h-8 w-16 text-xs outline-none focus:ring-1 focus:ring-[#003d9b]" placeholder="OD" />
+                        <input className="border border-[#c3c6d6] rounded text-center h-8 w-16 text-xs outline-none focus:ring-1 focus:ring-[#003d9b]" placeholder="OS" />
+                        <span className="text-xs text-[#434654]">mmHg</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Treatment / Notes */}
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-[#434654] mb-1">{followupLabels.treatmentLabel ?? "ملاحظات وعلاج"}</p>
+                    <textarea className="w-full h-14 border border-[#c3c6d6] rounded-lg p-2 text-xs focus:ring-1 focus:ring-[#003d9b] focus:outline-none resize-none" />
+                  </div>
+
+                  {/* Signatures */}
+                  <div className="flex justify-between text-xs text-[#434654] pt-3 border-t border-dashed border-[#c3c6d6]">
+                    <div className="flex flex-col items-center gap-1">
+                      <span>{followupLabels.receptionLabel ?? "الاستقبال"}</span>
+                      <div className="w-20 border-b border-[#737685] h-5" />
+                    </div>
+                    <div className="flex flex-col items-center gap-1">
+                      <span>{followupLabels.nurseLabel ?? "التمريض"}</span>
+                      <div className="w-20 border-b border-[#737685] h-5" />
+                    </div>
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-[#003d9b] font-bold">{followupLabels.doctorLabel ?? "الطبيب"}</span>
+                      <div className="w-20 border-b border-[#003d9b] h-5 flex items-end justify-center">
+                        <span className="text-[10px] text-[#003d9b] italic">{signatures.doctor}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

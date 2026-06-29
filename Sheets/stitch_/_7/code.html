@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="ar"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>إدارة المتابعات | OphthalmicPro</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-highest": "#e1e2e4",
+                    "on-secondary-fixed": "#0f1d25",
+                    "on-error-container": "#93000a",
+                    "surface-bright": "#f8f9fb",
+                    "outline": "#737685",
+                    "on-primary": "#ffffff",
+                    "inverse-surface": "#2e3132",
+                    "outline-variant": "#c3c6d6",
+                    "on-error": "#ffffff",
+                    "secondary-fixed": "#d6e5ef",
+                    "surface-container-lowest": "#ffffff",
+                    "tertiary": "#004b58",
+                    "secondary-container": "#d3e2ed",
+                    "on-tertiary-container": "#70e2ff",
+                    "error": "#ba1a1a",
+                    "tertiary-fixed-dim": "#5dd6f3",
+                    "tertiary-fixed": "#adecff",
+                    "on-primary-fixed-variant": "#0040a2",
+                    "surface-container-low": "#f3f4f6",
+                    "on-primary-fixed": "#001848",
+                    "on-tertiary-fixed": "#001f26",
+                    "primary-fixed": "#dae2ff",
+                    "inverse-on-surface": "#f0f1f3",
+                    "on-background": "#191c1e",
+                    "surface-container": "#edeef0",
+                    "on-tertiary": "#ffffff",
+                    "surface": "#f8f9fb",
+                    "on-secondary-container": "#56656e",
+                    "secondary-fixed-dim": "#bac9d3",
+                    "on-primary-container": "#c4d2ff",
+                    "error-container": "#ffdad6",
+                    "background": "#f8f9fb",
+                    "surface-tint": "#0c56d0",
+                    "surface-dim": "#d9dadc",
+                    "on-secondary": "#ffffff",
+                    "on-surface-variant": "#434654",
+                    "primary-fixed-dim": "#b2c5ff",
+                    "surface-container-high": "#e7e8ea",
+                    "primary": "#003d9b",
+                    "on-tertiary-fixed-variant": "#004e5d",
+                    "tertiary-container": "#006476",
+                    "on-secondary-fixed-variant": "#3b4951",
+                    "on-surface": "#191c1e",
+                    "primary-container": "#0052cc",
+                    "inverse-primary": "#b2c5ff",
+                    "surface-variant": "#e1e2e4",
+                    "secondary": "#526069"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "base": "8px",
+                    "gutter": "16px",
+                    "section-margin": "32px",
+                    "container-padding": "24px",
+                    "element-gap": "12px"
+            },
+            "fontFamily": {
+                    "body-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "headline-sm": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "label-caps": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "data-mono": ["Inter"]
+            },
+            "fontSize": {
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                    "data-mono": ["14px", {"lineHeight": "20px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+        }
+        .clinical-card {
+            background: white;
+            border: 1px solid #E1E4E8;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .expandable-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .od-badge { background-color: rgba(0, 61, 155, 0.05); color: #003d9b; }
+        .os-badge { background-color: rgba(82, 96, 105, 0.05); color: #526069; }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md min-h-screen flex">
+<!-- SideNavBar -->
+<aside class="hidden md:flex h-screen w-64 flex-col sticky top-0 bg-surface-container-low border-l border-outline-variant shadow-sm z-50">
+<div class="p-base space-y-element-gap flex flex-col h-full">
+<div class="flex items-center gap-3 px-2 py-4 mb-4">
+<div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined">visibility</span>
+</div>
+<div>
+<h1 class="font-headline-sm text-headline-sm font-bold text-primary">City Eye Center</h1>
+<p class="text-[11px] uppercase tracking-wider text-secondary">Medical Suite</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-on-secondary-container hover:bg-secondary-container transition-all cursor-pointer active:translate-x-1 font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-secondary-container hover:bg-secondary-container transition-all cursor-pointer active:translate-x-1 font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">person_search</span>
+<span>Patient Records</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-secondary-container hover:bg-secondary-container transition-all cursor-pointer active:translate-x-1 font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">visibility</span>
+<span>Exams</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-primary-container text-on-primary-container font-bold rounded-lg cursor-pointer active:translate-x-1 font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">event_repeat</span>
+<span>Follow-ups</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-secondary-container hover:bg-secondary-container transition-all cursor-pointer active:translate-x-1 font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">biotech</span>
+<span>Surgery Planner</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-secondary-container hover:bg-secondary-container transition-all cursor-pointer active:translate-x-1 font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">description</span>
+<span>Reports</span>
+</a>
+</nav>
+<div class="mt-auto pt-4 border-t border-outline-variant space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-on-secondary-container hover:bg-secondary-container transition-all cursor-pointer font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">support_agent</span>
+<span>Support</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-secondary-container hover:bg-secondary-container transition-all cursor-pointer font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span>Logout</span>
+</a>
+</div>
+</div>
+</aside>
+<div class="flex-1 flex flex-col min-w-0 bg-background">
+<!-- TopNavBar -->
+<header class="flex justify-between items-center px-gutter w-full h-16 sticky top-0 z-50 bg-surface border-b border-outline-variant">
+<div class="flex items-center gap-4 flex-1">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container border-none rounded-lg focus:ring-2 focus:ring-primary text-body-md font-body-md" placeholder="بحث عن مريض بالاسم أو الكود..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4 mr-gutter">
+<div class="flex gap-2">
+<button class="p-2 text-primary hover:bg-surface-container-low transition-colors rounded-full cursor-pointer active:scale-95">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-primary hover:bg-surface-container-low transition-colors rounded-full cursor-pointer active:scale-95">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<button class="p-2 text-primary hover:bg-surface-container-low transition-colors rounded-full cursor-pointer active:scale-95">
+<span class="material-symbols-outlined">help</span>
+</button>
+</div>
+<div class="h-8 w-[1px] bg-outline-variant"></div>
+<div class="flex items-center gap-3 px-2">
+<div class="text-left hidden lg:block">
+<p class="font-bold text-body-md text-primary">د. أحمد خالد</p>
+<p class="text-[10px] text-secondary">جراحة عيون</p>
+</div>
+<div class="w-10 h-10 rounded-full border-2 border-primary-container overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a middle-aged male doctor wearing a clean white lab coat and a stethoscope around his neck. He has a friendly, trustworthy expression and is set against a blurred clinic background with soft, natural lighting that emphasizes a corporate and clinical aesthetic. The lighting is high-key, aligning with a professional medical dashboard theme." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA8WION8fMV54FN5dqFPujxamruFjlbiNPs3lelG0p4c678RvdyOlU4zHyuwL63QJLhVt9gZvTpqBka5qf5to0KgTmH73XKwJiTJJ9WWetiaGhLI1yu9Exwxn52quy1rdoSLqKwC1j6LJzQM6ko7ojeKbPGrwwLIUewM2Cf3kRh_8eWSnDzWSr3-NvdWLJ-zXr5GR-gXxh0RF81tVmE1v2DtE-Y_rLEKurDHpAlLEuIi7T8u_oqOd9wYZrQ6gU1DmM18xUQjsk65p0H"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 p-gutter lg:p-container-padding max-w-[1280px] mx-auto w-full space-y-section-margin">
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div>
+<h2 class="font-headline-md text-headline-md text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">calendar_month</span>
+                        المتابعات
+                    </h2>
+<p class="text-secondary mt-1">إدارة وجدولة مواعيد متابعة المرضى</p>
+</div>
+<button class="bg-primary text-on-primary px-6 py-2.5 rounded-lg font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-95 shadow-md">
+<span class="material-symbols-outlined">add</span>
+<span>متابعة جديدة</span>
+</button>
+</div>
+<!-- Stats Row -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<div class="clinical-card p-container-padding rounded-xl flex items-center justify-between">
+<div>
+<p class="text-secondary font-label-caps uppercase mb-1">إجمالي المتابعات</p>
+<h3 class="text-display-lg font-display-lg text-on-background">١,٢٤٨</h3>
+<p class="text-[12px] text-green-600 flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+<span>+١٢٪ عن الشهر الماضي</span>
+</p>
+</div>
+<div class="w-14 h-14 rounded-full bg-primary-fixed flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[32px]">group</span>
+</div>
+</div>
+<div class="clinical-card p-container-padding rounded-xl flex items-center justify-between">
+<div>
+<p class="text-secondary font-label-caps uppercase mb-1">متابعة هذا الأسبوع</p>
+<h3 class="text-display-lg font-display-lg text-on-background">٥٢</h3>
+<p class="text-[12px] text-on-secondary-container flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[14px]">event_available</span>
+<span>مواعيد مؤكدة</span>
+</p>
+</div>
+<div class="w-14 h-14 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed-variant">
+<span class="material-symbols-outlined text-[32px]">calendar_today</span>
+</div>
+</div>
+<div class="clinical-card p-container-padding rounded-xl flex items-center justify-between border-error/20">
+<div>
+<p class="text-secondary font-label-caps uppercase mb-1">متأخرة</p>
+<h3 class="text-display-lg font-display-lg text-error">٨</h3>
+<p class="text-[12px] text-error flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[14px]">warning</span>
+<span>تحتاج تواصل فوري</span>
+</p>
+</div>
+<div class="w-14 h-14 rounded-full bg-error-container flex items-center justify-center text-on-error-container">
+<span class="material-symbols-outlined text-[32px]">pending_actions</span>
+</div>
+</div>
+</div>
+<!-- Filter and Search Bar -->
+<div class="flex flex-col lg:flex-row items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-outline-variant">
+<div class="flex flex-wrap items-center gap-2 flex-1">
+<button class="px-4 py-2 rounded-lg bg-primary text-on-primary font-bold text-body-md transition-all">الكل</button>
+<button class="px-4 py-2 rounded-lg bg-surface-container text-on-surface-variant font-medium text-body-md hover:bg-surface-container-high transition-all">قادمة</button>
+<button class="px-4 py-2 rounded-lg bg-surface-container text-on-surface-variant font-medium text-body-md hover:bg-surface-container-high transition-all">مكتملة</button>
+<button class="px-4 py-2 rounded-lg bg-surface-container text-on-surface-variant font-medium text-body-md hover:bg-surface-container-high transition-all">متأخرة</button>
+</div>
+<div class="relative w-full lg:w-96">
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full pr-10 pl-4 py-2 border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-body-md" placeholder="بحث باسم المريض أو الكود الرقمي..." type="text"/>
+</div>
+</div>
+<!-- Patient Cards List -->
+<div class="space-y-4">
+<!-- Card 1 (Expanded Example) -->
+<div class="clinical-card rounded-xl overflow-hidden expandable-card" id="card-1">
+<div class="flex flex-col md:flex-row items-center p-4 gap-4 cursor-pointer hover:bg-surface-bright transition-colors" onclick="toggleCard('card-1')">
+<div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-primary flex-shrink-0">
+<span class="material-symbols-outlined text-[28px]">account_circle</span>
+</div>
+<div class="flex-1 text-center md:text-right">
+<h4 class="font-headline-sm text-headline-sm text-on-background">أحمد محمد السيد <span class="text-body-md font-normal text-secondary">(PAT-44021)</span></h4>
+<p class="text-body-md text-secondary mt-1 flex items-center justify-center md:justify-start gap-1">
+<span class="material-symbols-outlined text-[18px]">event</span>
+                                الأحد، ٢٤ أكتوبر ٢٠٢٣
+                            </p>
+</div>
+<div class="flex items-center gap-3">
+<span class="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-[12px] font-bold">قادمة</span>
+<span class="px-3 py-1 rounded-full bg-surface-container-highest text-on-surface-variant text-[12px] font-bold">ليزك</span>
+<span class="material-symbols-outlined text-outline transition-transform chevron-icon">expand_more</span>
+</div>
+</div>
+<!-- Expanded Section -->
+<div class="border-t border-outline-variant bg-surface-bright p-gutter space-y-6 hidden-content transition-all" id="content-1">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Vision & IOP Section -->
+<div class="space-y-4">
+<div>
+<h5 class="font-bold text-primary mb-3 flex items-center gap-2">
+<span class="material-symbols-outlined">visibility</span>
+                                        حدة الإبصار (Visual Acuity)
+                                    </h5>
+<div class="flex gap-4">
+<div class="flex-1 bg-white p-3 rounded-lg border border-outline-variant">
+<p class="text-[10px] text-secondary uppercase font-bold mb-1">العين اليمنى (OD)</p>
+<p class="text-body-lg font-data-mono">6/9</p>
+</div>
+<div class="flex-1 bg-white p-3 rounded-lg border border-outline-variant">
+<p class="text-[10px] text-secondary uppercase font-bold mb-1">العين اليسرى (OS)</p>
+<p class="text-body-lg font-data-mono">6/6</p>
+</div>
+</div>
+</div>
+<div>
+<h5 class="font-bold text-primary mb-3 flex items-center gap-2">
+<span class="material-symbols-outlined">compress</span>
+                                        ضغط العين (IOP)
+                                    </h5>
+<div class="flex gap-4">
+<div class="flex-1 bg-white p-3 rounded-lg border border-outline-variant">
+<p class="text-[10px] text-secondary uppercase font-bold mb-1">العين اليمنى (OD)</p>
+<p class="text-body-lg font-data-mono">14 mmHg</p>
+</div>
+<div class="flex-1 bg-white p-3 rounded-lg border border-outline-variant">
+<p class="text-[10px] text-secondary uppercase font-bold mb-1">العين اليسرى (OS)</p>
+<p class="text-body-lg font-data-mono">15 mmHg</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Treatment & Notes Section -->
+<div class="space-y-4">
+<div>
+<h5 class="font-bold text-primary mb-3 flex items-center gap-2">
+<span class="material-symbols-outlined">medication</span>
+                                        العلاج (Treatment)
+                                    </h5>
+<div class="bg-white p-4 rounded-lg border border-outline-variant min-h-[80px]">
+<p class="text-body-md text-on-surface leading-relaxed">
+                                            - قطرة ترطيب (Systane Ultra) ٤ مرات يومياً.<br/>
+                                            - تجنب استخدام الشاشات لفترات طويلة.
+                                        </p>
+</div>
+</div>
+<div>
+<h5 class="font-bold text-primary mb-3 flex items-center gap-2">
+<span class="material-symbols-outlined">sticky_note_2</span>
+                                        الملاحظات (Notes)
+                                    </h5>
+<div class="bg-white p-4 rounded-lg border border-outline-variant min-h-[80px]">
+<p class="text-body-md text-on-surface italic">
+                                            المريض يعاني من جفاف طفيف في العين اليمنى بعد العملية، يتم المتابعة للتأكد من استقرار الحالة.
+                                        </p>
+</div>
+</div>
+</div>
+</div>
+<div class="flex justify-end gap-3 pt-4 border-t border-outline-variant">
+<button class="px-4 py-2 text-primary font-bold hover:bg-primary-container/10 rounded-lg transition-colors">تعديل المتابعة</button>
+<button class="px-4 py-2 bg-primary text-on-primary font-bold rounded-lg hover:opacity-90 shadow-sm transition-all">حفظ التغييرات</button>
+</div>
+</div>
+</div>
+<!-- Card 2 (Completed Status) -->
+<div class="clinical-card rounded-xl overflow-hidden expandable-card" id="card-2">
+<div class="flex flex-col md:flex-row items-center p-4 gap-4 cursor-pointer hover:bg-surface-bright transition-colors" onclick="toggleCard('card-2')">
+<div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-primary flex-shrink-0">
+<span class="material-symbols-outlined text-[28px]">account_circle</span>
+</div>
+<div class="flex-1 text-center md:text-right">
+<h4 class="font-headline-sm text-headline-sm text-on-background">فاطمة الزهراء علي <span class="text-body-md font-normal text-secondary">(PAT-39821)</span></h4>
+<p class="text-body-md text-secondary mt-1 flex items-center justify-center md:justify-start gap-1">
+<span class="material-symbols-outlined text-[18px]">event</span>
+                                الخميس، ٢١ أكتوبر ٢٠٢٣
+                            </p>
+</div>
+<div class="flex items-center gap-3">
+<span class="px-3 py-1 rounded-full bg-green-100 text-green-700 text-[12px] font-bold">مكتملة</span>
+<span class="px-3 py-1 rounded-full bg-surface-container-highest text-on-surface-variant text-[12px] font-bold">استشارة</span>
+<span class="material-symbols-outlined text-outline transition-transform chevron-icon">expand_more</span>
+</div>
+</div>
+<div class="border-t border-outline-variant bg-surface-bright p-gutter hidden" id="content-2">
+<div class="text-center py-8 text-secondary">
+                            جاري تحميل تفاصيل المتابعة المكتملة...
+                        </div>
+</div>
+</div>
+<!-- Card 3 (Overdue Status) -->
+<div class="clinical-card rounded-xl overflow-hidden border-error/30 expandable-card" id="card-3">
+<div class="flex flex-col md:flex-row items-center p-4 gap-4 cursor-pointer hover:bg-surface-bright transition-colors" onclick="toggleCard('card-3')">
+<div class="w-12 h-12 rounded-full bg-error-container/20 flex items-center justify-center text-error flex-shrink-0">
+<span class="material-symbols-outlined text-[28px]">person_off</span>
+</div>
+<div class="flex-1 text-center md:text-right">
+<h4 class="font-headline-sm text-headline-sm text-on-background">ياسين محمود حسن <span class="text-body-md font-normal text-secondary">(PAT-45002)</span></h4>
+<p class="text-body-md text-error mt-1 flex items-center justify-center md:justify-start gap-1">
+<span class="material-symbols-outlined text-[18px]">event_busy</span>
+                                الثلاثاء، ١٩ أكتوبر ٢٠٢٣
+                            </p>
+</div>
+<div class="flex items-center gap-3">
+<span class="px-3 py-1 rounded-full bg-error-container text-error text-[12px] font-bold">متأخرة</span>
+<span class="px-3 py-1 rounded-full bg-surface-container-highest text-on-surface-variant text-[12px] font-bold">ليزك</span>
+<span class="material-symbols-outlined text-outline transition-transform chevron-icon">expand_more</span>
+</div>
+</div>
+<div class="border-t border-outline-variant bg-surface-bright p-gutter hidden" id="content-3">
+<div class="bg-error-container/10 p-4 rounded-lg mb-4 flex items-start gap-3">
+<span class="material-symbols-outlined text-error">info</span>
+<div>
+<p class="font-bold text-error">تنبيه: تأخر الموعد</p>
+<p class="text-body-md text-on-error-container">يرجى الاتصال بالمريض لتأكيد موعد بديل نظراً لتأخر موعد المتابعة الدوري المخصص لما بعد العملية.</p>
+</div>
+</div>
+<div class="flex justify-end">
+<button class="bg-error text-on-error px-6 py-2 rounded-lg font-bold flex items-center gap-2 hover:opacity-90 active:scale-95 shadow-sm">
+<span class="material-symbols-outlined">call</span>
+<span>اتصال بالمريض</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Script for Interactions -->
+<script>
+        function toggleCard(id) {
+            const contentId = id.replace('card-', 'content-');
+            const card = document.getElementById(id);
+            const content = document.getElementById(contentId);
+            const chevron = card.querySelector('.chevron-icon');
+            
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                chevron.style.transform = 'rotate(180deg)';
+                card.classList.add('ring-2', 'ring-primary/20', 'shadow-lg');
+            } else {
+                content.classList.add('hidden');
+                chevron.style.transform = 'rotate(0deg)';
+                card.classList.remove('ring-2', 'ring-primary/20', 'shadow-lg');
+            }
+        }
+
+        // Initialize first card as expanded for demonstration
+        document.addEventListener('DOMContentLoaded', () => {
+            // Already expanded by default in the static HTML structure logic if not hidden
+            // But we ensure it works correctly here
+            const firstContent = document.getElementById('content-1');
+            const firstChevron = document.querySelector('#card-1 .chevron-icon');
+            firstContent.classList.remove('hidden');
+            firstChevron.style.transform = 'rotate(180deg)';
+            document.getElementById('card-1').classList.add('ring-2', 'ring-primary/20', 'shadow-lg');
+        });
+    </script>
+</body></html>

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="ar"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>تقرير طبي شامل | Ophthalmic Clinical Portal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary-fixed-dim": "#bac9d3",
+                    "surface-bright": "#f8f9fb",
+                    "inverse-primary": "#b2c5ff",
+                    "tertiary": "#004b58",
+                    "primary": "#003d9b",
+                    "outline": "#737685",
+                    "on-surface-variant": "#434654",
+                    "surface-container-highest": "#e1e2e4",
+                    "surface-container-high": "#e7e8ea",
+                    "surface": "#f8f9fb",
+                    "on-error": "#ffffff",
+                    "surface-dim": "#d9dadc",
+                    "primary-container": "#0052cc",
+                    "error-container": "#ffdad6",
+                    "on-tertiary-fixed-variant": "#004e5d",
+                    "surface-container-low": "#f3f4f6",
+                    "tertiary-container": "#006476",
+                    "on-tertiary": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "on-secondary": "#ffffff",
+                    "on-secondary-fixed-variant": "#3b4951",
+                    "surface-container": "#edeef0",
+                    "secondary": "#526069",
+                    "tertiary-fixed-dim": "#5dd6f3",
+                    "on-tertiary-container": "#70e2ff",
+                    "on-primary-fixed": "#001848",
+                    "surface-tint": "#0c56d0",
+                    "outline-variant": "#c3c6d6",
+                    "inverse-surface": "#2e3132",
+                    "on-primary": "#ffffff",
+                    "inverse-on-surface": "#f0f1f3",
+                    "surface-variant": "#e1e2e4",
+                    "on-primary-fixed-variant": "#0040a2",
+                    "on-background": "#191c1e",
+                    "secondary-fixed": "#d6e5ef",
+                    "error": "#ba1a1a",
+                    "secondary-container": "#d3e2ed",
+                    "on-primary-container": "#c4d2ff",
+                    "primary-fixed": "#dae2ff",
+                    "on-secondary-fixed": "#0f1d25",
+                    "on-secondary-container": "#56656e",
+                    "on-surface": "#191c1e",
+                    "background": "#f8f9fb",
+                    "tertiary-fixed": "#adecff",
+                    "on-tertiary-fixed": "#001f26",
+                    "surface-container-lowest": "#ffffff",
+                    "primary-fixed-dim": "#b2c5ff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "16px",
+                    "container-padding": "24px",
+                    "section-margin": "32px",
+                    "base": "8px",
+                    "element-gap": "12px"
+            },
+            "fontFamily": {
+                    "body-md": ["Inter"],
+                    "headline-sm": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "label-caps": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "data-mono": ["Inter"]
+            },
+            "fontSize": {
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "data-mono": ["14px", {"lineHeight": "20px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+        }
+        @media print {
+            body { background-color: white; }
+            .no-print { display: none; }
+            .print-container {
+                width: 210mm;
+                min-height: 297mm;
+                padding: 20mm;
+                margin: 0;
+                box-shadow: none;
+            }
+            @page {
+                size: A4;
+                margin: 0;
+            }
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .od-bg { background-color: rgba(0, 61, 155, 0.03); }
+        .os-bg { background-color: transparent; }
+    </style>
+</head>
+<body class="bg-surface-container-low min-h-screen py-10 flex flex-col items-center">
+<!-- Top Navigation Bar (JSON Anchor Mapping) -->
+<header class="no-print fixed top-0 left-0 right-0 z-50 bg-surface-container-lowest border-b border-outline-variant shadow-sm h-16 flex items-center px-container-padding">
+<div class="max-w-[210mm] mx-auto w-full flex justify-between items-center">
+<div class="flex items-center gap-4">
+<span class="text-headline-md font-headline-md font-bold text-primary tracking-tight">Ophthalmic Clinical Portal</span>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 bg-primary text-on-primary px-4 py-2 rounded-lg font-label-caps hover:bg-primary-container transition-all active:scale-95" onclick="window.print()">
+<span class="material-symbols-outlined" data-icon="print">print</span>
+                    Print Report
+                </button>
+<div class="flex gap-2">
+<button class="p-2 hover:bg-surface-container-high rounded-full text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined" data-icon="download">download</span>
+</button>
+<button class="p-2 hover:bg-surface-container-high rounded-full text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined" data-icon="share">share</span>
+</button>
+<button class="p-2 hover:bg-surface-container-high rounded-full text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</div>
+</div>
+</header>
+<!-- Report Container (A4 Optimized) -->
+<main class="print-container w-[210mm] min-h-[297mm] bg-surface-container-lowest shadow-xl mt-12 p-[15mm] flex flex-col gap-6 relative overflow-hidden">
+<!-- Clinic Header -->
+<div class="flex justify-between items-start border-b-2 border-primary pb-4">
+<div class="flex gap-4">
+<div class="w-16 h-16 bg-primary rounded-lg flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined text-[40px]" data-icon="visibility">visibility</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md text-primary">City Eye Center Medical Suite</h1>
+<p class="font-body-md text-body-md text-secondary">مركز سيتي للعيون - المجمع الطبي</p>
+<p class="font-label-caps text-label-caps text-outline-variant mt-1">Reg No: 1029384756 | Ophthalmology Dept.</p>
+</div>
+</div>
+<div class="text-left font-body-md text-body-md text-on-surface-variant">
+<p>Building 42, Health Plaza, Downtown</p>
+<p>+966 11 000 0000</p>
+<p>contact@cityeyecenter.med</p>
+</div>
+</div>
+<!-- Document Title -->
+<div class="text-center py-2 bg-surface-container-low rounded-lg">
+<h2 class="font-headline-sm text-headline-sm text-primary">تقرير طبي شامل (Comprehensive Clinical Report)</h2>
+</div>
+<!-- Patient Information Section -->
+<div class="grid grid-cols-3 gap-y-4 gap-x-8 p-4 border border-outline-variant rounded-xl">
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-secondary">اسم المريض / Patient Name</span>
+<span class="font-data-mono text-data-mono text-on-surface">Ahmed bin Mohammed Al-Farsi</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-secondary">رقم الملف / Patient ID</span>
+<span class="font-data-mono text-data-mono text-on-surface">#CEC-2024-9981</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-secondary">تاريخ الفحص / Exam Date</span>
+<span class="font-data-mono text-data-mono text-on-surface">24/05/2024</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-secondary">العمر / Age</span>
+<span class="font-data-mono text-data-mono text-on-surface">45 Years</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-secondary">الجنس / Gender</span>
+<span class="font-data-mono text-data-mono text-on-surface">Male (ذكر)</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-secondary">الطبيب المحول / Referring Physician</span>
+<span class="font-data-mono text-data-mono text-on-surface">Dr. Sarah Khalid</span>
+</div>
+</div>
+<!-- Medical History -->
+<section>
+<h3 class="font-label-caps text-label-caps text-primary border-r-4 border-primary pr-2 mb-3">التاريخ الطبي (Medical History)</h3>
+<div class="grid grid-cols-3 gap-4">
+<div class="bg-surface-container p-3 rounded-lg">
+<p class="font-label-caps text-label-caps text-secondary mb-1">أمراض مزمنة / Chronic Diseases</p>
+<p class="font-body-md text-body-md">Diabetes Mellitus Type II (Controlled), Hypertension.</p>
+</div>
+<div class="bg-surface-container p-3 rounded-lg">
+<p class="font-label-caps text-label-caps text-secondary mb-1">جراحات سابقة / Previous Surgeries</p>
+<p class="font-body-md text-body-md">LASIK Surgery (2012), Left Eye.</p>
+</div>
+<div class="bg-surface-container p-3 rounded-lg">
+<p class="font-label-caps text-label-caps text-secondary mb-1">الحساسية / Allergies</p>
+<p class="font-body-md text-body-md text-error">Penicillin, Pollen.</p>
+</div>
+</div>
+</section>
+<!-- Examination Results: Visual Acuity & Autorefraction -->
+<section class="grid grid-cols-2 gap-6">
+<!-- Visual Acuity -->
+<div>
+<h3 class="font-label-caps text-label-caps text-primary border-r-4 border-primary pr-2 mb-3">حدة الإبصار (Visual Acuity)</h3>
+<table class="w-full border-collapse border border-outline-variant">
+<thead>
+<tr class="bg-surface-container-high font-label-caps text-label-caps">
+<th class="border border-outline-variant p-2">Eye</th>
+<th class="border border-outline-variant p-2">UCVA</th>
+<th class="border border-outline-variant p-2">BCVA</th>
+</tr>
+</thead>
+<tbody class="font-data-mono text-data-mono text-center">
+<tr class="od-bg">
+<td class="border border-outline-variant p-2 font-bold text-primary">OD (اليمنى)</td>
+<td class="border border-outline-variant p-2">20/60</td>
+<td class="border border-outline-variant p-2">20/20</td>
+</tr>
+<tr class="os-bg">
+<td class="border border-outline-variant p-2 font-bold text-secondary">OS (اليسرى)</td>
+<td class="border border-outline-variant p-2">20/80</td>
+<td class="border border-outline-variant p-2">20/25</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Autorefraction -->
+<div>
+<h3 class="font-label-caps text-label-caps text-primary border-r-4 border-primary pr-2 mb-3">قياس الانكسار (Autorefraction)</h3>
+<table class="w-full border-collapse border border-outline-variant">
+<thead>
+<tr class="bg-surface-container-high font-label-caps text-label-caps">
+<th class="border border-outline-variant p-2">Eye</th>
+<th class="border border-outline-variant p-2">S (Sph)</th>
+<th class="border border-outline-variant p-2">C (Cyl)</th>
+<th class="border border-outline-variant p-2">A (Axis)</th>
+</tr>
+</thead>
+<tbody class="font-data-mono text-data-mono text-center">
+<tr class="od-bg">
+<td class="border border-outline-variant p-2 font-bold text-primary">OD</td>
+<td class="border border-outline-variant p-2">-1.25 D</td>
+<td class="border border-outline-variant p-2">-0.50 D</td>
+<td class="border border-outline-variant p-2">175°</td>
+</tr>
+<tr class="os-bg">
+<td class="border border-outline-variant p-2 font-bold text-secondary">OS</td>
+<td class="border border-outline-variant p-2">-1.75 D</td>
+<td class="border border-outline-variant p-2">-0.75 D</td>
+<td class="border border-outline-variant p-2">10°</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Tonometry & Fundus -->
+<section class="grid grid-cols-3 gap-6">
+<div class="col-span-1">
+<h3 class="font-label-caps text-label-caps text-primary border-r-4 border-primary pr-2 mb-3">ضغط العين (IOP)</h3>
+<div class="p-4 border border-outline-variant rounded-lg space-y-3">
+<div class="flex justify-between items-center od-bg p-2 rounded">
+<span class="font-bold text-primary">OD:</span>
+<span class="font-data-mono text-xl text-on-surface">14 <span class="text-xs">mmHg</span></span>
+</div>
+<div class="flex justify-between items-center os-bg p-2 rounded border border-outline-variant">
+<span class="font-bold text-secondary">OS:</span>
+<span class="font-data-mono text-xl text-on-surface">16 <span class="text-xs">mmHg</span></span>
+</div>
+<p class="text-[10px] text-outline text-center uppercase tracking-widest mt-2">Method: Goldmann Applanation</p>
+</div>
+</div>
+<div class="col-span-2">
+<h3 class="font-label-caps text-label-caps text-primary border-r-4 border-primary pr-2 mb-3">فحص قاع العين (Fundus Exam)</h3>
+<div class="p-4 border border-outline-variant rounded-lg h-32 bg-surface-container-low overflow-y-auto">
+<p class="font-body-md text-body-md leading-relaxed">
+<strong class="text-primary">OD:</strong> Normal optic disc margins, healthy neuroretinal rim. Cup-to-disc ratio 0.3. No signs of diabetic retinopathy. Macula is clear.<br/>
+<strong class="text-secondary">OS:</strong> Disc margins clear. No hemorrhage observed. Background vessels show mild arteriolar narrowing. Peripheral retina intact.
+                    </p>
+</div>
+</div>
+</section>
+<!-- Clinical Notes & Diagnosis -->
+<section>
+<h3 class="font-label-caps text-label-caps text-primary border-r-4 border-primary pr-2 mb-3">التشخيص والخطة العلاجية (Diagnosis &amp; Plan)</h3>
+<div class="p-6 border-2 border-primary/20 rounded-xl bg-primary/5 min-h-32">
+<div class="mb-4">
+<span class="font-label-caps text-label-caps bg-primary text-on-primary px-2 py-0.5 rounded">Diagnosis</span>
+<p class="font-headline-sm text-headline-sm mt-2">Mild Myopia with Astigmatism &amp; Ocular Surface Disease (Dry Eye Syndrome).</p>
+</div>
+<div>
+<span class="font-label-caps text-label-caps bg-secondary text-on-secondary px-2 py-0.5 rounded">Treatment Plan</span>
+<ul class="list-disc list-inside mt-2 font-body-md text-body-md space-y-1">
+<li>Prescribed corrective spectacles for permanent wear.</li>
+<li>Lubricating eye drops (Artificial Tears) - 4 times daily.</li>
+<li>Eyelid hygiene twice daily (Warm Compress).</li>
+<li>Maintain blood sugar levels as recommended by endocrinologist.</li>
+</ul>
+</div>
+</div>
+</section>
+<!-- Follow-up Schedule -->
+<section class="flex gap-4 items-center bg-surface-container-high/50 p-4 rounded-lg">
+<span class="material-symbols-outlined text-primary" data-icon="calendar_month">calendar_month</span>
+<div class="flex-1">
+<h4 class="font-label-caps text-label-caps text-secondary">الموعد القادم / Next Follow-up</h4>
+<p class="font-data-mono text-on-surface">August 15, 2024 (After 3 Months)</p>
+</div>
+<div class="border-r border-outline-variant h-8 mx-2"></div>
+<div class="flex-1">
+<h4 class="font-label-caps text-label-caps text-secondary">الغرض / Purpose</h4>
+<p class="font-body-md text-on-surface">Routine review and IOP monitoring.</p>
+</div>
+</section>
+<!-- Footer / Signatures -->
+<footer class="mt-auto pt-10 grid grid-cols-2 gap-12">
+<div class="text-center">
+<div class="h-16 flex items-end justify-center border-b border-outline">
+<!-- Placeholder for signature -->
+<img class="h-10 opacity-80" data-alt="A professional digital signature on a white background, clean cursive stroke in blue ink, stylized for a medical professional's endorsement." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6OjX2fmU4wb4GA7ctM1sUxtTnyRda_KnNKHQGe11rGocM4IOnXIKNE6QF1p2xDiyfJ3rJvgV6aC41cjmoDu9FsAopW0Awb_oFze-96zAPl8N4gBxvgrGERzCVmuYU54dCjfLQhiJU5XvZk-a8k2YAQ2Ru66lbJpYNsJpkhGtC5i6Z9JRobwHOIzRkIzCqMECD-fRn8JiqOcmgZhIEyPFY8u7megPKCcmGVW_IJPrl-BfXeWFnJAuAIT5PbXP1Jfn85VjRVS8dis0P"/>
+</div>
+<p class="font-label-caps text-label-caps mt-2">توقيع الطبيب / Physician Signature</p>
+<p class="font-body-md text-body-md text-primary font-bold">Dr. Visionary MS, FRCS</p>
+<p class="text-[10px] text-outline">Consultant Ophthalmologist</p>
+</div>
+<div class="text-center">
+<div class="h-16 flex items-end justify-center border-b border-outline">
+<div class="w-12 h-12 rounded-full border-2 border-outline-variant flex items-center justify-center text-outline-variant opacity-30">
+<span class="material-symbols-outlined" data-icon="verified_user">verified_user</span>
+</div>
+</div>
+<p class="font-label-caps text-label-caps mt-2">إدارة العيادة / Clinic Administrator</p>
+<p class="font-body-md text-body-md">Official Certification Stamp</p>
+<p class="text-[10px] text-outline">Confidential Medical Record</p>
+</div>
+</footer>
+<!-- Bottom Border Accent -->
+<div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-tertiary to-primary"></div>
+</main>
+<!-- Footer Copyright (JSON Anchor) -->
+<footer class="no-print mt-8 pb-12 text-center max-w-[210mm] mx-auto">
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-4">Confidential Medical Record - Unauthorized Access Prohibited</p>
+<div class="flex justify-center gap-6 text-on-surface-variant font-label-caps text-label-caps">
+<a class="hover:text-primary transition-colors" href="#">Security Standards</a>
+<a class="hover:text-primary transition-colors" href="#">HIPAA Compliance</a>
+<a class="hover:text-primary transition-colors" href="#">Clinical Support</a>
+</div>
+</footer>
+<!-- Micro-interaction Script -->
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Log interaction for analytics (simulation)
+            console.log('Ophthalmic Report Viewer Initialized');
+            
+            // Handle hover states on print button
+            const printBtn = document.querySelector('button[onclick="window.print()"]');
+            printBtn.addEventListener('mouseenter', () => {
+                printBtn.style.boxShadow = '0 10px 15px -3px rgba(0, 61, 155, 0.2)';
+            });
+            printBtn.addEventListener('mouseleave', () => {
+                printBtn.style.boxShadow = 'none';
+            });
+        });
+    </script>
+</body></html>

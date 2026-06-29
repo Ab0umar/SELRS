@@ -6,6 +6,8 @@
 
 import { FKDeviceSyncService } from "../services/attendance/fkDeviceSyncService";
 import { FKAttendLogPuller } from "../services/attendance/fkAttendLogPuller";
+import { ZK4370SyncService } from "../services/attendance/zk4370Sync.service";
+import { DeviceSettingsService } from "../services/attendance/deviceSettings.service";
 import { dailyMaterializer } from "../services/attendance/dailyMaterializer";
 
 function asBool(value: unknown, fallback = false): boolean {
@@ -77,11 +79,11 @@ export function startAttendanceSyncScheduler() {
     return;
   }
 
-  if (!FKAttendLogPuller.isPullerAvailable()) {
+  const fkAvailable = FKAttendLogPuller.isPullerAvailable();
+  if (!fkAvailable) {
     console.warn(
-      `[attendance] FKOldLogPuller.exe not found at ${FKAttendLogPuller.getPullerPath()}, scheduler not started`,
+      `[attendance:fk] FKOldLogPuller.exe not found at ${FKAttendLogPuller.getPullerPath()}, FK sync disabled`,
     );
-    return;
   }
 
   let running = false;
@@ -98,13 +100,50 @@ export function startAttendanceSyncScheduler() {
 
     try {
       running = true;
-      const result = await FKDeviceSyncService.syncNow();
-      if (result.success) {
-        console.log(
-          `[attendance] sync ok: inserted=${result.recordsInserted} seen=${result.recordsSeen} skipped=${result.recordsSkipped}`,
-        );
-      } else {
-        console.error(`[attendance] sync failed: ${result.error}`);
+
+      // FK device (EF10K) — TCP pull
+      if (fkAvailable) {
+        try {
+          const fkResult = await FKDeviceSyncService.syncNow();
+          if (fkResult.success) {
+            console.log(
+              `[attendance:fk] sync ok: inserted=${fkResult.recordsInserted} seen=${fkResult.recordsSeen} skipped=${fkResult.recordsSkipped}`,
+            );
+          } else {
+            console.error(`[attendance:fk] sync failed: ${fkResult.error}`);
+          }
+        } catch (fkErr) {
+          console.error(
+            "[attendance:fk] sync error:",
+            fkErr instanceof Error ? fkErr.message : String(fkErr),
+          );
+        }
+      }
+
+      // ZK device (K40 Pro) — TCP pull if enabled and configured
+      const k40 = DeviceSettingsService.getK40Settings();
+      const zkIp = k40.ip || process.env.ZK4370_IP || "";
+      if (k40.enabled && zkIp && (k40.zk40Protocol ?? "tcp") === "tcp") {
+        try {
+          const zkResult = await ZK4370SyncService.pull(
+            undefined,
+            zkIp,
+            k40.port ?? 4370,
+            k40.commPassword ?? 0,
+          );
+          if (zkResult.success) {
+            console.log(
+              `[attendance:zk] sync ok: inserted=${zkResult.recordsInserted} seen=${zkResult.recordsSeen} skipped=${zkResult.recordsSkipped}`,
+            );
+          } else {
+            console.error(`[attendance:zk] sync failed: ${zkResult.error}`);
+          }
+        } catch (zkErr) {
+          console.error(
+            "[attendance:zk] sync error:",
+            zkErr instanceof Error ? zkErr.message : String(zkErr),
+          );
+        }
       }
     } catch (err) {
       console.error(
@@ -117,12 +156,14 @@ export function startAttendanceSyncScheduler() {
 
     // Nightly safety-net recompute at 02:30 (last 7 days)
     await runNightlyRecomputeIfDue();
+
+    // Schedule next tick
+    setTimeout(tick, getCurrentIntervalMs());
   };
 
   // Start first tick
-  const initialInterval = getCurrentIntervalMs();
   console.log(
     `[attendance] scheduler started: business=${BIZ_INTERVAL_MS}ms off-hours=${OFFHOURS_INTERVAL_MS}ms`,
   );
-  setTimeout(tick, initialInterval);
+  setTimeout(tick, getCurrentIntervalMs());
 }

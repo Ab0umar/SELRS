@@ -596,7 +596,7 @@ export default function LasikExamSheet() {
     return (
       <div className="lasik-print-root" dir="ltr">
         {/* BLUE ASSESSMENT HEADER CARD */}
-        <div className="bg-[#1B2B6B] text-white mx-4 mt-4 mb-4 rounded-lg p-5 flex justify-between items-center">
+        <div className="bg-[#003d9b] text-white mx-4 mt-4 mb-4 rounded-lg p-5 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="border border-white/30 rounded p-1.5">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -619,7 +619,7 @@ export default function LasikExamSheet() {
         </div>
 
         {/* SURGERY TYPE & EYE SELECTION */}
-        <div className="mx-4 mb-4 border border-gray-200 rounded-lg p-4 bg-white flex gap-6">
+        <div className="mx-4 mb-4 border border-[#c3c6d6] rounded-lg p-4 bg-white flex gap-6">
           <div className="flex-1">
             <p className="text-[11px] text-gray-500 font-medium mb-1">Surgery Type Selection</p>
             <select
@@ -679,7 +679,7 @@ export default function LasikExamSheet() {
           <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900 mb-3">
             <User className="h-4 w-4" /> Patient Details
           </h2>
-          <div className="border border-gray-200 rounded-lg overflow-hidden">
+          <div className="border border-[#c3c6d6] rounded-lg overflow-hidden">
             <div className="grid grid-cols-4 divide-x border-b">
               {(
                 [
@@ -718,7 +718,7 @@ export default function LasikExamSheet() {
             <Clock className="h-4 w-4" /> Medical &amp; Ocular History
           </h2>
           <div className="grid grid-cols-2 gap-4">
-            <div className="border border-gray-200 rounded-lg p-4">
+            <div className="border border-[#c3c6d6] rounded-lg p-4">
               <p className="text-sm font-semibold text-gray-700 mb-3">General Conditions</p>
               <div className="grid grid-cols-2 gap-2">
                 {["Diabetes", "Hypertension", "Rheumatoid", "Pregnancy"].map((cond) => (
@@ -728,7 +728,7 @@ export default function LasikExamSheet() {
                 ))}
               </div>
             </div>
-            <div className="border border-gray-200 rounded-lg p-4">
+            <div className="border border-[#c3c6d6] rounded-lg p-4">
               <p className="text-sm font-semibold text-gray-700 mb-3">Ocular Conditions</p>
               <div className="grid grid-cols-2 gap-2">
                 {["Dry Eye", "Glaucoma", "Keratoconus", "Family History"].map((cond) => (
@@ -746,7 +746,7 @@ export default function LasikExamSheet() {
           <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900 mb-3">
             <LayoutGrid className="h-4 w-4" /> Comprehensive Refraction
           </h2>
-          <div className="border border-gray-200 rounded-lg overflow-hidden">
+          <div className="border border-[#c3c6d6] rounded-lg overflow-hidden">
             <table className="w-full text-center" dir="ltr">
               <thead>
                 <tr className="bg-gray-100 text-gray-600 text-[11px] font-semibold uppercase border-b">
@@ -819,8 +819,8 @@ export default function LasikExamSheet() {
               const imgData = eye === "od" ? odImage : osImage;
               const imgUrl = imgData ? (imgData["url"] ?? imgData["imageUrl"] ?? "") : "";
               return (
-                <div key={eye} className="border border-gray-200 rounded-lg overflow-hidden">
-                  <div className="flex justify-between items-center px-4 py-2 bg-gray-50 border-b">
+                <div key={eye} className="border border-[#c3c6d6] rounded-lg overflow-hidden">
+                  <div className="flex justify-between items-center px-4 py-2 bg-[#f3f4f6] border-b">
                     <span className="text-sm font-semibold text-[#003D9B]">{eye.toUpperCase()} Pentacam Data</span>
                     {isThin ? (
                       <span className="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded">THIN AREA</span>
@@ -874,7 +874,7 @@ export default function LasikExamSheet() {
           <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900 mb-3">
             <Target className="h-4 w-4" /> Ablation &amp; Target Tracking
           </h2>
-          <div className="border border-gray-200 rounded-lg overflow-hidden">
+          <div className="border border-[#c3c6d6] rounded-lg overflow-hidden">
             <table className="w-full text-center" dir="ltr">
               <thead>
                 <tr className="bg-gray-100 text-gray-600 text-[11px] font-semibold uppercase border-b">
@@ -959,29 +959,36 @@ export default function LasikExamSheet() {
           }
         }
       `}</style>
-      <header className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm print:hidden">
-        <div className="container mx-auto px-4 flex items-center justify-between h-14">
-          <div className="flex items-center gap-2">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1B2B6B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="4" />
-              <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z" />
-            </svg>
-            <span className="font-bold text-[#1B2B6B] text-sm">{BRAND_NAME_EN}</span>
-          </div>
-          <nav className="hidden md:flex items-center gap-6 text-sm text-gray-500">
-            <span className="cursor-pointer hover:text-gray-800">Dashboard</span>
-            <span className="cursor-pointer hover:text-gray-800">Patients</span>
-            <span className="cursor-pointer font-bold text-[#1B2B6B] underline underline-offset-4">Surgery</span>
-            <span className="cursor-pointer hover:text-gray-800">Reports</span>
+      <header className="sticky top-0 z-50 print:hidden flex justify-between items-center px-6 py-2 bg-[#f8f9fb] border-b border-[#c3c6d6]" style={{ fontFamily: 'Inter, sans-serif' }}>
+        <div className="flex items-center gap-6">
+          <span className="text-xl font-bold text-[#003d9b]">{BRAND_NAME_EN}</span>
+          <nav className="hidden md:flex items-center gap-5 text-sm text-[#434654]">
+            <span className="cursor-pointer hover:text-[#003d9b]">Patients</span>
+            <span className="cursor-pointer font-bold text-[#003d9b] border-b-2 border-[#003d9b] pb-0.5">Surgery</span>
+            <span className="cursor-pointer hover:text-[#003d9b]">Reports</span>
           </nav>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="w-60">
+            <PatientPicker initialPatientId={initialPatientId} onSelect={handleSelectPatient} />
+          </div>
           <Button
             size="sm"
-            className="bg-[#1B2B6B] hover:bg-[#14215a] text-white gap-1.5"
+            className="bg-[#003d9b] text-white font-bold px-4 py-2 rounded hover:opacity-90 active:scale-95"
+            onClick={handleSaveSheet}
+            disabled={saveSheetMutation.isPending}
+            type="button"
+          >
+            {saveSheetMutation.isPending ? "حفظ..." : "حفظ"}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-[#003d9b] text-[#003d9b] font-bold px-4 py-2 rounded hover:bg-[#003d9b]/5"
             onClick={handlePrint}
             type="button"
           >
-            <Printer className="h-4 w-4" />
-            Print Exam
+            <Printer className="h-4 w-4 mr-1" /> Print
           </Button>
         </div>
       </header>
@@ -992,9 +999,6 @@ export default function LasikExamSheet() {
           onPrint={handlePrint}
         />
       )}
-      <div className={`px-4 pt-4 print:hidden ${printMode.printView ? "hidden" : ""}`}>
-        <PatientPicker initialPatientId={initialPatientId} onSelect={handleSelectPatient} />
-      </div>
       <div className="pb-10">
         <div className={`print:hidden ${printMode.printView ? "hidden" : ""}`}>
           {renderSheetBody()}
