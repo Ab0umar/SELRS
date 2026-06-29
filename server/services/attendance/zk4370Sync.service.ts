@@ -13,7 +13,7 @@ import {
   attendanceSyncRuns,
   attendanceEmployees,
 } from "../../../drizzle/schema";
-import { desc, inArray, sql } from "drizzle-orm";
+import { desc, inArray, sql, and, eq } from "drizzle-orm";
 
 const DEVICE_IP   = process.env.ZK4370_IP   ?? "196.202.50.91";
 const DEVICE_PORT = parseInt(process.env.ZK4370_PORT ?? "4370", 10);
@@ -65,10 +65,14 @@ export class ZK4370SyncService {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
+      const deviceId = `zk_${deviceIp}`;
       const lastRun = await db
         .select({ hwm: attendanceSyncRuns.highWaterMark })
         .from(attendanceSyncRuns)
-        .where(inArray(attendanceSyncRuns.status, ["ok", "partial"] as any))
+        .where(and(
+          inArray(attendanceSyncRuns.status, ["ok", "partial"] as any),
+          eq(attendanceSyncRuns.deviceId as any, deviceId),
+        ))
         .orderBy(desc(attendanceSyncRuns.startedAt))
         .limit(1);
       const lastHwm: Date | null = lastRun[0]?.hwm ?? null;
@@ -94,7 +98,8 @@ export class ZK4370SyncService {
         result.success = true;
         result.completedAt = new Date();
         result.durationMs = result.completedAt.getTime() - startedAt.getTime();
-        await recordSyncRun(db, result, userId);
+        result.maxPunchAt = lastHwm; // carry forward — do NOT advance HWM to now
+        await recordSyncRun(db, result, userId, deviceId);
         return result;
       }
 
@@ -160,7 +165,7 @@ export class ZK4370SyncService {
       result.durationMs = result.completedAt.getTime() - startedAt.getTime();
       console.log(`[ZK4370] Pull done: ${result.recordsInserted} inserted, ${result.recordsSkipped} skipped`);
 
-      await recordSyncRun(db, result, userId);
+      await recordSyncRun(db, result, userId, deviceId);
       return result;
 
     } catch (error) {
@@ -170,7 +175,7 @@ export class ZK4370SyncService {
       console.error(`[ZK4370] Pull failed: ${result.error}`);
       try {
         const db = await getDb();
-        if (db) await recordSyncRun(db, result, userId);
+        if (db) await recordSyncRun(db, result, userId, `zk_${ip ?? DEVICE_IP}`);
       } catch { /* ignore */ }
       return result;
     }
@@ -261,7 +266,7 @@ function empCdToUid(empCd: string): number {
   return (hash % 65534) + 1;
 }
 
-async function recordSyncRun(db: any, result: ZK4370SyncResult, userId?: number): Promise<void> {
+async function recordSyncRun(db: any, result: ZK4370SyncResult, userId?: number, deviceId?: string): Promise<void> {
   try {
     await db.insert(attendanceSyncRuns).values({
       startedAt:       result.startedAt,
@@ -276,7 +281,8 @@ async function recordSyncRun(db: any, result: ZK4370SyncResult, userId?: number)
       status:          result.success ? "ok" : "failed",
       error:           result.error,
       highWaterMark:   result.maxPunchAt ?? result.completedAt,
-    });
+      deviceId,
+    } as any);
   } catch (err) {
     console.error(`[ZK4370] Failed to record sync run: ${err}`);
   }

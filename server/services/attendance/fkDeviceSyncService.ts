@@ -12,7 +12,7 @@ import {
   attendanceSyncRuns,
   attendanceEmployees,
 } from "../../../drizzle/schema";
-import { sql, eq, desc, inArray } from "drizzle-orm";
+import { sql, eq, desc, inArray, and } from "drizzle-orm";
 import crypto from "crypto";
 
 const BATCH_SIZE = 500;
@@ -52,11 +52,14 @@ export class FKDeviceSyncService {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
-      // Step 0: Load last successful HWM so we only process new punches
+      // Step 0: Load last successful HWM — scoped to this device only
       const lastRun = await db
         .select({ hwm: attendanceSyncRuns.highWaterMark })
         .from(attendanceSyncRuns)
-        .where(inArray(attendanceSyncRuns.status, ["ok", "partial"] as any))
+        .where(and(
+          inArray(attendanceSyncRuns.status, ["ok", "partial"] as any),
+          eq(attendanceSyncRuns.deviceId as any, "fk_ef10k"),
+        ))
         .orderBy(desc(attendanceSyncRuns.startedAt))
         .limit(1);
       const lastHwm: Date | null = lastRun[0]?.hwm ?? null;
@@ -254,7 +257,8 @@ export class FKDeviceSyncService {
         status: result.success ? "ok" : "failed",
         error: result.error,
         highWaterMark: result.maxPunchAt ?? result.completedAt,
-      });
+        deviceId: "fk_ef10k",
+      } as any);
     } catch (error) {
       console.error(
         `[FKSync] Failed to record sync run: ${error instanceof Error ? error.message : error}`,
