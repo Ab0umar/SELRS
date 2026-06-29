@@ -344,7 +344,7 @@ export async function resetFkSyncHistory(): Promise<void> {
   await db
     .update(attendanceSyncRuns)
     .set({ highWaterMark: null })
-    .where(eq(attendanceSyncRuns.source, "tcp"));
+    .where(eq((attendanceSyncRuns as any).deviceId, "fk_ef10k"));
 }
 
 function sanitizeError(err: unknown): string {

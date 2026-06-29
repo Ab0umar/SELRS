@@ -1601,10 +1601,12 @@ export const attendanceSyncRuns = mysqlTable(
     ]).notNull(),
     error: text("error"),
     highWaterMark: timestamp("high_water_mark"),
+    deviceId: varchar("device_id", { length: 64 }),
   },
   (table) => ({
     idxStarted: index("idx_started").on(table.startedAt),
     idxStatus: index("idx_status").on(table.status),
+    idxDeviceId: index("idx_device_id").on(table.deviceId),
   }),
 );
 
