@@ -569,9 +569,6 @@ export default function LasikExamSheet() {
     const odIopNum = parseFloat(examData.autorefraction.od.iop);
     const osIopNum = parseFloat(examData.autorefraction.os.iop);
     const today = new Date().toLocaleDateString("en-GB");
-    const pentacamImages = ((pentacamQuery.data as unknown[]) ?? []) as Record<string, string>[];
-    const odImage = pentacamImages.find((img) => img["eye"] === "od" || img["eye"] === "OD");
-    const osImage = pentacamImages.find((img) => img["eye"] === "os" || img["eye"] === "OS");
 
     const mkAutoPatch = (eye: "od" | "os", field: string) =>
       (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -816,8 +813,6 @@ export default function LasikExamSheet() {
             {(["od", "os"] as const).map((eye) => {
               const thinnestNum = eye === "od" ? odThinnestNum : osThinnestNum;
               const isThin = !Number.isNaN(thinnestNum) && thinnestNum < 480;
-              const imgData = eye === "od" ? odImage : osImage;
-              const imgUrl = imgData ? (imgData["url"] ?? imgData["imageUrl"] ?? "") : "";
               return (
                 <div key={eye} className="border border-[#c3c6d6] rounded-lg overflow-hidden">
                   <div className="flex justify-between items-center px-4 py-2 bg-[#f3f4f6] border-b">
@@ -826,16 +821,6 @@ export default function LasikExamSheet() {
                       <span className="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded">THIN AREA</span>
                     ) : (
                       <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded">STABLE</span>
-                    )}
-                  </div>
-                  <div className="bg-gray-900 aspect-[4/3] flex items-center justify-center">
-                    {imgUrl ? (
-                      <img src={imgUrl} alt={`${eye} pentacam`} className="w-full h-full object-contain" />
-                    ) : (
-                      <div className="text-gray-500 text-sm text-center">
-                        <div>Pentacam Map</div>
-                        <div className="text-xs">Not Available</div>
-                      </div>
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-2 p-3 text-[12px]">
