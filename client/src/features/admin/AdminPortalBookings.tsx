@@ -215,7 +215,11 @@ function BookingCard({
               <>
                 <span className="text-muted-foreground/50">•</span>
                 <span className="font-medium text-primary">
-                  {booking.branch === "tanta" ? "طنطا" : booking.branch === "kfs" ? "كفرالشيخ" : booking.branch}
+                  {booking.branch === "tanta"
+                    ? "طنطا"
+                    : booking.branch === "kfs"
+                      ? "كفرالشيخ"
+                      : booking.branch}
                 </span>
               </>
             ) : null}
@@ -314,7 +318,9 @@ function BookingCard({
 
             <div className="space-y-4">
               <div className="rounded-2xl border border-border bg-white px-4 py-4">
-                <p className="text-xs font-medium text-muted-foreground">ملخص سريع</p>
+                <p className="text-xs font-medium text-muted-foreground">
+                  ملخص سريع
+                </p>
                 <div className="mt-3 space-y-3 text-sm">
                   <div className="flex items-center justify-between gap-4">
                     <span className="text-muted-foreground">المريض</span>
@@ -329,14 +335,18 @@ function BookingCard({
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-muted-foreground">التاريخ المطلوب</span>
+                    <span className="text-muted-foreground">
+                      التاريخ المطلوب
+                    </span>
                     <span className="font-medium text-foreground">
                       {reqDate}
                     </span>
                   </div>
                   {confirmedDate ? (
                     <div className="flex items-center justify-between gap-4">
-                      <span className="text-muted-foreground">التاريخ المؤكد</span>
+                      <span className="text-muted-foreground">
+                        التاريخ المؤكد
+                      </span>
                       <span className="font-medium text-foreground">
                         {formatDate(confirmedDate)}
                       </span>
@@ -568,7 +578,8 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
     onError: (e) => toast.error(e.message),
   });
 
-  const canSubmit = !!selectedPatient && !!requestedDate && !!branch && !create.isPending;
+  const canSubmit =
+    !!selectedPatient && !!requestedDate && !!branch && !create.isPending;
 
   const reset = () => {
     setOpen(false);
@@ -607,13 +618,17 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
         >
           <X className="size-3.5" />
         </Button>
-        <p className="text-sm font-semibold text-foreground">إضافة حجز للمريض</p>
+        <p className="text-sm font-semibold text-foreground">
+          إضافة حجز للمريض
+        </p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Patient search */}
         <div className="relative space-y-1.5" ref={searchRef}>
-          <label className="text-xs font-medium text-muted-foreground">المريض</label>
+          <label className="text-xs font-medium text-muted-foreground">
+            المريض
+          </label>
           {selectedPatient ? (
             <div className="flex items-center justify-between rounded-xl border border-border bg-white px-3 py-2.5">
               <button
@@ -630,7 +645,9 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
                 <p className="text-sm font-semibold text-foreground">
                   {selectedPatient.name}
                 </p>
-                <p className="text-xs text-muted-foreground">{selectedPatient.code}</p>
+                <p className="text-xs text-muted-foreground">
+                  {selectedPatient.code}
+                </p>
               </div>
             </div>
           ) : (
@@ -681,9 +698,16 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
 
         {/* Branch */}
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">الفرع</label>
+          <label className="text-xs font-medium text-muted-foreground">
+            الفرع
+          </label>
           <div className="flex gap-2">
-            {([{ value: "tanta", label: "طنطا" }, { value: "kfs", label: "كفرالشيخ" }] as const).map((b) => (
+            {(
+              [
+                { value: "tanta", label: "طنطا" },
+                { value: "kfs", label: "كفرالشيخ" },
+              ] as const
+            ).map((b) => (
               <button
                 key={b.value}
                 type="button"
@@ -906,7 +930,9 @@ function ClosuresPanel() {
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">من</label>
+              <label className="text-xs font-medium text-muted-foreground">
+                من
+              </label>
               <DateInput
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
@@ -915,7 +941,9 @@ function ClosuresPanel() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">إلى</label>
+              <label className="text-xs font-medium text-muted-foreground">
+                إلى
+              </label>
               <DateInput
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
@@ -1097,7 +1125,9 @@ export default function AdminPortalBookings() {
   const [activeTab, setActiveTab] = useState<"bookings" | "schedule">(
     "bookings",
   );
-  const [scheduleBranch, setScheduleBranch] = useState<"" | "tanta" | "kfs">("");
+  const [scheduleBranch, setScheduleBranch] = useState<"" | "tanta" | "kfs">(
+    "",
+  );
 
   const bookingsQuery = trpc.patientPortal.listBookings.useQuery({
     status: statusFilter || undefined,
@@ -1143,10 +1173,12 @@ export default function AdminPortalBookings() {
       total: filteredBookings.length,
       pending: filteredBookings.filter((item: any) => item.status === "pending")
         .length,
-      confirmed: filteredBookings.filter((item: any) => item.status === "confirmed")
-        .length,
-      cancelled: filteredBookings.filter((item: any) => item.status === "cancelled")
-        .length,
+      confirmed: filteredBookings.filter(
+        (item: any) => item.status === "confirmed",
+      ).length,
+      cancelled: filteredBookings.filter(
+        (item: any) => item.status === "cancelled",
+      ).length,
     }),
     [filteredBookings],
   );
@@ -1408,7 +1440,9 @@ export default function AdminPortalBookings() {
                     <button
                       key={b.value}
                       type="button"
-                      onClick={() => { setScheduleBranch(b.value as typeof scheduleBranch); }}
+                      onClick={() => {
+                        setScheduleBranch(b.value as typeof scheduleBranch);
+                      }}
                       className={cn(
                         "rounded-lg border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer",
                         scheduleBranch === b.value

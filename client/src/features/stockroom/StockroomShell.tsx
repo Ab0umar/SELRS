@@ -9,16 +9,16 @@ import {
   Package,
   FileText,
   LayoutDashboard,
-  ChevronLeft,
-  PanelRightClose,
+  ChevronRight,
   PanelRightOpen,
+  PanelRightClose,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 
-const StockroomDashboard = lazy(() => import("./StockroomDashboard"));
+const StockroomDashboard = lazy(() => import("./StockroomDashboard.redesigned"));
 const StockroomCategory = lazy(() => import("./StockroomCategory"));
-const StockroomReports = lazy(() => import("./StockroomReports"));
+const StockroomReports = lazy(() => import("./StockroomReports.redesigned"));
 
 // Navigation structure
 const navigationSections = [
@@ -28,7 +28,7 @@ const navigationSections = [
     items: [
       {
         href: "/stockroom",
-        label: "لوحة التحكم للمخزن",
+        label: "لوحة التحكم",
         icon: LayoutDashboard,
         activeFor: ["/stockroom"],
       },
@@ -78,15 +78,6 @@ const navigationSections = [
   },
 ];
 
-const mobileNavItems = [
-  { href: "/stockroom", label: "الرئيسية", icon: LayoutDashboard, activeFor: ["/stockroom"] },
-  { href: "/stockroom/eye-drops", label: "القطرات", icon: Eye, activeFor: ["/stockroom/eye-drops"] },
-  { href: "/stockroom/op-room", label: "العمليات", icon: Syringe, activeFor: ["/stockroom/op-room"] },
-  { href: "/stockroom/surgical", label: "الجراحية", icon: Package, activeFor: ["/stockroom/surgical"] },
-  { href: "/stockroom/office", label: "مكتبي", icon: Archive, activeFor: ["/stockroom/office"] },
-  { href: "/stockroom/reports", label: "التقارير", icon: FileText, activeFor: ["/stockroom/reports"] },
-];
-
 function isItemActive(pathname: string, activeFor: string[]) {
   return activeFor.some((path) =>
     path === "/stockroom"
@@ -98,7 +89,6 @@ function isItemActive(pathname: string, activeFor: string[]) {
 export default function StockroomShell() {
   const [location] = useLocation();
   const { canAccess } = usePermissions();
-  const [collapsed, setCollapsed] = useState(true);
 
   const reportsQuery = trpc.stockroom.getReports.useQuery(
     {},
@@ -116,136 +106,94 @@ export default function StockroomShell() {
     return <StockroomDashboard />;
   };
 
+  // Key metrics for the header
+  const metrics = [
+    {
+      label: "إجمالي الأصناف",
+      value: reportsQuery.isLoading ? "—" : totalItems,
+      tone: "text-primary",
+      accent: "bg-primary/10 border-primary/20",
+    },
+    {
+      label: "قليل المخزون",
+      value: reportsQuery.isLoading ? "—" : lowCount,
+      tone: lowCount > 0 ? "text-warning font-black animate-pulse" : "text-foreground",
+      accent: lowCount > 0 ? "bg-warning/10 border-warning/20" : "bg-muted border-border/60",
+    },
+    {
+      label: "نفذ المخزون",
+      value: reportsQuery.isLoading ? "—" : outCount,
+      tone: outCount > 0 ? "text-destructive font-black animate-pulse" : "text-foreground",
+      accent: outCount > 0 ? "bg-destructive/10 border-destructive/20" : "bg-muted border-border/60",
+    },
+  ];
+
   return (
-    <div
-      className="page-layout min-h-screen bg-background text-foreground animate-in fade-in duration-300"
-      dir="rtl"
-    >
-      {/* Header */}
-      <div className="border-b border-border/60 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
-        <div className="mx-auto w-full px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-3">
-            {/* Title section */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/15 px-2.5 py-0.5 text-[11px] font-medium text-primary">
-                    <Archive className="h-3.5 w-3.5 animate-pulse" />
-                    المخزن المركزي
-                  </div>
-                </div>
-                <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-                  نظام إدارة المخزون
-                </h1>
-                <p className="max-w-xl text-xs text-muted-foreground">
-                  متابعة مستلزمات العيادة، قطرات العين، مستهلكات العمليات، والتقارير الشاملة
-                </p>
-              </div>
+    <div className="min-h-screen bg-background text-foreground p-4 sm:p-6" dir="rtl">
+      
+      {/* ── 1. Floating Bento Top Header Capsule ── */}
+      <header className="max-w-[1600px] mx-auto mb-6 bg-card border border-border/60 rounded-3xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-primary text-primary-foreground rounded-2xl flex items-center justify-center font-mono font-black text-sm">
+            ST
+          </div>
+          <div>
+            <h1 className="text-sm font-black text-foreground leading-none">إدارة المخزن المركزي</h1>
+            <span className="text-[10px] text-muted-foreground block mt-1 font-medium">متابعة مستلزمات العيادة، قطرات العين، مستهلكات العمليات، والتقارير الشاملة</span>
+          </div>
+        </div>
 
-              {/* Compact Metrics Pill Row */}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] sm:text-xs font-semibold text-muted-foreground/80 bg-muted/40 px-3.5 py-2 rounded-xl border border-border/40 w-fit self-start sm:self-center shadow-xs">
-                <span className="flex items-center gap-1.5">
-                  <Package className="h-3.5 w-3.5 text-primary shrink-0" /> 
-                  إجمالي الأصناف: <strong className="text-foreground">{reportsQuery.isLoading ? "—" : totalItems}</strong>
-                </span>
-                <span className="h-3 w-px bg-border/60 hidden sm:inline" />
-                <span className="flex items-center gap-1.5">
-                  <Eye className="h-3.5 w-3.5 text-warning shrink-0" /> 
-                  قليل المخزون: <strong className={cn("font-bold", lowCount > 0 ? "text-warning" : "text-foreground")}>{reportsQuery.isLoading ? "—" : lowCount}</strong>
-                </span>
-                <span className="h-3 w-px bg-border/60 hidden sm:inline" />
-                <span className="flex items-center gap-1.5">
-                  <Archive className="h-3.5 w-3.5 text-destructive shrink-0" /> 
-                  نفذ المخزون: <strong className={cn("font-bold", outCount > 0 ? "text-destructive" : "text-foreground")}>{reportsQuery.isLoading ? "—" : outCount}</strong>
-                </span>
-              </div>
+        {/* Top metrics grids */}
+        <div className="grid w-full grid-cols-3 gap-2 sm:grid-cols-3 md:w-auto md:min-w-[500px]">
+          {metrics.map((metric) => (
+            <div
+              key={metric.label}
+              className={`rounded-2xl border p-2.5 px-3 flex flex-col justify-center ${metric.accent}`}
+            >
+              <span className="text-[9px] font-bold text-muted-foreground block leading-none">
+                {metric.label}
+              </span>
+              <span className={`mt-1 text-xs font-black font-mono leading-none ${metric.tone}`}>
+                {metric.value}
+              </span>
             </div>
+          ))}
+        </div>
+      </header>
 
-            {/* Mobile Horizontal Pill Navigation Bar (Inline top navigation) */}
-            <div className="lg:hidden mt-2 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none whitespace-nowrap border-t border-border/40 pt-3">
-              {mobileNavItems.filter((item) => canAccess(item.href)).map((item) => {
+      {/* ── 2. Floating Console Layout ── */}
+      <div className="max-w-[1600px] mx-auto flex flex-col gap-6">
+        {/* Horizontal Top Navigation Bar (all breakpoints) */}
+        <nav className="w-full flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 scrollbar-none print:hidden">
+          {navigationSections.flatMap((section) =>
+            section.items
+              .filter((item) => canAccess(item.href))
+              .map((item) => {
+                const isActive = isItemActive(location, item.activeFor);
                 const Icon = item.icon;
-                const itemActive = isItemActive(location, item.activeFor);
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all ${
-                      itemActive
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold shrink-0 transition-all ${
+                      isActive
+                        ? "bg-slate-900 text-white shadow-md shadow-slate-900/10 dark:bg-primary dark:text-primary-foreground dark:shadow-primary/10"
+                        : "bg-card border border-border/60 text-muted-foreground hover:bg-muted/50"
                     }`}
                   >
                     <Icon className="h-3.5 w-3.5" />
                     <span>{item.label}</span>
                   </Link>
                 );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
+              }),
+          )}
+        </nav>
 
-      {/* Two-column layout: Sidebar + Content */}
-      <div className="flex flex-col lg:flex-row mx-auto w-full max-w-[1600px]">
-        {/* Sidebar Navigation (Desktop only) */}
-        <aside
-          style={{ width: collapsed ? 56 : 256 }}
-          className="hidden lg:flex lg:flex-col border-b border-border/60 bg-card/20 lg:border-b-0 lg:border-r border-border/60 min-h-[calc(100vh-115px)] transition-all duration-200 shrink-0 overflow-hidden"
-        >
-          <div className="flex items-center justify-end border-b border-border/40 px-2 py-2">
-            <button
-              onClick={() => setCollapsed((c) => !c)}
-              className="flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              title={collapsed ? "توسيع" : "تصغير"}
-            >
-              {collapsed ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
-            </button>
-          </div>
-          <nav className={`flex-1 ${collapsed ? "p-1 space-y-1 pt-2" : "space-y-4 p-4"} sticky top-4`}>
-            {navigationSections.map((section) => {
-              const visibleItems = section.items.filter((item) => canAccess(item.href));
-              if (!visibleItems.length) return null;
-              return (
-              <div key={section.id} className="space-y-1">
-                {!collapsed && (
-                <div className="px-3 py-1">
-                  <h3 className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider">
-                    {section.label}
-                  </h3>
-                </div>
-                )}
-                <div className="space-y-1">
-                  {visibleItems.map((item) => {
-                    const itemActive = isItemActive(location, item.activeFor);
-                    const Icon = item.icon;
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        title={collapsed ? item.label : undefined}
-                        className={`group flex items-center rounded-lg text-xs transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 ${collapsed ? "justify-center px-2 py-2" : "gap-2.5 px-3 py-2"} ${
-                          itemActive
-                            ? "bg-primary/10 text-primary font-medium shadow-sm border border-primary/10"
-                            : "text-muted-foreground hover:bg-muted/40 hover:text-foreground border border-transparent"
-                        }`}
-                      >
-                        <Icon className={`h-4 w-4 shrink-0 transition-colors ${itemActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`} />
-                        {!collapsed && <span className="flex-1 min-w-0 truncate">{item.label}</span>}
-                        {!collapsed && <ChevronLeft className={`h-3.5 w-3.5 shrink-0 transition-all opacity-0 ${itemActive ? "opacity-100 text-primary" : "group-hover:opacity-100 group-hover:-translate-x-0.5"}`} />}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            );})}
-          </nav>
-        </aside>
-
-        {/* Main content area */}
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 min-w-0">
+        {/* Main Content Floating Bento Container */}
+        <main className="flex-1 w-full min-w-0 bg-card border border-border/60 rounded-3xl p-6 shadow-sm">
           <Suspense fallback={<AppShellSkeleton />}>{renderPage()}</Suspense>
         </main>
+
       </div>
     </div>
   );

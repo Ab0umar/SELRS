@@ -30,7 +30,7 @@ export const KfRoutes = (
         component={() => (
           <ProtectedRoute>
             <KfShell>
-              <KfPatients />
+              <KfHome />
             </KfShell>
           </ProtectedRoute>
         )}

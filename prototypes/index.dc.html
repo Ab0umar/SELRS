@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --g4:oklch(0.82 0.13 76);--g5:oklch(0.75 0.16 76);--g6:oklch(0.65 0.18 72);
+  --fog:oklch(0.12 0.015 265);
+  --b0:oklch(0.11 0.018 265);--b1:oklch(0.155 0.014 265);--b2:oklch(0.20 0.011 265);--b3:oklch(0.265 0.010 265);
+  --f1:oklch(0.97 0.004 60);--f2:oklch(0.78 0.008 265);--f3:oklch(0.50 0.010 265);
+  --bd:oklch(0.22 0.010 265);--bd2:oklch(0.30 0.012 265);--bdg:oklch(0.65 0.16 76);
+  --ok:oklch(0.68 0.15 145);--ok-bg:oklch(0.68 0.15 145/.14);
+  --wa:oklch(0.78 0.16 75); --wa-bg:oklch(0.78 0.16 75/.14);
+  --er:oklch(0.62 0.22 25); --er-bg:oklch(0.62 0.22 25/.14);
+  --in:oklch(0.67 0.14 230);--in-bg:oklch(0.67 0.14 230/.14);
+  --r1:4px;--r2:8px;--r3:12px;--r4:18px;
+  --glow:0 0 16px oklch(0.75 0.16 76/.25);
+  --sh:0 2px 8px oklch(0 0 0/.35);
+  --far:'Cairo',system-ui,sans-serif;
+  --fmo:'IBM Plex Mono',monospace;
+}
+body{background:oklch(0.08 0.012 265);font-family:var(--far)}
+/* Layout */
+.frame{background:var(--b0);border-radius:12px;overflow:hidden;box-shadow:0 20px 60px oklch(0 0 0/.55)}
+.lbl{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;color:oklch(0.45 0.01 265);letter-spacing:.04em;margin-bottom:6px}
+/* Sidebar */
+.sb{width:220px;background:var(--b1);border-inline-end:1px solid var(--bd);display:flex;flex-direction:column;flex-shrink:0}
+.sb-top{padding:14px 12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px}
+.sb-logo{width:30px;height:30px;border-radius:6px;background:var(--g5);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:var(--glow)}
+.sb-n{font-size:12px;font-weight:800;color:var(--f1)}
+.sb-t{font-size:9px;color:var(--f3);margin-top:1px}
+.nav{padding:8px 6px;flex:1;overflow-y:auto}
+.nav-s{font-size:8px;font-weight:800;color:var(--f3);letter-spacing:.1em;padding:8px 8px 4px;font-family:var(--fmo);direction:ltr}
+.ni{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:var(--r1);margin-bottom:1px;cursor:pointer;color:var(--f3);font-size:12px;font-weight:500;text-decoration:none;white-space:nowrap}
+.ni:hover{background:var(--b2);color:var(--f2)}
+.ni.on{background:var(--g5);color:var(--fog);font-weight:700;box-shadow:var(--glow)}
+.ni .badge{margin-inline-start:auto;background:var(--g5);color:var(--fog);font-size:9px;font-weight:800;padding:1px 5px;border-radius:99px;font-family:var(--fmo)}
+.ni.on .badge{background:oklch(0 0 0/.2);color:var(--fog)}
+.sb-foot{padding:10px 12px;border-top:1px solid var(--bd);display:flex;align-items:center;gap:8px}
+.ava{width:28px;height:28px;border-radius:50%;background:var(--g5);display:flex;align-items:center;justify-content:center;color:var(--fog);font-size:11px;font-weight:800;flex-shrink:0}
+/* Topbar */
+.tb{height:44px;background:var(--b1);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 14px;gap:8px;flex-shrink:0}
+.tb-title{font-size:13px;font-weight:700;color:var(--f1);flex:1}
+.btn{height:30px;padding:0 12px;border-radius:var(--r1);border:1px solid var(--bd2);background:var(--b2);color:var(--f2);font-size:11px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-family:var(--far);white-space:nowrap}
+.btn.g{background:var(--g5);border-color:var(--g6);color:var(--fog);box-shadow:var(--glow)}
+.srch{height:30px;background:var(--b2);border:1px solid var(--bd);border-radius:var(--r1);padding:0 10px;color:var(--f2);font-size:12px;font-family:var(--far);outline:none;flex:1;max-width:260px}
+/* Cards */
+.card{background:var(--b1);border:1px solid var(--bd);border-radius:var(--r2)}
+.ch{padding:9px 12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
+.ct{font-size:12px;font-weight:700;color:var(--f1)}
+.cb{padding:10px 12px}
+.cl{font-size:11px;color:var(--g4);font-weight:600;cursor:pointer}
+/* Stats */
+.st{background:var(--b1);border:1px solid var(--bd);border-radius:var(--r2);padding:10px 12px}
+.st.g{background:var(--g5);border-color:var(--g6);box-shadow:var(--glow)}
+.st-l{font-size:10px;font-weight:600;color:var(--f3);margin-bottom:4px}
+.st.g .st-l{color:var(--fog);opacity:.75}
+.st-v{font-size:22px;font-weight:800;color:var(--f1);line-height:1}
+.st.g .st-v{color:var(--fog)}
+/* Badge */
+.bx{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:var(--r1);font-size:10px;font-weight:700}
+.bx .d{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+.bx.w{background:var(--wa-bg);color:var(--wa)}
+.bx.s{background:var(--ok-bg);color:var(--ok)}
+.bx.e{background:var(--er-bg);color:var(--er)}
+.bx.i{background:var(--in-bg);color:var(--in)}
+.bx.m{background:var(--b3);color:var(--f3)}
+.bx.gg{background:var(--g5);color:var(--fog)}
+/* Table */
+.tbl{width:100%;border-collapse:collapse;font-family:var(--far)}
+.tbl th{padding:7px 10px;text-align:start;font-size:10px;font-weight:700;color:var(--f3);letter-spacing:.06em;border-bottom:1px solid var(--bd2);background:var(--b2);white-space:nowrap}
+.tbl td{padding:8px 10px;font-size:12px;color:var(--f2);border-bottom:1px solid var(--bd)}
+.tbl tr:hover td{background:var(--b2)}
+/* Eye grid */
+.eg{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.ekv{background:var(--b2);border-radius:var(--r1);padding:5px 4px;text-align:center}
+.ek{font-size:9px;color:var(--f3);font-family:var(--fmo);margin-bottom:2px}
+.ev{font-size:12px;font-weight:700;color:var(--f1);font-family:var(--fmo)}
+.ev.ok{color:var(--ok)} .ev.wa{color:var(--wa)} .ev.er{color:var(--er)}
+/* Progress */
+.pt{height:5px;background:var(--b3);border-radius:99px;overflow:hidden}
+.pb{height:100%;border-radius:99px}
+/* Field */
+.fl{font-size:10px;font-weight:600;color:var(--f3);margin-bottom:3px}
+.fi{width:100%;height:32px;background:var(--b2);border:1px solid var(--bd2);border-radius:var(--r1);padding:0 10px;color:var(--f1);font-size:12px;font-family:var(--far);outline:none;direction:rtl}
+.fi:focus{border-color:var(--bdg);box-shadow:0 0 0 2px oklch(0.75 0.16 76/.15)}
+/* Tabs */
+.tabs{display:flex;border-bottom:1px solid var(--bd)}
+.tab{padding:8px 14px;font-size:12px;font-weight:600;color:var(--f3);border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;white-space:nowrap}
+.tab.on{color:var(--g4);border-color:var(--g5)}
+/* Bars chart */
+.bars{display:flex;align-items:flex-end;gap:4px}
+.bar{border-radius:3px 3px 0 0;flex:1}
+</style>
+</helmet>
+
+<!-- ══ SCREEN 1: LOGIN ══════════════════════════════════════════════ -->
+<div style="position:absolute;left:60px;top:60px;width:1100px">
+  <div class="lbl" data-drags-parent="1">01 — Login</div>
+  <div class="frame" style="height:660px;display:flex;direction:rtl">
+    <!-- Brand panel -->
+    <div style="flex:0 0 48%;background:linear-gradient(150deg,oklch(0.09 0.025 265),oklch(0.13 0.02 265));display:flex;flex-direction:column;padding:40px;position:relative;overflow:hidden">
+      <div style="position:absolute;top:-60px;left:-40px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,oklch(0.75 0.16 76/.16),transparent 70%);pointer-events:none"></div>
+      <!-- Logo -->
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:32px">
+        <div style="width:56px;height:56px;border-radius:10px;background:var(--g5);display:flex;align-items:center;justify-content:center;box-shadow:var(--glow),0 8px 20px oklch(0 0 0/.4);flex-shrink:0">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" fill="oklch(0.12 0.015 265)"/><ellipse cx="16" cy="16" rx="9" ry="5.5" fill="none" stroke="white" stroke-width="1.2"/><circle cx="16" cy="16" r="3.5" fill="white"/><circle cx="17.2" cy="14.8" r="1.2" fill="oklch(0.75 0.16 76)"/></svg>
+        </div>
+        <div>
+          <div style="font-size:22px;font-weight:900;color:white;line-height:1.1">مركز عيون الشروق</div>
+          <div style="font-size:12px;font-weight:600;color:var(--g4);margin-top:3px">لليزك وأمراض القرنية وتصحيح الإبصار</div>
+        </div>
+      </div>
+      <!-- Stats bar -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:28px">
+        <div style="background:oklch(1 0 0/.06);border:1px solid oklch(1 0 0/.1);border-radius:6px;padding:10px;text-align:center">
+          <div style="font-size:20px;font-weight:900;color:var(--g4)">+10K</div>
+          <div style="font-size:10px;font-weight:600;color:oklch(1 0 0/.55);margin-top:2px">مريض</div>
+        </div>
+        <div style="background:oklch(1 0 0/.06);border:1px solid oklch(1 0 0/.1);border-radius:6px;padding:10px;text-align:center">
+          <div style="font-size:20px;font-weight:900;color:var(--g4)">15+</div>
+          <div style="font-size:10px;font-weight:600;color:oklch(1 0 0/.55);margin-top:2px">طبيب متخصص</div>
+        </div>
+        <div style="background:oklch(1 0 0/.06);border:1px solid oklch(1 0 0/.1);border-radius:6px;padding:10px;text-align:center">
+          <div style="font-size:20px;font-weight:900;color:var(--g4)">24/7</div>
+          <div style="font-size:10px;font-weight:600;color:oklch(1 0 0/.55);margin-top:2px">خدمة متواصلة</div>
+        </div>
+      </div>
+      <!-- Services list -->
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="font-size:9px;font-weight:800;color:var(--f3);letter-spacing:.1em;margin-bottom:4px;font-family:var(--fmo);direction:ltr">SERVICES</div>
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:oklch(1 0 0/.05);border-radius:6px;border:1px solid oklch(1 0 0/.08)"><span style="width:6px;height:6px;border-radius:50%;background:var(--g5);flex-shrink:0"></span><span style="font-size:12px;color:oklch(1 0 0/.8);font-weight:600">تصحيح الإبصار بالليزك LASIK / LASEK</span></div>
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:oklch(1 0 0/.05);border-radius:6px;border:1px solid oklch(1 0 0/.08)"><span style="width:6px;height:6px;border-radius:50%;background:var(--g5);flex-shrink:0"></span><span style="font-size:12px;color:oklch(1 0 0/.8);font-weight:600">جراحة المياه البيضاء وزراعة العدسات</span></div>
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:oklch(1 0 0/.05);border-radius:6px;border:1px solid oklch(1 0 0/.08)"><span style="width:6px;height:6px;border-radius:50%;background:var(--g5);flex-shrink:0"></span><span style="font-size:12px;color:oklch(1 0 0/.8);font-weight:600">أشعة القرنية Pentacam / Autoref</span></div>
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:oklch(1 0 0/.05);border-radius:6px;border:1px solid oklch(1 0 0/.08)"><span style="width:6px;height:6px;border-radius:50%;background:var(--g5);flex-shrink:0"></span><span style="font-size:12px;color:oklch(1 0 0/.8);font-weight:600">علاج أمراض الشبكية وقاع العين</span></div>
+      </div>
+      <div style="margin-top:auto;padding-top:20px;border-top:1px solid oklch(1 0 0/.08)">
+        <div style="font-size:10px;color:var(--f3)">Shorouk Eyes for LASIK & Refractive Surgery</div>
+      </div>
+    </div>
+    <!-- Form -->
+    <div style="flex:1;background:var(--b0);padding:48px 40px;display:flex;flex-direction:column;justify-content:center">
+      <div style="max-width:320px;width:100%">
+        <div style="font-size:9px;font-weight:800;color:var(--g4);letter-spacing:.1em;margin-bottom:10px;font-family:var(--fmo);direction:ltr">SECURE LOGIN</div>
+        <div style="font-size:24px;font-weight:900;color:var(--f1);line-height:1.1;margin-bottom:6px">دخول النظام</div>
+        <div style="font-size:12px;color:var(--f3);margin-bottom:24px;line-height:1.7">أدخل بيانات الدخول للوصول إلى نظام إدارة العيادة</div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div><div class="fl">اسم المستخدم</div><input class="fi" value="admin" readonly style="height:38px;font-size:13px"></div>
+          <div><div class="fl">كلمة المرور</div><input class="fi" type="password" value="password" readonly style="height:38px;font-size:13px"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--f2);cursor:pointer"><div style="width:16px;height:16px;border-radius:3px;background:var(--g5);display:flex;align-items:center;justify-content:center"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 3.5L3.5 6.5L9 1" stroke="oklch(0.12 0.015 265)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>تذكرني</label>
+            <span style="font-size:11px;font-weight:700;color:var(--g4);cursor:pointer">نسيت كلمة المرور؟</span>
+          </div>
+          <button style="height:42px;background:var(--g5);border:none;border-radius:var(--r2);color:var(--fog);font-size:14px;font-weight:800;cursor:pointer;font-family:var(--far);box-shadow:var(--glow);width:100%">دخول إلى النظام ←</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin:18px 0"><div style="flex:1;height:1px;background:var(--bd)"></div><span style="font-size:9px;font-weight:700;color:var(--f3);letter-spacing:.08em;font-family:var(--fmo)">OTHER PORTALS</span><div style="flex:1;height:1px;background:var(--bd)"></div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="btn" style="justify-content:center;height:36px">بوابة المريض</button>
+          <button class="btn" style="justify-content:center;height:36px">بوابة الطبيب</button>
+        </div>
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--ok);font-weight:600"><span style="width:6px;height:6px;border-radius:50%;background:var(--ok)"></span>متصل بالنظام</div>
+          <div style="font-size:10px;color:var(--f3)">© 2025 مركز عيون الشروق</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN 2: DASHBOARD ══════════════════════════════════════════ -->
+<div style="position:absolute;left:1240px;top:60px;width:1360px">
+  <div class="lbl" data-drags-parent="1">02 — Dashboard</div>
+  <div class="frame" style="height:660px;display:flex;direction:rtl">
+    <div class="sb">
+      <div class="sb-top">
+        <div class="sb-logo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="oklch(0.12 0.015 265)" stroke-width="2.2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+        <div><div class="sb-n">عيون الشروق</div><div class="sb-t">نظام إدارة العيادة</div></div>
+      </div>
+      <div class="nav">
+        <div class="nav-s">MAIN</div>
+        <a class="ni on"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>لوحة التحكم<span class="badge">٣</span></a>
+        <a class="ni"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>المرضى</a>
+        <a class="ni"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>المواعيد</a>
+        <a class="ni"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>الطابور الحالي</a>
+        <a class="ni"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>العمليات</a>
+        <div class="nav-s">MANAGEMENT</div>
+        <a class="ni"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>الحسابات</a>
+        <a class="ni"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>الحضور</a>
+        <a class="ni"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>المخزن</a>
+        <a class="ni"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>الإعدادات</a>
+      </div>
+      <div class="sb-foot">
+        <div class="ava">أ</div>
+        <div><div style="font-size:11px;font-weight:700;color:var(--f1)">د. أحمد محمد</div><div style="font-size:9px;color:var(--f3)">طبيب أول · admin</div></div>
+      </div>
+    </div>
+    <!-- Main content -->
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div class="tb">
+        <div class="tb-title">لوحة التحكم — الأحد ٢٩ يونيو ٢٠٢٥</div>
+        <input class="srch" placeholder="بحث سريع: اسم أو رقم ملف...">
+        <button class="btn">تحديث</button>
+        <button class="btn g">+ إضافة مريض</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px">
+        <!-- Stats row -->
+        <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px">
+          <div class="st g"><div class="st-l">إيرادات اليوم</div><div class="st-v" style="font-size:18px">١٢,٤٠٠</div><div style="font-size:9px;color:var(--fog);opacity:.7;margin-top:2px">ج.م</div></div>
+          <div class="st"><div class="st-l">مرضى اليوم</div><div class="st-v">٤٧</div><div style="display:flex;align-items:center;gap:4px;margin-top:4px"><span style="font-size:9px;font-weight:700;background:var(--ok-bg);color:var(--ok);padding:1px 5px;border-radius:3px">+١٢٪</span></div></div>
+          <div class="st"><div class="st-l">تم معالجتهم</div><div class="st-v" style="color:var(--ok)">٣١</div><div style="margin-top:4px"><div class="pt"><div class="pb" style="width:66%;background:var(--ok)"></div></div></div></div>
+          <div class="st"><div class="st-l">في الانتظار</div><div class="st-v" style="color:var(--wa)">١٦</div><div style="font-size:9px;color:var(--f3);margin-top:3px">متوسط انتظار: ٢٢ دق</div></div>
+          <div class="st"><div class="st-l">عمليات اليوم</div><div class="st-v">٨</div><div style="font-size:9px;color:var(--f3);margin-top:3px">٣ يزك · ٢ مياه · ٣ أخرى</div></div>
+          <div class="st"><div class="st-l">إجازات اليوم</div><div class="st-v" style="color:var(--wa)">٣</div><div style="font-size:9px;color:var(--f3);margin-top:3px">من ١٨ موظف</div></div>
+        </div>
+        <!-- Middle section -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 300px;gap:10px;flex:1">
+          <!-- Patient queue -->
+          <div class="card" style="overflow:hidden">
+            <div class="ch"><div class="ct">طابور اليوم</div><div style="display:flex;gap:4px"><span class="bx gg">الكل ٤٧</span><span class="bx w">انتظار ١٦</span><span class="bx s">مكتمل ٣١</span></div></div>
+            <div style="overflow-y:auto;max-height:460px">
+              <table class="tbl" style="font-size:11px">
+                <thead><tr><th>#</th><th>المريض</th><th>الملف</th><th>الخدمة</th><th>انتظار</th><th>الحالة</th><th>إجراء</th></tr></thead>
+                <tbody>
+                  <tr><td style="color:var(--f3);font-family:var(--fmo)">١</td><td style="font-weight:600;color:var(--f1)">أحمد محمد علي</td><td style="font-family:var(--fmo);color:var(--f3)">#0341</td><td>يزك</td><td style="color:var(--wa);font-family:var(--fmo)">٤٥ دق</td><td><span class="bx w"><span class="d"></span>انتظار</span></td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">فتح</button></td></tr>
+                  <tr><td style="color:var(--f3);font-family:var(--fmo)">٢</td><td style="font-weight:600;color:var(--f1)">فاطمة إبراهيم حسن</td><td style="font-family:var(--fmo);color:var(--f3)">#0342</td><td>مياه</td><td style="color:var(--ok);font-family:var(--fmo)">—</td><td><span class="bx s"><span class="d"></span>مكتمل</span></td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">فتح</button></td></tr>
+                  <tr><td style="color:var(--f3);font-family:var(--fmo)">٣</td><td style="font-weight:600;color:var(--f1)">محمود حسن سالم</td><td style="font-family:var(--fmo);color:var(--f3)">#0343</td><td>بنتاكام</td><td style="color:var(--wa);font-family:var(--fmo)">٣٢ دق</td><td><span class="bx w"><span class="d"></span>انتظار</span></td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">فتح</button></td></tr>
+                  <tr><td style="color:var(--f3);font-family:var(--fmo)">٤</td><td style="font-weight:600;color:var(--f1)">سارة أحمد محمد</td><td style="font-family:var(--fmo);color:var(--f3)">#0344</td><td>يزك</td><td style="color:var(--ok);font-family:var(--fmo)">—</td><td><span class="bx s"><span class="d"></span>مكتمل</span></td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">فتح</button></td></tr>
+                  <tr><td style="color:var(--f3);font-family:var(--fmo)">٥</td><td style="font-weight:600;color:var(--f1)">خالد عبد الله</td><td style="font-family:var(--fmo);color:var(--f3)">#0345</td><td>عملية</td><td style="color:var(--in);font-family:var(--fmo)">تحضير</td><td><span class="bx i"><span class="d"></span>تحضير</span></td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">فتح</button></td></tr>
+                  <tr><td style="color:var(--f3);font-family:var(--fmo)">٦</td><td style="font-weight:600;color:var(--f1)">منى علي إبراهيم</td><td style="font-family:var(--fmo);color:var(--f3)">#0346</td><td>فحص</td><td style="color:var(--ok);font-family:var(--fmo)">—</td><td><span class="bx s"><span class="d"></span>مكتمل</span></td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">فتح</button></td></tr>
+                  <tr><td style="color:var(--f3);font-family:var(--fmo)">٧</td><td style="font-weight:600;color:var(--f1)">نور الدين أحمد</td><td style="font-family:var(--fmo);color:var(--f3)">#0347</td><td>بنتاكام</td><td style="color:var(--wa);font-family:var(--fmo)">١٨ دق</td><td><span class="bx w"><span class="d"></span>انتظار</span></td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">فتح</button></td></tr>
+                  <tr><td style="color:var(--f3);font-family:var(--fmo)">٨</td><td style="font-weight:600;color:var(--f1)">هناء محمد رمضان</td><td style="font-family:var(--fmo);color:var(--f3)">#0348</td><td>autoref</td><td style="color:var(--ok);font-family:var(--fmo)">—</td><td><span class="bx s"><span class="d"></span>مكتمل</span></td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">فتح</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- Operations today -->
+          <div class="card" style="overflow:hidden">
+            <div class="ch"><div class="ct">عمليات اليوم</div><span class="cl">جدول كامل</span></div>
+            <div style="overflow-y:auto">
+              <table class="tbl" style="font-size:11px">
+                <thead><tr><th>الوقت</th><th>المريض</th><th>النوع</th><th>الطبيب</th><th>القاعة</th><th>الحالة</th></tr></thead>
+                <tbody>
+                  <tr><td style="font-family:var(--fmo);color:var(--g4);font-size:10px">٠٨:٠٠</td><td style="font-weight:600">أحمد محمد</td><td>يزك OD+OS</td><td style="color:var(--f3)">د. سامي</td><td style="color:var(--f3)">١</td><td><span class="bx w"><span class="d"></span>تحضير</span></td></tr>
+                  <tr><td style="font-family:var(--fmo);color:var(--g4);font-size:10px">٠٩:٣٠</td><td style="font-weight:600">فاطمة إبراهيم</td><td>مياه OD</td><td style="color:var(--f3)">د. ليلى</td><td style="color:var(--f3)">٢</td><td><span class="bx s"><span class="d"></span>مكتمل</span></td></tr>
+                  <tr><td style="font-family:var(--fmo);color:var(--g4);font-size:10px">١٠:٤٥</td><td style="font-weight:600">محمود سالم</td><td>زراعة عدسة</td><td style="color:var(--f3)">د. سامي</td><td style="color:var(--f3)">١</td><td><span class="bx s"><span class="d"></span>مكتمل</span></td></tr>
+                  <tr><td style="font-family:var(--fmo);color:var(--g4);font-size:10px">١١:٣٠</td><td style="font-weight:600">سارة نجيب</td><td>يزك OS</td><td style="color:var(--f3)">د. عمر</td><td style="color:var(--f3)">٣</td><td><span class="bx i"><span class="d"></span>جاهز</span></td></tr>
+                  <tr><td style="font-family:var(--fmo);color:var(--g4);font-size:10px">١٣:٠٠</td><td style="font-weight:600">خالد طارق</td><td>مياه OS</td><td style="color:var(--f3)">د. ليلى</td><td style="color:var(--f3)">٢</td><td><span class="bx i"><span class="d"></span>جاهز</span></td></tr>
+                  <tr><td style="font-family:var(--fmo);color:var(--g4);font-size:10px">١٤:١٥</td><td style="font-weight:600">منى إبراهيم</td><td>يزك OD+OS</td><td style="color:var(--f3)">د. عمر</td><td style="color:var(--f3)">٣</td><td><span class="bx m"><span class="d"></span>مجدول</span></td></tr>
+                  <tr style="opacity:.5"><td style="font-family:var(--fmo);color:var(--g4);font-size:10px">١٦:٠٠</td><td style="font-weight:600">يوسف نادر</td><td>زراعة عدسة</td><td style="color:var(--f3)">د. سامي</td><td style="color:var(--f3)">١</td><td><span class="bx e"><span class="d"></span>ملغي</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <!-- Stats at bottom -->
+            <div style="padding:8px 12px;border-top:1px solid var(--bd);display:flex;gap:12px">
+              <div style="text-align:center"><div style="font-size:14px;font-weight:800;color:var(--f1)">٣</div><div style="font-size:9px;color:var(--f3)">يزك</div></div>
+              <div style="text-align:center"><div style="font-size:14px;font-weight:800;color:var(--f1)">٢</div><div style="font-size:9px;color:var(--f3)">مياه</div></div>
+              <div style="text-align:center"><div style="font-size:14px;font-weight:800;color:var(--f1)">٢</div><div style="font-size:9px;color:var(--f3)">زراعة</div></div>
+              <div style="margin-inline-start:auto;text-align:center"><div style="font-size:14px;font-weight:800;color:var(--ok)">٥</div><div style="font-size:9px;color:var(--f3)">مكتمل</div></div>
+            </div>
+          </div>
+          <!-- Right column -->
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div class="card">
+              <div class="ch"><div class="ct">التوزيع اليومي</div></div>
+              <div class="cb">
+                <div style="margin-bottom:7px"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:11px;color:var(--f2)">يزك</span><span style="font-size:10px;color:var(--f3);font-family:var(--fmo)">٣٣ · ٧٠٪</span></div><div class="pt"><div class="pb" style="width:70%;background:var(--g5)"></div></div></div>
+                <div style="margin-bottom:7px"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:11px;color:var(--f2)">مياه بيضاء</span><span style="font-size:10px;color:var(--f3);font-family:var(--fmo)">١٢ · ٢٦٪</span></div><div class="pt"><div class="pb" style="width:26%;background:var(--in)"></div></div></div>
+                <div><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:11px;color:var(--f2)">فحص عام</span><span style="font-size:10px;color:var(--f3);font-family:var(--fmo)">٢ · ٤٪</span></div><div class="pt"><div class="pb" style="width:4%;background:var(--ok)"></div></div></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="ch"><div class="ct">إحصائيات طبية</div></div>
+              <div class="cb">
+                <table style="width:100%;font-size:11px;border-collapse:collapse">
+                  <tr style="border-bottom:1px solid var(--bd)"><td style="padding:4px 0;color:var(--f3)">إجمالي المرضى</td><td style="text-align:start;font-weight:700;font-family:var(--fmo);color:var(--f1);padding:4px 0">١٠,٤٢٣</td></tr>
+                  <tr style="border-bottom:1px solid var(--bd)"><td style="padding:4px 0;color:var(--f3)">Autoref</td><td style="text-align:start;font-weight:700;font-family:var(--fmo);color:var(--f1);padding:4px 0">٤,٢١٠</td></tr>
+                  <tr style="border-bottom:1px solid var(--bd)"><td style="padding:4px 0;color:var(--f3)">Refraction</td><td style="text-align:start;font-weight:700;font-family:var(--fmo);color:var(--f1);padding:4px 0">٣,٨٩٥</td></tr>
+                  <tr style="border-bottom:1px solid var(--bd)"><td style="padding:4px 0;color:var(--f3)">Pentacam</td><td style="text-align:start;font-weight:700;font-family:var(--fmo);color:var(--f1);padding:4px 0">٢,١٤٠</td></tr>
+                  <tr><td style="padding:4px 0;color:var(--f3)">عمليات</td><td style="text-align:start;font-weight:700;font-family:var(--fmo);color:var(--f1);padding:4px 0">١,٦٨٤</td></tr>
+                </table>
+              </div>
+            </div>
+            <div class="card">
+              <div class="ch"><div class="ct">حالة اليوم</div></div>
+              <div class="cb">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:var(--f2)">نسبة الإنجاز</span><span style="font-size:11px;font-weight:800;color:var(--ok);font-family:var(--fmo)">٦٦٪</span></div>
+                  <div class="pt" style="height:8px"><div class="pb" style="width:66%;background:var(--ok)"></div></div>
+                  <div style="display:flex;justify-content:space-between;margin-top:4px">
+                    <div style="text-align:center"><div style="font-size:14px;font-weight:800;color:var(--f1)">٣١</div><div style="font-size:9px;color:var(--ok)">مكتمل</div></div>
+                    <div style="text-align:center"><div style="font-size:14px;font-weight:800;color:var(--f1)">١٦</div><div style="font-size:9px;color:var(--wa)">انتظار</div></div>
+                    <div style="text-align:center"><div style="font-size:14px;font-weight:800;color:var(--f1)">٤٧</div><div style="font-size:9px;color:var(--f3)">إجمالي</div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN 3: PATIENT DETAIL ═══════════════════════════════════ -->
+<div style="position:absolute;left:60px;top:800px;width:1360px">
+  <div class="lbl" data-drags-parent="1">03 — Patient Detail / Medical Record</div>
+  <div class="frame" style="height:680px;display:flex;direction:rtl">
+    <!-- Collapsed sidebar -->
+    <div style="width:52px;background:var(--b1);border-inline-end:1px solid var(--bd);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:4px">
+      <div style="width:32px;height:32px;border-radius:6px;background:var(--g5);display:flex;align-items:center;justify-content:center;box-shadow:var(--glow);margin-bottom:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="oklch(0.12 0.015 265)" stroke-width="2.2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+      <div style="width:36px;height:36px;border-radius:var(--r1);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--f3)" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+      <div style="width:36px;height:36px;border-radius:var(--r1);background:var(--b2);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--g4)" stroke-width="1.8" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+      <div style="width:36px;height:36px;border-radius:var(--r1);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--f3)" stroke-width="1.8" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <!-- Patient header bar -->
+      <div style="padding:10px 14px;background:var(--b1);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px">
+        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--g6),var(--g5));display:flex;align-items:center;justify-content:center;color:var(--fog);font-size:16px;font-weight:900;box-shadow:var(--glow);flex-shrink:0">أ</div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:15px;font-weight:800;color:var(--f1)">أحمد محمد علي إبراهيم</span><span class="bx w"><span class="d"></span>في الانتظار</span></div>
+          <div style="display:flex;gap:10px;margin-top:2px;font-size:11px;color:var(--f3)">
+            <span style="font-family:var(--fmo)">#0341</span><span>·</span><span>٣٤ سنة · ذكر</span><span>·</span><span>فصيلة الدم: B+</span><span>·</span><span>01012345678</span><span>·</span><span>أول زيارة: ١٥ مارس ٢٠٢٤</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn">طباعة</button>
+          <button class="btn">إضافة فحص</button>
+          <button class="btn g">فتح الملف الطبي</button>
+        </div>
+      </div>
+      <!-- Tabs -->
+      <div class="tabs" style="padding:0 14px;flex-shrink:0">
+        <div class="tab on">القياسات</div>
+        <div class="tab">بنتاكام</div>
+        <div class="tab">التشخيص</div>
+        <div class="tab">العلاج</div>
+        <div class="tab">الفحوصات</div>
+        <div class="tab">العمليات</div>
+        <div class="tab">المتابعة</div>
+        <div class="tab">الأدوية</div>
+      </div>
+      <!-- Main content: 2 columns -->
+      <div style="flex:1;overflow-y:auto;padding:10px 14px;display:grid;grid-template-columns:1fr 340px;gap:10px">
+        <!-- Left: measurements -->
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <!-- Autoref + Refraction -->
+          <div class="card">
+            <div class="ch">
+              <div class="ct">قياسات الانكسار — آخر فحص: ١٥ يونيو ٢٠٢٥</div>
+              <div style="display:flex;gap:8px;align-items:center"><span style="font-size:10px;color:var(--f3);font-family:var(--fmo)">v٤</span><span class="cl">كل الزيارات</span></div>
+            </div>
+            <div class="cb">
+              <!-- Comparison table OD vs OS -->
+              <table style="width:100%;border-collapse:collapse;font-size:11px;font-family:var(--fmo)">
+                <thead>
+                  <tr style="background:var(--b2)">
+                    <th style="padding:6px 10px;text-align:start;font-size:10px;font-weight:700;color:var(--f3);border-bottom:1px solid var(--bd2)">القياس</th>
+                    <th style="padding:6px 10px;text-align:center;font-size:10px;font-weight:700;color:var(--g4);border-bottom:1px solid var(--bd2)">OD — يمنى</th>
+                    <th style="padding:6px 10px;text-align:center;font-size:10px;font-weight:700;color:var(--in);border-bottom:1px solid var(--bd2)">OS — يسرى</th>
+                    <th style="padding:6px 10px;text-align:center;font-size:10px;font-weight:700;color:var(--f3);border-bottom:1px solid var(--bd2)">المرجع</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="border-bottom:1px solid var(--bd)"><td style="padding:6px 10px;color:var(--f3)">SPH</td><td style="padding:6px 10px;text-align:center;font-weight:700;color:var(--f1)">-3.25</td><td style="padding:6px 10px;text-align:center;font-weight:700;color:var(--f1)">-2.75</td><td style="padding:6px 10px;text-align:center;color:var(--f3);font-size:10px">—</td></tr>
+                  <tr style="border-bottom:1px solid var(--bd)"><td style="padding:6px 10px;color:var(--f3)">CYL</td><td style="padding:6px 10px;text-align:center;font-weight:700;color:var(--f1)">-1.00</td><td style="padding:6px 10px;text-align:center;font-weight:700;color:var(--f1)">-0.75</td><td style="padding:6px 10px;text-align:center;color:var(--f3);font-size:10px">—</td></tr>
+                  <tr style="border-bottom:1px solid var(--bd)"><td style="padding:6px 10px;color:var(--f3)">AXIS</td><td style="padding:6px 10px;text-align:center;font-weight:700;color:var(--f1)">180°</td><td style="padding:6px 10px;text-align:center;font-weight:700;color:var(--f1)">175°</td><td style="padding:6px 10px;text-align:center;color:var(--f3);font-size:10px">—</td></tr>
+                  <tr style="border-bottom:1px solid var(--bd)"><td style="padding:6px 10px;color:var(--f3)">VA (SC)</td><td style="padding:6px 10px;text-align:center;font-weight:700;color:var(--wa)">6/18</td><td style="padding:6px 10px;text-align:center;font-weight:700;color:var(--wa)">6/24</td><td style="padding:6px 10px;text-align:center;color:var(--f3);font-size:10px">6/6</td></tr>
+                  <tr style="border-bottom:1px solid var(--bd)"><td style="padding:6px 10px;color:var(--f3)">VA (CC)</td><td style="padding:6px 10px;text-align:center;font-weight:700;color:var(--ok)">6/9</td><td style="padding:6px 10px;text-align:center;font-weight:700;color:var(--ok)">6/7.5</td><td style="padding:6px 10px;text-align:center;color:var(--f3);font-size:10px">6/6</td></tr>
+                  <tr style="border-bottom:1px solid var(--bd)"><td style="padding:6px 10px;color:var(--f3)">IOP</td><td style="padding:6px 10px;text-align:center;font-weight:700;color:var(--ok)">14 mmHg</td><td style="padding:6px 10px;text-align:center;font-weight:700;color:var(--ok)">16 mmHg</td><td style="padding:6px 10px;text-align:center;color:var(--f3);font-size:10px">10–21</td></tr>
+                  <tr><td style="padding:6px 10px;color:var(--f3)">ADD</td><td style="padding:6px 10px;text-align:center;font-weight:700;color:var(--f3)">—</td><td style="padding:6px 10px;text-align:center;font-weight:700;color:var(--f3)">—</td><td style="padding:6px 10px;text-align:center;color:var(--f3);font-size:10px">—</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- Autoref raw -->
+          <div class="card">
+            <div class="ch"><div class="ct">Autoref — القراءة الآلية</div><span style="font-size:10px;color:var(--f3);font-family:var(--fmo)">Topcon KR-800</span></div>
+            <div class="cb">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <div style="background:var(--b2);border-radius:var(--r1);padding:8px 10px;border:1px solid var(--bd)">
+                  <div style="font-size:9px;font-weight:800;color:var(--g4);margin-bottom:6px;font-family:var(--fmo)">OD — RIGHT</div>
+                  <div class="eg" style="grid-template-columns:repeat(4,1fr)">
+                    <div class="ekv"><div class="ek">S</div><div class="ev">-3.50</div></div>
+                    <div class="ekv"><div class="ek">C</div><div class="ev">-1.00</div></div>
+                    <div class="ekv"><div class="ek">A</div><div class="ev">180</div></div>
+                    <div class="ekv"><div class="ek">PD</div><div class="ev">32.5</div></div>
+                  </div>
+                </div>
+                <div style="background:var(--b2);border-radius:var(--r1);padding:8px 10px;border:1px solid var(--bd)">
+                  <div style="font-size:9px;font-weight:800;color:var(--in);margin-bottom:6px;font-family:var(--fmo)">OS — LEFT</div>
+                  <div class="eg" style="grid-template-columns:repeat(4,1fr)">
+                    <div class="ekv"><div class="ek">S</div><div class="ev">-3.00</div></div>
+                    <div class="ekv"><div class="ek">C</div><div class="ev">-0.75</div></div>
+                    <div class="ekv"><div class="ek">A</div><div class="ev">178</div></div>
+                    <div class="ekv"><div class="ek">PD</div><div class="ev">31.8</div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Right: side panels -->
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="card">
+            <div class="ch"><div class="ct">سجل الزيارات</div><span class="cl">عرض الكل</span></div>
+            <div style="overflow-y:auto;max-height:200px">
+              <table class="tbl" style="font-size:10px">
+                <thead><tr><th>التاريخ</th><th>النوع</th><th>الطبيب</th></tr></thead>
+                <tbody>
+                  <tr><td style="font-family:var(--fmo);color:var(--g4)">٢٩/٠٦/٢٥</td><td>فحص</td><td style="color:var(--f3)">د. أحمد</td></tr>
+                  <tr><td style="font-family:var(--fmo);color:var(--f3)">١٥/٠٦/٢٥</td><td>autoref</td><td style="color:var(--f3)">د. سامي</td></tr>
+                  <tr><td style="font-family:var(--fmo);color:var(--f3)">٠١/٠٥/٢٥</td><td>بنتاكام</td><td style="color:var(--f3)">د. ليلى</td></tr>
+                  <tr><td style="font-family:var(--fmo);color:var(--f3)">١٠/٠٣/٢٥</td><td>يزك OD</td><td style="color:var(--f3)">د. سامي</td></tr>
+                  <tr><td style="font-family:var(--fmo);color:var(--f3)">١٥/٠٣/٢٤</td><td>أول زيارة</td><td style="color:var(--f3)">د. أحمد</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="ch"><div class="ct">التشخيص الحالي</div></div>
+            <div class="cb">
+              <div style="font-size:11px;color:var(--f2);line-height:1.7;background:var(--b2);border-radius:var(--r1);padding:8px;border:1px solid var(--bd)">قرنية سليمة. مياه عدسية صافية. ضغط طبيعي. مرشح ليزك بعد استيفاء الاشتراطات.</div>
+              <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">
+                <span style="font-size:10px;background:var(--in-bg);color:var(--in);padding:2px 7px;border-radius:3px;font-weight:700">قصر نظر</span>
+                <span style="font-size:10px;background:var(--wa-bg);color:var(--wa);padding:2px 7px;border-radius:3px;font-weight:700">乱視 Astigmatism</span>
+                <span style="font-size:10px;background:var(--ok-bg);color:var(--ok);padding:2px 7px;border-radius:3px;font-weight:700">مرشح LASIK</span>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="ch"><div class="ct">ملاحظات</div></div>
+            <div class="cb"><div style="font-size:11px;color:var(--f3);line-height:1.7">لم يُبلَّغ عن حساسية للأدوية. لا يعاني من أمراض مزمنة. آخر نظارة قبل ٦ أشهر.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN 4: EXAM FORM ════════════════════════════════════════ -->
+<div style="position:absolute;left:1500px;top:800px;width:1160px">
+  <div class="lbl" data-drags-parent="1">04 — Examination Form</div>
+  <div class="frame" style="height:680px;display:flex;direction:rtl">
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div class="tb">
+        <button class="btn">← رجوع</button>
+        <div class="tb-title">نموذج الفحص — أحمد محمد علي <span style="color:var(--f3);font-family:var(--fmo);font-size:11px">#0341</span></div>
+        <span style="font-size:10px;color:var(--f3)">آخر حفظ: ١١:٤٢ ص</span>
+        <button class="btn">حفظ مسودة</button>
+        <button class="btn g">حفظ وإغلاق</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:10px 14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-content:start">
+        <!-- Refraction -->
+        <div class="card">
+          <div class="ch"><div class="ct">Refraction — انكسار</div></div>
+          <div class="cb">
+            <table style="width:100%;border-collapse:collapse;font-size:11px">
+              <thead><tr style="background:var(--b2)"><th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--f3);border-bottom:1px solid var(--bd2)">العين</th><th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--f3);border-bottom:1px solid var(--bd2)">SPH</th><th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--f3);border-bottom:1px solid var(--bd2)">CYL</th><th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--f3);border-bottom:1px solid var(--bd2)">AXIS</th><th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--f3);border-bottom:1px solid var(--bd2)">ADD</th></tr></thead>
+              <tbody>
+                <tr style="border-bottom:1px solid var(--bd)">
+                  <td style="padding:5px 8px;font-size:9px;font-weight:800;color:var(--g4);font-family:var(--fmo)">OD</td>
+                  <td style="padding:4px 4px"><input class="fi" value="-3.25" style="text-align:center;font-family:var(--fmo);font-size:13px;font-weight:700"></td>
+                  <td style="padding:4px 4px"><input class="fi" value="-1.00" style="text-align:center;font-family:var(--fmo);font-size:13px;font-weight:700"></td>
+                  <td style="padding:4px 4px"><input class="fi" value="180" style="text-align:center;font-family:var(--fmo);font-size:13px;font-weight:700"></td>
+                  <td style="padding:4px 4px"><input class="fi" value="—" style="text-align:center;font-family:var(--fmo);font-size:13px;font-weight:700"></td>
+                </tr>
+                <tr>
+                  <td style="padding:5px 8px;font-size:9px;font-weight:800;color:var(--in);font-family:var(--fmo)">OS</td>
+                  <td style="padding:4px 4px"><input class="fi" value="-2.75" style="text-align:center;font-family:var(--fmo);font-size:13px;font-weight:700"></td>
+                  <td style="padding:4px 4px"><input class="fi" value="-0.75" style="text-align:center;font-family:var(--fmo);font-size:13px;font-weight:700"></td>
+                  <td style="padding:4px 4px"><input class="fi" value="175" style="text-align:center;font-family:var(--fmo);font-size:13px;font-weight:700"></td>
+                  <td style="padding:4px 4px"><input class="fi" value="—" style="text-align:center;font-family:var(--fmo);font-size:13px;font-weight:700"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <!-- Visual Acuity -->
+        <div class="card">
+          <div class="ch"><div class="ct">Visual Acuity — حدة البصر</div></div>
+          <div class="cb">
+            <table style="width:100%;border-collapse:collapse;font-size:11px">
+              <thead><tr style="background:var(--b2)"><th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--f3);border-bottom:1px solid var(--bd2)">العين</th><th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--f3);border-bottom:1px solid var(--bd2)">VA (SC)</th><th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--f3);border-bottom:1px solid var(--bd2)">VA (CC)</th><th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--f3);border-bottom:1px solid var(--bd2)">IOP</th></tr></thead>
+              <tbody>
+                <tr style="border-bottom:1px solid var(--bd)">
+                  <td style="padding:5px 8px;font-size:9px;font-weight:800;color:var(--g4);font-family:var(--fmo)">OD</td>
+                  <td style="padding:4px 4px"><input class="fi" value="6/18" style="text-align:center;font-family:var(--fmo);font-size:13px;font-weight:700"></td>
+                  <td style="padding:4px 4px"><input class="fi" value="6/9" style="text-align:center;font-family:var(--fmo);font-size:13px;font-weight:700"></td>
+                  <td style="padding:4px 4px"><input class="fi" value="14" style="text-align:center;font-family:var(--fmo);font-size:13px;font-weight:700"></td>
+                </tr>
+                <tr>
+                  <td style="padding:5px 8px;font-size:9px;font-weight:800;color:var(--in);font-family:var(--fmo)">OS</td>
+                  <td style="padding:4px 4px"><input class="fi" value="6/24" style="text-align:center;font-family:var(--fmo);font-size:13px;font-weight:700"></td>
+                  <td style="padding:4px 4px"><input class="fi" value="6/7.5" style="text-align:center;font-family:var(--fmo);font-size:13px;font-weight:700"></td>
+                  <td style="padding:4px 4px"><input class="fi" value="16" style="text-align:center;font-family:var(--fmo);font-size:13px;font-weight:700"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <!-- Patient info snapshot -->
+        <div class="card">
+          <div class="ch"><div class="ct">بيانات المريض</div></div>
+          <div class="cb">
+            <table style="width:100%;border-collapse:collapse;font-size:11px">
+              <tr style="border-bottom:1px solid var(--bd)"><td style="padding:4px 0;color:var(--f3);width:80px">الاسم</td><td style="padding:4px 0;font-weight:600;color:var(--f1)">أحمد محمد علي</td></tr>
+              <tr style="border-bottom:1px solid var(--bd)"><td style="padding:4px 0;color:var(--f3)">الملف</td><td style="padding:4px 0;font-family:var(--fmo);color:var(--g4)">#0341</td></tr>
+              <tr style="border-bottom:1px solid var(--bd)"><td style="padding:4px 0;color:var(--f3)">العمر</td><td style="padding:4px 0;color:var(--f2)">٣٤ سنة · ذكر</td></tr>
+              <tr style="border-bottom:1px solid var(--bd)"><td style="padding:4px 0;color:var(--f3)">التاريخ</td><td style="padding:4px 0;color:var(--f2)">٢٩/٠٦/٢٠٢٥</td></tr>
+              <tr><td style="padding:4px 0;color:var(--f3)">الطبيب</td><td style="padding:4px 0;color:var(--f2)">د. أحمد محمد</td></tr>
+            </table>
+          </div>
+        </div>
+        <!-- Corneal / Pentacam -->
+        <div class="card">
+          <div class="ch"><div class="ct">Pentacam — قيم القرنية</div></div>
+          <div class="cb">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              <div style="background:var(--b2);border:1px solid var(--bd);border-radius:var(--r1);padding:7px">
+                <div style="font-size:9px;font-weight:800;color:var(--g4);font-family:var(--fmo);margin-bottom:5px">OD</div>
+                <div class="eg" style="grid-template-columns:repeat(3,1fr)">
+                  <div class="ekv"><div class="ek">K1</div><div class="ev ok">44.2</div></div>
+                  <div class="ekv"><div class="ek">K2</div><div class="ev ok">45.1</div></div>
+                  <div class="ekv"><div class="ek">Kmax</div><div class="ev ok">45.8</div></div>
+                  <div class="ekv"><div class="ek">Pachy</div><div class="ev ok">524</div></div>
+                  <div class="ekv"><div class="ek">ACD</div><div class="ev ok">3.52</div></div>
+                  <div class="ekv"><div class="ek">ISV</div><div class="ev ok">18</div></div>
+                </div>
+              </div>
+              <div style="background:var(--b2);border:1px solid var(--bd);border-radius:var(--r1);padding:7px">
+                <div style="font-size:9px;font-weight:800;color:var(--in);font-family:var(--fmo);margin-bottom:5px">OS</div>
+                <div class="eg" style="grid-template-columns:repeat(3,1fr)">
+                  <div class="ekv"><div class="ek">K1</div><div class="ev ok">43.8</div></div>
+                  <div class="ekv"><div class="ek">K2</div><div class="ev ok">44.6</div></div>
+                  <div class="ekv"><div class="ek">Kmax</div><div class="ev wa">46.2</div></div>
+                  <div class="ekv"><div class="ek">Pachy</div><div class="ev ok">518</div></div>
+                  <div class="ekv"><div class="ek">ACD</div><div class="ev ok">3.48</div></div>
+                  <div class="ekv"><div class="ek">ISV</div><div class="ev wa">24</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Slit lamp -->
+        <div class="card">
+          <div class="ch"><div class="ct">فحص المصباح الشقي</div></div>
+          <div class="cb">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div>
+                <div style="font-size:9px;font-weight:800;color:var(--g4);font-family:var(--fmo);margin-bottom:4px">OD</div>
+                <table style="width:100%;border-collapse:collapse;font-size:10px">
+                  <tr><td style="padding:2px 0;color:var(--f3)">الجفن</td><td style="color:var(--ok);font-weight:700">سليم</td></tr>
+                  <tr><td style="padding:2px 0;color:var(--f3)">القرنية</td><td style="color:var(--ok);font-weight:700">صافية</td></tr>
+                  <tr><td style="padding:2px 0;color:var(--f3)">العدسة</td><td style="color:var(--ok);font-weight:700">صافية</td></tr>
+                  <tr><td style="padding:2px 0;color:var(--f3)">القزحية</td><td style="color:var(--ok);font-weight:700">طبيعي</td></tr>
+                </table>
+              </div>
+              <div>
+                <div style="font-size:9px;font-weight:800;color:var(--in);font-family:var(--fmo);margin-bottom:4px">OS</div>
+                <table style="width:100%;border-collapse:collapse;font-size:10px">
+                  <tr><td style="padding:2px 0;color:var(--f3)">الجفن</td><td style="color:var(--ok);font-weight:700">سليم</td></tr>
+                  <tr><td style="padding:2px 0;color:var(--f3)">القرنية</td><td style="color:var(--ok);font-weight:700">صافية</td></tr>
+                  <tr><td style="padding:2px 0;color:var(--f3)">العدسة</td><td style="color:var(--ok);font-weight:700">صافية</td></tr>
+                  <tr><td style="padding:2px 0;color:var(--f3)">القزحية</td><td style="color:var(--ok);font-weight:700">طبيعي</td></tr>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Notes + diagnosis -->
+        <div class="card">
+          <div class="ch"><div class="ct">التشخيص والملاحظات</div></div>
+          <div class="cb" style="display:flex;flex-direction:column;gap:8px">
+            <div>
+              <div class="fl">التشخيص</div>
+              <select class="fi" style="height:32px"><option>قصر نظر مع乱視 — Myopia + Astigmatism</option></select>
+            </div>
+            <div>
+              <div class="fl">التوصية</div>
+              <select class="fi" style="height:32px"><option>مرشح لعملية يزك LASIK</option></select>
+            </div>
+            <div>
+              <div class="fl">ملاحظات</div>
+              <textarea class="fi" style="height:60px;resize:none;padding-top:6px;line-height:1.6">قرنية سليمة. لا توجد عتامات. مياه عدسية صافية.</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN 5: PATIENT LIST ════════════════════════════════════ -->
+<div style="position:absolute;left:60px;top:1560px;width:1360px">
+  <div class="lbl" data-drags-parent="1">05 — Patient List</div>
+  <div class="frame" style="height:620px;display:flex;direction:rtl">
+    <div class="sb">
+      <div class="sb-top"><div class="sb-logo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="oklch(0.12 0.015 265)" stroke-width="2.2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div><div><div class="sb-n">عيون الشروق</div><div class="sb-t">نظام إدارة العيادة</div></div></div>
+      <div class="nav">
+        <div class="nav-s">MAIN</div>
+        <a class="ni"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>لوحة التحكم</a>
+        <a class="ni on"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>المرضى<span class="badge">١٠,٤٢٣</span></a>
+        <a class="ni"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>المواعيد</a>
+        <a class="ni"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>العمليات</a>
+        <div class="nav-s">MANAGEMENT</div>
+        <a class="ni"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>الحسابات</a>
+        <a class="ni"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>المخزن</a>
+      </div>
+      <div class="sb-foot"><div class="ava">أ</div><div><div style="font-size:11px;font-weight:700;color:var(--f1)">د. أحمد محمد</div><div style="font-size:9px;color:var(--f3)">طبيب أول</div></div></div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div class="tb">
+        <div class="tb-title">المرضى</div>
+        <div style="position:relative;flex:1;max-width:280px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--f3)" stroke-width="2" stroke-linecap="round" style="position:absolute;inset-inline-start:9px;top:50%;transform:translateY(-50%)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="srch" placeholder="اسم أو رقم ملف..." style="padding-inline-start:28px;width:100%"></div>
+        <button class="btn">فلتر متقدم</button>
+        <button class="btn">Excel</button>
+        <button class="btn g">+ مريض جديد</button>
+      </div>
+      <!-- Filter chips -->
+      <div style="padding:6px 14px;background:var(--b1);border-bottom:1px solid var(--bd);display:flex;gap:6px;align-items:center">
+        <span style="font-size:10px;font-weight:600;color:var(--f3);font-family:var(--fmo)">نوع:</span>
+        <button style="height:24px;padding:0 10px;border-radius:3px;border:1px solid var(--g6);background:var(--g5);color:var(--fog);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--far)">الكل</button>
+        <button style="height:24px;padding:0 10px;border-radius:3px;border:1px solid var(--bd);background:transparent;color:var(--f3);font-size:10px;font-weight:600;cursor:pointer;font-family:var(--far)">يزك</button>
+        <button style="height:24px;padding:0 10px;border-radius:3px;border:1px solid var(--bd);background:transparent;color:var(--f3);font-size:10px;font-weight:600;cursor:pointer;font-family:var(--far)">مياه بيضاء</button>
+        <button style="height:24px;padding:0 10px;border-radius:3px;border:1px solid var(--bd);background:transparent;color:var(--f3);font-size:10px;font-weight:600;cursor:pointer;font-family:var(--far)">بنتاكام</button>
+        <button style="height:24px;padding:0 10px;border-radius:3px;border:1px solid var(--bd);background:transparent;color:var(--f3);font-size:10px;font-weight:600;cursor:pointer;font-family:var(--far)">متابعة</button>
+        <div style="margin-inline-start:auto;font-size:10px;color:var(--f3);font-family:var(--fmo)">١٠,٤٢٣ مريض</div>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:0">
+        <table class="tbl">
+          <thead style="position:sticky;top:0;z-index:1"><tr><th>#</th><th>الاسم</th><th>رقم الملف</th><th>العمر</th><th>الجنس</th><th>الخدمة</th><th>آخر زيارة</th><th>SPH (OD)</th><th>IOP</th><th>الحالة</th><th>إجراء</th></tr></thead>
+          <tbody>
+            <tr><td style="color:var(--f3);font-family:var(--fmo);font-size:10px">١</td><td style="font-weight:600;color:var(--f1)">أحمد محمد علي إبراهيم</td><td style="font-family:var(--fmo);color:var(--g4)">#0341</td><td>٣٤</td><td style="color:var(--f3)">ذكر</td><td>يزك</td><td style="color:var(--g4)">اليوم</td><td style="font-family:var(--fmo)">-3.25</td><td style="font-family:var(--fmo);color:var(--ok)">14</td><td><span class="bx w"><span class="d"></span>انتظار</span></td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">فتح</button></td></tr>
+            <tr><td style="color:var(--f3);font-family:var(--fmo);font-size:10px">٢</td><td style="font-weight:600;color:var(--f1)">فاطمة إبراهيم حسن</td><td style="font-family:var(--fmo);color:var(--g4)">#0342</td><td>٤٨</td><td style="color:var(--f3)">أنثى</td><td>مياه</td><td style="color:var(--f3)">أمس</td><td style="font-family:var(--fmo)">+1.50</td><td style="font-family:var(--fmo);color:var(--ok)">17</td><td><span class="bx s"><span class="d"></span>مكتمل</span></td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">فتح</button></td></tr>
+            <tr><td style="color:var(--f3);font-family:var(--fmo);font-size:10px">٣</td><td style="font-weight:600;color:var(--f1)">محمود حسن سالم</td><td style="font-family:var(--fmo);color:var(--g4)">#0343</td><td>٢٧</td><td style="color:var(--f3)">ذكر</td><td>بنتاكام</td><td style="color:var(--f3)">اليوم</td><td style="font-family:var(--fmo)">-2.00</td><td style="font-family:var(--fmo);color:var(--ok)">15</td><td><span class="bx w"><span class="d"></span>انتظار</span></td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">فتح</button></td></tr>
+            <tr><td style="color:var(--f3);font-family:var(--fmo);font-size:10px">٤</td><td style="font-weight:600;color:var(--f1)">سارة أحمد محمد</td><td style="font-family:var(--fmo);color:var(--g4)">#0344</td><td>٣١</td><td style="color:var(--f3)">أنثى</td><td>يزك</td><td style="color:var(--f3)">١٠ يون</td><td style="font-family:var(--fmo)">-4.50</td><td style="font-family:var(--fmo);color:var(--ok)">13</td><td><span class="bx s"><span class="d"></span>مكتمل</span></td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">فتح</button></td></tr>
+            <tr><td style="color:var(--f3);font-family:var(--fmo);font-size:10px">٥</td><td style="font-weight:600;color:var(--f1)">خالد عبد الله طارق</td><td style="font-family:var(--fmo);color:var(--g4)">#0345</td><td>٥٦</td><td style="color:var(--f3)">ذكر</td><td>عملية</td><td style="color:var(--f3)">٨ يون</td><td style="font-family:var(--fmo)">+2.75</td><td style="font-family:var(--fmo);color:var(--wa)">22</td><td><span class="bx i"><span class="d"></span>مجدول</span></td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">فتح</button></td></tr>
+            <tr><td style="color:var(--f3);font-family:var(--fmo);font-size:10px">٦</td><td style="font-weight:600;color:var(--f1)">منى علي إبراهيم</td><td style="font-family:var(--fmo);color:var(--g4)">#0346</td><td>٤٢</td><td style="color:var(--f3)">أنثى</td><td>فحص</td><td style="color:var(--f3)">٥ يون</td><td style="font-family:var(--fmo)">-1.25</td><td style="font-family:var(--fmo);color:var(--ok)">16</td><td><span class="bx s"><span class="d"></span>مكتمل</span></td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">فتح</button></td></tr>
+            <tr><td style="color:var(--f3);font-family:var(--fmo);font-size:10px">٧</td><td style="font-weight:600;color:var(--f1)">نور الدين أحمد</td><td style="font-family:var(--fmo);color:var(--g4)">#0347</td><td>٣٨</td><td style="color:var(--f3)">ذكر</td><td>بنتاكام</td><td style="color:var(--g4)">اليوم</td><td style="font-family:var(--fmo)">-5.00</td><td style="font-family:var(--fmo);color:var(--ok)">14</td><td><span class="bx w"><span class="d"></span>انتظار</span></td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">فتح</button></td></tr>
+            <tr><td style="color:var(--f3);font-family:var(--fmo);font-size:10px">٨</td><td style="font-weight:600;color:var(--f1)">هناء محمد رمضان</td><td style="font-family:var(--fmo);color:var(--g4)">#0348</td><td>٢٩</td><td style="color:var(--f3)">أنثى</td><td>autoref</td><td style="color:var(--g4)">اليوم</td><td style="font-family:var(--fmo)">-2.50</td><td style="font-family:var(--fmo);color:var(--ok)">15</td><td><span class="bx s"><span class="d"></span>مكتمل</span></td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">فتح</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- Pagination -->
+      <div style="padding:8px 14px;border-top:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;background:var(--b1)">
+        <span style="font-size:11px;color:var(--f3)">عرض ١–٨ من ١٠,٤٢٣</span>
+        <div style="display:flex;gap:3px">
+          <button style="width:28px;height:28px;border-radius:var(--r1);border:1px solid var(--bd);background:transparent;color:var(--f3);font-size:12px;cursor:pointer">‹</button>
+          <button style="width:28px;height:28px;border-radius:var(--r1);border:1px solid var(--g6);background:var(--g5);color:var(--fog);font-size:12px;cursor:pointer">١</button>
+          <button style="width:28px;height:28px;border-radius:var(--r1);border:1px solid var(--bd);background:transparent;color:var(--f3);font-size:12px;cursor:pointer">٢</button>
+          <button style="width:28px;height:28px;border-radius:var(--r1);border:1px solid var(--bd);background:transparent;color:var(--f3);font-size:12px;cursor:pointer">٣</button>
+          <button style="width:28px;height:28px;border-radius:var(--r1);border:1px solid var(--bd);background:transparent;color:var(--f3);font-size:12px;cursor:pointer">›</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN 6: ACCOUNTING ══════════════════════════════════════ -->
+<div style="position:absolute;left:1500px;top:1560px;width:1160px">
+  <div class="lbl" data-drags-parent="1">06 — Accounting / Ledger</div>
+  <div class="frame" style="height:620px;display:flex;direction:rtl">
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div class="tb">
+        <div class="tb-title">الحسابات — يونيو ٢٠٢٥</div>
+        <select style="height:30px;background:var(--b2);border:1px solid var(--bd);border-radius:var(--r1);color:var(--f2);font-size:11px;font-family:var(--far);padding:0 8px;outline:none"><option>يونيو ٢٠٢٥</option></select>
+        <button class="btn">← اليوم السابق</button>
+        <button class="btn">اليوم التالي →</button>
+        <button class="btn">Excel</button>
+        <button class="btn g">+ إيصال جديد</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px">
+        <!-- Stats strip -->
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+          <div class="st g"><div class="st-l">إيرادات اليوم</div><div class="st-v" style="font-size:17px">١٢,٤٠٠ ج.م</div></div>
+          <div class="st"><div class="st-l">إيصالات اليوم</div><div class="st-v">٤٧</div></div>
+          <div class="st"><div class="st-l">إيرادات الشهر</div><div class="st-v" style="font-size:17px">٣٤٨,٠٠٠</div></div>
+          <div class="st"><div class="st-l">سلف قائمة</div><div class="st-v" style="color:var(--wa)">٢٢,٨٠٠</div></div>
+          <div class="st"><div class="st-l">رصيد الخزنة</div><div class="st-v" style="color:var(--ok);font-size:17px">١٨٦,٤٠٠</div></div>
+        </div>
+        <!-- Main ledger + right panel -->
+        <div style="display:grid;grid-template-columns:1fr 280px;gap:8px;flex:1">
+          <!-- Ledger table -->
+          <div class="card" style="overflow:hidden">
+            <div class="ch"><div class="ct">قيود اليوم — ٢٩ يونيو ٢٠٢٥</div><div style="display:flex;gap:4px"><span class="bx s">مقبوض ٥</span><span class="bx w">معلق ١</span><span class="bx e">ملغي ١</span></div></div>
+            <div style="overflow-y:auto">
+              <table class="tbl">
+                <thead><tr><th>#</th><th>الوقت</th><th>المريض</th><th>رقم الملف</th><th>الخدمة</th><th>المبلغ</th><th>طريقة الدفع</th><th>الموظف</th><th>الحالة</th></tr></thead>
+                <tbody>
+                  <tr><td style="font-family:var(--fmo);color:var(--f3);font-size:10px">١</td><td style="font-family:var(--fmo);color:var(--g4);font-size:10px">٠٩:١٢</td><td style="font-weight:600">أحمد محمد</td><td style="font-family:var(--fmo);color:var(--f3);font-size:10px">#0341</td><td>يزك OD+OS</td><td style="font-family:var(--fmo);font-weight:700;color:var(--ok)">٤,٥٠٠ ج.م</td><td style="color:var(--f3)">كاش</td><td style="color:var(--f3)">أمل</td><td><span class="bx s"><span class="d"></span>مقبوض</span></td></tr>
+                  <tr><td style="font-family:var(--fmo);color:var(--f3);font-size:10px">٢</td><td style="font-family:var(--fmo);color:var(--g4);font-size:10px">٠٩:٣٨</td><td style="font-weight:600">فاطمة إبراهيم</td><td style="font-family:var(--fmo);color:var(--f3);font-size:10px">#0342</td><td>مياه بيضاء</td><td style="font-family:var(--fmo);font-weight:700;color:var(--ok)">٦,٢٠٠ ج.م</td><td style="color:var(--f3)">فيزا</td><td style="color:var(--f3)">أمل</td><td><span class="bx s"><span class="d"></span>مقبوض</span></td></tr>
+                  <tr><td style="font-family:var(--fmo);color:var(--f3);font-size:10px">٣</td><td style="font-family:var(--fmo);color:var(--g4);font-size:10px">١٠:٠٥</td><td style="font-weight:600">محمود حسن</td><td style="font-family:var(--fmo);color:var(--f3);font-size:10px">#0343</td><td>بنتاكام</td><td style="font-family:var(--fmo);font-weight:700;color:var(--ok)">٨٥٠ ج.م</td><td style="color:var(--f3)">كاش</td><td style="color:var(--f3)">سارة</td><td><span class="bx s"><span class="d"></span>مقبوض</span></td></tr>
+                  <tr><td style="font-family:var(--fmo);color:var(--f3);font-size:10px">٤</td><td style="font-family:var(--fmo);color:var(--g4);font-size:10px">١٠:٤٥</td><td style="font-weight:600">خالد عبد الله</td><td style="font-family:var(--fmo);color:var(--f3);font-size:10px">#0345</td><td>عملية زراعة</td><td style="font-family:var(--fmo);font-weight:700;color:var(--wa)">١٢,٠٠٠ ج.م</td><td style="color:var(--f3)">تحويل</td><td style="color:var(--f3)">أمل</td><td><span class="bx w"><span class="d"></span>معلق</span></td></tr>
+                  <tr><td style="font-family:var(--fmo);color:var(--f3);font-size:10px">٥</td><td style="font-family:var(--fmo);color:var(--g4);font-size:10px">١١:١٠</td><td style="font-weight:600">منى علي</td><td style="font-family:var(--fmo);color:var(--f3);font-size:10px">#0346</td><td>يزك OD</td><td style="font-family:var(--fmo);font-weight:700;color:var(--ok)">٢,٢٠٠ ج.م</td><td style="color:var(--f3)">كاش</td><td style="color:var(--f3)">سارة</td><td><span class="bx s"><span class="d"></span>مقبوض</span></td></tr>
+                  <tr><td style="font-family:var(--fmo);color:var(--f3);font-size:10px">٦</td><td style="font-family:var(--fmo);color:var(--g4);font-size:10px">١١:٣٣</td><td style="font-weight:600">نور الدين</td><td style="font-family:var(--fmo);color:var(--f3);font-size:10px">#0347</td><td>بنتاكام</td><td style="font-family:var(--fmo);font-weight:700;color:var(--er);text-decoration:line-through">٨٥٠ ج.م</td><td style="color:var(--f3)">—</td><td style="color:var(--f3)">أمل</td><td><span class="bx e"><span class="d"></span>ملغي</span></td></tr>
+                  <tr style="background:var(--b2)"><td colspan="5" style="padding:7px 10px;font-size:11px;font-weight:800;color:var(--f2)">إجمالي اليوم</td><td style="padding:7px 10px;font-family:var(--fmo);font-weight:800;font-size:13px;color:var(--g4)">١٢,٤٠٠ ج.م</td><td colspan="3"></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- Right: summary -->
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div class="card">
+              <div class="ch"><div class="ct">ملخص الشهر</div></div>
+              <div class="cb">
+                <div class="bars" style="height:70px;margin-bottom:6px">
+                  <div class="bar" style="height:40%;background:var(--b3)"></div>
+                  <div class="bar" style="height:65%;background:var(--b3)"></div>
+                  <div class="bar" style="height:50%;background:var(--b3)"></div>
+                  <div class="bar" style="height:80%;background:var(--b3)"></div>
+                  <div class="bar" style="height:45%;background:var(--b3)"></div>
+                  <div class="bar" style="height:70%;background:var(--b3)"></div>
+                  <div class="bar" style="height:55%;background:var(--b3)"></div>
+                  <div class="bar" style="height:90%;background:var(--b3)"></div>
+                  <div class="bar" style="height:60%;background:var(--b3)"></div>
+                  <div class="bar" style="height:100%;background:var(--g5)"></div>
+                </div>
+                <table style="width:100%;border-collapse:collapse;font-size:11px">
+                  <tr style="border-bottom:1px solid var(--bd)"><td style="padding:4px 0;color:var(--f3)">يزك</td><td style="text-align:start;font-family:var(--fmo);font-weight:700;color:var(--f1);padding:4px 0">١٩١,٤٠٠</td></tr>
+                  <tr style="border-bottom:1px solid var(--bd)"><td style="padding:4px 0;color:var(--f3)">عمليات</td><td style="text-align:start;font-family:var(--fmo);font-weight:700;color:var(--f1);padding:4px 0">٨٧,٠٠٠</td></tr>
+                  <tr style="border-bottom:1px solid var(--bd)"><td style="padding:4px 0;color:var(--f3)">فحوصات</td><td style="text-align:start;font-family:var(--fmo);font-weight:700;color:var(--f1);padding:4px 0">٦٩,٦٠٠</td></tr>
+                  <tr><td style="padding:4px 0;color:var(--g4);font-weight:700">الإجمالي</td><td style="text-align:start;font-family:var(--fmo);font-weight:800;color:var(--g4);padding:4px 0">٣٤٨,٠٠٠</td></tr>
+                </table>
+              </div>
+            </div>
+            <div class="card">
+              <div class="ch"><div class="ct">الخزنة</div></div>
+              <div class="cb" style="display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;justify-content:space-between;padding:7px 8px;background:var(--b2);border-radius:var(--r1)"><span style="font-size:11px;color:var(--f3)">رصيد الخزنة</span><span style="font-size:12px;font-weight:800;color:var(--ok);font-family:var(--fmo)">١٨٦,٤٠٠</span></div>
+                <div style="display:flex;justify-content:space-between;padding:7px 8px;background:var(--b2);border-radius:var(--r1)"><span style="font-size:11px;color:var(--f3)">سلف قائمة</span><span style="font-size:12px;font-weight:800;color:var(--wa);font-family:var(--fmo)">٢٢,٨٠٠</span></div>
+                <div style="display:flex;justify-content:space-between;padding:7px 8px;background:var(--b2);border-radius:var(--r1)"><span style="font-size:11px;color:var(--f3)">مصروفات الشهر</span><span style="font-size:12px;font-weight:800;color:var(--er);font-family:var(--fmo)">١٤,٣٠٠</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN 8: ATTENDANCE DASHBOARD ════════════════════════════ -->
+<div style="position:absolute;left:1120px;top:2270px;width:1360px">
+  <div class="lbl" data-drags-parent="1">08 — Attendance Dashboard</div>
+  <div class="frame" style="height:680px;display:flex;direction:rtl">
+    <div class="sb">
+      <div class="sb-top"><div class="sb-logo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="oklch(0.12 0.015 265)" stroke-width="2.2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div><div><div class="sb-n">عيون الشروق</div><div class="sb-t">نظام الحضور</div></div></div>
+      <div class="nav">
+        <div class="nav-s">ATTENDANCE</div>
+        <a class="ni on"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>لوحة الحضور<span class="badge">٣</span></a>
+        <a class="ni"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>الموظفون</a>
+        <a class="ni"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>الإجازات</a>
+        <a class="ni"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>التقارير</a>
+        <div class="nav-s">PAYROLL</div>
+        <a class="ni"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>الرواتب</a>
+        <a class="ni"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>السلف</a>
+      </div>
+      <div class="sb-foot"><div class="ava">أ</div><div><div style="font-size:11px;font-weight:700;color:var(--f1)">د. أحمد محمد</div><div style="font-size:9px;color:var(--f3)">مدير النظام</div></div></div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div class="tb">
+        <div class="tb-title">الحضور والانصراف — الأحد ٢٩ يونيو ٢٠٢٥</div>
+        <select style="height:30px;background:var(--b2);border:1px solid var(--bd);border-radius:var(--r1);color:var(--f2);font-size:11px;font-family:var(--far);padding:0 8px;outline:none"><option>اليوم</option><option>هذا الأسبوع</option><option>هذا الشهر</option></select>
+        <button class="btn">مزامنة الجهاز</button>
+        <button class="btn g">+ تسجيل يدوي</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px">
+        <!-- Stats -->
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+          <div class="st"><div class="st-l">إجمالي الموظفين</div><div class="st-v">١٨</div></div>
+          <div class="st"><div class="st-l">حاضر اليوم</div><div class="st-v" style="color:var(--ok)">١٣</div></div>
+          <div class="st"><div class="st-l">غائب</div><div class="st-v" style="color:var(--er)">٢</div></div>
+          <div class="st"><div class="st-l">متأخر</div><div class="st-v" style="color:var(--wa)">٣</div></div>
+          <div class="st g"><div class="st-l">داخل الآن</div><div class="st-v">١١</div></div>
+        </div>
+        <!-- Two columns -->
+        <div style="display:grid;grid-template-columns:1fr 300px;gap:8px;flex:1">
+          <!-- Attendance table -->
+          <div class="card" style="overflow:hidden">
+            <div class="ch"><div class="ct">سجل الحضور اليومي</div><div style="display:flex;gap:4px"><span class="bx s">حاضر ١٣</span><span class="bx e">غائب ٢</span><span class="bx w">متأخر ٣</span></div></div>
+            <div style="overflow-y:auto">
+              <table class="tbl" style="font-size:11px">
+                <thead><tr><th>الموظف</th><th>الوظيفة</th><th>القسم</th><th>وقت الدخول</th><th>وقت الخروج</th><th>التأخير</th><th>الحالة</th></tr></thead>
+                <tbody>
+                  <tr><td style="font-weight:600;color:var(--f1)">أمل محمد أحمد</td><td style="color:var(--f3)">مساعدة طبية</td><td style="color:var(--f3)">العيادة</td><td style="font-family:var(--fmo);color:var(--ok)">٠٨:٠٢</td><td style="font-family:var(--fmo);color:var(--f3)">—</td><td style="font-family:var(--fmo);color:var(--ok)">٠ دق</td><td><span class="bx s"><span class="d"></span>حاضر</span></td></tr>
+                  <tr><td style="font-weight:600;color:var(--f1)">سارة علي حسن</td><td style="color:var(--f3)">موظفة استقبال</td><td style="color:var(--f3)">الاستقبال</td><td style="font-family:var(--fmo);color:var(--ok)">٠٨:٠٥</td><td style="font-family:var(--fmo);color:var(--f3)">—</td><td style="font-family:var(--fmo);color:var(--ok)">٠ دق</td><td><span class="bx s"><span class="d"></span>حاضر</span></td></tr>
+                  <tr><td style="font-weight:600;color:var(--f1)">محمد طارق إبراهيم</td><td style="color:var(--f3)">تقنية معلومات</td><td style="color:var(--f3)">التقنية</td><td style="font-family:var(--fmo);color:var(--wa)">٠٨:٢٣</td><td style="font-family:var(--fmo);color:var(--f3)">—</td><td style="font-family:var(--fmo);color:var(--wa)">٢٣ دق</td><td><span class="bx w"><span class="d"></span>متأخر</span></td></tr>
+                  <tr><td style="font-weight:600;color:var(--f1)">هناء رمضان كمال</td><td style="color:var(--f3)">محاسبة</td><td style="color:var(--f3)">الحسابات</td><td style="font-family:var(--fmo);color:var(--wa)">٠٨:٤١</td><td style="font-family:var(--fmo);color:var(--f3)">—</td><td style="font-family:var(--fmo);color:var(--wa)">٤١ دق</td><td><span class="bx w"><span class="d"></span>متأخر</span></td></tr>
+                  <tr><td style="font-weight:600;color:var(--f1)">خالد نادر يوسف</td><td style="color:var(--f3)">أمن</td><td style="color:var(--f3)">الأمن</td><td style="font-family:var(--fmo);color:var(--f3)">—</td><td style="font-family:var(--fmo);color:var(--f3)">—</td><td style="font-family:var(--fmo);color:var(--f3)">—</td><td><span class="bx e"><span class="d"></span>غائب</span></td></tr>
+                  <tr><td style="font-weight:600;color:var(--f1)">نور محمد فاروق</td><td style="color:var(--f3)">تمريض</td><td style="color:var(--f3)">العيادة</td><td style="font-family:var(--fmo);color:var(--ok)">٠٧:٥٨</td><td style="font-family:var(--fmo);color:var(--ok)">١٤:٠٢</td><td style="font-family:var(--fmo);color:var(--ok)">٠ دق</td><td><span class="bx s"><span class="d"></span>انصرف</span></td></tr>
+                  <tr><td style="font-weight:600;color:var(--f1)">ياسمين حسام علي</td><td style="color:var(--f3)">بصريات</td><td style="color:var(--f3)">المختبر</td><td style="font-family:var(--fmo);color:var(--ok)">٠٨:٠٠</td><td style="font-family:var(--fmo);color:var(--f3)">—</td><td style="font-family:var(--fmo);color:var(--ok)">٠ دق</td><td><span class="bx s"><span class="d"></span>حاضر</span></td></tr>
+                  <tr><td style="font-weight:600;color:var(--f1)">إسلام رفعت سامي</td><td style="color:var(--f3)">مساعد طبي</td><td style="color:var(--f3)">العيادة</td><td style="font-family:var(--fmo);color:var(--f3)">—</td><td style="font-family:var(--fmo);color:var(--f3)">—</td><td style="font-family:var(--fmo);color:var(--f3)">—</td><td><span class="bx i"><span class="d"></span>إجازة</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- Right: summary panels -->
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div class="card">
+              <div class="ch"><div class="ct">إجازات اليوم</div><span style="font-size:10px;color:var(--wa);font-weight:700">٣ موظفين</span></div>
+              <div class="cb">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <div style="padding:7px 8px;background:var(--b2);border-radius:var(--r1);border-inline-start:3px solid var(--wa)"><div style="font-size:11px;font-weight:700;color:var(--f1)">إسلام رفعت</div><div style="font-size:10px;color:var(--f3);margin-top:1px">إجازة مرضية · ٢ يوم</div></div>
+                  <div style="padding:7px 8px;background:var(--b2);border-radius:var(--r1);border-inline-start:3px solid var(--in)"><div style="font-size:11px;font-weight:700;color:var(--f1)">رنا كمال</div><div style="font-size:10px;color:var(--f3);margin-top:1px">إجازة سنوية · ٥ أيام</div></div>
+                  <div style="padding:7px 8px;background:var(--b2);border-radius:var(--r1);border-inline-start:3px solid var(--f3)"><div style="font-size:11px;font-weight:700;color:var(--f1)">عمر شوقي</div><div style="font-size:10px;color:var(--f3);margin-top:1px">إجازة بدون راتب · ١ يوم</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="ch"><div class="ct">إحصائيات الشهر</div></div>
+              <div class="cb">
+                <table style="width:100%;border-collapse:collapse;font-size:11px">
+                  <tr style="border-bottom:1px solid var(--bd)"><td style="padding:4px 0;color:var(--f3)">أيام العمل</td><td style="font-family:var(--fmo);font-weight:700;color:var(--f1);padding:4px 0">٢٦ يوم</td></tr>
+                  <tr style="border-bottom:1px solid var(--bd)"><td style="padding:4px 0;color:var(--f3)">إجمالي التأخيرات</td><td style="font-family:var(--fmo);font-weight:700;color:var(--wa);padding:4px 0">١١٤ دقيقة</td></tr>
+                  <tr style="border-bottom:1px solid var(--bd)"><td style="padding:4px 0;color:var(--f3)">إجمالي الإجازات</td><td style="font-family:var(--fmo);font-weight:700;color:var(--f1);padding:4px 0">١٢ يوم</td></tr>
+                  <tr><td style="padding:4px 0;color:var(--f3)">نسبة الحضور</td><td style="font-family:var(--fmo);font-weight:700;color:var(--ok);padding:4px 0">٩٢٪</td></tr>
+                </table>
+              </div>
+            </div>
+            <div class="card" style="flex:1">
+              <div class="ch"><div class="ct">لم يسجل الخروج</div><span style="font-size:10px;color:var(--er);font-weight:700">٢ موظف</span></div>
+              <div class="cb" style="display:flex;flex-direction:column;gap:5px">
+                <div style="padding:7px 8px;background:var(--er-bg);border-radius:var(--r1);border:1px solid var(--er)"><div style="font-size:11px;font-weight:700;color:var(--f1)">محمد طارق</div><div style="font-size:10px;color:var(--er);margin-top:1px">دخل ٠٨:٢٣ — لم يخرج أمس</div></div>
+                <div style="padding:7px 8px;background:var(--er-bg);border-radius:var(--r1);border:1px solid var(--er)"><div style="font-size:11px;font-weight:700;color:var(--f1)">سارة علي</div><div style="font-size:10px;color:var(--er);margin-top:1px">دخلت ٠٨:٠٥ — لم تخرج أمس</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN 9: STOCKROOM ════════════════════════════════════════ -->
+<div style="position:absolute;left:60px;top:3040px;width:1360px">
+  <div class="lbl" data-drags-parent="1">09 — Stockroom / Inventory</div>
+  <div class="frame" style="height:640px;display:flex;direction:rtl">
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div class="tb">
+        <div class="tb-title">المخزن</div>
+        <div style="position:relative"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--f3)" stroke-width="2" stroke-linecap="round" style="position:absolute;inset-inline-start:8px;top:50%;transform:translateY(-50%)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="srch" placeholder="بحث في المخزن..." style="padding-inline-start:26px;width:220px"></div>
+        <button class="btn">فلتر</button>
+        <button class="btn">تصدير</button>
+        <button class="btn g">+ إضافة صنف</button>
+      </div>
+      <!-- Category tabs -->
+      <div class="tabs" style="padding:0 14px;flex-shrink:0">
+        <div class="tab on">الكل (٨٤)</div>
+        <div class="tab">أدوية قطرة</div>
+        <div class="tab">عدسات</div>
+        <div class="tab">مستلزمات جراحية</div>
+        <div class="tab">مستلزمات مختبر</div>
+        <div class="tab">أجهزة</div>
+      </div>
+      <div style="flex:1;overflow-y:auto;display:grid;grid-template-columns:1fr 280px;gap:0">
+        <!-- Main table -->
+        <div style="overflow-y:auto;border-inline-end:1px solid var(--bd)">
+          <table class="tbl">
+            <thead style="position:sticky;top:0;z-index:1"><tr><th>الكود</th><th>اسم الصنف</th><th>الفئة</th><th>الكمية</th><th>الحد الأدنى</th><th>الوحدة</th><th>الحالة</th><th>آخر طلب</th><th></th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:var(--fmo);color:var(--g4);font-size:10px">STK-001</td><td style="font-weight:600;color:var(--f1)">Tobramycin قطرة ٠.٣٪</td><td style="color:var(--f3)">أدوية قطرة</td><td style="font-family:var(--fmo);font-weight:700;color:var(--ok)">٤٢</td><td style="font-family:var(--fmo);color:var(--f3)">١٠</td><td style="color:var(--f3)">زجاجة</td><td><span class="bx s"><span class="d"></span>كافٍ</span></td><td style="color:var(--f3);font-size:10px">١٥ يون</td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">طلب</button></td></tr>
+              <tr><td style="font-family:var(--fmo);color:var(--g4);font-size:10px">STK-002</td><td style="font-weight:600;color:var(--f1)">Prednisolone قطرة ١٪</td><td style="color:var(--f3)">أدوية قطرة</td><td style="font-family:var(--fmo);font-weight:700;color:var(--wa)">٧</td><td style="font-family:var(--fmo);color:var(--f3)">١٠</td><td style="color:var(--f3)">زجاجة</td><td><span class="bx w"><span class="d"></span>منخفض</span></td><td style="color:var(--f3);font-size:10px">٢٠ مايو</td><td><button class="btn g" style="height:24px;font-size:10px;padding:0 8px">طلب</button></td></tr>
+              <tr><td style="font-family:var(--fmo);color:var(--g4);font-size:10px">STK-003</td><td style="font-weight:600;color:var(--f1)">عدسات IOL Monofocal</td><td style="color:var(--f3)">عدسات</td><td style="font-family:var(--fmo);font-weight:700;color:var(--ok)">١٨</td><td style="font-family:var(--fmo);color:var(--f3)">٥</td><td style="color:var(--f3)">قطعة</td><td><span class="bx s"><span class="d"></span>كافٍ</span></td><td style="color:var(--f3);font-size:10px">١ يون</td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">طلب</button></td></tr>
+              <tr><td style="font-family:var(--fmo);color:var(--g4);font-size:10px">STK-004</td><td style="font-weight:600;color:var(--f1)">قفازات جراحية XS</td><td style="color:var(--f3)">مستلزمات جراحية</td><td style="font-family:var(--fmo);font-weight:700;color:var(--er)">٢</td><td style="font-family:var(--fmo);color:var(--f3)">٢٠</td><td style="color:var(--f3)">علبة</td><td><span class="bx e"><span class="d"></span>نفد</span></td><td style="color:var(--f3);font-size:10px">٥ يون</td><td><button class="btn g" style="height:24px;font-size:10px;padding:0 8px;background:var(--er);border-color:var(--er)">عاجل</button></td></tr>
+              <tr><td style="font-family:var(--fmo);color:var(--g4);font-size:10px">STK-005</td><td style="font-weight:600;color:var(--f1)">Viscoat OVD</td><td style="color:var(--f3)">مستلزمات جراحية</td><td style="font-family:var(--fmo);font-weight:700;color:var(--ok)">١٢</td><td style="font-family:var(--fmo);color:var(--f3)">٤</td><td style="color:var(--f3)">سرنجة</td><td><span class="bx s"><span class="d"></span>كافٍ</span></td><td style="color:var(--f3);font-size:10px">٨ يون</td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">طلب</button></td></tr>
+              <tr><td style="font-family:var(--fmo);color:var(--g4);font-size:10px">STK-006</td><td style="font-weight:600;color:var(--f1)">Fluorescein Paper</td><td style="color:var(--f3)">مستلزمات مختبر</td><td style="font-family:var(--fmo);font-weight:700;color:var(--wa)">٨</td><td style="font-family:var(--fmo);color:var(--f3)">١٥</td><td style="color:var(--f3)">علبة</td><td><span class="bx w"><span class="d"></span>منخفض</span></td><td style="color:var(--f3);font-size:10px">٢٢ مايو</td><td><button class="btn g" style="height:24px;font-size:10px;padding:0 8px">طلب</button></td></tr>
+              <tr><td style="font-family:var(--fmo);color:var(--g4);font-size:10px">STK-007</td><td style="font-weight:600;color:var(--f1)">عدسات Trifocal Premium</td><td style="color:var(--f3)">عدسات</td><td style="font-family:var(--fmo);font-weight:700;color:var(--ok)">٦</td><td style="font-family:var(--fmo);color:var(--f3)">٢</td><td style="color:var(--f3)">قطعة</td><td><span class="bx s"><span class="d"></span>كافٍ</span></td><td style="color:var(--f3);font-size:10px">١٠ يون</td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">طلب</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- Right summary -->
+        <div style="padding:10px;display:flex;flex-direction:column;gap:8px;overflow-y:auto">
+          <div class="card">
+            <div class="ch"><div class="ct">حالة المخزن</div></div>
+            <div class="cb">
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:11px;color:var(--f3)">كافٍ</span><span style="font-family:var(--fmo);font-weight:700;color:var(--ok)">٧١ صنف</span></div>
+              <div class="pt" style="margin-bottom:8px"><div class="pb" style="width:85%;background:var(--ok)"></div></div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:11px;color:var(--f3)">منخفض</span><span style="font-family:var(--fmo);font-weight:700;color:var(--wa)">١٠ أصناف</span></div>
+              <div class="pt" style="margin-bottom:8px"><div class="pb" style="width:12%;background:var(--wa)"></div></div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:11px;color:var(--f3)">نفد</span><span style="font-family:var(--fmo);font-weight:700;color:var(--er)">٣ أصناف</span></div>
+              <div class="pt"><div class="pb" style="width:3%;background:var(--er)"></div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="ch"><div class="ct">طلبات معلقة</div><span class="bx w">٤ طلبات</span></div>
+            <div class="cb" style="display:flex;flex-direction:column;gap:5px">
+              <div style="padding:6px 8px;background:var(--b2);border-radius:var(--r1)"><div style="font-size:11px;font-weight:600;color:var(--f1)">قفازات جراحية</div><div style="font-size:10px;color:var(--er);margin-top:1px">عاجل · طُلب اليوم</div></div>
+              <div style="padding:6px 8px;background:var(--b2);border-radius:var(--r1)"><div style="font-size:11px;font-weight:600;color:var(--f1)">Prednisolone قطرة</div><div style="font-size:10px;color:var(--f3);margin-top:1px">طُلب ٢٥ يون · في الشحن</div></div>
+              <div style="padding:6px 8px;background:var(--b2);border-radius:var(--r1)"><div style="font-size:11px;font-weight:600;color:var(--f1)">Fluorescein Paper</div><div style="font-size:10px;color:var(--f3);margin-top:1px">طُلب ٢٣ يون · في الشحن</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN 10: DOCTOR PORTAL ══════════════════════════════════ -->
+<div style="position:absolute;left:1500px;top:3040px;width:1160px">
+  <div class="lbl" data-drags-parent="1">10 — Doctor Portal</div>
+  <div class="frame" style="height:640px;display:flex;direction:rtl;background:var(--b0)">
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div class="tb" style="background:var(--b1)">
+        <div class="tb-title">بوابة الطبيب — د. سامي حسن</div>
+        <span class="bx s"><span class="d"></span>متصل</span>
+        <button class="btn">الإعدادات</button>
+        <button class="btn" style="color:var(--er)">تسجيل خروج</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start">
+        <!-- Today's cases -->
+        <div class="card">
+          <div class="ch"><div class="ct">حالاتي اليوم</div><span class="bx gg">٥ حالات</span></div>
+          <div style="overflow-y:auto">
+            <table class="tbl" style="font-size:11px">
+              <thead><tr><th>#</th><th>المريض</th><th>النوع</th><th>الوقت</th><th>الحالة</th></tr></thead>
+              <tbody>
+                <tr><td style="font-family:var(--fmo);color:var(--f3)">١</td><td style="font-weight:600">أحمد محمد علي</td><td>يزك OD+OS</td><td style="font-family:var(--fmo);color:var(--g4)">٠٨:٠٠</td><td><span class="bx s"><span class="d"></span>مكتمل</span></td></tr>
+                <tr><td style="font-family:var(--fmo);color:var(--f3)">٢</td><td style="font-weight:600">فاطمة إبراهيم</td><td>مياه بيضاء</td><td style="font-family:var(--fmo);color:var(--g4)">٠٩:٣٠</td><td><span class="bx s"><span class="d"></span>مكتمل</span></td></tr>
+                <tr><td style="font-family:var(--fmo);color:var(--f3)">٣</td><td style="font-weight:600">محمود سالم</td><td>زراعة عدسة</td><td style="font-family:var(--fmo);color:var(--g4)">١٠:٤٥</td><td><span class="bx w"><span class="d"></span>تحضير</span></td></tr>
+                <tr><td style="font-family:var(--fmo);color:var(--f3)">٤</td><td style="font-weight:600">سارة نجيب</td><td>متابعة يزك</td><td style="font-family:var(--fmo);color:var(--f3)">١١:٣٠</td><td><span class="bx m"><span class="d"></span>قادم</span></td></tr>
+                <tr><td style="font-family:var(--fmo);color:var(--f3)">٥</td><td style="font-weight:600">خالد طارق</td><td>استشارة</td><td style="font-family:var(--fmo);color:var(--f3)">١٣:٠٠</td><td><span class="bx m"><span class="d"></span>قادم</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <!-- Quick stats -->
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="st g"><div class="st-l">عملياتي هذا الشهر</div><div class="st-v">٤٨</div></div>
+            <div class="st"><div class="st-l">معدل النجاح</div><div class="st-v" style="color:var(--ok)">٩٩.٢٪</div></div>
+          </div>
+          <div class="card">
+            <div class="ch"><div class="ct">آخر تقارير بنتاكام</div><span class="cl">عرض الكل</span></div>
+            <div class="cb">
+              <table style="width:100%;border-collapse:collapse;font-size:11px">
+                <thead><tr style="background:var(--b2)"><th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--f3);border-bottom:1px solid var(--bd2)">المريض</th><th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--f3);border-bottom:1px solid var(--bd2)">Kmax OD</th><th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--f3);border-bottom:1px solid var(--bd2)">Kmax OS</th><th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--f3);border-bottom:1px solid var(--bd2)">Pachy OD</th><th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--f3);border-bottom:1px solid var(--bd2)">التقييم</th></tr></thead>
+                <tbody>
+                  <tr style="border-bottom:1px solid var(--bd)"><td style="padding:5px 8px;font-weight:600">أحمد محمد</td><td style="padding:5px 8px;font-family:var(--fmo);color:var(--ok)">45.8</td><td style="padding:5px 8px;font-family:var(--fmo);color:var(--wa)">46.2</td><td style="padding:5px 8px;font-family:var(--fmo);color:var(--ok)">524</td><td><span class="bx s">مرشح</span></td></tr>
+                  <tr style="border-bottom:1px solid var(--bd)"><td style="padding:5px 8px;font-weight:600">سارة نجيب</td><td style="padding:5px 8px;font-family:var(--fmo);color:var(--ok)">44.1</td><td style="padding:5px 8px;font-family:var(--fmo);color:var(--ok)">44.5</td><td style="padding:5px 8px;font-family:var(--fmo);color:var(--ok)">548</td><td><span class="bx s">مرشح</span></td></tr>
+                  <tr><td style="padding:5px 8px;font-weight:600">خالد طارق</td><td style="padding:5px 8px;font-family:var(--fmo);color:var(--er)">48.9</td><td style="padding:5px 8px;font-family:var(--fmo);color:var(--er)">49.1</td><td style="padding:5px 8px;font-family:var(--fmo);color:var(--wa)">498</td><td><span class="bx e">غير مرشح</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <!-- Pending reports -->
+        <div class="card">
+          <div class="ch"><div class="ct">تقارير تحتاج مراجعة</div><span class="bx w">٢ تقارير</span></div>
+          <div class="cb" style="display:flex;flex-direction:column;gap:6px">
+            <div style="padding:8px 10px;background:var(--wa-bg);border:1px solid var(--wa);border-radius:var(--r1);display:flex;align-items:center;justify-content:space-between">
+              <div><div style="font-size:12px;font-weight:700;color:var(--f1)">محمود سالم — #0343</div><div style="font-size:10px;color:var(--f3);margin-top:1px">نتيجة بنتاكام تحتاج مراجعة · Kmax 47.2</div></div>
+              <button class="btn g" style="height:26px;font-size:10px">مراجعة</button>
+            </div>
+            <div style="padding:8px 10px;background:var(--b2);border:1px solid var(--bd);border-radius:var(--r1);display:flex;align-items:center;justify-content:space-between">
+              <div><div style="font-size:12px;font-weight:700;color:var(--f1)">هناء رمضان — #0350</div><div style="font-size:10px;color:var(--f3);margin-top:1px">تقرير ما بعد العملية — يوم ٧</div></div>
+              <button class="btn" style="height:26px;font-size:10px">مراجعة</button>
+            </div>
+          </div>
+        </div>
+        <!-- Schedule -->
+        <div class="card">
+          <div class="ch"><div class="ct">جدولي هذا الأسبوع</div></div>
+          <div class="cb">
+            <table style="width:100%;border-collapse:collapse;font-size:11px">
+              <thead><tr style="background:var(--b2)"><th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--f3);border-bottom:1px solid var(--bd2)">اليوم</th><th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--f3);border-bottom:1px solid var(--bd2)">العمليات</th><th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--f3);border-bottom:1px solid var(--bd2)">الاستشارات</th><th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--f3);border-bottom:1px solid var(--bd2)">الحالة</th></tr></thead>
+              <tbody>
+                <tr style="border-bottom:1px solid var(--bd);background:var(--g5)/10"><td style="padding:5px 8px;font-weight:700;color:var(--g4)">الأحد</td><td style="padding:5px 8px;font-family:var(--fmo);font-weight:700">٣</td><td style="padding:5px 8px;font-family:var(--fmo);font-weight:700">٥</td><td><span class="bx gg">اليوم</span></td></tr>
+                <tr style="border-bottom:1px solid var(--bd)"><td style="padding:5px 8px;color:var(--f2)">الاثنين</td><td style="padding:5px 8px;font-family:var(--fmo)">٢</td><td style="padding:5px 8px;font-family:var(--fmo)">٤</td><td><span class="bx m">غد</span></td></tr>
+                <tr style="border-bottom:1px solid var(--bd)"><td style="padding:5px 8px;color:var(--f3)">الثلاثاء</td><td style="padding:5px 8px;font-family:var(--fmo);color:var(--f3)">—</td><td style="padding:5px 8px;font-family:var(--fmo)">٦</td><td><span class="bx m">قادم</span></td></tr>
+                <tr><td style="padding:5px 8px;color:var(--f3)">الأربعاء</td><td style="padding:5px 8px;font-family:var(--fmo)">٤</td><td style="padding:5px 8px;font-family:var(--fmo)">٣</td><td><span class="bx m">قادم</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN 11: PATIENT PORTAL ════════════════════════════════ -->
+<div style="position:absolute;left:60px;top:3780px;width:420px">
+  <div class="lbl" data-drags-parent="1">11 — Patient Portal (Mobile)</div>
+  <div class="frame" style="min-height:760px;background:var(--b0);direction:rtl">
+    <!-- Status bar -->
+    <div style="height:44px;background:var(--b1);display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--bd)">
+      <div style="font-size:11px;font-weight:700;color:var(--g4)">عيون الشروق</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="bx s" style="font-size:9px"><span class="d"></span>متصل</span>
+        <div class="ava" style="width:26px;height:26px;font-size:10px">أ</div>
+      </div>
+    </div>
+    <!-- Welcome -->
+    <div style="padding:16px;background:linear-gradient(135deg,oklch(0.14 0.02 265),oklch(0.11 0.02 265));border-bottom:1px solid var(--bd)">
+      <div style="font-size:11px;color:var(--f3);margin-bottom:2px">مرحباً</div>
+      <div style="font-size:16px;font-weight:800;color:var(--f1)">أحمد محمد علي</div>
+      <div style="font-size:11px;color:var(--g4);margin-top:2px;font-family:var(--fmo)">#0341</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:12px">
+        <div style="background:oklch(1 0 0/.06);border-radius:var(--r1);padding:8px;text-align:center"><div style="font-size:16px;font-weight:800;color:var(--g4)">٤</div><div style="font-size:9px;color:var(--f3)">زيارات</div></div>
+        <div style="background:oklch(1 0 0/.06);border-radius:var(--r1);padding:8px;text-align:center"><div style="font-size:16px;font-weight:800;color:var(--ok)">٢</div><div style="font-size:9px;color:var(--f3)">عمليات</div></div>
+        <div style="background:oklch(1 0 0/.06);border-radius:var(--r1);padding:8px;text-align:center"><div style="font-size:16px;font-weight:800;color:var(--wa)">١</div><div style="font-size:9px;color:var(--f3)">مواعيد</div></div>
+      </div>
+    </div>
+    <!-- Next appointment -->
+    <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+      <div style="font-size:10px;font-weight:800;color:var(--f3);letter-spacing:.08em;font-family:var(--fmo)">NEXT APPOINTMENT</div>
+      <div style="background:var(--b1);border:1px solid var(--border-gold, var(--bdg));border-radius:var(--r2);padding:12px;box-shadow:var(--glow)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-size:13px;font-weight:800;color:var(--g4)">متابعة ما بعد يزك</div>
+            <div style="font-size:11px;color:var(--f2);margin-top:3px">د. سامي حسن</div>
+            <div style="font-size:11px;color:var(--f3);margin-top:2px;font-family:var(--fmo)">٠٥ يوليو ٢٠٢٥ · ١١:٠٠ ص</div>
+          </div>
+          <span class="bx i">خلال ٦ أيام</span>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:6px">
+          <button class="btn" style="flex:1;justify-content:center;height:32px;font-size:11px">إلغاء</button>
+          <button class="btn g" style="flex:1;justify-content:center;height:32px;font-size:11px">تأكيد الحضور</button>
+        </div>
+      </div>
+      <!-- Last results -->
+      <div style="font-size:10px;font-weight:800;color:var(--f3);letter-spacing:.08em;font-family:var(--fmo);margin-top:4px">LAST RESULTS</div>
+      <div class="card">
+        <div class="ch"><div class="ct" style="font-size:11px">آخر قياسات — ١٥ يونيو</div></div>
+        <div class="cb">
+          <table style="width:100%;border-collapse:collapse;font-size:11px">
+            <thead><tr><th style="padding:4px 8px;text-align:start;font-size:9px;font-weight:700;color:var(--f3);border-bottom:1px solid var(--bd)">العين</th><th style="padding:4px 8px;text-align:center;font-size:9px;font-weight:700;color:var(--f3);border-bottom:1px solid var(--bd)">SPH</th><th style="padding:4px 8px;text-align:center;font-size:9px;font-weight:700;color:var(--f3);border-bottom:1px solid var(--bd)">VA</th><th style="padding:4px 8px;text-align:center;font-size:9px;font-weight:700;color:var(--f3);border-bottom:1px solid var(--bd)">IOP</th></tr></thead>
+            <tbody>
+              <tr style="border-bottom:1px solid var(--bd)"><td style="padding:4px 8px;font-weight:700;color:var(--g4);font-family:var(--fmo);font-size:10px">OD</td><td style="padding:4px 8px;text-align:center;font-family:var(--fmo)">-3.25</td><td style="padding:4px 8px;text-align:center;font-family:var(--fmo);color:var(--wa)">6/9</td><td style="padding:4px 8px;text-align:center;font-family:var(--fmo);color:var(--ok)">14</td></tr>
+              <tr><td style="padding:4px 8px;font-weight:700;color:var(--in);font-family:var(--fmo);font-size:10px">OS</td><td style="padding:4px 8px;text-align:center;font-family:var(--fmo)">-2.75</td><td style="padding:4px 8px;text-align:center;font-family:var(--fmo);color:var(--wa)">6/7.5</td><td style="padding:4px 8px;text-align:center;font-family:var(--fmo);color:var(--ok)">16</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Quick actions -->
+      <div style="font-size:10px;font-weight:800;color:var(--f3);letter-spacing:.08em;font-family:var(--fmo);margin-top:4px">QUICK ACTIONS</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button style="padding:10px;background:var(--b1);border:1px solid var(--bd);border-radius:var(--r2);color:var(--f2);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--far);text-align:center">حجز موعد</button>
+        <button style="padding:10px;background:var(--b1);border:1px solid var(--bd);border-radius:var(--r2);color:var(--f2);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--far);text-align:center">تاريخ الزيارات</button>
+        <button style="padding:10px;background:var(--b1);border:1px solid var(--bd);border-radius:var(--r2);color:var(--f2);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--far);text-align:center">التقارير الطبية</button>
+        <button style="padding:10px;background:var(--b1);border:1px solid var(--bd);border-radius:var(--r2);color:var(--f2);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--far);text-align:center">تواصل معنا</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN 12: SETTINGS ════════════════════════════════════════ -->
+<div style="position:absolute;left:500px;top:3780px;width:1280px">
+  <div class="lbl" data-drags-parent="1">12 — Settings</div>
+  <div class="frame" style="height:760px;display:flex;direction:rtl">
+    <!-- Settings sidebar -->
+    <div style="width:220px;background:var(--b1);border-inline-end:1px solid var(--bd);padding:12px 8px;display:flex;flex-direction:column;gap:2px;flex-shrink:0">
+      <div style="font-size:9px;font-weight:800;color:var(--f3);letter-spacing:.1em;padding:6px 8px 4px;font-family:var(--fmo);direction:ltr">GENERAL</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r1);background:var(--g5);color:var(--fog);font-size:12px;font-weight:700;cursor:pointer;box-shadow:var(--glow)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>إعدادات المركز</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r1);color:var(--f3);font-size:12px;font-weight:500;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>إدارة المستخدمين</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r1);color:var(--f3);font-size:12px;font-weight:500;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>الأذونات والصلاحيات</div>
+      <div style="font-size:9px;font-weight:800;color:var(--f3);letter-spacing:.1em;padding:12px 8px 4px;font-family:var(--fmo);direction:ltr">CLINICAL</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r1);color:var(--f3);font-size:12px;font-weight:500;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>قائمة الخدمات والأسعار</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r1);color:var(--f3);font-size:12px;font-weight:500;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>إعدادات المواعيد</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r1);color:var(--f3);font-size:12px;font-weight:500;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>قوالب التقارير</div>
+      <div style="font-size:9px;font-weight:800;color:var(--f3);letter-spacing:.1em;padding:12px 8px 4px;font-family:var(--fmo);direction:ltr">SYSTEM</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r1);color:var(--f3);font-size:12px;font-weight:500;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>النسخ الاحتياطي</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r1);color:var(--f3);font-size:12px;font-weight:500;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>سجل الأحداث</div>
+    </div>
+    <!-- Settings content -->
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div class="tb"><div class="tb-title">إعدادات المركز</div><button class="btn g">حفظ التغييرات</button></div>
+      <div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px">
+        <!-- Center info -->
+        <div class="card">
+          <div class="ch"><div class="ct">معلومات المركز</div></div>
+          <div class="cb">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div><div class="fl">اسم المركز (عربي)</div><input class="fi" value="مركز عيون الشروق"></div>
+              <div><div class="fl">اسم المركز (إنجليزي)</div><input class="fi" value="Al Shrouq Eye Center" dir="ltr"></div>
+              <div><div class="fl">الشعار الطبي</div><input class="fi" value="لليزك وأمراض القرنية وتصحيح الإبصار"></div>
+              <div><div class="fl">رقم الترخيص</div><input class="fi" value="HC-2019-04821" dir="ltr"></div>
+              <div><div class="fl">التليفون</div><input class="fi" value="01012345678" dir="ltr"></div>
+              <div><div class="fl">البريد الإلكتروني</div><input class="fi" value="info@shorouk-eyes.com" dir="ltr"></div>
+              <div style="grid-column:1/-1"><div class="fl">العنوان</div><input class="fi" value="١٢٣ شارع التحرير، القاهرة، جمهورية مصر العربية"></div>
+            </div>
+          </div>
+        </div>
+        <!-- Services pricing -->
+        <div class="card">
+          <div class="ch"><div class="ct">الخدمات والأسعار</div><button class="btn g" style="height:26px;font-size:10px">+ إضافة خدمة</button></div>
+          <div style="overflow-x:auto">
+            <table class="tbl" style="font-size:11px">
+              <thead><tr><th>الخدمة</th><th>الكود</th><th>السعر (ج.م)</th><th>مدة الجلسة</th><th>الحالة</th><th></th></tr></thead>
+              <tbody>
+                <tr><td style="font-weight:600">يزك — عين واحدة</td><td style="font-family:var(--fmo);color:var(--f3)">LASIK-1</td><td style="font-family:var(--fmo);font-weight:700">٢,٢٥٠</td><td style="color:var(--f3)">٣٠ دقيقة</td><td><span class="bx s"><span class="d"></span>فعال</span></td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">تعديل</button></td></tr>
+                <tr><td style="font-weight:600">يزك — عينان</td><td style="font-family:var(--fmo);color:var(--f3)">LASIK-2</td><td style="font-family:var(--fmo);font-weight:700">٤,٥٠٠</td><td style="color:var(--f3)">٤٥ دقيقة</td><td><span class="bx s"><span class="d"></span>فعال</span></td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">تعديل</button></td></tr>
+                <tr><td style="font-weight:600">مياه بيضاء — عين</td><td style="font-family:var(--fmo);color:var(--f3)">CAT-1</td><td style="font-family:var(--fmo);font-weight:700">٦,٢٠٠</td><td style="color:var(--f3)">٦٠ دقيقة</td><td><span class="bx s"><span class="d"></span>فعال</span></td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">تعديل</button></td></tr>
+                <tr><td style="font-weight:600">بنتاكام</td><td style="font-family:var(--fmo);color:var(--f3)">PENT-1</td><td style="font-family:var(--fmo);font-weight:700">٨٥٠</td><td style="color:var(--f3)">١٥ دقيقة</td><td><span class="bx s"><span class="d"></span>فعال</span></td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">تعديل</button></td></tr>
+                <tr><td style="font-weight:600">فحص عام</td><td style="font-family:var(--fmo);color:var(--f3)">EXAM-1</td><td style="font-family:var(--fmo);font-weight:700">٣٠٠</td><td style="color:var(--f3)">٢٠ دقيقة</td><td><span class="bx s"><span class="d"></span>فعال</span></td><td><button class="btn" style="height:24px;font-size:10px;padding:0 8px">تعديل</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <!-- System preferences -->
+        <div class="card">
+          <div class="ch"><div class="ct">تفضيلات النظام</div></div>
+          <div class="cb">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--b2);border-radius:var(--r1)"><span style="font-size:12px;color:var(--f2)">وضع RTL افتراضي</span><div style="width:38px;height:22px;border-radius:99px;background:var(--g5);position:relative;cursor:pointer;box-shadow:var(--glow)"><div style="width:16px;height:16px;border-radius:50%;background:var(--fog);position:absolute;top:3px;right:3px"></div></div></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--b2);border-radius:var(--r1)"><span style="font-size:12px;color:var(--f2)">إشعارات الطابور</span><div style="width:38px;height:22px;border-radius:99px;background:var(--g5);position:relative;cursor:pointer;box-shadow:var(--glow)"><div style="width:16px;height:16px;border-radius:50%;background:var(--fog);position:absolute;top:3px;right:3px"></div></div></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--b2);border-radius:var(--r1)"><span style="font-size:12px;color:var(--f2)">الطباعة التلقائية</span><div style="width:38px;height:22px;border-radius:99px;background:var(--b3);position:relative;cursor:pointer"><div style="width:16px;height:16px;border-radius:50%;background:var(--f3);position:absolute;top:3px;left:3px"></div></div></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--b2);border-radius:var(--r1)"><span style="font-size:12px;color:var(--f2)">الوضع الداكن</span><div style="width:38px;height:22px;border-radius:99px;background:var(--g5);position:relative;cursor:pointer;box-shadow:var(--glow)"><div style="width:16px;height:16px;border-radius:50%;background:var(--fog);position:absolute;top:3px;right:3px"></div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN 7: MEDICAL REPORT (PRINT) ══════════════════════════ -->
+<div style="position:absolute;left:60px;top:2270px;width:980px">
+  <div class="lbl" data-drags-parent="1">07 — Medical Report (Print / A4)</div>
+  <div class="frame" style="background:white;direction:rtl">
+    <div style="padding:36px 44px;font-family:'Cairo',system-ui,sans-serif;color:oklch(0.12 0.015 265)">
+      <!-- Header -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;padding-bottom:16px;border-bottom:2.5px solid oklch(0.75 0.16 76);margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="width:48px;height:48px;border-radius:10px;background:oklch(0.75 0.16 76);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="oklch(0.12 0.015 265)" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+          <div><div style="font-size:18px;font-weight:900;line-height:1.1">مركز عيون الشروق</div><div style="font-size:11px;font-weight:600;color:oklch(0.65 0.18 72);margin-top:2px">لليزك وأمراض القرنية وتصحيح الإبصار</div></div>
+        </div>
+        <div style="text-align:start">
+          <div style="font-size:14px;font-weight:800;color:oklch(0.12 0.015 265)">تقرير فحص طبي</div>
+          <div style="font-size:10px;color:oklch(0.55 0.01 265);margin-top:3px;font-family:'IBM Plex Mono',monospace">التاريخ: ٢٩/٠٦/٢٠٢٥</div>
+          <div style="font-size:10px;color:oklch(0.55 0.01 265);font-family:'IBM Plex Mono',monospace">رقم التقرير: RPT-2025-0341</div>
+        </div>
+      </div>
+      <!-- Patient info grid -->
+      <div style="background:oklch(0.97 0.003 265);border-radius:8px;padding:12px 16px;margin-bottom:16px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+        <div><div style="font-size:9px;font-weight:800;color:oklch(0.55 0.01 265);letter-spacing:.05em;margin-bottom:2px;font-family:'IBM Plex Mono',monospace">الاسم</div><div style="font-size:12px;font-weight:700">أحمد محمد علي إبراهيم</div></div>
+        <div><div style="font-size:9px;font-weight:800;color:oklch(0.55 0.01 265);letter-spacing:.05em;margin-bottom:2px;font-family:'IBM Plex Mono',monospace">رقم الملف</div><div style="font-size:12px;font-weight:700;font-family:'IBM Plex Mono',monospace">#0341</div></div>
+        <div><div style="font-size:9px;font-weight:800;color:oklch(0.55 0.01 265);letter-spacing:.05em;margin-bottom:2px;font-family:'IBM Plex Mono',monospace">العمر / الجنس</div><div style="font-size:12px;font-weight:700">٣٤ سنة · ذكر</div></div>
+        <div><div style="font-size:9px;font-weight:800;color:oklch(0.55 0.01 265);letter-spacing:.05em;margin-bottom:2px;font-family:'IBM Plex Mono',monospace">الطبيب المعالج</div><div style="font-size:12px;font-weight:700">د. سامي حسن</div></div>
+      </div>
+      <!-- Measurements table -->
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:800;margin-bottom:8px;color:oklch(0.2 0.01 265);letter-spacing:.02em">قياسات الانكسار والبصر</div>
+        <table style="width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:11px">
+          <thead><tr style="background:oklch(0.75 0.16 76)"><th style="padding:7px 10px;text-align:center;font-weight:800;color:oklch(0.12 0.015 265)">العين</th><th style="padding:7px 10px;text-align:center;font-weight:800;color:oklch(0.12 0.015 265)">SPH</th><th style="padding:7px 10px;text-align:center;font-weight:800;color:oklch(0.12 0.015 265)">CYL</th><th style="padding:7px 10px;text-align:center;font-weight:800;color:oklch(0.12 0.015 265)">AXIS</th><th style="padding:7px 10px;text-align:center;font-weight:800;color:oklch(0.12 0.015 265)">VA (SC)</th><th style="padding:7px 10px;text-align:center;font-weight:800;color:oklch(0.12 0.015 265)">VA (CC)</th><th style="padding:7px 10px;text-align:center;font-weight:800;color:oklch(0.12 0.015 265)">IOP</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid oklch(0.88 0.005 265)"><td style="padding:7px 10px;text-align:center;font-weight:700;font-family:'Cairo',sans-serif;font-size:11px">OD — يمنى</td><td style="padding:7px 10px;text-align:center;font-weight:700">-3.25</td><td style="padding:7px 10px;text-align:center;font-weight:700">-1.00</td><td style="padding:7px 10px;text-align:center;font-weight:700">180°</td><td style="padding:7px 10px;text-align:center;font-weight:700;color:oklch(0.55 0.12 75)">6/18</td><td style="padding:7px 10px;text-align:center;font-weight:700;color:oklch(0.45 0.14 145)">6/9</td><td style="padding:7px 10px;text-align:center;font-weight:700;color:oklch(0.45 0.14 145)">14 mmHg</td></tr>
+            <tr style="background:oklch(0.97 0.003 265)"><td style="padding:7px 10px;text-align:center;font-weight:700;font-family:'Cairo',sans-serif;font-size:11px">OS — يسرى</td><td style="padding:7px 10px;text-align:center;font-weight:700">-2.75</td><td style="padding:7px 10px;text-align:center;font-weight:700">-0.75</td><td style="padding:7px 10px;text-align:center;font-weight:700">175°</td><td style="padding:7px 10px;text-align:center;font-weight:700;color:oklch(0.55 0.12 75)">6/24</td><td style="padding:7px 10px;text-align:center;font-weight:700;color:oklch(0.45 0.14 145)">6/7.5</td><td style="padding:7px 10px;text-align:center;font-weight:700;color:oklch(0.45 0.14 145)">16 mmHg</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- Findings -->
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:800;margin-bottom:8px;color:oklch(0.2 0.01 265)">نتائج الفحص السريري</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div style="background:oklch(0.97 0.003 265);border-radius:6px;padding:10px 12px">
+            <div style="font-size:9px;font-weight:800;color:oklch(0.55 0.01 265);margin-bottom:6px">OD — العين اليمنى</div>
+            <table style="width:100%;border-collapse:collapse;font-size:11px">
+              <tr><td style="padding:2px 0;color:oklch(0.45 0.01 265)">القرنية</td><td style="font-weight:700;color:oklch(0.35 0.14 145)">سليمة · صافية</td></tr>
+              <tr><td style="padding:2px 0;color:oklch(0.45 0.01 265)">العدسة</td><td style="font-weight:700;color:oklch(0.35 0.14 145)">صافية</td></tr>
+              <tr><td style="padding:2px 0;color:oklch(0.45 0.01 265)">قاع العين</td><td style="font-weight:700;color:oklch(0.35 0.14 145)">طبيعي</td></tr>
+              <tr><td style="padding:2px 0;color:oklch(0.45 0.01 265)">IOP</td><td style="font-weight:700;color:oklch(0.35 0.14 145)">14 mmHg (طبيعي)</td></tr>
+            </table>
+          </div>
+          <div style="background:oklch(0.97 0.003 265);border-radius:6px;padding:10px 12px">
+            <div style="font-size:9px;font-weight:800;color:oklch(0.55 0.01 265);margin-bottom:6px">OS — العين اليسرى</div>
+            <table style="width:100%;border-collapse:collapse;font-size:11px">
+              <tr><td style="padding:2px 0;color:oklch(0.45 0.01 265)">القرنية</td><td style="font-weight:700;color:oklch(0.35 0.14 145)">سليمة · صافية</td></tr>
+              <tr><td style="padding:2px 0;color:oklch(0.45 0.01 265)">العدسة</td><td style="font-weight:700;color:oklch(0.35 0.14 145)">صافية</td></tr>
+              <tr><td style="padding:2px 0;color:oklch(0.45 0.01 265)">قاع العين</td><td style="font-weight:700;color:oklch(0.35 0.14 145)">طبيعي</td></tr>
+              <tr><td style="padding:2px 0;color:oklch(0.45 0.01 265)">IOP</td><td style="font-weight:700;color:oklch(0.35 0.14 145)">16 mmHg (طبيعي)</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+      <!-- Diagnosis + recommendation -->
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;font-weight:800;margin-bottom:8px;color:oklch(0.2 0.01 265)">التشخيص والتوصية</div>
+        <div style="background:oklch(0.97 0.003 265);border-radius:6px;padding:12px 14px;font-size:12px;line-height:1.9;color:oklch(0.2 0.01 265)">
+          <strong>التشخيص:</strong> قصر نظر مع أستجماتيزم في كلتا العينين. قرنية سليمة. لا توجد عتامات أو تغيرات مرضية. مياه العدسة صافية. ضغط العين ضمن الحدود الطبيعية.<br>
+          <strong>التوصية:</strong> مرشح لإجراء عملية يزك LASIK بعد استيفاء باقي الاشتراطات. يُنصح بإيقاف العدسات اللاصقة أسبوعاً قبل الجراحة.
+        </div>
+      </div>
+      <!-- Signature -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;padding-top:16px;border-top:1px solid oklch(0.88 0.005 265)">
+        <div style="font-size:10px;color:oklch(0.55 0.01 265);line-height:1.8">مركز عيون الشروق · القاهرة، جمهورية مصر العربية<br>هاتف: 01012345678 · info@shorouk-eyes.com<br>© 2025 جميع الحقوق محفوظة</div>
+        <div style="text-align:center"><div style="width:130px;border-bottom:1px solid oklch(0.6 0.01 265);margin-bottom:5px;height:32px"></div><div style="font-size:11px;color:oklch(0.3 0.01 265);font-weight:700">د. سامي حسن</div><div style="font-size:10px;color:oklch(0.55 0.01 265)">استشاري طب وجراحة العيون</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+</body>
+</html>

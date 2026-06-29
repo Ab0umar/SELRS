@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { fmt, fmtDate, todayIso } from "./accountingFormat";
 import { DateInput } from "@/components/ui/date-input";
+import { AccountingPage } from "./AccountingPagePrimitives";
 
 const PAGE_SIZE = 50;
 
@@ -167,25 +168,15 @@ export default function AccountingAdvances() {
   const employees = employeesQ.data ?? [];
 
   return (
-    <>
+    <AccountingPage
+      eyebrow="Employee Advances"
+      title="سلف الموظفين"
+      description="إضافة السلف والسداد ومراجعة الأرصدة المتبقية لكل موظف."
+    >
       <div className="space-y-4 lg:space-y-5" dir="rtl">
         <section className="rounded-[24px] border border-border bg-background p-4 shadow-sm lg:p-5">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
+          <div className="flex flex-col gap-5">
             <div className="min-w-0 flex-1">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                    إدارة مالية
-                  </div>
-                  <h1 className="mt-1 text-xl font-bold text-foreground lg:text-2xl">
-                    السلف
-                  </h1>
-                  <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
-                    إدخال ومراجعة السلف والسداد مع كشف الحركات في نفس الصفحة.
-                  </p>
-                </div>
-              </div>
-
               <div className="grid gap-3 sm:grid-cols-3">
                 {(
                   [
@@ -254,10 +245,7 @@ export default function AccountingAdvances() {
               </div>
             </div>
 
-            <div
-              ref={formRef}
-              className="min-w-0 border-t border-border pt-4 xl:w-[480px] xl:border-t-0 xl:border-s xl:pt-0 xl:ps-5"
-            >
+            <div ref={formRef} className="min-w-0 border-t border-border pt-5">
               <div className="mb-3 flex items-center justify-between">
                 <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   {editingId ? "تعديل قيد" : "إضافة سلفة"}
@@ -356,7 +344,10 @@ export default function AccountingAdvances() {
 
                 <div className="flex flex-col gap-1.5 sm:col-span-2">
                   <label className="text-xs font-medium text-muted-foreground">
-                    ربط بموظف الرواتب <span className="text-[10px] font-normal">(اختياري — لاستيراد السلفة في الرواتب)</span>
+                    ربط بموظف الرواتب{" "}
+                    <span className="text-[10px] font-normal">
+                      (اختياري — لاستيراد السلفة في الرواتب)
+                    </span>
                   </label>
                   <select
                     value={empCd ?? ""}
@@ -365,7 +356,9 @@ export default function AccountingAdvances() {
                   >
                     <option value="">-- غير مرتبط --</option>
                     {attEmps.map((e: any) => (
-                      <option key={e.empCd} value={e.empCd}>{e.fullName} ({e.empCd})</option>
+                      <option key={e.empCd} value={e.empCd}>
+                        {e.fullName} ({e.empCd})
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -504,19 +497,33 @@ export default function AccountingAdvances() {
           <section className="rounded-[24px] border border-border bg-background shadow-sm overflow-hidden">
             <div className="border-b border-border px-4 py-3 flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-bold text-foreground">السلف النشطة</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">اضغط على صف لتحديد الموظف في نموذج الإضافة</p>
+                <h2 className="text-sm font-bold text-foreground">
+                  السلف النشطة
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  اضغط على صف لتحديد الموظف في نموذج الإضافة
+                </p>
               </div>
-              <span className="text-xs text-muted-foreground">{byEmployee.length} موظف برصيد متبقٍ</span>
+              <span className="text-xs text-muted-foreground">
+                {byEmployee.length} موظف برصيد متبقٍ
+              </span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/30 text-xs">
-                    <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">الموظف</th>
-                    <th className="px-4 py-2.5 text-left font-medium text-warning tabular-nums">إجمالي السلف</th>
-                    <th className="px-4 py-2.5 text-left font-medium text-success tabular-nums">إجمالي السداد</th>
-                    <th className="px-4 py-2.5 text-left font-medium text-destructive tabular-nums">المتبقي</th>
+                    <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">
+                      الموظف
+                    </th>
+                    <th className="px-4 py-2.5 text-left font-medium text-warning tabular-nums">
+                      إجمالي السلف
+                    </th>
+                    <th className="px-4 py-2.5 text-left font-medium text-success tabular-nums">
+                      إجمالي السداد
+                    </th>
+                    <th className="px-4 py-2.5 text-left font-medium text-destructive tabular-nums">
+                      المتبقي
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
@@ -534,7 +541,10 @@ export default function AccountingAdvances() {
                         setEditingId(null);
                         setSearch(r.employee);
                         setPage(1);
-                        formRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                        formRef.current?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "nearest",
+                        });
                       }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
@@ -549,10 +559,21 @@ export default function AccountingAdvances() {
                         r.remaining <= 0 && "opacity-50",
                       )}
                     >
-                      <td className="px-4 py-2.5 font-medium text-foreground">{r.employee}</td>
-                      <td className="px-4 py-2.5 text-left tabular-nums text-warning">{fmt(r.totalAdvance)}</td>
-                      <td className="px-4 py-2.5 text-left tabular-nums text-success">{fmt(r.totalRepaid)}</td>
-                      <td className={cn("px-4 py-2.5 text-left tabular-nums font-bold", r.remaining > 0 ? "text-destructive" : "text-success")}>
+                      <td className="px-4 py-2.5 font-medium text-foreground">
+                        {r.employee}
+                      </td>
+                      <td className="px-4 py-2.5 text-left tabular-nums text-warning">
+                        {fmt(r.totalAdvance)}
+                      </td>
+                      <td className="px-4 py-2.5 text-left tabular-nums text-success">
+                        {fmt(r.totalRepaid)}
+                      </td>
+                      <td
+                        className={cn(
+                          "px-4 py-2.5 text-left tabular-nums font-bold",
+                          r.remaining > 0 ? "text-destructive" : "text-success",
+                        )}
+                      >
                         {fmt(r.remaining)}
                       </td>
                     </tr>
@@ -560,10 +581,23 @@ export default function AccountingAdvances() {
                 </tbody>
                 <tfoot>
                   <tr className="border-t border-border bg-muted/30 text-xs font-bold">
-                    <td className="px-4 py-2.5 text-muted-foreground">الإجمالي</td>
-                    <td className="px-4 py-2.5 text-left tabular-nums text-warning">{fmt(totalAdvance)}</td>
-                    <td className="px-4 py-2.5 text-left tabular-nums text-success">{fmt(totalRepaid)}</td>
-                    <td className={cn("px-4 py-2.5 text-left tabular-nums", totalAdvance - totalRepaid > 0 ? "text-destructive" : "text-success")}>
+                    <td className="px-4 py-2.5 text-muted-foreground">
+                      الإجمالي
+                    </td>
+                    <td className="px-4 py-2.5 text-left tabular-nums text-warning">
+                      {fmt(totalAdvance)}
+                    </td>
+                    <td className="px-4 py-2.5 text-left tabular-nums text-success">
+                      {fmt(totalRepaid)}
+                    </td>
+                    <td
+                      className={cn(
+                        "px-4 py-2.5 text-left tabular-nums",
+                        totalAdvance - totalRepaid > 0
+                          ? "text-destructive"
+                          : "text-success",
+                      )}
+                    >
                       {fmt(totalAdvance - totalRepaid)}
                     </td>
                   </tr>
@@ -908,6 +942,6 @@ export default function AccountingAdvances() {
           )}
         </section>
       </div>
-    </>
+    </AccountingPage>
   );
 }

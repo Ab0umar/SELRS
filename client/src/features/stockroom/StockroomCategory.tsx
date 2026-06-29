@@ -124,6 +124,7 @@ export default function StockroomCategory() {
   const [quantity, setQuantity] = useState("");
   const [unitPrice, setUnitPrice] = useState("");
   const [employeeName, setEmployeeName] = useState("");
+  const [destination, setDestination] = useState("");
   const [txDate, setTxDate] = useState(new Date().toISOString().slice(0, 10));
 
   // States for receiving a brand new, unregistered item in the Add tab
@@ -213,6 +214,7 @@ export default function StockroomCategory() {
       itemId: Number(selectedItemId),
       quantity: Number(quantity),
       employeeName: employeeName,
+      destination: destination || undefined,
       transactionDate: txDate || undefined,
     });
   };
@@ -250,21 +252,21 @@ export default function StockroomCategory() {
         <TabsList className="grid w-full grid-cols-3 mb-6 bg-muted/50 p-1">
           <TabsTrigger
             value="inventory"
-            className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+            className="data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
           >
             <List className="me-2 h-4 w-4" />
             جرد المخزون
           </TabsTrigger>
           <TabsTrigger
             value="add"
-            className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+            className="data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
           >
             <ArrowDownToLine className="me-2 h-4 w-4" />
             إضافة رصيد (استلام)
           </TabsTrigger>
           <TabsTrigger
             value="dispense"
-            className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+            className="data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
           >
             <ArrowUpFromLine className="me-2 h-4 w-4" />
             صرف رصيد
@@ -302,7 +304,7 @@ export default function StockroomCategory() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-border/60 bg-white">
+          <div className="rounded-lg border border-border/60 bg-card">
             <Table>
               <TableHeader className="bg-primary/5">
                 <TableRow>
@@ -427,7 +429,7 @@ export default function StockroomCategory() {
         </TabsContent>
 
         <TabsContent value="add" className="space-y-4">
-          <div className="rounded-lg border border-border/60 bg-white p-6 sm:p-8 max-w-2xl mx-auto">
+          <div className="rounded-lg border border-border/60 bg-card p-6 sm:p-8 max-w-2xl mx-auto">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border/50 pb-4 mb-6 gap-4">
               <h2 className="text-lg font-bold text-primary flex items-center">
                 <ArrowDownToLine className="me-2 h-5 w-5" />
@@ -439,7 +441,7 @@ export default function StockroomCategory() {
                   className={cn(
                     "flex-1 text-sm py-1.5 rounded-sm transition-colors",
                     !isReceivingNewItem
-                      ? "bg-white shadow-sm text-primary font-medium"
+                      ? "bg-background shadow-sm text-primary font-medium"
                       : "text-muted-foreground",
                   )}
                   onClick={() => setIsReceivingNewItem(false)}
@@ -451,7 +453,7 @@ export default function StockroomCategory() {
                   className={cn(
                     "flex-1 text-sm py-1.5 rounded-sm transition-colors",
                     isReceivingNewItem
-                      ? "bg-white shadow-sm text-primary font-medium"
+                      ? "bg-background shadow-sm text-primary font-medium"
                       : "text-muted-foreground",
                   )}
                   onClick={() => setIsReceivingNewItem(true)}
@@ -488,7 +490,7 @@ export default function StockroomCategory() {
                       value={receiveNewName}
                       onChange={(e) => setReceiveNewName(e.target.value)}
                       placeholder="أدخل اسم الصنف..."
-                      className="bg-white"
+                      className="bg-background"
                     />
                   </div>
                   <div className="space-y-2">
@@ -497,7 +499,7 @@ export default function StockroomCategory() {
                       value={receiveNewCode}
                       onChange={(e) => setReceiveNewCode(e.target.value)}
                       placeholder="EDXXX"
-                      className="bg-white font-mono"
+                      className="bg-background font-mono"
                     />
                   </div>
                   <div className="space-y-2">
@@ -506,7 +508,7 @@ export default function StockroomCategory() {
                       value={receiveNewSupplier}
                       onChange={(e) => setReceiveNewSupplier(e.target.value)}
                       placeholder="اسم الشركة..."
-                      className="bg-white"
+                      className="bg-background"
                     />
                   </div>
                   <div className="space-y-2 sm:col-span-2">
@@ -514,7 +516,7 @@ export default function StockroomCategory() {
                     <DateInput
                       value={receiveNewExpiry}
                       onChange={(e) => setReceiveNewExpiry(e.target.value)}
-                      className="bg-white"
+                      className="bg-background"
                     />
                   </div>
                 </div>
@@ -581,7 +583,7 @@ export default function StockroomCategory() {
         </TabsContent>
 
         <TabsContent value="dispense" className="space-y-4">
-          <div className="rounded-lg border border-border/60 bg-white p-6 sm:p-8 max-w-2xl mx-auto">
+          <div className="rounded-lg border border-border/60 bg-card p-6 sm:p-8 max-w-2xl mx-auto">
             <h2 className="text-lg font-bold text-warning-text mb-6 flex items-center border-b border-border/50 pb-4">
               <ArrowUpFromLine className="me-2 h-5 w-5" />
               إذن صرف مخزون
@@ -632,6 +634,20 @@ export default function StockroomCategory() {
                   onChange={(e) => setEmployeeName(e.target.value)}
                   placeholder="أدخل اسم الموظف أو القسم المستلم..."
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label>جهة الصرف</Label>
+                <select
+                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value)}
+                >
+                  <option value="">-- اختر الجهة --</option>
+                  <option value="بيع">بيع</option>
+                  <option value="عمليات">عمليات</option>
+                  <option value="عيادات">عيادات</option>
+                </select>
               </div>
 
               <div className="flex justify-end gap-2 pt-6 border-t border-border/50">

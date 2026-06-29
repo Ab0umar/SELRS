@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Printer } from "lucide-react";
+import { Printer, User, LayoutGrid, Layers, Target, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import PatientPicker from "@/components/PatientPicker";
@@ -563,21 +563,395 @@ export default function LasikExamSheet() {
     );
   };
 
+  const renderSheetBody = (_readOnly = false) => {
+    const odThinnestNum = parseFloat(examData.pentacam.od.thinnest);
+    const osThinnestNum = parseFloat(examData.pentacam.os.thinnest);
+    const odIopNum = parseFloat(examData.autorefraction.od.iop);
+    const osIopNum = parseFloat(examData.autorefraction.os.iop);
+    const today = new Date().toLocaleDateString("en-GB");
+    const pentacamImages = ((pentacamQuery.data as unknown[]) ?? []) as Record<string, string>[];
+    const odImage = pentacamImages.find((img) => img["eye"] === "od" || img["eye"] === "OD");
+    const osImage = pentacamImages.find((img) => img["eye"] === "os" || img["eye"] === "OS");
+
+    const mkAutoPatch = (eye: "od" | "os", field: string) =>
+      (e: React.ChangeEvent<HTMLInputElement>) =>
+        setExamData((prev) => ({
+          ...prev,
+          autorefraction: {
+            ...prev.autorefraction,
+            [eye]: { ...prev.autorefraction[eye], [field]: e.target.value } as typeof prev.autorefraction.od,
+          },
+        }));
+
+    const mkPentaPatch = (eye: "od" | "os", field: string) =>
+      (e: React.ChangeEvent<HTMLInputElement>) =>
+        setExamData((prev) => ({
+          ...prev,
+          pentacam: {
+            ...prev.pentacam,
+            [eye]: { ...prev.pentacam[eye], [field]: e.target.value } as typeof prev.pentacam.od,
+          },
+        }));
+
+    return (
+      <div className="lasik-print-root" dir="ltr">
+        {/* BLUE ASSESSMENT HEADER CARD */}
+        <div className="bg-[#1B2B6B] text-white mx-4 mt-4 mb-4 rounded-lg p-5 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="border border-white/30 rounded p-1.5">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-xl font-bold">{BRAND_NAME_EN} Eye Clinic</h1>
+              <p className="text-blue-200 text-sm">{BRAND_NAME_AR}</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] font-bold tracking-widest text-blue-300 uppercase">LASIK PRE-OP ASSESSMENT</p>
+            <p className="text-2xl font-bold">
+              Exam ID: {formData.patientCode ? `LX-${formData.patientCode}` : "LX-2023-8842"}
+            </p>
+            <p className="text-blue-200 text-sm">Date: {formData.examinationDate || today}</p>
+          </div>
+        </div>
+
+        {/* SURGERY TYPE & EYE SELECTION */}
+        <div className="mx-4 mb-4 border border-gray-200 rounded-lg p-4 bg-white flex gap-6">
+          <div className="flex-1">
+            <p className="text-[11px] text-gray-500 font-medium mb-1">Surgery Type Selection</p>
+            <select
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+              value={operationType}
+              onChange={(e) => setOperationType(e.target.value)}
+            >
+              <option value="ليزك">Lasik (Standard)</option>
+              <option value="فيمتو ليزك">Femto Lasik (Femto)</option>
+              <option value="PRK">PRK/LASEK</option>
+              <option value="فيمتو سمايل">SMILE</option>
+              <option value="ICL">ICL</option>
+            </select>
+          </div>
+          <div className="flex-1">
+            <p className="text-[11px] text-gray-500 font-medium mb-1">Eye Selection</p>
+            <div className="flex gap-4 items-center mt-1">
+              <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={operationEyes.right}
+                  onChange={(e) => {
+                    const right = e.target.checked;
+                    setOperationEyes((prev) => ({ ...prev, right, both: right && prev.left }));
+                  }}
+                />
+                RT (Right Eye)
+              </label>
+              <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={operationEyes.left}
+                  onChange={(e) => {
+                    const left = e.target.checked;
+                    setOperationEyes((prev) => ({ ...prev, left, both: prev.right && left }));
+                  }}
+                />
+                LT (Left Eye)
+              </label>
+              <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={operationEyes.both}
+                  onChange={(e) => {
+                    const both = e.target.checked;
+                    setOperationEyes({ right: both, left: both, both });
+                  }}
+                />
+                OU (Both Eyes)
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* PATIENT DETAILS */}
+        <div className="mx-4 mb-4">
+          <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900 mb-3">
+            <User className="h-4 w-4" /> Patient Details
+          </h2>
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="grid grid-cols-4 divide-x border-b">
+              {(
+                [
+                  { label: "Full Name", value: formData.patientName },
+                  { label: "Patient Code", value: formData.patientCode },
+                  { label: "Date of Birth", value: formData.dateOfBirth },
+                  { label: "Age", value: formData.age },
+                ] as { label: string; value: string }[]
+              ).map(({ label, value }) => (
+                <div key={label} className="p-3">
+                  <p className="text-[10px] text-gray-500 mb-0.5">{label}</p>
+                  <p className="font-semibold text-sm">{value || "—"}</p>
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-3 divide-x">
+              {(
+                [
+                  { label: "Phone Number", value: formData.phone },
+                  { label: "Profession / Job", value: formData.job },
+                  { label: "Residential Address", value: formData.address },
+                ] as { label: string; value: string }[]
+              ).map(({ label, value }) => (
+                <div key={label} className="p-3">
+                  <p className="text-[10px] text-gray-500 mb-0.5">{label}</p>
+                  <p className="font-semibold text-sm">{value || "—"}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* MEDICAL & OCULAR HISTORY */}
+        <div className="mx-4 mb-4">
+          <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900 mb-3">
+            <Clock className="h-4 w-4" /> Medical &amp; Ocular History
+          </h2>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="border border-gray-200 rounded-lg p-4">
+              <p className="text-sm font-semibold text-gray-700 mb-3">General Conditions</p>
+              <div className="grid grid-cols-2 gap-2">
+                {["Diabetes", "Hypertension", "Rheumatoid", "Pregnancy"].map((cond) => (
+                  <label key={cond} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                    <input type="checkbox" /> {cond}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="border border-gray-200 rounded-lg p-4">
+              <p className="text-sm font-semibold text-gray-700 mb-3">Ocular Conditions</p>
+              <div className="grid grid-cols-2 gap-2">
+                {["Dry Eye", "Glaucoma", "Keratoconus", "Family History"].map((cond) => (
+                  <label key={cond} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                    <input type="checkbox" /> {cond}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* COMPREHENSIVE REFRACTION */}
+        <div className="mx-4 mb-4">
+          <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900 mb-3">
+            <LayoutGrid className="h-4 w-4" /> Comprehensive Refraction
+          </h2>
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <table className="w-full text-center" dir="ltr">
+              <thead>
+                <tr className="bg-gray-100 text-gray-600 text-[11px] font-semibold uppercase border-b">
+                  <th className="p-2 border-r">EYE</th>
+                  <th className="p-2 border-r">UCVA</th>
+                  <th className="p-2 border-r">Sphere (S)</th>
+                  <th className="p-2 border-r">Cylinder (C)</th>
+                  <th className="p-2 border-r">Axis (A)</th>
+                  <th className="p-2 border-r">BCVA</th>
+                  <th className="p-2">IOP (mmHg)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b">
+                  <td className="p-2 border-r">
+                    <span className="text-sm font-bold text-[#003D9B]">OD (Right)</span>
+                  </td>
+                  {(["ucva", "s", "c", "axis", "bcva"] as const).map((field) => (
+                    <td key={field} className="p-1 border-r">
+                      <Input
+                        value={examData.autorefraction.od[field]}
+                        onChange={mkAutoPatch("od", field)}
+                        className="h-7 text-[12px] text-center border-gray-300 w-16 mx-auto"
+                      />
+                    </td>
+                  ))}
+                  <td className="p-1">
+                    <Input
+                      value={examData.autorefraction.od.iop}
+                      onChange={mkAutoPatch("od", "iop")}
+                      className={`h-7 text-[12px] text-center border-gray-300 w-16 mx-auto${!Number.isNaN(odIopNum) && odIopNum > 21 ? " text-red-600 font-bold" : ""}`}
+                    />
+                  </td>
+                </tr>
+                <tr>
+                  <td className="p-2 border-r">
+                    <span className="text-sm font-bold text-gray-700">OS (Left)</span>
+                  </td>
+                  {(["ucva", "s", "c", "axis", "bcva"] as const).map((field) => (
+                    <td key={field} className="p-1 border-r">
+                      <Input
+                        value={examData.autorefraction.os[field]}
+                        onChange={mkAutoPatch("os", field)}
+                        className="h-7 text-[12px] text-center border-gray-300 w-16 mx-auto"
+                      />
+                    </td>
+                  ))}
+                  <td className="p-1">
+                    <Input
+                      value={examData.autorefraction.os.iop}
+                      onChange={mkAutoPatch("os", "iop")}
+                      className={`h-7 text-[12px] text-center border-gray-300 w-16 mx-auto${!Number.isNaN(osIopNum) && osIopNum > 21 ? " text-red-600 font-bold" : ""}`}
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* KERATOMETRY & PENTACAM ANALYSIS */}
+        <div className="mx-4 mb-4">
+          <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900 mb-3">
+            <Layers className="h-4 w-4" /> Keratometry &amp; Pentacam Analysis
+          </h2>
+          <div className="grid grid-cols-2 gap-4">
+            {(["od", "os"] as const).map((eye) => {
+              const thinnestNum = eye === "od" ? odThinnestNum : osThinnestNum;
+              const isThin = !Number.isNaN(thinnestNum) && thinnestNum < 480;
+              const imgData = eye === "od" ? odImage : osImage;
+              const imgUrl = imgData ? (imgData["url"] ?? imgData["imageUrl"] ?? "") : "";
+              return (
+                <div key={eye} className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="flex justify-between items-center px-4 py-2 bg-gray-50 border-b">
+                    <span className="text-sm font-semibold text-[#003D9B]">{eye.toUpperCase()} Pentacam Data</span>
+                    {isThin ? (
+                      <span className="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded">THIN AREA</span>
+                    ) : (
+                      <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded">STABLE</span>
+                    )}
+                  </div>
+                  <div className="bg-gray-900 aspect-[4/3] flex items-center justify-center">
+                    {imgUrl ? (
+                      <img src={imgUrl} alt={`${eye} pentacam`} className="w-full h-full object-contain" />
+                    ) : (
+                      <div className="text-gray-500 text-sm text-center">
+                        <div>Pentacam Map</div>
+                        <div className="text-xs">Not Available</div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 p-3 text-[12px]">
+                    <div className="flex items-center gap-1">
+                      <span className="text-gray-500 text-[10px] w-20 shrink-0">K1 (Flat)</span>
+                      <Input className="h-6 w-16 text-center border-gray-300 text-[#003D9B] font-semibold text-[12px]" value={examData.pentacam[eye].k1} onChange={mkPentaPatch(eye, "k1")} />
+                      <span className="text-gray-500 text-[10px] ml-1">D</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-gray-500 text-[10px] w-20 shrink-0">K2 (Steep)</span>
+                      <Input className="h-6 w-16 text-center border-gray-300 text-[#003D9B] font-semibold text-[12px]" value={examData.pentacam[eye].k2} onChange={mkPentaPatch(eye, "k2")} />
+                      <span className="text-gray-500 text-[10px] ml-1">D</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-gray-500 text-[10px] w-20 shrink-0">Thinnest Pt</span>
+                      <Input
+                        className={`h-6 w-16 text-center border-gray-300 text-[12px]${isThin ? " text-red-600 font-bold" : ""}`}
+                        value={examData.pentacam[eye].thinnest}
+                        onChange={mkPentaPatch(eye, "thinnest")}
+                      />
+                      <span className="text-gray-500 text-[10px] ml-1">μm</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-gray-500 text-[10px] w-20 shrink-0">Res. Stroma</span>
+                      <Input className="h-6 w-16 text-center border-gray-300 text-[12px]" value={examData.pentacam[eye].residual} onChange={mkPentaPatch(eye, "residual")} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ABLATION & TARGET TRACKING */}
+        <div className="mx-4 mb-4">
+          <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900 mb-3">
+            <Target className="h-4 w-4" /> Ablation &amp; Target Tracking
+          </h2>
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <table className="w-full text-center" dir="ltr">
+              <thead>
+                <tr className="bg-gray-100 text-gray-600 text-[11px] font-semibold uppercase border-b">
+                  <th className="p-2 border-r">Stage</th>
+                  <th className="p-2 border-r">Flap Thickness</th>
+                  <th className="p-2 border-r">Ablation Depth</th>
+                  <th className="p-2 border-r">Optical Zone</th>
+                  <th className="p-2 border-r">Target Residual</th>
+                  <th className="p-2">Final Prediction</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(["od", "os"] as const).map((eye) => (
+                  <tr key={eye} className="border-b last:border-0">
+                    <td className="p-2 border-r font-bold text-sm">{eye.toUpperCase()}</td>
+                    <td className="p-1 border-r">
+                      <Input value={examData.pentacam[eye].ttt} onChange={mkPentaPatch(eye, "ttt")} placeholder="110 μm" className="h-7 text-[11px] text-center border-gray-300 w-20 mx-auto" />
+                    </td>
+                    <td className="p-1 border-r">
+                      <Input value={examData.pentacam[eye].ablation} onChange={mkPentaPatch(eye, "ablation")} placeholder="68 μm" className="h-7 text-[11px] text-center border-gray-300 w-20 mx-auto" />
+                    </td>
+                    <td className="p-1 border-r">
+                      <Input placeholder="6.5 mm" className="h-7 text-[11px] text-center border-gray-300 w-20 mx-auto" />
+                    </td>
+                    <td className="p-1 border-r">
+                      <Input value={examData.pentacam[eye].residual} onChange={mkPentaPatch(eye, "residual")} placeholder="≥300 μm" className="h-7 text-[11px] text-center border-gray-300 w-20 mx-auto" />
+                    </td>
+                    <td className="p-2">
+                      <span className="text-[#003D9B] font-semibold text-sm">Plano</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* CLINICAL NOTES + FINAL DIAGNOSIS */}
+        <div className="mx-4 mb-4 grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-[11px] text-gray-500 font-medium mb-1">Clinical Notes</p>
+            <Textarea rows={4} placeholder="Enter surgical observations or preoperative findings..." className="text-sm w-full" />
+          </div>
+          <div>
+            <p className="text-[11px] text-[#003D9B] font-semibold mb-1">Final Diagnosis &amp; Plan</p>
+            <Textarea rows={4} placeholder="Diagnosis and surgical plan..." className="text-sm w-full border-[#003D9B]/30" />
+          </div>
+        </div>
+
+        {/* SIGNATURES FOOTER */}
+        <div className="mx-4 mb-4 grid grid-cols-4 text-center text-[11px]">
+          {(
+            [
+              { label: "Reception", value: signatures.reception },
+              { label: "Nurse", value: signatures.nurse },
+              { label: "Technician", value: signatures.technician },
+              { label: "Surgeon", value: signatures.doctor },
+            ] as { label: string; value: string }[]
+          ).map(({ label, value }) => (
+            <div key={label} className="flex flex-col items-center gap-2">
+              <div className="border-b border-gray-400 w-full h-10 flex items-end justify-center pb-1">
+                {value ? (
+                  <span className={label === "Surgeon" ? "text-[#003D9B] font-semibold" : "text-gray-700"}>{value}</span>
+                ) : null}
+              </div>
+              <span className="font-medium text-gray-600">{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div
-      className={`min-h-screen bg-background sheet-layout ${mobileSheetModeEnabled && !printMode.printView ? "mobile-sheet-mode" : ""}`}
-      dir="rtl"
-      style={{ direction: "rtl", textAlign: "right" }}
-    >
+    <div className="min-h-screen bg-[#F8F9FB]" dir="ltr">
       <style>{`
         ${customSheetCss}
-        .refraction-table-center th,
-        .refraction-table-center td {
-          text-align: center !important;
-        }
-        .refraction-table-center input {
-          text-align: center !important;
-        }
         @media print {
           .lasik-print-root {
             transform: translateX(${printOffsetXmm}mm) translateY(${printOffsetYmm}mm) scale(${printScale});
@@ -585,1262 +959,48 @@ export default function LasikExamSheet() {
           }
         }
       `}</style>
-      {/* Header */}
-      <header
-        className={`sticky top-0 z-10 border-b border-border bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/60 print:hidden ${printMode.printView ? "hidden" : ""}`}
-      >
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between gap-2 flex-nowrap sheet-header-bar">
-            <div className="flex items-center gap-3 whitespace-nowrap">
-              <h1 className="text-xl font-bold text-foreground">
-                {sheetTemplate.sheetTitle}
-              </h1>
-              <span className="text-sm text-muted-foreground">
-                {formData.patientName}
-              </span>
-            </div>
-            <div className="flex gap-1 items-center whitespace-nowrap print:hidden sheet-header-actions">
-              <Button
-                variant="ghost"
-                size="sm"
-                type="button"
-                onClick={() => goBack()}
-              >
-                رجوع
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                type="button"
-                onClick={() => setLocation("/dashboard")}
-              >
-                الصفحة الرئيسية
-              </Button>
-            </div>
-            <div className="flex flex-nowrap gap-1 sheet-header-actions">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePrint}
-                type="button"
-              >
-                <Printer className="h-4 w-4 mr-2" />
-                طباعة
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSaveSheet}
-                type="button"
-              >
-                حفظ
-              </Button>
-            </div>
+      <header className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm print:hidden">
+        <div className="container mx-auto px-4 flex items-center justify-between h-14">
+          <div className="flex items-center gap-2">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1B2B6B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z" />
+            </svg>
+            <span className="font-bold text-[#1B2B6B] text-sm">{BRAND_NAME_EN}</span>
           </div>
+          <nav className="hidden md:flex items-center gap-6 text-sm text-gray-500">
+            <span className="cursor-pointer hover:text-gray-800">Dashboard</span>
+            <span className="cursor-pointer hover:text-gray-800">Patients</span>
+            <span className="cursor-pointer font-bold text-[#1B2B6B] underline underline-offset-4">Surgery</span>
+            <span className="cursor-pointer hover:text-gray-800">Reports</span>
+          </nav>
+          <Button
+            size="sm"
+            className="bg-[#1B2B6B] hover:bg-[#14215a] text-white gap-1.5"
+            onClick={handlePrint}
+            type="button"
+          >
+            <Printer className="h-4 w-4" />
+            Print Exam
+          </Button>
         </div>
       </header>
-
-      {/* Main Content */}
-      <main
-        data-mobile-pdf-root
-        className={`container mx-auto print:p-0 ${printMode.printView ? "px-3 py-3" : "px-4 py-8 pb-24 sm:pb-8"}`}
-      >
-        {printMode.printView ? (
-          <PrintPreviewBanner
-            title="شيت الليزك"
-            subtitle={formData.patientName || undefined}
-            onPrint={handlePrint}
-          />
-        ) : null}
-        <div
-          className={`mb-4 print:hidden ${printMode.printView ? "hidden" : ""}`}
-        >
-          <PatientPicker
-            initialPatientId={initialPatientId}
-            onSelect={handleSelectPatient}
-          />
+      {printMode.printView && (
+        <PrintPreviewBanner
+          title="شيت الليزك"
+          subtitle={formData.patientName || undefined}
+          onPrint={handlePrint}
+        />
+      )}
+      <div className={`px-4 pt-4 print:hidden ${printMode.printView ? "hidden" : ""}`}>
+        <PatientPicker initialPatientId={initialPatientId} onSelect={handleSelectPatient} />
+      </div>
+      <div className="pb-10">
+        <div className={`print:hidden ${printMode.printView ? "hidden" : ""}`}>
+          {renderSheetBody()}
         </div>
-        {/* Operation Details moved under sheet header */}
-        <div className="rounded-[28px] border border-border/80 bg-background p-8 shadow-sm print:rounded-none print:border-0 print:p-0 lasik-print-root">
-          {/* Header */}
-          <div
-            className="mb-0 border-b-4 border-primary pb-0 -mx-8 px-8"
-            style={{ textAlign: "center" }}
-          >
-            <h2
-              className="text-lg font-bold"
-              dir="rtl"
-              style={{ textAlign: "right" }}
-            >
-              {BRAND_NAME_AR} — لليزك وتصحيح الإبصار
-            </h2>
-            <p className="text-sm" dir="ltr" style={{ textAlign: "center" }}>
-              {BRAND_NAME_EN} — Lasik & Vision Correction
-            </p>
-          </div>
-
-          {/* Operation Details */}
-          <div
-            className="sheet-section-card flex flex-wrap sm:flex-nowrap items-center justify-start sm:justify-between gap-2 mb-1 text-xs px-2 py-1 bg-muted/30 overflow-x-hidden text-center"
-            dir="rtl"
-          >
-            <div className="flex items-center gap-1 min-w-0">
-              <span className="font-bold">
-                {sheetTemplate.examinationDateLabel}
-              </span>
-              <DateInput
-                value={formData.examinationDate}
-                onChange={(event) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    examinationDate: event.target.value,
-                  }))
-                }
-                className="text-xs text-right w-[120px] sm:w-[160px] min-w-0"
-                dir="rtl"
-              />
-            </div>
-            <div className="flex items-center gap-1 min-w-0">
-              <span className="font-bold">نوع العملية</span>
-              <select
-                value={operationType}
-                onChange={(event) => setOperationType(event.target.value)}
-                className="text-xs text-right w-[120px] sm:w-[160px] min-w-0 h-8 rounded-md border border-input bg-background px-2"
-                dir="rtl"
-              >
-                <option value=""></option>
-                <option value="ليزك">ليزك</option>
-                <option value="فيمتو ليزك">فيمتو ليزك</option>
-                <option value="PRK">PRK</option>
-                <option value="فيمتو سمايل">فيمتو سمايل</option>
-              </select>
-            </div>
-            <div className="flex flex-wrap items-center gap-1 min-w-0">
-              <span className="font-bold">العيون</span>
-              <label className="flex items-center gap-1 bg-background px-2 py-1">
-                <span className="text-xs">يمين (RT)</span>
-                <Checkbox
-                  id="lasik-rt"
-                  checked={operationEyes.right}
-                  onCheckedChange={(checked) => {
-                    const right = Boolean(checked);
-                    setOperationEyes((prev) => ({
-                      ...prev,
-                      right,
-                      both: right && prev.left,
-                    }));
-                  }}
-                />
-              </label>
-              <label className="flex items-center gap-1 bg-background px-2 py-1">
-                <span className="text-xs">يسار (LT)</span>
-                <Checkbox
-                  id="lasik-lt"
-                  checked={operationEyes.left}
-                  onCheckedChange={(checked) => {
-                    const left = Boolean(checked);
-                    setOperationEyes((prev) => ({
-                      ...prev,
-                      left,
-                      both: prev.right && left,
-                    }));
-                  }}
-                />
-              </label>
-              <label className="flex items-center gap-1 bg-background px-2 py-1">
-                <span className="text-xs">OU</span>
-                <Checkbox
-                  id="lasik-ou"
-                  checked={operationEyes.both}
-                  onCheckedChange={(checked) => {
-                    const both = Boolean(checked);
-                    setOperationEyes({
-                      right: both ? true : false,
-                      left: both ? true : false,
-                      both,
-                    });
-                  }}
-                />
-              </label>
-            </div>
-          </div>
-
-          {/* Patient Info */}
-          <p className="font-bold text-sm mb-1">
-            {sheetTemplate.patientInfoTitle}
-          </p>
-          <div
-            className="sheet-section-card flex flex-col gap-1 mb-2 text-xs"
-            dir="rtl"
-            style={{ whiteSpace: "nowrap" }}
-          >
-            <div className="flex flex-nowrap items-center justify-between gap-2 w-full">
-              <div className="flex items-center gap-1">
-                <label className="font-bold">الاسم</label>
-                <Input
-                  value={formData.patientName}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <label className="font-bold">تاريخ الميلاد</label>
-                <Input
-                  value={formData.dateOfBirth}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <label className="font-bold">السن</label>
-                <Input
-                  value={formData.age}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <label className="font-bold">{sheetTemplate.doctorLabel}</label>
-                <Input
-                  value={signatures.doctor}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-nowrap items-center justify-between gap-2 w-full">
-              <div className="flex items-center gap-1">
-                <label className="font-bold">العنوان</label>
-                <Input
-                  value={formData.address}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <label className="font-bold">الموبايل</label>
-                <Input
-                  value={formData.phone}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <label className="font-bold">كود العميل</label>
-                <Input
-                  value={formData.patientCode}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <label className="font-bold">الوظيفة</label>
-                <Input
-                  value={formData.job}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Medical History Table */}
-          <div className="mb-4 sheet-section-card">
-            <table
-              className="w-full text-xs text-center border lasik-table"
-              dir="rtl"
-            >
-              <tbody>
-                <tr className="border-b">
-                  <td className="border-r p-0.5 text-right">
-                    أمراض عامة؟ (ضغط / سكر / غدة)
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Checkbox />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Checkbox />
-                  </td>
-                  <td className="border-r p-0.5 text-right">
-                    هل سمعت عن مرض القرنية المخروطية في أحد أفراد العائلة؟
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Checkbox />
-                  </td>
-                  <td className="p-0.5">
-                    <Checkbox />
-                  </td>
-                </tr>
-                <tr className="border-b">
-                  <td className="border-r p-0.5 text-right">حمل أو رضاعة؟</td>
-                  <td className="border-r p-0.5">
-                    <Checkbox />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Checkbox />
-                  </td>
-                  <td className="border-r p-0.5 text-right">
-                    هل تستخدم بديل دموع / زيادة في إفراز الدموع / إحساس بالرمل؟
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Checkbox />
-                  </td>
-                  <td className="p-0.5">
-                    <Checkbox />
-                  </td>
-                </tr>
-                <tr className="border-b">
-                  <td className="border-r p-0.5 text-right">
-                    هل تستخدم مضادات حساسية أو مكملات غذائية/كورتيزون/أدوية ضغط؟
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Checkbox />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Checkbox />
-                  </td>
-                  <td className="border-r p-0.5 text-right">
-                    هل تزيد هذه الأعراض عند وجود هواء أو تكييف؟
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Checkbox />
-                  </td>
-                  <td className="p-0.5">
-                    <Checkbox />
-                  </td>
-                </tr>
-                <tr className="border-b">
-                  <td className="border-r p-0.5 text-right">
-                    هل تستخدم علاج لحب الشباب؟ (اسم العلاج)
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Checkbox />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Checkbox />
-                  </td>
-                  <td className="border-r p-0.5 text-right">
-                    هل تعالج من ماء زرقاء؟
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Checkbox />
-                  </td>
-                  <td className="p-0.5">
-                    <Checkbox />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* Refraction Table */}
-          <div className="mb-4 border sheet-section-card">
-            <table
-              className="w-full text-xs text-center lasik-table refraction-table-center"
-              dir="ltr"
-              style={{
-                direction: "ltr",
-                unicodeBidi: "bidi-override",
-                textAlign: "center",
-              }}
-            >
-              <thead>
-                <tr className="border-b bg-muted">
-                  <th className="border-r p-0.5 text-center" colSpan={4}>
-                    Dominant eye _____________
-                  </th>
-                  <th className="p-0.5 text-center" colSpan={6}>
-                    Refraction
-                  </th>
-                </tr>
-                <tr className="border-b bg-muted">
-                  <th className="border-r p-0.5"></th>
-                  <th className="border-r p-0.5">UCVA</th>
-                  <th className="border-r p-0.5">BCVA</th>
-                  <th className="border-r p-0.5">IOP</th>
-                  <th className="border-r p-0.5" colSpan={3}>
-                    OD
-                  </th>
-                  <th className="p-0.5" colSpan={3}>
-                    OS
-                  </th>
-                </tr>
-                <tr className="border-b">
-                  <th className="border-r p-0.5"></th>
-                  <th className="border-r p-0.5"></th>
-                  <th className="border-r p-0.5"></th>
-                  <th className="border-r p-0.5"></th>
-                  <th className="border-r p-0.5">S</th>
-                  <th className="border-r p-0.5">C</th>
-                  <th className="border-r p-0.5">A</th>
-                  <th className="border-r p-0.5">S</th>
-                  <th className="border-r p-0.5">C</th>
-                  <th className="p-0.5">A</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b">
-                  <td className="border-r p-0.5 font-bold">OD</td>
-                  <td className="border-r p-0.5">
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={examData.autorefraction.od.ucva}
-                      onChange={(e) =>
-                        setExamData((prev) => ({
-                          ...prev,
-                          autorefraction: {
-                            ...prev.autorefraction,
-                            od: {
-                              ...prev.autorefraction.od,
-                              ucva: e.target.value,
-                            },
-                          },
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={examData.autorefraction.od.bcva}
-                      onChange={(e) =>
-                        setExamData((prev) => ({
-                          ...prev,
-                          autorefraction: {
-                            ...prev.autorefraction,
-                            od: {
-                              ...prev.autorefraction.od,
-                              bcva: e.target.value,
-                            },
-                          },
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={examData.autorefraction.od.iop}
-                      onChange={(e) =>
-                        setExamData((prev) => ({
-                          ...prev,
-                          autorefraction: {
-                            ...prev.autorefraction,
-                            od: {
-                              ...prev.autorefraction.od,
-                              iop: e.target.value,
-                            },
-                          },
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5" rowSpan={2}>
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={examData.autorefraction.od.s}
-                      onChange={(e) =>
-                        setExamData((prev) => ({
-                          ...prev,
-                          autorefraction: {
-                            ...prev.autorefraction,
-                            od: {
-                              ...prev.autorefraction.od,
-                              s: e.target.value,
-                            },
-                          },
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5" rowSpan={2}>
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={examData.autorefraction.od.c}
-                      onChange={(e) =>
-                        setExamData((prev) => ({
-                          ...prev,
-                          autorefraction: {
-                            ...prev.autorefraction,
-                            od: {
-                              ...prev.autorefraction.od,
-                              c: e.target.value,
-                            },
-                          },
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5" rowSpan={2}>
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={examData.autorefraction.od.axis}
-                      onChange={(e) =>
-                        setExamData((prev) => ({
-                          ...prev,
-                          autorefraction: {
-                            ...prev.autorefraction,
-                            od: {
-                              ...prev.autorefraction.od,
-                              axis: e.target.value,
-                            },
-                          },
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5" rowSpan={2}>
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={examData.autorefraction.os.s}
-                      onChange={(e) =>
-                        setExamData((prev) => ({
-                          ...prev,
-                          autorefraction: {
-                            ...prev.autorefraction,
-                            os: {
-                              ...prev.autorefraction.os,
-                              s: e.target.value,
-                            },
-                          },
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5" rowSpan={2}>
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={examData.autorefraction.os.c}
-                      onChange={(e) =>
-                        setExamData((prev) => ({
-                          ...prev,
-                          autorefraction: {
-                            ...prev.autorefraction,
-                            os: {
-                              ...prev.autorefraction.os,
-                              c: e.target.value,
-                            },
-                          },
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="p-0.5" rowSpan={2}>
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={examData.autorefraction.os.axis}
-                      onChange={(e) =>
-                        setExamData((prev) => ({
-                          ...prev,
-                          autorefraction: {
-                            ...prev.autorefraction,
-                            os: {
-                              ...prev.autorefraction.os,
-                              axis: e.target.value,
-                            },
-                          },
-                        }))
-                      }
-                    />
-                  </td>
-                </tr>
-                <tr className="border-b">
-                  <td className="border-r p-0.5 font-bold">OS</td>
-                  <td className="border-r p-0.5">
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={examData.autorefraction.os.ucva}
-                      onChange={(e) =>
-                        setExamData((prev) => ({
-                          ...prev,
-                          autorefraction: {
-                            ...prev.autorefraction,
-                            os: {
-                              ...prev.autorefraction.os,
-                              ucva: e.target.value,
-                            },
-                          },
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={examData.autorefraction.os.bcva}
-                      onChange={(e) =>
-                        setExamData((prev) => ({
-                          ...prev,
-                          autorefraction: {
-                            ...prev.autorefraction,
-                            os: {
-                              ...prev.autorefraction.os,
-                              bcva: e.target.value,
-                            },
-                          },
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={examData.autorefraction.os.iop}
-                      onChange={(e) =>
-                        setExamData((prev) => ({
-                          ...prev,
-                          autorefraction: {
-                            ...prev.autorefraction,
-                            os: {
-                              ...prev.autorefraction.os,
-                              iop: e.target.value,
-                            },
-                          },
-                        }))
-                      }
-                    />
-                  </td>
-                </tr>
-                <tr className="border-b">
-                  <td className="border-r p-0.5 font-bold">Fundus</td>
-                  <td className="p-0.5" colSpan={9}>
-                    <Input placeholder="" className="text-xs" />
-                  </td>
-                </tr>
-                <tr>
-                  <td className="border-r p-0.5 font-bold">Tear film</td>
-                  <td className="border-r p-0.5" colSpan={3}>
-                    BUT
-                  </td>
-                  <td className="border-r p-0.5" colSpan={3}>
-                    Schirmer T
-                  </td>
-                  <td className="p-0.5" colSpan={3}>
-                    Lid Margin
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* Keratometry Tables */}
-          <div className="grid grid-cols-2 gap-2 mb-4 sheet-section-card">
-            <div className="border">
-              <div className="bg-muted p-1 text-center font-bold text-xs border-b">
-                RT فحص القرنية
-              </div>
-              <table
-                className="w-full text-xs text-center lasik-table"
-                dir="ltr"
-                style={{
-                  direction: "ltr",
-                  unicodeBidi: "bidi-override",
-                  textAlign: "center",
-                }}
-              >
-                <tbody>
-                  <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">K1</td>
-                    <td className="border-r p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={examData.pentacam.od.k1}
-                        onChange={(e) =>
-                          setExamData((prev) => ({
-                            ...prev,
-                            pentacam: {
-                              ...prev.pentacam,
-                              od: { ...prev.pentacam.od, k1: e.target.value },
-                            },
-                          }))
-                        }
-                      />
-                    </td>
-                    <td
-                      className="border-r p-0.5 font-bold text-center"
-                      rowSpan={2}
-                    >
-                      AX
-                    </td>
-                    <td className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={examData.pentacam.od.ax1}
-                        onChange={(e) =>
-                          setExamData((prev) => ({
-                            ...prev,
-                            pentacam: {
-                              ...prev.pentacam,
-                              od: { ...prev.pentacam.od, ax1: e.target.value },
-                            },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">K2</td>
-                    <td className="border-r p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={examData.pentacam.od.k2}
-                        onChange={(e) =>
-                          setExamData((prev) => ({
-                            ...prev,
-                            pentacam: {
-                              ...prev.pentacam,
-                              od: { ...prev.pentacam.od, k2: e.target.value },
-                            },
-                          }))
-                        }
-                      />
-                    </td>
-                    <td className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={examData.pentacam.od.ax2}
-                        onChange={(e) =>
-                          setExamData((prev) => ({
-                            ...prev,
-                            pentacam: {
-                              ...prev.pentacam,
-                              od: { ...prev.pentacam.od, ax2: e.target.value },
-                            },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">
-                      Thinnest Point
-                    </td>
-                    <td colSpan={3} className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={examData.pentacam.od.thinnest}
-                        onChange={(e) =>
-                          setExamData((prev) => ({
-                            ...prev,
-                            pentacam: {
-                              ...prev.pentacam,
-                              od: {
-                                ...prev.pentacam.od,
-                                thinnest: e.target.value,
-                              },
-                            },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">
-                      Corneal Apex
-                    </td>
-                    <td colSpan={3} className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={examData.pentacam.od.apex}
-                        onChange={(e) =>
-                          setExamData((prev) => ({
-                            ...prev,
-                            pentacam: {
-                              ...prev.pentacam,
-                              od: { ...prev.pentacam.od, apex: e.target.value },
-                            },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">
-                      Residual Stroma
-                    </td>
-                    <td colSpan={3} className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={examData.pentacam.od.residual}
-                        onChange={(e) =>
-                          setExamData((prev) => ({
-                            ...prev,
-                            pentacam: {
-                              ...prev.pentacam,
-                              od: {
-                                ...prev.pentacam.od,
-                                residual: e.target.value,
-                              },
-                            },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">
-                      Planned TTT
-                    </td>
-                    <td colSpan={3} className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={examData.pentacam.od.ttt}
-                        onChange={(e) =>
-                          setExamData((prev) => ({
-                            ...prev,
-                            pentacam: {
-                              ...prev.pentacam,
-                              od: { ...prev.pentacam.od, ttt: e.target.value },
-                            },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="border-r p-0.5 font-bold text-center">
-                      Ablation
-                    </td>
-                    <td colSpan={3} className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={examData.pentacam.od.ablation}
-                        onChange={(e) =>
-                          setExamData((prev) => ({
-                            ...prev,
-                            pentacam: {
-                              ...prev.pentacam,
-                              od: {
-                                ...prev.pentacam.od,
-                                ablation: e.target.value,
-                              },
-                            },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div className="border">
-              <div className="bg-muted p-1 text-center font-bold text-xs border-b">
-                LT فحص القرنية
-              </div>
-              <table
-                className="w-full text-xs text-center lasik-table"
-                dir="ltr"
-                style={{
-                  direction: "ltr",
-                  unicodeBidi: "bidi-override",
-                  textAlign: "center",
-                }}
-              >
-                <tbody>
-                  <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">K1</td>
-                    <td className="border-r p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={examData.pentacam.os.k1}
-                        onChange={(e) =>
-                          setExamData((prev) => ({
-                            ...prev,
-                            pentacam: {
-                              ...prev.pentacam,
-                              os: { ...prev.pentacam.os, k1: e.target.value },
-                            },
-                          }))
-                        }
-                      />
-                    </td>
-                    <td
-                      className="border-r p-0.5 font-bold text-center"
-                      rowSpan={2}
-                    >
-                      AX
-                    </td>
-                    <td className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={examData.pentacam.os.ax1}
-                        onChange={(e) =>
-                          setExamData((prev) => ({
-                            ...prev,
-                            pentacam: {
-                              ...prev.pentacam,
-                              os: { ...prev.pentacam.os, ax1: e.target.value },
-                            },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">K2</td>
-                    <td className="border-r p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={examData.pentacam.os.k2}
-                        onChange={(e) =>
-                          setExamData((prev) => ({
-                            ...prev,
-                            pentacam: {
-                              ...prev.pentacam,
-                              os: { ...prev.pentacam.os, k2: e.target.value },
-                            },
-                          }))
-                        }
-                      />
-                    </td>
-                    <td className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={examData.pentacam.os.ax2}
-                        onChange={(e) =>
-                          setExamData((prev) => ({
-                            ...prev,
-                            pentacam: {
-                              ...prev.pentacam,
-                              os: { ...prev.pentacam.os, ax2: e.target.value },
-                            },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">
-                      Thinnest Point
-                    </td>
-                    <td colSpan={3} className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={examData.pentacam.os.thinnest}
-                        onChange={(e) =>
-                          setExamData((prev) => ({
-                            ...prev,
-                            pentacam: {
-                              ...prev.pentacam,
-                              os: {
-                                ...prev.pentacam.os,
-                                thinnest: e.target.value,
-                              },
-                            },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">
-                      Corneal Apex
-                    </td>
-                    <td colSpan={3} className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        value={examData.pentacam.os.apex}
-                        onChange={(e) =>
-                          setExamData((prev) => ({
-                            ...prev,
-                            pentacam: {
-                              ...prev.pentacam,
-                              os: { ...prev.pentacam.os, apex: e.target.value },
-                            },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">
-                      Residual Stroma
-                    </td>
-                    <td colSpan={3} className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        value={examData.pentacam.os.residual}
-                        onChange={(e) =>
-                          setExamData((prev) => ({
-                            ...prev,
-                            pentacam: {
-                              ...prev.pentacam,
-                              os: {
-                                ...prev.pentacam.os,
-                                residual: e.target.value,
-                              },
-                            },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">
-                      Planned TTT
-                    </td>
-                    <td colSpan={3} className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        value={examData.pentacam.os.ttt}
-                        onChange={(e) =>
-                          setExamData((prev) => ({
-                            ...prev,
-                            pentacam: {
-                              ...prev.pentacam,
-                              os: { ...prev.pentacam.os, ttt: e.target.value },
-                            },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="border-r p-0.5 font-bold text-center">
-                      Ablation
-                    </td>
-                    <td colSpan={3} className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        value={examData.pentacam.os.ablation}
-                        onChange={(e) =>
-                          setExamData((prev) => ({
-                            ...prev,
-                            pentacam: {
-                              ...prev.pentacam,
-                              os: {
-                                ...prev.pentacam.os,
-                                ablation: e.target.value,
-                              },
-                            },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Target Refraction Table */}
-          <div className="mb-4 border sheet-section-card">
-            <table
-              className="w-full text-xs text-center lasik-table"
-              dir="ltr"
-              style={{
-                direction: "ltr",
-                unicodeBidi: "bidi-override",
-                textAlign: "center",
-              }}
-            >
-              <thead>
-                <tr className="border-b bg-muted">
-                  <th className="border-r p-0.5 text-center">
-                    Target refraction
-                  </th>
-                  <th className="border-r p-0.5 text-center">OD / OS</th>
-                  <th className="border-r p-0.5 text-center">Before Flap</th>
-                  <th className="border-r p-0.5 text-center">After Flap</th>
-                  <th className="border-r p-0.5 text-center">
-                    After Treatment
-                  </th>
-                  <th className="border-r p-0.5 text-center">
-                    After Flap Reposition
-                  </th>
-                  <th className="border-r p-0.5 text-center">Ciclo 3 مرات</th>
-                  <th className="p-0.5 text-center">Note</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b">
-                  <td className="border-r p-0.5">
-                    <Input placeholder="" className="text-xs" dir="ltr" />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Input placeholder="" className="text-xs" dir="ltr" />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Input placeholder="" className="text-xs" dir="ltr" />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Input placeholder="" className="text-xs" dir="ltr" />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Input placeholder="" className="text-xs" dir="ltr" />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Input placeholder="" className="text-xs" dir="ltr" />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Input placeholder="" className="text-xs" dir="ltr" />
-                  </td>
-                  <td className="p-0.5">
-                    <Input placeholder="" className="text-xs" dir="ltr" />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* Comments and Notes (like consultant) */}
-          <div className="flex gap-0.5 mb-1 sheet-section-card" dir="rtl">
-            <div style={{ flex: "0 0 64%" }}>
-              <Textarea
-                placeholder="Comments:"
-                className="text-xs w-full max-w-none"
-                rows={3}
-                dir="ltr"
-                style={{
-                  maxWidth: "none",
-                  width: "100%",
-                  marginInlineStart: "0",
-                  marginInlineEnd: "0",
-                  boxSizing: "border-box",
-                  textAlign: "left",
-                }}
-              />
-            </div>
-            <div
-              className="notes-col"
-              style={{
-                flex: "0 0 32%",
-                paddingInlineStart: "0",
-                marginInlineStart: "0",
-              }}
-            >
-              <Textarea
-                placeholder={sheetTemplate.notesLabel}
-                className="text-xs w-full max-w-none"
-                rows={3}
-                dir="ltr"
-                style={{
-                  maxWidth: "none",
-                  width: "100%",
-                  boxSizing: "border-box",
-                  textAlign: "left",
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Final */}
-          <div className="mb-1 w-full">
-            <Textarea
-              placeholder="Final:"
-              className="text-xs w-full max-w-none"
-              rows={3}
-              dir="ltr"
-              style={{ maxWidth: "none", width: "100%", textAlign: "left" }}
-            />
-          </div>
-
-          {/* Signature Line */}
-          <div className="border-t pt-3 mt-4">
-            <div className="grid grid-cols-4 gap-4 text-xs" dir="rtl">
-              <div className="flex flex-col items-center">
-                <div className="border-b border-gray-400 w-full h-8 mb-1 flex items-center justify-center text-xs">
-                  {signatures.doctor ? (
-                    <span className="text-center">{signatures.doctor}</span>
-                  ) : null}
-                </div>
-                <span className="font-bold">طبيب</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="border-b border-gray-400 w-full h-8 mb-1 flex items-center justify-center text-xs">
-                  {signatures.technician ? (
-                    <span className="text-center">{signatures.technician}</span>
-                  ) : null}
-                </div>
-                <span className="font-bold">فني</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="border-b border-gray-400 w-full h-8 mb-1 flex items-center justify-center text-xs">
-                  {signatures.nurse ? (
-                    <span className="text-center">{signatures.nurse}</span>
-                  ) : null}
-                </div>
-                <span className="font-bold">تمريض</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="border-b border-gray-400 w-full h-8 mb-1 flex items-center justify-center text-xs">
-                  {signatures.reception ? (
-                    <span className="text-center">{signatures.reception}</span>
-                  ) : null}
-                </div>
-                <span className="font-bold">استقبال</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div
-          className={`sheet-mobile-actions print:hidden ${printMode.printView ? "hidden" : ""}`}
-        >
-          <Button type="button" variant="outline" onClick={() => goBack()}>
-            رجوع
-          </Button>
-          <Button type="button" variant="outline" onClick={handlePrint}>
-            طباعة
-          </Button>
-          <Button type="button" variant="default" onClick={handleSaveSheet}>
-            حفظ
-          </Button>
-        </div>
-      </main>
+        <div className="hidden print:block">{renderSheetBody(true)}</div>
+      </div>
     </div>
   );
 }

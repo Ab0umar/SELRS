@@ -1,12 +1,10 @@
-import { ReactNode, useState } from "react";
+import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import {
   BookImage,
   ChevronRight,
   FileText,
   LayoutDashboard,
-  PanelRightClose,
-  PanelRightOpen,
   Settings,
   Share2,
 } from "lucide-react";
@@ -61,7 +59,6 @@ function isActive(pathname: string, href: string, exact: boolean) {
 
 export default function MarketingLayout({ children }: MarketingLayoutProps) {
   const [location] = useLocation();
-  const [collapsed, setCollapsed] = useState(true);
 
   return (
     <div
@@ -87,58 +84,28 @@ export default function MarketingLayout({ children }: MarketingLayoutProps) {
       </div>
 
       {/* Body */}
-      <div className="flex flex-col lg:flex-row">
-        {/* Sidebar */}
-        <aside
-          style={{ width: collapsed ? 56 : 256 }}
-          className="hidden lg:flex lg:flex-col border-b border-border bg-card/50 lg:border-b-0 lg:border-r transition-all duration-200 shrink-0 overflow-hidden"
-        >
-          {/* Toggle button row */}
-          <div className="flex items-center justify-end border-b border-border/40 px-2 py-2">
-            <button
-              onClick={() => setCollapsed((c) => !c)}
-              className="flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              title={collapsed ? "توسيع" : "تصغير"}
-            >
-              {collapsed ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
-            </button>
-          </div>
-          <nav className={`flex-1 ${collapsed ? "p-1 space-y-1 pt-2" : "space-y-1 p-3 sm:p-4"}`}>
-
-            {navItems.map((item) => {
-              const active = isActive(location, item.href, item.exact);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  title={collapsed ? item.label : undefined}
-                  className={`group flex items-center rounded-lg text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 ${collapsed ? "justify-center px-2 py-2" : "items-start gap-3 px-3 py-2.5"} ${
-                    active
-                      ? "bg-background text-primary font-medium ring-1 ring-inset ring-primary/15 shadow-sm"
-                      : "bg-muted/20 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                  }`}
-                >
-                  <item.icon
-                    className={`h-4 w-4 shrink-0 ${collapsed ? "" : "mt-0.5"} ${active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`}
-                  />
-                  {!collapsed && (
-                    <>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium">{item.label}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          {item.description}
-                        </div>
-                      </div>
-                      <ChevronRight
-                        className={`h-4 w-4 mt-0.5 shrink-0 transition-opacity ${active ? "opacity-100 text-primary" : "opacity-0 group-hover:opacity-50"}`}
-                      />
-                    </>
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
-        </aside>
+      <div className="flex flex-col">
+        {/* Horizontal Top Navigation Bar (all breakpoints) */}
+        <nav className="flex items-center gap-2 overflow-x-auto whitespace-nowrap border-b border-border bg-card/50 px-3 py-2 scrollbar-none sm:px-4 lg:px-5 print:hidden">
+          {navItems.map((item) => {
+            const active = isActive(location, item.href, item.exact);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                title={item.label}
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-all ${
+                  active
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "border border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                }`}
+              >
+                <item.icon className="h-3.5 w-3.5" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
 
         {/* Content */}
         <main className="flex-1 px-3 py-5 sm:px-4 lg:px-5">{children}</main>

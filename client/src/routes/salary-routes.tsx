@@ -2,7 +2,8 @@ import { lazy } from "react";
 import { Route } from "wouter";
 import ProtectedRoute from "../components/ProtectedRoute";
 import { ROUTES } from "../../../shared/routes";
-import SalaryLayout from "../features/salary/SalaryLayout";
+import SalaryLayout from "../features/salary/SalaryLayout.redesigned";
+const SalaryDashboard = lazy(() => import("../features/salary/SalaryDashboard.redesigned"));
 const SalaryBasics = lazy(() => import("../features/salary/SalaryBasics"));
 const SalaryPenalties = lazy(() => import("../features/salary/SalaryPenalties"));
 const CommissionPools = lazy(() => import("../features/salary/CommissionPools"));
@@ -11,13 +12,23 @@ const SalarySettings = lazy(() => import("../features/salary/SalarySettings"));
 const ShiftStaff = lazy(() => import("../features/salary/ShiftStaff"));
 const ShiftPayroll = lazy(() => import("../features/salary/ShiftPayroll"));
 const AbsentReport = lazy(() => import("../features/salary/AbsentReport"));
-const CurrentSalaryData = lazy(() => import("../features/salary/CurrentSalaryData"));
+const CurrentSalaryData = lazy(() => import("../features/salary/CurrentSalaryData.redesigned"));
 
 export const SalaryRoutes = (
   <>
       {/* Salary Module Routes */}
       <Route
         path={ROUTES.salary}
+        component={() => (
+          <ProtectedRoute>
+            <SalaryLayout>
+              <SalaryDashboard />
+            </SalaryLayout>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path="/salary/basics"
         component={() => (
           <ProtectedRoute>
             <SalaryLayout>

@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { fmt, fmtDate, todayIso } from "./accountingFormat";
 import { DateInput } from "@/components/ui/date-input";
+import { AccountingPage } from "./AccountingPagePrimitives";
 
 const PAGE_SIZE = 50;
 
@@ -137,7 +138,11 @@ export default function AccountingHomeFund() {
   const net = home?.net ?? 0;
 
   return (
-    <>
+    <AccountingPage
+      eyebrow="Home Fund"
+      title="صندوق البيت"
+      description="إدارة وارد ومنصرف صندوق البيت مع رصيد فوري وحركات قابلة للمراجعة."
+    >
       <div className="space-y-4 lg:space-y-5" dir="rtl">
         <section className="overflow-hidden rounded-[24px] border border-border bg-background">
           {/* Metrics */}
@@ -656,6 +661,6 @@ export default function AccountingHomeFund() {
           )}
         </div>
       </div>
-    </>
+    </AccountingPage>
   );
 }

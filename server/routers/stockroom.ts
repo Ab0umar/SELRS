@@ -99,6 +99,7 @@ export const stockroomRouter = router({
         itemId: z.number(),
         quantity: z.number(),
         employeeName: z.string().optional(),
+        destination: z.string().optional(),
         transactionDate: z.string().optional(),
       }),
     )
@@ -119,6 +120,7 @@ export const stockroomRouter = router({
         type: "dispense",
         quantity: input.quantity,
         employeeName: input.employeeName,
+        destination: input.destination,
         transactionDate: input.transactionDate ? (input.transactionDate as any) : null,
         performedBy: ctx.user?.username || "system",
       });

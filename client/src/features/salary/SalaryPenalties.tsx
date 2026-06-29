@@ -604,6 +604,53 @@ export default function SalaryPenalties() {
         </div>
       </div>
 
+      {/* ── KPI Summary Cards Section ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        {/* Card 1: Penalties */}
+        <div className="p-4 bg-card border border-border/60 rounded-xl shadow-xs">
+          <span className="text-[10px] font-black text-muted-foreground uppercase block">إجمالي الجزاءات النشطة</span>
+          <span className="text-lg font-black text-foreground font-mono block mt-1">
+            {penalties.reduce((s: number, r: any) => s + Number(r.amount), 0).toLocaleString()} ج.م
+          </span>
+          <span className="text-[9px] text-rose-500 font-semibold block mt-0.5">
+            {penalties.length} سجلات خصم
+          </span>
+        </div>
+
+        {/* Card 2: Advances */}
+        <div className="p-4 bg-card border border-border/60 rounded-xl shadow-xs">
+          <span className="text-[10px] font-black text-muted-foreground uppercase block">إجمالي السلف الصادرة</span>
+          <span className="text-lg font-black text-foreground font-mono block mt-1">
+            {advances.reduce((s: number, r: any) => s + Number(r.amount), 0).toLocaleString()} ج.م
+          </span>
+          <span className="text-[9px] text-teal-500 font-semibold block mt-0.5">
+            {advances.length} سجل سلف
+          </span>
+        </div>
+
+        {/* Card 3: Late Minutes */}
+        <div className="p-4 bg-card border border-border/60 rounded-xl shadow-xs">
+          <span className="text-[10px] font-black text-muted-foreground uppercase block">دقائق التأخير الإجمالية</span>
+          <span className="text-lg font-black text-foreground font-mono block mt-1">
+            {lateEmpRows.reduce((s, emp) => s + emp.days.reduce((ss, d) => ss + d.lateMinutes, 0), 0)} دقيقة
+          </span>
+          <span className="text-[9px] text-amber-500 font-semibold block mt-0.5">
+            تأثير البصمة التلقائي
+          </span>
+        </div>
+
+        {/* Card 4: Insurance */}
+        <div className="p-4 bg-card border border-border/60 rounded-xl shadow-xs">
+          <span className="text-[10px] font-black text-muted-foreground uppercase block">إجمالي خصومات التأمين</span>
+          <span className="text-lg font-black text-foreground font-mono block mt-1">
+            {employees.reduce((s: number, b: any) => s + Number(b.insuranceDeduction ?? 0), 0).toLocaleString()} ج.م
+          </span>
+          <span className="text-[9px] text-indigo-500 font-semibold block mt-0.5">
+            حساب اشتراكات التأمينات
+          </span>
+        </div>
+      </div>
+
       {/* Tabs */}
       <div className="flex gap-1 rounded-lg border border-border bg-muted/30 p-1 w-fit">
         {tabDefs.map(({ key, label }) => (

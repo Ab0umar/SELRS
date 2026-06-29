@@ -25,16 +25,32 @@ function fmt(n: number) {
 // Reorganized navigation structure - cleaner hierarchy
 const navigationSections = [
   {
+    id: "dashboard",
+    label: "الرئيسية",
+    description: "نظرة عامة على الرواتب والعمولات",
+    icon: BarChart3,
+    items: [
+      {
+        href: "/salary",
+        label: "لوحة التحكم",
+        description: "مؤشرات وأداء الرواتب والعمولات",
+        activeFor: ["/salary"],
+        icon: BarChart3,
+      },
+    ],
+  },
+  {
     id: "preparation",
     label: "التحضير",
     description: "إعداد بيانات الرواتب الأساسية",
     icon: Users,
     items: [
       {
-        href: "/salary",
+        href: "/salary/basics",
         label: "الرواتب الأساسية",
         description: "تحضير الرواتب والبدلات",
-        activeFor: ["/salary"],
+        activeFor: ["/salary/basics"],
+        icon: Users,
       },
     ],
   },
@@ -49,18 +65,21 @@ const navigationSections = [
         label: "العمولات الشهرية",
         description: "تسجيل عمولات الكشف والبنتاكام",
         activeFor: ["/salary/pools"],
+        icon: Percent,
       },
       {
         href: "/salary/penalties",
         label: "الخصومات والسلف",
         description: "جزاءات الشهر والسلف والتأمينات",
         activeFor: ["/salary/penalties"],
+        icon: Percent,
       },
       {
         href: "/salary/absent-report",
         label: "تقرير الغياب",
         description: "أيام الغياب والتصاريح",
         activeFor: ["/salary/absent-report"],
+        icon: Percent,
       },
     ],
   },
@@ -75,6 +94,7 @@ const navigationSections = [
         label: "كشف الشهر",
         description: "احتساب ومراجعة وطباعة الرواتب",
         activeFor: ["/salary/payroll"],
+        icon: BarChart3,
       },
     ],
   },
@@ -89,12 +109,14 @@ const navigationSections = [
         label: "طاقم الشفتات",
         description: "تعريف الأطباء والفنيين وأسعارهم",
         activeFor: ["/salary/shift-staff"],
+        icon: UserRound,
       },
       {
         href: "/salary/shift-payroll",
         label: "كشف الشفتات",
         description: "مستحقات الشفتات الشهرية",
         activeFor: ["/salary/shift-payroll"],
+        icon: UserRound,
       },
     ],
   },
@@ -107,8 +129,9 @@ const navigationSections = [
       {
         href: "/salary/settings",
         label: "إعدادات الرواتب",
-        description: "نسب الحضور والقواعس المستخدمة",
+        description: "نسب الحضور والقواعد المستخدمة",
         activeFor: ["/salary/settings"],
+        icon: SlidersHorizontal,
       },
     ],
   },
@@ -122,10 +145,6 @@ function isItemActive(pathname: string, activeFor: string[]) {
   );
 }
 
-function isSectionActive(pathname: string, items: any[]) {
-  return items.some((item) => isItemActive(pathname, item.activeFor));
-}
-
 export default function SalaryLayout({ children }: SalaryLayoutProps) {
   const [location] = useLocation();
 
@@ -136,7 +155,7 @@ export default function SalaryLayout({ children }: SalaryLayoutProps) {
   );
   const summary = summaryQ.data as any;
 
-  // Key metrics for the dashboard
+  // Key metrics for the dashboard header
   const metrics = [
     {
       label: "إجمالي الرواتب",
@@ -148,16 +167,16 @@ export default function SalaryLayout({ children }: SalaryLayoutProps) {
       label: "عدد الموظفين",
       value: summary ? String(summary.staffCount) : "—",
       tone: "text-foreground",
-      accent: "bg-muted border-border",
+      accent: "bg-muted border-border/60",
     },
     {
-      label: "الجزاءات",
+      label: "الخصومات والجزاءات",
       value: summary ? fmt(summary.totalPenalties) : "—",
       tone: "text-destructive",
       accent: "bg-destructive/10 border-destructive/20",
     },
     {
-      label: "العمولات",
+      label: "إجمالي العمولات",
       value: summary ? fmt(summary.totalCommissions) : "—",
       tone: "text-success",
       accent: "bg-success/10 border-success/20",
@@ -165,114 +184,69 @@ export default function SalaryLayout({ children }: SalaryLayoutProps) {
   ];
 
   return (
-    <div
-      className="page-layout min-h-screen bg-background text-foreground"
-      dir="rtl"
-    >
-      {/* Header with metrics */}
-      <div className="border-b border-primary/15 bg-gradient-to-b from-primary/5 to-transparent">
-        <div className="mx-auto w-full px-3 py-4 sm:px-4 lg:px-5">
-          <div className="flex flex-col gap-4 sm:gap-6">
-            {/* Title section */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                  <BadgeDollarSign className="h-3.5 w-3.5" />
-                  إدارة الرواتب
-                </div>
-              </div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                نظام الرواتب والعمولات
-              </h1>
-              <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                إدارة شاملة لرواتب الموظفين والعمولات والشفتات مع تقارير دقيقة
-              </p>
-            </div>
-
-            {/* Metrics grid */}
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {metrics.map((metric) => (
-                <div
-                  key={metric.label}
-                  className={`rounded-lg border p-3 ${metric.accent}`}
-                >
-                  <div className="text-xs font-semibold text-foreground/70">
-                    {metric.label}
-                  </div>
-                  <div
-                    className={`mt-1.5 text-lg font-bold tabular-nums ${metric.tone}`}
-                  >
-                    {metric.value}
-                  </div>
-                </div>
-              ))}
-            </div>
+    <div className="min-h-screen bg-background text-foreground p-4 sm:p-6" dir="rtl">
+      
+      {/* ── 1. Floating Bento Top Header Capsule ── */}
+      <header className="max-w-[1600px] mx-auto mb-6 bg-card border border-border/60 rounded-3xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-primary text-primary-foreground rounded-2xl flex items-center justify-center font-mono font-black text-sm">
+            SR
+          </div>
+          <div>
+            <h1 className="text-sm font-black text-foreground leading-none">إدارة عمليات الرواتب والعمولات</h1>
+            <span className="text-[10px] text-muted-foreground block mt-1 font-medium">سجل الرواتب والمستحقات والعمولات والخصومات الشهرية</span>
           </div>
         </div>
-      </div>
 
-      {/* Two-column layout: Sidebar + Content */}
-      <div className="flex flex-col lg:flex-row">
-        {/* Sidebar Navigation */}
-        <aside className="w-full border-b border-border bg-card/50 lg:w-64 lg:border-b-0 lg:border-r">
-          <nav className="space-y-1 p-3 sm:p-4">
-            {navigationSections.map((section) => {
-              const active = isSectionActive(location, section.items);
+        {/* Top metrics grids */}
+        <div className="grid w-full grid-cols-2 gap-2 sm:grid-cols-4 md:w-auto md:min-w-[620px]">
+          {metrics.map((metric) => (
+            <div
+              key={metric.label}
+              className={`rounded-2xl border p-2.5 px-3 flex flex-col justify-center ${metric.accent}`}
+            >
+              <span className="text-[9px] font-bold text-muted-foreground block leading-none">
+                {metric.label}
+              </span>
+              <span className={`mt-1 text-xs font-black font-mono leading-none ${metric.tone}`}>
+                {metric.value}
+              </span>
+            </div>
+          ))}
+        </div>
+      </header>
+
+      {/* ── 2. Floating Console Layout ── */}
+      <div className="max-w-[1600px] mx-auto flex flex-col gap-6">
+        {/* Horizontal Top Navigation Bar (all breakpoints) */}
+        <nav className="w-full flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 scrollbar-none print:hidden">
+          {navigationSections.flatMap((section) =>
+            section.items.map((item) => {
+              const isActive = isItemActive(location, item.activeFor);
+              const Icon = item.icon;
               return (
-                <div key={section.id} className="space-y-1">
-                  {/* Section header */}
-                  <div className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <section.icon className="h-4 w-4 text-muted-foreground" />
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">
-                          {section.label}
-                        </h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {section.description}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Section items */}
-                  <div className="space-y-1">
-                    {section.items.map((item) => {
-                      const itemActive = isItemActive(location, item.activeFor);
-                      return (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          className={`group flex items-start gap-3 rounded-lg px-3 py-2.5 text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 ${
-                            itemActive
-                              ? "bg-primary/10 text-primary font-medium shadow-sm"
-                              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                          }`}
-                        >
-                          <ChevronRight className="h-4 w-4 mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium">{item.label}</div>
-                            <div className="text-xs text-muted-foreground mt-0.5">
-                              {item.description}
-                            </div>
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-
-                  {/* Divider between sections */}
-                  {section.id !== "settings" && (
-                    <div className="my-2 border-t border-border" />
-                  )}
-                </div>
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold shrink-0 transition-all ${
+                    isActive
+                      ? "bg-slate-900 text-white shadow-md shadow-slate-900/10 dark:bg-primary dark:text-primary-foreground dark:shadow-primary/10"
+                      : "bg-card border border-border/60 text-muted-foreground hover:bg-muted/50"
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  <span>{item.label}</span>
+                </Link>
               );
-            })}
-          </nav>
-        </aside>
+            }),
+          )}
+        </nav>
 
-        {/* Main content area */}
-        <main className="flex-1 px-3 py-5 sm:px-4 lg:px-5">{children}</main>
+        {/* Main Content Floating Bento Container */}
+        <main className="flex-1 w-full min-w-0 bg-card border border-border/60 rounded-3xl p-6 shadow-sm">
+          {children}
+        </main>
+
       </div>
     </div>
   );

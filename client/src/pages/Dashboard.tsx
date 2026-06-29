@@ -23,6 +23,13 @@ import {
   Zap,
   Cpu,
   UserX,
+  Shield,
+  Settings,
+  Stethoscope,
+  Database,
+  Bell,
+  HeartPulse,
+  Terminal,
 } from "lucide-react";
 import { serviceTypeLabels } from "@/lib/dashboard-data";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -36,8 +43,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { formatMoneyAr } from "../features/accounting/accountingFormat";
 
-const LazyPortalBookings = lazy(() =>
-  import("@/features/admin/AdminPortalBookings"),
+const LazyPortalBookings = lazy(
+  () => import("@/features/admin/AdminPortalBookings"),
 );
 
 // ─── Lazy charts ────────────────────────────────────────────────────────────
@@ -56,7 +63,14 @@ const DepartmentWorkloadChart = lazy(() =>
 );
 
 // ─── Tabs config ────────────────────────────────────────────────────────────
-type TabId = "today" | "hub" | "accounting" | "attendance" | "stockroom" | "bookings";
+type TabId =
+  | "today"
+  | "hub"
+  | "accounting"
+  | "attendance"
+  | "stockroom"
+  | "bookings"
+  | "admin";
 
 const TABS: Array<{
   id: TabId;
@@ -106,6 +120,13 @@ const TABS: Array<{
     icon: CalendarDays,
     iconWrapCls: "bg-info/15 text-info",
     permPath: "/booking-triage/portal-bookings",
+  },
+  {
+    id: "admin",
+    label: "الإدارة",
+    icon: Shield,
+    iconWrapCls: "bg-slate-900 text-white",
+    permPath: "/admin-hub",
   },
 ];
 
@@ -518,7 +539,7 @@ function TodayPanel({
             "px-4 py-2.5 text-sm font-bold border-b-2 transition-colors duration-200 cursor-pointer",
             subTab === "queue"
               ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground",
           )}
         >
           العمل اليومي والانتظار
@@ -529,7 +550,7 @@ function TodayPanel({
             "px-4 py-2.5 text-sm font-bold border-b-2 transition-colors duration-200 cursor-pointer",
             subTab === "analytics"
               ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground",
           )}
         >
           التحليلات وإحصائيات اليوم
@@ -584,7 +605,10 @@ function TodayPanel({
                             {t.value}
                           </p>
                           <p
-                            className={cn("mt-1 text-xs font-semibold", t.labelCls)}
+                            className={cn(
+                              "mt-1 text-xs font-semibold",
+                              t.labelCls,
+                            )}
                           >
                             {t.label}
                           </p>
@@ -1188,6 +1212,203 @@ function StockroomPanel() {
   );
 }
 
+// ─── Admin panel ─────────────────────────────────────────────────────────────
+const ADMIN_GROUPS = [
+  {
+    title: "الأفراد والصلاحيات",
+    description: "حسابات الدخول، الأدوار، وصلاحيات الوصول",
+    icon: Users,
+    items: [
+      {
+        href: "/booking-triage/users",
+        label: "المستخدمون والموظفون",
+        description: "إدارة الحسابات، الحالة، والأدوار",
+        icon: Users,
+      },
+      {
+        href: "/booking-triage/permissions",
+        label: "صلاحيات الأدوار",
+        description: "تحديد صفحات القراءة والتعديل لكل دور",
+        icon: Shield,
+      },
+      {
+        href: "/booking-triage/doctors",
+        label: "الأطباء",
+        description: "بيانات الأطباء وربط الحسابات",
+        icon: Stethoscope,
+      },
+    ],
+  },
+  {
+    title: "تعريفات المركز",
+    description: "الخدمات والنماذج والشيتات الطبية",
+    icon: Settings,
+    items: [
+      {
+        href: "/booking-triage/services",
+        label: "الخدمات والأسعار",
+        description: "تسعير الخدمات وقواعد الحساب",
+        icon: HeartPulse,
+      },
+      {
+        href: "/booking-triage/forms",
+        label: "مركز النماذج",
+        description: "نماذج التشغيل والفحص",
+        icon: LayoutDashboard,
+      },
+      {
+        href: "/booking-triage/settings",
+        label: "الإعدادات العامة",
+        description: "إعدادات المركز والتكاملات",
+        icon: Settings,
+      },
+    ],
+  },
+  {
+    title: "النظام والتدقيق",
+    description: "تشخيص، بيانات، إشعارات، وترحيل",
+    icon: Terminal,
+    items: [
+      {
+        href: "/booking-triage/status",
+        label: "حالة النظام",
+        description: "الخدمات، الكاش، والاتصال",
+        icon: Terminal,
+      },
+      {
+        href: "/booking-triage/migrations",
+        label: "ترحيل البيانات",
+        description: "متابعة مهام الترحيل والصيانة",
+        icon: Database,
+      },
+      {
+        href: "/booking-triage/notifications",
+        label: "إخطارات التطبيق",
+        description: "إعدادات التنبيهات والإرسال",
+        icon: Bell,
+      },
+    ],
+  },
+];
+
+function AdminPanel() {
+  const { canAccess } = usePermissions();
+  const navItems = ADMIN_GROUPS.flatMap((group) =>
+    group.items.filter((item) => canAccess(item.href)),
+  );
+  const adminStats = [
+    {
+      label: "مجموعات الإدارة",
+      value: ADMIN_GROUPS.length,
+      cls: "text-slate-900",
+    },
+    { label: "مسارات مباشرة", value: navItems.length, cls: "text-primary" },
+    { label: "حالة الوصول", value: "مفعل", cls: "text-success" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {/* Flat top navigation chips */}
+      <nav className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 print:hidden scrollbar-none">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border/60 bg-card px-4 py-2 text-xs font-bold text-muted-foreground transition-all hover:bg-muted/50 hover:text-foreground"
+            >
+              <Icon className="h-3.5 w-3.5" aria-hidden />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {/* Hero / stats */}
+        <Surface className="overflow-hidden lg:col-span-1">
+          <SectionHeader title="إدارة النظام">
+            <PanelLink href="/booking-triage" label="مركز الإدارة" />
+          </SectionHeader>
+          <div className="px-4 py-3">
+            <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-slate-50">
+                  <Shield className="h-5 w-5" aria-hidden />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Admin Console
+                  </p>
+                  <h3 className="mt-0.5 text-lg font-bold leading-tight text-foreground">
+                    لوحة التحكم الإدارية
+                  </h3>
+                </div>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                مسارات المستخدمين، الصلاحيات، تعريفات المركز، وحالة النظام في مكان
+                واحد بنفس إيقاع صفحات التشغيل.
+              </p>
+            </div>
+
+            <div className="mt-3 space-y-1">
+              {adminStats.map((stat) => (
+                <StatRow
+                  key={stat.label}
+                  label={stat.label}
+                  value={<span className={stat.cls}>{stat.value}</span>}
+                  icon={Activity}
+                />
+              ))}
+            </div>
+
+            <div className="mt-3 border-t border-border/40 pt-3">
+              <Link
+                href="/booking-triage"
+                className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-semibold text-slate-50 transition-colors hover:bg-slate-800"
+              >
+                فتح مركز الإدارة
+                <ChevronLeft className="h-4 w-4" aria-hidden />
+              </Link>
+            </div>
+          </div>
+        </Surface>
+
+        {/* Bento cards */}
+        <div className="grid gap-3 sm:grid-cols-2 lg:col-span-2">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link key={item.href} href={item.href} className="group">
+                <Surface className="h-full overflow-hidden transition-all hover:shadow-md">
+                  <div className="flex h-full items-start gap-3 p-4">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+                      <Icon className="h-4 w-4" aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-bold leading-tight text-foreground group-hover:text-primary">
+                        {item.label}
+                      </span>
+                      <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                        {item.description}
+                      </span>
+                    </span>
+                    <ChevronLeft
+                      className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary"
+                      aria-hidden
+                    />
+                  </div>
+                </Surface>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Tab strip badge ──────────────────────────────────────────────────────────
 function TabBadge({ count, cls }: { count: number; cls: string }) {
   if (count === 0) return null;
@@ -1282,7 +1503,11 @@ export default function Dashboard() {
   const { canAccess, isLoaded: permsLoaded } = usePermissions();
   const [bookingOpen, setBookingOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(getLocalDateIso);
-  const [activeTab, setActiveTab] = useState<TabId>("today");
+  const [activeTab, setActiveTab] = useState<TabId>(() => {
+    if (typeof window === "undefined") return "today";
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    return TABS.some((item) => item.id === tab) ? (tab as TabId) : "today";
+  });
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const visibleTabs = useMemo(
@@ -1310,7 +1535,11 @@ export default function Dashboard() {
   const stockQ = trpc.stockroom.getReports.useQuery({});
   const bookingsQ = (trpc as any).patientPortal.listBookings.useQuery(
     { status: "pending", limit: 200 },
-    { staleTime: 60_000, refetchOnWindowFocus: false, enabled: canAccess("/booking-triage/portal-bookings") },
+    {
+      staleTime: 60_000,
+      refetchOnWindowFocus: false,
+      enabled: canAccess("/booking-triage/portal-bookings"),
+    },
   );
 
   const todayBadge = merged.length;
@@ -1322,7 +1551,10 @@ export default function Dashboard() {
   const bookingsBadge = ((bookingsQ.data ?? []) as any[]).length;
   const badges: Partial<Record<TabId, React.ReactNode>> = {
     today: <TabBadge count={todayBadge} cls="bg-primary/10 text-primary" />,
-    bookings: bookingsBadge > 0 ? <TabBadge count={bookingsBadge} cls="bg-info/20 text-info" /> : null,
+    bookings:
+      bookingsBadge > 0 ? (
+        <TabBadge count={bookingsBadge} cls="bg-info/20 text-info" />
+      ) : null,
     attendance:
       attBadge > 0 ? (
         <TabBadge count={attBadge} cls="bg-warning/20 text-warning" />
@@ -1350,15 +1582,28 @@ export default function Dashboard() {
     void utils.medical.getTodayPatientsByQueueStatus.invalidate();
   };
 
+  const selectTab = (tab: TabId) => {
+    setActiveTab(tab);
+    if (typeof window === "undefined") return;
+
+    const url = new URL(window.location.href);
+    if (tab === "today") {
+      url.searchParams.delete("tab");
+    } else {
+      url.searchParams.set("tab", tab);
+    }
+    window.history.replaceState({}, "", `${url.pathname}${url.search}`);
+  };
+
   const activeTabMeta = TABS.find((tab) => tab.id === activeTab) ?? TABS[0];
   const ActiveTabIcon = activeTabMeta.icon;
 
   return (
     <div
-      className="selrs-page-bg -m-3 min-h-full px-3 py-4 sm:-m-4 sm:px-4 sm:py-5 md:-m-4"
+      className="min-h-screen bg-background text-foreground p-4 sm:p-6"
       dir="rtl"
     >
-      <div className="mx-auto w-full max-w-[1440px] space-y-6">
+      <div className="mx-auto w-full max-w-[1600px] space-y-6">
         {medicalFilePortal}
         <OperationsBookingQuickDialog
           open={bookingOpen}
@@ -1368,237 +1613,253 @@ export default function Dashboard() {
           }}
         />
 
-        <Surface className="overflow-hidden bg-background">
-          <div className="grid gap-3 px-4 py-3 lg:grid-cols-[auto_1fr] lg:items-center">
-            <div className="flex items-center gap-3">
+        {/* ── 1. Floating Bento Top Header Capsule ── */}
+        <header className="bg-card border border-border/60 rounded-3xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="hidden xl:flex h-10 w-10 rounded-2xl shrink-0 hover:bg-muted/50 cursor-pointer"
+              aria-label={
+                sidebarOpen
+                  ? "إغلاق القائمة الجانبية"
+                  : "فتح القائمة الجانبية"
+              }
+            >
+              {sidebarOpen ? (
+                <ChevronRight className="h-5 w-5" />
+              ) : (
+                <ChevronLeft className="h-5 w-5" />
+              )}
+            </Button>
+            <div className="w-10 h-10 bg-primary text-primary-foreground rounded-2xl flex items-center justify-center font-mono font-black text-sm shrink-0">
+              <Zap className="h-5 w-5" aria-hidden />
+            </div>
+            <div>
+              <h1 className="text-sm font-black text-foreground leading-none">
+                أوامر التشغيل
+              </h1>
+              <span className="text-[10px] text-muted-foreground block mt-1 font-medium">
+                {dateStr}، {timeStr}
+              </span>
+            </div>
+          </div>
+
+          {/* Top metrics */}
+          <div className="grid w-full grid-cols-3 gap-2 sm:grid-cols-3 md:w-auto md:min-w-[420px]">
+            <div className="rounded-2xl border p-2.5 px-3 flex flex-col justify-center bg-primary/10 border-primary/20">
+              <span className="text-[9px] font-bold text-muted-foreground block leading-none">
+                مرضى اليوم
+              </span>
+              <span className="mt-1 text-xs font-black font-mono leading-none text-primary">
+                {todayBadge.toLocaleString("ar-EG")}
+              </span>
+            </div>
+            <div className="rounded-2xl border p-2.5 px-3 flex flex-col justify-center bg-warning/10 border-warning/20">
+              <span className="text-[9px] font-bold text-muted-foreground block leading-none">
+                غياب اليوم
+              </span>
+              <span className="mt-1 text-xs font-black font-mono leading-none text-warning">
+                {attBadge.toLocaleString("ar-EG")}
+              </span>
+            </div>
+            <div className="rounded-2xl border p-2.5 px-3 flex flex-col justify-center bg-destructive/10 border-destructive/20">
+              <span className="text-[9px] font-bold text-muted-foreground block leading-none">
+                تنبيه مخزون
+              </span>
+              <span className="mt-1 text-xs font-black font-mono leading-none text-destructive">
+                {stockBadge.toLocaleString("ar-EG")}
+              </span>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="flex items-center gap-2">
+            <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-success/15 px-3 text-xs font-semibold text-success shrink-0">
+              <Activity className="h-3.5 w-3.5" aria-hidden />
+              مباشر
+            </span>
+            {activeTab === "today" && (
               <Button
                 variant="outline"
-                size="icon"
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="hidden xl:flex h-10 w-10 rounded-lg shrink-0 border-border/50 hover:bg-muted/40 cursor-pointer"
-                aria-label={
-                  sidebarOpen
-                    ? "إغلاق القائمة الجانبية"
-                    : "فتح القائمة الجانبية"
-                }
+                size="sm"
+                onClick={handleRefreshToday}
+                className="h-8 gap-1.5 text-xs rounded-xl"
               >
-                {sidebarOpen ? (
-                  <ChevronRight className="h-5 w-5" />
-                ) : (
-                  <ChevronLeft className="h-5 w-5" />
-                )}
+                <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+                تحديث
               </Button>
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <Zap className="h-5 w-5" aria-hidden />
-              </span>
-              <div>
-                <h1 className="text-xl font-bold leading-tight text-foreground sm:text-2xl">
-                  أوامر التشغيل
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  {dateStr}، {timeStr}
-                </p>
-              </div>
-            </div>
-            <QuickActions
-              onOpenMeasurementsMedicalFile={openMedicalFilePicker}
-              onOpenOperationsBooking={() => setBookingOpen(true)}
-            />
+            )}
           </div>
-        </Surface>
+        </header>
 
-        <div
-          className={cn(
-            "grid gap-4 transition-all duration-300",
-            sidebarOpen
-              ? "xl:grid-cols-[18rem_minmax(0,1fr)]"
-              : "xl:grid-cols-1",
-          )}
-        >
+        {/* Quick Actions Bar */}
+        <div className="bg-card border border-border/60 rounded-3xl px-4 py-3 shadow-sm">
+          <QuickActions
+            onOpenMeasurementsMedicalFile={openMedicalFilePicker}
+            onOpenOperationsBooking={() => setBookingOpen(true)}
+          />
+        </div>
+
+        {/* ── 2. Two-Column Floating Console Layout ── */}
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
+          {/* Floating Sidebar */}
           <aside
             className={cn(
-              "space-y-4 xl:sticky xl:top-24 xl:self-start",
-              !sidebarOpen && "xl:hidden",
+              "shrink-0 bg-card border border-border/60 rounded-3xl p-4 transition-all duration-200 shadow-sm",
+              sidebarOpen
+                ? "hidden xl:flex xl:flex-col w-[260px] min-h-[400px]"
+                : "hidden",
             )}
           >
-            <div
-              className="flex items-center gap-2 overflow-x-auto scrollbar-none xl:hidden"
-              aria-label="لوحات جانبية"
-            >
-              {[
-                {
-                  id: "workspaces" as const,
-                  label: "مساحات العمل",
-                  icon: LayoutDashboard,
-                  cls: "border-secondary/30 bg-secondary/15 text-secondary",
-                },
-              ].map(({ id, label, icon: Icon, cls }) => {
-                const active = mobileAsidePanel === id;
+            {/* Workspaces header */}
+            <div className="flex items-center justify-between mb-4 pb-2 border-b border-border/40">
+              <h2 className="text-xs font-black text-foreground">مساحات العمل</h2>
+              <span className="rounded-full bg-success/15 px-2 py-0.5 text-[9px] font-semibold text-success">
+                مباشر
+              </span>
+            </div>
+
+            <nav className="space-y-1.5" role="tablist" aria-label="أقسام لوحة التحكم">
+              {visibleTabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
                 return (
                   <button
-                    key={id}
+                    key={tab.id}
                     type="button"
-                    aria-label={active ? `إغلاق ${label}` : `فتح ${label}`}
-                    aria-expanded={active}
-                    onClick={() =>
-                      setMobileAsidePanel((current) =>
-                        current === id ? null : id,
-                      )
-                    }
+                    onClick={() => selectTab(tab.id)}
                     className={cn(
-                      "flex h-10 shrink-0 items-center gap-2 rounded-lg border px-3 text-sm font-semibold transition-[background-color,border-color,transform] active:scale-[0.98]",
-                      active
-                        ? cls
-                        : "border-border/60 bg-background text-muted-foreground hover:border-secondary/30 hover:bg-secondary/10 hover:text-secondary",
+                      "flex w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-xs font-bold transition-all duration-150",
+                      isActive
+                        ? "bg-slate-900 text-white shadow-md shadow-slate-900/10 dark:bg-primary dark:text-primary-foreground dark:shadow-primary/10"
+                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
                     )}
+                    aria-selected={isActive}
+                    role="tab"
                   >
                     <span
                       className={cn(
-                        "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
-                        active
-                          ? "bg-secondary text-secondary-foreground"
-                          : "bg-muted text-muted-foreground",
+                        "flex h-7 w-7 shrink-0 items-center justify-center rounded-xl",
+                        isActive
+                          ? "bg-white/20"
+                          : tab.iconWrapCls,
                       )}
                     >
                       <Icon className="h-3.5 w-3.5" aria-hidden />
                     </span>
-                    <span className="whitespace-nowrap">{label}</span>
-                    <ChevronDown
-                      className={cn(
-                        "h-3.5 w-3.5 transition-transform",
-                        active && "rotate-180",
-                      )}
-                      aria-hidden
-                    />
+                    <span className="flex-1 text-right truncate">{tab.label}</span>
+                    {badges[tab.id] && (
+                      <span className="shrink-0">{badges[tab.id]}</span>
+                    )}
                   </button>
                 );
               })}
+            </nav>
+
+            {/* Live indicators */}
+            <div className="mt-auto pt-4 border-t border-border/40 space-y-2">
+              <span className="text-[9px] font-black text-muted-foreground uppercase tracking-wider block">
+                مؤشرات فورية
+              </span>
+              <StatusPill
+                icon={Users}
+                label="مريض اليوم"
+                value={todayBadge.toLocaleString("ar-EG")}
+                cls="bg-primary/10 text-primary"
+              />
+              <StatusPill
+                icon={UserX}
+                label="غياب"
+                value={attBadge.toLocaleString("ar-EG")}
+                cls="bg-warning/15 text-warning"
+              />
+              <StatusPill
+                icon={Archive}
+                label="تنبيه مخزون"
+                value={stockBadge.toLocaleString("ar-EG")}
+                cls="bg-destructive/15 text-destructive"
+              />
             </div>
-
-            <Surface
-              className={cn(
-                "overflow-hidden",
-                mobileAsidePanel !== "workspaces" && "hidden xl:block",
-              )}
-            >
-              <div className="border-b border-border/40 px-4 py-3">
-                <div className="flex items-center justify-between gap-2">
-                  <h2 className="text-base font-semibold text-foreground">
-                    مساحات العمل
-                  </h2>
-                  <span className="rounded-full bg-success/15 px-2 py-0.5 text-xs font-semibold text-success">
-                    مباشر
-                  </span>
-                </div>
-              </div>
-              <div
-                className="flex items-center gap-2 overflow-x-auto p-2 scrollbar-none xl:block xl:space-y-1 xl:overflow-visible"
-                role="tablist"
-                aria-label="أقسام لوحة التحكم"
-              >
-                {visibleTabs.map((tab) => (
-                  <WorkspaceButton
-                    key={tab.id}
-                    tab={tab}
-                    active={activeTab === tab.id}
-                    badge={badges[tab.id]}
-                    onClick={() => setActiveTab(tab.id)}
-                  />
-                ))}
-              </div>
-            </Surface>
-
-            <Surface className="hidden xl:block">
-              <SectionHeader title="مؤشرات فورية" />
-              <div className="flex flex-wrap items-center gap-2 px-4 py-3 xl:block xl:space-y-2">
-                <StatusPill
-                  icon={Users}
-                  label="مريض اليوم"
-                  value={todayBadge.toLocaleString("ar-EG")}
-                  cls="bg-primary/10 text-primary"
-                />
-                <StatusPill
-                  icon={UserX}
-                  label="غياب"
-                  value={attBadge.toLocaleString("ar-EG")}
-                  cls="bg-warning/15 text-warning"
-                />
-                <StatusPill
-                  icon={Archive}
-                  label="تنبيه مخزون"
-                  value={stockBadge.toLocaleString("ar-EG")}
-                  cls="bg-destructive/15 text-destructive"
-                />
-              </div>
-            </Surface>
           </aside>
 
-          <main className="min-w-0 space-y-4">
-            <Surface className="overflow-hidden">
-              <div className="flex items-center gap-3 px-4 py-3">
-                {/* Left: workspace identity */}
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <ActiveTabIcon className="h-5 w-5" aria-hidden />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground">
-                      المساحة الحالية
-                    </p>
-                    <h2 className="truncate text-xl font-bold text-foreground">
-                      {activeTabMeta.label}
-                    </h2>
-                  </div>
-                </div>
-
-                {/* Center: quick nav links */}
-                <div className="hidden lg:flex flex-1 items-center justify-center gap-1.5 overflow-x-auto scrollbar-none">
-                  {[
-                    {
-                      href: "/today",
-                      label: "مرضى اليوم",
-                      icon: Users,
-                    },
-                    { href: "/operations", label: "العمليات", icon: Syringe },
-                    { href: "/patients", label: "كل المرضى", icon: Search },
-                    { href: "/accounting", label: "الحسابات", icon: Wallet },
-                  ].map(({ href, label, icon: Icon }) => (
-                    <Link
-                      key={href}
-                      href={href}
-                      className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-border/50 bg-background px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
-                    >
-                      <Icon className="h-3 w-3" aria-hidden />
-                      {label}
-                    </Link>
-                  ))}
-                </div>
-
-                {/* Right: live status badges */}
-                <div className="flex shrink-0 items-center gap-2 mr-auto lg:mr-0">
-                  <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-success/15 px-3 text-sm font-semibold text-success">
-                    <Activity className="h-3.5 w-3.5" aria-hidden />
-                    متابعة حية
-                  </span>
-                  <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-secondary/15 px-3 text-sm font-semibold text-secondary tabular-nums">
-                    <Clock className="h-3.5 w-3.5" aria-hidden />
-                    {timeStr}
-                  </span>
-                  {activeTab === "today" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleRefreshToday}
-                      className="h-8 gap-1.5 text-sm"
-                    >
-                      <RefreshCw className="h-3.5 w-3.5" aria-hidden />
-                      تحديث
-                    </Button>
+          {/* Mobile tab bar */}
+          <div
+            className="flex items-center gap-2 overflow-x-auto scrollbar-none xl:hidden w-full bg-card border border-border/60 rounded-3xl p-3 shadow-sm"
+            role="tablist"
+            aria-label="أقسام لوحة التحكم"
+          >
+            {visibleTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => selectTab(tab.id)}
+                  className={cn(
+                    "flex shrink-0 items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold transition-all",
+                    isActive
+                      ? "bg-slate-900 text-white shadow-md dark:bg-primary dark:text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
                   )}
-                </div>
-              </div>
-            </Surface>
+                  aria-selected={isActive}
+                  role="tab"
+                >
+                  <Icon className="h-3.5 w-3.5" aria-hidden />
+                  <span className="whitespace-nowrap">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
 
+          {/* Main Content Floating Bento Container */}
+          <main className="flex-1 w-full min-w-0 bg-card border border-border/60 rounded-3xl p-6 shadow-sm">
+            {/* Active workspace title bar */}
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border/40">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <ActiveTabIcon className="h-4 w-4" aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-semibold text-muted-foreground">
+                  المساحة الحالية
+                </p>
+                <h2 className="truncate text-sm font-black text-foreground">
+                  {activeTabMeta.label}
+                </h2>
+              </div>
+
+              {/* Quick nav links */}
+              <div className="hidden lg:flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+                {[
+                  {
+                    href: "/today",
+                    label: "مرضى اليوم",
+                    icon: Users,
+                  },
+                  { href: "/operations", label: "العمليات", icon: Syringe },
+                  { href: "/patients", label: "كل المرضى", icon: Search },
+                  { href: "/accounting", label: "الحسابات", icon: Wallet },
+                ].map(({ href, label, icon: NavIcon }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-xl border border-border/50 bg-background px-2.5 text-[10px] font-bold text-muted-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+                  >
+                    <NavIcon className="h-3 w-3" aria-hidden />
+                    {label}
+                  </Link>
+                ))}
+              </div>
+
+              <span className="inline-flex h-7 items-center gap-1.5 rounded-full bg-secondary/15 px-2.5 text-[10px] font-bold text-secondary tabular-nums shrink-0">
+                <Clock className="h-3 w-3" aria-hidden />
+                {timeStr}
+              </span>
+            </div>
+
+            {/* Tab content */}
             <div>
               {activeTab === "today" && (
                 <TodayPanel
@@ -1616,6 +1877,7 @@ export default function Dashboard() {
                   <LazyPortalBookings />
                 </Suspense>
               )}
+              {activeTab === "admin" && <AdminPanel />}
             </div>
           </main>
         </div>
@@ -1623,3 +1885,4 @@ export default function Dashboard() {
     </div>
   );
 }
+

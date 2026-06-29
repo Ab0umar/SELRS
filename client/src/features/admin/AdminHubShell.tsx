@@ -1,5 +1,5 @@
 import { useLocation, Link } from "wouter";
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { usePermissions } from "@/hooks/usePermissions";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -15,20 +15,20 @@ import {
   Wrench,
   FileSearch,
   Settings,
-  Coins,
   DollarSign,
-  Plug,
-  TestTube2,
-  Eye,
-  Bell,
-  Layers,
-  Copy,
-  Scan,
-  PenSquare,
-  UserCheck,
-  CalendarDays,
-  Globe,
   Link2,
+  TestTube2,
+  Copy,
+  Layers,
+  PenSquare,
+  Scan,
+  CalendarDays,
+  Bell,
+  Eye,
+  ChevronRight,
+  UserCheck,
+  PanelRightClose,
+  PanelRightOpen,
 } from "lucide-react";
 import AdminUsers from "./AdminUsers";
 import AdminMigrations from "./AdminMigrations";
@@ -52,11 +52,10 @@ import AdminPatients from "./AdminPatients";
 import AdminPortalBookings from "./AdminPortalBookings";
 import ExternalDoctors from "../../pages/ExternalDoctors";
 import ExternalDoctorReferrals from "../../pages/ExternalDoctorReferrals";
-import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { AppShellSkeleton } from "@/components/layout/AppShellSkeleton";
 
 type HubModuleCard = {
   href: string;
@@ -101,6 +100,22 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "staff",
   },
   {
+    href: "/booking-triage/external-doctors",
+    title: "الأطباء الخارجيون",
+    description: "أطباء الإحالة الخارجيين وعلاقاتهم بالمركز.",
+    icon: Stethoscope,
+    iconWrap: "bg-teal-500/10 text-teal-500",
+    category: "staff",
+  },
+  {
+    href: "/booking-triage/external-referrals",
+    title: "إحالات الأطباء الخارجية",
+    description: "متابعة الحالات المحولة ونسب الإحالة للأطباء.",
+    icon: FileSearch,
+    iconWrap: "bg-indigo-500/10 text-indigo-500",
+    category: "staff",
+  },
+  {
     href: "/booking-triage/status",
     title: "حالة النظام",
     description: "مراقبة اتصال الخادم وقاعدة البيانات والأداء.",
@@ -118,214 +133,155 @@ const ALL_MODULES: HubModuleCard[] = [
   },
   {
     href: "/booking-triage/services",
-    title: "الخدمات والأسعار",
-    description: "إدارة قائمة الخدمات الطبية ومطابقة الأطباء.",
-    icon: HeartPulse,
+    title: "ربط الخدمات",
+    description: "مطابقة الخدمات المحلية مع رموز الربط.",
+    icon: LayoutGrid,
+    iconWrap: "bg-warning/10 text-warning",
+    category: "services",
+  },
+  {
+    href: "/booking-triage/tests",
+    title: "تسعير الفحوصات",
+    description: "تحديد الفحوصات الطبية وأسعارها بالمركز.",
+    icon: TestTube2,
+    iconWrap: "bg-indigo-500/10 text-indigo-500",
+    category: "services",
+  },
+  {
+    href: "/booking-triage/forms",
+    title: "مستندات ونماذج المرضى",
+    description: "إعداد استمارات الموافقة الجراحية والتعليمات الطبية للمرضى.",
+    icon: PenSquare,
+    iconWrap: "bg-emerald-500/10 text-emerald-500",
+    category: "services",
+  },
+  {
+    href: "/booking-triage/sheets",
+    title: "ملفات الفحص",
+    description: "مراجعة وحذف وتعديل استمارات فحص الحالات.",
+    icon: Layers,
     iconWrap: "bg-secondary/[0.07] text-secondary",
     category: "services",
   },
   {
-    href: "/booking-triage/data-source-audit",
-    title: "تدقيق مصدر البيانات",
-    description: "مراجعة وتدقيق مصدر البيانات للسجلات.",
-    icon: FileSearch,
+    href: "/booking-triage/sheet-designer",
+    title: "مصمم نماذج الملفات",
+    description: "بناء وتحديث حقول استمارات الفحص والمتابعة.",
+    icon: Scan,
+    iconWrap: "bg-primary/10 text-primary",
+    category: "services",
+  },
+  {
+    href: "/booking-triage/sheet-copies",
+    title: "سجلات نسخ الملفات",
+    description: "مراجعة ونقل الحقول الطبية المسجلة للملف الإلكتروني.",
+    icon: Copy,
     iconWrap: "bg-muted text-muted-foreground",
-    category: "system",
+    category: "services",
+  },
+  {
+    href: "/booking-triage/patients",
+    title: "سجل المرضى الكلي",
+    description: "البحث التفصيلي وتعديل كافة ملفات المرضى التاريخية بالمركز.",
+    icon: Users,
+    iconWrap: "bg-teal-500/10 text-teal-500",
+    category: "portal",
+  },
+  {
+    href: "/booking-triage/portal-bookings",
+    title: "حجوزات البوابة الخارجية",
+    description: "التحقق وتأكيد حجوزات موقع الويب الخارجي والطلبات للعيادات.",
+    icon: CalendarDays,
+    iconWrap: "bg-indigo-500/10 text-indigo-500",
+    category: "portal",
   },
   {
     href: "/booking-triage/settings",
     title: "الإعدادات العامة",
-    description: "ضبط إعدادات النظام والتسعير.",
+    description: "تعديل المسمى الطبي والتأكيد على خيارات تشغيل المنشأة.",
     icon: Settings,
     iconWrap: "bg-muted text-muted-foreground",
     category: "system",
   },
   {
-    href: "/booking-triage/api-tools",
-    title: "أدوات API",
-    description: "أدوات للمطورين لفحص tRPC.",
-    icon: Plug,
-    iconWrap: "bg-muted text-muted-foreground",
+    href: "/booking-triage/card-visibility",
+    title: "بطاقات الاستعلام",
+    description: "التحكم في ظهور كروت الإحصائيات بالرئيسية.",
+    icon: Eye,
+    iconWrap: "bg-warning/10 text-warning",
     category: "system",
   },
   {
-    href: "/booking-triage/tests",
-    title: "التحاليل",
-    description: "إدارة قائمة التحاليل والفحوصات المخبرية.",
-    icon: TestTube2,
-    iconWrap: "bg-muted text-muted-foreground",
-    category: "services",
-  },
-  {
-    href: "/booking-triage/card-visibility",
-    title: "ظهور الكروت",
-    description: "التحكم في الكروت التي تظهر في الداشبورد.",
-    icon: Eye,
-    iconWrap: "bg-muted text-muted-foreground",
+    href: "/booking-triage/audit",
+    title: "تدقيق الحسابات",
+    description: "سجل حركات تعديل قيم الكشوفات والمبالغ المالية.",
+    icon: FileSearch,
+    iconWrap: "bg-primary/[0.07] text-primary",
     category: "system",
   },
   {
     href: "/booking-triage/notifications",
-    title: "إخطارات التطبيق",
-    description: "إدارة إعدادات الإخطارات داخل التطبيق.",
+    title: "إعدادات التنبيهات",
+    description: "ضبط تنبيهات النظام وقنوات الإرسال.",
     icon: Bell,
-    iconWrap: "bg-muted text-muted-foreground",
+    iconWrap: "bg-rose-500/10 text-rose-500",
     category: "system",
-  },
-  {
-    href: "/booking-triage/forms",
-    title: "مركز النماذج",
-    description: "إدارة، تصميم، ونسخ النماذج والشيتات.",
-    icon: Layers,
-    iconWrap: "bg-muted text-muted-foreground",
-    category: "services",
-  },
-  {
-    href: "/admin/pentacam",
-    title: "ربط صور البنتاكام",
-    description: "استيراد صور JPG وربطها بالمرضى أو إعادة التعيين.",
-    icon: Scan,
-    iconWrap: "bg-primary/10 text-primary",
-    category: "portal",
-  },
-  {
-    href: "/booking-triage/pentacam-failed",
-    title: "بنتاكام الفاشل",
-    description: "مراجعة وإصلاح سجلات البنتاكام غير المكتملة.",
-    icon: Scan,
-    iconWrap: "bg-muted text-muted-foreground",
-    category: "portal",
-  },
-  {
-    href: "/booking-triage/patients",
-    title: "إدارة المرضى",
-    description: "مراجعة بيانات المرضى والمزامنة مع النظام.",
-    icon: UserCheck,
-    iconWrap: "bg-primary text-primary-foreground",
-    category: "portal",
-  },
-  {
-    href: "/booking-triage/portal-bookings",
-    title: "حجوزات البوابة",
-    description: "إدارة حجوزات بوابة المرضى وجدول الأوقات المتاحة.",
-    icon: CalendarDays,
-    iconWrap: "bg-secondary/15 text-secondary",
-    category: "portal",
-  },
-  {
-    href: "/booking-triage/external-doctors",
-    title: "الأطباء الخارجيون",
-    description: "إدارة حسابات الأطباء الخارجيين وصلاحيات الوصول للصور.",
-    icon: Globe,
-    iconWrap: "bg-primary/10 text-primary",
-    category: "staff",
-  },
-  {
-    href: "/booking-triage/external-doctors/referrals",
-    title: "إحالات الأطباء الخارجيين",
-    description: "ربط المرضى بالأطباء الخارجيين لمنحهم وصولاً لصورهم.",
-    icon: Link2,
-    iconWrap: "bg-primary/[0.07] text-primary",
-    category: "staff",
-  },
-  {
-    href: "/doctor-portal/login",
-    title: "بوابة الطبيب الخارجي",
-    description: "صفحة دخول الأطباء الخارجيين لعرض صور مرضاهم.",
-    icon: Globe,
-    iconWrap: "bg-secondary/15 text-secondary",
-    category: "portal",
-  },
-  {
-    href: "/my/login",
-    title: "بوابة المريض",
-    description: "صفحة دخول المرضى لمتابعة ملفاتهم وحجوزاتهم.",
-    icon: UserCheck,
-    iconWrap: "bg-secondary/15 text-secondary",
-    category: "portal",
-  },
-  {
-    href: "/booking-triage/sheets",
-    title: "الشيتات",
-    description: "إدارة الشيتات الطبية المتاحة في النظام.",
-    icon: Layers,
-    iconWrap: "bg-primary/[0.07] text-primary",
-    category: "services",
-  },
-  {
-    href: "/booking-triage/sheet-designer",
-    title: "مصمم الشيتات",
-    description: "تصميم وتخصيص قوالب الشيتات الطبية.",
-    icon: PenSquare,
-    iconWrap: "bg-primary/[0.07] text-primary",
-    category: "services",
-  },
-  {
-    href: "/booking-triage/sheet-copies",
-    title: "نسخ الشيتات",
-    description: "إدارة ونسخ الشيتات المحفوظة للمرضى.",
-    icon: Copy,
-    iconWrap: "bg-primary/[0.07] text-primary",
-    category: "services",
   },
 ];
 
-// Navigation structure
 const navigationSections = [
   {
     id: "staff",
-    label: "الموظفون والصلاحيات",
+    label: "إدارة كادر العمل",
+    description: "المستخدمون، الأطباء، الصلاحيات والإحالات",
+    icon: Users,
     items: [
-      { href: "/booking-triage/users", label: "إدارة المستخدمين", icon: Users, activeFor: ["/booking-triage/users", "/admin/users"] },
-      { href: "/booking-triage/doctors", label: "إدارة الأطباء", icon: Stethoscope, activeFor: ["/booking-triage/doctors", "/admin/doctors"] },
-      { href: "/booking-triage/permissions", label: "صلاحيات الأدوار", icon: Shield, activeFor: ["/booking-triage/permissions", "/admin/permissions"] },
-      { href: "/booking-triage/external-doctors", label: "الأطباء الخارجيون", icon: Globe, activeFor: ["/booking-triage/external-doctors"] },
-      { href: "/booking-triage/external-doctors/referrals", label: "إحالات الأطباء", icon: Link2, activeFor: ["/booking-triage/external-doctors/referrals"] },
-    ]
+      { href: "/booking-triage/users", label: "إدارة المستخدمين", description: "بيانات حسابات ودخول الموظفين", activeFor: ["/booking-triage/users"] },
+      { href: "/booking-triage/doctors", label: "كادر الأطباء بالمركز", description: "بيانات وتخصصات الأطباء المسجلين", activeFor: ["/booking-triage/doctors"] },
+      { href: "/booking-triage/permissions", label: "صلاحيات الوصول للأدوار", description: "صلاحيات ومجموعات العمل بالسيستم", activeFor: ["/booking-triage/permissions"] },
+      { href: "/booking-triage/external-doctors", label: "الأطباء الخارجيون", description: "أطباء الإحالة الخارجيين وعلاقاتهم", activeFor: ["/booking-triage/external-doctors"] },
+      { href: "/booking-triage/external-referrals", label: "إحالات الأطباء الخارجية", description: "الحالات المحولة ونسب الإحالة", activeFor: ["/booking-triage/external-referrals"] },
+    ],
   },
   {
     id: "services",
-    label: "الخدمات والعيادات",
+    label: "الخدمات والملفات الطبية",
+    description: "إعداد الفحوصات والخدمات والملفات ونماذج الموافقة",
+    icon: Layers,
     items: [
-      { href: "/booking-triage/services", label: "الخدمات والأسعار", icon: HeartPulse, activeFor: ["/booking-triage/services", "/admin/services"] },
-      { href: "/booking-triage/tests", label: "التحاليل", icon: TestTube2, activeFor: ["/booking-triage/tests", "/admin/tests"] },
-      { href: "/booking-triage/forms", label: "مركز النماذج", icon: Layers, activeFor: ["/booking-triage/forms", "/admin/forms"] },
-      { href: "/booking-triage/sheets", label: "الشيتات الطبية", icon: Layers, activeFor: ["/booking-triage/sheets", "/admin/sheets"] },
-      { href: "/booking-triage/sheet-designer", label: "مصمم الشيتات", icon: PenSquare, activeFor: ["/booking-triage/sheet-designer", "/admin/sheet-designer"] },
-      { href: "/booking-triage/sheet-copies", label: "نسخ الشيتات", icon: Copy, activeFor: ["/booking-triage/sheet-copies", "/admin/sheet-copies"] },
-    ]
+      { href: "/booking-triage/services", label: "ربط وتطابق الخدمات", description: "تطابق أسماء الخدمات بالمركز", activeFor: ["/booking-triage/services"] },
+      { href: "/booking-triage/tests", label: "إعدادات وتسعير الفحوصات", description: "أسعار التحاليل والفحوصات الفنية", activeFor: ["/booking-triage/tests"] },
+      { href: "/booking-triage/forms", label: "مستندات ونماذج المرضى", description: "الموافقات الطبية وتعليمات الليزك", activeFor: ["/booking-triage/forms"] },
+      { href: "/booking-triage/sheets", label: "ملفات الفحص الإلكترونية", description: "ملفات كشف واستمارات الفحص للحالات", activeFor: ["/booking-triage/sheets"] },
+      { href: "/booking-triage/sheet-designer", label: "مصمم نماذج الملفات", description: "أداة بناء حقول وقيم الكشف", activeFor: ["/booking-triage/sheet-designer"] },
+      { href: "/booking-triage/sheet-copies", label: "سجلات نسخ الملفات", description: "سجل نقل بنية وقيم الحقول الطبية", activeFor: ["/booking-triage/sheet-copies"] },
+    ],
   },
   {
     id: "portal",
-    label: "بوابة المرضى والملفات",
+    label: "المرضى وحجوزات البوابة",
+    description: "البحث الكلي وإحالات حجز الويب الخارجي",
+    icon: HeartPulse,
     items: [
-      { href: "/booking-triage/patients", label: "إدارة المرضى", icon: UserCheck, activeFor: ["/booking-triage/patients", "/admin/patients"] },
-      { href: "/booking-triage/portal-bookings", label: "حجوزات البوابة", icon: CalendarDays, activeFor: ["/booking-triage/portal-bookings"] },
-      { href: "/booking-triage/pentacam-failed", label: "بنتاكام الفاشل", icon: Scan, activeFor: ["/booking-triage/pentacam-failed", "/admin/pentacam-failed"] },
-    ]
+      { href: "/booking-triage/patients", label: "سجل المرضى الكلي", description: "البحث في كافة المرضى المسجلين بالمركز", activeFor: ["/booking-triage/patients"] },
+      { href: "/booking-triage/portal-bookings", label: "حجوزات البوابة الخارجية", description: "حجوزات موقع الويب الخارجي والطلبات", activeFor: ["/booking-triage/portal-bookings"] },
+    ],
   },
   {
     id: "system",
-    label: "إعدادات النظام والصيانة",
+    label: "النظام والصيانة",
+    description: "حالة السيرفر وترحيل الجداول وسجلات الحسابات",
+    icon: Terminal,
     items: [
-      { href: "/booking-triage/status", label: "حالة النظام", icon: Terminal, activeFor: ["/booking-triage/status", "/admin/status"] },
-      { href: "/booking-triage/migrations", label: "ترحيل البيانات", icon: Database, activeFor: ["/booking-triage/migrations", "/admin/migrations"] },
-      { href: "/booking-triage/data-source-audit", label: "تدقيق مصدر البيانات", icon: FileSearch, activeFor: ["/booking-triage/data-source-audit", "/admin/data-source-audit"] },
-      { href: "/booking-triage/settings", label: "إعدادات العامة", icon: Settings, activeFor: ["/booking-triage/settings", "/admin/settings"] },
-      { href: "/booking-triage/api-tools", label: "أدوات API", icon: Plug, activeFor: ["/booking-triage/api-tools", "/admin/api-tools"] },
-      { href: "/booking-triage/card-visibility", label: "ظهور الكروت", icon: Eye, activeFor: ["/booking-triage/card-visibility", "/admin/card-visibility"] },
-      { href: "/booking-triage/notifications", label: "إخطارات التطبيق", icon: Bell, activeFor: ["/booking-triage/notifications", "/admin/notifications"] },
-    ]
-  }
-];
-
-const mobileNavItems = [
-  { href: "/booking-triage", label: "الرئيسية", icon: LayoutGrid, activeFor: ["/booking-triage"] },
-  { href: "/booking-triage/users", label: "المستخدمين", icon: Users, activeFor: ["/booking-triage/users", "/admin/users"] },
-  { href: "/booking-triage/doctors", label: "الأطباء", icon: Stethoscope, activeFor: ["/booking-triage/doctors", "/admin/doctors"] },
-  { href: "/booking-triage/patients", label: "المرضى", icon: UserCheck, activeFor: ["/booking-triage/patients", "/admin/patients"] },
-  { href: "/booking-triage/status", label: "الحالة", icon: Terminal, activeFor: ["/booking-triage/status", "/admin/status"] },
-  { href: "/booking-triage/settings", label: "الإعدادات", icon: Settings, activeFor: ["/booking-triage/settings", "/admin/settings"] },
+      { href: "/booking-triage/status", label: "حالة الخادم الفنية", description: "أداء السيرفر واستخدام المعالج والذاكرة", activeFor: ["/booking-triage/status"] },
+      { href: "/booking-triage/migrations", label: "مزامنة تحديثات الجداول", description: "ترحيل البيانات وتعديل قواعد البيانات", activeFor: ["/booking-triage/migrations"] },
+      { href: "/booking-triage/api", label: "لوحة اختبار tRPC API", description: "أدوات API للمطورين", activeFor: ["/booking-triage/api"] },
+      { href: "/booking-triage/settings", label: "إعدادات النظام العامة", description: "عناوين وخواص تشغيل المركز الكلية", activeFor: ["/booking-triage/settings"] },
+      { href: "/booking-triage/card-visibility", label: "إعدادات بطاقات الاستعلام", description: "التحكم في ظهور كروت Dashboard", activeFor: ["/booking-triage/card-visibility"] },
+      { href: "/booking-triage/audit", label: "سجل تدقيق التغييرات", description: "سجلات الأمن وحركة التعديل", activeFor: ["/booking-triage/audit"] },
+      { href: "/booking-triage/notifications", label: "إعدادات التنبيهات", description: "إعدادات الرسائل وسيرفرات البريد", activeFor: ["/booking-triage/notifications"] },
+    ],
+  },
 ];
 
 function isItemActive(pathname: string, activeFor: string[]) {
@@ -336,411 +292,209 @@ function isItemActive(pathname: string, activeFor: string[]) {
   );
 }
 
+// Top navigation (horizontal bar, single row, all breakpoints)
+const topbarNavItems = [
+  { href: "/booking-triage/users", label: "المستخدمين", icon: Users },
+  { href: "/booking-triage/doctors", label: "الأطباء", icon: Stethoscope },
+  { href: "/booking-triage/permissions", label: "الصلاحيات", icon: Shield },
+  { href: "/booking-triage/external-doctors", label: "طبيب خارجي", icon: FileSearch },
+  { href: "/booking-triage/tests", label: "الخدمات", icon: TestTube2 },
+  { href: "/booking-triage/services", label: "ربط الخدمات", icon: LayoutGrid },
+  { href: "/booking-triage/sheet-designer", label: "نماذج الملفات", icon: Scan },
+  { href: "/booking-triage/patients", label: "المرضى", icon: Users },
+  { href: "/booking-triage/portal-bookings", label: "الحجز", icon: CalendarDays },
+  { href: "/booking-triage/status", label: "السيرفر", icon: Terminal },
+  { href: "/booking-triage/migrations", label: "اسكيما", icon: Database },
+  { href: "/booking-triage/notifications", label: "الإشعارات", icon: Bell },
+];
+
 export default function AdminHubShell() {
   const [location] = useLocation();
   const { canAccess } = usePermissions();
-  const [collapsed, setCollapsed] = useState(true);
+
   const opsHealthQuery = trpc.medical.getOpsHealth.useQuery(undefined, {
-    refetchInterval: 60_000,
+    refetchInterval: 10_000,
     refetchIntervalInBackground: false,
   });
-  const opsHealth = opsHealthQuery.data;
 
+  const opsHealth = opsHealthQuery.data;
   const isHubHome = location === "/booking-triage" || location === "/booking-triage/";
 
   const getBreadcrumbs = () => {
     if (isHubHome) return null;
     const parts = location.split("/").filter(Boolean);
-    const crumbs = [{ label: "مركز الإدارة", href: "/booking-triage" }];
-
-    if (parts.length > 1) {
-      const moduleName = parts[1];
-      const found = ALL_MODULES.find((m) => m.href.includes(moduleName));
-      if (found) {
-        crumbs.push({ label: found.title, href: found.href });
-      }
+    const crumbs = [{ label: "الرئيسية للمشرف", href: "/booking-triage" }];
+    
+    let currentPath = "/booking-triage";
+    for (let i = 1; i < parts.length; i++) {
+      const part = parts[i];
+      currentPath += `/${part}`;
+      const mod = ALL_MODULES.find((m) => m.href === currentPath);
+      crumbs.push({
+        label: mod ? mod.title : part,
+        href: currentPath,
+      });
     }
-
     return crumbs;
   };
 
   const renderComponent = () => {
-    if (isHubHome) return null;
-    if (location === "/booking-triage/users" || location === "/admin/users")
-      return <AdminUsers />;
-    if (
-      location === "/booking-triage/migrations" ||
-      location === "/admin/migrations"
-    )
-      return <AdminMigrations />;
-    if (location === "/booking-triage/api-tools" || location === "/admin/api-tools")
-      return <AdminApiTools />;
-    if (location === "/booking-triage/status" || location === "/admin/status")
-      return <AdminStatus />;
-    if (
-      location === "/booking-triage/card-visibility" ||
-      location === "/admin/card-visibility"
-    )
-      return <AdminCardVisibility />;
-    if (
-      location === "/booking-triage/settings/pricing-rules" ||
-      location === "/admin/settings/pricing-rules"
-    ) {
-      return <AdminSettings pricingOnly />;
-    }
-    if (location === "/booking-triage/settings" || location === "/admin/settings")
-      return <AdminSettings />;
-    if (
-      location === "/booking-triage/permissions" ||
-      location === "/admin/permissions"
-    )
-      return <AdminPermissions />;
-    if (location === "/booking-triage/forms" || location === "/admin/forms")
-      return <AdminFormsHub />;
-    if (location === "/booking-triage/sheets" || location === "/admin/sheets")
-      return <AdminSheets />;
-    if (
-      location === "/booking-triage/sheet-designer" ||
-      location === "/admin/sheet-designer"
-    )
-      return <AdminSheetDesigner />;
-    if (
-      location === "/booking-triage/sheet-copies" ||
-      location === "/admin/sheet-copies"
-    )
-      return <AdminSheetCopies />;
-    if (location === "/booking-triage/doctors" || location === "/admin/doctors")
-      return <AdminDoctors />;
-    if (
-      location === "/booking-triage/pentacam-failed" ||
-      location === "/admin/pentacam-failed"
-    )
-      return <AdminPentacamFailed />;
-    if (location === "/booking-triage/services" || location === "/admin/services")
-      return <AdminServices />;
-    if (location === "/booking-triage/tests" || location === "/admin/tests")
-      return <TestsManagement />;
-    if (location === "/booking-triage/diagnostics") return <AdminDiagnostics />;
-    if (
-      location === "/booking-triage/data-source-audit" ||
-      location === "/admin/data-source-audit"
-    )
-      return <AdminDataSourceAudit />;
-    if (
-      location === "/booking-triage/notifications" ||
-      location === "/admin/notifications"
-    )
-      return <AdminNotificationSettings />;
-    if (location === "/booking-triage/patients" || location === "/admin/patients")
-      return <AdminPatients />;
-    if (location === "/booking-triage/portal-bookings")
-      return <AdminPortalBookings />;
-    if (location === "/booking-triage/external-doctors") return <ExternalDoctors />;
-    if (location === "/booking-triage/external-doctors/referrals")
-      return <ExternalDoctorReferrals />;
-
-    return (
-      <div className="rounded-xl border border-border/80 bg-card p-6 text-right text-sm text-muted-foreground">
-        المسار غير معروف. ارجع إلى{" "}
-        <Link
-          href="/booking-triage"
-          className="font-semibold text-primary underline-offset-4 hover:underline"
-        >
-          مركز الإدارة
-        </Link>
-        .
-      </div>
-    );
+    const loc = location.replace(/\/$/, "");
+    if (loc === "/booking-triage/users") return <AdminUsers />;
+    if (loc === "/booking-triage/migrations") return <AdminMigrations />;
+    if (loc === "/booking-triage/api") return <AdminApiTools />;
+    if (loc === "/booking-triage/status") return <AdminStatus />;
+    if (loc === "/booking-triage/settings") return <AdminSettings />;
+    if (loc === "/booking-triage/permissions") return <AdminPermissions />;
+    if (loc === "/booking-triage/sheets") return <AdminSheets />;
+    if (loc === "/booking-triage/sheet-designer") return <AdminSheetDesigner />;
+    if (loc === "/booking-triage/doctors") return <AdminDoctors />;
+    if (loc === "/booking-triage/pentacam-failed") return <AdminPentacamFailed />;
+    if (loc === "/booking-triage/sheet-copies") return <AdminSheetCopies />;
+    if (loc === "/booking-triage/forms") return <AdminFormsHub />;
+    if (loc === "/booking-triage/patients") return <AdminPatients />;
+    if (loc === "/booking-triage/portal-bookings") return <AdminPortalBookings />;
+    if (loc === "/booking-triage/card-visibility") return <AdminCardVisibility />;
+    if (loc === "/booking-triage/diagnostics") return <AdminDiagnostics />;
+    if (loc === "/booking-triage/audit") return <AdminDataSourceAudit />;
+    if (loc === "/booking-triage/notifications") return <AdminNotificationSettings />;
+    if (loc === "/booking-triage/services") return <AdminServices />;
+    if (loc === "/booking-triage/tests") return <TestsManagement />;
+    if (loc === "/booking-triage/external-doctors") return <ExternalDoctors />;
+    if (loc === "/booking-triage/external-referrals") return <ExternalDoctorReferrals />;
+    return null;
   };
 
   const CATEGORIES = [
     {
       id: "staff" as const,
-      title: "الموظفون والصلاحيات",
-      subtitle: "إدارة المستخدمين والأطباء والصلاحيات والرواتب",
+      title: "إدارة كادر العمل البشري",
+      subtitle: "إضافة وتعديل بيانات الموظفين والمستخدمين والصلاحيات والأطباء",
       icon: Users,
-      color: "text-primary",
-      bg: "bg-primary/5",
+      color: "text-blue-500",
+      bg: "bg-blue-500/10 border-blue-500/20",
     },
     {
       id: "services" as const,
-      title: "الخدمات والعيادات الطبية",
-      subtitle: "إدارة الخدمات والأسعار وقوالب الشيتات والفحوصات",
-      icon: HeartPulse,
-      color: "text-secondary",
-      bg: "bg-secondary/5",
+      title: "تخصيص الفحوصات والخدمات والملفات الطبية",
+      subtitle: "إعداد حقول كشف الحالات والتعليمات ونماذج الموافقة الطبية والأسعار",
+      icon: Layers,
+      color: "text-purple-500",
+      bg: "bg-purple-500/10 border-purple-500/20",
     },
     {
       id: "portal" as const,
-      title: "بوابة المرضى والملفات",
-      subtitle: "إدارة المرضى والحجوزات ومزامنة صور البنتاكام وبوابات تسجيل الدخول",
-      icon: Scan,
-      color: "text-secondary",
-      bg: "bg-secondary/15",
+      title: "المرضى وحجوزات البوابة الخارجية",
+      subtitle: "البحث في ملفات المرضى ومراجعة طلبات الكشف والحجز الخارجي",
+      icon: HeartPulse,
+      color: "text-rose-500",
+      bg: "bg-rose-500/10 border-rose-500/20",
     },
     {
       id: "system" as const,
-      title: "إعدادات النظام والصيانة",
-      subtitle: "مراقبة حالة الخادم، الميجريشن، إعدادات tRPC والإخطارات",
-      icon: Settings,
-      color: "text-muted-foreground",
-      bg: "bg-muted/40",
+      title: "أدوات النظام المتقدمة وقواعد البيانات",
+      subtitle: "ترحيل البيانات، ومراقبة مؤشرات كفاءة الخادم وسجلات الأمان الفنية",
+      icon: Terminal,
+      color: "text-amber-500",
+      bg: "bg-amber-500/10 border-amber-500/20",
     },
   ];
 
-  const HubLanding = () => (
-    <div className="space-y-8">
-      <PageHeader
-        title="مركز الإدارة"
-        subtitle="التحكم الشامل في المستخدمين، الأطباء، والخدمات الفنية للمركز."
-        icon={<LayoutGrid className="h-5 w-5 text-primary" />}
-      />
-
-      {/* Critical Actions Tier */}
-      <Link href="/booking-triage/diagnostics">
-        <Card className="group relative overflow-hidden border-success/30 bg-success/5 transition-all hover:border-success/40 hover:bg-success/10 active:scale-[0.99] cursor-pointer">
-          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4 text-right">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-success/15 text-success transition-transform group-hover:scale-110">
-                <Wrench className="h-5 w-5" />
-              </div>
-              <div className="space-y-0.5">
-                <div className="font-bold text-foreground">
-                  التشخيص والإصلاح
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  أدوات فحص وإصلاح البيانات المتقدمة للمشرفين التقنيين.
-                </p>
-              </div>
-            </div>
-            <ArrowRight className="h-4 w-4 text-success/70 rotate-180 transition-transform group-hover:-translate-x-1" />
-          </CardContent>
-        </Card>
-      </Link>
-
-      {/* Grouped Modules */}
-      <div className="space-y-8">
-        {CATEGORIES.map((cat) => {
-          const CatIcon = cat.icon;
-          const modules = ALL_MODULES.filter((m) => m.category === cat.id && canAccess(m.href));
-
-          return (
-            <div key={cat.id} className="space-y-3">
-              <div className="flex items-center gap-3 border-b border-border/40 pb-2">
-                <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg text-sm", cat.bg, cat.color)}>
-                  <CatIcon className="h-4 w-4" />
-                </div>
-                <div className="text-right">
-                  <h2 className="text-base font-bold text-foreground">
-                    {cat.title}
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    {cat.subtitle}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {modules.map((mod) => {
-                  const Icon = mod.icon;
-                  return (
-                    <Link key={mod.href} href={mod.href}>
-                      <Card
-                        className={cn(
-                          "group h-full border-border/60 bg-card transition-all hover:border-primary/40 hover:shadow-md active:scale-[0.98] cursor-pointer",
-                        )}
-                      >
-                        <CardContent className="flex h-full flex-col gap-4 p-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <div
-                              className={cn(
-                                "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors group-hover:bg-primary/5",
-                                mod.iconWrap,
-                              )}
-                            >
-                              <Icon className="h-4 w-4" />
-                            </div>
-                            <div className="min-w-0 flex-1 space-y-1 text-right">
-                              <h3 className="font-bold text-xs tracking-tight text-foreground/90 transition-colors group-hover:text-primary">
-                                {mod.title}
-                              </h3>
-                              <p className="text-[11px] leading-normal text-muted-foreground line-clamp-2">
-                                {mod.description}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-
   const crumbs = getBreadcrumbs();
 
+  const metrics = [
+    {
+      label: "قاعدة البيانات",
+      value: opsHealthQuery.isLoading ? "—" : (opsHealth?.dbConnected ? "متصلة" : "غير متصلة"),
+      tone: opsHealth?.dbConnected ? "text-emerald-500 font-black animate-pulse" : "text-rose-500 font-black",
+      accent: opsHealth?.dbConnected ? "bg-emerald-500/10 border-emerald-500/20" : "bg-rose-500/10 border-rose-500/20",
+    },
+    {
+      label: "النفق الآمن",
+      value: opsHealthQuery.isLoading ? "—" : (opsHealth?.tunnelConnected ? "نشط" : "غير نشط"),
+      tone: opsHealth?.tunnelConnected ? "text-emerald-500 font-black animate-pulse" : "text-rose-500 font-black",
+      accent: opsHealth?.tunnelConnected ? "bg-emerald-500/10 border-emerald-500/20" : "bg-rose-500/10 border-rose-500/20",
+    },
+    {
+      label: "مرضى اليوم",
+      value: opsHealthQuery.isLoading ? "—" : (opsHealth?.patientsCount ?? 0).toLocaleString("ar-EG"),
+      tone: "text-primary",
+      accent: "bg-primary/10 border-primary/20",
+    },
+  ];
+
   return (
-    <div
-      className="page-layout min-h-screen bg-background text-foreground animate-in fade-in duration-300"
-      dir="rtl"
-    >
-      {/* Header */}
-      <div className="border-b border-border/60 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
-        <div className="mx-auto w-full px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-3">
-            {/* Title section */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/15 px-2.5 py-0.5 text-[11px] font-medium text-primary">
-                    <Shield className="h-3.5 w-3.5 animate-pulse" />
-                    مركز الإدارة والتحكم
-                  </div>
-                </div>
-                <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-                  لوحة التحكم الإدارية
-                </h1>
-                <p className="max-w-xl text-xs text-muted-foreground">
-                  إدارة المستخدمين، الأطباء، الصلاحيات، الخدمات، وحالة تشغيل النظام
-                </p>
-              </div>
-
-              {/* Compact Metrics Pill Row */}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] sm:text-xs font-semibold text-muted-foreground/80 bg-muted/40 px-3.5 py-2 rounded-xl border border-border/40 w-fit self-start sm:self-center shadow-xs">
-                <span className="flex items-center gap-1.5">
-                  <Database className={cn("h-3.5 w-3.5 shrink-0", opsHealth?.dbConnected ? "text-success" : "text-destructive")} />
-                  قاعدة البيانات: <strong className={cn("font-bold", opsHealth?.dbConnected ? "text-success" : "text-destructive")}>{opsHealthQuery.isLoading ? "—" : (opsHealth?.dbConnected ? "متصلة" : "غير متصلة")}</strong>
-                </span>
-                <span className="h-3 w-px bg-border/60 hidden sm:inline" />
-                <span className="flex items-center gap-1.5">
-                  <Plug className={cn("h-3.5 w-3.5 shrink-0", opsHealth?.tunnelConnected ? "text-success" : "text-destructive")} />
-                  النفق الآمن: <strong className={cn("font-bold", opsHealth?.tunnelConnected ? "text-success" : "text-destructive")}>{opsHealthQuery.isLoading ? "—" : (opsHealth?.tunnelConnected ? "نشط" : "غير نشط")}</strong>
-                </span>
-                <span className="h-3 w-px bg-border/60 hidden sm:inline" />
-                <span className="flex items-center gap-1.5">
-                  <Users className="h-3.5 w-3.5 text-primary shrink-0" />
-                  عدد المرضى: <strong className="text-foreground">{opsHealthQuery.isLoading ? "—" : (opsHealth?.patientsCount ?? 0).toLocaleString("ar-EG")}</strong>
-                </span>
-              </div>
-            </div>
-
-            {/* Mobile Horizontal Pill Navigation Bar (Inline top navigation) */}
-            <div className="lg:hidden mt-2 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none whitespace-nowrap border-t border-border/40 pt-3">
-              {mobileNavItems.filter((item) => canAccess(item.href)).map((item) => {
-                const Icon = item.icon;
-                const itemActive = isItemActive(location, item.activeFor);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all ${
-                      itemActive
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    }`}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
+    <div className="min-h-screen bg-background text-foreground p-4 sm:p-6" dir="rtl">
+      
+      {/* ── 1. Floating Bento Top Header Capsule ── */}
+      <header className="max-w-[1600px] mx-auto mb-6 bg-card border border-border/60 rounded-3xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-primary text-primary-foreground rounded-2xl flex items-center justify-center font-mono font-black text-sm">
+            AD
+          </div>
+          <div>
+            <h1 className="text-sm font-black text-foreground leading-none">لوحة التحكم الإدارية للمشرف</h1>
+            <span className="text-[10px] text-muted-foreground block mt-1 font-medium">إدارة المستخدمين والأطباء والصلاحيات وحالة تشغيل المركز</span>
           </div>
         </div>
-      </div>
 
-      {/* Two-column layout: Sidebar + Content */}
-      <div className="flex flex-col lg:flex-row w-full">
-        {/* Sidebar Navigation (Desktop only) */}
-        <aside
-          style={{ width: collapsed ? 56 : 256 }}
-          className="hidden lg:flex lg:flex-col border-b border-border/60 bg-card/20 lg:border-b-0 lg:border-r border-border/60 min-h-[calc(100vh-115px)] transition-all duration-200 shrink-0 overflow-hidden"
-        >
-          <div className="flex items-center justify-end border-b border-border/40 px-2 py-2">
-            <button
-              onClick={() => setCollapsed((c) => !c)}
-              className="flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              title={collapsed ? "توسيع" : "تصغير"}
+        {/* Top metrics grids */}
+        <div className="grid w-full grid-cols-3 gap-2 sm:grid-cols-3 md:w-auto md:min-w-[500px]">
+          {metrics.map((metric) => (
+            <div
+              key={metric.label}
+              className={`rounded-2xl border p-2.5 px-3 flex flex-col justify-center ${metric.accent}`}
             >
-              {collapsed ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
-            </button>
-          </div>
-          <nav className={`flex-1 ${collapsed ? "p-1 space-y-1 pt-2" : "space-y-4 p-4"} sticky top-4`}>
-            {/* Main Hub Home Link */}
-            <div className="space-y-1">
-              <Link
-                href="/booking-triage"
-                title={collapsed ? "لوحة التحكم الرئيسية" : undefined}
-                className={cn(
-                  "group flex items-center rounded-lg text-xs transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 border",
-                  collapsed ? "justify-center px-2 py-2" : "gap-2.5 px-3 py-2",
-                  isHubHome
-                    ? "bg-primary/10 text-primary font-medium border-primary/10 shadow-sm"
-                    : "text-muted-foreground hover:bg-muted/40 hover:text-foreground border-transparent"
-                )}
-              >
-                <LayoutGrid className="h-4 w-4 shrink-0" />
-                {!collapsed && <span className="flex-1 min-w-0 truncate font-semibold">لوحة التحكم الرئيسية</span>}
-              </Link>
+              <span className="text-[9px] font-bold text-muted-foreground block leading-none">
+                {metric.label}
+              </span>
+              <span className={`mt-1 text-xs font-black font-mono leading-none ${metric.tone}`}>
+                {metric.value}
+              </span>
             </div>
+          ))}
+        </div>
+      </header>
 
-            {navigationSections.map((section) => {
-              const visibleItems = section.items.filter((item) => canAccess(item.href));
-              if (!visibleItems.length) return null;
+      {/* ── 2. Floating Console Layout ── */}
+      <div className="max-w-[1600px] mx-auto flex flex-col gap-6">
+        {/* Horizontal Top Navigation Bar (all breakpoints) */}
+        <nav className="w-full flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 scrollbar-none print:hidden">
+          {topbarNavItems
+            .filter((item) => canAccess(item.href))
+            .map((item) => {
+              const isActive = isItemActive(location, [item.href]);
+              const Icon = item.icon;
               return (
-              <div key={section.id} className="space-y-1">
-                {!collapsed && (
-                <div className="px-3 py-1">
-                  <h3 className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider">
-                    {section.label}
-                  </h3>
-                </div>
-                )}
-                <div className="space-y-1">
-                  {visibleItems.map((item) => {
-                    const itemActive = isItemActive(location, item.activeFor);
-                    const Icon = item.icon;
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        title={collapsed ? item.label : undefined}
-                        className={`group flex items-center rounded-lg text-xs transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 ${collapsed ? "justify-center px-2 py-2" : "gap-2.5 px-3 py-2"} ${
-                          itemActive
-                            ? "bg-primary/10 text-primary font-medium shadow-sm border border-primary/10"
-                            : "text-muted-foreground hover:bg-muted/40 hover:text-foreground border border-transparent"
-                        }`}
-                      >
-                        <Icon className={`h-4 w-4 shrink-0 transition-colors ${itemActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`} />
-                        {!collapsed && <span className="flex-1 min-w-0 truncate">{item.label}</span>}
-                        {!collapsed && <ChevronLeft className={`h-3.5 w-3.5 shrink-0 transition-all opacity-0 ${itemActive ? "opacity-100 text-primary" : "group-hover:opacity-100 group-hover:-translate-x-0.5"}`} />}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            );})}
-          </nav>
-        </aside>
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold shrink-0 transition-all ${
+                    isActive
+                      ? "bg-slate-900 text-white shadow-md shadow-slate-900/10 dark:bg-primary dark:text-primary-foreground dark:shadow-primary/10"
+                      : "bg-card border border-border/60 text-muted-foreground hover:bg-muted/50"
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+        </nav>
 
-        {/* Main content area */}
-        <main className="flex-1 px-3 py-4 sm:px-4 min-w-0">
+        {/* Main Content Floating Bento Container */}
+        <main className="flex-1 w-full min-w-0 bg-card border border-border/60 rounded-3xl p-6 shadow-sm">
           {crumbs && (
-            <nav className="flex items-center gap-1.5 text-xs text-muted-foreground/80 mb-4 print:hidden">
+            <nav className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold mb-4 print:hidden">
               {crumbs.map((crumb, i) => (
                 <span key={crumb.href} className="flex items-center gap-1.5">
                   {i > 0 && <span className="opacity-40">/</span>}
                   <Link
                     href={crumb.href}
                     className={cn(
-                      "transition-colors hover:text-primary",
+                      "transition-colors hover:text-foreground",
                       i === crumbs.length - 1
-                        ? "font-bold text-foreground pointer-events-none"
+                        ? "font-black text-foreground pointer-events-none"
                         : "underline-offset-4 hover:underline",
                     )}
                   >
@@ -751,11 +505,92 @@ export default function AdminHubShell() {
             </nav>
           )}
 
-          {isHubHome ? <HubLanding /> : null}
-          <div className={cn(!isHubHome && "pt-2")}>{renderComponent()}</div>
+          {isHubHome ? (
+            <div className="space-y-6">
+              {/* Critical Actions Tier */}
+              <Link href="/booking-triage/diagnostics">
+                <div className="group relative overflow-hidden border border-emerald-500/20 bg-emerald-500/5 rounded-2xl p-4 shadow-sm hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:scale-[1.002] active:scale-[0.998] transition-all duration-150 cursor-pointer flex items-center justify-between">
+                  <div className="flex items-center gap-4 text-right">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 transition-transform group-hover:scale-105">
+                      <Wrench className="h-5 w-5" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <div className="font-bold text-foreground text-xs">
+                        التشخيص والإصلاح
+                      </div>
+                      <p className="text-[10px] text-muted-foreground font-semibold">
+                        أدوات فحص وإصلاح البيانات المتقدمة للمشرفين التقنيين.
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-emerald-500 rotate-180 transition-transform group-hover:-translate-x-1" />
+                </div>
+              </Link>
+
+              {/* Grouped Modules */}
+              <div className="space-y-8">
+                {CATEGORIES.map((cat) => {
+                  const CatIcon = cat.icon;
+                  const modules = ALL_MODULES.filter((m) => m.category === cat.id && canAccess(m.href));
+
+                  return (
+                    <div key={cat.id} className="space-y-3">
+                      <div className="flex items-center gap-3 border-b border-border pb-2">
+                        <div className={cn("flex h-8 w-8 items-center justify-center rounded-xl text-sm border", cat.bg, cat.color)}>
+                          <CatIcon className="h-4 w-4" />
+                        </div>
+                        <div className="text-right">
+                          <h2 className="text-xs font-black text-foreground">
+                            {cat.title}
+                          </h2>
+                          <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">
+                            {cat.subtitle}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {modules.map((mod) => {
+                          const Icon = mod.icon;
+                          return (
+                            <Link key={mod.href} href={mod.href}>
+                              <div
+                                className="group h-full bg-card border border-border/60 rounded-2xl p-5 shadow-xs hover:border-border hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between"
+                              >
+                                <div className="flex items-start gap-3 text-right">
+                                  <div
+                                    className={cn(
+                                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors border border-border/40 group-hover:bg-muted/40",
+                                      mod.iconWrap,
+                                    )}
+                                  >
+                                    <Icon className="h-4 w-4" />
+                                  </div>
+                                  <div className="min-w-0 flex-1 space-y-1">
+                                    <h3 className="font-bold text-xs tracking-tight text-foreground transition-colors group-hover:text-foreground">
+                                      {mod.title}
+                                    </h3>
+                                    <p className="text-[10px] leading-normal text-muted-foreground font-semibold line-clamp-2">
+                                      {mod.description}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <Suspense fallback={<AppShellSkeleton />}>{renderComponent()}</Suspense>
+          )}
         </main>
+
       </div>
     </div>
   );
 }
-

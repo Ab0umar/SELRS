@@ -222,6 +222,8 @@ export const ROUTES = {
   sheetsLasikId: "/sheets/lasik/:id",
   sheetsLasikFollowup: "/sheets/lasik/:id/followup",
   sheetsLasikIdFollowup: "/sheets/lasik/:id/followup",
+  sheetsReferral: "/sheets/referral",
+  sheetsReferralId: "/sheets/referral/:id",
   sheetsPentacamDashboard: "/sheets/pentacam/dashboard",
   sheetsOperationId: "/sheets/operation/:id",
   sheetsOperationDetail: "/sheets/operation/:id",

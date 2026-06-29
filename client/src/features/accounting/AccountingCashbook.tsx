@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { fmt, fmtDate } from "./accountingFormat";
+import { AccountingPage } from "./AccountingPagePrimitives";
 
 const PAGE_SIZE = 50;
 
@@ -71,7 +72,11 @@ export default function AccountingCashbook() {
   const resetPage = () => setPage(1);
 
   return (
-    <>
+    <AccountingPage
+      eyebrow="Cashbook"
+      title="حركة الخزنة"
+      description="متابعة رصيد الخزنة وحركات الإيراد والمصروف حسب السنة والنوع."
+    >
       <div className="space-y-4 lg:space-y-5" dir="rtl">
         <section className="rounded-[24px] border border-border bg-background p-4 lg:p-5">
           <div className="grid gap-3 sm:grid-cols-3">
@@ -603,6 +608,6 @@ export default function AccountingCashbook() {
           )}
         </div>
       </div>
-    </>
+    </AccountingPage>
   );
 }

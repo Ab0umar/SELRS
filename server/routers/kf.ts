@@ -351,6 +351,7 @@ export const kfRouter = router({
           medicalHistory: input.medicalHistory ?? null,
           allergies: input.allergies ?? null,
           notes: input.notes ?? null,
+          doctorName: input.doctorName ?? null,
           selrsPatientCode: input.selrsPatientCode ?? null,
           createdByUserId: ctx.user?.id ?? null,
           createdAt: now,

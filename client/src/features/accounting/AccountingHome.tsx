@@ -30,101 +30,6 @@ import { cn } from "@/lib/utils";
 import { formatMoneyAr, formatCountAr } from "./accountingFormat";
 import { DateInput } from "@/components/ui/date-input";
 
-const quickLinkGroups = [
-  [
-    {
-      label: "الخزنة — قيود",
-      href: "/accounting/ledger",
-      icon: BookOpen,
-      desc: "إضافة وتعديل قيود الخزنة",
-    },
-    {
-      label: "الخزنة — رصيد",
-      href: "/accounting/cashbook",
-      icon: Wallet,
-      desc: "حركة الخزنة والرصيد الحالي",
-    },
-    {
-      label: "كشف السلف",
-      href: "/accounting/advances",
-      icon: CreditCard,
-      desc: "سلف الموظفين وحركات السداد",
-    },
-    {
-      label: "القروض",
-      href: "/accounting/loans",
-      icon: FileText,
-      desc: "متابعة القروض والسداد",
-    },
-  ],
-  [
-    {
-      label: "الإيراد اليومي",
-      href: "/accounting/daily-revenue",
-      icon: Banknote,
-      desc: "مراجعة الإيراد حسب اليوم",
-    },
-    {
-      label: "إيراد الخدمات",
-      href: "/accounting/service-revenue",
-      icon: TrendingUp,
-      desc: "تقرير إيراد الخدمات",
-    },
-    {
-      label: "بحث الإيصالات",
-      href: "/accounting/receipts",
-      icon: ReceiptText,
-      desc: "البحث بالرقم أو الكود",
-    },
-    {
-      label: "الخدمات",
-      href: "/accounting/services",
-      icon: Scissors,
-      desc: "قائمة الخدمات",
-    },
-  ],
-  [
-    {
-      label: "بحث المرضى",
-      href: "/accounting/patients",
-      icon: Users,
-      desc: "البحث عن المريض والإيصالات",
-    },
-    {
-      label: "حساب مريض",
-      href: "/accounting/patient",
-      icon: UserRound,
-      desc: "فتح حساب مريض مباشرة",
-    },
-    {
-      label: "حساب طبيب",
-      href: "/accounting/doctor",
-      icon: Stethoscope,
-      desc: "فتح حساب طبيب مباشرة",
-    },
-  ],
-  [
-    {
-      label: "رصيد البيت",
-      href: "/accounting/home-fund",
-      icon: Home,
-      desc: "متابعة حساب البيت",
-    },
-    {
-      label: "رصيد انستاباي",
-      href: "/accounting/instapay",
-      icon: Smartphone,
-      desc: "متابعة حساب انستاباي",
-    },
-    {
-      label: "د. السعدني",
-      href: "/accounting/dr-saadany",
-      icon: UserRound,
-      desc: "متابعة حساب الدكتور",
-    },
-  ],
-];
-
 function formatTime(isoDate: string) {
   const d = new Date(isoDate);
   if (Number.isNaN(d.getTime())) return "";
@@ -138,7 +43,7 @@ export default function AccountingHome() {
   const { user } = useAuth();
   const isAdmin = String(user?.role ?? "").toLowerCase() === "admin";
 
-  const [viewDate, setViewDate] = useState(
+  const [viewDate] = useState(
     () => new Date().toISOString().split("T")[0],
   );
   const today = new Date().toISOString().split("T")[0];
@@ -172,11 +77,6 @@ export default function AccountingHome() {
   const [notes, setNotes] = useState("");
   const [saved, setSaved] = useState(false);
   const [notesFocused, setNotesFocused] = useState(false);
-  const [homeTab, setHomeTab] = useState<"activity" | "entry" | "links">("activity");
-  const [activeTab, setActiveTab] = useState<"cashbook" | "service">(
-    "cashbook",
-  );
-  const [moreQuickLinksOpen, setMoreQuickLinksOpen] = useState(false);
   const [servicePat, setServicePat] = useState("");
   const [serviceDocCode, setServiceDocCode] = useState("");
   const [serviceLines, setServiceLines] = useState([
@@ -197,13 +97,12 @@ export default function AccountingHome() {
   }, []);
 
   const catalogQ = trpc.accounting.serviceEntryCatalog.useQuery(undefined, {
-    enabled: activeTab === "service",
     refetchOnWindowFocus: false,
   });
   const servicePatLookup = trpc.accounting.patientNameLookup.useQuery(
     { patientCode: servicePat.trim() },
     {
-      enabled: activeTab === "service" && servicePat.trim().length > 0,
+      enabled: servicePat.trim().length > 0,
       refetchOnWindowFocus: false,
       retry: false,
     },
@@ -242,7 +141,11 @@ export default function AccountingHome() {
         utils.accounting.accLedger.invalidate(),
         utils.accounting.accLedgerSummary.invalidate(),
       ]);
-      setSyncResult({ ok: true, msg: "تم الرفع للخزنة بنجاح", log: result?.log });
+      setSyncResult({
+        ok: true,
+        msg: "تم الرفع للخزنة بنجاح",
+        log: result?.log,
+      });
     } catch (e: any) {
       setSyncResult({ ok: false, msg: "فشل الرفع للخزنة", log: e?.message });
     }
@@ -355,8 +258,6 @@ export default function AccountingHome() {
     setTimeout(() => setSaved(false), 2000);
   }
 
-  const s = summaryQuery.data;
-  const cashbook = cashbookSummaryQuery.data;
   const receipts = useMemo(
     () => activityQuery.data ?? [],
     [activityQuery.data],
@@ -370,225 +271,15 @@ export default function AccountingHome() {
     },
     [summaryQuery, cashbookSummaryQuery],
   );
-
   return (
     <>
-      <div dir="rtl" className="space-y-4">
+      <div dir="rtl" className="space-y-5">
         <section
           className="rounded-lg border border-border bg-background p-4 lg:p-5"
           dir="rtl"
         >
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  {isToday ? "مؤشرات اليوم" : "مؤشرات اليوم المحدد"}
-                </div>
-                {!isToday && (
-                  <button
-                    type="button"
-                    onClick={() => setViewDate(today)}
-                    className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground hover:bg-muted"
-                  >
-                    اليوم
-                  </button>
-                )}
-              </div>
-              <div className="flex items-center gap-2 sm:gap-3">
-                <DateInput
-                  aria-label="تاريخ العرض"
-                  value={viewDate}
-                  max={today}
-                  onChange={(e) =>
-                    e.target.value && setViewDate(e.target.value)
-                  }
-                  className="rounded-lg border border-border bg-background px-2 py-1 text-xs tabular-nums outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
-                />
-                {[
-                  {
-                    href: "/accounting/daily-revenue",
-                    label: isToday ? "إيراد اليوم" : "إيراد اليوم المحدد",
-                    val: summaryQuery.isLoading
-                      ? "..."
-                      : formatMoneyAr(s?.totalRevenueToday ?? 0),
-                  },
-                  {
-                    href: "/accounting/receipts",
-                    label: isToday ? "إيصالات اليوم" : "إيصالات اليوم المحدد",
-                    val: summaryQuery.isLoading
-                      ? "..."
-                      : formatCountAr(s?.totalReceiptsToday ?? 0),
-                  },
-                  {
-                    href: "/accounting/cashbook",
-                    label: "رصيد الخزنة",
-                    val: cashbookSummaryQuery.isLoading
-                      ? "..."
-                      : formatMoneyAr(cashbook?.currentBalance ?? 0),
-                  },
-                ].map((m) => (
-                  <Link
-                    key={m.label}
-                    href={m.href}
-                    className="group hidden flex-col items-end gap-0.5 no-underline sm:flex"
-                  >
-                    <span className="text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">
-                      {m.label}
-                    </span>
-                    <span className="text-sm font-bold tabular-nums leading-none text-foreground">
-                      {m.val}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-            <div className="flex gap-3 sm:hidden">
-              {[
-                {
-                  href: "/accounting/daily-revenue",
-                  label: isToday ? "إيراد اليوم" : "الإيراد",
-                  val: summaryQuery.isLoading
-                    ? "..."
-                    : formatMoneyAr(s?.totalRevenueToday ?? 0),
-                },
-                {
-                  href: "/accounting/receipts",
-                  label: isToday ? "إيصالات اليوم" : "الإيصالات",
-                  val: summaryQuery.isLoading
-                    ? "..."
-                    : formatCountAr(s?.totalReceiptsToday ?? 0),
-                },
-                {
-                  href: "/accounting/cashbook",
-                  label: "الخزنة",
-                  val: cashbookSummaryQuery.isLoading
-                    ? "..."
-                    : formatMoneyAr(cashbook?.currentBalance ?? 0),
-                },
-              ].map((m) => (
-                <Link
-                  key={m.label}
-                  href={m.href}
-                  className="group flex flex-col gap-0.5 no-underline"
-                >
-                  <span className="text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">
-                    {m.label}
-                  </span>
-                  <span className="text-sm font-bold tabular-nums leading-none text-foreground">
-                    {m.val}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* View Sub-Tabs Selection */}
-        <div className="flex border-b border-border/50 pb-px print:hidden" dir="rtl">
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setHomeTab("activity")}
-              className={cn(
-                "relative flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all duration-200 rounded-t-lg border border-transparent border-b-0 -mb-[1px]",
-                homeTab === "activity"
-                  ? "bg-background border-border/50 text-primary shadow-[0_-2px_10px_rgba(0,0,0,0.02)]"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-              )}
-            >
-              <TrendingUp className="h-4 w-4 text-primary" />
-              <span>حركات اليوم والنشاط</span>
-              {receipts.length > 0 && (
-                <span className={cn(
-                  "rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums transition-colors duration-200",
-                  homeTab === "activity" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                )}>
-                  {receipts.length}
-                </span>
-              )}
-              {homeTab === "activity" && (
-                <span className="absolute inset-x-0 -top-px h-[2px] bg-primary rounded-t-full" />
-              )}
-            </button>
-            
-            <button
-              type="button"
-              onClick={() => setHomeTab("entry")}
-              className={cn(
-                "relative flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all duration-200 rounded-t-lg border border-transparent border-b-0 -mb-[1px]",
-                homeTab === "entry"
-                  ? "bg-background border-border/50 text-primary shadow-[0_-2px_10px_rgba(0,0,0,0.02)]"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-              )}
-            >
-              <Wallet className="h-4 w-4 text-primary" />
-              <span>تسجيل حركة جديدة</span>
-              {homeTab === "entry" && (
-                <span className="absolute inset-x-0 -top-px h-[2px] bg-primary rounded-t-full" />
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setHomeTab("links")}
-              className={cn(
-                "relative flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all duration-200 rounded-t-lg border border-transparent border-b-0 -mb-[1px]",
-                homeTab === "links"
-                  ? "bg-background border-border/50 text-primary shadow-[0_-2px_10px_rgba(0,0,0,0.02)]"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-              )}
-            >
-              <BookOpen className="h-4 w-4 text-primary" />
-              <span>المسارات السريعة</span>
-              {homeTab === "links" && (
-                <span className="absolute inset-x-0 -top-px h-[2px] bg-primary rounded-t-full" />
-              )}
-            </button>
-          </div>
-        </div>
-
-        {homeTab === "entry" && (
-          <section
-            className="rounded-lg border border-border bg-background p-4 lg:p-5"
-            dir="rtl"
-          >
-            <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-2.5">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("cashbook")}
-                  className={cn(
-                    "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors",
-                    activeTab === "cashbook"
-                      ? "bg-foreground text-background"
-                      : "border border-border text-muted-foreground hover:border-border",
-                  )}
-                >
-                  <Wallet className="h-3 w-3" />
-                  قيد خزنة
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("service")}
-                  className={cn(
-                    "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors",
-                    activeTab === "service"
-                      ? "bg-primary text-primary-foreground"
-                      : "border border-dashed border-ring/50 bg-background text-card-foreground hover:border-ring hover:bg-primary/5",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "inline-flex h-[15px] w-[15px] shrink-0 items-center justify-center rounded-full text-xs font-bold leading-none",
-                      activeTab === "service"
-                        ? "bg-background/20 text-card-foreground"
-                        : "bg-primary text-primary-foreground",
-                    )}
-                  >
-                    +
-                  </span>
-                  خدمة
-                </button>
                 {isAdmin && (
                   <button
                     type="button"
@@ -644,7 +335,12 @@ export default function AccountingHome() {
                   ) : null}
                 </div>
               )}
-              {activeTab === "cashbook" && (
+              <div className="flex flex-col gap-4 lg:flex-row-reverse lg:items-start">
+                <div className="flex-1 rounded-lg border border-border bg-background p-3">
+                  <h3 className="mb-2 flex items-center gap-1.5 text-sm font-black text-foreground">
+                    <Wallet className="h-4 w-4 text-muted-foreground" />
+                    قيد خزنة
+                  </h3>
                 <div className="flex flex-col gap-1.5">
                   {(
                     [
@@ -765,8 +461,12 @@ export default function AccountingHome() {
                     </button>
                   </div>
                 </div>
-              )}
-              {activeTab === "service" && (
+                </div>
+                <div className="flex-1 rounded-lg border border-border bg-background p-3">
+                  <h3 className="mb-2 flex items-center gap-1.5 text-sm font-black text-foreground">
+                    <Scissors className="h-4 w-4 text-muted-foreground" />
+                    خدمة
+                  </h3>
                 <div className="flex flex-col gap-1.5">
                   {/* Patient + Doctor (shared) */}
                   <div className="flex items-center gap-3">
@@ -985,59 +685,27 @@ export default function AccountingHome() {
                     </button>
                   </div>
                 </div>
-              )}
+                </div>
+              </div>
             </div>
-          </section>
-        )}
+        </section>
 
-        {homeTab === "links" && (
-          <section className="rounded-lg border border-border bg-background p-4 lg:p-5">
-            <h2 className="text-sm font-bold text-foreground mb-4">
-              المسارات السريعة للحسابات
-            </h2>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-              {quickLinkGroups
-                .flatMap((group) => group)
-                .map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className="group flex flex-col gap-2 rounded-2xl border border-primary/10 bg-primary/5 p-4 transition-all duration-200 hover:bg-primary/10 hover:border-primary/30 hover:shadow-sm"
-                    >
-                      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-primary-foreground ring-1 ring-primary/30 transition-all duration-200 group-hover:scale-105 group-hover:bg-primary/90">
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <div className="text-sm font-semibold text-primary mt-1">
-                        {item.label}
-                      </div>
-                      <div className="text-[11px] text-muted-foreground leading-normal">
-                        {item.desc}
-                      </div>
-                    </Link>
-                  );
-                })}
-            </div>
-          </section>
-        )}
-
-        {homeTab === "activity" && activityEverVisible && (
-          <section className="w-full overflow-hidden rounded-lg border border-border bg-background">
-            <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+        {activityEverVisible && (
+          <section className="w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
               <div>
-                <h2 className="text-sm font-bold text-foreground">
+                <h2 className="text-sm font-black text-slate-900">
                   {isToday ? "حركات اليوم" : `حركات ${viewDate}`}
                 </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="mt-1 text-xs font-medium text-slate-400">
                   إيصالات ودفعيات القسم 15{isToday ? "" : ` — ${viewDate}`}.
                 </p>
               </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2 text-xs text-slate-500">
                 {activityQuery.isFetching && !activityQuery.isLoading ? (
-                  <RefreshCw className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin text-slate-400" />
                 ) : null}
-                <span className="rounded-full bg-muted text-muted-foreground">
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-500">
                   {activityQuery.isLoading
                     ? "..."
                     : formatCountAr(receipts.length)}

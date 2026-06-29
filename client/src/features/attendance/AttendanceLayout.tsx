@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import {
   BarChart3,
@@ -8,8 +8,6 @@ import {
   Activity,
   Clock,
   Settings,
-  PanelRightOpen,
-  PanelRightClose,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -90,18 +88,8 @@ function isItemActive(pathname: string, activeFor: string[]) {
   );
 }
 
-const mobileNavItems = [
-  { href: "/attendance", label: "الرئيسية", icon: LayoutDashboard, activeFor: ["/attendance"] },
-  { href: "/attendance/live", label: "المباشر", icon: Activity, activeFor: ["/attendance/live"] },
-  { href: "/attendance/employees", label: "الموظفون", icon: Users, activeFor: ["/attendance/employees"] },
-  { href: "/attendance/shift-schedule", label: "الروستر", icon: Clock, activeFor: ["/attendance/shift-schedule"] },
-  { href: "/attendance/reports", label: "التقارير", icon: BarChart3, activeFor: ["/attendance/reports"] },
-  { href: "/attendance/settings", label: "الإعدادات", icon: Settings, activeFor: ["/attendance/settings"] },
-];
-
 export default function AttendanceLayout({ children, fullWidth }: AttendanceLayoutProps) {
   const [location] = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
 
   const deviceQuery = (trpc as any).attendance.deviceStatus.useQuery(
     undefined,
@@ -159,84 +147,34 @@ export default function AttendanceLayout({ children, fullWidth }: AttendanceLayo
         </div>
       </header>
 
-      {/* ── 2. Two-Column Floating Console Layout ── */}
-      <div className={`max-w-[1600px] mx-auto flex flex-col lg:flex-row gap-6 items-start`}>
-        
-        {/* Floating Sidebar (Desktop only) */}
-        <aside
-          style={{ width: collapsed ? 76 : 260 }}
-          className="hidden lg:flex lg:flex-col shrink-0 bg-white border border-slate-200 rounded-3xl p-4 min-h-[600px] transition-all duration-200 shadow-sm"
-        >
-          {/* Toggle Button Inside Roster Dock */}
-          <div className="flex justify-end mb-4 pb-2 border-b border-slate-100">
-            <button
-              onClick={() => setCollapsed(!collapsed)}
-              className="p-1.5 hover:bg-slate-50 text-slate-450 hover:text-slate-700 rounded-xl transition-all"
-            >
-              {collapsed ? <PanelRightOpen className="w-4 h-4" /> : <PanelRightClose className="w-4 h-4" />}
-            </button>
-          </div>
-
-          <nav className="space-y-4">
-            {navigationSections.map((section) => (
-              <div key={section.id} className="space-y-1">
-                {!collapsed && (
-                  <span className="px-3 text-[9px] font-black text-slate-400 uppercase tracking-wider block">
-                    {section.label}
-                  </span>
-                )}
-                
-                <div className="space-y-1">
-                  {section.items.map((item) => {
-                    const isActive = isItemActive(location, item.activeFor);
-                    const Icon = item.icon;
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className={`flex items-center rounded-2xl text-xs font-bold transition-all duration-150 ${
-                          collapsed ? "justify-center p-2.5" : "gap-3 px-4 py-2.5"
-                        } ${
-                          isActive
-                            ? "bg-slate-900 text-white shadow-md shadow-slate-900/10"
-                            : "text-slate-655 hover:bg-slate-50 hover:text-slate-900"
-                        }`}
-                      >
-                        <Icon className="w-4 h-4 shrink-0" />
-                        {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </nav>
-        </aside>
-
-        {/* Mobile Horizontal Pill Navigation Bar */}
-        <div className="lg:hidden w-full flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none whitespace-nowrap mb-2">
-          {mobileNavItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = isItemActive(location, item.activeFor);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold shrink-0 transition-all ${
-                  isActive
-                    ? "bg-slate-900 text-white shadow-md shadow-slate-900/10"
-                    : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-                }`}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
+      {/* ── 2. Floating Console Layout ── */}
+      <div className="max-w-[1600px] mx-auto flex flex-col gap-6">
+        {/* Horizontal Top Navigation Bar (all breakpoints) */}
+        <nav className="w-full flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 scrollbar-none print:hidden">
+          {navigationSections.flatMap((section) =>
+            section.items.map((item) => {
+              const isActive = isItemActive(location, item.activeFor);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold shrink-0 transition-all ${
+                    isActive
+                      ? "bg-slate-900 text-white shadow-md shadow-slate-900/10"
+                      : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            }),
+          )}
+        </nav>
 
         {/* Main Content Floating Bento Container */}
-        <main className={`flex-1 w-full min-w-0 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm`}>
+        <main className="flex-1 w-full min-w-0 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
           {children}
         </main>
 

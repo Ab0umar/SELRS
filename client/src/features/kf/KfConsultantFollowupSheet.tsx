@@ -4,7 +4,7 @@ import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Printer } from "lucide-react";
+import { AlertTriangle, Info, Eye, Check } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import {
   DEFAULT_SHEET_DESIGNER_CONFIG,
@@ -12,6 +12,7 @@ import {
 } from "@/lib/sheetDesigner";
 import { printOrExportPdf } from "@/lib/nativePdf";
 import { DateInput } from "@/components/ui/date-input";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function ConsultantFollowupPage() {
   const { user, isAuthenticated } = useAuth();
@@ -204,15 +205,20 @@ export default function ConsultantFollowupPage() {
     designerConfig.followupConsultant ??
     DEFAULT_SHEET_DESIGNER_CONFIG.followupConsultant;
 
+  const followupTitles = [
+    "1st Follow-up (Day 1)",
+    "2nd Follow-up (1 Week)",
+    "3rd Follow-up (1 Month)",
+    "Later Follow-up",
+  ];
+
+  const BRAND = "#003D9B";
 
   return (
-    <div className="min-h-screen bg-background sheet-layout" dir="rtl">
+    <div className="min-h-screen bg-gray-50 sheet-layout">
       <style>{`
         @media print {
-          @page {
-            size: A4 portrait;
-            margin: 0;
-          }
+          @page { size: A4 portrait; margin: 5mm; }
           .followup-print-root,
           .sheet-layout,
           .sheet-layout main,
@@ -228,342 +234,444 @@ export default function ConsultantFollowupPage() {
             width: 100% !important;
             max-width: 100% !important;
           }
-          html,
-          body,
-          #root {
+          html, body, #root {
             overflow: hidden !important;
-            overflow-x: hidden !important;
             height: auto !important;
             width: 100% !important;
             max-width: 100% !important;
           }
-          .sheet-layout,
-          .sheet-layout main,
-          .sheet-layout * {
+          .sheet-layout, .sheet-layout main, .sheet-layout * {
             overflow: hidden !important;
-            overflow-x: hidden !important;
             width: 100% !important;
             max-width: 100% !important;
           }
-          .sheet-layout::-webkit-scrollbar,
-          .sheet-layout *::-webkit-scrollbar {
+          .sheet-layout::-webkit-scrollbar, .sheet-layout *::-webkit-scrollbar {
             display: none !important;
           }
         }
       `}</style>
 
-      <header className="sticky top-0 z-[120] border-b border-border bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/60 print:hidden pointer-events-auto">
-        <div className="container mx-auto flex items-center justify-between px-4 py-4">
-          <div className="min-w-0 pointer-events-none">
-            <h1 className="text-xl font-bold text-foreground">
-              متابعات الاستشاري
-            </h1>
-            <p className="truncate text-sm text-muted-foreground">
-              {patientName}
+      {/* TOP NAVBAR */}
+      <nav className="sticky top-0 z-10 bg-gray-900 text-white print:hidden flex items-center justify-between px-6 py-3">
+        <div className="flex items-center gap-6">
+          <span className="font-bold text-white text-sm">Ophthalmic Clinic Management</span>
+          <div className="flex items-center gap-4 text-sm">
+            <span className="text-gray-400 cursor-pointer hover:text-white">Dashboard</span>
+            <span className="text-blue-400 underline cursor-pointer">Patient Records</span>
+            <span className="text-gray-400 cursor-pointer hover:text-white">Diagnostics</span>
+            <span className="text-gray-400 cursor-pointer hover:text-white">Appointments</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleSaveFollowup}
+            disabled={saveFollowupSheetMutation.isPending}
+            className="bg-gray-700 text-white text-sm font-semibold px-4 py-1.5 rounded hover:bg-gray-600 disabled:opacity-50"
+          >
+            {saveFollowupSheetMutation.isPending ? "Saving..." : "SAVE SHEET"}
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              void printOrExportPdf(
+                `consultant-followup-${initialPatientId ?? "sheet"}.pdf`,
+              )
+            }
+            className="border border-white text-white text-sm font-semibold px-4 py-1.5 rounded hover:bg-gray-800"
+          >
+            PRINT PDF
+          </button>
+        </div>
+      </nav>
+
+      {/* PRINT ROOT */}
+      <div
+        className="followup-print-root bg-white"
+        dir="ltr"
+        style={{
+          fontFamily: '"Times New Roman", Tahoma, Arial, sans-serif',
+          maxWidth: 960,
+          margin: "0 auto",
+        }}
+      >
+        {/* OPERATION HEADER */}
+        <div className="bg-white border-b px-6 py-4 flex items-center gap-6 flex-wrap">
+          {/* 1. OPERATION DATE */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">
+              Operation Date
+            </span>
+            <DateInput
+              value={operationDateLeft}
+              onChange={(e) => setOperationDateLeft(e.target.value)}
+              className="h-8 w-36 text-sm"
+            />
+          </div>
+
+          {/* 2. OPERATION TYPE */}
+          <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
+            <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">
+              Operation Type
+            </span>
+            <Input
+              value={operationType}
+              onChange={(e) => setOperationType(e.target.value)}
+              placeholder="LASIK / Refractive Surgery"
+              className="font-bold text-lg border-0 shadow-none p-0 h-auto focus-visible:ring-0"
+              style={{ color: "#003D9B" }}
+            />
+          </div>
+
+          {/* 3. Eye toggles */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                setOperationEyes((prev) => ({ ...prev, right: !prev.right }))
+              }
+              className="flex items-center gap-1 px-3 py-1.5 rounded text-xs font-semibold border transition-colors"
+              style={
+                operationEyes.right
+                  ? {
+                      backgroundColor: "#1B2B6B",
+                      color: "#fff",
+                      borderColor: "#1B2B6B",
+                    }
+                  : {
+                      borderColor: "#d1d5db",
+                      color: "#6b7280",
+                      backgroundColor: "#fff",
+                    }
+              }
+            >
+              {operationEyes.right && <Check className="h-3 w-3" />}
+              RIGHT EYE (OD)
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setOperationEyes((prev) => ({ ...prev, left: !prev.left }))
+              }
+              className="flex items-center gap-1 px-3 py-1.5 rounded text-xs font-semibold border transition-colors"
+              style={
+                operationEyes.left
+                  ? {
+                      backgroundColor: "#1B2B6B",
+                      color: "#fff",
+                      borderColor: "#1B2B6B",
+                    }
+                  : {
+                      borderColor: "#d1d5db",
+                      color: "#6b7280",
+                      backgroundColor: "#fff",
+                    }
+              }
+            >
+              LEFT EYE (OS)
+            </button>
+          </div>
+
+          {/* 4. POST-OP badge */}
+          <span className="bg-red-100 text-red-700 font-bold px-3 py-1 rounded-full text-sm">
+            POST-OP DAY 1
+          </span>
+
+          {/* 5. Legend */}
+          <div className="flex flex-col text-[10px] text-gray-500 ml-auto">
+            <span>V.A: Visual Acuity</span>
+            <span>IOP: Intraocular Pressure</span>
+          </div>
+        </div>
+
+        {/* TITLE */}
+        <div className="px-6 py-3">
+          <h1 className="text-xl font-bold text-gray-900">
+            Post-Op Follow-up /{" "}
+            <span dir="rtl">متابعة ما بعد العمليات</span>
+          </h1>
+        </div>
+
+        {/* 4 FOLLOW-UP SECTION CARDS */}
+        {followups.slice(0, 4).map((followup, index) => {
+          const hasDate = Boolean(followup.date);
+          const showTable = index < 3 || hasDate;
+          return (
+            <div
+              key={followup.id}
+              className="mx-6 mb-4 border border-gray-200 rounded-lg overflow-hidden"
+            >
+              {/* Card header */}
+              <div className="bg-gray-50 border-b px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-full bg-[#1B2B6B] text-white text-sm font-bold flex items-center justify-center">
+                    {index + 1}
+                  </div>
+                  <h2 className="text-base font-semibold text-gray-900">
+                    {followupTitles[index]}
+                  </h2>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <span className="font-semibold">DATE:</span>
+                  <DateInput
+                    value={followup.date}
+                    onChange={(e) =>
+                      setFollowups((prev) =>
+                        prev.map((x) =>
+                          x.id === followup.id
+                            ? { ...x, date: e.target.value }
+                            : x,
+                        ),
+                      )
+                    }
+                    className="h-7 w-32 text-sm"
+                    placeholder="DD/MM/YYYY"
+                  />
+                </div>
+              </div>
+
+              {/* Card body */}
+              {!showTable ? (
+                <div className="py-8 text-center text-gray-400">
+                  <p className="mb-3 text-sm">No data recorded for this visit.</p>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFollowups((prev) =>
+                        prev.map((x, i) =>
+                          i === 3
+                            ? {
+                                ...x,
+                                date: new Date().toISOString().split("T")[0],
+                              }
+                            : x,
+                        ),
+                      )
+                    }
+                    className="flex items-center gap-1 mx-auto text-[#003D9B] text-sm font-semibold border border-[#003D9B] rounded px-3 py-1 hover:bg-blue-50"
+                  >
+                    <span>+</span> Initialize Visit Row
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Data table */}
+                  <table className="w-full text-[12px] border-collapse">
+                    <thead>
+                      <tr className="bg-gray-100 text-gray-600 font-semibold text-[11px] uppercase">
+                        <th className="px-3 py-2 text-left border-b border-gray-200">
+                          EYE
+                        </th>
+                        <th className="px-3 py-2 text-center border-b border-gray-200">
+                          V.A (UCVA/BCVA)
+                        </th>
+                        <th
+                          className="px-3 py-2 text-center border-b border-gray-200"
+                          colSpan={3}
+                        >
+                          REFRACTION (S / C / A)
+                        </th>
+                        <th className="px-3 py-2 text-center border-b border-gray-200">
+                          FLAP STATUS (EDGES/BED)
+                        </th>
+                        <th className="px-3 py-2 text-center border-b border-gray-200">
+                          IOP (MMHG)
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {operationEyes.right && (
+                        <tr className="border-b border-gray-100">
+                          <td className="px-3 py-2">
+                            <span className="font-bold text-[#003D9B]">OD</span>
+                          </td>
+                          <td className="px-2 py-1 text-center">
+                            <Input
+                              className="h-6 text-[11px] w-20 text-center border-gray-300"
+                              placeholder="6/6"
+                            />
+                          </td>
+                          <td className="px-1 py-1">
+                            <Input
+                              className="h-6 text-[11px] w-14 text-center border-gray-300"
+                              placeholder="S"
+                            />
+                          </td>
+                          <td className="px-1 py-1">
+                            <Input
+                              className="h-6 text-[11px] w-14 text-center border-gray-300"
+                              placeholder="C"
+                            />
+                          </td>
+                          <td className="px-1 py-1">
+                            <Input
+                              className="h-6 text-[11px] w-14 text-center border-gray-300"
+                              placeholder="A"
+                            />
+                          </td>
+                          <td className="px-2 py-1">
+                            <Input
+                              className="h-6 text-[11px] w-28 border-gray-300"
+                              placeholder="Clear / Apposed"
+                            />
+                          </td>
+                          <td className="px-2 py-1 text-center">
+                            <Input
+                              className="h-6 text-[11px] w-14 text-center border-gray-300"
+                              placeholder="14"
+                            />
+                          </td>
+                        </tr>
+                      )}
+                      {operationEyes.left && (
+                        <tr>
+                          <td className="px-3 py-2">
+                            <span className="text-gray-600">OS</span>
+                          </td>
+                          <td className="px-2 py-1 text-center">
+                            <Input
+                              className="h-6 text-[11px] w-20 text-center border-gray-300"
+                              placeholder="6/6"
+                            />
+                          </td>
+                          <td className="px-1 py-1">
+                            <Input
+                              className="h-6 text-[11px] w-14 text-center border-gray-300"
+                              placeholder="S"
+                            />
+                          </td>
+                          <td className="px-1 py-1">
+                            <Input
+                              className="h-6 text-[11px] w-14 text-center border-gray-300"
+                              placeholder="C"
+                            />
+                          </td>
+                          <td className="px-1 py-1">
+                            <Input
+                              className="h-6 text-[11px] w-14 text-center border-gray-300"
+                              placeholder="A"
+                            />
+                          </td>
+                          <td className="px-2 py-1">
+                            <Input
+                              className="h-6 text-[11px] w-28 border-gray-300"
+                              placeholder="Clear / Apposed"
+                            />
+                          </td>
+                          <td className="px-2 py-1 text-center">
+                            <Input
+                              className="h-6 text-[11px] w-14 text-center border-gray-300"
+                              placeholder="14"
+                            />
+                          </td>
+                        </tr>
+                      )}
+                      {!operationEyes.right && !operationEyes.left && (
+                        <tr>
+                          <td
+                            colSpan={7}
+                            className="px-3 py-3 text-center text-gray-400 text-xs"
+                          >
+                            Select eye above to record data
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+
+                  {/* TREATMENT PLAN & MEDICATION */}
+                  <div className="px-4 py-3">
+                    <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-2">
+                      TREATMENT PLAN &amp; MEDICATION
+                    </p>
+                    <div className="flex gap-4">
+                      <div className="flex-[3]">
+                        <Textarea
+                          rows={2}
+                          placeholder="Vigamox q2h, Pred Forte q2h..."
+                          className="text-sm w-full border-gray-200"
+                        />
+                      </div>
+                      <div className="flex-[2] grid grid-cols-3 gap-2">
+                        {(["Receptionist", "Nurse", "Doctor"] as const).map(
+                          (role) => (
+                            <div
+                              key={role}
+                              className="flex flex-col items-center gap-1"
+                            >
+                              <div className="flex flex-col items-center w-full">
+                                {role === "Doctor" && signatures.doctor && (
+                                  <>
+                                    <span className="text-[9px] text-gray-400">
+                                      E-Signed (AM)
+                                    </span>
+                                    <span className="text-xs font-semibold text-blue-600">
+                                      {signatures.doctor}
+                                    </span>
+                                  </>
+                                )}
+                                <div className="w-full border-b border-gray-400 h-5" />
+                              </div>
+                              <span className="text-[10px] text-gray-500">
+                                {role}
+                              </span>
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
+
+        {/* FOOTER CARDS */}
+        <div className="mx-6 mb-6 grid grid-cols-3 gap-4">
+          {/* Pentacam Status */}
+          <div className="border border-gray-200 rounded-lg p-4">
+            <p className="text-[10px] font-bold uppercase text-gray-500 mb-2">
+              PENTACAM STATUS
+            </p>
+            <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center mb-2">
+              <Eye className="h-4 w-4 text-gray-500" />
+            </div>
+            <p className="font-semibold text-sm text-gray-800">Map Available</p>
+            <p className="text-[#003D9B] text-sm underline cursor-pointer">
+              View Scans
             </p>
           </div>
-          <div className="relative z-[130] flex shrink-0 flex-wrap items-center gap-1 pointer-events-auto">
-            {patientName && (
-              <span className="text-sm font-medium truncate max-w-[45vw]">{patientName}</span>
-            )}
-            <Button
-              type="button"
-              variant="default"
-              size="sm"
-              onClick={handleSaveFollowup}
-              disabled={saveFollowupSheetMutation.isPending}
-              className="bg-success text-success-foreground"
-            >
-              {saveFollowupSheetMutation.isPending ? "جاري الحفظ..." : "حفظ"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                setLocation(`/kf/sheets/consultant/${initialPatientId ?? ""}`)
-              }
-            >
-              الاستمارة
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                void printOrExportPdf(
-                  `consultant-followup-${initialPatientId ?? "sheet"}.pdf`,
-                )
-              }
-            >
-              <Printer className="h-4 w-4 mr-2" />
-              طباعة
-            </Button>
-          </div>
-        </div>
-      </header>
 
-      <main className="container mx-auto px-4 py-6">
-
-        <div
-          className="followup-print-root rounded-[28px] border border-border/80 bg-background p-1 text-foreground shadow-sm print:rounded-none print:border-0 print:p-0"
-          dir="ltr"
-          style={{ fontFamily: '"Times New Roman", Tahoma, Arial, sans-serif' }}
-        >
-          <div className="mb-2 print:mb-1 flex items-center justify-between text-[15px] px-1 print:px-0 print:text-[13px]">
-            <div className="whitespace-nowrap">
-              {followupLabels.rtLabel}: {operationEyes.right ? "" : "..."}{" "}
-              &nbsp;&nbsp; {followupLabels.ltLabel}:{" "}
-              {operationEyes.left ? "" : "..."} &nbsp; //
-            </div>
-            <div className="whitespace-nowrap">
-              {followupLabels.operationTypeLabel}:{" "}
-              <Input
-                value={operationType}
-                onChange={(e) => setOperationType(e.target.value)}
-                className="inline-block w-40 h-7 text-xs mx-1"
-              />
-            </div>
-            <div className="whitespace-nowrap">
-              {followupLabels.operationDateLabel}
-              <DateInput
-                value={operationDateRight}
-                onChange={(e) => setOperationDateRight(e.target.value)}
-                className="inline-block w-32 h-7 text-xs mx-1"
-              />
-              <DateInput
-                value={operationDateLeft}
-                onChange={(e) => setOperationDateLeft(e.target.value)}
-                className="inline-block w-32 h-7 text-xs"
-              />
-            </div>
+          {/* Critical Warnings */}
+          <div className="border border-gray-200 rounded-lg p-4">
+            <p className="text-[10px] font-bold uppercase text-gray-500 mb-2">
+              CRITICAL WARNINGS
+            </p>
+            <AlertTriangle className="h-5 w-5 text-red-500 mb-2" />
+            <p className="font-semibold text-sm text-gray-800">None Detected</p>
+            <p className="text-gray-500 text-sm">System Auto-Scan OK</p>
           </div>
 
-          {followups.map((f) => (
-            <table
-              key={f.id}
-              className="w-full border border-black/70 border-collapse text-[15px] table-fixed print:text-[12px]"
-              style={{ marginBottom: `${followupLabels.tableGapMm}mm` }}
-            >
-              <colgroup>
-                <col style={{ width: "14%" }} />
-                <col style={{ width: "14%" }} />
-                <col style={{ width: "12%" }} />
-                <col style={{ width: "12%" }} />
-                <col style={{ width: "12%" }} />
-                <col style={{ width: "12%" }} />
-                <col style={{ width: "12%" }} />
-                <col style={{ width: "12%" }} />
-              </colgroup>
-              <tbody>
-                <tr>
-                  <td
-                    colSpan={2}
-                    className="border border-black/50 px-1 py-0.5 print:py-0 text-center"
-                  >
-                    {followupLabels.nextFollowupLabel}{" "}
-                    <span className="mx-2 print:mx-1">/ /</span>
-                  </td>
-                  <td
-                    colSpan={3}
-                    className="border border-black/50 px-1 py-0.5 print:py-0 text-center font-semibold"
-                  >
-                    <Input
-                      value={f.type}
-                      onChange={(e) =>
-                        setFollowups((prev) =>
-                          prev.map((x) =>
-                            x.id === f.id ? { ...x, type: e.target.value } : x,
-                          ),
-                        )
-                      }
-                      className="h-7 text-xs"
-                    />
-                  </td>
-                  <td
-                    colSpan={3}
-                    className="border border-black/50 border-r-0 px-1 py-0.5 print:py-0 text-center"
-                  >
-                    {followupLabels.followupDateLabel}{" "}
-                    <DateInput
-                      value={f.date}
-                      onChange={(e) =>
-                        setFollowups((prev) =>
-                          prev.map((x) =>
-                            x.id === f.id ? { ...x, date: e.target.value } : x,
-                          ),
-                        )
-                      }
-                      className="inline-block w-32 h-7 text-xs mx-1"
-                    />
-                  </td>
-                </tr>
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="border border-black/50 py-0.5 text-center font-semibold"
-                  >
-                    Dominant eye _____________
-                  </td>
-                </tr>
-                <tr>
-                  <td
-                    colSpan={2}
-                    className="border border-black/50 py-0.5"
-                  ></td>
-                  <td
-                    colSpan={3}
-                    className="border border-black/50 py-0.5 text-center font-semibold"
-                  >
-                    OD
-                  </td>
-                  <td
-                    colSpan={3}
-                    className="border border-black/50 border-r-0 py-0.5 text-center font-semibold"
-                  >
-                    OS
-                  </td>
-                </tr>
-                <tr>
-                  <td
-                    colSpan={2}
-                    className="border border-black/50 py-1 print:py-0.5 text-center font-semibold"
-                  >
-                    {followupLabels.vaLabel}
-                  </td>
-                  <td
-                    colSpan={3}
-                    className="border border-black/50 border-r-0 py-1 print:py-0.5"
-                  ></td>
-                  <td
-                    colSpan={3}
-                    className="border border-black/50 py-1 print:py-0.5"
-                  ></td>
-                </tr>
-                <tr>
-                  <td
-                    colSpan={2}
-                    className="border border-black/50 py-1 print:py-0.5 text-center font-semibold"
-                  >
-                    {followupLabels.refractionLabel}
-                  </td>
-                  <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
-                    S
-                  </td>
-                  <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
-                    C
-                  </td>
-                  <td className="border border-black/50 border-r-0 py-1 print:py-0.5 text-center font-semibold">
-                    A
-                  </td>
-                  <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
-                    S
-                  </td>
-                  <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
-                    C
-                  </td>
-                  <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
-                    A
-                  </td>
-                </tr>
-                <tr>
-                  <td
-                    colSpan={2}
-                    className="border border-black/50 py-1 print:py-0.5"
-                  ></td>
-                  <td className="border border-black/50 border-r-0 h-8 print:h-4">
-                    &nbsp;
-                  </td>
-                  <td className="border border-black/50 h-8 print:h-4">
-                    &nbsp;
-                  </td>
-                  <td className="border border-black/50 h-8 print:h-4">
-                    &nbsp;
-                  </td>
-                  <td className="border border-black/50 h-8 print:h-4">
-                    &nbsp;
-                  </td>
-                  <td className="border border-black/50 h-8 print:h-4">
-                    &nbsp;
-                  </td>
-                  <td className="border border-black/50 h-8 print:h-4">
-                    &nbsp;
-                  </td>
-                </tr>
-                <tr>
-                  <td
-                    rowSpan={2}
-                    className="border border-black/50 py-1 print:py-0.5 text-center font-semibold"
-                  >
-                    {followupLabels.flapLabel}
-                  </td>
-                  <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
-                    {followupLabels.edgesLabel}
-                  </td>
-                  <td
-                    colSpan={6}
-                    className="border border-black/50 border-r-0 py-1 print:py-0.5"
-                  ></td>
-                </tr>
-                <tr>
-                  <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
-                    {followupLabels.bedLabel}
-                  </td>
-                  <td
-                    colSpan={6}
-                    className="border border-black/50 border-r-0 py-1 print:py-0.5"
-                  ></td>
-                </tr>
-                <tr>
-                  <td
-                    colSpan={2}
-                    className="border border-black/50 py-1 print:py-0.5 text-center font-semibold"
-                  >
-                    {followupLabels.iopLabel}
-                  </td>
-                  <td
-                    colSpan={6}
-                    className="border border-black/50 border-r-0 py-1 print:py-0.5"
-                  ></td>
-                </tr>
-                <tr>
-                  <td
-                    colSpan={2}
-                    className="border border-black/50 py-1 print:py-0.5 text-center font-semibold"
-                  >
-                    {followupLabels.treatmentLabel}
-                  </td>
-                  <td
-                    colSpan={6}
-                    className="border border-black/50 border-r-0 py-1 print:py-0.5"
-                  ></td>
-                </tr>
-                <tr>
-                  <td
-                    colSpan={2}
-                    className="border border-black/50 px-1 py-0.5 print:py-0 text-right font-semibold"
-                  >
-                    {followupLabels.receptionLabel}
-                  </td>
-                  <td
-                    colSpan={3}
-                    className="border border-black/50 px-1 py-0.5 print:py-0 text-right font-semibold"
-                  >
-                    {followupLabels.nurseLabel}
-                  </td>
-                  <td
-                    colSpan={3}
-                    className="border border-black/50 border-r-0 px-1 py-0.5 print:py-0 text-right font-semibold"
-                  >
-                    {followupLabels.doctorLabel}
-                    {signatures.doctor ? `: ${signatures.doctor}` : ""}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          ))}
+          {/* Surgical Complication */}
+          <div className="border border-gray-200 rounded-lg p-4">
+            <p className="text-[10px] font-bold uppercase text-gray-500 mb-2">
+              SURGICAL COMPLICATION
+            </p>
+            <Info className="h-5 w-5 text-blue-500 mb-2" />
+            <p className="font-semibold text-sm text-gray-800">Remark Clear</p>
+            <p className="text-gray-500 text-sm">Routine Procedure</p>
+          </div>
         </div>
-      </main>
+
+        {/* PAGE FOOTER */}
+        <div className="mx-6 mb-4 flex justify-between text-[10px] text-gray-400">
+          <span>
+            REF: OP-FUP-V2.1-2023 | PAGE 1 OF 1 | OPHTHALMIC MANAGEMENT SYSTEM
+            (SECURE LINK)
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

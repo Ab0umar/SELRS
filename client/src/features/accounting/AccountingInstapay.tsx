@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { fmt, fmtDate, todayIso } from "./accountingFormat";
 import { DateInput } from "@/components/ui/date-input";
+import { AccountingPage } from "./AccountingPagePrimitives";
 
 const PAGE_SIZE = 50;
 
@@ -137,7 +138,11 @@ export default function AccountingInstapay() {
   const net = instapay?.net ?? 0;
 
   return (
-    <>
+    <AccountingPage
+      eyebrow="Instapay"
+      title="حركات انستاباي"
+      description="متابعة وارد وصادر انستاباي مع رصيد مستقل وسجل حركات واضح."
+    >
       <div className="space-y-4 lg:space-y-5" dir="rtl">
         <section className="overflow-hidden rounded-[24px] border border-border bg-background">
           {/* Metrics */}
@@ -658,6 +663,6 @@ export default function AccountingInstapay() {
           )}
         </div>
       </div>
-    </>
+    </AccountingPage>
   );
 }

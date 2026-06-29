@@ -19,6 +19,7 @@ import AccLoanDrawer, { type AccLoanRow } from "./AccLoanDrawer";
 import { toast } from "sonner";
 import { fmt, fmtDate, todayIso } from "./accountingFormat";
 import { DateInput } from "@/components/ui/date-input";
+import { AccountingPage } from "./AccountingPagePrimitives";
 
 const PAGE_SIZE = 50;
 
@@ -152,8 +153,11 @@ export default function AccountingLoans() {
   }
 
   return (
-    <>
-      <>
+    <AccountingPage
+      eyebrow="Loans"
+      title="القروض والسداد"
+      description="تسجيل القروض وحركات السداد مع متابعة المتبقي لكل شخص."
+    >
         <div className="space-y-5" dir="rtl">
           <section className="overflow-hidden rounded-[24px] border border-border bg-background">
             <div className="p-4 lg:p-5">
@@ -964,7 +968,6 @@ export default function AccountingLoans() {
             )}
           </section>
         </div>
-      </>
 
       <AccLoanDrawer
         open={drawer.open}
@@ -973,6 +976,6 @@ export default function AccountingLoans() {
         onClose={closeDrawer}
         onSaved={onSaved}
       />
-    </>
+    </AccountingPage>
   );
 }

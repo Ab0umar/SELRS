@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import AccEntryDrawer, { type AccEntryRow } from "./AccEntryDrawer";
 import { fmt, fmtDate, todayIso } from "./accountingFormat";
 import { DateInput } from "@/components/ui/date-input";
+import { AccountingPage } from "./AccountingPagePrimitives";
 
 const PAGE_SIZE = 50;
 
@@ -131,7 +132,11 @@ export default function AccountingLedger() {
   }
 
   return (
-    <>
+    <AccountingPage
+      eyebrow="Cash Ledger"
+      title="قيود اليومية"
+      description="تسجيل ومراجعة حركات الوارد والمنصرف مع فلاتر السنة والبحث."
+    >
       <div className="space-y-4 lg:space-y-5" dir="rtl">
         <section className="variant-inline-rail rounded-[24px] border border-border bg-background p-2.5 lg:p-4">
           <div className="grid grid-cols-3 gap-2 lg:gap-3">
@@ -755,6 +760,6 @@ export default function AccountingLedger() {
         onClose={closeDrawer}
         onSaved={onSaved}
       />
-    </>
+    </AccountingPage>
   );
 }

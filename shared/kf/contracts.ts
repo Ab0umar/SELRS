@@ -208,6 +208,7 @@ export const kfCreatePatientInputSchema = z.object({
   medicalHistory: optionalTextSchema(4000),
   allergies: optionalTextSchema(4000),
   notes: optionalTextSchema(4000),
+  doctorName: optionalTextSchema(255),
   selrsPatientCode: optionalTextSchema(50),
 });
 export type KfCreatePatientInput = z.infer<typeof kfCreatePatientInputSchema>;

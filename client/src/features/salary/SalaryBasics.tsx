@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2, X, Search, ChevronDown, ChevronUp } from "lucide-react";
@@ -183,7 +183,7 @@ function SalaryTable({
                   <tr
                     key={item.id}
                     className={`border-b border-border/40 transition-colors hover:bg-primary/10 ${
-                      idx % 2 === 0 ? "bg-white" : "bg-[#F9FAFB]"
+                      idx % 2 === 0 ? "bg-card" : "bg-muted/10"
                     }`}
                   >
                     <td className="px-4 py-3 font-semibold text-foreground">
@@ -453,7 +453,7 @@ function ShiftsTable({
                   <tr
                     key={s.id}
                     className={`border-b border-border/40 transition-colors hover:bg-primary/10 ${
-                      idx % 2 === 0 ? "bg-white" : "bg-[#F9FAFB]"
+                      idx % 2 === 0 ? "bg-card" : "bg-muted/10"
                     }`}
                   >
                     <td className="px-4 py-3 font-semibold text-foreground">
@@ -897,7 +897,7 @@ export default function SalaryBasics() {
             />
             {/* Drawer Panel */}
             <div className="pointer-events-none fixed inset-y-0 left-0 flex max-w-full pl-10 sm:pl-16">
-              <div className="pointer-events-auto w-screen max-w-md transform bg-white shadow-2xl transition-transform duration-300 ease-in-out border-r border-border flex flex-col">
+              <div className="pointer-events-auto w-screen max-w-md transform bg-card shadow-2xl transition-transform duration-300 ease-in-out border-r border-border flex flex-col">
                 {/* Header */}
                 <div className="border-b border-border bg-muted/50 px-6 py-4 flex items-center justify-between">
                   <h3 className="text-base font-bold text-foreground">
@@ -911,7 +911,7 @@ export default function SalaryBasics() {
                   </h3>
                   <button
                     type="button"
-                    className="flex size-7 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground hover:text-foreground hover:bg-muted/5 transition-colors cursor-pointer"
+                    className="flex size-7 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground hover:text-foreground hover:bg-muted/5 transition-colors cursor-pointer"
                     onClick={() => {
                       setShowForm(false);
                       setEditingId(null);
@@ -939,7 +939,7 @@ export default function SalaryBasics() {
                           onClick={() => setFormType("salary")}
                           className={`py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
                             formType === "salary"
-                              ? "bg-white text-primary shadow-xs"
+                              ? "bg-background text-primary shadow-xs"
                               : "text-muted-foreground"
                           }`}
                         >
@@ -950,7 +950,7 @@ export default function SalaryBasics() {
                           onClick={() => setFormType("shift")}
                           className={`py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
                             formType === "shift"
-                              ? "bg-white text-primary shadow-xs"
+                              ? "bg-background text-primary shadow-xs"
                               : "text-muted-foreground"
                           }`}
                         >
@@ -1243,7 +1243,7 @@ export default function SalaryBasics() {
               onClick={() => setCenterTab("shifts")}
               className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
                 centerTab === "shifts"
-                  ? "bg-white text-primary shadow-xs"
+                  ? "bg-background text-primary shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -1253,7 +1253,7 @@ export default function SalaryBasics() {
               onClick={() => setCenterTab("salaries")}
               className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
                 centerTab === "salaries"
-                  ? "bg-white text-primary shadow-xs"
+                  ? "bg-background text-primary shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
