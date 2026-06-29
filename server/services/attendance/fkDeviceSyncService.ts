@@ -106,7 +106,7 @@ export class FKDeviceSyncService {
             | "in"
             | "out"
             | "unknown",
-          deviceId: "fk_device",
+          deviceId: "fk_ef10k",
           source: "tcp" as const,
           sourceRowId: `${punch.enrollNo}_${punch.timestamp.getTime()}`,
           sourceHash: this.hashRecord(

@@ -31,7 +31,7 @@ export default function DeviceSettings() {
     ip: "",
     port: 4370,
     enabled: false,
-    zk40Protocol: "adms" as "adms" | "tcp",
+    zk40Protocol: "tcp" as "adms" | "tcp",
     fkProtocol: 0 as 0 | 1,
     commPassword: 0,
   });
@@ -299,14 +299,14 @@ export default function DeviceSettings() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 block">بروتوكول الاتصال</label>
+                <label className="text-[10px] font-bold text-slate-500 block">رقم البروتوكول (FK Protocol)</label>
                 <select
-                  value={ef10k.zk40Protocol}
-                  onChange={(e) => setEf10k({ ...ef10k, zk40Protocol: e.target.value as "adms" | "tcp" })}
+                  value={ef10k.fkProtocol}
+                  onChange={(e) => setEf10k({ ...ef10k, fkProtocol: parseInt(e.target.value) as 0 | 1 })}
                   className={inputCls}
                 >
-                  <option value="adms">ADMS (الخادم يستقبل - Push)</option>
-                  <option value="tcp">TCP (الخادم يسحب - Pull)</option>
+                  <option value={0}>Protocol 0 (الافتراضي)</option>
+                  <option value={1}>Protocol 1</option>
                 </select>
               </div>
 
@@ -381,18 +381,6 @@ export default function DeviceSettings() {
                 >
                   <option value="adms">ADMS (الخادم يستقبل - Push)</option>
                   <option value="tcp">TCP (الخادم يسحب - Pull)</option>
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 block">رقم البروتوكول (FK Protocol)</label>
-                <select
-                  value={k40.fkProtocol}
-                  onChange={(e) => setK40({ ...k40, fkProtocol: parseInt(e.target.value) as 0 | 1 })}
-                  className={inputCls}
-                >
-                  <option value={0}>Protocol 0 (الافتراضي)</option>
-                  <option value={1}>Protocol 1</option>
                 </select>
               </div>
 

@@ -112,7 +112,7 @@ export class ZK4370SyncService {
           empCd:       r.enrollNo,
           punchAt:     r.timestamp,
           direction:   (r.inOutMode === 1 ? "in" : r.inOutMode === 0 ? "out" : "unknown") as "in" | "out" | "unknown",
-          deviceId:    `zk4370_${deviceIp}`,
+          deviceId:    deviceId,
           source:      "tcp" as const,
           sourceRowId: `${r.enrollNo}_${r.timestamp.getTime()}`,
           sourceHash:  sha1(`${r.enrollNo}|${r.timestamp.toISOString()}|${r.inOutMode}`),

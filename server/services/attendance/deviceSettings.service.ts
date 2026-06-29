@@ -47,7 +47,7 @@ let k40Settings: DeviceSettings = {
   protocol: "tcp",
   fallbackToAccess: false,
   realTimeSync: true,
-  zk40Protocol: "adms",
+  zk40Protocol: "tcp",
   fkProtocol: 0,
   commPassword: 0,
   admsEnabled: true,
