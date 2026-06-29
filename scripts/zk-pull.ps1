@@ -4,13 +4,13 @@
   Must run under 32-bit PowerShell (SysWOW64) to access the 32-bit COM object.
 
 .PARAMETER IP
-  Device IP address (default: 192.168.1.170)
+  Device IP address (default: 196.202.50.91)
 
 .PARAMETER Port
   Device port (default: 4370)
 
 .PARAMETER MachineNo
-  Device machine number (default: 1)
+  Device machine number (default: 2)
 
 .PARAMETER OutFile
   Output CSV file path (default: stdout)
@@ -22,14 +22,14 @@
 
 .EXAMPLE
   # Run via 32-bit PowerShell:
-  & "C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe" -File zk-pull.ps1 -IP 192.168.1.170 -Port 4370 -OutFile C:\tmp\logs.csv
+  & "C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe" -File zk-pull.ps1 -IP 196.202.50.91 -Port 4370 -OutFile C:\tmp\logs.csv
 #>
 
 param(
-  [string]$IP        = "192.168.1.170",
+  [string]$IP        = "196.202.50.91",
   [int]   $Port      = 4370,
-  [int]   $MachineNo = 1,
-  [int]   $CommPwd   = 2508,
+  [int]   $MachineNo = 2,
+  [int]   $CommPwd   = 258288,
   [string]$OutFile   = "",
   [string]$Mode      = "pull",
   [string]$EmployeesFile = ""

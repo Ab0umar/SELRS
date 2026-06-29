@@ -36,9 +36,9 @@ export interface FKDeviceConfig {
 
 export class FKAttendLogPuller {
   private static readonly FK_PULLER_PATH =
-    process.env.FK_PULLER_PATH ?? "D:\\Programs\\fp\\FKOldLogPuller.exe";
+    process.env.FK_PULLER_PATH ?? "E:\\SRV100_Acc\\server\\FKOldLogPuller.exe";
   private static readonly DEFAULT_CONFIG: FKDeviceConfig = {
-    ip: "192.168.0.10",
+    ip: "192.168.1.10",
     port: 5005,
     machineNo: 1,
     password: 0,

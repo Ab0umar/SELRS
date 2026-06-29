@@ -37,7 +37,7 @@ export interface ZKDeviceInfo {
 }
 
 export class ZK4370LogPuller {
-  static readonly DEFAULT_IP   = process.env.ZK4370_IP   ?? "192.168.1.170";
+  static readonly DEFAULT_IP   = process.env.ZK4370_IP   ?? "196.202.50.91";
   static readonly DEFAULT_PORT = parseInt(process.env.ZK4370_PORT ?? "4370", 10);
 
   static async setDeviceTime(ip = this.DEFAULT_IP, port = this.DEFAULT_PORT, commKey = 0): Promise<void> {
