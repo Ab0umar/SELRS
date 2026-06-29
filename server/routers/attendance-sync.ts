@@ -118,12 +118,6 @@ export const attendanceSyncRoutes = {
   syncFromZK40: makeAttWriteProcedure("/attendance/admin/sync").mutation(
     async ({ ctx }) => {
       const k40 = DeviceSettingsService.getK40Settings();
-      // ADMS mode is push-based — trigger the device to upload via its next poll.
-      if ((k40.zk40Protocol ?? "adms") === "adms") {
-        const { queueAdmsAttlogQuery } = await import("../_core/zktecoAdms");
-        queueAdmsAttlogQuery();
-        return { success: true, recordsSeen: 0, recordsInserted: 0, recordsSkipped: 0, message: "ADMS mode — requested upload; device will push logs on next poll" };
-      }
       const ip = k40.ip ?? process.env.ZK4370_IP ?? "";
       const port = k40.port ?? 4370;
       if (!ip) throw new Error("ZK40 IP not configured");
@@ -673,8 +667,15 @@ export const attendanceSyncRoutes = {
     .input(z.object({}).optional())
     .mutation(async ({ ctx }) => {
       try {
-        // EF10K always syncs via FKAttend TCP pull (FK push on :7005 is not wired).
+        // FK device (EF10K) — TCP pull
         const result = await FKDeviceSyncService.syncNow(ctx.user.id);
+
+        // ZK device (K40) — TCP pull if enabled and IP set
+        const k40 = DeviceSettingsService.getK40Settings();
+        const zkIp = k40.ip ?? process.env.ZK4370_IP ?? "";
+        if (k40.enabled && zkIp) {
+          await ZK4370SyncService.pull(ctx.user?.id, zkIp, k40.port ?? 4370, k40.commPassword ?? 0);
+        }
 
         // Always recompute today so dashboard stat cards reflect current state
         // even when no new punches were inserted (e.g. first run or duplicates)
