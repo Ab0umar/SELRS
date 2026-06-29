@@ -50,6 +50,7 @@ export default function DeviceSettings() {
   const updateSettings = tRPC.attendance.updateDeviceSettings.useMutation();
   const syncZK40 = tRPC.attendance.syncFromZK40.useMutation();
   const pushEmployeesZK40 = tRPC.attendance.pushEmployeesToZK40.useMutation();
+  const resetFkHwm = tRPC.attendance.resetFkSyncHistory.useMutation();
 
   useEffect(() => {
     if (!settingsQuery.data) return;
@@ -350,6 +351,17 @@ export default function DeviceSettings() {
                 className="w-full text-[10px] font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-lg py-2 h-auto"
               >
                 {updateSettings.isPending ? "جاري..." : "حفظ إعدادات EF10K"}
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (!confirm("مسح HWM للمزامنة؟ ستُعاد استيراد جميع البصمات في المزامنة القادمة.")) return;
+                  await resetFkHwm.mutateAsync();
+                }}
+                disabled={resetFkHwm.isPending}
+                variant="outline"
+                className="w-full text-[10px] font-bold border-red-300 text-red-700 hover:bg-red-50 rounded-lg py-2 h-auto"
+              >
+                {resetFkHwm.isPending ? "جاري..." : "إعادة ضبط HWM (استعادة بصمات مفقودة)"}
               </Button>
             </div>
 
