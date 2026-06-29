@@ -309,18 +309,6 @@ export default function DeviceSettings() {
                 </select>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 block">رقم البروتوكول (FK Protocol)</label>
-                <select
-                  value={ef10k.fkProtocol}
-                  onChange={(e) => setEf10k({ ...ef10k, fkProtocol: parseInt(e.target.value) as 0 | 1 })}
-                  className={inputCls}
-                >
-                  <option value={0}>Protocol 0 (الافتراضي)</option>
-                  <option value={1}>Protocol 1</option>
-                </select>
-              </div>
-
               <div className="grid grid-cols-3 gap-2">
                 <div className="col-span-2 space-y-1">
                   <label className="text-[10px] font-bold text-slate-500 block">IP الجهاز</label>
@@ -381,6 +369,18 @@ export default function DeviceSettings() {
                 >
                   <option value="adms">ADMS (الخادم يستقبل - Push)</option>
                   <option value="tcp">TCP (الخادم يسحب - Pull)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 block">رقم البروتوكول (FK Protocol)</label>
+                <select
+                  value={k40.fkProtocol}
+                  onChange={(e) => setK40({ ...k40, fkProtocol: parseInt(e.target.value) as 0 | 1 })}
+                  className={inputCls}
+                >
+                  <option value={0}>Protocol 0 (الافتراضي)</option>
+                  <option value={1}>Protocol 1</option>
                 </select>
               </div>
 
