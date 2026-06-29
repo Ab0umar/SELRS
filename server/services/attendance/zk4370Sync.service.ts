@@ -17,7 +17,7 @@ import { desc, inArray, sql, and, eq } from "drizzle-orm";
 
 const DEVICE_IP   = process.env.ZK4370_IP   ?? "192.168.1.170";
 const DEVICE_PORT = parseInt(process.env.ZK4370_PORT ?? "4370", 10);
-const DEVICE_ID   = `zk4370_${DEVICE_IP}`;
+const DEVICE_ID   = `zk_${DEVICE_IP}`;
 
 const BATCH_SIZE = 500;
 
@@ -247,7 +247,7 @@ export class ZK4370SyncService {
   static getDeviceInfo(ip?: string, port?: number) {
     const deviceIp = ip ?? DEVICE_IP;
     const devicePort = port ?? DEVICE_PORT;
-    return { ip: deviceIp, port: devicePort, deviceId: `zk4370_${deviceIp}` };
+    return { ip: deviceIp, port: devicePort, deviceId: `zk_${deviceIp}` };
   }
 }
 

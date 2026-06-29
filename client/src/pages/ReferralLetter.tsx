@@ -278,7 +278,7 @@ export default function ReferralLetter() {
     <div className="min-h-screen bg-[#F8F9FB]" dir="rtl">
       <style>{`
         @media print {
-          @page { size: A4 portrait; margin: 8mm; }
+          @page { size: A4 portrait; margin: 10mm; }
           body > *:not(.referral-print-root) { display: none !important; }
           .referral-print-root { display: block !important; }
           .print\\:hidden { display: none !important; }

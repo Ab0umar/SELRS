@@ -70,7 +70,7 @@ export default function DeviceSettings() {
         ip: d.k40.ip ?? "",
         port: d.k40.port ?? 4370,
         enabled: d.k40.enabled ?? false,
-        zk40Protocol: d.k40.zk40Protocol ?? "adms",
+        zk40Protocol: d.k40.zk40Protocol ?? "tcp",
         fkProtocol: d.k40.fkProtocol ?? 0,
         commPassword: d.k40.commPassword ?? 0,
       });
