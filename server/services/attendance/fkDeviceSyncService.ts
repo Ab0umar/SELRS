@@ -83,6 +83,8 @@ export class FKDeviceSyncService {
         result.success = true;
         result.completedAt = new Date();
         result.duration = result.completedAt.getTime() - startedAt.getTime();
+        // Carry forward existing HWM — do NOT advance to now or future punches get skipped
+        result.maxPunchAt = lastHwm;
         await this.recordSyncRun(db, result, userId);
         return result;
       }

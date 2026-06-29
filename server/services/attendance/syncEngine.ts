@@ -337,6 +337,16 @@ export async function resetSyncHistory(): Promise<void> {
     .where(eq(attendanceSyncRuns.source, "access"));
 }
 
+export async function resetFkSyncHistory(): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db
+    .update(attendanceSyncRuns)
+    .set({ highWaterMark: null })
+    .where(eq(attendanceSyncRuns.source, "tcp"));
+}
+
 function sanitizeError(err: unknown): string {
   if (err instanceof Error) {
     // Remove sensitive paths and env values

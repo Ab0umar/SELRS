@@ -118,20 +118,28 @@ export class FKAttendLogPuller {
         const parts = line.split(",");
         if (parts.length < 10) continue;
 
+        const yr = parseInt(parts[4], 10);
+        const mo = parseInt(parts[5], 10);
+        const dy = parseInt(parts[6], 10);
+        const hr = parseInt(parts[7], 10);
+        const mn = parseInt(parts[8], 10);
+        const sc = parseInt(parts[9], 10);
+        // Build timestamp from numeric columns — avoids locale-dependent Date string parsing
+        const ts = new Date(yr, mo - 1, dy, hr, mn, sc);
+
         const punch: FKPunch = {
           enrollNo: parseInt(parts[0], 10),
           verifyMode: parseInt(parts[1], 10),
           inOutMode: parseInt(parts[2], 10),
-          timestamp: new Date(parts[3]), // LogDateTime format
-          year: parseInt(parts[4], 10),
-          month: parseInt(parts[5], 10),
-          day: parseInt(parts[6], 10),
-          hour: parseInt(parts[7], 10),
-          minute: parseInt(parts[8], 10),
-          second: parseInt(parts[9], 10),
+          timestamp: ts,
+          year: yr,
+          month: mo,
+          day: dy,
+          hour: hr,
+          minute: mn,
+          second: sc,
         };
 
-        // Validate timestamp is reasonable
         if (punch.timestamp.getFullYear() >= 2000) {
           punches.push(punch);
         }
