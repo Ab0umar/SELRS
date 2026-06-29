@@ -168,8 +168,7 @@ export const attendanceSyncRoutes = {
     if (!db) return { lastPunch: null, punchCount: 0, lastDeviceId: null, recentPunches: [] };
     const admsFilter = and(
       eq(attendancePunches.source, "tcp"),
-      sql`${attendancePunches.deviceId} NOT LIKE 'fk_device%'`,
-      sql`${attendancePunches.deviceId} NOT LIKE 'zk4370_%'`,
+      sql`${attendancePunches.deviceId} LIKE 'zk_%'`,
     );
     const [row] = await db
       .select({ lastPunch: max(attendancePunches.punchAt), total: count() })
