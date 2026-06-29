@@ -1036,22 +1036,66 @@ img {
 /* Print Styles for A4 Paper */
 @media print {
   @page {
-    size: A4;
+    size: A4 portrait;
     margin: 10mm;
   }
 
   body {
     margin: 0;
     padding: 0;
+    background: white !important;
   }
 
+  /* Sheet pages use <main> — fill A4, no extra padding (page margin handles whitespace) */
   main {
-    max-width: 210mm;
-    min-height: 297mm;
+    max-width: 190mm;
+    width: 190mm;
+    min-height: 0;
     margin: 0 auto;
-    padding: 10mm;
-    page-break-after: always;
+    padding: 0 !important;
+    page-break-after: avoid;
+    page-break-inside: auto;
+  }
+
+  /* Lasik exam sheet — not inside <main>, needs its own A4 constraint */
+  .lasik-print-root {
+    width: 190mm;
+    max-width: 190mm;
+    margin: 0 auto;
+    overflow: hidden;
+  }
+  /* Remove decorative mx-4 gutters from direct section children */
+  .lasik-print-root > div {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Followup sheets — grid of sections */
+  .followup-print-root {
+    width: 190mm;
+    max-width: 190mm;
+  }
+  .followup-print-root > * {
+    border-radius: 4px !important;
+    box-shadow: none !important;
     page-break-inside: avoid;
+  }
+
+  /* Referral letter — constrain to A4, drop shadow/border */
+  .referral-print-root > div {
+    max-width: 190mm !important;
+    width: 190mm !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+
+  /* Strip shadows and rounded corners from all card-like elements on print */
+  .shadow-sm, .shadow, .shadow-md, .shadow-lg {
+    box-shadow: none !important;
   }
 
   .notes-col {
@@ -1064,6 +1108,29 @@ img {
 
   .print\:p-0 {
     padding: 0 !important;
+  }
+
+  .print\:ml-0 {
+    margin-left: 0 !important;
+  }
+
+  .print\:mr-0 {
+    margin-right: 0 !important;
+  }
+
+  /* Remove screen-only sizing from page wrappers */
+  .min-h-screen {
+    min-height: 0 !important;
+  }
+
+  /* Remove bottom padding from sheet wrappers */
+  .pb-10, .pb-6 {
+    padding-bottom: 0 !important;
+  }
+
+  /* Ensure print-only block is shown */
+  .hidden.print\:block {
+    display: block !important;
   }
 
   input[data-slot="input"],

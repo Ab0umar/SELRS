@@ -90,7 +90,7 @@ export class DeviceSettingsService {
           fallbackToAccess: dbEF10K.fallbackToAccess,
           realTimeSync: dbEF10K.realTimeSync,
           lastConfigUpdate: dbEF10K.lastConfigUpdate || undefined,
-          zk40Protocol: ((dbEF10K as any).zk40Protocol ?? "adms") as "adms" | "tcp",
+          zk40Protocol: ((dbEF10K as any).zk40Protocol ?? "tcp") as "adms" | "tcp",
           fkProtocol: (dbEF10K as any).fkProtocol ?? 0,
           commPassword: (dbEF10K as any).commPassword ?? 0,
           admsEnabled: (dbEF10K as any).admsEnabled ?? true,
@@ -116,7 +116,7 @@ export class DeviceSettingsService {
           fallbackToAccess: dbK40.fallbackToAccess,
           realTimeSync: dbK40.realTimeSync,
           lastConfigUpdate: dbK40.lastConfigUpdate || undefined,
-          zk40Protocol: ((dbK40 as any).zk40Protocol ?? "adms") as "adms" | "tcp",
+          zk40Protocol: ((dbK40 as any).zk40Protocol ?? "tcp") as "adms" | "tcp",
           fkProtocol: (dbK40 as any).fkProtocol ?? 0,
           commPassword: (dbK40 as any).commPassword ?? 0,
           admsEnabled: (dbK40 as any).admsEnabled ?? true,
@@ -132,7 +132,7 @@ export class DeviceSettingsService {
           protocol: "tcp",
           fallbackToAccess: false,
           realTimeSync: true,
-          zk40Protocol: src?.zk40Protocol ?? "adms",
+          zk40Protocol: src?.zk40Protocol ?? "tcp",
           fkProtocol: src?.fkProtocol ?? 0,
         } as any);
         k40Settings = {
@@ -142,7 +142,7 @@ export class DeviceSettingsService {
           protocol: "tcp",
           fallbackToAccess: false,
           realTimeSync: true,
-          zk40Protocol: src?.zk40Protocol ?? "adms",
+          zk40Protocol: src?.zk40Protocol ?? "tcp",
           fkProtocol: src?.fkProtocol ?? 0,
         };
       }
@@ -198,7 +198,7 @@ export class DeviceSettingsService {
         fallbackToAccess: s.fallbackToAccess,
         realTimeSync: s.realTimeSync,
         lastConfigUpdate: s.lastConfigUpdate,
-        zk40Protocol: s.zk40Protocol ?? "adms",
+        zk40Protocol: s.zk40Protocol ?? "tcp",
         fkProtocol: s.fkProtocol ?? 0,
         commPassword: s.commPassword ?? 0,
         admsEnabled: s.admsEnabled ?? true,
