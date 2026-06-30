@@ -404,11 +404,15 @@ export const attendanceLeavesRoutes = {
     }),
 
   allLeaveBalances: makeAttProcedure("/attendance")
-    .input(z.object({ year: z.number().int().optional() }))
+    .input(z.object({ year: z.number().int().optional(), department: z.string().optional() }))
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const year = input.year ?? new Date().getFullYear();
+      const balanceConditions: any[] = [eq(attendanceLeaveBalances.year, year)];
+      if (input.department) {
+        balanceConditions.push(eq(attendanceEmployees.department, input.department));
+      }
       const balances = await db
         .select({
           empCd: attendanceLeaveBalances.empCd,
@@ -421,7 +425,7 @@ export const attendanceLeavesRoutes = {
           attendanceEmployees,
           eq(attendanceLeaveBalances.empCd, attendanceEmployees.empCd),
         )
-        .where(eq(attendanceLeaveBalances.year, year));
+        .where(and(...balanceConditions));
 
       // Count used days per employee from approved leaves
       const mm = String(year).padStart(4, "0");
@@ -720,12 +724,21 @@ export const attendanceLeavesRoutes = {
       z.object({
         from: z.string(), // YYYY-MM-DD
         to: z.string(), // YYYY-MM-DD
+        department: z.string().optional(),
       }),
     )
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const { from, to } = input;
+      const conditions: any[] = [
+        gte(attendancePermissions.date, from as any),
+        lte(attendancePermissions.date, to as any),
+        eq(attendancePermissions.approved, true),
+      ];
+      if (input.department) {
+        conditions.push(eq(attendanceEmployees.department, input.department));
+      }
       const perms = await db
         .select({
           empCd: attendancePermissions.empCd,
@@ -739,13 +752,7 @@ export const attendanceLeavesRoutes = {
           attendanceEmployees,
           eq(attendancePermissions.empCd, attendanceEmployees.empCd),
         )
-        .where(
-          and(
-            gte(attendancePermissions.date, from as any),
-            lte(attendancePermissions.date, to as any),
-            eq(attendancePermissions.approved, true),
-          ),
-        );
+        .where(and(...conditions));
 
       const grouped = new Map<string, any>();
       for (const p of perms) {

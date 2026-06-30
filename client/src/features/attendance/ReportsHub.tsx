@@ -5,6 +5,7 @@ import PermissionReport from "./PermissionReport";
 import LeaveBalanceReport from "./LeaveBalanceReport";
 import RawLogs from "./RawLogs";
 import { FileText, BarChart3, Clock, CalendarDays, Server } from "lucide-react";
+import { trpc } from "@/lib/trpc";
 
 const TABS = [
   {
@@ -63,7 +64,9 @@ type TabKey = (typeof TABS)[number]["key"];
 
 export default function ReportsHub() {
   const [tab, setTab] = useState<TabKey>("daily");
+  const [department, setDepartment] = useState<string | undefined>(undefined);
   const currentTab = TABS.find((item) => item.key === tab) ?? TABS[0];
+  const deptQuery = trpc.attendance.listDepartments.useQuery();
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -110,17 +113,34 @@ export default function ReportsHub() {
           <span className="text-[10px] text-slate-400 font-medium">{currentTab.description}</span>
         </div>
 
+        {/* ── Department Filter ── */}
+        {deptQuery.data && deptQuery.data.length > 0 && (
+          <div className="mb-4 flex items-center gap-2">
+            <label className="text-xs font-medium text-slate-500 shrink-0">الإدارة / المركز:</label>
+            <select
+              value={department ?? ""}
+              onChange={(e) => setDepartment(e.target.value || undefined)}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-800 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+            >
+              <option value="">الكل</option>
+              {deptQuery.data.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div
           id={`attendance-reports-panel-${tab}`}
           role="tabpanel"
           aria-labelledby={`attendance-reports-tab-${tab}`}
           className="animate-in fade-in slide-in-from-bottom-2 duration-300"
         >
-          {tab === "daily" && <DailyView />}
-          {tab === "monthly" && <Reports />}
-          {tab === "perms" && <PermissionReport />}
-          {tab === "balance" && <LeaveBalanceReport />}
-          {tab === "logs" && <RawLogs />}
+          {tab === "daily" && <DailyView department={department} />}
+          {tab === "monthly" && <Reports department={department} />}
+          {tab === "perms" && <PermissionReport department={department} />}
+          {tab === "balance" && <LeaveBalanceReport department={department} />}
+          {tab === "logs" && <RawLogs department={department} />}
         </div>
       </div>
 

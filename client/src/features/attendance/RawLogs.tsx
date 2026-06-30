@@ -12,7 +12,7 @@ const directionTone = {
   out: "border-info/20 bg-info/10 text-info",
 };
 
-export default function RawLogs() {
+export default function RawLogs({ department }: { department?: string }) {
   const [filters, setFilters] = useState({
     empNo: "",
     fromDate: "",
@@ -24,6 +24,7 @@ export default function RawLogs() {
       empCd: filters.empNo || undefined,
       fromDate: filters.fromDate || undefined,
       toDate: filters.toDate || undefined,
+      department,
       limit: 500,
     },
     {

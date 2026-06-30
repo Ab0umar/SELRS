@@ -48,7 +48,7 @@ internal sealed class Program
         int timeout = int.Parse(GetArg(args, "--timeout", "5000"), CultureInfo.InvariantCulture);
         int protocol = int.Parse(GetArg(args, "--protocol", "0"), CultureInfo.InvariantCulture);
         int readMark = int.Parse(GetArg(args, "--readmark", "0"), CultureInfo.InvariantCulture);
-        string outPath = GetArg(args, "--out", @"D:\Programs\fp\old_device_logs.csv");
+        string outPath = GetArg(args, "--out", @"E:\SRV100_Acc\old_device_logs.csv");
 
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outPath)));
 
