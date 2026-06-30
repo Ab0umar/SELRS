@@ -100,9 +100,9 @@ const DEFAULT_FOLLOWUP_TEMPLATE: FollowupTemplateConfig = {
     "المتابعة الثالثة",
     "المتابعة الرابعة",
   ],
-  offsetXmm: 4,
-  offsetYmm: 10,
-  scale: 0.96,
+  offsetXmm: 0,
+  offsetYmm: 0,
+  scale: 0.72,
   tableGapMm: 11,
 };
 

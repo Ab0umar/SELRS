@@ -216,15 +216,16 @@ export default function LasikFollowupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb] text-[#191c1e]" dir="rtl" style={{ fontFamily: 'Inter, sans-serif' }}>
+    <div className="min-h-screen bg-[#dde1e7] text-[#191c1e]" dir="rtl" style={{ fontFamily: 'Inter, sans-serif' }}>
       <style>{`
         @media print {
           .print\\:hidden { display: none !important; }
           body { background: white !important; }
           .followup-print-root {
-            transform: translateX(${followupLabels.offsetXmm}mm) scale(${followupLabels.scale});
-            transform-origin: top center;
+            zoom: ${followupLabels.scale};
+            width: calc(190mm / ${followupLabels.scale});
             margin-top: ${followupLabels.offsetYmm}mm;
+            margin-left: ${followupLabels.offsetXmm}mm;
           }
         }
       `}</style>
@@ -285,7 +286,8 @@ export default function LasikFollowupPage() {
         </aside>
 
         {/* Main content */}
-        <main className="print:mr-0 mr-60 p-6 w-full">
+        <main className="print:mr-0 mr-60 py-8 px-6 w-full">
+          <div className="a4-page-card followup-print-root">
           {/* Patient banner */}
           <section className="bg-white border border-[#c3c6d6] rounded-xl p-5 mb-6 shadow-sm">
             <div className="flex flex-wrap gap-8 items-start">
@@ -325,7 +327,7 @@ export default function LasikFollowupPage() {
           </section>
 
           {/* Followup cards */}
-          <div className="followup-print-root grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {followups.map((f, idx) => (
               <article key={f.id} className="bg-white border border-[#c3c6d6] rounded-xl overflow-hidden shadow-sm">
                 {/* Card header */}
@@ -429,6 +431,7 @@ export default function LasikFollowupPage() {
                 </div>
               </article>
             ))}
+          </div>
           </div>
         </main>
       </div>

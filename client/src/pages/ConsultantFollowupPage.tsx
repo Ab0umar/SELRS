@@ -228,15 +228,16 @@ export default function ConsultantFollowupPage() {
   const followupTitles = ["1st Follow-up (Day 1)", "2nd Follow-up (1 Week)", "3rd Follow-up (1 Month)", "Later Follow-up"];
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb] text-[#191c1e]" style={{ fontFamily: "Inter, sans-serif" }}>
+    <div className="min-h-screen bg-[#dde1e7] text-[#191c1e]" style={{ fontFamily: "Inter, sans-serif" }}>
       <style>{`
         @media print {
           .print\\:hidden { display: none !important; }
           body { background: white !important; }
           .followup-print-root {
-            transform: translateX(${followupLabels.offsetXmm}mm) scale(${followupLabels.scale});
-            transform-origin: top center;
+            zoom: ${followupLabels.scale};
+            width: calc(190mm / ${followupLabels.scale});
             margin-top: ${followupLabels.offsetYmm}mm;
+            margin-left: ${followupLabels.offsetXmm}mm;
           }
         }
       `}</style>
@@ -306,8 +307,8 @@ export default function ConsultantFollowupPage() {
         </aside>
 
         {/* Main content */}
-        <main className="print:ml-0 ml-60 p-6 flex-1">
-          <div className="max-w-5xl mx-auto space-y-5">
+        <main className="print:ml-0 ml-60 py-8 px-6 flex-1">
+          <div className="a4-page-card followup-print-root space-y-5">
             {/* Operation header */}
             <div className="bg-white border border-[#c3c6d6] rounded-lg p-4 shadow-sm flex flex-col md:flex-row justify-between gap-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
@@ -356,7 +357,7 @@ export default function ConsultantFollowupPage() {
             </div>
 
             {/* Followup sections */}
-            <div className="followup-print-root space-y-5">
+            <div className="space-y-5">
               {followups.map((f, idx) => (
                 <section key={f.id} className="bg-white border border-[#c3c6d6] overflow-hidden rounded-lg shadow-sm">
                   <div className={`px-4 py-2 border-b border-[#c3c6d6] flex justify-between items-center ${idx === 0 ? "bg-[#d3e2ed]/30" : "bg-[#edeef0]"}`}>

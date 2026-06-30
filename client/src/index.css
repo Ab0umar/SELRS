@@ -1142,6 +1142,25 @@ img {
   }
 }
 
+/* A4 page card — constrains sheet content to 210mm, looks like paper on screen */
+.a4-page-card {
+  width: 210mm;
+  background: white;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.14);
+  margin: 0 auto;
+  padding: 8mm;
+  box-sizing: border-box;
+}
+
+@media print {
+  .a4-page-card {
+    width: 190mm;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
 /* Tighten field widths across all pages (including print) */
 .page-layout input[data-slot="input"] {
   max-width: 260px;

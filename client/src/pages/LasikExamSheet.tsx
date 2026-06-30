@@ -87,7 +87,7 @@ export default function LasikExamSheet() {
   });
   const [printOffsetXmm, setPrintOffsetXmm] = useState(0);
   const [printOffsetYmm, setPrintOffsetYmm] = useState(0);
-  const [printScale, setPrintScale] = useState(1);
+  const [printScale, setPrintScale] = useState(0.82);
   const [customSheetCss, setCustomSheetCss] = useState("");
   const [sheetTemplate, setSheetTemplate] = useState(
     DEFAULT_SHEET_DESIGNER_CONFIG.templates.lasik,
@@ -934,13 +934,15 @@ export default function LasikExamSheet() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FB]" dir="ltr">
+    <div className="min-h-screen bg-[#dde1e7]" dir="ltr">
       <style>{`
         ${customSheetCss}
         @media print {
           .lasik-print-root {
-            transform: translateX(${printOffsetXmm}mm) translateY(${printOffsetYmm}mm) scale(${printScale});
-            transform-origin: top center;
+            zoom: ${printScale};
+            width: calc(190mm / ${printScale});
+            margin-top: ${printOffsetYmm}mm;
+            margin-left: ${printOffsetXmm}mm;
           }
         }
       `}</style>
@@ -984,9 +986,9 @@ export default function LasikExamSheet() {
           onPrint={handlePrint}
         />
       )}
-      <div className="pb-10">
+      <div className="py-8">
         <div className={`print:hidden ${printMode.printView ? "hidden" : ""}`}>
-          {renderSheetBody()}
+          <div className="a4-page-card">{renderSheetBody()}</div>
         </div>
         <div className="hidden print:block">{renderSheetBody(true)}</div>
       </div>
