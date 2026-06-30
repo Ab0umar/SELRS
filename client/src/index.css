@@ -1037,7 +1037,7 @@ img {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 5mm !important;
+    margin: 5mm;
   }
 
   body {

@@ -440,9 +440,12 @@ export default function SpecialistSheet() {
           text-align: center !important;
         }
         @media print {
+          @page { size: A4 portrait; margin: 0; }
+          body { background: white !important; }
           .specialist-print-root {
-            transform: translateX(${printOffsetXmm}mm) translateY(${printOffsetYmm}mm) scale(${printScale});
-            transform-origin: top center;
+            width: 100%;
+            max-width: 100%;
+            margin: 0 auto;
           }
         }
       `}</style>
@@ -510,7 +513,7 @@ export default function SpecialistSheet() {
           />
         ) : null}
         {/* Patient picker removed */}
-        <div className="bg-background p-8 print:p-0 specialist-print-root">
+        <div className="bg-background p-8 print:p-[10mm] specialist-print-root">
           <div
             className={`mb-2 print:hidden ${printMode.printView ? "hidden" : ""}`}
           >
@@ -523,435 +526,151 @@ export default function SpecialistSheet() {
               الصفحة الرئيسية
             </Button>
           </div>
-          {/* Header */}
-          <div
-            className="mb-1 border-b-4 border-primary pb-1 -mx-8 px-8"
-            style={{ textAlign: "center" }}
-          >
-            <h2
-              className="text-lg font-bold"
-              dir="rtl"
-              style={{ textAlign: "right" }}
-            >
-              {BRAND_NAME_AR} — لليزك وتصحيح الإبصار
-            </h2>
-            <p
-              className="text-sm"
-              dir="ltr"
-              style={{
-                textAlign: "center",
-                unicodeBidi: "bidi-override",
-                direction: "ltr",
-              }}
-            >
-              {BRAND_NAME_EN} — Lasik & Vision Correction
-            </p>
-          </div>
-
-          {/* Operation Details removed per request */}
-
-          {/* Patient Info */}
-          <p className="font-bold text-sm mb-1">
-            {sheetTemplate.patientInfoTitle}
-          </p>
-          <div
-            className="sheet-section-card flex flex-col gap-1 mb-2 text-xs"
-            dir="rtl"
-            style={{ whiteSpace: "nowrap" }}
-          >
-            <div className="flex flex-nowrap items-center justify-between gap-2 w-full">
-              <div className="flex items-center gap-1">
-                <label className="font-bold">الاسم</label>
-                <Input
-                  value={formData.patientName}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
+          {/* Letterhead */}
+          <div className="mb-6 flex justify-between items-center border-b-2 border-primary pb-3 -mx-8 px-8">
+            <div className="flex items-center gap-3" dir="ltr">
+              <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center text-white">
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M3 12c0-3 3-6 9-6s9 3 9 6-3 6-9 6-9-3-9-6z" />
+                </svg>
               </div>
-              <div className="flex items-center gap-1">
-                <label className="font-bold">تاريخ الميلاد</label>
-                <Input
-                  value={formData.dateOfBirth}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <label className="font-bold">السن</label>
-                <Input
-                  value={formData.age}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <label className="font-bold">{sheetTemplate.doctorLabel}</label>
-                <Input
-                  value={signatures.doctor}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
+              <div>
+                <h2 className="text-lg font-bold text-primary leading-tight" dir="rtl">{BRAND_NAME_AR}</h2>
+                <p className="text-[10px] font-bold text-[#526069] uppercase tracking-widest">{BRAND_NAME_EN} — Specialist Sheet</p>
               </div>
             </div>
-            <div className="flex flex-nowrap items-center justify-between gap-2 w-full">
-              <div className="flex items-center gap-1">
-                <label className="font-bold">العنوان</label>
-                <Input
-                  value={formData.address}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <label className="font-bold">الموبايل</label>
-                <Input
-                  value={formData.phone}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <label className="font-bold">كود العميل</label>
-                <Input
-                  value={formData.patientCode}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <label className="font-bold">الوظيفة</label>
-                <Input
-                  value={formData.job}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
+            <div className="text-left text-xs text-[#526069]" dir="ltr">
+              <p className="font-bold text-primary text-sm">شيت الأخصائي</p>
+              <p>{formData.examinationDate}</p>
             </div>
           </div>
 
-          {/* Medical History - Compact */}
-          <div className="mb-2 border p-1 sheet-section-card">
-            <p className="font-bold text-sm mb-1">التاريخ المرضي:</p>
-            <div className="grid grid-cols-4 gap-0.5 text-sm text-center place-items-center">
-              <div className="flex items-center gap-1">
-                <Checkbox className="border-2 border-gray-700" />
-                <label className="text-sm cursor-pointer">قرنية مخروطية</label>
+          {/* Patient grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-4 mb-6 p-4 bg-[#f8f9fb] rounded-xl border border-[#c3c6d6]">
+            {[
+              ["الاسم / Name", formData.patientName],
+              ["تاريخ الميلاد / DOB", formData.dateOfBirth],
+              ["السن / Age", formData.age],
+              ["كود العميل / ID", formData.patientCode],
+              ["العنوان / Address", formData.address],
+              ["الوظيفة / Job", formData.job],
+              ["رقم التليفون / Phone", formData.phone],
+              ["الطبيب / Physician", signatures.doctor],
+            ].map(([label, val], i) => (
+              <div key={i} className={`flex flex-col ${i === 4 ? "md:col-span-2" : ""}`}>
+                <span className="text-[10px] font-bold text-[#526069] uppercase">{label}</span>
+                <Input value={val ?? ""} readOnly className="h-7 text-sm font-bold border-0 border-b border-[#c3c6d6] rounded-none bg-transparent px-0 focus-visible:ring-0" style={{ textAlign: "right" }} />
               </div>
-              <div className="flex items-center gap-1">
-                <Checkbox className="border-2 border-gray-700" />
-                <label className="text-sm cursor-pointer">علاج حب الشباب</label>
-              </div>
-              <div className="flex items-center gap-1">
-                <Checkbox className="border-2 border-gray-700" />
-                <label className="text-sm cursor-pointer">ضغط سكر غده</label>
-              </div>
-              <div className="flex items-center gap-1">
-                <Checkbox className="border-2 border-gray-700" />
-                <label className="text-sm cursor-pointer">امراض بالعين</label>
-              </div>
+            ))}
+          </div>
+
+          {/* Vision + Tear film */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div className="overflow-hidden rounded-lg border border-[#c3c6d6]">
+              <table className="w-full text-center border-collapse refraction-table-center" dir="ltr">
+                <thead>
+                  <tr className="bg-primary text-white text-xs font-bold uppercase">
+                    <th className="p-2 border-r border-white/20">Eye</th>
+                    <th className="p-2 border-r border-white/20">UCVA</th>
+                    <th className="p-2 border-r border-white/20">BCVA</th>
+                    <th className="p-2">IOP</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-[#c3c6d6]">
+                    <td className="p-2 bg-[#edeef0] font-black text-primary">OD</td>
+                    <td className="p-1 border-r border-[#c3c6d6]"><Input value={formData.ucvaOD} onChange={(e) => setFormData((p) => ({ ...p, ucvaOD: e.target.value }))} className="text-sm border-0 text-center" /></td>
+                    <td className="p-1 border-r border-[#c3c6d6]"><Input value={formData.bcvaOD} onChange={(e) => setFormData((p) => ({ ...p, bcvaOD: e.target.value }))} className="text-sm border-0 text-center" /></td>
+                    <td className="p-1"><Input value={formData.iopOD} onChange={(e) => setFormData((p) => ({ ...p, iopOD: e.target.value }))} className="text-sm border-0 text-center" /></td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 bg-[#edeef0] font-black text-[#526069]">OS</td>
+                    <td className="p-1 border-r border-[#c3c6d6]"><Input value={formData.ucvaOS} onChange={(e) => setFormData((p) => ({ ...p, ucvaOS: e.target.value }))} className="text-sm border-0 text-center" /></td>
+                    <td className="p-1 border-r border-[#c3c6d6]"><Input value={formData.bcvaOS} onChange={(e) => setFormData((p) => ({ ...p, bcvaOS: e.target.value }))} className="text-sm border-0 text-center" /></td>
+                    <td className="p-1"><Input value={formData.iopOS} onChange={(e) => setFormData((p) => ({ ...p, iopOS: e.target.value }))} className="text-sm border-0 text-center" /></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div className="overflow-hidden rounded-lg border border-[#c3c6d6]">
+              <table className="w-full border-collapse text-sm" dir="ltr">
+                <tbody>
+                  <tr className="border-b border-[#c3c6d6]"><td className="p-2 font-bold bg-[#edeef0] w-1/3">1- BUT</td><td className="p-1"><Input className="text-sm border-0 px-3" /></td></tr>
+                  <tr className="border-b border-[#c3c6d6]"><td className="p-2 font-bold bg-[#edeef0]">2- Schirmer Test</td><td className="p-1"><Input className="text-sm border-0 px-3" /></td></tr>
+                  <tr><td className="p-2 font-bold bg-[#edeef0]">3- Lid Margin</td><td className="p-1"><Input className="text-sm border-0 px-3" /></td></tr>
+                </tbody>
+              </table>
             </div>
           </div>
-          <div className="mb-4 border sheet-section-card">
-            <table
-              className="w-full text-xs text-center lasik-table refraction-table-center"
-              dir="ltr"
-              style={{
-                direction: "ltr",
-                unicodeBidi: "bidi-override",
-                textAlign: "center",
-              }}
-            >
+
+          {/* Refraction & Fundus */}
+          <div className="mb-6 overflow-hidden rounded-lg border border-[#c3c6d6]">
+            <table className="w-full text-center border-collapse refraction-table-center" dir="ltr">
               <thead>
-                <tr className="border-b bg-muted">
-                  <th className="border-r p-0.5 text-center" colSpan={4}>
-                    Dominant eye _____________
-                  </th>
-                  <th className="p-0.5 text-center" colSpan={6}>
-                    Refraction
-                  </th>
+                <tr className="bg-[#e1e2e4] text-xs font-bold">
+                  <th className="p-2 border-r border-[#c3c6d6] w-48">Parameter</th>
+                  <th className="p-2 border-r border-[#c3c6d6] text-primary uppercase" colSpan={3}>OD (Right)</th>
+                  <th className="p-2 text-[#526069] uppercase" colSpan={3}>OS (Left)</th>
                 </tr>
-                <tr className="border-b bg-muted">
-                  <th className="border-r p-0.5"></th>
-                  <th className="border-r p-0.5">UCVA</th>
-                  <th className="border-r p-0.5">BCVA</th>
-                  <th className="border-r p-0.5">IOP</th>
-                  <th className="border-r p-0.5" colSpan={3}>
-                    OD
-                  </th>
-                  <th className="p-0.5" colSpan={3}>
-                    OS
-                  </th>
-                </tr>
-                <tr className="border-b">
-                  <th className="border-r p-0.5"></th>
-                  <th className="border-r p-0.5"></th>
-                  <th className="border-r p-0.5"></th>
-                  <th className="border-r p-0.5"></th>
-                  <th className="border-r p-0.5">S</th>
-                  <th className="border-r p-0.5">C</th>
-                  <th className="border-r p-0.5">A</th>
-                  <th className="border-r p-0.5">S</th>
-                  <th className="border-r p-0.5">C</th>
-                  <th className="p-0.5">A</th>
+                <tr className="bg-[#edeef0] text-[10px] font-bold uppercase border-b border-[#c3c6d6]">
+                  <th className="border-r border-[#c3c6d6]"></th>
+                  <th className="p-1 border-r border-[#c3c6d6]">S</th>
+                  <th className="p-1 border-r border-[#c3c6d6]">C</th>
+                  <th className="p-1 border-r border-[#c3c6d6]">A</th>
+                  <th className="p-1 border-r border-[#c3c6d6]">S</th>
+                  <th className="p-1 border-r border-[#c3c6d6]">C</th>
+                  <th className="p-1">A</th>
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-b">
-                  <td className="border-r p-0.5 font-bold">OD</td>
-                  <td className="border-r p-0.5">
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={formData.ucvaOD}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          ucvaOD: e.target.value,
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={formData.bcvaOD}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          bcvaOD: e.target.value,
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={formData.iopOD}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          iopOD: e.target.value,
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5" rowSpan={2}>
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={formData.refractionOD.s}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          refractionOD: {
-                            ...prev.refractionOD,
-                            s: e.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5" rowSpan={2}>
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={formData.refractionOD.c}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          refractionOD: {
-                            ...prev.refractionOD,
-                            c: e.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5" rowSpan={2}>
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={formData.refractionOD.a}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          refractionOD: {
-                            ...prev.refractionOD,
-                            a: e.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5" rowSpan={2}>
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={formData.refractionOS.s}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          refractionOS: {
-                            ...prev.refractionOS,
-                            s: e.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5" rowSpan={2}>
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={formData.refractionOS.c}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          refractionOS: {
-                            ...prev.refractionOS,
-                            c: e.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="p-0.5" rowSpan={2}>
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={formData.refractionOS.a}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          refractionOS: {
-                            ...prev.refractionOS,
-                            a: e.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </td>
-                </tr>
-                <tr className="border-b">
-                  <td className="border-r p-0.5 font-bold">OS</td>
-                  <td className="border-r p-0.5">
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={formData.ucvaOS}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          ucvaOS: e.target.value,
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={formData.bcvaOS}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          bcvaOS: e.target.value,
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={formData.iopOS}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          iopOS: e.target.value,
-                        }))
-                      }
-                    />
-                  </td>
-                </tr>
-                <tr className="border-b">
-                  <td className="border-r p-0.5 font-bold">Fundus</td>
-                  <td className="p-0.5" colSpan={9}>
-                    <Input placeholder="" className="text-xs" />
-                  </td>
+                <tr className="border-b border-[#c3c6d6]">
+                  <td className="p-2 font-bold text-left bg-[#edeef0] border-r border-[#c3c6d6]">Refraction</td>
+                  <td className="p-1 border-r border-[#c3c6d6]"><Input value={formData.refractionOD.s} onChange={(e) => setFormData((p) => ({ ...p, refractionOD: { ...p.refractionOD, s: e.target.value } }))} className="text-sm border-0 text-center" /></td>
+                  <td className="p-1 border-r border-[#c3c6d6]"><Input value={formData.refractionOD.c} onChange={(e) => setFormData((p) => ({ ...p, refractionOD: { ...p.refractionOD, c: e.target.value } }))} className="text-sm border-0 text-center" /></td>
+                  <td className="p-1 border-r border-[#c3c6d6]"><Input value={formData.refractionOD.a} onChange={(e) => setFormData((p) => ({ ...p, refractionOD: { ...p.refractionOD, a: e.target.value } }))} className="text-sm border-0 text-center" /></td>
+                  <td className="p-1 border-r border-[#c3c6d6]"><Input value={formData.refractionOS.s} onChange={(e) => setFormData((p) => ({ ...p, refractionOS: { ...p.refractionOS, s: e.target.value } }))} className="text-sm border-0 text-center" /></td>
+                  <td className="p-1 border-r border-[#c3c6d6]"><Input value={formData.refractionOS.c} onChange={(e) => setFormData((p) => ({ ...p, refractionOS: { ...p.refractionOS, c: e.target.value } }))} className="text-sm border-0 text-center" /></td>
+                  <td className="p-1"><Input value={formData.refractionOS.a} onChange={(e) => setFormData((p) => ({ ...p, refractionOS: { ...p.refractionOS, a: e.target.value } }))} className="text-sm border-0 text-center" /></td>
                 </tr>
                 <tr>
-                  <td className="border-r p-0.5 font-bold">Tear film</td>
-                  <td className="border-r p-0.5" colSpan={3}>
-                    BUT
-                  </td>
-                  <td className="border-r p-0.5" colSpan={3}>
-                    Schirmer T
-                  </td>
-                  <td className="p-0.5" colSpan={3}>
-                    Lid Margin
+                  <td className="p-2 font-bold text-left bg-[#edeef0] border-r border-[#c3c6d6]">Fundus</td>
+                  <td className="p-2" colSpan={6}>
+                    <div className="flex items-center justify-center gap-6">
+                      <label className="flex items-center gap-1 text-[11px] font-bold"><input type="checkbox" className="w-4 h-4 rounded text-primary" /> N</label>
+                      <label className="flex items-center gap-1 text-[11px] font-bold"><input type="checkbox" className="w-4 h-4 rounded text-primary" /> A</label>
+                      <label className="flex items-center gap-1 text-[11px] font-bold"><input type="checkbox" className="w-4 h-4 rounded text-primary" /> O</label>
+                      <Input placeholder="Observations..." className="flex-1 text-sm border-0 text-left" dir="ltr" />
+                    </div>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
-          {/* Comments and Notes removed */}
-          <div className="mb-1 w-full sheet-section-card">
-            <Textarea
-              placeholder="Comments:"
-              className="text-xs w-full max-w-none"
-              rows={5}
-              dir="ltr"
-              style={{ maxWidth: "none", width: "100%", textAlign: "left" }}
-            />
+
+          {/* Clinical notes */}
+          <div className="mb-6 border border-[#c3c6d6] rounded-lg p-4 min-h-[140px] space-y-4">
+            <div className="border-b border-dotted border-[#c3c6d6] h-6" />
+            <div className="border-b border-dotted border-[#c3c6d6] h-6" />
+            <div className="border-b border-dotted border-[#c3c6d6] h-6" />
+            <div className="border-b border-dotted border-[#c3c6d6] h-6" />
           </div>
 
-          {/* Signature Line */}
-          <div className="border-t pt-3 mt-4">
-            <div className="grid grid-cols-4 gap-4 text-xs" dir="rtl">
-              <div className="flex flex-col items-center">
-                <div className="border-b border-gray-400 w-full h-8 mb-1 flex items-center justify-center text-xs">
-                  {signatures.doctor ? (
-                    <span className="text-center">{signatures.doctor}</span>
-                  ) : null}
+          {/* Signatures */}
+          <div className="grid grid-cols-4 gap-8 pt-6 border-t border-[#c3c6d6]" dir="rtl">
+            {[
+              ["توقيع الاستشاري / Consultant", signatures.doctor],
+              ["فني القياس / Technician", signatures.technician],
+              ["تمريض / Nurse", signatures.nurse],
+              ["الاستقبال / Reception", signatures.reception],
+            ].map(([label, val], i) => (
+              <div key={i} className="flex flex-col items-center">
+                <div className="border-b border-[#191c1e] w-full h-12 mb-2 flex items-end justify-center text-xs">
+                  {val ? <span className="text-center pb-1">{val}</span> : null}
                 </div>
-                <span className="font-bold">أخصائي</span>
+                <span className="text-[10px] font-bold text-[#526069] uppercase tracking-widest text-center">{label}</span>
               </div>
-              <div className="flex flex-col items-center">
-                <div className="border-b border-gray-400 w-full h-8 mb-1 flex items-center justify-center text-xs">
-                  {signatures.technician ? (
-                    <span className="text-center">{signatures.technician}</span>
-                  ) : null}
-                </div>
-                <span className="font-bold">فني</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="border-b border-gray-400 w-full h-8 mb-1 flex items-center justify-center text-xs">
-                  {signatures.nurse ? (
-                    <span className="text-center">{signatures.nurse}</span>
-                  ) : null}
-                </div>
-                <span className="font-bold">تمريض</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="border-b border-gray-400 w-full h-8 mb-1 flex items-center justify-center text-xs">
-                  {signatures.reception ? (
-                    <span className="text-center">{signatures.reception}</span>
-                  ) : null}
-                </div>
-                <span className="font-bold">استقبال</span>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
         <div

@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { useLocation, useParams } from "wouter";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowRight, Download, Printer } from "lucide-react";
+import { DateInput } from "@/components/ui/date-input";
 import { BRAND_NAME_AR, BRAND_NAME_EN } from "@/lib/brand";
 
 const TODAY = new Date().toISOString().split("T")[0];
@@ -12,49 +13,77 @@ const REF_ID = `REF-${new Date().getFullYear()}-${String(Math.floor(Math.random(
 interface FormData {
   patientName: string;
   patientAge: string;
+  patientGender: string;
   patientId: string;
+  nationality: string;
+  contact: string;
   examDate: string;
-  vaOD: string;
-  vaOS: string;
-  iopOD: string;
-  iopOS: string;
+  // refraction
   refractionOD: string;
   refractionOS: string;
-  medicalHistory: string;
-  diagnosis: string;
+  // VA uncorrected
+  vaOD: string;
+  vaOS: string;
+  // VA best corrected
+  vaBestOD: string;
+  vaBestOS: string;
+  // IOP
+  iopOD: string;
+  iopOS: string;
+  slitLamp: string;
+  fundus: string;
   diagnosisTags: string;
-  referredTo: string;
   reasonForReferral: string;
+  referredPhysician: string;
+  referredPhysicianTitle: string;
+  referredFacility: string;
+  referredDept: string;
   physicianName: string;
   physicianTitle: string;
+  physicianLicense: string;
 }
 
 const initialForm: FormData = {
   patientName: "",
   patientAge: "",
+  patientGender: "",
   patientId: "",
+  nationality: "",
+  contact: "",
   examDate: TODAY,
-  vaOD: "",
-  vaOS: "",
-  iopOD: "",
-  iopOS: "",
   refractionOD: "",
   refractionOS: "",
-  medicalHistory: "",
-  diagnosis: "",
+  vaOD: "",
+  vaOS: "",
+  vaBestOD: "",
+  vaBestOS: "",
+  iopOD: "",
+  iopOS: "",
+  slitLamp: "",
+  fundus: "",
   diagnosisTags: "",
-  referredTo: "",
   reasonForReferral: "",
+  referredPhysician: "",
+  referredPhysicianTitle: "",
+  referredFacility: "",
+  referredDept: "",
   physicianName: "",
   physicianTitle: "استشاري طب وجراحة العيون",
+  physicianLicense: "",
 };
+
+// Shared input style: invisible chrome, prints clean
+const FIELD =
+  "h-auto border-none shadow-none bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-gray-300 disabled:opacity-100 disabled:cursor-default";
 
 export default function ReferralLetter() {
   const [, setLocation] = useLocation();
   const [form, setForm] = useState<FormData>(initialForm);
 
-  const set = (key: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setForm((p) => ({ ...p, [key]: e.target.value }));
+  const set =
+    (key: keyof FormData) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setForm((p) => ({ ...p, [key]: e.target.value }));
 
   const handlePrint = () => window.print();
   const handleDownloadPDF = () => window.print();
@@ -63,229 +92,243 @@ export default function ReferralLetter() {
   const iopOSNum = Number(form.iopOS);
 
   const renderBody = (readOnly = false) => (
-    <fieldset disabled={readOnly} className="border-0 p-0 m-0 min-w-0 disabled:opacity-95 referral-print-root">
-      <div className="bg-white w-full max-w-[210mm] min-h-[297mm] p-10 md:p-12 shadow-sm border border-gray-200 flex flex-col mx-auto" dir="rtl">
-        {/* Clinic Branding Header */}
-        <header className="flex justify-between items-start border-b-2 border-[#003d9b] pb-3 mb-6">
+    <fieldset
+      disabled={readOnly}
+      className="border-0 p-0 m-0 min-w-0 disabled:opacity-95 referral-print-root"
+    >
+      {/* A4 document */}
+      <article
+        className="a4-canvas print-container flex flex-col border border-[#c3c6d6] bg-white w-[210mm] min-h-[297mm] mx-auto shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] text-[#191c1e] overflow-hidden"
+        dir="rtl"
+      >
+        {/* Letterhead */}
+        <header className="flex justify-between items-start bg-[#003d9b] text-white px-[15mm] py-6">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-[#003d9b]/10 rounded-lg flex items-center justify-center">
-              <svg className="w-10 h-10 text-[#003d9b]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+            <div className="w-14 h-14 bg-white/15 rounded-lg flex items-center justify-center">
+              <svg className="w-9 h-9" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="3" />
                 <path d="M3 12c0-3 3-6 9-6s9 3 9 6-3 6-9 6-9-3-9-6z" />
               </svg>
             </div>
-            <div className="text-right">
-              <h1 className="text-xl font-bold text-[#003d9b]">{BRAND_NAME_AR}</h1>
-              <p className="text-xs font-bold text-gray-400 tracking-wider uppercase">{BRAND_NAME_EN} SPECIALIZED CLINIC</p>
-              <p className="text-xs text-gray-500 mt-1">الرياض، المملكة العربية السعودية | هاتف: ٩٢٠٠١٢٣٤٥</p>
+            <div>
+              <h1 className="text-2xl font-bold leading-tight">{BRAND_NAME_AR}</h1>
+              <p className="text-[11px] font-bold tracking-widest uppercase opacity-80">
+                {BRAND_NAME_EN} — Ophthalmic ERP
+              </p>
             </div>
           </div>
           <div className="text-left" dir="ltr">
-            <h2 className="text-lg font-bold text-[#003d9b] uppercase">Referral Letter</h2>
-            <p className="text-xs text-gray-500 font-mono">Ref: {REF_ID}</p>
-            <p className="text-xs text-gray-500 font-mono">Date: {form.examDate || TODAY}</p>
+            <h2 className="text-lg font-bold uppercase tracking-wider">Medical Referral</h2>
+            <p className="text-xs font-mono opacity-80">REF: {REF_ID}</p>
+            <div className="flex items-center gap-1 justify-end mt-1">
+              <span className="text-xs opacity-80">DATE:</span>
+              <DateInput
+                className={`${FIELD} h-5 w-28 text-xs font-mono text-white`}
+                value={form.examDate}
+                onChange={set("examDate")}
+              />
+            </div>
           </div>
         </header>
 
-        {/* Patient Information Section */}
-        <section className="mb-6">
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <h3 className="text-xs font-bold text-[#003d9b] border-b border-gray-200 pb-1 mb-3">معلومات المريض / Patient Information</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <span className="text-xs text-gray-500 block mb-1">الاسم / Name</span>
-                <Input className="h-8 text-sm border-gray-300 font-semibold" value={form.patientName} onChange={set("patientName")} placeholder="أحمد محمود..." />
+        <div className="px-[15mm] py-8 space-y-8 flex-1 flex flex-col">
+          {/* Patient Info */}
+          <section>
+            <div className="grid grid-cols-3 gap-4 bg-[#f3f4f6] p-4 rounded-lg border border-[#c3c6d6]">
+              <div className="col-span-1">
+                <label className="text-[10px] font-bold text-[#434654] uppercase tracking-wider block mb-0.5">
+                  Full Name / الاسم الكامل
+                </label>
+                <Input className={`${FIELD} text-base font-bold`} value={form.patientName} onChange={set("patientName")} placeholder="اسم المريض" />
               </div>
               <div>
-                <span className="text-xs text-gray-500 block mb-1">العمر / Age</span>
-                <Input className="h-8 text-sm border-gray-300 font-semibold" value={form.patientAge} onChange={set("patientAge")} placeholder="٤٥ سنة" />
+                <label className="text-[10px] font-bold text-[#434654] uppercase tracking-wider block mb-0.5">
+                  Patient ID / رقم المريض
+                </label>
+                <Input className={`${FIELD} text-base font-mono`} value={form.patientId} onChange={set("patientId")} placeholder="P-0000000" />
               </div>
               <div>
-                <span className="text-xs text-gray-500 block mb-1">رقم الهوية / ID</span>
-                <Input className="h-8 text-sm border-gray-300 font-semibold" value={form.patientId} onChange={set("patientId")} placeholder="١٠٩٨٧..." />
+                <label className="text-[10px] font-bold text-[#434654] uppercase tracking-wider block mb-0.5">
+                  Age &amp; Gender / العمر والجنس
+                </label>
+                <div className="flex gap-2">
+                  <Input className={`${FIELD} text-base w-16`} value={form.patientAge} onChange={set("patientAge")} placeholder="45" />
+                  <Input className={`${FIELD} text-base`} value={form.patientGender} onChange={set("patientGender")} placeholder="ذكر" />
+                </div>
               </div>
               <div>
-                <span className="text-xs text-gray-500 block mb-1">تاريخ الفحص / Date</span>
-                <Input className="h-8 text-sm border-gray-300 font-semibold" type="date" value={form.examDate} onChange={set("examDate")} />
+                <label className="text-[10px] font-bold text-[#434654] uppercase tracking-wider block mb-0.5">
+                  Nationality / الجنسية
+                </label>
+                <Input className={`${FIELD} text-base`} value={form.nationality} onChange={set("nationality")} placeholder="—" />
+              </div>
+              <div className="col-span-2">
+                <label className="text-[10px] font-bold text-[#434654] uppercase tracking-wider block mb-0.5">
+                  Contact / التواصل
+                </label>
+                <Input className={`${FIELD} text-base`} dir="ltr" value={form.contact} onChange={set("contact")} placeholder="+20 ..." />
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Clinical Summary */}
-        <section className="mb-6 space-y-6">
-          {/* Current Findings Table */}
-          <div className="border border-gray-200 rounded-lg overflow-hidden">
-            <div className="bg-gray-100 px-4 py-2 border-b border-gray-200">
-              <h3 className="text-xs font-bold text-gray-700">النتائج السريرية الحالية / Current Findings</h3>
+          {/* Clinical Findings table */}
+          <section>
+            <h3 className="text-[11px] font-bold text-[#003d9b] uppercase tracking-wider mb-2">
+              Clinical Findings / النتائج السريرية
+            </h3>
+            <div className="border border-[#c3c6d6] rounded-lg overflow-hidden" dir="ltr">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-[#f3f4f6] text-[10px] font-bold uppercase text-[#434654] text-left">
+                    <th className="py-2 px-3 border-b border-[#c3c6d6] w-24">Eye</th>
+                    <th className="py-2 px-3 border-b border-[#c3c6d6]">Refraction (S/C/A)</th>
+                    <th className="py-2 px-3 border-b border-[#c3c6d6]">VA (Uncorrected)</th>
+                    <th className="py-2 px-3 border-b border-[#c3c6d6]">VA (Best Corrected)</th>
+                    <th className="py-2 px-3 border-b border-[#c3c6d6]">IOP (mmHg)</th>
+                  </tr>
+                </thead>
+                <tbody className="font-mono">
+                  <tr className="bg-[#0c56d0]/[0.03]">
+                    <td className="py-2 px-3 border-b border-[#c3c6d6] font-bold text-[#003d9b] font-sans">OD (Right)</td>
+                    <td className="py-1 px-2 border-b border-[#c3c6d6]"><Input className={`${FIELD} text-sm`} value={form.refractionOD} onChange={set("refractionOD")} placeholder="-0.00 / -0.00 x 000" /></td>
+                    <td className="py-1 px-2 border-b border-[#c3c6d6]"><Input className={`${FIELD} text-sm`} value={form.vaOD} onChange={set("vaOD")} placeholder="6/12" /></td>
+                    <td className="py-1 px-2 border-b border-[#c3c6d6]"><Input className={`${FIELD} text-sm`} value={form.vaBestOD} onChange={set("vaBestOD")} placeholder="6/6" /></td>
+                    <td className="py-1 px-2 border-b border-[#c3c6d6]"><Input className={`${FIELD} text-sm font-bold ${iopODNum > 21 ? "text-[#ba1a1a]" : ""}`} value={form.iopOD} onChange={set("iopOD")} placeholder="18.0" /></td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-3 font-bold text-[#526069] font-sans">OS (Left)</td>
+                    <td className="py-1 px-2"><Input className={`${FIELD} text-sm`} value={form.refractionOS} onChange={set("refractionOS")} placeholder="-0.00 / -0.00 x 000" /></td>
+                    <td className="py-1 px-2"><Input className={`${FIELD} text-sm`} value={form.vaOS} onChange={set("vaOS")} placeholder="6/9" /></td>
+                    <td className="py-1 px-2"><Input className={`${FIELD} text-sm`} value={form.vaBestOS} onChange={set("vaBestOS")} placeholder="6/6" /></td>
+                    <td className="py-1 px-2"><Input className={`${FIELD} text-sm font-bold ${iopOSNum > 21 ? "text-[#ba1a1a]" : ""}`} value={form.iopOS} onChange={set("iopOS")} placeholder="18.0" /></td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-            <table className="w-full text-right border-collapse">
-              <thead>
-                <tr className="bg-gray-50 text-gray-500 text-xs font-bold border-b border-gray-200">
-                  <th className="p-3 border-l border-gray-200">المعطيات / Parameter</th>
-                  <th className="p-3 border-l border-gray-200 bg-[#003d9b]/5 text-center">العين اليمنى (OD)</th>
-                  <th className="p-3 text-center">العين اليسرى (OS)</th>
-                </tr>
-              </thead>
-              <tbody className="font-mono text-sm text-gray-800">
-                <tr className="border-b border-gray-200">
-                  <td className="p-3 border-l border-gray-200 font-sans">حدة الإبصار (Visual Acuity)</td>
-                  <td className="p-2 border-l border-gray-200 bg-[#003d9b]/5 text-center">
-                    <Input className="h-8 text-sm text-center border-gray-300 w-24 mx-auto" value={form.vaOD} onChange={set("vaOD")} placeholder="6/12" />
-                  </td>
-                  <td className="p-2 text-center">
-                    <Input className="h-8 text-sm text-center border-gray-300 w-24 mx-auto" value={form.vaOS} onChange={set("vaOS")} placeholder="6/9" />
-                  </td>
-                </tr>
-                <tr className="border-b border-gray-200">
-                  <td className="p-3 border-l border-gray-200 font-sans">ضغط العين (IOP)</td>
-                  <td className="p-2 border-l border-gray-200 bg-[#003d9b]/5 text-center">
-                    <Input className={`h-8 text-sm text-center border-gray-300 w-24 mx-auto ${iopODNum > 21 ? "text-red-600 font-bold border-red-300" : ""}`} value={form.iopOD} onChange={set("iopOD")} placeholder="mmHg" />
-                  </td>
-                  <td className="p-2 text-center">
-                    <Input className={`h-8 text-sm text-center border-gray-300 w-24 mx-auto ${iopOSNum > 21 ? "text-red-600 font-bold border-red-300" : ""}`} value={form.iopOS} onChange={set("iopOS")} placeholder="mmHg" />
-                  </td>
-                </tr>
-                <tr className="border-b border-gray-200">
-                  <td className="p-3 border-l border-gray-200 font-sans">الانكسار (Refraction)</td>
-                  <td className="p-2 border-l border-gray-200 bg-[#003d9b]/5 text-center">
-                    <Input className="h-8 text-sm text-center border-gray-300 w-36 mx-auto" value={form.refractionOD} onChange={set("refractionOD")} placeholder="-2.50 / -0.75 x 180" />
-                  </td>
-                  <td className="p-2 text-center">
-                    <Input className="h-8 text-sm text-center border-gray-300 w-36 mx-auto" value={form.refractionOS} onChange={set("refractionOS")} placeholder="-2.00 / -0.50 x 175" />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
 
-          {/* Diagnosis & Medical History */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="border border-gray-200 rounded-lg p-4">
-              <h4 className="text-xs font-bold text-[#003d9b] uppercase tracking-wider mb-2">التشخيص الحالي / Diagnosis</h4>
-              <div className="flex flex-wrap gap-2 mb-3">
-                {form.diagnosisTags.split(",").filter(Boolean).map((tag) => (
-                  <span key={tag} className="bg-red-600 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">{tag.trim()}</span>
+            {/* Slit lamp + fundus */}
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="p-3 bg-[#f8f9fb] rounded-lg border border-[#c3c6d6]">
+                <p className="text-[10px] font-bold text-[#434654] uppercase tracking-wider mb-1">
+                  Slit Lamp / فحص المصباح الشقي
+                </p>
+                <Textarea className={`${FIELD} text-[13px] w-full resize-none min-h-[56px]`} rows={3} value={form.slitLamp} onChange={set("slitLamp")} placeholder="OD: ... OS: ..." />
+              </div>
+              <div className="p-3 bg-[#f8f9fb] rounded-lg border border-[#c3c6d6]">
+                <p className="text-[10px] font-bold text-[#434654] uppercase tracking-wider mb-1">
+                  Fundus / فحص قاع العين
+                </p>
+                <Textarea className={`${FIELD} text-[13px] w-full resize-none min-h-[56px]`} rows={3} value={form.fundus} onChange={set("fundus")} placeholder="OD: ... OS: ..." />
+              </div>
+            </div>
+          </section>
+
+          {/* Diagnosis + Reason */}
+          <div className="grid grid-cols-2 gap-8">
+            <section>
+              <h3 className="text-[11px] font-bold text-[#003d9b] uppercase tracking-wider mb-2">
+                Diagnosis / التشخيص
+              </h3>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {form.diagnosisTags.split(",").filter((t) => t.trim()).map((tag) => (
+                  <span key={tag} className="inline-flex items-center gap-1.5 text-[12px] font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-[#ba1a1a]" />
+                    {tag.trim()}
+                  </span>
                 ))}
               </div>
               <Input
-                className="h-7 text-xs border-gray-300 mb-2"
+                className={`${FIELD} text-[11px] print:hidden border-b border-dotted border-[#c3c6d6] w-full`}
                 value={form.diagnosisTags}
                 onChange={set("diagnosisTags")}
-                placeholder="Tags: Primary Open-Angle Glaucoma, Myopia"
+                placeholder="افصل التشخيصات بفاصلة: جلوكوما, قصر نظر"
               />
+            </section>
+            <section>
+              <h3 className="text-[11px] font-bold text-[#003d9b] uppercase tracking-wider mb-2">
+                Reason for Referral / سبب التحويل
+              </h3>
               <Textarea
-                className="text-sm border-gray-300 w-full resize-none"
+                className={`${FIELD} text-[13px] italic bg-[#f3f4f6] p-3 rounded-lg w-full resize-none min-h-[70px]`}
                 rows={3}
-                value={form.diagnosis}
-                onChange={set("diagnosis")}
-                placeholder="Detailed clinical diagnosis..."
+                value={form.reasonForReferral}
+                onChange={set("reasonForReferral")}
+                placeholder="سبب التحويل والإجراء المطلوب..."
               />
-            </div>
-            <div className="border border-gray-200 rounded-lg p-4">
-              <h4 className="text-xs font-bold text-[#003d9b] uppercase tracking-wider mb-2">التاريخ الطبي / Medical History</h4>
-              <Textarea
-                className="text-sm border-gray-300 w-full resize-none"
-                rows={5}
-                value={form.medicalHistory}
-                onChange={set("medicalHistory")}
-                placeholder="Diabetes Mellitus Type II (Controlled)&#10;Family History of Glaucoma (Father)&#10;No known allergies."
-                dir="ltr"
-              />
-            </div>
+            </section>
           </div>
-        </section>
 
-        {/* Reason for Referral */}
-        <section className="mb-8">
-          <div className="bg-[#003d9b]/5 border-2 border-dashed border-[#003d9b]/30 p-5 rounded-xl">
-            <div className="flex flex-col md:flex-row gap-6">
-              <div className="flex-grow">
-                <h3 className="text-base font-bold text-[#003d9b] mb-2 flex items-center gap-2">
-                  <span>📨</span>
-                  سبب التحويل / Reason for Referral
-                </h3>
-                <Textarea
-                  className="text-sm border-gray-300 w-full resize-none bg-white"
-                  rows={3}
-                  value={form.reasonForReferral}
-                  onChange={set("reasonForReferral")}
-                  placeholder="Requesting Visual Field (HFA) and OCT - Optic Nerve Head for glaucoma workup and management plan..."
-                  dir="ltr"
-                />
+          {/* Referred To */}
+          <section className="bg-[#003d9b]/5 p-4 rounded-xl border border-[#003d9b]/20">
+            <h3 className="text-[11px] font-bold text-[#003d9b] uppercase tracking-wider mb-3">
+              Referred To / المحال إليه
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-[10px] text-[#434654] uppercase block">Physician Name</label>
+                <Input className={`${FIELD} text-base font-bold`} value={form.referredPhysician} onChange={set("referredPhysician")} placeholder="د. ..." />
+                <Input className={`${FIELD} text-[12px] text-[#526069]`} value={form.referredPhysicianTitle} onChange={set("referredPhysicianTitle")} placeholder="استشاري ..." />
               </div>
-              <div className="md:w-1/3 border-r border-gray-200 pr-4">
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">محول إلى / Referred To</span>
-                <Textarea
-                  className="text-sm border-gray-300 w-full resize-none bg-white"
-                  rows={2}
-                  value={form.referredTo}
-                  onChange={set("referredTo")}
-                  placeholder="استشاري الجلوكوما&#10;مستشفى العيون التخصصي"
-                />
+              <div>
+                <label className="text-[10px] text-[#434654] uppercase block">Facility</label>
+                <Input className={`${FIELD} text-base font-bold`} value={form.referredFacility} onChange={set("referredFacility")} placeholder="المستشفى / المركز" />
+                <Input className={`${FIELD} text-[12px] text-[#526069]`} value={form.referredDept} onChange={set("referredDept")} placeholder="القسم" />
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Footer: Signatures & Stamp */}
-        <footer className="mt-auto pt-6 border-t border-gray-200 flex justify-between items-end">
-          <div className="text-right space-y-2">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">الطبيب المحول / Referring Physician</p>
-            <Input
-              className="h-8 text-sm text-right border-gray-300 w-48 font-bold text-[#003d9b]"
-              value={form.physicianName}
-              onChange={set("physicianName")}
-              placeholder="د. اسم الطبيب"
-            />
-            <div className="h-16 w-48 border-b border-gray-400 mb-2 italic font-serif flex items-end justify-center text-gray-400">
-              {form.physicianName || "Adrian Miller, M.D."}
+          {/* Signature footer */}
+          <footer className="mt-auto flex justify-between items-end border-t border-[#c3c6d6] pt-6">
+            <div className="text-[13px] space-y-0.5">
+              <p className="text-[10px] font-bold text-[#434654] uppercase">Referring Clinician / الطبيب المحوِّل</p>
+              <Input className={`${FIELD} text-base font-bold`} value={form.physicianName} onChange={set("physicianName")} placeholder="د. ..." />
+              <Input className={`${FIELD} text-[13px]`} value={form.physicianTitle} onChange={set("physicianTitle")} placeholder="استشاري طب وجراحة العيون" />
+              <div className="flex items-center gap-1 text-[#737685]" dir="ltr">
+                <span className="text-[11px]">License:</span>
+                <Input className={`${FIELD} text-[11px] w-32`} value={form.physicianLicense} onChange={set("physicianLicense")} placeholder="MOH-EYE-0000" />
+              </div>
             </div>
-            <Input
-              className="h-8 text-xs text-right border-gray-300 w-48"
-              value={form.physicianTitle}
-              onChange={set("physicianTitle")}
-              placeholder="استشاري طب وجراحة العيون"
-            />
-          </div>
-          <div className="relative w-32 h-32 flex items-center justify-center border-2 border-[#003d9b]/20 rounded-full rotate-12 bg-white shrink-0">
-            <div className="absolute inset-2 border border-[#003d9b]/40 rounded-full flex flex-col items-center justify-center text-center p-2">
-              <span className="text-[10px] font-bold text-[#003d9b]/60 uppercase leading-none">Official</span>
-              <span className="text-[10px] font-bold text-[#003d9b]/60 uppercase leading-none">Medical Stamp</span>
-              <span className="text-[8px] text-[#003d9b]/50 mt-1">{BRAND_NAME_EN}</span>
-              <span className="text-[16px] mt-1 text-[#003d9b]/40">🛡️</span>
+            <div className="text-center">
+              <div className="w-48 h-16 border-b-2 border-[#191c1e]" />
+              <p className="text-[10px] font-bold text-[#434654] uppercase mt-1">Signature &amp; Stamp / التوقيع والختم</p>
             </div>
-          </div>
-        </footer>
+          </footer>
 
-        {/* HIPAA Footer */}
-        <div className="mt-8 pt-4 border-t border-gray-200 text-center">
-          <p className="text-[10px] text-gray-400 mb-2">
-            © {new Date().getFullYear()} {BRAND_NAME_EN}. This document contains protected health information (PHI) and is intended for medical professional use only.
-          </p>
-          <div className="flex items-center justify-center gap-4 text-[10px] text-gray-500">
-            <span className="font-semibold">HIPAA Compliance</span>
-            <span>Terms of Service</span>
-            <span>Privacy Policy</span>
+          <div className="text-center border-t border-[#c3c6d6]/40 pt-3 opacity-50">
+            <p className="text-[8px] font-mono uppercase tracking-widest">
+              {BRAND_NAME_EN} © {new Date().getFullYear()} — Confidential Medical Record
+            </p>
           </div>
         </div>
-      </div>
+      </article>
     </fieldset>
   );
 
   return (
     <div className="min-h-screen bg-[#dde1e7]" dir="rtl">
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+Arabic:wght@400;600;700&display=swap');
+
+        .referral-print-root {
+          font-family: 'Noto Sans Arabic', 'Inter', sans-serif;
+        }
+
         @media print {
-          @page { size: A4 portrait; margin: 10mm; }
-          body > *:not(.referral-print-root) { display: none !important; }
-          .referral-print-root { display: block !important; }
+          @page { size: A4 portrait; margin: 0; }
+          body { background-color: white !important; }
           .print\\:hidden { display: none !important; }
           .hidden.print\\:block { display: block !important; }
+          .print-container {
+              box-shadow: none !important;
+              margin: 0 !important;
+              width: 100% !important;
+              min-height: 297mm !important;
+              border: none !important;
+          }
         }
       `}</style>
 
-      <header className="sticky top-0 z-50 print:hidden flex justify-between items-center px-6 py-2 bg-[#f8f9fb] border-b border-[#c3c6d6]" style={{ fontFamily: 'Inter, sans-serif' }}>
+      <header className="sticky top-0 z-50 print:hidden flex justify-between items-center px-6 py-2 bg-[#f8f9fb] border-b border-[#c3c6d6]" style={{ fontFamily: "Inter, sans-serif" }}>
         <div className="flex items-center gap-4">
           <button type="button" className="text-[#434654] hover:text-[#003D9B] text-sm font-bold flex items-center gap-1" onClick={() => setLocation(-1 as any)}>
             <ArrowRight className="h-4 w-4" /> رجوع

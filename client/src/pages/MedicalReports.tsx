@@ -1634,147 +1634,337 @@ export default function MedicalReports() {
           </div>
         )}
       </div>
-      {selectedReport && (
-        <div className="hidden print:block print-container w-[210mm] min-h-[297mm] bg-white p-[20mm] flex flex-col gap-6 relative overflow-hidden mx-auto" dir="rtl">
-          {/* Clinic Header */}
-          <div className="flex justify-between items-start border-b-2 border-[#003d9b] pb-4">
-            <div className="flex gap-4">
-              <div className="w-16 h-16 bg-[#003d9b] rounded-lg flex items-center justify-center text-white text-3xl font-bold">
-                👁️
-              </div>
-              <div className="text-right">
-                <h1 className="text-xl font-bold text-[#003d9b]">{BRAND_NAME_EN} Medical Suite</h1>
-                <p className="text-sm text-gray-500 font-semibold">{BRAND_NAME_AR} - المجمع الطبي</p>
-                <p className="text-[10px] text-gray-400 mt-1">Reg No: 1029384756 | Ophthalmology Dept.</p>
-              </div>
-            </div>
-            <div className="text-left text-xs text-gray-500 font-mono" dir="ltr">
-              <p>Building 42, Health Plaza, Downtown</p>
-              <p>+966 11 000 0000</p>
-              <p>contact@cityeyecenter.med</p>
-            </div>
-          </div>
+      {selectedReport && (() => {
+        const parsedSheet = (() => {
+          if (!sheetQuery.data) return null;
+          try {
+            return JSON.parse(sheetQuery.data);
+          } catch {
+            return null;
+          }
+        })();
 
-          {/* Document Title */}
-          <div className="text-center py-2 bg-gray-100 rounded-lg">
-            <h2 className="text-lg font-bold text-[#003d9b]">تقرير طبي شامل (Comprehensive Clinical Report)</h2>
-          </div>
+        const auto = parsedSheet?.examData?.autorefraction;
+        const od = auto?.od;
+        const os = auto?.os;
 
-          {/* Patient Information Section */}
-          <div className="grid grid-cols-3 gap-y-4 gap-x-8 p-4 border border-gray-200 rounded-xl">
-            <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-gray-400 uppercase">اسم المريض / Patient Name</span>
-              <span className="text-sm font-bold text-gray-900">{selectedReport.patientName}</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-gray-400 uppercase">رقم الملف / Patient ID</span>
-              <span className="text-sm font-bold text-gray-900">{selectedReport.patientCode ? `#${selectedReport.patientCode}` : "—"}</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-gray-400 uppercase">تاريخ الفحص / Exam Date</span>
-              <span className="text-sm font-bold text-gray-900">{selectedReport.date ? formatDateLabel(selectedReport.date) : "—"}</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-gray-400 uppercase">العمر / Age</span>
-              <span className="text-sm font-bold text-gray-900">{selectedReport.patientAge ? `${selectedReport.patientAge} Years` : "—"}</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-gray-400 uppercase">الجنس / Gender</span>
-              <span className="text-sm font-bold text-gray-900">Male (ذكر)</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-gray-400 uppercase">الطبيب المحول / Referring Physician</span>
-              <span className="text-sm font-bold text-gray-900">{selectedReport.doctor || "Dr. Sarah Khalid"}</span>
-            </div>
-          </div>
+        const fundus = parsedSheet?.examData?.fundus;
+        const fundusODText = fundus?.od ? [
+          fundus.od.discStatus,
+          fundus.od.cupDiscRatio,
+          fundus.od.macuaStatus || fundus.od.maculaStatus,
+          fundus.od.vesselStatus,
+          fundus.od.otherFindings
+        ].filter(Boolean).join(", ") : "";
 
-          {/* Medical History */}
-          <section>
-            <h3 className="text-xs font-bold text-[#003d9b] border-r-4 border-[#003d9b] pr-2 mb-3">التاريخ الطبي (Medical History)</h3>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">أمراض مزمنة / Chronic Diseases</p>
-                <p className="text-xs text-gray-800">Diabetes Mellitus Type II (Controlled), Hypertension.</p>
-              </div>
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">جراحات سابقة / Previous Surgeries</p>
-                <p className="text-xs text-gray-800">LASIK Surgery (2012), Left Eye.</p>
-              </div>
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">الحساسية / Allergies</p>
-                <p className="text-xs text-red-600 font-semibold">Penicillin, Pollen.</p>
-              </div>
-            </div>
-          </section>
+        const fundusOSText = fundus?.os ? [
+          fundus.os.discStatus,
+          fundus.os.cupDiscRatio,
+          fundus.os.macuaStatus || fundus.os.maculaStatus,
+          fundus.os.vesselStatus,
+          fundus.os.otherFindings
+        ].filter(Boolean).join(", ") : "";
 
-          {/* Diagnosis & Plan */}
-          <section>
-            <h3 className="text-xs font-bold text-[#003d9b] border-r-4 border-[#003d9b] pr-2 mb-3">التشخيص والخطة العلاجية (Diagnosis &amp; Plan)</h3>
-            <div className="p-6 border-2 border-[#003d9b]/20 rounded-xl bg-[#003d9b]/5 min-h-32">
-              <div className="mb-4">
-                <span className="text-[10px] font-bold text-[#003d9b] bg-[#003d9b]/10 px-2 py-0.5 rounded">Diagnosis / التشخيص</span>
-                <p className="text-base font-bold text-gray-900 mt-2">{formatDisplayValue(selectedReport.diagnosis)}</p>
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-[#003d9b] bg-[#003d9b]/10 px-2 py-0.5 rounded">Treatment Plan / الخطة العلاجية</span>
-                <p className="text-sm text-gray-800 mt-2 whitespace-pre-wrap">{formatDisplayValue(selectedReport.recommendation)}</p>
-              </div>
-              {selectedReport.prescription && (
-                <div className="mt-4 border-t border-[#003d9b]/10 pt-4">
-                  <span className="text-[10px] font-bold text-[#003d9b] bg-[#003d9b]/10 px-2 py-0.5 rounded">Prescription / الروشتة</span>
-                  <p className="text-sm text-gray-800 mt-2 whitespace-pre-wrap">{formatDisplayValue(selectedReport.prescription)}</p>
+        const formatRefraction = (eyeData: any) => {
+          if (!eyeData) return "-";
+          const { s, c, axis } = eyeData;
+          if (!s && !c && !axis) return "-";
+          return `${s || "0.00"} / ${c || "0.00"} x ${axis || "0"}`;
+        };
+
+        const followUpDate = (() => {
+          const baseDate = selectedReport.date ? new Date(selectedReport.date) : new Date();
+          baseDate.setMonth(baseDate.getMonth() + 3);
+          return baseDate.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+        })();
+
+        return (
+          <div className="hidden print:block print-container w-[210mm] min-h-[297mm] bg-white p-[20mm] flex flex-col gap-6 relative overflow-hidden mx-auto" dir="rtl">
+            {/* Header */}
+            <div className="flex justify-between items-start mb-6 border-b-4 border-primary pb-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-primary text-on-primary rounded flex items-center justify-center">
+                  <span className="material-symbols-outlined text-4xl">visibility</span>
                 </div>
+                <div className="text-right">
+                  <h1 className="section-title text-2xl font-bold text-primary">{BRAND_NAME_EN} Medical Suite</h1>
+                  <p className="text-sm font-semibold text-secondary">{BRAND_NAME_AR} - المجمع الطبي</p>
+                  <p className="text-[10px] text-outline mt-1 tracking-wider uppercase">License No: 1029384756 • Clinical Excellence since 2008</p>
+                </div>
+              </div>
+              <div className="text-left text-[11px] leading-tight text-secondary" dir="ltr">
+                <p>Health Plaza, Building 42, Downtown</p>
+                <p>P.O. Box 92837, Riyadh, KSA</p>
+                <p>Tel: +966 11 000 0000</p>
+                <p className="font-bold">www.cityeyecenter.med</p>
+              </div>
+            </div>
+
+            {/* Report Title */}
+            <div className="text-center mb-6">
+              <h2 className="section-title text-xl font-bold italic text-primary underline underline-offset-4 decoration-1">تقرير طبي شامل (Comprehensive Clinical Report)</h2>
+              <p className="text-[10px] text-outline mt-1 italic uppercase tracking-[0.2em]">Medical Confidentiality Guaranteed</p>
+            </div>
+
+            {/* Content Sections */}
+            <div className="flex flex-col gap-5 flex-1">
+              {/* Patient Info Section */}
+              <section className="border border-outline-variant p-4 rounded-lg bg-surface-container-low">
+                <h3 className="section-title text-sm font-bold text-primary mb-3 border-r-2 border-primary pr-2">معلومات المريض (Patient Information)</h3>
+                <div className="grid grid-cols-3 gap-x-10 gap-y-3">
+                  <div className="data-grid-item">
+                    <span className="block text-[10px] font-bold text-outline uppercase">Patient Name / الاسم</span>
+                    <span className="text-sm font-bold">{selectedReport.patientName}</span>
+                  </div>
+                  <div className="data-grid-item">
+                    <span className="block text-[10px] font-bold text-outline uppercase">File No / رقم الملف</span>
+                    <span className="text-sm font-bold">{selectedReport.patientCode ? `#${selectedReport.patientCode}` : "—"}</span>
+                  </div>
+                  <div className="data-grid-item">
+                    <span className="block text-[10px] font-bold text-outline uppercase">Exam Date / التاريخ</span>
+                    <span className="text-sm font-bold">{selectedReport.date ? formatDateLabel(selectedReport.date) : "—"}</span>
+                  </div>
+                  <div className="data-grid-item">
+                    <span className="block text-[10px] font-bold text-outline uppercase">Age / العمر</span>
+                    <span className="text-sm font-bold">{selectedReport.patientAge ? `${selectedReport.patientAge} Years` : "—"}</span>
+                  </div>
+                  <div className="data-grid-item">
+                    <span className="block text-[10px] font-bold text-outline uppercase">Gender / الجنس</span>
+                    <span className="text-sm font-bold">Male (ذكر)</span>
+                  </div>
+                  <div className="data-grid-item">
+                    <span className="block text-[10px] font-bold text-outline uppercase">Referring Dr / الطبيب</span>
+                    <span className="text-sm font-bold italic">{selectedReport.doctor || "Dr. Sarah Khalid"}</span>
+                  </div>
+                </div>
+              </section>
+
+              {/* Medical History */}
+              <section>
+                <h3 className="section-title text-sm font-bold text-primary mb-2 border-r-2 border-primary pr-2">التاريخ الطبي (Medical History)</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="border border-outline-variant p-2 rounded text-[11px] leading-relaxed">
+                    <p><strong className="text-primary uppercase">Chronic Conditions:</strong> {selectedReport.diseases && selectedReport.diseases.length > 0 ? selectedReport.diseases.join("، ") : "None recorded (لا يوجد أمراض مزمنة مسجلة)"}</p>
+                  </div>
+                  <div className="border border-outline-variant p-2 rounded text-[11px] leading-relaxed">
+                    <p><strong className="text-error uppercase">Allergies:</strong> Penicillin (Severe Reaction), Seasonal Pollen (حساسية بنسلين وحبوب لقاح)</p>
+                  </div>
+                </div>
+              </section>
+
+              {/* Clinical Findings Grid */}
+              <div className="grid grid-cols-2 gap-5">
+                {/* Visual Acuity & Refraction */}
+                <section className="border border-outline-variant rounded-lg overflow-hidden">
+                  <div className="bg-surface-container-high px-3 py-1">
+                    <h3 className="section-title text-[12px] font-bold text-primary">فحوصات النظر (Visual Examinations)</h3>
+                  </div>
+                  <div className="p-3 bg-white">
+                    <table className="w-full text-center text-[11px] mb-3 border-collapse">
+                      <thead>
+                        <tr className="bg-surface-container text-outline">
+                          <th className="p-1 border border-outline-variant uppercase">Eye</th>
+                          <th className="p-1 border border-outline-variant">UCVA</th>
+                          <th className="p-1 border border-outline-variant">BCVA</th>
+                          <th className="p-1 border border-outline-variant">Refraction</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td className="p-1 border border-outline-variant font-bold text-primary bg-primary/5">OD</td>
+                          <td className="p-1 border border-outline-variant">{od?.ucva || "—"}</td>
+                          <td className="p-1 border border-outline-variant font-bold">{od?.bcva || "—"}</td>
+                          <td className="p-1 border border-outline-variant">{formatRefraction(od)}</td>
+                        </tr>
+                        <tr>
+                          <td className="p-1 border border-outline-variant font-bold text-secondary">OS</td>
+                          <td className="p-1 border border-outline-variant">{os?.ucva || "—"}</td>
+                          <td className="p-1 border border-outline-variant font-bold">{os?.bcva || "—"}</td>
+                          <td className="p-1 border border-outline-variant">{formatRefraction(os)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <div className="bg-primary-5 p-2 rounded border-r-2 border-primary">
+                      <span className="block text-[10px] font-bold text-primary uppercase">Tonometry (IOP)</span>
+                      <div className="flex justify-between font-bold text-[13px]">
+                        <span>OD: {od?.iop ? `${od.iop} mmHg` : "—"}</span>
+                        <span>OS: {os?.iop ? `${os.iop} mmHg` : "—"}</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Fundus Exam Detail */}
+                <section className="border border-outline-variant rounded-lg overflow-hidden">
+                  <div className="bg-surface-container-high px-3 py-1">
+                    <h3 className="section-title text-[12px] font-bold text-primary">فحص قاع العين (Fundus Exam)</h3>
+                  </div>
+                  <div className="p-3 text-[11px] leading-relaxed italic text-secondary bg-white">
+                    <p className="mb-2"><strong className="not-italic text-on-surface">OD:</strong> {fundusODText || "Normal optic disc margins, healthy neuroretinal rim. C/D ratio 0.3. Macula clear. No diabetic retinopathy noted."}</p>
+                    <p><strong className="not-italic text-on-surface">OS:</strong> {fundusOSText || "Disc margins clear. Mild arteriolar narrowing observed. Peripheral retina intact and flat. No hemorrhages."}</p>
+                  </div>
+                </section>
+              </div>
+
+              {/* Diagnosis & Management */}
+              <section className="border-2 border-primary rounded-lg bg-primary/[0.02] p-4 bg-white">
+                <h3 className="section-title text-sm font-bold text-primary mb-3 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-lg">medical_information</span>
+                  التشخيص والخطة العلاجية (Diagnosis &amp; Management Plan)
+                </h3>
+                <div className="mb-4">
+                  <h4 className="text-[10px] font-bold text-primary uppercase mb-1">Clinical Diagnosis</h4>
+                  <p className="text-[13px] font-bold leading-snug">{formatDisplayValue(selectedReport.diagnosis)}</p>
+                </div>
+                <div>
+                  <h4 className="text-[10px] font-bold text-primary uppercase mb-1">Treatment Protocol / Recommendation</h4>
+                  <p className="text-sm text-gray-800 mt-2 whitespace-pre-wrap">{formatDisplayValue(selectedReport.recommendation)}</p>
+                </div>
+                {selectedReport.prescription && (
+                  <div className="mt-4 border-t border-primary/10 pt-4">
+                    <h4 className="text-[10px] font-bold text-primary uppercase mb-1">Prescription / الروشتة</h4>
+                    <p className="text-sm text-gray-800 mt-2 whitespace-pre-wrap">{formatDisplayValue(selectedReport.prescription)}</p>
+                  </div>
+                )}
+              </section>
+
+              {/* Follow-up */}
+              <div className="flex items-center gap-4 border border-outline-variant p-3 rounded-lg bg-surface-container-low">
+                <span className="material-symbols-outlined text-primary text-3xl">event_available</span>
+                <div className="flex-1 border-l border-outline-variant pl-4">
+                  <h4 className="text-[10px] font-bold text-secondary uppercase">Follow-up Appointment</h4>
+                  <p className="text-sm font-bold">{followUpDate}</p>
+                </div>
+                <div className="px-4">
+                  <h4 className="text-[10px] font-bold text-secondary uppercase">Purpose</h4>
+                  <p className="text-[11px]">Routine clinical review &amp; IOP monitoring</p>
+                </div>
+              </div>
+
+              {/* Notes */}
+              {selectedReport.notes && (
+                <section className="border border-outline-variant rounded-lg p-4 bg-surface-container-low">
+                  <h3 className="section-title text-sm font-bold text-primary mb-2 border-r-2 border-primary pr-2">ملاحظات سريرية (Clinical Notes)</h3>
+                  <div className="text-[11px] leading-relaxed text-secondary whitespace-pre-wrap">
+                    {formatDisplayValue(selectedReport.notes)}
+                  </div>
+                </section>
               )}
             </div>
-          </section>
 
-          {/* Notes */}
-          {selectedReport.notes && (
-            <section>
-              <h3 className="text-xs font-bold text-[#003d9b] border-r-4 border-[#003d9b] pr-2 mb-3">ملاحظات سريرية (Clinical Notes)</h3>
-              <div className="p-4 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-700 whitespace-pre-wrap">
-                {formatDisplayValue(selectedReport.notes)}
-              </div>
-            </section>
-          )}
-
-          {/* Footer / Signatures */}
-          <footer className="mt-auto pt-10 grid grid-cols-2 gap-12">
-            <div className="text-center">
-              <div className="h-16 flex items-end justify-center border-b border-gray-300">
-                <img className="h-10 opacity-85" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6OjX2fmU4wb4GA7ctM1sUxtTnyRda_KnNKHQGe11rGocM4IOnXIKNE6QF1p2xDiyfJ3rJvgV6aC41cjmoDu9FsAopW0Awb_oFze-96zAPl8N4gBxvgrGERzCVmuYU54dCjfLQhiJU5XvZk-a8k2YAQ2Ru66lbJpYNsJpkhGtC5i6Z9JRobwHOIzRkIzCqMECD-fRn8JiqOcmgZhIEyPFY8u7megPKCcmGVW_IJPrl-BfXeWFnJAuAIT5PbXP1Jfn85VjRVS8dis0P" alt="Physician Signature" />
-              </div>
-              <p className="text-xs font-bold text-gray-500 mt-2">توقيع الطبيب / Physician Signature</p>
-              <p className="text-sm font-bold text-[#003d9b]">{selectedReport.doctor || "Dr. Visionary MS, FRCS"}</p>
-              <p className="text-[10px] text-gray-400">Consultant Ophthalmologist</p>
-            </div>
-            <div className="text-center flex flex-col items-center justify-end">
-              <div className="h-16 flex items-end justify-center border-b border-gray-300 w-full">
-                <div className="w-12 h-12 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-300 opacity-80 mb-1">
-                  🛡️
+            {/* Footer / Official Area */}
+            <footer className="mt-8 border-t-2 border-outline-variant pt-6">
+              <div className="grid grid-cols-3 items-end">
+                {/* Medical Stamp */}
+                <div className="flex flex-col items-center">
+                  <div className="medical-seal">
+                    <span className="material-symbols-outlined text-4xl">verified_user</span>
+                  </div>
+                  <p className="text-[9px] text-outline mt-2 uppercase font-bold">Official Clinic Stamp</p>
+                </div>
+                {/* Administrator Signature */}
+                <div className="text-center px-4">
+                  <div className="border-b border-outline mb-1 pb-1">
+                    <span className="text-[11px] italic font-serif text-secondary">Authenticated Electronic Record</span>
+                  </div>
+                  <p className="text-[10px] font-bold">Hassan Al-Saeed</p>
+                  <p className="text-[8px] text-outline uppercase">Health Records Administrator</p>
+                </div>
+                {/* Physician Signature */}
+                <div className="text-center">
+                  <div className="h-14 flex items-end justify-center border-b border-outline mb-1">
+                    <img alt="Physician Signature" className="h-10 opacity-90" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6OjX2fmU4wb4GA7ctM1sUxtTnyRda_KnNKHQGe11rGocM4IOnXIKNE6QF1p2xDiyfJ3rJvgV6aC41cjmoDu9FsAopW0Awb_oFze-96zAPl8N4gBxvgrGERzCVmuYU54dCjfLQhiJU5XvZk-a8k2YAQ2Ru66lbJpYNsJpkhGtC5i6Z9JRobwHOIzRkIzCqMECD-fRn8JiqOcmgZhIEyPFY8u7megPKCcmGVW_IJPrl-BfXeWFnJAuAIT5PbXP1Jfn85VjRVS8dis0P"/>
+                  </div>
+                  <p className="text-[11px] font-bold text-primary">{selectedReport.doctor || "Dr. Visionary MS, FRCS"}</p>
+                  <p className="text-[9px] text-outline uppercase font-bold tracking-tighter">Consultant Ophthalmologist</p>
                 </div>
               </div>
-              <p className="text-xs font-bold text-gray-500 mt-2">إدارة العيادة / Clinic Administrator</p>
-              <p className="text-sm font-bold text-gray-700">Official Certification Stamp</p>
-              <p className="text-[10px] text-gray-400">Confidential Medical Record</p>
-            </div>
-          </footer>
-          {/* Bottom Border Accent */}
-          <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#003d9b] to-[#006476]"></div>
-        </div>
-      )}
+              <div className="mt-6 flex justify-between items-center text-[8px] text-outline border-t border-outline-variant/30 pt-2">
+                <p>© 2026 {BRAND_NAME_EN} Medical Suite - Confidential Medical Document</p>
+                <div className="flex gap-4">
+                  <span>HIPAA Compliant</span>
+                  <span>ISO 9001:2015 Certified</span>
+                  <span>Page 1 of 1</span>
+                </div>
+              </div>
+            </footer>
+            {/* Bottom Border Accent */}
+            <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-primary"></div>
+          </div>
+        );
+      })()}
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:ital,wght@0,700;1,700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
         @media print {
-          @page {
-            size: A4 portrait;
-            margin: 10mm;
+          body { 
+            background: white !important; 
+            margin: 0 !important; 
+            padding: 0 !important; 
           }
           body > div:not(.print-container) {
             display: none !important;
           }
           .print-container {
-            display: block !important;
+            display: flex !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+            width: 210mm !important;
+            height: 297mm !important;
+            padding: 12mm 15mm !important;
           }
+          @page {
+            size: A4 portrait !important;
+            margin: 0 !important;
+          }
+        }
+
+        .print-container {
+          width: 210mm;
+          height: 297mm;
+          background: white;
+          margin: 20px auto;
+          padding: 12mm 15mm;
+          box-shadow: 0 0 15px rgba(0,0,0,0.1);
+          display: flex;
+          flex-direction: column;
+          position: relative;
+          box-sizing: border-box;
+        }
+
+        /* Color classes mapping to the exact palette in the HTML design */
+        .print-container .bg-primary { background-color: #003d9b !important; }
+        .print-container .text-primary { color: #003d9b !important; }
+        .print-container .text-secondary { color: #526069 !important; }
+        .print-container .text-outline { color: #737685 !important; }
+        .print-container .border-primary { border-color: #003d9b !important; }
+        .print-container .border-outline-variant { border-color: #c3c6d6 !important; }
+        .print-container .bg-surface-container-low { background-color: #f3f4f6 !important; }
+        .print-container .bg-surface-container-high { background-color: #e7e8ea !important; }
+        .print-container .bg-surface-container { background-color: #edeef0 !important; }
+        .print-container .bg-primary-5 { background-color: rgba(0, 61, 155, 0.05) !important; }
+        .print-container .text-error { color: #ba1a1a !important; }
+        .print-container .text-on-primary { color: #ffffff !important; }
+        .print-container .text-on-surface { color: #191c1e !important; }
+        
+        .print-container .section-title {
+          font-family: 'Playfair Display', serif;
+          letter-spacing: -0.01em;
+        }
+        .print-container .data-grid-item {
+          border-bottom: 1px solid #e5e7eb;
+          padding: 4px 0;
+        }
+        .print-container .medical-seal {
+          width: 80px;
+          height: 80px;
+          border: 2px solid rgba(0, 61, 155, 0.2);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0.4;
         }
       `}</style>
     </div>
