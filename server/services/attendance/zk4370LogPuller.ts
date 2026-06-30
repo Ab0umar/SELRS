@@ -3,7 +3,7 @@
  * The zkemkeeper.ZKEM COM object is 32-bit only, so we must call SysWOW64 pwsh.
  */
 
-import { execSync } from "child_process";
+import { spawnSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
@@ -115,8 +115,26 @@ export class ZK4370LogPuller {
 // ---------------------------------------------------------------------------
 
 function run(args: string, timeoutMs: number): string {
-  const cmd = `"${PS32}" -File "${PS1_PATH}" ${args}`;
-  return execSync(cmd, { encoding: "utf-8", timeout: timeoutMs });
+  // Use spawnSync with explicit args array to avoid cmd.exe quoting issues
+  // with quoted executable paths on Windows.
+  const argv = ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", PS1_PATH, ...parseArgs(args)];
+  const proc = spawnSync(PS32, argv, { encoding: "utf-8", timeout: timeoutMs });
+  if (proc.status !== 0) {
+    throw new Error((proc.stderr || proc.stdout || "unknown error").trim());
+  }
+  return proc.stdout ?? "";
+}
+
+function parseArgs(args: string): string[] {
+  // Split "-Mode pull -IP 1.2.3.4 -Port 4370 ..." honouring quoted values.
+  const result: string[] = [];
+  const re = /(-\w+)\s+("(?:[^"\\]|\\.)*"|[^\s"]+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(args)) !== null) {
+    result.push(m[1]);
+    result.push(m[2].replace(/^"|"$/g, ""));
+  }
+  return result;
 }
 
 function tmpPath(prefix: string, ext = "csv"): string {
