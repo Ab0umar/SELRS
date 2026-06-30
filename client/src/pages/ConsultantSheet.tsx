@@ -980,7 +980,7 @@ export default function ConsultantSheet() {
 
         <div className="hidden print:block">
           {renderSheetBody(true)}
-          <div className="print:break-before-page">{renderFollowupSection()}</div>
+          <div>{renderFollowupSection()}</div>
         </div>
 
         <div className={`sheet-mobile-actions print:hidden ${printMode.printView ? "hidden" : ""}`}>
