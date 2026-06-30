@@ -558,8 +558,8 @@
 /* Print Styles for A4 Paper */
 @media print {
   @page {
-    size: A4;
-    margin: 10mm;
+    size: A4 portrait;
+    margin: 0 !important;
   }
 
   body {
@@ -568,12 +568,30 @@
   }
 
   main {
-    max-width: 210mm;
-    min-height: 297mm;
+    max-width: 190mm;
+    width: 190mm;
+    min-height: 0;
     margin: 0 auto;
-    padding: 10mm;
-    page-break-after: always;
+    padding: 0 !important;
+    page-break-after: avoid;
     page-break-inside: avoid;
+  }
+
+  /* Force sheet contents to fit on a single A4 page by preventing breaks and scaling slightly */
+  .sheet-layout,
+  .lasik-print-root,
+  .specialist-print-root,
+  .followup-print-root,
+  .a4-page-card {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    page-break-before: avoid !important;
+    break-after: avoid !important;
+    break-before: avoid !important;
+    max-height: 285mm !important;
+    overflow: hidden !important;
+    zoom: 0.78 !important;
   }
 
   .notes-col {
