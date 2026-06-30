@@ -56,7 +56,8 @@ type AdminKey = (typeof ALL_ADMIN_TABS)[number]["key"];
 type StaffKey = (typeof ALL_STAFF_TABS)[number]["key"];
 
 const DEFAULT_ADMIN_KEYS: AdminKey[] = ["dashboard", "patients", "accounting", "salary", "attendance", "kf", "admin"];
-const DEFAULT_STAFF_KEYS: StaffKey[] = ["today", "patients", "operations", "accounting", "kf", "roster"];
+const DEFAULT_STAFF_KEYS: StaffKey[] = ["today", "patients", "operations", "accounting", "kf"];
+const DEFAULT_STAFF_KEYS_DR: StaffKey[] = [...DEFAULT_STAFF_KEYS, "roster"];
 
 const STORAGE_KEY_ADMIN = "selrs:bottom-nav-admin";
 const STORAGE_KEY_STAFF = "selrs:bottom-nav-staff";
@@ -104,7 +105,11 @@ export function AppBottomNav({
 }: AppBottomNavProps) {
   const storageKey = isAdmin ? STORAGE_KEY_ADMIN : STORAGE_KEY_STAFF;
   const allTabs = isAdmin ? ALL_ADMIN_TABS : ALL_STAFF_TABS;
-  const defaultKeys = isAdmin ? DEFAULT_ADMIN_KEYS : DEFAULT_STAFF_KEYS;
+  const defaultKeys = isAdmin
+    ? DEFAULT_ADMIN_KEYS
+    : ["doctor", "technician"].includes(userRole)
+      ? DEFAULT_STAFF_KEYS_DR
+      : DEFAULT_STAFF_KEYS;
 
   const [enabledKeys, setEnabledKeys] = useState<string[]>(() =>
     loadKeys(storageKey, defaultKeys as unknown as string[]),
