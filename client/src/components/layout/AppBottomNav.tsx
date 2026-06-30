@@ -56,7 +56,7 @@ type AdminKey = (typeof ALL_ADMIN_TABS)[number]["key"];
 type StaffKey = (typeof ALL_STAFF_TABS)[number]["key"];
 
 const DEFAULT_ADMIN_KEYS: AdminKey[] = ["dashboard", "patients", "accounting", "salary", "attendance", "kf", "admin"];
-const DEFAULT_STAFF_KEYS: StaffKey[] = ["today", "patients", "operations", "accounting", "kf"];
+const DEFAULT_STAFF_KEYS: StaffKey[] = ["today", "patients", "operations", "accounting", "kf", "roster"];
 
 const STORAGE_KEY_ADMIN = "selrs:bottom-nav-admin";
 const STORAGE_KEY_STAFF = "selrs:bottom-nav-staff";
@@ -126,6 +126,7 @@ export function AppBottomNav({
     if (!enabledKeys.includes(tab.key)) return false;
     if (isAdmin) return true;
     if (tab.key === "roster" && !["doctor", "technician"].includes(userRole)) return false;
+    if (tab.key === "roster" && ["doctor", "technician"].includes(userRole)) return true;
     if (!permissionsLoaded) return false;
     const cleanPath = normalizeNavPath(tab.paths[0]?.split("?")[0] ?? "");
     return pathGrantedByRoots(cleanPath, allowedRoots as any);
