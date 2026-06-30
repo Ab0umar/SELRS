@@ -29,7 +29,7 @@ const toneForBalance = (remaining: number, total: number) => {
   return "border-destructive/20 bg-destructive/10 text-destructive";
 };
 
-export default function LeaveBalanceReport() {
+export default function LeaveBalanceReport({ department }: { department?: string }) {
   const [year, setYear] = useState(new Date().getFullYear());
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
@@ -39,7 +39,7 @@ export default function LeaveBalanceReport() {
   });
   const [editing, setEditing] = useState<EditRow | null>(null);
 
-  const query = trpc.attendance.allLeaveBalances.useQuery({ year });
+  const query = trpc.attendance.allLeaveBalances.useQuery({ year, department });
   const empsQuery = trpc.attendance.employeesList.useQuery();
   const rows: any[] = (query.data as any[]) ?? [];
   const employees: any[] = (empsQuery.data?.employees ?? []) as any;

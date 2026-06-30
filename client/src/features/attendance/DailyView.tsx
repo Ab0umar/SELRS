@@ -23,7 +23,7 @@ const timeTone: Record<string, string> = {
   overtime: "border-primary/20 bg-primary/10 text-primary",
 };
 
-export default function DailyView() {
+export default function DailyView({ department }: { department?: string }) {
   const today = new Date().toISOString().split("T")[0];
   const [dates, setDates] = useState({ from: today, to: today });
   const [empFilter, setEmpFilter] = useState("");
@@ -58,6 +58,7 @@ export default function DailyView() {
       try {
         const response = await utils.attendance.dailyByDate.fetch({
           date: dateStr,
+          department,
         });
         allRecords = [...allRecords, ...response];
       } catch (error) {

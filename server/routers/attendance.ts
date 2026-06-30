@@ -159,6 +159,7 @@ export const attendanceRouter = router({
         empCd: z.string().optional(),
         fromDate: z.string().optional(), // YYYY-MM-DD
         toDate: z.string().optional(), // YYYY-MM-DD
+        department: z.string().optional(),
         limit: z.number().int().min(1).max(1000).default(500),
         offset: z.number().int().min(0).default(0),
       }),
@@ -167,7 +168,7 @@ export const attendanceRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
-      const conditions = [];
+      const conditions: any[] = [];
 
       if (input.empCd) {
         conditions.push(eq(attendancePunches.empCd, input.empCd));
@@ -184,22 +185,56 @@ export const attendanceRouter = router({
         conditions.push(lte(attendancePunches.punchAt, to));
       }
 
+      if (input.department) {
+        conditions.push(eq(attendanceEmployees.department, input.department));
+      }
+
       const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-      const punches = await db
-        .select()
-        .from(attendancePunches)
-        .where(where)
-        .orderBy(desc(attendancePunches.punchAt))
-        .limit(input.limit)
-        .offset(input.offset);
+      const needsJoin = !!input.department;
+
+      const punches = needsJoin
+        ? await db
+            .select({
+              id: attendancePunches.id,
+              empCd: attendancePunches.empCd,
+              punchAt: attendancePunches.punchAt,
+              direction: attendancePunches.direction,
+              deviceId: attendancePunches.deviceId,
+              sourceHash: attendancePunches.sourceHash,
+            })
+            .from(attendancePunches)
+            .leftJoin(
+              attendanceEmployees,
+              eq(attendancePunches.empCd, attendanceEmployees.empCd),
+            )
+            .where(where)
+            .orderBy(desc(attendancePunches.punchAt))
+            .limit(input.limit)
+            .offset(input.offset)
+        : await db
+            .select()
+            .from(attendancePunches)
+            .where(where)
+            .orderBy(desc(attendancePunches.punchAt))
+            .limit(input.limit)
+            .offset(input.offset);
 
       const total =
         conditions.length > 0
-          ? await db
-              .select({ count: attendancePunches.id })
-              .from(attendancePunches)
-              .where(where)
+          ? needsJoin
+            ? await db
+                .select({ count: attendancePunches.id })
+                .from(attendancePunches)
+                .leftJoin(
+                  attendanceEmployees,
+                  eq(attendancePunches.empCd, attendanceEmployees.empCd),
+                )
+                .where(where)
+            : await db
+                .select({ count: attendancePunches.id })
+                .from(attendancePunches)
+                .where(where)
           : [];
 
       return {
@@ -214,15 +249,32 @@ export const attendanceRouter = router({
         total: total[0]?.count ?? 0,
       };
     }),
+  listDepartments: makeAttProcedure("/attendance").query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+    const rows = await db
+      .selectDistinct({ department: attendanceEmployees.department })
+      .from(attendanceEmployees)
+      .where(sql`${attendanceEmployees.department} IS NOT NULL AND ${attendanceEmployees.department} != ''`)
+      .orderBy(attendanceEmployees.department);
+    return rows.map((r: any) => r.department as string);
+  }),
+
   dailyByDate: makeAttProcedure("/attendance")
     .input(
       z.object({
         date: z.string(), // YYYY-MM-DD
+        department: z.string().optional(),
       }),
     )
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+
+      const conditions: any[] = [eq(attendanceDaily.workDate, input.date as any)];
+      if (input.department) {
+        conditions.push(eq(attendanceEmployees.department, input.department));
+      }
 
       const daily = await db
         .select({
@@ -245,7 +297,7 @@ export const attendanceRouter = router({
           attendanceEmployees,
           eq(attendanceDaily.empCd, attendanceEmployees.empCd),
         )
-        .where(eq(attendanceDaily.workDate, input.date as any))
+        .where(and(...conditions))
         .orderBy(attendanceDaily.empCd);
 
       return daily.map((d: any) => ({

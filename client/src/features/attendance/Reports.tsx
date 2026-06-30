@@ -24,7 +24,7 @@ const firstOfMonth = new Date(
   .toISOString()
   .split("T")[0];
 
-export default function Reports() {
+export default function Reports({ department }: { department?: string }) {
   const [dates, setDates] = useState({ from: firstOfMonth, to: todayStr });
   const [activeTab, setActiveTab] = useState<ReportTab>("summary");
   const [balanceYear, setBalanceYear] = useState(new Date().getFullYear());
@@ -36,13 +36,16 @@ export default function Reports() {
   const rangeQuery = trpc.attendance.rangeReport.useQuery({
     from: dates.from,
     to: dates.to,
+    department,
   });
   const permQuery = trpc.attendance.permissionReport.useQuery({
     from: dates.from,
     to: dates.to,
+    department,
   });
   const balanceQuery = trpc.attendance.allLeaveBalances.useQuery({
     year: balanceYear,
+    department,
   });
 
   const escapeHtml = (value: unknown) =>
