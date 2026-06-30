@@ -7,12 +7,10 @@ import { spawnSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
-import { fileURLToPath } from "url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const PS32     = "C:\\Windows\\SysWOW64\\WindowsPowerShell\\v1.0\\powershell.exe";
-const PS1_PATH = path.resolve(__dirname, "../../../scripts/zk-pull.ps1");
+const PS1_PATH = process.env.ZK_PULL_PS1_PATH
+  ?? path.resolve(process.cwd(), "scripts/zk-pull.ps1");
 
 export interface ZKPunch {
   enrollNo:   string;
