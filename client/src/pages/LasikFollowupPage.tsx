@@ -216,7 +216,7 @@ export default function LasikFollowupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#dde1e7] text-[#191c1e]" dir="rtl" style={{ fontFamily: 'Inter, sans-serif' }}>
+    <div className="min-h-screen bg-[#f8f9fb] text-[#191c1e]" dir="rtl" style={{ fontFamily: 'Inter, sans-serif' }}>
       <style>{`
         @media print {
           .print\\:hidden { display: none !important; }
@@ -227,6 +227,26 @@ export default function LasikFollowupPage() {
             margin-top: ${followupLabels.offsetYmm}mm;
             margin-left: ${followupLabels.offsetXmm}mm;
           }
+        }
+        .od-row { background-color: rgba(0, 61, 155, 0.04); }
+        .os-row { background-color: #ffffff; }
+        .table-input-cell {
+            padding: 0 !important;
+        }
+        .table-input-cell input {
+            height: 100%;
+            border-radius: 0;
+            text-align: center;
+            background-color: transparent;
+            border: 1px solid transparent;
+            width: 100%;
+            transition: all 0.2s;
+        }
+        .table-input-cell input:focus {
+            border-color: #003d9b;
+            background-color: #ffffff;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0, 61, 155, 0.1);
         }
       `}</style>
 
@@ -329,9 +349,9 @@ export default function LasikFollowupPage() {
           {/* Followup cards */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {followups.map((f, idx) => (
-              <article key={f.id} className="bg-white border border-[#c3c6d6] rounded-xl overflow-hidden shadow-sm">
+              <article key={f.id} className="bg-white border border-[#c3c6d6] rounded-xl overflow-hidden shadow-[0_2px_4px_rgba(0,0,0,0.05)]">
                 {/* Card header */}
-                <div className={`px-4 py-3 border-b border-[#c3c6d6] flex justify-between items-center ${idx === 0 ? "bg-[#003d9b]/5" : "bg-[#edeef0]/40"}`}>
+                <div className={`px-4 py-3 border-b border-[#c3c6d6] flex justify-between items-center ${idx === 0 ? "bg-[#003d9b]/10" : "bg-[#edeef0]/40"}`}>
                   <div className="flex items-center gap-2">
                     <span className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold text-white ${idx === 0 ? "bg-[#003d9b]" : "bg-[#737685]"}`}>{idx + 1}</span>
                     <Input
@@ -348,9 +368,24 @@ export default function LasikFollowupPage() {
                 </div>
 
                 <div className="p-4 space-y-4">
+                  {/* Dominant Eye */}
+                  <div className="flex justify-between items-center bg-[#edeef0]/40 p-2 rounded">
+                    <span className="text-xs font-bold text-gray-500 uppercase">العين المهيمنة (Dominant Eye):</span>
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-1 cursor-pointer">
+                        <input className="text-[#003d9b] focus:ring-[#003d9b]" name={`dominant_${f.id}`} type="radio"/>
+                        <span className="text-xs">OD</span>
+                      </label>
+                      <label className="flex items-center gap-1 cursor-pointer">
+                        <input className="text-[#003d9b] focus:ring-[#003d9b]" name={`dominant_${f.id}`} type="radio"/>
+                        <span className="text-xs">OS</span>
+                      </label>
+                    </div>
+                  </div>
+
                   {/* Clinical data table */}
                   <table className="w-full border-collapse border border-[#c3c6d6] text-xs rounded overflow-hidden">
-                    <thead className="bg-[#e7e8ea] text-[#434654] font-bold uppercase tracking-wider">
+                    <thead className="bg-[#edeef0]/40 text-[#434654] font-bold uppercase tracking-wider text-[10px]">
                       <tr>
                         <th className="p-2 border border-[#c3c6d6] text-center">Eye</th>
                         <th className="p-2 border border-[#c3c6d6]">{followupLabels.vaLabel ?? "VA (U)"}</th>
@@ -361,21 +396,21 @@ export default function LasikFollowupPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr style={{ backgroundColor: "rgba(0,61,155,0.04)" }}>
+                      <tr className="od-row">
                         <td className="p-2 border border-[#c3c6d6] font-bold text-[#003d9b] text-center">OD</td>
-                        <td className="border border-[#c3c6d6] p-0"><input className="w-full h-8 text-center bg-transparent border-0 focus:ring-1 focus:ring-[#003d9b] outline-none text-xs" /></td>
-                        <td className="border border-[#c3c6d6] p-0"><input className="w-full h-8 text-center bg-transparent border-0 focus:ring-1 focus:ring-[#003d9b] outline-none text-xs" /></td>
-                        <td className="border border-[#c3c6d6] p-0"><input className="w-full h-8 text-center bg-transparent border-0 focus:ring-1 focus:ring-[#003d9b] outline-none text-xs" /></td>
-                        <td className="border border-[#c3c6d6] p-0"><input className="w-full h-8 text-center bg-transparent border-0 focus:ring-1 focus:ring-[#003d9b] outline-none text-xs" /></td>
-                        <td className="border border-[#c3c6d6] p-0"><input className="w-full h-8 text-center bg-transparent border-0 focus:ring-1 focus:ring-[#003d9b] outline-none text-xs" /></td>
+                        <td className="table-input-cell border border-[#c3c6d6]"><input placeholder="6/6" type="text"/></td>
+                        <td className="table-input-cell border border-[#c3c6d6]"><input placeholder="0.00" type="text"/></td>
+                        <td className="table-input-cell border border-[#c3c6d6]"><input placeholder="0.00" type="text"/></td>
+                        <td className="table-input-cell border border-[#c3c6d6]"><input placeholder="-" type="text"/></td>
+                        <td className="table-input-cell border border-[#c3c6d6]"><input placeholder="6/6" type="text"/></td>
                       </tr>
-                      <tr style={{ backgroundColor: "#ffffff" }}>
-                        <td className="p-2 border border-[#c3c6d6] font-bold text-[#526069] text-center">OS</td>
-                        <td className="border border-[#c3c6d6] p-0"><input className="w-full h-8 text-center bg-transparent border-0 focus:ring-1 focus:ring-[#003d9b] outline-none text-xs" /></td>
-                        <td className="border border-[#c3c6d6] p-0"><input className="w-full h-8 text-center bg-transparent border-0 focus:ring-1 focus:ring-[#003d9b] outline-none text-xs" /></td>
-                        <td className="border border-[#c3c6d6] p-0"><input className="w-full h-8 text-center bg-transparent border-0 focus:ring-1 focus:ring-[#003d9b] outline-none text-xs" /></td>
-                        <td className="border border-[#c3c6d6] p-0"><input className="w-full h-8 text-center bg-transparent border-0 focus:ring-1 focus:ring-[#003d9b] outline-none text-xs" /></td>
-                        <td className="border border-[#c3c6d6] p-0"><input className="w-full h-8 text-center bg-transparent border-0 focus:ring-1 focus:ring-[#003d9b] outline-none text-xs" /></td>
+                      <tr className="os-row">
+                        <td className="p-2 border border-[#c3c6d6] font-bold text-gray-700 text-center">OS</td>
+                        <td className="table-input-cell border border-[#c3c6d6]"><input placeholder="6/9" type="text"/></td>
+                        <td className="table-input-cell border border-[#c3c6d6]"><input placeholder="-0.25" type="text"/></td>
+                        <td className="table-input-cell border border-[#c3c6d6]"><input placeholder="-0.50" type="text"/></td>
+                        <td className="table-input-cell border border-[#c3c6d6]"><input placeholder="180" type="text"/></td>
+                        <td className="table-input-cell border border-[#c3c6d6]"><input placeholder="6/6" type="text"/></td>
                       </tr>
                     </tbody>
                   </table>
@@ -387,11 +422,17 @@ export default function LasikFollowupPage() {
                       <div className="space-y-1.5 text-xs">
                         <div className="flex justify-between items-center gap-2">
                           <span className="text-[#434654]">{followupLabels.edgesLabel ?? "Edges"}:</span>
-                          <input className="border border-[#c3c6d6] rounded px-2 py-1 w-20 text-xs focus:ring-1 focus:ring-[#003d9b] outline-none" />
+                          <select className="w-24 text-[12px] p-1 border rounded bg-white">
+                            <option>سليم</option>
+                            <option>تورم</option>
+                          </select>
                         </div>
                         <div className="flex justify-between items-center gap-2">
                           <span className="text-[#434654]">{followupLabels.bedLabel ?? "Bed"}:</span>
-                          <input className="border border-[#c3c6d6] rounded px-2 py-1 w-20 text-xs focus:ring-1 focus:ring-[#003d9b] outline-none" />
+                          <select className="w-24 text-[12px] p-1 border rounded bg-white">
+                            <option>صافي</option>
+                            <option>عكر</option>
+                          </select>
                         </div>
                       </div>
                     </div>
@@ -408,7 +449,7 @@ export default function LasikFollowupPage() {
                   {/* Treatment / Notes */}
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wider text-[#434654] mb-1">{followupLabels.treatmentLabel ?? "ملاحظات وعلاج"}</p>
-                    <textarea className="w-full h-14 border border-[#c3c6d6] rounded-lg p-2 text-xs focus:ring-1 focus:ring-[#003d9b] focus:outline-none resize-none" />
+                    <textarea className="w-full h-14 border border-[#c3c6d6] rounded-lg p-2 text-xs focus:ring-1 focus:ring-[#003d9b] focus:outline-none resize-none" placeholder="اكتب الملاحظات هنا..." />
                   </div>
 
                   {/* Signatures */}
