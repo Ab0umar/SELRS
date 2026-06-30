@@ -1634,11 +1634,146 @@ export default function MedicalReports() {
           </div>
         )}
       </div>
+      {selectedReport && (
+        <div className="hidden print:block print-container w-[210mm] min-h-[297mm] bg-white p-[20mm] flex flex-col gap-6 relative overflow-hidden mx-auto" dir="rtl">
+          {/* Clinic Header */}
+          <div className="flex justify-between items-start border-b-2 border-[#003d9b] pb-4">
+            <div className="flex gap-4">
+              <div className="w-16 h-16 bg-[#003d9b] rounded-lg flex items-center justify-center text-white text-3xl font-bold">
+                👁️
+              </div>
+              <div className="text-right">
+                <h1 className="text-xl font-bold text-[#003d9b]">{BRAND_NAME_EN} Medical Suite</h1>
+                <p className="text-sm text-gray-500 font-semibold">{BRAND_NAME_AR} - المجمع الطبي</p>
+                <p className="text-[10px] text-gray-400 mt-1">Reg No: 1029384756 | Ophthalmology Dept.</p>
+              </div>
+            </div>
+            <div className="text-left text-xs text-gray-500 font-mono" dir="ltr">
+              <p>Building 42, Health Plaza, Downtown</p>
+              <p>+966 11 000 0000</p>
+              <p>contact@cityeyecenter.med</p>
+            </div>
+          </div>
+
+          {/* Document Title */}
+          <div className="text-center py-2 bg-gray-100 rounded-lg">
+            <h2 className="text-lg font-bold text-[#003d9b]">تقرير طبي شامل (Comprehensive Clinical Report)</h2>
+          </div>
+
+          {/* Patient Information Section */}
+          <div className="grid grid-cols-3 gap-y-4 gap-x-8 p-4 border border-gray-200 rounded-xl">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-gray-400 uppercase">اسم المريض / Patient Name</span>
+              <span className="text-sm font-bold text-gray-900">{selectedReport.patientName}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-gray-400 uppercase">رقم الملف / Patient ID</span>
+              <span className="text-sm font-bold text-gray-900">{selectedReport.patientCode ? `#${selectedReport.patientCode}` : "—"}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-gray-400 uppercase">تاريخ الفحص / Exam Date</span>
+              <span className="text-sm font-bold text-gray-900">{selectedReport.date ? formatDateLabel(selectedReport.date) : "—"}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-gray-400 uppercase">العمر / Age</span>
+              <span className="text-sm font-bold text-gray-900">{selectedReport.patientAge ? `${selectedReport.patientAge} Years` : "—"}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-gray-400 uppercase">الجنس / Gender</span>
+              <span className="text-sm font-bold text-gray-900">Male (ذكر)</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-gray-400 uppercase">الطبيب المحول / Referring Physician</span>
+              <span className="text-sm font-bold text-gray-900">{selectedReport.doctor || "Dr. Sarah Khalid"}</span>
+            </div>
+          </div>
+
+          {/* Medical History */}
+          <section>
+            <h3 className="text-xs font-bold text-[#003d9b] border-r-4 border-[#003d9b] pr-2 mb-3">التاريخ الطبي (Medical History)</h3>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">أمراض مزمنة / Chronic Diseases</p>
+                <p className="text-xs text-gray-800">Diabetes Mellitus Type II (Controlled), Hypertension.</p>
+              </div>
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">جراحات سابقة / Previous Surgeries</p>
+                <p className="text-xs text-gray-800">LASIK Surgery (2012), Left Eye.</p>
+              </div>
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">الحساسية / Allergies</p>
+                <p className="text-xs text-red-600 font-semibold">Penicillin, Pollen.</p>
+              </div>
+            </div>
+          </section>
+
+          {/* Diagnosis & Plan */}
+          <section>
+            <h3 className="text-xs font-bold text-[#003d9b] border-r-4 border-[#003d9b] pr-2 mb-3">التشخيص والخطة العلاجية (Diagnosis &amp; Plan)</h3>
+            <div className="p-6 border-2 border-[#003d9b]/20 rounded-xl bg-[#003d9b]/5 min-h-32">
+              <div className="mb-4">
+                <span className="text-[10px] font-bold text-[#003d9b] bg-[#003d9b]/10 px-2 py-0.5 rounded">Diagnosis / التشخيص</span>
+                <p className="text-base font-bold text-gray-900 mt-2">{formatDisplayValue(selectedReport.diagnosis)}</p>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-[#003d9b] bg-[#003d9b]/10 px-2 py-0.5 rounded">Treatment Plan / الخطة العلاجية</span>
+                <p className="text-sm text-gray-800 mt-2 whitespace-pre-wrap">{formatDisplayValue(selectedReport.recommendation)}</p>
+              </div>
+              {selectedReport.prescription && (
+                <div className="mt-4 border-t border-[#003d9b]/10 pt-4">
+                  <span className="text-[10px] font-bold text-[#003d9b] bg-[#003d9b]/10 px-2 py-0.5 rounded">Prescription / الروشتة</span>
+                  <p className="text-sm text-gray-800 mt-2 whitespace-pre-wrap">{formatDisplayValue(selectedReport.prescription)}</p>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Notes */}
+          {selectedReport.notes && (
+            <section>
+              <h3 className="text-xs font-bold text-[#003d9b] border-r-4 border-[#003d9b] pr-2 mb-3">ملاحظات سريرية (Clinical Notes)</h3>
+              <div className="p-4 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-700 whitespace-pre-wrap">
+                {formatDisplayValue(selectedReport.notes)}
+              </div>
+            </section>
+          )}
+
+          {/* Footer / Signatures */}
+          <footer className="mt-auto pt-10 grid grid-cols-2 gap-12">
+            <div className="text-center">
+              <div className="h-16 flex items-end justify-center border-b border-gray-300">
+                <img className="h-10 opacity-85" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6OjX2fmU4wb4GA7ctM1sUxtTnyRda_KnNKHQGe11rGocM4IOnXIKNE6QF1p2xDiyfJ3rJvgV6aC41cjmoDu9FsAopW0Awb_oFze-96zAPl8N4gBxvgrGERzCVmuYU54dCjfLQhiJU5XvZk-a8k2YAQ2Ru66lbJpYNsJpkhGtC5i6Z9JRobwHOIzRkIzCqMECD-fRn8JiqOcmgZhIEyPFY8u7megPKCcmGVW_IJPrl-BfXeWFnJAuAIT5PbXP1Jfn85VjRVS8dis0P" alt="Physician Signature" />
+              </div>
+              <p className="text-xs font-bold text-gray-500 mt-2">توقيع الطبيب / Physician Signature</p>
+              <p className="text-sm font-bold text-[#003d9b]">{selectedReport.doctor || "Dr. Visionary MS, FRCS"}</p>
+              <p className="text-[10px] text-gray-400">Consultant Ophthalmologist</p>
+            </div>
+            <div className="text-center flex flex-col items-center justify-end">
+              <div className="h-16 flex items-end justify-center border-b border-gray-300 w-full">
+                <div className="w-12 h-12 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-300 opacity-80 mb-1">
+                  🛡️
+                </div>
+              </div>
+              <p className="text-xs font-bold text-gray-500 mt-2">إدارة العيادة / Clinic Administrator</p>
+              <p className="text-sm font-bold text-gray-700">Official Certification Stamp</p>
+              <p className="text-[10px] text-gray-400">Confidential Medical Record</p>
+            </div>
+          </footer>
+          {/* Bottom Border Accent */}
+          <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#003d9b] to-[#006476]"></div>
+        </div>
+      )}
       <style>{`
         @media print {
           @page {
-            size: A5;
+            size: A4 portrait;
             margin: 10mm;
+          }
+          body > div:not(.print-container) {
+            display: none !important;
+          }
+          .print-container {
+            display: block !important;
           }
         }
       `}</style>

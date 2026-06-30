@@ -670,102 +670,102 @@ export default function ConsultantSheet() {
 
   const renderSheetBody = (readOnly = false) => (
     <fieldset disabled={embeddedInPatientHub || readOnly} className="border-0 p-0 m-0 min-w-0 disabled:opacity-95 consultant-main-print-root">
-      <div className="bg-white p-6 print:p-3" dir="ltr">
+      <div className="bg-white p-10 print:p-6" dir="ltr">
 
         {/* Brand Header */}
-        <div className="flex items-start justify-between mb-6 pb-4 border-b border-gray-200">
-          <div>
-            <h1 className="text-sm font-bold text-[#003D9B]">{BRAND_NAME_EN}</h1>
-            <p className="text-[11px] text-gray-700 mt-0.5">Lasik & Vision Correction — {BRAND_NAME_AR}</p>
-            <p className="text-[11px] text-gray-500">Ophthalmic Excellence Center</p>
+        <div className="flex justify-between items-start mb-8 border-b-2 border-[#003D9B] pb-6" dir="rtl">
+          <div className="text-right">
+            <h1 className="text-2xl font-bold text-[#003D9B]">{BRAND_NAME_EN}</h1>
+            <p className="text-lg font-semibold text-gray-900">ليزر و تصحيح الإبصار — {BRAND_NAME_AR}</p>
+            <p className="text-sm text-gray-500">Ophthalmic Excellence Center</p>
           </div>
-          <div className="border border-gray-300 rounded-xl p-2 flex items-center justify-center" style={{ width: 72, height: 72 }}>
-            <svg viewBox="0 0 24 24" className="h-10 w-10 text-[#003D9B]" fill="none" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
+          <div className="w-32 h-32 flex items-center justify-center bg-gray-100 rounded-xl overflow-hidden border border-gray-200">
+            <img className="w-full h-full object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAz1OixxO29XJc5YDeeML3-dfLFciXO3nXi6Hb_HfUgegZIpNhvlEDfHuWJRdxXsmpIvWrq5wlcXfYnU54mIHOzkaL3FrwGQEPYTYF01Vrr4xFgZt6lLEeVF1oxpss1HJrqkpV6toJLe2pYCLmtU1V1W9ynLkmuv5t9irRi05MliUzfk8IMH3fLkFxBYhrbmHDukEaaeNJJ9cdIXJ0pAOLOPXQ0j1AGoKQtsUlI2RRfRm0DshoyqwlPTDT3S5_bsIeOTdwpX_2MWbr2" alt="Logo" />
           </div>
         </div>
 
-        {/* Patient Info — 4 cols top row, then address, then phone+job */}
-        <div className="mb-4 border border-gray-200 rounded-lg overflow-hidden" dir="rtl">
-          <div className="grid grid-cols-4 divide-x divide-gray-200 text-[11px]">
-            {[
-              { label: "الاسم / Name", value: formData.patientName },
-              { label: "DOB / تاريخ الميلاد", value: formData.dateOfBirth },
-              { label: "السن / Age", value: formData.age },
-              { label: "Patient Code / كود المريض", value: formData.code ? `#${formData.code}` : "" },
-            ].map(({ label, value }, i) => (
-              <div key={i} className="p-2.5">
-                <p className="text-gray-500 text-[10px] mb-0.5">{label}</p>
-                <p className="font-bold text-gray-900">{value || <span className="text-gray-300">—</span>}</p>
-              </div>
-            ))}
+        {/* Patient Personal Info */}
+        <div className="grid grid-cols-4 gap-4 mb-8 bg-[#f8f9fb] p-4 rounded-lg border border-gray-200" dir="rtl">
+          <div className="flex flex-col gap-1 border-l border-gray-200 pl-4">
+            <span className="text-xs text-gray-500 font-semibold">الاسم / Name</span>
+            <span className="text-sm font-bold text-gray-900">{formData.patientName || <span className="text-gray-300">—</span>}</span>
           </div>
-          <div className="grid grid-cols-3 divide-x divide-gray-200 border-t border-gray-200 text-[11px]">
-            <div className="col-span-2 p-2.5">
-              <p className="text-gray-500 text-[10px] mb-0.5">العنوان / Address</p>
-              <p className="font-bold text-gray-900">{formData.address || <span className="text-gray-300">—</span>}</p>
-            </div>
-            <div className="p-2.5">
-              <p className="text-gray-500 text-[10px] mb-0.5">Phone / هاتف</p>
-              <p className="font-bold text-gray-900" dir="ltr">{formData.phone || <span className="text-gray-300">—</span>}</p>
-            </div>
+          <div className="flex flex-col gap-1 border-l border-gray-200 pl-4">
+            <span className="text-xs text-gray-500 font-semibold">تاريخ الميلاد / DOB</span>
+            <span className="text-sm font-bold text-gray-900">{formData.dateOfBirth || <span className="text-gray-300">—</span>}</span>
           </div>
-          <div className="border-t border-gray-200 p-2.5 text-[11px]">
-            <span className="text-gray-500 text-[10px]">Job / الوظيفة</span>
-            <span className="font-bold text-gray-900 mr-2">{formData.job || <span className="text-gray-300">—</span>}</span>
+          <div className="flex flex-col gap-1 border-l border-gray-200 pl-4">
+            <span className="text-xs text-gray-500 font-semibold">السن / Age</span>
+            <span className="text-sm font-bold text-gray-900">{formData.age || <span className="text-gray-300">—</span>}</span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-xs text-gray-500 font-semibold">كود المريض / Patient Code</span>
+            <span className="text-sm font-bold text-gray-900">{formData.code ? `#${formData.code}` : <span className="text-gray-300">—</span>}</span>
+          </div>
+          <div className="col-span-2 flex flex-col gap-1 border-l border-gray-200 pl-4 mt-2">
+            <span className="text-xs text-gray-500 font-semibold">العنوان / Address</span>
+            <span className="text-sm text-gray-900">{formData.address || <span className="text-gray-300">—</span>}</span>
+          </div>
+          <div className="flex flex-col gap-1 border-l border-gray-200 pl-4 mt-2">
+            <span className="text-xs text-gray-500 font-semibold">الوظيفة / Job</span>
+            <span className="text-sm text-gray-900">{formData.job || <span className="text-gray-300">—</span>}</span>
+          </div>
+          <div className="flex flex-col gap-1 mt-2">
+            <span className="text-xs text-gray-500 font-semibold">التليفون / Phone</span>
+            <span className="text-sm text-gray-900 font-mono" dir="ltr">{formData.phone || <span className="text-gray-300">—</span>}</span>
           </div>
         </div>
 
-        {/* Medical History */}
-        <div className="mb-4">
-          <div className="border-l-4 border-[#003D9B] bg-[#EEF4FF] pl-3 py-1 mb-2 flex items-center">
-            <h3 className="text-[11px] font-bold text-[#003D9B] tracking-wide">التاريخ المرضى / MEDICAL HISTORY</h3>
-          </div>
-          <div className="border border-gray-200 rounded-lg p-3 grid grid-cols-2 gap-x-8 gap-y-2.5 text-[11px]" dir="rtl">
+        {/* Medical History Section */}
+        <div className="mb-8">
+          <h3 className="text-xs font-bold text-[#003D9B] border-r-4 border-[#003D9B] pr-3 mb-4 bg-[#dae2ff] p-2 rounded" dir="rtl">التاريخ المرضي / MEDICAL HISTORY</h3>
+          <div className="grid grid-cols-2 gap-x-12 gap-y-3 bg-[#f8f9fb] p-6 rounded-xl border border-gray-200" dir="rtl">
             {([
-              { ar: "امراض عامة (ضغط/سكر/غدة)", en: "General (BP/DM/Thyroid)", key: "keratoconusHistory" },
+              { ar: "أمراض عامة (ضغط/سكر/غدة)", en: "General (BP/DM/Thyroid)", key: "keratoconusHistory" },
               { ar: "تاريخ عائلي للقرنية المخروطية", en: "Keratoconus Family History", key: "familyHistory" },
-              { ar: "حمل او رضاعة", en: "Pregnancy or Nursing", key: "tearIncreasePregnancy" },
+              { ar: "حمل أو رضاعة", en: "Pregnancy or Nursing", key: "tearIncreasePregnancy" },
               { ar: "استخدام بدائل الدموع", en: "Tear Substitutes Use", key: "tearSubstitute" },
               { ar: "تحسس من التكييف/الهواء", en: "Symptoms with AC/Air", key: "sandySensation" },
-              { ar: "علاج حب الشباب (رواكيوتان)", en: "Acne (Roaccutane)", key: "treatmentUsed" },
+              { ar: "علاج حب الشباب (روأكيوتان)", en: "Acne (Roaccutane)", key: "treatmentUsed" },
               { ar: "علاج مياه زرقاء", en: "Glaucoma Treatment", key: "blueWaterTreatment" },
-              { ar: "اخري", en: "Other", key: "supplements" },
+              { ar: "أمراض الغدة الدرقية", en: "Thyroid Diseases", key: "thyroidDiseases" },
+              { ar: "أمراض المناعة", en: "Immune Diseases", key: "immuneDiseases" },
+              { ar: "أخرى", en: "Other", key: "supplements" },
             ] as { ar: string; en: string; key: keyof typeof formData }[]).map(({ ar, en, key }) => (
-              <label key={key} className="flex items-start gap-2 cursor-pointer">
+              <label key={key} className="flex items-center gap-3 cursor-pointer">
                 <Checkbox
                   checked={Boolean(formData[key])}
                   onCheckedChange={v => setFormData(p => ({ ...p, [key]: !!v }))}
-                  className="mt-0.5 shrink-0"
+                  className="w-5 h-5 border-gray-400 data-[state=checked]:bg-[#003D9B] data-[state=checked]:border-[#003D9B]"
                 />
-                <span className="text-[11px] text-gray-700 leading-tight">
-                  {ar} / <span className="text-gray-500">{en}</span>
-                </span>
+                <span className="text-sm text-gray-700">{ar} / {en}</span>
               </label>
             ))}
+            <div className="flex items-center gap-3 col-span-2 border-t border-gray-200/50 pt-2 mt-2">
+              <span className="text-sm font-bold text-gray-800">أخرى / Other:</span>
+              <div className="flex-1 border-b border-dotted border-gray-400 h-4"></div>
+            </div>
           </div>
         </div>
 
         {/* Refraction Table */}
-        <div className="mb-4 border border-gray-200 rounded-lg overflow-hidden" dir="ltr">
-          <table className="w-full border-collapse text-center text-[11px]">
+        <div className="mb-8 overflow-hidden rounded-xl border border-gray-200" dir="ltr">
+          <table className="w-full text-center border-collapse">
             <thead>
-              <tr className="bg-[#1B2B6B] text-white">
-                <th className="px-3 py-2.5 font-semibold border-r border-[#2d3f82] text-left">EYE</th>
-                <th className="px-3 py-2.5 font-semibold border-r border-[#2d3f82]">UCVA</th>
-                <th className="px-3 py-2.5 font-semibold border-r border-[#2d3f82]">BCVA</th>
-                <th className="px-3 py-2.5 font-semibold border-r border-[#2d3f82]" colSpan={3}>REFRACTION (S/C/A)</th>
-                <th className="px-3 py-2.5 font-semibold border-r border-[#2d3f82]">IOP</th>
-                <th className="px-3 py-2.5 font-semibold">DOMINANT</th>
+              <tr className="bg-[#003D9B] text-white">
+                <th className="p-3 border-r border-white/20 text-xs font-semibold uppercase tracking-wider">EYE</th>
+                <th className="p-3 border-r border-white/20 text-xs font-semibold uppercase tracking-wider">UCVA</th>
+                <th className="p-3 border-r border-white/20 text-xs font-semibold uppercase tracking-wider">BCVA</th>
+                <th className="p-3 border-r border-white/20 text-xs font-semibold uppercase tracking-wider">REFRACTION (S/C/A)</th>
+                <th className="p-3 border-r border-white/20 text-xs font-semibold uppercase tracking-wider">IOP</th>
+                <th className="p-3 text-xs font-semibold uppercase tracking-wider">DOMINANT</th>
               </tr>
             </thead>
             <tbody>
               {[
-                { eye: "OD", sub: "(Right)", isOD: true },
-                { eye: "OS", sub: "(Left)", isOD: false },
-              ].map(({ eye, sub, isOD }) => {
+                { eye: "OD", label: "OD (Right)", isOD: true, rowClass: "od-row" },
+                { eye: "OS", label: "OS (Left)", isOD: false, rowClass: "os-row" },
+              ].map(({ eye, label, isOD, rowClass }) => {
                 const ucva = isOD ? formData.ucvaOD : formData.ucvaOS;
                 const bcva = isOD ? formData.bcvaOD : formData.bcvaOS;
                 const ref = isOD ? formData.refractionOD : formData.refractionOS;
@@ -784,37 +784,65 @@ export default function ConsultantSheet() {
                   : (v: string) => setFormData(p => ({ ...p, iopOS: v }));
                 const iopNum = Number(iop);
                 return (
-                  <tr key={eye} className="border-b border-gray-200 last:border-b-0">
-                    <td className="px-3 py-2 border-r border-gray-200 text-left">
-                      <span className={`font-bold ${isOD ? "text-[#003D9B]" : "text-gray-800"}`}>{eye}</span>
-                      <br /><span className="text-[10px] text-gray-500 font-normal">{sub}</span>
-                    </td>
-                    <td className="px-1 py-1 border-r border-gray-200">
-                      <Input className="text-center text-[11px] h-7 border-gray-300 p-0 w-16 mx-auto" value={ucva} onChange={e => setUcva(e.target.value)} placeholder="6/.." />
-                    </td>
-                    <td className="px-1 py-1 border-r border-gray-200">
-                      <Input className="text-center text-[11px] h-7 border-gray-300 p-0 w-16 mx-auto" value={bcva} onChange={e => setBcva(e.target.value)} placeholder="6/.." />
-                    </td>
-                    {/* A C S individual boxes */}
-                    <td className="px-1 py-1 border-r border-gray-200">
-                      <Input className="text-center text-[11px] h-7 border-gray-300 p-0 w-12 mx-auto" value={ref.a} onChange={e => setRef("a", e.target.value)} placeholder="A" />
-                    </td>
-                    <td className="px-1 py-1 border-r border-gray-200">
-                      <Input className="text-center text-[11px] h-7 border-gray-300 p-0 w-12 mx-auto" value={ref.c} onChange={e => setRef("c", e.target.value)} placeholder="C" />
-                    </td>
-                    <td className="px-1 py-1 border-r border-gray-200">
-                      <Input className="text-center text-[11px] h-7 border-gray-300 p-0 w-12 mx-auto" value={ref.s} onChange={e => setRef("s", e.target.value)} placeholder="S" />
-                    </td>
-                    <td className="px-3 py-1 border-r border-gray-200 text-[11px] whitespace-nowrap">
+                  <tr key={eye} className={rowClass}>
+                    <td className={`p-4 font-bold border-r border-gray-200 ${isOD ? "text-[#003D9B]" : "text-gray-700"}`}>{label}</td>
+                    <td className="p-4 border-r border-gray-200">
                       <Input
-                        className={`text-center text-[11px] h-7 border-gray-300 p-0 w-14 mx-auto ${iopNum > 21 ? "text-red-600 font-bold" : ""}`}
+                        className="text-center bg-transparent border-0 focus-visible:ring-2 focus-visible:ring-[#003D9B] rounded p-1 h-8 w-20 mx-auto"
+                        value={ucva}
+                        onChange={e => setUcva(e.target.value)}
+                        placeholder="6/.."
+                      />
+                    </td>
+                    <td className="p-4 border-r border-gray-200">
+                      <Input
+                        className="text-center bg-transparent border-0 focus-visible:ring-2 focus-visible:ring-[#003D9B] rounded p-1 h-8 w-20 mx-auto"
+                        value={bcva}
+                        onChange={e => setBcva(e.target.value)}
+                        placeholder="6/.."
+                      />
+                    </td>
+                    <td className="p-4 border-r border-gray-200">
+                      <div className="flex gap-2 justify-center items-center">
+                        <Input
+                          className="w-12 text-center bg-transparent border-0 border-b border-gray-300 focus-visible:border-[#003D9B] focus-visible:ring-0 rounded-none outline-none p-0 h-8"
+                          value={ref.s}
+                          onChange={e => setRef("s", e.target.value)}
+                          placeholder="S"
+                        />
+                        <Input
+                          className="w-12 text-center bg-transparent border-0 border-b border-gray-300 focus-visible:border-[#003D9B] focus-visible:ring-0 rounded-none outline-none p-0 h-8"
+                          value={ref.c}
+                          onChange={e => setRef("c", e.target.value)}
+                          placeholder="C"
+                        />
+                        <Input
+                          className="w-12 text-center bg-transparent border-0 border-b border-gray-300 focus-visible:border-[#003D9B] focus-visible:ring-0 rounded-none outline-none p-0 h-8"
+                          value={ref.a}
+                          onChange={e => setRef("a", e.target.value)}
+                          placeholder="A"
+                        />
+                      </div>
+                    </td>
+                    <td className="p-4 border-r border-gray-200">
+                      <Input
+                        className={`text-center bg-transparent border-0 focus-visible:ring-2 focus-visible:ring-[#003D9B] rounded p-1 h-8 w-24 mx-auto ${iopNum > 21 ? "text-red-600 font-bold" : ""}`}
                         value={iop}
                         onChange={e => setIop(e.target.value)}
                         placeholder="mmHg"
                       />
                     </td>
-                    <td className="px-3 py-1">
-                      <input type="radio" name="dominant-eye" value={eye} checked={formData.dominantEye === eye} onChange={() => setFormData(p => ({ ...p, dominantEye: eye }))} className="h-4 w-4 accent-[#003D9B]" />
+                    <td className="p-4">
+                      <div className="flex justify-center items-center">
+                        <input
+                          type="radio"
+                          name="dominant-eye"
+                          value={eye}
+                          checked={formData.dominantEye === eye}
+                          onChange={() => setFormData(p => ({ ...p, dominantEye: eye }))}
+                          className="h-5 w-5 text-[#003D9B] focus:ring-[#003D9B] border-gray-300"
+                        />
+                      </div>
                     </td>
                   </tr>
                 );
@@ -824,71 +852,84 @@ export default function ConsultantSheet() {
         </div>
 
         {/* Clinical Examination + Lid Margin */}
-        <div className="mb-4 grid grid-cols-3 gap-3">
-          <div className="col-span-2 border border-gray-200 rounded-lg overflow-hidden">
-            <div className="border-l-4 border-[#003D9B] bg-[#EEF4FF] pl-3 py-1">
-              <h3 className="text-[11px] font-bold text-[#003D9B] tracking-wide">CLINICAL EXAMINATION / الفحص الإكلينيكي</h3>
-            </div>
-            <div className="grid grid-cols-2 divide-x divide-gray-200 p-0">
-              <div className="p-3">
-                <p className="text-[10px] text-gray-500 mb-1.5 font-medium">Fundus Exam (OD/OS)</p>
-                <Textarea className="text-[11px] resize-none border-gray-200 w-full" rows={4} value={formData.fundusOD} onChange={e => setFormData(p => ({ ...p, fundusOD: e.target.value }))} placeholder="Enter findings..." dir="ltr" />
+        <div className="grid grid-cols-3 gap-6 mb-8" dir="rtl">
+          <div className="col-span-2 space-y-4">
+            <h3 className="text-xs font-bold text-[#003D9B] border-r-4 border-[#003D9B] pr-3 bg-[#dae2ff] p-2 rounded text-right">الفحص الإكلينيكي / CLINICAL EXAMINATION</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-3 bg-[#f8f9fb] rounded border border-gray-200 text-right">
+                <p className="text-xs text-gray-500 font-semibold mb-2">Fundus Exam (OD/OS)</p>
+                <Textarea
+                  className="w-full h-24 bg-transparent border-0 focus-visible:ring-0 text-sm p-0 resize-none shadow-none text-right"
+                  value={formData.fundusOD}
+                  onChange={e => setFormData(p => ({ ...p, fundusOD: e.target.value }))}
+                  placeholder="..."
+                />
               </div>
-              <div className="p-3">
-                <p className="text-[10px] text-gray-500 mb-1.5 font-medium">Tear Film / BUT / Schirmer</p>
-                <Textarea className="text-[11px] resize-none border-gray-200 w-full" rows={4} value={formData.drOD} onChange={e => setFormData(p => ({ ...p, drOD: e.target.value }))} placeholder="BUT: .. sec / Schirmer: .. mm" dir="ltr" />
+              <div className="p-3 bg-[#f8f9fb] rounded border border-gray-200 text-right">
+                <p className="text-xs text-gray-500 font-semibold mb-2">Tear Film / BUT / Schirmer</p>
+                <Textarea
+                  className="w-full h-24 bg-transparent border-0 focus-visible:ring-0 text-sm p-0 resize-none shadow-none text-right"
+                  value={formData.drOD}
+                  onChange={e => setFormData(p => ({ ...p, drOD: e.target.value }))}
+                  placeholder="BUT: .. sec / Schirmer: .. mm"
+                />
               </div>
             </div>
           </div>
-          <div className="border border-gray-200 rounded-lg overflow-hidden">
-            <div className="border-l-4 border-[#003D9B] bg-[#EEF4FF] pl-3 py-1">
-              <h3 className="text-[11px] font-bold text-[#003D9B] tracking-wide">Lid Margin</h3>
-            </div>
-            <div className="p-3">
-              <Textarea className="text-[11px] resize-none border-gray-200 w-full" style={{ minHeight: 100 }} value={formData.drOS} onChange={e => setFormData(p => ({ ...p, drOS: e.target.value }))} placeholder="Lid margin status..." dir="ltr" />
+          <div className="space-y-4">
+            <h3 className="text-xs font-bold text-[#003D9B] border-r-4 border-[#003D9B] pr-3 bg-[#dae2ff] p-2 rounded text-right">Lid Margin</h3>
+            <div className="p-3 bg-[#f8f9fb] rounded border border-gray-200 h-[calc(100%-40px)] text-right">
+              <Textarea
+                className="w-full h-full min-h-[96px] bg-transparent border-0 focus-visible:ring-0 text-sm p-0 resize-none shadow-none text-right"
+                value={formData.drOS}
+                onChange={e => setFormData(p => ({ ...p, drOS: e.target.value }))}
+                placeholder="Lid margin status..."
+              />
             </div>
           </div>
         </div>
 
         {/* Clinical Diagrams */}
-        <div className="mb-4">
-          <div className="border-l-4 border-[#003D9B] bg-[#EEF4FF] pl-3 py-1 mb-2">
-            <h3 className="text-[11px] font-bold text-[#003D9B] tracking-wide">CLINICAL DIAGRAMS / رسم توضيحي</h3>
-          </div>
-          <div className="border-2 border-dashed border-gray-300 rounded-lg bg-gray-50" style={{ minHeight: 200 }}>
-            <div className="flex items-center justify-center gap-24 py-6">
-              <div className="border-2 border-gray-300 rounded-full bg-white" style={{ width: 110, height: 110 }} />
-              <div className="border-2 border-gray-300 rounded-full bg-white" style={{ width: 110, height: 110 }} />
+        <div className="mb-8" dir="rtl">
+          <h3 className="text-xs font-bold text-[#003D9B] border-r-4 border-[#003D9B] pr-3 mb-4 bg-[#dae2ff] p-2 rounded text-right">رسم توضيحي / CLINICAL DIAGRAMS</h3>
+          <div className="relative w-full h-80 bg-[#f8f9fb] border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center">
+            <div className="absolute inset-0 opacity-10 pointer-events-none flex justify-around items-center px-20">
+              <div className="w-48 h-48 rounded-full border-4 border-[#003D9B]"></div>
+              <div className="w-48 h-48 rounded-full border-4 border-[#003D9B]"></div>
             </div>
-            <p className="text-center text-[10px] text-gray-400 pb-2">Interactive drawing area for corneal findings, lens status, or retinal maps.</p>
-            <div className="flex items-center gap-2 px-3 pb-3">
-              <button className="p-1.5 rounded border border-gray-300 bg-white hover:bg-gray-100 print:hidden">
-                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 text-gray-600" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" /></svg>
-              </button>
-              <button className="p-1.5 rounded border border-gray-300 bg-white hover:bg-gray-100 print:hidden">
-                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 text-gray-600" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="9" /></svg>
-              </button>
-              <button className="p-1.5 rounded border border-red-200 bg-white hover:bg-red-50 print:hidden">
-                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 text-red-500" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
-              </button>
+            <p className="text-gray-400 italic text-sm text-center px-4">Interactive drawing area for corneal findings, lens status, or retinal maps.</p>
+            <div className="absolute bottom-4 right-4 flex gap-2">
+              <button type="button" className="p-2 bg-white shadow-sm border border-gray-200 rounded-lg hover:bg-gray-50"><svg viewBox="0 0 24 24" className="h-4 w-4 text-gray-600" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" /></svg></button>
+              <button type="button" className="p-2 bg-white shadow-sm border border-gray-200 rounded-lg hover:bg-gray-50"><svg viewBox="0 0 24 24" className="h-4 w-4 text-gray-600" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="9" /></svg></button>
+              <button type="button" className="p-2 bg-white shadow-sm border border-red-200 rounded-lg hover:bg-red-50 text-red-500"><svg viewBox="0 0 24 24" className="h-4 w-4 text-red-500" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg></button>
             </div>
           </div>
         </div>
 
         {/* Notes & Final Diagnosis */}
-        <div className="mb-5 grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-[11px] font-semibold text-gray-800 mb-1.5">Notes & Comments / ملاحظات</p>
-            <Textarea className="text-[11px] resize-none border-gray-200 w-full" rows={5} value={formData.comments} onChange={e => setFormData(p => ({ ...p, comments: e.target.value }))} placeholder="Notes..." dir="ltr" />
+        <div className="grid grid-cols-2 gap-6 mb-8" dir="rtl">
+          <div className="space-y-3 text-right">
+            <h3 className="text-sm font-bold text-gray-800">ملاحظات / Notes & Comments</h3>
+            <Textarea
+              className="min-h-[120px] p-4 border border-gray-200 rounded-lg bg-[#f8f9fb] text-sm resize-none text-right"
+              value={formData.comments}
+              onChange={e => setFormData(p => ({ ...p, comments: e.target.value }))}
+              placeholder="..."
+            />
           </div>
-          <div>
-            <p className="text-[11px] font-bold text-red-600 mb-1.5">FINAL DIAGNOSIS / التشخيص النهائي</p>
-            <Textarea className="text-[11px] resize-none border-gray-200 w-full" rows={5} value={formData.final} onChange={e => setFormData(p => ({ ...p, final: e.target.value }))} placeholder="PRIMARY DIAGNOSIS HERE" dir="ltr" />
+          <div className="space-y-3 text-right">
+            <h3 className="text-sm font-bold text-red-600">التشخيص النهائي / FINAL DIAGNOSIS</h3>
+            <Textarea
+              className="min-h-[120px] p-4 border-2 border-red-200 rounded-lg bg-red-50/50 text-base text-center font-bold text-red-700 resize-none"
+              value={formData.final}
+              onChange={e => setFormData(p => ({ ...p, final: e.target.value }))}
+              placeholder="PRIMARY DIAGNOSIS HERE"
+            />
           </div>
         </div>
 
         {/* Signatures */}
-        <div className="border-t border-gray-200 pt-4 grid grid-cols-4 gap-6 text-center" dir="ltr">
+        <div className="grid grid-cols-4 gap-6 pt-6 border-t border-gray-200" dir="ltr">
           {[
             { label: "Doctor / الاستشاري", value: signatures.doctor },
             { label: "Technician / فني القياس", value: signatures.technician },
@@ -896,19 +937,19 @@ export default function ConsultantSheet() {
             { label: "Reception / استقبال", value: signatures.reception },
           ].map((sig, i) => (
             <div key={i} className="flex flex-col items-center">
-              <div className="w-full border-b border-gray-400 mb-2 min-h-[32px] flex items-end justify-center pb-1">
-                {sig.value && <span className="text-[#003D9B] font-semibold text-[11px]">{sig.value}</span>}
+              <div className="w-full border-b border-gray-400 mb-2 min-h-[40px] flex items-end justify-center pb-1">
+                {sig.value && <span className="text-[#003D9B] font-bold text-sm">{sig.value}</span>}
               </div>
-              <span className="text-[11px] font-semibold text-gray-700">{sig.label}</span>
+              <span className="text-xs font-bold text-gray-700">{sig.label}</span>
             </div>
           ))}
         </div>
 
-        {/* Footer */}
-        <div className="flex justify-between items-center text-[9px] text-gray-400 mt-5 pt-2 border-t border-gray-200" dir="ltr">
-          <span>Page 1 of 1</span>
-          <span>Date generated: {new Date().toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}</span>
+        {/* Footer Meta */}
+        <div className="mt-8 flex justify-between items-center text-[10px] text-gray-400 pt-2 border-t border-gray-200" dir="ltr">
           <span>{BRAND_NAME_EN} Clinic Management System v4.2</span>
+          <span>Date generated: {new Date().toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}</span>
+          <span>Page 1 of 1</span>
         </div>
 
       </div>

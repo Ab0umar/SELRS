@@ -591,51 +591,50 @@ export default function LasikExamSheet() {
         }));
 
     return (
-      <div className="lasik-print-root" dir="ltr">
-        {/* BLUE ASSESSMENT HEADER CARD */}
-        <div className="bg-[#003d9b] text-white mx-4 mt-4 mb-4 rounded-lg p-5 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="border border-white/30 rounded p-1.5">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="4" />
-                <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z" />
+      <div className="bg-white text-gray-900 font-sans p-10 print:p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col gap-8 max-w-5xl mx-auto" dir="ltr">
+        {/* Header Section */}
+        <div className="flex justify-between items-start border-b border-gray-200 pb-4">
+          <div className="flex gap-4">
+            <div className="w-16 h-16 bg-[#003d9b]/10 rounded-lg flex items-center justify-center">
+              <svg className="w-10 h-10 text-[#003d9b]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M3 12c0-3 3-6 9-6s9 3 9 6-3 6-9 6-9-3-9-6z" />
               </svg>
             </div>
             <div>
-              <h1 className="text-xl font-bold">{BRAND_NAME_EN} Eye Clinic</h1>
-              <p className="text-blue-200 text-sm">{BRAND_NAME_AR}</p>
+              <h1 className="text-xl font-bold text-[#003d9b]">{BRAND_NAME_EN} Eye Clinic</h1>
+              <p className="text-gray-500 font-medium text-sm" dir="rtl">{BRAND_NAME_AR}</p>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-[10px] font-bold tracking-widest text-blue-300 uppercase">LASIK PRE-OP ASSESSMENT</p>
-            <p className="text-2xl font-bold">
-              Exam ID: {formData.patientCode ? `LX-${formData.patientCode}` : "LX-2023-8842"}
-            </p>
-            <p className="text-blue-200 text-sm">Date: {formData.examinationDate || today}</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Lasik Pre-Op Assessment</p>
+            <p className="text-lg font-bold text-gray-900">Exam ID: {formData.patientCode ? `LX-${formData.patientCode}` : "LX-2023-8842"}</p>
+            <p className="text-sm text-gray-500">Date: {formData.examinationDate || today}</p>
           </div>
         </div>
 
-        {/* SURGERY TYPE & EYE SELECTION */}
-        <div className="mx-4 mb-4 border border-[#c3c6d6] rounded-lg p-4 bg-white flex gap-6">
-          <div className="flex-1">
-            <p className="text-[11px] text-gray-500 font-medium mb-1">Surgery Type Selection</p>
+        {/* Operation Details & Eye Selection */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-6 rounded-lg border border-gray-200">
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Surgery Type Selection</label>
             <select
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+              className="w-full rounded-lg border-gray-300 bg-white focus:ring-[#003d9b] focus:border-[#003d9b] text-sm py-2 px-3"
               value={operationType}
               onChange={(e) => setOperationType(e.target.value)}
             >
               <option value="ليزك">Lasik (Standard)</option>
-              <option value="فيمتو ليزك">Femto Lasik (Femto)</option>
-              <option value="PRK">PRK/LASEK</option>
+              <option value="فيمتو ليزك">Femto-Lasik</option>
+              <option value="PRK">PRK / Trans-PRK</option>
               <option value="فيمتو سمايل">SMILE</option>
-              <option value="ICL">ICL</option>
+              <option value="ICL">Phakic IOL (ICL)</option>
             </select>
           </div>
-          <div className="flex-1">
-            <p className="text-[11px] text-gray-500 font-medium mb-1">Eye Selection</p>
-            <div className="flex gap-4 items-center mt-1">
-              <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Eye Selection</label>
+            <div className="flex gap-6 mt-2">
+              <label className="flex items-center gap-2 cursor-pointer group text-sm font-semibold">
                 <input
+                  className="w-5 h-5 rounded border-gray-300 text-[#003d9b] focus:ring-[#003d9b]"
                   type="checkbox"
                   checked={operationEyes.right}
                   onChange={(e) => {
@@ -643,10 +642,11 @@ export default function LasikExamSheet() {
                     setOperationEyes((prev) => ({ ...prev, right, both: right && prev.left }));
                   }}
                 />
-                RT (Right Eye)
+                <span className="text-gray-700 group-hover:text-[#003d9b]">RT (Right Eye)</span>
               </label>
-              <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+              <label className="flex items-center gap-2 cursor-pointer group text-sm font-semibold">
                 <input
+                  className="w-5 h-5 rounded border-gray-300 text-[#003d9b] focus:ring-[#003d9b]"
                   type="checkbox"
                   checked={operationEyes.left}
                   onChange={(e) => {
@@ -654,10 +654,11 @@ export default function LasikExamSheet() {
                     setOperationEyes((prev) => ({ ...prev, left, both: prev.right && left }));
                   }}
                 />
-                LT (Left Eye)
+                <span className="text-gray-700 group-hover:text-[#003d9b]">LT (Left Eye)</span>
               </label>
-              <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+              <label className="flex items-center gap-2 cursor-pointer group text-sm font-semibold">
                 <input
+                  className="w-5 h-5 rounded border-gray-300 text-[#003d9b] focus:ring-[#003d9b]"
                   type="checkbox"
                   checked={operationEyes.both}
                   onChange={(e) => {
@@ -665,270 +666,365 @@ export default function LasikExamSheet() {
                     setOperationEyes({ right: both, left: both, both });
                   }}
                 />
-                OU (Both Eyes)
+                <span className="text-gray-700 group-hover:text-[#003d9b]">OU (Both Eyes)</span>
               </label>
             </div>
           </div>
         </div>
 
-        {/* PATIENT DETAILS */}
-        <div className="mx-4 mb-4">
-          <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900 mb-3">
-            <User className="h-4 w-4" /> Patient Details
-          </h2>
-          <div className="border border-[#c3c6d6] rounded-lg overflow-hidden">
-            <div className="grid grid-cols-4 divide-x border-b">
-              {(
-                [
-                  { label: "Full Name", value: formData.patientName },
-                  { label: "Patient Code", value: formData.patientCode },
-                  { label: "Date of Birth", value: formData.dateOfBirth },
-                  { label: "Age", value: formData.age },
-                ] as { label: string; value: string }[]
-              ).map(({ label, value }) => (
-                <div key={label} className="p-3">
-                  <p className="text-[10px] text-gray-500 mb-0.5">{label}</p>
-                  <p className="font-semibold text-sm">{value || "—"}</p>
-                </div>
-              ))}
+        {/* Patient Information Section */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-[#003d9b] font-bold text-lg">👤</span>
+            <h2 className="text-lg font-bold text-gray-900">Patient Details</h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 border border-gray-200 p-6 rounded-lg">
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Full Name</span>
+              <input
+                className="border-0 border-b border-gray-300 focus:ring-0 focus:border-[#003d9b] p-0 py-1 font-bold text-sm bg-transparent"
+                type="text"
+                value={formData.patientName}
+                onChange={(e) => setFormData((prev) => ({ ...prev, patientName: e.target.value }))}
+              />
             </div>
-            <div className="grid grid-cols-3 divide-x">
-              {(
-                [
-                  { label: "Phone Number", value: formData.phone },
-                  { label: "Profession / Job", value: formData.job },
-                  { label: "Residential Address", value: formData.address },
-                ] as { label: string; value: string }[]
-              ).map(({ label, value }) => (
-                <div key={label} className="p-3">
-                  <p className="text-[10px] text-gray-500 mb-0.5">{label}</p>
-                  <p className="font-semibold text-sm">{value || "—"}</p>
-                </div>
-              ))}
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Patient Code</span>
+              <input
+                className="border-0 border-b border-gray-300 focus:ring-0 focus:border-[#003d9b] p-0 py-1 font-bold text-sm bg-transparent"
+                type="text"
+                value={formData.patientCode}
+                onChange={(e) => setFormData((prev) => ({ ...prev, patientCode: e.target.value }))}
+              />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Date of Birth</span>
+              <input
+                className="border-0 border-b border-gray-300 focus:ring-0 focus:border-[#003d9b] p-0 py-1 font-bold text-sm bg-transparent"
+                type="date"
+                value={formData.dateOfBirth}
+                onChange={(e) => setFormData((prev) => ({ ...prev, dateOfBirth: e.target.value }))}
+              />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Age</span>
+              <input
+                className="border-0 border-b border-gray-300 focus:ring-0 focus:border-[#003d9b] p-0 py-1 font-bold text-sm bg-transparent"
+                type="text"
+                value={formData.age}
+                onChange={(e) => setFormData((prev) => ({ ...prev, age: e.target.value }))}
+              />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Phone Number</span>
+              <input
+                className="border-0 border-b border-gray-300 focus:ring-0 focus:border-[#003d9b] p-0 py-1 font-bold text-sm bg-transparent"
+                type="text"
+                value={formData.phone}
+                onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
+              />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Profession / Job</span>
+              <input
+                className="border-0 border-b border-gray-300 focus:ring-0 focus:border-[#003d9b] p-0 py-1 font-bold text-sm bg-transparent"
+                type="text"
+                value={formData.job}
+                onChange={(e) => setFormData((prev) => ({ ...prev, job: e.target.value }))}
+              />
+            </div>
+            <div className="flex flex-col col-span-2">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Residential Address</span>
+              <input
+                className="border-0 border-b border-gray-300 focus:ring-0 focus:border-[#003d9b] p-0 py-1 font-bold text-sm bg-transparent"
+                type="text"
+                value={formData.address}
+                onChange={(e) => setFormData((prev) => ({ ...prev, address: e.target.value }))}
+              />
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* MEDICAL & OCULAR HISTORY */}
-        <div className="mx-4 mb-4">
-          <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900 mb-3">
-            <Clock className="h-4 w-4" /> Medical &amp; Ocular History
-          </h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="border border-[#c3c6d6] rounded-lg p-4">
-              <p className="text-sm font-semibold text-gray-700 mb-3">General Conditions</p>
-              <div className="grid grid-cols-2 gap-2">
-                {["Diabetes", "Hypertension", "Rheumatoid", "Pregnancy"].map((cond) => (
-                  <label key={cond} className="flex items-center gap-1.5 text-sm cursor-pointer">
-                    <input type="checkbox" /> {cond}
-                  </label>
-                ))}
+        {/* Medical History */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-[#003d9b] font-bold text-lg">⏳</span>
+            <h2 className="text-lg font-bold text-gray-900">Medical &amp; Ocular History</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-gray-100 px-4 py-2 text-xs font-bold text-gray-700 uppercase tracking-wider">General Conditions</div>
+              <div className="p-4 grid grid-cols-2 gap-3 text-sm">
+                <label className="flex items-center gap-2 cursor-pointer"><input className="rounded border-gray-300 text-[#003d9b] focus:ring-[#003d9b]" type="checkbox"/> Diabetes</label>
+                <label className="flex items-center gap-2 cursor-pointer"><input className="rounded border-gray-300 text-[#003d9b] focus:ring-[#003d9b]" type="checkbox"/> Hypertension</label>
+                <label className="flex items-center gap-2 cursor-pointer"><input className="rounded border-gray-300 text-[#003d9b] focus:ring-[#003d9b]" type="checkbox"/> Rheumatoid</label>
+                <label className="flex items-center gap-2 cursor-pointer"><input className="rounded border-gray-300 text-[#003d9b] focus:ring-[#003d9b]" type="checkbox"/> Pregnancy</label>
               </div>
             </div>
-            <div className="border border-[#c3c6d6] rounded-lg p-4">
-              <p className="text-sm font-semibold text-gray-700 mb-3">Ocular Conditions</p>
-              <div className="grid grid-cols-2 gap-2">
-                {["Dry Eye", "Glaucoma", "Keratoconus", "Family History"].map((cond) => (
-                  <label key={cond} className="flex items-center gap-1.5 text-sm cursor-pointer">
-                    <input type="checkbox" /> {cond}
-                  </label>
-                ))}
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-gray-100 px-4 py-2 text-xs font-bold text-gray-700 uppercase tracking-wider">Ocular Conditions</div>
+              <div className="p-4 grid grid-cols-2 gap-3 text-sm">
+                <label className="flex items-center gap-2 cursor-pointer"><input className="rounded border-gray-300 text-[#003d9b] focus:ring-[#003d9b]" type="checkbox"/> Dry Eye</label>
+                <label className="flex items-center gap-2 cursor-pointer"><input className="rounded border-gray-300 text-[#003d9b] focus:ring-[#003d9b]" type="checkbox"/> Glaucoma</label>
+                <label className="flex items-center gap-2 cursor-pointer"><input className="rounded border-gray-300 text-[#003d9b] focus:ring-[#003d9b]" type="checkbox"/> Keratoconus</label>
+                <label className="flex items-center gap-2 cursor-pointer"><input className="rounded border-gray-300 text-[#003d9b] focus:ring-[#003d9b]" type="checkbox"/> Family History</label>
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* COMPREHENSIVE REFRACTION */}
-        <div className="mx-4 mb-4">
-          <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900 mb-3">
-            <LayoutGrid className="h-4 w-4" /> Comprehensive Refraction
-          </h2>
-          <div className="border border-[#c3c6d6] rounded-lg overflow-hidden">
-            <table className="w-full text-center" dir="ltr">
-              <thead>
-                <tr className="bg-gray-100 text-gray-600 text-[11px] font-semibold uppercase border-b">
-                  <th className="p-2 border-r">EYE</th>
-                  <th className="p-2 border-r">UCVA</th>
-                  <th className="p-2 border-r">Sphere (S)</th>
-                  <th className="p-2 border-r">Cylinder (C)</th>
-                  <th className="p-2 border-r">Axis (A)</th>
-                  <th className="p-2 border-r">BCVA</th>
-                  <th className="p-2">IOP (mmHg)</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b">
-                  <td className="p-2 border-r">
-                    <span className="text-sm font-bold text-[#003D9B]">OD (Right)</span>
-                  </td>
-                  {(["ucva", "s", "c", "axis", "bcva"] as const).map((field) => (
-                    <td key={field} className="p-1 border-r">
-                      <Input
-                        value={examData.autorefraction.od[field]}
-                        onChange={mkAutoPatch("od", field)}
-                        className="h-7 text-[12px] text-center border-gray-300 w-16 mx-auto"
-                      />
-                    </td>
-                  ))}
-                  <td className="p-1">
-                    <Input
-                      value={examData.autorefraction.od.iop}
-                      onChange={mkAutoPatch("od", "iop")}
-                      className={`h-7 text-[12px] text-center border-gray-300 w-16 mx-auto${!Number.isNaN(odIopNum) && odIopNum > 21 ? " text-red-600 font-bold" : ""}`}
-                    />
-                  </td>
-                </tr>
+        {/* Refraction Table */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-[#003d9b] font-bold text-lg">🔬</span>
+            <h2 className="text-lg font-bold text-gray-900">Comprehensive Refraction</h2>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-gray-200">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-gray-100 text-gray-600 text-xs font-bold uppercase tracking-wider">
                 <tr>
-                  <td className="p-2 border-r">
-                    <span className="text-sm font-bold text-gray-700">OS (Left)</span>
-                  </td>
-                  {(["ucva", "s", "c", "axis", "bcva"] as const).map((field) => (
-                    <td key={field} className="p-1 border-r">
-                      <Input
-                        value={examData.autorefraction.os[field]}
-                        onChange={mkAutoPatch("os", field)}
-                        className="h-7 text-[12px] text-center border-gray-300 w-16 mx-auto"
-                      />
-                    </td>
-                  ))}
-                  <td className="p-1">
-                    <Input
-                      value={examData.autorefraction.os.iop}
-                      onChange={mkAutoPatch("os", "iop")}
-                      className={`h-7 text-[12px] text-center border-gray-300 w-16 mx-auto${!Number.isNaN(osIopNum) && osIopNum > 21 ? " text-red-600 font-bold" : ""}`}
-                    />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* KERATOMETRY & PENTACAM ANALYSIS */}
-        <div className="mx-4 mb-4">
-          <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900 mb-3">
-            <Layers className="h-4 w-4" /> Keratometry &amp; Pentacam Analysis
-          </h2>
-          <div className="grid grid-cols-2 gap-4">
-            {(["od", "os"] as const).map((eye) => {
-              const thinnestNum = eye === "od" ? odThinnestNum : osThinnestNum;
-              const isThin = !Number.isNaN(thinnestNum) && thinnestNum < 480;
-              return (
-                <div key={eye} className="border border-[#c3c6d6] rounded-lg overflow-hidden">
-                  <div className="flex justify-between items-center px-4 py-2 bg-[#f3f4f6] border-b">
-                    <span className="text-sm font-semibold text-[#003D9B]">{eye.toUpperCase()} Pentacam Data</span>
-                    {isThin ? (
-                      <span className="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded">THIN AREA</span>
-                    ) : (
-                      <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded">STABLE</span>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 p-3 text-[12px]">
-                    <div className="flex items-center gap-1">
-                      <span className="text-gray-500 text-[10px] w-20 shrink-0">K1 (Flat)</span>
-                      <Input className="h-6 w-16 text-center border-gray-300 text-[#003D9B] font-semibold text-[12px]" value={examData.pentacam[eye].k1} onChange={mkPentaPatch(eye, "k1")} />
-                      <span className="text-gray-500 text-[10px] ml-1">D</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-gray-500 text-[10px] w-20 shrink-0">K2 (Steep)</span>
-                      <Input className="h-6 w-16 text-center border-gray-300 text-[#003D9B] font-semibold text-[12px]" value={examData.pentacam[eye].k2} onChange={mkPentaPatch(eye, "k2")} />
-                      <span className="text-gray-500 text-[10px] ml-1">D</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-gray-500 text-[10px] w-20 shrink-0">Thinnest Pt</span>
-                      <Input
-                        className={`h-6 w-16 text-center border-gray-300 text-[12px]${isThin ? " text-red-600 font-bold" : ""}`}
-                        value={examData.pentacam[eye].thinnest}
-                        onChange={mkPentaPatch(eye, "thinnest")}
-                      />
-                      <span className="text-gray-500 text-[10px] ml-1">μm</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-gray-500 text-[10px] w-20 shrink-0">Res. Stroma</span>
-                      <Input className="h-6 w-16 text-center border-gray-300 text-[12px]" value={examData.pentacam[eye].residual} onChange={mkPentaPatch(eye, "residual")} />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* ABLATION & TARGET TRACKING */}
-        <div className="mx-4 mb-4">
-          <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900 mb-3">
-            <Target className="h-4 w-4" /> Ablation &amp; Target Tracking
-          </h2>
-          <div className="border border-[#c3c6d6] rounded-lg overflow-hidden">
-            <table className="w-full text-center" dir="ltr">
-              <thead>
-                <tr className="bg-gray-100 text-gray-600 text-[11px] font-semibold uppercase border-b">
-                  <th className="p-2 border-r">Stage</th>
-                  <th className="p-2 border-r">Flap Thickness</th>
-                  <th className="p-2 border-r">Ablation Depth</th>
-                  <th className="p-2 border-r">Optical Zone</th>
-                  <th className="p-2 border-r">Target Residual</th>
-                  <th className="p-2">Final Prediction</th>
+                  <th className="p-3 border-r border-gray-200">EYE</th>
+                  <th className="p-3 border-r border-gray-200">UCVA</th>
+                  <th className="p-3 border-r border-gray-200">Sphere (S)</th>
+                  <th className="p-3 border-r border-gray-200">Cylinder (C)</th>
+                  <th className="p-3 border-r border-gray-200">Axis (A)</th>
+                  <th className="p-3 border-r border-gray-200">BCVA</th>
+                  <th className="p-3">IOP (mmHg)</th>
                 </tr>
               </thead>
               <tbody>
-                {(["od", "os"] as const).map((eye) => (
-                  <tr key={eye} className="border-b last:border-0">
-                    <td className="p-2 border-r font-bold text-sm">{eye.toUpperCase()}</td>
-                    <td className="p-1 border-r">
-                      <Input value={examData.pentacam[eye].ttt} onChange={mkPentaPatch(eye, "ttt")} placeholder="110 μm" className="h-7 text-[11px] text-center border-gray-300 w-20 mx-auto" />
-                    </td>
-                    <td className="p-1 border-r">
-                      <Input value={examData.pentacam[eye].ablation} onChange={mkPentaPatch(eye, "ablation")} placeholder="68 μm" className="h-7 text-[11px] text-center border-gray-300 w-20 mx-auto" />
-                    </td>
-                    <td className="p-1 border-r">
-                      <Input placeholder="6.5 mm" className="h-7 text-[11px] text-center border-gray-300 w-20 mx-auto" />
-                    </td>
-                    <td className="p-1 border-r">
-                      <Input value={examData.pentacam[eye].residual} onChange={mkPentaPatch(eye, "residual")} placeholder="≥300 μm" className="h-7 text-[11px] text-center border-gray-300 w-20 mx-auto" />
-                    </td>
-                    <td className="p-2">
-                      <span className="text-[#003D9B] font-semibold text-sm">Plano</span>
-                    </td>
-                  </tr>
-                ))}
+                <tr className="bg-[#0c56d0]/5 border-t border-gray-200">
+                  <td className="p-3 font-bold text-[#003d9b] border-r border-gray-200">OD (Right)</td>
+                  <td className="p-1 border-r border-gray-200">
+                    <input className="w-full bg-transparent border-0 focus:ring-0 text-center font-mono text-sm py-1" type="text" value={examData.autorefraction.od.ucva} onChange={mkAutoPatch("od", "ucva")}/>
+                  </td>
+                  <td className="p-1 border-r border-gray-200">
+                    <input className="w-full bg-transparent border-0 focus:ring-0 text-center font-mono text-sm py-1" type="text" value={examData.autorefraction.od.s} onChange={mkAutoPatch("od", "s")}/>
+                  </td>
+                  <td className="p-1 border-r border-gray-200">
+                    <input className="w-full bg-transparent border-0 focus:ring-0 text-center font-mono text-sm py-1" type="text" value={examData.autorefraction.od.c} onChange={mkAutoPatch("od", "c")}/>
+                  </td>
+                  <td className="p-1 border-r border-gray-200">
+                    <input className="w-full bg-transparent border-0 focus:ring-0 text-center font-mono text-sm py-1" type="text" value={examData.autorefraction.od.axis} onChange={mkAutoPatch("od", "axis")}/>
+                  </td>
+                  <td className="p-1 border-r border-gray-200">
+                    <input className="w-full bg-transparent border-0 focus:ring-0 text-center font-mono text-sm py-1" type="text" value={examData.autorefraction.od.bcva} onChange={mkAutoPatch("od", "bcva")}/>
+                  </td>
+                  <td className="p-1">
+                    <input className={`w-full bg-transparent border-0 focus:ring-0 text-center font-mono text-sm py-1 ${!Number.isNaN(odIopNum) && odIopNum > 21 ? "text-red-600 font-bold" : ""}`} type="text" value={examData.autorefraction.od.iop} onChange={mkAutoPatch("od", "iop")}/>
+                  </td>
+                </tr>
+                <tr className="bg-transparent border-t border-gray-200">
+                  <td className="p-3 font-bold text-gray-700 border-r border-gray-200">OS (Left)</td>
+                  <td className="p-1 border-r border-gray-200">
+                    <input className="w-full bg-transparent border-0 focus:ring-0 text-center font-mono text-sm py-1" type="text" value={examData.autorefraction.os.ucva} onChange={mkAutoPatch("os", "ucva")}/>
+                  </td>
+                  <td className="p-1 border-r border-gray-200">
+                    <input className="w-full bg-transparent border-0 focus:ring-0 text-center font-mono text-sm py-1" type="text" value={examData.autorefraction.os.s} onChange={mkAutoPatch("os", "s")}/>
+                  </td>
+                  <td className="p-1 border-r border-gray-200">
+                    <input className="w-full bg-transparent border-0 focus:ring-0 text-center font-mono text-sm py-1" type="text" value={examData.autorefraction.os.c} onChange={mkAutoPatch("os", "c")}/>
+                  </td>
+                  <td className="p-1 border-r border-gray-200">
+                    <input className="w-full bg-transparent border-0 focus:ring-0 text-center font-mono text-sm py-1" type="text" value={examData.autorefraction.os.axis} onChange={mkAutoPatch("os", "axis")}/>
+                  </td>
+                  <td className="p-1 border-r border-gray-200">
+                    <input className="w-full bg-transparent border-0 focus:ring-0 text-center font-mono text-sm py-1" type="text" value={examData.autorefraction.os.bcva} onChange={mkAutoPatch("os", "bcva")}/>
+                  </td>
+                  <td className="p-1">
+                    <input className={`w-full bg-transparent border-0 focus:ring-0 text-center font-mono text-sm py-1 ${!Number.isNaN(osIopNum) && osIopNum > 21 ? "text-red-600 font-bold" : ""}`} type="text" value={examData.autorefraction.os.iop} onChange={mkAutoPatch("os", "iop")}/>
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
 
-        {/* CLINICAL NOTES + FINAL DIAGNOSIS */}
-        <div className="mx-4 mb-4 grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-[11px] text-gray-500 font-medium mb-1">Clinical Notes</p>
-            <Textarea rows={4} placeholder="Enter surgical observations or preoperative findings..." className="text-sm w-full" />
+        {/* Pentacam Scan Section */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-[#003d9b] font-bold text-lg">📈</span>
+            <h2 className="text-lg font-bold text-gray-900">Keratometry &amp; Pentacam Analysis</h2>
           </div>
-          <div>
-            <p className="text-[11px] text-[#003D9B] font-semibold mb-1">Final Diagnosis &amp; Plan</p>
-            <Textarea rows={4} placeholder="Diagnosis and surgical plan..." className="text-sm w-full border-[#003D9B]/30" />
-          </div>
-        </div>
-
-        {/* SIGNATURES FOOTER */}
-        <div className="mx-4 mb-4 grid grid-cols-4 text-center text-[11px]">
-          {(
-            [
-              { label: "Reception", value: signatures.reception },
-              { label: "Nurse", value: signatures.nurse },
-              { label: "Technician", value: signatures.technician },
-              { label: "Surgeon", value: signatures.doctor },
-            ] as { label: string; value: string }[]
-          ).map(({ label, value }) => (
-            <div key={label} className="flex flex-col items-center gap-2">
-              <div className="border-b border-gray-400 w-full h-10 flex items-end justify-center pb-1">
-                {value ? (
-                  <span className={label === "Surgeon" ? "text-[#003D9B] font-semibold" : "text-gray-700"}>{value}</span>
-                ) : null}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* OD Card */}
+            <div className="border border-gray-200 rounded-lg p-6 bg-[#0c56d0]/5">
+              <div className="flex justify-between items-center mb-4">
+                <span className="font-bold text-[#003d9b]">OD Pentacam Data</span>
+                <span className={`px-2 py-1 rounded text-xs font-bold ${odThinnestNum < 480 ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}>
+                  {odThinnestNum < 480 ? "THIN AREA" : "STABLE"}
+                </span>
               </div>
-              <span className="font-medium text-gray-600">{label}</span>
+              <div className="aspect-square w-full mb-4 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden border border-gray-300">
+                <img
+                  className="w-full h-full object-cover opacity-80 mix-blend-multiply"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6OABzeJyXmabFoy_EoI8q1AYjJyr2aTzwcTGgUKDuUu1vO8eW1t75Tv1V9jYeD0ahmbwJgkOMLYYkl9sVPps-n_ubaisNsFWaeS5dSlifwmzHMFowMdV5B0nk4jiddqgE0EQCKuSqw6MbfSHP21Xr-AIOv3ye_PUmrmFBuZ-AOJrYWWoaLi31YtKuamOY9auVSXGHa2i9I9vP7EQwSXN9tv3TMtUAe1iHpR4HQ9qDCLBV7MxgzLx316j_dnj9N9fmNRYjg2ZkGF5B"
+                  alt="OD Pentacam"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col border-b border-gray-200 pb-1">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">K1 (Flat)</span>
+                  <input className="font-mono text-[#003d9b] font-bold bg-transparent border-0 p-0 focus:ring-0" value={examData.pentacam.od.k1} onChange={mkPentaPatch("od", "k1")} />
+                </div>
+                <div className="flex flex-col border-b border-gray-200 pb-1">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">K2 (Steep)</span>
+                  <input className="font-mono text-[#003d9b] font-bold bg-transparent border-0 p-0 focus:ring-0" value={examData.pentacam.od.k2} onChange={mkPentaPatch("od", "k2")} />
+                </div>
+                <div className="flex flex-col border-b border-gray-200 pb-1">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Thinnest Pt</span>
+                  <input className={`font-mono font-bold bg-transparent border-0 p-0 focus:ring-0 ${odThinnestNum < 480 ? "text-red-600" : "text-[#003d9b]"}`} value={examData.pentacam.od.thinnest} onChange={mkPentaPatch("od", "thinnest")} />
+                </div>
+                <div className="flex flex-col border-b border-gray-200 pb-1">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Res. Stroma</span>
+                  <input className="font-mono text-[#003d9b] font-bold bg-transparent border-0 p-0 focus:ring-0" value={examData.pentacam.od.residual} onChange={mkPentaPatch("od", "residual")} />
+                </div>
+              </div>
             </div>
-          ))}
-        </div>
+
+            {/* OS Card */}
+            <div className="border border-gray-200 rounded-lg p-6 bg-white">
+              <div className="flex justify-between items-center mb-4">
+                <span className="font-bold text-gray-700">OS Pentacam Data</span>
+                <span className={`px-2 py-1 rounded text-xs font-bold ${osThinnestNum < 480 ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}>
+                  {osThinnestNum < 480 ? "THIN AREA" : "STABLE"}
+                </span>
+              </div>
+              <div className="aspect-square w-full mb-4 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden border border-gray-300">
+                <img
+                  className="w-full h-full object-cover opacity-80 mix-blend-multiply"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuCIcJGOwXRkBJvTvVeeT00K2c55LGhbWpdrhUgZTMSJ8c3uQuqDOQEbUIl0gQwAiHfacnBGQbhH48U_y6_zPUVimXjvbsl4td5Yv56DLzri-XCwKRQhAhEL9DlpAl1CNTHhqqkmXqKVIeP-tMgvDtRGdV8Nx4cu89JY98HxSBePPZ-fQ2Z4G8S21rLUUgrkz68Y5neRpPTfCSvDdhebmPfUte2tKGPcfjyWY-LHKwdL3V4plfxQhYA4YDtdLu8mRYI02OCoNZbR_oa8"
+                  alt="OS Pentacam"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col border-b border-gray-200 pb-1">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">K1 (Flat)</span>
+                  <input className="font-mono text-gray-700 font-bold bg-transparent border-0 p-0 focus:ring-0" value={examData.pentacam.os.k1} onChange={mkPentaPatch("os", "k1")} />
+                </div>
+                <div className="flex flex-col border-b border-gray-200 pb-1">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">K2 (Steep)</span>
+                  <input className="font-mono text-gray-700 font-bold bg-transparent border-0 p-0 focus:ring-0" value={examData.pentacam.os.k2} onChange={mkPentaPatch("os", "k2")} />
+                </div>
+                <div className="flex flex-col border-b border-gray-200 pb-1">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Thinnest Pt</span>
+                  <input className={`font-mono font-bold bg-transparent border-0 p-0 focus:ring-0 ${osThinnestNum < 480 ? "text-red-600" : "text-gray-700"}`} value={examData.pentacam.os.thinnest} onChange={mkPentaPatch("os", "thinnest")} />
+                </div>
+                <div className="flex flex-col border-b border-gray-200 pb-1">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Res. Stroma</span>
+                  <input className="font-mono text-gray-700 font-bold bg-transparent border-0 p-0 focus:ring-0" value={examData.pentacam.os.residual} onChange={mkPentaPatch("os", "residual")} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Ablation & Target Residual Table */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-[#003d9b] font-bold text-lg">🎯</span>
+            <h2 className="text-lg font-bold text-gray-900">Ablation &amp; Target Tracking</h2>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-gray-200">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-gray-100 text-gray-600 text-xs font-bold uppercase tracking-wider">
+                <tr>
+                  <th className="p-3 border-r border-gray-200">Stage</th>
+                  <th className="p-3 border-r border-gray-200">Flap Thickness</th>
+                  <th className="p-3 border-r border-gray-200">Ablation Depth</th>
+                  <th className="p-3 border-r border-gray-200">Optical Zone</th>
+                  <th className="p-3 border-r border-gray-200">Target Residual</th>
+                  <th className="p-3">Final Prediction</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-t border-gray-200">
+                  <td className="p-3 font-bold text-gray-700 border-r border-gray-200">OD</td>
+                  <td className="p-1 border-r border-gray-200">
+                    <input className="w-full bg-transparent border-0 focus:ring-0 text-center font-mono text-sm py-1" value={examData.pentacam.od.ttt} onChange={mkPentaPatch("od", "ttt")} placeholder="110 µm" />
+                  </td>
+                  <td className="p-1 border-r border-gray-200">
+                    <input className="w-full bg-transparent border-0 focus:ring-0 text-center font-mono text-sm py-1" value={examData.pentacam.od.ablation} onChange={mkPentaPatch("od", "ablation")} placeholder="68 µm" />
+                  </td>
+                  <td className="p-1 border-r border-gray-200">
+                    <input className="w-full bg-transparent border-0 focus:ring-0 text-center font-mono text-sm py-1" placeholder="6.5 mm" />
+                  </td>
+                  <td className="p-1 border-r border-gray-200">
+                    <input className="w-full bg-transparent border-0 focus:ring-0 text-center font-mono text-sm py-1" value={examData.pentacam.od.residual} onChange={mkPentaPatch("od", "residual")} placeholder="346 µm" />
+                  </td>
+                  <td className="p-3 font-bold text-[#003d9b]">Plano</td>
+                </tr>
+                <tr className="border-t border-gray-200">
+                  <td className="p-3 font-bold text-gray-700 border-r border-gray-200">OS</td>
+                  <td className="p-1 border-r border-gray-200">
+                    <input className="w-full bg-transparent border-0 focus:ring-0 text-center font-mono text-sm py-1" value={examData.pentacam.os.ttt} onChange={mkPentaPatch("os", "ttt")} placeholder="110 µm" />
+                  </td>
+                  <td className="p-1 border-r border-gray-200">
+                    <input className="w-full bg-transparent border-0 focus:ring-0 text-center font-mono text-sm py-1" value={examData.pentacam.os.ablation} onChange={mkPentaPatch("os", "ablation")} placeholder="78 µm" />
+                  </td>
+                  <td className="p-1 border-r border-gray-200">
+                    <input className="w-full bg-transparent border-0 focus:ring-0 text-center font-mono text-sm py-1" placeholder="6.5 mm" />
+                  </td>
+                  <td className="p-1 border-r border-gray-200">
+                    <input className="w-full bg-transparent border-0 focus:ring-0 text-center font-mono text-sm py-1" value={examData.pentacam.os.residual} onChange={mkPentaPatch("os", "residual")} placeholder="310 µm" />
+                  </td>
+                  <td className="p-3 font-bold text-[#003d9b]">Plano</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* Notes & Diagnosis */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-bold text-gray-700">Clinical Notes</label>
+            <textarea
+              className="w-full rounded-lg border-gray-300 bg-gray-50 focus:ring-[#003d9b] focus:border-[#003d9b] placeholder:text-gray-400 text-sm"
+              placeholder="Enter surgical observations or preoperative findings..."
+              rows={4}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-bold text-gray-700">Final Diagnosis &amp; Plan</label>
+            <textarea
+              className="w-full rounded-lg border-gray-300 bg-[#003d9b]/5 focus:ring-[#003d9b] focus:border-[#003d9b] font-bold text-[#003d9b] text-sm"
+              rows={4}
+              value="Bilateral Myopic Astigmatism. Patient eligible for Femto-Lasik. Target plano OU. Corneal thickness sufficient."
+              readOnly
+            />
+          </div>
+        </section>
+
+        {/* Signatures Section */}
+        <footer className="mt-8 pt-8 border-t-2 border-gray-200">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div className="flex flex-col items-center">
+              <div className="w-full border-b border-gray-300 h-12 mb-2 flex items-end justify-center">
+                <span className="text-gray-400 italic text-sm">{signatures.reception || "Reception"}</span>
+              </div>
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Reception</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="w-full border-b border-gray-300 h-12 mb-2 flex items-end justify-center">
+                <span className="text-gray-400 italic text-sm">{signatures.nurse || "Nurse"}</span>
+              </div>
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nurse</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="w-full border-b border-gray-300 h-12 mb-2 flex items-end justify-center">
+                <span className="text-gray-400 italic text-sm">{signatures.technician || "Technician"}</span>
+              </div>
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Technician</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="w-full border-b border-[#003d9b] h-12 mb-2 flex items-end justify-center">
+                <div className="text-[#003d9b] font-bold text-sm">{signatures.doctor || "Dr. Ahmed Al-Fahad"}</div>
+              </div>
+              <span className="text-xs font-bold text-[#003d9b] uppercase tracking-wider">Ophthalmic Surgeon</span>
+            </div>
+          </div>
+        </footer>
       </div>
     );
   };
