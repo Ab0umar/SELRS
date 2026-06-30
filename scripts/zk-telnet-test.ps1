@@ -1,4 +1,4 @@
-param([string]$IP = "192.168.1.170", [string]$User = "root", [string]$Password = "solokey")
+param([string]$IP = "196.202.50.91", [string]$User = "root", [string]$Password = "solokey")
 
 $neg = [byte[]](0xFF, 0xFC, 0x01, 0xFF, 0xFC, 0x1F, 0xFF, 0xFD, 0x03, 0xFF, 0xFD, 0x01)
 $enc = [System.Text.Encoding]::ASCII

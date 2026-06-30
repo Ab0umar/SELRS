@@ -10,7 +10,7 @@
   Device port (default: 4370)
 
 .PARAMETER MachineNo
-  Device machine number (default: 2)
+  Device machine number (default: 1)
 
 .PARAMETER OutFile
   Output CSV file path (default: stdout)
@@ -28,18 +28,25 @@
 param(
   [string]$IP        = "196.202.50.91",
   [int]   $Port      = 4370,
-  [int]   $MachineNo = 2,
+  [int]   $MachineNo = 1,
   [int]   $CommPwd   = 258288,
   [string]$OutFile   = "",
   [string]$Mode      = "pull",
   [string]$EmployeesFile = ""
 )
 
-# Verify we are running in 32-bit process (required for zkemkeeper.dll)
+# Auto-relaunch under 32-bit PowerShell (required for zkemkeeper.dll COM)
 if ([IntPtr]::Size -ne 4) {
-  Write-Error "Must run under 32-bit PowerShell. Use: C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe"
-  exit 2
+  $ps32 = "$env:SystemRoot\SysWOW64\WindowsPowerShell\v1.0\powershell.exe"
+  $args32 = @("-File", $MyInvocation.MyCommand.Path,
+    "-IP", $IP, "-Port", $Port, "-MachineNo", $MachineNo,
+    "-CommPwd", $CommPwd, "-Mode", $Mode)
+  if ($OutFile)       { $args32 += @("-OutFile", $OutFile) }
+  if ($EmployeesFile) { $args32 += @("-EmployeesFile", $EmployeesFile) }
+  & $ps32 $args32
+  exit $LASTEXITCODE
 }
+
 
 try {
   $zk = New-Object -ComObject zkemkeeper.ZKEM

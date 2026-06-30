@@ -1,4 +1,4 @@
-param([string]$IP = "192.168.1.170")
+param([string]$IP = "196.202.50.91")
 
 $enc = [System.Text.Encoding]::ASCII
 
