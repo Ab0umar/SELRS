@@ -19,6 +19,9 @@ export default function ConsultantFollowupPage() {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/sheets/consultant/:id/followup");
+  const originalMode =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("original") === "1";
   const initialPatientId = params?.id ? Number(params.id) : undefined;
 
   const [operationDateLeft, setOperationDateLeft] = useState("");
@@ -234,10 +237,12 @@ export default function ConsultantFollowupPage() {
           .print\\:hidden { display: none !important; }
           body { background: white !important; }
           .followup-print-root {
-            zoom: ${followupLabels.scale};
-            width: calc(190mm / ${followupLabels.scale});
-            margin-top: ${followupLabels.offsetYmm}mm;
-            margin-left: ${followupLabels.offsetXmm}mm;
+            zoom: ${originalMode ? 0.72 : followupLabels.scale};
+            width: calc(190mm / ${originalMode ? 0.72 : followupLabels.scale});
+            margin-top: ${originalMode ? 0 : followupLabels.offsetYmm}mm;
+            margin-left: auto;
+            margin-right: auto;
+            transform: translateX(${originalMode ? 0 : followupLabels.offsetXmm}mm);
           }
         }
       `}</style>

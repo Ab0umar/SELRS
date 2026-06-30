@@ -31,6 +31,9 @@ export default function ExternalOperationSheet() {
   const [, params] = useRoute("/sheets/external/:id");
   const initialPatientId = params?.id ? Number(params.id) : undefined;
   const printMode = usePrintMode({ ready: Boolean(initialPatientId) });
+  const originalMode =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("original") === "1";
 
   const [operationType, setOperationType] = useState("زيارة خارجية");
   const [operationEyes, setOperationEyes] = useState({
@@ -524,9 +527,14 @@ export default function ExternalOperationSheet() {
           text-align: center !important;
         }
         @media print {
+          @page { size: A4 portrait; margin: 0 !important; }
           .external-print-root {
-            transform: translateX(${printOffsetXmm}mm) translateY(${printOffsetYmm}mm) scale(${printScale});
+            transform: translateX(${originalMode ? 0 : printOffsetXmm}mm) translateY(${originalMode ? 0 : printOffsetYmm}mm) scale(${originalMode ? 1 : printScale});
             transform-origin: top center;
+            margin-left: auto;
+            margin-right: auto;
+            width: 100% !important;
+            max-width: 210mm;
           }
         }
       `}</style>

@@ -108,10 +108,112 @@ const DEFAULT_FOLLOWUP_TEMPLATE: FollowupTemplateConfig = {
 
 export const DEFAULT_SHEET_DESIGNER_CONFIG: SheetDesignerConfig = {
   css: {
-    consultant: "",
-    specialist: "",
-    lasik: "",
-    external: "",
+    consultant: `body {
+          font-family: 'Inter', 'Noto Kufi Arabic', sans-serif;
+          background-color: #f3f4f6;
+        }
+        .clinical-table th, .clinical-table td {
+          border: 1px solid #d1d5db;
+          padding: 8px;
+          text-align: center;
+        }
+        .ltr-content {
+          direction: ltr;
+        }`,
+    specialist: `body { 
+            font-family: 'Inter', 'Noto Sans Arabic', sans-serif; 
+        }
+        .section-header {
+            background-color: #f8f9fb;
+            border-right: 4px solid #003d9b;
+            padding: 6px 16px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #003d9b;
+            margin-bottom: 12px;
+        }
+        .data-label {
+            font-size: 11px;
+            color: #526069;
+            font-weight: 600;
+        }
+        .data-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: #191c1e;
+        }
+        input[type="text"] {
+            border: none;
+            border-bottom: 1px dotted #c3c6d6;
+            padding: 4px 0;
+            background: transparent;
+            font-size: 14px;
+        }
+        input:focus {
+            outline: none;
+            border-bottom: 1.5px solid #003d9b;
+            box-shadow: none;
+        }
+        @media print {
+            .no-print { display: none; }
+            .print-area { padding: 0 !important; margin: 0 !important; box-shadow: none !important; border: none !important; width: 100% !important; max-width: 100% !important; }
+            body { background: white; }
+        }
+        .ltr-table { direction: ltr; }`,
+    lasik: `@media print {
+            body { background: white; margin: 0; padding: 0; }
+            .no-print { display: none !important; }
+            .print-container { width: 100%; margin: 0; border: none; box-shadow: none; padding: 10mm; }
+            @page { size: landscape; margin: 10mm; }
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .clinical-table th, .clinical-table td {
+            border: 1px solid #c3c6d6;
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+        .ltr-data {
+            direction: ltr;
+            text-align: left;
+        }
+        input[type="text"] {
+            border: none;
+            border-bottom: 1px dotted #737685;
+            padding: 2px 4px;
+            background: transparent;
+            font-family: inherit;
+        }
+        input:focus {
+            outline: none;
+            border-bottom-color: #003d9b;
+        }
+        .od-bg { background-color: rgba(0, 61, 155, 0.03); }
+        .os-bg { background-color: rgba(82, 96, 105, 0.03); }`,
+    external: `@media print {
+            body { background: white; }
+            .no-print { display: none !important; }
+            .print-container { width: 100%; margin: 0; padding: 0; box-shadow: none !important; }
+            @page { margin: 10mm; size: landscape; }
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fb; /* surface-bright */
+        }
+        .full-width-container {
+            width: 100%;
+            padding: 24px;
+            background: white;
+            min-height: 100vh;
+        }
+        .od-row { background-color: rgba(0, 61, 155, 0.03); }
+        .diagnostic-table th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: #737685; padding: 12px 8px; }
+        .diagnostic-table td { border-color: #e1e2e4; height: 48px; }`,
     pentacam: "",
   },
   layout: {

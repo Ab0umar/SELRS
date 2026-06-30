@@ -1,3 +1,4 @@
+import path from "node:path";
 /**
  * FK Attendance Log Puller Service
  * Uses FKOldLogPuller.exe to extract punch logs from device
@@ -36,7 +37,8 @@ export interface FKDeviceConfig {
 
 export class FKAttendLogPuller {
   private static readonly FK_PULLER_PATH =
-    process.env.FK_PULLER_PATH ?? "E:\\SRV100_Acc\\server\\FKOldLogPuller.exe";
+    process.env.FK_PULLER_PATH ??
+      path.join(process.cwd(), "server", "FKOldLogPuller.exe");
   private static readonly DEFAULT_CONFIG: FKDeviceConfig = {
     ip: "192.168.1.10",
     port: 5005,

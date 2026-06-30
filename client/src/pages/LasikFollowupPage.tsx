@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Printer } from "lucide-react";
+import { Printer, Eye } from "lucide-react";
 import PatientPicker from "@/components/PatientPicker";
 import { trpc } from "@/lib/trpc";
 import {
@@ -18,7 +18,10 @@ import { DateInput } from "@/components/ui/date-input";
 export default function LasikFollowupPage() {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
-  const [, params] = useRoute("/sheets/:type/:id/followup");
+  const [, params] = useRoute("/sheets/lasik/:id/followup");
+  const originalMode =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("original") === "1";
   const initialPatientId = params?.id ? Number(params.id) : undefined;
 
   const [operationDateLeft, setOperationDateLeft] = useState("");
@@ -220,16 +223,26 @@ export default function LasikFollowupPage() {
       <style>{`
         @media print {
           .print\\:hidden { display: none !important; }
+          .no-print { display: none !important; }
           body { background: white !important; }
+          .print-container { width: 100%; margin: 0; padding: 0; box-shadow: none !important; }
+          @page { margin: 0; size: A4 portrait; }
           .followup-print-root {
-            zoom: ${followupLabels.scale};
-            width: calc(190mm / ${followupLabels.scale});
-            margin-top: ${followupLabels.offsetYmm}mm;
-            margin-left: ${followupLabels.offsetXmm}mm;
+            width: 100%;
+            margin: 0 auto;
           }
         }
-        .od-row { background-color: rgba(0, 61, 155, 0.04); }
-        .os-row { background-color: #ffffff; }
+        .a4-canvas {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 20px auto;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            padding: 15mm;
+            position: relative;
+        }
+        .od-bg { background-color: rgba(0, 61, 155, 0.03); }
+        .os-bg { background-color: transparent; }
         .table-input-cell {
             padding: 0 !important;
         }
@@ -248,6 +261,38 @@ export default function LasikFollowupPage() {
             outline: none;
             box-shadow: 0 0 0 2px rgba(0, 61, 155, 0.1);
         }
+        .text-on-surface { color: #191c1e; }
+        .text-primary { color: #003d9b; }
+        .bg-primary { background-color: #003d9b; }
+        .hover\:bg-primary-container:hover { background-color: #0052cc; }
+        .bg-primary-container { background-color: #0052cc; }
+        .text-on-primary-container { color: #c4d2ff; }
+        .text-on-surface-variant { color: #434654; }
+        .text-outline { color: #737685; }
+        .border-outline-variant { border-color: #c3c6d6; }
+        .border-outline { border-color: #737685; }
+        .bg-surface-container-lowest { background-color: #ffffff; }
+        .bg-surface-container-low { background-color: #f3f4f6; }
+        .bg-surface-container-high { background-color: #e7e8ea; }
+        .bg-surface-container-highest { background-color: #e1e2e4; }
+        .bg-tertiary-container { background-color: #006476; }
+        .text-on-tertiary-container { color: #70e2ff; }
+        .text-secondary { color: #526069; }
+        .bg-surface-variant { background-color: #e1e2e4; }
+        .bg-surface { background-color: #f8f9fb; }
+        
+        .mb-section-margin { margin-bottom: 32px; }
+        .mt-section-margin { margin-top: 32px; }
+        .gap-gutter { gap: 16px; }
+        .pt-gutter { padding-top: 16px; }
+        
+        .font-body-md, .text-body-md { font-size: 14px; line-height: 20px; font-weight: 400; }
+        .font-headline-md, .text-headline-md { font-size: 24px; line-height: 32px; font-weight: 600; }
+        .font-headline-sm, .text-headline-sm { font-size: 20px; line-height: 28px; font-weight: 600; }
+        .font-body-lg, .text-body-lg { font-size: 16px; line-height: 24px; font-weight: 400; }
+        .font-display-lg, .text-display-lg { font-size: 32px; line-height: 40px; letter-spacing: -0.02em; font-weight: 700; }
+        .font-data-mono { font-size: 14px; line-height: 20px; font-weight: 600; }
+        .font-label-caps { font-size: 12px; line-height: 16px; letter-spacing: 0.05em; font-weight: 700; text-transform: uppercase; }
       `}</style>
 
       {/* Top nav */}
@@ -306,176 +351,262 @@ export default function LasikFollowupPage() {
         </aside>
 
         {/* Main content */}
-        <main className="print:mr-0 mr-60 py-8 px-6 w-full">
-          <div className="a4-page-card followup-print-root">
-          {/* Patient banner */}
-          <section className="bg-white border border-[#c3c6d6] rounded-xl p-5 mb-6 shadow-sm">
-            <div className="flex flex-wrap gap-8 items-start">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-[#434654] mb-1">اسم المريض</p>
-                <h1 className="text-2xl font-semibold text-[#003d9b]">{patientName || "—"}</h1>
-              </div>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-[#434654] mb-1">{followupLabels.operationTypeLabel ?? "نوع العملية"}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <Input
-                    value={operationType}
-                    onChange={(e) => setOperationType(e.target.value)}
-                    className="h-8 text-sm w-36 border-[#c3c6d6] font-bold text-[#003d9b]"
-                    placeholder="ليزك"
-                  />
-                  <button
-                    type="button"
-                    className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${operationEyes.right ? "bg-[#003d9b] text-white" : "bg-[#e1e2e4] text-[#434654]"}`}
-                    onClick={() => setOperationEyes((prev) => ({ ...prev, right: !prev.right }))}
-                  >OD</button>
-                  <button
-                    type="button"
-                    className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${operationEyes.left ? "bg-[#003d9b] text-white" : "bg-[#e1e2e4] text-[#434654]"}`}
-                    onClick={() => setOperationEyes((prev) => ({ ...prev, left: !prev.left }))}
-                  >OS</button>
+        <main className="print:mr-0 mr-60 py-8 px-6 w-full flex justify-center bg-surface">
+          <div className="a4-canvas print-container followup-print-root text-on-surface">
+            {/* Header */}
+            <div className="flex justify-between items-start border-b-2 border-primary pb-6 mb-8">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-primary-container flex items-center justify-center rounded-xl">
+                  <Eye className="text-on-primary-container h-10 w-10" />
+                </div>
+                <div>
+                  <h2 className="font-headline-md text-headline-md text-primary tracking-tight">Ophthalmic Center</h2>
+                  <p className="font-label-caps text-on-surface-variant">Post-Op Follow-up | متابعة ما بعد العمليات</p>
                 </div>
               </div>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-[#434654] mb-1">{followupLabels.operationDateLabel ?? "تاريخ العملية"}</p>
-                <div className="flex gap-2">
-                  <DateInput value={operationDateRight} onChange={(e) => setOperationDateRight(e.target.value)} className="h-8 w-32 text-sm border-[#c3c6d6]" />
-                  <DateInput value={operationDateLeft} onChange={(e) => setOperationDateLeft(e.target.value)} className="h-8 w-32 text-sm border-[#c3c6d6]" />
+              <div className="text-right">
+                <p className="font-body-md text-body-md text-on-surface font-bold">Confidential Clinical Record</p>
+                <p className="font-label-caps text-outline">Date Generated: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+              </div>
+            </div>
+
+            {/* Patient & Operation Info Grid */}
+            <div className="grid grid-cols-2 gap-gutter mb-section-margin">
+              {/* Patient Info */}
+              <div className="border border-outline-variant rounded-lg p-4 bg-surface-container-low text-left" dir="ltr">
+                <h3 className="font-label-caps text-primary border-b border-outline-variant mb-3 pb-1">Patient Information / بيانات المريض</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-on-surface-variant font-body-md">Name / الاسم:</span>
+                    <span className="font-data-mono">{patientName || "—"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-on-surface-variant font-body-md">ID / الرقم:</span>
+                    <span className="font-data-mono">{initialPatientId ?? "—"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-on-surface-variant font-body-md">DOB / تاريخ الميلاد:</span>
+                    <span className="font-data-mono">{patientDOB || "—"}</span>
+                  </div>
+                </div>
+              </div>
+              {/* Operation Info */}
+              <div className="border border-outline-variant rounded-lg p-4 bg-surface-container-low text-left" dir="ltr">
+                <h3 className="font-label-caps text-primary border-b border-outline-variant mb-3 pb-1">Surgery Details / تفاصيل العملية</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-on-surface-variant font-body-md">Type / النوع:</span>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={operationType}
+                        onChange={(e) => setOperationType(e.target.value)}
+                        className="h-7 text-xs w-28 border-[#c3c6d6] font-bold text-[#003d9b]"
+                        placeholder="ليزك"
+                      />
+                      <button
+                        type="button"
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${operationEyes.right ? "bg-primary text-white" : "bg-surface-variant text-on-surface-variant"}`}
+                        onClick={() => setOperationEyes((prev) => ({ ...prev, right: !prev.right }))}
+                      >OD</button>
+                      <button
+                        type="button"
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${operationEyes.left ? "bg-primary text-white" : "bg-surface-variant text-on-surface-variant"}`}
+                        onClick={() => setOperationEyes((prev) => ({ ...prev, left: !prev.left }))}
+                      >OS</button>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-on-surface-variant font-body-md">Date / التاريخ:</span>
+                    <div className="flex gap-1">
+                      <DateInput value={operationDateRight} onChange={(e) => setOperationDateRight(e.target.value)} className="h-7 w-24 text-[11px] border-[#c3c6d6]" />
+                      <DateInput value={operationDateLeft} onChange={(e) => setOperationDateLeft(e.target.value)} className="h-7 w-24 text-[11px] border-[#c3c6d6]" />
+                    </div>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-on-surface-variant font-body-md">Surgeon / الجراح:</span>
+                    <span className="font-data-mono">{signatures.doctor || "—"}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </section>
 
-          {/* Followup cards */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {followups.map((f, idx) => (
-              <article key={f.id} className="bg-white border border-[#c3c6d6] rounded-xl overflow-hidden shadow-[0_2px_4px_rgba(0,0,0,0.05)]">
-                {/* Card header */}
-                <div className={`px-4 py-3 border-b border-[#c3c6d6] flex justify-between items-center ${idx === 0 ? "bg-[#003d9b]/10" : "bg-[#edeef0]/40"}`}>
-                  <div className="flex items-center gap-2">
-                    <span className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold text-white ${idx === 0 ? "bg-[#003d9b]" : "bg-[#737685]"}`}>{idx + 1}</span>
-                    <Input
-                      value={f.type}
-                      onChange={(e) => setFollowups((prev) => prev.map((x) => x.id === f.id ? { ...x, type: e.target.value } : x))}
-                      className="h-7 text-sm font-semibold border-0 bg-transparent focus:bg-white focus:border-[#003d9b] w-44"
-                    />
-                  </div>
-                  <DateInput
-                    value={f.date}
-                    onChange={(e) => setFollowups((prev) => prev.map((x) => x.id === f.id ? { ...x, date: e.target.value } : x))}
-                    className="h-7 w-36 text-sm border-[#c3c6d6]"
-                  />
-                </div>
+            {/* Follow-up Tables Container */}
+            <div className="space-y-6">
+              <div className="space-y-gutter" id="follow-up-grid">
+                {followups.map((f, idx) => {
+                  // Determine block background classes dynamically
+                  const headerBgClass = idx === 0 
+                    ? "bg-primary text-white" 
+                    : idx === 1 
+                      ? "bg-tertiary-container text-on-tertiary-container" 
+                      : "bg-surface-container-highest text-on-surface border-b border-outline-variant";
 
-                <div className="p-4 space-y-4">
-                  {/* Dominant Eye */}
-                  <div className="flex justify-between items-center bg-[#edeef0]/40 p-2 rounded">
-                    <span className="text-xs font-bold text-gray-500 uppercase">العين المهيمنة (Dominant Eye):</span>
-                    <div className="flex gap-4">
-                      <label className="flex items-center gap-1 cursor-pointer">
-                        <input className="text-[#003d9b] focus:ring-[#003d9b]" name={`dominant_${f.id}`} type="radio"/>
-                        <span className="text-xs">OD</span>
-                      </label>
-                      <label className="flex items-center gap-1 cursor-pointer">
-                        <input className="text-[#003d9b] focus:ring-[#003d9b]" name={`dominant_${f.id}`} type="radio"/>
-                        <span className="text-xs">OS</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Clinical data table */}
-                  <table className="w-full border-collapse border border-[#c3c6d6] text-xs rounded overflow-hidden">
-                    <thead className="bg-[#edeef0]/40 text-[#434654] font-bold uppercase tracking-wider text-[10px]">
-                      <tr>
-                        <th className="p-2 border border-[#c3c6d6] text-center">Eye</th>
-                        <th className="p-2 border border-[#c3c6d6]">{followupLabels.vaLabel ?? "VA (U)"}</th>
-                        <th className="p-2 border border-[#c3c6d6]">Sph</th>
-                        <th className="p-2 border border-[#c3c6d6]">Cyl</th>
-                        <th className="p-2 border border-[#c3c6d6]">Axis</th>
-                        <th className="p-2 border border-[#c3c6d6]">VA (C)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="od-row">
-                        <td className="p-2 border border-[#c3c6d6] font-bold text-[#003d9b] text-center">OD</td>
-                        <td className="table-input-cell border border-[#c3c6d6]"><input placeholder="6/6" type="text"/></td>
-                        <td className="table-input-cell border border-[#c3c6d6]"><input placeholder="0.00" type="text"/></td>
-                        <td className="table-input-cell border border-[#c3c6d6]"><input placeholder="0.00" type="text"/></td>
-                        <td className="table-input-cell border border-[#c3c6d6]"><input placeholder="-" type="text"/></td>
-                        <td className="table-input-cell border border-[#c3c6d6]"><input placeholder="6/6" type="text"/></td>
-                      </tr>
-                      <tr className="os-row">
-                        <td className="p-2 border border-[#c3c6d6] font-bold text-gray-700 text-center">OS</td>
-                        <td className="table-input-cell border border-[#c3c6d6]"><input placeholder="6/9" type="text"/></td>
-                        <td className="table-input-cell border border-[#c3c6d6]"><input placeholder="-0.25" type="text"/></td>
-                        <td className="table-input-cell border border-[#c3c6d6]"><input placeholder="-0.50" type="text"/></td>
-                        <td className="table-input-cell border border-[#c3c6d6]"><input placeholder="180" type="text"/></td>
-                        <td className="table-input-cell border border-[#c3c6d6]"><input placeholder="6/6" type="text"/></td>
-                      </tr>
-                    </tbody>
-                  </table>
-
-                  {/* Flap + IOP */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="border border-[#c3c6d6] rounded-lg p-3">
-                      <p className="text-xs font-bold uppercase tracking-wider text-[#434654] mb-2">{followupLabels.flapLabel ?? "Flap"}</p>
-                      <div className="space-y-1.5 text-xs">
-                        <div className="flex justify-between items-center gap-2">
-                          <span className="text-[#434654]">{followupLabels.edgesLabel ?? "Edges"}:</span>
-                          <select className="w-24 text-[12px] p-1 border rounded bg-white">
-                            <option>سليم</option>
-                            <option>تورم</option>
-                          </select>
+                  return (
+                    <div key={f.id} className="follow-up-block">
+                      <div className="border border-outline rounded-lg overflow-hidden bg-white">
+                        <div className={`px-4 py-1.5 flex justify-between items-center ${headerBgClass}`}>
+                          <div className="flex items-center gap-2">
+                            <span className="font-label-caps uppercase tracking-wider">{idx + 1}.</span>
+                            <Input
+                              value={f.type}
+                              onChange={(e) => setFollowups((prev) => prev.map((x) => x.id === f.id ? { ...x, type: e.target.value } : x))}
+                              className="h-6 text-xs font-semibold border-0 bg-transparent text-inherit focus:bg-white focus:text-[#191c1e] w-36 p-1 rounded"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <DateInput
+                              value={f.date}
+                              onChange={(e) => setFollowups((prev) => prev.map((x) => x.id === f.id ? { ...x, date: e.target.value } : x))}
+                              className="h-6 w-32 text-xs border-outline-variant bg-transparent text-inherit"
+                            />
+                          </div>
                         </div>
-                        <div className="flex justify-between items-center gap-2">
-                          <span className="text-[#434654]">{followupLabels.bedLabel ?? "Bed"}:</span>
-                          <select className="w-24 text-[12px] p-1 border rounded bg-white">
-                            <option>صافي</option>
-                            <option>عكر</option>
-                          </select>
+
+                        <table className="w-full text-center border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-surface-container-high border-b border-outline-variant text-[10px] font-label-caps">
+                              <th className="py-1 px-1 w-12 border-r border-outline-variant">Eye</th>
+                              <th className="py-1 px-2 border-r border-outline-variant">{followupLabels.vaLabel ?? "VA (U)"}</th>
+                              <th className="py-1 px-2 border-r border-outline-variant">Refraction (S/C/A)</th>
+                              <th className="py-1 px-2 border-r border-outline-variant">{followupLabels.flapLabel ?? "Flap"}</th>
+                              <th className="py-1 px-2 border-r border-outline-variant">{followupLabels.iopLabel ?? "IOP"}</th>
+                              <th className="py-1 px-2">{followupLabels.treatmentLabel ?? "Notes / Plan"}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className="od-bg border-b border-outline-variant h-12">
+                              <td className="font-bold text-primary border-r border-outline-variant text-center">OD</td>
+                              <td className="border-r border-outline-variant table-input-cell">
+                                <input placeholder="6/6" type="text" className="w-full h-full text-center bg-transparent border-0 outline-none" />
+                              </td>
+                              <td className="border-r border-outline-variant table-input-cell">
+                                <div className="flex items-center justify-center gap-1 px-1">
+                                  <input placeholder="S" className="w-8 text-center bg-transparent border-0 outline-none" type="text" />
+                                  <span className="text-gray-300">/</span>
+                                  <input placeholder="C" className="w-8 text-center bg-transparent border-0 outline-none" type="text" />
+                                  <span className="text-gray-300">/</span>
+                                  <input placeholder="A" className="w-8 text-center bg-transparent border-0 outline-none" type="text" />
+                                </div>
+                              </td>
+                              <td className="border-r border-outline-variant table-input-cell">
+                                <select className="text-[11px] p-0.5 border border-outline-variant rounded bg-white w-20 text-center">
+                                  <option>Edges: سليم</option>
+                                  <option>تورم</option>
+                                </select>
+                              </td>
+                              <td className="border-r border-outline-variant table-input-cell">
+                                <div className="flex items-center justify-center gap-1">
+                                  <input placeholder="OD" className="w-10 text-center bg-transparent border-0 outline-none" type="text" />
+                                  <span className="text-[10px] text-outline">mmHg</span>
+                                </div>
+                              </td>
+                              <td rowSpan={2} className="align-top p-1 text-left text-[11px] italic text-outline border-l border-outline-variant h-full">
+                                <textarea
+                                  className="w-full h-full min-h-[4.5rem] border-0 bg-transparent text-[11px] text-on-surface focus:outline-none resize-none p-1"
+                                  placeholder="Treatment plan notes / الخطة العلاجية..."
+                                />
+                              </td>
+                            </tr>
+                            <tr className="os-bg h-12">
+                              <td className="font-bold text-secondary border-r border-outline-variant text-center">OS</td>
+                              <td className="border-r border-outline-variant table-input-cell">
+                                <input placeholder="6/9" type="text" className="w-full h-full text-center bg-transparent border-0 outline-none" />
+                              </td>
+                              <td className="border-r border-outline-variant table-input-cell">
+                                <div className="flex items-center justify-center gap-1 px-1">
+                                  <input placeholder="S" className="w-8 text-center bg-transparent border-0 outline-none" type="text" />
+                                  <span className="text-gray-300">/</span>
+                                  <input placeholder="C" className="w-8 text-center bg-transparent border-0 outline-none" type="text" />
+                                  <span className="text-gray-300">/</span>
+                                  <input placeholder="A" className="w-8 text-center bg-transparent border-0 outline-none" type="text" />
+                                </div>
+                              </td>
+                              <td className="border-r border-outline-variant table-input-cell">
+                                <select className="text-[11px] p-0.5 border border-outline-variant rounded bg-white w-20 text-center">
+                                  <option>Bed: صافي</option>
+                                  <option>عكر</option>
+                                </select>
+                              </td>
+                              <td className="border-r border-outline-variant table-input-cell">
+                                <div className="flex items-center justify-center gap-1">
+                                  <input placeholder="OS" className="w-10 text-center bg-transparent border-0 outline-none" type="text" />
+                                  <span className="text-[10px] text-outline">mmHg</span>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+
+                        {/* Dominant Eye & Signatures under the table */}
+                        <div className="p-3 bg-surface-container-low border-t border-outline-variant flex justify-between items-center text-xs">
+                          <div className="flex items-center gap-4 bg-[#edeef0]/40 p-1.5 rounded">
+                            <span className="text-[11px] font-bold text-on-surface-variant uppercase">Dominant Eye / العين المهيمنة:</span>
+                            <div className="flex gap-3">
+                              <label className="flex items-center gap-1 cursor-pointer">
+                                <input className="text-primary focus:ring-primary text-[11px]" name={`dominant_${f.id}`} type="radio" />
+                                <span className="text-[11px]">OD</span>
+                              </label>
+                              <label className="flex items-center gap-1 cursor-pointer">
+                                <input className="text-primary focus:ring-primary text-[11px]" name={`dominant_${f.id}`} type="radio" />
+                                <span className="text-[11px]">OS</span>
+                              </label>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-4 text-[11px] text-on-surface-variant">
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="font-label-caps text-[9px]">{followupLabels.receptionLabel ?? "الاستقبال"}</span>
+                              <div className="w-16 border-b border-outline h-3" />
+                            </div>
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="font-label-caps text-[9px]">{followupLabels.nurseLabel ?? "التمريض"}</span>
+                              <div className="w-16 border-b border-outline h-3" />
+                            </div>
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="font-label-caps text-[9px] text-primary">{followupLabels.doctorLabel ?? "الطبيب"}</span>
+                              <div className="w-16 border-b border-primary h-3 flex items-end justify-center">
+                                <span className="text-[8px] text-primary italic truncate max-w-[60px]">{signatures.doctor}</span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                    <div className="border border-[#c3c6d6] rounded-lg p-3">
-                      <p className="text-xs font-bold uppercase tracking-wider text-[#434654] mb-2">{followupLabels.iopLabel ?? "IOP"}</p>
-                      <div className="flex items-center gap-2">
-                        <input className="border border-[#c3c6d6] rounded text-center h-8 w-16 text-xs outline-none focus:ring-1 focus:ring-[#003d9b]" placeholder="OD" />
-                        <input className="border border-[#c3c6d6] rounded text-center h-8 w-16 text-xs outline-none focus:ring-1 focus:ring-[#003d9b]" placeholder="OS" />
-                        <span className="text-xs text-[#434654]">mmHg</span>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Treatment / Notes */}
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-[#434654] mb-1">{followupLabels.treatmentLabel ?? "ملاحظات وعلاج"}</p>
-                    <textarea className="w-full h-14 border border-[#c3c6d6] rounded-lg p-2 text-xs focus:ring-1 focus:ring-[#003d9b] focus:outline-none resize-none" placeholder="اكتب الملاحظات هنا..." />
-                  </div>
-
-                  {/* Signatures */}
-                  <div className="flex justify-between text-xs text-[#434654] pt-3 border-t border-dashed border-[#c3c6d6]">
-                    <div className="flex flex-col items-center gap-1">
-                      <span>{followupLabels.receptionLabel ?? "الاستقبال"}</span>
-                      <div className="w-20 border-b border-[#737685] h-5" />
-                    </div>
-                    <div className="flex flex-col items-center gap-1">
-                      <span>{followupLabels.nurseLabel ?? "التمريض"}</span>
-                      <div className="w-20 border-b border-[#737685] h-5" />
-                    </div>
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-[#003d9b] font-bold">{followupLabels.doctorLabel ?? "الطبيب"}</span>
-                      <div className="w-20 border-b border-[#003d9b] h-5 flex items-end justify-center">
-                        <span className="text-[10px] text-[#003d9b] italic">{signatures.doctor}</span>
                       </div>
                     </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Footer / Notes */}
+            <div className="mt-section-margin border-t border-outline-variant pt-gutter">
+              <div className="grid grid-cols-2 gap-gutter items-end text-left" dir="ltr">
+                <div className="space-y-4 w-full">
+                  <div className="border-b border-outline-variant w-full h-8 flex items-end">
+                    <span className="font-label-caps text-outline text-[10px]">Additional Observations / ملاحظات إضافية</span>
+                  </div>
+                  <div className="border-b border-outline-variant w-full h-8"></div>
+                </div>
+                <div className="text-right">
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="font-label-caps text-on-surface">Physician's Signature</span>
+                    <div className="w-48 h-12 border-b-2 border-primary mb-2"></div>
+                    <span className="font-body-md text-primary">{signatures.doctor || "Dr. Ahmed Said"}</span>
                   </div>
                 </div>
-              </article>
-            ))}
-          </div>
+              </div>
+              <div className="mt-8 flex justify-center">
+                <p className="font-label-caps text-outline text-center text-[10px] leading-relaxed">
+                  Confidential Medical Record - Unauthorized Access Prohibited<br />
+                  سجل طبي سري - يحظر الدخول غير المصرح به
+                </p>
+              </div>
+            </div>
+
           </div>
         </main>
       </div>
     </div>
   );
 }
+
