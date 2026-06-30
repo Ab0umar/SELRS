@@ -40,7 +40,7 @@ internal sealed class Program
 {
     private static int Main(string[] args)
     {
-        string ip = GetArg(args, "--ip", "192.168.1.10");
+        string ip = GetArg(args, "--ip", "41.199.252.107107");
         int port = int.Parse(GetArg(args, "--port", "5005"), CultureInfo.InvariantCulture);
         int machineNo = int.Parse(GetArg(args, "--machine", "1"), CultureInfo.InvariantCulture);
         int password = int.Parse(GetArg(args, "--password", "0"), CultureInfo.InvariantCulture);
