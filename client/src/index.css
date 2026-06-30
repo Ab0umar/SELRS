@@ -1060,7 +1060,7 @@ img {
     break-before: avoid !important;
     max-height: 285mm !important;
     overflow: hidden !important;
-    zoom: 0.92 !important;
+    zoom: 0.78 !important;
   }
 
   /* Sheet pages use <main> — fill A4, no extra padding (page margin handles whitespace) */

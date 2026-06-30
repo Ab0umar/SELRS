@@ -158,6 +158,11 @@
 }
 
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 0 !important;
+  }
+
   :root,
   html,
   body,
@@ -183,6 +188,24 @@
   [data-print-hide],
   #boot-splash {
     display: none !important;
+  }
+
+  /* Force sheet contents to fit on a single A4 page by preventing breaks and scaling slightly */
+  .sheet-layout,
+  .lasik-print-root,
+  .specialist-print-root,
+  .followup-print-root,
+  .a4-page-card,
+  main {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    page-break-before: avoid !important;
+    break-after: avoid !important;
+    break-before: avoid !important;
+    max-height: 285mm !important;
+    overflow: hidden !important;
+    zoom: 0.78 !important;
   }
 }
 
