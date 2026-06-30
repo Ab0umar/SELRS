@@ -15,11 +15,11 @@ const firstOfMonth = new Date(
   .toISOString()
   .split("T")[0];
 
-export default function PermissionReport() {
+export default function PermissionReport({ department }: { department?: string }) {
   const [from, setFrom] = useState(firstOfMonth);
   const [to, setTo] = useState(todayStr);
 
-  const query = trpc.attendance.permissionReport.useQuery({ from, to });
+  const query = trpc.attendance.permissionReport.useQuery({ from, to, department });
   const rows: any[] = (query.data as any[]) ?? [];
 
   const totalInCount = rows.reduce((sum, row) => sum + (row.inCount ?? 0), 0);

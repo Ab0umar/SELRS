@@ -134,10 +134,17 @@ export const attendanceReportsRoutes = {
     }),
 
   rangeReport: makeAttProcedure("/attendance")
-    .input(z.object({ from: z.string(), to: z.string() }))
+    .input(z.object({ from: z.string(), to: z.string(), department: z.string().optional() }))
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+      const conditions: any[] = [
+        gte(attendanceDaily.workDate, input.from as any),
+        lte(attendanceDaily.workDate, input.to as any),
+      ];
+      if (input.department) {
+        conditions.push(eq(attendanceEmployees.department, input.department));
+      }
       const daily = await db
         .select({
           empCd: attendanceDaily.empCd,
@@ -153,12 +160,7 @@ export const attendanceReportsRoutes = {
           attendanceEmployees,
           eq(attendanceDaily.empCd, attendanceEmployees.empCd),
         )
-        .where(
-          and(
-            gte(attendanceDaily.workDate, input.from as any),
-            lte(attendanceDaily.workDate, input.to as any),
-          ),
-        );
+        .where(and(...conditions));
 
       const grouped = new Map<string, any>();
       for (const d of daily) {
