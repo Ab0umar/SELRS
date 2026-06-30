@@ -40,7 +40,7 @@ export class FKAttendLogPuller {
     process.env.FK_PULLER_PATH ??
       path.join(process.cwd(), "server", "FKOldLogPuller.exe");
   private static readonly DEFAULT_CONFIG: FKDeviceConfig = {
-    ip: "192.168.1.10",
+    ip: "41.199.252.107107",
     port: 5005,
     machineNo: 1,
     password: 0,
