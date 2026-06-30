@@ -64,7 +64,7 @@ export default function ReferralLetter() {
 
   const renderBody = (readOnly = false) => (
     <fieldset disabled={readOnly} className="border-0 p-0 m-0 min-w-0 disabled:opacity-95 referral-print-root">
-      <div className="bg-white p-8 print:p-6 max-w-[780px] mx-auto shadow-sm border border-[#c3c6d6] rounded-lg" dir="ltr">
+      <div className="a4-page-card border border-[#c3c6d6] rounded-lg" dir="ltr">
         {/* Brand Header */}
         <div className="flex items-start justify-between mb-6 pb-4 border-b border-gray-300">
           <div>
@@ -275,7 +275,7 @@ export default function ReferralLetter() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F8F9FB]" dir="rtl">
+    <div className="min-h-screen bg-[#dde1e7]" dir="rtl">
       <style>{`
         @media print {
           @page { size: A4 portrait; margin: 10mm; }
@@ -303,7 +303,7 @@ export default function ReferralLetter() {
         </div>
       </header>
 
-      <main className="print:p-0 container mx-auto px-4 py-6 pb-24 sm:pb-6">
+      <main className="print:p-0 px-4 py-8">
         <div className="print:hidden">{renderBody()}</div>
         <div className="hidden print:block">{renderBody(true)}</div>
       </main>
