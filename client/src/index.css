@@ -1037,13 +1037,30 @@ img {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 10mm;
+    margin: 5mm !important;
   }
 
   body {
     margin: 0;
     padding: 0;
     background: white !important;
+  }
+
+  /* Force sheet contents to fit on a single A4 page by preventing breaks and scaling slightly */
+  .sheet-layout,
+  .lasik-print-root,
+  .specialist-print-root,
+  .followup-print-root,
+  .a4-page-card {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    page-break-before: avoid !important;
+    break-after: avoid !important;
+    break-before: avoid !important;
+    max-height: 285mm !important;
+    overflow: hidden !important;
+    zoom: 0.92 !important;
   }
 
   /* Sheet pages use <main> — fill A4, no extra padding (page margin handles whitespace) */
