@@ -4,7 +4,7 @@
   Must run under 32-bit PowerShell (SysWOW64) to access the 32-bit COM object.
 
 .PARAMETER IP
-  Device IP address (default: 192.168.1.170)
+  Device IP address (default: 196.202.50.91)
 
 .PARAMETER Port
   Device port (default: 4370)
@@ -22,24 +22,31 @@
 
 .EXAMPLE
   # Run via 32-bit PowerShell:
-  & "C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe" -File zk-pull.ps1 -IP 192.168.1.170 -Port 4370 -OutFile C:\tmp\logs.csv
+  & "C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe" -File zk-pull.ps1 -IP 196.202.50.91 -Port 4370 -OutFile C:\tmp\logs.csv
 #>
 
 param(
-  [string]$IP        = "192.168.1.170",
+  [string]$IP        = "196.202.50.91",
   [int]   $Port      = 4370,
   [int]   $MachineNo = 1,
-  [int]   $CommPwd   = 2508,
+  [int]   $CommPwd   = 258288,
   [string]$OutFile   = "",
   [string]$Mode      = "pull",
   [string]$EmployeesFile = ""
 )
 
-# Verify we are running in 32-bit process (required for zkemkeeper.dll)
+# Auto-relaunch under 32-bit PowerShell (required for zkemkeeper.dll COM)
 if ([IntPtr]::Size -ne 4) {
-  Write-Error "Must run under 32-bit PowerShell. Use: C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe"
-  exit 2
+  $ps32 = "$env:SystemRoot\SysWOW64\WindowsPowerShell\v1.0\powershell.exe"
+  $args32 = @("-File", $MyInvocation.MyCommand.Path,
+    "-IP", $IP, "-Port", $Port, "-MachineNo", $MachineNo,
+    "-CommPwd", $CommPwd, "-Mode", $Mode)
+  if ($OutFile)       { $args32 += @("-OutFile", $OutFile) }
+  if ($EmployeesFile) { $args32 += @("-EmployeesFile", $EmployeesFile) }
+  & $ps32 $args32
+  exit $LASTEXITCODE
 }
+
 
 try {
   $zk = New-Object -ComObject zkemkeeper.ZKEM

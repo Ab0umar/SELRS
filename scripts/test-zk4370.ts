@@ -5,7 +5,7 @@
 
 import { ZK4370Client } from "../server/services/attendance/zk4370Client";
 
-const ip   = process.argv[2] ?? "192.168.1.170";
+const ip   = process.argv[2] ?? "196.202.50.91";
 const port = parseInt(process.argv[3] ?? "4370", 10);
 
 async function main() {

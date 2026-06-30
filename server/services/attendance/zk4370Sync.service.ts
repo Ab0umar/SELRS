@@ -15,7 +15,7 @@ import {
 } from "../../../drizzle/schema";
 import { desc, inArray, sql, and, eq } from "drizzle-orm";
 
-const DEVICE_IP   = process.env.ZK4370_IP   ?? "192.168.1.170";
+const DEVICE_IP   = process.env.ZK4370_IP   ?? "196.202.50.91";
 const DEVICE_PORT = parseInt(process.env.ZK4370_PORT ?? "4370", 10);
 const DEVICE_ID   = `zk_${DEVICE_IP}`;
 
