@@ -32,7 +32,7 @@ export interface DeviceSettings {
 // In-memory caches keyed by device id
 let ef10kSettings: DeviceSettings = {
   enabled: process.env.ATTENDANCE_DEVICE_ENABLED === "true",
-  ip: process.env.ATTENDANCE_DEVICE_IP || "192.168.1.100",
+  ip: process.env.ATTENDANCE_DEVICE_IP || "192.168.1.10",
   port: parseInt(process.env.ATTENDANCE_DEVICE_PORT || "5005"),
   protocol: "tcp",
   fallbackToAccess: true,
