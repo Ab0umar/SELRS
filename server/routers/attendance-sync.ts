@@ -23,7 +23,7 @@ import { LeaveManagementService } from "../services/attendance/leaveManagement.s
 import { PermissionAdjustmentService } from "../services/attendance/permissionAdjustment.service";
 import { AuditLogService } from "../services/attendance/auditLog.service";
 import { DeviceSettingsService } from "../services/attendance/deviceSettings.service";
-import { resetSyncHistory, resetFkSyncHistory } from "../services/attendance/syncEngine";
+import { resetSyncHistory, resetFkSyncHistory, resetZkSyncHistory } from "../services/attendance/syncEngine";
 import {
   initializeDeviceSync,
   getDeviceSyncEngine,
@@ -756,6 +756,24 @@ export const attendanceSyncRoutes = {
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
         AuditLogService.log({ action: "fk_sync_history_reset", details: { error }, status: "error" });
+        return { success: false, error };
+      }
+    }),
+
+  resetZkSyncHistory: makeAttWriteProcedure("/attendance/admin/sync")
+    .input(z.object({}).optional())
+    .mutation(async ({ ctx }) => {
+      try {
+        await resetZkSyncHistory();
+        AuditLogService.log({
+          action: "zk_sync_history_reset",
+          details: { triggeredBy: ctx.user.id },
+          status: "success",
+        });
+        return { success: true, message: "ZK HWM cleared. Next sync re-imports all device records." };
+      } catch (err) {
+        const error = err instanceof Error ? err.message : String(err);
+        AuditLogService.log({ action: "zk_sync_history_reset", details: { error }, status: "error" });
         return { success: false, error };
       }
     }),

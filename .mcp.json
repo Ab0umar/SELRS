@@ -3,13 +3,6 @@
     "droprompt": {
       "type": "sse",
       "url": "https://mcp.droprompt.com/sse"
-    },
-    "stitch": {
-      "type": "http",
-      "url": "https://stitch.googleapis.com/mcp",
-      "headers": {
-        "X-Goog-Api-Key": "AQ.Ab8RN6KvR6B-7EEsG2Pg0iZlMbc0Wl388oN3ziTmab8UG3CEoQ"
-      }
     }
   }
 }

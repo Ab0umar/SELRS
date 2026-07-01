@@ -87,7 +87,7 @@ export default function LasikExamSheet() {
   });
   const [printOffsetXmm, setPrintOffsetXmm] = useState(0);
   const [printOffsetYmm, setPrintOffsetYmm] = useState(0);
-  const [printScale, setPrintScale] = useState(0.82);
+  const [printScale, setPrintScale] = useState(1);
   const [customSheetCss, setCustomSheetCss] = useState("");
   const [sheetTemplate, setSheetTemplate] = useState(
     DEFAULT_SHEET_DESIGNER_CONFIG.templates.lasik,
@@ -612,7 +612,7 @@ export default function LasikExamSheet() {
         </div>
 
         {/* Patient Info */}
-        <section className="p-4 bg-[#f3f4f6] rounded-xl border border-[#c3c6d6] grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-3 text-sm" dir="rtl">
+        <section className="print-lasik-patient-grid p-4 bg-[#f3f4f6] rounded-xl border border-[#c3c6d6] grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-3 text-sm" dir="rtl">
           <label className="flex items-center gap-2"><span className="font-bold text-[#434654] whitespace-nowrap">الاسم:</span>
             <input className="flex-grow font-semibold text-[#003d9b] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none" value={formData.patientName} onChange={(e) => setFormData((p) => ({ ...p, patientName: e.target.value }))} /></label>
           <label className="flex items-center gap-2"><span className="font-bold text-[#434654] whitespace-nowrap">السن:</span>
@@ -647,30 +647,52 @@ export default function LasikExamSheet() {
         </div>
 
         {/* Medical History — two نعم/لا checklists */}
-        <section className="grid grid-cols-1 xl:grid-cols-2 gap-6" dir="rtl">
-          {[
-            ["أمراض عامة؟", "أمراض بالعين؟", "حمل؟", "علاج لحب الشباب؟", "الأيزوتريتينوين؟", "مضادات حساسية/اكتئاب؟", "كورتيزون/ضغط؟", "أمراض مناعة؟"],
-            ["قرنية مخروطية بالعائلة؟", "بديل دموع؟", "زيادة إفراز الدموع؟", "إحساس رمل بالعين؟", "أعراض مع هواء/تكييف؟", "علاج جفاف/حساسية؟", "ماء زرقاء؟", "الغدة الدرقية؟"],
-          ].map((rows, i) => (
-            <table key={i} className="w-full border-collapse border border-[#c3c6d6] rounded-lg overflow-hidden text-sm">
-              <thead className="bg-[#e7e8ea]">
-                <tr><th className="w-12 p-2 border border-[#c3c6d6]">لا</th><th className="w-12 p-2 border border-[#c3c6d6]">نعم</th><th className="p-2 border border-[#c3c6d6] text-right">التاريخ المرضي</th></tr>
-              </thead>
-              <tbody>
-                {rows.map((q) => (
-                  <tr key={q}>
-                    <td className="text-center border border-[#c3c6d6]"><input type="checkbox" className="w-4 h-4 rounded text-[#003d9b]" /></td>
-                    <td className="text-center border border-[#c3c6d6]"><input type="checkbox" className="w-4 h-4 rounded text-[#003d9b]" /></td>
-                    <td className="p-1.5 border border-[#c3c6d6] text-right">{q}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ))}
+        <section className="print-lasik-questions" dir="rtl">
+          <table className="w-full border-collapse border border-[#c3c6d6] rounded-lg overflow-hidden text-sm">
+            <thead className="bg-[#e7e8ea]">
+              <tr>
+                <th className="w-12 p-2 border border-[#c3c6d6]">لا</th>
+                <th className="w-12 p-2 border border-[#c3c6d6]">نعم</th>
+                <th className="p-2 border border-[#c3c6d6] text-right">التاريخ المرضي</th>
+                <th className="w-12 p-2 border border-[#c3c6d6]">لا</th>
+                <th className="w-12 p-2 border border-[#c3c6d6]">نعم</th>
+                <th className="p-2 border border-[#c3c6d6] text-right">التاريخ المرضي</th>
+                <th className="w-12 p-2 border border-[#c3c6d6]">لا</th>
+                <th className="w-12 p-2 border border-[#c3c6d6]">نعم</th>
+                <th className="p-2 border border-[#c3c6d6] text-right">التاريخ المرضي</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ["كورتيزون/ضغط؟", "الغدة الدرقية؟", "أمراض مناعة؟"],
+                ["علاج لحب الشباب؟", "الأيزوتريتينوين؟", "مضادات حساسية/اكتئاب؟"],
+                ["أمراض عامة؟", "أمراض بالعين؟", "حمل؟"],
+                ["قرنية مخروطية بالعائلة؟", "ماء زرقاء؟", "بديل دموع؟"],
+              ].map((row, rowIndex) => (
+                <tr key={rowIndex}>
+                  {row.map((q, colIndex) => (
+                    q ? (
+                      <React.Fragment key={`${rowIndex}-${colIndex}`}>
+                        <td className="text-center border border-[#c3c6d6]"><input type="checkbox" className="w-4 h-4 rounded text-[#003d9b]" /></td>
+                        <td className="text-center border border-[#c3c6d6]"><input type="checkbox" className="w-4 h-4 rounded text-[#003d9b]" /></td>
+                        <td className="p-1.5 border border-[#c3c6d6] text-right">{q}</td>
+                      </React.Fragment>
+                    ) : (
+                      <React.Fragment key={`${rowIndex}-${colIndex}`}>
+                        <td className="border border-[#c3c6d6] bg-[#f8f9fb]" />
+                        <td className="border border-[#c3c6d6] bg-[#f8f9fb]" />
+                        <td className="border border-[#c3c6d6] bg-[#f8f9fb]" />
+                      </React.Fragment>
+                    )
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </section>
 
         {/* Visual Acuity + Tear Film */}
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <section className="print-lasik-visual-grid grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-7">
             <table className="w-full text-center border-collapse">
               <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
@@ -736,7 +758,7 @@ export default function LasikExamSheet() {
         </section>
 
         {/* Pentacam RT / LT */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section className="print-lasik-two-col grid grid-cols-1 lg:grid-cols-2 gap-6">
           {(["od", "os"] as const).map((eye) => {
             const isOD = eye === "od";
             const thin = isOD ? odThinnestNum : osThinnestNum;
@@ -788,7 +810,7 @@ export default function LasikExamSheet() {
 
         {/* Notes + signatures */}
         <footer className="pt-6 border-t-2 border-[#003d9b] space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="print-lasik-footer-grid grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 space-y-4">
               <div>
                 <label className="font-bold text-[#003d9b] text-sm">Comments / ملاحظات:</label>
@@ -807,7 +829,7 @@ export default function LasikExamSheet() {
               <div className="border-b border-dotted border-[#003d9b]/40 h-6" />
             </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-4 border-t border-[#c3c6d6]">
+          <div className="print-lasik-signatures grid grid-cols-2 md:grid-cols-4 gap-8 pt-4 border-t border-[#c3c6d6]">
             {[
               ["التمريض / Nursing", signatures.nurse],
               ["الطبيب / Surgeon", signatures.doctor],
@@ -835,6 +857,75 @@ export default function LasikExamSheet() {
           @page { size: A4 portrait; margin: 0; }
           body { background: white !important; }
           .lasik-print-root { width: 100%; margin: 0 auto; }
+          .lasik-sheet {
+            width: 210mm !important;
+            max-width: 210mm !important;
+            height: 297mm !important;
+            min-height: 297mm !important;
+            box-sizing: border-box !important;
+            padding: 6mm !important;
+            gap: 10px !important;
+            font-size: 92% !important;
+            line-height: 1.15 !important;
+            overflow: hidden !important;
+          }
+          .lasik-sheet section,
+          .lasik-sheet footer,
+          .lasik-sheet table,
+          .lasik-sheet tr,
+          .lasik-sheet td,
+          .lasik-sheet th,
+          .lasik-sheet label,
+          .lasik-sheet input,
+          .lasik-sheet select,
+          .lasik-sheet span,
+          .lasik-sheet div {
+            page-break-inside: avoid !important;
+          }
+          .lasik-sheet table { font-size: 11px !important; }
+          .lasik-sheet input,
+          .lasik-sheet select {
+            font-size: 11px !important;
+            padding-top: 1px !important;
+            padding-bottom: 1px !important;
+          }
+          .lasik-sheet .gap-8 { gap: 12px !important; }
+          .lasik-sheet .gap-6 { gap: 10px !important; }
+          .lasik-sheet .gap-5 { gap: 8px !important; }
+          .lasik-sheet .gap-4 { gap: 6px !important; }
+          .lasik-sheet .p-8 { padding: 0 !important; }
+          .lasik-sheet .p-4 { padding: 8px !important; }
+          .lasik-sheet .pt-6 { padding-top: 10px !important; }
+          .lasik-sheet .pt-4 { padding-top: 8px !important; }
+          .lasik-sheet .pb-3 { padding-bottom: 6px !important; }
+          .lasik-sheet .mb-3 { margin-bottom: 6px !important; }
+          .lasik-sheet .mt-3 { margin-top: 6px !important; }
+          .lasik-sheet .h-9 { height: 28px !important; }
+          .lasik-sheet .h-8 { height: 22px !important; }
+          .lasik-sheet .h-6 { height: 16px !important; }
+          .print-lasik-patient-grid { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+          .print-lasik-two-col { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+          .print-lasik-questions {
+            display: block !important;
+          }
+          .print-lasik-questions table {
+            font-size: 10px !important;
+          }
+          .print-lasik-questions th {
+            padding: 3px !important;
+            line-height: 1.05 !important;
+          }
+          .print-lasik-questions td {
+            padding: 2px 3px !important;
+            line-height: 1.05 !important;
+          }
+          .print-lasik-questions input[type="checkbox"] {
+            width: 12px !important;
+            height: 12px !important;
+          }
+          .print-lasik-visual-grid { display: grid !important; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr) !important; }
+          .print-lasik-footer-grid { display: grid !important; grid-template-columns: minmax(0, 8fr) minmax(0, 4fr) !important; }
+          .print-lasik-signatures { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
         }
       `}</style>
       <header className="sticky top-0 z-50 print:hidden flex justify-between items-center px-6 py-2 bg-[#f8f9fb] border-b border-[#c3c6d6]" style={{ fontFamily: 'Inter, sans-serif' }}>
@@ -877,7 +968,7 @@ export default function LasikExamSheet() {
           onPrint={handlePrint}
         />
       )}
-      <div className="py-8">
+      <div className="py-8 print:py-0">
         <div className={`print:hidden ${printMode.printView ? "hidden" : ""}`}>
           <div className="a4-page-card">{renderSheetBody()}</div>
         </div>

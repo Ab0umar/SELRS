@@ -447,6 +447,14 @@ export default function SpecialistSheet() {
             max-width: 100%;
             margin: 0 auto;
           }
+          .print-specialist-patient-grid {
+            display: grid !important;
+            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+          }
+          .print-specialist-two-col {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
         }
       `}</style>
       {/* Header */}
@@ -547,7 +555,7 @@ export default function SpecialistSheet() {
           </div>
 
           {/* Patient grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-4 mb-6 p-4 bg-[#f8f9fb] rounded-xl border border-[#c3c6d6]">
+          <div className="print-specialist-patient-grid grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-4 mb-6 p-4 bg-[#f8f9fb] rounded-xl border border-[#c3c6d6]">
             {[
               ["الاسم / Name", formData.patientName],
               ["تاريخ الميلاد / DOB", formData.dateOfBirth],
@@ -566,7 +574,7 @@ export default function SpecialistSheet() {
           </div>
 
           {/* Vision + Tear film */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div className="print-specialist-two-col grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <div className="overflow-hidden rounded-lg border border-[#c3c6d6]">
               <table className="w-full text-center border-collapse refraction-table-center" dir="ltr">
                 <thead>

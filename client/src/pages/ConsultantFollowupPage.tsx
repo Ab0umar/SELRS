@@ -237,8 +237,8 @@ export default function ConsultantFollowupPage() {
           .print\\:hidden { display: none !important; }
           body { background: white !important; }
           .followup-print-root {
-            zoom: ${originalMode ? 0.72 : followupLabels.scale};
-            width: calc(190mm / ${originalMode ? 0.72 : followupLabels.scale});
+            zoom: ${originalMode ? 1 : followupLabels.scale};
+            width: calc(190mm / ${originalMode ? 1 : followupLabels.scale});
             margin-top: ${originalMode ? 0 : followupLabels.offsetYmm}mm;
             margin-left: auto;
             margin-right: auto;

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { Link, useLocation, useRoute } from "wouter";
@@ -34,6 +34,9 @@ export default function ConsultantSheet() {
     ? Number(initialPatientIdRaw)
     : undefined;
   const embeddedInPatientHub = location.startsWith("/patient-hub/sheets/");
+  const originalMode =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("original") === "1";
   const printMode = usePrintMode({ ready: Boolean(initialPatientId) });
   const [operationDateLeft, setOperationDateLeft] = useState("");
   const [operationDateRight, setOperationDateRight] = useState("");
@@ -670,289 +673,348 @@ export default function ConsultantSheet() {
 
   const renderSheetBody = (readOnly = false) => (
     <fieldset disabled={embeddedInPatientHub || readOnly} className="border-0 p-0 m-0 min-w-0 disabled:opacity-95 consultant-main-print-root">
-      <div className="bg-white p-10 print:p-6" dir="ltr">
+      <main className="max-w-5xl mx-auto my-8 bg-white shadow-xl border border-slate-200 p-8 print-container text-slate-800" data-purpose="main-document" dir="rtl">
+        {/* BEGIN: Patient Demographics */}
+        <section className="print-consultant-patient-grid grid grid-cols-2 lg:grid-cols-3 gap-6 mb-8 text-sm" data-purpose="patient-info">
+          <div className="flex flex-col gap-2">
+            <p className="flex items-center gap-1"><span className="font-bold">الاسم:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.patientName}</span></p>
+            <p className="flex items-center gap-1"><span className="font-bold">تاريخ الميلاد:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.dateOfBirth}</span></p>
+            <p className="flex items-center gap-1"><span className="font-bold">العنوان:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.address}</span></p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className="flex items-center gap-1"><span className="font-bold">تاريخ الفحص:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{new Date().toLocaleDateString("en-GB")}</span></p>
+            <p className="flex items-center gap-1"><span className="font-bold">رقم التليفون:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.phone}</span></p>
+            <p className="flex items-center gap-1"><span className="font-bold">السن:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.age}</span></p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className="flex items-center gap-1"><span className="font-bold">الاستشاري:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{signatures.doctor || "أ.د محمد السعني غرابة"}</span></p>
+            <p className="flex items-center gap-1"><span className="font-bold">كود العميل:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.code}</span></p>
+            <p className="flex items-center gap-1"><span className="font-bold">كيفية المعرفة:</span> <input type="text" className="border-none p-0 outline-none flex-1 border-b border-dotted border-slate-400 text-sm focus:border-blue-600 bg-transparent" value={formData.knowledgeType} onChange={e => setFormData(p => ({ ...p, knowledgeType: e.target.value }))} /></p>
+          </div>
+          <div className="col-span-full border-t border-slate-100 pt-4">
+            <p className="flex items-center gap-2"><span className="font-bold">الوظيفة:</span> <input type="text" className="border-none p-0 outline-none flex-1 border-b border-dotted border-slate-400 text-sm focus:border-blue-600 bg-transparent" value={formData.job} onChange={e => setFormData(p => ({ ...p, job: e.target.value }))} /></p>
+          </div>
+        </section>
+        {/* END: Patient Demographics */}
 
-        {/* Brand Header */}
-        <div className="flex justify-between items-start mb-8 border-b-2 border-[#003D9B] pb-6" dir="rtl">
-          <div className="text-right">
-            <h1 className="text-2xl font-bold text-[#003D9B]">{BRAND_NAME_EN}</h1>
-            <p className="text-lg font-semibold text-gray-900">ليزر و تصحيح الإبصار — {BRAND_NAME_AR}</p>
-            <p className="text-sm text-gray-500">Ophthalmic Excellence Center</p>
-          </div>
-          <div className="w-32 h-32 flex items-center justify-center bg-gray-100 rounded-xl overflow-hidden border border-gray-200">
-            <img className="w-full h-full object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAz1OixxO29XJc5YDeeML3-dfLFciXO3nXi6Hb_HfUgegZIpNhvlEDfHuWJRdxXsmpIvWrq5wlcXfYnU54mIHOzkaL3FrwGQEPYTYF01Vrr4xFgZt6lLEeVF1oxpss1HJrqkpV6toJLe2pYCLmtU1V1W9ynLkmuv5t9irRi05MliUzfk8IMH3fLkFxBYhrbmHDukEaaeNJJ9cdIXJ0pAOLOPXQ0j1AGoKQtsUlI2RRfRm0DshoyqwlPTDT3S5_bsIeOTdwpX_2MWbr2" alt="Logo" />
-          </div>
-        </div>
-
-        {/* Patient Personal Info */}
-        <div className="grid grid-cols-4 gap-4 mb-8 bg-[#f8f9fb] p-4 rounded-lg border border-gray-200" dir="rtl">
-          <div className="flex flex-col gap-1 border-l border-gray-200 pl-4">
-            <span className="text-xs text-gray-500 font-semibold">الاسم / Name</span>
-            <span className="text-sm font-bold text-gray-900">{formData.patientName || <span className="text-gray-300">—</span>}</span>
-          </div>
-          <div className="flex flex-col gap-1 border-l border-gray-200 pl-4">
-            <span className="text-xs text-gray-500 font-semibold">تاريخ الميلاد / DOB</span>
-            <span className="text-sm font-bold text-gray-900">{formData.dateOfBirth || <span className="text-gray-300">—</span>}</span>
-          </div>
-          <div className="flex flex-col gap-1 border-l border-gray-200 pl-4">
-            <span className="text-xs text-gray-500 font-semibold">السن / Age</span>
-            <span className="text-sm font-bold text-gray-900">{formData.age || <span className="text-gray-300">—</span>}</span>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-xs text-gray-500 font-semibold">كود المريض / Patient Code</span>
-            <span className="text-sm font-bold text-gray-900">{formData.code ? `#${formData.code}` : <span className="text-gray-300">—</span>}</span>
-          </div>
-          <div className="col-span-2 flex flex-col gap-1 border-l border-gray-200 pl-4 mt-2">
-            <span className="text-xs text-gray-500 font-semibold">العنوان / Address</span>
-            <span className="text-sm text-gray-900">{formData.address || <span className="text-gray-300">—</span>}</span>
-          </div>
-          <div className="flex flex-col gap-1 border-l border-gray-200 pl-4 mt-2">
-            <span className="text-xs text-gray-500 font-semibold">الوظيفة / Job</span>
-            <span className="text-sm text-gray-900">{formData.job || <span className="text-gray-300">—</span>}</span>
-          </div>
-          <div className="flex flex-col gap-1 mt-2">
-            <span className="text-xs text-gray-500 font-semibold">التليفون / Phone</span>
-            <span className="text-sm text-gray-900 font-mono" dir="ltr">{formData.phone || <span className="text-gray-300">—</span>}</span>
-          </div>
-        </div>
-
-        {/* Medical History Section */}
-        <div className="mb-8">
-          <h3 className="text-xs font-bold text-[#003D9B] border-r-4 border-[#003D9B] pr-3 mb-4 bg-[#dae2ff] p-2 rounded" dir="rtl">التاريخ المرضي / MEDICAL HISTORY</h3>
-          <div className="grid grid-cols-2 gap-x-12 gap-y-3 bg-[#f8f9fb] p-6 rounded-xl border border-gray-200" dir="rtl">
-            {([
-              { ar: "أمراض عامة (ضغط/سكر/غدة)", en: "General (BP/DM/Thyroid)", key: "keratoconusHistory" },
-              { ar: "تاريخ عائلي للقرنية المخروطية", en: "Keratoconus Family History", key: "familyHistory" },
-              { ar: "حمل أو رضاعة", en: "Pregnancy or Nursing", key: "tearIncreasePregnancy" },
-              { ar: "استخدام بدائل الدموع", en: "Tear Substitutes Use", key: "tearSubstitute" },
-              { ar: "تحسس من التكييف/الهواء", en: "Symptoms with AC/Air", key: "sandySensation" },
-              { ar: "علاج حب الشباب (روأكيوتان)", en: "Acne (Roaccutane)", key: "treatmentUsed" },
-              { ar: "علاج مياه زرقاء", en: "Glaucoma Treatment", key: "blueWaterTreatment" },
-              { ar: "أمراض الغدة الدرقية", en: "Thyroid Diseases", key: "thyroidDiseases" },
-              { ar: "أمراض المناعة", en: "Immune Diseases", key: "immuneDiseases" },
-              { ar: "أخرى", en: "Other", key: "supplements" },
-            ] as { ar: string; en: string; key: keyof typeof formData }[]).map(({ ar, en, key }) => (
-              <label key={key} className="flex items-center gap-3 cursor-pointer">
-                <Checkbox
-                  checked={Boolean(formData[key])}
-                  onCheckedChange={v => setFormData(p => ({ ...p, [key]: !!v }))}
-                  className="w-5 h-5 border-gray-400 data-[state=checked]:bg-[#003D9B] data-[state=checked]:border-[#003D9B]"
-                />
-                <span className="text-sm text-gray-700">{ar} / {en}</span>
-              </label>
-            ))}
-            <div className="flex items-center gap-3 col-span-2 border-t border-gray-200/50 pt-2 mt-2">
-              <span className="text-sm font-bold text-gray-800">أخرى / Other:</span>
-              <div className="flex-1 border-b border-dotted border-gray-400 h-4"></div>
-            </div>
-          </div>
-        </div>
-
-        {/* Refraction Table */}
-        <div className="mb-8 overflow-hidden rounded-xl border border-gray-200" dir="ltr">
-          <table className="w-full text-center border-collapse">
-            <thead>
-              <tr className="bg-[#003D9B] text-white">
-                <th className="p-3 border-r border-white/20 text-xs font-semibold uppercase tracking-wider">EYE</th>
-                <th className="p-3 border-r border-white/20 text-xs font-semibold uppercase tracking-wider">UCVA</th>
-                <th className="p-3 border-r border-white/20 text-xs font-semibold uppercase tracking-wider">BCVA</th>
-                <th className="p-3 border-r border-white/20 text-xs font-semibold uppercase tracking-wider">REFRACTION (S/C/A)</th>
-                <th className="p-3 border-r border-white/20 text-xs font-semibold uppercase tracking-wider">IOP</th>
-                <th className="p-3 text-xs font-semibold uppercase tracking-wider">DOMINANT</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                { eye: "OD", label: "OD (Right)", isOD: true, rowClass: "od-row" },
-                { eye: "OS", label: "OS (Left)", isOD: false, rowClass: "os-row" },
-              ].map(({ eye, label, isOD, rowClass }) => {
-                const ucva = isOD ? formData.ucvaOD : formData.ucvaOS;
-                const bcva = isOD ? formData.bcvaOD : formData.bcvaOS;
-                const ref = isOD ? formData.refractionOD : formData.refractionOS;
-                const iop = isOD ? formData.iopOD : formData.iopOS;
-                const setUcva = isOD
-                  ? (v: string) => setFormData(p => ({ ...p, ucvaOD: v }))
-                  : (v: string) => setFormData(p => ({ ...p, ucvaOS: v }));
-                const setBcva = isOD
-                  ? (v: string) => setFormData(p => ({ ...p, bcvaOD: v }))
-                  : (v: string) => setFormData(p => ({ ...p, bcvaOS: v }));
-                const setRef = isOD
-                  ? (k: "s"|"c"|"a", v: string) => setFormData(p => ({ ...p, refractionOD: { ...p.refractionOD, [k]: v } }))
-                  : (k: "s"|"c"|"a", v: string) => setFormData(p => ({ ...p, refractionOS: { ...p.refractionOS, [k]: v } }));
-                const setIop = isOD
-                  ? (v: string) => setFormData(p => ({ ...p, iopOD: v }))
-                  : (v: string) => setFormData(p => ({ ...p, iopOS: v }));
-                const iopNum = Number(iop);
-                return (
-                  <tr key={eye} className={rowClass}>
-                    <td className={`p-4 font-bold border-r border-gray-200 ${isOD ? "text-[#003D9B]" : "text-gray-700"}`}>{label}</td>
-                    <td className="p-4 border-r border-gray-200">
-                      <Input
-                        className="text-center bg-transparent border-0 focus-visible:ring-2 focus-visible:ring-[#003D9B] rounded p-1 h-8 w-20 mx-auto"
-                        value={ucva}
-                        onChange={e => setUcva(e.target.value)}
-                        placeholder="6/.."
-                      />
-                    </td>
-                    <td className="p-4 border-r border-gray-200">
-                      <Input
-                        className="text-center bg-transparent border-0 focus-visible:ring-2 focus-visible:ring-[#003D9B] rounded p-1 h-8 w-20 mx-auto"
-                        value={bcva}
-                        onChange={e => setBcva(e.target.value)}
-                        placeholder="6/.."
-                      />
-                    </td>
-                    <td className="p-4 border-r border-gray-200">
-                      <div className="flex gap-2 justify-center items-center">
-                        <Input
-                          className="w-12 text-center bg-transparent border-0 border-b border-gray-300 focus-visible:border-[#003D9B] focus-visible:ring-0 rounded-none outline-none p-0 h-8"
-                          value={ref.s}
-                          onChange={e => setRef("s", e.target.value)}
-                          placeholder="S"
-                        />
-                        <Input
-                          className="w-12 text-center bg-transparent border-0 border-b border-gray-300 focus-visible:border-[#003D9B] focus-visible:ring-0 rounded-none outline-none p-0 h-8"
-                          value={ref.c}
-                          onChange={e => setRef("c", e.target.value)}
-                          placeholder="C"
-                        />
-                        <Input
-                          className="w-12 text-center bg-transparent border-0 border-b border-gray-300 focus-visible:border-[#003D9B] focus-visible:ring-0 rounded-none outline-none p-0 h-8"
-                          value={ref.a}
-                          onChange={e => setRef("a", e.target.value)}
-                          placeholder="A"
-                        />
-                      </div>
-                    </td>
-                    <td className="p-4 border-r border-gray-200">
-                      <Input
-                        className={`text-center bg-transparent border-0 focus-visible:ring-2 focus-visible:ring-[#003D9B] rounded p-1 h-8 w-24 mx-auto ${iopNum > 21 ? "text-red-600 font-bold" : ""}`}
-                        value={iop}
-                        onChange={e => setIop(e.target.value)}
-                        placeholder="mmHg"
-                      />
-                    </td>
-                    <td className="p-4">
-                      <div className="flex justify-center items-center">
-                        <input
-                          type="radio"
-                          name="dominant-eye"
-                          value={eye}
-                          checked={formData.dominantEye === eye}
-                          onChange={() => setFormData(p => ({ ...p, dominantEye: eye }))}
-                          className="h-5 w-5 text-[#003D9B] focus:ring-[#003D9B] border-gray-300"
-                        />
-                      </div>
-                    </td>
+        {/* BEGIN: Medical History Checklist */}
+        <section className="mb-8" data-purpose="medical-history">
+          <div className="print-consultant-history-grid" dir="rtl">
+            <table className="w-full border-collapse border border-[#c3c6d6] rounded-lg overflow-hidden text-sm">
+              <thead className="bg-[#e7e8ea]">
+                <tr>
+                  <th className="w-12 p-2 border border-[#c3c6d6]">لا</th>
+                  <th className="w-12 p-2 border border-[#c3c6d6]">نعم</th>
+                  <th className="p-2 border border-[#c3c6d6] text-right">التاريخ المرضي</th>
+                  <th className="w-12 p-2 border border-[#c3c6d6]">لا</th>
+                  <th className="w-12 p-2 border border-[#c3c6d6]">نعم</th>
+                  <th className="p-2 border border-[#c3c6d6] text-right">التاريخ المرضي</th>
+                  <th className="w-12 p-2 border border-[#c3c6d6]">لا</th>
+                  <th className="w-12 p-2 border border-[#c3c6d6]">نعم</th>
+                  <th className="p-2 border border-[#c3c6d6] text-right">التاريخ المرضي</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  [
+                    { label: "أمراض عامة ؟", key: "keratoconusHistory" },
+                    { label: "أمراض بالعين ؟", key: "blueWaterTreatment" },
+                    { label: "حمل ؟", key: "tearIncreasePregnancy" },
+                  ],
+                  [
+                    { label: "هل تستخدم علاج لحب الشباب ؟", key: "treatmentUsed" },
+                    { label: "هل تستخدم علاج حب الشباب (الايزوتريتينوين)؟", key: "thyroidDiseases" },
+                    { label: "هل تستخدم مضادات حساسية او إكتئاب؟", key: "immuneDiseases" },
+                  ],
+                  [
+                    { label: "هل سمعت عن مرض القرنية المخروطية في أحد افراد العائلة؟", key: "familyHistory" },
+                    { label: "هل تستخدم بديل دموع؟", key: "tearSubstitute" },
+                    { label: "زيادة في إفراز الدموع؟", key: "sandySensation" },
+                  ],
+                  [
+                    { label: "إحساس بالرمل داخل العين؟", key: "sandySensation" },
+                    { label: "هل تزيد هذه الأعراض عند وجود هواء او تكييف ؟", key: "sandySensation" },
+                    { label: "هل تعاني من حساسية بالعين/جفاف بالعين?", key: "immuneDiseases" },
+                  ],
+                ].map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {row.map(({ label, key }, colIndex) => (
+                      <Fragment key={`${rowIndex}-${colIndex}`}>
+                        <td className="text-center border border-[#c3c6d6]">
+                          <input
+                            type="checkbox"
+                            checked={formData[key as keyof typeof formData] === false}
+                            onChange={e => setFormData(p => ({ ...p, [key]: !e.target.checked }))}
+                            className="w-4 h-4 rounded text-[#003d9b]"
+                          />
+                        </td>
+                        <td className="text-center border border-[#c3c6d6]">
+                          <input
+                            type="checkbox"
+                            checked={formData[key as keyof typeof formData] === true}
+                            onChange={e => setFormData(p => ({ ...p, [key]: e.target.checked }))}
+                            className="w-4 h-4 rounded text-[#003d9b]"
+                          />
+                        </td>
+                        <td className="p-1.5 border border-[#c3c6d6] text-right">
+                          {label}
+                        </td>
+                      </Fragment>
+                    ))}
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+        {/* END: Medical History Checklist */}
 
-        {/* Clinical Examination + Lid Margin */}
-        <div className="grid grid-cols-3 gap-6 mb-8" dir="rtl">
-          <div className="col-span-2 space-y-4">
-            <h3 className="text-xs font-bold text-[#003D9B] border-r-4 border-[#003D9B] pr-3 bg-[#dae2ff] p-2 rounded text-right">الفحص الإكلينيكي / CLINICAL EXAMINATION</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-3 bg-[#f8f9fb] rounded border border-gray-200 text-right">
-                <p className="text-xs text-gray-500 font-semibold mb-2">Fundus Exam (OD/OS)</p>
-                <Textarea
-                  className="w-full h-24 bg-transparent border-0 focus-visible:ring-0 text-sm p-0 resize-none shadow-none text-right"
-                  value={formData.fundusOD}
-                  onChange={e => setFormData(p => ({ ...p, fundusOD: e.target.value }))}
-                  placeholder="..."
-                />
+        {/* BEGIN: Clinical Examination */}
+        <section className="mb-8 ltr-content" data-purpose="examination-section">
+          <div className="mb-6 text-sm flex items-center gap-2">
+            <span className="font-bold">*Dominant Eye*:</span>
+            <input
+              type="text"
+              className="border-none p-0 outline-none flex-1 border-b border-dotted border-slate-400 text-sm focus:border-blue-600 bg-transparent font-semibold"
+              value={formData.dominantEye}
+              onChange={e => setFormData(p => ({ ...p, dominantEye: e.target.value }))}
+            />
+          </div>
+          <div className="print-consultant-exam-row flex gap-8 items-start">
+            {/* Visual Acuity Table */}
+            <table className="clinical-table text-sm w-48">
+              <thead>
+                <tr className="bg-slate-50 font-bold">
+                  <th></th>
+                  <th>UCVA</th>
+                  <th>BCVA</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="bg-slate-100 font-bold">OD</td>
+                  <td className="h-10">
+                    <input
+                      type="text"
+                      className="w-full h-full text-center border-none focus:outline-none focus:ring-0 bg-transparent"
+                      value={formData.ucvaOD}
+                      onChange={e => setFormData(p => ({ ...p, ucvaOD: e.target.value }))}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      className="w-full h-full text-center border-none focus:outline-none focus:ring-0 bg-transparent"
+                      value={formData.bcvaOD}
+                      onChange={e => setFormData(p => ({ ...p, bcvaOD: e.target.value }))}
+                    />
+                  </td>
+                </tr>
+                <tr>
+                  <td className="bg-slate-100 font-bold">OS</td>
+                  <td className="h-10">
+                    <input
+                      type="text"
+                      className="w-full h-full text-center border-none focus:outline-none focus:ring-0 bg-transparent"
+                      value={formData.ucvaOS}
+                      onChange={e => setFormData(p => ({ ...p, ucvaOS: e.target.value }))}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      className="w-full h-full text-center border-none focus:outline-none focus:ring-0 bg-transparent"
+                      value={formData.bcvaOS}
+                      onChange={e => setFormData(p => ({ ...p, bcvaOS: e.target.value }))}
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            {/* Refraction & Fundus Table */}
+            <table className="clinical-table text-sm flex-grow">
+              <thead>
+                <tr className="bg-slate-50 font-bold">
+                  <th colSpan={2}></th>
+                  <th colSpan={3}>OD (Right Eye)</th>
+                  <th colSpan={3}>OS (Left Eye)</th>
+                </tr>
+                <tr className="bg-slate-50 font-bold">
+                  <th colSpan={2}>Refraction</th>
+                  <th>S</th>
+                  <th>C</th>
+                  <th>A</th>
+                  <th>S</th>
+                  <th>C</th>
+                  <th>A</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="font-semibold text-left" colSpan={2}>
+                    <span className="pl-2">DR .............</span>
+                  </td>
+                  <td className="h-10 w-20">
+                    <input
+                      type="text"
+                      className="w-full h-full text-center border-none focus:outline-none focus:ring-0 bg-transparent"
+                      value={formData.refractionOD.s}
+                      onChange={e => setFormData(p => ({ ...p, refractionOD: { ...p.refractionOD, s: e.target.value } }))}
+                    />
+                  </td>
+                  <td className="w-20">
+                    <input
+                      type="text"
+                      className="w-full h-full text-center border-none focus:outline-none focus:ring-0 bg-transparent"
+                      value={formData.refractionOD.c}
+                      onChange={e => setFormData(p => ({ ...p, refractionOD: { ...p.refractionOD, c: e.target.value } }))}
+                    />
+                  </td>
+                  <td className="w-20">
+                    <input
+                      type="text"
+                      className="w-full h-full text-center border-none focus:outline-none focus:ring-0 bg-transparent"
+                      value={formData.refractionOD.a}
+                      onChange={e => setFormData(p => ({ ...p, refractionOD: { ...p.refractionOD, a: e.target.value } }))}
+                    />
+                  </td>
+                  <td className="w-20">
+                    <input
+                      type="text"
+                      className="w-full h-full text-center border-none focus:outline-none focus:ring-0 bg-transparent"
+                      value={formData.refractionOS.s}
+                      onChange={e => setFormData(p => ({ ...p, refractionOS: { ...p.refractionOS, s: e.target.value } }))}
+                    />
+                  </td>
+                  <td className="w-20">
+                    <input
+                      type="text"
+                      className="w-full h-full text-center border-none focus:outline-none focus:ring-0 bg-transparent"
+                      value={formData.refractionOS.c}
+                      onChange={e => setFormData(p => ({ ...p, refractionOS: { ...p.refractionOS, c: e.target.value } }))}
+                    />
+                  </td>
+                  <td className="w-20">
+                    <input
+                      type="text"
+                      className="w-full h-full text-center border-none focus:outline-none focus:ring-0 bg-transparent"
+                      value={formData.refractionOS.a}
+                      onChange={e => setFormData(p => ({ ...p, refractionOS: { ...p.refractionOS, a: e.target.value } }))}
+                    />
+                  </td>
+                </tr>
+                <tr>
+                  <td className="bg-slate-50 font-bold w-16" rowSpan={2}>Fundus</td>
+                  <td className="text-left font-semibold text-xs py-4">DR .............</td>
+                  <td colSpan={3}>
+                    <input
+                      type="text"
+                      className="w-full h-full text-center border-none focus:outline-none focus:ring-0 bg-transparent"
+                      value={formData.fundusOD}
+                      onChange={e => setFormData(p => ({ ...p, fundusOD: e.target.value }))}
+                    />
+                  </td>
+                  <td colSpan={3}>
+                    <input
+                      type="text"
+                      className="w-full h-full text-center border-none focus:outline-none focus:ring-0 bg-transparent"
+                      value={formData.drOD}
+                      onChange={e => setFormData(p => ({ ...p, drOD: e.target.value }))}
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+        {/* END: Clinical Examination */}
+
+        {/* BEGIN: Clinical Diagrams */}
+        <section className="mb-8" data-purpose="clinical-diagrams">
+          <div className="print-consultant-diagrams grid grid-cols-2 gap-8 border border-slate-200 rounded-lg p-12 bg-slate-50">
+            {/* Right Eye Circle */}
+            <div className="flex flex-col items-center">
+              <div className="w-48 h-48 rounded-full border-4 border-slate-300 flex items-center justify-center relative bg-white">
+                <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                  <div className="w-full border-t border-slate-900"></div>
+                  <div className="h-full border-l border-slate-900 absolute top-0"></div>
+                </div>
+                <span className="text-slate-300 font-bold text-xl select-none">OD</span>
               </div>
-              <div className="p-3 bg-[#f8f9fb] rounded border border-gray-200 text-right">
-                <p className="text-xs text-gray-500 font-semibold mb-2">Tear Film / BUT / Schirmer</p>
-                <Textarea
-                  className="w-full h-24 bg-transparent border-0 focus-visible:ring-0 text-sm p-0 resize-none shadow-none text-right"
-                  value={formData.drOD}
-                  onChange={e => setFormData(p => ({ ...p, drOD: e.target.value }))}
-                  placeholder="BUT: .. sec / Schirmer: .. mm"
-                />
+              <p className="mt-4 font-bold text-slate-500">العين اليمنى (OD)</p>
+            </div>
+            {/* Left Eye Circle */}
+            <div className="flex flex-col items-center">
+              <div className="w-48 h-48 rounded-full border-4 border-slate-300 flex items-center justify-center relative bg-white">
+                <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                  <div className="w-full border-t border-slate-900"></div>
+                  <div className="h-full border-l border-slate-900 absolute top-0"></div>
+                </div>
+                <span className="text-slate-300 font-bold text-xl select-none">OS</span>
               </div>
+              <p className="mt-4 font-bold text-slate-500">العين اليسرى (OS)</p>
             </div>
           </div>
-          <div className="space-y-4">
-            <h3 className="text-xs font-bold text-[#003D9B] border-r-4 border-[#003D9B] pr-3 bg-[#dae2ff] p-2 rounded text-right">Lid Margin</h3>
-            <div className="p-3 bg-[#f8f9fb] rounded border border-gray-200 h-[calc(100%-40px)] text-right">
-              <Textarea
-                className="w-full h-full min-h-[96px] bg-transparent border-0 focus-visible:ring-0 text-sm p-0 resize-none shadow-none text-right"
-                value={formData.drOS}
-                onChange={e => setFormData(p => ({ ...p, drOS: e.target.value }))}
-                placeholder="Lid margin status..."
+        </section>
+        {/* END: Clinical Diagrams */}
+
+        {/* BEGIN: Observations & Decision */}
+        <section className="print-consultant-notes-grid grid grid-cols-4 gap-4 mb-8" data-purpose="notes-section">
+          <div className="col-span-3 border border-slate-300 rounded overflow-hidden">
+            <div className="bg-slate-50 p-2 border-b border-slate-300 font-bold text-sm">Comments:</div>
+            <div className="p-2">
+              <textarea
+                className="w-full min-h-[96px] bg-transparent border-0 focus:outline-none focus:ring-0 text-sm resize-none p-1 dotted-textarea"
+                value={formData.comments}
+                onChange={e => setFormData(p => ({ ...p, comments: e.target.value }))}
+                placeholder="Type comment here..."
+              />
+            </div>
+            <div className="bg-slate-50 p-2 border-y border-slate-300 font-bold text-sm">Final Decision:</div>
+            <div className="p-2">
+              <textarea
+                className="w-full min-h-[80px] bg-transparent border-0 focus:outline-none focus:ring-0 text-sm resize-none p-1 dotted-textarea"
+                value={formData.final}
+                onChange={e => setFormData(p => ({ ...p, final: e.target.value }))}
+                placeholder="Type final decision here..."
               />
             </div>
           </div>
-        </div>
-
-        {/* Clinical Diagrams */}
-        <div className="mb-8" dir="rtl">
-          <h3 className="text-xs font-bold text-[#003D9B] border-r-4 border-[#003D9B] pr-3 mb-4 bg-[#dae2ff] p-2 rounded text-right">رسم توضيحي / CLINICAL DIAGRAMS</h3>
-          <div className="relative w-full h-80 bg-[#f8f9fb] border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center">
-            <div className="absolute inset-0 opacity-10 pointer-events-none flex justify-around items-center px-20">
-              <div className="w-48 h-48 rounded-full border-4 border-[#003D9B]"></div>
-              <div className="w-48 h-48 rounded-full border-4 border-[#003D9B]"></div>
-            </div>
-            <p className="text-gray-400 italic text-sm text-center px-4">Interactive drawing area for corneal findings, lens status, or retinal maps.</p>
-            <div className="absolute bottom-4 right-4 flex gap-2">
-              <button type="button" className="p-2 bg-white shadow-sm border border-gray-200 rounded-lg hover:bg-gray-50"><svg viewBox="0 0 24 24" className="h-4 w-4 text-gray-600" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" /></svg></button>
-              <button type="button" className="p-2 bg-white shadow-sm border border-gray-200 rounded-lg hover:bg-gray-50"><svg viewBox="0 0 24 24" className="h-4 w-4 text-gray-600" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="9" /></svg></button>
-              <button type="button" className="p-2 bg-white shadow-sm border border-red-200 rounded-lg hover:bg-red-50 text-red-500"><svg viewBox="0 0 24 24" className="h-4 w-4 text-red-500" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg></button>
+          <div className="col-span-1 border border-slate-300 rounded overflow-hidden">
+            <div className="bg-slate-50 p-2 border-b border-slate-300 font-bold text-sm">Notes:</div>
+            <div className="p-2">
+              <textarea
+                className="w-full min-h-[220px] bg-transparent border-0 focus:outline-none focus:ring-0 text-sm resize-none p-1 dotted-textarea"
+                value={formData.drOS}
+                onChange={e => setFormData(p => ({ ...p, drOS: e.target.value }))}
+                placeholder="Type notes here..."
+              />
             </div>
           </div>
-        </div>
+        </section>
+        {/* END: Observations & Decision */}
 
-        {/* Notes & Final Diagnosis */}
-        <div className="grid grid-cols-2 gap-6 mb-8" dir="rtl">
-          <div className="space-y-3 text-right">
-            <h3 className="text-sm font-bold text-gray-800">ملاحظات / Notes & Comments</h3>
-            <Textarea
-              className="min-h-[120px] p-4 border border-gray-200 rounded-lg bg-[#f8f9fb] text-sm resize-none text-right"
-              value={formData.comments}
-              onChange={e => setFormData(p => ({ ...p, comments: e.target.value }))}
-              placeholder="..."
-            />
+        {/* BEGIN: Signatures Footer */}
+        <footer className="print-consultant-footer grid grid-cols-4 gap-4 pt-6 border-t border-slate-200 text-xs font-bold text-slate-700" data-purpose="footer-signatures">
+          <div className="flex flex-col gap-2">
+            <p>استقبال: <span className="font-normal">{signatures.reception || "...................."}</span></p>
+            <p>Signature: ....................</p>
           </div>
-          <div className="space-y-3 text-right">
-            <h3 className="text-sm font-bold text-red-600">التشخيص النهائي / FINAL DIAGNOSIS</h3>
-            <Textarea
-              className="min-h-[120px] p-4 border-2 border-red-200 rounded-lg bg-red-50/50 text-base text-center font-bold text-red-700 resize-none"
-              value={formData.final}
-              onChange={e => setFormData(p => ({ ...p, final: e.target.value }))}
-              placeholder="PRIMARY DIAGNOSIS HERE"
-            />
+          <div className="flex flex-col gap-2">
+            <p>تمريض: <span className="font-normal">{signatures.nurse || "...................."}</span></p>
+            <p>Signature: ....................</p>
           </div>
-        </div>
-
-        {/* Signatures */}
-        <div className="grid grid-cols-4 gap-6 pt-6 border-t border-gray-200" dir="ltr">
-          {[
-            { label: "Doctor / الاستشاري", value: signatures.doctor },
-            { label: "Technician / فني القياس", value: signatures.technician },
-            { label: "Nurse / تمريض", value: signatures.nurse },
-            { label: "Reception / استقبال", value: signatures.reception },
-          ].map((sig, i) => (
-            <div key={i} className="flex flex-col items-center">
-              <div className="w-full border-b border-gray-400 mb-2 min-h-[40px] flex items-end justify-center pb-1">
-                {sig.value && <span className="text-[#003D9B] font-bold text-sm">{sig.value}</span>}
-              </div>
-              <span className="text-xs font-bold text-gray-700">{sig.label}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Footer Meta */}
-        <div className="mt-8 flex justify-between items-center text-[10px] text-gray-400 pt-2 border-t border-gray-200" dir="ltr">
-          <span>{BRAND_NAME_EN} Clinic Management System v4.2</span>
-          <span>Date generated: {new Date().toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}</span>
-          <span>Page 1 of 1</span>
-        </div>
-
-      </div>
+          <div className="flex flex-col gap-2">
+            <p>فني: <span className="font-normal">{signatures.technician || "...................."}</span></p>
+            <p>Signature: ....................</p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <p>الطبيب: <span className="font-normal">{signatures.doctor || "...................."}</span></p>
+            <p>Signature: ....................</p>
+          </div>
+        </footer>
+        {/* END: Signatures Footer */}
+      </main>
     </fieldset>
   );
 
@@ -964,18 +1026,58 @@ export default function ConsultantSheet() {
       <style>{`
         ${designerConfig.css.consultant || ""}
         @media print {
-          @page { size: A4 portrait; margin: 5mm; }
           .consultant-main-print-root {
-            transform: translateX(${designerConfig.layout.consultant.offsetXmm}mm) translateY(${designerConfig.layout.consultant.offsetYmm}mm) scale(${designerConfig.layout.consultant.scale});
-            transform-origin: top center;
+            font-size: 92% !important;
+            line-height: 1.1 !important;
           }
-          .followup-print-root {
-            transform: translateX(${designerConfig.followupConsultant.offsetXmm}mm) scale(${designerConfig.followupConsultant.scale});
-            transform-origin: top center;
-            width: 104%;
-            margin-left: auto;
-            margin-right: auto;
-            margin-top: ${designerConfig.followupConsultant.offsetYmm}mm;
+          .print-consultant-patient-grid {
+            display: grid !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          }
+          .print-consultant-history-grid {
+            display: block !important;
+          }
+          .print-consultant-history-grid table {
+            font-size: 10px !important;
+          }
+          .print-consultant-history-grid th,
+          .print-consultant-history-grid td {
+            padding: 3px !important;
+            line-height: 1.05 !important;
+          }
+          .print-consultant-history-grid input[type="checkbox"] {
+            width: 12px !important;
+            height: 12px !important;
+          }
+          .print-consultant-exam-row {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: flex-start !important;
+          }
+          .print-consultant-exam-row > :first-child {
+            flex: 0 0 12rem !important;
+          }
+          .print-consultant-exam-row > :last-child {
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+          }
+          .print-consultant-diagrams {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+          .print-consultant-notes-grid {
+            display: grid !important;
+            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+          }
+          .print-consultant-notes-grid > :first-child {
+            grid-column: span 3 / span 3 !important;
+          }
+          .print-consultant-notes-grid > :last-child {
+            grid-column: span 1 / span 1 !important;
+          }
+          .print-consultant-footer {
+            display: grid !important;
+            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
           }
         }
       `}</style>
@@ -1021,7 +1123,7 @@ export default function ConsultantSheet() {
 
         <div className="hidden print:block">
           {renderSheetBody(true)}
-          <div>{renderFollowupSection()}</div>
+          {!originalMode ? <div>{renderFollowupSection()}</div> : null}
         </div>
 
         <div className={`sheet-mobile-actions print:hidden ${printMode.printView ? "hidden" : ""}`}>

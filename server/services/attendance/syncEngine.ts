@@ -347,6 +347,16 @@ export async function resetFkSyncHistory(): Promise<void> {
     .where(eq((attendanceSyncRuns as any).deviceId, "fk_ef10k"));
 }
 
+export async function resetZkSyncHistory(): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db
+    .update(attendanceSyncRuns)
+    .set({ highWaterMark: null })
+    .where(sql`${(attendanceSyncRuns as any).deviceId} LIKE 'zk_%'`);
+}
+
 function sanitizeError(err: unknown): string {
   if (err instanceof Error) {
     // Remove sensitive paths and env values

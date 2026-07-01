@@ -205,9 +205,258 @@
     break-before: avoid !important;
     max-height: 285mm !important;
     overflow: hidden !important;
-    zoom: 0.78 !important;
+    font-size: 96% !important;
   }
-}
+  .sheet-layout table,
+  .lasik-print-root table,
+  .specialist-print-root table,
+  .followup-print-root table,
+  .a4-page-card table,
+  main table {
+    font-size: 10px !important;
+  }
+  .sheet-layout th,
+  .sheet-layout td,
+  .lasik-print-root th,
+  .lasik-print-root td,
+  .specialist-print-root th,
+  .specialist-print-root td,
+  .followup-print-root th,
+  .followup-print-root td,
+  .a4-page-card th,
+  .a4-page-card td,
+  main th,
+  main td {
+    padding: 3px !important;
+    line-height: 1.05 !important;
+  }
+  .sheet-layout input,
+  .sheet-layout select,
+  .sheet-layout textarea,
+  .lasik-print-root input,
+  .lasik-print-root select,
+  .lasik-print-root textarea,
+  .specialist-print-root input,
+  .specialist-print-root select,
+  .specialist-print-root textarea,
+  .followup-print-root input,
+  .followup-print-root select,
+  .followup-print-root textarea,
+  .a4-page-card input,
+  .a4-page-card select,
+  .a4-page-card textarea,
+  main input,
+  main select,
+  main textarea {
+    font-size: 10px !important;
+    line-height: 1.05 !important;
+    padding-top: 1px !important;
+    padding-bottom: 1px !important;
+  }
+  .sheet-layout input[type="checkbox"],
+  .sheet-layout input[type="radio"],
+  .lasik-print-root input[type="checkbox"],
+  .lasik-print-root input[type="radio"],
+  .specialist-print-root input[type="checkbox"],
+  .specialist-print-root input[type="radio"],
+  .followup-print-root input[type="checkbox"],
+  .followup-print-root input[type="radio"],
+  .a4-page-card input[type="checkbox"],
+  .a4-page-card input[type="radio"],
+  main input[type="checkbox"],
+  main input[type="radio"] {
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+  /* Keep sheet layouts side-by-side in print instead of collapsing to base mobile columns. */
+  .sheet-layout .md\:grid-cols-2,
+  .sheet-layout .lg\:grid-cols-2,
+  .sheet-layout .xl\:grid-cols-2,
+  .lasik-print-root .md\:grid-cols-2,
+  .lasik-print-root .lg\:grid-cols-2,
+  .lasik-print-root .xl\:grid-cols-2,
+  .specialist-print-root .md\:grid-cols-2,
+  .specialist-print-root .lg\:grid-cols-2,
+  .specialist-print-root .xl\:grid-cols-2,
+  .followup-print-root .md\:grid-cols-2,
+  .followup-print-root .lg\:grid-cols-2,
+  .followup-print-root .xl\:grid-cols-2,
+  .a4-page-card .md\:grid-cols-2,
+  .a4-page-card .lg\:grid-cols-2,
+  .a4-page-card .xl\:grid-cols-2,
+  main .md\:grid-cols-2,
+  main .lg\:grid-cols-2,
+  main .xl\:grid-cols-2 {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .sheet-layout .md\:grid-cols-3,
+  .sheet-layout .lg\:grid-cols-3,
+  .sheet-layout .xl\:grid-cols-3,
+  .lasik-print-root .md\:grid-cols-3,
+  .lasik-print-root .lg\:grid-cols-3,
+  .lasik-print-root .xl\:grid-cols-3,
+  .specialist-print-root .md\:grid-cols-3,
+  .specialist-print-root .lg\:grid-cols-3,
+  .specialist-print-root .xl\:grid-cols-3,
+  .followup-print-root .md\:grid-cols-3,
+  .followup-print-root .lg\:grid-cols-3,
+  .followup-print-root .xl\:grid-cols-3,
+  .a4-page-card .md\:grid-cols-3,
+  .a4-page-card .lg\:grid-cols-3,
+  .a4-page-card .xl\:grid-cols-3,
+  main .md\:grid-cols-3,
+  main .lg\:grid-cols-3,
+  main .xl\:grid-cols-3 {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .sheet-layout .md\:grid-cols-4,
+  .sheet-layout .lg\:grid-cols-4,
+  .sheet-layout .xl\:grid-cols-4,
+  .lasik-print-root .md\:grid-cols-4,
+  .lasik-print-root .lg\:grid-cols-4,
+  .lasik-print-root .xl\:grid-cols-4,
+  .specialist-print-root .md\:grid-cols-4,
+  .specialist-print-root .lg\:grid-cols-4,
+  .specialist-print-root .xl\:grid-cols-4,
+  .followup-print-root .md\:grid-cols-4,
+  .followup-print-root .lg\:grid-cols-4,
+  .followup-print-root .xl\:grid-cols-4,
+  .a4-page-card .md\:grid-cols-4,
+  .a4-page-card .lg\:grid-cols-4,
+  .a4-page-card .xl\:grid-cols-4,
+  main .md\:grid-cols-4,
+  main .lg\:grid-cols-4,
+  main .xl\:grid-cols-4 {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  .sheet-layout .lg\:grid-cols-12,
+  .sheet-layout .xl\:grid-cols-12,
+  .lasik-print-root .lg\:grid-cols-12,
+  .lasik-print-root .xl\:grid-cols-12,
+  .specialist-print-root .lg\:grid-cols-12,
+  .specialist-print-root .xl\:grid-cols-12,
+  .followup-print-root .lg\:grid-cols-12,
+  .followup-print-root .xl\:grid-cols-12,
+  .a4-page-card .lg\:grid-cols-12,
+  .a4-page-card .xl\:grid-cols-12,
+  main .lg\:grid-cols-12,
+  main .xl\:grid-cols-12 {
+    display: grid !important;
+    grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+  }
+
+  .sheet-layout .md\:col-span-2,
+  .sheet-layout .lg\:col-span-2,
+  .sheet-layout .xl\:col-span-2,
+  .lasik-print-root .md\:col-span-2,
+  .lasik-print-root .lg\:col-span-2,
+  .lasik-print-root .xl\:col-span-2,
+  .specialist-print-root .md\:col-span-2,
+  .specialist-print-root .lg\:col-span-2,
+  .specialist-print-root .xl\:col-span-2,
+  .followup-print-root .md\:col-span-2,
+  .followup-print-root .lg\:col-span-2,
+  .followup-print-root .xl\:col-span-2,
+  .a4-page-card .md\:col-span-2,
+  .a4-page-card .lg\:col-span-2,
+  .a4-page-card .xl\:col-span-2,
+  main .md\:col-span-2,
+  main .lg\:col-span-2,
+  main .xl\:col-span-2 {
+    grid-column: span 2 / span 2 !important;
+  }
+
+  .sheet-layout .md\:col-span-4,
+  .sheet-layout .lg\:col-span-4,
+  .sheet-layout .xl\:col-span-4,
+  .lasik-print-root .md\:col-span-4,
+  .lasik-print-root .lg\:col-span-4,
+  .lasik-print-root .xl\:col-span-4,
+  .specialist-print-root .md\:col-span-4,
+  .specialist-print-root .lg\:col-span-4,
+  .specialist-print-root .xl\:col-span-4,
+  .followup-print-root .md\:col-span-4,
+  .followup-print-root .lg\:col-span-4,
+  .followup-print-root .xl\:col-span-4,
+  .a4-page-card .md\:col-span-4,
+  .a4-page-card .lg\:col-span-4,
+  .a4-page-card .xl\:col-span-4,
+  main .md\:col-span-4,
+  main .lg\:col-span-4,
+  main .xl\:col-span-4 {
+    grid-column: span 4 / span 4 !important;
+  }
+
+  .sheet-layout .md\:col-span-5,
+  .sheet-layout .lg\:col-span-5,
+  .sheet-layout .xl\:col-span-5,
+  .lasik-print-root .md\:col-span-5,
+  .lasik-print-root .lg\:col-span-5,
+  .lasik-print-root .xl\:col-span-5,
+  .specialist-print-root .md\:col-span-5,
+  .specialist-print-root .lg\:col-span-5,
+  .specialist-print-root .xl\:col-span-5,
+  .followup-print-root .md\:col-span-5,
+  .followup-print-root .lg\:col-span-5,
+  .followup-print-root .xl\:col-span-5,
+  .a4-page-card .md\:col-span-5,
+  .a4-page-card .lg\:col-span-5,
+  .a4-page-card .xl\:col-span-5,
+  main .md\:col-span-5,
+  main .lg\:col-span-5,
+  main .xl\:col-span-5 {
+    grid-column: span 5 / span 5 !important;
+  }
+
+  .sheet-layout .md\:col-span-7,
+  .sheet-layout .lg\:col-span-7,
+  .sheet-layout .xl\:col-span-7,
+  .lasik-print-root .md\:col-span-7,
+  .lasik-print-root .lg\:col-span-7,
+  .lasik-print-root .xl\:col-span-7,
+  .specialist-print-root .md\:col-span-7,
+  .specialist-print-root .lg\:col-span-7,
+  .specialist-print-root .xl\:col-span-7,
+  .followup-print-root .md\:col-span-7,
+  .followup-print-root .lg\:col-span-7,
+  .followup-print-root .xl\:col-span-7,
+  .a4-page-card .md\:col-span-7,
+  .a4-page-card .lg\:col-span-7,
+  .a4-page-card .xl\:col-span-7,
+  main .md\:col-span-7,
+  main .lg\:col-span-7,
+  main .xl\:col-span-7 {
+    grid-column: span 7 / span 7 !important;
+  }
+
+  .sheet-layout .md\:col-span-8,
+  .sheet-layout .lg\:col-span-8,
+  .sheet-layout .xl\:col-span-8,
+  .lasik-print-root .md\:col-span-8,
+  .lasik-print-root .lg\:col-span-8,
+  .lasik-print-root .xl\:col-span-8,
+  .specialist-print-root .md\:col-span-8,
+  .specialist-print-root .lg\:col-span-8,
+  .specialist-print-root .xl\:col-span-8,
+  .followup-print-root .md\:col-span-8,
+  .followup-print-root .lg\:col-span-8,
+  .followup-print-root .xl\:col-span-8,
+  .a4-page-card .md\:col-span-8,
+  .a4-page-card .lg\:col-span-8,
+  .a4-page-card .xl\:col-span-8,
+  main .md\:col-span-8,
+  main .lg\:col-span-8,
+  main .xl\:col-span-8 {
+    grid-column: span 8 / span 8 !important;
+  }
+  }
 
 @layer base {
   * {

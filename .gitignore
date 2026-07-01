@@ -6,6 +6,7 @@ dist/
 *.env
 !.env.example
 local
+scripts/zk-pull.config.ps1
 
 .manus-logs/
 *.log

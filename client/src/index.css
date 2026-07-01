@@ -1060,13 +1060,66 @@ img {
     break-before: avoid !important;
     max-height: 285mm !important;
     overflow: hidden !important;
-    zoom: 0.78 !important;
+    font-size: 96% !important;
+  }
+  .sheet-layout table,
+  .lasik-print-root table,
+  .specialist-print-root table,
+  .followup-print-root table,
+  .a4-page-card table {
+    font-size: 10px !important;
+  }
+  .sheet-layout th,
+  .sheet-layout td,
+  .lasik-print-root th,
+  .lasik-print-root td,
+  .specialist-print-root th,
+  .specialist-print-root td,
+  .followup-print-root th,
+  .followup-print-root td,
+  .a4-page-card th,
+  .a4-page-card td {
+    padding: 3px !important;
+    line-height: 1.05 !important;
+  }
+  .sheet-layout input,
+  .sheet-layout select,
+  .sheet-layout textarea,
+  .lasik-print-root input,
+  .lasik-print-root select,
+  .lasik-print-root textarea,
+  .specialist-print-root input,
+  .specialist-print-root select,
+  .specialist-print-root textarea,
+  .followup-print-root input,
+  .followup-print-root select,
+  .followup-print-root textarea,
+  .a4-page-card input,
+  .a4-page-card select,
+  .a4-page-card textarea {
+    font-size: 10px !important;
+    line-height: 1.05 !important;
+    padding-top: 1px !important;
+    padding-bottom: 1px !important;
+  }
+  .sheet-layout input[type="checkbox"],
+  .sheet-layout input[type="radio"],
+  .lasik-print-root input[type="checkbox"],
+  .lasik-print-root input[type="radio"],
+  .specialist-print-root input[type="checkbox"],
+  .specialist-print-root input[type="radio"],
+  .followup-print-root input[type="checkbox"],
+  .followup-print-root input[type="radio"],
+  .a4-page-card input[type="checkbox"],
+  .a4-page-card input[type="radio"] {
+    width: 12px !important;
+    height: 12px !important;
   }
 
   /* Sheet pages use <main> — fill A4, no extra padding (page margin handles whitespace) */
   main {
-    max-width: 190mm;
-    width: 190mm;
+    max-width: 100% !important;
+    width: 100% !important;
     min-height: 0;
     margin: 0 auto;
     padding: 0 !important;
@@ -1076,8 +1129,8 @@ img {
 
   /* Lasik exam sheet — not inside <main>, needs its own A4 constraint */
   .lasik-print-root {
-    width: 190mm;
-    max-width: 190mm;
+    width: 100% !important;
+    max-width: 100% !important;
     margin: 0 auto;
     overflow: hidden;
   }
@@ -1091,8 +1144,8 @@ img {
 
   /* Followup sheets — grid of sections */
   .followup-print-root {
-    width: 190mm;
-    max-width: 190mm;
+    width: 100% !important;
+    max-width: 100% !important;
   }
   .followup-print-root > * {
     border-radius: 4px !important;
@@ -1102,8 +1155,8 @@ img {
 
   /* Referral letter — constrain to A4, drop shadow/border */
   .referral-print-root > div {
-    max-width: 190mm !important;
-    width: 190mm !important;
+    max-width: 100% !important;
+    width: 100% !important;
     margin: 0 !important;
     box-shadow: none !important;
     border: none !important;

@@ -228,7 +228,7 @@ export default function ConsultantFollowupPage() {
             box-shadow: none !important;
           }
           .followup-print-root {
-            transform: translateX(${followupLabels.offsetXmm}mm) scale(0.9);
+            transform: translateX(${followupLabels.offsetXmm}mm) scale(1);
             transform-origin: top center;
             margin-top: ${followupLabels.offsetYmm}mm;
             width: 100% !important;
