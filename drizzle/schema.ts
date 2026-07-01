@@ -1,5 +1,6 @@
 import {
   int,
+  tinyint,
   varchar,
   text,
   mediumtext,
@@ -290,6 +291,7 @@ export const visits = mysqlTable("visits", {
   movedToNextAt: timestamp("movedToNextAt"),
   movedToClinicAt: timestamp("movedToClinicAt"),
   treatedAt: timestamp("treatedAt"),
+  clinicNo: tinyint("clinicNo"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -1049,7 +1051,15 @@ export const followupSheets = mysqlTable(
       "consultant",
       "specialist",
       "lasik",
+      "surgery",
       "external",
+      "pentacam_c",
+      "pentacam_ex",
+      "pentacam_ex_c",
+      "surgery_external",
+      "surgery_center",
+      "pentacam_center",
+      "pentacam_external",
     ]).notNull(), // نوع الشيت
     version: int("version").notNull().default(1), // رقم النسخة (شيت 1، شيت 2، إلخ)
     createdAt: timestamp("createdAt").defaultNow().notNull(),

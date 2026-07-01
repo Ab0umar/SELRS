@@ -123,7 +123,7 @@ export default function ReportsHub() {
               className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-800 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
             >
               <option value="">الكل</option>
-              {deptQuery.data.map((d) => (
+              {deptQuery.data.map((d: string) => (
                 <option key={d} value={d}>{d}</option>
               ))}
             </select>

@@ -1,153 +1,247 @@
 # SELRS Design System
 
-The single source of truth for UI in this app. Tokens live in `client/src/index.css`
-(`@theme` + `:root`/`.dark`). Components live in `client/src/components/ui` (shadcn/ui +
-Tailwind v4). This document explains **how to use them** — do not hardcode values that a
-token already covers.
+## Color Palette
 
----
+### Primary Colors
 
-## 1. Principles
+- **Orange (Brand Primary)**: `#FF6B35` (warmth, action, medical optimism)
+  - Light: `#FFE5D9`
+  - Dark: `#CC5529`
+- **Blue (Trust)**: `#2563EB` (clarity, reliability, focus)
+  - Light: `#DBEAFE`
+  - Dark: `#1E40AF`
+- **White (Cleanliness)**: `#FFFFFF`
 
-The app is medical software for a LASIK center. Design like it.
+### Neutrals (Tinted)
 
-1. **Minimal homepage.** Don't jam everything onto one screen. Lead with the few numbers
-   that matter (today's patients, queue, operations, revenue), then drill down.
-2. **This is vision care, not retail.** No gimmicks, no loud marketing. Calm, precise, trustworthy.
-3. **Legible above all.** It is a clinic for eyes — typography must be easy to read. Use the
-   system font scale; never go below 11px for body text.
-4. **Responsive by default.** Every screen must work on phone, tablet, and desktop. Sidebars
-   collapse, grids reflow, tables become cards.
-5. **RTL Arabic first.** UI is Arabic. Preserve existing wording. Layout flows right-to-left.
+- **Foreground (text)**: `#1F2937` (near-black, tinted blue)
+- **Muted text**: `#6B7280` (gray, medical neutral)
+- **Border**: `#E5E7EB` (light gray)
+- **Background**: `#F9FAFB` (off-white, clinical clean)
+- **Light background**: `#F3F4F6` (card/section backgrounds)
 
----
+### Semantic Colors
 
-## 2. Color tokens
+- **Success**: `#10B981` (positive, recovery, post-op success)
+- **Warning**: `#F59E0B` (caution, pending, awaiting approval)
+- **Error**: `#EF4444` (critical, alerts, urgent)
+- **Info**: `#3B82F6` (notification, guidance)
 
-Never use raw hex in components. Use the semantic Tailwind classes that map to these
-CSS variables (e.g. `bg-primary`, `text-muted-foreground`, `border-border`). They auto-adapt
-to dark mode.
+### Color discipline (no third brand color)
 
-### Brand
-| Token | Light | Meaning |
+The palette is **navy + orange + semantic tokens**. No `--accent-3`. When a feature reaches for a third color (violet, cyan, teal, etc.) to differentiate a category or role:
+
+1. First option: use **secondary (orange)** with opacity variants (`bg-secondary/10`, `bg-secondary/15`, `text-secondary`). This is the canonical "second identity color" in the system.
+2. Second option: use a **semantic token** if the meaning matches (success / warning / destructive / info).
+3. Third option: use **muted neutrals** if the distinction is decorative, not semantic.
+
+**Rationale**: A two-color brand is harder to dilute. Every additional named color is a future migration debt. Violet, indigo, teal, and emerald palettes were normalized to `secondary` in 2026-05 (Pass 3 audit).
+
+### Hub-shell category palette (token-only)
+
+Multi-hub navigation surfaces (Clinics / Admin / Services / Medical Reports / Patients / Workflow) need visual identity per hub. Use this **fixed rotation of semantic tokens**, not Tailwind raw palette names:
+
+| Slot | iconWrap                             | Use for                          |
+| ---- | ------------------------------------ | -------------------------------- |
+| 1    | `bg-primary/10 text-primary`         | Main / clinical / default hub    |
+| 2    | `bg-secondary/15 text-secondary`     | Secondary identity (orange-warm) |
+| 3    | `bg-success/15 text-success`         | Health / completed / labs        |
+| 4    | `bg-warning/20 text-warning`         | Admin / caution / migrations     |
+| 5    | `bg-destructive/10 text-destructive` | Critical / errors only           |
+| 6    | `bg-muted text-muted-foreground`     | Utility / neutral hub            |
+
+Never reach for `sky-*`, `cyan-*`, `pink-*`, `indigo-*`, `teal-*`, `emerald-*`, `rose-*`, `amber-*`, `violet-*`. They were swept in Pass 4 (2026-05) and should not return.
+
+## Typography
+
+### Font Family
+
+- **UI Font**: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif
+- **Fallback for Arabic**: Segoe UI, Tahoma, Arial (system fonts that support Arabic)
+
+### Scale & Weight
+
+| Role                   | Size | Weight | Line Height | Usage                              |
+| ---------------------- | ---- | ------ | ----------- | ---------------------------------- |
+| H1 (Page Title)        | 32px | 700    | 1.2         | Page headers                       |
+| H2 (Section)           | 24px | 700    | 1.25        | Major sections                     |
+| H3 (Subsection)        | 20px | 600    | 1.3         | Subsections                        |
+| H4 (Card/Table Header) | 16px | 600    | 1.4         | Card titles, table headers         |
+| Body (Regular)         | 14px | 400    | 1.6         | Body text, table cells             |
+| Body (Small)           | 13px | 400    | 1.5         | Secondary text, captions           |
+| Label (Form)           | 13px | 500    | 1.4         | Form labels, badges                |
+| Mono (Data)            | 13px | 400    | 1.5         | IDs, codes, medical record numbers |
+
+**Contrast Hierarchy**: Title (H1) → H2 → H3 → H4 → Body Regular → Body Small. Avoid flat scales.
+
+## Spacing Scale
+
+| Token | Size | Usage                              |
+| ----- | ---- | ---------------------------------- |
+| xs    | 4px  | Inline spacing, small gaps         |
+| sm    | 8px  | Small padding, component internals |
+| md    | 12px | Standard padding, breathing room   |
+| lg    | 16px | Sections, card padding             |
+| xl    | 24px | Page sections, major spacing       |
+| 2xl   | 32px | Large section breaks               |
+| 3xl   | 48px | Page top/bottom margins            |
+
+**Rule**: Vary spacing for rhythm. Consistent 16px padding everywhere = monotony.
+
+## Components
+
+### Buttons
+
+- **Primary (Orange)**: Orange background, white text, 8px padding vertical, 12px horizontal, rounded 6px, 400 weight
+- **Secondary (Blue outline)**: Blue border, blue text, white background, 8px v / 12px h, rounded 6px
+- **Tertiary (Ghost)**: No background, blue text, no border, 8px v / 12px h, hover: light background
+- **Danger (Red)**: Red background, white text, same sizing
+- **Disabled**: Muted text, muted background, no interaction
+
+### Tables
+
+- **Header row**: Light blue background (#DBEAFE), 600 weight, left-align text + numbers
+- **Data rows**: Alternating white / light gray (#F3F4F6), 14px body
+- **Row hover**: Light blue tint (#F0F9FF)
+- **Grouping rows**: Light blue section headers (#E0F2FE), 600 weight, can be collapsible
+- **Total/Summary rows**: Light orange (#FFE5D9) or light gray highlight, bold or slightly heavier weight
+- **Column spacing**: Min 12px padding, increase for readability
+
+### Forms
+
+- **Input**: 12px padding, light gray background, blue border on focus, rounded 6px, 13px label
+- **Select/Dropdown**: Match input styling
+- **Validation**: Red text for errors, green text for success, warning yellow for caution
+- **Placeholder**: Muted gray text
+
+### Cards
+
+- **Background**: White
+- **Border**: 1px light gray, rounded 8px
+- **Padding**: 16px (lg spacing)
+- **Shadow**: None (restrained clinic aesthetic, not material design)
+- **No nested cards** (absolute ban)
+
+### Navigation
+
+- **Sidebar/Top nav**: Light gray background (#F9FAFB), dark text
+- **Active link**: Blue left border (2px), blue text, light blue background
+- **Inactive link**: Muted text, no background
+- **Hover**: Light gray background
+
+#### Navigation architecture
+
+The app has three navigation surfaces that work together. Component files live in `client/src/components/layout/`.
+
+**AppTopNav** (`AppTopNav.tsx`) — horizontal header bar (visible on all screen sizes):
+- Admin users see 8 fixed `adminQuickTabs`: لوحة التحكم, مركز المريض, الحسابات, المرتبات, الحضور, كفرالشيخ, المخزن, مركز الإدارة.
+- Non-admin users see permission-filtered tabs from `allNavTabs` (today, patients, operations, accounting, kf, stockroom). Tabs not permitted are hidden.
+- A **"المزيد" popover** (desktop only) shows remaining `NavGroupSection` entries from `navGroups` that are not already main tabs, filtered by permission. Sections with a single item navigate directly on header click — no accordion expand.
+- The Accounting sub-group for non-admin users also appears as a dropdown button next to the Accounting tab when the user has accounting permission but it is not already in `mainNavTabs`.
+
+**AppSidebar** (`AppSidebar.tsx`) — collapsible sidebar (desktop only):
+- Admin sees `adminNavGroups` (defined in `AppNav.tsx`).
+- Staff sees `staffNavGroups` (same as adminNavGroups minus the last entry, with attendance items role-filtered and "حضوري" + "الروستر" added at the bottom).
+- **مركز الإدارة** group is NOT in the sidebar — reachable from AppTopNav admin tabs and user dropdown only.
+
+**AppBottomNav** (`AppBottomNav.tsx`) — fixed bottom tab bar (mobile only, hidden on `md:` and above):
+
+| Admin tabs | Staff tabs (permission-filtered) |
+|---|---|
+| لوحة التحكم | اليوم |
+| مركز المريض | مركز المريض |
+| الحسابات | العمليات |
+| المرتبات | الحسابات |
+| الحضور | كفرالشيخ |
+| كفرالشيخ | الروستر *(doctors + technicians only)* |
+| الإدارة | المزيد |
+| المزيد | |
+
+The "المزيد" tab in both variants opens the same `NavGroupSection` drawer filtered by permission. Single-item sections navigate directly.
+
+#### AppNav groups (`client/src/components/layout/AppNav.tsx`)
+
+| Export | Type | nav key | Module |
+|---|---|---|---|
+| `attendanceNavGroup` | `NavGroupSection` | `attendance` | Attendance (5 items) |
+| `salaryNavGroup` | `NavGroupSection` | `salary` | Salary (4 items) |
+| `accountingNavGroup` | `NavGroupSection` | `accounting` | Accounting (14 items) |
+| `adminNavGroups` | `NavGroup[]` | — | All admin nav (includes above + Clinics groups + KF + Stockroom + more) |
+| `staffNavGroups` | `NavGroup[]` | — | Same as admin but without last entry; adds "حضوري" and "الروستر" leaves |
+
+#### Clinics sidebar sections (5 `NavGroupSection` accordion entries)
+
+| Section key | Arabic label | Links |
 |---|---|---|
-| `--primary` | `#003d82` (navy) | Primary actions, active nav, key figures |
-| `--secondary` / `--accent` | `#ff9500` (orange) | Accent, highlights, secondary CTAs |
-| `--selrs-dark-blue` | `#001f47` | Deepest text / headings |
-| `--selrs-light-blue` | `#e8f0f8` | Soft fills, muted surfaces |
+| `clinics-file` | ملف المريض | `/medicalfile` |
+| `clinics-measurements` | القياسات | `/sheets/autorefs/dashboard`, `/sheets/refractions/dashboard` |
+| `clinics-pentacam` | البنتاكام | `/sheets/pentacam/dashboard`, `/sheets/pentacam`, `/admin/pentacam` |
+| `clinics-prescriptions` | روشتات و تقارير | `/prescription`, `/medical-reports` |
+| `clinics-tests` | أشعة و تحاليل | `/request-tests` |
 
-### Surfaces
-| Token | Light | Use |
-|---|---|---|
-| `--background` | `#ffffff` | Page background |
-| `--card` | `#f5f5f5` | Cards, panels |
-| `--popover` | `#ffffff` | Menus, dialogs |
-| `--border` | `#e5e7eb` | Hairlines, dividers |
-| `--muted` | `#e8f0f8` | Subtle backgrounds |
-| `--muted-foreground` | `#4b5563` | Secondary text |
+**Key behavior notes:**
+- Single-item accordion sections navigate directly on header click (no expand needed).
+- **مركز الإدارة** group is NOT in the sidebar; it appears only as an admin quick tab and in the user dropdown.
+- Salary appears in the "المزيد" popover for non-admin users who have a `/salary` permission.
+- `/quick-entry` and `/new-cases` are not in navigation groups (accessible directly via URL or command palette).
 
-### Status (always pair `*` fill with `*-text` for text on light surfaces — WCAG AA)
-| Token | Light | Use |
-|---|---|---|
-| `--success` / `--success-text` | `#10b981` / `#047857` | Done, completed, paid |
-| `--warning` / `--warning-text` | `#f59e0b` / `#92400e` | Waiting, pending, attention |
-| `--destructive` / `--destructive-text` | `#ef4444` / `#b91c1c` | Errors, delete, unjustified absence |
-| `--info` | `#3b82f6` | In-progress, informational |
+### Alerts / Callouts
 
-**Dark mode** is fully defined in `.dark` — every token above has a dark counterpart. Build
-with semantic classes and dark mode just works. Never special-case colors in a component.
+- **Success**: Green (#10B981) left border (2px), light green background (#ECFDF5), green text
+- **Warning**: Yellow (#F59E0B) left border, light yellow background, yellow text
+- **Error**: Red border, light red background, red text
+- **Info**: Blue border, light blue background, blue text
+- **No side-stripe only** (must include background tint)
 
-### Department color convention (for tags/charts)
-Keep these consistent across queue, tables, and charts:
-- استشاري (consultant) → blue `info`
-- أخصائي (specialist) → `success` green
-- ليزك / surgery → violet (`chart`/`#7c3aed`)
-- بنتاكام (pentacam) → orange/amber `warning`
+## Layout Principles
 
----
+1. **Breathing room** — Don't fill every pixel. Whitespace aids clarity.
+2. **Content-first** — Sidebars support, don't dominate.
+3. **Data density** — Tables can be tighter (12px row padding) than prose (16px).
+4. **No boxes-within-boxes** — One level of nesting max (card → content, not card → card → content).
+5. **Responsive grid** — 1-column mobile, 2-col tablet, 3+ desktop; use CSS Grid or Flexbox, not Bootstrap-style containers.
 
-## 3. Typography
+## Theme & Lighting
 
-- **Font:** Cairo (primary) — already loaded. Arabic + Latin, weights 300–900.
-- **Scale** (use Tailwind text-\*):
-  | Role | Size | Weight |
-  |---|---|---|
-  | Page title | `text-2xl` (24px) | 700–800 |
-  | Section title | `text-base`/`text-lg` (15–18px) | 700 |
-  | Card metric value | `text-3xl` (30–32px) | 800 |
-  | Body | `text-sm` (13–14px) | 400–500 |
-  | Label / caption | `text-xs` (11–12px) | 500–600 |
-- **Numbers** (counts, money) are bold and large — they're the point of a clinic dashboard.
-- Don't mix more than two weights in one card.
+**Light theme always.** Clinic staff work in bright office lighting and daylight surgery suites. Dark mode contradicts the medical environment. Light backgrounds reduce fatigue in OR/recovery where screens are visible from distance.
 
----
+## Motion
 
-## 4. Spacing, radius, elevation
+- **Button hover/active**: Slight opacity change (0.9), no animation
+- **Form validation**: Instant visual feedback, no animation
+- **Page transitions**: Fade in (200ms ease-out) if needed
+- **Avoid**: Animating layout properties, bouncing, elastic easing
 
-- **Radius:** base `--radius: 0.65rem`. Use `rounded-lg`/`rounded-xl` for cards, `rounded-md`
-  for inputs/buttons, `rounded-full` for avatars/pills.
-- **Spacing:** 4px grid. Card padding `p-5`/`p-6` (20–24px). Gaps `gap-4`/`gap-5` between cards.
-- **Elevation:** keep it flat. One soft shadow for cards (`shadow-sm`), a slightly stronger one
-  on hover for interactive cards. No heavy drop shadows.
-- **Borders over shadows:** prefer a 1px `border-border` to define cards on light backgrounds.
+## Bilingual (Arabic/English)
 
----
+- **Arabic primary** — All UI text leads in Arabic
+- **English fallback** — English always available, not translated separately
+- **RTL layout** — Ensure flex/grid flow adapts to text direction
+- **Typography**: Same font stack supports both; line-height works for both
+- **Data**: Numbers stay LTR (123, not ١٢٣)
 
-## 5. Layout patterns
+## Accessibility (Standard)
 
-Three validated shells (see `/scratchpad` prototypes for reference):
+- **Color contrast**: WCAG AA (4.5:1 normal text, 3:1 large text)
+- **Touch targets**: Min 44×44px (clinic staff with gloves, time pressure)
+- **Focus states**: Visible outline (2px blue), no invisible focus
+- **Screen readers**: Semantic HTML, labels on form inputs
+- **Mobile**: Readable on 5-inch and 27-inch screens; scale text appropriately
 
-- **Sidebar shell** — fixed 240px navy sidebar + scrollable main. Best for admin-heavy screens
-  with many sections. Collapses to a bottom bar / drawer under 900px.
-- **Top-nav + hero** — 64px top bar + hero banner with live KPIs. Best for the landing/overview
-  page. Nav hides into a menu on mobile.
-- **Icon rail + data table** — 76px icon-only rail + dense table + side panel. Best for
-  operational screens (queue, patient lists). Rail moves to bottom on mobile.
+## Anti-Patterns (Absolute Bans)
 
-**Grid rules**
-- Desktop: 4-up KPI strip, then 1.5fr/1fr two-column content.
-- Tablet (<1000px): 2-up KPIs, single column content.
-- Phone (<640px): everything stacks; tables render as stacked cards.
+1. ❌ **Side-stripe borders only** — Rewrite with full borders or background tints
+2. ❌ **Gradient text** — Use solid color, emphasis via weight/size
+3. ❌ **Glassmorphism as default** — No decorative blurs
+4. ❌ **Card grids of identical cards** — Vary content, use tables for structured data
+5. ❌ **Modal-first** — Use inline or progressive UI; modals are last resort
+6. ❌ **Hero-metric template** — No big-number + label + gradient cliché
 
----
+## Current Debt
 
-## 6. Component conventions
-
-Use the existing `components/ui` primitives — do not build parallel ones.
-
-- **Cards:** `Card` + `CardHeader`/`CardContent`. White/`card` surface, 1px border, `rounded-xl`.
-- **Buttons:** `Button` — `default` (navy), `secondary` (orange), `outline`, `ghost`, `destructive`.
-- **Badges/pills:** `Badge` for status. Pill shape, status color fill + `*-text`. Keep labels short
-  (انتظار / فحص / منجز / عملية).
-- **Tables:** filter tabs in the header, patient cell = avatar + name + ID, status as a colored
-  dot + label, row actions behind a `⋯` menu. Hover-highlight rows.
-- **Dates:** ALWAYS `<DateInput>` from `components/ui/date-input.tsx` — never raw `type="date"`.
-- **Avatars:** rounded-square or circle, brand-soft background + brand-deep initials. 2 Arabic initials.
-- **Empty/loading:** use `empty.tsx` and skeletons, not blank screens.
-
----
-
-## 7. Do / Don't
-
-**Do**
-- Use semantic tokens (`bg-primary`, `text-success-text`) so dark mode + theming stay correct.
-- Keep one clear primary action per screen.
-- Show live operational state (now-serving, queue count, avg wait) prominently.
-- Right-align everything for RTL; mirror icons that imply direction.
-
-**Don't**
-- Hardcode hex values that a token already covers.
-- Replace Arabic labels with English (see CLAUDE.md).
-- Add a third font, heavy shadows, or decorative gradients on data surfaces.
-- Overcrowd the overview page — push detail to dedicated screens.
-
----
-
-## 8. Where things live
-
-- Tokens: `client/src/index.css` (`@theme inline`, `:root`, `.dark`)
-- Primitives: `client/src/components/ui/*`
-- Pages: `client/src/pages/*` — gated by `client/src/components/ProtectedRoute.tsx`
-- Routing: `client/src/App.tsx`
-
-To add or change a token, edit `index.css` once — every component inherits it.
+- Inconsistent button styles (no unified primary/secondary)
+- Random color usage (orange, blue, teal scattered without system)
+- Poor spacing rhythm (16px everywhere, no variation)
+- Weak typography hierarchy (size only, no weight contrast)
+- Ad-hoc table styling (no consistent header/row treatment)
+- Missing focus/hover states

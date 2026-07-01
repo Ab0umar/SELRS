@@ -34,7 +34,7 @@ export default function DeviceConsole() {
   const [commandInput, setCommandInput] = useState("");
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [logId, setLogId] = useState(1);
-  const [diagnosticIP, setDiagnosticIP] = useState("192.168.1.100");
+  const [diagnosticIP, setDiagnosticIP] = useState("41.199.252.107");
   const [diagnosticPort, setDiagnosticPort] = useState("5005");
   const consoleBottomRef = useRef<HTMLDivElement>(null);
 
@@ -316,7 +316,7 @@ export default function DeviceConsole() {
                     type="text"
                     value={diagnosticIP}
                     onChange={(e) => setDiagnosticIP(e.target.value)}
-                    placeholder="192.168.1.100"
+                    placeholder="41.199.252.107"
                     className="text-xs h-9 border-zinc-200 placeholder:text-zinc-400"
                   />
                 </div>

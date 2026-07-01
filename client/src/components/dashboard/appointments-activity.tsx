@@ -32,13 +32,12 @@ import { getLocalDateIso } from "@/hooks/operations/operationsShared";
 import { DateInput } from "@/components/ui/date-input";
 
 type MainTab = "patients" | "operations" | "bookings";
-type QueueFilter = "all" | QueueStatus | "bookings";
+type QueueFilter = "all" | QueueStatus | "bookings" | "clinic1" | "clinic2";
 
 const QUEUE_FILTERS: { value: QueueFilter; label: string }[] = [
   { value: "bookings", label: "حجز" },
-  { value: "checkedIn", label: "تسجيل" },
-  { value: "next", label: "التالي" },
-  { value: "clinic", label: "عيادة" },
+  { value: "clinic1", label: "عيادة 1" },
+  { value: "clinic2", label: "عيادة 2" },
   { value: "treated", label: "معالج" },
 ];
 
@@ -306,25 +305,26 @@ export function AppointmentsSection({
     () => ({
       all: merged.length,
       bookings: bookingsForDate.length,
-      checkedIn: byStatus.checkedIn.length,
-      next: byStatus.next.length,
-      clinic: byStatus.clinic.length,
+      clinic1: byStatus.clinic1.length,
+      clinic2: byStatus.clinic2.length,
       treated: byStatus.treated.length,
     }),
     [
       merged.length,
       bookingsForDate.length,
-      byStatus.checkedIn.length,
-      byStatus.next.length,
-      byStatus.clinic.length,
+      byStatus.clinic1.length,
+      byStatus.clinic2.length,
       byStatus.treated.length,
     ],
   );
 
   const filteredPatients = useMemo(() => {
     if (queueFilter === "all" || queueFilter === "bookings") return merged;
+    if (queueFilter === "clinic1") return byStatus.clinic1;
+    if (queueFilter === "clinic2") return byStatus.clinic2;
+    if (queueFilter === "treated") return byStatus.treated;
     return merged.filter((p) => p.queueStatus === queueFilter);
-  }, [queueFilter, merged]);
+  }, [queueFilter, merged, byStatus]);
 
   const todayPatientIds = useMemo(
     () => merged.map((p) => p.id).filter(Boolean),
@@ -463,7 +463,7 @@ export function AppointmentsSection({
         <>
           <div className="flex flex-wrap gap-2">
             {QUEUE_FILTERS.map(({ value, label }) => {
-              const n = counts[value];
+              const n = (counts as Record<string, number>)[value] ?? 0;
               const active = queueFilter === value;
               return (
                 <button
