@@ -298,9 +298,13 @@ export default function ShiftSchedule() {
     attendMap.get(key)!.push(row);
   }
 
-  const allDates = monthDates(year, month).filter(
-    (ds) => new Date(`${ds}T00:00:00`).getDay() !== 5,
-  );
+  const allDates = monthDates(year, month).filter((ds) => {
+    const dow = new Date(`${ds}T00:00:00`).getDay();
+    if (dow === 5) return false;
+    if (fromDate && ds < fromDate) return false;
+    if (toDate && ds > toDate) return false;
+    return true;
+  });
   const monthMin = `${year}-${pad(month)}-01`;
   const monthMax = `${year}-${pad(month)}-${pad(daysInMonth(year, month))}`;
 

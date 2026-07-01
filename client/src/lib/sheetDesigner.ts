@@ -108,7 +108,8 @@ const DEFAULT_FOLLOWUP_TEMPLATE: FollowupTemplateConfig = {
 
 export const DEFAULT_SHEET_DESIGNER_CONFIG: SheetDesignerConfig = {
   css: {
-    consultant: `body {
+    consultant: `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Kufi+Arabic:wght@400;600;700&display=swap');
+        body {
           font-family: 'Inter', 'Noto Kufi Arabic', sans-serif;
           background-color: #f3f4f6;
         }
@@ -119,6 +120,13 @@ export const DEFAULT_SHEET_DESIGNER_CONFIG: SheetDesignerConfig = {
         }
         .ltr-content {
           direction: ltr;
+        }
+        .dotted-textarea {
+          background-image: linear-gradient(to bottom, transparent 96%, #cbd5e1 96%) !important;
+          background-size: 100% 28px !important;
+          line-height: 28px !important;
+          border: none !important;
+          resize: none !important;
         }`,
     specialist: `body { 
             font-family: 'Inter', 'Noto Sans Arabic', sans-serif; 

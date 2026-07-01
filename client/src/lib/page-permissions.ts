@@ -166,6 +166,11 @@ export const PAGE_PERMISSION_DEFINITIONS = [
     label: "وحدة فحص الجهاز",
     group: "الحضور والانصراف",
   },
+  {
+    id: "/attendance/shift-schedule",
+    label: "جدول المناوبات",
+    group: "الحضور والانصراف",
+  },
 
   // ── المرتبات ──
   { id: "/salary", label: "المرتبات (الرئيسية)", group: "المرتبات" },
