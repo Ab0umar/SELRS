@@ -118,8 +118,8 @@ export const attendanceSyncRoutes = {
   syncFromZK40: makeAttWriteProcedure("/attendance/admin/sync").mutation(
     async ({ ctx }) => {
       const k40 = DeviceSettingsService.getK40Settings();
-      const ip = k40.ip ?? process.env.ZK4370_IP ?? "";
-      const port = k40.port ?? 4370;
+      const ip = process.env.ZK4370_IP || k40.ip || "";
+      const port = parseInt(process.env.ZK4370_PORT ?? "", 10) || k40.port || 4370;
       if (!ip) throw new Error("ZK40 IP not configured");
       return ZK4370SyncService.pull(ctx.user?.id, ip, port, k40.commPassword ?? 0);
     },
@@ -672,9 +672,9 @@ export const attendanceSyncRoutes = {
 
         // ZK device (K40) — TCP pull if enabled and IP set
         const k40 = DeviceSettingsService.getK40Settings();
-        const zkIp = k40.ip ?? process.env.ZK4370_IP ?? "";
+        const zkIp = process.env.ZK4370_IP || k40.ip || "";
         if (k40.enabled && zkIp) {
-          await ZK4370SyncService.pull(ctx.user?.id, zkIp, k40.port ?? 4370, k40.commPassword ?? 0);
+          await ZK4370SyncService.pull(ctx.user?.id, zkIp, parseInt(process.env.ZK4370_PORT ?? "", 10) || k40.port || 4370, k40.commPassword ?? 0);
         }
 
         // Always recompute today so dashboard stat cards reflect current state

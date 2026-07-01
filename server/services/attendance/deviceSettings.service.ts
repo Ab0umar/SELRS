@@ -84,8 +84,8 @@ export class DeviceSettingsService {
       if (dbEF10K) {
         ef10kSettings = {
           enabled: dbEF10K.enabled,
-          ip: dbEF10K.ip,
-          port: dbEF10K.port,
+          ip: process.env.ATTENDANCE_DEVICE_IP || dbEF10K.ip,
+          port: parseInt(process.env.ATTENDANCE_DEVICE_PORT || "", 10) || dbEF10K.port,
           protocol: dbEF10K.protocol as "tcp" | "udp",
           fallbackToAccess: dbEF10K.fallbackToAccess,
           realTimeSync: dbEF10K.realTimeSync,

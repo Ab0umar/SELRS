@@ -122,7 +122,7 @@ export function startAttendanceSyncScheduler() {
 
       // ZK device (K40 Pro) — TCP pull if enabled and configured
       const k40 = DeviceSettingsService.getK40Settings();
-      const zkIp = k40.ip || process.env.ZK4370_IP || "";
+      const zkIp = process.env.ZK4370_IP || k40.ip || "";
       if (k40.enabled && zkIp) {
         try {
           const zkResult = await ZK4370SyncService.pull(
