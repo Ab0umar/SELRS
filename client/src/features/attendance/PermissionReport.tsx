@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DateInput } from "@/components/ui/date-input";
+import { useIsMobile } from "@/hooks/useMobile";
 
 const todayStr = new Date().toISOString().split("T")[0];
 const firstOfMonth = new Date(
@@ -16,6 +17,7 @@ const firstOfMonth = new Date(
   .split("T")[0];
 
 export default function PermissionReport({ department }: { department?: string }) {
+  const isMobile = useIsMobile();
   const [from, setFrom] = useState(firstOfMonth);
   const [to, setTo] = useState(todayStr);
 
@@ -256,6 +258,57 @@ export default function PermissionReport({ department }: { department?: string }
           ) : !rows.length ? (
             <div className="py-10 text-center text-muted-foreground">
               لا توجد أذونات لهذا الشهر
+            </div>
+          ) : isMobile ? (
+            <div className="space-y-2" dir="rtl">
+              {rows.map((row: any) => (
+                <div
+                  key={row.empCd}
+                  className="rounded-2xl border border-border bg-background p-3 shadow-sm"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <div className="font-semibold text-foreground">
+                        {row.empName ?? "-"}
+                      </div>
+                      <div className="font-mono text-xs text-muted-foreground">
+                        {row.empCd}
+                      </div>
+                    </div>
+                    <div className="text-left">
+                      <div className="text-xs text-muted-foreground">إجمالي</div>
+                      <div className="font-bold text-foreground">
+                        {(row.totalInMins ?? 0) + (row.totalOutMins ?? 0)} د
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-2 text-center text-xs">
+                      <div className="font-semibold text-primary">أذونات دخول</div>
+                      <div className="mt-1 text-primary/90">
+                        {row.inCount} عدد · {row.totalInMins} دقيقة
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-secondary/20 bg-secondary/5 p-2 text-center text-xs">
+                      <div className="font-semibold text-secondary">أذونات خروج</div>
+                      <div className="mt-1 text-secondary/90">
+                        {row.outCount} عدد · {row.totalOutMins} دقيقة
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-3 text-sm font-bold">
+                <div className="flex items-center justify-between">
+                  <span>الإجمالي</span>
+                  <span>{totalInMins + totalOutMins} د</span>
+                </div>
+                <div className="mt-1 flex items-center justify-between text-xs font-medium text-muted-foreground">
+                  <span>دخول: {totalInCount} · {totalInMins} د</span>
+                  <span>خروج: {totalOutCount} · {totalOutMins} د</span>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="overflow-x-auto" dir="rtl">

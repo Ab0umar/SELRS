@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Trash2, Clock, CheckCircle, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { DateInput } from "@/components/ui/date-input";
+import { useIsMobile } from "@/hooks/useMobile";
 
 type PermType = "in" | "out";
 
@@ -24,6 +25,7 @@ const emptyForm = (): PermForm => ({
 });
 
 export default function Permissions() {
+  const isMobile = useIsMobile();
   const [filter, setFilter] = useState({ empCd: "", from: today, to: today });
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -186,6 +188,100 @@ export default function Permissions() {
             <div className="py-8 text-center text-destructive text-sm">خطأ: {(permsQuery.error as any)?.message ?? "تعذر تحميل الأذونات"}</div>
           ) : !permsQuery.data?.length ? (
             <div className="py-8 text-center text-muted-foreground">لا توجد أذونات في هذه الفترة</div>
+          ) : isMobile ? (
+            <div className="space-y-2" dir="rtl">
+              {(permsQuery.data as any[]).map((p: any) => (
+                <div
+                  key={p.id}
+                  className="rounded-2xl border border-border bg-background p-3 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="font-mono text-xs text-muted-foreground">
+                        {p.empCd}
+                      </div>
+                      <div
+                        className={`text-sm font-semibold ${p.type === "in" ? "text-primary" : "text-secondary"}`}
+                      >
+                        {typeLabel(p.type)}
+                      </div>
+                    </div>
+                    {p.approved ? (
+                      <span className="flex items-center gap-1 rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-xs font-medium text-success">
+                        <CheckCircle size={12} />
+                        معتمد
+                      </span>
+                    ) : (
+                      <span className="rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning">
+                        انتظار الموافقة
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
+                    <div>
+                      <div className="text-muted-foreground">التاريخ</div>
+                      <div className="font-medium text-foreground">
+                        {String(p.date).split("T")[0]}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">المدة</div>
+                      <div className="font-medium text-foreground">
+                        {p.durationMinutes} د
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">يؤثر على الراتب</div>
+                      <div className="font-medium">
+                        {p.notAffectSalary ? (
+                          <span className="text-muted-foreground">لا</span>
+                        ) : (
+                          <span className="text-destructive">نعم</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {p.note ? (
+                    <div className="mt-2 text-xs text-muted-foreground">{p.note}</div>
+                  ) : null}
+
+                  <div className="mt-3 flex justify-end gap-1 border-t border-border/60 pt-2">
+                    {!p.approved && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => approveMut.mutate({ id: p.id })}
+                        disabled={approveMut.isPending}
+                        className="min-h-10 px-3 text-success border-success/30"
+                      >
+                        اعتماد
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openEdit(p)}
+                      className="h-10 w-10 p-0"
+                      aria-label="تعديل"
+                    >
+                      <Pencil size={14} className="text-muted-foreground" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteMut.mutate({ id: p.id })}
+                      disabled={deleteMut.isPending}
+                      className="h-10 w-10 p-0"
+                      aria-label={`حذف إذن ${p.empCd}`}
+                    >
+                      <Trash2 size={15} className="text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="overflow-x-auto" dir="rtl">
               <table dir="rtl" className="min-w-[50rem] w-full text-sm">

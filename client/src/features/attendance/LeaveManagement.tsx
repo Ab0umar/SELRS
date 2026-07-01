@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Trash2, CheckCircle, CalendarCheck, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { DateInput } from "@/components/ui/date-input";
+import { useIsMobile } from "@/hooks/useMobile";
 
 type LeaveType = "annual" | "sick" | "unpaid" | "other";
 
@@ -28,6 +29,7 @@ interface NewLeave {
 }
 
 export default function LeaveManagement() {
+  const isMobile = useIsMobile();
   const [filter, setFilter] = useState({
     empCd: "",
     from: firstOfYear,
@@ -327,6 +329,93 @@ export default function LeaveManagement() {
           ) : !leaves.length ? (
             <div className="py-8 text-center text-muted-foreground">
               لا توجد إجازات
+            </div>
+          ) : isMobile ? (
+            <div className="space-y-2" dir="rtl">
+              {leaves.map((l: any) => (
+                <div
+                  key={l.id}
+                  className="rounded-2xl border border-border bg-background p-3 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="font-semibold text-foreground">
+                        {l.empName ?? "—"}
+                      </div>
+                      <div className="font-mono text-xs text-muted-foreground">
+                        {l.empCd}
+                      </div>
+                    </div>
+                    {l.approved ? (
+                      <span className="flex items-center gap-1 rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-xs font-medium text-success">
+                        <CheckCircle size={12} />
+                        معتمدة
+                      </span>
+                    ) : (
+                      <span className="rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning">
+                        انتظار
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
+                    <div>
+                      <div className="text-muted-foreground">من</div>
+                      <div className="font-medium text-foreground">{l.dateFrom}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">إلى</div>
+                      <div className="font-medium text-foreground">{l.dateTo}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">أيام</div>
+                      <div className="font-medium text-foreground">
+                        {dayCount(l.dateFrom, l.dateTo)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-2 flex items-center justify-between gap-2 text-xs">
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
+                      {TYPE_LABELS[l.type as LeaveType] ?? l.type}
+                    </span>
+                    {l.note ? (
+                      <span className="truncate text-muted-foreground">{l.note}</span>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-3 flex justify-end gap-1 border-t border-border/60 pt-2">
+                    {!l.approved && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => approveMut.mutate({ leaveId: l.id })}
+                        disabled={approveMut.isPending}
+                        className="min-h-10 px-3 text-success border-success/30"
+                      >
+                        اعتماد
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openEdit(l)}
+                      className="h-10 w-10 p-0"
+                    >
+                      <Pencil size={15} className="text-primary" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteMut.mutate({ leaveId: l.id })}
+                      disabled={deleteMut.isPending}
+                      className="h-10 w-10 p-0"
+                    >
+                      <Trash2 size={15} className="text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="overflow-x-auto" dir="rtl">
