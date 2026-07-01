@@ -38,7 +38,7 @@ export class ZK4370LogPuller {
   static readonly DEFAULT_IP   = process.env.ZK4370_IP   ?? "196.202.50.91";
   static readonly DEFAULT_PORT = parseInt(process.env.ZK4370_PORT ?? "4370", 10);
 
-  static async setDeviceTime(ip = this.DEFAULT_IP, port = this.DEFAULT_PORT, commKey = 0): Promise<void> {
+  static async setDeviceTime(ip = this.DEFAULT_IP, port = this.DEFAULT_PORT, commKey = 258288): Promise<void> {
     try {
       const out = run(`-Mode settime -IP ${ip} -Port ${port} -CommPwd ${commKey}`, 15_000);
       console.log(`[ZK4370Puller] settime: ${out.trim()}`);
@@ -47,7 +47,7 @@ export class ZK4370LogPuller {
     }
   }
 
-  static async pullLogs(ip = this.DEFAULT_IP, port = this.DEFAULT_PORT, commKey = 0): Promise<ZKPunch[]> {
+  static async pullLogs(ip = this.DEFAULT_IP, port = this.DEFAULT_PORT, commKey = 258288): Promise<ZKPunch[]> {
     await this.setDeviceTime(ip, port, commKey);
     const tmp = tmpPath("zk_logs");
     try {
@@ -59,7 +59,7 @@ export class ZK4370LogPuller {
     }
   }
 
-  static async pullUsers(ip = this.DEFAULT_IP, port = this.DEFAULT_PORT, commKey = 0): Promise<ZKDeviceUser[]> {
+  static async pullUsers(ip = this.DEFAULT_IP, port = this.DEFAULT_PORT, commKey = 258288): Promise<ZKDeviceUser[]> {
     const tmp = tmpPath("zk_users");
     try {
       const out = run(`-Mode users -IP ${ip} -Port ${port} -CommPwd ${commKey} -OutFile "${tmp}"`, 30_000);
