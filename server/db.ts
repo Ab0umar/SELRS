@@ -1,4 +1,4 @@
-import {
+﻿import {
   eq,
   and,
   like,
@@ -6841,6 +6841,7 @@ export async function getTodayPatients(dateIso: string) {
 export async function getTodayVisitsByQueueStatus(
   dateIso: string,
   queueStatus?: string,
+  clinicNo?: number,
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -6848,6 +6849,9 @@ export async function getTodayVisitsByQueueStatus(
   const whereClauses: any[] = [sql`DATE(${visits.visitDate}) = ${dateIso}`];
   if (queueStatus) {
     whereClauses.push(eq(visits.queueStatus, queueStatus as any));
+  }
+  if (clinicNo != null) {
+    whereClauses.push(eq((visits as any).clinicNo, clinicNo));
   }
 
   const rows = await db
@@ -6864,6 +6868,7 @@ export async function getTodayVisitsByQueueStatus(
       visitDate: visits.visitDate,
       visitType: visits.visitType,
       queueStatus: visits.queueStatus,
+      clinicNo: (visits as any).clinicNo,
       checkedInAt: visits.checkedInAt,
       checkedInTime: sql<string>`DATE_FORMAT(${visits.checkedInAt}, '%H:%i')`,
       movedToNextAt: visits.movedToNextAt,
@@ -6883,6 +6888,23 @@ export async function getTodayVisitsByQueueStatus(
     patientFullName: decodeMojibake(row.patientFullName),
     doctorName: row.doctorName ?? null,
   }));
+}
+
+/** Count active clinic patients per clinicNo for today. Returns {1: n, 2: n}. */
+async function countClinicPatientsByNo(conn: any, dateIso: string): Promise<Record<number, number>> {
+  const rows = await conn
+    .select({ clinicNo: (visits as any).clinicNo, cnt: sql<number>`COUNT(*)` })
+    .from(visits)
+    .where(and(
+      sql`DATE(${visits.visitDate}) = ${dateIso}`,
+      eq(visits.queueStatus, "clinic" as any),
+    ))
+    .groupBy((visits as any).clinicNo);
+  const result: Record<number, number> = { 1: 0, 2: 0 };
+  for (const r of rows) {
+    if (r.clinicNo === 1 || r.clinicNo === 2) result[r.clinicNo] = Number(r.cnt ?? 0);
+  }
+  return result;
 }
 
 export async function getMedicalTotals() {
@@ -6982,81 +7004,32 @@ export async function rolloverPreviousQueueVisitsAsTreated(dateIso: string) {
 }
 
 /**
- * Auto-advance patients through queue based on current state.
- * يُستدعى قبل قراءة طابور اليوم. بعد ترقية next→clinic يجب إعادة قراءة الطابور؛ النسخة السابقة كانت تستخدم لقطات قديمة فلا يُعبَّأ «التالي» من «تسجيل».
+ * Auto-assign checkedIn visits to clinic 1 or 2 (least-loaded).
  */
 export async function autoAdvanceQueuePatients(dateIso: string) {
-  const connMaybe = await getDb();
-  if (!connMaybe) throw new Error("Database not available");
-  const conn = connMaybe;
+  const conn = await getDb();
+  if (!conn) throw new Error("Database not available");
 
-  const nonExternalExpr = sql`(
-    ${patients.locationType} IS NULL
-    OR LOWER(TRIM(${patients.locationType})) NOT IN ('external', 'خارجي', 'outside', 'out')
-  )`;
+  const checkedInRows = await conn
+    .select({ id: visits.id })
+    .from(visits)
+    .where(and(
+      sql`DATE(${visits.visitDate}) = ${dateIso}`,
+      eq(visits.queueStatus, "checkedIn" as any),
+    ))
+    .orderBy(visits.id);
 
-  const dayMatch = sql`DATE(${visits.visitDate}) = ${dateIso}`;
+  if (checkedInRows.length === 0) return;
 
-  async function firstVisitId(
-    status: "clinic" | "next" | "checkedIn",
-  ): Promise<number | undefined> {
-    const rows = await conn
-      .select({ id: visits.id })
-      .from(visits)
-      .innerJoin(patients, eq(visits.patientId, patients.id))
-      .where(and(dayMatch, nonExternalExpr, eq(visits.queueStatus, status)))
-      .orderBy(visits.id)
-      .limit(1);
-    return rows[0]?.id;
-  }
+  const counts = await countClinicPatientsByNo(conn, dateIso);
 
-  async function checkedInOrderedIds(limit: number): Promise<number[]> {
-    const rows = await conn
-      .select({ id: visits.id })
-      .from(visits)
-      .innerJoin(patients, eq(visits.patientId, patients.id))
-      .where(
-        and(dayMatch, nonExternalExpr, eq(visits.queueStatus, "checkedIn")),
-      )
-      .orderBy(visits.id)
-      .limit(limit);
-    return rows.map((r: any) => r.id);
-  }
-
-  // 1) عيادة فارغة لكن يوجد «التالي» → صعود إلى عيادة
-  let clinicId = await firstVisitId("clinic");
-  const nextHead = await firstVisitId("next");
-  if (clinicId == null && nextHead != null) {
+  for (const row of checkedInRows) {
+    const clinicNo = counts[1] <= counts[2] ? 1 : 2;
     await conn
       .update(visits)
-      .set({ queueStatus: "clinic", movedToClinicAt: sql`CURRENT_TIMESTAMP` })
-      .where(eq(visits.id, nextHead));
-  }
-
-  // 2) لا يزال لا يوجد في العيادة → أقدم «تسجيل»
-  clinicId = await firstVisitId("clinic");
-  if (clinicId == null) {
-    const checked = await checkedInOrderedIds(1);
-    if (checked.length === 0) return;
-    await conn
-      .update(visits)
-      .set({ queueStatus: "clinic", movedToClinicAt: sql`CURRENT_TIMESTAMP` })
-      .where(eq(visits.id, checked[0]));
-    clinicId = checked[0];
-  }
-
-  // 3) لا يوجد «التالي» → أقدم «تسجيل» غير من occupies العيادة (بعد قراءة حالة حديثة)
-  const nextAfter = await firstVisitId("next");
-  if (nextAfter != null) return;
-
-  clinicId = await firstVisitId("clinic");
-  const checkedList = await checkedInOrderedIds(12);
-  const nextCandidate = checkedList.find((id) => id !== clinicId);
-  if (nextCandidate != null) {
-    await conn
-      .update(visits)
-      .set({ queueStatus: "next", movedToNextAt: sql`CURRENT_TIMESTAMP` })
-      .where(eq(visits.id, nextCandidate));
+      .set({ queueStatus: "clinic" as any, clinicNo, movedToClinicAt: sql`CURRENT_TIMESTAMP` })
+      .where(eq(visits.id, row.id));
+    counts[clinicNo]++;
   }
 }
 

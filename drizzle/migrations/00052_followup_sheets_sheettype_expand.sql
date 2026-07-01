@@ -1,0 +1,1 @@
+ALTER TABLE `followupSheets` MODIFY COLUMN `sheetType` enum('consultant','specialist','lasik','surgery','external','pentacam_c','pentacam_ex','pentacam_ex_c','surgery_external','surgery_center','pentacam_center','pentacam_external') NOT NULL;

@@ -444,7 +444,7 @@ export const medicalExaminationsRoutes = {
     .input(
       z.object({
         patientId: z.number(),
-        sheetType: z.enum(["consultant", "specialist", "lasik", "external"]),
+        sheetType: z.enum(["consultant", "specialist", "lasik", "surgery", "external", "pentacam_c", "pentacam_ex", "pentacam_ex_c", "surgery_external", "surgery_center", "pentacam_center", "pentacam_external"]),
         followupItems: z.array(
           z.object({
             tableIndex: z.number(),
@@ -627,7 +627,7 @@ export const medicalExaminationsRoutes = {
     .input(
       z.object({
         patientId: z.number(),
-        sheetType: z.enum(["consultant", "specialist", "lasik", "external"]),
+        sheetType: z.enum(["consultant", "specialist", "lasik", "surgery", "external", "pentacam_c", "pentacam_ex", "pentacam_ex_c", "surgery_external", "surgery_center", "pentacam_center", "pentacam_external"]),
       }),
     )
     .query(async ({ input }) => {
@@ -933,7 +933,7 @@ export const medicalExaminationsRoutes = {
     .input(
       z.object({
         patientId: z.number(),
-        sheetType: z.enum(["consultant", "specialist", "lasik", "external"]),
+        sheetType: z.enum(["consultant", "specialist", "lasik", "surgery", "external", "pentacam_c", "pentacam_ex", "pentacam_ex_c", "surgery_external", "surgery_center", "pentacam_center", "pentacam_external"]),
         content: z.string(),
       }),
     )
@@ -2138,6 +2138,7 @@ export const medicalExaminationsRoutes = {
       z.object({
         date: z.string().optional(),
         queueStatus: z.enum(["checkedIn", "next", "clinic", "treated"]),
+        clinicNo: z.number().int().optional(),
       }),
     )
     .query(async ({ input }) => {
@@ -2147,12 +2148,13 @@ export const medicalExaminationsRoutes = {
         // Daily rollover: carry forward unfinished old queues as treated.
         await db.rolloverPreviousQueueVisitsAsTreated(dateIso);
 
-        // Auto-advance patients through queue
+        // Auto-assign checkedIn patients to clinic1/clinic2
         await db.autoAdvanceQueuePatients(dateIso);
 
         const visits = await db.getTodayVisitsByQueueStatus(
           dateIso,
           input.queueStatus,
+          input.clinicNo,
         );
 
         // Reshape flattened data back to structured format.
@@ -2174,6 +2176,7 @@ export const medicalExaminationsRoutes = {
             visitDate: visit.visitDate,
             visitType: visit.visitType,
             queueStatus: visit.queueStatus,
+            clinicNo: (visit as any).clinicNo ?? null,
             checkedInAt: visit.checkedInAt,
             checkedInTime: (visit as any).checkedInTime ?? null,
             movedToNextAt: visit.movedToNextAt,

@@ -1,0 +1,1 @@
+ALTER TABLE visits ADD COLUMN clinicNo TINYINT NULL;

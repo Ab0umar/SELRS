@@ -1,7 +1,7 @@
 require("dotenv").config();
 const mysql = require("mysql2/promise");
 
-const url = process.env.DATABASE_URL.replace("192.168.1.100", "41.199.252.107107");
+const url = process.env.DATABASE_URL.replace("41.199.252.107", "41.199.252.107");
 
 const tables = [
   "CREATE TABLE IF NOT EXISTS accLedger (id INT AUTO_INCREMENT PRIMARY KEY, accessId INT NOT NULL, total DECIMAL(15,2), balance DECIMAL(15,2), income DECIMAL(15,2), expense DECIMAL(15,2), txDate DATE NOT NULL, notes VARCHAR(500), syncedAt TIMESTAMP DEFAULT NOW() ON UPDATE NOW(), INDEX idx1 (accessId))",
