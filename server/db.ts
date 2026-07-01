@@ -192,6 +192,7 @@ export async function getDb() {
         enableKeepAlive: true,
         keepAliveInitialDelay: 10000,
         connectTimeout: 30000,
+        timezone: "local", // store DATETIME as local OS time (Cairo UTC+3), not UTC
       });
       _db = drizzle(_pool) as any;
     } catch (error) {
