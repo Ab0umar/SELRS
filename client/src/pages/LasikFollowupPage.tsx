@@ -235,6 +235,21 @@ export default function LasikFollowupPage() {
             margin-right: auto;
             transform: translateX(${originalMode ? 0 : followupLabels.offsetXmm}mm);
           }
+          .followup-print-root > * + * { margin-top: 2mm !important; }
+          .followup-print-root .space-y-5 > * + * { margin-top: 2mm !important; }
+          .followup-print-root section { page-break-inside: avoid !important; }
+          .followup-print-root .sheet-center-header { padding-bottom: 1mm !important; margin-bottom: 1mm !important; }
+          .followup-print-root td, .followup-print-root th { padding: 1mm 2mm !important; }
+          .followup-print-root textarea { height: 9mm !important; min-height: 0 !important; }
+          .followup-print-root .h-16 { height: 9mm !important; }
+          .followup-print-root .h-10 { height: 5mm !important; }
+          .followup-print-root .h-8 { height: 5mm !important; }
+          .followup-print-root .h-7 { height: 5mm !important; }
+          .followup-print-root .w-8 { width: 5mm !important; }
+          .followup-print-root .p-4 { padding: 1.5mm !important; }
+          .followup-print-root .py-2 { padding-top: 0.5mm !important; padding-bottom: 0.5mm !important; }
+          .followup-print-root footer { padding-top: 1mm !important; }
+          .followup-print-root section { box-shadow: none !important; }
         }
         .a4-canvas {
             width: 210mm;

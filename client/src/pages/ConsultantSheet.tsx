@@ -1039,7 +1039,9 @@ export default function ConsultantSheet() {
           .consultant-main-print-root main {
             width: 210mm !important;
             max-width: 210mm !important;
-            height: 297mm !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: 296mm !important;
             box-sizing: border-box !important;
             margin: 0 auto !important;
             padding: 6mm !important;

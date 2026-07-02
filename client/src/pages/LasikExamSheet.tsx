@@ -856,8 +856,9 @@ export default function LasikExamSheet() {
           .lasik-sheet {
             width: 210mm !important;
             max-width: 210mm !important;
-            height: 297mm !important;
-            min-height: 297mm !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: 296mm !important;
             box-sizing: border-box !important;
             padding: 6mm !important;
             gap: 10px !important;
