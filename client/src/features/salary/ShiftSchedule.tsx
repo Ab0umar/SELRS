@@ -588,6 +588,15 @@ export default function ShiftSchedule() {
       return `<span class="${meta.printClass}${absentClass}">${escapeHtml(label)}</span>`;
     }
 
+
+    function buildShiftToken(entry: any) {
+      const meta =
+        SHIFT_META[entry.shiftName as ShiftName] ?? SHIFT_META.Morning;
+      const absentClass = entry.present ? "" : " shift-absent";
+      const label = entry.present ? meta.short : `(${meta.short})`;
+      return `<span class="${meta.printClass}${absentClass}">${escapeHtml(label)}</span>`;
+    }
+
     function buildTable(dates: string[], index: number) {
       const cols = dates
         .map((ds) => {
