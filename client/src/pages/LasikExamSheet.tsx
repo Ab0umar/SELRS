@@ -592,7 +592,7 @@ export default function LasikExamSheet() {
         }));
 
     const inp =
-      "w-full text-center bg-transparent border-0 border-b border-dotted border-[#737685] focus:outline-none focus:border-[#003d9b] py-1 text-sm";
+      "w-full text-center bg-transparent border-0 border-b border-solid border-[#737685] focus:outline-none focus:border-[#003d9b] py-1 text-sm";
     const ctd = "p-1 border border-[#c3c6d6]";
 
     return (
@@ -613,6 +613,8 @@ export default function LasikExamSheet() {
             <input className="w-44 font-semibold text-[#003d9b] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.patientName} onChange={(e) => setFormData((p) => ({ ...p, patientName: e.target.value }))} /></label>
           <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">السن:</span>
             <input className="w-12 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.age} onChange={(e) => setFormData((p) => ({ ...p, age: e.target.value }))} /></label>
+          <span className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">BD:</span>
+            <span className="min-w-[70px] px-1 border-b border-[#c3c6d6] text-right">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</span></span>
           <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">العنوان:</span>
             <input className="w-36 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} /></label>
           <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">التليفون:</span>
@@ -811,19 +813,19 @@ export default function LasikExamSheet() {
             <div className="lg:col-span-8 space-y-4">
               <div>
                 <label className="font-bold text-[#003d9b] text-sm">Comments / ملاحظات:</label>
-                <div className="border-b border-dotted border-[#c3c6d6] h-8" />
-                <div className="border-b border-dotted border-[#c3c6d6] h-8" />
+                <div className="border-b border-solid border-[#c3c6d6] h-8" />
+                <div className="border-b border-solid border-[#c3c6d6] h-8" />
               </div>
               <div>
                 <label className="font-bold text-[#003d9b] text-sm">Final Decision / القرار النهائي:</label>
-                <div className="border-b border-dotted border-[#c3c6d6] h-8" />
+                <div className="border-b border-solid border-[#c3c6d6] h-8" />
               </div>
             </div>
             <div className="lg:col-span-4 border-2 border-[#003d9b] rounded-xl p-4 bg-[#003d9b]/5">
               <div className="text-center font-bold text-[#003d9b] uppercase text-xs border-b border-[#003d9b]/20 pb-2 mb-3">Office Notes</div>
-              <div className="border-b border-dotted border-[#003d9b]/40 h-6 mb-2" />
-              <div className="border-b border-dotted border-[#003d9b]/40 h-6 mb-2" />
-              <div className="border-b border-dotted border-[#003d9b]/40 h-6" />
+              <div className="border-b border-solid border-[#003d9b]/40 h-6 mb-2" />
+              <div className="border-b border-solid border-[#003d9b]/40 h-6 mb-2" />
+              <div className="border-b border-solid border-[#003d9b]/40 h-6" />
             </div>
           </div>
           <div className="print-lasik-signatures grid grid-cols-2 md:grid-cols-4 gap-8 pt-4 border-t border-[#c3c6d6]">

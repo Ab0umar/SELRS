@@ -588,6 +588,11 @@ export default function ShiftSchedule() {
       return `<span class="${meta.printClass}${absentClass}">${escapeHtml(label)}</span>`;
     }
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> 416c9f911bbac5c3158310ea4257f8757cf1cb22
     function buildTable(dates: string[], index: number) {
       const cols = dates
         .map((ds) => {

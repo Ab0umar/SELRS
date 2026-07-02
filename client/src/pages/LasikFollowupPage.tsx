@@ -160,7 +160,7 @@ export default function LasikFollowupPage() {
       const month = String(dob.getMonth() + 1).padStart(2, "0");
       const day = String(dob.getDate()).padStart(2, "0");
       const year = dob.getFullYear();
-      setPatientDOB(`${month}/${day}/${year}`);
+      setPatientDOB(`${day}/${month}/${year}`);
     }
   }, [patientQuery.data]);
 
@@ -356,6 +356,10 @@ export default function LasikFollowupPage() {
               titleEn="Lasik Follow-up"
               titleAr="متابعة الليزك"
             />
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm px-1" dir="rtl">
+              <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">الاسم:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[120px] px-1">{patientName}</span></p>
+              <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">BD:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[70px] px-1">{patientDOB}</span></p>
+            </div>
             {/* Operation header */}
             <div className="bg-white border border-[#c3c6d6] rounded-lg p-4 shadow-sm flex flex-col md:flex-row justify-between gap-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
@@ -369,7 +373,6 @@ export default function LasikFollowupPage() {
                     value={operationType}
                     onChange={(e) => setOperationType(e.target.value)}
                     className="h-7 text-sm font-bold text-[#003d9b] border-[#c3c6d6]"
-                    placeholder="LASIK / Refractive Surgery"
                   />
                 </div>
                 <div className="flex gap-2 items-end">
@@ -414,7 +417,6 @@ export default function LasikFollowupPage() {
                         value={f.type}
                         onChange={(e) => setFollowups((prev) => prev.map((x) => x.id === f.id ? { ...x, type: e.target.value } : x))}
                         className="h-7 text-base font-semibold border-0 bg-transparent focus:bg-white focus:border-[#003d9b] w-56"
-                        placeholder={followupTitles[idx % 4]}
                       />
                     </div>
                     <div className="flex items-center gap-2">
@@ -440,17 +442,17 @@ export default function LasikFollowupPage() {
                     <tbody>
                       <tr className="border-b border-[#c3c6d6]" style={{ backgroundColor: "rgba(0,61,155,0.03)" }}>
                         <td className="px-3 py-2.5 font-bold text-[#003d9b] text-sm">OD</td>
-                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-dashed border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
-                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-dashed border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
-                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-dashed border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
-                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-dashed border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
+                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
+                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
+                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
+                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
                       </tr>
                       <tr className="border-b border-[#c3c6d6] bg-white">
                         <td className="px-3 py-2.5 font-bold text-[#526069] text-sm">OS</td>
-                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-dashed border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
-                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-dashed border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
-                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-dashed border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
-                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-dashed border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
+                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
+                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
+                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
+                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
                       </tr>
                     </tbody>
                   </table>
