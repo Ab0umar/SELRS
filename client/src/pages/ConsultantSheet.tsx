@@ -678,11 +678,7 @@ export default function ConsultantSheet() {
           .print-page-break { page-break-before: always !important; break-before: page !important; }
           .print-page-center-a4 {
             width: 210mm;
-            min-height: 297mm;
             margin: 0 auto;
-            display: flex !important;
-            flex-direction: column !important;
-            justify-content: center !important;
           }
           @page { size: A4 portrait; margin: 0; }
           body { background: white !important; }

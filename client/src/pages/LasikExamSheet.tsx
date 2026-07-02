@@ -890,7 +890,7 @@ export default function LasikExamSheet() {
         }
         @media print {
           .print-page-break { page-break-before: always !important; break-before: page !important; }
-          .print-page-center-a4 { min-height: 297mm; display: flex; align-items: center; justify-content: center; }
+          .print-page-center-a4 { width: 210mm; margin: 0 auto; }
           @page { size: A4 portrait; margin: 0; }
           body { background: white !important; }
           .lasik-print-root { width: 100%; margin: 0 auto; }

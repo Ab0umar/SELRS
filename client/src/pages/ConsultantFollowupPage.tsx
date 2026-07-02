@@ -240,10 +240,8 @@ export default function ConsultantFollowupPage() {
           .print\\:hidden { display: none !important; }
           body { background: white !important; }
           .print-page-center-a4 {
-            min-height: 297mm;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: 190mm;
+            margin: 0 auto;
           }
           .followup-print-root {
             width: 190mm;

@@ -455,7 +455,7 @@ export default function SpecialistSheet() {
           border-bottom: none !important;
         }
         @media print {
-          .print-page-center-a5 { min-height: 148mm; display: flex; align-items: center; justify-content: center; }
+          .print-page-center-a5 { width: 100%; margin: 0 auto; }
           @page { size: A5 landscape; margin: 0; }
           body { background: white !important; }
           /* the shared .sheet-layout print rule clips this page's fixed-width sheet — undo it here */
