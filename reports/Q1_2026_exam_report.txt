@@ -1,0 +1,91 @@
+=================================================================
+  Q1 2026 EXAM DATA REPORT
+  Period: 1 Jan 2026 – 31 Mar 2026
+  Sources: autorefractometryData | glassesRecords | pentacamResults
+=================================================================
+
+── Surgery (1511,1512) ──────────────────────────
+  Total patients : 44
+  January   : 18 patients
+  February  : 16 patients
+  March     : 10 patients
+
+  Exam coverage:
+    Autoref       : 31
+    Glasses       : 6
+    Pentacam      : 26
+    FULL (all 3)  : 3
+    Partial       : 28
+    No data       : 13
+
+  Patients with FULL data:
+    0726  مريم سليمان عبد المسيح  (February)
+    0727  ساره احمد محمد برج  (March)
+    0862  عبدالرحمن محمد ممدوح الشلبى  (March)
+
+  Patients with NO data:
+    0120  منه الله محمد الميليجى عبد السلام  (January)
+    0192  ندى رضا عبد الواحد  (January)
+    0357  مجدى ابراهيم السيد احمد  (January)
+    0376  نورهان محمود ابراهيم  (January)
+    0409  نشوى جابر حميده  (January)
+    0439  رنا ابراهيم محمد فوزى  (February)
+    0454  محمد بيومى شبانه  (February)
+    0429  غاده عادل عاطف محمد  (February)
+    0431  شيماء محمد احمد الاحمر  (February)
+    0581  خلود خالد متولى  (February)
+    0590  يمنى عاطف يوسف متولى  (February)
+    0580  ايمان ياسر  محمد  (February)
+    0984  حبيبه محمد جعفر  (March)
+
+── Consultant (1589) ────────────────────────────
+  Total patients : 230
+  January   : 93 patients
+  February  : 62 patients
+  March     : 75 patients
+
+  Exam coverage:
+    Autoref       : 208
+    Glasses       : 24
+    Pentacam      : 9
+    FULL (all 3)  : 1
+    Partial       : 207
+    No data       : 22
+
+  Patients with FULL data:
+    0727  ساره احمد محمد برج  (March)
+
+  Patients with NO data:
+    0124  ايه مفرح ابراهيم الجلخ  (January)
+    0139  رغداء مسعد ابو هندى  (January)
+    0264  محمد ابراهيم محمد المناخلى  (January)
+    0354  نسرين شفيق عبد السلام  (January)
+    0395  معاذ اشرف حسن  (January)
+    0439  رنا ابراهيم محمد فوزى  (February)
+    0471  ريان احمد هانى حماده  (February)
+    0431  شيماء محمد احمد الاحمر  (February)
+    0549  عبد الحميد مصطفى محفوظ  (February)
+    0556  حنين محمد راضي  (February)
+    0582  حبيبه خليل محمد عباس  (February)
+    0762  محمد احمد عبد الحليم احمد  (March)
+    0740  محمد احمد عشوش  (March)
+    0790  يزن اسماعيل ابو زيد  (March)
+    0807  صفاء اسماعيل رمضان  (March)
+    0093  تقى رضا نصار  (March)
+    0852  اكرام محمد غمرى  (March)
+    0854  همت حامد عزت عبد الحميد  (March)
+    0872  ادهم سلمان علوى  (March)
+    0902  عبد الله جمال محمد قاسم  (March)
+    0978  هاجر ابو السعود القفص  (March)
+    0982  علاء منتصر عبد القادر مرعى  (March)
+
+=================================================================
+  COMBINED TOTALS
+=================================================================
+  Total patients : 274
+  Has Autoref    : 239
+  Has Glasses    : 30
+  Has Pentacam   : 35
+  FULL (all 3)   : 4
+  No data        : 35
+=================================================================
