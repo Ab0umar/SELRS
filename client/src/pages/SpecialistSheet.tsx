@@ -448,8 +448,8 @@ export default function SpecialistSheet() {
           @page { size: A5 landscape; margin: 0; }
           body { background: white !important; }
           .specialist-sheet {
-            width: 210mm !important;
-            max-width: 210mm !important;
+            width: 100% !important;
+            max-width: 100% !important;
             height: auto !important;
             min-height: 0 !important;
             max-height: 147mm !important;

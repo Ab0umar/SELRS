@@ -1037,8 +1037,8 @@ export default function ConsultantSheet() {
             line-height: 1.1 !important;
           }
           .consultant-main-print-root main {
-            width: 210mm !important;
-            max-width: 210mm !important;
+            width: 100% !important;
+            max-width: 100% !important;
             height: auto !important;
             min-height: 0 !important;
             max-height: 296mm !important;
