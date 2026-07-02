@@ -307,7 +307,7 @@ export default function ConsultantFollowupPage() {
             />
             <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm px-1" dir="rtl">
               <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">الاسم:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[120px] px-1">{patientName}</span></p>
-              <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">BD:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[70px] px-1">{patientDOB}</span></p>
+              <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">تاريخ الميلاد:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[70px] px-1">{patientDOB}</span></p>
             </div>
             {/* Operation header */}
             <div className="bg-white border border-[#c3c6d6] rounded-lg p-4 shadow-sm flex flex-col md:flex-row justify-between gap-4">
