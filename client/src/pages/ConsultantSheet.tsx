@@ -682,15 +682,15 @@ export default function ConsultantSheet() {
           }
           @page { size: A4 portrait; margin: 0; }
           html, body {
-            width: 210mm !important;
+            width: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
             background: white !important;
           }
           #root,
           .consultant-page-root {
-            width: 210mm !important;
-            max-width: 210mm !important;
+            width: 100% !important;
+            max-width: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
           }

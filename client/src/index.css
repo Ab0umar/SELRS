@@ -1049,9 +1049,7 @@ img {
   /* Force sheet contents to fit on a single A4 page by preventing breaks and scaling slightly */
   .sheet-layout,
   .lasik-print-root,
-  .specialist-print-root,
-  .followup-print-root,
-  .a4-page-card {
+  .specialist-print-root {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     page-break-after: avoid !important;

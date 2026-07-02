@@ -889,12 +889,12 @@ export default function LasikExamSheet() {
           .print-page-center-a4 { width: 210mm !important; margin: 0 auto !important; }
           @page { size: A4 portrait; margin: 0; }
           html, body {
-            width: 210mm !important;
+            width: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
             background: white !important;
           }
-          .lasik-print-root { width: 210mm !important; max-width: 210mm !important; margin: 0 auto !important; }
+          .lasik-print-root { width: 100% !important; max-width: 100% !important; margin: 0 !important; }
           .lasik-sheet {
             width: 210mm !important;
             max-width: 210mm !important;
