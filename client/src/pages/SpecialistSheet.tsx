@@ -22,6 +22,8 @@ import { usePrintMode } from "@/hooks/usePrintMode";
 import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 import { printOrExportPdf } from "@/lib/nativePdf";
 import { BRAND_NAME_AR, BRAND_NAME_EN } from "@/lib/brand";
+import SheetCenterHeader from "@/components/SheetCenterHeader";
+import { DateInput } from "@/components/ui/date-input";
 
 export default function SpecialistSheet() {
   const { user, isAuthenticated } = useAuth();
@@ -421,14 +423,18 @@ export default function SpecialistSheet() {
   const handlePrint = () => {
     void printOrExportPdf(
       `${String(formData.patientName || formData.patientCode || initialPatientId || "specialist-sheet").trim()}.pdf`,
+      { forceBrowserPrint: true },
     );
   };
 
+  const inp =
+    "w-full text-center bg-transparent border-0 border-b border-solid border-[#737685] focus:outline-none focus:border-[#003d9b] py-1 text-sm";
+  const ctd = "p-1 border border-[#c3c6d6]";
+
   return (
     <div
-      className={`min-h-screen bg-background sheet-layout ${mobileSheetModeEnabled && !printMode.printView ? "mobile-sheet-mode" : ""}`}
+      className={`min-h-screen bg-[#dde1e7] sheet-layout specialist-page-root ${mobileSheetModeEnabled && !printMode.printView ? "mobile-sheet-mode" : ""}`}
       dir="rtl"
-      style={{ direction: "rtl", textAlign: "right" }}
     >
       <style>{`
         ${customSheetCss}
@@ -439,247 +445,280 @@ export default function SpecialistSheet() {
         .refraction-table-center input {
           text-align: center !important;
         }
+        .specialist-sheet, .specialist-sheet * {
+          font-weight: 400 !important;
+          text-decoration: none !important;
+        }
+        .specialist-sheet th { font-weight: 700 !important; }
+        .specialist-sheet .border-b,
+        .specialist-sheet .border-b-2 {
+          border-bottom: none !important;
+        }
         @media print {
-          @page { size: A4 portrait; margin: 0; }
+          .print-page-center-a5 { width: 100%; margin: 0 auto; }
+          @page { size: A5 landscape; margin: 0; }
           body { background: white !important; }
-          .specialist-print-root {
-            width: 100%;
-            max-width: 100%;
-            margin: 0 auto;
+          /* the shared .sheet-layout print rule clips this page's fixed-width sheet — undo it here */
+          .specialist-page-root.sheet-layout {
+            overflow: visible !important;
+            max-height: none !important;
+            font-size: 100% !important;
           }
+          .specialist-sheet {
+            width: 100% !important;
+            max-width: 100% !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: 147mm !important;
+            box-sizing: border-box !important;
+            margin: 0 auto !important;
+            padding: 5mm !important;
+            gap: 6px !important;
+            font-size: 92% !important;
+            line-height: 1.15 !important;
+            overflow: hidden !important;
+          }
+          .specialist-sheet section,
+          .specialist-sheet footer,
+          .specialist-sheet table,
+          .specialist-sheet tr,
+          .specialist-sheet td,
+          .specialist-sheet th {
+            page-break-inside: avoid !important;
+          }
+          .specialist-sheet table { font-size: 10px !important; }
+          .specialist-sheet input,
+          .specialist-sheet select {
+            font-size: 10px !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+          }
+          .specialist-sheet input:not([type="checkbox"]):not([type="radio"]),
+          .specialist-sheet textarea {
+            border: 0 !important;
+            border-bottom: 0 !important;
+            box-shadow: none !important;
+            outline: 0 !important;
+            background: transparent !important;
+            text-decoration: none !important;
+            line-height: 1.15 !important;
+          }
+          .specialist-sheet .sheet-center-header {
+            padding-bottom: 3px !important;
+            margin-bottom: 3px !important;
+          }
+          .specialist-sheet .p-8 { padding: 0 !important; }
+          .specialist-sheet .p-4 { padding: 4px !important; }
+          .specialist-sheet .gap-8 { gap: 10px !important; }
+          .specialist-sheet .gap-6 { gap: 8px !important; }
+          .specialist-sheet .gap-x-8 { column-gap: 10px !important; }
+          .specialist-sheet .gap-y-3 { row-gap: 3px !important; }
+          .specialist-sheet .pt-6 { padding-top: 6px !important; }
+          .specialist-sheet .pt-4 { padding-top: 5px !important; }
+          .specialist-sheet .mt-3 { margin-top: 4px !important; }
+          .specialist-sheet .mb-3 { margin-bottom: 4px !important; }
+          .specialist-sheet .h-9 { height: 16px !important; }
+          .specialist-sheet .h-8 { height: 13px !important; }
+          .specialist-sheet .h-6 { height: 11px !important; }
+          .specialist-sheet .space-y-6 > * + * { margin-top: 6px !important; }
+          .specialist-sheet .space-y-4 > * + * { margin-top: 4px !important; }
           .print-specialist-patient-grid {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            column-gap: 5mm !important;
+            row-gap: 1mm !important;
+          }
+          .print-specialist-visual-grid {
+            display: grid !important;
+            grid-template-columns: minmax(0, 7fr) minmax(0, 5fr) !important;
+          }
+          .print-specialist-footer-grid {
+            display: grid !important;
+            grid-template-columns: minmax(0, 8fr) minmax(0, 4fr) !important;
+          }
+          .print-specialist-signatures {
             display: grid !important;
             grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-          }
-          .print-specialist-two-col {
-            display: grid !important;
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
           }
         }
       `}</style>
       {/* Header */}
       <header
-        className={`sticky top-0 z-10 border-b border-border bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/60 print:hidden ${printMode.printView ? "hidden" : ""}`}
+        className={`sticky top-0 z-50 print:hidden flex justify-between items-center px-6 py-2 bg-[#f8f9fb] border-b border-[#c3c6d6] ${printMode.printView ? "hidden" : ""}`}
+        dir="ltr"
+        style={{ fontFamily: "Inter, sans-serif" }}
       >
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between sheet-header-bar">
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">
-                    {sheetTemplate.sheetTitle}
-                  </h1>
-                  <p className="text-sm text-muted-foreground">
-                    {formData.patientName}
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-1 print:hidden sheet-header-actions">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  type="button"
-                  onClick={() => goBack()}
-                >
-                  رجوع
-                </Button>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-1 sheet-header-actions">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePrint}
-                type="button"
-              >
-                <Printer className="h-4 w-4 mr-2" />
-                طباعة
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSaveSheet}
-                type="button"
-              >
-                حفظ
-              </Button>
-            </div>
-          </div>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" type="button" onClick={() => goBack()}>
+            رجوع
+          </Button>
+          <span className="text-xl font-bold text-[#003d9b]">{BRAND_NAME_EN}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button
+            size="sm"
+            className="bg-[#003d9b] text-white font-bold px-4 py-2 rounded hover:opacity-90 active:scale-95"
+            onClick={handleSaveSheet}
+            disabled={saveSheetMutation.isPending}
+            type="button"
+          >
+            {saveSheetMutation.isPending ? "حفظ..." : "حفظ"}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-[#003d9b] text-[#003d9b] font-bold px-4 py-2 rounded hover:bg-[#003d9b]/5"
+            onClick={handlePrint}
+            type="button"
+          >
+            <Printer className="h-4 w-4 mr-1" /> طباعة
+          </Button>
         </div>
       </header>
 
+      {printMode.printView && (
+        <PrintPreviewBanner
+          title="شيت الأخصائي"
+          subtitle={formData.patientName || undefined}
+          onPrint={handlePrint}
+        />
+      )}
+
       {/* Main Content */}
-      <main
-        data-mobile-pdf-root
-        className={`container mx-auto print:p-0 ${printMode.printView ? "px-3 py-3" : "px-4 py-8 pb-24 sm:pb-8"}`}
-      >
-        {printMode.printView ? (
-          <PrintPreviewBanner
-            title="شيت الاختصاصي"
-            subtitle={formData.patientName || undefined}
-            onPrint={handlePrint}
+      <div className="py-8 print:py-0 print-page-center-a5">
+        <div data-mobile-pdf-root className={`specialist-sheet bg-white text-[#191c1e] font-sans p-8 border border-[#c3c6d6] shadow-sm flex flex-col gap-5 w-[210mm] max-w-full mx-auto ${printMode.printView ? "hidden print:flex" : ""}`} dir="ltr">
+          {/* Header */}
+          <SheetCenterHeader
+            titleEn="Specialist Sheet"
+            titleAr="شيت الأخصائي"
+            date={formData.examinationDate}
           />
-        ) : null}
-        {/* Patient picker removed */}
-        <div className="bg-background p-8 print:p-[10mm] specialist-print-root">
-          <div
-            className={`mb-2 print:hidden ${printMode.printView ? "hidden" : ""}`}
-          >
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setLocation("/dashboard")}
-              className="border-primary text-card-foreground hover:bg-primary/10"
-            >
-              الصفحة الرئيسية
-            </Button>
-          </div>
-          {/* Letterhead */}
-          <div className="mb-6 flex justify-between items-center border-b-2 border-primary pb-3 -mx-8 px-8">
-            <div className="flex items-center gap-3" dir="ltr">
-              <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center text-white">
-                <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M3 12c0-3 3-6 9-6s9 3 9 6-3 6-9 6-9-3-9-6z" />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-primary leading-tight" dir="rtl">{BRAND_NAME_AR}</h2>
-                <p className="text-[10px] font-bold text-[#526069] uppercase tracking-widest">{BRAND_NAME_EN} — Specialist Sheet</p>
-              </div>
-            </div>
-            <div className="text-left text-xs text-[#526069]" dir="ltr">
-              <p className="font-bold text-primary text-sm">شيت الأخصائي</p>
-              <p>{formData.examinationDate}</p>
-            </div>
-          </div>
 
-          {/* Patient grid */}
-          <div className="print-specialist-patient-grid grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-4 mb-6 p-4 bg-[#f8f9fb] rounded-xl border border-[#c3c6d6]">
-            {[
-              ["الاسم / Name", formData.patientName],
-              ["تاريخ الميلاد / DOB", formData.dateOfBirth],
-              ["السن / Age", formData.age],
-              ["كود العميل / ID", formData.patientCode],
-              ["العنوان / Address", formData.address],
-              ["الوظيفة / Job", formData.job],
-              ["رقم التليفون / Phone", formData.phone],
-              ["الطبيب / Physician", signatures.doctor],
-            ].map(([label, val], i) => (
-              <div key={i} className={`flex flex-col ${i === 4 ? "md:col-span-2" : ""}`}>
-                <span className="text-[10px] font-bold text-[#526069] uppercase">{label}</span>
-                <Input value={val ?? ""} readOnly className="h-7 text-sm font-bold border-0 border-b border-[#c3c6d6] rounded-none bg-transparent px-0 focus-visible:ring-0" style={{ textAlign: "right" }} />
-              </div>
-            ))}
-          </div>
+          {/* Patient Info */}
+          <section className="print-specialist-patient-grid p-4 bg-[#f3f4f6] rounded-xl border border-[#c3c6d6] flex flex-wrap items-center gap-x-6 gap-y-2 text-sm" dir="rtl">
+            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">الاسم:</span>
+              <input className="w-44 font-semibold text-[#003d9b] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.patientName} onChange={(e) => setFormData((p) => ({ ...p, patientName: e.target.value }))} /></label>
+            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">السن:</span>
+              <input className="w-12 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.age} onChange={(e) => setFormData((p) => ({ ...p, age: e.target.value }))} /></label>
+            <span className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">تاريخ الميلاد:</span>
+              <span className="min-w-[70px] px-1 border-b border-[#c3c6d6] text-right">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</span></span>
+            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">العنوان:</span>
+              <input className="w-36 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} /></label>
+            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">التليفون:</span>
+              <input className="w-28 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} /></label>
+            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">تاريخ الفحص:</span>
+              <DateInput className="h-6 w-28 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] rounded-none px-1 text-right" value={formData.examinationDate} onChange={(e) => setFormData((p) => ({ ...p, examinationDate: e.target.value }))} /></label>
+            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">المهنة:</span>
+              <input className="w-28 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.job} onChange={(e) => setFormData((p) => ({ ...p, job: e.target.value }))} /></label>
+            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">كود العميل:</span>
+              <input className="w-24 font-semibold text-[#526069] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.patientCode} onChange={(e) => setFormData((p) => ({ ...p, patientCode: e.target.value }))} /></label>
+            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">الطبيب:</span>
+              <input className="w-36 font-semibold text-[#003d9b] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={signatures.doctor} onChange={(e) => setSignatures((p) => ({ ...p, doctor: e.target.value }))} /></label>
+          </section>
 
-          {/* Vision + Tear film */}
-          <div className="print-specialist-two-col grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div className="overflow-hidden rounded-lg border border-[#c3c6d6]">
-              <table className="w-full text-center border-collapse refraction-table-center" dir="ltr">
-                <thead>
-                  <tr className="bg-primary text-white text-xs font-bold uppercase">
-                    <th className="p-2 border-r border-white/20">Eye</th>
-                    <th className="p-2 border-r border-white/20">UCVA</th>
-                    <th className="p-2 border-r border-white/20">BCVA</th>
-                    <th className="p-2">IOP</th>
-                  </tr>
+          {/* Visual Acuity + Tear Film */}
+          <section className="print-specialist-visual-grid grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-7">
+              <table className="w-full text-center border-collapse">
+                <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
+                  <tr><th className={ctd}>Eye</th><th className={ctd}>UCVA</th><th className={ctd}>BCVA</th><th className={ctd}>IOP</th></tr>
                 </thead>
                 <tbody>
-                  <tr className="border-b border-[#c3c6d6]">
-                    <td className="p-2 bg-[#edeef0] font-black text-primary">OD</td>
-                    <td className="p-1 border-r border-[#c3c6d6]"><Input value={formData.ucvaOD} onChange={(e) => setFormData((p) => ({ ...p, ucvaOD: e.target.value }))} className="text-sm border-0 text-center" /></td>
-                    <td className="p-1 border-r border-[#c3c6d6]"><Input value={formData.bcvaOD} onChange={(e) => setFormData((p) => ({ ...p, bcvaOD: e.target.value }))} className="text-sm border-0 text-center" /></td>
-                    <td className="p-1"><Input value={formData.iopOD} onChange={(e) => setFormData((p) => ({ ...p, iopOD: e.target.value }))} className="text-sm border-0 text-center" /></td>
-                  </tr>
-                  <tr>
-                    <td className="p-2 bg-[#edeef0] font-black text-[#526069]">OS</td>
-                    <td className="p-1 border-r border-[#c3c6d6]"><Input value={formData.ucvaOS} onChange={(e) => setFormData((p) => ({ ...p, ucvaOS: e.target.value }))} className="text-sm border-0 text-center" /></td>
-                    <td className="p-1 border-r border-[#c3c6d6]"><Input value={formData.bcvaOS} onChange={(e) => setFormData((p) => ({ ...p, bcvaOS: e.target.value }))} className="text-sm border-0 text-center" /></td>
-                    <td className="p-1"><Input value={formData.iopOS} onChange={(e) => setFormData((p) => ({ ...p, iopOS: e.target.value }))} className="text-sm border-0 text-center" /></td>
-                  </tr>
+                  <tr><td className={`${ctd} text-[#003d9b] bg-[#003d9b]/5`}>OD</td>
+                    <td className={ctd}><input className={inp} value={formData.ucvaOD} onChange={(e) => setFormData((p) => ({ ...p, ucvaOD: e.target.value }))} /></td>
+                    <td className={ctd}><input className={inp} value={formData.bcvaOD} onChange={(e) => setFormData((p) => ({ ...p, bcvaOD: e.target.value }))} /></td>
+                    <td className={ctd}><input className={inp} value={formData.iopOD} onChange={(e) => setFormData((p) => ({ ...p, iopOD: e.target.value }))} /></td></tr>
+                  <tr><td className={`${ctd} text-[#526069] bg-[#f3f4f6]`}>OS</td>
+                    <td className={ctd}><input className={inp} value={formData.ucvaOS} onChange={(e) => setFormData((p) => ({ ...p, ucvaOS: e.target.value }))} /></td>
+                    <td className={ctd}><input className={inp} value={formData.bcvaOS} onChange={(e) => setFormData((p) => ({ ...p, bcvaOS: e.target.value }))} /></td>
+                    <td className={ctd}><input className={inp} value={formData.iopOS} onChange={(e) => setFormData((p) => ({ ...p, iopOS: e.target.value }))} /></td></tr>
                 </tbody>
               </table>
+              <div className="mt-3 flex items-center justify-center gap-8 text-sm font-bold border border-[#c3c6d6] rounded-lg p-2">
+                <span className="text-[#003d9b] uppercase">Dominant Eye:</span>
+                <label className="flex items-center gap-2"><input type="radio" name="dominant" /> OD</label>
+                <label className="flex items-center gap-2"><input type="radio" name="dominant" /> OS</label>
+              </div>
             </div>
-            <div className="overflow-hidden rounded-lg border border-[#c3c6d6]">
-              <table className="w-full border-collapse text-sm" dir="ltr">
+            <div className="lg:col-span-5">
+              <table className="w-full border-collapse h-full text-sm">
+                <thead className="bg-[#e7e8ea]"><tr><th className={`${ctd} text-xs uppercase`} colSpan={2}>Tear Film Examination</th></tr></thead>
                 <tbody>
-                  <tr className="border-b border-[#c3c6d6]"><td className="p-2 font-bold bg-[#edeef0] w-1/3">1- BUT</td><td className="p-1"><Input className="text-sm border-0 px-3" /></td></tr>
-                  <tr className="border-b border-[#c3c6d6]"><td className="p-2 font-bold bg-[#edeef0]">2- Schirmer Test</td><td className="p-1"><Input className="text-sm border-0 px-3" /></td></tr>
-                  <tr><td className="p-2 font-bold bg-[#edeef0]">3- Lid Margin</td><td className="p-1"><Input className="text-sm border-0 px-3" /></td></tr>
+                  <tr><td className={`${ctd} w-1/2 text-right`}>1- BUT</td><td className={ctd}><input className={inp} /></td></tr>
+                  <tr><td className={`${ctd} text-right`}>2- Schirmer Test</td><td className={ctd}><input className={inp} /></td></tr>
+                  <tr><td className={`${ctd} text-right`}>3- Lid Margin</td><td className={ctd}><input className={inp} /></td></tr>
                 </tbody>
               </table>
             </div>
-          </div>
+          </section>
 
-          {/* Refraction & Fundus */}
-          <div className="mb-6 overflow-hidden rounded-lg border border-[#c3c6d6]">
-            <table className="w-full text-center border-collapse refraction-table-center" dir="ltr">
-              <thead>
-                <tr className="bg-[#e1e2e4] text-xs font-bold">
-                  <th className="p-2 border-r border-[#c3c6d6] w-48">Parameter</th>
-                  <th className="p-2 border-r border-[#c3c6d6] text-primary uppercase" colSpan={3}>OD (Right)</th>
-                  <th className="p-2 text-[#526069] uppercase" colSpan={3}>OS (Left)</th>
+          {/* Detailed Refraction */}
+          <section>
+            <table className="w-full text-center border-collapse">
+              <thead className="bg-[#e7e8ea] text-xs uppercase font-bold">
+                <tr>
+                  <th className={`${ctd} w-48`} rowSpan={2}>Clinical Refraction</th>
+                  <th className={`${ctd} text-[#003d9b]`} colSpan={3}>OD (Right)</th>
+                  <th className={`${ctd} text-[#526069]`} colSpan={3}>OS (Left)</th>
                 </tr>
-                <tr className="bg-[#edeef0] text-[10px] font-bold uppercase border-b border-[#c3c6d6]">
-                  <th className="border-r border-[#c3c6d6]"></th>
-                  <th className="p-1 border-r border-[#c3c6d6]">S</th>
-                  <th className="p-1 border-r border-[#c3c6d6]">C</th>
-                  <th className="p-1 border-r border-[#c3c6d6]">A</th>
-                  <th className="p-1 border-r border-[#c3c6d6]">S</th>
-                  <th className="p-1 border-r border-[#c3c6d6]">C</th>
-                  <th className="p-1">A</th>
-                </tr>
+                <tr><th className={ctd}>S</th><th className={ctd}>C</th><th className={ctd}>A</th><th className={ctd}>S</th><th className={ctd}>C</th><th className={ctd}>A</th></tr>
               </thead>
-              <tbody>
-                <tr className="border-b border-[#c3c6d6]">
-                  <td className="p-2 font-bold text-left bg-[#edeef0] border-r border-[#c3c6d6]">Refraction</td>
-                  <td className="p-1 border-r border-[#c3c6d6]"><Input value={formData.refractionOD.s} onChange={(e) => setFormData((p) => ({ ...p, refractionOD: { ...p.refractionOD, s: e.target.value } }))} className="text-sm border-0 text-center" /></td>
-                  <td className="p-1 border-r border-[#c3c6d6]"><Input value={formData.refractionOD.c} onChange={(e) => setFormData((p) => ({ ...p, refractionOD: { ...p.refractionOD, c: e.target.value } }))} className="text-sm border-0 text-center" /></td>
-                  <td className="p-1 border-r border-[#c3c6d6]"><Input value={formData.refractionOD.a} onChange={(e) => setFormData((p) => ({ ...p, refractionOD: { ...p.refractionOD, a: e.target.value } }))} className="text-sm border-0 text-center" /></td>
-                  <td className="p-1 border-r border-[#c3c6d6]"><Input value={formData.refractionOS.s} onChange={(e) => setFormData((p) => ({ ...p, refractionOS: { ...p.refractionOS, s: e.target.value } }))} className="text-sm border-0 text-center" /></td>
-                  <td className="p-1 border-r border-[#c3c6d6]"><Input value={formData.refractionOS.c} onChange={(e) => setFormData((p) => ({ ...p, refractionOS: { ...p.refractionOS, c: e.target.value } }))} className="text-sm border-0 text-center" /></td>
-                  <td className="p-1"><Input value={formData.refractionOS.a} onChange={(e) => setFormData((p) => ({ ...p, refractionOS: { ...p.refractionOS, a: e.target.value } }))} className="text-sm border-0 text-center" /></td>
+              <tbody className="font-mono">
+                <tr>
+                  <td className={`${ctd} text-left bg-[#f3f4f6]`}>Refraction</td>
+                  <td className={ctd}><input className={inp} value={formData.refractionOD.s} onChange={(e) => setFormData((p) => ({ ...p, refractionOD: { ...p.refractionOD, s: e.target.value } }))} /></td>
+                  <td className={ctd}><input className={inp} value={formData.refractionOD.c} onChange={(e) => setFormData((p) => ({ ...p, refractionOD: { ...p.refractionOD, c: e.target.value } }))} /></td>
+                  <td className={ctd}><input className={inp} value={formData.refractionOD.a} onChange={(e) => setFormData((p) => ({ ...p, refractionOD: { ...p.refractionOD, a: e.target.value } }))} /></td>
+                  <td className={ctd}><input className={inp} value={formData.refractionOS.s} onChange={(e) => setFormData((p) => ({ ...p, refractionOS: { ...p.refractionOS, s: e.target.value } }))} /></td>
+                  <td className={ctd}><input className={inp} value={formData.refractionOS.c} onChange={(e) => setFormData((p) => ({ ...p, refractionOS: { ...p.refractionOS, c: e.target.value } }))} /></td>
+                  <td className={ctd}><input className={inp} value={formData.refractionOS.a} onChange={(e) => setFormData((p) => ({ ...p, refractionOS: { ...p.refractionOS, a: e.target.value } }))} /></td>
                 </tr>
                 <tr>
-                  <td className="p-2 font-bold text-left bg-[#edeef0] border-r border-[#c3c6d6]">Fundus</td>
-                  <td className="p-2" colSpan={6}>
-                    <div className="flex items-center justify-center gap-6">
-                      <label className="flex items-center gap-1 text-[11px] font-bold"><input type="checkbox" className="w-4 h-4 rounded text-primary" /> N</label>
-                      <label className="flex items-center gap-1 text-[11px] font-bold"><input type="checkbox" className="w-4 h-4 rounded text-primary" /> A</label>
-                      <label className="flex items-center gap-1 text-[11px] font-bold"><input type="checkbox" className="w-4 h-4 rounded text-primary" /> O</label>
-                      <Input placeholder="Observations..." className="flex-1 text-sm border-0 text-left" dir="ltr" />
-                    </div>
-                  </td>
+                  <td className={`${ctd} text-left bg-[#f3f4f6]`}>Fundus</td>
+                  <td className={ctd} colSpan={3}><input className={inp} /></td>
+                  <td className={ctd} colSpan={3}><input className={inp} /></td>
                 </tr>
               </tbody>
             </table>
-          </div>
+          </section>
 
-          {/* Clinical notes */}
-          <div className="mb-6 border border-[#c3c6d6] rounded-lg p-4 min-h-[140px] space-y-4">
-            <div className="border-b border-dotted border-[#c3c6d6] h-6" />
-            <div className="border-b border-dotted border-[#c3c6d6] h-6" />
-            <div className="border-b border-dotted border-[#c3c6d6] h-6" />
-            <div className="border-b border-dotted border-[#c3c6d6] h-6" />
-          </div>
-
-          {/* Signatures */}
-          <div className="grid grid-cols-4 gap-8 pt-6 border-t border-[#c3c6d6]" dir="rtl">
-            {[
-              ["توقيع الاستشاري / Consultant", signatures.doctor],
-              ["فني القياس / Technician", signatures.technician],
-              ["تمريض / Nurse", signatures.nurse],
-              ["الاستقبال / Reception", signatures.reception],
-            ].map(([label, val], i) => (
-              <div key={i} className="flex flex-col items-center">
-                <div className="border-b border-[#191c1e] w-full h-12 mb-2 flex items-end justify-center text-xs">
-                  {val ? <span className="text-center pb-1">{val}</span> : null}
+          {/* Notes + signatures */}
+          <footer className="pt-6 border-t-2 border-[#003d9b] space-y-6">
+            <div className="print-specialist-footer-grid grid grid-cols-1 lg:grid-cols-12 gap-8">
+              <div className="lg:col-span-8 space-y-4">
+                <div>
+                  <label className="font-bold text-[#003d9b] text-sm">Comments / ملاحظات:</label>
+                  <div className="border-b border-solid border-[#c3c6d6] h-8" />
+                  <div className="border-b border-solid border-[#c3c6d6] h-8" />
                 </div>
-                <span className="text-[10px] font-bold text-[#526069] uppercase tracking-widest text-center">{label}</span>
+                <div>
+                  <label className="font-bold text-[#003d9b] text-sm">Final Decision / القرار النهائي:</label>
+                  <div className="border-b border-solid border-[#c3c6d6] h-8" />
+                </div>
               </div>
-            ))}
-          </div>
+              <div className="lg:col-span-4 border-2 border-[#003d9b] rounded-xl p-4 bg-[#003d9b]/5">
+                <div className="text-center font-bold text-[#003d9b] uppercase text-xs border-b border-[#003d9b]/20 pb-2 mb-3">Office Notes</div>
+                <div className="border-b border-solid border-[#003d9b]/40 h-6 mb-2" />
+                <div className="border-b border-solid border-[#003d9b]/40 h-6 mb-2" />
+                <div className="border-b border-solid border-[#003d9b]/40 h-6" />
+              </div>
+            </div>
+            <div className="print-specialist-signatures grid grid-cols-2 md:grid-cols-4 gap-8 pt-4 border-t border-[#c3c6d6]">
+              {[
+                ["التمريض / Nursing", signatures.nurse],
+                ["الطبيب / Physician", signatures.doctor],
+                ["فني / Optometrist", signatures.technician],
+                ["الاستقبال / Reception", signatures.reception],
+              ].map(([label, val], i) => (
+                <div key={i} className="flex flex-col gap-2">
+                  <span className={`text-[11px] font-bold uppercase ${i === 1 ? "text-[#003d9b]" : "text-[#434654]"}`}>{label}</span>
+                  <div className={`border-b-2 h-9 flex items-end justify-center ${i === 1 ? "border-[#003d9b]" : "border-[#191c1e]"}`}>
+                    <span className={`text-xs italic ${i === 1 ? "text-[#003d9b] font-bold" : "text-[#737685]"}`}>{val || ""}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </footer>
         </div>
         <div
           className={`sheet-mobile-actions print:hidden ${printMode.printView ? "hidden" : ""}`}
@@ -694,7 +733,7 @@ export default function SpecialistSheet() {
             حفظ
           </Button>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

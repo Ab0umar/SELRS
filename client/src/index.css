@@ -1049,9 +1049,7 @@ img {
   /* Force sheet contents to fit on a single A4 page by preventing breaks and scaling slightly */
   .sheet-layout,
   .lasik-print-root,
-  .specialist-print-root,
-  .followup-print-root,
-  .a4-page-card {
+  .specialist-print-root {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     page-break-after: avoid !important;
@@ -1240,26 +1238,6 @@ img {
 }
 .page-layout textarea {
   max-width: 420px;
-}
-
-/* Darker borders inside sheet layouts */
-.sheet-layout .border,
-.sheet-layout .border-b,
-.sheet-layout .border-t,
-.sheet-layout .border-l,
-.sheet-layout .border-r {
-  border-color: #4b5563;
-}
-
-/* Bold text across all sheet pages */
-.sheet-layout {
-  font-weight: 600;
-}
-
-.sheet-layout input[data-slot="input"],
-.sheet-layout textarea[data-slot="textarea"],
-.sheet-layout select {
-  font-weight: 600;
 }
 
 /* Center all input text */
@@ -1700,10 +1678,6 @@ select {
 
 .sheet-layout h2 {
   font-weight: 700;
-}
-
-.sheet-layout table {
-  border-color: #9aa6b2;
 }
 
 .sheet-layout table th {
