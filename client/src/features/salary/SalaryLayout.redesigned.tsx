@@ -184,8 +184,10 @@ export default function SalaryLayout({ children }: SalaryLayoutProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-4 sm:p-6" dir="rtl">
-      
+    <div
+      className="salary-table-redesign min-h-screen bg-background text-foreground p-4 sm:p-6"
+      dir="rtl"
+    >
       {/* ── 1. Floating Bento Top Header Capsule ── */}
       <header className="max-w-[1600px] mx-auto mb-6 bg-card border border-border/60 rounded-3xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-sm">
         <div className="flex items-center gap-3">
@@ -193,8 +195,12 @@ export default function SalaryLayout({ children }: SalaryLayoutProps) {
             SR
           </div>
           <div>
-            <h1 className="text-sm font-black text-foreground leading-none">إدارة عمليات الرواتب والعمولات</h1>
-            <span className="text-[10px] text-muted-foreground block mt-1 font-medium">سجل الرواتب والمستحقات والعمولات والخصومات الشهرية</span>
+            <h1 className="text-sm font-black text-foreground leading-none">
+              إدارة عمليات الرواتب والعمولات
+            </h1>
+            <span className="text-[10px] text-muted-foreground block mt-1 font-medium">
+              سجل الرواتب والمستحقات والعمولات والخصومات الشهرية
+            </span>
           </div>
         </div>
 
@@ -208,7 +214,9 @@ export default function SalaryLayout({ children }: SalaryLayoutProps) {
               <span className="text-[9px] font-bold text-muted-foreground block leading-none">
                 {metric.label}
               </span>
-              <span className={`mt-1 text-xs font-black font-mono leading-none ${metric.tone}`}>
+              <span
+                className={`mt-1 text-xs font-black font-mono leading-none ${metric.tone}`}
+              >
                 {metric.value}
               </span>
             </div>
@@ -246,7 +254,6 @@ export default function SalaryLayout({ children }: SalaryLayoutProps) {
         <main className="flex-1 w-full min-w-0 bg-card border border-border/60 rounded-3xl p-6 shadow-sm">
           {children}
         </main>
-
       </div>
     </div>
   );
