@@ -715,50 +715,26 @@ export default function ConsultantSheet() {
             </thead>
             <tbody>
               {[
-                [
-                  { label: "أمراض عامة ؟", key: "keratoconusHistory" },
-                  { label: "أمراض بالعين ؟", key: "blueWaterTreatment" },
-                  { label: "حمل ؟", key: "tearIncreasePregnancy" },
-                ],
-                [
-                  { label: "هل تستخدم علاج لحب الشباب ؟", key: "treatmentUsed" },
-                  { label: "هل تستخدم علاج حب الشباب (الايزوتريتينوين)؟", key: "thyroidDiseases" },
-                  { label: "هل تستخدم مضادات حساسية او إكتئاب؟", key: "immuneDiseases" },
-                ],
-                [
-                  { label: "هل سمعت عن مرض القرنية المخروطية في أحد افراد العائلة؟", key: "familyHistory" },
-                  { label: "هل تستخدم بديل دموع؟", key: "tearSubstitute" },
-                  { label: "زيادة في إفراز الدموع؟", key: "sandySensation" },
-                ],
-                [
-                  { label: "إحساس بالرمل داخل العين؟", key: "sandySensation" },
-                  { label: "هل تزيد هذه الأعراض عند وجود هواء او تكييف ؟", key: "sandySensation" },
-                  { label: "هل تعاني من حساسية بالعين/جفاف بالعين?", key: "immuneDiseases" },
-                ],
+                ["كورتيزون/ضغط؟", "الغدة الدرقية؟", "أمراض مناعة؟"],
+                ["علاج لحب الشباب؟", "الأيزوتريتينوين؟", "مضادات حساسية/اكتئاب؟"],
+                ["أمراض عامة؟", "أمراض بالعين؟", "حمل؟"],
+                ["قرنية مخروطية بالعائلة؟", "ماء زرقاء؟", "بديل دموع؟"],
               ].map((row, rowIndex) => (
                 <tr key={rowIndex}>
-                  {row.map(({ label, key }, colIndex) => (
-                    <Fragment key={`${rowIndex}-${colIndex}`}>
-                      <td className="text-center border border-[#c3c6d6]">
-                        <input
-                          type="checkbox"
-                          checked={formData[key as keyof typeof formData] === false}
-                          onChange={e => setFormData(p => ({ ...p, [key]: !e.target.checked }))}
-                          className="w-4 h-4 rounded text-[#003d9b]"
-                        />
-                      </td>
-                      <td className="text-center border border-[#c3c6d6]">
-                        <input
-                          type="checkbox"
-                          checked={formData[key as keyof typeof formData] === true}
-                          onChange={e => setFormData(p => ({ ...p, [key]: e.target.checked }))}
-                          className="w-4 h-4 rounded text-[#003d9b]"
-                        />
-                      </td>
-                      <td className="p-1.5 border border-[#c3c6d6] text-right">
-                        {label}
-                      </td>
-                    </Fragment>
+                  {row.map((q, colIndex) => (
+                    q ? (
+                      <Fragment key={`${rowIndex}-${colIndex}`}>
+                        <td className="text-center border border-[#c3c6d6]"><input type="checkbox" className="w-4 h-4 rounded text-[#003d9b]" /></td>
+                        <td className="text-center border border-[#c3c6d6]"><input type="checkbox" className="w-4 h-4 rounded text-[#003d9b]" /></td>
+                        <td className="p-1.5 border border-[#c3c6d6] text-right">{q}</td>
+                      </Fragment>
+                    ) : (
+                      <Fragment key={`${rowIndex}-${colIndex}`}>
+                        <td className="border border-[#c3c6d6] bg-[#f8f9fb]" />
+                        <td className="border border-[#c3c6d6] bg-[#f8f9fb]" />
+                        <td className="border border-[#c3c6d6] bg-[#f8f9fb]" />
+                      </Fragment>
+                    )
                   ))}
                 </tr>
               ))}
