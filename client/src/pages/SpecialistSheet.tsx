@@ -432,7 +432,7 @@ export default function SpecialistSheet() {
 
   return (
     <div
-      className={`min-h-screen bg-background sheet-layout ${mobileSheetModeEnabled && !printMode.printView ? "mobile-sheet-mode" : ""}`}
+      className={`min-h-screen bg-background sheet-layout specialist-page-root ${mobileSheetModeEnabled && !printMode.printView ? "mobile-sheet-mode" : ""}`}
       dir="rtl"
       style={{ direction: "rtl", textAlign: "right" }}
     >
@@ -448,6 +448,12 @@ export default function SpecialistSheet() {
         @media print {
           @page { size: A5 landscape; margin: 0; }
           body { background: white !important; }
+          /* the shared .sheet-layout print rule clips this page's fixed-width sheet — undo it here */
+          .specialist-page-root.sheet-layout {
+            overflow: visible !important;
+            max-height: none !important;
+            font-size: 100% !important;
+          }
           .specialist-sheet {
             width: 100% !important;
             max-width: 100% !important;

@@ -1016,7 +1016,7 @@ export default function ConsultantSheet() {
 
   return (
     <div
-      className={`${embeddedInPatientHub ? "prescription-root min-h-0 flex-1" : "min-h-screen"} bg-[#F8F9FB] sheet-layout ${mobileSheetModeEnabled && !printMode.printView ? "mobile-sheet-mode" : ""}`}
+      className={`${embeddedInPatientHub ? "prescription-root min-h-0 flex-1" : "min-h-screen"} bg-[#F8F9FB] sheet-layout consultant-page-root ${mobileSheetModeEnabled && !printMode.printView ? "mobile-sheet-mode" : ""}`}
       dir="rtl"
     >
       <style>{`
@@ -1024,6 +1024,12 @@ export default function ConsultantSheet() {
         @media print {
           @page { size: A4 portrait; margin: 0; }
           body { background: white !important; }
+          /* the shared .sheet-layout print rule clips this page's fixed 210mm sheet — undo it here */
+          .consultant-page-root.sheet-layout {
+            overflow: visible !important;
+            max-height: none !important;
+            font-size: 100% !important;
+          }
           .consultant-main-print-root {
             font-size: 88% !important;
             line-height: 1.1 !important;
