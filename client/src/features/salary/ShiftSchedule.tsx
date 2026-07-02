@@ -254,10 +254,22 @@ const PRINT_CSS = `
   .legend-m { color: oklch(51% 0.135 55); background: oklch(95% 0.04 65); }
   .legend-n { color: oklch(43% 0.145 255); background: oklch(94% 0.035 255); }
   .legend-absent { color: oklch(44% 0.03 245); background: oklch(93% 0.012 245); }
-  .table-wrap { break-inside: avoid; page-break-inside: avoid; }
-
-  table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; border: 1px solid oklch(76% 0.028 245); border-radius: 2mm; overflow: hidden; }
-  th, td { border-inline-start: 1px solid oklch(82% 0.022 245); border-block-start: 1px solid oklch(86% 0.018 245); padding: .9mm .55mm; text-align: center; vertical-align: middle; }
+  .cal-wrapper { border: 1px solid oklch(76% 0.028 245); border-radius: 2mm; overflow: hidden; margin-top: 4mm; }
+  .cal-header-row { display: grid; grid-template-columns: repeat(6, 1fr); background: oklch(95% 0.02 245); border-bottom: 1px solid oklch(82% 0.022 245); }
+  .cal-header-cell { padding: 2mm; text-align: center; font-size: 8px; font-weight: 800; border-inline-start: 1px solid oklch(82% 0.022 245); color: oklch(43% 0.03 245); }
+  .cal-header-cell:first-child { border-inline-start: none; }
+  .cal-body { display: grid; grid-template-columns: repeat(6, 1fr); background: oklch(82% 0.022 245); gap: 1px; }
+  .cal-cell { background: white; min-height: 22mm; padding: 1.5mm; display: flex; flex-direction: column; gap: 1mm; }
+  .cal-cell.empty-cell { background: oklch(98% 0.01 245); }
+  .cal-cell.holiday { background: oklch(95% 0.05 65); }
+  .cal-date-row { display: flex; justify-content: space-between; align-items: start; margin-bottom: 1mm; }
+  .cal-date-num { font-size: 10px; font-weight: 900; color: oklch(30% 0.115 255); }
+  .cal-holiday-tag { font-size: 6px; background: oklch(80% 0.1 65); color: white; padding: 0.5mm 1.5mm; border-radius: 999px; font-weight: bold; }
+  .cal-shifts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1mm; flex-grow: 1; }
+  .cal-shift { border-inline-end: 1px solid oklch(90% 0.02 245); padding-inline-end: 1.5mm; }
+  .cal-shift:last-child { border-inline-end: none; padding-inline-end: 0; }
+  .cal-shift-title { display: block; font-size: 6px; font-weight: 800; color: oklch(46% 0.028 245); margin-bottom: 0.8mm; border-bottom: 1px solid oklch(92% 0.02 245); padding-bottom: 0.5mm; }
+  .cal-shift div { font-size: 7.5px; font-weight: 800; color: oklch(20% 0.018 245); margin-bottom: 0.4mm; }
   thead th { border-block-start: 0; background: oklch(94% 0.03 255); color: oklch(31% 0.09 255); font-weight: 850; font-size: 6.2px; line-height: 1.15; }
   th:first-child, td:first-child { border-inline-start: 0; }
   tbody tr:nth-child(even) td { background: oklch(98% 0.006 245); }
@@ -588,54 +600,81 @@ export default function ShiftSchedule() {
       return `<span class="${meta.printClass}${absentClass}">${escapeHtml(label)}</span>`;
     }
 
-<<<<<<< HEAD
-=======
+    function buildCalendarGrid(dates: string[]) {
+      if (dates.length === 0) return "";
+      const firstStr = dates[0];
+      const d0 = new Date(`${firstStr}T00:00:00`);
+      const dayIndex = d0.getDay();
+      const prefixEmpty = dayIndex === 6 ? 0 : dayIndex + 1;
 
+      let cellsHTML = "";
+      for (let i = 0; i < prefixEmpty; i++) {
+        cellsHTML += `<div class="cal-cell empty-cell"></div>`;
+      }
 
->>>>>>> 416c9f911bbac5c3158310ea4257f8757cf1cb22
-    function buildTable(dates: string[], index: number) {
-      const cols = dates
-        .map((ds) => {
-          const dow = new Date(`${ds}T00:00:00`).getDay();
-          const holiday = holidayByDate.get(ds);
-          return `<th class="${holiday ? "holiday-th" : ""}">
-            <div>${escapeHtml(DAYS_AR[dow])}</div>
-            <div class="date-label">${escapeHtml(fmtDate(ds))}</div>
-            ${holiday ? `<div class="holiday-label">${escapeHtml(holiday.name || "عطلة")}</div>` : ""}
-          </th>`;
-        })
-        .join("");
-      const rows = displayStaff
-        .map((s: any) => {
-          const cells = dates
-            .map((ds) => {
-              const holiday = holidayByDate.get(ds);
-              const entries = attendMap.get(`${s.id}_${ds}`) ?? [];
-              const content = entries.length
-                ? entries.map(buildShiftToken).join("")
-                : holiday
-                  ? `<span class="holiday-label">${escapeHtml(holiday.name || "عطلة")}</span>`
-                  : '<span class="empty-cell">—</span>';
-              return `<td class="${holiday ? "holiday-cell" : ""}">${content}</td>`;
-            })
-            .join("");
-          return `<tr><td class="name-col">${escapeHtml(compactStaffName(s))}</td>${cells}</tr>`;
-        })
-        .join("");
-      return `<section class="table-wrap" aria-label="قسم الروستر ${index + 1}">
-        <table>
-          <thead><tr>
-            <th class="diag-cell">
-              <svg preserveAspectRatio="none" aria-hidden="true">
-                <line x1="0" y1="0" x2="100%" y2="100%" stroke="oklch(60% 0.03 245)" stroke-width="1"/>
-              </svg>
-              <span class="diag-date">التاريخ</span>
-              <span class="diag-name">الفريق</span>
-            </th>${cols}
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </section>`;
+      dates.forEach(ds => {
+        const dateObj = new Date(`${ds}T00:00:00`);
+        const holiday = holidayByDate.get(ds);
+        const dayEntries: Array<{ staff: any; entry: any }> = [];
+
+        displayStaff.forEach((s: any) => {
+          const entries = attendMap.get(`${s.id}_${ds}`) ?? [];
+          entries.forEach((entry: any) => {
+            dayEntries.push({ staff: s, entry });
+          });
+        });
+
+        const morningEntries = dayEntries.filter(
+          (item) => item.entry.shiftName === "Morning"
+        );
+        const nightEntries = dayEntries.filter(
+          (item) => item.entry.shiftName === "Night"
+        );
+
+        let morningHTML = "";
+        if (morningEntries.length) {
+          morningHTML = `
+            <div class="cal-shift">
+              <span class="cal-shift-title">الصباحية</span>
+              ${morningEntries.map(e => `<div>${escapeHtml(compactStaffName(e.staff))}</div>`).join('')}
+            </div>
+          `;
+        }
+
+        let nightHTML = "";
+        if (nightEntries.length) {
+          nightHTML = `
+            <div class="cal-shift">
+              <span class="cal-shift-title">المسائية</span>
+              ${nightEntries.map(e => `<div>${escapeHtml(compactStaffName(e.staff))}</div>`).join('')}
+            </div>
+          `;
+        }
+
+        cellsHTML += `
+          <div class="cal-cell ${holiday ? "holiday" : ""}">
+            <div class="cal-date-row">
+              <span class="cal-date-num">${dateObj.getDate()}</span>
+              ${holiday ? `<span class="cal-holiday-tag">عطلة</span>` : ""}
+            </div>
+            <div class="cal-shifts-grid">
+              ${morningHTML}
+              ${nightHTML}
+            </div>
+          </div>
+        `;
+      });
+
+      return `
+        <div class="cal-wrapper">
+          <div class="cal-header-row">
+            ${DAYS_AR_CALENDAR.map(d => `<div class="cal-header-cell">${d}</div>`).join('')}
+          </div>
+          <div class="cal-body">
+            ${cellsHTML}
+          </div>
+        </div>
+      `;
     }
 
     const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/>
@@ -673,7 +712,7 @@ export default function ShiftSchedule() {
           <div class="legend-note">الأيام الجمعة مستبعدة من الجدول، والعطلات مميزة بخلفية دافئة.</div>
         </div>
 
-        ${buildTable(allDates, 0)}
+        ${buildCalendarGrid(allDates)}
 
         <footer class="signature-row">
           <div class="signature-line">مسؤول الروستر</div>
