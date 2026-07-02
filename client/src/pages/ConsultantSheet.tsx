@@ -449,7 +449,7 @@ export default function ConsultantSheet() {
       <div
         className="p-1 print:p-0 followup-print-root bg-background text-foreground"
         dir="ltr"
-        style={{ fontFamily: '"Times New Roman", Tahoma, Arial, sans-serif' }}
+        style={{ fontFamily: "Inter, sans-serif" }}
       >
         <div className="mb-2 print:mb-1 flex items-center justify-between text-[15px] print:text-[13px] px-1 print:px-0">
           <div className="whitespace-nowrap">
@@ -953,6 +953,10 @@ export default function ConsultantSheet() {
             box-shadow: none !important;
             outline: 0 !important;
             background: transparent !important;
+            text-decoration: none !important;
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            line-height: 1.15 !important;
           }
           .consultant-sheet-inner .gap-8 { gap: 12px !important; }
           .consultant-sheet-inner .gap-6 { gap: 10px !important; }

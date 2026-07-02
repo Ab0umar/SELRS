@@ -482,6 +482,17 @@ export default function SpecialistSheet() {
             padding-top: 0 !important;
             padding-bottom: 0 !important;
           }
+          .specialist-sheet input:not([type="checkbox"]):not([type="radio"]),
+          .specialist-sheet textarea {
+            border: 0 !important;
+            border-bottom: 0 !important;
+            box-shadow: none !important;
+            outline: 0 !important;
+            background: transparent !important;
+            text-decoration: none !important;
+            font-weight: 700 !important;
+            line-height: 1.15 !important;
+          }
           .specialist-sheet .sheet-center-header {
             padding-bottom: 3px !important;
             margin-bottom: 3px !important;
