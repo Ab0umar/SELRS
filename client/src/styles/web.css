@@ -253,6 +253,30 @@
     padding-top: 1px !important;
     padding-bottom: 1px !important;
   }
+  .sheet-layout input:not([type="checkbox"]):not([type="radio"]),
+  .sheet-layout textarea,
+  .lasik-print-root input:not([type="checkbox"]):not([type="radio"]),
+  .lasik-print-root textarea,
+  .specialist-print-root input:not([type="checkbox"]):not([type="radio"]),
+  .specialist-print-root textarea,
+  .followup-print-root input:not([type="checkbox"]):not([type="radio"]),
+  .followup-print-root textarea,
+  .referral-print-root input:not([type="checkbox"]):not([type="radio"]),
+  .referral-print-root textarea,
+  .a4-page-card input:not([type="checkbox"]):not([type="radio"]),
+  .a4-page-card textarea,
+  main input:not([type="checkbox"]):not([type="radio"]),
+  main textarea {
+    border: 0 !important;
+    border-bottom: 0 !important;
+    box-shadow: none !important;
+    outline: 0 !important;
+    background: transparent !important;
+    text-decoration: none !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    line-height: 1.15 !important;
+  }
   .sheet-layout input[type="checkbox"],
   .sheet-layout input[type="radio"],
   .lasik-print-root input[type="checkbox"],
@@ -456,7 +480,7 @@
   main .xl\:col-span-8 {
     grid-column: span 8 / span 8 !important;
   }
-  }
+}
 
 @layer base {
   * {

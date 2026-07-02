@@ -763,7 +763,7 @@ export default function LasikExamSheet() {
             const isOD = eye === "od";
             const thin = isOD ? odThinnestNum : osThinnestNum;
             return (
-              <div key={eye} className={`${isOD ? "od-bg border-[#003d9b]/20" : "os-bg border-[#c3c6d6]"} p-4 rounded-xl border`}>
+              <div key={eye} className={`${isOD ? "od-bg border-[#003d9b]/20" : "os-bg border-[#c3c6d6]"} print-lasik-eye-card p-4 rounded-xl border`}>
                 <div className="flex justify-between items-center mb-3">
                   <span className={`text-xs font-bold uppercase px-3 py-1 bg-white rounded shadow-sm ${isOD ? "text-[#003d9b]" : "text-[#526069]"}`}>{isOD ? "Right Eye (RT)" : "Left Eye (LT)"}</span>
                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${thin < 480 ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}>{thin < 480 ? "THIN" : "STABLE"}</span>
@@ -889,12 +889,25 @@ export default function LasikExamSheet() {
             padding-top: 1px !important;
             padding-bottom: 1px !important;
           }
+          .lasik-sheet input:not([type="checkbox"]):not([type="radio"]),
+          .lasik-sheet textarea {
+            border: 0 !important;
+            border-bottom: 0 !important;
+            box-shadow: none !important;
+            outline: 0 !important;
+            background: transparent !important;
+            text-decoration: none !important;
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            line-height: 1.15 !important;
+          }
           .lasik-sheet .gap-8 { gap: 12px !important; }
           .lasik-sheet .gap-6 { gap: 10px !important; }
           .lasik-sheet .gap-5 { gap: 8px !important; }
           .lasik-sheet .gap-4 { gap: 6px !important; }
           .lasik-sheet .p-8 { padding: 0 !important; }
           .lasik-sheet .p-4 { padding: 8px !important; }
+          .print-lasik-eye-card { padding-left: 10mm !important; }
           .lasik-sheet .pt-6 { padding-top: 10px !important; }
           .lasik-sheet .pt-4 { padding-top: 8px !important; }
           .lasik-sheet .pb-3 { padding-bottom: 6px !important; }
