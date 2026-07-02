@@ -264,9 +264,7 @@
   .referral-print-root input:not([type="checkbox"]):not([type="radio"]),
   .referral-print-root textarea,
   .a4-page-card input:not([type="checkbox"]):not([type="radio"]),
-  .a4-page-card textarea,
-  main input:not([type="checkbox"]):not([type="radio"]),
-  main textarea {
+  .a4-page-card textarea {
     border: 0 !important;
     border-bottom: 0 !important;
     box-shadow: none !important;
