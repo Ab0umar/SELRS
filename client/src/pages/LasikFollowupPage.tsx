@@ -358,7 +358,7 @@ export default function LasikFollowupPage() {
             />
             <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm px-1" dir="rtl">
               <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">الاسم:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[120px] px-1">{patientName}</span></p>
-              <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">BD:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[70px] px-1">{patientDOB}</span></p>
+              <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">تاريخ الميلاد:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[70px] px-1">{patientDOB}</span></p>
             </div>
             {/* Operation header */}
             <div className="bg-white border border-[#c3c6d6] rounded-lg p-4 shadow-sm flex flex-col md:flex-row justify-between gap-4">
@@ -441,14 +441,14 @@ export default function LasikFollowupPage() {
                     </thead>
                     <tbody>
                       <tr className="border-b border-[#c3c6d6]" style={{ backgroundColor: "rgba(0,61,155,0.03)" }}>
-                        <td className="px-3 py-2.5 font-bold text-[#003d9b] text-sm">OD</td>
+                        <td className="px-3 py-2.5 text-[#003d9b] text-sm">OD</td>
                         <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
                         <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
                         <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
                         <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
                       </tr>
                       <tr className="border-b border-[#c3c6d6] bg-white">
-                        <td className="px-3 py-2.5 font-bold text-[#526069] text-sm">OS</td>
+                        <td className="px-3 py-2.5 text-[#526069] text-sm">OS</td>
                         <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
                         <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
                         <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>

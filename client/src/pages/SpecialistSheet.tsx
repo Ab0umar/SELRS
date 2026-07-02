@@ -579,7 +579,7 @@ export default function SpecialistSheet() {
               <input className="w-44 font-semibold text-[#003d9b] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.patientName} onChange={(e) => setFormData((p) => ({ ...p, patientName: e.target.value }))} /></label>
             <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">السن:</span>
               <input className="w-12 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.age} onChange={(e) => setFormData((p) => ({ ...p, age: e.target.value }))} /></label>
-            <span className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">BD:</span>
+            <span className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">تاريخ الميلاد:</span>
               <span className="min-w-[70px] px-1 border-b border-[#c3c6d6] text-right">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</span></span>
             <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">العنوان:</span>
               <input className="w-36 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} /></label>
@@ -603,11 +603,11 @@ export default function SpecialistSheet() {
                   <tr><th className={ctd}>Eye</th><th className={ctd}>UCVA</th><th className={ctd}>BCVA</th><th className={ctd}>IOP</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td className={`${ctd} font-bold text-[#003d9b] bg-[#003d9b]/5`}>OD</td>
+                  <tr><td className={`${ctd} text-[#003d9b] bg-[#003d9b]/5`}>OD</td>
                     <td className={ctd}><input className={inp} value={formData.ucvaOD} onChange={(e) => setFormData((p) => ({ ...p, ucvaOD: e.target.value }))} /></td>
                     <td className={ctd}><input className={inp} value={formData.bcvaOD} onChange={(e) => setFormData((p) => ({ ...p, bcvaOD: e.target.value }))} /></td>
                     <td className={ctd}><input className={inp} value={formData.iopOD} onChange={(e) => setFormData((p) => ({ ...p, iopOD: e.target.value }))} /></td></tr>
-                  <tr><td className={`${ctd} font-bold text-[#526069] bg-[#f3f4f6]`}>OS</td>
+                  <tr><td className={`${ctd} text-[#526069] bg-[#f3f4f6]`}>OS</td>
                     <td className={ctd}><input className={inp} value={formData.ucvaOS} onChange={(e) => setFormData((p) => ({ ...p, ucvaOS: e.target.value }))} /></td>
                     <td className={ctd}><input className={inp} value={formData.bcvaOS} onChange={(e) => setFormData((p) => ({ ...p, bcvaOS: e.target.value }))} /></td>
                     <td className={ctd}><input className={inp} value={formData.iopOS} onChange={(e) => setFormData((p) => ({ ...p, iopOS: e.target.value }))} /></td></tr>
@@ -644,7 +644,7 @@ export default function SpecialistSheet() {
               </thead>
               <tbody className="font-mono">
                 <tr>
-                  <td className={`${ctd} text-left font-bold bg-[#f3f4f6]`}>Refraction</td>
+                  <td className={`${ctd} text-left bg-[#f3f4f6]`}>Refraction</td>
                   <td className={ctd}><input className={inp} value={formData.refractionOD.s} onChange={(e) => setFormData((p) => ({ ...p, refractionOD: { ...p.refractionOD, s: e.target.value } }))} /></td>
                   <td className={ctd}><input className={inp} value={formData.refractionOD.c} onChange={(e) => setFormData((p) => ({ ...p, refractionOD: { ...p.refractionOD, c: e.target.value } }))} /></td>
                   <td className={ctd}><input className={inp} value={formData.refractionOD.a} onChange={(e) => setFormData((p) => ({ ...p, refractionOD: { ...p.refractionOD, a: e.target.value } }))} /></td>
@@ -653,7 +653,7 @@ export default function SpecialistSheet() {
                   <td className={ctd}><input className={inp} value={formData.refractionOS.a} onChange={(e) => setFormData((p) => ({ ...p, refractionOS: { ...p.refractionOS, a: e.target.value } }))} /></td>
                 </tr>
                 <tr>
-                  <td className={`${ctd} text-left font-bold bg-[#f3f4f6]`}>Fundus</td>
+                  <td className={`${ctd} text-left bg-[#f3f4f6]`}>Fundus</td>
                   <td className={ctd} colSpan={3}><input className={inp} /></td>
                   <td className={ctd} colSpan={3}><input className={inp} /></td>
                 </tr>

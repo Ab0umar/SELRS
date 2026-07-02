@@ -563,22 +563,22 @@ export default function ConsultantSheet() {
                 >
                   {followupLabels.refractionLabel}
                 </td>
-                <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
+                <td className="border border-black/50 py-1 print:py-0.5 text-center">
                   S
                 </td>
-                <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
+                <td className="border border-black/50 py-1 print:py-0.5 text-center">
                   C
                 </td>
-                <td className="border border-black/50 border-r-0 py-1 print:py-0.5 text-center font-semibold">
+                <td className="border border-black/50 border-r-0 py-1 print:py-0.5 text-center">
                   A
                 </td>
-                <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
+                <td className="border border-black/50 py-1 print:py-0.5 text-center">
                   S
                 </td>
-                <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
+                <td className="border border-black/50 py-1 print:py-0.5 text-center">
                   C
                 </td>
-                <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
+                <td className="border border-black/50 py-1 print:py-0.5 text-center">
                   A
                 </td>
               </tr>
@@ -603,7 +603,7 @@ export default function ConsultantSheet() {
                 >
                   {followupLabels.flapLabel}
                 </td>
-                <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
+                <td className="border border-black/50 py-1 print:py-0.5 text-center">
                   {followupLabels.edgesLabel}
                 </td>
                 <td
@@ -612,7 +612,7 @@ export default function ConsultantSheet() {
                 ></td>
               </tr>
               <tr>
-                <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
+                <td className="border border-black/50 py-1 print:py-0.5 text-center">
                   {followupLabels.bedLabel}
                 </td>
                 <td
@@ -686,7 +686,7 @@ export default function ConsultantSheet() {
         {/* BEGIN: Patient Demographics */}
         <section className="print-consultant-patient-grid p-4 bg-[#f3f4f6] rounded-xl border border-[#c3c6d6] flex flex-wrap items-center gap-x-6 gap-y-2 text-sm" data-purpose="patient-info" dir="rtl">
           <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">الاسم:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[160px] px-1 min-h-5">{formData.patientName}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">تاريخ الميلاد (BD):</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[80px] px-1 min-h-5">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</span></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">تاريخ الميلاد:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[80px] px-1 min-h-5">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</span></p>
           <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">السن:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[40px] px-1 min-h-5">{formData.age}</span></p>
           <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">الوظيفة:</span> <input type="text" dir="rtl" className="border-none p-0 outline-none w-28 text-right border-b border-solid border-[#c3c6d6] text-sm focus:border-[#003d9b] bg-transparent" value={formData.job} onChange={e => setFormData(p => ({ ...p, job: e.target.value }))} /></p>
           <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">تاريخ الفحص:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[80px] px-1 min-h-5">{new Date().toLocaleDateString("en-GB")}</span></p>
@@ -744,27 +744,29 @@ export default function ConsultantSheet() {
         {/* END: Medical History Checklist */}
 
         {/* BEGIN: Visual Acuity + Dominant Eye */}
-        <section className="ltr-content" data-purpose="examination-section" dir="ltr">
-          <table className="w-full text-center border-collapse">
-            <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
-              <tr><th className={ctd}>Eye</th><th className={ctd}>UCVA</th><th className={ctd}>BCVA</th><th className={ctd}>IOP</th></tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className={`${ctd} font-bold text-[#003d9b] bg-[#003d9b]/5`}>OD</td>
-                <td className={ctd}><input className={inp} value={formData.ucvaOD} onChange={e => setFormData(p => ({ ...p, ucvaOD: e.target.value }))} /></td>
-                <td className={ctd}><input className={inp} value={formData.bcvaOD} onChange={e => setFormData(p => ({ ...p, bcvaOD: e.target.value }))} /></td>
-                <td className={ctd}><input className={inp} value={formData.iopOD} onChange={e => setFormData(p => ({ ...p, iopOD: e.target.value }))} /></td>
-              </tr>
-              <tr>
-                <td className={`${ctd} font-bold text-[#526069] bg-[#f3f4f6]`}>OS</td>
-                <td className={ctd}><input className={inp} value={formData.ucvaOS} onChange={e => setFormData(p => ({ ...p, ucvaOS: e.target.value }))} /></td>
-                <td className={ctd}><input className={inp} value={formData.bcvaOS} onChange={e => setFormData(p => ({ ...p, bcvaOS: e.target.value }))} /></td>
-                <td className={ctd}><input className={inp} value={formData.iopOS} onChange={e => setFormData(p => ({ ...p, iopOS: e.target.value }))} /></td>
-              </tr>
-            </tbody>
-          </table>
-          <div className="mt-3 flex items-center justify-center gap-8 text-sm font-bold border border-[#c3c6d6] rounded-lg p-2">
+        <section className="print-consultant-visual-grid grid grid-cols-1 lg:grid-cols-12 gap-6 ltr-content" data-purpose="examination-section" dir="ltr">
+          <div className="lg:col-span-7">
+            <table className="w-full text-center border-collapse">
+              <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
+                <tr><th className={ctd}>Eye</th><th className={ctd}>UCVA</th><th className={ctd}>BCVA</th><th className={ctd}>IOP</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className={`${ctd} text-[#003d9b] bg-[#003d9b]/5`}>OD</td>
+                  <td className={ctd}><input className={inp} value={formData.ucvaOD} onChange={e => setFormData(p => ({ ...p, ucvaOD: e.target.value }))} /></td>
+                  <td className={ctd}><input className={inp} value={formData.bcvaOD} onChange={e => setFormData(p => ({ ...p, bcvaOD: e.target.value }))} /></td>
+                  <td className={ctd}><input className={inp} value={formData.iopOD} onChange={e => setFormData(p => ({ ...p, iopOD: e.target.value }))} /></td>
+                </tr>
+                <tr>
+                  <td className={`${ctd} text-[#526069] bg-[#f3f4f6]`}>OS</td>
+                  <td className={ctd}><input className={inp} value={formData.ucvaOS} onChange={e => setFormData(p => ({ ...p, ucvaOS: e.target.value }))} /></td>
+                  <td className={ctd}><input className={inp} value={formData.bcvaOS} onChange={e => setFormData(p => ({ ...p, bcvaOS: e.target.value }))} /></td>
+                  <td className={ctd}><input className={inp} value={formData.iopOS} onChange={e => setFormData(p => ({ ...p, iopOS: e.target.value }))} /></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div className="lg:col-span-5 flex items-center justify-center gap-8 text-sm font-bold border border-[#c3c6d6] rounded-lg p-2 h-full">
             <span className="text-[#003d9b] uppercase">Dominant Eye:</span>
             <label className="flex items-center gap-2"><input type="radio" name="dominant" checked={formData.dominantEye === "OD"} onChange={() => setFormData(p => ({ ...p, dominantEye: "OD" }))} /> OD</label>
             <label className="flex items-center gap-2"><input type="radio" name="dominant" checked={formData.dominantEye === "OS"} onChange={() => setFormData(p => ({ ...p, dominantEye: "OS" }))} /> OS</label>
@@ -785,7 +787,7 @@ export default function ConsultantSheet() {
             </thead>
             <tbody className="font-mono">
               <tr>
-                <td className={`${ctd} text-left font-bold bg-[#f3f4f6]`}>Refraction</td>
+                <td className={`${ctd} text-left bg-[#f3f4f6]`}>Refraction</td>
                 <td className={ctd}><input className={inp} value={formData.refractionOD.s} onChange={e => setFormData(p => ({ ...p, refractionOD: { ...p.refractionOD, s: e.target.value } }))} /></td>
                 <td className={ctd}><input className={inp} value={formData.refractionOD.c} onChange={e => setFormData(p => ({ ...p, refractionOD: { ...p.refractionOD, c: e.target.value } }))} /></td>
                 <td className={ctd}><input className={inp} value={formData.refractionOD.a} onChange={e => setFormData(p => ({ ...p, refractionOD: { ...p.refractionOD, a: e.target.value } }))} /></td>
@@ -794,7 +796,7 @@ export default function ConsultantSheet() {
                 <td className={ctd}><input className={inp} value={formData.refractionOS.a} onChange={e => setFormData(p => ({ ...p, refractionOS: { ...p.refractionOS, a: e.target.value } }))} /></td>
               </tr>
               <tr>
-                <td className={`${ctd} text-left font-bold bg-[#f3f4f6]`}>Fundus</td>
+                <td className={`${ctd} text-left bg-[#f3f4f6]`}>Fundus</td>
                 <td className={ctd} colSpan={3}><input className={inp} value={formData.fundusOD} onChange={e => setFormData(p => ({ ...p, fundusOD: e.target.value }))} /></td>
                 <td className={ctd} colSpan={3}><input className={inp} value={formData.fundusOS} onChange={e => setFormData(p => ({ ...p, fundusOS: e.target.value }))} /></td>
               </tr>
@@ -804,28 +806,28 @@ export default function ConsultantSheet() {
         {/* END: Clinical Refraction */}
 
         {/* BEGIN: Clinical Diagrams (replaces Pentacam / Target Refraction) */}
-        <section className="print-consultant-diagrams grid grid-cols-1 lg:grid-cols-2 gap-6" data-purpose="clinical-diagrams">
-          <div className="border-[#003d9b]/20 bg-[#003d9b]/5 p-4 rounded-xl border flex flex-col items-center">
-            <span className="text-xs font-bold uppercase px-3 py-1 bg-white rounded shadow-sm text-[#003d9b] mb-3">Right Eye (OD)</span>
-            <div className="w-40 h-40 rounded-full border-4 border-[#003d9b]/30 flex items-center justify-center relative bg-white">
+        <section className="print-consultant-diagrams grid grid-cols-1 lg:grid-cols-2 gap-8 border border-[#c3c6d6] rounded-xl p-8 bg-white flex-1" data-purpose="clinical-diagrams">
+          <div className="flex flex-col items-center justify-center">
+            <span className="text-xs font-bold uppercase px-3 py-1 bg-[#003d9b]/5 rounded shadow-sm text-[#003d9b] mb-4">Right Eye (OD)</span>
+            <div className="w-52 h-52 rounded-full border-4 border-[#003d9b]/30 flex items-center justify-center relative bg-white">
               <div className="absolute inset-0 flex items-center justify-center opacity-10">
                 <div className="w-full border-t border-slate-900"></div>
                 <div className="h-full border-l border-slate-900 absolute top-0"></div>
               </div>
               <span className="text-[#003d9b]/40 font-bold text-xl select-none">OD</span>
             </div>
-            <p className="mt-3 font-bold text-[#003d9b]">العين اليمنى (OD)</p>
+            <p className="mt-4 font-bold text-[#003d9b]">العين اليمنى (OD)</p>
           </div>
-          <div className="border-[#c3c6d6] bg-[#f3f4f6] p-4 rounded-xl border flex flex-col items-center">
-            <span className="text-xs font-bold uppercase px-3 py-1 bg-white rounded shadow-sm text-[#526069] mb-3">Left Eye (OS)</span>
-            <div className="w-40 h-40 rounded-full border-4 border-slate-300 flex items-center justify-center relative bg-white">
+          <div className="flex flex-col items-center justify-center">
+            <span className="text-xs font-bold uppercase px-3 py-1 bg-[#f3f4f6] rounded shadow-sm text-[#526069] mb-4">Left Eye (OS)</span>
+            <div className="w-52 h-52 rounded-full border-4 border-slate-300 flex items-center justify-center relative bg-white">
               <div className="absolute inset-0 flex items-center justify-center opacity-10">
                 <div className="w-full border-t border-slate-900"></div>
                 <div className="h-full border-l border-slate-900 absolute top-0"></div>
               </div>
               <span className="text-slate-300 font-bold text-xl select-none">OS</span>
             </div>
-            <p className="mt-3 font-bold text-[#526069]">العين اليسرى (OS)</p>
+            <p className="mt-4 font-bold text-[#526069]">العين اليسرى (OS)</p>
           </div>
         </section>
         {/* END: Clinical Diagrams */}
@@ -994,14 +996,20 @@ export default function ConsultantSheet() {
           .print-consultant-diagrams {
             display: grid !important;
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            flex: 1 1 auto !important;
+            padding: 6mm !important;
           }
           .print-consultant-diagrams .rounded-full {
-            width: 26mm !important;
-            height: 26mm !important;
+            width: 40mm !important;
+            height: 40mm !important;
             border-width: 2px !important;
           }
           .print-consultant-diagrams p {
-            margin-top: 1.5mm !important;
+            margin-top: 2mm !important;
+          }
+          .print-consultant-visual-grid {
+            display: grid !important;
+            grid-template-columns: minmax(0, 7fr) minmax(0, 5fr) !important;
           }
           .print-consultant-footer-grid {
             display: grid !important;
