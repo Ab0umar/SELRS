@@ -679,8 +679,6 @@ export default function ShiftSchedule() {
 
         ${buildTable(allDates, 0)}
 
-        ${buildCalendarGrid(allDates)}
-
         <footer class="signature-row">
           <div class="signature-line">مسؤول الروستر</div>
           <div class="signature-line">مراجعة الموارد البشرية</div>
