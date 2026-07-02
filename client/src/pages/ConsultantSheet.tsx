@@ -885,30 +885,6 @@ export default function ConsultantSheet() {
 
         <div className="hidden print:block">
           <div className="print-page-center-a4">{renderSheetBody(true)}</div>
-          {!originalMode ? (
-            <div
-              className="print-page-break print-page-center-a4"
-              style={{ pageBreakBefore: "always", breakBefore: "page" }}
-            >
-              <FollowupTablesBody
-                titleEn="Consultant Follow-up"
-                titleAr="متابعة الاستشاري"
-                patientName={formData.patientName}
-                patientDOB={formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}
-                operationType={operationType}
-                setOperationType={setOperationType}
-                operationEyes={operationEyes}
-                setOperationEyes={setOperationEyes}
-                operationDateRight={operationDateRight}
-                setOperationDateRight={setOperationDateRight}
-                followups={followups}
-                setFollowups={setFollowups}
-                followupLabels={followupLabels}
-                signatures={signatures}
-                readOnly
-              />
-            </div>
-          ) : null}
         </div>
 
         <div className={`sheet-mobile-actions print:hidden ${printMode.printView ? "hidden" : ""}`}>
