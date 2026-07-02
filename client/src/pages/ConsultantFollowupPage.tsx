@@ -390,14 +390,14 @@ export default function ConsultantFollowupPage() {
                     </thead>
                     <tbody>
                       <tr className="border-b border-[#c3c6d6]" style={{ backgroundColor: "rgba(0,61,155,0.03)" }}>
-                        <td className="px-3 py-2.5 font-bold text-[#003d9b] text-sm">OD</td>
+                        <td className="px-3 py-2.5 text-[#003d9b] text-sm">OD</td>
                         <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
                         <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
                         <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
                         <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
                       </tr>
                       <tr className="border-b border-[#c3c6d6] bg-white">
-                        <td className="px-3 py-2.5 font-bold text-[#526069] text-sm">OS</td>
+                        <td className="px-3 py-2.5 text-[#526069] text-sm">OS</td>
                         <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
                         <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
                         <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>

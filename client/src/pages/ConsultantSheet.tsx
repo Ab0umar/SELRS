@@ -563,22 +563,22 @@ export default function ConsultantSheet() {
                 >
                   {followupLabels.refractionLabel}
                 </td>
-                <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
+                <td className="border border-black/50 py-1 print:py-0.5 text-center">
                   S
                 </td>
-                <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
+                <td className="border border-black/50 py-1 print:py-0.5 text-center">
                   C
                 </td>
-                <td className="border border-black/50 border-r-0 py-1 print:py-0.5 text-center font-semibold">
+                <td className="border border-black/50 border-r-0 py-1 print:py-0.5 text-center">
                   A
                 </td>
-                <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
+                <td className="border border-black/50 py-1 print:py-0.5 text-center">
                   S
                 </td>
-                <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
+                <td className="border border-black/50 py-1 print:py-0.5 text-center">
                   C
                 </td>
-                <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
+                <td className="border border-black/50 py-1 print:py-0.5 text-center">
                   A
                 </td>
               </tr>
@@ -603,7 +603,7 @@ export default function ConsultantSheet() {
                 >
                   {followupLabels.flapLabel}
                 </td>
-                <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
+                <td className="border border-black/50 py-1 print:py-0.5 text-center">
                   {followupLabels.edgesLabel}
                 </td>
                 <td
@@ -612,7 +612,7 @@ export default function ConsultantSheet() {
                 ></td>
               </tr>
               <tr>
-                <td className="border border-black/50 py-1 print:py-0.5 text-center font-semibold">
+                <td className="border border-black/50 py-1 print:py-0.5 text-center">
                   {followupLabels.bedLabel}
                 </td>
                 <td
@@ -752,13 +752,13 @@ export default function ConsultantSheet() {
               </thead>
               <tbody>
                 <tr>
-                  <td className={`${ctd} font-bold text-[#003d9b] bg-[#003d9b]/5`}>OD</td>
+                  <td className={`${ctd} text-[#003d9b] bg-[#003d9b]/5`}>OD</td>
                   <td className={ctd}><input className={inp} value={formData.ucvaOD} onChange={e => setFormData(p => ({ ...p, ucvaOD: e.target.value }))} /></td>
                   <td className={ctd}><input className={inp} value={formData.bcvaOD} onChange={e => setFormData(p => ({ ...p, bcvaOD: e.target.value }))} /></td>
                   <td className={ctd}><input className={inp} value={formData.iopOD} onChange={e => setFormData(p => ({ ...p, iopOD: e.target.value }))} /></td>
                 </tr>
                 <tr>
-                  <td className={`${ctd} font-bold text-[#526069] bg-[#f3f4f6]`}>OS</td>
+                  <td className={`${ctd} text-[#526069] bg-[#f3f4f6]`}>OS</td>
                   <td className={ctd}><input className={inp} value={formData.ucvaOS} onChange={e => setFormData(p => ({ ...p, ucvaOS: e.target.value }))} /></td>
                   <td className={ctd}><input className={inp} value={formData.bcvaOS} onChange={e => setFormData(p => ({ ...p, bcvaOS: e.target.value }))} /></td>
                   <td className={ctd}><input className={inp} value={formData.iopOS} onChange={e => setFormData(p => ({ ...p, iopOS: e.target.value }))} /></td>
@@ -787,7 +787,7 @@ export default function ConsultantSheet() {
             </thead>
             <tbody className="font-mono">
               <tr>
-                <td className={`${ctd} text-left font-bold bg-[#f3f4f6]`}>Refraction</td>
+                <td className={`${ctd} text-left bg-[#f3f4f6]`}>Refraction</td>
                 <td className={ctd}><input className={inp} value={formData.refractionOD.s} onChange={e => setFormData(p => ({ ...p, refractionOD: { ...p.refractionOD, s: e.target.value } }))} /></td>
                 <td className={ctd}><input className={inp} value={formData.refractionOD.c} onChange={e => setFormData(p => ({ ...p, refractionOD: { ...p.refractionOD, c: e.target.value } }))} /></td>
                 <td className={ctd}><input className={inp} value={formData.refractionOD.a} onChange={e => setFormData(p => ({ ...p, refractionOD: { ...p.refractionOD, a: e.target.value } }))} /></td>
@@ -796,7 +796,7 @@ export default function ConsultantSheet() {
                 <td className={ctd}><input className={inp} value={formData.refractionOS.a} onChange={e => setFormData(p => ({ ...p, refractionOS: { ...p.refractionOS, a: e.target.value } }))} /></td>
               </tr>
               <tr>
-                <td className={`${ctd} text-left font-bold bg-[#f3f4f6]`}>Fundus</td>
+                <td className={`${ctd} text-left bg-[#f3f4f6]`}>Fundus</td>
                 <td className={ctd} colSpan={3}><input className={inp} value={formData.fundusOD} onChange={e => setFormData(p => ({ ...p, fundusOD: e.target.value }))} /></td>
                 <td className={ctd} colSpan={3}><input className={inp} value={formData.fundusOS} onChange={e => setFormData(p => ({ ...p, fundusOS: e.target.value }))} /></td>
               </tr>
