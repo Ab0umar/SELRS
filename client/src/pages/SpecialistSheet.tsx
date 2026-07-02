@@ -423,6 +423,7 @@ export default function SpecialistSheet() {
   const handlePrint = () => {
     void printOrExportPdf(
       `${String(formData.patientName || formData.patientCode || initialPatientId || "specialist-sheet").trim()}.pdf`,
+      { forceBrowserPrint: true },
     );
   };
 

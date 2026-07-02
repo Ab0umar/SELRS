@@ -405,6 +405,7 @@ export default function ConsultantSheet() {
   const handlePrint = () => {
     void printOrExportPdf(
       `${String(formData.patientName || formData.code || initialPatientId || "consultant-sheet").trim()}.pdf`,
+      { forceBrowserPrint: true },
     );
   };
 

@@ -347,7 +347,7 @@ export default function LasikFollowupPage() {
             type="button"
             variant="outline"
             className="border-[#737685] text-[#191c1e] text-xs font-bold px-4 py-2 rounded uppercase tracking-wider hover:bg-[#edeef0]"
-            onClick={() => void printOrExportPdf(`lasik-followup-${initialPatientId ?? "sheet"}.pdf`)}
+            onClick={() => void printOrExportPdf(`lasik-followup-${initialPatientId ?? "sheet"}.pdf`, { forceBrowserPrint: true })}
           >
             <Printer className="h-3 w-3 mr-1" /> Print PDF
           </Button>

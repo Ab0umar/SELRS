@@ -584,6 +584,7 @@ export default function LasikExamSheet() {
   const handlePrint = () => {
     void printOrExportPdf(
       `${String(formData.patientName || formData.patientCode || initialPatientId || "lasik-sheet").trim()}.pdf`,
+      { forceBrowserPrint: true },
     );
   };
 
