@@ -32,6 +32,18 @@ export default function LasikExamSheet() {
   const [, params] = useRoute("/sheets/:type/:id");
   const initialPatientId = params?.id ? Number(params.id) : undefined;
   const printMode = usePrintMode({ ready: Boolean(initialPatientId) });
+  const originalMode =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("original") === "1";
+  const [followupLabels, setFollowupLabels] = useState(
+    DEFAULT_SHEET_DESIGNER_CONFIG.followupLasik,
+  );
+  const [followups, setFollowups] = useState([
+    { id: 1, date: "", type: "المتابعة الأولى" },
+    { id: 2, date: "", type: "المتابعة الثانية" },
+    { id: 3, date: "", type: "المتابعة الثالثة" },
+    { id: 4, date: "", type: "المتابعة الرابعة" },
+  ]);
 
   const [operationType, setOperationType] = useState("ليزك");
   const [operationEyes, setOperationEyes] = useState({
@@ -115,6 +127,7 @@ export default function LasikExamSheet() {
     setPrintOffsetXmm(localDesigner.layout.lasik.offsetXmm);
     setPrintOffsetYmm(localDesigner.layout.lasik.offsetYmm);
     setPrintScale(localDesigner.layout.lasik.scale);
+    setFollowupLabels(localDesigner.followupLasik);
   }, []);
 
   useEffect(() => {
@@ -125,8 +138,16 @@ export default function LasikExamSheet() {
     setPrintOffsetXmm(merged.layout.lasik.offsetXmm);
     setPrintOffsetYmm(merged.layout.lasik.offsetYmm);
     setPrintScale(merged.layout.lasik.scale);
+    setFollowupLabels(merged.followupLasik);
     saveSheetDesignerConfig(merged);
   }, [designerSettingsQuery.data]);
+
+  useEffect(() => {
+    const names = followupLabels?.followupNames ?? [];
+    setFollowups((prev) =>
+      prev.map((item, i) => ({ ...item, type: names[i] ?? item.type })),
+    );
+  }, [followupLabels?.followupNames]);
 
   if (!isAuthenticated) return null;
 
@@ -564,6 +585,139 @@ export default function LasikExamSheet() {
     );
   };
 
+  const renderFollowupSection = () => (
+    <div
+      className="p-1 print:p-0 followup-print-root bg-background text-foreground"
+      dir="ltr"
+      style={{ fontFamily: "Inter, sans-serif" }}
+    >
+      <div className="mb-2 print:mb-1 flex items-center justify-between text-[15px] print:text-[13px] px-1 print:px-0">
+        <div className="whitespace-nowrap">
+          RT: {operationEyes.right ? "" : ""}{" "}
+          &nbsp;&nbsp; LT: {operationEyes.left ? "" : ""} &nbsp; //
+        </div>
+        <div className="whitespace-nowrap">
+          {followupLabels?.operationTypeLabel ?? "نوع العملية"}:
+          <span className="inline-block min-w-[140px] border-b border-black/60 mx-1 text-center">
+            {operationType || " "}
+          </span>
+        </div>
+      </div>
+
+      {followups.map((followup) => (
+        <table
+          key={followup.id}
+          className="w-full border border-black/70 border-collapse text-[15px] print:text-[12px] table-fixed"
+          style={{ marginBottom: `${followupLabels?.tableGapMm ?? 4}mm` }}
+        >
+          <colgroup>
+            <col style={{ width: "14%" }} />
+            <col style={{ width: "14%" }} />
+            <col style={{ width: "12%" }} />
+            <col style={{ width: "12%" }} />
+            <col style={{ width: "12%" }} />
+            <col style={{ width: "12%" }} />
+            <col style={{ width: "12%" }} />
+            <col style={{ width: "12%" }} />
+          </colgroup>
+          <tbody>
+            <tr>
+              <td colSpan={2} className="border border-black/50 px-1 py-0.5 print:py-0 text-center">
+                {followupLabels?.nextFollowupLabel ?? "المتابعة القادمة"}{" "}
+                <span className="mx-2 print:mx-1">{"/  /"}</span>
+              </td>
+              <td colSpan={3} className="border border-black/50 px-1 py-0.5 print:py-0 text-center">
+                {followup.type}
+              </td>
+              <td colSpan={3} className="border border-black/50 border-r-0 px-1 py-0.5 print:py-0 text-center">
+                {followupLabels?.followupDateLabel ?? "تاريخ المتابعة"}
+                <span className="inline-block min-w-[88px] border-b border-black/60 mx-1 text-center">
+                  {followup.date || ""}
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td colSpan={8} className="border border-black/50 py-0.5 text-center">
+                Dominant eye
+              </td>
+            </tr>
+            <tr>
+              <td colSpan={2} className="border border-black/50 py-0.5"></td>
+              <td colSpan={3} className="border border-black/50 py-0.5 text-center">OD</td>
+              <td colSpan={3} className="border border-black/50 border-r-0 py-0.5 text-center">OS</td>
+            </tr>
+            <tr>
+              <td colSpan={2} className="border border-black/50 py-1 print:py-0.5 text-center">
+                {followupLabels?.vaLabel ?? "V. A"}
+              </td>
+              <td colSpan={3} className="border border-black/50 border-r-0 py-1 print:py-0.5"></td>
+              <td colSpan={3} className="border border-black/50 py-1 print:py-0.5"></td>
+            </tr>
+            <tr>
+              <td colSpan={2} className="border border-black/50 py-1 print:py-0.5 text-center">
+                {followupLabels?.refractionLabel ?? "Refraction"}
+              </td>
+              <td className="border border-black/50 py-1 print:py-0.5 text-center">S</td>
+              <td className="border border-black/50 py-1 print:py-0.5 text-center">C</td>
+              <td className="border border-black/50 border-r-0 py-1 print:py-0.5 text-center">A</td>
+              <td className="border border-black/50 py-1 print:py-0.5 text-center">S</td>
+              <td className="border border-black/50 py-1 print:py-0.5 text-center">C</td>
+              <td className="border border-black/50 py-1 print:py-0.5 text-center">A</td>
+            </tr>
+            <tr>
+              <td colSpan={2} className="border border-black/50 py-1 print:py-0.5"></td>
+              <td className="border border-black/50 border-r-0 h-8 print:h-4">&nbsp;</td>
+              <td className="border border-black/50 h-8 print:h-4">&nbsp;</td>
+              <td className="border border-black/50 h-8 print:h-4">&nbsp;</td>
+              <td className="border border-black/50 h-8 print:h-4">&nbsp;</td>
+              <td className="border border-black/50 h-8 print:h-4">&nbsp;</td>
+              <td className="border border-black/50 h-8 print:h-4">&nbsp;</td>
+            </tr>
+            <tr>
+              <td rowSpan={2} className="border border-black/50 py-1 print:py-0.5 text-center">
+                {followupLabels?.flapLabel ?? "Flap"}
+              </td>
+              <td className="border border-black/50 py-1 print:py-0.5 text-center">
+                {followupLabels?.edgesLabel ?? "Edges"}
+              </td>
+              <td colSpan={6} className="border border-black/50 border-r-0 py-1 print:py-0.5"></td>
+            </tr>
+            <tr>
+              <td className="border border-black/50 py-1 print:py-0.5 text-center">
+                {followupLabels?.bedLabel ?? "Bed"}
+              </td>
+              <td colSpan={6} className="border border-black/50 border-r-0 py-1 print:py-0.5"></td>
+            </tr>
+            <tr>
+              <td colSpan={2} className="border border-black/50 py-1 print:py-0.5 text-center">
+                {followupLabels?.iopLabel ?? "I.O.P"}
+              </td>
+              <td colSpan={6} className="border border-black/50 border-r-0 py-1 print:py-0.5"></td>
+            </tr>
+            <tr>
+              <td colSpan={2} className="border border-black/50 py-1 print:py-0.5 text-center">
+                {followupLabels?.treatmentLabel ?? "Treatment"}
+              </td>
+              <td colSpan={6} className="border border-black/50 border-r-0 py-1 print:py-0.5"></td>
+            </tr>
+            <tr>
+              <td colSpan={2} className="border border-black/50 px-1 py-0.5 print:py-0 text-right">
+                {followupLabels?.receptionLabel ?? "استقبال:"}
+              </td>
+              <td colSpan={3} className="border border-black/50 px-1 py-0.5 print:py-0 text-right">
+                {followupLabels?.nurseLabel ?? "تمريض:"}
+              </td>
+              <td colSpan={3} className="border border-black/50 border-r-0 px-1 py-0.5 print:py-0 text-right">
+                {followupLabels?.doctorLabel ?? "طبيب:"}
+                {signatures.doctor ? `: ${signatures.doctor}` : ""}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      ))}
+    </div>
+  );
+
   const renderSheetBody = (_readOnly = false) => {
     const odThinnestNum = parseFloat(examData.pentacam.od.thinnest);
     const osThinnestNum = parseFloat(examData.pentacam.os.thinnest);
@@ -765,7 +919,6 @@ export default function LasikExamSheet() {
               <div key={eye} className={`${isOD ? "od-bg border-[#003d9b]/20" : "os-bg border-[#c3c6d6]"} print-lasik-eye-card p-2 rounded-xl border`}>
                 <div className="flex justify-between items-center mb-2">
                   <span className={`text-[11px] font-bold uppercase px-2 py-1 bg-white rounded shadow-sm ${isOD ? "text-[#003d9b]" : "text-[#526069]"}`}>{isOD ? "Right Eye (RT)" : "Left Eye (LT)"}</span>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${thin < 480 ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}>{thin < 480 ? "THIN" : "STABLE"}</span>
                 </div>
                 <table className="w-full border-collapse text-sm bg-white rounded-lg overflow-hidden">
                   <tbody>
@@ -985,7 +1138,10 @@ export default function LasikExamSheet() {
         <div className={`print:hidden ${printMode.printView ? "hidden" : ""}`}>
           <div className="a4-page-card">{renderSheetBody()}</div>
         </div>
-        <div className="hidden print:block">{renderSheetBody(true)}</div>
+        <div className="hidden print:block">
+          {renderSheetBody(true)}
+          {!originalMode ? <div>{renderFollowupSection()}</div> : null}
+        </div>
       </div>
     </div>
   );
