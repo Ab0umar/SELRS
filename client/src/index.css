@@ -1049,9 +1049,7 @@ img {
   /* Force sheet contents to fit on a single A4 page by preventing breaks and scaling slightly */
   .sheet-layout,
   .lasik-print-root,
-  .specialist-print-root,
-  .followup-print-root,
-  .a4-page-card {
+  .specialist-print-root {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     page-break-after: avoid !important;
@@ -1153,6 +1151,29 @@ img {
     page-break-inside: avoid;
   }
 
+  /* Embedded followup body — no max-height/overflow/page-break restrictions */
+  .sheet-followup-body {
+    width: 210mm !important;
+    margin: 0 auto !important;
+    background: white;
+  }
+  .sheet-followup-body table { font-size: 10px !important; }
+  .sheet-followup-body th,
+  .sheet-followup-body td { padding: 3px !important; line-height: 1.05 !important; }
+  .sheet-followup-body input,
+  .sheet-followup-body select,
+  .sheet-followup-body textarea {
+    font-size: 10px !important;
+    line-height: 1.05 !important;
+    padding-top: 1px !important;
+    padding-bottom: 1px !important;
+  }
+  .sheet-followup-body > * {
+    border-radius: 4px !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+
   /* Referral letter — constrain to A4, drop shadow/border */
   .referral-print-root > div {
     max-width: 100% !important;
@@ -1240,26 +1261,6 @@ img {
 }
 .page-layout textarea {
   max-width: 420px;
-}
-
-/* Darker borders inside sheet layouts */
-.sheet-layout .border,
-.sheet-layout .border-b,
-.sheet-layout .border-t,
-.sheet-layout .border-l,
-.sheet-layout .border-r {
-  border-color: #4b5563;
-}
-
-/* Bold text across all sheet pages */
-.sheet-layout {
-  font-weight: 600;
-}
-
-.sheet-layout input[data-slot="input"],
-.sheet-layout textarea[data-slot="textarea"],
-.sheet-layout select {
-  font-weight: 600;
 }
 
 /* Center all input text */
@@ -1700,10 +1701,6 @@ select {
 
 .sheet-layout h2 {
   font-weight: 700;
-}
-
-.sheet-layout table {
-  border-color: #9aa6b2;
 }
 
 .sheet-layout table th {

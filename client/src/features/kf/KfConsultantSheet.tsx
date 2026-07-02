@@ -280,9 +280,9 @@ export default function KfConsultantSheet() {
       >
         <div className="mb-2 print:mb-1 flex items-center justify-between text-[15px] print:text-[13px] px-1 print:px-0">
           <div className="whitespace-nowrap">
-            {followupLabels.rtLabel}: {operationEyes.right ? "" : "..."}{" "}
+            {followupLabels.rtLabel}: {operationEyes.right ? "" : ""}{" "}
             &nbsp;&nbsp; {followupLabels.ltLabel}:{" "}
-            {operationEyes.left ? "" : "..."} &nbsp; //
+            {operationEyes.left ? "" : ""} &nbsp; //
           </div>
           <div className="whitespace-nowrap">
             {followupLabels.operationTypeLabel}:
@@ -293,10 +293,10 @@ export default function KfConsultantSheet() {
           <div className="whitespace-nowrap">
             {followupLabels.operationDateLabel}
             <span className="inline-block min-w-[95px] border-b border-black/60 mx-1 text-center">
-              {operationDateRight || " /  / "}
+              {operationDateRight || ""}
             </span>
             <span className="inline-block min-w-[95px] border-b border-black/60 text-center">
-              {operationDateLeft || " /  / "}
+              {operationDateLeft || ""}
             </span>
           </div>
         </div>
@@ -340,7 +340,7 @@ export default function KfConsultantSheet() {
                 >
                   {followupLabels.followupDateLabel}
                   <span className="inline-block min-w-[88px] border-b border-black/60 mx-1 text-center">
-                    {followup.date || " /  / "}
+                    {followup.date || ""}
                   </span>
                 </td>
               </tr>
@@ -349,7 +349,7 @@ export default function KfConsultantSheet() {
                   colSpan={8}
                   className="border border-black/50 py-0.5 text-center font-semibold"
                 >
-                  Dominant eye _____________
+                  Dominant eye
                 </td>
               </tr>
               <tr>

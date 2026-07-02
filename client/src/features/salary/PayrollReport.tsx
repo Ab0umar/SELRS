@@ -1298,16 +1298,10 @@ export default function PayrollReport() {
       </tr>`,
       )
       .join("");
-    const html = buildSheetFrame({
-      title: "كشف الجزاءات",
-      today,
-      summaryItems: [
-        { label: "عدد الموظفين", value: String(nonShift.length) },
-        { label: "إجمالي الجزاءات", value: fmt(tPenalty) },
-        { label: "القسم", value: section },
-        { label: "الفترة", value: periodLabel },
-      ],
-      tableHtml: `
+    const html = `
+      <div class="top"><span>نظام مرتبات</span><span>عيون السروق للخدمات الطبية</span></div>
+      <h1>كشف الجزاءات عن الفترة ${periodLabel}</h1>
+      <div class="dept">قسم ${section}</div>
       <table>
         <thead><tr><th>الاسم</th><th>الجزاءات</th><th class="sig-col">التوقيع</th></tr></thead>
         <tbody>
@@ -1338,16 +1332,10 @@ export default function PayrollReport() {
       </tr>`,
       )
       .join("");
-    const html = buildSheetFrame({
-      title: "كشف السلف",
-      today,
-      summaryItems: [
-        { label: "عدد الموظفين", value: String(nonShift.length) },
-        { label: "إجمالي السلف", value: fmt(tAdv) },
-        { label: "القسم", value: section },
-        { label: "الفترة", value: periodLabel },
-      ],
-      tableHtml: `
+    const html = `
+      <div class="top"><span>نظام مرتبات</span><span>عيون السروق للخدمات الطبية</span></div>
+      <h1>كشف السلف عن الفترة ${periodLabel}</h1>
+      <div class="dept">قسم ${section}</div>
       <table>
         <thead><tr><th>الاسم</th><th>السلف</th><th class="sig-col">التوقيع</th></tr></thead>
         <tbody>
@@ -1385,16 +1373,10 @@ export default function PayrollReport() {
       </tr>`,
       )
       .join("");
-    const html = buildSheetFrame({
-      title: "كشف التأخيرات",
-      today,
-      summaryItems: [
-        { label: "عدد الموظفين", value: String(nonShift.length) },
-        { label: "خصم التأخير", value: fmt(tLate) },
-        { label: "خصم الخروج المبكر", value: fmt(tEarly) },
-        { label: "إجمالي الخصم", value: fmt(tLate + tEarly) },
-      ],
-      tableHtml: `
+    const html = `
+      <div class="top"><span>نظام مرتبات</span><span>عيون السروق للخدمات الطبية</span></div>
+      <h1>كشف التأخيرات عن الفترة ${periodLabel}</h1>
+      <div class="dept">قسم ${section}</div>
       <table>
         <thead><tr>
           <th>الاسم</th>
@@ -1435,16 +1417,10 @@ export default function PayrollReport() {
       </tr>`,
       )
       .join("");
-    const html = buildSheetFrame({
-      title: "كشف التأمينات الاجتماعية",
-      today,
-      summaryItems: [
-        { label: "عدد الموظفين", value: String(nonShift.length) },
-        { label: "إجمالي التأمينات", value: fmt(tIns) },
-        { label: "القسم", value: section },
-        { label: "الفترة", value: periodLabel },
-      ],
-      tableHtml: `
+    const html = `
+      <div class="top"><span>نظام مرتبات</span><span>عيون السروق للخدمات الطبية</span></div>
+      <h1>كشف التأمينات الاجتماعية عن الفترة ${periodLabel}</h1>
+      <div class="dept">قسم ${section}</div>
       <table>
         <thead><tr><th>الاسم</th><th>التأمينات</th><th class="sig-col">التوقيع</th></tr></thead>
         <tbody>

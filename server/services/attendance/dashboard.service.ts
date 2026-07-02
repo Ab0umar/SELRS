@@ -4,11 +4,13 @@
  */
 
 import { getDb } from "../../db";
-import { attendanceDaily, attendanceSyncRuns } from "../../../drizzle/schema";
-import { sql } from "drizzle-orm";
+import { attendanceDaily, attendanceSyncRuns, attendanceShifts } from "../../../drizzle/schema";
+import { sql, eq } from "drizzle-orm";
 
 export interface DashboardSummary {
   presentToday: number;
+  presentMorning: number;
+  presentEvening: number;
   absentToday: number;
   lateToday: number;
   insideNow: number;
@@ -43,6 +45,33 @@ export class DashboardService {
         sql`${attendanceDaily.workDate} = ${todayStr} AND ${attendanceDaily.status} IN ('present', 'partial', 'holiday')`,
       );
     const presentToday = Number(presentTodayResult[0]?.count ?? 0);
+
+    // Count present today by shift
+    const presentList = await db
+      .select({
+        shiftStartTime: attendanceShifts.startTime,
+        firstIn: attendanceDaily.firstIn,
+      })
+      .from(attendanceDaily)
+      .leftJoin(attendanceShifts, eq(attendanceDaily.shiftId, attendanceShifts.id))
+      .where(
+        sql`${attendanceDaily.workDate} = ${todayStr} AND ${attendanceDaily.status} IN ('present', 'partial', 'holiday')`,
+      );
+
+    let presentMorning = 0;
+    let presentEvening = 0;
+    presentList.forEach(row => {
+      if (row.shiftStartTime) {
+        if (row.shiftStartTime < "13:00") presentMorning++;
+        else presentEvening++;
+      } else if (row.firstIn) {
+        const h = row.firstIn.getHours();
+        if (h < 13) presentMorning++;
+        else presentEvening++;
+      } else {
+        presentMorning++;
+      }
+    });
 
     // Count absent today
     const absentTodayResult = await db
@@ -106,12 +135,14 @@ export class DashboardService {
 
     return {
       presentToday,
+      presentMorning,
+      presentEvening,
       absentToday,
       lateToday,
       insideNow,
       missingCheckoutYesterday,
       lastSync,
-      asOf: new Date().toISOString(),
+      asOf: now.toISOString(),
     };
   }
 }

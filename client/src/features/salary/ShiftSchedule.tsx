@@ -159,6 +159,7 @@ const SHIFT_META: Record<
 
 const PRINT_CSS = `
   @page { size: A4 landscape; margin: 6mm; }
+  @page { size: A4 landscape; margin: 7mm; }
   * { box-sizing: border-box; }
   body {
     margin: 0;
@@ -205,6 +206,76 @@ const PRINT_CSS = `
   .table-wrap { break-inside: avoid; page-break-inside: avoid; }
   table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; border: 1px solid oklch(76% 0.028 245); border-radius: 2mm; overflow: hidden; }
   th, td { border-inline-start: 1px solid oklch(82% 0.022 245); border-block-start: 1px solid oklch(86% 0.018 245); padding: .9mm .55mm; text-align: center; vertical-align: middle; }
+
+    font-size: 8px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .sheet { display: grid; gap: 4mm; }
+  .print-header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 8mm;
+    border: 1px solid oklch(84% 0.028 245);
+    border-radius: 5mm;
+    padding: 3mm 4mm;
+    background: oklch(98% 0.008 245);
+  }
+  .brand-mark { display: flex; align-items: center; gap: 2.5mm; }
+  .mark-dot {
+    width: 8mm;
+    height: 8mm;
+    border-radius: 999px;
+    background: oklch(65% 0.16 35);
+    color: oklch(99% 0.004 245);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 10px;
+  }
+  .brand-title { font-size: 9px; font-weight: 800; color: oklch(34% 0.11 255); }
+  .brand-subtitle { margin-top: 1mm; color: oklch(47% 0.026 245); font-size: 7px; font-weight: 600; }
+  .title-block { text-align: center; }
+  h1 { margin: 0; font-size: 18px; font-weight: 850; letter-spacing: -0.01em; color: oklch(30% 0.115 255); }
+  .date-range { margin-top: 1.5mm; color: oklch(46% 0.028 245); font-size: 8px; font-weight: 700; }
+  .summary-strip { display: flex; justify-content: flex-end; gap: 2mm; flex-wrap: wrap; }
+  .summary-pill {
+    min-width: 18mm;
+    border: 1px solid oklch(88% 0.02 245);
+    border-radius: 999px;
+    padding: 1.2mm 2.5mm;
+    background: oklch(100% 0.003 245);
+    text-align: center;
+    font-weight: 800;
+    color: oklch(31% 0.035 245);
+  }
+  .summary-pill span { color: oklch(49% 0.026 245); font-size: 6.8px; font-weight: 700; margin-inline-start: 1mm; }
+  .legend-row { display: flex; align-items: center; justify-content: space-between; gap: 4mm; color: oklch(43% 0.03 245); font-size: 7px; font-weight: 700; }
+  .legend { display: flex; align-items: center; gap: 3mm; }
+  .legend-item { display: inline-flex; align-items: center; gap: 1mm; }
+  .legend-token { display: inline-grid; place-items: center; min-width: 5mm; height: 4mm; border-radius: 999px; font-size: 7px; font-weight: 900; }
+ 
+  .legend-m { color: oklch(51% 0.135 55); background: oklch(95% 0.04 65); }
+  .legend-n { color: oklch(43% 0.145 255); background: oklch(94% 0.035 255); }
+  .legend-absent { color: oklch(44% 0.03 245); background: oklch(93% 0.012 245); }
+  .cal-wrapper { border: 1px solid oklch(76% 0.028 245); border-radius: 2mm; overflow: hidden; margin-top: 4mm; }
+  .cal-header-row { display: grid; grid-template-columns: repeat(6, 1fr); background: oklch(95% 0.02 245); border-bottom: 1px solid oklch(82% 0.022 245); }
+  .cal-header-cell { padding: 2mm; text-align: center; font-size: 8px; font-weight: 800; border-inline-start: 1px solid oklch(82% 0.022 245); color: oklch(43% 0.03 245); }
+  .cal-header-cell:first-child { border-inline-start: none; }
+  .cal-body { display: grid; grid-template-columns: repeat(6, 1fr); background: oklch(82% 0.022 245); gap: 1px; }
+  .cal-cell { background: white; min-height: 22mm; padding: 1.5mm; display: flex; flex-direction: column; gap: 1mm; }
+  .cal-cell.empty-cell { background: oklch(98% 0.01 245); }
+  .cal-cell.holiday { background: oklch(95% 0.05 65); }
+  .cal-date-row { display: flex; justify-content: space-between; align-items: start; margin-bottom: 1mm; }
+  .cal-date-num { font-size: 10px; font-weight: 900; color: oklch(30% 0.115 255); }
+  .cal-holiday-tag { font-size: 6px; background: oklch(80% 0.1 65); color: white; padding: 0.5mm 1.5mm; border-radius: 999px; font-weight: bold; }
+  .cal-shifts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1mm; flex-grow: 1; }
+  .cal-shift { border-inline-end: 1px solid oklch(90% 0.02 245); padding-inline-end: 1.5mm; }
+  .cal-shift:last-child { border-inline-end: none; padding-inline-end: 0; }
+  .cal-shift-title { display: block; font-size: 6px; font-weight: 800; color: oklch(46% 0.028 245); margin-bottom: 0.8mm; border-bottom: 1px solid oklch(92% 0.02 245); padding-bottom: 0.5mm; }
+  .cal-shift div { font-size: 7.5px; font-weight: 800; color: oklch(20% 0.018 245); margin-bottom: 0.4mm; }
   thead th { border-block-start: 0; background: oklch(94% 0.03 255); color: oklch(31% 0.09 255); font-weight: 850; font-size: 6.2px; line-height: 1.15; }
   th:first-child, td:first-child { border-inline-start: 0; }
   tbody tr:nth-child(even) td { background: oklch(98% 0.006 245); }
@@ -214,15 +285,37 @@ const PRINT_CSS = `
   .holiday-th, .holiday-cell { background: oklch(97% 0.032 75) !important; }
   .holiday-label { margin-top: .4mm; color: oklch(49% 0.125 55); font-size: 5.5px; font-weight: 850; }
   .shift-m, .shift-n { display: inline-grid; place-items: center; min-width: 4mm; height: 3.7mm; margin-inline: .2mm; border-radius: 999px; font-size: 6.2px; font-weight: 900; }
+
+  table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; border: 1px solid oklch(76% 0.028 245); border-radius: 3mm; overflow: hidden; }
+  th, td { border-inline-start: 1px solid oklch(82% 0.022 245); border-block-start: 1px solid oklch(86% 0.018 245); padding: 1.4mm 1mm; text-align: center; vertical-align: middle; }
+  thead th { border-block-start: 0; background: oklch(94% 0.03 255); color: oklch(31% 0.09 255); font-weight: 850; font-size: 7.3px; line-height: 1.25; }
+  th:first-child, td:first-child { border-inline-start: 0; }
+  tbody tr:nth-child(even) td { background: oklch(98% 0.006 245); }
+  tbody td { height: 7mm; color: oklch(23% 0.018 245); font-size: 8.2px; font-weight: 800; }
+  .name-col { width: 25mm; min-width: 25mm; text-align: right; white-space: nowrap; font-weight: 850; color: oklch(25% 0.045 245); background: oklch(97% 0.01 245); }
+  .date-label { color: oklch(48% 0.032 245); font-weight: 750; font-size: 6.7px; }
+  .holiday-th, .holiday-cell { background: oklch(97% 0.032 75) !important; }
+  .holiday-label { margin-top: .7mm; color: oklch(49% 0.125 55); font-size: 6.4px; font-weight: 850; }
+  .shift-m, .shift-n { display: inline-grid; place-items: center; min-width: 4.6mm; height: 4.2mm; margin-inline: .35mm; border-radius: 999px; font-size: 7px; font-weight: 900; }
+
   .shift-m { color: oklch(44% 0.13 55); background: oklch(95% 0.04 65); }
   .shift-n { color: oklch(37% 0.145 255); background: oklch(94% 0.035 255); }
   .shift-absent { color: oklch(46% 0.024 245); background: oklch(93% 0.012 245); text-decoration: line-through; }
   .empty-cell { color: oklch(72% 0.018 245); font-weight: 700; }
+
   .diag-cell { position: relative; height: 8mm; background: oklch(96% 0.018 245) !important; }
   .diag-cell svg { position: absolute; inset: 0; width: 100%; height: 100%; }
   .diag-cell span { position: absolute; font-size: 5.8px; font-weight: 850; color: oklch(35% 0.06 245); }
   .diag-date { top: .8mm; left: 1mm; }
   .diag-name { bottom: .8mm; right: 1mm; }
+
+  .diag-cell { position: relative; height: 12mm; background: oklch(96% 0.018 245) !important; }
+  .diag-cell svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .diag-cell span { position: absolute; font-size: 6.6px; font-weight: 850; color: oklch(35% 0.06 245); }
+  .diag-date { top: 1.2mm; left: 1.4mm; }
+  .diag-name { bottom: 1.2mm; right: 1.4mm; }
+  .signature-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12mm; margin-top: 2mm; color: oklch(38% 0.03 245); font-size: 7px; font-weight: 800; }
+  .signature-line { border-top: 1px solid oklch(67% 0.025 245); padding-top: 1.5mm; text-align: center; }
 `;
 
 function escapeHtml(value: unknown) {
@@ -495,6 +588,10 @@ export default function ShiftSchedule() {
   }
 
   function handlePrint() {
+    const mid = Math.ceil(allDates.length / 2);
+    const halves = [allDates.slice(0, mid), allDates.slice(mid)].filter(
+      (half) => half.length > 0,
+    );
     const printDate = new Date().toLocaleDateString("ar-EG", {
       year: "numeric",
       month: "long",
@@ -552,6 +649,81 @@ export default function ShiftSchedule() {
           <tbody>${rows}</tbody>
         </table>
       </section>`;
+    function buildCalendarGrid(dates: string[]) {
+      if (dates.length === 0) return "";
+      const firstStr = dates[0];
+      const d0 = new Date(`${firstStr}T00:00:00`);
+      const dayIndex = d0.getDay();
+      const prefixEmpty = dayIndex === 6 ? 0 : dayIndex + 1;
+
+      let cellsHTML = "";
+      for (let i = 0; i < prefixEmpty; i++) {
+        cellsHTML += `<div class="cal-cell empty-cell"></div>`;
+      }
+
+      dates.forEach(ds => {
+        const dateObj = new Date(`${ds}T00:00:00`);
+        const holiday = holidayByDate.get(ds);
+        const dayEntries: Array<{ staff: any; entry: any }> = [];
+
+        displayStaff.forEach((s: any) => {
+          const entries = attendMap.get(`${s.id}_${ds}`) ?? [];
+          entries.forEach((entry: any) => {
+            dayEntries.push({ staff: s, entry });
+          });
+        });
+
+        const morningEntries = dayEntries.filter(
+          (item) => item.entry.shiftName === "Morning"
+        );
+        const nightEntries = dayEntries.filter(
+          (item) => item.entry.shiftName === "Night"
+        );
+
+        let morningHTML = "";
+        if (morningEntries.length) {
+          morningHTML = `
+            <div class="cal-shift">
+              <span class="cal-shift-title">الصباحية</span>
+              ${morningEntries.map(e => `<div>${escapeHtml(compactStaffName(e.staff))}</div>`).join('')}
+            </div>
+          `;
+        }
+
+        let nightHTML = "";
+        if (nightEntries.length) {
+          nightHTML = `
+            <div class="cal-shift">
+              <span class="cal-shift-title">المسائية</span>
+              ${nightEntries.map(e => `<div>${escapeHtml(compactStaffName(e.staff))}</div>`).join('')}
+            </div>
+          `;
+        }
+
+        cellsHTML += `
+          <div class="cal-cell ${holiday ? "holiday" : ""}">
+            <div class="cal-date-row">
+              <span class="cal-date-num">${dateObj.getDate()}</span>
+              ${holiday ? `<span class="cal-holiday-tag">عطلة</span>` : ""}
+            </div>
+            <div class="cal-shifts-grid">
+              ${morningHTML}
+              ${nightHTML}
+            </div>
+          </div>
+        `;
+      });
+
+      return `
+        <div class="cal-wrapper">
+          <div class="cal-header-row">
+            ${DAYS_AR_CALENDAR.map(d => `<div class="cal-header-cell">${d}</div>`).join('')}
+          </div>
+          <div class="cal-body">
+            ${cellsHTML}
+          </div>
+        </div>
+      `;
     }
 
     const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/>
@@ -559,6 +731,15 @@ export default function ShiftSchedule() {
       <style>${PRINT_CSS}</style></head><body>
       <main class="sheet">
         <header class="print-header">
+
+          <div class="brand-mark">
+            <span class="mark-dot">S</span>
+            <div>
+              <div class="brand-title">SELRS Medical Center</div>
+              <div class="brand-subtitle">جدول تشغيل الطاقم الطبي</div>
+            </div>
+          </div>
+ 
           <div class="title-block">
             <h1>روستر شهر ${escapeHtml(fromDate.slice(0, 7))}</h1>
             <div class="date-range">من ${escapeHtml(fmtDate(fromDate))} إلى ${escapeHtml(fmtDate(toDate))} · طبع في ${escapeHtml(printDate)}</div>
@@ -570,12 +751,26 @@ export default function ShiftSchedule() {
             <div class="summary-pill">${arabicDigits(totalAbsent)}<span>غياب</span></div>
           </div>
           <div class="legend" aria-label="دليل الورديات">
+        </header>
+
+        <div class="legend-row">
+          <div class="legend">
             <span class="legend-item"><span class="legend-token legend-m">ص</span> صباح</span>
             <span class="legend-item"><span class="legend-token legend-n">م</span> مساء</span>
             <span class="legend-item"><span class="legend-token legend-absent">(ص)</span> غير حاضر</span>
           </div>
         </header>
         ${buildTable(allDates, 0)}
+          <div class="legend-note">الأيام الجمعة مستبعدة من الجدول، والعطلات مميزة بخلفية دافئة.</div>
+        </div>
+
+        ${buildCalendarGrid(allDates)}
+
+        <footer class="signature-row">
+          <div class="signature-line">مسؤول الروستر</div>
+          <div class="signature-line">مراجعة الموارد البشرية</div>
+          <div class="signature-line">اعتماد الإدارة</div>
+        </footer>
       </main>
     </body></html>`;
 

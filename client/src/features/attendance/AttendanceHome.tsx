@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link } from "wouter";
 import { ROUTES } from "../../../../shared/routes";
 import { useAuth } from "@/hooks/useAuth";
@@ -122,6 +122,51 @@ export default function AttendanceHome() {
     isAdmin ||
     pathGrantedByRoots(normalizeNavPath(ROUTES.attendanceLive), allowedRoots);
 
+  const [currentMinutes, setCurrentMinutes] = useState(() => {
+    const d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
+  });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const d = new Date();
+      setCurrentMinutes(d.getHours() * 60 + d.getMinutes());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const morningStart = 10 * 60;
+  const morningEnd = 16 * 60;
+  const morningProgress = Math.max(0, Math.min(100, ((currentMinutes - morningStart) / (morningEnd - morningStart)) * 100));
+  
+  const getMorningBadge = () => {
+    if (currentMinutes < morningStart) return "تبدأ لاحقاً";
+    if (currentMinutes > morningEnd) return "انتهت الوردية";
+    return `${dashboardQuery.data?.presentMorning ?? 0} موظف حاضر حالياً`;
+  };
+
+  const getMorningBadgeClass = () => {
+    if (currentMinutes < morningStart) return "bg-slate-50 text-slate-500 border-slate-150";
+    if (currentMinutes > morningEnd) return "bg-slate-100 text-slate-500 border-slate-200 opacity-80";
+    return "bg-emerald-50 text-emerald-700 border-emerald-100";
+  };
+
+  const eveningStart = 13 * 60;
+  const eveningEnd = 19 * 60;
+  const eveningProgress = Math.max(0, Math.min(100, ((currentMinutes - eveningStart) / (eveningEnd - eveningStart)) * 100));
+
+  const getEveningBadge = () => {
+    if (currentMinutes < eveningStart) return "تبدأ لاحقاً";
+    if (currentMinutes > eveningEnd) return "انتهت الوردية";
+    return `${dashboardQuery.data?.presentEvening ?? 0} موظف حاضر حالياً`;
+  };
+
+  const getEveningBadgeClass = () => {
+    if (currentMinutes < eveningStart) return "bg-slate-50 text-slate-500 border-slate-150";
+    if (currentMinutes > eveningEnd) return "bg-slate-100 text-slate-500 border-slate-200 opacity-80";
+    return "bg-emerald-50 text-emerald-700 border-emerald-100";
+  };
+
   return (
     <div className="space-y-8 max-w-6xl mx-auto" dir="rtl">
       
@@ -147,10 +192,10 @@ export default function AttendanceHome() {
                 <div className="flex justify-between items-center text-xs">
                   <div>
                     <span className="font-bold text-slate-800">الوردية الصباحية</span>
-                    <span className="text-[10px] text-slate-400 block font-mono">08:00 ص - 04:00 م</span>
+                    <span className="text-[10px] text-slate-400 block font-mono">10:00 ص - 04:00 م</span>
                   </div>
-                  <span className="px-2.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-bold">
-                    {data?.presentToday ?? 0} موظف حاضر حالياً
+                  <span className={`px-2.5 py-0.5 rounded border text-[10px] font-bold ${getMorningBadgeClass()}`}>
+                    {getMorningBadge()}
                   </span>
                 </div>
                 
@@ -158,7 +203,7 @@ export default function AttendanceHome() {
                 <div className="w-full bg-slate-100 rounded-full h-4 relative overflow-hidden">
                   <div 
                     className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(100, Math.max(10, ((data?.presentToday ?? 1) / 120) * 100))}%` }}
+                    style={{ width: `${morningProgress}%` }}
                   ></div>
                 </div>
                 <div className="flex justify-between text-[9px] text-slate-400 font-semibold">
@@ -173,20 +218,23 @@ export default function AttendanceHome() {
                 <div className="flex justify-between items-center text-xs">
                   <div>
                     <span className="font-bold text-slate-800">الوردية المسائية</span>
-                    <span className="text-[10px] text-slate-400 block font-mono">04:00 م - 12:00 ص</span>
+                    <span className="text-[10px] text-slate-400 block font-mono">01:00 م - 07:00 م</span>
                   </div>
-                  <span className="px-2.5 py-0.5 rounded bg-slate-50 text-slate-500 border border-slate-150 text-[10px] font-bold">
-                    تبدأ لاحقاً
+                  <span className={`px-2.5 py-0.5 rounded border text-[10px] font-bold ${getEveningBadgeClass()}`}>
+                    {getEveningBadge()}
                   </span>
                 </div>
                 
                 <div className="w-full bg-slate-100 rounded-full h-4 relative overflow-hidden">
-                  <div className="bg-slate-300 h-full rounded-full w-[0%]"></div>
+                  <div 
+                    className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-500"
+                    style={{ width: `${eveningProgress}%` }}
+                  ></div>
                 </div>
                 <div className="flex justify-between text-[9px] text-slate-400 font-semibold">
-                  <span>04:00 م</span>
-                  <span>08:00 م</span>
-                  <span>12:00 ص</span>
+                  <span>بداية الوردية</span>
+                  <span>منتصف النوبة</span>
+                  <span>نهاية الوردية</span>
                 </div>
               </div>
             </div>
