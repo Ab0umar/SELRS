@@ -689,14 +689,11 @@ export default function ConsultantSheet() {
           <div className="flex flex-col gap-2">
             <p className="flex items-center gap-1"><span className="font-bold">تاريخ الفحص:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{new Date().toLocaleDateString("en-GB")}</span></p>
             <p className="flex items-center gap-1"><span className="font-bold">رقم التليفون:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.phone}</span></p>
-            <p className="flex items-center gap-1"><span className="font-bold">السن:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.age}</span></p>
+            <p className="flex items-center gap-1"><span className="font-bold">السن:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.age}</span> <span className="font-bold">الوظيفة:</span> <input type="text" className="border-none p-0 outline-none flex-1 border-b border-dotted border-slate-400 text-sm focus:border-blue-600 bg-transparent" value={formData.job} onChange={e => setFormData(p => ({ ...p, job: e.target.value }))} /></p>
           </div>
           <div className="flex flex-col gap-2">
             <p className="flex items-center gap-1"><span className="font-bold">الاستشاري:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{signatures.doctor || "أ.د محمد السعني غرابة"}</span></p>
             <p className="flex items-center gap-1"><span className="font-bold">كود العميل:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.code}</span></p>
-          </div>
-          <div className="col-span-full border-t border-slate-100 pt-2">
-            <p className="flex items-center gap-2"><span className="font-bold">الوظيفة:</span> <input type="text" className="border-none p-0 outline-none flex-1 border-b border-dotted border-slate-400 text-sm focus:border-blue-600 bg-transparent" value={formData.job} onChange={e => setFormData(p => ({ ...p, job: e.target.value }))} /></p>
           </div>
         </section>
         {/* END: Patient Demographics */}
@@ -775,11 +772,11 @@ export default function ConsultantSheet() {
 
         {/* BEGIN: Clinical Examination */}
         <section className="mb-4 ltr-content" data-purpose="examination-section">
-          <div className="mb-3 text-sm flex items-center gap-2">
+          <div className="mb-3 text-sm flex items-center justify-center gap-2">
             <span className="font-bold">*Dominant Eye*:</span>
             <input
               type="text"
-              className="border-none p-0 outline-none flex-1 border-b border-dotted border-slate-400 text-sm focus:border-blue-600 bg-transparent font-semibold"
+              className="border-none p-0 outline-none w-24 text-center border-b border-dotted border-slate-400 text-sm focus:border-blue-600 bg-transparent font-semibold"
               value={formData.dominantEye}
               onChange={e => setFormData(p => ({ ...p, dominantEye: e.target.value }))}
             />
@@ -963,12 +960,13 @@ export default function ConsultantSheet() {
         {/* END: Clinical Diagrams */}
 
         {/* BEGIN: Observations & Decision */}
-        <section className="print-consultant-notes-grid grid grid-cols-4 gap-4 mb-4" data-purpose="notes-section">
+        <section className="print-consultant-notes-grid grid grid-cols-4 gap-4 mb-4" data-purpose="notes-section" dir="rtl">
           <div className="col-span-3 border border-slate-300 rounded overflow-hidden">
             <div className="bg-slate-50 p-2 border-b border-slate-300 font-bold text-sm">Comments:</div>
             <div className="p-2">
               <textarea
-                className="w-full min-h-[96px] bg-transparent border-0 focus:outline-none focus:ring-0 text-sm resize-none p-1 dotted-textarea"
+                dir="rtl"
+                className="w-full min-h-[96px] bg-transparent border-0 focus:outline-none focus:ring-0 text-sm resize-none p-1 dotted-textarea text-right"
                 value={formData.comments}
                 onChange={e => setFormData(p => ({ ...p, comments: e.target.value }))}
                 placeholder="Type comment here..."
@@ -977,7 +975,8 @@ export default function ConsultantSheet() {
             <div className="bg-slate-50 p-2 border-y border-slate-300 font-bold text-sm">Final Decision:</div>
             <div className="p-2">
               <textarea
-                className="w-full min-h-[80px] bg-transparent border-0 focus:outline-none focus:ring-0 text-sm resize-none p-1 dotted-textarea"
+                dir="rtl"
+                className="w-full min-h-[80px] bg-transparent border-0 focus:outline-none focus:ring-0 text-sm resize-none p-1 dotted-textarea text-right"
                 value={formData.final}
                 onChange={e => setFormData(p => ({ ...p, final: e.target.value }))}
                 placeholder="Type final decision here..."
@@ -988,7 +987,8 @@ export default function ConsultantSheet() {
             <div className="bg-slate-50 p-2 border-b border-slate-300 font-bold text-sm">Notes:</div>
             <div className="p-2">
               <textarea
-                className="w-full min-h-[220px] bg-transparent border-0 focus:outline-none focus:ring-0 text-sm resize-none p-1 dotted-textarea"
+                dir="rtl"
+                className="w-full min-h-[220px] bg-transparent border-0 focus:outline-none focus:ring-0 text-sm resize-none p-1 dotted-textarea text-right"
                 value={formData.drOS}
                 onChange={e => setFormData(p => ({ ...p, drOS: e.target.value }))}
                 placeholder="Type notes here..."
