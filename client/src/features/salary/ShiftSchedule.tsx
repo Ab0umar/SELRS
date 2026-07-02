@@ -679,21 +679,25 @@ export default function ShiftSchedule() {
       </main>
     </body></html>`;
 
-    const iframe = document.createElement("iframe");
-    iframe.style.cssText =
-      "position:fixed;top:0;left:0;width:0;height:0;border:none;visibility:hidden;";
-    document.body.appendChild(iframe);
-    const doc = iframe.contentDocument!;
-    doc.open();
-    doc.write(html);
-    doc.close();
+    const printWindow = window.open("", "_blank", "width=1280,height=900");
+    if (!printWindow) {
+      toast.error("تعذر فتح نافذة الطباعة");
+      return;
+    }
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+
     const cleanup = () => {
-      iframe.remove();
-      window.removeEventListener("afterprint", cleanup);
+      printWindow.removeEventListener("afterprint", cleanup);
+      printWindow.close();
     };
-    window.addEventListener("afterprint", cleanup);
-    iframe.contentWindow!.focus();
-    iframe.contentWindow!.print();
+    printWindow.addEventListener("afterprint", cleanup);
+    window.setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+    }, 100);
   }
 
   return (
