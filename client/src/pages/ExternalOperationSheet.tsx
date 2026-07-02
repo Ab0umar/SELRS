@@ -816,7 +816,7 @@ export default function ExternalOperationSheet() {
               <thead>
                 <tr className="border-b bg-muted">
                   <th className="border-r p-0.5 text-center" colSpan={4}>
-                    Dominant eye _____________
+                    Dominant eye
                   </th>
                   <th className="p-0.5 text-center" colSpan={6}>
                     Refraction
