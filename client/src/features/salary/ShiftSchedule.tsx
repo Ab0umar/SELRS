@@ -677,8 +677,6 @@ export default function ShiftSchedule() {
           <div>الأيام الجمعة مستبعدة من الجدول، والعطلات مميزة بخلفية دافئة.</div>
         </div>
 
-        ${buildTable(allDates, 0)}
-
         ${buildCalendarGrid(allDates)}
 
         <footer class="signature-row">
@@ -1894,4 +1892,3 @@ export default function ShiftSchedule() {
     </div>
     );
   }
-}

@@ -1308,8 +1308,7 @@ export default function PayrollReport() {
           ${bodyRows}
           <tr class="total-row"><td class="emp-col">الإجمالي</td><td>${fmt(tPenalty)}</td><td></td></tr>
         </tbody>
-      </table>`,
-    });
+      </table>`;
     openPrint(html, `كشف الجزاءات — ${section} — ${periodLabel}`, SHEET_CSS);
   }
 
@@ -1342,8 +1341,7 @@ export default function PayrollReport() {
           ${bodyRows}
           <tr class="total-row"><td class="emp-col">الإجمالي</td><td>${fmt(tAdv)}</td><td></td></tr>
         </tbody>
-      </table>`,
-    });
+      </table>`;
     openPrint(html, `كشف السلف — ${section} — ${periodLabel}`, SHEET_CSS);
   }
 
@@ -1393,8 +1391,7 @@ export default function PayrollReport() {
             <td></td>
           </tr>
         </tbody>
-      </table>`,
-    });
+      </table>`;
     openPrint(html, `كشف التأخيرات — ${section} — ${periodLabel}`, SHEET_CSS);
   }
 
@@ -1427,8 +1424,7 @@ export default function PayrollReport() {
           ${bodyRows}
           <tr class="total-row"><td class="emp-col">الإجمالي</td><td>${fmt(tIns)}</td><td></td></tr>
         </tbody>
-      </table>`,
-    });
+      </table>`;
     openPrint(html, `كشف التأمينات — ${section} — ${periodLabel}`, SHEET_CSS);
   }
 
