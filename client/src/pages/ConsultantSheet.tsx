@@ -22,6 +22,7 @@ import { usePrintMode } from "@/hooks/usePrintMode";
 import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 import { printOrExportPdf } from "@/lib/nativePdf";
 import { BRAND_NAME_AR, BRAND_NAME_EN } from "@/lib/brand";
+import SheetCenterHeader from "@/components/SheetCenterHeader";
 
 export default function ConsultantSheet() {
   const { user, isAuthenticated } = useAuth();
@@ -673,32 +674,27 @@ export default function ConsultantSheet() {
 
   const renderSheetBody = (readOnly = false) => (
     <fieldset disabled={embeddedInPatientHub || readOnly} className="border-0 p-0 m-0 min-w-0 disabled:opacity-95 consultant-main-print-root">
-      <main className="max-w-5xl mx-auto my-8 bg-white shadow-xl border border-slate-200 p-8 print-container text-slate-800" data-purpose="main-document" dir="rtl">
+      <main className="max-w-5xl mx-auto my-4 bg-white shadow-xl border border-slate-200 p-6 print-container text-slate-800" data-purpose="main-document" dir="rtl">
+        <SheetCenterHeader
+          titleEn="Consultant Sheet"
+          titleAr="شيت الاستشاري"
+        />
         {/* BEGIN: Patient Demographics */}
-        <section className="print-consultant-patient-grid grid grid-cols-2 lg:grid-cols-3 gap-6 mb-8 text-sm" data-purpose="patient-info">
-          <div className="flex flex-col gap-2">
-            <p className="flex items-center gap-1"><span className="font-bold">الاسم:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.patientName}</span></p>
-            <p className="flex items-center gap-1"><span className="font-bold">تاريخ الميلاد:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.dateOfBirth}</span></p>
-            <p className="flex items-center gap-1"><span className="font-bold">العنوان:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.address}</span></p>
-          </div>
-          <div className="flex flex-col gap-2">
-            <p className="flex items-center gap-1"><span className="font-bold">تاريخ الفحص:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{new Date().toLocaleDateString("en-GB")}</span></p>
-            <p className="flex items-center gap-1"><span className="font-bold">رقم التليفون:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.phone}</span></p>
-            <p className="flex items-center gap-1"><span className="font-bold">السن:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.age}</span></p>
-          </div>
-          <div className="flex flex-col gap-2">
-            <p className="flex items-center gap-1"><span className="font-bold">الاستشاري:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{signatures.doctor || "أ.د محمد السعني غرابة"}</span></p>
-            <p className="flex items-center gap-1"><span className="font-bold">كود العميل:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.code}</span></p>
-            <p className="flex items-center gap-1"><span className="font-bold">كيفية المعرفة:</span> <input type="text" className="border-none p-0 outline-none flex-1 border-b border-dotted border-slate-400 text-sm focus:border-blue-600 bg-transparent" value={formData.knowledgeType} onChange={e => setFormData(p => ({ ...p, knowledgeType: e.target.value }))} /></p>
-          </div>
-          <div className="col-span-full border-t border-slate-100 pt-4">
-            <p className="flex items-center gap-2"><span className="font-bold">الوظيفة:</span> <input type="text" className="border-none p-0 outline-none flex-1 border-b border-dotted border-slate-400 text-sm focus:border-blue-600 bg-transparent" value={formData.job} onChange={e => setFormData(p => ({ ...p, job: e.target.value }))} /></p>
-          </div>
+        <section className="print-consultant-patient-grid flex flex-wrap items-center gap-x-6 gap-y-2 mb-4 text-sm" data-purpose="patient-info" dir="rtl">
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">الاسم:</span> <span className="border-b border-dotted border-slate-400 min-w-[160px] px-1 min-h-5">{formData.patientName}</span></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">تاريخ الميلاد:</span> <span className="border-b border-dotted border-slate-400 min-w-[80px] px-1 min-h-5">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</span></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">السن:</span> <span className="border-b border-dotted border-slate-400 min-w-[40px] px-1 min-h-5">{formData.age}</span></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">الوظيفة:</span> <input type="text" dir="rtl" className="border-none p-0 outline-none w-28 text-right border-b border-dotted border-slate-400 text-sm focus:border-blue-600 bg-transparent" value={formData.job} onChange={e => setFormData(p => ({ ...p, job: e.target.value }))} /></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">تاريخ الفحص:</span> <span className="border-b border-dotted border-slate-400 min-w-[80px] px-1 min-h-5">{new Date().toLocaleDateString("en-GB")}</span></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">رقم التليفون:</span> <span className="border-b border-dotted border-slate-400 min-w-[100px] px-1 min-h-5">{formData.phone}</span></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">العنوان:</span> <span className="border-b border-dotted border-slate-400 min-w-[140px] px-1 min-h-5">{formData.address}</span></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">كود العميل:</span> <span className="border-b border-dotted border-slate-400 min-w-[70px] px-1 min-h-5">{formData.code}</span></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">الاستشاري:</span> <span className="border-b border-dotted border-slate-400 min-w-[140px] px-1 min-h-5">{signatures.doctor || "أ.د محمد السعني غرابة"}</span></p>
         </section>
         {/* END: Patient Demographics */}
 
         {/* BEGIN: Medical History Checklist */}
-        <section className="mb-8" data-purpose="medical-history">
+        <section className="mb-4" data-purpose="medical-history">
           <div className="print-consultant-history-grid" dir="rtl">
             <table className="w-full border-collapse border border-[#c3c6d6] rounded-lg overflow-hidden text-sm">
               <thead className="bg-[#e7e8ea]">
@@ -770,12 +766,12 @@ export default function ConsultantSheet() {
         {/* END: Medical History Checklist */}
 
         {/* BEGIN: Clinical Examination */}
-        <section className="mb-8 ltr-content" data-purpose="examination-section">
-          <div className="mb-6 text-sm flex items-center gap-2">
+        <section className="mb-4 ltr-content" data-purpose="examination-section">
+          <div className="mb-3 text-sm flex items-center justify-center gap-2">
             <span className="font-bold">*Dominant Eye*:</span>
             <input
               type="text"
-              className="border-none p-0 outline-none flex-1 border-b border-dotted border-slate-400 text-sm focus:border-blue-600 bg-transparent font-semibold"
+              className="border-none p-0 outline-none w-24 text-center border-b border-dotted border-slate-400 text-sm focus:border-blue-600 bg-transparent font-semibold"
               value={formData.dominantEye}
               onChange={e => setFormData(p => ({ ...p, dominantEye: e.target.value }))}
             />
@@ -930,8 +926,8 @@ export default function ConsultantSheet() {
         {/* END: Clinical Examination */}
 
         {/* BEGIN: Clinical Diagrams */}
-        <section className="mb-8" data-purpose="clinical-diagrams">
-          <div className="print-consultant-diagrams grid grid-cols-2 gap-8 border border-slate-200 rounded-lg p-12 bg-slate-50">
+        <section className="mb-4" data-purpose="clinical-diagrams">
+          <div className="print-consultant-diagrams grid grid-cols-2 gap-8 border border-slate-200 rounded-lg p-6 bg-slate-50">
             {/* Right Eye Circle */}
             <div className="flex flex-col items-center">
               <div className="w-48 h-48 rounded-full border-4 border-slate-300 flex items-center justify-center relative bg-white">
@@ -959,12 +955,13 @@ export default function ConsultantSheet() {
         {/* END: Clinical Diagrams */}
 
         {/* BEGIN: Observations & Decision */}
-        <section className="print-consultant-notes-grid grid grid-cols-4 gap-4 mb-8" data-purpose="notes-section">
+        <section className="print-consultant-notes-grid grid grid-cols-4 gap-4 mb-4" data-purpose="notes-section" dir="rtl">
           <div className="col-span-3 border border-slate-300 rounded overflow-hidden">
             <div className="bg-slate-50 p-2 border-b border-slate-300 font-bold text-sm">Comments:</div>
             <div className="p-2">
               <textarea
-                className="w-full min-h-[96px] bg-transparent border-0 focus:outline-none focus:ring-0 text-sm resize-none p-1 dotted-textarea"
+                dir="rtl"
+                className="w-full min-h-[96px] bg-transparent border-0 focus:outline-none focus:ring-0 text-sm resize-none p-1 dotted-textarea text-right"
                 value={formData.comments}
                 onChange={e => setFormData(p => ({ ...p, comments: e.target.value }))}
                 placeholder="Type comment here..."
@@ -973,7 +970,8 @@ export default function ConsultantSheet() {
             <div className="bg-slate-50 p-2 border-y border-slate-300 font-bold text-sm">Final Decision:</div>
             <div className="p-2">
               <textarea
-                className="w-full min-h-[80px] bg-transparent border-0 focus:outline-none focus:ring-0 text-sm resize-none p-1 dotted-textarea"
+                dir="rtl"
+                className="w-full min-h-[80px] bg-transparent border-0 focus:outline-none focus:ring-0 text-sm resize-none p-1 dotted-textarea text-right"
                 value={formData.final}
                 onChange={e => setFormData(p => ({ ...p, final: e.target.value }))}
                 placeholder="Type final decision here..."
@@ -984,7 +982,8 @@ export default function ConsultantSheet() {
             <div className="bg-slate-50 p-2 border-b border-slate-300 font-bold text-sm">Notes:</div>
             <div className="p-2">
               <textarea
-                className="w-full min-h-[220px] bg-transparent border-0 focus:outline-none focus:ring-0 text-sm resize-none p-1 dotted-textarea"
+                dir="rtl"
+                className="w-full min-h-[220px] bg-transparent border-0 focus:outline-none focus:ring-0 text-sm resize-none p-1 dotted-textarea text-right"
                 value={formData.drOS}
                 onChange={e => setFormData(p => ({ ...p, drOS: e.target.value }))}
                 placeholder="Type notes here..."
@@ -995,7 +994,7 @@ export default function ConsultantSheet() {
         {/* END: Observations & Decision */}
 
         {/* BEGIN: Signatures Footer */}
-        <footer className="print-consultant-footer grid grid-cols-4 gap-4 pt-6 border-t border-slate-200 text-xs font-bold text-slate-700" data-purpose="footer-signatures">
+        <footer className="print-consultant-footer grid grid-cols-4 gap-4 pt-3 border-t border-slate-200 text-xs font-bold text-slate-700" data-purpose="footer-signatures">
           <div className="flex flex-col gap-2">
             <p>استقبال: <span className="font-normal">{signatures.reception || "...................."}</span></p>
             <p>Signature: ....................</p>
@@ -1026,13 +1025,60 @@ export default function ConsultantSheet() {
       <style>{`
         ${designerConfig.css.consultant || ""}
         @media print {
+          @page { size: A4 portrait; margin: 0; }
+          body { background: white !important; }
           .consultant-main-print-root {
-            font-size: 92% !important;
+            font-size: 88% !important;
             line-height: 1.1 !important;
           }
+          .consultant-main-print-root main {
+            width: 100% !important;
+            max-width: 100% !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: 296mm !important;
+            box-sizing: border-box !important;
+            margin: 0 auto !important;
+            padding: 6mm !important;
+            border: 0 !important;
+            box-shadow: none !important;
+            overflow: hidden !important;
+          }
+          .consultant-main-print-root section {
+            margin-bottom: 3mm !important;
+            page-break-inside: avoid !important;
+          }
+          .consultant-main-print-root .sheet-center-header {
+            padding-bottom: 1.5mm !important;
+            margin-bottom: 2.5mm !important;
+          }
+          .print-consultant-diagrams {
+            padding: 3mm !important;
+            gap: 10mm !important;
+          }
+          .print-consultant-diagrams .rounded-full {
+            width: 34mm !important;
+            height: 34mm !important;
+            border-width: 2px !important;
+          }
+          .print-consultant-diagrams p {
+            margin-top: 1.5mm !important;
+          }
+          .print-consultant-notes-grid textarea {
+            min-height: 18mm !important;
+          }
+          .print-consultant-notes-grid .col-span-1 textarea {
+            min-height: 44mm !important;
+          }
+          .print-consultant-footer {
+            padding-top: 2mm !important;
+            page-break-inside: avoid !important;
+          }
           .print-consultant-patient-grid {
-            display: grid !important;
-            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            display: flex !important;
+            flex-wrap: wrap !important;
+            column-gap: 6mm !important;
+            row-gap: 1.5mm !important;
           }
           .print-consultant-history-grid {
             display: block !important;
