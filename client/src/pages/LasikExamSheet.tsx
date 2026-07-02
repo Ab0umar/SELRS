@@ -786,6 +786,10 @@ export default function LasikExamSheet() {
             const isOD = eye === "od";
             const thin = isOD ? odThinnestNum : osThinnestNum;
             return (
+              <div key={eye} className={`${isOD ? "od-bg border-[#003d9b]/20" : "os-bg border-[#c3c6d6]"} print-lasik-eye-card p-4 rounded-xl border`}>
+                <div className="flex justify-between items-center mb-3">
+                  <span className={`text-xs font-bold uppercase px-3 py-1 bg-white rounded shadow-sm ${isOD ? "text-[#003d9b]" : "text-[#526069]"}`}>{isOD ? "Right Eye (RT)" : "Left Eye (LT)"}</span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${thin < 480 ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}>{thin < 480 ? "THIN" : "STABLE"}</span>
               <div key={eye} className={`${isOD ? "od-bg border-[#003d9b]/20" : "os-bg border-[#c3c6d6]"} print-lasik-eye-card p-2 rounded-xl border`}>
                 <div className="flex justify-between items-center mb-2">
                   <span className={`text-[11px] font-bold uppercase px-2 py-1 bg-white rounded shadow-sm ${isOD ? "text-[#003d9b]" : "text-[#526069]"}`}>{isOD ? "Right Eye (RT)" : "Left Eye (LT)"}</span>
@@ -930,6 +934,15 @@ export default function LasikExamSheet() {
             background: transparent !important;
             text-decoration: none !important;
             font-size: 12px !important;
+            font-weight: 700 !important;
+            line-height: 1.15 !important;
+          }
+          .lasik-sheet .border-b,
+          .lasik-sheet .border-b-2,
+          .lasik-sheet .border-b-4,
+          .lasik-sheet .border-b-8 {
+            border-bottom: 0 !important;
+          }
             line-height: 1.15 !important;
           }
           .lasik-sheet .gap-8 { gap: 12px !important; }

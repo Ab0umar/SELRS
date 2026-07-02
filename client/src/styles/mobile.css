@@ -644,6 +644,9 @@
   .referral-print-root input:not([type="checkbox"]):not([type="radio"]),
   .referral-print-root textarea,
   .a4-page-card input:not([type="checkbox"]):not([type="radio"]),
+  .a4-page-card textarea,
+  main input:not([type="checkbox"]):not([type="radio"]),
+  main textarea {
   .a4-page-card textarea {
     border: 0 !important;
     border-bottom: 0 !important;
@@ -654,6 +657,36 @@
     font-size: 12px !important;
     font-weight: 700 !important;
     line-height: 1.15 !important;
+  }
+  .sheet-layout .border-b,
+  .sheet-layout .border-b-2,
+  .sheet-layout .border-b-4,
+  .sheet-layout .border-b-8,
+  .lasik-print-root .border-b,
+  .lasik-print-root .border-b-2,
+  .lasik-print-root .border-b-4,
+  .lasik-print-root .border-b-8,
+  .specialist-print-root .border-b,
+  .specialist-print-root .border-b-2,
+  .specialist-print-root .border-b-4,
+  .specialist-print-root .border-b-8,
+  .followup-print-root .border-b,
+  .followup-print-root .border-b-2,
+  .followup-print-root .border-b-4,
+  .followup-print-root .border-b-8,
+  .referral-print-root .border-b,
+  .referral-print-root .border-b-2,
+  .referral-print-root .border-b-4,
+  .referral-print-root .border-b-8,
+  .a4-page-card .border-b,
+  .a4-page-card .border-b-2,
+  .a4-page-card .border-b-4,
+  .a4-page-card .border-b-8,
+  main .border-b,
+  main .border-b-2,
+  main .border-b-4,
+  main .border-b-8 {
+    border-bottom: 0 !important;
   }
   .sheet-layout input[type="checkbox"],
   .sheet-layout input[type="radio"],
@@ -1481,5 +1514,85 @@ select {
   .sheet-mobile-actions button {
     font-size: 0.72rem !important;
     padding-inline: 0.35rem !important;
+  }
+}
+
+/* Salary module tables: dense, scannable financial data surfaces */
+@media screen {
+  .salary-table-redesign :where(.overflow-x-auto, .overflow-auto):has(> table) {
+    border: 1px solid oklch(88% 0.018 245);
+    border-radius: 16px;
+    background: oklch(99% 0.004 245);
+    overflow: auto;
+  }
+
+  .salary-table-redesign table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    color: oklch(23% 0.02 245);
+  }
+
+  .salary-table-redesign thead {
+    background: oklch(96% 0.018 250);
+  }
+
+  .salary-table-redesign thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    border-bottom: 1px solid oklch(84% 0.024 245);
+    background: oklch(96% 0.018 250);
+    color: oklch(38% 0.07 250);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0;
+    line-height: 1.35;
+    padding: 10px 12px;
+    white-space: nowrap;
+  }
+
+  .salary-table-redesign tbody td {
+    border-bottom: 1px solid oklch(91% 0.012 245);
+    color: oklch(27% 0.02 245);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.45;
+    padding: 10px 12px;
+    vertical-align: middle;
+  }
+
+  .salary-table-redesign tbody tr:nth-child(even) td {
+    background: oklch(98% 0.006 245);
+  }
+
+  .salary-table-redesign tbody tr:hover td {
+    background: oklch(97% 0.02 250);
+  }
+
+  .salary-table-redesign tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .salary-table-redesign tfoot td,
+  .salary-table-redesign tbody tr[class*="total"] td,
+  .salary-table-redesign tbody tr[class*="summary"] td {
+    background: oklch(97% 0.035 65);
+    color: oklch(31% 0.045 245);
+    font-weight: 800;
+  }
+
+  .salary-table-redesign td :where(input, select),
+  .salary-table-redesign th :where(input, select) {
+    min-height: 30px;
+    border-color: oklch(84% 0.02 245);
+    background: oklch(100% 0.003 245);
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .salary-table-redesign td :where(button, [role="button"]),
+  .salary-table-redesign th :where(button, [role="button"]) {
+    min-height: 30px;
   }
 }

@@ -200,6 +200,12 @@ const PRINT_CSS = `
   .legend { display: flex; align-items: center; justify-content: flex-end; gap: 2mm; color: oklch(43% 0.03 245); font-size: 6.6px; font-weight: 750; }
   .legend-item { display: inline-flex; align-items: center; gap: .8mm; white-space: nowrap; }
   .legend-token { display: inline-grid; place-items: center; min-width: 4.4mm; height: 3.7mm; border-radius: 999px; font-size: 6.3px; font-weight: 900; }
+  .legend-m { color: oklch(51% 0.135 55); background: oklch(95% 0.04 65); }
+  .legend-n { color: oklch(43% 0.145 255); background: oklch(94% 0.035 255); }
+  .legend-absent { color: oklch(44% 0.03 245); background: oklch(93% 0.012 245); }
+  .table-wrap { break-inside: avoid; page-break-inside: avoid; }
+  table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; border: 1px solid oklch(76% 0.028 245); border-radius: 2mm; overflow: hidden; }
+  th, td { border-inline-start: 1px solid oklch(82% 0.022 245); border-block-start: 1px solid oklch(86% 0.018 245); padding: .9mm .55mm; text-align: center; vertical-align: middle; }
 
     font-size: 8px;
     -webkit-print-color-adjust: exact;
@@ -600,6 +606,49 @@ export default function ShiftSchedule() {
       return `<span class="${meta.printClass}${absentClass}">${escapeHtml(label)}</span>`;
     }
 
+    function buildTable(dates: string[], index: number) {
+      const cols = dates
+        .map((ds) => {
+          const dow = new Date(`${ds}T00:00:00`).getDay();
+          const holiday = holidayByDate.get(ds);
+          return `<th class="${holiday ? "holiday-th" : ""}">
+            <div>${escapeHtml(DAYS_AR[dow])}</div>
+            <div class="date-label">${escapeHtml(fmtDate(ds))}</div>
+            ${holiday ? `<div class="holiday-label">${escapeHtml(holiday.name || "عطلة")}</div>` : ""}
+          </th>`;
+        })
+        .join("");
+      const rows = displayStaff
+        .map((s: any) => {
+          const cells = dates
+            .map((ds) => {
+              const holiday = holidayByDate.get(ds);
+              const entries = attendMap.get(`${s.id}_${ds}`) ?? [];
+              const content = entries.length
+                ? entries.map(buildShiftToken).join("")
+                : holiday
+                  ? `<span class="holiday-label">${escapeHtml(holiday.name || "عطلة")}</span>`
+                  : '<span class="empty-cell">—</span>';
+              return `<td class="${holiday ? "holiday-cell" : ""}">${content}</td>`;
+            })
+            .join("");
+          return `<tr><td class="name-col">${escapeHtml(compactStaffName(s))}</td>${cells}</tr>`;
+        })
+        .join("");
+      return `<section class="table-wrap" aria-label="قسم الروستر ${index + 1}">
+        <table>
+          <thead><tr>
+            <th class="diag-cell">
+              <svg preserveAspectRatio="none" aria-hidden="true">
+                <line x1="0" y1="0" x2="100%" y2="100%" stroke="oklch(60% 0.03 245)" stroke-width="1"/>
+              </svg>
+              <span class="diag-date">التاريخ</span>
+              <span class="diag-name">الفريق</span>
+            </th>${cols}
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </section>`;
     function buildCalendarGrid(dates: string[]) {
       if (dates.length === 0) return "";
       const firstStr = dates[0];
@@ -701,6 +750,7 @@ export default function ShiftSchedule() {
             <div class="summary-pill">${arabicDigits(totalEntries)}<span>وردية</span></div>
             <div class="summary-pill">${arabicDigits(totalAbsent)}<span>غياب</span></div>
           </div>
+          <div class="legend" aria-label="دليل الورديات">
         </header>
 
         <div class="legend-row">
@@ -709,6 +759,8 @@ export default function ShiftSchedule() {
             <span class="legend-item"><span class="legend-token legend-n">م</span> مساء</span>
             <span class="legend-item"><span class="legend-token legend-absent">(ص)</span> غير حاضر</span>
           </div>
+        </header>
+        ${buildTable(allDates, 0)}
           <div class="legend-note">الأيام الجمعة مستبعدة من الجدول، والعطلات مميزة بخلفية دافئة.</div>
         </div>
 
