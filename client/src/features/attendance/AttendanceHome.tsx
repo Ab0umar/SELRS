@@ -142,7 +142,7 @@ export default function AttendanceHome() {
   const getMorningBadge = () => {
     if (currentMinutes < morningStart) return "تبدأ لاحقاً";
     if (currentMinutes > morningEnd) return "انتهت الوردية";
-    return `${dashboardQuery.data?.presentToday ?? 0} موظف حاضر حالياً`;
+    return `${dashboardQuery.data?.presentMorning ?? 0} موظف حاضر حالياً`;
   };
 
   const getMorningBadgeClass = () => {
@@ -158,7 +158,7 @@ export default function AttendanceHome() {
   const getEveningBadge = () => {
     if (currentMinutes < eveningStart) return "تبدأ لاحقاً";
     if (currentMinutes > eveningEnd) return "انتهت الوردية";
-    return `${dashboardQuery.data?.presentToday ?? 0} موظف حاضر حالياً`;
+    return `${dashboardQuery.data?.presentEvening ?? 0} موظف حاضر حالياً`;
   };
 
   const getEveningBadgeClass = () => {
