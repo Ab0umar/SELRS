@@ -785,6 +785,54 @@ export default function PayrollReport() {
     return out + " جنيه";
   }
 
+  function buildSheetFrame({
+    title,
+    today,
+    summaryItems,
+    tableHtml,
+    note,
+  }: {
+    title: string;
+    today: string;
+    summaryItems: Array<{ label: string; value: string }>;
+    tableHtml: string;
+    note?: string;
+  }): string {
+    const summary = summaryItems
+      .map(
+        (item) => `
+          <div class="summary-pill"><span class="summary-label">${escapeHtml(item.label)}</span><span class="summary-value">${escapeHtml(item.value)}</span></div>`,
+      )
+      .join("");
+
+    return `
+      <main class="payroll-sheet">
+        <header class="sheet-header">
+          <div class="brand">
+            <span class="brand-mark">S</span>
+            <div>
+              <div>SELRS Medical Center</div>
+              <div class="muted">نظام مرتبات العاملين</div>
+            </div>
+          </div>
+          <div class="report-title">
+            <h1>${escapeHtml(title)}</h1>
+            <span class="period">${escapeHtml(periodLabel)}</span>
+          </div>
+          <div class="dept">قسم ${escapeHtml(section)}</div>
+        </header>
+        <section class="summary-strip" aria-label="ملخص الكشف">${summary}</section>
+        ${note ? `<p class="note">${escapeHtml(note)}</p>` : ""}
+        <section class="table-wrap">${tableHtml}</section>
+        <div class="footer">
+          <div class="footer-block"><div class="footer-line"></div>المدير الإداري</div>
+          <div class="footer-block"><div class="footer-line"></div>الحسابات</div>
+          <div class="footer-block"><div class="footer-line"></div>شئون العاملين</div>
+        </div>
+        <div class="footer-meta"><span>صفحة 1 من 1</span><span>تاريخ الطباعة: ${escapeHtml(today)}</span></div>
+      </main>`;
+  }
+
   function printSheet() {
     const today = new Date().toLocaleDateString("ar-EG");
     const isClinic = section === "عيادة";
@@ -1260,13 +1308,8 @@ export default function PayrollReport() {
           ${bodyRows}
           <tr class="total-row"><td class="emp-col">الإجمالي</td><td>${fmt(tPenalty)}</td><td></td></tr>
         </tbody>
-      </table>
-      <div class="footer">
-        <div class="footer-block"><div class="footer-line"></div>المدير الإداري</div>
-        <div class="footer-block"><div class="footer-line"></div>الحسابات</div>
-        <div class="footer-block"><div class="footer-line"></div>شئون العاملين</div>
-      </div>
-      <div class="footer-meta"><span>صفحة 1 من 1</span><span>تاريخ الطباعة: ${today}</span></div>`;
+      </table>`,
+    });
     openPrint(html, `كشف الجزاءات — ${section} — ${periodLabel}`, SHEET_CSS);
   }
 
@@ -1299,13 +1342,8 @@ export default function PayrollReport() {
           ${bodyRows}
           <tr class="total-row"><td class="emp-col">الإجمالي</td><td>${fmt(tAdv)}</td><td></td></tr>
         </tbody>
-      </table>
-      <div class="footer">
-        <div class="footer-block"><div class="footer-line"></div>المدير الإداري</div>
-        <div class="footer-block"><div class="footer-line"></div>الحسابات</div>
-        <div class="footer-block"><div class="footer-line"></div>شئون العاملين</div>
-      </div>
-      <div class="footer-meta"><span>صفحة 1 من 1</span><span>تاريخ الطباعة: ${today}</span></div>`;
+      </table>`,
+    });
     openPrint(html, `كشف السلف — ${section} — ${periodLabel}`, SHEET_CSS);
   }
 
@@ -1355,13 +1393,8 @@ export default function PayrollReport() {
             <td></td>
           </tr>
         </tbody>
-      </table>
-      <div class="footer">
-        <div class="footer-block"><div class="footer-line"></div>المدير الإداري</div>
-        <div class="footer-block"><div class="footer-line"></div>الحسابات</div>
-        <div class="footer-block"><div class="footer-line"></div>شئون العاملين</div>
-      </div>
-      <div class="footer-meta"><span>صفحة 1 من 1</span><span>تاريخ الطباعة: ${today}</span></div>`;
+      </table>`,
+    });
     openPrint(html, `كشف التأخيرات — ${section} — ${periodLabel}`, SHEET_CSS);
   }
 
@@ -1394,13 +1427,8 @@ export default function PayrollReport() {
           ${bodyRows}
           <tr class="total-row"><td class="emp-col">الإجمالي</td><td>${fmt(tIns)}</td><td></td></tr>
         </tbody>
-      </table>
-      <div class="footer">
-        <div class="footer-block"><div class="footer-line"></div>المدير الإداري</div>
-        <div class="footer-block"><div class="footer-line"></div>الحسابات</div>
-        <div class="footer-block"><div class="footer-line"></div>شئون العاملين</div>
-      </div>
-      <div class="footer-meta"><span>صفحة 1 من 1</span><span>تاريخ الطباعة: ${today}</span></div>`;
+      </table>`,
+    });
     openPrint(html, `كشف التأمينات — ${section} — ${periodLabel}`, SHEET_CSS);
   }
 
