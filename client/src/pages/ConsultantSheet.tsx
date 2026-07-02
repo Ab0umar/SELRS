@@ -680,21 +680,16 @@ export default function ConsultantSheet() {
           titleAr="شيت الاستشاري"
         />
         {/* BEGIN: Patient Demographics */}
-        <section className="print-consultant-patient-grid grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4 text-sm" data-purpose="patient-info">
-          <div className="flex flex-col gap-2">
-            <p className="flex items-center gap-1"><span className="font-bold">الاسم:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.patientName}</span></p>
-            <p className="flex items-center gap-1"><span className="font-bold">تاريخ الميلاد:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.dateOfBirth}</span></p>
-            <p className="flex items-center gap-1"><span className="font-bold">العنوان:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.address}</span></p>
-          </div>
-          <div className="flex flex-col gap-2">
-            <p className="flex items-center gap-1"><span className="font-bold">تاريخ الفحص:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{new Date().toLocaleDateString("en-GB")}</span></p>
-            <p className="flex items-center gap-1"><span className="font-bold">رقم التليفون:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.phone}</span></p>
-            <p className="flex items-center gap-1"><span className="font-bold">السن:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.age}</span> <span className="font-bold">الوظيفة:</span> <input type="text" className="border-none p-0 outline-none flex-1 border-b border-dotted border-slate-400 text-sm focus:border-blue-600 bg-transparent" value={formData.job} onChange={e => setFormData(p => ({ ...p, job: e.target.value }))} /></p>
-          </div>
-          <div className="flex flex-col gap-2">
-            <p className="flex items-center gap-1"><span className="font-bold">الاستشاري:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{signatures.doctor || "أ.د محمد السعني غرابة"}</span></p>
-            <p className="flex items-center gap-1"><span className="font-bold">كود العميل:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.code}</span></p>
-          </div>
+        <section className="print-consultant-patient-grid flex flex-wrap items-center gap-x-6 gap-y-2 mb-4 text-sm" data-purpose="patient-info" dir="rtl">
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">الاسم:</span> <span className="border-b border-dotted border-slate-400 min-w-[160px] px-1 min-h-5">{formData.patientName}</span></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">تاريخ الميلاد:</span> <span className="border-b border-dotted border-slate-400 min-w-[80px] px-1 min-h-5">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</span></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">السن:</span> <span className="border-b border-dotted border-slate-400 min-w-[40px] px-1 min-h-5">{formData.age}</span></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">الوظيفة:</span> <input type="text" dir="rtl" className="border-none p-0 outline-none w-28 text-right border-b border-dotted border-slate-400 text-sm focus:border-blue-600 bg-transparent" value={formData.job} onChange={e => setFormData(p => ({ ...p, job: e.target.value }))} /></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">تاريخ الفحص:</span> <span className="border-b border-dotted border-slate-400 min-w-[80px] px-1 min-h-5">{new Date().toLocaleDateString("en-GB")}</span></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">رقم التليفون:</span> <span className="border-b border-dotted border-slate-400 min-w-[100px] px-1 min-h-5">{formData.phone}</span></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">العنوان:</span> <span className="border-b border-dotted border-slate-400 min-w-[140px] px-1 min-h-5">{formData.address}</span></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">كود العميل:</span> <span className="border-b border-dotted border-slate-400 min-w-[70px] px-1 min-h-5">{formData.code}</span></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">الاستشاري:</span> <span className="border-b border-dotted border-slate-400 min-w-[140px] px-1 min-h-5">{signatures.doctor || "أ.د محمد السعني غرابة"}</span></p>
         </section>
         {/* END: Patient Demographics */}
 
@@ -1080,8 +1075,10 @@ export default function ConsultantSheet() {
             page-break-inside: avoid !important;
           }
           .print-consultant-patient-grid {
-            display: grid !important;
-            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            display: flex !important;
+            flex-wrap: wrap !important;
+            column-gap: 6mm !important;
+            row-gap: 1.5mm !important;
           }
           .print-consultant-history-grid {
             display: block !important;

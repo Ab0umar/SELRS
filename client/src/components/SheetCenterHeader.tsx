@@ -11,8 +11,13 @@ export default function SheetCenterHeader({
   titleAr: string;
   date?: string;
 }) {
-  const shownDate =
-    date && date.trim() ? date : new Date().toLocaleDateString("en-GB");
+  const shownDate = (() => {
+    if (!date || !date.trim()) return new Date().toLocaleDateString("en-GB");
+    const parsed = new Date(date);
+    return Number.isNaN(parsed.valueOf())
+      ? date
+      : parsed.toLocaleDateString("en-GB");
+  })();
   return (
     <div
       className="sheet-center-header text-center border-b-2 border-[#003d9b] pb-2 mb-3"

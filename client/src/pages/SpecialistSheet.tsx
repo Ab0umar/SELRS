@@ -23,6 +23,7 @@ import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 import { printOrExportPdf } from "@/lib/nativePdf";
 import { BRAND_NAME_AR, BRAND_NAME_EN } from "@/lib/brand";
 import SheetCenterHeader from "@/components/SheetCenterHeader";
+import { DateInput } from "@/components/ui/date-input";
 
 export default function SpecialistSheet() {
   const { user, isAuthenticated } = useAuth();
@@ -496,8 +497,10 @@ export default function SpecialistSheet() {
           .specialist-sheet .space-y-6 > * + * { margin-top: 6px !important; }
           .specialist-sheet .space-y-4 > * + * { margin-top: 4px !important; }
           .print-specialist-patient-grid {
-            display: grid !important;
-            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+            display: flex !important;
+            flex-wrap: wrap !important;
+            column-gap: 5mm !important;
+            row-gap: 1mm !important;
           }
           .print-specialist-visual-grid {
             display: grid !important;
@@ -597,23 +600,23 @@ export default function SpecialistSheet() {
           />
 
           {/* Patient Info */}
-          <section className="print-specialist-patient-grid p-4 bg-[#f3f4f6] rounded-xl border border-[#c3c6d6] grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-3 text-sm" dir="rtl">
-            <label className="flex items-center gap-2"><span className="font-bold text-[#434654] whitespace-nowrap">الاسم:</span>
-              <input className="flex-grow font-semibold text-[#003d9b] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none" value={formData.patientName} onChange={(e) => setFormData((p) => ({ ...p, patientName: e.target.value }))} /></label>
-            <label className="flex items-center gap-2"><span className="font-bold text-[#434654] whitespace-nowrap">السن:</span>
-              <input className="flex-grow font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none" value={formData.age} onChange={(e) => setFormData((p) => ({ ...p, age: e.target.value }))} /></label>
-            <label className="flex items-center gap-2"><span className="font-bold text-[#434654] whitespace-nowrap">العنوان:</span>
-              <input className="flex-grow font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none" value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} /></label>
-            <label className="flex items-center gap-2"><span className="font-bold text-[#434654] whitespace-nowrap">التليفون:</span>
-              <input className="flex-grow font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none" dir="ltr" value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} /></label>
-            <label className="flex items-center gap-2"><span className="font-bold text-[#434654] whitespace-nowrap">تاريخ الفحص:</span>
-              <input type="date" className="flex-grow font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none" value={formData.examinationDate} onChange={(e) => setFormData((p) => ({ ...p, examinationDate: e.target.value }))} /></label>
-            <label className="flex items-center gap-2"><span className="font-bold text-[#434654] whitespace-nowrap">المهنة:</span>
-              <input className="flex-grow font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none" value={formData.job} onChange={(e) => setFormData((p) => ({ ...p, job: e.target.value }))} /></label>
-            <label className="flex items-center gap-2"><span className="font-bold text-[#434654] whitespace-nowrap">كود العميل:</span>
-              <input className="flex-grow font-semibold text-[#526069] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none" dir="ltr" value={formData.patientCode} onChange={(e) => setFormData((p) => ({ ...p, patientCode: e.target.value }))} /></label>
-            <label className="flex items-center gap-2"><span className="font-bold text-[#434654] whitespace-nowrap">الطبيب:</span>
-              <input className="flex-grow font-semibold text-[#003d9b] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none" value={signatures.doctor} onChange={(e) => setSignatures((p) => ({ ...p, doctor: e.target.value }))} /></label>
+          <section className="print-specialist-patient-grid p-4 bg-[#f3f4f6] rounded-xl border border-[#c3c6d6] flex flex-wrap items-center gap-x-6 gap-y-2 text-sm" dir="rtl">
+            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">الاسم:</span>
+              <input className="w-44 font-semibold text-[#003d9b] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.patientName} onChange={(e) => setFormData((p) => ({ ...p, patientName: e.target.value }))} /></label>
+            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">السن:</span>
+              <input className="w-12 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.age} onChange={(e) => setFormData((p) => ({ ...p, age: e.target.value }))} /></label>
+            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">العنوان:</span>
+              <input className="w-36 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} /></label>
+            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">التليفون:</span>
+              <input className="w-28 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} /></label>
+            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">تاريخ الفحص:</span>
+              <DateInput className="h-6 w-28 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] rounded-none px-1 text-right" value={formData.examinationDate} onChange={(e) => setFormData((p) => ({ ...p, examinationDate: e.target.value }))} /></label>
+            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">المهنة:</span>
+              <input className="w-28 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.job} onChange={(e) => setFormData((p) => ({ ...p, job: e.target.value }))} /></label>
+            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">كود العميل:</span>
+              <input className="w-24 font-semibold text-[#526069] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.patientCode} onChange={(e) => setFormData((p) => ({ ...p, patientCode: e.target.value }))} /></label>
+            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">الطبيب:</span>
+              <input className="w-36 font-semibold text-[#003d9b] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={signatures.doctor} onChange={(e) => setSignatures((p) => ({ ...p, doctor: e.target.value }))} /></label>
           </section>
 
           {/* Visual Acuity + Tear Film */}
