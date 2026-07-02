@@ -162,7 +162,6 @@
     size: A4 portrait;
     margin: 0 !important;
   }
-
   :root,
   html,
   body,
@@ -512,7 +511,7 @@
     grid-column: span 8 / span 8 !important;
   }
 }
-
+}
 @layer base {
   * {
     @apply border-border outline-ring/50;

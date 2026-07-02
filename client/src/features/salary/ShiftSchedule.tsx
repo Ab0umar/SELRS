@@ -1977,5 +1977,6 @@ export default function ShiftSchedule() {
         </div>
       </div>
     </div>
-  );
+    );
+  }
 }
