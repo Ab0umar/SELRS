@@ -453,9 +453,9 @@ export default function ConsultantSheet() {
       >
         <div className="mb-2 print:mb-1 flex items-center justify-between text-[15px] print:text-[13px] px-1 print:px-0">
           <div className="whitespace-nowrap">
-            {followupLabels.rtLabel}: {operationEyes.right ? "" : "..."}{" "}
+            {followupLabels.rtLabel}: {operationEyes.right ? "" : ""}{" "}
             &nbsp;&nbsp; {followupLabels.ltLabel}:{" "}
-            {operationEyes.left ? "" : "..."} &nbsp; //
+            {operationEyes.left ? "" : ""} &nbsp; //
           </div>
           <div className="whitespace-nowrap">
             {followupLabels.operationTypeLabel}:
@@ -466,10 +466,10 @@ export default function ConsultantSheet() {
           <div className="whitespace-nowrap">
             {followupLabels.operationDateLabel}
             <span className="inline-block min-w-[95px] border-b border-black/60 mx-1 text-center">
-              {operationDateRight || " /  / "}
+              {operationDateRight || ""}
             </span>
             <span className="inline-block min-w-[95px] border-b border-black/60 text-center">
-              {operationDateLeft || " /  / "}
+              {operationDateLeft || ""}
             </span>
           </div>
         </div>
@@ -513,7 +513,7 @@ export default function ConsultantSheet() {
                 >
                   {followupLabels.followupDateLabel}
                   <span className="inline-block min-w-[88px] border-b border-black/60 mx-1 text-center">
-                    {followup.date || " /  / "}
+                    {followup.date || ""}
                   </span>
                 </td>
               </tr>
@@ -522,7 +522,7 @@ export default function ConsultantSheet() {
                   colSpan={8}
                   className="border border-black/50 py-0.5 text-center font-semibold"
                 >
-                  Dominant eye _____________
+                  Dominant eye
                 </td>
               </tr>
               <tr>
@@ -674,7 +674,7 @@ export default function ConsultantSheet() {
 
   const renderSheetBody = (readOnly = false) => (
     <fieldset disabled={embeddedInPatientHub || readOnly} className="border-0 p-0 m-0 min-w-0 disabled:opacity-95 consultant-main-print-root">
-      <main className="max-w-5xl mx-auto my-4 bg-white shadow-xl border border-slate-200 p-6 print-container text-slate-800" data-purpose="main-document" dir="rtl">
+      <div className="consultant-sheet-inner w-[210mm] max-w-full mx-auto my-4 bg-white shadow-xl border border-slate-200 p-6 print:p-[6mm] print:border-0 print:shadow-none print-container text-slate-800" data-purpose="main-document" dir="rtl">
         <SheetCenterHeader
           titleEn="Consultant Sheet"
           titleAr="شيت الاستشاري"
@@ -848,7 +848,7 @@ export default function ConsultantSheet() {
               <tbody>
                 <tr>
                   <td className="font-semibold text-left" colSpan={2}>
-                    <span className="pl-2">DR .............</span>
+                    <span className="pl-2">DR </span>
                   </td>
                   <td className="h-10 w-20">
                     <input
@@ -901,7 +901,7 @@ export default function ConsultantSheet() {
                 </tr>
                 <tr>
                   <td className="bg-slate-50 font-bold w-16" rowSpan={2}>Fundus</td>
-                  <td className="text-left font-semibold text-xs py-4">DR .............</td>
+                  <td className="text-left font-semibold text-xs py-4">DR </td>
                   <td colSpan={3}>
                     <input
                       type="text"
@@ -996,24 +996,24 @@ export default function ConsultantSheet() {
         {/* BEGIN: Signatures Footer */}
         <footer className="print-consultant-footer grid grid-cols-4 gap-4 pt-3 border-t border-slate-200 text-xs font-bold text-slate-700" data-purpose="footer-signatures">
           <div className="flex flex-col gap-2">
-            <p>استقبال: <span className="font-normal">{signatures.reception || "...................."}</span></p>
-            <p>Signature: ....................</p>
+            <p>استقبال: <span className="font-normal">{signatures.reception || ""}</span></p>
+            <p>Signature:</p>
           </div>
           <div className="flex flex-col gap-2">
-            <p>تمريض: <span className="font-normal">{signatures.nurse || "...................."}</span></p>
-            <p>Signature: ....................</p>
+            <p>تمريض: <span className="font-normal">{signatures.nurse || ""}</span></p>
+            <p>Signature:</p>
           </div>
           <div className="flex flex-col gap-2">
-            <p>فني: <span className="font-normal">{signatures.technician || "...................."}</span></p>
-            <p>Signature: ....................</p>
+            <p>فني: <span className="font-normal">{signatures.technician || ""}</span></p>
+            <p>Signature:</p>
           </div>
           <div className="flex flex-col gap-2">
-            <p>الطبيب: <span className="font-normal">{signatures.doctor || "...................."}</span></p>
-            <p>Signature: ....................</p>
+            <p>الطبيب: <span className="font-normal">{signatures.doctor || ""}</span></p>
+            <p>Signature:</p>
           </div>
         </footer>
         {/* END: Signatures Footer */}
-      </main>
+      </div>
     </fieldset>
   );
 
@@ -1031,9 +1031,9 @@ export default function ConsultantSheet() {
             font-size: 88% !important;
             line-height: 1.1 !important;
           }
-          .consultant-main-print-root main {
-            width: 100% !important;
-            max-width: 100% !important;
+          .consultant-main-print-root .consultant-sheet-inner {
+            width: 210mm !important;
+            max-width: 210mm !important;
             height: auto !important;
             min-height: 0 !important;
             max-height: 296mm !important;

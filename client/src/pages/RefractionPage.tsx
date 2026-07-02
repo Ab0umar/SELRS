@@ -588,10 +588,7 @@ export default function RefractionPage() {
                 <div className="text-center sm:text-left">
                   <span>Name :</span>{" "}
                   <span className="break-words">
-                    {String(
-                      (patientQuery.data as any)?.fullName ??
-                        "........................",
-                    )}
+                    {String((patientQuery.data as any)?.fullName ?? "")}
                   </span>
                 </div>
                 <div className="text-center sm:text-right">
@@ -600,12 +597,12 @@ export default function RefractionPage() {
               </div>
               <div className="mb-3 grid grid-cols-1 gap-2 text-xs font-semibold sm:grid-cols-3 sm:gap-3 sm:text-sm">
                 <div className="text-center sm:text-left">
-                  Colour : ........................
+                  Colour :
                 </div>
                 <div className="min-w-0">
                   <span className="hidden print:inline">
-                    V.A : {form.bcvaOD || "......."} /{" "}
-                    {form.bcvaOS || "......."}
+                    V.A : {form.bcvaOD || ""} /{" "}
+                    {form.bcvaOS || ""}
                   </span>
                   <span className="print:hidden flex flex-wrap items-center justify-center gap-1 sm:inline-flex sm:justify-center">
                     <span>V.A :</span>
@@ -632,7 +629,7 @@ export default function RefractionPage() {
                 </div>
                 <div className="text-center sm:text-right">
                   <span className="hidden print:inline">
-                    P.D. : {form.pdOS || "......."}
+                    P.D. : {form.pdOS || ""}
                   </span>
                   <span className="print:hidden inline-flex flex-wrap items-center justify-center gap-1">
                     <span>P.D. :</span>
