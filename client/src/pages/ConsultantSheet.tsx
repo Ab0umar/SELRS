@@ -677,11 +677,11 @@ export default function ConsultantSheet() {
         @media print {
           .print-page-break { page-break-before: always !important; break-before: page !important; }
           .print-page-center-a4 {
+            width: 210mm;
             min-height: 297mm;
-            width: 100% !important;
+            margin: 0 auto;
             display: flex !important;
             flex-direction: column !important;
-            align-items: center !important;
             justify-content: center !important;
           }
           @page { size: A4 portrait; margin: 0; }
@@ -691,15 +691,6 @@ export default function ConsultantSheet() {
             overflow: visible !important;
             max-height: none !important;
             font-size: 100% !important;
-            width: 100% !important;
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: center !important;
-          }
-          .consultant-page-root main[data-mobile-pdf-root] {
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: center !important;
           }
           .consultant-main-print-root .consultant-sheet-inner {
             width: 210mm !important;
