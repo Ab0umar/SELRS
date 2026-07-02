@@ -318,7 +318,6 @@ export default function ConsultantFollowupPage() {
                     value={operationType}
                     onChange={(e) => setOperationType(e.target.value)}
                     className="h-7 text-sm font-bold text-[#003d9b] border-[#c3c6d6]"
-                    placeholder="LASIK / Refractive Surgery"
                   />
                 </div>
                 <div className="flex gap-2 items-end">
@@ -363,7 +362,6 @@ export default function ConsultantFollowupPage() {
                         value={f.type}
                         onChange={(e) => setFollowups((prev) => prev.map((x) => x.id === f.id ? { ...x, type: e.target.value } : x))}
                         className="h-7 text-base font-semibold border-0 bg-transparent focus:bg-white focus:border-[#003d9b] w-56"
-                        placeholder={followupTitles[idx % 4]}
                       />
                     </div>
                     <div className="flex items-center gap-2">
@@ -389,17 +387,17 @@ export default function ConsultantFollowupPage() {
                     <tbody>
                       <tr className="border-b border-[#c3c6d6]" style={{ backgroundColor: "rgba(0,61,155,0.03)" }}>
                         <td className="px-3 py-2.5 font-bold text-[#003d9b] text-sm">OD</td>
-                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-dashed border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
-                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-dashed border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
-                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-dashed border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
-                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-dashed border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
+                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
+                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
+                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
+                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
                       </tr>
                       <tr className="border-b border-[#c3c6d6] bg-white">
                         <td className="px-3 py-2.5 font-bold text-[#526069] text-sm">OS</td>
-                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-dashed border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
-                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-dashed border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
-                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-dashed border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
-                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-dashed border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
+                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
+                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
+                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
+                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
                       </tr>
                     </tbody>
                   </table>

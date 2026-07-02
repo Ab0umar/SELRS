@@ -681,15 +681,15 @@ export default function ConsultantSheet() {
         />
         {/* BEGIN: Patient Demographics */}
         <section className="print-consultant-patient-grid flex flex-wrap items-center gap-x-6 gap-y-2 mb-4 text-sm" data-purpose="patient-info" dir="rtl">
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">الاسم:</span> <span className="border-b border-dotted border-slate-400 min-w-[160px] px-1 min-h-5">{formData.patientName}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">تاريخ الميلاد:</span> <span className="border-b border-dotted border-slate-400 min-w-[80px] px-1 min-h-5">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">السن:</span> <span className="border-b border-dotted border-slate-400 min-w-[40px] px-1 min-h-5">{formData.age}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">الوظيفة:</span> <input type="text" dir="rtl" className="border-none p-0 outline-none w-28 text-right border-b border-dotted border-slate-400 text-sm focus:border-blue-600 bg-transparent" value={formData.job} onChange={e => setFormData(p => ({ ...p, job: e.target.value }))} /></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">تاريخ الفحص:</span> <span className="border-b border-dotted border-slate-400 min-w-[80px] px-1 min-h-5">{new Date().toLocaleDateString("en-GB")}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">رقم التليفون:</span> <span className="border-b border-dotted border-slate-400 min-w-[100px] px-1 min-h-5">{formData.phone}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">العنوان:</span> <span className="border-b border-dotted border-slate-400 min-w-[140px] px-1 min-h-5">{formData.address}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">كود العميل:</span> <span className="border-b border-dotted border-slate-400 min-w-[70px] px-1 min-h-5">{formData.code}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">الاستشاري:</span> <span className="border-b border-dotted border-slate-400 min-w-[140px] px-1 min-h-5">{signatures.doctor || "أ.د محمد السعني غرابة"}</span></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">الاسم:</span> <span className="border-b border-solid border-slate-400 min-w-[160px] px-1 min-h-5">{formData.patientName}</span></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">تاريخ الميلاد:</span> <span className="border-b border-solid border-slate-400 min-w-[80px] px-1 min-h-5">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</span></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">السن:</span> <span className="border-b border-solid border-slate-400 min-w-[40px] px-1 min-h-5">{formData.age}</span></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">الوظيفة:</span> <input type="text" dir="rtl" className="border-none p-0 outline-none w-28 text-right border-b border-solid border-slate-400 text-sm focus:border-blue-600 bg-transparent" value={formData.job} onChange={e => setFormData(p => ({ ...p, job: e.target.value }))} /></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">تاريخ الفحص:</span> <span className="border-b border-solid border-slate-400 min-w-[80px] px-1 min-h-5">{new Date().toLocaleDateString("en-GB")}</span></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">رقم التليفون:</span> <span className="border-b border-solid border-slate-400 min-w-[100px] px-1 min-h-5">{formData.phone}</span></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">العنوان:</span> <span className="border-b border-solid border-slate-400 min-w-[140px] px-1 min-h-5">{formData.address}</span></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">كود العميل:</span> <span className="border-b border-solid border-slate-400 min-w-[70px] px-1 min-h-5">{formData.code}</span></p>
+          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">الاستشاري:</span> <span className="border-b border-solid border-slate-400 min-w-[140px] px-1 min-h-5">{signatures.doctor || "أ.د محمد السعني غرابة"}</span></p>
         </section>
         {/* END: Patient Demographics */}
 
@@ -771,7 +771,7 @@ export default function ConsultantSheet() {
             <span className="font-bold">*Dominant Eye*:</span>
             <input
               type="text"
-              className="border-none p-0 outline-none w-24 text-center border-b border-dotted border-slate-400 text-sm focus:border-blue-600 bg-transparent font-semibold"
+              className="border-none p-0 outline-none w-24 text-center border-b border-solid border-slate-400 text-sm focus:border-blue-600 bg-transparent font-semibold"
               value={formData.dominantEye}
               onChange={e => setFormData(p => ({ ...p, dominantEye: e.target.value }))}
             />
@@ -964,7 +964,6 @@ export default function ConsultantSheet() {
                 className="w-full min-h-[96px] bg-transparent border-0 focus:outline-none focus:ring-0 text-sm resize-none p-1 dotted-textarea text-right"
                 value={formData.comments}
                 onChange={e => setFormData(p => ({ ...p, comments: e.target.value }))}
-                placeholder="Type comment here..."
               />
             </div>
             <div className="bg-slate-50 p-2 border-y border-slate-300 font-bold text-sm">Final Decision:</div>
@@ -974,7 +973,6 @@ export default function ConsultantSheet() {
                 className="w-full min-h-[80px] bg-transparent border-0 focus:outline-none focus:ring-0 text-sm resize-none p-1 dotted-textarea text-right"
                 value={formData.final}
                 onChange={e => setFormData(p => ({ ...p, final: e.target.value }))}
-                placeholder="Type final decision here..."
               />
             </div>
           </div>
@@ -986,7 +984,6 @@ export default function ConsultantSheet() {
                 className="w-full min-h-[220px] bg-transparent border-0 focus:outline-none focus:ring-0 text-sm resize-none p-1 dotted-textarea text-right"
                 value={formData.drOS}
                 onChange={e => setFormData(p => ({ ...p, drOS: e.target.value }))}
-                placeholder="Type notes here..."
               />
             </div>
           </div>
@@ -1043,6 +1040,13 @@ export default function ConsultantSheet() {
             border: 0 !important;
             box-shadow: none !important;
             overflow: hidden !important;
+          }
+          /* outer wrappers must not constrain or offset the 210mm sheet */
+          main[data-mobile-pdf-root] {
+            width: 210mm !important;
+            max-width: 210mm !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
           }
           .consultant-main-print-root section {
             margin-bottom: 3mm !important;

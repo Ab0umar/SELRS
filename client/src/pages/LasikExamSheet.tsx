@@ -592,7 +592,7 @@ export default function LasikExamSheet() {
         }));
 
     const inp =
-      "w-full text-center bg-transparent border-0 border-b border-dotted border-[#737685] focus:outline-none focus:border-[#003d9b] py-1 text-sm";
+      "w-full text-center bg-transparent border-0 border-b border-solid border-[#737685] focus:outline-none focus:border-[#003d9b] py-1 text-sm";
     const ctd = "p-1 border border-[#c3c6d6]";
 
     return (
@@ -810,19 +810,19 @@ export default function LasikExamSheet() {
             <div className="lg:col-span-8 space-y-4">
               <div>
                 <label className="font-bold text-[#003d9b] text-sm">Comments / ملاحظات:</label>
-                <div className="border-b border-dotted border-[#c3c6d6] h-8" />
-                <div className="border-b border-dotted border-[#c3c6d6] h-8" />
+                <div className="border-b border-solid border-[#c3c6d6] h-8" />
+                <div className="border-b border-solid border-[#c3c6d6] h-8" />
               </div>
               <div>
                 <label className="font-bold text-[#003d9b] text-sm">Final Decision / القرار النهائي:</label>
-                <div className="border-b border-dotted border-[#c3c6d6] h-8" />
+                <div className="border-b border-solid border-[#c3c6d6] h-8" />
               </div>
             </div>
             <div className="lg:col-span-4 border-2 border-[#003d9b] rounded-xl p-4 bg-[#003d9b]/5">
               <div className="text-center font-bold text-[#003d9b] uppercase text-xs border-b border-[#003d9b]/20 pb-2 mb-3">Office Notes</div>
-              <div className="border-b border-dotted border-[#003d9b]/40 h-6 mb-2" />
-              <div className="border-b border-dotted border-[#003d9b]/40 h-6 mb-2" />
-              <div className="border-b border-dotted border-[#003d9b]/40 h-6" />
+              <div className="border-b border-solid border-[#003d9b]/40 h-6 mb-2" />
+              <div className="border-b border-solid border-[#003d9b]/40 h-6 mb-2" />
+              <div className="border-b border-solid border-[#003d9b]/40 h-6" />
             </div>
           </div>
           <div className="print-lasik-signatures grid grid-cols-2 md:grid-cols-4 gap-8 pt-4 border-t border-[#c3c6d6]">
