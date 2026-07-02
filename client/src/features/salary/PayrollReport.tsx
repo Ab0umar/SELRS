@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
-import { canUseNativeAndroidPrint, requestNativeAndroidPrint } from "@/lib/nativePrint";
+import {
+  canUseNativeAndroidPrint,
+  requestNativeAndroidPrint,
+} from "@/lib/nativePrint";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,6 +54,15 @@ function fmt(n: any): string {
 }
 function pct(n: any): string {
   return (Number(n) * 100).toFixed(1) + "%";
+}
+
+function escapeHtml(value: any): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 const SECTIONS = ["مركز", "عيادة"] as const;
@@ -108,14 +120,23 @@ export default function PayrollReport() {
     section: section === "مركز" ? "عيادة" : "مركز",
   });
 
-  const supervisionBonusQ = (trpc as any).salary.getSupervisionBonuses.useQuery({ year, month, section });
-  const supervisionBonusMap: Record<string, string> = ((supervisionBonusQ.data ?? []) as any[]).reduce(
-    (acc: Record<string, string>, r: any) => { acc[r.empCd] = String(r.amount ?? "0"); return acc; },
-    {},
+  const supervisionBonusQ = (trpc as any).salary.getSupervisionBonuses.useQuery(
+    { year, month, section },
   );
+  const supervisionBonusMap: Record<string, string> = (
+    (supervisionBonusQ.data ?? []) as any[]
+  ).reduce((acc: Record<string, string>, r: any) => {
+    acc[r.empCd] = String(r.amount ?? "0");
+    return acc;
+  }, {});
 
-  const setSupervisionBonus = (trpc as any).salary.setSupervisionBonus.useMutation({
-    onSuccess: () => { supervisionBonusQ.refetch(); toast.success("تم الحفظ"); },
+  const setSupervisionBonus = (
+    trpc as any
+  ).salary.setSupervisionBonus.useMutation({
+    onSuccess: () => {
+      supervisionBonusQ.refetch();
+      toast.success("تم الحفظ");
+    },
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
 
@@ -134,9 +155,15 @@ export default function PayrollReport() {
 
   // Fetch shift staff data, live shift payroll (has byShift big/small breakdown), and roster
   const shiftStaffQ = (trpc as any).salary.listShiftStaff.useQuery();
-  const shiftScheduleQ = (trpc as any).salary.getShiftSchedule.useQuery({ year, month });
+  const shiftScheduleQ = (trpc as any).salary.getShiftSchedule.useQuery({
+    year,
+    month,
+  });
   const shiftPayrollQ = (trpc as any).salary.computeShiftPayroll.useQuery({
-    year, month, fromDate, toDate,
+    year,
+    month,
+    fromDate,
+    toDate,
   });
   const shiftStaff: any[] = shiftStaffQ.data ?? [];
   const shiftSchedule: any[] = shiftScheduleQ.data?.attendance ?? [];
@@ -183,7 +210,9 @@ export default function PayrollReport() {
 
   // Build enhanced shift rows from computeShiftPayroll big/small breakdown
   const enhancedShiftRows = shiftStaff.map((staff: any) => {
-    const liveRow = shiftPayrollRows.find((r: any) => Number(r.id) === Number(staff.id));
+    const liveRow = shiftPayrollRows.find(
+      (r: any) => Number(r.id) === Number(staff.id),
+    );
     const payrollRow = rows.find((r: any) => r.empCd === `shift_${staff.id}`);
 
     const rateBig = Number(staff.ratePerShift ?? 0);
@@ -192,27 +221,38 @@ export default function PayrollReport() {
     // ALWAYS classify big/small from byShift by name (Night=small, else=big).
     // byShift is keyed by shiftName in every backend version, so this is
     // independent of which server build is deployed.
-    let bigScheduled = 0, bigAttended = 0, bigTotal = 0;
-    let smallScheduled = 0, smallAttended = 0, smallTotal = 0;
+    let bigScheduled = 0,
+      bigAttended = 0,
+      bigTotal = 0;
+    let smallScheduled = 0,
+      smallAttended = 0,
+      smallTotal = 0;
     for (const [sn, b] of Object.entries(liveRow?.byShift ?? {}) as any[]) {
       const cnt = Number((b as any).scheduled ?? 0);
       const att = Number((b as any).attended ?? 0);
       const rate = Number((b as any).rate ?? 0);
       if (sn === "Night") {
-        smallScheduled += cnt; smallAttended += att;
+        smallScheduled += cnt;
+        smallAttended += att;
         smallTotal += cnt * (rate || rateSmall);
       } else {
-        bigScheduled += cnt; bigAttended += att;
+        bigScheduled += cnt;
+        bigAttended += att;
         bigTotal += cnt * (rate || rateBig);
       }
     }
-    const bigAbsent   = Math.max(0, bigScheduled - bigAttended);
+    const bigAbsent = Math.max(0, bigScheduled - bigAttended);
     const smallAbsent = Math.max(0, smallScheduled - smallAttended);
 
     const basicSalary = bigTotal + smallTotal;
-    const totalDeductions = payrollRow?.totalDeductions != null ? Number(payrollRow.totalDeductions) : 0;
-    const netBasic = payrollRow?.netBasic != null ? Number(payrollRow.netBasic)
-      : basicSalary - totalDeductions;
+    const totalDeductions =
+      payrollRow?.totalDeductions != null
+        ? Number(payrollRow.totalDeductions)
+        : 0;
+    const netBasic =
+      payrollRow?.netBasic != null
+        ? Number(payrollRow.netBasic)
+        : basicSalary - totalDeductions;
 
     return {
       id: staff.id,
@@ -229,7 +269,10 @@ export default function PayrollReport() {
       shiftNightRate: rateSmall,
       shiftNightTotal: smallTotal,
       totalDeductions,
-      leaveMultiplier: payrollRow?.leaveMultiplier != null ? Number(payrollRow.leaveMultiplier) : 1,
+      leaveMultiplier:
+        payrollRow?.leaveMultiplier != null
+          ? Number(payrollRow.leaveMultiplier)
+          : 1,
       netBasic,
     };
   });
@@ -292,55 +335,371 @@ export default function PayrollReport() {
           overtime: acc.overtime + Number(r.overtimePay ?? 0),
           totalPay: acc.totalPay + Number(r.totalPay),
         }),
-        { basic: 0, deductions: 0, netBasic: 0, commission: 0, overtime: 0, totalPay: 0 },
+        {
+          basic: 0,
+          deductions: 0,
+          netBasic: 0,
+          commission: 0,
+          overtime: 0,
+          totalPay: 0,
+        },
       );
 
   const isFinalized =
     rows.length > 0 && rows.every((r: any) => r.payrollStatus === "final");
 
   const SHEET_CSS = `
-    @page { size: A4 landscape; margin: 8mm; }
+    @page { size: A4 landscape; margin: 7mm; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 8px; color: #000; }
-    .top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px; font-size: 10px; }
-    h1 { text-align: center; font-size: 15px; font-weight: bold; margin-bottom: 3px; }
-    .dept { text-align: right; font-size: 12px; font-weight: bold; color: #b00; margin-bottom: 6px; }
-    table { width: 100%; border-collapse: collapse; }
-    th { background: #ddd; font-size: 7.5px; padding: 2px 3px; border: 1px solid #999; text-align: center; white-space: nowrap; }
-    td { font-size: 7.5px; padding: 2px 3px; border: 1px solid #bbb; text-align: center; white-space: nowrap; }
-    .emp-col { text-align: right !important; font-weight: bold; }
-    .total-row { background: #eee; font-weight: bold; }
-    .sig-col { width: 55px; }
-    .footer { margin-top: 16px; display: flex; justify-content: space-between; }
-    .footer-block { text-align: center; font-size: 9px; }
-    .footer-line { border-top: 1px solid #000; width: 130px; margin: 20px auto 3px; }
-    .footer-meta { display: flex; justify-content: space-between; margin-top: 8px; font-size: 8px; color: #555; }
-    .note { font-size: 8px; color: #555; }
+    body {
+      direction: rtl;
+      background: oklch(99% 0.004 248);
+      color: oklch(22% 0.035 248);
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      font-size: 8px;
+      line-height: 1.35;
+    }
+    .payroll-sheet {
+      min-height: 190mm;
+      padding: 7mm;
+      border: 1px solid oklch(86% 0.016 248);
+      border-radius: 14px;
+      background: oklch(99.5% 0.004 248);
+    }
+    .sheet-header {
+      display: grid;
+      grid-template-columns: 1fr 1.45fr 1fr;
+      align-items: start;
+      gap: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid oklch(87% 0.02 248);
+    }
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 5px;
+      color: oklch(46% 0.025 248);
+      font-size: 9px;
+      font-weight: 800;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-weight: 800;
+      color: oklch(29% 0.055 248);
+    }
+    .brand-mark {
+      display: grid;
+      width: 28px;
+      height: 28px;
+      place-items: center;
+      border-radius: 999px;
+      background: oklch(92% 0.052 248);
+      color: oklch(38% 0.105 248);
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .muted { color: oklch(48% 0.025 248); font-size: 7.5px; font-weight: 600; }
+    .report-title { text-align: center; }
+    h1 {
+      color: oklch(25% 0.045 248);
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+    .period {
+      display: inline-flex;
+      margin-top: 4px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: oklch(96% 0.018 248);
+      color: oklch(39% 0.055 248);
+      font-size: 8px;
+      font-weight: 800;
+    }
+    .dept {
+      justify-self: end;
+      min-width: 92px;
+      padding: 6px 10px;
+      border: 1px solid oklch(88% 0.035 56);
+      border-radius: 12px;
+      background: oklch(98% 0.02 56);
+      color: oklch(41% 0.095 56);
+      text-align: center;
+      font-size: 11px;
+      font-weight: 900;
+    }
+    .summary-strip {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 5px;
+      margin: 7px 0;
+    }
+    .summary-pill {
+      min-height: 31px;
+      padding: 4px 7px;
+      border: 1px solid oklch(88% 0.018 248);
+      border-radius: 10px;
+      background: oklch(98.5% 0.006 248);
+    }
+    .summary-label {
+      display: block;
+      color: oklch(50% 0.025 248);
+      font-size: 6.8px;
+      font-weight: 700;
+    }
+    .summary-value {
+      display: block;
+      margin-top: 1px;
+      color: oklch(28% 0.045 248);
+      font-size: 9.5px;
+      font-weight: 900;
+    }
+    .table-wrap {
+      overflow: hidden;
+      border: 1px solid oklch(84% 0.017 248);
+      border-radius: 12px;
+    }
+    table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    thead th {
+      background: oklch(93.5% 0.025 248);
+      color: oklch(31% 0.047 248);
+      font-size: 7.4px;
+      font-weight: 900;
+      padding: 4px 3px;
+      border-inline-start: 1px solid oklch(83% 0.017 248);
+      border-bottom: 1px solid oklch(80% 0.02 248);
+      text-align: center;
+      white-space: nowrap;
+    }
+    tbody td {
+      background: oklch(99.5% 0.003 248);
+      color: oklch(25% 0.03 248);
+      font-size: 7.4px;
+      font-weight: 700;
+      padding: 3px 3px;
+      border-inline-start: 1px solid oklch(88% 0.012 248);
+      border-bottom: 1px solid oklch(88% 0.012 248);
+      text-align: center;
+      white-space: nowrap;
+    }
+    tbody tr:nth-child(even) td { background: oklch(98% 0.006 248); }
+    tbody tr:last-child td { border-bottom: 0; }
+    .emp-col {
+      min-width: 115px;
+      text-align: right !important;
+      font-size: 8px;
+      font-weight: 900;
+      color: oklch(25% 0.045 248);
+    }
+    .money-strong {
+      color: oklch(38% 0.105 248);
+      font-size: 8px;
+      font-weight: 900;
+    }
+    .total-row td {
+      background: oklch(96% 0.035 56) !important;
+      color: oklch(31% 0.055 56);
+      font-size: 8px;
+      font-weight: 900;
+      border-top: 1px solid oklch(76% 0.06 56);
+    }
+    .sig-col { width: 58px; }
+    .footer {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-top: 14px;
+    }
+    .footer-block {
+      text-align: center;
+      color: oklch(31% 0.035 248);
+      font-size: 8.5px;
+      font-weight: 800;
+    }
+    .footer-line {
+      width: 128px;
+      margin: 16px auto 4px;
+      border-top: 1px solid oklch(38% 0.025 248);
+    }
+    .footer-meta {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 7px;
+      color: oklch(50% 0.024 248);
+      font-size: 7px;
+      font-weight: 700;
+    }
+    .note {
+      margin: 6px 0;
+      color: oklch(46% 0.025 248);
+      font-size: 8px;
+      font-weight: 700;
+    }
   `;
 
   const SLIPS_CSS = `
-    @page { size: A4; margin: 10mm; }
+    @page { size: A4 portrait; margin: 8mm; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 9px; color: #000; }
-    .slip { padding: 6px 0 4px; break-inside: avoid; border-bottom: 1px dashed #aaa; margin-bottom: 4px; }
-    .slip-top { display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 2px; }
-    .slip-title { text-align: center; font-size: 15px; font-weight: bold; margin-bottom: 4px; }
-    .emp-name { text-align: center; font-size: 13px; font-weight: bold; margin-bottom: 3px; }
-    .dept-row { text-align: right; font-size: 9px; margin-bottom: 5px; }
-    table.main { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
-    table.main th { border: 1px solid #999; padding: 2px 3px; font-size: 7.5px; background: #e8e8e8; text-align: center; white-space: nowrap; }
-    table.main td { border: 1px solid #aaa; padding: 2px 4px; font-size: 8.5px; text-align: center; }
-    .net-cell { border: 2px solid #000 !important; text-align: center; vertical-align: middle; min-width: 62px; padding: 3px 5px; }
-    .net-label { font-size: 7.5px; display: block; margin-bottom: 4px; }
-    .net-val { font-size: 15px; font-weight: bold; display: block; }
-    .words { text-align: right; font-size: 9px; margin: 4px 0 2px; }
-    .sigs { display: flex; justify-content: space-between; margin-top: 8px; }
-    .sig-block { text-align: center; font-size: 9px; }
-    .sig-line { border-top: 1px solid #000; width: 110px; margin: 16px auto 3px; }
+    body {
+      direction: rtl;
+      background: oklch(99% 0.004 248);
+      color: oklch(22% 0.035 248);
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      font-size: 9px;
+      line-height: 1.35;
+    }
+    .slip {
+      position: relative;
+      min-height: 88mm;
+      margin-bottom: 5mm;
+      padding: 6mm;
+      break-inside: avoid;
+      page-break-inside: avoid;
+      border: 1px solid oklch(84% 0.017 248);
+      border-radius: 14px;
+      background: oklch(99.5% 0.004 248);
+    }
+    .slip::after {
+      content: "";
+      position: absolute;
+      inset-inline: 6mm;
+      bottom: -2.5mm;
+      border-bottom: 1px dashed oklch(72% 0.02 248);
+    }
+    .slip-top {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 5px;
+      color: oklch(48% 0.025 248);
+      font-size: 8px;
+      font-weight: 800;
+    }
+    .slip-badge {
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: oklch(96% 0.018 248);
+      color: oklch(38% 0.105 248);
+      font-size: 8px;
+      font-weight: 900;
+    }
+    .slip-title {
+      text-align: center;
+      color: oklch(25% 0.045 248);
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+    .employee-strip {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 8px;
+      margin: 6px 0;
+    }
+    .employee-box {
+      padding: 5px 8px;
+      border: 1px solid oklch(88% 0.018 248);
+      border-radius: 11px;
+      background: oklch(98% 0.006 248);
+    }
+    .box-label {
+      display: block;
+      color: oklch(50% 0.025 248);
+      font-size: 7px;
+      font-weight: 700;
+    }
+    .box-value {
+      display: block;
+      margin-top: 1px;
+      color: oklch(25% 0.045 248);
+      font-size: 11px;
+      font-weight: 900;
+    }
+    table.main {
+      width: 100%;
+      overflow: hidden;
+      border: 1px solid oklch(84% 0.017 248);
+      border-collapse: separate;
+      border-spacing: 0;
+      border-radius: 12px;
+      margin-bottom: 5px;
+    }
+    table.main th {
+      border-inline-start: 1px solid oklch(84% 0.017 248);
+      border-bottom: 1px solid oklch(80% 0.02 248);
+      background: oklch(93.5% 0.025 248);
+      color: oklch(31% 0.047 248);
+      padding: 4px 3px;
+      text-align: center;
+      white-space: nowrap;
+      font-size: 7.4px;
+      font-weight: 900;
+    }
+    table.main td {
+      border-inline-start: 1px solid oklch(88% 0.012 248);
+      border-bottom: 1px solid oklch(88% 0.012 248);
+      background: oklch(99.5% 0.003 248);
+      color: oklch(25% 0.03 248);
+      padding: 4px 3px;
+      text-align: center;
+      font-size: 8.4px;
+      font-weight: 750;
+    }
+    table.main tr:last-child td { border-bottom: 0; }
+    .net-cell {
+      min-width: 72px;
+      border: 1px solid oklch(70% 0.095 56) !important;
+      background: oklch(97% 0.038 56) !important;
+      color: oklch(34% 0.075 56) !important;
+      text-align: center;
+      vertical-align: middle;
+      padding: 5px 6px !important;
+    }
+    .net-label {
+      display: block;
+      margin-bottom: 4px;
+      color: oklch(42% 0.065 56);
+      font-size: 7px;
+      font-weight: 800;
+    }
+    .net-val {
+      display: block;
+      color: oklch(31% 0.08 56);
+      font-size: 15px;
+      font-weight: 950;
+    }
+    .words {
+      margin: 5px 0 2px;
+      color: oklch(30% 0.035 248);
+      text-align: right;
+      font-size: 9px;
+      font-weight: 800;
+    }
+    .sigs {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 28px;
+      margin-top: 9px;
+    }
+    .sig-block {
+      text-align: center;
+      color: oklch(31% 0.035 248);
+      font-size: 8.5px;
+      font-weight: 800;
+    }
+    .sig-line {
+      width: 120px;
+      margin: 16px auto 4px;
+      border-top: 1px solid oklch(38% 0.025 248);
+    }
   `;
 
   function openPrint(html: string, title: string, css: string) {
-    const fullHtml = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/><title>${title}</title><style>${css}</style></head><body>${html}</body></html>`;
+    const fullHtml = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/><title>${escapeHtml(title)}</title><style>${css}</style></head><body>${html}</body></html>`;
 
     // On Android native, use the printer plugin which accepts raw HTML
     if (canUseNativeAndroidPrint()) {
@@ -485,7 +844,7 @@ export default function PayrollReport() {
       .map(
         (r: any) => `
       <tr>
-        <td class="emp-col">${r.fullName ?? r.empCd}</td>
+        <td class="emp-col">${escapeHtml(r.fullName ?? r.empCd)}</td>
         <td>${fmt(r.basicSalary)}</td>
         <td>${fmt(r.absentDeduction)}</td>
         <td>${fmt(r.lateDeduction ?? 0)}</td>
@@ -497,19 +856,36 @@ export default function PayrollReport() {
         <td>${fmt(r.examCommission)}</td>
         ${!isClinic ? `<td>${fmt(r.pentacamCommission)}</td>` : ""}
         <td>${fmt(r.overtimePay ?? 0)}</td>
-        <td style="font-weight:bold">${fmt(r.totalPay)}</td>
+        <td class="money-strong">${fmt(r.totalPay)}</td>
         <td class="sig-col"></td>
       </tr>`,
       )
       .join("");
 
     const html = `
-      <div class="top">
-        <span>نظام مرتبات</span>
-        <span>عيون السروق للخدمات الطبية</span>
-      </div>
-      <h1>كشف المرتبات الشهرية عن الفترة ${periodLabel}</h1>
-      <div class="dept">قسم ${section}</div>
+      <main class="payroll-sheet">
+        <header class="sheet-header">
+          <div class="brand">
+            <span class="brand-mark">S</span>
+            <div>
+              <div>SELRS Medical Center</div>
+              <div class="muted">نظام مرتبات العاملين</div>
+            </div>
+          </div>
+          <div class="report-title">
+            <h1>كشف المرتبات الشهرية</h1>
+            <span class="period">${escapeHtml(periodLabel)}</span>
+          </div>
+          <div class="dept">قسم ${escapeHtml(section)}</div>
+        </header>
+        <section class="summary-strip" aria-label="ملخص كشف المرتبات">
+          <div class="summary-pill"><span class="summary-label">عدد الموظفين</span><span class="summary-value">${nonShift.length}</span></div>
+          <div class="summary-pill"><span class="summary-label">إجمالي الأساسي</span><span class="summary-value">${fmt(tBasic)}</span></div>
+          <div class="summary-pill"><span class="summary-label">إجمالي الخصومات</span><span class="summary-value">${fmt(tDed)}</span></div>
+          <div class="summary-pill"><span class="summary-label">صافي الأساسي</span><span class="summary-value">${fmt(tNetBasic)}</span></div>
+          <div class="summary-pill"><span class="summary-label">صافي المستحق</span><span class="summary-value">${fmt(tTotal)}</span></div>
+        </section>
+        <section class="table-wrap">
       <table>
         <thead>
           <tr>
@@ -544,11 +920,12 @@ export default function PayrollReport() {
             <td>${fmt(tExam)}</td>
             ${!isClinic ? `<td>${fmt(tPenta)}</td>` : ""}
             <td>${fmt(tOT)}</td>
-            <td style="font-weight:bold">${fmt(tTotal)}</td>
+            <td class="money-strong">${fmt(tTotal)}</td>
             <td></td>
           </tr>
         </tbody>
       </table>
+        </section>
       <div class="footer">
         <div class="footer-block"><div class="footer-line"></div>المدير الإداري</div>
         <div class="footer-block"><div class="footer-line"></div>الحسابات</div>
@@ -556,8 +933,9 @@ export default function PayrollReport() {
       </div>
       <div class="footer-meta">
         <span>صفحة 1 من 1</span>
-        <span>تاريخ الطباعة: ${today}</span>
-      </div>`;
+        <span>تاريخ الطباعة: ${escapeHtml(today)}</span>
+      </div>
+      </main>`;
 
     openPrint(html, `كشف الرواتب — ${section} — ${periodLabel}`, SHEET_CSS);
   }
@@ -599,14 +977,14 @@ export default function PayrollReport() {
       .map(
         (r: any) => `
       <tr>
-        <td class="emp-col">${r.fullName ?? r.empCd}</td>
+        <td class="emp-col">${escapeHtml(r.fullName ?? r.empCd)}</td>
         <td>${fmt(r.basicSalary)}</td>
         <td>${fmt(r.absentDeduction)}</td>
         <td>${fmt(r.lateDeduction ?? 0)}</td>
         <td>${fmt(r.earlyLeaveDeduction ?? 0)}</td>
         <td>${fmt(r.penaltyDeduction)}</td>
         <td>${fmt(r.totalDeductions)}</td>
-        <td style="font-weight:bold">${fmt(r.netBasic)}</td>
+        <td class="money-strong">${fmt(r.netBasic)}</td>
         <td class="sig-col"></td>
       </tr>`,
       )
@@ -627,7 +1005,7 @@ export default function PayrollReport() {
             <td class="emp-col">الإجمالي</td>
             <td>${fmt(tBasic)}</td><td>${fmt(tAbsent)}</td><td>${fmt(tLate)}</td>
             <td>${fmt(tEarly)}</td><td>${fmt(tPenalty)}</td><td>${fmt(tDed)}</td>
-            <td style="font-weight:bold">${fmt(tNet)}</td><td></td>
+            <td class="money-strong">${fmt(tNet)}</td><td></td>
           </tr>
         </tbody>
       </table>
@@ -679,7 +1057,7 @@ export default function PayrollReport() {
       .map(
         (r: any) => `
       <tr>
-        <td class="emp-col">${r.fullName ?? r.empCd}</td>
+        <td class="emp-col">${escapeHtml(r.fullName ?? r.empCd)}</td>
         <td>${fmt(r.attendanceCommission)}</td>
         <td>${fmt(r.examCommission)}</td>
         ${!isClinic ? `<td>${fmt(r.pentacamCommission)}</td>` : ""}
@@ -724,18 +1102,24 @@ export default function PayrollReport() {
     const today = new Date().toLocaleDateString("ar-EG");
     const shiftSupRows = shiftStaff.map((s: any) => {
       const pr = shiftRows.find((r: any) => r.empCd === `shift_${s.id}`);
-      return { empCd: `shift_${s.id}`, fullName: s.name, department: "مناوبة", supervisionBonus: pr?.supervisionBonus ?? "0" };
+      return {
+        empCd: `shift_${s.id}`,
+        fullName: s.name,
+        department: "مناوبة",
+        supervisionBonus: pr?.supervisionBonus ?? "0",
+      };
     });
     const supRows = [...regularRows, ...shiftSupRows];
     const totalBonus = supRows.reduce(
-      (s: number, r: any) => s + Number(bonusEdits[r.empCd] ?? r.supervisionBonus ?? 0),
+      (s: number, r: any) =>
+        s + Number(bonusEdits[r.empCd] ?? r.supervisionBonus ?? 0),
       0,
     );
     const bodyRows = supRows
       .map(
         (r: any) => `
       <tr>
-        <td class="emp-col">${r.fullName ?? r.empCd}</td>
+        <td class="emp-col">${escapeHtml(r.fullName ?? r.empCd)}</td>
         <td>${fmt(Number(bonusEdits[r.empCd] ?? r.supervisionBonus ?? 0))}</td>
         <td class="sig-col"></td>
       </tr>`,
@@ -765,17 +1149,30 @@ export default function PayrollReport() {
         <div class="footer-block"><div class="footer-line"></div>شئون العاملين</div>
       </div>
       <div class="footer-meta"><span>صفحة 1 من 1</span><span>تاريخ الطباعة: ${today}</span></div>`;
-    openPrint(html, `كشف مكافآت الإشراف — ${section} — ${periodLabel}`, SHEET_CSS);
+    openPrint(
+      html,
+      `كشف مكافآت الإشراف — ${section} — ${periodLabel}`,
+      SHEET_CSS,
+    );
   }
 
   function printSupervisionSlips() {
     const shiftSupRows2 = shiftStaff.map((s: any) => {
       const pr = shiftRows.find((r: any) => r.empCd === `shift_${s.id}`);
-      return { empCd: `shift_${s.id}`, fullName: s.name, department: "مناوبة", supervisionBonus: pr?.supervisionBonus ?? "0" };
+      return {
+        empCd: `shift_${s.id}`,
+        fullName: s.name,
+        department: "مناوبة",
+        supervisionBonus: pr?.supervisionBonus ?? "0",
+      };
     });
-    const supRows = [...regularRows, ...shiftSupRows2]
-      .filter((r: any) => Number(bonusEdits[r.empCd] ?? r.supervisionBonus ?? 0) > 0);
-    if (!supRows.length) { toast.info("لا توجد مكافآت إشراف للطباعة"); return; }
+    const supRows = [...regularRows, ...shiftSupRows2].filter(
+      (r: any) => Number(bonusEdits[r.empCd] ?? r.supervisionBonus ?? 0) > 0,
+    );
+    if (!supRows.length) {
+      toast.info("لا توجد مكافآت إشراف للطباعة");
+      return;
+    }
     const html = supRows
       .map((r: any) => {
         const bonus = Number(bonusEdits[r.empCd] ?? r.supervisionBonus ?? 0);
@@ -789,12 +1186,16 @@ export default function PayrollReport() {
             <td>${fmt(bonus)}</td>
           </tr>
         </table>`;
-        return buildSlip(r, `مكافأة إشراف ${MONTHS[month - 1]} ${year}`, table, bonus);
+        return buildSlip(
+          r,
+          `مكافأة إشراف ${MONTHS[month - 1]} ${year}`,
+          table,
+          bonus,
+        );
       })
       .join("");
     openPrint(html, `مكافآت الإشراف — ${MONTHS[month - 1]} ${year}`, SLIPS_CSS);
   }
-
 
   function buildSlip(
     r: any,
@@ -807,13 +1208,22 @@ export default function PayrollReport() {
       <div class="slip">
         <div class="slip-top">
           <span>مرتبات</span>
-          <span>عيون السروق للخدمات الطبية</span>
+          <span class="slip-badge">SELRS</span>
+          <span style="text-align:left">عيون السروق للخدمات الطبية</span>
         </div>
-        <div class="slip-title">${title}</div>
-        <div class="emp-name">الاسم/ ${r.fullName ?? r.empCd}</div>
-        <div class="dept-row">القسم التابع له/ ${empSection ?? r._section ?? section}</div>
+        <div class="slip-title">${escapeHtml(title)}</div>
+        <div class="employee-strip">
+          <div class="employee-box">
+            <span class="box-label">اسم الموظف</span>
+            <span class="box-value">${escapeHtml(r.fullName ?? r.empCd)}</span>
+          </div>
+          <div class="employee-box">
+            <span class="box-label">القسم التابع له</span>
+            <span class="box-value">${escapeHtml(empSection ?? r._section ?? section)}</span>
+          </div>
+        </div>
         ${tableHtml}
-        <div class="words">${toArabicWords(netPay)}</div>
+        <div class="words">${escapeHtml(toArabicWords(netPay))}</div>
         <div class="sigs">
           <div class="sig-block"><div class="sig-line"></div>توقيع المستلم</div>
           <div class="sig-block"><div class="sig-line"></div>يعتمد</div>
@@ -823,14 +1233,23 @@ export default function PayrollReport() {
 
   function printPenaltiesSheet() {
     const today = new Date().toLocaleDateString("ar-EG");
-    const nonShift = rows.filter((r: any) => !String(r.empCd).startsWith("shift_"));
-    const tPenalty = nonShift.reduce((s: number, r: any) => s + Number(r.penaltyDeduction), 0);
-    const bodyRows = nonShift.map((r: any) => `
+    const nonShift = rows.filter(
+      (r: any) => !String(r.empCd).startsWith("shift_"),
+    );
+    const tPenalty = nonShift.reduce(
+      (s: number, r: any) => s + Number(r.penaltyDeduction),
+      0,
+    );
+    const bodyRows = nonShift
+      .map(
+        (r: any) => `
       <tr>
-        <td class="emp-col">${r.fullName ?? r.empCd}</td>
+        <td class="emp-col">${escapeHtml(r.fullName ?? r.empCd)}</td>
         <td>${fmt(r.penaltyDeduction)}</td>
         <td class="sig-col"></td>
-      </tr>`).join("");
+      </tr>`,
+      )
+      .join("");
     const html = `
       <div class="top"><span>نظام مرتبات</span><span>عيون السروق للخدمات الطبية</span></div>
       <h1>كشف الجزاءات عن الفترة ${periodLabel}</h1>
@@ -853,14 +1272,23 @@ export default function PayrollReport() {
 
   function printAdvancesSheet() {
     const today = new Date().toLocaleDateString("ar-EG");
-    const nonShift = rows.filter((r: any) => !String(r.empCd).startsWith("shift_"));
-    const tAdv = nonShift.reduce((s: number, r: any) => s + Number(r.advancesDeduction ?? 0), 0);
-    const bodyRows = nonShift.map((r: any) => `
+    const nonShift = rows.filter(
+      (r: any) => !String(r.empCd).startsWith("shift_"),
+    );
+    const tAdv = nonShift.reduce(
+      (s: number, r: any) => s + Number(r.advancesDeduction ?? 0),
+      0,
+    );
+    const bodyRows = nonShift
+      .map(
+        (r: any) => `
       <tr>
-        <td class="emp-col">${r.fullName ?? r.empCd}</td>
+        <td class="emp-col">${escapeHtml(r.fullName ?? r.empCd)}</td>
         <td>${fmt(r.advancesDeduction ?? 0)}</td>
         <td class="sig-col"></td>
-      </tr>`).join("");
+      </tr>`,
+      )
+      .join("");
     const html = `
       <div class="top"><span>نظام مرتبات</span><span>عيون السروق للخدمات الطبية</span></div>
       <h1>كشف السلف عن الفترة ${periodLabel}</h1>
@@ -883,18 +1311,30 @@ export default function PayrollReport() {
 
   function printLateSheet() {
     const today = new Date().toLocaleDateString("ar-EG");
-    const nonShift = rows.filter((r: any) => !String(r.empCd).startsWith("shift_"));
-    const tLate = nonShift.reduce((s: number, r: any) => s + Number(r.lateDeduction ?? 0), 0);
-    const tEarly = nonShift.reduce((s: number, r: any) => s + Number(r.earlyLeaveDeduction ?? 0), 0);
-    const bodyRows = nonShift.map((r: any) => `
+    const nonShift = rows.filter(
+      (r: any) => !String(r.empCd).startsWith("shift_"),
+    );
+    const tLate = nonShift.reduce(
+      (s: number, r: any) => s + Number(r.lateDeduction ?? 0),
+      0,
+    );
+    const tEarly = nonShift.reduce(
+      (s: number, r: any) => s + Number(r.earlyLeaveDeduction ?? 0),
+      0,
+    );
+    const bodyRows = nonShift
+      .map(
+        (r: any) => `
       <tr>
-        <td class="emp-col">${r.fullName ?? r.empCd}</td>
+        <td class="emp-col">${escapeHtml(r.fullName ?? r.empCd)}</td>
         <td>${r.lateMinutes ?? 0}</td>
         <td>${fmt(r.lateDeduction ?? 0)}</td>
         <td>${r.earlyLeaveMinutes ?? 0}</td>
         <td>${fmt(r.earlyLeaveDeduction ?? 0)}</td>
         <td class="sig-col"></td>
-      </tr>`).join("");
+      </tr>`,
+      )
+      .join("");
     const html = `
       <div class="top"><span>نظام مرتبات</span><span>عيون السروق للخدمات الطبية</span></div>
       <h1>كشف التأخيرات عن الفترة ${periodLabel}</h1>
@@ -927,14 +1367,23 @@ export default function PayrollReport() {
 
   function printInsuranceSheet() {
     const today = new Date().toLocaleDateString("ar-EG");
-    const nonShift = rows.filter((r: any) => !String(r.empCd).startsWith("shift_"));
-    const tIns = nonShift.reduce((s: number, r: any) => s + Number(r.insuranceDeduction ?? 0), 0);
-    const bodyRows = nonShift.map((r: any) => `
+    const nonShift = rows.filter(
+      (r: any) => !String(r.empCd).startsWith("shift_"),
+    );
+    const tIns = nonShift.reduce(
+      (s: number, r: any) => s + Number(r.insuranceDeduction ?? 0),
+      0,
+    );
+    const bodyRows = nonShift
+      .map(
+        (r: any) => `
       <tr>
-        <td class="emp-col">${r.fullName ?? r.empCd}</td>
+        <td class="emp-col">${escapeHtml(r.fullName ?? r.empCd)}</td>
         <td>${fmt(r.insuranceDeduction ?? 0)}</td>
         <td class="sig-col"></td>
-      </tr>`).join("");
+      </tr>`,
+      )
+      .join("");
     const html = `
       <div class="top"><span>نظام مرتبات</span><span>عيون السروق للخدمات الطبية</span></div>
       <h1>كشف التأمينات الاجتماعية عن الفترة ${periodLabel}</h1>
@@ -1112,13 +1561,25 @@ export default function PayrollReport() {
             <>
               {/* Desktop Print Actions */}
               <div className="hidden lg:flex items-center gap-2">
-                <Button variant="outline" onClick={printSheet} className="gap-2">
+                <Button
+                  variant="outline"
+                  onClick={printSheet}
+                  className="gap-2"
+                >
                   <Printer size={15} /> كامل
                 </Button>
-                <Button variant="outline" onClick={printDay1Slips} className="gap-2">
+                <Button
+                  variant="outline"
+                  onClick={printDay1Slips}
+                  className="gap-2"
+                >
                   <Printer size={15} /> يوم 1
                 </Button>
-                <Button variant="outline" onClick={printDay10Slips} className="gap-2">
+                <Button
+                  variant="outline"
+                  onClick={printDay10Slips}
+                  className="gap-2"
+                >
                   <Printer size={15} /> يوم 10
                 </Button>
                 <DropdownMenu>
@@ -1128,16 +1589,28 @@ export default function PayrollReport() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={printPenaltiesSheet} className="gap-2 justify-start cursor-pointer">
+                    <DropdownMenuItem
+                      onClick={printPenaltiesSheet}
+                      className="gap-2 justify-start cursor-pointer"
+                    >
                       <Printer size={14} /> جزاءات
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={printAdvancesSheet} className="gap-2 justify-start cursor-pointer">
+                    <DropdownMenuItem
+                      onClick={printAdvancesSheet}
+                      className="gap-2 justify-start cursor-pointer"
+                    >
                       <Printer size={14} /> سلف
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={printLateSheet} className="gap-2 justify-start cursor-pointer">
+                    <DropdownMenuItem
+                      onClick={printLateSheet}
+                      className="gap-2 justify-start cursor-pointer"
+                    >
                       <Printer size={14} /> تأخيرات
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={printInsuranceSheet} className="gap-2 justify-start cursor-pointer">
+                    <DropdownMenuItem
+                      onClick={printInsuranceSheet}
+                      className="gap-2 justify-start cursor-pointer"
+                    >
                       <Printer size={14} /> تأمينات
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -1148,30 +1621,54 @@ export default function PayrollReport() {
               <div className="lg:hidden w-full sm:w-auto">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="gap-2 w-full justify-center">
+                    <Button
+                      variant="outline"
+                      className="gap-2 w-full justify-center"
+                    >
                       <Printer size={15} /> طباعة التقارير
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={printSheet} className="gap-2 justify-start cursor-pointer">
+                    <DropdownMenuItem
+                      onClick={printSheet}
+                      className="gap-2 justify-start cursor-pointer"
+                    >
                       <Printer size={14} /> كامل
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={printDay1Slips} className="gap-2 justify-start cursor-pointer">
+                    <DropdownMenuItem
+                      onClick={printDay1Slips}
+                      className="gap-2 justify-start cursor-pointer"
+                    >
                       <Printer size={14} /> يوم 1
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={printDay10Slips} className="gap-2 justify-start cursor-pointer">
+                    <DropdownMenuItem
+                      onClick={printDay10Slips}
+                      className="gap-2 justify-start cursor-pointer"
+                    >
                       <Printer size={14} /> يوم 10
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={printPenaltiesSheet} className="gap-2 justify-start cursor-pointer">
+                    <DropdownMenuItem
+                      onClick={printPenaltiesSheet}
+                      className="gap-2 justify-start cursor-pointer"
+                    >
                       <Printer size={14} /> جزاءات
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={printAdvancesSheet} className="gap-2 justify-start cursor-pointer">
+                    <DropdownMenuItem
+                      onClick={printAdvancesSheet}
+                      className="gap-2 justify-start cursor-pointer"
+                    >
                       <Printer size={14} /> سلف
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={printLateSheet} className="gap-2 justify-start cursor-pointer">
+                    <DropdownMenuItem
+                      onClick={printLateSheet}
+                      className="gap-2 justify-start cursor-pointer"
+                    >
                       <Printer size={14} /> تأخيرات
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={printInsuranceSheet} className="gap-2 justify-start cursor-pointer">
+                    <DropdownMenuItem
+                      onClick={printInsuranceSheet}
+                      className="gap-2 justify-start cursor-pointer"
+                    >
                       <Printer size={14} /> تأمينات
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -1208,25 +1705,51 @@ export default function PayrollReport() {
         </div>
       )}
 
-      {rows.length > 0 && (() => {
-        const t = totalsBySection(section as "مركز" | "عيادة");
-        return (
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-            {[
-              { label: "الرواتب الأساسية", value: fmt(t.basic), tone: "text-foreground" },
-              { label: "الخصومات", value: fmt(t.deductions), tone: "text-destructive" },
-              { label: "الإجمالي الكلي", value: fmt(t.totalPay), tone: "text-primary font-bold" },
-              { label: "دفعة يوم 1 — الراتب", value: fmt(t.netBasic), tone: "text-foreground" },
-              { label: "دفعة يوم 10 — المكافآت", value: fmt(t.commission + t.overtime), tone: "text-success" },
-            ].map((m) => (
-              <div key={m.label} className="rounded-xl border border-border bg-card px-4 py-3">
-                <div className="text-xs text-muted-foreground">{m.label}</div>
-                <div className={`mt-1 text-base font-bold ${m.tone}`}>{m.value}</div>
-              </div>
-            ))}
-          </div>
-        );
-      })()}
+      {rows.length > 0 &&
+        (() => {
+          const t = totalsBySection(section as "مركز" | "عيادة");
+          return (
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+              {[
+                {
+                  label: "الرواتب الأساسية",
+                  value: fmt(t.basic),
+                  tone: "text-foreground",
+                },
+                {
+                  label: "الخصومات",
+                  value: fmt(t.deductions),
+                  tone: "text-destructive",
+                },
+                {
+                  label: "الإجمالي الكلي",
+                  value: fmt(t.totalPay),
+                  tone: "text-primary font-bold",
+                },
+                {
+                  label: "دفعة يوم 1 — الراتب",
+                  value: fmt(t.netBasic),
+                  tone: "text-foreground",
+                },
+                {
+                  label: "دفعة يوم 10 — المكافآت",
+                  value: fmt(t.commission + t.overtime),
+                  tone: "text-success",
+                },
+              ].map((m) => (
+                <div
+                  key={m.label}
+                  className="rounded-xl border border-border bg-card px-4 py-3"
+                >
+                  <div className="text-xs text-muted-foreground">{m.label}</div>
+                  <div className={`mt-1 text-base font-bold ${m.tone}`}>
+                    {m.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
 
       {/* ── Tabs Navigation ── */}
       {section === "مركز" && (
@@ -3305,86 +3828,141 @@ export default function PayrollReport() {
         })()}
 
       {/* ── Supervision Bonus Tab ── */}
-      {section === "مركز" && activeTab === "supervision" && (() => {
-        const shiftSupRows3 = shiftStaff.map((s: any) => {
-          const pr = shiftRows.find((r: any) => r.empCd === `shift_${s.id}`);
-          return { empCd: `shift_${s.id}`, fullName: s.name, department: "مناوبة", supervisionBonus: pr?.supervisionBonus ?? "0" };
-        });
-        const supRows = [...regularRows, ...shiftSupRows3];
-        const totalBonus = supRows.reduce((s: number, r: any) => s + Number(bonusEdits[r.empCd] ?? r.supervisionBonus ?? 0), 0);
-        return (
-          <section className="rounded-xl border border-border bg-background overflow-hidden">
-            <div className="border-b border-border bg-muted/25 px-4 py-3 flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-base font-semibold text-foreground">مكافأة الإشراف</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">خارج إجمالي الراتب — لا تؤثر على الحسابات</p>
+      {section === "مركز" &&
+        activeTab === "supervision" &&
+        (() => {
+          const shiftSupRows3 = shiftStaff.map((s: any) => {
+            const pr = shiftRows.find((r: any) => r.empCd === `shift_${s.id}`);
+            return {
+              empCd: `shift_${s.id}`,
+              fullName: s.name,
+              department: "مناوبة",
+              supervisionBonus: pr?.supervisionBonus ?? "0",
+            };
+          });
+          const supRows = [...regularRows, ...shiftSupRows3];
+          const totalBonus = supRows.reduce(
+            (s: number, r: any) =>
+              s + Number(bonusEdits[r.empCd] ?? r.supervisionBonus ?? 0),
+            0,
+          );
+          return (
+            <section className="rounded-xl border border-border bg-background overflow-hidden">
+              <div className="border-b border-border bg-muted/25 px-4 py-3 flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-semibold text-foreground">
+                    مكافأة الإشراف
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    خارج إجمالي الراتب — لا تؤثر على الحسابات
+                  </p>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={printSupervisionSlips}
+                    className="gap-1.5"
+                  >
+                    <Printer size={13} /> إيصالات
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={printSupervisionSheet}
+                    className="gap-1.5"
+                  >
+                    <Printer size={13} /> كشف
+                  </Button>
+                </div>
               </div>
-              <div className="flex gap-2 shrink-0">
-                <Button size="sm" variant="outline" onClick={printSupervisionSlips} className="gap-1.5">
-                  <Printer size={13} /> إيصالات
-                </Button>
-                <Button size="sm" variant="outline" onClick={printSupervisionSheet} className="gap-1.5">
-                  <Printer size={13} /> كشف
-                </Button>
+              <div className="overflow-x-auto" dir="rtl">
+                <table dir="rtl" className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30 text-xs">
+                      <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                        الموظف
+                      </th>
+                      <th className="px-4 py-3 text-center font-medium text-muted-foreground">
+                        مكافأة الإشراف
+                      </th>
+                      <th className="px-4 py-3 text-center font-medium text-muted-foreground">
+                        حفظ
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {supRows.map((r: any) => {
+                      const key = r.empCd;
+                      const current =
+                        bonusEdits[key] ??
+                        String(supervisionBonusMap[r.empCd] ?? "0");
+                      return (
+                        <tr
+                          key={key}
+                          className="border-b border-border/50 hover:bg-muted/20"
+                        >
+                          <td className="px-4 py-3">
+                            <div className="font-medium">
+                              {r.fullName ?? r.empCd}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {r.salaryType ?? r.department ?? ""}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={current}
+                              onChange={(e) =>
+                                setBonusEdits((prev) => ({
+                                  ...prev,
+                                  [key]: e.target.value,
+                                }))
+                              }
+                              className="w-28 rounded-md border border-border bg-background px-2 py-1 text-sm text-center outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 tabular-nums"
+                            />
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <button
+                              onClick={() => {
+                                const amount = parseFloat(current) || 0;
+                                setSupervisionBonus.mutate({
+                                  empCd: r.empCd,
+                                  year,
+                                  month,
+                                  section,
+                                  amount,
+                                });
+                              }}
+                              disabled={setSupervisionBonus.isPending}
+                              className="rounded-md border border-border px-3 py-1 text-xs font-medium hover:bg-muted transition-colors disabled:opacity-50"
+                            >
+                              حفظ
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t border-border bg-muted/30 text-xs font-semibold">
+                      <td className="px-4 py-2 text-right">
+                        الإجمالي (معلوماتي فقط)
+                      </td>
+                      <td className="px-4 py-2 text-center tabular-nums">
+                        {fmt(totalBonus)}
+                      </td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                </table>
               </div>
-            </div>
-            <div className="overflow-x-auto" dir="rtl">
-              <table dir="rtl" className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/30 text-xs">
-                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">الموظف</th>
-                    <th className="px-4 py-3 text-center font-medium text-muted-foreground">مكافأة الإشراف</th>
-                    <th className="px-4 py-3 text-center font-medium text-muted-foreground">حفظ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {supRows.map((r: any) => {
-                    const key = r.empCd;
-                    const current = bonusEdits[key] ?? String(supervisionBonusMap[r.empCd] ?? "0");
-                    return (
-                      <tr key={key} className="border-b border-border/50 hover:bg-muted/20">
-                        <td className="px-4 py-3">
-                          <div className="font-medium">{r.fullName ?? r.empCd}</div>
-                          <div className="text-xs text-muted-foreground">{r.salaryType ?? r.department ?? ""}</div>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={current}
-                            onChange={(e) => setBonusEdits((prev) => ({ ...prev, [key]: e.target.value }))}
-                            className="w-28 rounded-md border border-border bg-background px-2 py-1 text-sm text-center outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 tabular-nums"
-                          />
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <button
-                            onClick={() => {
-                              const amount = parseFloat(current) || 0;
-                              setSupervisionBonus.mutate({ empCd: r.empCd, year, month, section, amount });
-                            }}
-                            disabled={setSupervisionBonus.isPending}
-                            className="rounded-md border border-border px-3 py-1 text-xs font-medium hover:bg-muted transition-colors disabled:opacity-50"
-                          >
-                            حفظ
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t border-border bg-muted/30 text-xs font-semibold">
-                    <td className="px-4 py-2 text-right">الإجمالي (معلوماتي فقط)</td>
-                    <td className="px-4 py-2 text-center tabular-nums">{fmt(totalBonus)}</td>
-                    <td />
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </section>
-        );
-      })()}
+            </section>
+          );
+        })()}
     </div>
   );
 }
