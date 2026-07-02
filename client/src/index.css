@@ -1151,6 +1151,29 @@ img {
     page-break-inside: avoid;
   }
 
+  /* Embedded followup body — no max-height/overflow/page-break restrictions */
+  .sheet-followup-body {
+    width: 210mm !important;
+    margin: 0 auto !important;
+    background: white;
+  }
+  .sheet-followup-body table { font-size: 10px !important; }
+  .sheet-followup-body th,
+  .sheet-followup-body td { padding: 3px !important; line-height: 1.05 !important; }
+  .sheet-followup-body input,
+  .sheet-followup-body select,
+  .sheet-followup-body textarea {
+    font-size: 10px !important;
+    line-height: 1.05 !important;
+    padding-top: 1px !important;
+    padding-bottom: 1px !important;
+  }
+  .sheet-followup-body > * {
+    border-radius: 4px !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+
   /* Referral letter — constrain to A4, drop shadow/border */
   .referral-print-root > div {
     max-width: 100% !important;

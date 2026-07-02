@@ -694,11 +694,15 @@ export default function ConsultantSheet() {
             margin: 0 !important;
             padding: 0 !important;
           }
-          /* the shared .sheet-layout print rule clips this page's fixed 210mm sheet — undo it here */
+          /* undo the shared .sheet-layout single-page restrictions so page 2 (followup) can render */
           .consultant-page-root.sheet-layout {
             overflow: visible !important;
             max-height: none !important;
             font-size: 100% !important;
+            page-break-inside: auto !important;
+            break-inside: auto !important;
+            page-break-after: auto !important;
+            break-after: auto !important;
           }
           .consultant-main-print-root .consultant-sheet-inner {
             width: 210mm !important;

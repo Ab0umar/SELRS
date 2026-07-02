@@ -64,7 +64,7 @@ export default function FollowupTablesBody<T extends FollowupItem>({
   readOnly?: boolean;
 }) {
   return (
-    <div className="a4-page-card followup-print-root space-y-5" dir="ltr">
+    <div className="sheet-followup-body space-y-5" dir="ltr">
       <SheetCenterHeader titleEn={titleEn} titleAr={titleAr} />
       <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm px-1" dir="rtl">
         <p className="inline-flex items-center gap-1 whitespace-nowrap"><span>الاسم:</span> <span className="min-w-[120px] px-1">{patientName}</span></p>
