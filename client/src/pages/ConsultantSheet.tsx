@@ -23,6 +23,7 @@ import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 import { printOrExportPdf } from "@/lib/nativePdf";
 import { BRAND_NAME_AR, BRAND_NAME_EN } from "@/lib/brand";
 import SheetCenterHeader from "@/components/SheetCenterHeader";
+import FollowupTablesBody from "@/components/sheets/FollowupTablesBody";
 
 export default function ConsultantSheet() {
   const { user, isAuthenticated } = useAuth();
@@ -441,237 +442,6 @@ export default function ConsultantSheet() {
   const followupLabels = designerConfig.followupConsultant;
   const consultantTemplate = designerConfig.templates.consultant;
 
-  const renderFollowupSection = () => (
-    <fieldset
-      disabled={embeddedInPatientHub}
-      className="border-0 p-0 m-0 min-w-0 disabled:opacity-95"
-    >
-      <div
-        className="p-1 print:p-0 followup-print-root bg-background text-foreground"
-        dir="ltr"
-        style={{ fontFamily: "Inter, sans-serif" }}
-      >
-        <div className="mb-2 print:mb-1 flex items-center justify-between text-[15px] print:text-[13px] px-1 print:px-0">
-          <div className="whitespace-nowrap">
-            {followupLabels.rtLabel}: {operationEyes.right ? "" : ""}{" "}
-            &nbsp;&nbsp; {followupLabels.ltLabel}:{" "}
-            {operationEyes.left ? "" : ""} &nbsp; //
-          </div>
-          <div className="whitespace-nowrap">
-            {followupLabels.operationTypeLabel}:
-            <span className="inline-block min-w-[140px] border-b border-black/60 mx-1 text-center">
-              {operationType || " "}
-            </span>
-          </div>
-          <div className="whitespace-nowrap">
-            {followupLabels.operationDateLabel}
-            <span className="inline-block min-w-[95px] border-b border-black/60 mx-1 text-center">
-              {operationDateRight || ""}
-            </span>
-            <span className="inline-block min-w-[95px] border-b border-black/60 text-center">
-              {operationDateLeft || ""}
-            </span>
-          </div>
-        </div>
-
-        {followups.map((followup) => (
-          <table
-            key={followup.id}
-            className="w-full border border-black/70 border-collapse text-[15px] print:text-[12px] table-fixed"
-            style={{
-              marginBottom: `${designerConfig.followupConsultant.tableGapMm}mm`,
-            }}
-          >
-            <colgroup>
-              <col style={{ width: "14%" }} />
-              <col style={{ width: "14%" }} />
-              <col style={{ width: "12%" }} />
-              <col style={{ width: "12%" }} />
-              <col style={{ width: "12%" }} />
-              <col style={{ width: "12%" }} />
-              <col style={{ width: "12%" }} />
-              <col style={{ width: "12%" }} />
-            </colgroup>
-            <tbody>
-              <tr>
-                <td
-                  colSpan={2}
-                  className="border border-black/50 px-1 py-0.5 print:py-0 text-center"
-                >
-                  {followupLabels.nextFollowupLabel}{" "}
-                  <span className="mx-2 print:mx-1">{"/  /"}</span>
-                </td>
-                <td
-                  colSpan={3}
-                  className="border border-black/50 px-1 py-0.5 print:py-0 text-center font-semibold"
-                >
-                  {followup.type}
-                </td>
-                <td
-                  colSpan={3}
-                  className="border border-black/50 border-r-0 px-1 py-0.5 print:py-0 text-center"
-                >
-                  {followupLabels.followupDateLabel}
-                  <span className="inline-block min-w-[88px] border-b border-black/60 mx-1 text-center">
-                    {followup.date || ""}
-                  </span>
-                </td>
-              </tr>
-              <tr>
-                <td
-                  colSpan={8}
-                  className="border border-black/50 py-0.5 text-center font-semibold"
-                >
-                  Dominant eye
-                </td>
-              </tr>
-              <tr>
-                <td colSpan={2} className="border border-black/50 py-0.5"></td>
-                <td
-                  colSpan={3}
-                  className="border border-black/50 py-0.5 text-center font-semibold"
-                >
-                  OD
-                </td>
-                <td
-                  colSpan={3}
-                  className="border border-black/50 border-r-0 py-0.5 text-center font-semibold"
-                >
-                  OS
-                </td>
-              </tr>
-              <tr>
-                <td
-                  colSpan={2}
-                  className="border border-black/50 py-1 print:py-0.5 text-center font-semibold"
-                >
-                  {followupLabels.vaLabel}
-                </td>
-                <td
-                  colSpan={3}
-                  className="border border-black/50 border-r-0 py-1 print:py-0.5"
-                ></td>
-                <td
-                  colSpan={3}
-                  className="border border-black/50 py-1 print:py-0.5"
-                ></td>
-              </tr>
-              <tr>
-                <td
-                  colSpan={2}
-                  className="border border-black/50 py-1 print:py-0.5 text-center font-semibold"
-                >
-                  {followupLabels.refractionLabel}
-                </td>
-                <td className="border border-black/50 py-1 print:py-0.5 text-center">
-                  S
-                </td>
-                <td className="border border-black/50 py-1 print:py-0.5 text-center">
-                  C
-                </td>
-                <td className="border border-black/50 border-r-0 py-1 print:py-0.5 text-center">
-                  A
-                </td>
-                <td className="border border-black/50 py-1 print:py-0.5 text-center">
-                  S
-                </td>
-                <td className="border border-black/50 py-1 print:py-0.5 text-center">
-                  C
-                </td>
-                <td className="border border-black/50 py-1 print:py-0.5 text-center">
-                  A
-                </td>
-              </tr>
-              <tr>
-                <td
-                  colSpan={2}
-                  className="border border-black/50 py-1 print:py-0.5"
-                ></td>
-                <td className="border border-black/50 border-r-0 h-8 print:h-4">
-                  &nbsp;
-                </td>
-                <td className="border border-black/50 h-8 print:h-4">&nbsp;</td>
-                <td className="border border-black/50 h-8 print:h-4">&nbsp;</td>
-                <td className="border border-black/50 h-8 print:h-4">&nbsp;</td>
-                <td className="border border-black/50 h-8 print:h-4">&nbsp;</td>
-                <td className="border border-black/50 h-8 print:h-4">&nbsp;</td>
-              </tr>
-              <tr>
-                <td
-                  rowSpan={2}
-                  className="border border-black/50 py-1 print:py-0.5 text-center font-semibold"
-                >
-                  {followupLabels.flapLabel}
-                </td>
-                <td className="border border-black/50 py-1 print:py-0.5 text-center">
-                  {followupLabels.edgesLabel}
-                </td>
-                <td
-                  colSpan={6}
-                  className="border border-black/50 border-r-0 py-1 print:py-0.5"
-                ></td>
-              </tr>
-              <tr>
-                <td className="border border-black/50 py-1 print:py-0.5 text-center">
-                  {followupLabels.bedLabel}
-                </td>
-                <td
-                  colSpan={6}
-                  className="border border-black/50 border-r-0 py-1 print:py-0.5"
-                ></td>
-              </tr>
-              <tr>
-                <td
-                  colSpan={2}
-                  className="border border-black/50 py-1 print:py-0.5 text-center font-semibold"
-                >
-                  {followupLabels.iopLabel}
-                </td>
-                <td
-                  colSpan={6}
-                  className="border border-black/50 border-r-0 py-1 print:py-0.5"
-                ></td>
-              </tr>
-              <tr>
-                <td
-                  colSpan={2}
-                  className="border border-black/50 py-1 print:py-0.5 text-center font-semibold"
-                >
-                  {followupLabels.treatmentLabel}
-                </td>
-                <td
-                  colSpan={6}
-                  className="border border-black/50 border-r-0 py-1 print:py-0.5"
-                ></td>
-              </tr>
-              <tr>
-                <td
-                  colSpan={2}
-                  className="border border-black/50 px-1 py-0.5 print:py-0 text-right font-semibold"
-                >
-                  {followupLabels.receptionLabel}
-                </td>
-                <td
-                  colSpan={3}
-                  className="border border-black/50 px-1 py-0.5 print:py-0 text-right font-semibold"
-                >
-                  {followupLabels.nurseLabel}
-                </td>
-                <td
-                  colSpan={3}
-                  className="border border-black/50 border-r-0 px-1 py-0.5 print:py-0 text-right font-semibold"
-                >
-                  {followupLabels.doctorLabel}
-                  {signatures.doctor ? `: ${signatures.doctor}` : ""}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        ))}
-      </div>
-    </fieldset>
-  );
-
   const renderSheetBody = (readOnly = false) => {
     const ctd = "p-1 border border-[#c3c6d6]";
     const inp =
@@ -806,28 +576,28 @@ export default function ConsultantSheet() {
         {/* END: Clinical Refraction */}
 
         {/* BEGIN: Clinical Diagrams (replaces Pentacam / Target Refraction) */}
-        <section className="print-consultant-diagrams grid grid-cols-1 lg:grid-cols-2 gap-8 border border-[#c3c6d6] rounded-xl p-8 bg-white flex-1" data-purpose="clinical-diagrams">
+        <section className="print-consultant-diagrams grid grid-cols-1 lg:grid-cols-2 gap-8 border border-[#c3c6d6] rounded-xl p-8 bg-white flex-1 min-h-[110mm]" data-purpose="clinical-diagrams">
           <div className="flex flex-col items-center justify-center">
-            <span className="text-xs font-bold uppercase px-3 py-1 bg-[#003d9b]/5 rounded shadow-sm text-[#003d9b] mb-4">Right Eye (OD)</span>
-            <div className="w-52 h-52 rounded-full border-4 border-[#003d9b]/30 flex items-center justify-center relative bg-white">
+            <span className="text-xs uppercase px-3 py-1 bg-[#003d9b]/5 rounded shadow-sm text-[#003d9b] mb-4">Right Eye (OD)</span>
+            <div className="w-64 h-64 rounded-full border-4 border-[#003d9b]/30 flex items-center justify-center relative bg-white">
               <div className="absolute inset-0 flex items-center justify-center opacity-10">
                 <div className="w-full border-t border-slate-900"></div>
                 <div className="h-full border-l border-slate-900 absolute top-0"></div>
               </div>
-              <span className="text-[#003d9b]/40 font-bold text-xl select-none">OD</span>
+              <span className="text-[#003d9b]/40 text-xl select-none">OD</span>
             </div>
-            <p className="mt-4 font-bold text-[#003d9b]">العين اليمنى (OD)</p>
+            <p className="mt-4 text-[#003d9b]">العين اليمنى (OD)</p>
           </div>
           <div className="flex flex-col items-center justify-center">
-            <span className="text-xs font-bold uppercase px-3 py-1 bg-[#f3f4f6] rounded shadow-sm text-[#526069] mb-4">Left Eye (OS)</span>
-            <div className="w-52 h-52 rounded-full border-4 border-slate-300 flex items-center justify-center relative bg-white">
+            <span className="text-xs uppercase px-3 py-1 bg-[#f3f4f6] rounded shadow-sm text-[#526069] mb-4">Left Eye (OS)</span>
+            <div className="w-64 h-64 rounded-full border-4 border-slate-300 flex items-center justify-center relative bg-white">
               <div className="absolute inset-0 flex items-center justify-center opacity-10">
                 <div className="w-full border-t border-slate-900"></div>
                 <div className="h-full border-l border-slate-900 absolute top-0"></div>
               </div>
-              <span className="text-slate-300 font-bold text-xl select-none">OS</span>
+              <span className="text-slate-300 text-xl select-none">OS</span>
             </div>
-            <p className="mt-4 font-bold text-[#526069]">العين اليسرى (OS)</p>
+            <p className="mt-4 text-[#526069]">العين اليسرى (OS)</p>
           </div>
         </section>
         {/* END: Clinical Diagrams */}
@@ -894,7 +664,18 @@ export default function ConsultantSheet() {
     >
       <style>{`
         ${designerConfig.css.consultant || ""}
+        .consultant-sheet-inner, .consultant-sheet-inner * {
+          font-weight: 400 !important;
+          text-decoration: none !important;
+        }
+        .consultant-sheet-inner th { font-weight: 700 !important; }
+        .consultant-sheet-inner .border-b,
+        .consultant-sheet-inner .border-b-2 {
+          border-bottom: none !important;
+        }
         @media print {
+          .print-page-break { page-break-before: always !important; break-before: page !important; }
+          .print-page-center-a4 { min-height: 297mm; display: flex; align-items: center; justify-content: center; }
           @page { size: A4 portrait; margin: 0; }
           body { background: white !important; }
           /* the shared .sheet-layout print rule clips this page's fixed 210mm sheet — undo it here */
@@ -908,7 +689,6 @@ export default function ConsultantSheet() {
             max-width: 210mm !important;
             height: auto !important;
             min-height: 0 !important;
-            max-height: 296mm !important;
             box-sizing: border-box !important;
             margin: 0 auto !important;
             padding: 6mm !important;
@@ -917,7 +697,6 @@ export default function ConsultantSheet() {
             box-shadow: none !important;
             font-size: 92% !important;
             line-height: 1.15 !important;
-            overflow: hidden !important;
           }
           /* outer wrappers must not constrain or offset the 210mm sheet */
           main[data-mobile-pdf-root] {
@@ -955,7 +734,6 @@ export default function ConsultantSheet() {
             background: transparent !important;
             text-decoration: none !important;
             font-size: 12px !important;
-            font-weight: 700 !important;
             line-height: 1.15 !important;
           }
           .consultant-sheet-inner .gap-8 { gap: 12px !important; }
@@ -1003,9 +781,12 @@ export default function ConsultantSheet() {
             flex: 1 1 auto !important;
             padding: 6mm !important;
           }
+          .print-consultant-diagrams {
+            min-height: 100mm !important;
+          }
           .print-consultant-diagrams .rounded-full {
-            width: 40mm !important;
-            height: 40mm !important;
+            width: 58mm !important;
+            height: 58mm !important;
             border-width: 2px !important;
           }
           .print-consultant-diagrams p {
@@ -1061,13 +842,50 @@ export default function ConsultantSheet() {
             {activeTab === "sheet" ? renderSheetBody() : null}
           </TabsContent>
           <TabsContent value="followup" className="space-y-0">
-            {activeTab === "followup" ? renderFollowupSection() : null}
+            {activeTab === "followup" ? (
+              <FollowupTablesBody
+                titleEn="Consultant Follow-up"
+                titleAr="متابعة الاستشاري"
+                patientName={formData.patientName}
+                patientDOB={formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}
+                operationType={operationType}
+                setOperationType={setOperationType}
+                operationEyes={operationEyes}
+                setOperationEyes={setOperationEyes}
+                operationDateRight={operationDateRight}
+                setOperationDateRight={setOperationDateRight}
+                followups={followups}
+                setFollowups={setFollowups}
+                followupLabels={followupLabels}
+                signatures={signatures}
+              />
+            ) : null}
           </TabsContent>
         </Tabs>
 
         <div className="hidden print:block">
-          {renderSheetBody(true)}
-          {!originalMode ? <div>{renderFollowupSection()}</div> : null}
+          <div className="print-page-center-a4">{renderSheetBody(true)}</div>
+          {!originalMode ? (
+            <div className="print-page-break print-page-center-a4">
+              <FollowupTablesBody
+                titleEn="Consultant Follow-up"
+                titleAr="متابعة الاستشاري"
+                patientName={formData.patientName}
+                patientDOB={formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}
+                operationType={operationType}
+                setOperationType={setOperationType}
+                operationEyes={operationEyes}
+                setOperationEyes={setOperationEyes}
+                operationDateRight={operationDateRight}
+                setOperationDateRight={setOperationDateRight}
+                followups={followups}
+                setFollowups={setFollowups}
+                followupLabels={followupLabels}
+                signatures={signatures}
+                readOnly
+              />
+            </div>
+          ) : null}
         </div>
 
         <div className={`sheet-mobile-actions print:hidden ${printMode.printView ? "hidden" : ""}`}>

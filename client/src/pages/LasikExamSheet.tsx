@@ -24,6 +24,7 @@ import { printOrExportPdf } from "@/lib/nativePdf";
 import { BRAND_NAME_AR, BRAND_NAME_EN } from "@/lib/brand";
 import { DateInput } from "@/components/ui/date-input";
 import SheetCenterHeader from "@/components/SheetCenterHeader";
+import FollowupTablesBody from "@/components/sheets/FollowupTablesBody";
 
 export default function LasikExamSheet() {
   const { user, isAuthenticated } = useAuth();
@@ -46,6 +47,7 @@ export default function LasikExamSheet() {
   ]);
 
   const [operationType, setOperationType] = useState("ليزك");
+  const [operationDateRight, setOperationDateRight] = useState("");
   const [operationEyes, setOperationEyes] = useState({
     right: true,
     left: false,
@@ -585,139 +587,6 @@ export default function LasikExamSheet() {
     );
   };
 
-  const renderFollowupSection = () => (
-    <div
-      className="p-1 print:p-0 followup-print-root bg-background text-foreground"
-      dir="ltr"
-      style={{ fontFamily: "Inter, sans-serif" }}
-    >
-      <div className="mb-2 print:mb-1 flex items-center justify-between text-[15px] print:text-[13px] px-1 print:px-0">
-        <div className="whitespace-nowrap">
-          RT: {operationEyes.right ? "" : ""}{" "}
-          &nbsp;&nbsp; LT: {operationEyes.left ? "" : ""} &nbsp; //
-        </div>
-        <div className="whitespace-nowrap">
-          {followupLabels?.operationTypeLabel ?? "نوع العملية"}:
-          <span className="inline-block min-w-[140px] border-b border-black/60 mx-1 text-center">
-            {operationType || " "}
-          </span>
-        </div>
-      </div>
-
-      {followups.map((followup) => (
-        <table
-          key={followup.id}
-          className="w-full border border-black/70 border-collapse text-[15px] print:text-[12px] table-fixed"
-          style={{ marginBottom: `${followupLabels?.tableGapMm ?? 4}mm` }}
-        >
-          <colgroup>
-            <col style={{ width: "14%" }} />
-            <col style={{ width: "14%" }} />
-            <col style={{ width: "12%" }} />
-            <col style={{ width: "12%" }} />
-            <col style={{ width: "12%" }} />
-            <col style={{ width: "12%" }} />
-            <col style={{ width: "12%" }} />
-            <col style={{ width: "12%" }} />
-          </colgroup>
-          <tbody>
-            <tr>
-              <td colSpan={2} className="border border-black/50 px-1 py-0.5 print:py-0 text-center">
-                {followupLabels?.nextFollowupLabel ?? "المتابعة القادمة"}{" "}
-                <span className="mx-2 print:mx-1">{"/  /"}</span>
-              </td>
-              <td colSpan={3} className="border border-black/50 px-1 py-0.5 print:py-0 text-center">
-                {followup.type}
-              </td>
-              <td colSpan={3} className="border border-black/50 border-r-0 px-1 py-0.5 print:py-0 text-center">
-                {followupLabels?.followupDateLabel ?? "تاريخ المتابعة"}
-                <span className="inline-block min-w-[88px] border-b border-black/60 mx-1 text-center">
-                  {followup.date || ""}
-                </span>
-              </td>
-            </tr>
-            <tr>
-              <td colSpan={8} className="border border-black/50 py-0.5 text-center">
-                Dominant eye
-              </td>
-            </tr>
-            <tr>
-              <td colSpan={2} className="border border-black/50 py-0.5"></td>
-              <td colSpan={3} className="border border-black/50 py-0.5 text-center">OD</td>
-              <td colSpan={3} className="border border-black/50 border-r-0 py-0.5 text-center">OS</td>
-            </tr>
-            <tr>
-              <td colSpan={2} className="border border-black/50 py-1 print:py-0.5 text-center">
-                {followupLabels?.vaLabel ?? "V. A"}
-              </td>
-              <td colSpan={3} className="border border-black/50 border-r-0 py-1 print:py-0.5"></td>
-              <td colSpan={3} className="border border-black/50 py-1 print:py-0.5"></td>
-            </tr>
-            <tr>
-              <td colSpan={2} className="border border-black/50 py-1 print:py-0.5 text-center">
-                {followupLabels?.refractionLabel ?? "Refraction"}
-              </td>
-              <td className="border border-black/50 py-1 print:py-0.5 text-center">S</td>
-              <td className="border border-black/50 py-1 print:py-0.5 text-center">C</td>
-              <td className="border border-black/50 border-r-0 py-1 print:py-0.5 text-center">A</td>
-              <td className="border border-black/50 py-1 print:py-0.5 text-center">S</td>
-              <td className="border border-black/50 py-1 print:py-0.5 text-center">C</td>
-              <td className="border border-black/50 py-1 print:py-0.5 text-center">A</td>
-            </tr>
-            <tr>
-              <td colSpan={2} className="border border-black/50 py-1 print:py-0.5"></td>
-              <td className="border border-black/50 border-r-0 h-8 print:h-4">&nbsp;</td>
-              <td className="border border-black/50 h-8 print:h-4">&nbsp;</td>
-              <td className="border border-black/50 h-8 print:h-4">&nbsp;</td>
-              <td className="border border-black/50 h-8 print:h-4">&nbsp;</td>
-              <td className="border border-black/50 h-8 print:h-4">&nbsp;</td>
-              <td className="border border-black/50 h-8 print:h-4">&nbsp;</td>
-            </tr>
-            <tr>
-              <td rowSpan={2} className="border border-black/50 py-1 print:py-0.5 text-center">
-                {followupLabels?.flapLabel ?? "Flap"}
-              </td>
-              <td className="border border-black/50 py-1 print:py-0.5 text-center">
-                {followupLabels?.edgesLabel ?? "Edges"}
-              </td>
-              <td colSpan={6} className="border border-black/50 border-r-0 py-1 print:py-0.5"></td>
-            </tr>
-            <tr>
-              <td className="border border-black/50 py-1 print:py-0.5 text-center">
-                {followupLabels?.bedLabel ?? "Bed"}
-              </td>
-              <td colSpan={6} className="border border-black/50 border-r-0 py-1 print:py-0.5"></td>
-            </tr>
-            <tr>
-              <td colSpan={2} className="border border-black/50 py-1 print:py-0.5 text-center">
-                {followupLabels?.iopLabel ?? "I.O.P"}
-              </td>
-              <td colSpan={6} className="border border-black/50 border-r-0 py-1 print:py-0.5"></td>
-            </tr>
-            <tr>
-              <td colSpan={2} className="border border-black/50 py-1 print:py-0.5 text-center">
-                {followupLabels?.treatmentLabel ?? "Treatment"}
-              </td>
-              <td colSpan={6} className="border border-black/50 border-r-0 py-1 print:py-0.5"></td>
-            </tr>
-            <tr>
-              <td colSpan={2} className="border border-black/50 px-1 py-0.5 print:py-0 text-right">
-                {followupLabels?.receptionLabel ?? "استقبال:"}
-              </td>
-              <td colSpan={3} className="border border-black/50 px-1 py-0.5 print:py-0 text-right">
-                {followupLabels?.nurseLabel ?? "تمريض:"}
-              </td>
-              <td colSpan={3} className="border border-black/50 border-r-0 px-1 py-0.5 print:py-0 text-right">
-                {followupLabels?.doctorLabel ?? "طبيب:"}
-                {signatures.doctor ? `: ${signatures.doctor}` : ""}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      ))}
-    </div>
-  );
-
   const renderSheetBody = (_readOnly = false) => {
     const odThinnestNum = parseFloat(examData.pentacam.od.thinnest);
     const osThinnestNum = parseFloat(examData.pentacam.os.thinnest);
@@ -1005,7 +874,18 @@ export default function LasikExamSheet() {
     <div className="min-h-screen bg-[#dde1e7]" dir="ltr">
       <style>{`
         ${customSheetCss}
+        .lasik-sheet, .lasik-sheet * {
+          font-weight: 400 !important;
+          text-decoration: none !important;
+        }
+        .lasik-sheet th { font-weight: 700 !important; }
+        .lasik-sheet .border-b,
+        .lasik-sheet .border-b-2 {
+          border-bottom: none !important;
+        }
         @media print {
+          .print-page-break { page-break-before: always !important; break-before: page !important; }
+          .print-page-center-a4 { min-height: 297mm; display: flex; align-items: center; justify-content: center; }
           @page { size: A4 portrait; margin: 0; }
           body { background: white !important; }
           .lasik-print-root { width: 100%; margin: 0 auto; }
@@ -1014,13 +894,11 @@ export default function LasikExamSheet() {
             max-width: 210mm !important;
             height: auto !important;
             min-height: 0 !important;
-            max-height: 296mm !important;
             box-sizing: border-box !important;
             padding: 6mm !important;
             gap: 10px !important;
             font-size: 92% !important;
             line-height: 1.15 !important;
-            overflow: hidden !important;
           }
           .lasik-sheet section,
           .lasik-sheet footer,
@@ -1051,7 +929,6 @@ export default function LasikExamSheet() {
             background: transparent !important;
             text-decoration: none !important;
             font-size: 12px !important;
-            font-weight: 700 !important;
             line-height: 1.15 !important;
           }
           .lasik-sheet .gap-8 { gap: 12px !important; }
@@ -1139,8 +1016,28 @@ export default function LasikExamSheet() {
           <div className="a4-page-card">{renderSheetBody()}</div>
         </div>
         <div className="hidden print:block">
-          {renderSheetBody(true)}
-          {!originalMode ? <div>{renderFollowupSection()}</div> : null}
+          <div className="print-page-center-a4">{renderSheetBody(true)}</div>
+          {!originalMode ? (
+            <div className="print-page-break print-page-center-a4">
+              <FollowupTablesBody
+                titleEn="Lasik Follow-up"
+                titleAr="متابعة الليزك"
+                patientName={formData.patientName}
+                patientDOB={formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}
+                operationType={operationType}
+                setOperationType={setOperationType}
+                operationEyes={operationEyes}
+                setOperationEyes={setOperationEyes}
+                operationDateRight={operationDateRight}
+                setOperationDateRight={setOperationDateRight}
+                followups={followups}
+                setFollowups={setFollowups}
+                followupLabels={followupLabels}
+                signatures={signatures}
+                readOnly
+              />
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

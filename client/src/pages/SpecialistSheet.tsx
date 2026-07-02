@@ -444,7 +444,17 @@ export default function SpecialistSheet() {
         .refraction-table-center input {
           text-align: center !important;
         }
+        .specialist-sheet, .specialist-sheet * {
+          font-weight: 400 !important;
+          text-decoration: none !important;
+        }
+        .specialist-sheet th { font-weight: 700 !important; }
+        .specialist-sheet .border-b,
+        .specialist-sheet .border-b-2 {
+          border-bottom: none !important;
+        }
         @media print {
+          .print-page-center-a5 { min-height: 148mm; display: flex; align-items: center; justify-content: center; }
           @page { size: A5 landscape; margin: 0; }
           body { background: white !important; }
           /* the shared .sheet-layout print rule clips this page's fixed-width sheet — undo it here */
@@ -490,7 +500,6 @@ export default function SpecialistSheet() {
             outline: 0 !important;
             background: transparent !important;
             text-decoration: none !important;
-            font-weight: 700 !important;
             line-height: 1.15 !important;
           }
           .specialist-sheet .sheet-center-header {
@@ -575,7 +584,7 @@ export default function SpecialistSheet() {
       )}
 
       {/* Main Content */}
-      <div className="py-8 print:py-0">
+      <div className="py-8 print:py-0 print-page-center-a5">
         <div data-mobile-pdf-root className={`specialist-sheet bg-white text-[#191c1e] font-sans p-8 border border-[#c3c6d6] shadow-sm flex flex-col gap-5 w-[210mm] max-w-full mx-auto ${printMode.printView ? "hidden print:flex" : ""}`} dir="ltr">
           {/* Header */}
           <SheetCenterHeader
