@@ -886,10 +886,15 @@ export default function LasikExamSheet() {
         }
         @media print {
           .print-page-break { page-break-before: always !important; break-before: page !important; }
-          .print-page-center-a4 { width: 210mm; margin: 0 auto; }
+          .print-page-center-a4 { width: 210mm !important; margin: 0 auto !important; }
           @page { size: A4 portrait; margin: 0; }
-          body { background: white !important; }
-          .lasik-print-root { width: 100%; margin: 0 auto; }
+          html, body {
+            width: 210mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+          }
+          .lasik-print-root { width: 210mm !important; max-width: 210mm !important; margin: 0 auto !important; }
           .lasik-sheet {
             width: 210mm !important;
             max-width: 210mm !important;
@@ -1028,7 +1033,10 @@ export default function LasikExamSheet() {
         <div className="hidden print:block">
           <div className="print-page-center-a4">{renderSheetBody(true)}</div>
           {!originalMode ? (
-            <div className="print-page-break print-page-center-a4">
+            <div
+              className="print-page-break print-page-center-a4"
+              style={{ pageBreakBefore: "always", breakBefore: "page" }}
+            >
               <FollowupTablesBody
                 titleEn="Lasik Follow-up"
                 titleAr="متابعة الليزك"

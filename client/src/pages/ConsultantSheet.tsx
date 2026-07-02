@@ -677,11 +677,23 @@ export default function ConsultantSheet() {
         @media print {
           .print-page-break { page-break-before: always !important; break-before: page !important; }
           .print-page-center-a4 {
-            width: 210mm;
-            margin: 0 auto;
+            width: 210mm !important;
+            margin: 0 auto !important;
           }
           @page { size: A4 portrait; margin: 0; }
-          body { background: white !important; }
+          html, body {
+            width: 210mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+          }
+          #root,
+          .consultant-page-root {
+            width: 210mm !important;
+            max-width: 210mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
           /* the shared .sheet-layout print rule clips this page's fixed 210mm sheet — undo it here */
           .consultant-page-root.sheet-layout {
             overflow: visible !important;
@@ -870,7 +882,10 @@ export default function ConsultantSheet() {
         <div className="hidden print:block">
           <div className="print-page-center-a4">{renderSheetBody(true)}</div>
           {!originalMode ? (
-            <div className="print-page-break print-page-center-a4">
+            <div
+              className="print-page-break print-page-center-a4"
+              style={{ pageBreakBefore: "always", breakBefore: "page" }}
+            >
               <FollowupTablesBody
                 titleEn="Consultant Follow-up"
                 titleAr="متابعة الاستشاري"
