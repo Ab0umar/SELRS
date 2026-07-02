@@ -894,7 +894,17 @@ export default function LasikExamSheet() {
             padding: 0 !important;
             background: white !important;
           }
-          .lasik-print-root { width: 100% !important; max-width: 100% !important; margin: 0 !important; }
+          .lasik-print-root {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            overflow: visible !important;
+            max-height: none !important;
+            page-break-inside: auto !important;
+            break-inside: auto !important;
+            page-break-after: auto !important;
+            break-after: auto !important;
+          }
           .lasik-sheet {
             width: 210mm !important;
             max-width: 210mm !important;
