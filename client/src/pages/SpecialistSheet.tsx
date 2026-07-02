@@ -432,9 +432,8 @@ export default function SpecialistSheet() {
 
   return (
     <div
-      className={`min-h-screen bg-background sheet-layout specialist-page-root ${mobileSheetModeEnabled && !printMode.printView ? "mobile-sheet-mode" : ""}`}
+      className={`min-h-screen bg-[#dde1e7] sheet-layout specialist-page-root ${mobileSheetModeEnabled && !printMode.printView ? "mobile-sheet-mode" : ""}`}
       dir="rtl"
-      style={{ direction: "rtl", textAlign: "right" }}
     >
       <style>{`
         ${customSheetCss}
@@ -524,80 +523,49 @@ export default function SpecialistSheet() {
       `}</style>
       {/* Header */}
       <header
-        className={`sticky top-0 z-10 border-b border-border bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/60 print:hidden ${printMode.printView ? "hidden" : ""}`}
+        className={`sticky top-0 z-50 print:hidden flex justify-between items-center px-6 py-2 bg-[#f8f9fb] border-b border-[#c3c6d6] ${printMode.printView ? "hidden" : ""}`}
+        dir="ltr"
+        style={{ fontFamily: "Inter, sans-serif" }}
       >
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between sheet-header-bar">
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">
-                    {sheetTemplate.sheetTitle}
-                  </h1>
-                  <p className="text-sm text-muted-foreground">
-                    {formData.patientName}
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-1 print:hidden sheet-header-actions">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  type="button"
-                  onClick={() => goBack()}
-                >
-                  رجوع
-                </Button>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-1 sheet-header-actions">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePrint}
-                type="button"
-              >
-                <Printer className="h-4 w-4 mr-2" />
-                طباعة
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSaveSheet}
-                type="button"
-              >
-                حفظ
-              </Button>
-            </div>
-          </div>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" type="button" onClick={() => goBack()}>
+            رجوع
+          </Button>
+          <span className="text-xl font-bold text-[#003d9b]">{BRAND_NAME_EN}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button
+            size="sm"
+            className="bg-[#003d9b] text-white font-bold px-4 py-2 rounded hover:opacity-90 active:scale-95"
+            onClick={handleSaveSheet}
+            disabled={saveSheetMutation.isPending}
+            type="button"
+          >
+            {saveSheetMutation.isPending ? "حفظ..." : "حفظ"}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-[#003d9b] text-[#003d9b] font-bold px-4 py-2 rounded hover:bg-[#003d9b]/5"
+            onClick={handlePrint}
+            type="button"
+          >
+            <Printer className="h-4 w-4 mr-1" /> طباعة
+          </Button>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main
-        data-mobile-pdf-root
-        className={`container mx-auto print:p-0 ${printMode.printView ? "px-3 py-3" : "px-4 py-8 pb-24 sm:pb-8"}`}
-      >
-        {printMode.printView ? (
-          <PrintPreviewBanner
-            title="شيت الاختصاصي"
-            subtitle={formData.patientName || undefined}
-            onPrint={handlePrint}
-          />
-        ) : null}
-        {/* Patient picker removed */}
-        <div className="specialist-sheet bg-white text-[#191c1e] font-sans p-8 border border-[#c3c6d6] shadow-sm flex flex-col gap-5 w-[210mm] max-w-full mx-auto" dir="ltr">
-          <div className={`print:hidden ${printMode.printView ? "hidden" : ""}`}>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setLocation("/dashboard")}
-              className="border-primary text-card-foreground hover:bg-primary/10"
-            >
-              الصفحة الرئيسية
-            </Button>
-          </div>
+      {printMode.printView && (
+        <PrintPreviewBanner
+          title="شيت الأخصائي"
+          subtitle={formData.patientName || undefined}
+          onPrint={handlePrint}
+        />
+      )}
 
+      {/* Main Content */}
+      <div className="py-8 print:py-0">
+        <div data-mobile-pdf-root className={`specialist-sheet bg-white text-[#191c1e] font-sans p-8 border border-[#c3c6d6] shadow-sm flex flex-col gap-5 w-[210mm] max-w-full mx-auto ${printMode.printView ? "hidden print:flex" : ""}`} dir="ltr">
           {/* Header */}
           <SheetCenterHeader
             titleEn="Specialist Sheet"
@@ -611,6 +579,8 @@ export default function SpecialistSheet() {
               <input className="w-44 font-semibold text-[#003d9b] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.patientName} onChange={(e) => setFormData((p) => ({ ...p, patientName: e.target.value }))} /></label>
             <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">السن:</span>
               <input className="w-12 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.age} onChange={(e) => setFormData((p) => ({ ...p, age: e.target.value }))} /></label>
+            <span className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">BD:</span>
+              <span className="min-w-[70px] px-1 border-b border-[#c3c6d6] text-right">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</span></span>
             <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">العنوان:</span>
               <input className="w-36 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} /></label>
             <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">التليفون:</span>
@@ -742,7 +712,7 @@ export default function SpecialistSheet() {
             حفظ
           </Button>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

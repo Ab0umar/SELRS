@@ -167,7 +167,7 @@ export default function ConsultantFollowupPage() {
       const month = String(dob.getMonth() + 1).padStart(2, "0");
       const day = String(dob.getDate()).padStart(2, "0");
       const year = dob.getFullYear();
-      setPatientDOB(`${month}/${day}/${year}`);
+      setPatientDOB(`${day}/${month}/${year}`);
     }
   }, [patientQuery.data]);
 
@@ -305,6 +305,10 @@ export default function ConsultantFollowupPage() {
               titleEn="Consultant Follow-up"
               titleAr="متابعة الاستشاري"
             />
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm px-1" dir="rtl">
+              <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">الاسم:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[120px] px-1">{patientName}</span></p>
+              <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">BD:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[70px] px-1">{patientDOB}</span></p>
+            </div>
             {/* Operation header */}
             <div className="bg-white border border-[#c3c6d6] rounded-lg p-4 shadow-sm flex flex-col md:flex-row justify-between gap-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">

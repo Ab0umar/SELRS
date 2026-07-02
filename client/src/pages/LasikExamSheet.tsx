@@ -613,6 +613,8 @@ export default function LasikExamSheet() {
             <input className="w-44 font-semibold text-[#003d9b] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.patientName} onChange={(e) => setFormData((p) => ({ ...p, patientName: e.target.value }))} /></label>
           <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">السن:</span>
             <input className="w-12 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.age} onChange={(e) => setFormData((p) => ({ ...p, age: e.target.value }))} /></label>
+          <span className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">BD:</span>
+            <span className="min-w-[70px] px-1 border-b border-[#c3c6d6] text-right">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</span></span>
           <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">العنوان:</span>
             <input className="w-36 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} /></label>
           <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">التليفون:</span>
