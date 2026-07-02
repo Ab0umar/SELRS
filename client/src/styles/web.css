@@ -264,9 +264,7 @@
   .referral-print-root input:not([type="checkbox"]):not([type="radio"]),
   .referral-print-root textarea,
   .a4-page-card input:not([type="checkbox"]):not([type="radio"]),
-  .a4-page-card textarea,
-  main input:not([type="checkbox"]):not([type="radio"]),
-  main textarea {
+  .a4-page-card textarea {
     border: 0 !important;
     border-bottom: 0 !important;
     box-shadow: none !important;
@@ -276,36 +274,6 @@
     font-size: 12px !important;
     font-weight: 700 !important;
     line-height: 1.15 !important;
-  }
-  .sheet-layout .border-b,
-  .sheet-layout .border-b-2,
-  .sheet-layout .border-b-4,
-  .sheet-layout .border-b-8,
-  .lasik-print-root .border-b,
-  .lasik-print-root .border-b-2,
-  .lasik-print-root .border-b-4,
-  .lasik-print-root .border-b-8,
-  .specialist-print-root .border-b,
-  .specialist-print-root .border-b-2,
-  .specialist-print-root .border-b-4,
-  .specialist-print-root .border-b-8,
-  .followup-print-root .border-b,
-  .followup-print-root .border-b-2,
-  .followup-print-root .border-b-4,
-  .followup-print-root .border-b-8,
-  .referral-print-root .border-b,
-  .referral-print-root .border-b-2,
-  .referral-print-root .border-b-4,
-  .referral-print-root .border-b-8,
-  .a4-page-card .border-b,
-  .a4-page-card .border-b-2,
-  .a4-page-card .border-b-4,
-  .a4-page-card .border-b-8,
-  main .border-b,
-  main .border-b-2,
-  main .border-b-4,
-  main .border-b-8 {
-    border-bottom: 0 !important;
   }
   .sheet-layout input[type="checkbox"],
   .sheet-layout input[type="radio"],

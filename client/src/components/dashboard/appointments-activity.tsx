@@ -11,6 +11,7 @@ import {
   Check,
   CheckCircle2,
   Clock,
+  Printer,
   Syringe,
   Trash2,
   Users,
@@ -908,6 +909,24 @@ function QueuePatientCard({
         </div>
         <div className="mt-2 flex items-center justify-end gap-1.5 text-sm sm:mt-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-1.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              title="طباعة الشيت"
+              aria-label={`طباعة شيت ${patient.fullName ?? "المريض"}`}
+              className="h-11 w-11 shrink-0 text-slate-500 hover:text-slate-900"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                const sType = patient.serviceType === "surgery" ? "operation" : patient.serviceType === "external" ? "external" : patient.serviceType || "consultant";
+                const isFollowup = (patient as any).visitType === "followup";
+                const suffix = isFollowup ? "/followup" : "";
+                window.open(`/sheets/${sType}/${patient.id}${suffix}?original=1`, "_blank");
+              }}
+            >
+              <Printer className="h-4 w-4" aria-hidden />
+            </Button>
             {canMarkTreated ? (
               <Button
                 type="button"
