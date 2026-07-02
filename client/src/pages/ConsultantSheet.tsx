@@ -22,6 +22,7 @@ import { usePrintMode } from "@/hooks/usePrintMode";
 import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 import { printOrExportPdf } from "@/lib/nativePdf";
 import { BRAND_NAME_AR, BRAND_NAME_EN } from "@/lib/brand";
+import SheetCenterHeader from "@/components/SheetCenterHeader";
 
 export default function ConsultantSheet() {
   const { user, isAuthenticated } = useAuth();
@@ -673,9 +674,13 @@ export default function ConsultantSheet() {
 
   const renderSheetBody = (readOnly = false) => (
     <fieldset disabled={embeddedInPatientHub || readOnly} className="border-0 p-0 m-0 min-w-0 disabled:opacity-95 consultant-main-print-root">
-      <main className="max-w-5xl mx-auto my-8 bg-white shadow-xl border border-slate-200 p-8 print-container text-slate-800" data-purpose="main-document" dir="rtl">
+      <main className="max-w-5xl mx-auto my-4 bg-white shadow-xl border border-slate-200 p-6 print-container text-slate-800" data-purpose="main-document" dir="rtl">
+        <SheetCenterHeader
+          titleEn="Consultant Sheet"
+          titleAr="شيت الاستشاري"
+        />
         {/* BEGIN: Patient Demographics */}
-        <section className="print-consultant-patient-grid grid grid-cols-2 lg:grid-cols-3 gap-6 mb-8 text-sm" data-purpose="patient-info">
+        <section className="print-consultant-patient-grid grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4 text-sm" data-purpose="patient-info">
           <div className="flex flex-col gap-2">
             <p className="flex items-center gap-1"><span className="font-bold">الاسم:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.patientName}</span></p>
             <p className="flex items-center gap-1"><span className="font-bold">تاريخ الميلاد:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.dateOfBirth}</span></p>
@@ -689,16 +694,15 @@ export default function ConsultantSheet() {
           <div className="flex flex-col gap-2">
             <p className="flex items-center gap-1"><span className="font-bold">الاستشاري:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{signatures.doctor || "أ.د محمد السعني غرابة"}</span></p>
             <p className="flex items-center gap-1"><span className="font-bold">كود العميل:</span> <span className="border-b border-dotted border-slate-400 flex-1 px-1 min-h-5">{formData.code}</span></p>
-            <p className="flex items-center gap-1"><span className="font-bold">كيفية المعرفة:</span> <input type="text" className="border-none p-0 outline-none flex-1 border-b border-dotted border-slate-400 text-sm focus:border-blue-600 bg-transparent" value={formData.knowledgeType} onChange={e => setFormData(p => ({ ...p, knowledgeType: e.target.value }))} /></p>
           </div>
-          <div className="col-span-full border-t border-slate-100 pt-4">
+          <div className="col-span-full border-t border-slate-100 pt-2">
             <p className="flex items-center gap-2"><span className="font-bold">الوظيفة:</span> <input type="text" className="border-none p-0 outline-none flex-1 border-b border-dotted border-slate-400 text-sm focus:border-blue-600 bg-transparent" value={formData.job} onChange={e => setFormData(p => ({ ...p, job: e.target.value }))} /></p>
           </div>
         </section>
         {/* END: Patient Demographics */}
 
         {/* BEGIN: Medical History Checklist */}
-        <section className="mb-8" data-purpose="medical-history">
+        <section className="mb-4" data-purpose="medical-history">
           <div className="print-consultant-history-grid" dir="rtl">
             <table className="w-full border-collapse border border-[#c3c6d6] rounded-lg overflow-hidden text-sm">
               <thead className="bg-[#e7e8ea]">
@@ -770,8 +774,8 @@ export default function ConsultantSheet() {
         {/* END: Medical History Checklist */}
 
         {/* BEGIN: Clinical Examination */}
-        <section className="mb-8 ltr-content" data-purpose="examination-section">
-          <div className="mb-6 text-sm flex items-center gap-2">
+        <section className="mb-4 ltr-content" data-purpose="examination-section">
+          <div className="mb-3 text-sm flex items-center gap-2">
             <span className="font-bold">*Dominant Eye*:</span>
             <input
               type="text"
@@ -930,8 +934,8 @@ export default function ConsultantSheet() {
         {/* END: Clinical Examination */}
 
         {/* BEGIN: Clinical Diagrams */}
-        <section className="mb-8" data-purpose="clinical-diagrams">
-          <div className="print-consultant-diagrams grid grid-cols-2 gap-8 border border-slate-200 rounded-lg p-12 bg-slate-50">
+        <section className="mb-4" data-purpose="clinical-diagrams">
+          <div className="print-consultant-diagrams grid grid-cols-2 gap-8 border border-slate-200 rounded-lg p-6 bg-slate-50">
             {/* Right Eye Circle */}
             <div className="flex flex-col items-center">
               <div className="w-48 h-48 rounded-full border-4 border-slate-300 flex items-center justify-center relative bg-white">
@@ -959,7 +963,7 @@ export default function ConsultantSheet() {
         {/* END: Clinical Diagrams */}
 
         {/* BEGIN: Observations & Decision */}
-        <section className="print-consultant-notes-grid grid grid-cols-4 gap-4 mb-8" data-purpose="notes-section">
+        <section className="print-consultant-notes-grid grid grid-cols-4 gap-4 mb-4" data-purpose="notes-section">
           <div className="col-span-3 border border-slate-300 rounded overflow-hidden">
             <div className="bg-slate-50 p-2 border-b border-slate-300 font-bold text-sm">Comments:</div>
             <div className="p-2">
@@ -995,7 +999,7 @@ export default function ConsultantSheet() {
         {/* END: Observations & Decision */}
 
         {/* BEGIN: Signatures Footer */}
-        <footer className="print-consultant-footer grid grid-cols-4 gap-4 pt-6 border-t border-slate-200 text-xs font-bold text-slate-700" data-purpose="footer-signatures">
+        <footer className="print-consultant-footer grid grid-cols-4 gap-4 pt-3 border-t border-slate-200 text-xs font-bold text-slate-700" data-purpose="footer-signatures">
           <div className="flex flex-col gap-2">
             <p>استقبال: <span className="font-normal">{signatures.reception || "...................."}</span></p>
             <p>Signature: ....................</p>
@@ -1026,9 +1030,52 @@ export default function ConsultantSheet() {
       <style>{`
         ${designerConfig.css.consultant || ""}
         @media print {
+          @page { size: A4 portrait; margin: 0; }
+          body { background: white !important; }
           .consultant-main-print-root {
-            font-size: 92% !important;
+            font-size: 88% !important;
             line-height: 1.1 !important;
+          }
+          .consultant-main-print-root main {
+            width: 210mm !important;
+            max-width: 210mm !important;
+            height: 297mm !important;
+            box-sizing: border-box !important;
+            margin: 0 auto !important;
+            padding: 6mm !important;
+            border: 0 !important;
+            box-shadow: none !important;
+            overflow: hidden !important;
+          }
+          .consultant-main-print-root section {
+            margin-bottom: 3mm !important;
+            page-break-inside: avoid !important;
+          }
+          .consultant-main-print-root .sheet-center-header {
+            padding-bottom: 1.5mm !important;
+            margin-bottom: 2.5mm !important;
+          }
+          .print-consultant-diagrams {
+            padding: 3mm !important;
+            gap: 10mm !important;
+          }
+          .print-consultant-diagrams .rounded-full {
+            width: 34mm !important;
+            height: 34mm !important;
+            border-width: 2px !important;
+          }
+          .print-consultant-diagrams p {
+            margin-top: 1.5mm !important;
+          }
+          .print-consultant-notes-grid textarea {
+            min-height: 18mm !important;
+          }
+          .print-consultant-notes-grid .col-span-1 textarea {
+            min-height: 44mm !important;
+          }
+          .print-consultant-footer {
+            padding-top: 2mm !important;
+            page-break-inside: avoid !important;
           }
           .print-consultant-patient-grid {
             display: grid !important;

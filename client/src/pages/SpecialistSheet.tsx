@@ -22,6 +22,7 @@ import { usePrintMode } from "@/hooks/usePrintMode";
 import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 import { printOrExportPdf } from "@/lib/nativePdf";
 import { BRAND_NAME_AR, BRAND_NAME_EN } from "@/lib/brand";
+import SheetCenterHeader from "@/components/SheetCenterHeader";
 
 export default function SpecialistSheet() {
   const { user, isAuthenticated } = useAuth();
@@ -440,12 +441,47 @@ export default function SpecialistSheet() {
           text-align: center !important;
         }
         @media print {
-          @page { size: A4 portrait; margin: 0; }
+          @page { size: A5 landscape; margin: 0; }
           body { background: white !important; }
           .specialist-print-root {
-            width: 100%;
-            max-width: 100%;
-            margin: 0 auto;
+            width: 210mm !important;
+            max-width: 210mm !important;
+            height: 148mm !important;
+            box-sizing: border-box !important;
+            margin: 0 auto !important;
+            padding: 5mm !important;
+            overflow: hidden !important;
+            font-size: 80% !important;
+            line-height: 1.1 !important;
+          }
+          .specialist-print-root table { font-size: 9px !important; }
+          .specialist-print-root input {
+            font-size: 9px !important;
+            height: 5mm !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+          }
+          .specialist-print-root .sheet-center-header {
+            padding-bottom: 1mm !important;
+            margin-bottom: 1.5mm !important;
+          }
+          .specialist-print-root .mb-6 { margin-bottom: 2mm !important; }
+          .specialist-print-root .p-4 { padding: 1.5mm !important; }
+          .specialist-print-root .p-2 { padding: 1mm !important; }
+          .specialist-print-root .p-1 { padding: 0.5mm !important; }
+          .specialist-print-root .gap-6 { gap: 2mm !important; }
+          .specialist-print-root .gap-8 { gap: 3mm !important; }
+          .specialist-print-root .gap-y-4 { row-gap: 1mm !important; }
+          .specialist-print-root .h-7 { height: 4.5mm !important; }
+          .specialist-print-root .h-12 { height: 6mm !important; }
+          .specialist-print-root .h-6 { height: 3mm !important; }
+          .specialist-print-root .pt-6 { padding-top: 1.5mm !important; }
+          .specialist-print-root .specialist-notes-block {
+            min-height: 0 !important;
+            padding: 1.5mm !important;
+          }
+          .specialist-print-root .specialist-notes-block > * + * {
+            margin-top: 2mm !important;
           }
           .print-specialist-patient-grid {
             display: grid !important;
@@ -535,24 +571,11 @@ export default function SpecialistSheet() {
             </Button>
           </div>
           {/* Letterhead */}
-          <div className="mb-6 flex justify-between items-center border-b-2 border-primary pb-3 -mx-8 px-8">
-            <div className="flex items-center gap-3" dir="ltr">
-              <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center text-white">
-                <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M3 12c0-3 3-6 9-6s9 3 9 6-3 6-9 6-9-3-9-6z" />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-primary leading-tight" dir="rtl">{BRAND_NAME_AR}</h2>
-                <p className="text-[10px] font-bold text-[#526069] uppercase tracking-widest">{BRAND_NAME_EN} — Specialist Sheet</p>
-              </div>
-            </div>
-            <div className="text-left text-xs text-[#526069]" dir="ltr">
-              <p className="font-bold text-primary text-sm">شيت الأخصائي</p>
-              <p>{formData.examinationDate}</p>
-            </div>
-          </div>
+          <SheetCenterHeader
+            titleEn="Specialist Sheet"
+            titleAr="شيت الأخصائي"
+            date={formData.examinationDate}
+          />
 
           {/* Patient grid */}
           <div className="print-specialist-patient-grid grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-4 mb-6 p-4 bg-[#f8f9fb] rounded-xl border border-[#c3c6d6]">
@@ -600,6 +623,11 @@ export default function SpecialistSheet() {
                   </tr>
                 </tbody>
               </table>
+              <div className="mt-2 flex items-center justify-center gap-8 text-sm font-bold border-t border-[#c3c6d6] p-2" dir="ltr">
+                <span className="text-primary uppercase">Dominant Eye:</span>
+                <label className="flex items-center gap-2"><input type="radio" name="dominant" /> OD</label>
+                <label className="flex items-center gap-2"><input type="radio" name="dominant" /> OS</label>
+              </div>
             </div>
             <div className="overflow-hidden rounded-lg border border-[#c3c6d6]">
               <table className="w-full border-collapse text-sm" dir="ltr">
@@ -657,7 +685,7 @@ export default function SpecialistSheet() {
           </div>
 
           {/* Clinical notes */}
-          <div className="mb-6 border border-[#c3c6d6] rounded-lg p-4 min-h-[140px] space-y-4">
+          <div className="specialist-notes-block mb-6 border border-[#c3c6d6] rounded-lg p-4 min-h-[140px] space-y-4">
             <div className="border-b border-dotted border-[#c3c6d6] h-6" />
             <div className="border-b border-dotted border-[#c3c6d6] h-6" />
             <div className="border-b border-dotted border-[#c3c6d6] h-6" />

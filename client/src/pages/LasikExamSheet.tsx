@@ -23,6 +23,7 @@ import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 import { printOrExportPdf } from "@/lib/nativePdf";
 import { BRAND_NAME_AR, BRAND_NAME_EN } from "@/lib/brand";
 import { DateInput } from "@/components/ui/date-input";
+import SheetCenterHeader from "@/components/SheetCenterHeader";
 
 export default function LasikExamSheet() {
   const { user, isAuthenticated } = useAuth();
@@ -600,16 +601,11 @@ export default function LasikExamSheet() {
         dir="ltr"
       >
         {/* Header */}
-        <div className="flex justify-between items-center border-b-2 border-[#003d9b] pb-3">
-          <div className="flex items-center gap-3">
-            <span className="text-xl font-bold text-[#003d9b]">Tanta Eye Center</span>
-            <span className="h-6 w-px bg-[#c3c6d6]" />
-            <span className="text-xs font-bold uppercase tracking-wider text-[#434654]">Lasik Exam Sheet</span>
-          </div>
-          <div className="text-right text-sm text-[#526069]" dir="rtl">
-            <span className="font-bold text-[#003d9b]">شيت فحص الليزك</span> — {formData.examinationDate || today}
-          </div>
-        </div>
+        <SheetCenterHeader
+          titleEn="Lasik Exam Sheet"
+          titleAr="شيت فحص الليزك"
+          date={formData.examinationDate || today}
+        />
 
         {/* Patient Info */}
         <section className="print-lasik-patient-grid p-4 bg-[#f3f4f6] rounded-xl border border-[#c3c6d6] grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-3 text-sm" dir="rtl">
