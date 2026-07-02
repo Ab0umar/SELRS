@@ -576,10 +576,10 @@ export default function ConsultantSheet() {
         {/* END: Clinical Refraction */}
 
         {/* BEGIN: Clinical Diagrams (replaces Pentacam / Target Refraction) */}
-        <section className="print-consultant-diagrams grid grid-cols-1 lg:grid-cols-2 gap-8 border border-[#c3c6d6] rounded-xl p-8 bg-white flex-1 min-h-[110mm]" data-purpose="clinical-diagrams">
+        <section className="print-consultant-diagrams grid grid-cols-1 lg:grid-cols-2 gap-8 border border-[#c3c6d6] rounded-xl p-8 bg-white flex-1 min-h-[85mm]" data-purpose="clinical-diagrams">
           <div className="flex flex-col items-center justify-center">
             <span className="text-xs uppercase px-3 py-1 bg-[#003d9b]/5 rounded shadow-sm text-[#003d9b] mb-4">Right Eye (OD)</span>
-            <div className="w-64 h-64 rounded-full border-4 border-[#003d9b]/30 flex items-center justify-center relative bg-white">
+            <div className="w-56 h-56 rounded-full border-4 border-[#003d9b]/30 flex items-center justify-center relative bg-white">
               <div className="absolute inset-0 flex items-center justify-center opacity-10">
                 <div className="w-full border-t border-slate-900"></div>
                 <div className="h-full border-l border-slate-900 absolute top-0"></div>
@@ -590,7 +590,7 @@ export default function ConsultantSheet() {
           </div>
           <div className="flex flex-col items-center justify-center">
             <span className="text-xs uppercase px-3 py-1 bg-[#f3f4f6] rounded shadow-sm text-[#526069] mb-4">Left Eye (OS)</span>
-            <div className="w-64 h-64 rounded-full border-4 border-slate-300 flex items-center justify-center relative bg-white">
+            <div className="w-56 h-56 rounded-full border-4 border-slate-300 flex items-center justify-center relative bg-white">
               <div className="absolute inset-0 flex items-center justify-center opacity-10">
                 <div className="w-full border-t border-slate-900"></div>
                 <div className="h-full border-l border-slate-900 absolute top-0"></div>
@@ -675,7 +675,14 @@ export default function ConsultantSheet() {
         }
         @media print {
           .print-page-break { page-break-before: always !important; break-before: page !important; }
-          .print-page-center-a4 { min-height: 297mm; display: flex; align-items: center; justify-content: center; }
+          .print-page-center-a4 {
+            min-height: 297mm;
+            width: 100% !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+          }
           @page { size: A4 portrait; margin: 0; }
           body { background: white !important; }
           /* the shared .sheet-layout print rule clips this page's fixed 210mm sheet — undo it here */
@@ -683,6 +690,15 @@ export default function ConsultantSheet() {
             overflow: visible !important;
             max-height: none !important;
             font-size: 100% !important;
+            width: 100% !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+          }
+          .consultant-page-root main[data-mobile-pdf-root] {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
           }
           .consultant-main-print-root .consultant-sheet-inner {
             width: 210mm !important;
@@ -782,11 +798,11 @@ export default function ConsultantSheet() {
             padding: 6mm !important;
           }
           .print-consultant-diagrams {
-            min-height: 100mm !important;
+            min-height: 78mm !important;
           }
           .print-consultant-diagrams .rounded-full {
-            width: 58mm !important;
-            height: 58mm !important;
+            width: 48mm !important;
+            height: 48mm !important;
             border-width: 2px !important;
           }
           .print-consultant-diagrams p {
