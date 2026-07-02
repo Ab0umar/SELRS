@@ -610,19 +610,19 @@ export default function LasikExamSheet() {
         {/* Patient Info */}
         <section className="print-lasik-patient-grid p-4 bg-[#f3f4f6] rounded-xl border border-[#c3c6d6] grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-3 text-sm" dir="rtl">
           <label className="flex items-center gap-2"><span className="font-bold text-[#434654] whitespace-nowrap">الاسم:</span>
-            <input className="flex-grow font-semibold text-[#003d9b] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none" value={formData.patientName} onChange={(e) => setFormData((p) => ({ ...p, patientName: e.target.value }))} /></label>
+            <input className="flex-grow font-semibold text-[#003d9b] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.patientName} onChange={(e) => setFormData((p) => ({ ...p, patientName: e.target.value }))} /></label>
           <label className="flex items-center gap-2"><span className="font-bold text-[#434654] whitespace-nowrap">السن:</span>
-            <input className="flex-grow font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none" value={formData.age} onChange={(e) => setFormData((p) => ({ ...p, age: e.target.value }))} /></label>
+            <input className="flex-grow font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.age} onChange={(e) => setFormData((p) => ({ ...p, age: e.target.value }))} /></label>
           <label className="flex items-center gap-2"><span className="font-bold text-[#434654] whitespace-nowrap">العنوان:</span>
-            <input className="flex-grow font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none" value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} /></label>
+            <input className="flex-grow font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} /></label>
           <label className="flex items-center gap-2"><span className="font-bold text-[#434654] whitespace-nowrap">التليفون:</span>
-            <input className="flex-grow font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none" dir="ltr" value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} /></label>
+            <input className="flex-grow font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} /></label>
           <label className="flex items-center gap-2"><span className="font-bold text-[#434654] whitespace-nowrap">تاريخ الفحص:</span>
-            <input type="date" className="flex-grow font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none" value={formData.examinationDate} onChange={(e) => setFormData((p) => ({ ...p, examinationDate: e.target.value }))} /></label>
+            <input type="date" className="flex-grow font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.examinationDate} onChange={(e) => setFormData((p) => ({ ...p, examinationDate: e.target.value }))} /></label>
           <label className="flex items-center gap-2"><span className="font-bold text-[#434654] whitespace-nowrap">المهنة:</span>
-            <input className="flex-grow font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none" value={formData.job} onChange={(e) => setFormData((p) => ({ ...p, job: e.target.value }))} /></label>
+            <input className="flex-grow font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.job} onChange={(e) => setFormData((p) => ({ ...p, job: e.target.value }))} /></label>
           <label className="flex items-center gap-2"><span className="font-bold text-[#434654] whitespace-nowrap">كود العميل:</span>
-            <input className="flex-grow font-semibold text-[#526069] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none" dir="ltr" value={formData.patientCode} onChange={(e) => setFormData((p) => ({ ...p, patientCode: e.target.value }))} /></label>
+            <input className="flex-grow font-semibold text-[#526069] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.patientCode} onChange={(e) => setFormData((p) => ({ ...p, patientCode: e.target.value }))} /></label>
           <div className="flex items-center gap-2"><span className="font-bold text-[#434654] whitespace-nowrap">نوع العملية:</span>
             <select className="flex-grow text-xs rounded border-[#c3c6d6] bg-white py-1" value={operationType} onChange={(e) => setOperationType(e.target.value)}>
               <option value="ليزك">ليزك</option>
