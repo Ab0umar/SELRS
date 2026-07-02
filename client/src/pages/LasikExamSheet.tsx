@@ -754,26 +754,27 @@ export default function LasikExamSheet() {
         </section>
 
         {/* Pentacam RT / LT */}
-        <section className="print-lasik-two-col grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section className="print-lasik-pentacam-right grid grid-cols-1 lg:grid-cols-[1fr_1.3fr_1.3fr] gap-4">
+          <div className="hidden lg:block print:block" /> {/* Empty space on the left */}
           {(["od", "os"] as const).map((eye) => {
             const isOD = eye === "od";
             const thin = isOD ? odThinnestNum : osThinnestNum;
             return (
-              <div key={eye} className={`${isOD ? "od-bg border-[#003d9b]/20" : "os-bg border-[#c3c6d6]"} print-lasik-eye-card p-4 rounded-xl border`}>
-                <div className="flex justify-between items-center mb-3">
-                  <span className={`text-xs font-bold uppercase px-3 py-1 bg-white rounded shadow-sm ${isOD ? "text-[#003d9b]" : "text-[#526069]"}`}>{isOD ? "Right Eye (RT)" : "Left Eye (LT)"}</span>
+              <div key={eye} className={`${isOD ? "od-bg border-[#003d9b]/20" : "os-bg border-[#c3c6d6]"} print-lasik-eye-card p-2 rounded-xl border`}>
+                <div className="flex justify-between items-center mb-2">
+                  <span className={`text-[11px] font-bold uppercase px-2 py-1 bg-white rounded shadow-sm ${isOD ? "text-[#003d9b]" : "text-[#526069]"}`}>{isOD ? "Right Eye (RT)" : "Left Eye (LT)"}</span>
                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${thin < 480 ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}>{thin < 480 ? "THIN" : "STABLE"}</span>
                 </div>
                 <table className="w-full border-collapse text-sm bg-white rounded-lg overflow-hidden">
                   <tbody>
-                    <tr><td className={`${ctd} font-bold bg-[#f3f4f6] w-1/3 text-right`}>K1 (Flat)</td><td className={ctd}><input className={inp} value={examData.pentacam[eye].k1} onChange={mkPentaPatch(eye, "k1")} /></td>
-                      <td className={`${ctd} font-bold bg-[#f3f4f6] text-center w-12`} rowSpan={2}>AX</td><td className={ctd} rowSpan={2}><input className={inp} value={examData.pentacam[eye].ax1} onChange={mkPentaPatch(eye, "ax1")} /></td></tr>
-                    <tr><td className={`${ctd} font-bold bg-[#f3f4f6] text-right`}>K2 (Steep)</td><td className={ctd}><input className={inp} value={examData.pentacam[eye].k2} onChange={mkPentaPatch(eye, "k2")} /></td></tr>
-                    <tr><td className={`${ctd} font-bold bg-[#f3f4f6] text-right`}>Thinnest Point</td><td className={ctd} colSpan={3}><input className={`${inp} ${thin < 480 ? "text-red-600 font-bold" : ""}`} value={examData.pentacam[eye].thinnest} onChange={mkPentaPatch(eye, "thinnest")} /></td></tr>
-                    <tr><td className={`${ctd} font-bold bg-[#f3f4f6] text-right`}>Corneal Apex</td><td className={ctd} colSpan={3}><input className={inp} value={examData.pentacam[eye].apex} onChange={mkPentaPatch(eye, "apex")} /></td></tr>
-                    <tr><td className={`${ctd} font-bold bg-[#f3f4f6] text-[#003d9b] text-right`}>Residual Stroma</td><td className={`${ctd} bg-[#003d9b]/5`} colSpan={3}><input className={`${inp} text-[#003d9b] font-bold`} value={examData.pentacam[eye].residual} onChange={mkPentaPatch(eye, "residual")} /></td></tr>
-                    <tr><td className={`${ctd} font-bold bg-[#f3f4f6] text-right`}>Planned TTT</td><td className={ctd} colSpan={3}><input className={inp} value={examData.pentacam[eye].ttt} onChange={mkPentaPatch(eye, "ttt")} /></td></tr>
-                    <tr><td className={`${ctd} font-bold bg-[#f3f4f6] text-[#ba1a1a] text-right`}>Ablation</td><td className={ctd} colSpan={3}><input className={`${inp} text-[#ba1a1a] font-bold`} value={examData.pentacam[eye].ablation} onChange={mkPentaPatch(eye, "ablation")} /></td></tr>
+                    <tr><td className={`${ctd} font-bold bg-[#f3f4f6] w-1/3 text-right text-[11px]`}>K1 (Flat)</td><td className={ctd}><input className={inp} value={examData.pentacam[eye].k1} onChange={mkPentaPatch(eye, "k1")} /></td>
+                      <td className={`${ctd} font-bold bg-[#f3f4f6] text-center w-8 text-[11px]`} rowSpan={2}>AX</td><td className={ctd} rowSpan={2}><input className={inp} value={examData.pentacam[eye].ax1} onChange={mkPentaPatch(eye, "ax1")} /></td></tr>
+                    <tr><td className={`${ctd} font-bold bg-[#f3f4f6] text-right text-[11px]`}>K2 (Steep)</td><td className={ctd}><input className={inp} value={examData.pentacam[eye].k2} onChange={mkPentaPatch(eye, "k2")} /></td></tr>
+                    <tr><td className={`${ctd} font-bold bg-[#f3f4f6] text-right text-[11px]`}>Thinnest</td><td className={ctd} colSpan={3}><input className={`${inp} ${thin < 480 ? "text-red-600 font-bold" : ""}`} value={examData.pentacam[eye].thinnest} onChange={mkPentaPatch(eye, "thinnest")} /></td></tr>
+                    <tr><td className={`${ctd} font-bold bg-[#f3f4f6] text-right text-[11px]`}>Apex</td><td className={ctd} colSpan={3}><input className={inp} value={examData.pentacam[eye].apex} onChange={mkPentaPatch(eye, "apex")} /></td></tr>
+                    <tr><td className={`${ctd} font-bold bg-[#f3f4f6] text-[#003d9b] text-right text-[11px]`}>Residual</td><td className={`${ctd} bg-[#003d9b]/5`} colSpan={3}><input className={`${inp} text-[#003d9b] font-bold`} value={examData.pentacam[eye].residual} onChange={mkPentaPatch(eye, "residual")} /></td></tr>
+                    <tr><td className={`${ctd} font-bold bg-[#f3f4f6] text-right text-[11px]`}>Planned TTT</td><td className={ctd} colSpan={3}><input className={inp} value={examData.pentacam[eye].ttt} onChange={mkPentaPatch(eye, "ttt")} /></td></tr>
+                    <tr><td className={`${ctd} font-bold bg-[#f3f4f6] text-[#ba1a1a] text-right text-[11px]`}>Ablation</td><td className={ctd} colSpan={3}><input className={`${inp} text-[#ba1a1a] font-bold`} value={examData.pentacam[eye].ablation} onChange={mkPentaPatch(eye, "ablation")} /></td></tr>
                   </tbody>
                 </table>
               </div>
@@ -914,7 +915,7 @@ export default function LasikExamSheet() {
           .lasik-sheet .h-8 { height: 22px !important; }
           .lasik-sheet .h-6 { height: 16px !important; }
           .print-lasik-patient-grid { display: flex !important; flex-wrap: wrap !important; column-gap: 6mm !important; row-gap: 1.5mm !important; }
-          .print-lasik-two-col { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+          .print-lasik-pentacam-right { display: grid !important; grid-template-columns: 1fr 1.3fr 1.3fr !important; }
           .print-lasik-questions {
             display: block !important;
           }

@@ -588,15 +588,6 @@ export default function ShiftSchedule() {
       return `<span class="${meta.printClass}${absentClass}">${escapeHtml(label)}</span>`;
     }
 
-
-    function buildShiftToken(entry: any) {
-      const meta =
-        SHIFT_META[entry.shiftName as ShiftName] ?? SHIFT_META.Morning;
-      const absentClass = entry.present ? "" : " shift-absent";
-      const label = entry.present ? meta.short : `(${meta.short})`;
-      return `<span class="${meta.printClass}${absentClass}">${escapeHtml(label)}</span>`;
-    }
-
     function buildTable(dates: string[], index: number) {
       const cols = dates
         .map((ds) => {
@@ -666,20 +657,19 @@ export default function ShiftSchedule() {
             <div class="summary-pill">${arabicDigits(totalEntries)}<span>وردية</span></div>
             <div class="summary-pill">${arabicDigits(totalAbsent)}<span>غياب</span></div>
           </div>
-          <div class="legend" aria-label="دليل الورديات">
         </header>
+
         <div class="legend-row">
           <div class="legend">
             <span class="legend-item"><span class="legend-token legend-m">ص</span> صباح</span>
             <span class="legend-item"><span class="legend-token legend-n">م</span> مساء</span>
             <span class="legend-item"><span class="legend-token legend-absent">(ص)</span> غير حاضر</span>
           </div>
-        </header>
+          <div class="legend-note">الأيام الجمعة مستبعدة من الجدول، والعطلات مميزة بخلفية دافئة.</div>
+        </div>
+
         ${buildTable(allDates, 0)}
 
-          <div>الأيام الجمعة مستبعدة من الجدول، والعطلات مميزة بخلفية دافئة.</div>
-        </div>
-        ${halves.map(buildTable).join("")}
         <footer class="signature-row">
           <div class="signature-line">مسؤول الروستر</div>
           <div class="signature-line">مراجعة الموارد البشرية</div>
