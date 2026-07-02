@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Trash2, CalendarDays, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { DateInput } from "@/components/ui/date-input";
+import { useIsMobile } from "@/hooks/useMobile";
 
 const EGYPT_HOLIDAYS_2026 = [
   { date: "2026-01-07", label: "عيد الميلاد المجيد (أقباط)" },
@@ -27,6 +28,7 @@ const EGYPT_HOLIDAYS_2026 = [
 ];
 
 export default function Holidays() {
+  const isMobile = useIsMobile();
   const [year, setYear] = useState(new Date().getFullYear());
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ date: "", label: "", paid: true });
@@ -180,6 +182,100 @@ export default function Holidays() {
           ) : !holidays.length ? (
             <div className="text-center py-8 text-gray-500">
               لا توجد إجازات لهذا العام
+            </div>
+          ) : isMobile ? (
+            <div className="space-y-2" dir="rtl">
+              {holidays.map((h: any) => {
+                const isEditing = editingDate === h.date;
+                return (
+                  <div
+                    key={h.date}
+                    className={`rounded-2xl border p-3 shadow-sm ${isEditing ? "border-primary/40 bg-primary/5" : "border-border bg-background"}`}
+                  >
+                    <div className="font-mono text-xs text-muted-foreground">
+                      {h.date}
+                    </div>
+                    {isEditing ? (
+                      <div className="mt-2 space-y-2">
+                        <input
+                          value={editRow.label}
+                          onChange={(e) =>
+                            setEditRow({ ...editRow, label: e.target.value })
+                          }
+                          className="w-full rounded border px-2 py-1.5 text-sm"
+                        />
+                        <select
+                          value={editRow.paid ? "1" : "0"}
+                          onChange={(e) =>
+                            setEditRow({
+                              ...editRow,
+                              paid: e.target.value === "1",
+                            })
+                          }
+                          className="w-full rounded border px-2 py-1.5 text-sm"
+                        >
+                          <option value="1">مدفوعة</option>
+                          <option value="0">غير مدفوعة</option>
+                        </select>
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={addMut.isPending}
+                            onClick={() =>
+                              addMut.mutate({
+                                date: h.date,
+                                label: editRow.label,
+                                paid: editRow.paid,
+                              })
+                            }
+                          >
+                            <Check size={15} className="text-success" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditingDate(null)}
+                          >
+                            <X size={15} className="text-gray-500" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-1 flex items-center justify-between gap-2">
+                        <div>
+                          <div className="font-medium">{h.label}</div>
+                          {h.paid ? (
+                            <span className="text-xs text-success">مدفوعة</span>
+                          ) : (
+                            <span className="text-xs text-gray-400">غير مدفوعة</span>
+                          )}
+                        </div>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEditingDate(h.date);
+                              setEditRow({ label: h.label, paid: h.paid });
+                            }}
+                          >
+                            <Pencil size={15} className="text-primary" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteMut.mutate({ date: h.date })}
+                            disabled={deleteMut.isPending}
+                          >
+                            <Trash2 size={15} className="text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="overflow-x-auto">

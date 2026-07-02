@@ -13,6 +13,7 @@ import {
   Square,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { useIsMobile } from "@/hooks/useMobile";
 
 const tRPC = trpc as any;
 
@@ -26,6 +27,7 @@ interface LivePunch {
 }
 
 export default function LiveBoard() {
+  const isMobile = useIsMobile();
   const [punchTab, setPunchTab] = useState<"ef10k" | "k40pro">("ef10k");
   const [punches, setPunches] = useState<LivePunch[]>([]);
   const [isMonitoring, setIsMonitoring] = useState(true);
@@ -265,6 +267,31 @@ export default function LiveBoard() {
                   <p>لا توجد بصمات K40 Pro مسجلة</p>
                 </div>
               );
+              if (isMobile) {
+                return (
+                  <div className="max-h-[380px] space-y-2.5 overflow-y-auto pr-1">
+                    {recent.map((p: any, i: number) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between p-3 rounded-2xl border border-slate-150 bg-slate-50/30 text-xs"
+                      >
+                        <div>
+                          <span className="font-mono font-bold text-slate-800 block">ID: {p.empCd}</span>
+                          <span className="text-[9px] text-slate-400 block mt-0.5 font-mono">
+                            {new Date(p.punchAt).toLocaleString("ar-EG", { dateStyle: "short", timeStyle: "short" })}
+                          </span>
+                        </div>
+                        <div className="text-left">
+                          <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${p.direction === "in" ? "bg-emerald-50 text-emerald-700" : "bg-teal-50 text-teal-700"}`}>
+                            {p.direction === "in" ? "دخول" : "خروج"}
+                          </span>
+                          <span className="text-[9px] text-slate-400 block mt-0.5 font-mono">{p.deviceId}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              }
               return (
                 <div className="border border-slate-150 rounded-2xl overflow-hidden max-h-[380px] overflow-y-auto">
                   <table className="w-full text-right text-xs">

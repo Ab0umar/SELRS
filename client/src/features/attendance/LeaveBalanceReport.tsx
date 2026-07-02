@@ -13,6 +13,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useIsMobile } from "@/hooks/useMobile";
 
 interface EditRow {
   empCd: string;
@@ -30,6 +31,7 @@ const toneForBalance = (remaining: number, total: number) => {
 };
 
 export default function LeaveBalanceReport({ department }: { department?: string }) {
+  const isMobile = useIsMobile();
   const [year, setYear] = useState(new Date().getFullYear());
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
@@ -370,6 +372,180 @@ export default function LeaveBalanceReport({ department }: { department?: string
               <span className="text-xs">
                 اضغط "تعيين رصيد موظف" لإضافة رصيد.
               </span>
+            </div>
+          ) : isMobile ? (
+            <div className="space-y-2" dir="rtl">
+              {rows.map((row: any) => {
+                const pct =
+                  row.total > 0
+                    ? Math.round((row.usedDays / row.total) * 100)
+                    : 0;
+                const isEditingThis = editing?.empCd === row.empCd;
+                return (
+                  <div
+                    key={row.empCd}
+                    className={`rounded-2xl border p-3 shadow-sm ${isEditingThis ? "border-primary/40 bg-primary/5" : "border-border bg-background"}`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <div className="font-semibold text-foreground">
+                          {row.empName ?? "-"}
+                        </div>
+                        <div className="font-mono text-xs text-muted-foreground">
+                          {row.empCd}
+                        </div>
+                      </div>
+                      {!isEditingThis && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-9 w-9 p-0 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                          onClick={() =>
+                            setEditing({
+                              empCd: row.empCd,
+                              annualAllocation: row.annualAllocation,
+                              carryOver: row.carryOver,
+                            })
+                          }
+                          aria-label={`تعديل رصيد الموظف ${row.empName ?? row.empCd}`}
+                        >
+                          <Pencil size={14} />
+                        </Button>
+                      )}
+                    </div>
+
+                    {isEditingThis ? (
+                      <div className="mt-3 space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="mb-1 block text-xs text-muted-foreground">
+                              الرصيد السنوي
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              max={365}
+                              value={editing!.annualAllocation}
+                              onChange={(e) =>
+                                setEditing({
+                                  ...editing!,
+                                  annualAllocation:
+                                    parseInt(e.target.value) || 0,
+                                })
+                              }
+                              className="w-full rounded border border-border bg-background px-2 py-1.5 text-sm text-foreground focus:border-success focus:ring-2 focus:ring-success/15"
+                            />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs text-muted-foreground">
+                              مرحّل
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              max={365}
+                              value={editing!.carryOver}
+                              onChange={(e) =>
+                                setEditing({
+                                  ...editing!,
+                                  carryOver: parseInt(e.target.value) || 0,
+                                })
+                              }
+                              className="w-full rounded border border-border bg-background px-2 py-1.5 text-sm text-foreground focus:border-info focus:ring-2 focus:ring-info/15"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-9 w-9 p-0 text-success hover:bg-success/10"
+                            onClick={() =>
+                              setBalanceMut.mutate({
+                                empCd: editing!.empCd,
+                                year,
+                                annualAllocation: editing!.annualAllocation,
+                                carryOver: editing!.carryOver,
+                              })
+                            }
+                            disabled={setBalanceMut.isPending}
+                            aria-label={`حفظ رصيد الموظف ${editing!.empCd}`}
+                          >
+                            <Check size={14} />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-9 w-9 p-0 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                            onClick={() => setEditing(null)}
+                            aria-label="إلغاء التعديل"
+                          >
+                            <X size={14} />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="mt-3 grid grid-cols-4 gap-1 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
+                          <div>
+                            <div className="text-muted-foreground">الرصيد</div>
+                            <div className="font-medium text-primary">
+                              {row.annualAllocation}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">مرحّل</div>
+                            <div className="font-medium text-info">
+                              {row.carryOver}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">مستخدم</div>
+                            <div className="font-medium text-warning">
+                              {row.usedDays}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">متبقي</div>
+                            <span
+                              className={`inline-flex rounded-full border px-2 py-0.5 font-bold ${toneForBalance(row.remainingDays, row.total)}`}
+                            >
+                              {row.remainingDays}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="mt-2 flex items-center gap-2">
+                          <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                            <div
+                              className={`h-full rounded-full ${
+                                row.remainingDays > row.total * 0.5
+                                  ? "bg-success"
+                                  : row.remainingDays > row.total * 0.25
+                                    ? "bg-warning"
+                                    : "bg-destructive"
+                              }`}
+                              style={{ width: `${Math.min(pct, 100)}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {pct}%
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+              <div className="rounded-2xl border-2 border-info/20 bg-info/5 p-3 text-sm font-bold">
+                <div className="flex items-center justify-between">
+                  <span>الإجمالي</span>
+                  <span>{totalAlloc + totalCarry}</span>
+                </div>
+                <div className="mt-1 flex items-center justify-between text-xs font-medium text-muted-foreground">
+                  <span>مستخدم: {totalUsed}</span>
+                  <span>متبقي: {totalRemain}</span>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="overflow-x-auto" dir="rtl">

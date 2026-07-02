@@ -14,6 +14,7 @@ import {
 } from "@/lib/sheetDesigner";
 import { printOrExportPdf } from "@/lib/nativePdf";
 import { DateInput } from "@/components/ui/date-input";
+import SheetCenterHeader from "@/components/SheetCenterHeader";
 
 export default function ConsultantFollowupPage() {
   const { user, isAuthenticated } = useAuth();
@@ -166,7 +167,7 @@ export default function ConsultantFollowupPage() {
       const month = String(dob.getMonth() + 1).padStart(2, "0");
       const day = String(dob.getDate()).padStart(2, "0");
       const year = dob.getFullYear();
-      setPatientDOB(`${month}/${day}/${year}`);
+      setPatientDOB(`${day}/${month}/${year}`);
     }
   }, [patientQuery.data]);
 
@@ -244,6 +245,21 @@ export default function ConsultantFollowupPage() {
             margin-right: auto;
             transform: translateX(${originalMode ? 0 : followupLabels.offsetXmm}mm);
           }
+          .followup-print-root > * + * { margin-top: 2mm !important; }
+          .followup-print-root .space-y-5 > * + * { margin-top: 2mm !important; }
+          .followup-print-root section { page-break-inside: avoid !important; }
+          .followup-print-root .sheet-center-header { padding-bottom: 1mm !important; margin-bottom: 1mm !important; }
+          .followup-print-root td, .followup-print-root th { padding: 1mm 2mm !important; }
+          .followup-print-root textarea { height: 9mm !important; min-height: 0 !important; }
+          .followup-print-root .h-16 { height: 9mm !important; }
+          .followup-print-root .h-10 { height: 5mm !important; }
+          .followup-print-root .h-8 { height: 5mm !important; }
+          .followup-print-root .h-7 { height: 5mm !important; }
+          .followup-print-root .w-8 { width: 5mm !important; }
+          .followup-print-root .p-4 { padding: 1.5mm !important; }
+          .followup-print-root .py-2 { padding-top: 0.5mm !important; padding-bottom: 0.5mm !important; }
+          .followup-print-root footer { padding-top: 1mm !important; }
+          .followup-print-root section { box-shadow: none !important; }
         }
       `}</style>
 
@@ -251,6 +267,14 @@ export default function ConsultantFollowupPage() {
       <header className="print:hidden sticky top-0 z-50 flex justify-between items-center w-full px-6 py-2 bg-[#f8f9fb] border-b border-[#c3c6d6]">
         <span className="text-base font-bold text-[#003d9b]">Ophthalmic Clinic Management</span>
         <div className="flex items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            className="border-[#737685] text-[#191c1e] text-xs font-bold px-4 py-2 rounded uppercase tracking-wider hover:bg-[#edeef0]"
+            onClick={() => setLocation(`/sheets/consultant/${initialPatientId ?? ""}`)}
+          >
+            ← Consultant Sheet
+          </Button>
           <div className="w-60">
             <PatientPicker initialPatientId={initialPatientId} onSelect={onPickPatient} />
           </div>
@@ -274,46 +298,17 @@ export default function ConsultantFollowupPage() {
       </header>
 
       <div className="flex min-h-screen">
-        {/* Left sidebar */}
-        <aside className="print:hidden fixed left-0 top-[52px] h-[calc(100vh-52px)] w-60 flex flex-col py-5 border-r border-[#c3c6d6] bg-[#f3f4f6] z-40">
-          <div className="px-4 mb-6">
-            <div className="flex items-center gap-3 p-2 bg-[#e1e2e4] rounded-lg mb-4">
-              <div className="w-10 h-10 rounded-full bg-[#0052cc] flex items-center justify-center text-white font-bold text-sm">
-                {patientName ? patientName.slice(0, 2) : "PT"}
-              </div>
-              <div>
-                <div className="text-sm font-bold text-[#191c1e] truncate max-w-[120px]">{patientName || "No Patient"}</div>
-                <div className="text-xs uppercase text-[#434654] tracking-wide">ID: {initialPatientId ?? "—"}</div>
-              </div>
-            </div>
-            <button
-              type="button"
-              className="w-full bg-[#003d9b] text-white py-2 rounded font-bold text-sm hover:opacity-90 transition-all"
-              onClick={() => setLocation(`/sheets/consultant/${initialPatientId ?? ""}`)}
-            >
-              ← Consultant Sheet
-            </button>
-          </div>
-          <nav className="flex-1 px-2 space-y-1">
-            {[
-              { label: "Consultant Sheet", active: false },
-              { label: "Post-Op Follow-up", active: true },
-              { label: "Patient History", active: false },
-              { label: "Refraction Data", active: false },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-all ${item.active ? "bg-[#d3e2ed] text-[#56656e] font-bold" : "text-[#434654] hover:bg-[#e7e8ea]"}`}
-              >
-                {item.label}
-              </div>
-            ))}
-          </nav>
-        </aside>
-
         {/* Main content */}
-        <main className="print:ml-0 ml-60 py-8 px-6 flex-1">
+        <main className="py-8 px-6 flex-1">
           <div className="a4-page-card followup-print-root space-y-5">
+            <SheetCenterHeader
+              titleEn="Consultant Follow-up"
+              titleAr="متابعة الاستشاري"
+            />
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm px-1" dir="rtl">
+              <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">الاسم:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[120px] px-1">{patientName}</span></p>
+              <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold">BD:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[70px] px-1">{patientDOB}</span></p>
+            </div>
             {/* Operation header */}
             <div className="bg-white border border-[#c3c6d6] rounded-lg p-4 shadow-sm flex flex-col md:flex-row justify-between gap-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
@@ -327,7 +322,6 @@ export default function ConsultantFollowupPage() {
                     value={operationType}
                     onChange={(e) => setOperationType(e.target.value)}
                     className="h-7 text-sm font-bold text-[#003d9b] border-[#c3c6d6]"
-                    placeholder="LASIK / Refractive Surgery"
                   />
                 </div>
                 <div className="flex gap-2 items-end">
@@ -372,7 +366,6 @@ export default function ConsultantFollowupPage() {
                         value={f.type}
                         onChange={(e) => setFollowups((prev) => prev.map((x) => x.id === f.id ? { ...x, type: e.target.value } : x))}
                         className="h-7 text-base font-semibold border-0 bg-transparent focus:bg-white focus:border-[#003d9b] w-56"
-                        placeholder={followupTitles[idx % 4]}
                       />
                     </div>
                     <div className="flex items-center gap-2">
@@ -398,17 +391,17 @@ export default function ConsultantFollowupPage() {
                     <tbody>
                       <tr className="border-b border-[#c3c6d6]" style={{ backgroundColor: "rgba(0,61,155,0.03)" }}>
                         <td className="px-3 py-2.5 font-bold text-[#003d9b] text-sm">OD</td>
-                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-dashed border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
-                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-dashed border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
-                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-dashed border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
-                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-dashed border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
+                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
+                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
+                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
+                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
                       </tr>
                       <tr className="border-b border-[#c3c6d6] bg-white">
                         <td className="px-3 py-2.5 font-bold text-[#526069] text-sm">OS</td>
-                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-dashed border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
-                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-dashed border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
-                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-dashed border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
-                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-dashed border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
+                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
+                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
+                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
+                        <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:border-[#003d9b] outline-none p-0 text-sm" /></td>
                       </tr>
                     </tbody>
                   </table>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DateInput } from "@/components/ui/date-input";
+import { useIsMobile } from "@/hooks/useMobile";
 
 const statusTone: Record<string, string> = {
   present: "border-success/20 bg-success/10 text-success",
@@ -24,6 +25,7 @@ const timeTone: Record<string, string> = {
 };
 
 export default function DailyView({ department }: { department?: string }) {
+  const isMobile = useIsMobile();
   const today = new Date().toISOString().split("T")[0];
   const [dates, setDates] = useState({ from: today, to: today });
   const [empFilter, setEmpFilter] = useState("");
@@ -217,7 +219,105 @@ export default function DailyView({ department }: { department?: string }) {
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
             </div>
-          ) : records.length > 0 ? (
+          ) : records.length > 0 ? isMobile ? (
+            <div className="space-y-2" dir="rtl">
+              {filtered.map((record: any, idx: number) => (
+                <div
+                  key={idx}
+                  className="rounded-2xl border border-border bg-background p-3 shadow-sm"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <div className="font-semibold text-foreground">
+                        {record.empName ?? "-"}
+                      </div>
+                      <div className="font-mono text-xs text-muted-foreground">
+                        {record.empCd} · {record.workDate}
+                      </div>
+                    </div>
+                    <span
+                      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${
+                        statusTone[record.status] ??
+                        "border-muted-foreground/20 bg-muted/70 text-foreground"
+                      }`}
+                    >
+                      {getStatusLabel(record.status)}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {record.firstIn ? (
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${timeTone.in}`}
+                      >
+                        <span>↑</span>
+                        <span>
+                          {new Date(record.firstIn).toLocaleTimeString(
+                            "ar-EG",
+                          )}
+                        </span>
+                      </span>
+                    ) : null}
+                    {record.lastOut ? (
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${timeTone.out}`}
+                      >
+                        <span>↓</span>
+                        <span>
+                          {new Date(record.lastOut).toLocaleTimeString(
+                            "ar-EG",
+                          )}
+                        </span>
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {(record.lateMinutes > 0 ||
+                    record.earlyLeaveMin > 0 ||
+                    record.overtimeMinutes > 0) && (
+                    <div className="mt-3 grid grid-cols-3 gap-2 border-t border-border/60 pt-3 text-center text-xs">
+                      <div>
+                        <div className="text-muted-foreground">تأخير</div>
+                        <div
+                          className={
+                            record.lateMinutes > 0
+                              ? "font-semibold text-warning"
+                              : "text-muted-foreground"
+                          }
+                        >
+                          {record.lateMinutes || "-"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">مغادرة مبكرة</div>
+                        <div
+                          className={
+                            record.earlyLeaveMin > 0
+                              ? "font-semibold text-info"
+                              : "text-muted-foreground"
+                          }
+                        >
+                          {record.earlyLeaveMin || "-"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">إضافي</div>
+                        <div
+                          className={
+                            record.overtimeMinutes > 0
+                              ? "font-semibold text-primary"
+                              : "text-muted-foreground"
+                          }
+                        >
+                          {record.overtimeMinutes || "-"}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
             <div className="overflow-x-auto" dir="rtl">
               <table dir="rtl" className="w-full text-sm">
                 <thead>
