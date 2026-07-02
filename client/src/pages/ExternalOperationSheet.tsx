@@ -1,11 +1,8 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Printer } from "lucide-react";
+import { Printer, ArrowRight, User, Eye, Activity, Target, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import PatientPicker from "@/components/PatientPicker";
@@ -31,16 +28,9 @@ export default function ExternalOperationSheet() {
   const [, params] = useRoute("/sheets/external/:id");
   const initialPatientId = params?.id ? Number(params.id) : undefined;
   const printMode = usePrintMode({ ready: Boolean(initialPatientId) });
-  const originalMode =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("original") === "1";
 
   const [operationType, setOperationType] = useState("زيارة خارجية");
-  const [operationEyes, setOperationEyes] = useState({
-    right: true,
-    left: false,
-    both: false,
-  });
+  const [operationEyes, setOperationEyes] = useState({ right: true, left: false, both: false });
 
   const [formData, setFormData] = useState({
     patientName: "",
@@ -61,42 +51,13 @@ export default function ExternalOperationSheet() {
     iopOS: "",
   });
   const [pentacamData, setPentacamData] = useState({
-    od: {
-      k1: "",
-      k2: "",
-      ax1: "",
-      ax2: "",
-      thinnest: "",
-      apex: "",
-      residual: "",
-      ttt: "",
-      ablation: "",
-    },
-    os: {
-      k1: "",
-      k2: "",
-      ax1: "",
-      ax2: "",
-      thinnest: "",
-      apex: "",
-      residual: "",
-      ttt: "",
-      ablation: "",
-    },
+    od: { k1: "", k2: "", ax1: "", ax2: "", thinnest: "", apex: "", residual: "", ttt: "", ablation: "" },
+    os: { k1: "", k2: "", ax1: "", ax2: "", thinnest: "", apex: "", residual: "", ttt: "", ablation: "" },
   });
-  const [signatures, setSignatures] = useState({
-    reception: "",
-    nurse: "",
-    technician: "",
-    doctor: "",
-  });
-  const [printOffsetXmm, setPrintOffsetXmm] = useState(0);
-  const [printOffsetYmm, setPrintOffsetYmm] = useState(0);
-  const [printScale, setPrintScale] = useState(1);
+  const [signatures, setSignatures] = useState({ reception: "", nurse: "", technician: "", doctor: "" });
   const [customSheetCss, setCustomSheetCss] = useState("");
-  const [sheetTemplate, setSheetTemplate] = useState(
-    DEFAULT_SHEET_DESIGNER_CONFIG.templates.external,
-  );
+  const [sheetTemplate, setSheetTemplate] = useState(DEFAULT_SHEET_DESIGNER_CONFIG.templates.external);
+
   const designerSettingsQuery = trpc.medical.getSystemSetting.useQuery(
     { key: "sheet_designer_config" },
     { enabled: isAuthenticated, refetchOnWindowFocus: false },
@@ -106,19 +67,12 @@ export default function ExternalOperationSheet() {
     { enabled: isAuthenticated, refetchOnWindowFocus: false },
   );
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setLocation("/");
-    }
-  }, [isAuthenticated, setLocation]);
+  useEffect(() => { if (!isAuthenticated) setLocation("/"); }, [isAuthenticated, setLocation]);
 
   useEffect(() => {
     const localDesigner = loadSheetDesignerConfig();
     setCustomSheetCss(localDesigner.css.external || "");
     setSheetTemplate(localDesigner.templates.external);
-    setPrintOffsetXmm(localDesigner.layout.external.offsetXmm);
-    setPrintOffsetYmm(localDesigner.layout.external.offsetYmm);
-    setPrintScale(localDesigner.layout.external.scale);
   }, []);
 
   useEffect(() => {
@@ -126,9 +80,6 @@ export default function ExternalOperationSheet() {
     const merged = coerceSheetDesignerConfig(designerSettingsQuery.data.value);
     setCustomSheetCss(merged.css.external || "");
     setSheetTemplate(merged.templates.external);
-    setPrintOffsetXmm(merged.layout.external.offsetXmm);
-    setPrintOffsetYmm(merged.layout.external.offsetYmm);
-    setPrintScale(merged.layout.external.scale);
     saveSheetDesignerConfig(merged);
   }, [designerSettingsQuery.data]);
 
@@ -136,93 +87,33 @@ export default function ExternalOperationSheet() {
 
   const mobileSheetModeRaw = (mobileSheetModeQuery.data as any)?.value;
   const mobileSheetModeEnabled = Boolean(
-    mobileSheetModeRaw && typeof mobileSheetModeRaw === "object"
-      ? mobileSheetModeRaw.enabled
-      : mobileSheetModeRaw,
+    mobileSheetModeRaw && typeof mobileSheetModeRaw === "object" ? mobileSheetModeRaw.enabled : mobileSheetModeRaw,
   );
 
-  const patientQuery = trpc.patient.getPatient.useQuery(initialPatientId ?? 0, {
-    enabled: Boolean(initialPatientId),
-    refetchOnWindowFocus: false,
-  });
-  const sheetQuery = trpc.medical.getSheetEntry.useQuery(
-    { patientId: initialPatientId ?? 0, sheetType: "external" },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
-  );
-  const examinationStateQuery = trpc.medical.getPatientPageState.useQuery(
-    { patientId: initialPatientId ?? 0, page: "examination" },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
-  );
-  const examinationsQuery = trpc.medical.getExaminationsByPatient.useQuery(
-    { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
-  );
-  const visitsQuery = trpc.medical.getVisitsByPatient.useQuery(
-    { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
-  );
-  const reportsQuery = trpc.medical.getMedicalReportsByPatient.useQuery(
-    { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
-  );
-  const prescriptionsQuery = trpc.medical.getPrescriptionsByPatient.useQuery(
-    { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
-  );
-  const surgeriesQuery = trpc.medical.getSurgeriesByPatient.useQuery(
-    { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
-  );
-  const followupsQuery = trpc.medical.getFollowupVisitsByPatient.useQuery(
-    { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
-  );
-  const pentacamQuery = trpc.medical.getPentacamFilesByPatient.useQuery(
-    { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
-  );
-  const testRequestsQuery = trpc.medical.getTestRequestsByPatient.useQuery(
-    { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
-  );
+  const patientQuery = trpc.patient.getPatient.useQuery(initialPatientId ?? 0, { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false });
+  const sheetQuery = trpc.medical.getSheetEntry.useQuery({ patientId: initialPatientId ?? 0, sheetType: "external" }, { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false });
+  const examinationStateQuery = trpc.medical.getPatientPageState.useQuery({ patientId: initialPatientId ?? 0, page: "examination" }, { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false });
+  const examinationsQuery = trpc.medical.getExaminationsByPatient.useQuery({ patientId: initialPatientId ?? 0 }, { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false });
+  const visitsQuery = trpc.medical.getVisitsByPatient.useQuery({ patientId: initialPatientId ?? 0 }, { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false });
+  const reportsQuery = trpc.medical.getMedicalReportsByPatient.useQuery({ patientId: initialPatientId ?? 0 }, { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false });
+  const prescriptionsQuery = trpc.medical.getPrescriptionsByPatient.useQuery({ patientId: initialPatientId ?? 0 }, { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false });
+  const surgeriesQuery = trpc.medical.getSurgeriesByPatient.useQuery({ patientId: initialPatientId ?? 0 }, { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false });
+  const followupsQuery = trpc.medical.getFollowupVisitsByPatient.useQuery({ patientId: initialPatientId ?? 0 }, { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false });
+  const pentacamQuery = trpc.medical.getPentacamFilesByPatient.useQuery({ patientId: initialPatientId ?? 0 }, { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false });
+  const testRequestsQuery = trpc.medical.getTestRequestsByPatient.useQuery({ patientId: initialPatientId ?? 0 }, { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false });
+
   useEffect(() => {
     if (!initialPatientId) return;
     const socket = connectSheetUpdates({
       patientId: initialPatientId,
       onUpdate: () => {
-        Promise.all([
-          sheetQuery.refetch(),
-          patientQuery.refetch(),
-          examinationsQuery.refetch(),
-          visitsQuery.refetch(),
-          reportsQuery.refetch(),
-          prescriptionsQuery.refetch(),
-          surgeriesQuery.refetch(),
-          followupsQuery.refetch(),
-          pentacamQuery.refetch(),
-          testRequestsQuery.refetch(),
-        ]);
+        Promise.all([sheetQuery.refetch(), patientQuery.refetch(), examinationsQuery.refetch(), visitsQuery.refetch(), reportsQuery.refetch(), prescriptionsQuery.refetch(), surgeriesQuery.refetch(), followupsQuery.refetch(), pentacamQuery.refetch(), testRequestsQuery.refetch()]);
       },
     });
     return () => socket?.close();
-  }, [
-    initialPatientId,
-    sheetQuery,
-    patientQuery,
-    examinationsQuery,
-    visitsQuery,
-    reportsQuery,
-    prescriptionsQuery,
-    surgeriesQuery,
-    followupsQuery,
-    pentacamQuery,
-    testRequestsQuery,
-  ]);
-  const saveSheetMutation = trpc.medical.saveSheetEntry.useMutation({
-    onSuccess: () => {
-      toast.success("تم الحفظ");
-    },
-  });
+  }, [initialPatientId]);
+
+  const saveSheetMutation = trpc.medical.saveSheetEntry.useMutation({ onSuccess: () => { toast.success("تم الحفظ"); } });
 
   const formatDate = (value?: string | Date | null) => {
     if (!value) return "";
@@ -231,112 +122,37 @@ export default function ExternalOperationSheet() {
     return date.toISOString().split("T")[0];
   };
 
-  const handleSelectPatient = (patient: {
-    id: number;
-    fullName: string;
-    patientCode?: string | null;
-    phone?: string | null;
-    age?: number | null;
-    dateOfBirth?: string | Date | null;
-    address?: string | null;
-    occupation?: string | null;
-  }) => {
-    setFormData((prev) => ({
-      ...prev,
-      patientName: patient.fullName ?? "",
-      phone: patient.phone ?? "",
-      age: patient.age != null ? String(patient.age) : "",
-      dateOfBirth: formatDate(patient.dateOfBirth),
-      address: patient.address ?? "",
-      patientCode: patient.patientCode ?? "",
-      job: patient.occupation ?? "",
-    }));
-    if (patient.id) {
-      setLocation(`/sheets/external/${patient.id}`);
-    }
+  const handleSelectPatient = (patient: { id: number; fullName: string; patientCode?: string | null; phone?: string | null; age?: number | null; dateOfBirth?: string | Date | null; address?: string | null; occupation?: string | null }) => {
+    setFormData((prev) => ({ ...prev, patientName: patient.fullName ?? "", phone: patient.phone ?? "", age: patient.age != null ? String(patient.age) : "", dateOfBirth: formatDate(patient.dateOfBirth), address: patient.address ?? "", patientCode: patient.patientCode ?? "", job: patient.occupation ?? "" }));
+    if (patient.id) setLocation(`/sheets/external/${patient.id}`);
   };
 
   useEffect(() => {
     if (!patientQuery.data) return;
     const patient = patientQuery.data as any;
-    setFormData((prev) => ({
-      ...prev,
-      patientName: patient.fullName ?? "",
-      phone: patient.phone ?? "",
-      age: patient.age != null ? String(patient.age) : "",
-      dateOfBirth: formatDate(patient.dateOfBirth),
-      address: patient.address ?? "",
-      patientCode: patient.patientCode ?? "",
-      job: patient.occupation ?? "",
-    }));
+    setFormData((prev) => ({ ...prev, patientName: patient.fullName ?? "", phone: patient.phone ?? "", age: patient.age != null ? String(patient.age) : "", dateOfBirth: formatDate(patient.dateOfBirth), address: patient.address ?? "", patientCode: patient.patientCode ?? "", job: patient.occupation ?? "" }));
   }, [patientQuery.data]);
 
   useEffect(() => {
     if (!sheetQuery.data) return;
     try {
       const parsed = JSON.parse(sheetQuery.data);
-      if (parsed.formData) {
-        setFormData((prev) => ({
-          ...prev,
-          ...parsed.formData,
-          patientName: prev.patientName || parsed.formData.patientName,
-          phone: prev.phone || parsed.formData.phone,
-          age: prev.age || parsed.formData.age,
-          dateOfBirth: prev.dateOfBirth || parsed.formData.dateOfBirth,
-          address: prev.address || parsed.formData.address,
-        }));
-      }
+      if (parsed.formData) setFormData((prev) => ({ ...prev, ...parsed.formData, patientName: prev.patientName || parsed.formData.patientName, phone: prev.phone || parsed.formData.phone, age: prev.age || parsed.formData.age, dateOfBirth: prev.dateOfBirth || parsed.formData.dateOfBirth, address: prev.address || parsed.formData.address }));
       if (parsed.examData?.autorefraction) {
         const auto = parsed.examData.autorefraction;
-        setFormData((prev) => ({
-          ...prev,
-          ucvaOD: auto.od?.ucva ?? prev.ucvaOD,
-          ucvaOS: auto.os?.ucva ?? prev.ucvaOS,
-          bcvaOD: auto.od?.bcva ?? prev.bcvaOD,
-          bcvaOS: auto.os?.bcva ?? prev.bcvaOS,
-          refractionOD: {
-            s: auto.od?.s ?? prev.refractionOD.s,
-            c: auto.od?.c ?? prev.refractionOD.c,
-            a: auto.od?.axis ?? prev.refractionOD.a,
-          },
-          refractionOS: {
-            s: auto.os?.s ?? prev.refractionOS.s,
-            c: auto.os?.c ?? prev.refractionOS.c,
-            a: auto.os?.axis ?? prev.refractionOS.a,
-          },
-          iopOD: auto.od?.iop ?? prev.iopOD,
-          iopOS: auto.os?.iop ?? prev.iopOS,
-        }));
+        setFormData((prev) => ({ ...prev, ucvaOD: auto.od?.ucva ?? prev.ucvaOD, ucvaOS: auto.os?.ucva ?? prev.ucvaOS, bcvaOD: auto.od?.bcva ?? prev.bcvaOD, bcvaOS: auto.os?.bcva ?? prev.bcvaOS, refractionOD: { s: auto.od?.s ?? prev.refractionOD.s, c: auto.od?.c ?? prev.refractionOD.c, a: auto.od?.axis ?? prev.refractionOD.a }, refractionOS: { s: auto.os?.s ?? prev.refractionOS.s, c: auto.os?.c ?? prev.refractionOS.c, a: auto.os?.axis ?? prev.refractionOS.a }, iopOD: auto.od?.iop ?? prev.iopOD, iopOS: auto.os?.iop ?? prev.iopOS }));
       }
-      if (parsed.examData?.pentacam) {
-        setPentacamData((prev) => ({
-          od: { ...prev.od, ...(parsed.examData.pentacam.od ?? {}) },
-          os: { ...prev.os, ...(parsed.examData.pentacam.os ?? {}) },
-        }));
-      }
-      if (parsed.signatures) {
-        setSignatures({
-          reception: parsed.signatures.reception ?? "",
-          nurse: parsed.signatures.nurse ?? "",
-          technician: parsed.signatures.technician ?? "",
-          doctor: parsed.signatures.doctor ?? "",
-        });
-      }
+      if (parsed.examData?.pentacam) setPentacamData((prev) => ({ od: { ...prev.od, ...(parsed.examData.pentacam.od ?? {}) }, os: { ...prev.os, ...(parsed.examData.pentacam.os ?? {}) } }));
+      if (parsed.signatures) setSignatures({ reception: parsed.signatures.reception ?? "", nurse: parsed.signatures.nurse ?? "", technician: parsed.signatures.technician ?? "", doctor: parsed.signatures.doctor ?? "" });
       if (parsed.operationDetails) {
         setOperationType(parsed.operationDetails.type ?? "زيارة خارجية");
         const parsedEyes = parsed.operationDetails.eyes ?? {};
         const right = Boolean(parsedEyes.right);
         const left = Boolean(parsedEyes.left);
         const both = Boolean(parsedEyes.both) || (right && left);
-        setOperationEyes({
-          right: both ? true : right,
-          left: both ? true : left,
-          both,
-        });
+        setOperationEyes({ right: both ? true : right, left: both ? true : left, both });
       }
-    } catch {
-      // ignore malformed data
-    }
+    } catch { /* ignore */ }
   }, [sheetQuery.data]);
 
   useEffect(() => {
@@ -344,41 +160,18 @@ export default function ExternalOperationSheet() {
     const latestExam = examinationsQuery.data[0] as any;
     if (latestExam.autorefraction) {
       const auto = latestExam.autorefraction;
-      setFormData((prev) => ({
-        ...prev,
-        ucvaOD: auto.od?.ucva ?? prev.ucvaOD,
-        ucvaOS: auto.os?.ucva ?? prev.ucvaOS,
-        bcvaOD: auto.od?.bcva ?? prev.bcvaOD,
-        bcvaOS: auto.os?.bcva ?? prev.bcvaOS,
-        refractionOD: {
-          s: auto.od?.s ?? prev.refractionOD.s,
-          c: auto.od?.c ?? prev.refractionOD.c,
-          a: auto.od?.axis ?? prev.refractionOD.a,
-        },
-        refractionOS: {
-          s: auto.os?.s ?? prev.refractionOS.s,
-          c: auto.os?.c ?? prev.refractionOS.c,
-          a: auto.os?.axis ?? prev.refractionOS.a,
-        },
-        iopOD: auto.od?.iop ?? prev.iopOD,
-        iopOS: auto.os?.iop ?? prev.iopOS,
-      }));
+      setFormData((prev) => ({ ...prev, ucvaOD: auto.od?.ucva ?? prev.ucvaOD, ucvaOS: auto.os?.ucva ?? prev.ucvaOS, bcvaOD: auto.od?.bcva ?? prev.bcvaOD, bcvaOS: auto.os?.bcva ?? prev.bcvaOS, refractionOD: { s: auto.od?.s ?? prev.refractionOD.s, c: auto.od?.c ?? prev.refractionOD.c, a: auto.od?.axis ?? prev.refractionOD.a }, refractionOS: { s: auto.os?.s ?? prev.refractionOS.s, c: auto.os?.c ?? prev.refractionOS.c, a: auto.os?.axis ?? prev.refractionOS.a }, iopOD: auto.od?.iop ?? prev.iopOD, iopOS: auto.os?.iop ?? prev.iopOS }));
     }
     if (latestExam.pentacam) {
       const pentacam = latestExam.pentacam;
-      setPentacamData((prev) => ({
-        od: { ...prev.od, ...(pentacam?.od ?? {}) },
-        os: { ...prev.os, ...(pentacam?.os ?? {}) },
-      }));
+      setPentacamData((prev) => ({ od: { ...prev.od, ...(pentacam?.od ?? {}) }, os: { ...prev.os, ...(pentacam?.os ?? {}) } }));
     }
   }, [examinationsQuery.data]);
 
   useEffect(() => {
     const stateData = (examinationStateQuery.data as any)?.data;
     if (!stateData) return;
-    const doctorFromState =
-      String(stateData.doctorName ?? "").trim() ||
-      String(stateData.signatures?.doctor ?? "").trim();
+    const doctorFromState = String(stateData.doctorName ?? "").trim() || String(stateData.signatures?.doctor ?? "").trim();
     if (!doctorFromState) return;
     setSignatures((prev) => ({ ...prev, doctor: doctorFromState }));
   }, [examinationStateQuery.data]);
@@ -387,111 +180,22 @@ export default function ExternalOperationSheet() {
     const fullName = String(user?.name ?? "").trim();
     if (!fullName) return;
     const role = String(user?.role ?? "").toLowerCase();
-    setSignatures((prev) => ({
-      ...prev,
-      reception: role === "reception" ? fullName : prev.reception,
-      nurse: role === "nurse" ? fullName : prev.nurse,
-      technician: role === "technician" ? fullName : prev.technician,
-      doctor: role === "doctor" ? prev.doctor || fullName : prev.doctor,
-    }));
+    setSignatures((prev) => ({ ...prev, reception: role === "reception" ? fullName : prev.reception, nurse: role === "nurse" ? fullName : prev.nurse, technician: role === "technician" ? fullName : prev.technician, doctor: role === "doctor" ? prev.doctor || fullName : prev.doctor }));
   }, [user?.name, user?.role, sheetQuery.data, examinationStateQuery.data]);
 
   const handleSaveSheet = async () => {
-    if (!initialPatientId) {
-      toast.error("يرجى اختيار المريض أولاً");
-      return;
-    }
+    if (!initialPatientId) { toast.error("يرجى اختيار المريض أولاً"); return; }
     try {
-      const existing = (() => {
-        try {
-          return sheetQuery.data ? JSON.parse(sheetQuery.data) : {};
-        } catch {
-          return {};
-        }
-      })();
-      const pickValue = (next: string, prev?: string) =>
-        next && next.trim() ? next : prev;
+      const existing = (() => { try { return sheetQuery.data ? JSON.parse(sheetQuery.data) : {}; } catch { return {}; } })();
+      const pickValue = (next: string, prev?: string) => next && next.trim() ? next : prev;
       const mergedExamData = {
         autorefraction: {
-          od: {
-            ...(existing.examData?.autorefraction?.od ?? {}),
-            ucva: pickValue(
-              formData.ucvaOD,
-              existing.examData?.autorefraction?.od?.ucva,
-            ),
-            bcva: pickValue(
-              formData.bcvaOD,
-              existing.examData?.autorefraction?.od?.bcva,
-            ),
-            s: pickValue(
-              formData.refractionOD?.s,
-              existing.examData?.autorefraction?.od?.s,
-            ),
-            c: pickValue(
-              formData.refractionOD?.c,
-              existing.examData?.autorefraction?.od?.c,
-            ),
-            axis: pickValue(
-              formData.refractionOD?.a,
-              existing.examData?.autorefraction?.od?.axis,
-            ),
-            iop: pickValue(
-              formData.iopOD,
-              existing.examData?.autorefraction?.od?.iop,
-            ),
-          },
-          os: {
-            ...(existing.examData?.autorefraction?.os ?? {}),
-            ucva: pickValue(
-              formData.ucvaOS,
-              existing.examData?.autorefraction?.os?.ucva,
-            ),
-            bcva: pickValue(
-              formData.bcvaOS,
-              existing.examData?.autorefraction?.os?.bcva,
-            ),
-            s: pickValue(
-              formData.refractionOS?.s,
-              existing.examData?.autorefraction?.os?.s,
-            ),
-            c: pickValue(
-              formData.refractionOS?.c,
-              existing.examData?.autorefraction?.os?.c,
-            ),
-            axis: pickValue(
-              formData.refractionOS?.a,
-              existing.examData?.autorefraction?.os?.axis,
-            ),
-            iop: pickValue(
-              formData.iopOS,
-              existing.examData?.autorefraction?.os?.iop,
-            ),
-          },
+          od: { ...(existing.examData?.autorefraction?.od ?? {}), ucva: pickValue(formData.ucvaOD, existing.examData?.autorefraction?.od?.ucva), bcva: pickValue(formData.bcvaOD, existing.examData?.autorefraction?.od?.bcva), s: pickValue(formData.refractionOD?.s, existing.examData?.autorefraction?.od?.s), c: pickValue(formData.refractionOD?.c, existing.examData?.autorefraction?.od?.c), axis: pickValue(formData.refractionOD?.a, existing.examData?.autorefraction?.od?.axis), iop: pickValue(formData.iopOD, existing.examData?.autorefraction?.od?.iop) },
+          os: { ...(existing.examData?.autorefraction?.os ?? {}), ucva: pickValue(formData.ucvaOS, existing.examData?.autorefraction?.os?.ucva), bcva: pickValue(formData.bcvaOS, existing.examData?.autorefraction?.os?.bcva), s: pickValue(formData.refractionOS?.s, existing.examData?.autorefraction?.os?.s), c: pickValue(formData.refractionOS?.c, existing.examData?.autorefraction?.os?.c), axis: pickValue(formData.refractionOS?.a, existing.examData?.autorefraction?.os?.axis), iop: pickValue(formData.iopOS, existing.examData?.autorefraction?.os?.iop) },
         },
-        pentacam: {
-          od: {
-            ...(existing.examData?.pentacam?.od ?? {}),
-            ...pentacamData.od,
-          },
-          os: {
-            ...(existing.examData?.pentacam?.os ?? {}),
-            ...pentacamData.os,
-          },
-        },
+        pentacam: { od: { ...(existing.examData?.pentacam?.od ?? {}), ...pentacamData.od }, os: { ...(existing.examData?.pentacam?.os ?? {}), ...pentacamData.os } },
       };
-      await saveSheetMutation.mutateAsync({
-        patientId: initialPatientId,
-        sheetType: "external",
-        content: JSON.stringify({
-          ...existing,
-          formData: { ...(existing.formData ?? {}), ...formData },
-          examData: mergedExamData,
-          operationDetails: {
-            type: operationType,
-            eyes: operationEyes,
-          },
-        }),
-      });
+      await saveSheetMutation.mutateAsync({ patientId: initialPatientId, sheetType: "external", content: JSON.stringify({ ...existing, formData: { ...(existing.formData ?? {}), ...formData }, examData: mergedExamData, operationDetails: { type: operationType, eyes: operationEyes } }) });
     } catch (error) {
       toast.error(getTrpcErrorMessage(error, "حدث خطأ أثناء الحفظ"));
     }
@@ -499,1077 +203,394 @@ export default function ExternalOperationSheet() {
 
   useEffect(() => {
     if (!initialPatientId) return;
-    const timeout = setTimeout(() => {
-      handleSaveSheet();
-    }, 600);
+    const timeout = setTimeout(() => { handleSaveSheet(); }, 600);
     return () => clearTimeout(timeout);
   }, [formData, pentacamData, operationType, operationEyes, initialPatientId]);
 
   const handlePrint = () => {
-    void printOrExportPdf(
-      `${String(formData.patientName || formData.patientCode || initialPatientId || "external-sheet").trim()}.pdf`,
+    void printOrExportPdf(`${String(formData.patientName || formData.patientCode || initialPatientId || "external-sheet").trim()}.pdf`);
+  };
+
+  // ─── Style helpers ────────────────────────────────────────────────────────────
+  const ctd = "p-1.5 border border-[#c3c6d6] text-center";
+  const inp = "w-full text-center bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:outline-none focus:border-[#003d9b] py-0.5 text-sm font-mono";
+  const sectionHeader = "flex items-center gap-2 px-3 py-1.5 bg-[#003d9b] text-white text-xs font-bold uppercase tracking-wider rounded-t-md";
+  const today = new Date().toLocaleDateString("en-GB");
+
+  const PentacamCard = ({ eye, label, color }: { eye: "od" | "os"; label: string; color: string }) => {
+    const isOD = eye === "od";
+    const thin = parseFloat(pentacamData[eye].thinnest);
+    return (
+      <div className={`border rounded-lg overflow-hidden ${isOD ? "border-[#003d9b]/30" : "border-[#526069]/30"}`}>
+        <div className={`px-3 py-2 flex items-center justify-between ${isOD ? "bg-[#003d9b]" : "bg-[#526069]"} text-white`}>
+          <span className="text-xs font-bold uppercase">{label}</span>
+          {!Number.isNaN(thin) && thin > 0 && (
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${thin < 480 ? "bg-red-200 text-red-800" : "bg-green-200 text-green-800"}`}>
+              {thin < 480 ? "THIN AREA" : "STABLE"}
+            </span>
+          )}
+        </div>
+        <table className="w-full border-collapse text-xs">
+          <tbody>
+            {[
+              { label: "K1 (Flat)", field: "k1" },
+              { label: "K2 (Steep)", field: "k2" },
+              { label: "Axis 1", field: "ax1" },
+              { label: "Axis 2", field: "ax2" },
+              { label: "Thinnest (μm)", field: "thinnest", warn: thin < 480 },
+              { label: "Apex (μm)", field: "apex" },
+              { label: "Residual Stroma (μm)", field: "residual", isKey: true },
+              { label: "Planned TTT (μm)", field: "ttt" },
+              { label: "Ablation Depth (μm)", field: "ablation", isRed: true },
+            ].map(({ label: rowLabel, field, warn, isKey, isRed }) => (
+              <tr key={field} className="border-b border-[#c3c6d6] last:border-0">
+                <td className={`p-1.5 font-semibold w-2/5 bg-[#f3f4f6] ${isKey ? "text-[#003d9b]" : isRed ? "text-[#ba1a1a]" : "text-[#434654]"}`}>{rowLabel}</td>
+                <td className={`p-1.5 ${isKey ? "bg-[#003d9b]/5" : isRed ? "bg-red-50" : ""}`}>
+                  <input
+                    className={`w-full bg-transparent border-0 border-b border-[#c3c6d6] outline-none text-xs text-center focus:border-[#003d9b] font-mono ${warn ? "text-red-600 font-bold" : isKey ? "text-[#003d9b] font-bold" : isRed ? "text-[#ba1a1a]" : ""}`}
+                    value={(pentacamData[eye] as any)[field]}
+                    onChange={(e) => setPentacamData((prev) => ({ ...prev, [eye]: { ...prev[eye], [field]: e.target.value } }))}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     );
   };
 
   return (
     <div
-      className={`min-h-screen bg-background sheet-layout ${mobileSheetModeEnabled && !printMode.printView ? "mobile-sheet-mode" : ""}`}
-      dir="rtl"
-      style={{ direction: "rtl", textAlign: "right" }}
+      className={`min-h-screen bg-[#F8F9FB] external-page-root ${mobileSheetModeEnabled && !printMode.printView ? "mobile-sheet-mode" : ""}`}
+      dir="ltr"
     >
       <style>{`
         ${customSheetCss}
-        .refraction-table-center th,
-        .refraction-table-center td {
-          text-align: center !important;
-        }
-        .refraction-table-center input {
-          text-align: center !important;
-        }
+        .external-sheet, .external-sheet * { font-weight: 400 !important; text-decoration: none !important; }
+        .external-sheet th { font-weight: 700 !important; }
         @media print {
-          @page { size: A4 portrait; margin: 0 !important; }
-          .external-print-root {
-            transform: translateX(${originalMode ? 0 : printOffsetXmm}mm) translateY(${originalMode ? 0 : printOffsetYmm}mm) scale(${originalMode ? 1 : printScale});
-            transform-origin: top center;
-            margin-left: auto;
-            margin-right: auto;
-            width: 100% !important;
-            max-width: 210mm;
-          }
+          @page { size: A4 portrait; margin: 8mm; }
+          html, body { width: 100% !important; margin: 0 !important; padding: 0 !important; background: white !important; }
+          .external-page-root { overflow: visible !important; max-height: none !important; }
+          .external-sheet { width: 210mm !important; max-width: 210mm !important; height: auto !important; box-sizing: border-box !important; padding: 6mm !important; gap: 8px !important; font-size: 90% !important; line-height: 1.2 !important; border-radius: 0 !important; border: 0 !important; box-shadow: none !important; }
+          .external-sheet input:not([type="checkbox"]):not([type="radio"]), .external-sheet textarea { border: 0 !important; border-bottom: 1px solid #c3c6d6 !important; box-shadow: none !important; outline: 0 !important; background: transparent !important; font-size: 11px !important; }
+          .external-sheet table { font-size: 10px !important; }
+          .external-sheet .gap-4 { gap: 5px !important; }
+          .external-sheet .p-6 { padding: 5mm !important; }
+          .external-sheet .p-3 { padding: 3px !important; }
+          .print-external-signatures { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+          .print-external-footer-grid { display: grid !important; grid-template-columns: minmax(0, 8fr) minmax(0, 4fr) !important; }
         }
       `}</style>
-      <header
-        className={`sticky top-0 z-10 border-b border-border bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/60 print:hidden ${printMode.printView ? "hidden" : ""}`}
-      >
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between gap-2 flex-nowrap sheet-header-bar">
-            <div className="flex items-center gap-3 whitespace-nowrap">
-              <h1 className="text-xl font-bold text-foreground">
-                {sheetTemplate.sheetTitle}
-              </h1>
-              <span className="text-sm text-muted-foreground">
-                {formData.patientName}
-              </span>
-            </div>
-            <div className="flex gap-1 items-center whitespace-nowrap print:hidden sheet-header-actions">
-              <Button
-                variant="ghost"
-                size="sm"
-                type="button"
-                onClick={() => goBack()}
-              >
-                رجوع
-              </Button>
-            </div>
-            <div className="flex flex-nowrap gap-1 sheet-header-actions">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePrint}
-                type="button"
-              >
-                <Printer className="h-4 w-4 mr-2" />
-                طباعة
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSaveSheet}
-                type="button"
-              >
-                حفظ
-              </Button>
-            </div>
+
+      {/* ── TOP BAR ── */}
+      <header className={`sticky top-0 z-50 print:hidden flex justify-between items-center px-6 py-2 bg-white border-b border-[#c3c6d6] shadow-sm ${printMode.printView ? "hidden" : ""}`} dir="ltr">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="sm" type="button" onClick={() => goBack()} className="gap-1">
+            <ArrowRight className="h-4 w-4" /> Back
+          </Button>
+          <span className="text-lg font-bold text-[#003d9b]">{BRAND_NAME_EN}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-56">
+            <PatientPicker initialPatientId={initialPatientId} onSelect={handleSelectPatient} />
           </div>
+          <Button size="sm" className="bg-[#003d9b] text-white font-bold px-4 hover:bg-[#003d9b]/90" onClick={handleSaveSheet} disabled={saveSheetMutation.isPending} type="button">
+            {saveSheetMutation.isPending ? "Saving..." : "Save"}
+          </Button>
+          <Button size="sm" variant="outline" className="border-[#003d9b] text-[#003d9b] font-bold hover:bg-[#003d9b]/5" onClick={handlePrint} type="button">
+            <Printer className="h-4 w-4 mr-1" /> Print PDF
+          </Button>
         </div>
       </header>
 
-      <main
-        data-mobile-pdf-root
-        className={`container mx-auto print:p-0 ${printMode.printView ? "px-3 py-3" : "px-4 py-8 pb-24 sm:pb-8"}`}
-      >
-        {printMode.printView ? (
-          <PrintPreviewBanner
-            title="شيت الخارجي"
-            subtitle={formData.patientName || undefined}
-            onPrint={handlePrint}
-          />
-        ) : null}
-        <div
-          className={`mb-4 print:hidden ${printMode.printView ? "hidden" : ""}`}
-        >
-          <PatientPicker
-            initialPatientId={initialPatientId}
-            onSelect={handleSelectPatient}
-          />
-        </div>
-        <div className="rounded-[28px] border border-border/80 bg-background p-8 shadow-sm print:rounded-none print:border-0 print:p-0 external-print-root">
-          <div
-            className={`mb-2 print:hidden ${printMode.printView ? "hidden" : ""}`}
-          >
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setLocation("/dashboard")}
-              className="border-primary text-card-foreground hover:bg-primary/10"
-            >
-              الصفحة الرئيسية
-            </Button>
-          </div>
-          <div
-            className="mb-0 border-b-4 border-primary pb-0 -mx-8 px-8"
-            style={{ textAlign: "center" }}
-          >
-            <h2
-              className="text-lg font-bold"
-              dir="rtl"
-              style={{ textAlign: "right" }}
-            >
-              {BRAND_NAME_AR} — لليزك وتصحيح الإبصار
-            </h2>
-            <p className="text-sm" dir="ltr" style={{ textAlign: "center" }}>
-              {BRAND_NAME_EN} — Lasik & Vision Correction
-            </p>
-          </div>
+      {printMode.printView && (
+        <PrintPreviewBanner title="شيت الخارجي" subtitle={formData.patientName || undefined} onPrint={handlePrint} />
+      )}
 
-          <div
-            className="sheet-section-card flex flex-wrap sm:flex-nowrap items-center justify-start sm:justify-between gap-2 mb-1 text-xs px-2 py-1 bg-muted/30 overflow-x-hidden text-center"
-            dir="rtl"
-          >
-            <div className="flex items-center gap-1 min-w-0">
-              <span className="font-bold">
-                {sheetTemplate.examinationDateLabel}
-              </span>
-              <DateInput
-                value={formData.examinationDate}
-                onChange={(event) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    examinationDate: event.target.value,
-                  }))
-                }
-                className="text-xs text-right w-[120px] sm:w-[160px] min-w-0"
-                dir="rtl"
-              />
+      <div className="py-6 print:py-0">
+        <div
+          data-mobile-pdf-root
+          className={`external-sheet bg-white text-[#191c1e] font-sans p-6 border border-[#c3c6d6] shadow-md flex flex-col gap-4 w-[210mm] max-w-full mx-auto rounded-lg ${printMode.printView ? "hidden print:flex" : ""}`}
+          dir="ltr"
+        >
+          {/* ── HEADER ── */}
+          <header className="flex items-start justify-between border-b-2 border-[#003d9b] pb-3">
+            <div className="flex-1">
+              <div className="text-xl font-extrabold text-[#003d9b] leading-tight">{BRAND_NAME_EN}</div>
+              <div className="text-sm text-[#434654]">{BRAND_NAME_AR} — ليزر و تصحيح الإبصار</div>
+              <div className="text-xs text-[#737685] mt-0.5">EXTERNAL EXAMINATION</div>
             </div>
-            <div className="flex items-center gap-1 min-w-0">
-              <span className="font-bold">نوع العملية</span>
+            <div className="text-center px-4">
+              <div className="text-base font-bold text-[#003d9b]">External Sheet</div>
+              <div className="text-sm text-[#434654]">شيت الخارجي</div>
+              <div className="text-xs text-[#737685] mt-0.5">{formData.examinationDate ? new Date(formData.examinationDate).toLocaleDateString("en-GB") : today}</div>
+            </div>
+            <div className="text-right text-xs text-[#434654] space-y-0.5">
+              {formData.patientName && <div className="font-bold text-sm text-[#191c1e]">{formData.patientName}</div>}
+              {formData.patientCode && <div className="text-[#737685]">ID: {formData.patientCode}</div>}
+            </div>
+          </header>
+
+          {/* ── VISIT TYPE + EYE SELECTION ── */}
+          <div className="flex flex-wrap items-center gap-4 p-3 bg-[#f3f4f6] border border-[#c3c6d6] rounded-lg text-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-[#434654] uppercase">Visit Type:</span>
               <select
+                className="text-sm rounded border border-[#c3c6d6] bg-white py-1 px-2 text-[#003d9b] font-semibold"
                 value={operationType}
-                onChange={(event) => setOperationType(event.target.value)}
-                className="text-xs text-right w-[120px] sm:w-[160px] min-w-0 h-8 rounded-md border border-input bg-background px-2"
-                dir="rtl"
+                onChange={(e) => setOperationType(e.target.value)}
               >
-                <option value=""></option>
-                <option value="زيارة خارجية">زيارة خارجية</option>
-                <option value="فحص خارجي">فحص خارجي</option>
-                <option value="ليزك">ليزك</option>
-                <option value="متابعة">متابعة</option>
+                <option value="زيارة خارجية">External Visit</option>
+                <option value="فحص خارجي">External Exam</option>
+                <option value="ليزك">Lasik</option>
+                <option value="متابعة">Follow-up</option>
               </select>
             </div>
-            <div className="flex flex-wrap items-center gap-1 min-w-0">
-              <span className="font-bold">العيون</span>
-              <label className="flex items-center gap-1 bg-background px-2 py-1">
-                <span className="text-xs">يمين (RT)</span>
-                <Checkbox
-                  id="external-rt"
-                  checked={operationEyes.right}
-                  onCheckedChange={(checked) => {
-                    const right = Boolean(checked);
-                    setOperationEyes((prev) => ({
-                      ...prev,
-                      right,
-                      both: right && prev.left,
-                    }));
-                  }}
-                />
-              </label>
-              <label className="flex items-center gap-1 bg-background px-2 py-1">
-                <span className="text-xs">يسار (LT)</span>
-                <Checkbox
-                  id="external-lt"
-                  checked={operationEyes.left}
-                  onCheckedChange={(checked) => {
-                    const left = Boolean(checked);
-                    setOperationEyes((prev) => ({
-                      ...prev,
-                      left,
-                      both: prev.right && left,
-                    }));
-                  }}
-                />
-              </label>
-              <label className="flex items-center gap-1 bg-background px-2 py-1">
-                <span className="text-xs">OU</span>
-                <Checkbox
-                  id="external-ou"
-                  checked={operationEyes.both}
-                  onCheckedChange={(checked) => {
-                    const both = Boolean(checked);
-                    setOperationEyes({
-                      right: both ? true : false,
-                      left: both ? true : false,
-                      both,
-                    });
-                  }}
-                />
-              </label>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-[#434654] uppercase">Exam Date:</span>
+              <DateInput
+                value={formData.examinationDate}
+                onChange={(e) => setFormData((prev) => ({ ...prev, examinationDate: e.target.value }))}
+                className="h-7 text-sm border-[#c3c6d6] w-36"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-semibold text-[#434654] uppercase">Eye:</span>
+              {[
+                { key: "right", label: "OD (Right)", color: "#003d9b" },
+                { key: "left", label: "OS (Left)", color: "#526069" },
+                { key: "both", label: "OU (Both)", color: "#003d9b" },
+              ].map(({ key, label, color }) => (
+                <label key={key} className="flex items-center gap-1.5 cursor-pointer text-xs">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 accent-[#003d9b]"
+                    checked={Boolean((operationEyes as any)[key])}
+                    onChange={(e) => {
+                      if (key === "both") {
+                        const both = e.target.checked;
+                        setOperationEyes({ right: both, left: both, both });
+                      } else {
+                        const val = e.target.checked;
+                        setOperationEyes((p) => ({ ...p, [key]: val, both: key === "right" ? val && p.left : p.right && val }));
+                      }
+                    }}
+                  />
+                  <span className="font-medium" style={{ color }}>{label}</span>
+                </label>
+              ))}
             </div>
           </div>
 
-          <p className="font-bold text-sm mb-1">
-            {sheetTemplate.patientInfoTitle}
-          </p>
-          <div
-            className="sheet-section-card flex flex-col gap-1 mb-2 text-xs"
-            dir="rtl"
-            style={{ whiteSpace: "nowrap" }}
-          >
-            <div className="flex flex-nowrap items-center justify-between gap-2 w-full">
-              <div className="flex items-center gap-1">
-                <label className="font-bold">الاسم</label>
-                <Input
-                  value={formData.patientName}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <label className="font-bold">تاريخ الميلاد</label>
-                <Input
-                  value={formData.dateOfBirth}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <label className="font-bold">السن</label>
-                <Input
-                  value={formData.age}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <label className="font-bold">{sheetTemplate.doctorLabel}</label>
-                <Input
-                  value={signatures.doctor}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
+          {/* ── PATIENT INFORMATION ── */}
+          <section>
+            <div className={sectionHeader}>
+              <User className="h-3.5 w-3.5" />
+              <span>Patient Details / معلومات المريض</span>
+            </div>
+            <div className="border border-[#c3c6d6] border-t-0 rounded-b-md p-3 bg-[#f8f9fb]">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 text-sm" dir="ltr">
+                <div className="col-span-2 md:col-span-1">
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Full Name / الاسم</span>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] font-semibold text-[#003d9b] pb-0.5" dir="rtl">{formData.patientName}</div>
+                </div>
+                <div>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Patient Code</span>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] font-mono text-[#526069] pb-0.5">{formData.patientCode}</div>
+                </div>
+                <div>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Date of Birth</span>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</div>
+                </div>
+                <div>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Age / السن</span>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.age}</div>
+                </div>
+                <div>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Phone Number</span>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.phone}</div>
+                </div>
+                <div>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Profession / المهنة</span>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.job}</div>
+                </div>
+                <div>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Physician / الطبيب</span>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] font-semibold text-[#003d9b] pb-0.5">{signatures.doctor}</div>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Address / العنوان</span>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5" dir="rtl">{formData.address}</div>
+                </div>
               </div>
             </div>
-            <div className="flex flex-nowrap items-center justify-between gap-2 w-full">
-              <div className="flex items-center gap-1">
-                <label className="font-bold">العنوان</label>
-                <Input
-                  value={formData.address}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <label className="font-bold">الموبايل</label>
-                <Input
-                  value={formData.phone}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <label className="font-bold">كود العميل</label>
-                <Input
-                  value={formData.patientCode}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <label className="font-bold">الوظيفة</label>
-                <Input
-                  value={formData.job}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
+          </section>
+
+          {/* ── VISUAL ACUITY + REFRACTION ── */}
+          <section>
+            <div className={sectionHeader}>
+              <Eye className="h-3.5 w-3.5" />
+              <span>Visual Acuity &amp; Refraction</span>
             </div>
-          </div>
-
-          <div className="mb-4 border sheet-section-card">
-            <table
-              className="w-full text-xs text-center lasik-table refraction-table-center"
-              dir="ltr"
-              style={{
-                direction: "ltr",
-                unicodeBidi: "bidi-override",
-                textAlign: "center",
-              }}
-            >
-              <thead>
-                <tr className="border-b bg-muted">
-                  <th className="border-r p-0.5 text-center" colSpan={4}>
-                    Dominant eye
-                  </th>
-                  <th className="p-0.5 text-center" colSpan={6}>
-                    Refraction
-                  </th>
-                </tr>
-                <tr className="border-b bg-muted">
-                  <th className="border-r p-0.5"></th>
-                  <th className="border-r p-0.5">UCVA</th>
-                  <th className="border-r p-0.5">BCVA</th>
-                  <th className="border-r p-0.5">IOP</th>
-                  <th className="border-r p-0.5" colSpan={3}>
-                    OD
-                  </th>
-                  <th className="p-0.5" colSpan={3}>
-                    OS
-                  </th>
-                </tr>
-                <tr className="border-b">
-                  <th className="border-r p-0.5"></th>
-                  <th className="border-r p-0.5"></th>
-                  <th className="border-r p-0.5"></th>
-                  <th className="border-r p-0.5"></th>
-                  <th className="border-r p-0.5">S</th>
-                  <th className="border-r p-0.5">C</th>
-                  <th className="border-r p-0.5">A</th>
-                  <th className="border-r p-0.5">S</th>
-                  <th className="border-r p-0.5">C</th>
-                  <th className="p-0.5">A</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b">
-                  <td className="border-r p-0.5 font-bold">OD</td>
-                  <td className="border-r p-0.5">
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={formData.ucvaOD}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          ucvaOD: e.target.value,
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={formData.bcvaOD}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          bcvaOD: e.target.value,
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={formData.iopOD}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          iopOD: e.target.value,
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5" rowSpan={2}>
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={formData.refractionOD.s}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          refractionOD: {
-                            ...prev.refractionOD,
-                            s: e.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5" rowSpan={2}>
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={formData.refractionOD.c}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          refractionOD: {
-                            ...prev.refractionOD,
-                            c: e.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5" rowSpan={2}>
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={formData.refractionOD.a}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          refractionOD: {
-                            ...prev.refractionOD,
-                            a: e.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5" rowSpan={2}>
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={formData.refractionOS.s}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          refractionOS: {
-                            ...prev.refractionOS,
-                            s: e.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5" rowSpan={2}>
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={formData.refractionOS.c}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          refractionOS: {
-                            ...prev.refractionOS,
-                            c: e.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="p-0.5" rowSpan={2}>
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={formData.refractionOS.a}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          refractionOS: {
-                            ...prev.refractionOS,
-                            a: e.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </td>
-                </tr>
-                <tr className="border-b">
-                  <td className="border-r p-0.5 font-bold">OS</td>
-                  <td className="border-r p-0.5">
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={formData.ucvaOS}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          ucvaOS: e.target.value,
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={formData.bcvaOS}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          bcvaOS: e.target.value,
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Input
-                      placeholder=""
-                      className="text-xs"
-                      value={formData.iopOS}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          iopOS: e.target.value,
-                        }))
-                      }
-                    />
-                  </td>
-                </tr>
-                <tr className="border-b">
-                  <td className="border-r p-0.5 font-bold">Fundus</td>
-                  <td className="p-0.5" colSpan={9}>
-                    <Input placeholder="" className="text-xs" />
-                  </td>
-                </tr>
-                <tr>
-                  <td className="border-r p-0.5 font-bold">Tear film</td>
-                  <td className="border-r p-0.5" colSpan={3}>
-                    BUT
-                  </td>
-                  <td className="border-r p-0.5" colSpan={3}>
-                    Schirmer T
-                  </td>
-                  <td className="p-0.5" colSpan={3}>
-                    Lid Margin
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 mb-4 sheet-section-card">
-            <div className="border">
-              <div className="bg-muted p-1 text-center font-bold text-xs border-b">
-                RT فحص القرنية
-              </div>
-              <table
-                className="w-full text-xs text-center lasik-table"
-                dir="ltr"
-                style={{
-                  direction: "ltr",
-                  unicodeBidi: "bidi-override",
-                  textAlign: "center",
-                }}
-              >
-                <tbody>
-                  <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">K1</td>
-                    <td className="border-r p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={pentacamData.od.k1}
-                        onChange={(e) =>
-                          setPentacamData((prev) => ({
-                            ...prev,
-                            od: { ...prev.od, k1: e.target.value },
-                          }))
-                        }
-                      />
-                    </td>
-                    <td
-                      className="border-r p-0.5 font-bold text-center"
-                      rowSpan={2}
-                    >
-                      AX
-                    </td>
-                    <td className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={pentacamData.od.ax1}
-                        onChange={(e) =>
-                          setPentacamData((prev) => ({
-                            ...prev,
-                            od: { ...prev.od, ax1: e.target.value },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">K2</td>
-                    <td className="border-r p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={pentacamData.od.k2}
-                        onChange={(e) =>
-                          setPentacamData((prev) => ({
-                            ...prev,
-                            od: { ...prev.od, k2: e.target.value },
-                          }))
-                        }
-                      />
-                    </td>
-                    <td className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={pentacamData.od.ax2}
-                        onChange={(e) =>
-                          setPentacamData((prev) => ({
-                            ...prev,
-                            od: { ...prev.od, ax2: e.target.value },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">
-                      Thinnest Point
-                    </td>
-                    <td colSpan={3} className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={pentacamData.od.thinnest}
-                        onChange={(e) =>
-                          setPentacamData((prev) => ({
-                            ...prev,
-                            od: { ...prev.od, thinnest: e.target.value },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">
-                      Corneal Apex
-                    </td>
-                    <td colSpan={3} className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={pentacamData.od.apex}
-                        onChange={(e) =>
-                          setPentacamData((prev) => ({
-                            ...prev,
-                            od: { ...prev.od, apex: e.target.value },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">
-                      Residual Stroma
-                    </td>
-                    <td colSpan={3} className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={pentacamData.od.residual}
-                        onChange={(e) =>
-                          setPentacamData((prev) => ({
-                            ...prev,
-                            od: { ...prev.od, residual: e.target.value },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">
-                      Planned TTT
-                    </td>
-                    <td colSpan={3} className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={pentacamData.od.ttt}
-                        onChange={(e) =>
-                          setPentacamData((prev) => ({
-                            ...prev,
-                            od: { ...prev.od, ttt: e.target.value },
-                          }))
-                        }
-                      />
-                    </td>
+            <div className="border border-[#c3c6d6] border-t-0 rounded-b-md overflow-hidden">
+              <table className="w-full text-center border-collapse text-xs">
+                <thead className="bg-[#003d9b] text-white font-bold uppercase">
+                  <tr>
+                    <th className="p-2 border border-[#003d9b]/40" rowSpan={2}>Eye</th>
+                    <th className="p-2 border border-[#003d9b]/40" rowSpan={2}>UCVA</th>
+                    <th className="p-2 border border-[#003d9b]/40" rowSpan={2}>BCVA</th>
+                    <th className="p-2 border border-[#003d9b]/40" rowSpan={2}>IOP</th>
+                    <th className="p-2 border border-[#003d9b]/40" colSpan={3}>OD Refraction</th>
+                    <th className="p-2 border border-[#003d9b]/40" colSpan={3}>OS Refraction</th>
                   </tr>
                   <tr>
-                    <td className="border-r p-0.5 font-bold text-center">
-                      Ablation
-                    </td>
-                    <td colSpan={3} className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={pentacamData.od.ablation}
-                        onChange={(e) =>
-                          setPentacamData((prev) => ({
-                            ...prev,
-                            od: { ...prev.od, ablation: e.target.value },
-                          }))
-                        }
-                      />
-                    </td>
+                    <th className="p-1.5 border border-[#003d9b]/40">S</th>
+                    <th className="p-1.5 border border-[#003d9b]/40">C</th>
+                    <th className="p-1.5 border border-[#003d9b]/40">A</th>
+                    <th className="p-1.5 border border-[#003d9b]/40">S</th>
+                    <th className="p-1.5 border border-[#003d9b]/40">C</th>
+                    <th className="p-1.5 border border-[#003d9b]/40">A</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="bg-[#003d9b]/5">
+                    <td className="p-2 border border-[#c3c6d6] font-bold text-[#003d9b]">OD</td>
+                    <td className={ctd}><input className={inp} value={formData.ucvaOD} onChange={(e) => setFormData((p) => ({ ...p, ucvaOD: e.target.value }))} /></td>
+                    <td className={ctd}><input className={inp} value={formData.bcvaOD} onChange={(e) => setFormData((p) => ({ ...p, bcvaOD: e.target.value }))} /></td>
+                    <td className={ctd}><input className={inp} value={formData.iopOD} onChange={(e) => setFormData((p) => ({ ...p, iopOD: e.target.value }))} /></td>
+                    <td className={ctd}><input className={inp} value={formData.refractionOD.s} onChange={(e) => setFormData((p) => ({ ...p, refractionOD: { ...p.refractionOD, s: e.target.value } }))} /></td>
+                    <td className={ctd}><input className={inp} value={formData.refractionOD.c} onChange={(e) => setFormData((p) => ({ ...p, refractionOD: { ...p.refractionOD, c: e.target.value } }))} /></td>
+                    <td className={ctd}><input className={inp} value={formData.refractionOD.a} onChange={(e) => setFormData((p) => ({ ...p, refractionOD: { ...p.refractionOD, a: e.target.value } }))} /></td>
+                    <td className={ctd}><input className={inp} value={formData.refractionOS.s} onChange={(e) => setFormData((p) => ({ ...p, refractionOS: { ...p.refractionOS, s: e.target.value } }))} /></td>
+                    <td className={ctd}><input className={inp} value={formData.refractionOS.c} onChange={(e) => setFormData((p) => ({ ...p, refractionOS: { ...p.refractionOS, c: e.target.value } }))} /></td>
+                    <td className={ctd}><input className={inp} value={formData.refractionOS.a} onChange={(e) => setFormData((p) => ({ ...p, refractionOS: { ...p.refractionOS, a: e.target.value } }))} /></td>
+                  </tr>
+                  <tr className="bg-[#f3f4f6]">
+                    <td className="p-2 border border-[#c3c6d6] font-bold text-[#526069]">OS</td>
+                    <td className={ctd}><input className={inp} value={formData.ucvaOS} onChange={(e) => setFormData((p) => ({ ...p, ucvaOS: e.target.value }))} /></td>
+                    <td className={ctd}><input className={inp} value={formData.bcvaOS} onChange={(e) => setFormData((p) => ({ ...p, bcvaOS: e.target.value }))} /></td>
+                    <td className={ctd}><input className={inp} value={formData.iopOS} onChange={(e) => setFormData((p) => ({ ...p, iopOS: e.target.value }))} /></td>
+                    <td className={ctd} colSpan={3}><input className={inp} placeholder="Same as OD" /></td>
+                    <td className={ctd} colSpan={3}><input className={inp} /></td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 border border-[#c3c6d6] font-semibold text-[#434654] text-xs">Fundus</td>
+                    <td className={ctd} colSpan={9}><input className={inp} /></td>
+                  </tr>
+                  <tr className="bg-[#f3f4f6]">
+                    <td className="p-2 border border-[#c3c6d6] font-semibold text-[#434654] text-xs">Tear Film</td>
+                    <td className={`${ctd} text-[#434654] font-semibold`} colSpan={3}>BUT (sec): <input className="inline-block w-16 bg-transparent border-b border-[#c3c6d6] outline-none text-center text-xs" /></td>
+                    <td className={`${ctd} text-[#434654] font-semibold`} colSpan={3}>Schirmer (mm): <input className="inline-block w-16 bg-transparent border-b border-[#c3c6d6] outline-none text-center text-xs" /></td>
+                    <td className={`${ctd} text-[#434654] font-semibold`} colSpan={3}>Lid Margin: <input className="inline-block w-16 bg-transparent border-b border-[#c3c6d6] outline-none text-center text-xs" /></td>
                   </tr>
                 </tbody>
               </table>
             </div>
+          </section>
 
-            <div className="border">
-              <div className="bg-muted p-1 text-center font-bold text-xs border-b">
-                LT فحص القرنية
+          {/* ── CORNEAL EXAM (PENTACAM) ── */}
+          <section>
+            <div className={sectionHeader}>
+              <Activity className="h-3.5 w-3.5" />
+              <span>Corneal Examination / Pentacam</span>
+            </div>
+            <div className="border border-[#c3c6d6] border-t-0 rounded-b-md p-3 bg-white">
+              <div className="grid grid-cols-2 gap-4">
+                <PentacamCard eye="od" label="OD — Right Eye (RT)" color="#003d9b" />
+                <PentacamCard eye="os" label="OS — Left Eye (LT)" color="#526069" />
               </div>
-              <table
-                className="w-full text-xs text-center lasik-table"
-                dir="ltr"
-                style={{
-                  direction: "ltr",
-                  unicodeBidi: "bidi-override",
-                  textAlign: "center",
-                }}
-              >
-                <tbody>
-                  <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">K1</td>
-                    <td className="border-r p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={pentacamData.os.k1}
-                        onChange={(e) =>
-                          setPentacamData((prev) => ({
-                            ...prev,
-                            os: { ...prev.os, k1: e.target.value },
-                          }))
-                        }
-                      />
-                    </td>
-                    <td
-                      className="border-r p-0.5 font-bold text-center"
-                      rowSpan={2}
-                    >
-                      AX
-                    </td>
-                    <td className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={pentacamData.os.ax1}
-                        onChange={(e) =>
-                          setPentacamData((prev) => ({
-                            ...prev,
-                            os: { ...prev.os, ax1: e.target.value },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">K2</td>
-                    <td className="border-r p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={pentacamData.os.k2}
-                        onChange={(e) =>
-                          setPentacamData((prev) => ({
-                            ...prev,
-                            os: { ...prev.os, k2: e.target.value },
-                          }))
-                        }
-                      />
-                    </td>
-                    <td className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={pentacamData.os.ax2}
-                        onChange={(e) =>
-                          setPentacamData((prev) => ({
-                            ...prev,
-                            os: { ...prev.os, ax2: e.target.value },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">
-                      Thinnest Point
-                    </td>
-                    <td colSpan={3} className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        dir="ltr"
-                        value={pentacamData.os.thinnest}
-                        onChange={(e) =>
-                          setPentacamData((prev) => ({
-                            ...prev,
-                            os: { ...prev.os, thinnest: e.target.value },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">
-                      Corneal Apex
-                    </td>
-                    <td colSpan={3} className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        value={pentacamData.os.apex}
-                        onChange={(e) =>
-                          setPentacamData((prev) => ({
-                            ...prev,
-                            os: { ...prev.os, apex: e.target.value },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">
-                      Residual Stroma
-                    </td>
-                    <td colSpan={3} className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        value={pentacamData.os.residual}
-                        onChange={(e) =>
-                          setPentacamData((prev) => ({
-                            ...prev,
-                            os: { ...prev.os, residual: e.target.value },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="border-r p-0.5 font-bold text-center">
-                      Planned TTT
-                    </td>
-                    <td colSpan={3} className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        value={pentacamData.os.ttt}
-                        onChange={(e) =>
-                          setPentacamData((prev) => ({
-                            ...prev,
-                            os: { ...prev.os, ttt: e.target.value },
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
+            </div>
+          </section>
+
+          {/* ── TREATMENT PLAN ── */}
+          <section>
+            <div className={sectionHeader}>
+              <Target className="h-3.5 w-3.5" />
+              <span>Treatment Plan / خطة العلاج</span>
+            </div>
+            <div className="border border-[#c3c6d6] border-t-0 rounded-b-md overflow-hidden">
+              <table className="w-full text-center border-collapse text-xs">
+                <thead className="bg-[#e7e8ea] text-[#434654] font-bold uppercase">
                   <tr>
-                    <td className="border-r p-0.5 font-bold text-center">
-                      Ablation
-                    </td>
-                    <td colSpan={3} className="p-0.5">
-                      <Input
-                        placeholder=""
-                        className="text-xs"
-                        value={pentacamData.os.ablation}
-                        onChange={(e) =>
-                          setPentacamData((prev) => ({
-                            ...prev,
-                            os: { ...prev.os, ablation: e.target.value },
-                          }))
-                        }
-                      />
-                    </td>
+                    <th className={ctd}>Eye</th>
+                    <th className={ctd}>Target Refraction</th>
+                    <th className={ctd}>Before Flap</th>
+                    <th className={ctd}>After Flap</th>
+                    <th className={ctd}>After Treatment</th>
+                    <th className={ctd}>Flap Reposition</th>
+                    <th className={ctd}>Ciclo 3×</th>
+                    <th className={ctd}>Note</th>
                   </tr>
+                </thead>
+                <tbody>
+                  {(["OD", "OS"] as const).map((label) => (
+                    <tr key={label} className={label === "OD" ? "bg-[#003d9b]/5" : "bg-[#f3f4f6]"}>
+                      <td className={`${ctd} font-bold ${label === "OD" ? "text-[#003d9b]" : "text-[#526069]"}`}>{label}</td>
+                      {Array.from({ length: 7 }).map((_, i) => (
+                        <td key={i} className={ctd}><input className={inp} /></td>
+                      ))}
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
-          </div>
+          </section>
 
-          <div className="mb-4 border sheet-section-card">
-            <table
-              className="w-full text-xs text-center lasik-table"
-              dir="ltr"
-              style={{
-                direction: "ltr",
-                unicodeBidi: "bidi-override",
-                textAlign: "center",
-              }}
-            >
-              <thead>
-                <tr className="border-b bg-muted">
-                  <th className="border-r p-0.5 text-center">
-                    Target refraction
-                  </th>
-                  <th className="border-r p-0.5 text-center">OD / OS</th>
-                  <th className="border-r p-0.5 text-center">Before Flap</th>
-                  <th className="border-r p-0.5 text-center">After Flap</th>
-                  <th className="border-r p-0.5 text-center">
-                    After Treatment
-                  </th>
-                  <th className="border-r p-0.5 text-center">
-                    After Flap Reposition
-                  </th>
-                  <th className="border-r p-0.5 text-center">Ciclo 3 مرات</th>
-                  <th className="p-0.5 text-center">Note</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b">
-                  <td className="border-r p-0.5">
-                    <Input placeholder="" className="text-xs" dir="ltr" />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Input placeholder="" className="text-xs" dir="ltr" />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Input placeholder="" className="text-xs" dir="ltr" />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Input placeholder="" className="text-xs" dir="ltr" />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Input placeholder="" className="text-xs" dir="ltr" />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Input placeholder="" className="text-xs" dir="ltr" />
-                  </td>
-                  <td className="border-r p-0.5">
-                    <Input placeholder="" className="text-xs" dir="ltr" />
-                  </td>
-                  <td className="p-0.5">
-                    <Input placeholder="" className="text-xs" dir="ltr" />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex gap-0.5 mb-1 sheet-section-card" dir="rtl">
-            <div style={{ flex: "0 0 64%" }}>
-              <Textarea
-                placeholder="Comments:"
-                className="text-xs w-full max-w-none"
-                rows={3}
-                dir="ltr"
-                style={{
-                  maxWidth: "none",
-                  width: "100%",
-                  marginInlineStart: "0",
-                  marginInlineEnd: "0",
-                  boxSizing: "border-box",
-                  textAlign: "left",
-                }}
-              />
-            </div>
-            <div
-              className="notes-col"
-              style={{
-                flex: "0 0 32%",
-                paddingInlineStart: "0",
-                marginInlineStart: "0",
-              }}
-            >
-              <Textarea
-                placeholder={sheetTemplate.notesLabel}
-                className="text-xs w-full max-w-none"
-                rows={3}
-                dir="ltr"
-                style={{
-                  maxWidth: "none",
-                  width: "100%",
-                  boxSizing: "border-box",
-                  textAlign: "left",
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="mb-1 w-full">
-            <Textarea
-              placeholder="Final:"
-              className="text-xs w-full max-w-none"
-              rows={3}
-              dir="ltr"
-              style={{ maxWidth: "none", width: "100%", textAlign: "left" }}
-            />
-          </div>
-
-          <div className="border-t pt-3 mt-4">
-            <div className="grid grid-cols-4 gap-4 text-xs" dir="rtl">
-              <div className="flex flex-col items-center">
-                <div className="border-b border-gray-400 w-full h-8 mb-1 flex items-center justify-center text-xs">
-                  {signatures.doctor ? (
-                    <span className="text-center">{signatures.doctor}</span>
-                  ) : null}
-                </div>
-                <span className="font-bold">طبيب</span>
+          {/* ── NOTES + FINAL DECISION ── */}
+          <section className="print-external-footer-grid grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <div className="lg:col-span-8 space-y-3">
+              <div>
+                <div className="text-xs font-bold text-[#003d9b] uppercase mb-1">Comments / ملاحظات:</div>
+                <div className="border-b border-[#c3c6d6] h-7" />
+                <div className="border-b border-[#c3c6d6] h-7 mt-1" />
               </div>
-              <div className="flex flex-col items-center">
-                <div className="border-b border-gray-400 w-full h-8 mb-1 flex items-center justify-center text-xs">
-                  {signatures.technician ? (
-                    <span className="text-center">{signatures.technician}</span>
-                  ) : null}
-                </div>
-                <span className="font-bold">فني</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="border-b border-gray-400 w-full h-8 mb-1 flex items-center justify-center text-xs">
-                  {signatures.nurse ? (
-                    <span className="text-center">{signatures.nurse}</span>
-                  ) : null}
-                </div>
-                <span className="font-bold">تمريض</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="border-b border-gray-400 w-full h-8 mb-1 flex items-center justify-center text-xs">
-                  {signatures.reception ? (
-                    <span className="text-center">{signatures.reception}</span>
-                  ) : null}
-                </div>
-                <span className="font-bold">استقبال</span>
+              <div>
+                <div className="text-xs font-bold text-[#003d9b] uppercase mb-1">Final Decision / القرار النهائي:</div>
+                <div className="border-b border-[#c3c6d6] h-7" />
               </div>
             </div>
-          </div>
+            <div className="lg:col-span-4 border-2 border-[#003d9b] rounded-xl p-3 bg-[#003d9b]/5">
+              <div className="text-center font-bold text-[#003d9b] uppercase text-xs border-b border-[#003d9b]/20 pb-2 mb-2">Office Notes</div>
+              <div className="border-b border-[#003d9b]/30 h-6 mb-1.5" />
+              <div className="border-b border-[#003d9b]/30 h-6 mb-1.5" />
+              <div className="border-b border-[#003d9b]/30 h-6" />
+            </div>
+          </section>
+
+          {/* ── SIGNATURES ── */}
+          <footer className="print-external-signatures border-t-2 border-[#003d9b] pt-4 mt-1">
+            <div className="grid grid-cols-4 gap-6">
+              {[
+                { label: "Reception / الاستقبال", val: signatures.reception, isDoctor: false },
+                { label: "Nursing / التمريض", val: signatures.nurse, isDoctor: false },
+                { label: "Optometrist / فني", val: signatures.technician, isDoctor: false },
+                { label: "Surgeon / الطبيب", val: signatures.doctor, isDoctor: true },
+              ].map(({ label, val, isDoctor }, i) => (
+                <div key={i} className="flex flex-col gap-2 text-center">
+                  <div className={`h-10 border-b-2 flex items-end justify-center pb-1 ${isDoctor ? "border-[#003d9b]" : "border-[#c3c6d6]"}`}>
+                    {val && <span className={`text-xs italic ${isDoctor ? "text-[#003d9b] font-semibold" : "text-[#737685]"}`}>{val}</span>}
+                  </div>
+                  <span className={`text-[10px] font-bold uppercase tracking-wide ${isDoctor ? "text-[#003d9b]" : "text-[#434654]"}`}>{label}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 pt-2 border-t border-[#c3c6d6] flex justify-between items-center text-[10px] text-[#737685] uppercase tracking-widest">
+              <span>Page 1 of 1</span>
+              <span>Ophthalmic Management System</span>
+              <span>Date: {today}</span>
+            </div>
+          </footer>
         </div>
-        <div
-          className={`sheet-mobile-actions print:hidden ${printMode.printView ? "hidden" : ""}`}
-        >
-          <Button type="button" variant="outline" onClick={() => goBack()}>
-            رجوع
-          </Button>
-          <Button type="button" variant="outline" onClick={handlePrint}>
-            طباعة
-          </Button>
-          <Button type="button" variant="default" onClick={handleSaveSheet}>
-            حفظ
-          </Button>
+
+        {/* Mobile actions */}
+        <div className={`sheet-mobile-actions print:hidden ${printMode.printView ? "hidden" : ""}`}>
+          <Button type="button" variant="outline" onClick={() => goBack()}>Back</Button>
+          <Button type="button" variant="outline" onClick={handlePrint}>Print</Button>
+          <Button type="button" variant="default" onClick={handleSaveSheet}>Save</Button>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

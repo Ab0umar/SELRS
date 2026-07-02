@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowRight, Download, Printer } from "lucide-react";
+import { ArrowRight, Download, Printer, User, FileText, Eye } from "lucide-react";
 import PatientPicker from "@/components/PatientPicker";
 import { trpc } from "@/lib/trpc";
 import { connectSheetUpdates } from "@/lib/ws";
@@ -59,7 +59,6 @@ export default function ConsultantSheet() {
   );
 
   const [formData, setFormData] = useState({
-    // Patient Info
     patientName: "",
     dateOfBirth: "",
     age: "",
@@ -70,8 +69,6 @@ export default function ConsultantSheet() {
     knowledgeType: "",
     consultantName: "",
     examinationDate: "",
-
-    // Medical History
     keratoconusHistory: false,
     familyHistory: false,
     eyeDiseases: false,
@@ -85,8 +82,6 @@ export default function ConsultantSheet() {
     supplements: false,
     thyroidDiseases: false,
     immuneDiseases: false,
-
-    // Examination Data
     dominantEye: "OD",
     ucvaOD: "",
     ucvaOS: "",
@@ -100,8 +95,6 @@ export default function ConsultantSheet() {
     fundusOS: "",
     iopOD: "",
     iopOS: "",
-
-    // Comments
     comments: "",
     final: "",
   });
@@ -118,28 +111,6 @@ export default function ConsultantSheet() {
     { id: 3, date: "", type: "المتابعة الثالثة", right: false, left: false },
     { id: 4, date: "", type: "المتابعة الرابعة", right: true, left: true },
   ]);
-
-  const handleFollowupDateChange = (id: number, value: string) => {
-    setFollowups((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, date: value } : item)),
-    );
-  };
-
-  const handleFollowupTypeChange = (id: number, value: string) => {
-    setFollowups((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, type: value } : item)),
-    );
-  };
-
-  const handleFollowupEyeChange = (
-    id: number,
-    eye: "right" | "left",
-    checked: boolean,
-  ) => {
-    setFollowups((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, [eye]: checked } : item)),
-    );
-  };
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -422,10 +393,6 @@ export default function ConsultantSheet() {
     goBack();
   };
 
-  const handleHomeNav = () => {
-    goHome();
-  };
-
   const CONSULTANT_TABS_PERSIST_KEY = `consultant-sheet:${initialPatientId ?? "new"}`;
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window === "undefined") return "sheet";
@@ -443,218 +410,349 @@ export default function ConsultantSheet() {
   const followupLabels = designerConfig.followupConsultant;
   const consultantTemplate = designerConfig.templates.consultant;
 
+  // ─── Shared style helpers ────────────────────────────────────────────────────
+  const ctd = "p-1.5 border border-[#c3c6d6] text-center";
+  const inp =
+    "w-full text-center bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:outline-none focus:border-[#003d9b] py-0.5 text-sm font-mono";
+  const sectionHeader =
+    "flex items-center gap-2 px-3 py-1.5 bg-[#003d9b] text-white text-xs font-bold uppercase tracking-wider rounded-t-md";
+
   const renderSheetBody = (readOnly = false) => {
-    const ctd = "p-1 border border-[#c3c6d6]";
-    const inp =
-      "w-full text-center bg-transparent border-0 border-b border-solid border-[#737685] focus:outline-none focus:border-[#003d9b] py-1 text-sm";
+    const today = new Date().toLocaleDateString("en-GB");
     return (
-    <fieldset disabled={embeddedInPatientHub || readOnly} className="border-0 p-0 m-0 min-w-0 disabled:opacity-95 consultant-main-print-root">
-      <div className="consultant-sheet-inner bg-white text-[#191c1e] font-sans p-8 print:p-[10mm] print:border-0 print:shadow-none border border-[#c3c6d6] shadow-sm flex flex-col gap-5 w-[210mm] max-w-full mx-auto" data-purpose="main-document" dir="rtl">
-        <SheetCenterHeader
-          titleEn="Consultant Sheet"
-          titleAr="شيت الاستشاري"
-        />
-        {/* BEGIN: Patient Demographics */}
-        <section className="print-consultant-patient-grid p-4 bg-[#f3f4f6] rounded-xl border border-[#c3c6d6] flex flex-wrap items-center gap-x-6 gap-y-2 text-sm" data-purpose="patient-info" dir="rtl">
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">الاسم:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[160px] px-1 min-h-5">{formData.patientName}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">تاريخ الميلاد:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[80px] px-1 min-h-5">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">السن:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[40px] px-1 min-h-5">{formData.age}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">الوظيفة:</span> <input type="text" dir="rtl" className="border-none p-0 outline-none w-28 text-right border-b border-solid border-[#c3c6d6] text-sm focus:border-[#003d9b] bg-transparent" value={formData.job} onChange={e => setFormData(p => ({ ...p, job: e.target.value }))} /></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">تاريخ الفحص:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[80px] px-1 min-h-5">{new Date().toLocaleDateString("en-GB")}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">رقم التليفون:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[100px] px-1 min-h-5">{formData.phone}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">العنوان:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[140px] px-1 min-h-5">{formData.address}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">كود العميل:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[70px] px-1 min-h-5">{formData.code}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">الاستشاري:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[140px] px-1 min-h-5">{signatures.doctor || "أ.د محمد السعني غرابة"}</span></p>
-        </section>
-        {/* END: Patient Demographics */}
+      <fieldset disabled={embeddedInPatientHub || readOnly} className="border-0 p-0 m-0 min-w-0 disabled:opacity-95 consultant-main-print-root">
+        <div
+          className="consultant-sheet-inner bg-white text-[#191c1e] font-sans p-6 print:p-[8mm] print:border-0 print:shadow-none border border-[#c3c6d6] shadow-md flex flex-col gap-4 w-[210mm] max-w-full mx-auto rounded-lg"
+          data-purpose="main-document"
+          dir="rtl"
+        >
+          {/* ── HEADER ── */}
+          <header className="flex items-start justify-between border-b-2 border-[#003d9b] pb-3 mb-1">
+            <div className="flex-1">
+              <div className="text-xl font-extrabold text-[#003d9b] leading-tight tracking-tight">
+                {BRAND_NAME_EN}
+              </div>
+              <div className="text-sm text-[#434654] leading-snug mt-0.5">
+                {BRAND_NAME_AR} — ليزر و تصحيح الإبصار
+              </div>
+              <div className="text-xs text-[#737685] mt-0.5">Ophthalmic Excellence Center</div>
+            </div>
+            <div className="text-center px-4">
+              <div className="text-base font-bold text-[#003d9b]">Consultant Sheet</div>
+              <div className="text-sm text-[#434654]">شيت الاستشاري</div>
+              <div className="text-xs text-[#737685] mt-0.5">{formData.examinationDate ? new Date(formData.examinationDate).toLocaleDateString("en-GB") : today}</div>
+            </div>
+            <div className="text-left text-xs text-[#434654] space-y-0.5">
+              {formData.patientName && <div className="font-bold text-sm text-[#191c1e]">{formData.patientName}</div>}
+              {formData.code && <div className="text-[#737685]">ID: {formData.code}</div>}
+            </div>
+          </header>
 
-        {/* BEGIN: Medical History Checklist */}
-        <section className="print-consultant-questions" data-purpose="medical-history" dir="rtl">
-          <table className="w-full border-collapse border border-[#c3c6d6] rounded-lg overflow-hidden text-sm">
-            <thead className="bg-[#e7e8ea]">
-              <tr>
-                <th className="w-12 p-2 border border-[#c3c6d6]">لا</th>
-                <th className="w-12 p-2 border border-[#c3c6d6]">نعم</th>
-                <th className="p-2 border border-[#c3c6d6] text-right">التاريخ المرضي</th>
-                <th className="w-12 p-2 border border-[#c3c6d6]">لا</th>
-                <th className="w-12 p-2 border border-[#c3c6d6]">نعم</th>
-                <th className="p-2 border border-[#c3c6d6] text-right">التاريخ المرضي</th>
-                <th className="w-12 p-2 border border-[#c3c6d6]">لا</th>
-                <th className="w-12 p-2 border border-[#c3c6d6]">نعم</th>
-                <th className="p-2 border border-[#c3c6d6] text-right">التاريخ المرضي</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                ["كورتيزون/ضغط؟", "الغدة الدرقية؟", "أمراض مناعة؟"],
-                ["علاج لحب الشباب؟", "الأيزوتريتينوين؟", "مضادات حساسية/اكتئاب؟"],
-                ["أمراض عامة؟", "أمراض بالعين؟", "حمل؟"],
-                ["قرنية مخروطية بالعائلة؟", "ماء زرقاء؟", "بديل دموع؟"],
-              ].map((row, rowIndex) => (
-                <tr key={rowIndex}>
-                  {row.map((q, colIndex) => (
-                    q ? (
-                      <Fragment key={`${rowIndex}-${colIndex}`}>
-                        <td className="text-center border border-[#c3c6d6]"><input type="checkbox" className="w-4 h-4 rounded text-[#003d9b]" /></td>
-                        <td className="text-center border border-[#c3c6d6]"><input type="checkbox" className="w-4 h-4 rounded text-[#003d9b]" /></td>
-                        <td className="p-1.5 border border-[#c3c6d6] text-right">{q}</td>
-                      </Fragment>
-                    ) : (
-                      <Fragment key={`${rowIndex}-${colIndex}`}>
-                        <td className="border border-[#c3c6d6] bg-[#f8f9fb]" />
-                        <td className="border border-[#c3c6d6] bg-[#f8f9fb]" />
-                        <td className="border border-[#c3c6d6] bg-[#f8f9fb]" />
-                      </Fragment>
-                    )
+          {/* ── PATIENT INFORMATION ── */}
+          <section data-purpose="patient-info">
+            <div className={sectionHeader}>
+              <User className="h-3.5 w-3.5" />
+              <span>Patient Information / معلومات المريض</span>
+            </div>
+            <div className="border border-[#c3c6d6] border-t-0 rounded-b-md p-3 bg-[#f8f9fb]">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 text-sm" dir="rtl">
+                {/* Row 1: Name, DOB, Age, Code */}
+                <div className="col-span-2 md:col-span-1">
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">الاسم / Name</span>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] font-semibold text-[#003d9b] pb-0.5">{formData.patientName}</div>
+                </div>
+                <div>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">تاريخ الميلاد / DOB</span>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</div>
+                </div>
+                <div>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">السن / Age</span>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.age}</div>
+                </div>
+                <div>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">كود المريض / Patient Code</span>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5 font-mono text-[#526069]">{formData.code}</div>
+                </div>
+                {/* Row 2: Address, Phone, Job, Date */}
+                <div className="col-span-2">
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">العنوان / Address</span>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.address}</div>
+                </div>
+                <div>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">التليفون / Phone</span>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.phone}</div>
+                </div>
+                <div>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">الوظيفة / Job</span>
+                  <input
+                    dir="rtl"
+                    className="w-full border-b border-[#c3c6d6] bg-transparent focus:outline-none focus:border-[#003d9b] text-sm min-h-[22px] pb-0.5"
+                    value={formData.job}
+                    onChange={e => setFormData(p => ({ ...p, job: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="mt-2 pt-2 border-t border-[#c3c6d6] flex items-center gap-2 text-sm" dir="rtl">
+                <span className="text-xs text-[#434654] font-semibold">الاستشاري / Consultant:</span>
+                <span className="font-semibold text-[#003d9b]">{signatures.doctor || "—"}</span>
+                <span className="mr-auto text-xs text-[#737685]">تاريخ الفحص: {today}</span>
+              </div>
+            </div>
+          </section>
+
+          {/* ── MEDICAL HISTORY ── */}
+          <section className="print-consultant-questions" data-purpose="medical-history">
+            <div className={sectionHeader}>
+              <FileText className="h-3.5 w-3.5" />
+              <span>Medical History / التاريخ المرضي</span>
+            </div>
+            <div className="border border-[#c3c6d6] border-t-0 rounded-b-md overflow-hidden">
+              <table className="w-full border-collapse text-sm" dir="rtl">
+                <thead>
+                  <tr className="bg-[#e7e8ea]">
+                    <th className="w-10 p-1.5 border border-[#c3c6d6] text-center text-xs">لا</th>
+                    <th className="w-10 p-1.5 border border-[#c3c6d6] text-center text-xs">نعم</th>
+                    <th className="p-1.5 border border-[#c3c6d6] text-right text-xs">الحالة</th>
+                    <th className="w-10 p-1.5 border border-[#c3c6d6] text-center text-xs">لا</th>
+                    <th className="w-10 p-1.5 border border-[#c3c6d6] text-center text-xs">نعم</th>
+                    <th className="p-1.5 border border-[#c3c6d6] text-right text-xs">الحالة</th>
+                    <th className="w-10 p-1.5 border border-[#c3c6d6] text-center text-xs">لا</th>
+                    <th className="w-10 p-1.5 border border-[#c3c6d6] text-center text-xs">نعم</th>
+                    <th className="p-1.5 border border-[#c3c6d6] text-right text-xs">الحالة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    ["أمراض عامة (ضغط/سكر/غدة)", "حمل أو رضاعة", "تحسس من التكييف/الهواء"],
+                    ["علاج مياه زرقاء", "قرنية مخروطية بالعائلة", "أمراض بالعين"],
+                    ["كورتيزون/ضغط", "الغدة الدرقية", "أمراض مناعة"],
+                    ["علاج لحب الشباب (رواكيوتان)", "بديل دموع", "أخرى"],
+                  ].map((row, rowIndex) => (
+                    <tr key={rowIndex} className={rowIndex % 2 === 0 ? "bg-white" : "bg-[#f8f9fb]"}>
+                      {row.map((q, colIndex) => (
+                        q ? (
+                          <Fragment key={`${rowIndex}-${colIndex}`}>
+                            <td className="text-center border border-[#c3c6d6] p-1">
+                              <input type="checkbox" className="w-3.5 h-3.5 accent-[#003d9b]" />
+                            </td>
+                            <td className="text-center border border-[#c3c6d6] p-1">
+                              <input type="checkbox" className="w-3.5 h-3.5 accent-[#003d9b]" />
+                            </td>
+                            <td className="p-1.5 border border-[#c3c6d6] text-right text-xs">{q}</td>
+                          </Fragment>
+                        ) : (
+                          <Fragment key={`${rowIndex}-${colIndex}`}>
+                            <td className="border border-[#c3c6d6] bg-[#f0f1f3]" />
+                            <td className="border border-[#c3c6d6] bg-[#f0f1f3]" />
+                            <td className="border border-[#c3c6d6] bg-[#f0f1f3]" />
+                          </Fragment>
+                        )
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-        {/* END: Medical History Checklist */}
-
-        {/* BEGIN: Visual Acuity + Dominant Eye */}
-        <section className="print-consultant-visual-grid grid grid-cols-1 lg:grid-cols-12 gap-6 ltr-content" data-purpose="examination-section" dir="ltr">
-          <div className="lg:col-span-7">
-            <table className="w-full text-center border-collapse">
-              <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
-                <tr><th className={ctd}>Eye</th><th className={ctd}>UCVA</th><th className={ctd}>BCVA</th><th className={ctd}>IOP</th></tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className={`${ctd} text-[#003d9b] bg-[#003d9b]/5`}>OD</td>
-                  <td className={ctd}><input className={inp} value={formData.ucvaOD} onChange={e => setFormData(p => ({ ...p, ucvaOD: e.target.value }))} /></td>
-                  <td className={ctd}><input className={inp} value={formData.bcvaOD} onChange={e => setFormData(p => ({ ...p, bcvaOD: e.target.value }))} /></td>
-                  <td className={ctd}><input className={inp} value={formData.iopOD} onChange={e => setFormData(p => ({ ...p, iopOD: e.target.value }))} /></td>
-                </tr>
-                <tr>
-                  <td className={`${ctd} text-[#526069] bg-[#f3f4f6]`}>OS</td>
-                  <td className={ctd}><input className={inp} value={formData.ucvaOS} onChange={e => setFormData(p => ({ ...p, ucvaOS: e.target.value }))} /></td>
-                  <td className={ctd}><input className={inp} value={formData.bcvaOS} onChange={e => setFormData(p => ({ ...p, bcvaOS: e.target.value }))} /></td>
-                  <td className={ctd}><input className={inp} value={formData.iopOS} onChange={e => setFormData(p => ({ ...p, iopOS: e.target.value }))} /></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div className="lg:col-span-5 flex items-center justify-center gap-8 text-sm font-bold border border-[#c3c6d6] rounded-lg p-2 h-full">
-            <span className="text-[#003d9b] uppercase">Dominant Eye:</span>
-            <label className="flex items-center gap-2"><input type="radio" name="dominant" checked={formData.dominantEye === "OD"} onChange={() => setFormData(p => ({ ...p, dominantEye: "OD" }))} /> OD</label>
-            <label className="flex items-center gap-2"><input type="radio" name="dominant" checked={formData.dominantEye === "OS"} onChange={() => setFormData(p => ({ ...p, dominantEye: "OS" }))} /> OS</label>
-          </div>
-        </section>
-        {/* END: Visual Acuity + Dominant Eye */}
-
-        {/* BEGIN: Clinical Refraction */}
-        <section className="ltr-content" dir="ltr">
-          <table className="w-full text-center border-collapse">
-            <thead className="bg-[#e7e8ea] text-xs uppercase font-bold">
-              <tr>
-                <th className={`${ctd} w-48`} rowSpan={2}>Clinical Refraction</th>
-                <th className={`${ctd} text-[#003d9b]`} colSpan={3}>OD (Right)</th>
-                <th className={`${ctd} text-[#526069]`} colSpan={3}>OS (Left)</th>
-              </tr>
-              <tr><th className={ctd}>S</th><th className={ctd}>C</th><th className={ctd}>A</th><th className={ctd}>S</th><th className={ctd}>C</th><th className={ctd}>A</th></tr>
-            </thead>
-            <tbody className="font-mono">
-              <tr>
-                <td className={`${ctd} text-left bg-[#f3f4f6]`}>Refraction</td>
-                <td className={ctd}><input className={inp} value={formData.refractionOD.s} onChange={e => setFormData(p => ({ ...p, refractionOD: { ...p.refractionOD, s: e.target.value } }))} /></td>
-                <td className={ctd}><input className={inp} value={formData.refractionOD.c} onChange={e => setFormData(p => ({ ...p, refractionOD: { ...p.refractionOD, c: e.target.value } }))} /></td>
-                <td className={ctd}><input className={inp} value={formData.refractionOD.a} onChange={e => setFormData(p => ({ ...p, refractionOD: { ...p.refractionOD, a: e.target.value } }))} /></td>
-                <td className={ctd}><input className={inp} value={formData.refractionOS.s} onChange={e => setFormData(p => ({ ...p, refractionOS: { ...p.refractionOS, s: e.target.value } }))} /></td>
-                <td className={ctd}><input className={inp} value={formData.refractionOS.c} onChange={e => setFormData(p => ({ ...p, refractionOS: { ...p.refractionOS, c: e.target.value } }))} /></td>
-                <td className={ctd}><input className={inp} value={formData.refractionOS.a} onChange={e => setFormData(p => ({ ...p, refractionOS: { ...p.refractionOS, a: e.target.value } }))} /></td>
-              </tr>
-              <tr>
-                <td className={`${ctd} text-left bg-[#f3f4f6]`}>Fundus</td>
-                <td className={ctd} colSpan={3}><input className={inp} value={formData.fundusOD} onChange={e => setFormData(p => ({ ...p, fundusOD: e.target.value }))} /></td>
-                <td className={ctd} colSpan={3}><input className={inp} value={formData.fundusOS} onChange={e => setFormData(p => ({ ...p, fundusOS: e.target.value }))} /></td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
-        {/* END: Clinical Refraction */}
-
-        {/* BEGIN: Clinical Diagrams (replaces Pentacam / Target Refraction) */}
-        <section className="print-consultant-diagrams grid grid-cols-1 lg:grid-cols-2 gap-8 border border-[#c3c6d6] rounded-xl p-8 bg-white flex-1 min-h-[85mm]" data-purpose="clinical-diagrams">
-          <div className="flex flex-col items-center justify-center">
-            <span className="text-xs uppercase px-3 py-1 bg-[#003d9b]/5 rounded shadow-sm text-[#003d9b] mb-4">Right Eye (OD)</span>
-            <div className="w-56 h-56 rounded-full border-4 border-[#003d9b]/30 flex items-center justify-center relative bg-white">
-              <div className="absolute inset-0 flex items-center justify-center opacity-10">
-                <div className="w-full border-t border-slate-900"></div>
-                <div className="h-full border-l border-slate-900 absolute top-0"></div>
-              </div>
-              <span className="text-[#003d9b]/40 text-xl select-none">OD</span>
+                </tbody>
+              </table>
             </div>
-            <p className="mt-4 text-[#003d9b]">العين اليمنى (OD)</p>
-          </div>
-          <div className="flex flex-col items-center justify-center">
-            <span className="text-xs uppercase px-3 py-1 bg-[#f3f4f6] rounded shadow-sm text-[#526069] mb-4">Left Eye (OS)</span>
-            <div className="w-56 h-56 rounded-full border-4 border-slate-300 flex items-center justify-center relative bg-white">
-              <div className="absolute inset-0 flex items-center justify-center opacity-10">
-                <div className="w-full border-t border-slate-900"></div>
-                <div className="h-full border-l border-slate-900 absolute top-0"></div>
-              </div>
-              <span className="text-slate-300 text-xl select-none">OS</span>
-            </div>
-            <p className="mt-4 text-[#526069]">العين اليسرى (OS)</p>
-          </div>
-        </section>
-        {/* END: Clinical Diagrams */}
+          </section>
 
-        {/* BEGIN: Notes + signatures */}
-        <footer className="pt-6 border-t-2 border-[#003d9b] space-y-6" data-purpose="footer-signatures">
-          <div className="print-consultant-footer-grid grid grid-cols-1 lg:grid-cols-12 gap-8" dir="rtl">
-            <div className="lg:col-span-8 space-y-4">
-              <div>
-                <label className="font-bold text-[#003d9b] text-sm">Comments / ملاحظات:</label>
+          {/* ── VISUAL ACUITY + DOMINANT EYE ── */}
+          <section className="print-consultant-visual-grid grid grid-cols-1 lg:grid-cols-12 gap-4" data-purpose="examination-section" dir="ltr">
+            <div className="lg:col-span-8">
+              <div className={sectionHeader} dir="ltr">
+                <Eye className="h-3.5 w-3.5" />
+                <span>Comprehensive Refraction / الانكسار الشامل</span>
+              </div>
+              <div className="border border-[#c3c6d6] border-t-0 rounded-b-md overflow-hidden">
+                <table className="w-full text-center border-collapse">
+                  <thead className="bg-[#003d9b] text-white text-xs font-bold uppercase">
+                    <tr>
+                      <th className="p-2 border border-[#003d9b]/40">EYE</th>
+                      <th className="p-2 border border-[#003d9b]/40">UCVA</th>
+                      <th className="p-2 border border-[#003d9b]/40">BCVA</th>
+                      <th className="p-2 border border-[#003d9b]/40">IOP (mmHg)</th>
+                      <th className="p-2 border border-[#003d9b]/40 w-8">DOM</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="bg-[#003d9b]/5">
+                      <td className="p-2 border border-[#c3c6d6] font-bold text-[#003d9b]">OD (Right)</td>
+                      <td className={ctd}><input className={inp} value={formData.ucvaOD} onChange={e => setFormData(p => ({ ...p, ucvaOD: e.target.value }))} /></td>
+                      <td className={ctd}><input className={inp} value={formData.bcvaOD} onChange={e => setFormData(p => ({ ...p, bcvaOD: e.target.value }))} /></td>
+                      <td className={ctd}><input className={inp} value={formData.iopOD} onChange={e => setFormData(p => ({ ...p, iopOD: e.target.value }))} /></td>
+                      <td className="p-2 border border-[#c3c6d6] text-center">
+                        <input type="radio" name="dominant" checked={formData.dominantEye === "OD"} onChange={() => setFormData(p => ({ ...p, dominantEye: "OD" }))} className="accent-[#003d9b]" />
+                      </td>
+                    </tr>
+                    <tr className="bg-[#f3f4f6]">
+                      <td className="p-2 border border-[#c3c6d6] font-bold text-[#526069]">OS (Left)</td>
+                      <td className={ctd}><input className={inp} value={formData.ucvaOS} onChange={e => setFormData(p => ({ ...p, ucvaOS: e.target.value }))} /></td>
+                      <td className={ctd}><input className={inp} value={formData.bcvaOS} onChange={e => setFormData(p => ({ ...p, bcvaOS: e.target.value }))} /></td>
+                      <td className={ctd}><input className={inp} value={formData.iopOS} onChange={e => setFormData(p => ({ ...p, iopOS: e.target.value }))} /></td>
+                      <td className="p-2 border border-[#c3c6d6] text-center">
+                        <input type="radio" name="dominant" checked={formData.dominantEye === "OS"} onChange={() => setFormData(p => ({ ...p, dominantEye: "OS" }))} className="accent-[#003d9b]" />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="lg:col-span-4">
+              <div className={sectionHeader} dir="ltr">
+                <span>Clinical Examination / الفحص الإكلينيكي</span>
+              </div>
+              <div className="border border-[#c3c6d6] border-t-0 rounded-b-md overflow-hidden">
+                <table className="w-full border-collapse text-sm" dir="ltr">
+                  <tbody>
+                    <tr className="border-b border-[#c3c6d6]">
+                      <td className="p-2 bg-[#f3f4f6] text-xs font-semibold text-[#434654] w-1/2">Tear Film / BUT</td>
+                      <td className="p-2"><input className={inp} /></td>
+                    </tr>
+                    <tr className="border-b border-[#c3c6d6]">
+                      <td className="p-2 bg-[#f3f4f6] text-xs font-semibold text-[#434654]">Schirmer Test</td>
+                      <td className="p-2"><input className={inp} /></td>
+                    </tr>
+                    <tr>
+                      <td className="p-2 bg-[#f3f4f6] text-xs font-semibold text-[#434654]">Lid Margin</td>
+                      <td className="p-2"><input className={inp} /></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          {/* ── CLINICAL REFRACTION ── */}
+          <section dir="ltr">
+            <div className={sectionHeader} dir="ltr">
+              <span>Clinical Refraction (S / C / A)</span>
+            </div>
+            <div className="border border-[#c3c6d6] border-t-0 rounded-b-md overflow-hidden">
+              <table className="w-full text-center border-collapse">
+                <thead className="bg-[#e7e8ea] text-xs uppercase font-bold">
+                  <tr>
+                    <th className="p-2 border border-[#c3c6d6] w-36" rowSpan={2}>Parameter</th>
+                    <th className="p-2 border border-[#c3c6d6] text-[#003d9b]" colSpan={3}>OD — Right Eye</th>
+                    <th className="p-2 border border-[#c3c6d6] text-[#526069]" colSpan={3}>OS — Left Eye</th>
+                  </tr>
+                  <tr>
+                    <th className="p-1.5 border border-[#c3c6d6] text-[10px]">Sphere (S)</th>
+                    <th className="p-1.5 border border-[#c3c6d6] text-[10px]">Cylinder (C)</th>
+                    <th className="p-1.5 border border-[#c3c6d6] text-[10px]">Axis (A)</th>
+                    <th className="p-1.5 border border-[#c3c6d6] text-[10px]">Sphere (S)</th>
+                    <th className="p-1.5 border border-[#c3c6d6] text-[10px]">Cylinder (C)</th>
+                    <th className="p-1.5 border border-[#c3c6d6] text-[10px]">Axis (A)</th>
+                  </tr>
+                </thead>
+                <tbody className="font-mono text-sm">
+                  <tr className="bg-white">
+                    <td className="p-2 border border-[#c3c6d6] text-left text-xs font-semibold text-[#434654] bg-[#f3f4f6]">Refraction</td>
+                    <td className={ctd}><input className={inp} value={formData.refractionOD.s} onChange={e => setFormData(p => ({ ...p, refractionOD: { ...p.refractionOD, s: e.target.value } }))} /></td>
+                    <td className={ctd}><input className={inp} value={formData.refractionOD.c} onChange={e => setFormData(p => ({ ...p, refractionOD: { ...p.refractionOD, c: e.target.value } }))} /></td>
+                    <td className={ctd}><input className={inp} value={formData.refractionOD.a} onChange={e => setFormData(p => ({ ...p, refractionOD: { ...p.refractionOD, a: e.target.value } }))} /></td>
+                    <td className={ctd}><input className={inp} value={formData.refractionOS.s} onChange={e => setFormData(p => ({ ...p, refractionOS: { ...p.refractionOS, s: e.target.value } }))} /></td>
+                    <td className={ctd}><input className={inp} value={formData.refractionOS.c} onChange={e => setFormData(p => ({ ...p, refractionOS: { ...p.refractionOS, c: e.target.value } }))} /></td>
+                    <td className={ctd}><input className={inp} value={formData.refractionOS.a} onChange={e => setFormData(p => ({ ...p, refractionOS: { ...p.refractionOS, a: e.target.value } }))} /></td>
+                  </tr>
+                  <tr className="bg-[#f8f9fb]">
+                    <td className="p-2 border border-[#c3c6d6] text-left text-xs font-semibold text-[#434654] bg-[#f3f4f6]">Fundus Exam</td>
+                    <td className={ctd} colSpan={3}><input className={inp} value={formData.fundusOD} onChange={e => setFormData(p => ({ ...p, fundusOD: e.target.value }))} /></td>
+                    <td className={ctd} colSpan={3}><input className={inp} value={formData.fundusOS} onChange={e => setFormData(p => ({ ...p, fundusOS: e.target.value }))} /></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          {/* ── CLINICAL DIAGRAMS ── */}
+          <section className="print-consultant-diagrams" data-purpose="clinical-diagrams">
+            <div className={sectionHeader} dir="ltr">
+              <span>Clinical Diagrams / رسم توضيحي</span>
+            </div>
+            <div className="border border-[#c3c6d6] border-t-0 rounded-b-md p-4 bg-white">
+              <div className="grid grid-cols-2 gap-8 min-h-[80mm]">
+                <div className="flex flex-col items-center justify-center gap-3">
+                  <span className="text-xs font-bold uppercase px-3 py-1 bg-[#003d9b]/10 text-[#003d9b] rounded-full border border-[#003d9b]/20">Right Eye (OD)</span>
+                  <div className="w-52 h-52 rounded-full border-2 border-[#003d9b]/30 flex items-center justify-center relative bg-white shadow-inner">
+                    <div className="absolute inset-0 rounded-full overflow-hidden opacity-5">
+                      <div className="absolute top-1/2 left-0 right-0 border-t border-slate-900 -translate-y-1/2"></div>
+                      <div className="absolute left-1/2 top-0 bottom-0 border-l border-slate-900 -translate-x-1/2"></div>
+                    </div>
+                    <span className="text-[#003d9b]/20 text-2xl font-bold select-none">OD</span>
+                  </div>
+                  <p className="text-xs text-[#003d9b] font-medium">العين اليمنى</p>
+                </div>
+                <div className="flex flex-col items-center justify-center gap-3">
+                  <span className="text-xs font-bold uppercase px-3 py-1 bg-[#526069]/10 text-[#526069] rounded-full border border-[#526069]/20">Left Eye (OS)</span>
+                  <div className="w-52 h-52 rounded-full border-2 border-[#526069]/30 flex items-center justify-center relative bg-white shadow-inner">
+                    <div className="absolute inset-0 rounded-full overflow-hidden opacity-5">
+                      <div className="absolute top-1/2 left-0 right-0 border-t border-slate-900 -translate-y-1/2"></div>
+                      <div className="absolute left-1/2 top-0 bottom-0 border-l border-slate-900 -translate-x-1/2"></div>
+                    </div>
+                    <span className="text-[#526069]/20 text-2xl font-bold select-none">OS</span>
+                  </div>
+                  <p className="text-xs text-[#526069] font-medium">العين اليسرى</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ── DIAGNOSIS & NOTES ── */}
+          <section className="grid grid-cols-1 lg:grid-cols-2 gap-4" dir="rtl">
+            <div>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-[#ba1a1a] text-white text-xs font-bold uppercase tracking-wider rounded-t-md">
+                <span>التشخيص النهائي / Final Diagnosis</span>
+              </div>
+              <div className="border border-[#c3c6d6] border-t-0 rounded-b-md p-3 min-h-[80px] bg-white">
                 <textarea
                   dir="rtl"
-                  className="w-full min-h-[70px] bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:outline-none focus:border-[#003d9b] text-sm resize-none p-1 text-right"
-                  value={formData.comments}
-                  onChange={e => setFormData(p => ({ ...p, comments: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="font-bold text-[#003d9b] text-sm">Final Decision / القرار النهائي:</label>
-                <textarea
-                  dir="rtl"
-                  className="w-full min-h-[50px] bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:outline-none focus:border-[#003d9b] text-sm resize-none p-1 text-right"
+                  className="w-full bg-transparent border-0 focus:outline-none text-sm resize-none min-h-[70px] text-right"
+                  placeholder="التشخيص الأولي هنا..."
                   value={formData.final}
                   onChange={e => setFormData(p => ({ ...p, final: e.target.value }))}
                 />
               </div>
             </div>
-            <div className="lg:col-span-4 border-2 border-[#003d9b] rounded-xl p-4 bg-[#003d9b]/5">
-              <div className="text-center font-bold text-[#003d9b] uppercase text-xs border-b border-[#003d9b]/20 pb-2 mb-3">Notes / ملاحظات</div>
-              <textarea
-                dir="rtl"
-                className="w-full min-h-[110px] bg-transparent border-0 focus:outline-none text-sm resize-none p-1 text-right"
-                value={formData.drOS}
-                onChange={e => setFormData(p => ({ ...p, drOS: e.target.value }))}
-              />
-            </div>
-          </div>
-          <div className="print-consultant-signatures grid grid-cols-2 md:grid-cols-4 gap-8 pt-4 border-t border-[#c3c6d6]" dir="rtl">
-            {[
-              ["استقبال", signatures.reception],
-              ["تمريض", signatures.nurse],
-              ["فني", signatures.technician],
-              ["الطبيب", signatures.doctor],
-            ].map(([label, val], i) => (
-              <div key={i} className="flex flex-col gap-2">
-                <span className={`text-[11px] font-bold uppercase ${i === 3 ? "text-[#003d9b]" : "text-[#434654]"}`}>{label}</span>
-                <div className={`border-b-2 h-9 flex items-end justify-center ${i === 3 ? "border-[#003d9b]" : "border-[#191c1e]"}`}>
-                  <span className={`text-xs italic ${i === 3 ? "text-[#003d9b] font-bold" : "text-[#737685]"}`}>{val || ""}</span>
-                </div>
+            <div>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-[#e7e8ea] text-[#434654] text-xs font-bold uppercase tracking-wider rounded-t-md border border-[#c3c6d6]">
+                <span>Notes & Comments / ملاحظات وتعليقات</span>
               </div>
-            ))}
-          </div>
-        </footer>
-        {/* END: Notes + signatures */}
-      </div>
-    </fieldset>
+              <div className="border border-[#c3c6d6] border-t-0 rounded-b-md p-3 min-h-[80px] bg-white">
+                <textarea
+                  dir="rtl"
+                  className="w-full bg-transparent border-0 focus:outline-none text-sm resize-none min-h-[70px] text-right"
+                  placeholder="ملاحظات..."
+                  value={formData.comments}
+                  onChange={e => setFormData(p => ({ ...p, comments: e.target.value }))}
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* ── SIGNATURES ── */}
+          <footer className="print-consultant-signatures border-t-2 border-[#003d9b] pt-4 mt-2" dir="rtl">
+            <div className="grid grid-cols-4 gap-6">
+              {[
+                { label: "استقبال / Reception", val: signatures.reception, isDoctor: false },
+                { label: "تمريض / Nurse", val: signatures.nurse, isDoctor: false },
+                { label: "فني / Technician", val: signatures.technician, isDoctor: false },
+                { label: "الاستشاري / Doctor", val: signatures.doctor, isDoctor: true },
+              ].map(({ label, val, isDoctor }, i) => (
+                <div key={i} className="flex flex-col gap-2 text-center">
+                  <div className={`h-10 border-b-2 flex items-end justify-center pb-1 ${isDoctor ? "border-[#003d9b]" : "border-[#c3c6d6]"}`}>
+                    {val && <span className={`text-xs italic ${isDoctor ? "text-[#003d9b] font-semibold" : "text-[#737685]"}`}>{val}</span>}
+                  </div>
+                  <span className={`text-[10px] font-bold uppercase tracking-wide ${isDoctor ? "text-[#003d9b]" : "text-[#434654]"}`}>{label}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 pt-2 border-t border-[#c3c6d6] flex justify-between items-center text-[10px] text-[#737685] uppercase tracking-widest" dir="ltr">
+              <span>Page 1 of 1</span>
+              <span>Ophthalmic Management System</span>
+              <span>Date: {today}</span>
+            </div>
+          </footer>
+        </div>
+      </fieldset>
     );
   };
 
@@ -670,17 +768,13 @@ export default function ConsultantSheet() {
           text-decoration: none !important;
         }
         .consultant-sheet-inner th { font-weight: 700 !important; }
-        .consultant-sheet-inner .border-b,
-        .consultant-sheet-inner .border-b-2 {
-          border-bottom: none !important;
-        }
         @media print {
           .print-page-break { page-break-before: always !important; break-before: page !important; }
           .print-page-center-a4 {
             width: 210mm !important;
             margin: 0 auto !important;
           }
-          @page { size: A4 portrait; margin: 0; }
+          @page { size: A4 portrait; margin: 8mm; }
           html, body {
             width: 100% !important;
             margin: 0 !important;
@@ -694,15 +788,12 @@ export default function ConsultantSheet() {
             margin: 0 !important;
             padding: 0 !important;
           }
-          /* undo the shared .sheet-layout single-page restrictions so page 2 (followup) can render */
           .consultant-page-root.sheet-layout {
             overflow: visible !important;
             max-height: none !important;
             font-size: 100% !important;
             page-break-inside: auto !important;
             break-inside: auto !important;
-            page-break-after: auto !important;
-            break-after: auto !important;
           }
           .consultant-main-print-root .consultant-sheet-inner {
             width: 210mm !important;
@@ -712,111 +803,40 @@ export default function ConsultantSheet() {
             box-sizing: border-box !important;
             margin: 0 auto !important;
             padding: 6mm !important;
-            gap: 10px !important;
+            gap: 8px !important;
             border: 0 !important;
             box-shadow: none !important;
-            font-size: 92% !important;
-            line-height: 1.15 !important;
+            font-size: 90% !important;
+            line-height: 1.2 !important;
+            border-radius: 0 !important;
           }
-          /* outer wrappers must not constrain or offset the 210mm sheet */
           main[data-mobile-pdf-root] {
             width: 210mm !important;
             max-width: 210mm !important;
             margin: 0 auto !important;
             padding: 0 !important;
           }
-          .consultant-sheet-inner section,
-          .consultant-sheet-inner footer,
-          .consultant-sheet-inner table,
-          .consultant-sheet-inner tr,
-          .consultant-sheet-inner td,
-          .consultant-sheet-inner th,
-          .consultant-sheet-inner label,
-          .consultant-sheet-inner input,
-          .consultant-sheet-inner select,
-          .consultant-sheet-inner span,
-          .consultant-sheet-inner div {
-            page-break-inside: avoid !important;
-          }
-          .consultant-sheet-inner table { font-size: 11px !important; }
-          .consultant-sheet-inner input,
-          .consultant-sheet-inner select {
-            font-size: 11px !important;
-            padding-top: 1px !important;
-            padding-bottom: 1px !important;
-          }
           .consultant-sheet-inner input:not([type="checkbox"]):not([type="radio"]),
           .consultant-sheet-inner textarea {
             border: 0 !important;
-            border-bottom: 0 !important;
+            border-bottom: 1px solid #c3c6d6 !important;
             box-shadow: none !important;
             outline: 0 !important;
             background: transparent !important;
-            text-decoration: none !important;
-            font-size: 12px !important;
-            line-height: 1.15 !important;
+            font-size: 11px !important;
+            line-height: 1.2 !important;
           }
-          .consultant-sheet-inner .gap-8 { gap: 12px !important; }
-          .consultant-sheet-inner .gap-6 { gap: 10px !important; }
-          .consultant-sheet-inner .gap-5 { gap: 8px !important; }
-          .consultant-sheet-inner .gap-4 { gap: 6px !important; }
-          .consultant-sheet-inner .p-8 { padding: 0 !important; }
-          .consultant-sheet-inner .p-4 { padding: 8px !important; }
-          .consultant-sheet-inner .pt-6 { padding-top: 10px !important; }
-          .consultant-sheet-inner .pt-4 { padding-top: 8px !important; }
-          .consultant-sheet-inner .mb-3 { margin-bottom: 6px !important; }
-          .consultant-sheet-inner .mt-3 { margin-top: 6px !important; }
-          .consultant-sheet-inner .h-9 { height: 28px !important; }
-          .consultant-sheet-inner .sheet-center-header {
-            padding-bottom: 1.5mm !important;
-            margin-bottom: 1.5mm !important;
-          }
-          .print-consultant-patient-grid {
-            display: flex !important;
-            flex-wrap: wrap !important;
-            column-gap: 6mm !important;
-            row-gap: 1.5mm !important;
-          }
-          .print-consultant-questions {
-            display: block !important;
-          }
-          .print-consultant-questions table {
-            font-size: 10px !important;
-          }
-          .print-consultant-questions th {
-            padding: 3px !important;
-            line-height: 1.05 !important;
-          }
-          .print-consultant-questions td {
-            padding: 2px 3px !important;
-            line-height: 1.05 !important;
-          }
-          .print-consultant-questions input[type="checkbox"] {
-            width: 12px !important;
-            height: 12px !important;
-          }
-          .print-consultant-diagrams {
-            display: grid !important;
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-            flex: 1 1 auto !important;
-            padding: 6mm !important;
-          }
-          .print-consultant-diagrams {
-            min-height: 78mm !important;
-          }
-          .print-consultant-diagrams .rounded-full {
-            width: 48mm !important;
-            height: 48mm !important;
-            border-width: 2px !important;
-          }
-          .print-consultant-diagrams p {
-            margin-top: 2mm !important;
-          }
+          .consultant-sheet-inner table { font-size: 10px !important; }
+          .consultant-sheet-inner .gap-4 { gap: 5px !important; }
+          .consultant-sheet-inner .gap-6 { gap: 8px !important; }
+          .consultant-sheet-inner .p-6 { padding: 5mm !important; }
+          .consultant-sheet-inner .p-4 { padding: 4px !important; }
+          .consultant-sheet-inner .p-3 { padding: 3px !important; }
+          .consultant-sheet-inner .p-2 { padding: 2px !important; }
+          .consultant-sheet-inner .min-h-\\[80mm\\] { min-height: 60mm !important; }
+          .consultant-sheet-inner .w-52 { width: 44mm !important; }
+          .consultant-sheet-inner .h-52 { height: 44mm !important; }
           .print-consultant-visual-grid {
-            display: grid !important;
-            grid-template-columns: minmax(0, 7fr) minmax(0, 5fr) !important;
-          }
-          .print-consultant-footer-grid {
             display: grid !important;
             grid-template-columns: minmax(0, 8fr) minmax(0, 4fr) !important;
           }
@@ -824,9 +844,18 @@ export default function ConsultantSheet() {
             display: grid !important;
             grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
           }
+          .print-consultant-questions table { font-size: 9px !important; }
+          .print-consultant-questions th,
+          .print-consultant-questions td { padding: 2px 3px !important; line-height: 1.1 !important; }
+          .print-consultant-questions input[type="checkbox"] { width: 11px !important; height: 11px !important; }
+          .print-consultant-diagrams {
+            display: block !important;
+          }
+          .print-consultant-diagrams .grid { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; }
         }
       `}</style>
-      {/* Top bar */}
+
+      {/* ── TOP BAR ── */}
       <header className={`sticky top-0 z-10 bg-white border-b border-gray-200 print:hidden ${printMode.printView ? "hidden" : ""} ${embeddedInPatientHub ? "py-1.5" : "py-2 shadow-sm"}`}>
         <div className={`flex items-center justify-between gap-2 ${embeddedInPatientHub ? "px-2" : "container mx-auto px-4"}`}>
           <div className="flex items-center gap-2">
@@ -896,4 +925,3 @@ export default function ConsultantSheet() {
     </div>
   );
 }
-
