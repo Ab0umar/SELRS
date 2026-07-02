@@ -37,6 +37,8 @@ type EyeRow = {
   c?: unknown;
   axis?: unknown;
   iop?: unknown;
+  pd?: unknown;
+  add?: unknown;
 };
 
 type MetricRow = {
@@ -101,19 +103,21 @@ function buildEyeRows(source: any): EyeRow[] {
   );
 }
 
-function buildManifestRows(source: any): EyeRow[] {
+function buildGlassesRows(source: any): EyeRow[] {
   const build = (key: "od" | "os", eye: "OD" | "OS") => {
-    const row = source?.after?.[key] ?? source?.glasses?.[key] ?? {};
+    const row = source?.glasses?.[key] ?? {};
     return {
       eye,
       s: row.s,
       c: row.c,
       axis: row.axis,
       bcva: row.bcva,
+      pd: row.pd,
+      add: row.add,
     };
   };
   return [build("od", "OD"), build("os", "OS")].filter((row) =>
-    [row.s, row.c, row.axis, row.bcva].some(
+    [row.s, row.c, row.axis, row.bcva, row.pd, row.add].some(
       (value) => readable(value, "") !== "",
     ),
   );
@@ -278,11 +282,13 @@ function PatientFileView({ pd }: { pd: any }) {
     Axis: row.axis,
     IOP: row.iop,
   }));
-  const latestManifestRows = buildManifestRows(latestSource).map((row) => ({
+  const latestGlassesRows = buildGlassesRows(latestSource).map((row) => ({
     Eye: row.eye,
     Sphere: row.s,
     Cylinder: row.c,
     Axis: row.axis,
+    PD: row.pd,
+    Add: row.add,
     BCVA: row.bcva,
   }));
   const pentacamMetrics = buildPentacamMetrics(pd.pentacamRows ?? []).map(
@@ -323,12 +329,12 @@ function PatientFileView({ pd }: { pd: any }) {
         </Section>
 
         <Section
-          title="Manifest Refraction"
+          title="Clinical Refraction"
           icon={<ScanEye className="size-4" />}
         >
           <ClinicalTable
-            columns={["Eye", "Sphere", "Cylinder", "Axis", "BCVA"]}
-            rows={latestManifestRows}
+            columns={["Eye", "Sphere", "Cylinder", "Axis", "PD", "Add", "BCVA"]}
+            rows={latestGlassesRows}
           />
         </Section>
 
