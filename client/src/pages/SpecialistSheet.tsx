@@ -397,7 +397,7 @@ export default function SpecialistSheet() {
               <span>Patient Details</span>
             </div>
             <div className="border border-[#c3c6d6] border-t-0 rounded-b-md p-3 bg-[#f8f9fb]">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 text-sm" dir="ltr">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 text-sm" dir="rtl">
                 <div className="col-span-2 md:col-span-1">
                   <span className="text-xs text-[#434654] font-semibold block mb-0.5">Full Name</span>
                   <input className="w-full border-b border-[#c3c6d6] bg-transparent focus:outline-none focus:border-[#003d9b] text-sm font-semibold text-[#003d9b]" dir="rtl" value={formData.patientName} onChange={(e) => setFormData((p) => ({ ...p, patientName: e.target.value }))} />
@@ -408,15 +408,15 @@ export default function SpecialistSheet() {
                 </div>
                 <div>
                   <span className="text-xs text-[#434654] font-semibold block mb-0.5">Date of Birth</span>
-                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</div>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5 text-right" dir="ltr">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</div>
                 </div>
                 <div>
                   <span className="text-xs text-[#434654] font-semibold block mb-0.5">Age</span>
-                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.age}</div>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5 text-right" dir="ltr">{formData.age}</div>
                 </div>
                 <div>
                   <span className="text-xs text-[#434654] font-semibold block mb-0.5">Phone Number</span>
-                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.phone}</div>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5 text-right" dir="ltr">{formData.phone}</div>
                 </div>
                 <div>
                   <span className="text-xs text-[#434654] font-semibold block mb-0.5">Profession</span>

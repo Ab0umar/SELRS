@@ -455,47 +455,47 @@ export default function ConsultantSheet() {
               <span>Patient Information</span>
             </div>
             <div className="border border-[#c3c6d6] border-t-0 rounded-b-md p-3 bg-[#f8f9fb]">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 text-sm" dir="ltr">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 text-sm" dir="rtl">
                 {/* Row 1: Name, DOB, Age, Code */}
                 <div className="col-span-2 md:col-span-1">
                   <span className="text-xs text-[#434654] font-semibold block mb-0.5">Full Name</span>
-                  <div className="border-b border-[#c3c6d6] min-h-[22px] font-semibold text-[#003d9b] pb-0.5" dir="rtl">{formData.patientName}</div>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] font-semibold text-[#003d9b] pb-0.5 text-right" dir="rtl">{formData.patientName}</div>
                 </div>
                 <div>
                   <span className="text-xs text-[#434654] font-semibold block mb-0.5">Date of Birth</span>
-                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</div>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5 text-right" dir="ltr">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</div>
                 </div>
                 <div>
                   <span className="text-xs text-[#434654] font-semibold block mb-0.5">Age</span>
-                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.age}</div>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5 text-right" dir="ltr">{formData.age}</div>
                 </div>
                 <div>
                   <span className="text-xs text-[#434654] font-semibold block mb-0.5">Patient Code</span>
-                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5 font-mono text-[#526069]">{formData.code}</div>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5 font-mono text-[#526069] text-right" dir="ltr">{formData.code}</div>
                 </div>
                 {/* Row 2: Address, Phone, Job, Date */}
                 <div className="col-span-2">
                   <span className="text-xs text-[#434654] font-semibold block mb-0.5">Address</span>
-                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5" dir="rtl">{formData.address}</div>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5 text-right" dir="rtl">{formData.address}</div>
                 </div>
                 <div>
                   <span className="text-xs text-[#434654] font-semibold block mb-0.5">Phone</span>
-                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.phone}</div>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5 text-right" dir="ltr">{formData.phone}</div>
                 </div>
                 <div>
                   <span className="text-xs text-[#434654] font-semibold block mb-0.5">Occupation</span>
                   <input
                     dir="rtl"
-                    className="w-full border-b border-[#c3c6d6] bg-transparent focus:outline-none focus:border-[#003d9b] text-sm min-h-[22px] pb-0.5"
+                    className="w-full border-b border-[#c3c6d6] bg-transparent focus:outline-none focus:border-[#003d9b] text-sm min-h-[22px] pb-0.5 text-right"
                     value={formData.job}
                     onChange={e => setFormData(p => ({ ...p, job: e.target.value }))}
                   />
                 </div>
               </div>
-              <div className="mt-2 pt-2 border-t border-[#c3c6d6] flex items-center gap-2 text-sm" dir="ltr">
+              <div className="mt-2 pt-2 border-t border-[#c3c6d6] flex items-center gap-2 text-sm" dir="rtl">
                 <span className="text-xs text-[#434654] font-semibold">Consultant:</span>
                 <span className="font-semibold text-[#003d9b]">{signatures.doctor || "—"}</span>
-                <span className="ml-auto text-xs text-[#737685]">Exam Date: {today}</span>
+                <span className="mr-auto text-xs text-[#737685]">Exam Date: {today}</span>
               </div>
             </div>
           </section>
