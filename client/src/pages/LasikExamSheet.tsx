@@ -732,107 +732,95 @@ export default function LasikExamSheet() {
         .lasik-sheet, .lasik-sheet * { font-weight: 400 !important; text-decoration: none !important; }
         .lasik-sheet th { font-weight: 700 !important; }
         @media print {
-          /* ── Page setup ── */
-          @page { size: A4 portrait; margin: 10mm 8mm 10mm 8mm; }
-          @page :first { margin-top: 6mm; }
+          /* ═══ ONE-PAGE A4 FIT ═══ */
+          @page { size: A4 portrait; margin: 6mm 7mm; }
 
-          /* ── Root reset ── */
           html, body {
             width: 210mm !important;
+            height: 297mm !important;
             margin: 0 !important;
             padding: 0 !important;
             background: white !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             color-adjust: exact !important;
+            overflow: hidden !important;
           }
           #root, .lasik-print-root {
             width: 210mm !important;
             max-width: 210mm !important;
+            height: 297mm !important;
+            max-height: 297mm !important;
             margin: 0 !important;
             padding: 0 !important;
-            overflow: visible !important;
-            max-height: none !important;
+            overflow: hidden !important;
           }
-
-          /* ── Sheet container ── */
-          .print-page-break { page-break-before: always !important; break-before: page !important; }
           .print-page-center-a4 { width: 210mm !important; margin: 0 !important; }
           .lasik-sheet {
-            width: 210mm !important;
-            max-width: 210mm !important;
-            height: auto !important;
+            width: 196mm !important;
+            max-width: 196mm !important;
+            height: 285mm !important;
+            max-height: 285mm !important;
+            overflow: hidden !important;
             box-sizing: border-box !important;
-            padding: 5mm 6mm !important;
-            gap: 6px !important;
-            font-size: 88% !important;
-            line-height: 1.25 !important;
+            margin: 0 !important;
+            padding: 3mm 4mm !important;
+            gap: 3px !important;
+            font-size: 78% !important;
+            line-height: 1.15 !important;
             border-radius: 0 !important;
             border: 0 !important;
             box-shadow: none !important;
+            display: flex !important;
+            flex-direction: column !important;
           }
 
           /* ── Color preservation ── */
-          .lasik-sheet [class*="bg-\["] {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          .lasik-sheet [class*="bg-\[#003d9b"] {
-            background-color: #003d9b !important;
-            color: #ffffff !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          .lasik-sheet [class*="bg-\[#ba1a1a"] {
-            background-color: #ba1a1a !important;
-            color: #ffffff !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          .lasik-sheet [class*="bg-\[#e7e8ea"],
-          .lasik-sheet [class*="bg-\[#f3f4f6"],
-          .lasik-sheet [class*="bg-\[#F8F9FB"] {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
+          .lasik-sheet * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .lasik-sheet [class*="bg-\[#003d9b"] { background-color: #003d9b !important; color: #ffffff !important; }
+          .lasik-sheet [class*="bg-\[#ba1a1a"] { background-color: #ba1a1a !important; color: #ffffff !important; }
+
+          /* ── No page breaks ── */
+          .lasik-sheet * {
+            page-break-before: avoid !important; break-before: avoid !important;
+            page-break-after: avoid !important; break-after: avoid !important;
+            page-break-inside: avoid !important; break-inside: avoid !important;
           }
 
-          /* ── Page-break control ── */
-          .lasik-sheet section {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
-          .lasik-sheet tr {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
-          .lasik-sheet thead {
-            display: table-header-group !important;
-          }
-          .print-lasik-signatures {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
-          .lasik-sheet p, .lasik-sheet li {
-            orphans: 3 !important;
-            widows: 3 !important;
-          }
-
-          /* ── Typography ── */
+          /* ── Aggressive size reduction ── */
+          .lasik-sheet header { padding-bottom: 2px !important; margin-bottom: 0 !important; }
+          .lasik-sheet section { margin: 0 !important; padding: 0 !important; }
+          .lasik-sheet [class*="px-3"][class*="py-1"] { padding: 1px 4px !important; }
+          .lasik-sheet .p-6 { padding: 2px 3px !important; }
+          .lasik-sheet .p-4 { padding: 2px 3px !important; }
+          .lasik-sheet .p-3 { padding: 1px 3px !important; }
+          .lasik-sheet .p-2 { padding: 1px 2px !important; }
+          .lasik-sheet .p-1 { padding: 1px !important; }
+          .lasik-sheet .p-1\.5 { padding: 1px 2px !important; }
+          .lasik-sheet .gap-8 { gap: 4px !important; }
+          .lasik-sheet .gap-6 { gap: 3px !important; }
+          .lasik-sheet .gap-4 { gap: 3px !important; }
+          .lasik-sheet .gap-3 { gap: 2px !important; }
+          .lasik-sheet .gap-2 { gap: 2px !important; }
+          .lasik-sheet .mb-1, .lasik-sheet .mb-0\.5 { margin-bottom: 0 !important; }
+          .lasik-sheet .mt-2, .lasik-sheet .mt-4 { margin-top: 1px !important; }
+          .lasik-sheet .pt-2, .lasik-sheet .pt-4 { padding-top: 1px !important; }
+          .lasik-sheet table { font-size: 8px !important; }
+          .lasik-sheet th, .lasik-sheet td { padding: 1px 2px !important; line-height: 1.1 !important; }
           .lasik-sheet input:not([type="checkbox"]):not([type="radio"]),
           .lasik-sheet textarea {
-            border: 0 !important;
-            border-bottom: 1px solid #c3c6d6 !important;
-            box-shadow: none !important;
-            outline: 0 !important;
-            background: transparent !important;
-            font-size: 10px !important;
-            line-height: 1.25 !important;
+            border: 0 !important; border-bottom: 1px solid #c3c6d6 !important;
+            box-shadow: none !important; outline: 0 !important; background: transparent !important;
+            font-size: 8px !important; line-height: 1.1 !important;
+            min-height: 0 !important; height: auto !important; padding: 0 !important;
           }
-          .lasik-sheet table { font-size: 9.5px !important; }
-          .lasik-sheet .gap-4 { gap: 4px !important; }
-          .lasik-sheet .p-6 { padding: 4mm !important; }
-          .lasik-sheet .p-3 { padding: 2px !important; }
-          .lasik-sheet .p-2 { padding: 2px !important; }
+          .lasik-sheet [class*="min-h-"] { min-height: 0 !important; }
+          .lasik-sheet [class*="min-h-\[22px\]"] { min-height: 14px !important; }
+          .lasik-sheet [class*="min-h-\[80px\]"] { min-height: 18px !important; }
+          .lasik-sheet [class*="min-h-\[70px\]"] { min-height: 16px !important; }
+          .lasik-sheet .h-10 { height: 18px !important; }
+          .lasik-sheet .w-52 { width: 28mm !important; }
+          .lasik-sheet .h-52 { height: 28mm !important; }
 
           /* ── Grid layouts ── */
           .print-lasik-visual-grid { display: grid !important; grid-template-columns: minmax(0, 8fr) minmax(0, 4fr) !important; }
