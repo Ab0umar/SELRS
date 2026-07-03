@@ -33,10 +33,17 @@ export const PatientDetailsHeader: React.FC<PatientDetailsHeaderProps> = ({
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-              <h1 className="text-lg sm:text-xl font-black tracking-tight truncate">
+              <h1
+                className="text-lg sm:text-xl font-black tracking-tight truncate"
+                dir="auto"
+              >
                 {patientName || "—"}
               </h1>
-              <Badge variant="outline" className="w-fit text-xs font-mono">
+              <Badge
+                variant="outline"
+                className="w-fit text-xs font-mono"
+                dir="auto"
+              >
                 {patientCode || "—"}
               </Badge>
             </div>

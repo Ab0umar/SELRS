@@ -19,14 +19,16 @@ export const Demographics: React.FC<DemographicsProps> = ({
       {phone && (
         <span className="flex items-center gap-1.5">
           <Phone className="h-3.5 w-3.5" />
-          {phone}
+          <span dir="auto">{phone}</span>
         </span>
       )}
-      <span className="flex items-center gap-1.5">
+      <span className="flex items-center gap-1.5" dir="auto">
         <Calendar className="h-3.5 w-3.5" />
         {age ? `${age} سنة` : "—"}
       </span>
-      <span className="flex items-center gap-1.5">{gender || "—"}</span>
+      <span className="flex items-center gap-1.5" dir="auto">
+        {gender || "—"}
+      </span>
     </div>
   );
 };

@@ -87,7 +87,7 @@ export function ExaminationsTab({
           <Button
             type="button"
             variant="ghost"
-            className="h-auto w-full justify-between rounded-xl px-4 py-3 text-left font-semibold text-muted-foreground bg-muted"
+            className="h-auto w-full justify-between rounded-xl px-4 py-3 text-start font-semibold text-muted-foreground bg-muted"
             onClick={() => toggleExamSection("autoref")}
           >
             <span>Autoref + IOP</span>
@@ -184,7 +184,7 @@ export function ExaminationsTab({
           <Button
             type="button"
             variant="ghost"
-            className="h-auto w-full justify-between rounded-xl px-4 py-3 text-left font-semibold text-muted-foreground bg-muted"
+            className="h-auto w-full justify-between rounded-xl px-4 py-3 text-start font-semibold text-muted-foreground bg-muted"
             onClick={() => toggleExamSection("glasses")}
           >
             <span>👓 مقاس النظاره</span>
@@ -244,7 +244,7 @@ export function ExaminationsTab({
           <Button
             type="button"
             variant="ghost"
-            className="h-auto w-full justify-between rounded-xl px-4 py-3 text-left font-semibold text-muted-foreground bg-muted"
+            className="h-auto w-full justify-between rounded-xl px-4 py-3 text-start font-semibold text-muted-foreground bg-muted"
             onClick={() => toggleExamSection("fundus")}
           >
             <span>Fundus</span>
@@ -273,7 +273,7 @@ export function ExaminationsTab({
                         <td className="border px-3 py-3 font-bold">
                           {row.eye}
                         </td>
-                        <td className="border px-3 py-3 text-left">
+                        <td className="border px-3 py-3 text-left" dir="auto">
                           {row.findings || "-"}
                         </td>
                       </tr>
@@ -294,7 +294,7 @@ export function ExaminationsTab({
           <Button
             type="button"
             variant="ghost"
-            className="h-auto w-full justify-between rounded-xl px-4 py-3 text-left font-semibold text-muted-foreground bg-muted"
+            className="h-auto w-full justify-between rounded-xl px-4 py-3 text-start font-semibold text-muted-foreground bg-muted"
             onClick={() => toggleExamSection("requestTests")}
           >
             <span>الأشعات + التحاليل (من طلب الفحوصات)</span>
@@ -320,19 +320,23 @@ export function ExaminationsTab({
                           {data.tests?.length > 0 && (
                             <p>
                               🔬 <strong>الاختبارات:</strong>{" "}
-                              {data.tests.join(", ")}
+                              <span dir="auto">{data.tests.join(", ")}</span>
                             </p>
                           )}
                           {data.diagnosis?.length > 0 && (
                             <p>
                               ⚕️ <strong>التشخيص:</strong>{" "}
-                              {data.diagnosis.join(", ")}
+                              <span dir="auto">
+                                {data.diagnosis.join(", ")}
+                              </span>
                             </p>
                           )}
                           {data.treatment?.length > 0 && (
                             <p>
                               💊 <strong>العلاج:</strong>{" "}
-                              {data.treatment.join(", ")}
+                              <span dir="auto">
+                                {data.treatment.join(", ")}
+                              </span>
                             </p>
                           )}
                         </div>
@@ -362,13 +366,13 @@ export function ExaminationsTab({
                         <td className="border px-3 py-3">
                           {classifyTest(test) === "imaging" ? "Imaging" : "Lab"}
                         </td>
-                        <td className="border px-3 py-3">
+                        <td className="border px-3 py-3" dir="auto">
                           {String(test?.name ?? "—")}
                         </td>
-                        <td className="border px-3 py-3">
+                        <td className="border px-3 py-3" dir="auto">
                           {String(test?.category ?? "—")}
                         </td>
-                        <td className="border px-3 py-3 text-left">
+                        <td className="border px-3 py-3 text-left" dir="auto">
                           {String(test?.notes ?? "").trim() || "-"}
                         </td>
                       </tr>
@@ -429,12 +433,19 @@ export function ExaminationsTab({
               <Button
                 type="button"
                 variant="ghost"
-                className="h-auto w-full justify-between rounded-xl px-4 py-3 text-left font-semibold text-muted-foreground bg-muted"
+                className="h-auto w-full justify-between rounded-xl px-4 py-3 text-start font-semibold text-muted-foreground bg-muted"
                 onClick={() => toggleFollowup(idx)}
               >
                 <span>
                   {label}
-                  {dateLabel ? ` — ${dateLabel}` : ""}
+                  {dateLabel ? (
+                    <>
+                      {" — "}
+                      <span dir="auto">{dateLabel}</span>
+                    </>
+                  ) : (
+                    ""
+                  )}
                 </span>
                 {openFollowups[idx] ? (
                   <ChevronUp className="h-4 w-4" />
@@ -483,12 +494,12 @@ export function ExaminationsTab({
                   </div>
                   {item.notes && (
                     <p className="text-sm text-muted-foreground">
-                      ملاحظات: {item.notes}
+                      ملاحظات: <span dir="auto">{item.notes}</span>
                     </p>
                   )}
                   {item.treatment && (
                     <p className="text-sm text-muted-foreground">
-                      العلاج: {item.treatment}
+                      العلاج: <span dir="auto">{item.treatment}</span>
                     </p>
                   )}
                 </div>

@@ -6,7 +6,7 @@ interface PatientDetailsErrorProps {
 
 export function PatientDetailsError({ onRetry }: PatientDetailsErrorProps) {
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
+    <div className="min-h-screen bg-background" dir="ltr">
       <main className="container mx-auto px-4 py-8">
         <OfflinePageState
           title="تعذر تحميل ملف المريض"

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, FileText } from "lucide-react";
+import { ArrowLeft, FileText } from "lucide-react";
 import PatientPicker from "@/components/PatientPicker";
 
 interface PatientDetailsNavBarProps {
@@ -48,7 +48,7 @@ export function PatientDetailsNavBar({
         onClick={() => goBack()}
         className="rounded-xl border-border bg-background hover:bg-muted"
       >
-        <ArrowRight className="h-4 w-4 ml-2" />
+        <ArrowLeft className="h-4 w-4 me-2" />
         رجوع
       </Button>
       {patientId && (
@@ -58,7 +58,7 @@ export function PatientDetailsNavBar({
           onClick={() => setLocation(reportBriefPath)}
           className="rounded-xl border-border bg-background hover:bg-muted"
         >
-          <FileText className="h-4 w-4 ml-2" />
+          <FileText className="h-4 w-4 me-2" />
           التقرير المجمع / الموجز
         </Button>
       )}
@@ -90,7 +90,7 @@ export function PatientDetailsNavBar({
             }
           }}
         >
-          <FileText className="h-4 w-4 ml-2" />
+          <FileText className="h-4 w-4 me-2" />
           حذف المريض
         </Button>
       )}

@@ -19,7 +19,10 @@ export const MedicalHistoryTab: React.FC<MedicalHistoryTabProps> = ({
         </div>
         <CardContent className="pt-4">
           {history ? (
-            <div className="rounded border border-border p-4 bg-muted/50 text-sm whitespace-pre-wrap">
+            <div
+              className="rounded border border-border p-4 bg-muted/50 text-sm whitespace-pre-wrap"
+              dir="auto"
+            >
               {history}
             </div>
           ) : (
@@ -43,6 +46,7 @@ export const MedicalHistoryTab: React.FC<MedicalHistoryTabProps> = ({
                   key={`${symptom}-${index}`}
                   variant="default"
                   className="rounded-full"
+                  dir="auto"
                 >
                   {symptom}
                 </Badge>

@@ -119,7 +119,7 @@ export default function PatientDetails() {
     : null;
 
   return (
-    <div className="flex h-full min-h-0 flex-col" dir="rtl">
+    <div className="flex h-full min-h-0 flex-col" dir="ltr">
       {/* Two-column layout */}
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Desktop sidebar — in RTL renders on the right */}

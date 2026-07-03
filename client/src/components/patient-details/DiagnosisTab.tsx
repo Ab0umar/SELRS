@@ -24,16 +24,21 @@ export function DiagnosisTab({
       <Card className="border-border/80 bg-background/92 shadow-sm">
         <CardHeader className="border-b border-border">
           <CardTitle>التشخيص الطبي</CardTitle>
-          <CardDescription>
+          <CardDescription dir="auto">
             {latestReport ? formatDate(latestReport.createdAt) : ""}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {latestReportContent ? (
             typeof latestReportContent === "string" ? (
-              <p className="text-sm whitespace-pre-wrap">{latestReportContent}</p>
+              <p className="text-sm whitespace-pre-wrap" dir="auto">
+                {latestReportContent}
+              </p>
             ) : (
-              <pre className="bg-muted/40 p-3 rounded-md text-xs overflow-x-auto">
+              <pre
+                className="bg-muted/40 p-3 rounded-md text-xs overflow-x-auto"
+                dir="auto"
+              >
                 {JSON.stringify(latestReportContent, null, 2)}
               </pre>
             )

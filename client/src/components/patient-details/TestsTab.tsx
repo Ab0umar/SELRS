@@ -23,7 +23,10 @@ export function TestsTab({ testRequestsData }: TestsTabProps) {
                 className="rounded border border-border p-4 bg-muted"
               >
                 <div className="flex justify-between items-start mb-3">
-                  <p className="text-xs font-semibold text-muted-foreground">
+                  <p
+                    className="text-xs font-semibold text-muted-foreground"
+                    dir="auto"
+                  >
                     {request.requestDate
                       ? new Date(request.requestDate).toLocaleDateString(
                           "ar-EG",
@@ -44,6 +47,7 @@ export function TestsTab({ testRequestsData }: TestsTabProps) {
                         <span
                           key={item.id}
                           className="text-xs bg-background px-2 py-1 border border-ring/30 rounded text-primary"
+                          dir="auto"
                         >
                           {item.testName}
                         </span>
@@ -56,7 +60,9 @@ export function TestsTab({ testRequestsData }: TestsTabProps) {
                     <p className="text-xs font-semibold text-muted-foreground mb-1">
                       ملاحظات:
                     </p>
-                    <p className="text-sm text-foreground">{request.notes}</p>
+                    <p className="text-sm text-foreground" dir="auto">
+                      {request.notes}
+                    </p>
                   </div>
                 )}
               </div>

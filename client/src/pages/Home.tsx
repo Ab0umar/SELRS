@@ -354,15 +354,25 @@ export default function Home() {
           </div>
 
           {/* Portals Grid */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <Link href="/my/login">
-              <div className="flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#e6edf5] bg-white text-xs sm:text-sm font-bold text-[#1e2a35] transition-all hover:border-[#1f3f82] hover:bg-[#eef2fb] hover:shadow-sm">
-                <UserRound className="size-4 text-[#3560b0]" /> دخول المريض
+              <div className="group flex flex-col items-center justify-center gap-2 rounded-xl border border-[#e6edf5] bg-white px-3 py-4 sm:py-5 text-center cursor-pointer transition-all hover:border-[#d39c2a] hover:bg-[#fff8ec] hover:shadow-md">
+                <span className="flex size-11 sm:size-12 items-center justify-center rounded-full bg-[#fec24e]/25 text-[#d39c2a] transition-colors group-hover:bg-[#d39c2a] group-hover:text-white">
+                  <UserRound className="size-5 sm:size-6" />
+                </span>
+                <span className="text-xs sm:text-sm font-bold text-[#0f2050]">
+                  بوابة المريض
+                </span>
               </div>
             </Link>
             <Link href="/doctor-portal/login">
-              <div className="flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#e6edf5] bg-white text-xs sm:text-sm font-bold text-[#1e2a35] transition-all hover:border-[#1f3f82] hover:bg-[#eef2fb] hover:shadow-sm">
-                <Stethoscope className="size-4 text-[#3560b0]" /> دخول الطبيب
+              <div className="group flex flex-col items-center justify-center gap-2 rounded-xl border border-[#e6edf5] bg-white px-3 py-4 sm:py-5 text-center cursor-pointer transition-all hover:border-[#1f3f82] hover:bg-[#eef2fb] hover:shadow-md">
+                <span className="flex size-11 sm:size-12 items-center justify-center rounded-full bg-[#1f3f82]/10 text-[#1f3f82] transition-colors group-hover:bg-[#1f3f82] group-hover:text-white">
+                  <Stethoscope className="size-5 sm:size-6" />
+                </span>
+                <span className="text-xs sm:text-sm font-bold text-[#0f2050]">
+                  بوابة الطبيب
+                </span>
               </div>
             </Link>
           </div>

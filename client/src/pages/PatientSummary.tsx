@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRoute } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Printer } from "lucide-react";
+import { ArrowLeft, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
@@ -122,6 +122,7 @@ function DataTable({
                 <td
                   key={j}
                   className="px-3 py-2 font-mono text-xs text-foreground"
+                  dir="auto"
                 >
                   {formatDisplayValue(cell)}
                 </td>
@@ -809,7 +810,7 @@ export default function PatientSummary() {
   );
 
   return (
-    <div className="flex h-full min-h-0 flex-col" dir="rtl">
+    <div className="flex h-full min-h-0 flex-col" dir="ltr">
       {/* Identity strip — info/blue tint distinguishes from patient-file */}
       <header className="z-20 shrink-0 border-b border-info/25 bg-info/5 print:border-border print:bg-background">
         <div className="flex items-center gap-2 px-3 py-2.5">
@@ -820,11 +821,14 @@ export default function PatientSummary() {
             onClick={() => goBack()}
             aria-label="رجوع"
           >
-            <ArrowRight className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4" />
           </Button>
 
           <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <span className="truncate font-semibold leading-tight text-foreground">
+            <span
+              className="truncate font-semibold leading-tight text-foreground"
+              dir="auto"
+            >
               {patientName}
             </span>
             {patient?.patientCode && (
@@ -837,7 +841,7 @@ export default function PatientSummary() {
             )}
             {patient?.age && (
               <span className="shrink-0 text-xs text-muted-foreground">
-                {String(patient.age)} سنة
+                <span dir="auto">{String(patient.age)}</span> سنة
               </span>
             )}
             <Badge
@@ -893,6 +897,7 @@ export default function PatientSummary() {
                         "mt-0.5 text-sm font-medium text-foreground",
                         item.mono && "font-mono",
                       )}
+                      dir="auto"
                     >
                       {item.value || "—"}
                     </dd>
@@ -905,7 +910,10 @@ export default function PatientSummary() {
             {hasHistory && (
               <section id="sum-history" className="scroll-mt-4">
                 <SectionHeading id="history" label="التاريخ المرضي" />
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">
+                <p
+                  className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/80"
+                  dir="auto"
+                >
                   {reports?.[0]?.clinicalOpinion ||
                     patient?.medicalHistory ||
                     "لا توجد ملاحظات"}
@@ -1007,11 +1015,17 @@ export default function PatientSummary() {
                       className="flex items-start justify-between rounded-lg border border-border/50 bg-muted/20 px-4 py-2.5"
                     >
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground">
+                        <p
+                          className="text-sm font-medium text-foreground"
+                          dir="auto"
+                        >
                           {test.name || test.serviceName || "—"}
                         </p>
                         {(test.category || test.serviceCategory) && (
-                          <p className="text-xs text-muted-foreground">
+                          <p
+                            className="text-xs text-muted-foreground"
+                            dir="auto"
+                          >
                             {test.category || test.serviceCategory}
                           </p>
                         )}
@@ -1019,7 +1033,8 @@ export default function PatientSummary() {
                       {test.result && (
                         <Badge
                           variant="outline"
-                          className="ml-3 shrink-0 text-xs"
+                          className="me-3 shrink-0 text-xs"
+                          dir="auto"
                         >
                           {test.result}
                         </Badge>
@@ -1045,6 +1060,7 @@ export default function PatientSummary() {
                           key={idx}
                           variant="secondary"
                           className="text-xs"
+                          dir="auto"
                         >
                           {formatDisplayValue(name)}
                         </Badge>
@@ -1063,7 +1079,7 @@ export default function PatientSummary() {
                           (m: any) => m.id === id,
                         );
                         return (
-                          <Badge key={id} className="text-xs">
+                          <Badge key={id} className="text-xs" dir="auto">
                             {formatDisplayValue(med?.name ?? `علاج #${id}`)}
                           </Badge>
                         );
@@ -1079,10 +1095,13 @@ export default function PatientSummary() {
               <section id="sum-diagnosis" className="scroll-mt-4">
                 <SectionHeading id="diagnosis" label="التشخيص" />
                 <div className="space-y-1.5">
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground" dir="auto">
                     {formatDate((latestReport as any).createdAt)}
                   </p>
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/85">
+                  <p
+                    className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/85"
+                    dir="auto"
+                  >
                     {typeof latestReportContent === "string"
                       ? latestReportContent
                       : JSON.stringify(latestReportContent, null, 2)}
@@ -1151,7 +1170,10 @@ export default function PatientSummary() {
                         ([date, visits]) => (
                           <div key={date}>
                             <div className="mb-2 flex items-center gap-2">
-                              <span className="rounded bg-muted text-muted-foreground">
+                              <span
+                                className="rounded bg-muted text-muted-foreground"
+                                dir="auto"
+                              >
                                 {date}
                               </span>
                               <span className="text-xs text-muted-foreground">
@@ -1164,13 +1186,16 @@ export default function PatientSummary() {
                                   key={visit.id}
                                   className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/20 px-4 py-2.5 text-sm"
                                 >
-                                  <span className="font-medium text-foreground">
+                                  <span
+                                    className="font-medium text-foreground"
+                                    dir="auto"
+                                  >
                                     {formatDisplayValue(
                                       visit.visitType || "زيارة",
                                     )}
                                   </span>
                                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                    <span>
+                                    <span dir="auto">
                                       {new Date(
                                         visit.visitDate,
                                       ).toLocaleTimeString("ar-EG", {

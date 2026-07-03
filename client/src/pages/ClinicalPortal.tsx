@@ -189,7 +189,7 @@ function ClinicalTable({
         <thead className="bg-muted/60 text-xs font-semibold text-muted-foreground">
           <tr>
             {columns.map((column) => (
-              <th key={column} className="px-3 py-2 text-right">
+              <th key={column} className="px-3 py-2 text-left">
                 {column}
               </th>
             ))}
@@ -643,7 +643,7 @@ export default function ClinicalPortal({ mode }: ClinicalPortalProps) {
 
   if (!patientId) {
     return (
-      <div className="min-h-full bg-muted/20 p-4 text-right md:p-6" dir="rtl">
+      <div className="min-h-full bg-muted/20 p-4 text-left md:p-6" dir="ltr">
         <div className="mx-auto max-w-3xl rounded-lg border border-border bg-background p-5 shadow-sm">
           <h1 className="mb-2 text-xl font-bold">
             {mode === "file" ? "ملف المريض" : "تقرير المريض"}
@@ -668,7 +668,7 @@ export default function ClinicalPortal({ mode }: ClinicalPortalProps) {
   const loading = pd.patientQuery.isLoading && !pd.patient;
 
   return (
-    <div className="min-h-full bg-muted/20 text-right" dir="rtl">
+    <div className="min-h-full bg-muted/20 text-left" dir="ltr">
       <div className="mx-auto max-w-[1440px] space-y-4 p-3 md:p-5">
         {loading ? (
           <div className="space-y-4">

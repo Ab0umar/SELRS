@@ -53,18 +53,22 @@ export function TreatmentTab({
                       key={row.key}
                       className="bg-background text-sm font-medium text-foreground"
                     >
-                      <td className="border px-3 py-3">{row.date || "-"}</td>
-                      <td className="border px-3 py-3">
+                      <td className="border px-3 py-3" dir="auto">
+                        {row.date || "-"}
+                      </td>
+                      <td className="border px-3 py-3" dir="auto">
                         {row.medication || "-"}
                       </td>
-                      <td className="border px-3 py-3">{row.dosage || "-"}</td>
-                      <td className="border px-3 py-3">
+                      <td className="border px-3 py-3" dir="auto">
+                        {row.dosage || "-"}
+                      </td>
+                      <td className="border px-3 py-3" dir="auto">
                         {row.frequency || "-"}
                       </td>
-                      <td className="border px-3 py-3">
+                      <td className="border px-3 py-3" dir="auto">
                         {row.duration || "-"}
                       </td>
-                      <td className="border px-3 py-3 text-left">
+                      <td className="border px-3 py-3 text-left" dir="auto">
                         {row.notes || "-"}
                       </td>
                     </tr>
@@ -77,7 +81,7 @@ export function TreatmentTab({
       </Card>
 
       {treatmentData.length > 0 && (
-        <Card className="border-border/80 bg-background/92 shadow-sm" dir="rtl">
+        <Card className="border-border/80 bg-background/92 shadow-sm" dir="ltr">
           <CardHeader className="border-b border-border">
             <CardTitle>العلاجات المختارة من الملف الطبي</CardTitle>
           </CardHeader>
@@ -92,6 +96,7 @@ export function TreatmentTab({
                     key={treatmentId}
                     variant="default"
                     className="rounded-full"
+                    dir="auto"
                   >
                     {medication?.name ?? `العلاج #${treatmentId}`}
                   </Badge>

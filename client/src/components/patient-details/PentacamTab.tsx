@@ -71,6 +71,7 @@ export function PentacamTab({ pentacamRows }: PentacamTabProps) {
           "border px-3 py-3 tabular-nums",
           medicalReferenceClass(state),
         )}
+        dir="auto"
         title={
           state === "low" || state === "high"
             ? `خارج الطبيعي: ${reference?.min} - ${reference?.max} ${reference?.unit}`
@@ -131,7 +132,7 @@ export function PentacamTab({ pentacamRows }: PentacamTabProps) {
         </CardContent>
       </Card>
 
-      <Card className="border-border/80 bg-background/92 shadow-sm" dir="rtl">
+      <Card className="border-border/80 bg-background/92 shadow-sm" dir="ltr">
         <CardHeader className="border-b border-border">
           <CardTitle>صور البنتاكام</CardTitle>
         </CardHeader>

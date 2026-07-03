@@ -73,7 +73,7 @@ export function ExternalDoctorReferralPanel({ patientCode }: Props) {
         className="flex w-full items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
       >
         <Share2 className="size-3.5 shrink-0" />
-        <span className="flex-1 text-right">الأطباء الخارجيون</span>
+        <span className="flex-1 text-end">الأطباء الخارجيون</span>
         {open ? (
           <ChevronUp className="size-3" />
         ) : (
@@ -84,7 +84,7 @@ export function ExternalDoctorReferralPanel({ patientCode }: Props) {
       {open && (
         <div className="px-3 pb-2 space-y-1.5">
           {patientReferrals.length === 0 && !adding && (
-            <p className="text-[11px] text-muted-foreground text-right">
+            <p className="text-[11px] text-muted-foreground text-end">
               لا يوجد أطباء مرتبطون
             </p>
           )}
@@ -115,11 +115,12 @@ export function ExternalDoctorReferralPanel({ patientCode }: Props) {
               </button>
               <span
                 className={cn(
-                  "flex-1 text-right text-[11px] truncate",
+                  "flex-1 text-end text-[11px] truncate",
                   r.isActive
                     ? "text-foreground"
                     : "text-muted-foreground line-through",
                 )}
+                dir="auto"
               >
                 {r.doctorName ?? r.doctorUsername}
               </span>
@@ -142,7 +143,7 @@ export function ExternalDoctorReferralPanel({ patientCode }: Props) {
                     </div>
                   )}
                   {availableDoctors.map((d: any) => (
-                    <SelectItem key={d.id} value={String(d.id)}>
+                    <SelectItem key={d.id} value={String(d.id)} dir="auto">
                       {d.fullName}
                     </SelectItem>
                   ))}

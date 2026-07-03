@@ -118,7 +118,9 @@ export function DiagnosisImagesPanel({ patientId, readOnly = false }: Props) {
       )}
 
       {uploadError && (
-        <p className="text-xs text-destructive">{uploadError}</p>
+        <p className="text-xs text-destructive" dir="auto">
+          {uploadError}
+        </p>
       )}
 
       {uploadsQuery.isLoading ? (
@@ -149,7 +151,9 @@ export function DiagnosisImagesPanel({ patientId, readOnly = false }: Props) {
                 <Eye className="size-5 text-white" />
               </div>
               <div className="absolute bottom-0 inset-x-0 bg-black/60 px-2 py-1">
-                <p className="text-[10px] text-white truncate">{img.fileName}</p>
+                <p className="text-[10px] text-white truncate" dir="auto">
+                  {img.fileName}
+                </p>
               </div>
             </a>
           ))}

@@ -348,6 +348,11 @@
     unicode-bidi: plaintext;
     text-align: start;
   }
+  /* Explicit dir (tables, value fields) must win over the content-sniffing
+     plaintext default above, or numeric/empty cells fall back to inherited rtl. */
+  body [dir] {
+    unicode-bidi: isolate;
+  }
 
   /* App shell: explicit RTL so flex/grid and logical margins follow Arabic layout */
   .page-layout {

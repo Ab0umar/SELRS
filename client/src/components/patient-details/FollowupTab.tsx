@@ -243,7 +243,7 @@ export function FollowupTab({
                       </>
                     ) : (
                       <>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-muted-foreground" dir="auto">
                           {formatDate(entry._date)}
                         </span>
                         {isExam && isAdmin && (
@@ -320,13 +320,13 @@ export function FollowupTab({
                       <span className="font-semibold text-foreground">
                         الحدة البصرية:
                       </span>
-                      <p className="text-muted-foreground mt-1">
+                      <p className="text-muted-foreground mt-1" dir="auto">
                         {entry.ucvaOD && `UCVA OD: ${entry.ucvaOD}`}
                         {entry.ucvaOD && entry.ucvaOS && " | "}
                         {entry.ucvaOS && `UCVA OS: ${entry.ucvaOS}`}
                       </p>
                       {(entry.bcvaOD || entry.bcvaOS) && (
-                        <p className="text-muted-foreground">
+                        <p className="text-muted-foreground" dir="auto">
                           {entry.bcvaOD && `BCVA OD: ${entry.bcvaOD}`}
                           {entry.bcvaOD && entry.bcvaOS && " | "}
                           {entry.bcvaOS && `BCVA OS: ${entry.bcvaOS}`}
@@ -344,13 +344,13 @@ export function FollowupTab({
                         الانكسار:
                       </span>
                       {entry.sphereOD && (
-                        <p className="text-muted-foreground mt-1">
+                        <p className="text-muted-foreground mt-1" dir="auto">
                           OD: {entry.sphereOD} / {entry.cylinderOD || "-"} x{" "}
                           {entry.axisOD || "-"}
                         </p>
                       )}
                       {entry.sphereOS && (
-                        <p className="text-muted-foreground">
+                        <p className="text-muted-foreground" dir="auto">
                           OS: {entry.sphereOS} / {entry.cylinderOS || "-"} x{" "}
                           {entry.axisOS || "-"}
                         </p>
@@ -362,7 +362,7 @@ export function FollowupTab({
                     <span className="font-semibold text-foreground">
                       ضغط العين:
                     </span>
-                    <p className="text-muted-foreground mt-1">
+                    <p className="text-muted-foreground mt-1" dir="auto">
                       {entry.iopOD && `OD: ${entry.iopOD}`}
                       {entry.iopOD && entry.iopOS && " | "}
                       {entry.iopOS && `OS: ${entry.iopOS}`}
@@ -376,7 +376,7 @@ export function FollowupTab({
                     <span className="font-semibold text-foreground">
                       الحدة البصرية:
                     </span>
-                    <p className="text-muted-foreground mt-1">
+                    <p className="text-muted-foreground mt-1" dir="auto">
                       OD: {entry.vaOD || "-"} | OS: {entry.vaOS || "-"}
                     </p>
                   </div>
@@ -394,13 +394,13 @@ export function FollowupTab({
                           الانكسار:
                         </span>
                         {odS && (
-                          <p className="text-muted-foreground mt-1">
+                          <p className="text-muted-foreground mt-1" dir="auto">
                             OD: {v(entry.refOD.s)} / {v(entry.refOD.c)} x{" "}
                             {v(entry.refOD.axis ?? entry.refOD.a)}
                           </p>
                         )}
                         {osS && (
-                          <p className="text-muted-foreground">
+                          <p className="text-muted-foreground" dir="auto">
                             OS: {v(entry.refOS.s)} / {v(entry.refOS.c)} x{" "}
                             {v(entry.refOS.axis ?? entry.refOS.a)}
                           </p>
@@ -413,7 +413,7 @@ export function FollowupTab({
                     <span className="font-semibold text-foreground">
                       ضغط العين:
                     </span>
-                    <p className="text-muted-foreground mt-1">
+                    <p className="text-muted-foreground mt-1" dir="auto">
                       {entry.iopOD && `OD: ${entry.iopOD}`}
                       {entry.iopOD && entry.iopOS && " | "}
                       {entry.iopOS && `OS: ${entry.iopOS}`}
@@ -425,7 +425,9 @@ export function FollowupTab({
                     <span className="font-semibold text-foreground">
                       ملاحظات:
                     </span>
-                    <p className="text-muted-foreground mt-1">{entry.notes}</p>
+                    <p className="text-muted-foreground mt-1" dir="auto">
+                      {entry.notes}
+                    </p>
                   </div>
                 )}
                 {!isExam && entry.treatment && (
@@ -433,7 +435,7 @@ export function FollowupTab({
                     <span className="font-semibold text-foreground">
                       العلاج:
                     </span>
-                    <p className="text-muted-foreground mt-1">
+                    <p className="text-muted-foreground mt-1" dir="auto">
                       {entry.treatment}
                     </p>
                   </div>
@@ -457,12 +459,12 @@ export function FollowupTab({
               >
                 <div className="flex items-center justify-between">
                   <span className="font-semibold">عملية #{surgery.id}</span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground" dir="auto">
                     {formatDate(surgery.surgeryDate)}
                   </span>
                 </div>
                 {surgery.notes && (
-                  <p className="text-sm text-muted-foreground mt-2">
+                  <p className="text-sm text-muted-foreground mt-2" dir="auto">
                     {surgery.notes}
                   </p>
                 )}
@@ -485,7 +487,7 @@ export function FollowupTab({
               >
                 <div className="flex items-center justify-between border-b pb-2">
                   <span className="font-semibold">متابعة #{followup.id}</span>
-                  <span className="text-xs font-medium text-primary">
+                  <span className="text-xs font-medium text-primary" dir="auto">
                     {formatDate(followup.followupDate)}
                   </span>
                 </div>
@@ -494,7 +496,7 @@ export function FollowupTab({
                     <span className="font-medium text-foreground">
                       الإبصار:
                     </span>
-                    <span className="ml-2 text-muted-foreground">
+                    <span className="ml-2 text-muted-foreground" dir="auto">
                       {followup.visualAcuityOD &&
                         `OD: ${followup.visualAcuityOD}`}
                       {followup.visualAcuityOD &&
@@ -510,7 +512,7 @@ export function FollowupTab({
                     <span className="font-medium text-foreground">
                       ضغط العين:
                     </span>
-                    <span className="ml-2 text-muted-foreground">
+                    <span className="ml-2 text-muted-foreground" dir="auto">
                       {followup.iopOD && `OD: ${followup.iopOD}`}
                       {followup.iopOD && followup.iopOS && " | "}
                       {followup.iopOS && `OS: ${followup.iopOS}`}
@@ -522,7 +524,7 @@ export function FollowupTab({
                     <span className="font-medium text-foreground">
                       الملاحظات:
                     </span>
-                    <p className="text-muted-foreground mt-1">
+                    <p className="text-muted-foreground mt-1" dir="auto">
                       {formatDisplayValue(followup.findings)}
                     </p>
                   </div>
@@ -530,7 +532,7 @@ export function FollowupTab({
                 {followup.prescription && (
                   <div className="text-sm">
                     <span className="font-medium text-foreground">الوصفة:</span>
-                    <p className="text-muted-foreground mt-1">
+                    <p className="text-muted-foreground mt-1" dir="auto">
                       {formatDisplayValue(followup.prescription)}
                     </p>
                   </div>
@@ -538,7 +540,7 @@ export function FollowupTab({
                 {followup.status && (
                   <div className="text-sm">
                     <span className="font-medium text-foreground">الحالة:</span>
-                    <span className="ml-2 text-muted-foreground">
+                    <span className="ml-2 text-muted-foreground" dir="auto">
                       {followup.status}
                     </span>
                   </div>
@@ -563,11 +565,11 @@ export function FollowupTab({
                 <div className="flex items-center justify-between border-b pb-2">
                   <span className="font-semibold">ملف متابعة #{sheet.id}</span>
                   <div className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-muted-foreground" dir="auto">
                       {sheet.sheetType}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      إصدار {sheet.version}
+                      إصدار <span dir="auto">{sheet.version}</span>
                     </span>
                   </div>
                 </div>
@@ -576,43 +578,51 @@ export function FollowupTab({
                     {sheet.items.map((item: any, idx: number) => (
                       <div
                         key={item.id || idx}
-                        className="border-l-2 border-primary/50 pl-3 py-1 text-sm"
+                        className="border-s-2 border-primary/50 ps-3 py-1 text-sm"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-medium">
+                          <span className="font-medium" dir="auto">
                             {item.followupName || `متابعة ${idx + 1}`}
                           </span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs text-muted-foreground" dir="auto">
                             {formatDate(item.followupDate)}
                           </span>
                         </div>
                         {(item.vaOD || item.vaOS) && (
                           <p className="text-muted-foreground text-xs mt-1">
-                            الحدة: {item.vaOD && `OD: ${item.vaOD}`}
-                            {item.vaOD && item.vaOS && " | "}
-                            {item.vaOS && `OS: ${item.vaOS}`}
+                            الحدة:{" "}
+                            <span dir="auto">
+                              {item.vaOD && `OD: ${item.vaOD}`}
+                              {item.vaOD && item.vaOS && " | "}
+                              {item.vaOS && `OS: ${item.vaOS}`}
+                            </span>
                           </p>
                         )}
                         {(item.sphereOD || item.sphereOS) && (
                           <p className="text-muted-foreground text-xs">
                             الانكسار:{" "}
-                            {item.sphereOD &&
-                              `OD: ${item.sphereOD}/${item.cylinderOD || "-"}`}
-                            {item.sphereOD && item.sphereOS && " | "}
-                            {item.sphereOS &&
-                              `OS: ${item.sphereOS}/${item.cylinderOS || "-"}`}
+                            <span dir="auto">
+                              {item.sphereOD &&
+                                `OD: ${item.sphereOD}/${item.cylinderOD || "-"}`}
+                              {item.sphereOD && item.sphereOS && " | "}
+                              {item.sphereOS &&
+                                `OS: ${item.sphereOS}/${item.cylinderOS || "-"}`}
+                            </span>
                           </p>
                         )}
                         {(item.iopOD || item.iopOS) && (
                           <p className="text-muted-foreground text-xs">
-                            ضغط العين: {item.iopOD && `OD: ${item.iopOD}`}
-                            {item.iopOD && item.iopOS && " | "}
-                            {item.iopOS && `OS: ${item.iopOS}`}
+                            ضغط العين:{" "}
+                            <span dir="auto">
+                              {item.iopOD && `OD: ${item.iopOD}`}
+                              {item.iopOD && item.iopOS && " | "}
+                              {item.iopOS && `OS: ${item.iopOS}`}
+                            </span>
                           </p>
                         )}
                         {item.notes && (
                           <p className="text-muted-foreground text-xs mt-1">
-                            ملاحظات: {item.notes}
+                            ملاحظات: <span dir="auto">{item.notes}</span>
                           </p>
                         )}
                       </div>
