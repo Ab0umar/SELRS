@@ -363,7 +363,7 @@ export default function SpecialistSheet() {
       </header>
 
       {printMode.printView && (
-        <PrintPreviewBanner title="شيت الأخصائي" subtitle={formData.patientName || undefined} onPrint={handlePrint} />
+        <PrintPreviewBanner title="" subtitle={formData.patientName || undefined} onPrint={handlePrint} />
       )}
 
       <div className="py-6 print:py-0 print-page-center-a4">
@@ -376,12 +376,12 @@ export default function SpecialistSheet() {
           <header className="flex items-start justify-between border-b-2 border-[#003d9b] pb-3">
             <div className="flex-1">
               <div className="text-xl font-extrabold text-[#003d9b] leading-tight">{BRAND_NAME_EN}</div>
-              <div className="text-sm text-[#434654]">{BRAND_NAME_AR} — ليزر و تصحيح الإبصار</div>
+              <div className="text-sm text-[#434654]">Laser &amp; Vision Correction</div>
               <div className="text-xs text-[#737685] mt-0.5">SPECIALIST EXAMINATION</div>
             </div>
             <div className="text-center px-4">
               <div className="text-base font-bold text-[#003d9b]">Specialist Sheet</div>
-              <div className="text-sm text-[#434654]">شيت الأخصائي</div>
+              <div className="text-sm text-[#434654]"></div>
               <div className="text-xs text-[#737685] mt-0.5">{formData.examinationDate ? new Date(formData.examinationDate).toLocaleDateString("en-GB") : today}</div>
             </div>
             <div className="text-right text-xs text-[#434654] space-y-0.5">
@@ -394,12 +394,12 @@ export default function SpecialistSheet() {
           <section>
             <div className={sectionHeader}>
               <User className="h-3.5 w-3.5" />
-              <span>Patient Details / معلومات المريض</span>
+              <span>Patient Details</span>
             </div>
             <div className="border border-[#c3c6d6] border-t-0 rounded-b-md p-3 bg-[#f8f9fb]">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 text-sm" dir="ltr">
                 <div className="col-span-2 md:col-span-1">
-                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Full Name / الاسم</span>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Full Name</span>
                   <input className="w-full border-b border-[#c3c6d6] bg-transparent focus:outline-none focus:border-[#003d9b] text-sm font-semibold text-[#003d9b]" dir="rtl" value={formData.patientName} onChange={(e) => setFormData((p) => ({ ...p, patientName: e.target.value }))} />
                 </div>
                 <div>
@@ -411,7 +411,7 @@ export default function SpecialistSheet() {
                   <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</div>
                 </div>
                 <div>
-                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Age / السن</span>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Age</span>
                   <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.age}</div>
                 </div>
                 <div>
@@ -419,7 +419,7 @@ export default function SpecialistSheet() {
                   <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.phone}</div>
                 </div>
                 <div>
-                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Profession / المهنة</span>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Profession</span>
                   <input dir="ltr" className="w-full border-b border-[#c3c6d6] bg-transparent focus:outline-none focus:border-[#003d9b] text-sm min-h-[22px]" value={formData.job} onChange={(e) => setFormData((p) => ({ ...p, job: e.target.value }))} />
                 </div>
                 <div>
@@ -427,11 +427,11 @@ export default function SpecialistSheet() {
                   <DateInput className="h-6 w-full border-b border-[#c3c6d6] bg-transparent focus:outline-none focus:border-[#003d9b] rounded-none px-0 text-sm" value={formData.examinationDate} onChange={(e) => setFormData((p) => ({ ...p, examinationDate: e.target.value }))} />
                 </div>
                 <div>
-                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Physician / الطبيب</span>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Physician</span>
                   <input dir="ltr" className="w-full border-b border-[#c3c6d6] bg-transparent focus:outline-none focus:border-[#003d9b] text-sm text-[#003d9b] font-semibold min-h-[22px]" value={signatures.doctor} onChange={(e) => setSignatures((p) => ({ ...p, doctor: e.target.value }))} />
                 </div>
                 <div className="col-span-2">
-                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Address / العنوان</span>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Address</span>
                   <input dir="rtl" className="w-full border-b border-[#c3c6d6] bg-transparent focus:outline-none focus:border-[#003d9b] text-sm min-h-[22px]" value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} />
                 </div>
               </div>
@@ -572,12 +572,12 @@ export default function SpecialistSheet() {
           <section className="print-specialist-footer-grid grid grid-cols-1 lg:grid-cols-12 gap-4">
             <div className="lg:col-span-8 space-y-3">
               <div>
-                <div className="text-xs font-bold text-[#003d9b] uppercase mb-1">Comments / ملاحظات:</div>
+                <div className="text-xs font-bold text-[#003d9b] uppercase mb-1">Comments:</div>
                 <div className="border-b border-[#c3c6d6] h-7" />
                 <div className="border-b border-[#c3c6d6] h-7 mt-1" />
               </div>
               <div>
-                <div className="text-xs font-bold text-[#003d9b] uppercase mb-1">Final Decision / القرار النهائي:</div>
+                <div className="text-xs font-bold text-[#003d9b] uppercase mb-1">Final Decision:</div>
                 <div className="border-b border-[#c3c6d6] h-7" />
               </div>
             </div>
@@ -593,10 +593,10 @@ export default function SpecialistSheet() {
           <footer className="print-specialist-signatures border-t-2 border-[#003d9b] pt-4 mt-1">
             <div className="grid grid-cols-4 gap-6">
               {[
-                { label: "Nursing / التمريض", val: signatures.nurse, isDoctor: false },
-                { label: "Physician / الطبيب", val: signatures.doctor, isDoctor: true },
-                { label: "Optometrist / فني", val: signatures.technician, isDoctor: false },
-                { label: "Reception / الاستقبال", val: signatures.reception, isDoctor: false },
+                { label: "Nursing", val: signatures.nurse, isDoctor: false },
+                { label: "Physician", val: signatures.doctor, isDoctor: true },
+                { label: "Optometrist", val: signatures.technician, isDoctor: false },
+                { label: "Reception", val: signatures.reception, isDoctor: false },
               ].map(({ label, val, isDoctor }, i) => (
                 <div key={i} className="flex flex-col gap-2 text-center">
                   <div className={`h-10 border-b-2 flex items-end justify-center pb-1 ${isDoctor ? "border-[#003d9b]" : "border-[#c3c6d6]"}`}>

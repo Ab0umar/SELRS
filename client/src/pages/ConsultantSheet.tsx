@@ -43,7 +43,7 @@ export default function ConsultantSheet() {
   const [operationDateLeft, setOperationDateLeft] = useState("");
   const [operationDateRight, setOperationDateRight] = useState("");
   const formatDateLabel = (value: string) => {
-    if (!value) return "لم يتم الاختيار";
+    if (!value) return "Not selected";
     const date = new Date(value);
     if (Number.isNaN(date.valueOf())) return value;
     return date.toLocaleDateString("ar-EG");
@@ -424,7 +424,7 @@ export default function ConsultantSheet() {
         <div
           className="consultant-sheet-inner bg-white text-[#191c1e] font-sans p-6 print:p-[8mm] print:border-0 print:shadow-none border border-[#c3c6d6] shadow-md flex flex-col gap-4 w-[210mm] max-w-full mx-auto rounded-lg"
           data-purpose="main-document"
-          dir="rtl"
+          dir="ltr"
         >
           {/* ── HEADER ── */}
           <header className="flex items-start justify-between border-b-2 border-[#003d9b] pb-3 mb-1">
@@ -433,13 +433,13 @@ export default function ConsultantSheet() {
                 {BRAND_NAME_EN}
               </div>
               <div className="text-sm text-[#434654] leading-snug mt-0.5">
-                {BRAND_NAME_AR} — ليزر و تصحيح الإبصار
+                Laser &amp; Vision Correction
               </div>
               <div className="text-xs text-[#737685] mt-0.5">Ophthalmic Excellence Center</div>
             </div>
             <div className="text-center px-4">
               <div className="text-base font-bold text-[#003d9b]">Consultant Sheet</div>
-              <div className="text-sm text-[#434654]">شيت الاستشاري</div>
+
               <div className="text-xs text-[#737685] mt-0.5">{formData.examinationDate ? new Date(formData.examinationDate).toLocaleDateString("en-GB") : today}</div>
             </div>
             <div className="text-left text-xs text-[#434654] space-y-0.5">
@@ -452,38 +452,38 @@ export default function ConsultantSheet() {
           <section data-purpose="patient-info">
             <div className={sectionHeader}>
               <User className="h-3.5 w-3.5" />
-              <span>Patient Information / معلومات المريض</span>
+              <span>Patient Information</span>
             </div>
             <div className="border border-[#c3c6d6] border-t-0 rounded-b-md p-3 bg-[#f8f9fb]">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 text-sm" dir="rtl">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 text-sm" dir="ltr">
                 {/* Row 1: Name, DOB, Age, Code */}
                 <div className="col-span-2 md:col-span-1">
-                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">الاسم / Name</span>
-                  <div className="border-b border-[#c3c6d6] min-h-[22px] font-semibold text-[#003d9b] pb-0.5">{formData.patientName}</div>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Full Name</span>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] font-semibold text-[#003d9b] pb-0.5" dir="rtl">{formData.patientName}</div>
                 </div>
                 <div>
-                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">تاريخ الميلاد / DOB</span>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Date of Birth</span>
                   <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</div>
                 </div>
                 <div>
-                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">السن / Age</span>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Age</span>
                   <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.age}</div>
                 </div>
                 <div>
-                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">كود المريض / Patient Code</span>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Patient Code</span>
                   <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5 font-mono text-[#526069]">{formData.code}</div>
                 </div>
                 {/* Row 2: Address, Phone, Job, Date */}
                 <div className="col-span-2">
-                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">العنوان / Address</span>
-                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.address}</div>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Address</span>
+                  <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5" dir="rtl">{formData.address}</div>
                 </div>
                 <div>
-                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">التليفون / Phone</span>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Phone</span>
                   <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.phone}</div>
                 </div>
                 <div>
-                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">الوظيفة / Job</span>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Occupation</span>
                   <input
                     dir="rtl"
                     className="w-full border-b border-[#c3c6d6] bg-transparent focus:outline-none focus:border-[#003d9b] text-sm min-h-[22px] pb-0.5"
@@ -492,10 +492,10 @@ export default function ConsultantSheet() {
                   />
                 </div>
               </div>
-              <div className="mt-2 pt-2 border-t border-[#c3c6d6] flex items-center gap-2 text-sm" dir="rtl">
-                <span className="text-xs text-[#434654] font-semibold">الاستشاري / Consultant:</span>
+              <div className="mt-2 pt-2 border-t border-[#c3c6d6] flex items-center gap-2 text-sm" dir="ltr">
+                <span className="text-xs text-[#434654] font-semibold">Consultant:</span>
                 <span className="font-semibold text-[#003d9b]">{signatures.doctor || "—"}</span>
-                <span className="mr-auto text-xs text-[#737685]">تاريخ الفحص: {today}</span>
+                <span className="ml-auto text-xs text-[#737685]">Exam Date: {today}</span>
               </div>
             </div>
           </section>
@@ -504,29 +504,29 @@ export default function ConsultantSheet() {
           <section className="print-consultant-questions" data-purpose="medical-history">
             <div className={sectionHeader}>
               <FileText className="h-3.5 w-3.5" />
-              <span>Medical History / التاريخ المرضي</span>
+              <span>Medical History</span>
             </div>
             <div className="border border-[#c3c6d6] border-t-0 rounded-b-md overflow-hidden">
               <table className="w-full border-collapse text-sm" dir="rtl">
                 <thead>
                   <tr className="bg-[#e7e8ea]">
-                    <th className="w-10 p-1.5 border border-[#c3c6d6] text-center text-xs">لا</th>
-                    <th className="w-10 p-1.5 border border-[#c3c6d6] text-center text-xs">نعم</th>
-                    <th className="p-1.5 border border-[#c3c6d6] text-right text-xs">الحالة</th>
-                    <th className="w-10 p-1.5 border border-[#c3c6d6] text-center text-xs">لا</th>
-                    <th className="w-10 p-1.5 border border-[#c3c6d6] text-center text-xs">نعم</th>
-                    <th className="p-1.5 border border-[#c3c6d6] text-right text-xs">الحالة</th>
-                    <th className="w-10 p-1.5 border border-[#c3c6d6] text-center text-xs">لا</th>
-                    <th className="w-10 p-1.5 border border-[#c3c6d6] text-center text-xs">نعم</th>
-                    <th className="p-1.5 border border-[#c3c6d6] text-right text-xs">الحالة</th>
+                    <th className="w-10 p-1.5 border border-[#c3c6d6] text-center text-xs">No</th>
+                    <th className="w-10 p-1.5 border border-[#c3c6d6] text-center text-xs">Yes</th>
+                    <th className="p-1.5 border border-[#c3c6d6] text-right text-xs">Condition</th>
+                    <th className="w-10 p-1.5 border border-[#c3c6d6] text-center text-xs">No</th>
+                    <th className="w-10 p-1.5 border border-[#c3c6d6] text-center text-xs">Yes</th>
+                    <th className="p-1.5 border border-[#c3c6d6] text-right text-xs">Condition</th>
+                    <th className="w-10 p-1.5 border border-[#c3c6d6] text-center text-xs">No</th>
+                    <th className="w-10 p-1.5 border border-[#c3c6d6] text-center text-xs">Yes</th>
+                    <th className="p-1.5 border border-[#c3c6d6] text-right text-xs">Condition</th>
                   </tr>
                 </thead>
                 <tbody>
                   {[
-                    ["أمراض عامة (ضغط/سكر/غدة)", "حمل أو رضاعة", "تحسس من التكييف/الهواء"],
-                    ["علاج مياه زرقاء", "قرنية مخروطية بالعائلة", "أمراض بالعين"],
-                    ["كورتيزون/ضغط", "الغدة الدرقية", "أمراض مناعة"],
-                    ["علاج لحب الشباب (رواكيوتان)", "بديل دموع", "أخرى"],
+                    ["General Diseases (BP/DM/Thyroid)", "Pregnancy / Lactation", "AC/Air Sensitivity"],
+                    ["Glaucoma Treatment", "Family Keratoconus History", "Eye Diseases"],
+                    ["Cortisone / Steroids", "Thyroid Disorder", "Autoimmune Disease"],
+                    ["Acne Treatment (Roaccutane)", "Tear Substitute Use", "Other"],
                   ].map((row, rowIndex) => (
                     <tr key={rowIndex} className={rowIndex % 2 === 0 ? "bg-white" : "bg-[#f8f9fb]"}>
                       {row.map((q, colIndex) => (
@@ -538,7 +538,7 @@ export default function ConsultantSheet() {
                             <td className="text-center border border-[#c3c6d6] p-1">
                               <input type="checkbox" className="w-3.5 h-3.5 accent-[#003d9b]" />
                             </td>
-                            <td className="p-1.5 border border-[#c3c6d6] text-right text-xs">{q}</td>
+                            <td className="p-1.5 border border-[#c3c6d6] text-right text-xs" dir="ltr" style={{textAlign:'left'}}>{q}</td>
                           </Fragment>
                         ) : (
                           <Fragment key={`${rowIndex}-${colIndex}`}>
@@ -560,7 +560,7 @@ export default function ConsultantSheet() {
             <div className="lg:col-span-8">
               <div className={sectionHeader} dir="ltr">
                 <Eye className="h-3.5 w-3.5" />
-                <span>Comprehensive Refraction / الانكسار الشامل</span>
+                <span>Comprehensive Refraction</span>
               </div>
               <div className="border border-[#c3c6d6] border-t-0 rounded-b-md overflow-hidden">
                 <table className="w-full text-center border-collapse">
@@ -598,7 +598,7 @@ export default function ConsultantSheet() {
             </div>
             <div className="lg:col-span-4">
               <div className={sectionHeader} dir="ltr">
-                <span>Clinical Examination / الفحص الإكلينيكي</span>
+                <span>Clinical Examination</span>
               </div>
               <div className="border border-[#c3c6d6] border-t-0 rounded-b-md overflow-hidden">
                 <table className="w-full border-collapse text-sm" dir="ltr">
@@ -666,12 +666,12 @@ export default function ConsultantSheet() {
           {/* ── CLINICAL DIAGRAMS ── */}
           <section className="print-consultant-diagrams" data-purpose="clinical-diagrams">
             <div className={sectionHeader} dir="ltr">
-              <span>Clinical Diagrams / رسم توضيحي</span>
+              <span>Clinical Diagrams</span>
             </div>
             <div className="border border-[#c3c6d6] border-t-0 rounded-b-md p-4 bg-white">
               <div className="grid grid-cols-2 gap-8 min-h-[80mm]">
                 <div className="flex flex-col items-center justify-center gap-3">
-                  <span className="text-xs font-bold uppercase px-3 py-1 bg-[#003d9b]/10 text-[#003d9b] rounded-full border border-[#003d9b]/20">Right Eye (OD)</span>
+                  <span className="text-xs font-bold uppercase px-3 py-1 bg-[#003d9b]/10 text-[#003d9b] rounded-full border border-[#003d9b]/20">OD — Right Eye</span>
                   <div className="w-52 h-52 rounded-full border-2 border-[#003d9b]/30 flex items-center justify-center relative bg-white shadow-inner">
                     <div className="absolute inset-0 rounded-full overflow-hidden opacity-5">
                       <div className="absolute top-1/2 left-0 right-0 border-t border-slate-900 -translate-y-1/2"></div>
@@ -679,10 +679,10 @@ export default function ConsultantSheet() {
                     </div>
                     <span className="text-[#003d9b]/20 text-2xl font-bold select-none">OD</span>
                   </div>
-                  <p className="text-xs text-[#003d9b] font-medium">العين اليمنى</p>
+
                 </div>
                 <div className="flex flex-col items-center justify-center gap-3">
-                  <span className="text-xs font-bold uppercase px-3 py-1 bg-[#526069]/10 text-[#526069] rounded-full border border-[#526069]/20">Left Eye (OS)</span>
+                  <span className="text-xs font-bold uppercase px-3 py-1 bg-[#526069]/10 text-[#526069] rounded-full border border-[#526069]/20">OS — Left Eye</span>
                   <div className="w-52 h-52 rounded-full border-2 border-[#526069]/30 flex items-center justify-center relative bg-white shadow-inner">
                     <div className="absolute inset-0 rounded-full overflow-hidden opacity-5">
                       <div className="absolute top-1/2 left-0 right-0 border-t border-slate-900 -translate-y-1/2"></div>
@@ -690,7 +690,7 @@ export default function ConsultantSheet() {
                     </div>
                     <span className="text-[#526069]/20 text-2xl font-bold select-none">OS</span>
                   </div>
-                  <p className="text-xs text-[#526069] font-medium">العين اليسرى</p>
+
                 </div>
               </div>
             </div>
@@ -700,13 +700,13 @@ export default function ConsultantSheet() {
           <section className="grid grid-cols-1 lg:grid-cols-2 gap-4" dir="rtl">
             <div>
               <div className="flex items-center gap-2 px-3 py-1.5 bg-[#ba1a1a] text-white text-xs font-bold uppercase tracking-wider rounded-t-md">
-                <span>التشخيص النهائي / Final Diagnosis</span>
+                <span>Final Diagnosis</span>
               </div>
               <div className="border border-[#c3c6d6] border-t-0 rounded-b-md p-3 min-h-[80px] bg-white">
                 <textarea
                   dir="rtl"
                   className="w-full bg-transparent border-0 focus:outline-none text-sm resize-none min-h-[70px] text-right"
-                  placeholder="التشخيص الأولي هنا..."
+                  placeholder="Enter diagnosis..."
                   value={formData.final}
                   onChange={e => setFormData(p => ({ ...p, final: e.target.value }))}
                 />
@@ -714,13 +714,13 @@ export default function ConsultantSheet() {
             </div>
             <div>
               <div className="flex items-center gap-2 px-3 py-1.5 bg-[#e7e8ea] text-[#434654] text-xs font-bold uppercase tracking-wider rounded-t-md border border-[#c3c6d6]">
-                <span>Notes & Comments / ملاحظات وتعليقات</span>
+                <span>Notes &amp; Comments</span>
               </div>
               <div className="border border-[#c3c6d6] border-t-0 rounded-b-md p-3 min-h-[80px] bg-white">
                 <textarea
                   dir="rtl"
                   className="w-full bg-transparent border-0 focus:outline-none text-sm resize-none min-h-[70px] text-right"
-                  placeholder="ملاحظات..."
+                  placeholder="Enter notes..."
                   value={formData.comments}
                   onChange={e => setFormData(p => ({ ...p, comments: e.target.value }))}
                 />
@@ -732,10 +732,10 @@ export default function ConsultantSheet() {
           <footer className="print-consultant-signatures border-t-2 border-[#003d9b] pt-4 mt-2" dir="rtl">
             <div className="grid grid-cols-4 gap-6">
               {[
-                { label: "استقبال / Reception", val: signatures.reception, isDoctor: false },
-                { label: "تمريض / Nurse", val: signatures.nurse, isDoctor: false },
-                { label: "فني / Technician", val: signatures.technician, isDoctor: false },
-                { label: "الاستشاري / Doctor", val: signatures.doctor, isDoctor: true },
+                { label: "Reception", val: signatures.reception, isDoctor: false },
+                { label: "Nurse", val: signatures.nurse, isDoctor: false },
+                { label: "Technician", val: signatures.technician, isDoctor: false },
+                { label: "Consultant", val: signatures.doctor, isDoctor: true },
               ].map(({ label, val, isDoctor }, i) => (
                 <div key={i} className="flex flex-col gap-2 text-center">
                   <div className={`h-10 border-b-2 flex items-end justify-center pb-1 ${isDoctor ? "border-[#003d9b]" : "border-[#c3c6d6]"}`}>
@@ -860,7 +860,7 @@ export default function ConsultantSheet() {
         <div className={`flex items-center justify-between gap-2 ${embeddedInPatientHub ? "px-2" : "container mx-auto px-4"}`}>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={handleBackNav} className="gap-1">
-              <ArrowRight className="h-4 w-4" /> رجوع
+              <ArrowRight className="h-4 w-4" /> Back
             </Button>
             {formData.patientName && <span className="text-sm font-semibold">{formData.patientName}</span>}
             {formData.code && <span className="text-xs text-muted-foreground">ID: {formData.code}</span>}
@@ -884,8 +884,8 @@ export default function ConsultantSheet() {
       <main data-mobile-pdf-root className={`print:p-0 ${embeddedInPatientHub ? "px-2 py-1" : "container mx-auto px-4 py-4 pb-24 sm:pb-4"}`}>
         <Tabs value={activeTab} onValueChange={setActiveTab} persistKey={CONSULTANT_TABS_PERSIST_KEY} className={`print:hidden ${printMode.printView ? "hidden" : ""}`}>
           <TabsList className={`mb-3 ${embeddedInPatientHub ? "h-8 w-fit gap-0.5 p-1 [&_[data-slot=tabs-trigger]]:px-2.5 [&_[data-slot=tabs-trigger]]:text-xs" : "mb-2 flex h-auto w-full"}`}>
-            <TabsTrigger value="followup">المتابعات</TabsTrigger>
-            <TabsTrigger value="sheet">الفحوصات</TabsTrigger>
+            <TabsTrigger value="followup">Follow-ups</TabsTrigger>
+            <TabsTrigger value="sheet">Examination</TabsTrigger>
           </TabsList>
           <TabsContent value="sheet" className="space-y-0">
             {activeTab === "sheet" ? renderSheetBody() : null}
@@ -894,7 +894,7 @@ export default function ConsultantSheet() {
             {activeTab === "followup" ? (
               <FollowupTablesBody
                 titleEn="Consultant Follow-up"
-                titleAr="متابعة الاستشاري"
+                titleAr="Consultant Follow-up"
                 patientName={formData.patientName}
                 patientDOB={formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}
                 operationType={operationType}
@@ -917,9 +917,9 @@ export default function ConsultantSheet() {
         </div>
 
         <div className={`sheet-mobile-actions print:hidden ${printMode.printView ? "hidden" : ""}`}>
-          <Button type="button" variant="outline" onClick={handleBackNav}>رجوع</Button>
-          <Button type="button" variant="outline" onClick={handlePrint}>طباعة</Button>
-          <Button type="button" variant="default" onClick={handleDownloadPDF}>تحميل</Button>
+          <Button type="button" variant="outline" onClick={handleBackNav}>Back</Button>
+          <Button type="button" variant="outline" onClick={handlePrint}>Print</Button>
+          <Button type="button" variant="default" onClick={handleDownloadPDF}>Download PDF</Button>
         </div>
       </main>
     </div>

@@ -73,7 +73,7 @@ export default function FollowupTablesBody<T extends FollowupItem>({
       <header className="flex items-start justify-between border-b-2 border-[#003d9b] pb-3">
         <div className="flex-1">
           <div className="text-xl font-extrabold text-[#003d9b] leading-tight">{BRAND_NAME_EN}</div>
-          <div className="text-sm text-[#434654]">{BRAND_NAME_AR} — ليزر و تصحيح الإبصار</div>
+          <div className="text-sm text-[#434654]">Laser &amp; Vision Correction</div>
           <div className="text-xs text-[#737685] mt-0.5">Ophthalmic Excellence Center</div>
         </div>
         <div className="text-center px-4">
@@ -109,7 +109,7 @@ export default function FollowupTablesBody<T extends FollowupItem>({
             />
           </div>
           <div>
-            <p className="text-xs font-semibold text-[#434654] mb-1">العين / Eye</p>
+            <p className="text-xs font-semibold text-[#434654] mb-1">Eye</p>
             <div className="flex gap-2">
               <button
                 type="button"
@@ -131,7 +131,7 @@ export default function FollowupTablesBody<T extends FollowupItem>({
       {/* ── LEGEND (screen only) ── */}
       <div className="print:hidden flex items-center justify-between text-xs text-[#434654]" dir="ltr">
         <h2 className="font-bold text-[#191c1e]">
-          متابعة ما بعد العمليات <span className="text-[#737685] font-normal">/ Post-Op Follow-up</span>
+          Post-Op Follow-up
         </h2>
         <div className="flex gap-2">
           <span className="px-2 py-1 bg-[#e7e8ea] rounded">V.A = Visual Acuity</span>

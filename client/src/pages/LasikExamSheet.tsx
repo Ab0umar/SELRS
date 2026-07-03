@@ -34,10 +34,10 @@ export default function LasikExamSheet() {
     DEFAULT_SHEET_DESIGNER_CONFIG.followupLasik,
   );
   const [followups, setFollowups] = useState([
-    { id: 1, date: "", type: "المتابعة الأولى" },
-    { id: 2, date: "", type: "المتابعة الثانية" },
-    { id: 3, date: "", type: "المتابعة الثالثة" },
-    { id: 4, date: "", type: "المتابعة الرابعة" },
+    { id: 1, date: "", type: "الFollow-up الأولى" },
+    { id: 2, date: "", type: "الFollow-up الثانية" },
+    { id: 3, date: "", type: "الFollow-up الثالثة" },
+    { id: 4, date: "", type: "الFollow-up الرابعة" },
   ]);
 
   const [operationType, setOperationType] = useState("ليزك");
@@ -400,12 +400,12 @@ export default function LasikExamSheet() {
         <header className="flex items-start justify-between border-b-2 border-[#003d9b] pb-3">
           <div className="flex-1">
             <div className="text-xl font-extrabold text-[#003d9b] leading-tight">{BRAND_NAME_EN}</div>
-            <div className="text-sm text-[#434654]">{BRAND_NAME_AR} — ليزر و تصحيح الإبصار</div>
+            <div className="text-sm text-[#434654]">Laser &amp; Vision Correction</div>
             <div className="text-xs text-[#737685] mt-0.5">LASIK PRE-OP ASSESSMENT</div>
           </div>
           <div className="text-center px-4">
             <div className="text-base font-bold text-[#003d9b]">Lasik Exam Sheet</div>
-            <div className="text-sm text-[#434654]">شيت فحص الليزك</div>
+            <div className="text-sm text-[#434654]"></div>
             <div className="text-xs text-[#737685] mt-0.5">{formData.examinationDate ? new Date(formData.examinationDate).toLocaleDateString("en-GB") : today}</div>
           </div>
           <div className="text-right text-xs text-[#434654] space-y-0.5">
@@ -462,12 +462,12 @@ export default function LasikExamSheet() {
         <section>
           <div className={sectionHeader}>
             <User className="h-3.5 w-3.5" />
-            <span>Patient Details / معلومات المريض</span>
+            <span>Patient Details</span>
           </div>
           <div className="border border-[#c3c6d6] border-t-0 rounded-b-md p-3 bg-[#f8f9fb]">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 text-sm" dir="ltr">
               <div className="col-span-2 md:col-span-1">
-                <span className="text-xs text-[#434654] font-semibold block mb-0.5">Full Name / الاسم</span>
+                <span className="text-xs text-[#434654] font-semibold block mb-0.5">Full Name</span>
                 <div className="border-b border-[#c3c6d6] min-h-[22px] font-semibold text-[#003d9b] pb-0.5">{formData.patientName}</div>
               </div>
               <div>
@@ -479,7 +479,7 @@ export default function LasikExamSheet() {
                 <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</div>
               </div>
               <div>
-                <span className="text-xs text-[#434654] font-semibold block mb-0.5">Age / السن</span>
+                <span className="text-xs text-[#434654] font-semibold block mb-0.5">Age</span>
                 <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.age}</div>
               </div>
               <div>
@@ -502,7 +502,7 @@ export default function LasikExamSheet() {
         <section className="print-lasik-questions">
           <div className={sectionHeader}>
             <FileText className="h-3.5 w-3.5" />
-            <span>Medical &amp; Ocular History / التاريخ المرضي</span>
+            <span>Medical &amp; Ocular History</span>
           </div>
           <div className="border border-[#c3c6d6] border-t-0 rounded-b-md overflow-hidden">
             <div className="grid grid-cols-2 divide-x divide-[#c3c6d6]">
@@ -705,7 +705,7 @@ export default function LasikExamSheet() {
               { label: "Reception Signature", val: signatures.reception, isDoctor: false },
               { label: "Nurse Signature", val: signatures.nurse, isDoctor: false },
               { label: "Technician Signature", val: signatures.technician, isDoctor: false },
-              { label: "Surgeon / الطبيب", val: signatures.doctor, isDoctor: true },
+              { label: "Surgeon", val: signatures.doctor, isDoctor: true },
             ].map(({ label, val, isDoctor }, i) => (
               <div key={i} className="flex flex-col gap-2 text-center">
                 <div className={`h-10 border-b-2 flex items-end justify-center pb-1 ${isDoctor ? "border-[#003d9b]" : "border-[#c3c6d6]"}`}>
@@ -778,7 +778,7 @@ export default function LasikExamSheet() {
       </header>
 
       {printMode.printView && (
-        <PrintPreviewBanner title="شيت الليزك" subtitle={formData.patientName || undefined} onPrint={handlePrint} />
+        <PrintPreviewBanner title="Lasik Exam Sheet" subtitle={formData.patientName || undefined} onPrint={handlePrint} />
       )}
 
       <div className="py-6 print:py-0">

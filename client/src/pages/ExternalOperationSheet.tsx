@@ -306,7 +306,7 @@ export default function ExternalOperationSheet() {
       </header>
 
       {printMode.printView && (
-        <PrintPreviewBanner title="شيت الخارجي" subtitle={formData.patientName || undefined} onPrint={handlePrint} />
+        <PrintPreviewBanner title="External Operation Sheet" subtitle={formData.patientName || undefined} onPrint={handlePrint} />
       )}
 
       <div className="py-6 print:py-0">
@@ -319,12 +319,12 @@ export default function ExternalOperationSheet() {
           <header className="flex items-start justify-between border-b-2 border-[#003d9b] pb-3">
             <div className="flex-1">
               <div className="text-xl font-extrabold text-[#003d9b] leading-tight">{BRAND_NAME_EN}</div>
-              <div className="text-sm text-[#434654]">{BRAND_NAME_AR} — ليزر و تصحيح الإبصار</div>
+              <div className="text-sm text-[#434654]">Laser &amp; Vision Correction</div>
               <div className="text-xs text-[#737685] mt-0.5">EXTERNAL EXAMINATION</div>
             </div>
             <div className="text-center px-4">
               <div className="text-base font-bold text-[#003d9b]">External Sheet</div>
-              <div className="text-sm text-[#434654]">شيت الخارجي</div>
+              <div className="text-sm text-[#434654]">External Operation Sheet</div>
               <div className="text-xs text-[#737685] mt-0.5">{formData.examinationDate ? new Date(formData.examinationDate).toLocaleDateString("en-GB") : today}</div>
             </div>
             <div className="text-right text-xs text-[#434654] space-y-0.5">
@@ -345,7 +345,7 @@ export default function ExternalOperationSheet() {
                 <option value="زيارة خارجية">External Visit</option>
                 <option value="فحص خارجي">External Exam</option>
                 <option value="ليزك">Lasik</option>
-                <option value="متابعة">Follow-up</option>
+                <option value="Follow-up">Follow-up</option>
               </select>
             </div>
             <div className="flex items-center gap-2">
@@ -388,12 +388,12 @@ export default function ExternalOperationSheet() {
           <section>
             <div className={sectionHeader}>
               <User className="h-3.5 w-3.5" />
-              <span>Patient Details / معلومات المريض</span>
+              <span>Patient Details</span>
             </div>
             <div className="border border-[#c3c6d6] border-t-0 rounded-b-md p-3 bg-[#f8f9fb]">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 text-sm" dir="ltr">
                 <div className="col-span-2 md:col-span-1">
-                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Full Name / الاسم</span>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Full Name</span>
                   <div className="border-b border-[#c3c6d6] min-h-[22px] font-semibold text-[#003d9b] pb-0.5" dir="rtl">{formData.patientName}</div>
                 </div>
                 <div>
@@ -405,7 +405,7 @@ export default function ExternalOperationSheet() {
                   <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</div>
                 </div>
                 <div>
-                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Age / السن</span>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Age</span>
                   <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.age}</div>
                 </div>
                 <div>
@@ -413,15 +413,15 @@ export default function ExternalOperationSheet() {
                   <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.phone}</div>
                 </div>
                 <div>
-                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Profession / المهنة</span>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Profession</span>
                   <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5">{formData.job}</div>
                 </div>
                 <div>
-                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Physician / الطبيب</span>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Physician</span>
                   <div className="border-b border-[#c3c6d6] min-h-[22px] font-semibold text-[#003d9b] pb-0.5">{signatures.doctor}</div>
                 </div>
                 <div className="col-span-2">
-                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Address / العنوان</span>
+                  <span className="text-xs text-[#434654] font-semibold block mb-0.5">Address</span>
                   <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5" dir="rtl">{formData.address}</div>
                 </div>
               </div>
@@ -508,7 +508,7 @@ export default function ExternalOperationSheet() {
           <section>
             <div className={sectionHeader}>
               <Target className="h-3.5 w-3.5" />
-              <span>Treatment Plan / خطة العلاج</span>
+              <span>Treatment Plan</span>
             </div>
             <div className="border border-[#c3c6d6] border-t-0 rounded-b-md overflow-hidden">
               <table className="w-full text-center border-collapse text-xs">
@@ -542,12 +542,12 @@ export default function ExternalOperationSheet() {
           <section className="print-external-footer-grid grid grid-cols-1 lg:grid-cols-12 gap-4">
             <div className="lg:col-span-8 space-y-3">
               <div>
-                <div className="text-xs font-bold text-[#003d9b] uppercase mb-1">Comments / ملاحظات:</div>
+                <div className="text-xs font-bold text-[#003d9b] uppercase mb-1">Comments:</div>
                 <div className="border-b border-[#c3c6d6] h-7" />
                 <div className="border-b border-[#c3c6d6] h-7 mt-1" />
               </div>
               <div>
-                <div className="text-xs font-bold text-[#003d9b] uppercase mb-1">Final Decision / القرار النهائي:</div>
+                <div className="text-xs font-bold text-[#003d9b] uppercase mb-1">Final Decision:</div>
                 <div className="border-b border-[#c3c6d6] h-7" />
               </div>
             </div>
@@ -563,10 +563,10 @@ export default function ExternalOperationSheet() {
           <footer className="print-external-signatures border-t-2 border-[#003d9b] pt-4 mt-1">
             <div className="grid grid-cols-4 gap-6">
               {[
-                { label: "Reception / الاستقبال", val: signatures.reception, isDoctor: false },
-                { label: "Nursing / التمريض", val: signatures.nurse, isDoctor: false },
-                { label: "Optometrist / فني", val: signatures.technician, isDoctor: false },
-                { label: "Surgeon / الطبيب", val: signatures.doctor, isDoctor: true },
+                { label: "Reception", val: signatures.reception, isDoctor: false },
+                { label: "Nursing", val: signatures.nurse, isDoctor: false },
+                { label: "Optometrist", val: signatures.technician, isDoctor: false },
+                { label: "Surgeon", val: signatures.doctor, isDoctor: true },
               ].map(({ label, val, isDoctor }, i) => (
                 <div key={i} className="flex flex-col gap-2 text-center">
                   <div className={`h-10 border-b-2 flex items-end justify-center pb-1 ${isDoctor ? "border-[#003d9b]" : "border-[#c3c6d6]"}`}>

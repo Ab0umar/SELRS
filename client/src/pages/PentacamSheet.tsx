@@ -33,9 +33,9 @@ type PatientSummary = {
 };
 
 const locationFilters = [
-  { value: "all", label: "All / الكل" },
-  { value: "center", label: "Center / المركز" },
-  { value: "external", label: "External / الخارجي" },
+  { value: "all", label: "All / All" },
+  { value: "center", label: "Center / Center" },
+  { value: "external", label: "External / External" },
 ] as const;
 
 function formatDate(value?: string | Date | null) {
@@ -59,7 +59,7 @@ function EmptyPanel() {
           </p>
         </div>
         <div className="text-xs text-[#434654] bg-[#e7e8ea] rounded-lg px-4 py-2">
-          ابحث برمز المريض لعرض صور JPG
+          Search by patient code to view JPG images
         </div>
       </div>
     </div>
@@ -189,7 +189,7 @@ export default function PentacamSheet() {
               Pentacam Image Viewer
             </div>
             <h1 className="text-3xl font-black tracking-tight text-[#191c1e]">
-              Pentacam <span className="text-[#003d9b]">البنتاكام</span>
+              Pentacam <span className="text-[#003d9b]">Pentacam</span>
             </h1>
             <p className="text-sm text-[#737685] mt-1">
               Search for a patient to view and review their associated Pentacam JPG images.
