@@ -539,7 +539,7 @@ export default function ExternalOperationSheet() {
         }
       `}</style>
       <header
-        className={`sticky top-0 z-10 border-b border-border bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/60 print:hidden ${printMode.printView ? "hidden" : ""}`}
+        className={`sticky top-0 z-10 border-b border-border bg-background/95 shadow-xl shadow-primary/5 backdrop-blur supports-[backdrop-filter]:bg-background/60 print:hidden ${printMode.printView ? "hidden" : ""}`}
       >
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between gap-2 flex-nowrap sheet-header-bar">
@@ -603,7 +603,7 @@ export default function ExternalOperationSheet() {
             onSelect={handleSelectPatient}
           />
         </div>
-        <div className="rounded-[28px] border border-border/80 bg-background p-8 shadow-sm print:rounded-none print:border-0 print:p-0 external-print-root">
+        <div className="rounded-[28px] border border-border/80 bg-background p-8 shadow-xl shadow-primary/5 print:rounded-none print:border-0 print:p-0 external-print-root">
           <div
             className={`mb-2 print:hidden ${printMode.printView ? "hidden" : ""}`}
           >

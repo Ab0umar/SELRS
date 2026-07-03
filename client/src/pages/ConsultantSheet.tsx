@@ -1,17 +1,17 @@
-import { Fragment, useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useAppNavigation } from "@/hooks/useAppNavigation";
-import { Link, useLocation, useRoute } from "wouter";
+import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowRight, Download, Printer } from "lucide-react";
+import { Printer, User, LayoutGrid, Layers, Target, Clock } from "lucide-react";
+import { toast } from "sonner";
+import { getTrpcErrorMessage } from "@/lib/utils";
 import PatientPicker from "@/components/PatientPicker";
 import { trpc } from "@/lib/trpc";
 import { connectSheetUpdates } from "@/lib/ws";
+import { useAppNavigation } from "@/hooks/useAppNavigation";
 import {
   coerceSheetDesignerConfig,
   DEFAULT_SHEET_DESIGNER_CONFIG,
@@ -22,88 +22,77 @@ import { usePrintMode } from "@/hooks/usePrintMode";
 import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 import { printOrExportPdf } from "@/lib/nativePdf";
 import { BRAND_NAME_AR, BRAND_NAME_EN } from "@/lib/brand";
+import { DateInput } from "@/components/ui/date-input";
 import SheetCenterHeader from "@/components/SheetCenterHeader";
 import FollowupTablesBody from "@/components/sheets/FollowupTablesBody";
 
 export default function ConsultantSheet() {
   const { user, isAuthenticated } = useAuth();
-  const { goBack, goHome } = useAppNavigation();
-  const [location, setLocation] = useLocation();
-  const [, params] = useRoute("/sheets/consultant/:id");
-  const [, hubConsultParams] = useRoute("/patient-hub/sheets/consultant/:id");
-  const initialPatientIdRaw = params?.id ?? hubConsultParams?.id;
-  const initialPatientId = initialPatientIdRaw
-    ? Number(initialPatientIdRaw)
-    : undefined;
-  const embeddedInPatientHub = location.startsWith("/patient-hub/sheets/");
+  const [, setLocation] = useLocation();
+  const { goBack } = useAppNavigation();
+  const [, params] = useRoute("/sheets/:type/:id");
+  const initialPatientId = params?.id ? Number(params.id) : undefined;
+  const printMode = usePrintMode({ ready: Boolean(initialPatientId) });
   const originalMode =
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("original") === "1";
-  const printMode = usePrintMode({ ready: Boolean(initialPatientId) });
-  const [operationDateLeft, setOperationDateLeft] = useState("");
-  const [operationDateRight, setOperationDateRight] = useState("");
-  const formatDateLabel = (value: string) => {
-    if (!value) return "لم يتم الاختيار";
-    const date = new Date(value);
-    if (Number.isNaN(date.valueOf())) return value;
-    return date.toLocaleDateString("ar-EG");
-  };
-
-  const [operationType, setOperationType] = useState("");
-  const [operationEyes, setOperationEyes] = useState({
-    right: false,
-    left: false,
-  });
-  const [designerConfig, setDesignerConfig] = useState(
-    DEFAULT_SHEET_DESIGNER_CONFIG,
+  const [followupLabels, setFollowupLabels] = useState(
+    DEFAULT_SHEET_DESIGNER_CONFIG.followupLasik,
   );
+  const [followups, setFollowups] = useState([
+    { id: 1, date: "", type: "المتابعة الأولى" },
+    { id: 2, date: "", type: "المتابعة الثانية" },
+    { id: 3, date: "", type: "المتابعة الثالثة" },
+    { id: 4, date: "", type: "المتابعة الرابعة" },
+  ]);
+
+  const [operationType, setOperationType] = useState("ليزك");
+  const [operationDateRight, setOperationDateRight] = useState("");
+  const [operationEyes, setOperationEyes] = useState({
+    right: true,
+    left: false,
+    both: false,
+  });
 
   const [formData, setFormData] = useState({
-    // Patient Info
     patientName: "",
     dateOfBirth: "",
     age: "",
-    phone: "",
     address: "",
-    code: "",
+    phone: "",
+    patientCode: "",
     job: "",
-    knowledgeType: "",
-    consultantName: "",
-    examinationDate: "",
-
-    // Medical History
-    keratoconusHistory: false,
-    familyHistory: false,
-    eyeDiseases: false,
-    tearSubstitute: false,
-    tearIncreasePregnancy: false,
-    sandySensation: false,
-    treatmentUsed: false,
-    dryEyeSymptoms: false,
-    sensitivityMedicines: false,
-    blueWaterTreatment: false,
-    supplements: false,
-    thyroidDiseases: false,
-    immuneDiseases: false,
-
-    // Examination Data
-    dominantEye: "OD",
-    ucvaOD: "",
-    ucvaOS: "",
-    bcvaOD: "",
-    bcvaOS: "",
-    refractionOD: { s: "", c: "", a: "" },
-    refractionOS: { s: "", c: "", a: "" },
-    drOD: "",
-    drOS: "",
-    fundusOD: "",
-    fundusOS: "",
-    iopOD: "",
-    iopOS: "",
-
-    // Comments
-    comments: "",
-    final: "",
+    examinationDate: new Date().toISOString().split("T")[0],
+  });
+  const [examData, setExamData] = useState({
+    autorefraction: {
+      od: { s: "", c: "", axis: "", va: "", iop: "", ucva: "", bcva: "" },
+      os: { s: "", c: "", axis: "", va: "", iop: "", ucva: "", bcva: "" },
+    },
+    pentacam: {
+      od: {
+        k1: "",
+        k2: "",
+        ax1: "",
+        ax2: "",
+        thinnest: "",
+        apex: "",
+        residual: "",
+        ttt: "",
+        ablation: "",
+      },
+      os: {
+        k1: "",
+        k2: "",
+        ax1: "",
+        ax2: "",
+        thinnest: "",
+        apex: "",
+        residual: "",
+        ttt: "",
+        ablation: "",
+      },
+    },
   });
   const [signatures, setSignatures] = useState({
     reception: "",
@@ -111,35 +100,21 @@ export default function ConsultantSheet() {
     technician: "",
     doctor: "",
   });
-
-  const [followups, setFollowups] = useState([
-    { id: 1, date: "", type: "المتابعة الأولى", right: true, left: false },
-    { id: 2, date: "", type: "المتابعة الثانية", right: false, left: true },
-    { id: 3, date: "", type: "المتابعة الثالثة", right: false, left: false },
-    { id: 4, date: "", type: "المتابعة الرابعة", right: true, left: true },
-  ]);
-
-  const handleFollowupDateChange = (id: number, value: string) => {
-    setFollowups((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, date: value } : item)),
-    );
-  };
-
-  const handleFollowupTypeChange = (id: number, value: string) => {
-    setFollowups((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, type: value } : item)),
-    );
-  };
-
-  const handleFollowupEyeChange = (
-    id: number,
-    eye: "right" | "left",
-    checked: boolean,
-  ) => {
-    setFollowups((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, [eye]: checked } : item)),
-    );
-  };
+  const [printOffsetXmm, setPrintOffsetXmm] = useState(0);
+  const [printOffsetYmm, setPrintOffsetYmm] = useState(0);
+  const [printScale, setPrintScale] = useState(1);
+  const [customSheetCss, setCustomSheetCss] = useState("");
+  const [sheetTemplate, setSheetTemplate] = useState(
+    DEFAULT_SHEET_DESIGNER_CONFIG.templates.lasik,
+  );
+  const designerSettingsQuery = trpc.medical.getSystemSetting.useQuery(
+    { key: "sheet_designer_config" },
+    { enabled: isAuthenticated, refetchOnWindowFocus: false },
+  );
+  const mobileSheetModeQuery = trpc.medical.getSystemSetting.useQuery(
+    { key: "mobile_sheet_mode_v1" },
+    { enabled: isAuthenticated, refetchOnWindowFocus: false },
+  );
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -147,7 +122,44 @@ export default function ConsultantSheet() {
     }
   }, [isAuthenticated, setLocation]);
 
+  useEffect(() => {
+    const localDesigner = loadSheetDesignerConfig();
+    setCustomSheetCss(localDesigner.css.lasik || "");
+    setSheetTemplate(localDesigner.templates.lasik);
+    setPrintOffsetXmm(localDesigner.layout.lasik.offsetXmm);
+    setPrintOffsetYmm(localDesigner.layout.lasik.offsetYmm);
+    setPrintScale(localDesigner.layout.lasik.scale);
+    setFollowupLabels(localDesigner.followupLasik);
+  }, []);
+
+  useEffect(() => {
+    if (!designerSettingsQuery.data?.value) return;
+    const merged = coerceSheetDesignerConfig(designerSettingsQuery.data.value);
+    setCustomSheetCss(merged.css.lasik || "");
+    setSheetTemplate(merged.templates.lasik);
+    setPrintOffsetXmm(merged.layout.lasik.offsetXmm);
+    setPrintOffsetYmm(merged.layout.lasik.offsetYmm);
+    setPrintScale(merged.layout.lasik.scale);
+    setFollowupLabels(merged.followupLasik);
+    saveSheetDesignerConfig(merged);
+  }, [designerSettingsQuery.data]);
+
+  useEffect(() => {
+    const names = followupLabels?.followupNames ?? [];
+    setFollowups((prev) =>
+      prev.map((item, i) => ({ ...item, type: names[i] ?? item.type })),
+    );
+  }, [followupLabels?.followupNames]);
+
   if (!isAuthenticated) return null;
+
+  const mobileSheetModeRaw = (mobileSheetModeQuery.data as any)?.value;
+  const mobileSheetModeEnabled = Boolean(
+    mobileSheetModeRaw && typeof mobileSheetModeRaw === "object"
+      ? mobileSheetModeRaw.enabled
+      : mobileSheetModeRaw,
+  );
+
   const patientQuery = trpc.patient.getPatient.useQuery(initialPatientId ?? 0, {
     enabled: Boolean(initialPatientId),
     refetchOnWindowFocus: false,
@@ -172,74 +184,64 @@ export default function ConsultantSheet() {
     { patientId: initialPatientId ?? 0 },
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
-  const prescriptionsQuery =
-    trpc.medical.getPrescriptionsWithItemsByPatient.useQuery(
-      { patientId: initialPatientId ?? 0 },
-      { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
-    );
+  const prescriptionsQuery = trpc.medical.getPrescriptionsByPatient.useQuery(
+    { patientId: initialPatientId ?? 0 },
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
+  );
   const surgeriesQuery = trpc.medical.getSurgeriesByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
-  const followupsQuery = trpc.medical.getPostOpFollowupsByPatient.useQuery(
+  const followupsQuery = trpc.medical.getFollowupVisitsByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
-  const pentacamQuery = trpc.medical.getPentacamMeasurementsByPatient.useQuery(
-    { patientId: initialPatientId ?? 0, limit: 10 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
-  );
-  const testRequestsQuery = trpc.medical.getPatientTestRequests?.useQuery?.(
+  const pentacamQuery = trpc.medical.getPentacamFilesByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
-  const syncRefetchTimerRef = useRef<number | null>(null);
+  const testRequestsQuery = trpc.medical.getTestRequestsByPatient.useQuery(
+    { patientId: initialPatientId ?? 0 },
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
+  );
   useEffect(() => {
     if (!initialPatientId) return;
     const socket = connectSheetUpdates({
       patientId: initialPatientId,
       onUpdate: () => {
-        if (syncRefetchTimerRef.current != null) return;
-        syncRefetchTimerRef.current = window.setTimeout(() => {
-          syncRefetchTimerRef.current = null;
-          Promise.all([
-            sheetQuery.refetch(),
-            patientQuery.refetch(),
-            examinationsQuery.refetch(),
-            visitsQuery.refetch(),
-            reportsQuery.refetch(),
-            prescriptionsQuery.refetch(),
-            surgeriesQuery.refetch(),
-            followupsQuery.refetch(),
-            pentacamQuery.refetch(),
-            testRequestsQuery?.refetch?.(),
-          ]);
-        }, 250);
+        Promise.all([
+          sheetQuery.refetch(),
+          patientQuery.refetch(),
+          examinationsQuery.refetch(),
+          visitsQuery.refetch(),
+          reportsQuery.refetch(),
+          prescriptionsQuery.refetch(),
+          surgeriesQuery.refetch(),
+          followupsQuery.refetch(),
+          pentacamQuery.refetch(),
+          testRequestsQuery.refetch(),
+        ]);
       },
     });
-    return () => {
-      socket?.close();
-      if (syncRefetchTimerRef.current != null) {
-        window.clearTimeout(syncRefetchTimerRef.current);
-        syncRefetchTimerRef.current = null;
-      }
-    };
-  }, [initialPatientId, sheetQuery, patientQuery]);
-  const designerSettingsQuery = trpc.medical.getSystemSetting.useQuery(
-    { key: "sheet_designer_config" },
-    { enabled: isAuthenticated, refetchOnWindowFocus: false },
-  );
-  const mobileSheetModeQuery = trpc.medical.getSystemSetting.useQuery(
-    { key: "mobile_sheet_mode_v1" },
-    { enabled: isAuthenticated, refetchOnWindowFocus: false },
-  );
-
-  const mobileSheetModeRaw = (mobileSheetModeQuery.data as any)?.value;
-  const mobileSheetModeEnabled = Boolean(
-    mobileSheetModeRaw && typeof mobileSheetModeRaw === "object"
-      ? mobileSheetModeRaw.enabled
-      : mobileSheetModeRaw,
-  );
+    return () => socket?.close();
+  }, [
+    initialPatientId,
+    sheetQuery,
+    patientQuery,
+    examinationsQuery,
+    visitsQuery,
+    reportsQuery,
+    prescriptionsQuery,
+    surgeriesQuery,
+    followupsQuery,
+    pentacamQuery,
+    testRequestsQuery,
+  ]);
+  const saveSheetMutation = trpc.medical.saveSheetEntry.useMutation({
+    onSuccess: () => {
+      toast.success("تم الحفظ");
+    },
+  });
 
   const formatDate = (value?: string | Date | null) => {
     if (!value) return "";
@@ -248,17 +250,42 @@ export default function ConsultantSheet() {
     return date.toISOString().split("T")[0];
   };
 
+  const handleSelectPatient = (patient: {
+    id: number;
+    fullName: string;
+    patientCode?: string | null;
+    phone?: string | null;
+    age?: number | null;
+    dateOfBirth?: string | Date | null;
+    address?: string | null;
+    occupation?: string | null;
+  }) => {
+    setFormData((prev) => ({
+      ...prev,
+      patientName: patient.fullName ?? "",
+      phone: patient.phone ?? "",
+      age: patient.age != null ? String(patient.age) : "",
+      dateOfBirth: formatDate(patient.dateOfBirth),
+      address: patient.address ?? "",
+      patientCode: patient.patientCode ?? "",
+      job: patient.occupation ?? "",
+    }));
+    if (patient.id) {
+      setLocation(`/sheets/lasik/${patient.id}`);
+    }
+  };
+
   useEffect(() => {
     if (!patientQuery.data) return;
     const patient = patientQuery.data as any;
     setFormData((prev) => ({
       ...prev,
       patientName: patient.fullName ?? "",
-      dateOfBirth: formatDate(patient.dateOfBirth),
-      age: patient.age != null ? String(patient.age) : "",
       phone: patient.phone ?? "",
+      age: patient.age != null ? String(patient.age) : "",
+      dateOfBirth: formatDate(patient.dateOfBirth),
       address: patient.address ?? "",
-      code: patient.patientCode ?? "",
+      patientCode: patient.patientCode ?? "",
       job: patient.occupation ?? "",
     }));
   }, [patientQuery.data]);
@@ -267,26 +294,39 @@ export default function ConsultantSheet() {
     if (!sheetQuery.data) return;
     try {
       const parsed = JSON.parse(sheetQuery.data);
-      if (parsed.examData?.autorefraction) {
-        const auto = parsed.examData.autorefraction;
+      if (parsed.formData) {
         setFormData((prev) => ({
           ...prev,
-          ucvaOD: auto.od?.ucva ? auto.od.ucva : prev.ucvaOD,
-          ucvaOS: auto.os?.ucva ? auto.os.ucva : prev.ucvaOS,
-          bcvaOD: auto.od?.bcva ? auto.od.bcva : prev.bcvaOD,
-          bcvaOS: auto.os?.bcva ? auto.os.bcva : prev.bcvaOS,
-          refractionOD: {
-            s: auto.od?.s ? auto.od.s : prev.refractionOD.s,
-            c: auto.od?.c ? auto.od.c : prev.refractionOD.c,
-            a: auto.od?.axis ? auto.od.axis : prev.refractionOD.a,
+          ...parsed.formData,
+          patientName: prev.patientName || parsed.formData.patientName,
+          phone: prev.phone || parsed.formData.phone,
+          age: prev.age || parsed.formData.age,
+          dateOfBirth: prev.dateOfBirth || parsed.formData.dateOfBirth,
+          address: prev.address || parsed.formData.address,
+        }));
+      }
+      if (parsed.examData) {
+        setExamData((prev) => ({
+          autorefraction: {
+            od: {
+              ...prev.autorefraction.od,
+              ...(parsed.examData.autorefraction?.od ?? {}),
+            },
+            os: {
+              ...prev.autorefraction.os,
+              ...(parsed.examData.autorefraction?.os ?? {}),
+            },
           },
-          refractionOS: {
-            s: auto.os?.s ? auto.os.s : prev.refractionOS.s,
-            c: auto.os?.c ? auto.os.c : prev.refractionOS.c,
-            a: auto.os?.axis ? auto.os.axis : prev.refractionOS.a,
+          pentacam: {
+            od: {
+              ...prev.pentacam.od,
+              ...(parsed.examData.pentacam?.od ?? {}),
+            },
+            os: {
+              ...prev.pentacam.os,
+              ...(parsed.examData.pentacam?.os ?? {}),
+            },
           },
-          iopOD: auto.od?.iop ? auto.od.iop : prev.iopOD,
-          iopOS: auto.os?.iop ? auto.os.iop : prev.iopOS,
         }));
       }
       if (parsed.signatures) {
@@ -297,6 +337,18 @@ export default function ConsultantSheet() {
           doctor: parsed.signatures.doctor ?? "",
         });
       }
+      if (parsed.operationDetails) {
+        setOperationType(parsed.operationDetails.type ?? "ليزك");
+        const parsedEyes = parsed.operationDetails.eyes ?? {};
+        const right = Boolean(parsedEyes.right);
+        const left = Boolean(parsedEyes.left);
+        const both = Boolean(parsedEyes.both) || (right && left);
+        setOperationEyes({
+          right: both ? true : right,
+          left: both ? true : left,
+          both,
+        });
+      }
     } catch {
       // ignore malformed data
     }
@@ -305,27 +357,26 @@ export default function ConsultantSheet() {
   useEffect(() => {
     if (!examinationsQuery.data || examinationsQuery.data.length === 0) return;
     const latestExam = examinationsQuery.data[0] as any;
-    if (!latestExam.autorefraction) return;
-    const auto = latestExam.autorefraction;
-    setFormData((prev) => ({
-      ...prev,
-      ucvaOD: auto.od?.ucva ? auto.od.ucva : prev.ucvaOD,
-      ucvaOS: auto.os?.ucva ? auto.os.ucva : prev.ucvaOS,
-      bcvaOD: auto.od?.bcva ? auto.od.bcva : prev.bcvaOD,
-      bcvaOS: auto.os?.bcva ? auto.os.bcva : prev.bcvaOS,
-      refractionOD: {
-        s: auto.od?.s ? auto.od.s : prev.refractionOD.s,
-        c: auto.od?.c ? auto.od.c : prev.refractionOD.c,
-        a: auto.od?.axis ? auto.od.axis : prev.refractionOD.a,
-      },
-      refractionOS: {
-        s: auto.os?.s ? auto.os.s : prev.refractionOS.s,
-        c: auto.os?.c ? auto.os.c : prev.refractionOS.c,
-        a: auto.os?.axis ? auto.os.axis : prev.refractionOS.a,
-      },
-      iopOD: auto.od?.iop ? auto.od.iop : prev.iopOD,
-      iopOS: auto.os?.iop ? auto.os.iop : prev.iopOS,
-    }));
+    if (latestExam.autorefraction) {
+      const auto = latestExam.autorefraction;
+      setExamData((prev) => ({
+        autorefraction: {
+          od: { ...prev.autorefraction.od, ...(auto?.od ?? {}) },
+          os: { ...prev.autorefraction.os, ...(auto?.os ?? {}) },
+        },
+        pentacam: prev.pentacam,
+      }));
+    }
+    if (latestExam.pentacam) {
+      const pentacam = latestExam.pentacam;
+      setExamData((prev) => ({
+        autorefraction: prev.autorefraction,
+        pentacam: {
+          od: { ...prev.pentacam.od, ...(pentacam?.od ?? {}) },
+          os: { ...prev.pentacam.os, ...(pentacam?.os ?? {}) },
+        },
+      }));
+    }
   }, [examinationsQuery.data]);
 
   useEffect(() => {
@@ -351,137 +402,280 @@ export default function ConsultantSheet() {
     }));
   }, [user?.name, user?.role, sheetQuery.data, examinationStateQuery.data]);
 
-  useEffect(() => {
-    setDesignerConfig(loadSheetDesignerConfig());
-  }, []);
-
-  useEffect(() => {
-    if (!designerSettingsQuery.data?.value) return;
-    const merged = coerceSheetDesignerConfig(designerSettingsQuery.data.value);
-    setDesignerConfig(merged);
-    saveSheetDesignerConfig(merged);
-  }, [designerSettingsQuery.data]);
-
-  useEffect(() => {
-    setFollowups((prev) =>
-      prev.map((item, index) => ({
-        ...item,
-        type:
-          designerConfig.followupConsultant.followupNames[index] ?? item.type,
-      })),
-    );
-  }, [designerConfig.followupConsultant.followupNames]);
-
-  const handleSelectPatient = (patient: {
-    id: number;
-    fullName: string;
-    phone?: string | null;
-    age?: number | null;
-    dateOfBirth?: string | Date | null;
-    address?: string | null;
-    patientCode?: string | null;
-    occupation?: string | null;
-  }) => {
-    setFormData((prev) => ({
-      ...prev,
-      patientName: patient.fullName ?? "",
-      dateOfBirth: formatDate(patient.dateOfBirth),
-      age: patient.age != null ? String(patient.age) : "",
-      phone: patient.phone ?? "",
-      address: patient.address ?? "",
-      code: patient.patientCode ?? "",
-      job: patient.occupation ?? "",
-    }));
-    if (patient.id) {
-      const qs = typeof window !== "undefined" ? window.location.search : "";
-      if (embeddedInPatientHub) {
-        setLocation(`/patient-hub/sheets/consultant/${patient.id}${qs}`);
-      } else {
-        setLocation(`/sheets/consultant/${patient.id}`);
-      }
+  const handleSaveSheet = async () => {
+    if (!initialPatientId) {
+      toast.error("يرجى اختيار المريض أولاً");
+      return;
+    }
+    try {
+      const existing = (() => {
+        try {
+          return sheetQuery.data ? JSON.parse(sheetQuery.data) : {};
+        } catch {
+          return {};
+        }
+      })();
+      const pickValue = (next: string, prev?: string) =>
+        next && next.trim() ? next : prev;
+      const mergedExamData = {
+        autorefraction: {
+          od: {
+            ...(existing.examData?.autorefraction?.od ?? {}),
+            ucva: pickValue(
+              examData.autorefraction.od.ucva,
+              existing.examData?.autorefraction?.od?.ucva,
+            ),
+            bcva: pickValue(
+              examData.autorefraction.od.bcva,
+              existing.examData?.autorefraction?.od?.bcva,
+            ),
+            s: pickValue(
+              examData.autorefraction.od.s,
+              existing.examData?.autorefraction?.od?.s,
+            ),
+            c: pickValue(
+              examData.autorefraction.od.c,
+              existing.examData?.autorefraction?.od?.c,
+            ),
+            axis: pickValue(
+              examData.autorefraction.od.axis,
+              existing.examData?.autorefraction?.od?.axis,
+            ),
+            iop: pickValue(
+              examData.autorefraction.od.iop,
+              existing.examData?.autorefraction?.od?.iop,
+            ),
+          },
+          os: {
+            ...(existing.examData?.autorefraction?.os ?? {}),
+            ucva: pickValue(
+              examData.autorefraction.os.ucva,
+              existing.examData?.autorefraction?.os?.ucva,
+            ),
+            bcva: pickValue(
+              examData.autorefraction.os.bcva,
+              existing.examData?.autorefraction?.os?.bcva,
+            ),
+            s: pickValue(
+              examData.autorefraction.os.s,
+              existing.examData?.autorefraction?.os?.s,
+            ),
+            c: pickValue(
+              examData.autorefraction.os.c,
+              existing.examData?.autorefraction?.os?.c,
+            ),
+            axis: pickValue(
+              examData.autorefraction.os.axis,
+              existing.examData?.autorefraction?.os?.axis,
+            ),
+            iop: pickValue(
+              examData.autorefraction.os.iop,
+              existing.examData?.autorefraction?.os?.iop,
+            ),
+          },
+        },
+        pentacam: {
+          od: {
+            ...(existing.examData?.pentacam?.od ?? {}),
+            k1: pickValue(
+              examData.pentacam.od.k1,
+              existing.examData?.pentacam?.od?.k1,
+            ),
+            k2: pickValue(
+              examData.pentacam.od.k2,
+              existing.examData?.pentacam?.od?.k2,
+            ),
+            ax1: pickValue(
+              examData.pentacam.od.ax1,
+              existing.examData?.pentacam?.od?.ax1,
+            ),
+            ax2: pickValue(
+              examData.pentacam.od.ax2,
+              existing.examData?.pentacam?.od?.ax2,
+            ),
+            thinnest: pickValue(
+              examData.pentacam.od.thinnest,
+              existing.examData?.pentacam?.od?.thinnest,
+            ),
+            apex: pickValue(
+              examData.pentacam.od.apex,
+              existing.examData?.pentacam?.od?.apex,
+            ),
+            residual: pickValue(
+              examData.pentacam.od.residual,
+              existing.examData?.pentacam?.od?.residual,
+            ),
+            ttt: pickValue(
+              examData.pentacam.od.ttt,
+              existing.examData?.pentacam?.od?.ttt,
+            ),
+            ablation: pickValue(
+              examData.pentacam.od.ablation,
+              existing.examData?.pentacam?.od?.ablation,
+            ),
+          },
+          os: {
+            ...(existing.examData?.pentacam?.os ?? {}),
+            k1: pickValue(
+              examData.pentacam.os.k1,
+              existing.examData?.pentacam?.os?.k1,
+            ),
+            k2: pickValue(
+              examData.pentacam.os.k2,
+              existing.examData?.pentacam?.os?.k2,
+            ),
+            ax1: pickValue(
+              examData.pentacam.os.ax1,
+              existing.examData?.pentacam?.os?.ax1,
+            ),
+            ax2: pickValue(
+              examData.pentacam.os.ax2,
+              existing.examData?.pentacam?.os?.ax2,
+            ),
+            thinnest: pickValue(
+              examData.pentacam.os.thinnest,
+              existing.examData?.pentacam?.os?.thinnest,
+            ),
+            apex: pickValue(
+              examData.pentacam.os.apex,
+              existing.examData?.pentacam?.os?.apex,
+            ),
+            residual: pickValue(
+              examData.pentacam.os.residual,
+              existing.examData?.pentacam?.os?.residual,
+            ),
+            ttt: pickValue(
+              examData.pentacam.os.ttt,
+              existing.examData?.pentacam?.os?.ttt,
+            ),
+            ablation: pickValue(
+              examData.pentacam.os.ablation,
+              existing.examData?.pentacam?.os?.ablation,
+            ),
+          },
+        },
+      };
+      await saveSheetMutation.mutateAsync({
+        patientId: initialPatientId,
+        sheetType: "consultant",
+        content: JSON.stringify({
+          ...existing,
+          formData: { ...(existing.formData ?? {}), ...formData },
+          examData: mergedExamData,
+          operationDetails: {
+            type: operationType,
+            eyes: operationEyes,
+          },
+        }),
+      });
+    } catch (error) {
+      toast.error(getTrpcErrorMessage(error, "حدث خطأ أثناء الحفظ"));
     }
   };
 
+  useEffect(() => {
+    if (!initialPatientId) return;
+    const timeout = setTimeout(() => {
+      handleSaveSheet();
+    }, 600);
+    return () => clearTimeout(timeout);
+  }, [formData, examData, operationType, operationEyes, initialPatientId]);
+
   const handlePrint = () => {
     void printOrExportPdf(
-      `${String(formData.patientName || formData.code || initialPatientId || "consultant-sheet").trim()}.pdf`,
+      `${String(formData.patientName || formData.patientCode || initialPatientId || "lasik-sheet").trim()}.pdf`,
       { forceBrowserPrint: true },
     );
   };
 
-  const handleDownloadPDF = () => {
-    handlePrint();
-  };
+  const renderSheetBody = (_readOnly = false) => {
+    const odThinnestNum = parseFloat(examData.pentacam.od.thinnest);
+    const osThinnestNum = parseFloat(examData.pentacam.os.thinnest);
+    const odIopNum = parseFloat(examData.autorefraction.od.iop);
+    const osIopNum = parseFloat(examData.autorefraction.os.iop);
+    const today = new Date().toLocaleDateString("en-GB");
 
-  const handleBackNav = () => {
-    const qs = typeof window !== "undefined" ? window.location.search : "";
-    if (embeddedInPatientHub && initialPatientId) {
-      setLocation(`/patient-hub/examination/${initialPatientId}${qs}`);
-      return;
-    }
-    goBack();
-  };
+    const mkAutoPatch = (eye: "od" | "os", field: string) =>
+      (e: React.ChangeEvent<HTMLInputElement>) =>
+        setExamData((prev) => ({
+          ...prev,
+          autorefraction: {
+            ...prev.autorefraction,
+            [eye]: { ...prev.autorefraction[eye], [field]: e.target.value } as typeof prev.autorefraction.od,
+          },
+        }));
 
-  const handleHomeNav = () => {
-    goHome();
-  };
+    const mkPentaPatch = (eye: "od" | "os", field: string) =>
+      (e: React.ChangeEvent<HTMLInputElement>) =>
+        setExamData((prev) => ({
+          ...prev,
+          pentacam: {
+            ...prev.pentacam,
+            [eye]: { ...prev.pentacam[eye], [field]: e.target.value } as typeof prev.pentacam.od,
+          },
+        }));
 
-  const CONSULTANT_TABS_PERSIST_KEY = `consultant-sheet:${initialPatientId ?? "new"}`;
-  const [activeTab, setActiveTab] = useState(() => {
-    if (typeof window === "undefined") return "sheet";
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("tab") === "followup") return "followup";
-    try {
-      const stored =
-        localStorage.getItem(`tabs:${CONSULTANT_TABS_PERSIST_KEY}`) || "";
-      if (stored === "sheet" || stored === "followup") return stored;
-    } catch {
-      // ignore
-    }
-    return "sheet";
-  });
-  const followupLabels = designerConfig.followupConsultant;
-  const consultantTemplate = designerConfig.templates.consultant;
-
-  const renderSheetBody = (readOnly = false) => {
-    const ctd = "p-1 border border-[#c3c6d6]";
     const inp =
-      "w-full text-center bg-transparent border-0 border-b border-solid border-[#737685] focus:outline-none focus:border-[#003d9b] py-1 text-sm";
+      "w-full text-center bg-transparent border-0 border-b-2 border-dashed border-border/70 focus-within:border-primary/60 transition-colors border-[#737685] focus:outline-none focus:border-primary/40 py-1 text-sm";
+    const ctd = "p-1 border border-border/70";
+
     return (
-    <fieldset disabled={embeddedInPatientHub || readOnly} className="border-0 p-0 m-0 min-w-0 disabled:opacity-95 consultant-main-print-root">
-      <div className="consultant-sheet-inner bg-white text-[#191c1e] font-sans p-8 print:p-[10mm] print:border-0 print:shadow-none border border-[#c3c6d6] shadow-sm flex flex-col gap-5 w-[210mm] max-w-full mx-auto" data-purpose="main-document" dir="rtl">
+      <div
+        className="lasik-sheet bg-card text-foreground font-sans p-8 print:p-[10mm] print:border-0 print:shadow-none border border-border/70 shadow-xl shadow-primary/5 flex flex-col gap-5 w-[210mm] max-w-full mx-auto"
+        dir="ltr"
+      >
+        {/* Header */}
         <SheetCenterHeader
           titleEn="Consultant Sheet"
           titleAr="شيت الاستشاري"
+          date={formData.examinationDate || today}
         />
-        {/* BEGIN: Patient Demographics */}
-        <section className="print-consultant-patient-grid p-4 bg-[#f3f4f6] rounded-xl border border-[#c3c6d6] flex flex-wrap items-center gap-x-6 gap-y-2 text-sm" data-purpose="patient-info" dir="rtl">
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">الاسم:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[160px] px-1 min-h-5">{formData.patientName}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">تاريخ الميلاد:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[80px] px-1 min-h-5">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">السن:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[40px] px-1 min-h-5">{formData.age}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">الوظيفة:</span> <input type="text" dir="rtl" className="border-none p-0 outline-none w-28 text-right border-b border-solid border-[#c3c6d6] text-sm focus:border-[#003d9b] bg-transparent" value={formData.job} onChange={e => setFormData(p => ({ ...p, job: e.target.value }))} /></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">تاريخ الفحص:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[80px] px-1 min-h-5">{new Date().toLocaleDateString("en-GB")}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">رقم التليفون:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[100px] px-1 min-h-5">{formData.phone}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">العنوان:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[140px] px-1 min-h-5">{formData.address}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">كود العميل:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[70px] px-1 min-h-5">{formData.code}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">الاستشاري:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[140px] px-1 min-h-5">{signatures.doctor || "أ.د محمد السعني غرابة"}</span></p>
-        </section>
-        {/* END: Patient Demographics */}
 
-        {/* BEGIN: Medical History Checklist */}
-        <section className="print-consultant-questions" data-purpose="medical-history" dir="rtl">
-          <table className="w-full border-collapse border border-[#c3c6d6] rounded-lg overflow-hidden text-sm">
-            <thead className="bg-[#e7e8ea]">
+        {/* Patient Info */}
+        <section className="print-lasik-patient-grid p-4 bg-muted/40 rounded-2xl border border-border/70 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm" dir="rtl">
+          <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-slate-600 dark:text-slate-400">الاسم:</span>
+            <input className="w-44 font-semibold text-primary bg-transparent border-0 border-b border-border/70 focus:outline-none text-right" dir="rtl" value={formData.patientName} onChange={(e) => setFormData((p) => ({ ...p, patientName: e.target.value }))} /></label>
+          <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-slate-600 dark:text-slate-400">السن:</span>
+            <input className="w-12 font-semibold bg-transparent border-0 border-b border-border/70 focus:outline-none text-right" dir="rtl" value={formData.age} onChange={(e) => setFormData((p) => ({ ...p, age: e.target.value }))} /></label>
+          <span className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-slate-600 dark:text-slate-400">تاريخ الميلاد:</span>
+            <span className="min-w-[70px] px-1 border-b border-border/70 text-right">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</span></span>
+          <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-slate-600 dark:text-slate-400">العنوان:</span>
+            <input className="w-36 font-semibold bg-transparent border-0 border-b border-border/70 focus:outline-none text-right" dir="rtl" value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} /></label>
+          <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-slate-600 dark:text-slate-400">التليفون:</span>
+            <input className="w-28 font-semibold bg-transparent border-0 border-b border-border/70 focus:outline-none text-right" dir="rtl" value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} /></label>
+          <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-slate-600 dark:text-slate-400">تاريخ الفحص:</span>
+            <DateInput className="h-6 w-28 font-semibold bg-transparent border-0 border-b border-border/70 rounded-none px-1 text-right" value={formData.examinationDate} onChange={(e) => setFormData((p) => ({ ...p, examinationDate: e.target.value }))} /></label>
+          <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-slate-600 dark:text-slate-400">المهنة:</span>
+            <input className="w-28 font-semibold bg-transparent border-0 border-b border-border/70 focus:outline-none text-right" dir="rtl" value={formData.job} onChange={(e) => setFormData((p) => ({ ...p, job: e.target.value }))} /></label>
+          <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-slate-600 dark:text-slate-400">كود العميل:</span>
+            <input className="w-24 font-semibold text-slate-500 dark:text-slate-400 bg-transparent border-0 border-b border-border/70 focus:outline-none text-right" dir="rtl" value={formData.patientCode} onChange={(e) => setFormData((p) => ({ ...p, patientCode: e.target.value }))} /></label>
+          <div className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-slate-600 dark:text-slate-400">نوع العملية:</span>
+            <select className="w-28 text-xs rounded border-border/70 bg-card py-1" value={operationType} onChange={(e) => setOperationType(e.target.value)}>
+              <option value="ليزك">ليزك</option>
+              <option value="فيمتو ليزك">فيمتو ليزك</option>
+              <option value="PRK">PRK</option>
+              <option value="فيمتو سمايل">سمايل</option>
+              <option value="ICL">ICL</option>
+            </select>
+          </div>
+        </section>
+
+        
+
+        {/* Medical History — two نعم/لا checklists */}
+        <section className="print-lasik-questions" dir="rtl">
+          <table className="w-full border-collapse border border-border/70 rounded-lg overflow-hidden text-sm">
+            <thead className="bg-muted/70">
               <tr>
-                <th className="w-12 p-2 border border-[#c3c6d6]">لا</th>
-                <th className="w-12 p-2 border border-[#c3c6d6]">نعم</th>
-                <th className="p-2 border border-[#c3c6d6] text-right">التاريخ المرضي</th>
-                <th className="w-12 p-2 border border-[#c3c6d6]">لا</th>
-                <th className="w-12 p-2 border border-[#c3c6d6]">نعم</th>
-                <th className="p-2 border border-[#c3c6d6] text-right">التاريخ المرضي</th>
-                <th className="w-12 p-2 border border-[#c3c6d6]">لا</th>
-                <th className="w-12 p-2 border border-[#c3c6d6]">نعم</th>
-                <th className="p-2 border border-[#c3c6d6] text-right">التاريخ المرضي</th>
+                <th className="w-12 p-2 border border-border/70">لا</th>
+                <th className="w-12 p-2 border border-border/70">نعم</th>
+                <th className="p-2 border border-border/70 text-right">التاريخ المرضي</th>
+                <th className="w-12 p-2 border border-border/70">لا</th>
+                <th className="w-12 p-2 border border-border/70">نعم</th>
+                <th className="p-2 border border-border/70 text-right">التاريخ المرضي</th>
+                <th className="w-12 p-2 border border-border/70">لا</th>
+                <th className="w-12 p-2 border border-border/70">نعم</th>
+                <th className="p-2 border border-border/70 text-right">التاريخ المرضي</th>
               </tr>
             </thead>
             <tbody>
@@ -494,17 +688,17 @@ export default function ConsultantSheet() {
                 <tr key={rowIndex}>
                   {row.map((q, colIndex) => (
                     q ? (
-                      <Fragment key={`${rowIndex}-${colIndex}`}>
-                        <td className="text-center border border-[#c3c6d6]"><input type="checkbox" className="w-4 h-4 rounded text-[#003d9b]" /></td>
-                        <td className="text-center border border-[#c3c6d6]"><input type="checkbox" className="w-4 h-4 rounded text-[#003d9b]" /></td>
-                        <td className="p-1.5 border border-[#c3c6d6] text-right">{q}</td>
-                      </Fragment>
+                      <React.Fragment key={`${rowIndex}-${colIndex}`}>
+                        <td className="text-center border border-border/70"><input type="checkbox" className="w-4 h-4 rounded text-primary" /></td>
+                        <td className="text-center border border-border/70"><input type="checkbox" className="w-4 h-4 rounded text-primary" /></td>
+                        <td className="p-1.5 border border-border/70 text-right">{q}</td>
+                      </React.Fragment>
                     ) : (
-                      <Fragment key={`${rowIndex}-${colIndex}`}>
-                        <td className="border border-[#c3c6d6] bg-[#f8f9fb]" />
-                        <td className="border border-[#c3c6d6] bg-[#f8f9fb]" />
-                        <td className="border border-[#c3c6d6] bg-[#f8f9fb]" />
-                      </Fragment>
+                      <React.Fragment key={`${rowIndex}-${colIndex}`}>
+                        <td className="border border-border/70 bg-background" />
+                        <td className="border border-border/70 bg-background" />
+                        <td className="border border-border/70 bg-background" />
+                      </React.Fragment>
                     )
                   ))}
                 </tr>
@@ -512,174 +706,137 @@ export default function ConsultantSheet() {
             </tbody>
           </table>
         </section>
-        {/* END: Medical History Checklist */}
 
-        {/* BEGIN: Visual Acuity + Dominant Eye */}
-        <section className="print-consultant-visual-grid grid grid-cols-1 lg:grid-cols-12 gap-6 ltr-content" data-purpose="examination-section" dir="ltr">
-          <div className="lg:col-span-7">
+        {/* Visual Acuity + Tear Film + Dominant */}
+        <section className="print-lasik-visual-grid flex flex-col lg:flex-row gap-6">
+          <div className="flex-none w-[450px]">
             <table className="w-full text-center border-collapse">
-              <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
+              <thead className="bg-muted/70 text-xs font-bold uppercase">
                 <tr><th className={ctd}>Eye</th><th className={ctd}>UCVA</th><th className={ctd}>BCVA</th><th className={ctd}>IOP</th></tr>
               </thead>
               <tbody>
-                <tr>
-                  <td className={`${ctd} text-[#003d9b] bg-[#003d9b]/5`}>OD</td>
-                  <td className={ctd}><input className={inp} value={formData.ucvaOD} onChange={e => setFormData(p => ({ ...p, ucvaOD: e.target.value }))} /></td>
-                  <td className={ctd}><input className={inp} value={formData.bcvaOD} onChange={e => setFormData(p => ({ ...p, bcvaOD: e.target.value }))} /></td>
-                  <td className={ctd}><input className={inp} value={formData.iopOD} onChange={e => setFormData(p => ({ ...p, iopOD: e.target.value }))} /></td>
-                </tr>
-                <tr>
-                  <td className={`${ctd} text-[#526069] bg-[#f3f4f6]`}>OS</td>
-                  <td className={ctd}><input className={inp} value={formData.ucvaOS} onChange={e => setFormData(p => ({ ...p, ucvaOS: e.target.value }))} /></td>
-                  <td className={ctd}><input className={inp} value={formData.bcvaOS} onChange={e => setFormData(p => ({ ...p, bcvaOS: e.target.value }))} /></td>
-                  <td className={ctd}><input className={inp} value={formData.iopOS} onChange={e => setFormData(p => ({ ...p, iopOS: e.target.value }))} /></td>
-                </tr>
+                <tr><td className={`${ctd} text-primary bg-primary/5`}>OD</td>
+                  <td className={ctd}><input className={inp} value={examData.autorefraction.od.ucva} onChange={mkAutoPatch("od", "ucva")} /></td>
+                  <td className={ctd}><input className={inp} value={examData.autorefraction.od.bcva} onChange={mkAutoPatch("od", "bcva")} /></td>
+                  <td className={ctd}><input className={`${inp} ${!Number.isNaN(odIopNum) && odIopNum > 21 ? "text-red-600" : ""}`} value={examData.autorefraction.od.iop} onChange={mkAutoPatch("od", "iop")} /></td></tr>
+                <tr><td className={`${ctd} text-slate-500 dark:text-slate-400 bg-muted/40`}>OS</td>
+                  <td className={ctd}><input className={inp} value={examData.autorefraction.os.ucva} onChange={mkAutoPatch("os", "ucva")} /></td>
+                  <td className={ctd}><input className={inp} value={examData.autorefraction.os.bcva} onChange={mkAutoPatch("os", "bcva")} /></td>
+                  <td className={ctd}><input className={`${inp} ${!Number.isNaN(osIopNum) && osIopNum > 21 ? "text-red-600" : ""}`} value={examData.autorefraction.os.iop} onChange={mkAutoPatch("os", "iop")} /></td></tr>
               </tbody>
             </table>
+            <div className="flex items-center justify-center gap-8 text-sm font-bold border border-border/70 rounded-lg p-2 mt-3">
+              <span className="text-primary uppercase">Dominant Eye:</span>
+              <label className="flex items-center gap-2"><input type="radio" name="dominant" /> OD</label>
+              <label className="flex items-center gap-2"><input type="radio" name="dominant" /> OS</label>
+            </div>
           </div>
-          <div className="lg:col-span-5 flex items-center justify-center gap-8 text-sm font-bold border border-[#c3c6d6] rounded-lg p-2 h-full">
-            <span className="text-[#003d9b] uppercase">Dominant Eye:</span>
-            <label className="flex items-center gap-2"><input type="radio" name="dominant" checked={formData.dominantEye === "OD"} onChange={() => setFormData(p => ({ ...p, dominantEye: "OD" }))} /> OD</label>
-            <label className="flex items-center gap-2"><input type="radio" name="dominant" checked={formData.dominantEye === "OS"} onChange={() => setFormData(p => ({ ...p, dominantEye: "OS" }))} /> OS</label>
+          <div className="flex-1 flex flex-col gap-4">
+            <table className="w-full border-collapse text-sm">
+              <thead className="bg-muted/70"><tr><th className={`${ctd} text-xs uppercase`} colSpan={2}>Tear Film Examination</th></tr></thead>
+              <tbody>
+                <tr><td className={`${ctd} w-1/2 text-right`}>1- BUT</td><td className={ctd}><input className={inp} /></td></tr>
+                <tr><td className={`${ctd} text-right`}>2- Schirmer Test</td><td className={ctd}><input className={inp} /></td></tr>
+                <tr><td className={`${ctd} text-right`}>3- Lid Margin</td><td className={ctd}><input className={inp} /></td></tr>
+              </tbody>
+            </table>
+            
           </div>
         </section>
-        {/* END: Visual Acuity + Dominant Eye */}
 
-        {/* BEGIN: Clinical Refraction */}
-        <section className="ltr-content" dir="ltr">
+
+        {/* Detailed Refraction */}
+        <section>
           <table className="w-full text-center border-collapse">
-            <thead className="bg-[#e7e8ea] text-xs uppercase font-bold">
+            <thead className="bg-muted/70 text-xs uppercase font-bold">
               <tr>
                 <th className={`${ctd} w-48`} rowSpan={2}>Clinical Refraction</th>
-                <th className={`${ctd} text-[#003d9b]`} colSpan={3}>OD (Right)</th>
-                <th className={`${ctd} text-[#526069]`} colSpan={3}>OS (Left)</th>
+                <th className={`${ctd} text-primary`} colSpan={3}>OD (Right)</th>
+                <th className={`${ctd} text-slate-500 dark:text-slate-400`} colSpan={3}>OS (Left)</th>
               </tr>
               <tr><th className={ctd}>S</th><th className={ctd}>C</th><th className={ctd}>A</th><th className={ctd}>S</th><th className={ctd}>C</th><th className={ctd}>A</th></tr>
             </thead>
             <tbody className="font-mono">
               <tr>
-                <td className={`${ctd} text-left bg-[#f3f4f6]`}>Refraction</td>
-                <td className={ctd}><input className={inp} value={formData.refractionOD.s} onChange={e => setFormData(p => ({ ...p, refractionOD: { ...p.refractionOD, s: e.target.value } }))} /></td>
-                <td className={ctd}><input className={inp} value={formData.refractionOD.c} onChange={e => setFormData(p => ({ ...p, refractionOD: { ...p.refractionOD, c: e.target.value } }))} /></td>
-                <td className={ctd}><input className={inp} value={formData.refractionOD.a} onChange={e => setFormData(p => ({ ...p, refractionOD: { ...p.refractionOD, a: e.target.value } }))} /></td>
-                <td className={ctd}><input className={inp} value={formData.refractionOS.s} onChange={e => setFormData(p => ({ ...p, refractionOS: { ...p.refractionOS, s: e.target.value } }))} /></td>
-                <td className={ctd}><input className={inp} value={formData.refractionOS.c} onChange={e => setFormData(p => ({ ...p, refractionOS: { ...p.refractionOS, c: e.target.value } }))} /></td>
-                <td className={ctd}><input className={inp} value={formData.refractionOS.a} onChange={e => setFormData(p => ({ ...p, refractionOS: { ...p.refractionOS, a: e.target.value } }))} /></td>
+                <td className={`${ctd} text-left bg-muted/40`}>Refraction</td>
+                <td className={ctd}><input className={inp} value={examData.autorefraction.od.s} onChange={mkAutoPatch("od", "s")} /></td>
+                <td className={ctd}><input className={inp} value={examData.autorefraction.od.c} onChange={mkAutoPatch("od", "c")} /></td>
+                <td className={ctd}><input className={inp} value={examData.autorefraction.od.axis} onChange={mkAutoPatch("od", "axis")} /></td>
+                <td className={ctd}><input className={inp} value={examData.autorefraction.os.s} onChange={mkAutoPatch("os", "s")} /></td>
+                <td className={ctd}><input className={inp} value={examData.autorefraction.os.c} onChange={mkAutoPatch("os", "c")} /></td>
+                <td className={ctd}><input className={inp} value={examData.autorefraction.os.axis} onChange={mkAutoPatch("os", "axis")} /></td>
               </tr>
               <tr>
-                <td className={`${ctd} text-left bg-[#f3f4f6]`}>Fundus</td>
-                <td className={ctd} colSpan={3}><input className={inp} value={formData.fundusOD} onChange={e => setFormData(p => ({ ...p, fundusOD: e.target.value }))} /></td>
-                <td className={ctd} colSpan={3}><input className={inp} value={formData.fundusOS} onChange={e => setFormData(p => ({ ...p, fundusOS: e.target.value }))} /></td>
+                <td className={`${ctd} text-left bg-muted/40`}>Fundus</td>
+                <td className={ctd} colSpan={3}><input className={inp} /></td>
+                <td className={ctd} colSpan={3}><input className={inp} /></td>
               </tr>
             </tbody>
           </table>
         </section>
-        {/* END: Clinical Refraction */}
 
-        {/* BEGIN: Clinical Diagrams (replaces Pentacam / Target Refraction) */}
-        <section className="print-consultant-diagrams grid grid-cols-1 lg:grid-cols-2 gap-8 border border-[#c3c6d6] rounded-xl p-8 bg-white flex-1 min-h-[85mm]" data-purpose="clinical-diagrams">
-          <div className="flex flex-col items-center justify-center">
-            <span className="text-xs uppercase px-3 py-1 bg-[#003d9b]/5 rounded shadow-sm text-[#003d9b] mb-4">Right Eye (OD)</span>
-            <div className="w-56 h-56 rounded-full border-4 border-[#003d9b]/30 flex items-center justify-center relative bg-white">
-              <div className="absolute inset-0 flex items-center justify-center opacity-10">
-                <div className="w-full border-t border-slate-900"></div>
-                <div className="h-full border-l border-slate-900 absolute top-0"></div>
-              </div>
-              <span className="text-[#003d9b]/40 text-xl select-none">OD</span>
-            </div>
-            <p className="mt-4 text-[#003d9b]">العين اليمنى (OD)</p>
-          </div>
-          <div className="flex flex-col items-center justify-center">
-            <span className="text-xs uppercase px-3 py-1 bg-[#f3f4f6] rounded shadow-sm text-[#526069] mb-4">Left Eye (OS)</span>
-            <div className="w-56 h-56 rounded-full border-4 border-slate-300 flex items-center justify-center relative bg-white">
-              <div className="absolute inset-0 flex items-center justify-center opacity-10">
-                <div className="w-full border-t border-slate-900"></div>
-                <div className="h-full border-l border-slate-900 absolute top-0"></div>
-              </div>
-              <span className="text-slate-300 text-xl select-none">OS</span>
-            </div>
-            <p className="mt-4 text-[#526069]">العين اليسرى (OS)</p>
-          </div>
-        </section>
-        {/* END: Clinical Diagrams */}
+        
 
-        {/* BEGIN: Notes + signatures */}
-        <footer className="pt-6 border-t-2 border-[#003d9b] space-y-6" data-purpose="footer-signatures">
-          <div className="print-consultant-footer-grid grid grid-cols-1 lg:grid-cols-12 gap-8" dir="rtl">
+        <div className="flex-1 min-h-[200px]"></div>
+          
+
+        {/* Notes + signatures */}
+        <footer className="pt-6 border-t-2 border-primary/40 space-y-6">
+          <div className="print-lasik-footer-grid grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 space-y-4">
               <div>
-                <label className="font-bold text-[#003d9b] text-sm">Comments / ملاحظات:</label>
-                <textarea
-                  dir="rtl"
-                  className="w-full min-h-[70px] bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:outline-none focus:border-[#003d9b] text-sm resize-none p-1 text-right"
-                  value={formData.comments}
-                  onChange={e => setFormData(p => ({ ...p, comments: e.target.value }))}
-                />
+                <label className="font-bold text-primary text-sm">Comments / ملاحظات:</label>
+                <div className="border-b-2 border-dashed border-border/70 focus-within:border-primary/60 transition-colors border-border/70 h-8" />
+                <div className="border-b-2 border-dashed border-border/70 focus-within:border-primary/60 transition-colors border-border/70 h-8" />
               </div>
               <div>
-                <label className="font-bold text-[#003d9b] text-sm">Final Decision / القرار النهائي:</label>
-                <textarea
-                  dir="rtl"
-                  className="w-full min-h-[50px] bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:outline-none focus:border-[#003d9b] text-sm resize-none p-1 text-right"
-                  value={formData.final}
-                  onChange={e => setFormData(p => ({ ...p, final: e.target.value }))}
-                />
+                <label className="font-bold text-primary text-sm">Final Decision / القرار النهائي:</label>
+                <div className="border-b-2 border-dashed border-border/70 focus-within:border-primary/60 transition-colors border-border/70 h-8" />
               </div>
             </div>
-            <div className="lg:col-span-4 border-2 border-[#003d9b] rounded-xl p-4 bg-[#003d9b]/5">
-              <div className="text-center font-bold text-[#003d9b] uppercase text-xs border-b border-[#003d9b]/20 pb-2 mb-3">Notes / ملاحظات</div>
-              <textarea
-                dir="rtl"
-                className="w-full min-h-[110px] bg-transparent border-0 focus:outline-none text-sm resize-none p-1 text-right"
-                value={formData.drOS}
-                onChange={e => setFormData(p => ({ ...p, drOS: e.target.value }))}
-              />
+            <div className="lg:col-span-4 border-2 border-primary/40 rounded-2xl p-4 bg-primary/5">
+              <div className="text-center font-bold text-primary uppercase text-xs border-b border-primary/20 pb-2 mb-3">Office Notes</div>
+              <div className="border-b-2 border-dashed border-border/70 focus-within:border-primary/60 transition-colors border-primary/40/40 h-6 mb-2" />
+              <div className="border-b-2 border-dashed border-border/70 focus-within:border-primary/60 transition-colors border-primary/40/40 h-6 mb-2" />
+              <div className="border-b-2 border-dashed border-border/70 focus-within:border-primary/60 transition-colors border-primary/40/40 h-6" />
             </div>
           </div>
-          <div className="print-consultant-signatures grid grid-cols-2 md:grid-cols-4 gap-8 pt-4 border-t border-[#c3c6d6]" dir="rtl">
+          <div className="print-lasik-signatures grid grid-cols-2 md:grid-cols-4 gap-8 pt-4 border-t border-border/70">
             {[
-              ["استقبال", signatures.reception],
-              ["تمريض", signatures.nurse],
-              ["فني", signatures.technician],
-              ["الطبيب", signatures.doctor],
+              ["التمريض / Nursing", signatures.nurse],
+              ["الطبيب / Surgeon", signatures.doctor],
+              ["فني / Optometrist", signatures.technician],
+              ["الاستقبال / Reception", signatures.reception],
             ].map(([label, val], i) => (
               <div key={i} className="flex flex-col gap-2">
-                <span className={`text-[11px] font-bold uppercase ${i === 3 ? "text-[#003d9b]" : "text-[#434654]"}`}>{label}</span>
-                <div className={`border-b-2 h-9 flex items-end justify-center ${i === 3 ? "border-[#003d9b]" : "border-[#191c1e]"}`}>
-                  <span className={`text-xs italic ${i === 3 ? "text-[#003d9b] font-bold" : "text-[#737685]"}`}>{val || ""}</span>
+                <span className={`text-[11px] font-bold uppercase ${i === 1 ? "text-primary" : "text-slate-600 dark:text-slate-400"}`}>{label}</span>
+                <div className={`border-b-2 h-9 flex items-end justify-center ${i === 1 ? "border-primary/40" : "border-foreground/80"}`}>
+                  <span className={`text-xs italic ${i === 1 ? "text-primary font-bold" : "text-muted-foreground/80"}`}>{val || ""}</span>
                 </div>
               </div>
             ))}
           </div>
         </footer>
-        {/* END: Notes + signatures */}
       </div>
-    </fieldset>
     );
   };
 
   return (
-    <div
-      className={`${embeddedInPatientHub ? "prescription-root min-h-0 flex-1" : "min-h-screen"} bg-[#F8F9FB] sheet-layout consultant-page-root ${mobileSheetModeEnabled && !printMode.printView ? "mobile-sheet-mode" : ""}`}
-      dir="rtl"
-    >
+    <div className="min-h-screen bg-[#dde1e7]" dir="ltr">
       <style>{`
-        ${designerConfig.css.consultant || ""}
-        .consultant-sheet-inner, .consultant-sheet-inner * {
+        ${customSheetCss}
+        .lasik-sheet, .lasik-sheet * {
           font-weight: 400 !important;
           text-decoration: none !important;
         }
-        .consultant-sheet-inner th { font-weight: 700 !important; }
-        .consultant-sheet-inner .border-b,
-        .consultant-sheet-inner .border-b-2 {
+        .lasik-sheet th { font-weight: 700 !important; }
+        .lasik-sheet .border-b,
+        .lasik-sheet .border-b-2 {
           border-bottom: none !important;
         }
         @media print {
           .print-page-break { page-break-before: always !important; break-before: page !important; }
-          .print-page-center-a4 {
-            width: 210mm !important;
-            margin: 0 auto !important;
-          }
+          .print-page-center-a4 { width: 210mm !important; margin: 0 auto !important; }
           @page { size: A4 portrait; margin: 0; }
           html, body {
             width: 100% !important;
@@ -687,66 +844,50 @@ export default function ConsultantSheet() {
             padding: 0 !important;
             background: white !important;
           }
-          #root,
-          .consultant-page-root {
+          .lasik-print-root {
             width: 100% !important;
             max-width: 100% !important;
             margin: 0 !important;
-            padding: 0 !important;
-          }
-          /* undo the shared .sheet-layout single-page restrictions so page 2 (followup) can render */
-          .consultant-page-root.sheet-layout {
             overflow: visible !important;
             max-height: none !important;
-            font-size: 100% !important;
             page-break-inside: auto !important;
             break-inside: auto !important;
             page-break-after: auto !important;
             break-after: auto !important;
           }
-          .consultant-main-print-root .consultant-sheet-inner {
+          .lasik-sheet {
             width: 210mm !important;
             max-width: 210mm !important;
             height: auto !important;
             min-height: 0 !important;
             box-sizing: border-box !important;
-            margin: 0 auto !important;
             padding: 6mm !important;
             gap: 10px !important;
-            border: 0 !important;
-            box-shadow: none !important;
             font-size: 92% !important;
             line-height: 1.15 !important;
           }
-          /* outer wrappers must not constrain or offset the 210mm sheet */
-          main[data-mobile-pdf-root] {
-            width: 210mm !important;
-            max-width: 210mm !important;
-            margin: 0 auto !important;
-            padding: 0 !important;
-          }
-          .consultant-sheet-inner section,
-          .consultant-sheet-inner footer,
-          .consultant-sheet-inner table,
-          .consultant-sheet-inner tr,
-          .consultant-sheet-inner td,
-          .consultant-sheet-inner th,
-          .consultant-sheet-inner label,
-          .consultant-sheet-inner input,
-          .consultant-sheet-inner select,
-          .consultant-sheet-inner span,
-          .consultant-sheet-inner div {
+          .lasik-sheet section,
+          .lasik-sheet footer,
+          .lasik-sheet table,
+          .lasik-sheet tr,
+          .lasik-sheet td,
+          .lasik-sheet th,
+          .lasik-sheet label,
+          .lasik-sheet input,
+          .lasik-sheet select,
+          .lasik-sheet span,
+          .lasik-sheet div {
             page-break-inside: avoid !important;
           }
-          .consultant-sheet-inner table { font-size: 11px !important; }
-          .consultant-sheet-inner input,
-          .consultant-sheet-inner select {
+          .lasik-sheet table { font-size: 11px !important; }
+          .lasik-sheet input,
+          .lasik-sheet select {
             font-size: 11px !important;
             padding-top: 1px !important;
             padding-bottom: 1px !important;
           }
-          .consultant-sheet-inner input:not([type="checkbox"]):not([type="radio"]),
-          .consultant-sheet-inner textarea {
+          .lasik-sheet input:not([type="checkbox"]):not([type="radio"]),
+          .lasik-sheet textarea {
             border: 0 !important;
             border-bottom: 0 !important;
             box-shadow: none !important;
@@ -754,146 +895,107 @@ export default function ConsultantSheet() {
             background: transparent !important;
             text-decoration: none !important;
             font-size: 12px !important;
+            font-weight: 700 !important;
             line-height: 1.15 !important;
           }
-          .consultant-sheet-inner .gap-8 { gap: 12px !important; }
-          .consultant-sheet-inner .gap-6 { gap: 10px !important; }
-          .consultant-sheet-inner .gap-5 { gap: 8px !important; }
-          .consultant-sheet-inner .gap-4 { gap: 6px !important; }
-          .consultant-sheet-inner .p-8 { padding: 0 !important; }
-          .consultant-sheet-inner .p-4 { padding: 8px !important; }
-          .consultant-sheet-inner .pt-6 { padding-top: 10px !important; }
-          .consultant-sheet-inner .pt-4 { padding-top: 8px !important; }
-          .consultant-sheet-inner .mb-3 { margin-bottom: 6px !important; }
-          .consultant-sheet-inner .mt-3 { margin-top: 6px !important; }
-          .consultant-sheet-inner .h-9 { height: 28px !important; }
-          .consultant-sheet-inner .sheet-center-header {
-            padding-bottom: 1.5mm !important;
-            margin-bottom: 1.5mm !important;
+          .lasik-sheet .border-b,
+          .lasik-sheet .border-b-2,
+          .lasik-sheet .border-b-4,
+          .lasik-sheet .border-b-8 {
+            border-bottom: 0 !important;
           }
-          .print-consultant-patient-grid {
-            display: flex !important;
-            flex-wrap: wrap !important;
-            column-gap: 6mm !important;
-            row-gap: 1.5mm !important;
+            line-height: 1.15 !important;
           }
-          .print-consultant-questions {
+          .lasik-sheet .gap-8 { gap: 12px !important; }
+          .lasik-sheet .gap-6 { gap: 10px !important; }
+          .lasik-sheet .gap-5 { gap: 8px !important; }
+          .lasik-sheet .gap-4 { gap: 6px !important; }
+          .lasik-sheet .p-8 { padding: 0 !important; }
+          .lasik-sheet .p-4 { padding: 8px !important; }
+          .print-lasik-eye-card { padding-left: 10mm !important; }
+          .lasik-sheet .pt-6 { padding-top: 10px !important; }
+          .lasik-sheet .pt-4 { padding-top: 8px !important; }
+          .lasik-sheet .pb-3 { padding-bottom: 6px !important; }
+          .lasik-sheet .mb-3 { margin-bottom: 6px !important; }
+          .lasik-sheet .mt-3 { margin-top: 6px !important; }
+          .lasik-sheet .h-9 { height: 28px !important; }
+          .lasik-sheet .h-8 { height: 22px !important; }
+          .lasik-sheet .h-6 { height: 16px !important; }
+          .print-lasik-patient-grid { display: flex !important; flex-wrap: wrap !important; column-gap: 6mm !important; row-gap: 1.5mm !important; }
+          .print-lasik-pentacam-right { display: grid !important; grid-template-columns: 1fr 1.3fr 1.3fr !important; }
+          .print-lasik-questions {
             display: block !important;
           }
-          .print-consultant-questions table {
+          .print-lasik-questions table {
             font-size: 10px !important;
           }
-          .print-consultant-questions th {
+          .print-lasik-questions th {
             padding: 3px !important;
             line-height: 1.05 !important;
           }
-          .print-consultant-questions td {
+          .print-lasik-questions td {
             padding: 2px 3px !important;
             line-height: 1.05 !important;
           }
-          .print-consultant-questions input[type="checkbox"] {
+          .print-lasik-questions input[type="checkbox"] {
             width: 12px !important;
             height: 12px !important;
           }
-          .print-consultant-diagrams {
-            display: grid !important;
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-            flex: 1 1 auto !important;
-            padding: 6mm !important;
-          }
-          .print-consultant-diagrams {
-            min-height: 78mm !important;
-          }
-          .print-consultant-diagrams .rounded-full {
-            width: 48mm !important;
-            height: 48mm !important;
-            border-width: 2px !important;
-          }
-          .print-consultant-diagrams p {
-            margin-top: 2mm !important;
-          }
-          .print-consultant-visual-grid {
-            display: grid !important;
-            grid-template-columns: minmax(0, 7fr) minmax(0, 5fr) !important;
-          }
-          .print-consultant-footer-grid {
-            display: grid !important;
-            grid-template-columns: minmax(0, 8fr) minmax(0, 4fr) !important;
-          }
-          .print-consultant-signatures {
-            display: grid !important;
-            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-          }
+          .print-lasik-visual-grid { display: flex !important; gap: 1.5rem !important; }
+            .print-lasik-visual-grid > div:first-child { width: 110mm !important; }
+            .print-lasik-visual-grid > div:last-child { flex: 1 !important; display: flex !important; flex-direction: column !important; gap: 1rem !important; }
+          .print-lasik-footer-grid { display: grid !important; grid-template-columns: minmax(0, 8fr) minmax(0, 4fr) !important; }
+          .print-lasik-signatures { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
         }
       `}</style>
-      {/* Top bar */}
-      <header className={`sticky top-0 z-10 bg-white border-b border-gray-200 print:hidden ${printMode.printView ? "hidden" : ""} ${embeddedInPatientHub ? "py-1.5" : "py-2 shadow-sm"}`}>
-        <div className={`flex items-center justify-between gap-2 ${embeddedInPatientHub ? "px-2" : "container mx-auto px-4"}`}>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={handleBackNav} className="gap-1">
-              <ArrowRight className="h-4 w-4" /> رجوع
-            </Button>
-            {formData.patientName && <span className="text-sm font-semibold">{formData.patientName}</span>}
-            {formData.code && <span className="text-xs text-muted-foreground">ID: {formData.code}</span>}
-          </div>
-          <div className="flex items-center gap-1.5">
+      <header className="sticky top-0 z-50 print:hidden flex justify-between items-center px-6 py-2 bg-background border-b border-border/70" style={{ fontFamily: 'Inter, sans-serif' }}>
+        <div className="flex items-center gap-6">
+          <span className="text-xl font-bold text-primary">{BRAND_NAME_EN}</span>
+          <nav className="hidden md:flex items-center gap-5 text-sm text-slate-600 dark:text-slate-400">
+            <span className="cursor-pointer hover:text-primary">Patients</span>
+            <span className="cursor-pointer font-bold text-primary border-b-2 border-primary/40 pb-0.5">Surgery</span>
+            <span className="cursor-pointer hover:text-primary">Reports</span>
+          </nav>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="w-60">
             <PatientPicker initialPatientId={initialPatientId} onSelect={handleSelectPatient} />
-            <Button size="sm" variant="outline" className="gap-1.5" onClick={handlePrint}>
-              <Printer className="h-3.5 w-3.5" /> Save Sheet
-            </Button>
-            <Button size="sm" className="gap-1.5 bg-[#003D9B] hover:bg-[#003D9B]/90 text-white" onClick={handleDownloadPDF}>
-              <Download className="h-3.5 w-3.5" /> Print PDF
-            </Button>
           </div>
+          <Button
+            size="sm"
+            className="bg-[#003d9b] text-white font-bold px-4 py-2 rounded hover:opacity-90 active:scale-95"
+            onClick={handleSaveSheet}
+            disabled={saveSheetMutation.isPending}
+            type="button"
+          >
+            {saveSheetMutation.isPending ? "حفظ..." : "حفظ"}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-primary/40 text-primary font-bold px-4 py-2 rounded hover:bg-primary/5"
+            onClick={handlePrint}
+            type="button"
+          >
+            <Printer className="h-4 w-4 mr-1" /> Print
+          </Button>
         </div>
       </header>
-
       {printMode.printView && (
-        <PrintPreviewBanner title={consultantTemplate.sheetTitle} subtitle={formData.patientName || undefined} onPrint={handlePrint} />
+        <PrintPreviewBanner
+          title="شيت الليزك"
+          subtitle={formData.patientName || undefined}
+          onPrint={handlePrint}
+        />
       )}
-
-      <main data-mobile-pdf-root className={`print:p-0 ${embeddedInPatientHub ? "px-2 py-1" : "container mx-auto px-4 py-4 pb-24 sm:pb-4"}`}>
-        <Tabs value={activeTab} onValueChange={setActiveTab} persistKey={CONSULTANT_TABS_PERSIST_KEY} className={`print:hidden ${printMode.printView ? "hidden" : ""}`}>
-          <TabsList className={`mb-3 ${embeddedInPatientHub ? "h-8 w-fit gap-0.5 p-1 [&_[data-slot=tabs-trigger]]:px-2.5 [&_[data-slot=tabs-trigger]]:text-xs" : "mb-2 flex h-auto w-full"}`}>
-            <TabsTrigger value="followup">المتابعات</TabsTrigger>
-            <TabsTrigger value="sheet">الفحوصات</TabsTrigger>
-          </TabsList>
-          <TabsContent value="sheet" className="space-y-0">
-            {activeTab === "sheet" ? renderSheetBody() : null}
-          </TabsContent>
-          <TabsContent value="followup" className="space-y-0">
-            {activeTab === "followup" ? (
-              <FollowupTablesBody
-                titleEn="Consultant Follow-up"
-                titleAr="متابعة الاستشاري"
-                patientName={formData.patientName}
-                patientDOB={formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}
-                operationType={operationType}
-                setOperationType={setOperationType}
-                operationEyes={operationEyes}
-                setOperationEyes={setOperationEyes}
-                operationDateRight={operationDateRight}
-                setOperationDateRight={setOperationDateRight}
-                followups={followups}
-                setFollowups={setFollowups}
-                followupLabels={followupLabels}
-                signatures={signatures}
-              />
-            ) : null}
-          </TabsContent>
-        </Tabs>
-
+      <div className="py-8 print:py-0">
+        <div className={`print:hidden ${printMode.printView ? "hidden" : ""}`}>
+          <div className="a4-page-card">{renderSheetBody()}</div>
+        </div>
         <div className="hidden print:block">
           <div className="print-page-center-a4">{renderSheetBody(true)}</div>
         </div>
-
-        <div className={`sheet-mobile-actions print:hidden ${printMode.printView ? "hidden" : ""}`}>
-          <Button type="button" variant="outline" onClick={handleBackNav}>رجوع</Button>
-          <Button type="button" variant="outline" onClick={handlePrint}>طباعة</Button>
-          <Button type="button" variant="default" onClick={handleDownloadPDF}>تحميل</Button>
-        </div>
-      </main>
+      </div>
     </div>
   );
 }
-

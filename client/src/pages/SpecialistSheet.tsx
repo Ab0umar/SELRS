@@ -428,8 +428,8 @@ export default function SpecialistSheet() {
   };
 
   const inp =
-    "w-full text-center bg-transparent border-0 border-b border-solid border-[#737685] focus:outline-none focus:border-[#003d9b] py-1 text-sm";
-  const ctd = "p-1 border border-[#c3c6d6]";
+    "w-full text-center bg-transparent border-0 border-b-2 border-dashed border-border/70 focus-within:border-primary/60 transition-colors border-[#737685] focus:outline-none focus:border-primary/40 py-1 text-sm";
+  const ctd = "p-1 border border-border/70";
 
   return (
     <div
@@ -544,7 +544,7 @@ export default function SpecialistSheet() {
       `}</style>
       {/* Header */}
       <header
-        className={`sticky top-0 z-50 print:hidden flex justify-between items-center px-6 py-2 bg-[#f8f9fb] border-b border-[#c3c6d6] ${printMode.printView ? "hidden" : ""}`}
+        className={`sticky top-0 z-50 print:hidden flex justify-between items-center px-6 py-2 bg-background border-b border-border/70 ${printMode.printView ? "hidden" : ""}`}
         dir="ltr"
         style={{ fontFamily: "Inter, sans-serif" }}
       >
@@ -552,7 +552,7 @@ export default function SpecialistSheet() {
           <Button variant="ghost" size="sm" type="button" onClick={() => goBack()}>
             رجوع
           </Button>
-          <span className="text-xl font-bold text-[#003d9b]">{BRAND_NAME_EN}</span>
+          <span className="text-xl font-bold text-primary">{BRAND_NAME_EN}</span>
         </div>
         <div className="flex items-center gap-3">
           <Button
@@ -567,7 +567,7 @@ export default function SpecialistSheet() {
           <Button
             size="sm"
             variant="outline"
-            className="border-[#003d9b] text-[#003d9b] font-bold px-4 py-2 rounded hover:bg-[#003d9b]/5"
+            className="border-primary/40 text-primary font-bold px-4 py-2 rounded hover:bg-primary/5"
             onClick={handlePrint}
             type="button"
           >
@@ -586,7 +586,7 @@ export default function SpecialistSheet() {
 
       {/* Main Content */}
       <div className="py-8 print:py-0 print-page-center-a5">
-        <div data-mobile-pdf-root className={`specialist-sheet bg-white text-[#191c1e] font-sans p-8 border border-[#c3c6d6] shadow-sm flex flex-col gap-5 w-[210mm] max-w-full mx-auto ${printMode.printView ? "hidden print:flex" : ""}`} dir="ltr">
+        <div data-mobile-pdf-root className={`specialist-sheet bg-card text-foreground font-sans p-8 border border-border/70 shadow-xl shadow-primary/5 flex flex-col gap-5 w-[210mm] max-w-full mx-auto ${printMode.printView ? "hidden print:flex" : ""}`} dir="ltr">
           {/* Header */}
           <SheetCenterHeader
             titleEn="Specialist Sheet"
@@ -595,54 +595,54 @@ export default function SpecialistSheet() {
           />
 
           {/* Patient Info */}
-          <section className="print-specialist-patient-grid p-4 bg-[#f3f4f6] rounded-xl border border-[#c3c6d6] flex flex-wrap items-center gap-x-6 gap-y-2 text-sm" dir="rtl">
-            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">الاسم:</span>
-              <input className="w-44 font-semibold text-[#003d9b] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.patientName} onChange={(e) => setFormData((p) => ({ ...p, patientName: e.target.value }))} /></label>
-            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">السن:</span>
-              <input className="w-12 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.age} onChange={(e) => setFormData((p) => ({ ...p, age: e.target.value }))} /></label>
-            <span className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">تاريخ الميلاد:</span>
-              <span className="min-w-[70px] px-1 border-b border-[#c3c6d6] text-right">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</span></span>
-            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">العنوان:</span>
-              <input className="w-36 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} /></label>
-            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">التليفون:</span>
-              <input className="w-28 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} /></label>
-            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">تاريخ الفحص:</span>
-              <DateInput className="h-6 w-28 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] rounded-none px-1 text-right" value={formData.examinationDate} onChange={(e) => setFormData((p) => ({ ...p, examinationDate: e.target.value }))} /></label>
-            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">المهنة:</span>
-              <input className="w-28 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.job} onChange={(e) => setFormData((p) => ({ ...p, job: e.target.value }))} /></label>
-            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">كود العميل:</span>
-              <input className="w-24 font-semibold text-[#526069] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.patientCode} onChange={(e) => setFormData((p) => ({ ...p, patientCode: e.target.value }))} /></label>
-            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">الطبيب:</span>
-              <input className="w-36 font-semibold text-[#003d9b] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={signatures.doctor} onChange={(e) => setSignatures((p) => ({ ...p, doctor: e.target.value }))} /></label>
+          <section className="print-specialist-patient-grid p-4 bg-muted/40 rounded-2xl border border-border/70 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm" dir="rtl">
+            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-slate-600 dark:text-slate-400">الاسم:</span>
+              <input className="w-44 font-semibold text-primary bg-transparent border-0 border-b border-border/70 focus:outline-none text-right" dir="rtl" value={formData.patientName} onChange={(e) => setFormData((p) => ({ ...p, patientName: e.target.value }))} /></label>
+            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-slate-600 dark:text-slate-400">السن:</span>
+              <input className="w-12 font-semibold bg-transparent border-0 border-b border-border/70 focus:outline-none text-right" dir="rtl" value={formData.age} onChange={(e) => setFormData((p) => ({ ...p, age: e.target.value }))} /></label>
+            <span className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-slate-600 dark:text-slate-400">تاريخ الميلاد:</span>
+              <span className="min-w-[70px] px-1 border-b border-border/70 text-right">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</span></span>
+            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-slate-600 dark:text-slate-400">العنوان:</span>
+              <input className="w-36 font-semibold bg-transparent border-0 border-b border-border/70 focus:outline-none text-right" dir="rtl" value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} /></label>
+            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-slate-600 dark:text-slate-400">التليفون:</span>
+              <input className="w-28 font-semibold bg-transparent border-0 border-b border-border/70 focus:outline-none text-right" dir="rtl" value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} /></label>
+            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-slate-600 dark:text-slate-400">تاريخ الفحص:</span>
+              <DateInput className="h-6 w-28 font-semibold bg-transparent border-0 border-b border-border/70 rounded-none px-1 text-right" value={formData.examinationDate} onChange={(e) => setFormData((p) => ({ ...p, examinationDate: e.target.value }))} /></label>
+            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-slate-600 dark:text-slate-400">المهنة:</span>
+              <input className="w-28 font-semibold bg-transparent border-0 border-b border-border/70 focus:outline-none text-right" dir="rtl" value={formData.job} onChange={(e) => setFormData((p) => ({ ...p, job: e.target.value }))} /></label>
+            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-slate-600 dark:text-slate-400">كود العميل:</span>
+              <input className="w-24 font-semibold text-slate-500 dark:text-slate-400 bg-transparent border-0 border-b border-border/70 focus:outline-none text-right" dir="rtl" value={formData.patientCode} onChange={(e) => setFormData((p) => ({ ...p, patientCode: e.target.value }))} /></label>
+            <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-slate-600 dark:text-slate-400">الطبيب:</span>
+              <input className="w-36 font-semibold text-primary bg-transparent border-0 border-b border-border/70 focus:outline-none text-right" dir="rtl" value={signatures.doctor} onChange={(e) => setSignatures((p) => ({ ...p, doctor: e.target.value }))} /></label>
           </section>
 
           {/* Visual Acuity + Tear Film */}
           <section className="print-specialist-visual-grid grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-7">
               <table className="w-full text-center border-collapse">
-                <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
+                <thead className="bg-muted/70 text-xs font-bold uppercase">
                   <tr><th className={ctd}>Eye</th><th className={ctd}>UCVA</th><th className={ctd}>BCVA</th><th className={ctd}>IOP</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td className={`${ctd} text-[#003d9b] bg-[#003d9b]/5`}>OD</td>
+                  <tr><td className={`${ctd} text-primary bg-primary/5`}>OD</td>
                     <td className={ctd}><input className={inp} value={formData.ucvaOD} onChange={(e) => setFormData((p) => ({ ...p, ucvaOD: e.target.value }))} /></td>
                     <td className={ctd}><input className={inp} value={formData.bcvaOD} onChange={(e) => setFormData((p) => ({ ...p, bcvaOD: e.target.value }))} /></td>
                     <td className={ctd}><input className={inp} value={formData.iopOD} onChange={(e) => setFormData((p) => ({ ...p, iopOD: e.target.value }))} /></td></tr>
-                  <tr><td className={`${ctd} text-[#526069] bg-[#f3f4f6]`}>OS</td>
+                  <tr><td className={`${ctd} text-slate-500 dark:text-slate-400 bg-muted/40`}>OS</td>
                     <td className={ctd}><input className={inp} value={formData.ucvaOS} onChange={(e) => setFormData((p) => ({ ...p, ucvaOS: e.target.value }))} /></td>
                     <td className={ctd}><input className={inp} value={formData.bcvaOS} onChange={(e) => setFormData((p) => ({ ...p, bcvaOS: e.target.value }))} /></td>
                     <td className={ctd}><input className={inp} value={formData.iopOS} onChange={(e) => setFormData((p) => ({ ...p, iopOS: e.target.value }))} /></td></tr>
                 </tbody>
               </table>
-              <div className="mt-3 flex items-center justify-center gap-8 text-sm font-bold border border-[#c3c6d6] rounded-lg p-2">
-                <span className="text-[#003d9b] uppercase">Dominant Eye:</span>
+              <div className="mt-3 flex items-center justify-center gap-8 text-sm font-bold border border-border/70 rounded-lg p-2">
+                <span className="text-primary uppercase">Dominant Eye:</span>
                 <label className="flex items-center gap-2"><input type="radio" name="dominant" /> OD</label>
                 <label className="flex items-center gap-2"><input type="radio" name="dominant" /> OS</label>
               </div>
             </div>
             <div className="lg:col-span-5">
               <table className="w-full border-collapse h-full text-sm">
-                <thead className="bg-[#e7e8ea]"><tr><th className={`${ctd} text-xs uppercase`} colSpan={2}>Tear Film Examination</th></tr></thead>
+                <thead className="bg-muted/70"><tr><th className={`${ctd} text-xs uppercase`} colSpan={2}>Tear Film Examination</th></tr></thead>
                 <tbody>
                   <tr><td className={`${ctd} w-1/2 text-right`}>1- BUT</td><td className={ctd}><input className={inp} /></td></tr>
                   <tr><td className={`${ctd} text-right`}>2- Schirmer Test</td><td className={ctd}><input className={inp} /></td></tr>
@@ -655,17 +655,17 @@ export default function SpecialistSheet() {
           {/* Detailed Refraction */}
           <section>
             <table className="w-full text-center border-collapse">
-              <thead className="bg-[#e7e8ea] text-xs uppercase font-bold">
+              <thead className="bg-muted/70 text-xs uppercase font-bold">
                 <tr>
                   <th className={`${ctd} w-48`} rowSpan={2}>Clinical Refraction</th>
-                  <th className={`${ctd} text-[#003d9b]`} colSpan={3}>OD (Right)</th>
-                  <th className={`${ctd} text-[#526069]`} colSpan={3}>OS (Left)</th>
+                  <th className={`${ctd} text-primary`} colSpan={3}>OD (Right)</th>
+                  <th className={`${ctd} text-slate-500 dark:text-slate-400`} colSpan={3}>OS (Left)</th>
                 </tr>
                 <tr><th className={ctd}>S</th><th className={ctd}>C</th><th className={ctd}>A</th><th className={ctd}>S</th><th className={ctd}>C</th><th className={ctd}>A</th></tr>
               </thead>
               <tbody className="font-mono">
                 <tr>
-                  <td className={`${ctd} text-left bg-[#f3f4f6]`}>Refraction</td>
+                  <td className={`${ctd} text-left bg-muted/40`}>Refraction</td>
                   <td className={ctd}><input className={inp} value={formData.refractionOD.s} onChange={(e) => setFormData((p) => ({ ...p, refractionOD: { ...p.refractionOD, s: e.target.value } }))} /></td>
                   <td className={ctd}><input className={inp} value={formData.refractionOD.c} onChange={(e) => setFormData((p) => ({ ...p, refractionOD: { ...p.refractionOD, c: e.target.value } }))} /></td>
                   <td className={ctd}><input className={inp} value={formData.refractionOD.a} onChange={(e) => setFormData((p) => ({ ...p, refractionOD: { ...p.refractionOD, a: e.target.value } }))} /></td>
@@ -674,7 +674,7 @@ export default function SpecialistSheet() {
                   <td className={ctd}><input className={inp} value={formData.refractionOS.a} onChange={(e) => setFormData((p) => ({ ...p, refractionOS: { ...p.refractionOS, a: e.target.value } }))} /></td>
                 </tr>
                 <tr>
-                  <td className={`${ctd} text-left bg-[#f3f4f6]`}>Fundus</td>
+                  <td className={`${ctd} text-left bg-muted/40`}>Fundus</td>
                   <td className={ctd} colSpan={3}><input className={inp} /></td>
                   <td className={ctd} colSpan={3}><input className={inp} /></td>
                 </tr>
@@ -683,27 +683,27 @@ export default function SpecialistSheet() {
           </section>
 
           {/* Notes + signatures */}
-          <footer className="pt-6 border-t-2 border-[#003d9b] space-y-6">
+          <footer className="pt-6 border-t-2 border-primary/40 space-y-6">
             <div className="print-specialist-footer-grid grid grid-cols-1 lg:grid-cols-12 gap-8">
               <div className="lg:col-span-8 space-y-4">
                 <div>
-                  <label className="font-bold text-[#003d9b] text-sm">Comments / ملاحظات:</label>
-                  <div className="border-b border-solid border-[#c3c6d6] h-8" />
-                  <div className="border-b border-solid border-[#c3c6d6] h-8" />
+                  <label className="font-bold text-primary text-sm">Comments / ملاحظات:</label>
+                  <div className="border-b-2 border-dashed border-border/70 focus-within:border-primary/60 transition-colors border-border/70 h-8" />
+                  <div className="border-b-2 border-dashed border-border/70 focus-within:border-primary/60 transition-colors border-border/70 h-8" />
                 </div>
                 <div>
-                  <label className="font-bold text-[#003d9b] text-sm">Final Decision / القرار النهائي:</label>
-                  <div className="border-b border-solid border-[#c3c6d6] h-8" />
+                  <label className="font-bold text-primary text-sm">Final Decision / القرار النهائي:</label>
+                  <div className="border-b-2 border-dashed border-border/70 focus-within:border-primary/60 transition-colors border-border/70 h-8" />
                 </div>
               </div>
-              <div className="lg:col-span-4 border-2 border-[#003d9b] rounded-xl p-4 bg-[#003d9b]/5">
-                <div className="text-center font-bold text-[#003d9b] uppercase text-xs border-b border-[#003d9b]/20 pb-2 mb-3">Office Notes</div>
-                <div className="border-b border-solid border-[#003d9b]/40 h-6 mb-2" />
-                <div className="border-b border-solid border-[#003d9b]/40 h-6 mb-2" />
-                <div className="border-b border-solid border-[#003d9b]/40 h-6" />
+              <div className="lg:col-span-4 border-2 border-primary/40 rounded-2xl p-4 bg-primary/5">
+                <div className="text-center font-bold text-primary uppercase text-xs border-b border-primary/20 pb-2 mb-3">Office Notes</div>
+                <div className="border-b-2 border-dashed border-border/70 focus-within:border-primary/60 transition-colors border-primary/40/40 h-6 mb-2" />
+                <div className="border-b-2 border-dashed border-border/70 focus-within:border-primary/60 transition-colors border-primary/40/40 h-6 mb-2" />
+                <div className="border-b-2 border-dashed border-border/70 focus-within:border-primary/60 transition-colors border-primary/40/40 h-6" />
               </div>
             </div>
-            <div className="print-specialist-signatures grid grid-cols-2 md:grid-cols-4 gap-8 pt-4 border-t border-[#c3c6d6]">
+            <div className="print-specialist-signatures grid grid-cols-2 md:grid-cols-4 gap-8 pt-4 border-t border-border/70">
               {[
                 ["التمريض / Nursing", signatures.nurse],
                 ["الطبيب / Physician", signatures.doctor],
@@ -711,9 +711,9 @@ export default function SpecialistSheet() {
                 ["الاستقبال / Reception", signatures.reception],
               ].map(([label, val], i) => (
                 <div key={i} className="flex flex-col gap-2">
-                  <span className={`text-[11px] font-bold uppercase ${i === 1 ? "text-[#003d9b]" : "text-[#434654]"}`}>{label}</span>
-                  <div className={`border-b-2 h-9 flex items-end justify-center ${i === 1 ? "border-[#003d9b]" : "border-[#191c1e]"}`}>
-                    <span className={`text-xs italic ${i === 1 ? "text-[#003d9b] font-bold" : "text-[#737685]"}`}>{val || ""}</span>
+                  <span className={`text-[11px] font-bold uppercase ${i === 1 ? "text-primary" : "text-slate-600 dark:text-slate-400"}`}>{label}</span>
+                  <div className={`border-b-2 h-9 flex items-end justify-center ${i === 1 ? "border-primary/40" : "border-foreground/80"}`}>
+                    <span className={`text-xs italic ${i === 1 ? "text-primary font-bold" : "text-muted-foreground/80"}`}>{val || ""}</span>
                   </div>
                 </div>
               ))}

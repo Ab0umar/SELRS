@@ -233,7 +233,7 @@ export default function ConsultantFollowupPage() {
   const followupTitles = ["1st Follow-up (Day 1)", "2nd Follow-up (1 Week)", "3rd Follow-up (1 Month)", "Later Follow-up"];
 
   return (
-    <div className="min-h-screen bg-[#dde1e7] text-[#191c1e]" style={{ fontFamily: "Inter, sans-serif" }}>
+    <div className="min-h-screen bg-[#dde1e7] text-foreground" style={{ fontFamily: "Inter, sans-serif" }}>
       <style>{`
         @media print {
           @page { size: A4 portrait; margin: 0; }
@@ -268,13 +268,13 @@ export default function ConsultantFollowupPage() {
       `}</style>
 
       {/* Top nav */}
-      <header className="print:hidden sticky top-0 z-50 flex justify-between items-center w-full px-6 py-2 bg-[#f8f9fb] border-b border-[#c3c6d6]">
-        <span className="text-base font-bold text-[#003d9b]">Ophthalmic Clinic Management</span>
+      <header className="print:hidden sticky top-0 z-50 flex justify-between items-center w-full px-6 py-2 bg-background border-b border-border/70">
+        <span className="text-base font-bold text-primary">Ophthalmic Clinic Management</span>
         <div className="flex items-center gap-3">
           <Button
             type="button"
             variant="outline"
-            className="border-[#737685] text-[#191c1e] text-xs font-bold px-4 py-2 rounded uppercase tracking-wider hover:bg-[#edeef0]"
+            className="border-[#737685] text-foreground text-xs font-bold px-4 py-2 rounded uppercase tracking-wider hover:bg-[#edeef0]"
             onClick={() => setLocation(`/sheets/consultant/${initialPatientId ?? ""}`)}
           >
             ← Consultant Sheet
@@ -293,7 +293,7 @@ export default function ConsultantFollowupPage() {
           <Button
             type="button"
             variant="outline"
-            className="border-[#737685] text-[#191c1e] text-xs font-bold px-4 py-2 rounded uppercase tracking-wider hover:bg-[#edeef0]"
+            className="border-[#737685] text-foreground text-xs font-bold px-4 py-2 rounded uppercase tracking-wider hover:bg-[#edeef0]"
             onClick={() => void printOrExportPdf(`consultant-followup-${initialPatientId ?? "sheet"}.pdf`, { forceBrowserPrint: true })}
           >
             <Printer className="h-3 w-3 mr-1" /> Print PDF

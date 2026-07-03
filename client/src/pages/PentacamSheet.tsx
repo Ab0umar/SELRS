@@ -145,7 +145,7 @@ export default function PentacamSheet() {
       />
 
       <main className="relative z-10 flex min-h-screen w-full flex-col px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
-        <header className="mb-5 rounded-[1.5rem] border border-border bg-background/95 px-4 py-4 shadow-sm">
+        <header className="mb-5 rounded-[1.5rem] border border-border bg-background/95 px-4 py-4 shadow-xl shadow-primary/5">
           {/* Top row: back + badge */}
           <div className="mb-4 flex items-center justify-between gap-4">
             <button
@@ -213,7 +213,7 @@ export default function PentacamSheet() {
 
               {/* Patient summary */}
               {selectedPatient ? (
-                <div className="rounded-xl border border-border bg-muted/50 p-3">
+                <div className="rounded-2xl border border-border bg-muted/50 p-3">
                   <div className="mb-2 flex items-center gap-2">
                     <BookOpenText className="h-4 w-4 text-primary" />
                     <span className="text-sm font-semibold text-foreground">ملخص المريض</span>
