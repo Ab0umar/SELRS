@@ -60,7 +60,7 @@ export class DashboardService {
 
     let presentMorning = 0;
     let presentEvening = 0;
-    presentList.forEach(row => {
+    presentList.forEach((row: (typeof presentList)[number]) => {
       if (row.shiftStartTime) {
         if (row.shiftStartTime < "13:00") presentMorning++;
         else presentEvening++;
