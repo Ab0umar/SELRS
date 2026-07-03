@@ -182,3 +182,25 @@ testsprite_tests\tmp\config.json
 
 ZKTimeNet.db
 testsprite_tests/
+
+.claude/worktrees/
+Sheets/stitch_/
+artifacts/stitch/
+cols3.py
+design-previews-v8/
+dup.py
+flex.py
+move2.py
+move3.py
+move_dom.py
+move_left.py
+port_lasik.py
+port_lasik2.py
+port_lasik3.py
+scratch_redesign.py
+scratch_referral_redesign.py
+scratch_remove_arabic.py
+strip.py
+strip_plan.py
+update_consultant.py
+view.py
