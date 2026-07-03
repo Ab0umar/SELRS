@@ -26,6 +26,7 @@ interface NewLeave {
   dateTo: string;
   type: LeaveType;
   note: string;
+  notAffectCommission: boolean;
 }
 
 export default function LeaveManagement() {
@@ -43,6 +44,7 @@ export default function LeaveManagement() {
     dateTo: today,
     type: "annual",
     note: "",
+    notAffectCommission: false,
   });
 
   const leavesQuery = trpc.attendance.listLeaves.useQuery({
@@ -57,12 +59,19 @@ export default function LeaveManagement() {
   const resetForm = () => {
     setShowForm(false);
     setEditId(null);
-    setForm({ empCd: "", dateFrom: today, dateTo: today, type: "annual", note: "" });
+    setForm({ empCd: "", dateFrom: today, dateTo: today, type: "annual", note: "", notAffectCommission: false });
   };
 
   const openEdit = (l: any) => {
     setEditId(l.id);
-    setForm({ empCd: l.empCd, dateFrom: l.dateFrom, dateTo: l.dateTo, type: l.type, note: l.note ?? "" });
+    setForm({
+      empCd: l.empCd,
+      dateFrom: l.dateFrom,
+      dateTo: l.dateTo,
+      type: l.type,
+      note: l.note ?? "",
+      notAffectCommission: l.notAffectCommission ?? false,
+    });
     setShowForm(true);
   };
 
@@ -290,12 +299,36 @@ export default function LeaveManagement() {
                   عدد الأيام: {dayCount(form.dateFrom, form.dateTo)} يوم
                 </div>
               )}
+              <div className="md:col-span-2 flex items-center gap-2">
+                <input
+                  id="attendance-leave-form-not-affect-commission"
+                  type="checkbox"
+                  checked={form.notAffectCommission}
+                  onChange={(e) =>
+                    setForm({ ...form, notAffectCommission: e.target.checked })
+                  }
+                  className="h-4 w-4 rounded border-border"
+                />
+                <label
+                  htmlFor="attendance-leave-form-not-affect-commission"
+                  className="text-sm font-medium"
+                >
+                  لا تؤثر على النسب (مهما كان عدد أيامها)
+                </label>
+              </div>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               <Button
                 onClick={() => {
                   if (editId !== null) {
-                    updateMut.mutate({ leaveId: editId, dateFrom: form.dateFrom, dateTo: form.dateTo, type: form.type, note: form.note || undefined });
+                    updateMut.mutate({
+                      leaveId: editId,
+                      dateFrom: form.dateFrom,
+                      dateTo: form.dateTo,
+                      type: form.type,
+                      note: form.note || undefined,
+                      notAffectCommission: form.notAffectCommission,
+                    });
                   } else {
                     createMut.mutate(form);
                   }

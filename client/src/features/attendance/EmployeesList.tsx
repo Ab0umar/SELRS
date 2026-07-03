@@ -129,7 +129,7 @@ function AssignmentPanel({
 
   return (
     <tr className="border-b border-primary/20 bg-primary/5">
-      <td colSpan={7} className="px-5 py-4" dir="rtl">
+      <td colSpan={8} className="px-5 py-4" dir="rtl">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold">
@@ -305,7 +305,7 @@ function TempSwapPanel({
 
   return (
     <tr className="border-b border-secondary/20 bg-secondary/5">
-      <td colSpan={7} className="px-5 py-4" dir="rtl">
+      <td colSpan={8} className="px-5 py-4" dir="rtl">
         <div className="space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between">
@@ -423,12 +423,14 @@ export default function EmployeesList() {
     fullName: string;
     department: string;
     salaryType: string;
+    jobTitle: string;
     attendanceCommissionRate: string;
     active: boolean;
   }>({
     fullName: "",
     department: "",
     salaryType: "",
+    jobTitle: "",
     attendanceCommissionRate: "",
     active: true,
   });
@@ -463,6 +465,7 @@ export default function EmployeesList() {
       fullName: emp.fullName,
       department: emp.department ?? "",
       salaryType: emp.salaryType ?? "",
+      jobTitle: emp.jobTitle ?? "",
       attendanceCommissionRate:
         emp.attendanceCommissionRate != null
           ? String(Math.round(Number(emp.attendanceCommissionRate) * 100))
@@ -541,6 +544,9 @@ export default function EmployeesList() {
               </th>
               <th className="px-4 py-3 text-center font-semibold w-20">
                 النوع
+              </th>
+              <th className="px-4 py-3 text-center font-semibold w-24">
+                الوظيفة
               </th>
               <th className="px-4 py-3 text-right font-semibold">الوردية</th>
               <th className="px-4 py-3 text-center font-semibold">
@@ -643,6 +649,27 @@ export default function EmployeesList() {
                       )}
                     </td>
 
+                    {/* Job title */}
+                    <td className="px-4 py-3 text-center">
+                      {isEditing ? (
+                        <input
+                          value={editRow.jobTitle}
+                          onChange={(e) =>
+                            setEditRow({
+                              ...editRow,
+                              jobTitle: e.target.value,
+                            })
+                          }
+                          placeholder="طبيب، محاسب، تمريض..."
+                          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+                        />
+                      ) : (
+                        <span className="text-muted-foreground text-sm">
+                          {emp.jobTitle || "—"}
+                        </span>
+                      )}
+                    </td>
+
                     {/* Shift */}
                     <td className="px-4 py-3">
                       {empAssignments.length > 0 ? (
@@ -707,6 +734,7 @@ export default function EmployeesList() {
                                 fullName: editRow.fullName,
                                 department: editRow.department || undefined,
                                 salaryType: editRow.salaryType || undefined,
+                                jobTitle: editRow.jobTitle || undefined,
                                 attendanceCommissionRate:
                                   editRow.attendanceCommissionRate !== ""
                                     ? parseFloat(

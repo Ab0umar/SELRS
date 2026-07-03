@@ -574,6 +574,7 @@ export const salaryRouter = router({
             fullName: attendanceEmployees.fullName,
             department: attendanceEmployees.department,
             salaryType: attendanceEmployees.salaryType,
+            jobTitle: attendanceEmployees.jobTitle,
           })
           .from(attendanceEmployees);
 
@@ -601,17 +602,20 @@ export const salaryRouter = router({
           let fullName = row.empCd;
           let department = row.section;
           let salaryType: string | null = null;
+          let jobTitle: string | null = null;
 
           if (isShift) {
             const id = parseInt(row.empCd.slice(6), 10);
             fullName = shiftNameMap.get(id) ?? row.empCd;
             department = "مناوبة";
+            jobTitle = shiftStaffRows.find((s: any) => s.id === id)?.type === "doctor" ? "طبيب" : "فني";
           } else {
             const emp = empMap.get(row.empCd) as any;
             if (emp) {
               fullName = emp.fullName;
               department = emp.department ?? row.section;
               salaryType = emp.salaryType;
+              jobTitle = emp.jobTitle;
             }
           }
 
@@ -639,8 +643,11 @@ export const salaryRouter = router({
             leaveMultiplier: String(row.leaveMultiplier),
             netBasic: String(row.netBasic),
             attendanceCommission: String(row.attendanceCommission),
+            attendanceCommissionRaw: String(row.attendanceCommissionRaw),
             examCommission: String(row.examCommission),
+            examCommissionRaw: String(row.examCommissionRaw),
             pentacamCommission: String(row.pentacamCommission),
+            pentacamCommissionRaw: String(row.pentacamCommissionRaw),
             costOfLivingAllowance: String(row.costOfLivingAllowance),
             transportAllowance: String(row.transportAllowance),
             totalCommission: String(row.totalCommission),
@@ -651,6 +658,7 @@ export const salaryRouter = router({
             fullName,
             department,
             salaryType,
+            jobTitle,
           };
         });
 
@@ -684,8 +692,11 @@ export const salaryRouter = router({
           leaveMultiplier: salaryPayroll.leaveMultiplier,
           netBasic: salaryPayroll.netBasic,
           attendanceCommission: salaryPayroll.attendanceCommission,
+          attendanceCommissionRaw: salaryPayroll.attendanceCommissionRaw,
           examCommission: salaryPayroll.examCommission,
+          examCommissionRaw: salaryPayroll.examCommissionRaw,
           pentacamCommission: salaryPayroll.pentacamCommission,
+          pentacamCommissionRaw: salaryPayroll.pentacamCommissionRaw,
           costOfLivingAllowance: salaryPayroll.costOfLivingAllowance,
           transportAllowance: salaryPayroll.transportAllowance,
           totalCommission: salaryPayroll.totalCommission,
@@ -696,6 +707,7 @@ export const salaryRouter = router({
           fullName: attendanceEmployees.fullName,
           department: attendanceEmployees.department,
           salaryType: attendanceEmployees.salaryType,
+          jobTitle: attendanceEmployees.jobTitle,
         })
         .from(salaryPayroll)
         .leftJoin(
@@ -718,6 +730,7 @@ export const salaryRouter = router({
         .filter((id: any) => !isNaN(id));
 
       const shiftNameMap = new Map<number, string>();
+      const staffTypeMap = new Map<number, string>();
       if (shiftIds.length > 0) {
         const staffRows = await db
           .select({
@@ -727,20 +740,24 @@ export const salaryRouter = router({
           })
           .from(shiftStaff)
           .where(inArray(shiftStaff.id, shiftIds));
-        for (const s of staffRows)
+        for (const s of staffRows) {
           shiftNameMap.set(
             s.id,
             `${s.name} (${s.type === "doctor" ? "د" : "ف"})`,
           );
+          staffTypeMap.set(s.id, s.type);
+        }
       }
 
       return rows.map((r: any) => {
         if (!r.empCd.startsWith("shift_")) return r;
         const id = parseInt(r.empCd.slice(6), 10);
+        const staffType = staffTypeMap.get(id);
         return {
           ...r,
           fullName: shiftNameMap.get(id) ?? r.empCd,
           department: "مناوبة",
+          jobTitle: staffType === "doctor" ? "طبيب" : "فني",
         };
       });
     }),

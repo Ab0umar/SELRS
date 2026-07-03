@@ -420,7 +420,8 @@ export default function PayrollReport() {
       font-weight: 800;
     }
     .dept {
-      justify-self: end;
+      display: inline-flex;
+      margin-top: 4px;
       min-width: 92px;
       padding: 6px 10px;
       border: 1px solid oklch(88% 0.035 56);
@@ -428,6 +429,7 @@ export default function PayrollReport() {
       background: oklch(98% 0.02 56);
       color: oklch(41% 0.095 56);
       text-align: center;
+      justify-content: center;
       font-size: 11px;
       font-weight: 900;
     }
@@ -553,70 +555,70 @@ export default function PayrollReport() {
     }
     .slip {
       position: relative;
-      min-height: 88mm;
-      margin-bottom: 5mm;
-      padding: 6mm;
+      min-height: 64mm;
+      margin-bottom: 3mm;
+      padding: 4mm;
       break-inside: avoid;
       page-break-inside: avoid;
       border: 1px solid oklch(84% 0.017 248);
-      border-radius: 14px;
+      border-radius: 12px;
       background: oklch(99.5% 0.004 248);
     }
     .slip::after {
       content: "";
       position: absolute;
-      inset-inline: 6mm;
-      bottom: -2.5mm;
+      inset-inline: 4mm;
+      bottom: -1.5mm;
       border-bottom: 1px dashed oklch(72% 0.02 248);
     }
     .slip-top {
       display: grid;
       grid-template-columns: 1fr auto 1fr;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 5px;
+      gap: 6px;
+      margin-bottom: 3px;
       color: oklch(48% 0.025 248);
-      font-size: 8px;
+      font-size: 7px;
       font-weight: 800;
     }
     .slip-badge {
-      padding: 3px 10px;
+      padding: 2px 8px;
       border-radius: 999px;
       background: oklch(96% 0.018 248);
       color: oklch(38% 0.105 248);
-      font-size: 8px;
+      font-size: 7px;
       font-weight: 900;
     }
     .slip-title {
       text-align: center;
       color: oklch(25% 0.045 248);
-      font-size: 16px;
+      font-size: 12px;
       font-weight: 900;
       letter-spacing: -0.02em;
     }
     .employee-strip {
       display: grid;
       grid-template-columns: 1.5fr 1fr;
-      gap: 8px;
-      margin: 6px 0;
+      gap: 6px;
+      margin: 4px 0;
     }
     .employee-box {
-      padding: 5px 8px;
+      padding: 3px 6px;
       border: 1px solid oklch(88% 0.018 248);
-      border-radius: 11px;
+      border-radius: 9px;
       background: oklch(98% 0.006 248);
     }
     .box-label {
       display: block;
       color: oklch(50% 0.025 248);
-      font-size: 7px;
+      font-size: 6.2px;
       font-weight: 700;
     }
     .box-value {
       display: block;
       margin-top: 1px;
       color: oklch(25% 0.045 248);
-      font-size: 11px;
+      font-size: 9.5px;
       font-weight: 900;
     }
     table.main {
@@ -625,18 +627,18 @@ export default function PayrollReport() {
       border: 1px solid oklch(84% 0.017 248);
       border-collapse: separate;
       border-spacing: 0;
-      border-radius: 12px;
-      margin-bottom: 5px;
+      border-radius: 10px;
+      margin-bottom: 3px;
     }
     table.main th {
       border-inline-start: 1px solid oklch(84% 0.017 248);
       border-bottom: 1px solid oklch(80% 0.02 248);
       background: oklch(93.5% 0.025 248);
       color: oklch(31% 0.047 248);
-      padding: 4px 3px;
+      padding: 2px 3px;
       text-align: center;
       white-space: nowrap;
-      font-size: 7.4px;
+      font-size: 6.4px;
       font-weight: 900;
     }
     table.main td {
@@ -644,56 +646,56 @@ export default function PayrollReport() {
       border-bottom: 1px solid oklch(88% 0.012 248);
       background: oklch(99.5% 0.003 248);
       color: oklch(25% 0.03 248);
-      padding: 4px 3px;
+      padding: 2px 3px;
       text-align: center;
-      font-size: 8.4px;
+      font-size: 7.2px;
       font-weight: 750;
     }
     table.main tr:last-child td { border-bottom: 0; }
     .net-cell {
-      min-width: 72px;
+      min-width: 60px;
       border: 1px solid oklch(70% 0.095 56) !important;
       background: oklch(97% 0.038 56) !important;
       color: oklch(34% 0.075 56) !important;
       text-align: center;
       vertical-align: middle;
-      padding: 5px 6px !important;
+      padding: 3px 4px !important;
     }
     .net-label {
       display: block;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
       color: oklch(42% 0.065 56);
-      font-size: 7px;
+      font-size: 6px;
       font-weight: 800;
     }
     .net-val {
       display: block;
       color: oklch(31% 0.08 56);
-      font-size: 15px;
+      font-size: 12px;
       font-weight: 950;
     }
     .words {
-      margin: 5px 0 2px;
+      margin: 3px 0 1px;
       color: oklch(30% 0.035 248);
       text-align: right;
-      font-size: 9px;
+      font-size: 7.5px;
       font-weight: 800;
     }
     .sigs {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 28px;
-      margin-top: 9px;
+      gap: 20px;
+      margin-top: 5px;
     }
     .sig-block {
       text-align: center;
       color: oklch(31% 0.035 248);
-      font-size: 8.5px;
+      font-size: 7px;
       font-weight: 800;
     }
     .sig-line {
-      width: 120px;
-      margin: 16px auto 4px;
+      width: 100px;
+      margin: 9px auto 3px;
       border-top: 1px solid oklch(38% 0.025 248);
     }
   `;
@@ -785,6 +787,46 @@ export default function PayrollReport() {
     return out + " جنيه";
   }
 
+  function sectionBrand(sec: string) {
+    return sec === "عيادة"
+      ? {
+          mark: "SEC",
+          name: "مركز أ.د محمد السعدني غرابة",
+          sub: "Sadany Eye Center",
+        }
+      : {
+          mark: "S",
+          name: "مركز عيون الشروق",
+          sub: "SELRS",
+        };
+  }
+
+  function renderSheetHeader(
+    title: string,
+    sec: string,
+    reportSystem: string = "نظام الرواتب",
+  ): string {
+    const brand = sectionBrand(sec);
+    return `
+        <header class="sheet-header">
+          <div class="brand">
+            <span class="brand-mark">${escapeHtml(brand.mark)}</span>
+            <div>
+              <div>${escapeHtml(brand.name)}</div>
+              <div class="muted">${escapeHtml(brand.sub)}</div>
+            </div>
+          </div>
+          <div class="report-title">
+            <h1>${escapeHtml(title)} — ${escapeHtml(MONTHS[month - 1])}</h1>
+            <span class="period">${escapeHtml(periodLabel)}</span>
+          </div>
+          <div class="report-title" style="text-align:left">
+            <div class="muted">${escapeHtml(reportSystem)}</div>
+            <div class="dept">${escapeHtml(sec)}</div>
+          </div>
+        </header>`;
+  }
+
   function buildSheetFrame({
     title,
     today,
@@ -819,7 +861,7 @@ export default function PayrollReport() {
             <h1>${escapeHtml(title)}</h1>
             <span class="period">${escapeHtml(periodLabel)}</span>
           </div>
-          <div class="dept">قسم ${escapeHtml(section)}</div>
+          <div class="dept">${escapeHtml(section)}</div>
         </header>
         <section class="summary-strip" aria-label="ملخص الكشف">${summary}</section>
         ${note ? `<p class="note">${escapeHtml(note)}</p>` : ""}
@@ -912,20 +954,7 @@ export default function PayrollReport() {
 
     const html = `
       <main class="payroll-sheet">
-        <header class="sheet-header">
-          <div class="brand">
-            <span class="brand-mark">S</span>
-            <div>
-              <div>SELRS Medical Center</div>
-              <div class="muted">نظام مرتبات العاملين</div>
-            </div>
-          </div>
-          <div class="report-title">
-            <h1>كشف المرتبات الشهرية</h1>
-            <span class="period">${escapeHtml(periodLabel)}</span>
-          </div>
-          <div class="dept">قسم ${escapeHtml(section)}</div>
-        </header>
+        ${renderSheetHeader("كشف المرتبات الشهرية", section)}
         <section class="summary-strip" aria-label="ملخص كشف المرتبات">
           <div class="summary-pill"><span class="summary-label">عدد الموظفين</span><span class="summary-value">${nonShift.length}</span></div>
           <div class="summary-pill"><span class="summary-label">إجمالي الأساسي</span><span class="summary-value">${fmt(tBasic)}</span></div>
@@ -1038,9 +1067,7 @@ export default function PayrollReport() {
       )
       .join("");
     const html = `
-      <div class="top"><span>نظام مرتبات</span><span>عيون السروق للخدمات الطبية</span></div>
-      <h1>كشف الرواتب الأساسية عن الفترة ${periodLabel}</h1>
-      <div class="dept">قسم ${section}</div>
+      ${renderSheetHeader("كشف الرواتب الأساسية", section)}
       <table>
         <thead><tr>
           <th>الاسم</th><th>الأساسي</th><th>خصم غياب</th><th>خصم تأخير</th>
@@ -1101,14 +1128,30 @@ export default function PayrollReport() {
         s + getCommissionTotal(r) + Number(r.overtimePay ?? 0),
       0,
     );
+    const tAttendRaw = nonShift.reduce(
+      (s: number, r: any) =>
+        s + Number(r.attendanceCommissionRaw ?? r.attendanceCommission),
+      0,
+    );
+    const tExamRaw = nonShift.reduce(
+      (s: number, r: any) => s + Number(r.examCommissionRaw ?? r.examCommission),
+      0,
+    );
+    const tPentaRaw = nonShift.reduce(
+      (s: number, r: any) =>
+        s + Number(r.pentacamCommissionRaw ?? r.pentacamCommission),
+      0,
+    );
     const bodyRows = nonShift
       .map(
         (r: any) => `
       <tr>
         <td class="emp-col">${escapeHtml(r.fullName ?? r.empCd)}</td>
+        <td>${fmt(r.attendanceCommissionRaw ?? r.attendanceCommission)}</td>
         <td>${fmt(r.attendanceCommission)}</td>
+        <td>${fmt(r.examCommissionRaw ?? r.examCommission)}</td>
         <td>${fmt(r.examCommission)}</td>
-        ${!isClinic ? `<td>${fmt(r.pentacamCommission)}</td>` : ""}
+        ${!isClinic ? `<td>${fmt(r.pentacamCommissionRaw ?? r.pentacamCommission)}</td><td>${fmt(r.pentacamCommission)}</td>` : ""}
         <td>${fmt(getAllowanceValues(r).cola)}</td>
         <td>${fmt(getAllowanceValues(r).travel)}</td>
         <td>${fmt(r.overtimePay ?? 0)}</td>
@@ -1118,21 +1161,29 @@ export default function PayrollReport() {
       )
       .join("");
     const html = `
-      <div class="top"><span>نظام مرتبات</span><span>عيون السروق للخدمات الطبية</span></div>
-      <h1>كشف العمولات عن الفترة ${periodLabel}</h1>
-      <div class="dept">قسم ${section}</div>
+      ${renderSheetHeader("كشف العمولات", section)}
       <table>
-        <thead><tr>
-          <th>الاسم</th><th>عمولة حضور</th><th>عمولة فحص</th>
-          ${!isClinic ? "<th>عمولة بنتاكام</th>" : ""}
-          <th>غلاء معيشه</th><th>بدل مواصلات</th><th>إضافي</th><th>إجمالي العمولات</th><th class="sig-col">التوقيع</th>
-        </tr></thead>
+        <thead>
+          <tr>
+            <th rowspan="2">الاسم</th>
+            <th colspan="2">عمولة حضور</th>
+            <th colspan="2">عمولة فحص</th>
+            ${!isClinic ? '<th colspan="2">عمولة بنتاكام</th>' : ""}
+            <th rowspan="2">غلاء معيشه</th><th rowspan="2">بدل مواصلات</th><th rowspan="2">إضافي</th><th rowspan="2">إجمالي العمولات</th><th rowspan="2" class="sig-col">التوقيع</th>
+          </tr>
+          <tr>
+            <th>النسبة</th><th>المستحق</th>
+            <th>النسبة</th><th>المستحق</th>
+            ${!isClinic ? "<th>النسبة</th><th>المستحق</th>" : ""}
+          </tr>
+        </thead>
         <tbody>
           ${bodyRows}
           <tr class="total-row">
             <td class="emp-col">الإجمالي</td>
-            <td>${fmt(tAttend)}</td><td>${fmt(tExam)}</td>
-            ${!isClinic ? `<td>${fmt(tPenta)}</td>` : ""}
+            <td>${fmt(tAttendRaw)}</td><td>${fmt(tAttend)}</td>
+            <td>${fmt(tExamRaw)}</td><td>${fmt(tExam)}</td>
+            ${!isClinic ? `<td>${fmt(tPentaRaw)}</td><td>${fmt(tPenta)}</td>` : ""}
             <td>${fmt(tCola)}</td><td>${fmt(tTravel)}</td><td>${fmt(tOT)}</td><td style="font-weight:bold">${fmt(tDay10)}</td><td></td>
           </tr>
         </tbody>
@@ -1174,9 +1225,7 @@ export default function PayrollReport() {
       )
       .join("");
     const html = `
-      <div class="top"><span>نظام مرتبات</span><span>عيون السروق للخدمات الطبية</span></div>
-      <h1>كشف مكافآت الإشراف عن الفترة ${periodLabel}</h1>
-      <div class="dept">قسم ${section}</div>
+      ${renderSheetHeader("كشف مكافآت الإشراف", section)}
       <p class="note" style="margin-bottom:6px">ملاحظة: هذه المكافآت خارج إجمالي الراتب ولا تؤثر على الحسابات</p>
       <table>
         <thead><tr>
@@ -1252,12 +1301,13 @@ export default function PayrollReport() {
     netPay: number,
     empSection?: string,
   ): string {
+    const brand = sectionBrand(empSection ?? r._section ?? section);
     return `
       <div class="slip">
         <div class="slip-top">
-          <span>مرتبات</span>
-          <span class="slip-badge">SELRS</span>
-          <span style="text-align:left">عيون السروق للخدمات الطبية</span>
+          <span>${escapeHtml(brand.name)}</span>
+          <span class="slip-badge">${escapeHtml(brand.mark)}</span>
+          <span style="text-align:left">${escapeHtml(brand.sub)}</span>
         </div>
         <div class="slip-title">${escapeHtml(title)}</div>
         <div class="employee-strip">
@@ -1266,8 +1316,12 @@ export default function PayrollReport() {
             <span class="box-value">${escapeHtml(r.fullName ?? r.empCd)}</span>
           </div>
           <div class="employee-box">
-            <span class="box-label">القسم التابع له</span>
-            <span class="box-value">${escapeHtml(empSection ?? r._section ?? section)}</span>
+            <span class="box-label">الوظيفة/القسم</span>
+            <span class="box-value">${escapeHtml(
+              [r.jobTitle, empSection ?? r._section ?? section]
+                .filter(Boolean)
+                .join("/"),
+            )}</span>
           </div>
         </div>
         ${tableHtml}
@@ -1299,9 +1353,7 @@ export default function PayrollReport() {
       )
       .join("");
     const html = `
-      <div class="top"><span>نظام مرتبات</span><span>عيون السروق للخدمات الطبية</span></div>
-      <h1>كشف الجزاءات عن الفترة ${periodLabel}</h1>
-      <div class="dept">قسم ${section}</div>
+      ${renderSheetHeader("كشف الجزاءات", section)}
       <table>
         <thead><tr><th>الاسم</th><th>الجزاءات</th><th class="sig-col">التوقيع</th></tr></thead>
         <tbody>
@@ -1332,9 +1384,7 @@ export default function PayrollReport() {
       )
       .join("");
     const html = `
-      <div class="top"><span>نظام مرتبات</span><span>عيون السروق للخدمات الطبية</span></div>
-      <h1>كشف السلف عن الفترة ${periodLabel}</h1>
-      <div class="dept">قسم ${section}</div>
+      ${renderSheetHeader("كشف السلف", section)}
       <table>
         <thead><tr><th>الاسم</th><th>السلف</th><th class="sig-col">التوقيع</th></tr></thead>
         <tbody>
@@ -1372,9 +1422,7 @@ export default function PayrollReport() {
       )
       .join("");
     const html = `
-      <div class="top"><span>نظام مرتبات</span><span>عيون السروق للخدمات الطبية</span></div>
-      <h1>كشف التأخيرات عن الفترة ${periodLabel}</h1>
-      <div class="dept">قسم ${section}</div>
+      ${renderSheetHeader("كشف التأخيرات", section)}
       <table>
         <thead><tr>
           <th>الاسم</th>
@@ -1415,9 +1463,7 @@ export default function PayrollReport() {
       )
       .join("");
     const html = `
-      <div class="top"><span>نظام مرتبات</span><span>عيون السروق للخدمات الطبية</span></div>
-      <h1>كشف التأمينات الاجتماعية عن الفترة ${periodLabel}</h1>
-      <div class="dept">قسم ${section}</div>
+      ${renderSheetHeader("كشف التأمينات الاجتماعية", section)}
       <table>
         <thead><tr><th>الاسم</th><th>التأمينات</th><th class="sig-col">التوقيع</th></tr></thead>
         <tbody>
@@ -1430,6 +1476,7 @@ export default function PayrollReport() {
 
   function printDay1Slips() {
     const html = allPrintRows
+      .filter((r: any) => r._section === section)
       .map((r: any, i: number) => {
         const net = Number(r.netBasic);
         const b = latestBasics[r.empCd] ?? {};
@@ -1498,11 +1545,15 @@ export default function PayrollReport() {
 
   function printDay10Slips() {
     const html = allPrintRows
+      .filter((r: any) => r._section === section)
       .map((r: any, i: number) => {
         const isClinic = (r._section ?? section) === "عيادة";
         const attend = Number(r.attendanceCommission);
+        const attendRaw = Number(r.attendanceCommissionRaw ?? attend);
         const exam = Number(r.examCommission);
+        const examRaw = Number(r.examCommissionRaw ?? exam);
         const penta = Number(r.pentacamCommission);
+        const pentaRaw = Number(r.pentacamCommissionRaw ?? penta);
         const cola = Number(r.costOfLivingAllowance ?? 0);
         const travel = Number(r.transportAllowance ?? 0);
         const ot = Number(r.overtimePay ?? 0);
@@ -1510,19 +1561,24 @@ export default function PayrollReport() {
         const table = `
         <table class="main">
           <tr>
-            <th>نسبة الحضور</th>
-            <th>نسبة الكشف</th>
-            ${!isClinic ? "<th>نسبة البنتاكام</th>" : ""}
-            <th>غلاء معيشه</th>
-            <th>بدل مواصلات</th>
-            <th>أوفرتايم</th>
-            <th>إجمالي المكافآت</th>
-            <th rowspan="2" class="net-cell"><span class="net-label">صافي المستحق</span><span class="net-val">${fmt(net)}</span></th>
+            <th colspan="2">الحضور</th>
+            <th colspan="2">الكشف</th>
+            ${!isClinic ? '<th colspan="2">البنتاكام</th>' : ""}
+            <th rowspan="2">غلاء معيشه</th>
+            <th rowspan="2">بدل مواصلات</th>
+            <th rowspan="2">أوفرتايم</th>
+            <th rowspan="2">إجمالي المكافآت</th>
+            <th rowspan="3" class="net-cell"><span class="net-label">صافي المستحق</span><span class="net-val">${fmt(net)}</span></th>
           </tr>
           <tr>
-            <td>${fmt(attend)}</td>
-            <td>${fmt(exam)}</td>
-            ${!isClinic ? `<td>${fmt(penta)}</td>` : ""}
+            <th>النسبة</th><th>المستحق</th>
+            <th>النسبة</th><th>المستحق</th>
+            ${!isClinic ? "<th>النسبة</th><th>المستحق</th>" : ""}
+          </tr>
+          <tr>
+            <td>${fmt(attendRaw)}</td><td>${fmt(attend)}</td>
+            <td>${fmt(examRaw)}</td><td>${fmt(exam)}</td>
+            ${!isClinic ? `<td>${fmt(pentaRaw)}</td><td>${fmt(penta)}</td>` : ""}
             <td>${fmt(cola)}</td>
             <td>${fmt(travel)}</td>
             <td>${fmt(ot)}</td>
@@ -2847,35 +2903,47 @@ export default function PayrollReport() {
                 <table dir="rtl" className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border bg-muted/30 text-xs">
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th rowSpan={2} className="px-3 py-3 text-center font-medium text-muted-foreground align-middle">
                         الموظف
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th colSpan={2} className="px-3 py-2 text-center font-medium text-muted-foreground">
                         حضور
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th colSpan={2} className="px-3 py-2 text-center font-medium text-muted-foreground">
                         فحص
                       </th>
                       {section !== "عيادة" && (
-                        <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                        <th colSpan={2} className="px-3 py-2 text-center font-medium text-muted-foreground">
                           بنتاكام
                         </th>
                       )}
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th rowSpan={2} className="px-3 py-3 text-center font-medium text-muted-foreground align-middle">
                         غلاء معيشه
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th rowSpan={2} className="px-3 py-3 text-center font-medium text-muted-foreground align-middle">
                         بدل مواصلات
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th rowSpan={2} className="px-3 py-3 text-center font-medium text-muted-foreground align-middle">
                         إضافي (د)
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th rowSpan={2} className="px-3 py-3 text-center font-medium text-muted-foreground align-middle">
                         إضافي (ج)
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground font-bold">
+                      <th rowSpan={2} className="px-3 py-3 text-center font-medium text-muted-foreground font-bold align-middle">
                         إجمالي العمولات
                       </th>
+                    </tr>
+                    <tr className="border-b border-border bg-muted/30 text-xs">
+                      <th className="px-2 py-1.5 text-center font-medium text-muted-foreground">النسبة</th>
+                      <th className="px-2 py-1.5 text-center font-medium text-muted-foreground">المستحق</th>
+                      <th className="px-2 py-1.5 text-center font-medium text-muted-foreground">النسبة</th>
+                      <th className="px-2 py-1.5 text-center font-medium text-muted-foreground">المستحق</th>
+                      {section !== "عيادة" && (
+                        <>
+                          <th className="px-2 py-1.5 text-center font-medium text-muted-foreground">النسبة</th>
+                          <th className="px-2 py-1.5 text-center font-medium text-muted-foreground">المستحق</th>
+                        </>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -2894,16 +2962,27 @@ export default function PayrollReport() {
                               {r.salaryType ?? r.department ?? ""}
                             </div>
                           </td>
+                          <td className="px-3 py-3 text-center text-muted-foreground">
+                            {fmt(r.attendanceCommissionRaw ?? r.attendanceCommission)}
+                          </td>
                           <td className="px-3 py-3 text-center text-success">
                             {fmt(r.attendanceCommission)}
+                          </td>
+                          <td className="px-3 py-3 text-center text-muted-foreground">
+                            {fmt(r.examCommissionRaw ?? r.examCommission)}
                           </td>
                           <td className="px-3 py-3 text-center text-success">
                             {fmt(r.examCommission)}
                           </td>
                           {section !== "عيادة" && (
-                            <td className="px-3 py-3 text-center text-success">
-                              {fmt(r.pentacamCommission)}
-                            </td>
+                            <>
+                              <td className="px-3 py-3 text-center text-muted-foreground">
+                                {fmt(r.pentacamCommissionRaw ?? r.pentacamCommission)}
+                              </td>
+                              <td className="px-3 py-3 text-center text-success">
+                                {fmt(r.pentacamCommission)}
+                              </td>
+                            </>
                           )}
                           <td className="px-3 py-3 text-center text-success">
                             {fmt(a.cola)}
@@ -2926,7 +3005,7 @@ export default function PayrollReport() {
                     {filteredRegularRows.length === 0 && (
                       <tr>
                         <td
-                          colSpan={9}
+                          colSpan={section !== "عيادة" ? 11 : 9}
                           className="px-4 py-10 text-center text-muted-foreground"
                         >
                           لا توجد عمولات تطابق البحث
@@ -3352,26 +3431,32 @@ export default function PayrollReport() {
                         <div className="mt-4 pt-4 border-t border-border/40 grid grid-cols-2 gap-y-3 gap-x-4 text-xs">
                           <div className="flex justify-between border-b border-border/10 pb-1">
                             <span className="text-muted-foreground">
-                              عمولة الحضور:
+                              عمولة الحضور (نسبة/مستحق):
                             </span>
-                            <span className="font-medium text-success tabular-nums">
-                              {fmt(r.attendanceCommission)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between border-b border-border/10 pb-1">
-                            <span className="text-muted-foreground">
-                              عمولة الفحص:
-                            </span>
-                            <span className="font-medium text-success tabular-nums">
-                              {fmt(r.examCommission)}
+                            <span className="font-medium tabular-nums">
+                              <span className="text-muted-foreground">{fmt(r.attendanceCommissionRaw ?? r.attendanceCommission)}</span>
+                              {" / "}
+                              <span className="text-success">{fmt(r.attendanceCommission)}</span>
                             </span>
                           </div>
                           <div className="flex justify-between border-b border-border/10 pb-1">
                             <span className="text-muted-foreground">
-                              عمولة بنتاكام:
+                              عمولة الفحص (نسبة/مستحق):
                             </span>
-                            <span className="font-medium text-success tabular-nums">
-                              {fmt(r.pentacamCommission)}
+                            <span className="font-medium tabular-nums">
+                              <span className="text-muted-foreground">{fmt(r.examCommissionRaw ?? r.examCommission)}</span>
+                              {" / "}
+                              <span className="text-success">{fmt(r.examCommission)}</span>
+                            </span>
+                          </div>
+                          <div className="flex justify-between border-b border-border/10 pb-1">
+                            <span className="text-muted-foreground">
+                              عمولة بنتاكام (نسبة/مستحق):
+                            </span>
+                            <span className="font-medium tabular-nums">
+                              <span className="text-muted-foreground">{fmt(r.pentacamCommissionRaw ?? r.pentacamCommission)}</span>
+                              {" / "}
+                              <span className="text-success">{fmt(r.pentacamCommission)}</span>
                             </span>
                           </div>
                           <div className="flex justify-between border-b border-border/10 pb-1">

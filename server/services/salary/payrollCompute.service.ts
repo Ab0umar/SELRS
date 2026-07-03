@@ -173,8 +173,11 @@ export interface PayrollRow {
   leaveMultiplier: number;
   netBasic: number;
   attendanceCommission: number;
+  attendanceCommissionRaw: number;
   examCommission: number;
+  examCommissionRaw: number;
   pentacamCommission: number;
+  pentacamCommissionRaw: number;
   costOfLivingAllowance: number;
   transportAllowance: number;
   totalCommission: number;
@@ -264,6 +267,7 @@ export class PayrollComputeService {
           earlyLeaveMin: attendanceDaily.earlyLeaveMin,
           overtimeMinutes: attendanceDaily.overtimeMinutes,
           leaveType: attendanceDaily.leaveType,
+          leaveNotAffectCommission: attendanceDaily.leaveNotAffectCommission,
         })
         .from(attendanceDaily)
         .where(
@@ -724,15 +728,15 @@ export class PayrollComputeService {
         lateMinutes = empDailyRows.reduce((s: any, d: any) => s + (d.lateMinutes ?? 0), 0);
         earlyLeaveMinutes = empDailyRows.reduce((s: any, d: any) => s + (d.earlyLeaveMin ?? 0), 0);
         overtimeMinutes = empDailyRows.reduce((s: any, d: any) => s + (d.overtimeMinutes ?? 0), 0);
-        leaveDays = empDailyRows.filter((d: any) => d.status === "leave" && !sickDatesSet.has(`${emp.empCd}|${String(d.workDate instanceof Date ? d.workDate.toISOString().slice(0,10) : d.workDate).slice(0,10)}`)).length;
+        leaveDays = empDailyRows.filter((d: any) => d.status === "leave" && !d.leaveNotAffectCommission && !sickDatesSet.has(`${emp.empCd}|${String(d.workDate instanceof Date ? d.workDate.toISOString().slice(0,10) : d.workDate).slice(0,10)}`)).length;
       } else {
         rawAbsentDays = report?.absentDays ?? 0;
         lateMinutes = report?.totalLateMins ?? 0;
         earlyLeaveMinutes = report?.totalEarlyLeaveMins ?? 0;
         overtimeMinutes = report?.totalOTMins ?? 0;
-        // Exclude sick leave from leaveDays using dailyRows (always loaded)
+        // Exclude sick leave and no-commission-impact leave from leaveDays using dailyRows (always loaded)
         const empDailyRowsForLeave = dailyRows.filter((d: any) => d.empCd === emp.empCd);
-        leaveDays = empDailyRowsForLeave.filter((d: any) => d.status === "leave" && d.leaveType !== "sick").length;
+        leaveDays = empDailyRowsForLeave.filter((d: any) => d.status === "leave" && d.leaveType !== "sick" && !d.leaveNotAffectCommission).length;
       }
       const absentDays = Math.max(0, rawAbsentDays - holidayWorkingDaysCount);
 
@@ -815,12 +819,13 @@ export class PayrollComputeService {
         commDay10: true,
       };
 
-      const attendanceCommission = flags.commAttendance
-        ? round2(acRate * basic * commMult)
+      const attendanceCommissionRaw = flags.commAttendance
+        ? round2(acRate * basic)
         : 0;
-      let examCommission: number;
+      const attendanceCommission = round2(attendanceCommissionRaw * commMult);
+      let examCommissionRaw: number;
       if (!flags.commExam) {
-        examCommission = 0;
+        examCommissionRaw = 0;
       } else if (
         !isMarkaz &&
         (examPoolConsultant !== null || examPoolSpecialist !== null)
@@ -828,28 +833,29 @@ export class PayrollComputeService {
         const t = emp.salaryType;
         const cShare = t === "استشاري" || t === "الاثنين" ? perConsultant : 0;
         const sShare = t === "أخصائي" || t === "الاثنين" ? perSpecialist : 0;
-        examCommission = round2(cShare + sShare);
+        examCommissionRaw = round2(cShare + sShare);
       } else {
         if (isMarkaz) {
-          examCommission =
+          examCommissionRaw =
             totalCountForExam > 0
               ? round2(examPoolEmpsTechs / totalCountForExam)
               : 0;
         } else {
           const empShares = emp.salaryType === "الاثنين" ? 2 : 1;
-          examCommission = round2((examPool / 3) * empShares);
+          examCommissionRaw = round2((examPool / 3) * empShares);
         }
       }
-      examCommission = round2(examCommission * commMult);
+      const examCommission = round2(examCommissionRaw * commMult);
       const netForRatio = netForRatioMap.get(emp.empCd) ?? 0;
-      const pentacamCommission =
+      const pentacamCommissionRaw =
         isMarkaz && flags.commPentacam
           ? round2(
-              (totalSumForPentacam > 0
+              totalSumForPentacam > 0
                 ? (netForRatio / totalSumForPentacam) * pentacamPool
-                : 0) * commMult,
+                : 0,
             )
           : 0;
+      const pentacamCommission = round2(pentacamCommissionRaw * commMult);
       const costOfLivingAllowancePay =
         flags.commDay10 && netBasic > 0 ? round2(costOfLivingAllowance) : 0;
       const transportAllowancePay =
@@ -888,8 +894,11 @@ export class PayrollComputeService {
         leaveMultiplier: lm,
         netBasic,
         attendanceCommission,
+        attendanceCommissionRaw,
         examCommission,
+        examCommissionRaw,
         pentacamCommission,
+        pentacamCommissionRaw,
         costOfLivingAllowance: costOfLivingAllowancePay,
         transportAllowance: transportAllowancePay,
         totalCommission,
@@ -962,8 +971,11 @@ export class PayrollComputeService {
         leaveMultiplier: 1,
         netBasic,
         attendanceCommission,
+        attendanceCommissionRaw: attendanceCommission,
         examCommission,
+        examCommissionRaw: examCommission,
         pentacamCommission,
+        pentacamCommissionRaw: pentacamCommission,
         costOfLivingAllowance: 0,
         transportAllowance: 0,
         totalCommission,
@@ -1036,8 +1048,11 @@ export class PayrollComputeService {
         leaveMultiplier: 1,
         netBasic,
         attendanceCommission,
+        attendanceCommissionRaw: attendanceCommission,
         examCommission,
+        examCommissionRaw: examCommission,
         pentacamCommission,
+        pentacamCommissionRaw: pentacamCommission,
         costOfLivingAllowance: 0,
         transportAllowance: 0,
         totalCommission,
@@ -1082,8 +1097,11 @@ export class PayrollComputeService {
           leaveMultiplier: String(r.leaveMultiplier) as any,
           netBasic: String(r.netBasic) as any,
           attendanceCommission: String(r.attendanceCommission) as any,
+          attendanceCommissionRaw: String(r.attendanceCommissionRaw) as any,
           examCommission: String(r.examCommission) as any,
+          examCommissionRaw: String(r.examCommissionRaw) as any,
           pentacamCommission: String(r.pentacamCommission) as any,
+          pentacamCommissionRaw: String(r.pentacamCommissionRaw) as any,
           costOfLivingAllowance: String(r.costOfLivingAllowance) as any,
           transportAllowance: String(r.transportAllowance) as any,
           totalCommission: String(r.totalCommission) as any,
@@ -1112,8 +1130,11 @@ export class PayrollComputeService {
             leaveMultiplier: String(r.leaveMultiplier) as any,
             netBasic: String(r.netBasic) as any,
             attendanceCommission: String(r.attendanceCommission) as any,
+            attendanceCommissionRaw: String(r.attendanceCommissionRaw) as any,
             examCommission: String(r.examCommission) as any,
+            examCommissionRaw: String(r.examCommissionRaw) as any,
             pentacamCommission: String(r.pentacamCommission) as any,
+            pentacamCommissionRaw: String(r.pentacamCommissionRaw) as any,
             costOfLivingAllowance: String(r.costOfLivingAllowance) as any,
             transportAllowance: String(r.transportAllowance) as any,
             totalCommission: String(r.totalCommission) as any,

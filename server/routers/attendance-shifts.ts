@@ -467,6 +467,7 @@ export const attendanceShiftsRoutes = {
         fullName: z.string().min(1),
         department: z.string().optional(),
         salaryType: z.string().optional(),
+        jobTitle: z.string().optional(),
         attendanceCommissionRate: z
           .number()
           .min(0)
@@ -491,6 +492,7 @@ export const attendanceShiftsRoutes = {
           fullName: input.fullName,
           department: input.department ?? null,
           salaryType: input.salaryType ?? null,
+          jobTitle: input.jobTitle ?? null,
           attendanceCommissionRate:
             input.attendanceCommissionRate != null
               ? (String(input.attendanceCommissionRate) as any)

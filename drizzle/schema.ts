@@ -1305,6 +1305,7 @@ export const attendanceEmployees = mysqlTable(
     fullName: varchar("full_name", { length: 255 }).notNull(),
     department: varchar("department", { length: 128 }),
     salaryType: varchar("salary_type", { length: 32 }),
+    jobTitle: varchar("job_title", { length: 64 }),
     attendanceCommissionRate: decimal("attendance_commission_rate", {
       precision: 5,
       scale: 4,
@@ -1446,6 +1447,9 @@ export const attendanceLeaves = mysqlTable(
     dateTo: date("date_to").notNull(),
     type: mysqlEnum("type", ["annual", "sick", "unpaid", "other"]).notNull(),
     approved: boolean("approved").default(false).notNull(),
+    notAffectCommission: boolean("not_affect_commission")
+      .default(false)
+      .notNull(),
     note: varchar("note", { length: 255 }),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -1537,6 +1541,9 @@ export const attendanceDaily = mysqlTable(
       "missing_checkout",
     ]).notNull(),
     leaveType: varchar("leave_type", { length: 16 }),
+    leaveNotAffectCommission: boolean("leave_not_affect_commission")
+      .default(false)
+      .notNull(),
     insideNow: boolean("inside_now").default(false).notNull(),
     computedAt: timestamp("computedAt").notNull(),
   },
@@ -1869,10 +1876,28 @@ export const salaryPayroll = mysqlTable(
     })
       .default("0")
       .notNull(),
+    attendanceCommissionRaw: decimal("attendance_commission_raw", {
+      precision: 12,
+      scale: 2,
+    })
+      .default("0")
+      .notNull(),
     examCommission: decimal("exam_commission", { precision: 12, scale: 2 })
       .default("0")
       .notNull(),
+    examCommissionRaw: decimal("exam_commission_raw", {
+      precision: 12,
+      scale: 2,
+    })
+      .default("0")
+      .notNull(),
     pentacamCommission: decimal("pentacam_commission", {
+      precision: 12,
+      scale: 2,
+    })
+      .default("0")
+      .notNull(),
+    pentacamCommissionRaw: decimal("pentacam_commission_raw", {
       precision: 12,
       scale: 2,
     })

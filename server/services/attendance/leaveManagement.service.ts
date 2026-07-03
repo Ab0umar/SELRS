@@ -20,6 +20,7 @@ export interface LeaveRequest {
   type: LeaveType;
   note?: string;
   approved?: boolean;
+  notAffectCommission?: boolean;
 }
 
 export class LeaveManagementService {
@@ -37,6 +38,7 @@ export class LeaveManagementService {
       type: req.type,
       note: req.note || null,
       approved: req.approved ?? false,
+      notAffectCommission: req.notAffectCommission ?? false,
     });
 
     return result;
@@ -75,6 +77,7 @@ export class LeaveManagementService {
       dateTo: fmtDate(l.dateTo as any),
       type: l.type,
       approved: l.approved,
+      notAffectCommission: l.notAffectCommission,
       note: l.note,
       createdAt: l.createdAt.toISOString(),
     }));

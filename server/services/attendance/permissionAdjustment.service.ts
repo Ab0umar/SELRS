@@ -2,6 +2,14 @@ import { getDb } from "../../db";
 import { attendanceDaily, attendanceLeaves } from "../../../drizzle/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
 
+function dateKey(d: Date | string): string {
+  const dt = d instanceof Date ? d : new Date(d);
+  const y = dt.getUTCFullYear();
+  const m = String(dt.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(dt.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export class PermissionAdjustmentService {
   /**
    * Apply leave adjustments to daily records
@@ -15,6 +23,9 @@ export class PermissionAdjustmentService {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
 
+    const fromKey = dateKey(fromDate);
+    const toKey = dateKey(toDate);
+
     // Get approved leaves for this employee in the date range
     const leaves = await db
       .select()
@@ -23,8 +34,8 @@ export class PermissionAdjustmentService {
         and(
           eq(attendanceLeaves.empCd, empCd),
           eq(attendanceLeaves.approved, true),
-          lte(attendanceLeaves.dateFrom, toDate),
-          gte(attendanceLeaves.dateTo, fromDate),
+          lte(attendanceLeaves.dateFrom, toKey as any),
+          gte(attendanceLeaves.dateTo, fromKey as any),
         ),
       );
 
@@ -32,8 +43,8 @@ export class PermissionAdjustmentService {
 
     // For each leave, update daily records within that date range
     for (const leave of leaves) {
-      const leaveStart = new Date(leave.dateFrom);
-      const leaveEnd = new Date(leave.dateTo);
+      const leaveStartKey = dateKey(leave.dateFrom as any);
+      const leaveEndKey = dateKey(leave.dateTo as any);
 
       // Get daily records within leave date range
       const dailyRecords = await db
@@ -42,29 +53,30 @@ export class PermissionAdjustmentService {
         .where(
           and(
             eq(attendanceDaily.empCd, empCd),
-            gte(attendanceDaily.workDate, leaveStart),
-            lte(attendanceDaily.workDate, leaveEnd),
+            gte(attendanceDaily.workDate, leaveStartKey as any),
+            lte(attendanceDaily.workDate, leaveEndKey as any),
           ),
         );
 
       // Update each daily record to 'leave' status
       for (const daily of dailyRecords) {
-        await db
+        const result: any = await db
           .update(attendanceDaily)
           .set({
             status: "leave",
             leaveType: (leave as any).type ?? null,
+            leaveNotAffectCommission: (leave as any).notAffectCommission ?? false,
             lateMinutes: 0,
             earlyLeaveMin: 0,
           })
           .where(
             and(
               eq(attendanceDaily.empCd, empCd),
-              eq(attendanceDaily.workDate, daily.workDate),
+              eq(attendanceDaily.workDate, dateKey(daily.workDate) as any),
             ),
           );
 
-        updatedCount++;
+        updatedCount += result?.[0]?.affectedRows ?? 0;
       }
     }
 

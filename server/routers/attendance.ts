@@ -148,6 +148,8 @@ export const attendanceRouter = router({
           empCd: e.empCd,
           fullName: e.fullName,
           department: e.department,
+          salaryType: e.salaryType,
+          jobTitle: e.jobTitle,
           active: e.active,
         })),
         total: employees.length,

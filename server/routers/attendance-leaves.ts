@@ -101,6 +101,7 @@ export const attendanceLeavesRoutes = {
         dateTo: z.string(), // YYYY-MM-DD
         type: z.enum(["annual", "sick", "unpaid", "other"]),
         note: z.string().optional(),
+        notAffectCommission: z.boolean().optional(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -137,6 +138,7 @@ export const attendanceLeavesRoutes = {
         type: input.type,
         note: input.note,
         approved: true,
+        notAffectCommission: input.notAffectCommission,
       });
 
       // Recompute daily records immediately since leave is auto-approved
@@ -231,6 +233,7 @@ export const attendanceLeavesRoutes = {
         dateTo: z.string(),
         type: z.enum(["annual", "sick", "unpaid", "other"]),
         note: z.string().optional(),
+        notAffectCommission: z.boolean().optional(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -265,6 +268,7 @@ export const attendanceLeavesRoutes = {
           dateTo: sql.raw(`'${input.dateTo}'`) as any,
           type: input.type,
           note: input.note ?? null,
+          notAffectCommission: input.notAffectCommission ?? false,
         })
         .where(eq(attendanceLeaves.id, input.leaveId));
 
@@ -318,6 +322,7 @@ export const attendanceLeavesRoutes = {
           dateTo: attendanceLeaves.dateTo,
           type: attendanceLeaves.type,
           approved: attendanceLeaves.approved,
+          notAffectCommission: attendanceLeaves.notAffectCommission,
           note: attendanceLeaves.note,
         })
         .from(attendanceLeaves)
