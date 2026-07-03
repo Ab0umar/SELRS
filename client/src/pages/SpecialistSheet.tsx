@@ -324,109 +324,78 @@ export default function SpecialistSheet() {
         .specialist-sheet, .specialist-sheet * { font-weight: 400 !important; text-decoration: none !important; }
         .specialist-sheet th { font-weight: 700 !important; }
         @media print {
-          /* ── Page setup ── */
-          @page { size: A4 portrait; margin: 10mm 8mm 10mm 8mm; }
-          @page :first { margin-top: 6mm; }
+          /* ═══ ONE-PAGE A4 FIT ═══ */
+          @page { size: A4 portrait; margin: 6mm 7mm; }
 
-          /* ── Root reset ── */
           html, body {
-            width: 210mm !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: white !important;
+            width: 210mm !important; height: 297mm !important;
+            margin: 0 !important; padding: 0 !important;
+            background: white !important; overflow: hidden !important;
             -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            color-adjust: exact !important;
+            print-color-adjust: exact !important; color-adjust: exact !important;
           }
           #root, .specialist-page-root {
-            width: 210mm !important;
-            max-width: 210mm !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: visible !important;
-            max-height: none !important;
+            width: 210mm !important; max-width: 210mm !important;
+            height: 297mm !important; max-height: 297mm !important;
+            margin: 0 !important; padding: 0 !important; overflow: hidden !important;
           }
-
-          /* ── Sheet container ── */
           .print-page-center-a4 { width: 210mm !important; margin: 0 !important; }
           .specialist-sheet {
-            width: 210mm !important;
-            max-width: 210mm !important;
-            height: auto !important;
-            box-sizing: border-box !important;
-            padding: 5mm 6mm !important;
-            gap: 6px !important;
-            font-size: 88% !important;
-            line-height: 1.25 !important;
-            border-radius: 0 !important;
-            border: 0 !important;
-            box-shadow: none !important;
+            width: 196mm !important; max-width: 196mm !important;
+            height: 285mm !important; max-height: 285mm !important;
+            overflow: hidden !important; box-sizing: border-box !important;
+            margin: 0 !important; padding: 3mm 4mm !important; gap: 3px !important;
+            font-size: 78% !important; line-height: 1.15 !important;
+            border-radius: 0 !important; border: 0 !important; box-shadow: none !important;
+            display: flex !important; flex-direction: column !important;
           }
 
           /* ── Color preservation ── */
-          .specialist-sheet [class*="bg-\["] {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          .specialist-sheet [class*="bg-\[#003d9b"] {
-            background-color: #003d9b !important;
-            color: #ffffff !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          .specialist-sheet [class*="bg-\[#ba1a1a"] {
-            background-color: #ba1a1a !important;
-            color: #ffffff !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          .specialist-sheet [class*="bg-\[#e7e8ea"],
-          .specialist-sheet [class*="bg-\[#f3f4f6"],
-          .specialist-sheet [class*="bg-\[#F8F9FB"] {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
+          .specialist-sheet * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .specialist-sheet [class*="bg-\[#003d9b"] { background-color: #003d9b !important; color: #ffffff !important; }
+          .specialist-sheet [class*="bg-\[#ba1a1a"] { background-color: #ba1a1a !important; color: #ffffff !important; }
+
+          /* ── No page breaks ── */
+          .specialist-sheet * {
+            page-break-before: avoid !important; break-before: avoid !important;
+            page-break-after: avoid !important; break-after: avoid !important;
+            page-break-inside: avoid !important; break-inside: avoid !important;
           }
 
-          /* ── Page-break control ── */
-          .specialist-sheet section {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
-          .specialist-sheet tr {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
-          .specialist-sheet thead {
-            display: table-header-group !important;
-          }
-          .print-specialist-signatures {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
-          .specialist-sheet footer {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
-          .specialist-sheet p, .specialist-sheet li {
-            orphans: 3 !important;
-            widows: 3 !important;
-          }
-
-          /* ── Typography ── */
+          /* ── Aggressive size reduction ── */
+          .specialist-sheet header { padding-bottom: 2px !important; margin-bottom: 0 !important; }
+          .specialist-sheet section { margin: 0 !important; padding: 0 !important; }
+          .specialist-sheet [class*="px-3"][class*="py-1"] { padding: 1px 4px !important; }
+          .specialist-sheet .p-6 { padding: 2px 3px !important; }
+          .specialist-sheet .p-4 { padding: 2px 3px !important; }
+          .specialist-sheet .p-3 { padding: 1px 3px !important; }
+          .specialist-sheet .p-2 { padding: 1px 2px !important; }
+          .specialist-sheet .p-1 { padding: 1px !important; }
+          .specialist-sheet .p-1\.5 { padding: 1px 2px !important; }
+          .specialist-sheet .gap-8 { gap: 4px !important; }
+          .specialist-sheet .gap-6 { gap: 3px !important; }
+          .specialist-sheet .gap-4 { gap: 3px !important; }
+          .specialist-sheet .gap-3 { gap: 2px !important; }
+          .specialist-sheet .gap-2 { gap: 2px !important; }
+          .specialist-sheet .mb-1, .specialist-sheet .mb-0\.5 { margin-bottom: 0 !important; }
+          .specialist-sheet .mt-2, .specialist-sheet .mt-4 { margin-top: 1px !important; }
+          .specialist-sheet .pt-2, .specialist-sheet .pt-4 { padding-top: 1px !important; }
+          .specialist-sheet table { font-size: 8px !important; }
+          .specialist-sheet th, .specialist-sheet td { padding: 1px 2px !important; line-height: 1.1 !important; }
           .specialist-sheet input:not([type="checkbox"]):not([type="radio"]),
           .specialist-sheet textarea {
-            border: 0 !important;
-            border-bottom: 1px solid #c3c6d6 !important;
-            box-shadow: none !important;
-            outline: 0 !important;
-            background: transparent !important;
-            font-size: 10px !important;
-            line-height: 1.25 !important;
+            border: 0 !important; border-bottom: 1px solid #c3c6d6 !important;
+            box-shadow: none !important; outline: 0 !important; background: transparent !important;
+            font-size: 8px !important; line-height: 1.1 !important;
+            min-height: 0 !important; height: auto !important; padding: 0 !important;
           }
-          .specialist-sheet table { font-size: 9.5px !important; }
-          .specialist-sheet .gap-4 { gap: 4px !important; }
-          .specialist-sheet .p-6 { padding: 4mm !important; }
-          .specialist-sheet .p-3 { padding: 2px !important; }
+          .specialist-sheet [class*="min-h-"] { min-height: 0 !important; }
+          .specialist-sheet [class*="min-h-\[22px\]"] { min-height: 14px !important; }
+          .specialist-sheet [class*="min-h-\[80px\]"] { min-height: 18px !important; }
+          .specialist-sheet [class*="min-h-\[70px\]"] { min-height: 16px !important; }
+          .specialist-sheet .h-10 { height: 18px !important; }
+          .specialist-sheet .w-52 { width: 28mm !important; }
+          .specialist-sheet .h-52 { height: 28mm !important; }
 
           /* ── Grid layouts ── */
           .print-specialist-visual-grid { display: grid !important; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr) !important; }

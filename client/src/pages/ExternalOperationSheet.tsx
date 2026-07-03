@@ -270,111 +270,80 @@ export default function ExternalOperationSheet() {
         .external-sheet, .external-sheet * { font-weight: 400 !important; text-decoration: none !important; }
         .external-sheet th { font-weight: 700 !important; }
         @media print {
-          /* ── Page setup ── */
-          @page { size: A4 portrait; margin: 10mm 8mm 10mm 8mm; }
-          @page :first { margin-top: 6mm; }
+          /* ═══ ONE-PAGE A4 FIT ═══ */
+          @page { size: A4 portrait; margin: 6mm 7mm; }
 
-          /* ── Root reset ── */
           html, body {
-            width: 210mm !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: white !important;
+            width: 210mm !important; height: 297mm !important;
+            margin: 0 !important; padding: 0 !important;
+            background: white !important; overflow: hidden !important;
             -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            color-adjust: exact !important;
+            print-color-adjust: exact !important; color-adjust: exact !important;
           }
           #root, .external-page-root {
-            width: 210mm !important;
-            max-width: 210mm !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: visible !important;
-            max-height: none !important;
+            width: 210mm !important; max-width: 210mm !important;
+            height: 297mm !important; max-height: 297mm !important;
+            margin: 0 !important; padding: 0 !important; overflow: hidden !important;
           }
-
-          /* ── Sheet container ── */
           .print-page-center-a4 { width: 210mm !important; margin: 0 !important; }
           .external-sheet {
-            width: 210mm !important;
-            max-width: 210mm !important;
-            height: auto !important;
-            box-sizing: border-box !important;
-            padding: 5mm 6mm !important;
-            gap: 6px !important;
-            font-size: 88% !important;
-            line-height: 1.25 !important;
-            border-radius: 0 !important;
-            border: 0 !important;
-            box-shadow: none !important;
+            width: 196mm !important; max-width: 196mm !important;
+            height: 285mm !important; max-height: 285mm !important;
+            overflow: hidden !important; box-sizing: border-box !important;
+            margin: 0 !important; padding: 3mm 4mm !important; gap: 3px !important;
+            font-size: 78% !important; line-height: 1.15 !important;
+            border-radius: 0 !important; border: 0 !important; box-shadow: none !important;
+            display: flex !important; flex-direction: column !important;
           }
 
           /* ── Color preservation ── */
-          .external-sheet [class*="bg-\["] {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          .external-sheet [class*="bg-\[#003d9b"] {
-            background-color: #003d9b !important;
-            color: #ffffff !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          .external-sheet [class*="bg-\[#ba1a1a"] {
-            background-color: #ba1a1a !important;
-            color: #ffffff !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          .external-sheet [class*="bg-\[#e7e8ea"],
-          .external-sheet [class*="bg-\[#f3f4f6"],
-          .external-sheet [class*="bg-\[#F8F9FB"] {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          /* Pentacam warning badges */
+          .external-sheet * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .external-sheet [class*="bg-\[#003d9b"] { background-color: #003d9b !important; color: #ffffff !important; }
+          .external-sheet [class*="bg-\[#ba1a1a"] { background-color: #ba1a1a !important; color: #ffffff !important; }
           .external-sheet [class*="bg-\[#fef2f2"],
-          .external-sheet [class*="bg-\[#fee2e2"] {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
+          .external-sheet [class*="bg-\[#fee2e2"] { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+          /* ── No page breaks ── */
+          .external-sheet * {
+            page-break-before: avoid !important; break-before: avoid !important;
+            page-break-after: avoid !important; break-after: avoid !important;
+            page-break-inside: avoid !important; break-inside: avoid !important;
           }
 
-          /* ── Page-break control ── */
-          .external-sheet section {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
-          .external-sheet tr {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
-          .external-sheet thead {
-            display: table-header-group !important;
-          }
-          .print-external-signatures {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
-          .external-sheet p, .external-sheet li {
-            orphans: 3 !important;
-            widows: 3 !important;
-          }
-
-          /* ── Typography ── */
+          /* ── Aggressive size reduction ── */
+          .external-sheet header { padding-bottom: 2px !important; margin-bottom: 0 !important; }
+          .external-sheet section { margin: 0 !important; padding: 0 !important; }
+          .external-sheet [class*="px-3"][class*="py-1"] { padding: 1px 4px !important; }
+          .external-sheet .p-6 { padding: 2px 3px !important; }
+          .external-sheet .p-4 { padding: 2px 3px !important; }
+          .external-sheet .p-3 { padding: 1px 3px !important; }
+          .external-sheet .p-2 { padding: 1px 2px !important; }
+          .external-sheet .p-1 { padding: 1px !important; }
+          .external-sheet .p-1\.5 { padding: 1px 2px !important; }
+          .external-sheet .gap-8 { gap: 4px !important; }
+          .external-sheet .gap-6 { gap: 3px !important; }
+          .external-sheet .gap-4 { gap: 3px !important; }
+          .external-sheet .gap-3 { gap: 2px !important; }
+          .external-sheet .gap-2 { gap: 2px !important; }
+          .external-sheet .mb-1, .external-sheet .mb-0\.5 { margin-bottom: 0 !important; }
+          .external-sheet .mt-2, .external-sheet .mt-4 { margin-top: 1px !important; }
+          .external-sheet .pt-2, .external-sheet .pt-4 { padding-top: 1px !important; }
+          .external-sheet table { font-size: 8px !important; }
+          .external-sheet th, .external-sheet td { padding: 1px 2px !important; line-height: 1.1 !important; }
           .external-sheet input:not([type="checkbox"]):not([type="radio"]),
           .external-sheet textarea {
-            border: 0 !important;
-            border-bottom: 1px solid #c3c6d6 !important;
-            box-shadow: none !important;
-            outline: 0 !important;
-            background: transparent !important;
-            font-size: 10px !important;
-            line-height: 1.25 !important;
+            border: 0 !important; border-bottom: 1px solid #c3c6d6 !important;
+            box-shadow: none !important; outline: 0 !important; background: transparent !important;
+            font-size: 8px !important; line-height: 1.1 !important;
+            min-height: 0 !important; height: auto !important; padding: 0 !important;
           }
-          .external-sheet table { font-size: 9.5px !important; }
-          .external-sheet .gap-4 { gap: 4px !important; }
-          .external-sheet .p-6 { padding: 4mm !important; }
-          .external-sheet .p-3 { padding: 2px !important; }
+          .external-sheet [class*="min-h-"] { min-height: 0 !important; }
+          .external-sheet [class*="min-h-\[22px\]"] { min-height: 14px !important; }
+          .external-sheet [class*="min-h-\[80px\]"] { min-height: 18px !important; }
+          .external-sheet [class*="min-h-\[70px\]"] { min-height: 16px !important; }
+          .external-sheet .h-10 { height: 18px !important; }
+          .external-sheet .w-52 { width: 28mm !important; }
+          .external-sheet .h-52 { height: 28mm !important; }
 
           /* ── Grid layouts ── */
           .print-external-signatures { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
