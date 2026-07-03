@@ -324,20 +324,118 @@ export default function SpecialistSheet() {
         .specialist-sheet, .specialist-sheet * { font-weight: 400 !important; text-decoration: none !important; }
         .specialist-sheet th { font-weight: 700 !important; }
         @media print {
-          .print-page-center-a4 { width: 210mm !important; margin: 0 auto !important; }
-          @page { size: A4 portrait; margin: 8mm; }
-          html, body { width: 100% !important; margin: 0 !important; padding: 0 !important; background: white !important; }
-          .specialist-page-root { overflow: visible !important; max-height: none !important; }
-          .specialist-sheet { width: 210mm !important; max-width: 210mm !important; height: auto !important; box-sizing: border-box !important; padding: 6mm !important; gap: 8px !important; font-size: 90% !important; line-height: 1.2 !important; border-radius: 0 !important; border: 0 !important; box-shadow: none !important; }
-          .specialist-sheet section, .specialist-sheet footer, .specialist-sheet table, .specialist-sheet tr, .specialist-sheet td, .specialist-sheet th { page-break-inside: avoid !important; }
-          .specialist-sheet table { font-size: 10px !important; }
-          .specialist-sheet input:not([type="checkbox"]):not([type="radio"]), .specialist-sheet textarea { border: 0 !important; border-bottom: 1px solid #c3c6d6 !important; box-shadow: none !important; outline: 0 !important; background: transparent !important; font-size: 11px !important; }
-          .specialist-sheet .gap-4 { gap: 5px !important; }
-          .specialist-sheet .p-6 { padding: 5mm !important; }
-          .specialist-sheet .p-3 { padding: 3px !important; }
+          /* ── Page setup ── */
+          @page { size: A4 portrait; margin: 10mm 8mm 10mm 8mm; }
+          @page :first { margin-top: 6mm; }
+
+          /* ── Root reset ── */
+          html, body {
+            width: 210mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+          #root, .specialist-page-root {
+            width: 210mm !important;
+            max-width: 210mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            max-height: none !important;
+          }
+
+          /* ── Sheet container ── */
+          .print-page-center-a4 { width: 210mm !important; margin: 0 !important; }
+          .specialist-sheet {
+            width: 210mm !important;
+            max-width: 210mm !important;
+            height: auto !important;
+            box-sizing: border-box !important;
+            padding: 5mm 6mm !important;
+            gap: 6px !important;
+            font-size: 88% !important;
+            line-height: 1.25 !important;
+            border-radius: 0 !important;
+            border: 0 !important;
+            box-shadow: none !important;
+          }
+
+          /* ── Color preservation ── */
+          .specialist-sheet [class*="bg-\["] {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .specialist-sheet [class*="bg-\[#003d9b"] {
+            background-color: #003d9b !important;
+            color: #ffffff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .specialist-sheet [class*="bg-\[#ba1a1a"] {
+            background-color: #ba1a1a !important;
+            color: #ffffff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .specialist-sheet [class*="bg-\[#e7e8ea"],
+          .specialist-sheet [class*="bg-\[#f3f4f6"],
+          .specialist-sheet [class*="bg-\[#F8F9FB"] {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          /* ── Page-break control ── */
+          .specialist-sheet section {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+          .specialist-sheet tr {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+          .specialist-sheet thead {
+            display: table-header-group !important;
+          }
+          .print-specialist-signatures {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+          .specialist-sheet footer {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+          .specialist-sheet p, .specialist-sheet li {
+            orphans: 3 !important;
+            widows: 3 !important;
+          }
+
+          /* ── Typography ── */
+          .specialist-sheet input:not([type="checkbox"]):not([type="radio"]),
+          .specialist-sheet textarea {
+            border: 0 !important;
+            border-bottom: 1px solid #c3c6d6 !important;
+            box-shadow: none !important;
+            outline: 0 !important;
+            background: transparent !important;
+            font-size: 10px !important;
+            line-height: 1.25 !important;
+          }
+          .specialist-sheet table { font-size: 9.5px !important; }
+          .specialist-sheet .gap-4 { gap: 4px !important; }
+          .specialist-sheet .p-6 { padding: 4mm !important; }
+          .specialist-sheet .p-3 { padding: 2px !important; }
+
+          /* ── Grid layouts ── */
           .print-specialist-visual-grid { display: grid !important; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr) !important; }
           .print-specialist-footer-grid { display: grid !important; grid-template-columns: minmax(0, 8fr) minmax(0, 4fr) !important; }
           .print-specialist-signatures { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+
+          /* ── Borders ── */
+          .specialist-sheet [class*="border-\[#c3c6d6"] { border-color: #c3c6d6 !important; }
+          .specialist-sheet [class*="border-\[#003d9b"] { border-color: #003d9b !important; }
         }
       `}</style>
 

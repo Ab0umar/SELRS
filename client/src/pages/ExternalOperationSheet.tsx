@@ -270,17 +270,119 @@ export default function ExternalOperationSheet() {
         .external-sheet, .external-sheet * { font-weight: 400 !important; text-decoration: none !important; }
         .external-sheet th { font-weight: 700 !important; }
         @media print {
-          @page { size: A4 portrait; margin: 8mm; }
-          html, body { width: 100% !important; margin: 0 !important; padding: 0 !important; background: white !important; }
-          .external-page-root { overflow: visible !important; max-height: none !important; }
-          .external-sheet { width: 210mm !important; max-width: 210mm !important; height: auto !important; box-sizing: border-box !important; padding: 6mm !important; gap: 8px !important; font-size: 90% !important; line-height: 1.2 !important; border-radius: 0 !important; border: 0 !important; box-shadow: none !important; }
-          .external-sheet input:not([type="checkbox"]):not([type="radio"]), .external-sheet textarea { border: 0 !important; border-bottom: 1px solid #c3c6d6 !important; box-shadow: none !important; outline: 0 !important; background: transparent !important; font-size: 11px !important; }
-          .external-sheet table { font-size: 10px !important; }
-          .external-sheet .gap-4 { gap: 5px !important; }
-          .external-sheet .p-6 { padding: 5mm !important; }
-          .external-sheet .p-3 { padding: 3px !important; }
+          /* ── Page setup ── */
+          @page { size: A4 portrait; margin: 10mm 8mm 10mm 8mm; }
+          @page :first { margin-top: 6mm; }
+
+          /* ── Root reset ── */
+          html, body {
+            width: 210mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+          #root, .external-page-root {
+            width: 210mm !important;
+            max-width: 210mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            max-height: none !important;
+          }
+
+          /* ── Sheet container ── */
+          .print-page-center-a4 { width: 210mm !important; margin: 0 !important; }
+          .external-sheet {
+            width: 210mm !important;
+            max-width: 210mm !important;
+            height: auto !important;
+            box-sizing: border-box !important;
+            padding: 5mm 6mm !important;
+            gap: 6px !important;
+            font-size: 88% !important;
+            line-height: 1.25 !important;
+            border-radius: 0 !important;
+            border: 0 !important;
+            box-shadow: none !important;
+          }
+
+          /* ── Color preservation ── */
+          .external-sheet [class*="bg-\["] {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .external-sheet [class*="bg-\[#003d9b"] {
+            background-color: #003d9b !important;
+            color: #ffffff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .external-sheet [class*="bg-\[#ba1a1a"] {
+            background-color: #ba1a1a !important;
+            color: #ffffff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .external-sheet [class*="bg-\[#e7e8ea"],
+          .external-sheet [class*="bg-\[#f3f4f6"],
+          .external-sheet [class*="bg-\[#F8F9FB"] {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          /* Pentacam warning badges */
+          .external-sheet [class*="bg-\[#fef2f2"],
+          .external-sheet [class*="bg-\[#fee2e2"] {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          /* ── Page-break control ── */
+          .external-sheet section {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+          .external-sheet tr {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+          .external-sheet thead {
+            display: table-header-group !important;
+          }
+          .print-external-signatures {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+          .external-sheet p, .external-sheet li {
+            orphans: 3 !important;
+            widows: 3 !important;
+          }
+
+          /* ── Typography ── */
+          .external-sheet input:not([type="checkbox"]):not([type="radio"]),
+          .external-sheet textarea {
+            border: 0 !important;
+            border-bottom: 1px solid #c3c6d6 !important;
+            box-shadow: none !important;
+            outline: 0 !important;
+            background: transparent !important;
+            font-size: 10px !important;
+            line-height: 1.25 !important;
+          }
+          .external-sheet table { font-size: 9.5px !important; }
+          .external-sheet .gap-4 { gap: 4px !important; }
+          .external-sheet .p-6 { padding: 4mm !important; }
+          .external-sheet .p-3 { padding: 2px !important; }
+
+          /* ── Grid layouts ── */
           .print-external-signatures { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
           .print-external-footer-grid { display: grid !important; grid-template-columns: minmax(0, 8fr) minmax(0, 4fr) !important; }
+
+          /* ── Borders ── */
+          .external-sheet [class*="border-\[#c3c6d6"] { border-color: #c3c6d6 !important; }
+          .external-sheet [class*="border-\[#003d9b"] { border-color: #003d9b !important; }
         }
       `}</style>
 

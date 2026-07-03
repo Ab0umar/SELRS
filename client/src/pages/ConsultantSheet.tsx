@@ -769,53 +769,112 @@ export default function ConsultantSheet() {
         }
         .consultant-sheet-inner th { font-weight: 700 !important; }
         @media print {
-          .print-page-break { page-break-before: always !important; break-before: page !important; }
-          .print-page-center-a4 {
-            width: 210mm !important;
-            margin: 0 auto !important;
-          }
-          @page { size: A4 portrait; margin: 8mm; }
+          /* ── Page setup ── */
+          @page { size: A4 portrait; margin: 10mm 8mm 10mm 8mm; }
+          @page :first { margin-top: 6mm; }
+
+          /* ── Root reset ── */
           html, body {
-            width: 100% !important;
+            width: 210mm !important;
             margin: 0 !important;
             padding: 0 !important;
             background: white !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
           }
-          #root,
-          .consultant-page-root {
-            width: 100% !important;
-            max-width: 100% !important;
+          #root, .consultant-page-root {
+            width: 210mm !important;
+            max-width: 210mm !important;
             margin: 0 !important;
             padding: 0 !important;
-          }
-          .consultant-page-root.sheet-layout {
             overflow: visible !important;
             max-height: none !important;
-            font-size: 100% !important;
-            page-break-inside: auto !important;
-            break-inside: auto !important;
           }
+
+          /* ── Sheet container ── */
+          .print-page-center-a4 { width: 210mm !important; margin: 0 !important; }
+          main[data-mobile-pdf-root] { width: 210mm !important; max-width: 210mm !important; margin: 0 !important; padding: 0 !important; }
           .consultant-main-print-root .consultant-sheet-inner {
             width: 210mm !important;
             max-width: 210mm !important;
             height: auto !important;
             min-height: 0 !important;
             box-sizing: border-box !important;
-            margin: 0 auto !important;
-            padding: 6mm !important;
-            gap: 8px !important;
+            margin: 0 !important;
+            padding: 5mm 6mm !important;
+            gap: 6px !important;
             border: 0 !important;
             box-shadow: none !important;
-            font-size: 90% !important;
-            line-height: 1.2 !important;
+            font-size: 88% !important;
+            line-height: 1.25 !important;
             border-radius: 0 !important;
           }
-          main[data-mobile-pdf-root] {
-            width: 210mm !important;
-            max-width: 210mm !important;
-            margin: 0 auto !important;
-            padding: 0 !important;
+
+          /* ── Color preservation ── */
+          .consultant-sheet-inner [class*="bg-\["] {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
+          /* Section headers keep their blue background */
+          .consultant-sheet-inner [class*="bg-\[#003d9b"] {
+            background-color: #003d9b !important;
+            color: #ffffff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .consultant-sheet-inner [class*="bg-\[#ba1a1a"] {
+            background-color: #ba1a1a !important;
+            color: #ffffff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          /* Zebra rows */
+          .consultant-sheet-inner [class*="bg-\[#f3f4f6"],
+          .consultant-sheet-inner [class*="bg-\[#F8F9FB"],
+          .consultant-sheet-inner [class*="bg-\[#e7e8ea"] {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          /* OD row tint */
+          .consultant-sheet-inner [class*="bg-\[rgba(0,61,155"] {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          /* ── Page-break control ── */
+          .print-page-break { page-break-before: always !important; break-before: page !important; }
+          /* Sections should not split mid-way */
+          .consultant-sheet-inner section {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+          /* Keep table rows together */
+          .consultant-sheet-inner tr {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+          /* Table headers repeat on new pages */
+          .consultant-sheet-inner thead {
+            display: table-header-group !important;
+          }
+          /* Signatures block must stay on one page */
+          .print-consultant-signatures {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+          /* Diagrams block stays together */
+          .print-consultant-diagrams {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+          /* Orphan/widow control */
+          .consultant-sheet-inner p, .consultant-sheet-inner li {
+            orphans: 3 !important;
+            widows: 3 !important;
+          }
+
+          /* ── Typography ── */
           .consultant-sheet-inner input:not([type="checkbox"]):not([type="radio"]),
           .consultant-sheet-inner textarea {
             border: 0 !important;
@@ -823,19 +882,24 @@ export default function ConsultantSheet() {
             box-shadow: none !important;
             outline: 0 !important;
             background: transparent !important;
-            font-size: 11px !important;
-            line-height: 1.2 !important;
+            font-size: 10px !important;
+            line-height: 1.25 !important;
           }
-          .consultant-sheet-inner table { font-size: 10px !important; }
-          .consultant-sheet-inner .gap-4 { gap: 5px !important; }
-          .consultant-sheet-inner .gap-6 { gap: 8px !important; }
-          .consultant-sheet-inner .p-6 { padding: 5mm !important; }
-          .consultant-sheet-inner .p-4 { padding: 4px !important; }
-          .consultant-sheet-inner .p-3 { padding: 3px !important; }
+          .consultant-sheet-inner table { font-size: 9.5px !important; }
+          .consultant-sheet-inner .gap-4 { gap: 4px !important; }
+          .consultant-sheet-inner .gap-6 { gap: 6px !important; }
+          .consultant-sheet-inner .p-6 { padding: 4mm !important; }
+          .consultant-sheet-inner .p-4 { padding: 3px !important; }
+          .consultant-sheet-inner .p-3 { padding: 2px !important; }
           .consultant-sheet-inner .p-2 { padding: 2px !important; }
-          .consultant-sheet-inner .min-h-\\[80mm\\] { min-height: 60mm !important; }
-          .consultant-sheet-inner .w-52 { width: 44mm !important; }
-          .consultant-sheet-inner .h-52 { height: 44mm !important; }
+
+          /* ── Diagrams ── */
+          .consultant-sheet-inner .min-h-\[80mm\] { min-height: 55mm !important; }
+          .consultant-sheet-inner .w-52 { width: 42mm !important; }
+          .consultant-sheet-inner .h-52 { height: 42mm !important; }
+          .print-consultant-diagrams .grid { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; }
+
+          /* ── Grid layouts ── */
           .print-consultant-visual-grid {
             display: grid !important;
             grid-template-columns: minmax(0, 8fr) minmax(0, 4fr) !important;
@@ -844,14 +908,20 @@ export default function ConsultantSheet() {
             display: grid !important;
             grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
           }
-          .print-consultant-questions table { font-size: 9px !important; }
+
+          /* ── Medical history table ── */
+          .print-consultant-questions table { font-size: 8.5px !important; }
           .print-consultant-questions th,
           .print-consultant-questions td { padding: 2px 3px !important; line-height: 1.1 !important; }
-          .print-consultant-questions input[type="checkbox"] { width: 11px !important; height: 11px !important; }
-          .print-consultant-diagrams {
-            display: block !important;
+          .print-consultant-questions input[type="checkbox"] { width: 10px !important; height: 10px !important; }
+
+          /* ── Borders ── */
+          .consultant-sheet-inner [class*="border-\[#c3c6d6"] {
+            border-color: #c3c6d6 !important;
           }
-          .print-consultant-diagrams .grid { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; }
+          .consultant-sheet-inner [class*="border-\[#003d9b"] {
+            border-color: #003d9b !important;
+          }
         }
       `}</style>
 
