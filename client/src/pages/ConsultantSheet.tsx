@@ -444,44 +444,74 @@ export default function ConsultantSheet() {
   const consultantTemplate = designerConfig.templates.consultant;
 
   const renderSheetBody = (readOnly = false) => {
-    const ctd = "p-1 border border-[#c3c6d6]";
+    const ctd = "p-1.5 border border-[#c3c6d6] text-sm";
     const inp =
-      "w-full text-center bg-transparent border-0 border-b border-solid border-[#737685] focus:outline-none focus:border-[#003d9b] py-1 text-sm";
+      "w-full text-center bg-transparent border-0 focus:outline-none focus:ring-0 py-0.5 text-sm leading-tight";
     return (
     <fieldset disabled={embeddedInPatientHub || readOnly} className="border-0 p-0 m-0 min-w-0 disabled:opacity-95 consultant-main-print-root">
-      <div className="consultant-sheet-inner bg-white text-[#191c1e] font-sans p-8 print:p-[10mm] print:border-0 print:shadow-none border border-[#c3c6d6] shadow-sm flex flex-col gap-5 w-[210mm] max-w-full mx-auto" data-purpose="main-document" dir="rtl">
+      <div className="consultant-sheet-inner bg-white text-[#191c1e] font-sans p-6 print:p-[8mm] print:border-0 print:shadow-none border border-[#c3c6d6] shadow-md flex flex-col gap-4 w-[210mm] max-w-full mx-auto rounded-lg" data-purpose="main-document" dir="rtl">
         <SheetCenterHeader
           titleEn="Consultant Sheet"
           titleAr="شيت الاستشاري"
         />
         {/* BEGIN: Patient Demographics */}
-        <section className="print-consultant-patient-grid p-4 bg-[#f3f4f6] rounded-xl border border-[#c3c6d6] flex flex-wrap items-center gap-x-6 gap-y-2 text-sm" data-purpose="patient-info" dir="rtl">
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">الاسم:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[160px] px-1 min-h-5">{formData.patientName}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">تاريخ الميلاد:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[80px] px-1 min-h-5">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">السن:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[40px] px-1 min-h-5">{formData.age}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">الوظيفة:</span> <input type="text" dir="rtl" className="border-none p-0 outline-none w-28 text-right border-b border-solid border-[#c3c6d6] text-sm focus:border-[#003d9b] bg-transparent" value={formData.job} onChange={e => setFormData(p => ({ ...p, job: e.target.value }))} /></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">تاريخ الفحص:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[80px] px-1 min-h-5">{new Date().toLocaleDateString("en-GB")}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">رقم التليفون:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[100px] px-1 min-h-5">{formData.phone}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">العنوان:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[140px] px-1 min-h-5">{formData.address}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">كود العميل:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[70px] px-1 min-h-5">{formData.code}</span></p>
-          <p className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">الاستشاري:</span> <span className="border-b border-solid border-[#c3c6d6] min-w-[140px] px-1 min-h-5">{signatures.doctor || "أ.د محمد السعني غرابة"}</span></p>
+        <section className="print-consultant-patient-grid" data-purpose="patient-info">
+          <div className="bg-[#003d9b] text-white text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-t-md">بيانات المريض — Patient Information</div>
+          <div className="border border-[#c3c6d6] border-t-0 rounded-b-md p-3 bg-[#f8f9fb]">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-sm" dir="rtl">
+              <div className="col-span-2 md:col-span-1">
+                <span className="text-[10px] text-[#434654] font-semibold block mb-0.5">الاسم</span>
+                <div className="border-b border-[#c3c6d6] min-h-[22px] font-semibold text-[#003d9b] pb-0.5 text-right" dir="rtl">{formData.patientName}</div>
+              </div>
+              <div>
+                <span className="text-[10px] text-[#434654] font-semibold block mb-0.5">تاريخ الميلاد</span>
+                <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5 text-right" dir="ltr">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</div>
+              </div>
+              <div>
+                <span className="text-[10px] text-[#434654] font-semibold block mb-0.5">السن</span>
+                <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5 text-right" dir="ltr">{formData.age}</div>
+              </div>
+              <div>
+                <span className="text-[10px] text-[#434654] font-semibold block mb-0.5">كود العميل</span>
+                <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5 font-mono text-[#526069] text-right" dir="ltr">{formData.code}</div>
+              </div>
+              <div className="col-span-2">
+                <span className="text-[10px] text-[#434654] font-semibold block mb-0.5">العنوان</span>
+                <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5 text-right" dir="rtl">{formData.address}</div>
+              </div>
+              <div>
+                <span className="text-[10px] text-[#434654] font-semibold block mb-0.5">رقم التليفون</span>
+                <div className="border-b border-[#c3c6d6] min-h-[22px] pb-0.5 text-right" dir="ltr">{formData.phone}</div>
+              </div>
+              <div>
+                <span className="text-[10px] text-[#434654] font-semibold block mb-0.5">الوظيفة</span>
+                <input dir="rtl" className="w-full border-b border-[#c3c6d6] bg-transparent focus:outline-none focus:border-[#003d9b] text-sm min-h-[22px] pb-0.5 text-right" value={formData.job} onChange={e => setFormData(p => ({ ...p, job: e.target.value }))} />
+              </div>
+            </div>
+            <div className="mt-2 pt-2 border-t border-[#c3c6d6] flex items-center gap-3 text-sm" dir="rtl">
+              <span className="text-[10px] text-[#434654] font-semibold">الاستشاري:</span>
+              <span className="font-semibold text-[#003d9b]">{signatures.doctor || "أ.د محمد السعني غرابة"}</span>
+              <span className="mr-auto text-[10px] text-[#737685]">تاريخ الفحص: {new Date().toLocaleDateString("en-GB")}</span>
+            </div>
+          </div>
         </section>
         {/* END: Patient Demographics */}
 
         {/* BEGIN: Medical History Checklist */}
         <section className="print-consultant-questions" data-purpose="medical-history" dir="rtl">
-          <table className="w-full border-collapse border border-[#c3c6d6] rounded-lg overflow-hidden text-sm">
-            <thead className="bg-[#e7e8ea]">
+          <div className="bg-[#526069] text-white text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-t-md">التاريخ المرضي — Medical History</div>
+          <table className="w-full border-collapse border border-[#c3c6d6] border-t-0 rounded-b-md overflow-hidden text-sm">
+            <thead className="bg-[#e7e8ea] text-xs">
               <tr>
-                <th className="w-12 p-2 border border-[#c3c6d6]">لا</th>
-                <th className="w-12 p-2 border border-[#c3c6d6]">نعم</th>
-                <th className="p-2 border border-[#c3c6d6] text-right">التاريخ المرضي</th>
-                <th className="w-12 p-2 border border-[#c3c6d6]">لا</th>
-                <th className="w-12 p-2 border border-[#c3c6d6]">نعم</th>
-                <th className="p-2 border border-[#c3c6d6] text-right">التاريخ المرضي</th>
-                <th className="w-12 p-2 border border-[#c3c6d6]">لا</th>
-                <th className="w-12 p-2 border border-[#c3c6d6]">نعم</th>
-                <th className="p-2 border border-[#c3c6d6] text-right">التاريخ المرضي</th>
+                <th className="w-10 p-1.5 border border-[#c3c6d6] text-center">لا</th>
+                <th className="w-10 p-1.5 border border-[#c3c6d6] text-center">نعم</th>
+                <th className="p-1.5 border border-[#c3c6d6] text-right">التاريخ المرضي</th>
+                <th className="w-10 p-1.5 border border-[#c3c6d6] text-center">لا</th>
+                <th className="w-10 p-1.5 border border-[#c3c6d6] text-center">نعم</th>
+                <th className="p-1.5 border border-[#c3c6d6] text-right">التاريخ المرضي</th>
+                <th className="w-10 p-1.5 border border-[#c3c6d6] text-center">لا</th>
+                <th className="w-10 p-1.5 border border-[#c3c6d6] text-center">نعم</th>
+                <th className="p-1.5 border border-[#c3c6d6] text-right">التاريخ المرضي</th>
               </tr>
             </thead>
             <tbody>
@@ -491,19 +521,19 @@ export default function ConsultantSheet() {
                 ["أمراض عامة؟", "أمراض بالعين؟", "حمل؟"],
                 ["قرنية مخروطية بالعائلة؟", "ماء زرقاء؟", "بديل دموع؟"],
               ].map((row, rowIndex) => (
-                <tr key={rowIndex}>
+                <tr key={rowIndex} className={rowIndex % 2 === 0 ? "bg-white" : "bg-[#f8f9fb]"}>
                   {row.map((q, colIndex) => (
                     q ? (
                       <Fragment key={`${rowIndex}-${colIndex}`}>
-                        <td className="text-center border border-[#c3c6d6]"><input type="checkbox" className="w-4 h-4 rounded text-[#003d9b]" /></td>
-                        <td className="text-center border border-[#c3c6d6]"><input type="checkbox" className="w-4 h-4 rounded text-[#003d9b]" /></td>
-                        <td className="p-1.5 border border-[#c3c6d6] text-right">{q}</td>
+                        <td className="text-center border border-[#c3c6d6] p-1"><input type="checkbox" className="w-3.5 h-3.5 accent-[#003d9b]" /></td>
+                        <td className="text-center border border-[#c3c6d6] p-1"><input type="checkbox" className="w-3.5 h-3.5 accent-[#003d9b]" /></td>
+                        <td className="p-1.5 border border-[#c3c6d6] text-right text-xs">{q}</td>
                       </Fragment>
                     ) : (
                       <Fragment key={`${rowIndex}-${colIndex}`}>
-                        <td className="border border-[#c3c6d6] bg-[#f8f9fb]" />
-                        <td className="border border-[#c3c6d6] bg-[#f8f9fb]" />
-                        <td className="border border-[#c3c6d6] bg-[#f8f9fb]" />
+                        <td className="border border-[#c3c6d6] bg-[#f0f1f3]" />
+                        <td className="border border-[#c3c6d6] bg-[#f0f1f3]" />
+                        <td className="border border-[#c3c6d6] bg-[#f0f1f3]" />
                       </Fragment>
                     )
                   ))}
@@ -515,21 +545,27 @@ export default function ConsultantSheet() {
         {/* END: Medical History Checklist */}
 
         {/* BEGIN: Visual Acuity + Dominant Eye */}
-        <section className="print-consultant-visual-grid grid grid-cols-1 lg:grid-cols-12 gap-6 ltr-content" data-purpose="examination-section" dir="ltr">
-          <div className="lg:col-span-7">
-            <table className="w-full text-center border-collapse">
+        <section className="print-consultant-visual-grid grid grid-cols-1 lg:grid-cols-12 gap-3 ltr-content" data-purpose="examination-section" dir="ltr">
+          <div className="lg:col-span-8">
+            <div className="bg-[#003d9b] text-white text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-t-md">Visual Acuity &amp; IOP</div>
+            <table className="w-full text-center border-collapse border border-[#c3c6d6] border-t-0 rounded-b-md overflow-hidden">
               <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
-                <tr><th className={ctd}>Eye</th><th className={ctd}>UCVA</th><th className={ctd}>BCVA</th><th className={ctd}>IOP</th></tr>
+                <tr>
+                  <th className={ctd}>Eye</th>
+                  <th className={ctd}>UCVA</th>
+                  <th className={ctd}>BCVA</th>
+                  <th className={ctd}>IOP (mmHg)</th>
+                </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td className={`${ctd} text-[#003d9b] bg-[#003d9b]/5`}>OD</td>
+                <tr className="bg-[#003d9b]/5">
+                  <td className={`${ctd} font-bold text-[#003d9b]`}>OD (Right)</td>
                   <td className={ctd}><input className={inp} value={formData.ucvaOD} onChange={e => setFormData(p => ({ ...p, ucvaOD: e.target.value }))} /></td>
                   <td className={ctd}><input className={inp} value={formData.bcvaOD} onChange={e => setFormData(p => ({ ...p, bcvaOD: e.target.value }))} /></td>
                   <td className={ctd}><input className={inp} value={formData.iopOD} onChange={e => setFormData(p => ({ ...p, iopOD: e.target.value }))} /></td>
                 </tr>
-                <tr>
-                  <td className={`${ctd} text-[#526069] bg-[#f3f4f6]`}>OS</td>
+                <tr className="bg-[#f3f4f6]">
+                  <td className={`${ctd} font-bold text-[#526069]`}>OS (Left)</td>
                   <td className={ctd}><input className={inp} value={formData.ucvaOS} onChange={e => setFormData(p => ({ ...p, ucvaOS: e.target.value }))} /></td>
                   <td className={ctd}><input className={inp} value={formData.bcvaOS} onChange={e => setFormData(p => ({ ...p, bcvaOS: e.target.value }))} /></td>
                   <td className={ctd}><input className={inp} value={formData.iopOS} onChange={e => setFormData(p => ({ ...p, iopOS: e.target.value }))} /></td>
@@ -537,28 +573,38 @@ export default function ConsultantSheet() {
               </tbody>
             </table>
           </div>
-          <div className="lg:col-span-5 flex items-center justify-center gap-8 text-sm font-bold border border-[#c3c6d6] rounded-lg p-2 h-full">
-            <span className="text-[#003d9b] uppercase">Dominant Eye:</span>
-            <label className="flex items-center gap-2"><input type="radio" name="dominant" checked={formData.dominantEye === "OD"} onChange={() => setFormData(p => ({ ...p, dominantEye: "OD" }))} /> OD</label>
-            <label className="flex items-center gap-2"><input type="radio" name="dominant" checked={formData.dominantEye === "OS"} onChange={() => setFormData(p => ({ ...p, dominantEye: "OS" }))} /> OS</label>
+          <div className="lg:col-span-4">
+            <div className="bg-[#003d9b] text-white text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-t-md">Dominant Eye</div>
+            <div className="border border-[#c3c6d6] border-t-0 rounded-b-md p-3 flex items-center justify-center gap-6 text-sm font-bold bg-[#f8f9fb] h-[calc(100%-28px)]">
+              <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="dominant" checked={formData.dominantEye === "OD"} onChange={() => setFormData(p => ({ ...p, dominantEye: "OD" }))} className="accent-[#003d9b]" /> <span className="text-[#003d9b]">OD</span></label>
+              <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="dominant" checked={formData.dominantEye === "OS"} onChange={() => setFormData(p => ({ ...p, dominantEye: "OS" }))} className="accent-[#003d9b]" /> <span className="text-[#526069]">OS</span></label>
+            </div>
           </div>
         </section>
         {/* END: Visual Acuity + Dominant Eye */}
 
         {/* BEGIN: Clinical Refraction */}
         <section className="ltr-content" dir="ltr">
-          <table className="w-full text-center border-collapse">
+          <div className="bg-[#526069] text-white text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-t-md">Clinical Refraction (S / C / A)</div>
+          <table className="w-full text-center border-collapse border border-[#c3c6d6] border-t-0 rounded-b-md overflow-hidden">
             <thead className="bg-[#e7e8ea] text-xs uppercase font-bold">
               <tr>
-                <th className={`${ctd} w-48`} rowSpan={2}>Clinical Refraction</th>
-                <th className={`${ctd} text-[#003d9b]`} colSpan={3}>OD (Right)</th>
-                <th className={`${ctd} text-[#526069]`} colSpan={3}>OS (Left)</th>
+                <th className={`${ctd} w-36 bg-[#e7e8ea]`} rowSpan={2}>Parameter</th>
+                <th className={`${ctd} text-[#003d9b]`} colSpan={3}>OD — Right Eye</th>
+                <th className={`${ctd} text-[#526069]`} colSpan={3}>OS — Left Eye</th>
               </tr>
-              <tr><th className={ctd}>S</th><th className={ctd}>C</th><th className={ctd}>A</th><th className={ctd}>S</th><th className={ctd}>C</th><th className={ctd}>A</th></tr>
-            </thead>
-            <tbody className="font-mono">
               <tr>
-                <td className={`${ctd} text-left bg-[#f3f4f6]`}>Refraction</td>
+                <th className={`${ctd} text-[10px]`}>Sphere (S)</th>
+                <th className={`${ctd} text-[10px]`}>Cylinder (C)</th>
+                <th className={`${ctd} text-[10px]`}>Axis (A)</th>
+                <th className={`${ctd} text-[10px]`}>Sphere (S)</th>
+                <th className={`${ctd} text-[10px]`}>Cylinder (C)</th>
+                <th className={`${ctd} text-[10px]`}>Axis (A)</th>
+              </tr>
+            </thead>
+            <tbody className="font-mono text-sm">
+              <tr className="bg-white">
+                <td className={`${ctd} text-left bg-[#f3f4f6] font-semibold text-xs text-[#434654]`}>Refraction</td>
                 <td className={ctd}><input className={inp} value={formData.refractionOD.s} onChange={e => setFormData(p => ({ ...p, refractionOD: { ...p.refractionOD, s: e.target.value } }))} /></td>
                 <td className={ctd}><input className={inp} value={formData.refractionOD.c} onChange={e => setFormData(p => ({ ...p, refractionOD: { ...p.refractionOD, c: e.target.value } }))} /></td>
                 <td className={ctd}><input className={inp} value={formData.refractionOD.a} onChange={e => setFormData(p => ({ ...p, refractionOD: { ...p.refractionOD, a: e.target.value } }))} /></td>
@@ -566,8 +612,8 @@ export default function ConsultantSheet() {
                 <td className={ctd}><input className={inp} value={formData.refractionOS.c} onChange={e => setFormData(p => ({ ...p, refractionOS: { ...p.refractionOS, c: e.target.value } }))} /></td>
                 <td className={ctd}><input className={inp} value={formData.refractionOS.a} onChange={e => setFormData(p => ({ ...p, refractionOS: { ...p.refractionOS, a: e.target.value } }))} /></td>
               </tr>
-              <tr>
-                <td className={`${ctd} text-left bg-[#f3f4f6]`}>Fundus</td>
+              <tr className="bg-[#f8f9fb]">
+                <td className={`${ctd} text-left bg-[#f3f4f6] font-semibold text-xs text-[#434654]`}>Fundus</td>
                 <td className={ctd} colSpan={3}><input className={inp} value={formData.fundusOD} onChange={e => setFormData(p => ({ ...p, fundusOD: e.target.value }))} /></td>
                 <td className={ctd} colSpan={3}><input className={inp} value={formData.fundusOS} onChange={e => setFormData(p => ({ ...p, fundusOS: e.target.value }))} /></td>
               </tr>
@@ -576,39 +622,44 @@ export default function ConsultantSheet() {
         </section>
         {/* END: Clinical Refraction */}
 
-        {/* BEGIN: Clinical Diagrams (replaces Pentacam / Target Refraction) */}
-        <section className="print-consultant-diagrams grid grid-cols-1 lg:grid-cols-2 gap-8 border border-[#c3c6d6] rounded-xl p-8 bg-white flex-1 min-h-[85mm]" data-purpose="clinical-diagrams">
-          <div className="flex flex-col items-center justify-center">
-            <span className="text-xs uppercase px-3 py-1 bg-[#003d9b]/5 rounded shadow-sm text-[#003d9b] mb-4">Right Eye (OD)</span>
-            <div className="w-56 h-56 rounded-full border-4 border-[#003d9b]/30 flex items-center justify-center relative bg-white">
-              <div className="absolute inset-0 flex items-center justify-center opacity-10">
-                <div className="w-full border-t border-slate-900"></div>
-                <div className="h-full border-l border-slate-900 absolute top-0"></div>
+        {/* BEGIN: Clinical Diagrams */}
+        <section className="print-consultant-diagrams" data-purpose="clinical-diagrams">
+          <div className="bg-[#003d9b] text-white text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-t-md">Clinical Diagrams — الرسم السريري</div>
+          <div className="border border-[#c3c6d6] border-t-0 rounded-b-md p-4 bg-white">
+            <div className="grid grid-cols-2 gap-8 min-h-[80mm]">
+              <div className="flex flex-col items-center justify-center gap-3">
+                <span className="text-xs font-bold uppercase px-3 py-1 bg-[#003d9b]/10 text-[#003d9b] rounded-full border border-[#003d9b]/20">Right Eye — OD</span>
+                <div className="w-52 h-52 rounded-full border-2 border-[#003d9b]/40 flex items-center justify-center relative bg-white shadow-inner">
+                  <div className="absolute inset-0 rounded-full overflow-hidden">
+                    <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-[#003d9b]/15 -translate-y-1/2"></div>
+                    <div className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-[#003d9b]/15 -translate-x-1/2"></div>
+                  </div>
+                  <span className="text-[#003d9b]/20 text-2xl font-bold select-none">OD</span>
+                </div>
+                <p className="text-xs text-[#003d9b] font-medium">العين اليمنى (OD)</p>
               </div>
-              <span className="text-[#003d9b]/40 text-xl select-none">OD</span>
-            </div>
-            <p className="mt-4 text-[#003d9b]">العين اليمنى (OD)</p>
-          </div>
-          <div className="flex flex-col items-center justify-center">
-            <span className="text-xs uppercase px-3 py-1 bg-[#f3f4f6] rounded shadow-sm text-[#526069] mb-4">Left Eye (OS)</span>
-            <div className="w-56 h-56 rounded-full border-4 border-slate-300 flex items-center justify-center relative bg-white">
-              <div className="absolute inset-0 flex items-center justify-center opacity-10">
-                <div className="w-full border-t border-slate-900"></div>
-                <div className="h-full border-l border-slate-900 absolute top-0"></div>
+              <div className="flex flex-col items-center justify-center gap-3">
+                <span className="text-xs font-bold uppercase px-3 py-1 bg-[#526069]/10 text-[#526069] rounded-full border border-[#526069]/20">Left Eye — OS</span>
+                <div className="w-52 h-52 rounded-full border-2 border-[#526069]/40 flex items-center justify-center relative bg-white shadow-inner">
+                  <div className="absolute inset-0 rounded-full overflow-hidden">
+                    <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-[#526069]/15 -translate-y-1/2"></div>
+                    <div className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-[#526069]/15 -translate-x-1/2"></div>
+                  </div>
+                  <span className="text-[#526069]/20 text-2xl font-bold select-none">OS</span>
+                </div>
+                <p className="text-xs text-[#526069] font-medium">العين اليسرى (OS)</p>
               </div>
-              <span className="text-slate-300 text-xl select-none">OS</span>
             </div>
-            <p className="mt-4 text-[#526069]">العين اليسرى (OS)</p>
           </div>
         </section>
         {/* END: Clinical Diagrams */}
 
         {/* BEGIN: Notes + signatures */}
-        <footer className="pt-6 border-t-2 border-[#003d9b] space-y-6" data-purpose="footer-signatures">
-          <div className="print-consultant-footer-grid grid grid-cols-1 lg:grid-cols-12 gap-8" dir="rtl">
-            <div className="lg:col-span-8 space-y-4">
+        <footer className="pt-4 border-t-2 border-[#003d9b] space-y-4" data-purpose="footer-signatures">
+          <div className="print-consultant-footer-grid grid grid-cols-1 lg:grid-cols-12 gap-4" dir="rtl">
+            <div className="lg:col-span-8 space-y-3">
               <div>
-                <label className="font-bold text-[#003d9b] text-sm">Comments / ملاحظات:</label>
+                <label className="font-bold text-[#003d9b] text-xs uppercase tracking-wide">Comments / ملاحظات:</label>
                 <textarea
                   dir="rtl"
                   className="w-full min-h-[70px] bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:outline-none focus:border-[#003d9b] text-sm resize-none p-1 text-right"
@@ -617,7 +668,7 @@ export default function ConsultantSheet() {
                 />
               </div>
               <div>
-                <label className="font-bold text-[#003d9b] text-sm">Final Decision / القرار النهائي:</label>
+                <label className="font-bold text-[#003d9b] text-xs uppercase tracking-wide">Final Decision / القرار النهائي:</label>
                 <textarea
                   dir="rtl"
                   className="w-full min-h-[50px] bg-transparent border-0 border-b border-solid border-[#c3c6d6] focus:outline-none focus:border-[#003d9b] text-sm resize-none p-1 text-right"
@@ -626,8 +677,8 @@ export default function ConsultantSheet() {
                 />
               </div>
             </div>
-            <div className="lg:col-span-4 border-2 border-[#003d9b] rounded-xl p-4 bg-[#003d9b]/5">
-              <div className="text-center font-bold text-[#003d9b] uppercase text-xs border-b border-[#003d9b]/20 pb-2 mb-3">Notes / ملاحظات</div>
+            <div className="lg:col-span-4 border border-[#003d9b]/30 rounded-lg p-3 bg-[#003d9b]/5">
+              <div className="text-center font-bold text-[#003d9b] uppercase text-xs border-b border-[#003d9b]/20 pb-1.5 mb-2">Notes / ملاحظات</div>
               <textarea
                 dir="rtl"
                 className="w-full min-h-[110px] bg-transparent border-0 focus:outline-none text-sm resize-none p-1 text-right"
@@ -636,18 +687,18 @@ export default function ConsultantSheet() {
               />
             </div>
           </div>
-          <div className="print-consultant-signatures grid grid-cols-2 md:grid-cols-4 gap-8 pt-4 border-t border-[#c3c6d6]" dir="rtl">
+          <div className="print-consultant-signatures grid grid-cols-2 md:grid-cols-4 gap-6 pt-3 border-t border-[#c3c6d6]" dir="rtl">
             {[
-              ["استقبال", signatures.reception],
-              ["تمريض", signatures.nurse],
-              ["فني", signatures.technician],
-              ["الطبيب", signatures.doctor],
-            ].map(([label, val], i) => (
-              <div key={i} className="flex flex-col gap-2">
-                <span className={`text-[11px] font-bold uppercase ${i === 3 ? "text-[#003d9b]" : "text-[#434654]"}`}>{label}</span>
-                <div className={`border-b-2 h-9 flex items-end justify-center ${i === 3 ? "border-[#003d9b]" : "border-[#191c1e]"}`}>
-                  <span className={`text-xs italic ${i === 3 ? "text-[#003d9b] font-bold" : "text-[#737685]"}`}>{val || ""}</span>
+              ["استقبال", signatures.reception, false],
+              ["تمريض", signatures.nurse, false],
+              ["فني", signatures.technician, false],
+              ["الطبيب", signatures.doctor, true],
+            ].map(([label, val, isDoctor], i) => (
+              <div key={i} className="flex flex-col gap-1.5 text-center">
+                <div className={`h-10 border-b-2 flex items-end justify-center pb-1 ${isDoctor ? "border-[#003d9b]" : "border-[#c3c6d6]"}`}>
+                  {val && <span className={`text-xs italic ${isDoctor ? "text-[#003d9b] font-semibold" : "text-[#737685]"}`}>{val as string}</span>}
                 </div>
+                <span className={`text-[10px] font-bold uppercase tracking-wide ${isDoctor ? "text-[#003d9b]" : "text-[#434654]"}`}>{label as string}</span>
               </div>
             ))}
           </div>
@@ -670,160 +721,124 @@ export default function ConsultantSheet() {
           text-decoration: none !important;
         }
         .consultant-sheet-inner th { font-weight: 700 !important; }
-        .consultant-sheet-inner .border-b,
-        .consultant-sheet-inner .border-b-2 {
-          border-bottom: none !important;
-        }
         @media print {
-          .print-page-break { page-break-before: always !important; break-before: page !important; }
-          .print-page-center-a4 {
-            width: 210mm !important;
-            margin: 0 auto !important;
-          }
-          @page { size: A4 portrait; margin: 0; }
+          /* ── Page setup ── */
+          @page { size: A4 portrait; margin: 8mm 7mm; }
           html, body {
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
+            width: 210mm !important;
+            margin: 0 !important; padding: 0 !important;
             background: white !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
           }
-          #root,
-          .consultant-page-root {
-            width: 100% !important;
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          /* undo the shared .sheet-layout single-page restrictions so page 2 (followup) can render */
-          .consultant-page-root.sheet-layout {
+          #root, .consultant-page-root {
+            width: 210mm !important; max-width: 210mm !important;
+            margin: 0 !important; padding: 0 !important;
             overflow: visible !important;
-            max-height: none !important;
+          }
+          .consultant-page-root.sheet-layout {
+            overflow: visible !important; max-height: none !important;
             font-size: 100% !important;
-            page-break-inside: auto !important;
-            break-inside: auto !important;
-            page-break-after: auto !important;
-            break-after: auto !important;
+            page-break-inside: auto !important; break-inside: auto !important;
           }
-          .consultant-main-print-root .consultant-sheet-inner {
-            width: 210mm !important;
-            max-width: 210mm !important;
-            height: auto !important;
-            min-height: 0 !important;
-            box-sizing: border-box !important;
-            margin: 0 auto !important;
-            padding: 6mm !important;
-            gap: 10px !important;
-            border: 0 !important;
-            box-shadow: none !important;
-            font-size: 92% !important;
-            line-height: 1.15 !important;
-          }
-          /* outer wrappers must not constrain or offset the 210mm sheet */
+          .print-page-break { page-break-before: always !important; break-before: page !important; }
+          .print-page-center-a4 { width: 210mm !important; margin: 0 auto !important; }
           main[data-mobile-pdf-root] {
-            width: 210mm !important;
-            max-width: 210mm !important;
-            margin: 0 auto !important;
-            padding: 0 !important;
+            width: 210mm !important; max-width: 210mm !important;
+            margin: 0 auto !important; padding: 0 !important;
           }
+
+          /* ── Sheet container ── */
+          .consultant-main-print-root .consultant-sheet-inner {
+            width: 210mm !important; max-width: 210mm !important;
+            height: auto !important; min-height: 0 !important;
+            box-sizing: border-box !important;
+            margin: 0 auto !important; padding: 5mm 6mm !important;
+            gap: 6px !important; border: 0 !important; box-shadow: none !important;
+            border-radius: 0 !important;
+            font-size: 88% !important; line-height: 1.2 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          /* ── Color preservation ── */
+          .consultant-sheet-inner * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .consultant-sheet-inner [class*="bg-\[#003d9b"] { background-color: #003d9b !important; color: #fff !important; }
+          .consultant-sheet-inner [class*="bg-\[#526069"] { background-color: #526069 !important; color: #fff !important; }
+          .consultant-sheet-inner [class*="bg-\[#e7e8ea"] { background-color: #e7e8ea !important; }
+          .consultant-sheet-inner [class*="bg-\[#f3f4f6"] { background-color: #f3f4f6 !important; }
+          .consultant-sheet-inner [class*="bg-\[#f8f9fb"] { background-color: #f8f9fb !important; }
+          .consultant-sheet-inner [class*="bg-\[#003d9b\/5"] { background-color: rgba(0,61,155,0.05) !important; }
+          .consultant-sheet-inner [class*="bg-\[#003d9b\/10"] { background-color: rgba(0,61,155,0.1) !important; }
+
+          /* ── Page-break control ── */
           .consultant-sheet-inner section,
           .consultant-sheet-inner footer,
-          .consultant-sheet-inner table,
-          .consultant-sheet-inner tr,
-          .consultant-sheet-inner td,
-          .consultant-sheet-inner th,
-          .consultant-sheet-inner label,
-          .consultant-sheet-inner input,
-          .consultant-sheet-inner select,
-          .consultant-sheet-inner span,
-          .consultant-sheet-inner div {
+          .consultant-sheet-inner tr {
+            break-inside: avoid !important;
             page-break-inside: avoid !important;
           }
-          .consultant-sheet-inner table { font-size: 11px !important; }
-          .consultant-sheet-inner input,
-          .consultant-sheet-inner select {
-            font-size: 11px !important;
-            padding-top: 1px !important;
-            padding-bottom: 1px !important;
-          }
+          .consultant-sheet-inner thead { display: table-header-group !important; }
+          .print-consultant-signatures { break-inside: avoid !important; page-break-inside: avoid !important; }
+          .print-consultant-diagrams { break-inside: avoid !important; page-break-inside: avoid !important; }
+
+          /* ── Typography ── */
+          .consultant-sheet-inner table { font-size: 10px !important; }
+          .consultant-sheet-inner th, .consultant-sheet-inner td { padding: 2px 3px !important; line-height: 1.1 !important; }
           .consultant-sheet-inner input:not([type="checkbox"]):not([type="radio"]),
           .consultant-sheet-inner textarea {
-            border: 0 !important;
-            border-bottom: 0 !important;
-            box-shadow: none !important;
-            outline: 0 !important;
+            border: 0 !important; border-bottom: 1px solid #c3c6d6 !important;
+            box-shadow: none !important; outline: 0 !important;
             background: transparent !important;
-            text-decoration: none !important;
-            font-size: 12px !important;
-            line-height: 1.15 !important;
+            font-size: 10px !important; line-height: 1.15 !important;
           }
-          .consultant-sheet-inner .gap-8 { gap: 12px !important; }
-          .consultant-sheet-inner .gap-6 { gap: 10px !important; }
-          .consultant-sheet-inner .gap-5 { gap: 8px !important; }
-          .consultant-sheet-inner .gap-4 { gap: 6px !important; }
-          .consultant-sheet-inner .p-8 { padding: 0 !important; }
-          .consultant-sheet-inner .p-4 { padding: 8px !important; }
-          .consultant-sheet-inner .pt-6 { padding-top: 10px !important; }
-          .consultant-sheet-inner .pt-4 { padding-top: 8px !important; }
-          .consultant-sheet-inner .mb-3 { margin-bottom: 6px !important; }
-          .consultant-sheet-inner .mt-3 { margin-top: 6px !important; }
-          .consultant-sheet-inner .h-9 { height: 28px !important; }
-          .consultant-sheet-inner .sheet-center-header {
-            padding-bottom: 1.5mm !important;
-            margin-bottom: 1.5mm !important;
-          }
-          .print-consultant-patient-grid {
-            display: flex !important;
-            flex-wrap: wrap !important;
-            column-gap: 6mm !important;
-            row-gap: 1.5mm !important;
-          }
-          .print-consultant-questions {
-            display: block !important;
-          }
-          .print-consultant-questions table {
-            font-size: 10px !important;
-          }
-          .print-consultant-questions th {
-            padding: 3px !important;
-            line-height: 1.05 !important;
-          }
-          .print-consultant-questions td {
-            padding: 2px 3px !important;
-            line-height: 1.05 !important;
-          }
-          .print-consultant-questions input[type="checkbox"] {
-            width: 12px !important;
-            height: 12px !important;
-          }
-          .print-consultant-diagrams {
+
+          /* ── Spacing reduction ── */
+          .consultant-sheet-inner .gap-8 { gap: 10px !important; }
+          .consultant-sheet-inner .gap-6 { gap: 8px !important; }
+          .consultant-sheet-inner .gap-5 { gap: 6px !important; }
+          .consultant-sheet-inner .gap-4 { gap: 5px !important; }
+          .consultant-sheet-inner .gap-3 { gap: 4px !important; }
+          .consultant-sheet-inner .p-6 { padding: 4mm !important; }
+          .consultant-sheet-inner .p-4 { padding: 6px !important; }
+          .consultant-sheet-inner .p-3 { padding: 4px !important; }
+          .consultant-sheet-inner .pt-4 { padding-top: 6px !important; }
+          .consultant-sheet-inner .pt-3 { padding-top: 4px !important; }
+          .consultant-sheet-inner .mb-3 { margin-bottom: 4px !important; }
+          .consultant-sheet-inner .h-10 { height: 24px !important; }
+          .consultant-sheet-inner .space-y-4 > * + * { margin-top: 5px !important; }
+          .consultant-sheet-inner .space-y-3 > * + * { margin-top: 4px !important; }
+
+          /* ── Patient grid ── */
+          .print-consultant-patient-grid .grid {
             display: grid !important;
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-            flex: 1 1 auto !important;
-            padding: 6mm !important;
+            grid-template-columns: 2fr 1fr 1fr 1fr !important;
           }
-          .print-consultant-diagrams {
-            min-height: 78mm !important;
-          }
-          .print-consultant-diagrams .rounded-full {
-            width: 48mm !important;
-            height: 48mm !important;
-            border-width: 2px !important;
-          }
-          .print-consultant-diagrams p {
-            margin-top: 2mm !important;
-          }
-          .print-consultant-visual-grid {
-            display: grid !important;
-            grid-template-columns: minmax(0, 7fr) minmax(0, 5fr) !important;
-          }
-          .print-consultant-footer-grid {
-            display: grid !important;
-            grid-template-columns: minmax(0, 8fr) minmax(0, 4fr) !important;
-          }
-          .print-consultant-signatures {
-            display: grid !important;
-            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-          }
+
+          /* ── Medical history ── */
+          .print-consultant-questions table { font-size: 9px !important; }
+          .print-consultant-questions th, .print-consultant-questions td { padding: 2px 3px !important; line-height: 1.05 !important; }
+          .print-consultant-questions input[type="checkbox"] { width: 11px !important; height: 11px !important; }
+
+          /* ── Diagrams ── */
+          .print-consultant-diagrams .grid { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; }
+          .print-consultant-diagrams { min-height: 72mm !important; }
+          .print-consultant-diagrams .w-52 { width: 46mm !important; }
+          .print-consultant-diagrams .h-52 { height: 46mm !important; }
+          .print-consultant-diagrams p { margin-top: 2mm !important; }
+
+          /* ── Grid layouts ── */
+          .print-consultant-visual-grid { display: grid !important; grid-template-columns: minmax(0, 8fr) minmax(0, 4fr) !important; }
+          .print-consultant-footer-grid { display: grid !important; grid-template-columns: minmax(0, 8fr) minmax(0, 4fr) !important; }
+          .print-consultant-signatures { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+
+          /* ── Borders ── */
+          .consultant-sheet-inner [class*="border-\[#c3c6d6"] { border-color: #c3c6d6 !important; }
+          .consultant-sheet-inner [class*="border-\[#003d9b"] { border-color: #003d9b !important; }
         }
       `}</style>
       {/* Top bar */}

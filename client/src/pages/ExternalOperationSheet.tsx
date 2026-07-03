@@ -603,7 +603,7 @@ export default function ExternalOperationSheet() {
             onSelect={handleSelectPatient}
           />
         </div>
-        <div className="rounded-[28px] border border-border/80 bg-background p-8 shadow-sm print:rounded-none print:border-0 print:p-0 external-print-root">
+        <div className="rounded-2xl border border-[#c3c6d6] bg-white p-6 shadow-md print:rounded-none print:border-0 print:p-0 external-print-root">
           <div
             className={`mb-2 print:hidden ${printMode.printView ? "hidden" : ""}`}
           >
@@ -616,26 +616,19 @@ export default function ExternalOperationSheet() {
               الصفحة الرئيسية
             </Button>
           </div>
-          <div
-            className="mb-0 border-b-4 border-primary pb-0 -mx-8 px-8"
-            style={{ textAlign: "center" }}
-          >
-            <h2
-              className="text-lg font-bold"
-              dir="rtl"
-              style={{ textAlign: "right" }}
-            >
-              {BRAND_NAME_AR} — لليزك وتصحيح الإبصار
-            </h2>
-            <p className="text-sm" dir="ltr" style={{ textAlign: "center" }}>
-              {BRAND_NAME_EN} — Lasik & Vision Correction
-            </p>
+          <div className="mb-3 border-b-2 border-[#003d9b] pb-3 -mx-6 px-6 flex items-center justify-between">
+            <div dir="rtl">
+              <h2 className="text-base font-bold text-[#191c1e]">{BRAND_NAME_AR} — لليزك وتصحيح الإبصار</h2>
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-bold text-[#003d9b] uppercase tracking-wide">{sheetTemplate.sheetTitle}</p>
+            </div>
+            <div dir="ltr">
+              <p className="text-sm text-[#526069]">{BRAND_NAME_EN} — Lasik &amp; Vision Correction</p>
+            </div>
           </div>
 
-          <div
-            className="sheet-section-card flex flex-wrap sm:flex-nowrap items-center justify-start sm:justify-between gap-2 mb-1 text-xs px-2 py-1 bg-muted/30 overflow-x-hidden text-center"
-            dir="rtl"
-          >
+          <div className="mb-3 border border-[#c3c6d6] rounded-md bg-[#f8f9fb] px-3 py-2 flex flex-wrap items-center gap-3 text-xs" dir="rtl">
             <div className="flex items-center gap-1 min-w-0">
               <span className="font-bold">
                 {sheetTemplate.examinationDateLabel}
@@ -717,95 +710,52 @@ export default function ExternalOperationSheet() {
             </div>
           </div>
 
-          <p className="font-bold text-sm mb-1">
-            {sheetTemplate.patientInfoTitle}
-          </p>
-          <div
-            className="sheet-section-card flex flex-col gap-1 mb-2 text-xs"
-            dir="rtl"
-            style={{ whiteSpace: "nowrap" }}
-          >
-            <div className="flex flex-nowrap items-center justify-between gap-2 w-full">
-              <div className="flex items-center gap-1">
-                <label className="font-bold">الاسم</label>
-                <Input
-                  value={formData.patientName}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
+          {/* Patient Info */}
+          <div dir="rtl" className="mb-3">
+            <div className="bg-[#003d9b] text-white text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-t-md">بيانات المريض — Patient Information</div>
+            <div className="border border-[#c3c6d6] border-t-0 rounded-b-md p-3 bg-[#f8f9fb]">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-xs">
+                <div className="col-span-2 md:col-span-1">
+                  <span className="text-[10px] text-[#434654] font-semibold block mb-0.5">الاسم</span>
+                  <div className="border-b border-[#c3c6d6] min-h-[20px] pb-0.5 font-semibold text-[#003d9b] text-right" dir="rtl">{formData.patientName}</div>
+                </div>
+                <div>
+                  <span className="text-[10px] text-[#434654] font-semibold block mb-0.5">تاريخ الميلاد</span>
+                  <div className="border-b border-[#c3c6d6] min-h-[20px] pb-0.5 text-right" dir="ltr">{formData.dateOfBirth}</div>
+                </div>
+                <div>
+                  <span className="text-[10px] text-[#434654] font-semibold block mb-0.5">السن</span>
+                  <div className="border-b border-[#c3c6d6] min-h-[20px] pb-0.5 text-right" dir="ltr">{formData.age}</div>
+                </div>
+                <div>
+                  <span className="text-[10px] text-[#434654] font-semibold block mb-0.5">كود العميل</span>
+                  <div className="border-b border-[#c3c6d6] min-h-[20px] pb-0.5 font-mono text-[#526069] text-right" dir="ltr">{formData.patientCode}</div>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-[10px] text-[#434654] font-semibold block mb-0.5">العنوان</span>
+                  <div className="border-b border-[#c3c6d6] min-h-[20px] pb-0.5 text-right" dir="rtl">{formData.address}</div>
+                </div>
+                <div>
+                  <span className="text-[10px] text-[#434654] font-semibold block mb-0.5">الموبايل</span>
+                  <div className="border-b border-[#c3c6d6] min-h-[20px] pb-0.5 text-right" dir="ltr">{formData.phone}</div>
+                </div>
+                <div>
+                  <span className="text-[10px] text-[#434654] font-semibold block mb-0.5">الوظيفة</span>
+                  <div className="border-b border-[#c3c6d6] min-h-[20px] pb-0.5 text-right" dir="rtl">{formData.job}</div>
+                </div>
               </div>
-              <div className="flex items-center gap-1">
-                <label className="font-bold">تاريخ الميلاد</label>
-                <Input
-                  value={formData.dateOfBirth}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <label className="font-bold">السن</label>
-                <Input
-                  value={formData.age}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <label className="font-bold">{sheetTemplate.doctorLabel}</label>
-                <Input
-                  value={signatures.doctor}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-            </div>
-            <div className="flex flex-nowrap items-center justify-between gap-2 w-full">
-              <div className="flex items-center gap-1">
-                <label className="font-bold">العنوان</label>
-                <Input
-                  value={formData.address}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <label className="font-bold">الموبايل</label>
-                <Input
-                  value={formData.phone}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <label className="font-bold">كود العميل</label>
-                <Input
-                  value={formData.patientCode}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <label className="font-bold">الوظيفة</label>
-                <Input
-                  value={formData.job}
-                  readOnly
-                  className="text-xs border-0"
-                  style={{ textAlign: "right" }}
-                />
+              <div className="mt-2 pt-2 border-t border-[#c3c6d6] flex items-center gap-3 text-xs">
+                <span className="text-[10px] text-[#434654] font-semibold">{sheetTemplate.doctorLabel}:</span>
+                <span className="font-semibold text-[#003d9b]" dir="rtl">{signatures.doctor}</span>
               </div>
             </div>
           </div>
 
-          <div className="mb-4 border sheet-section-card">
+          {/* Exam Table */}
+          <div className="mb-3">
+            <div className="bg-[#003d9b] text-white text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-t-md">Visual Acuity, IOP &amp; Refraction</div>
             <table
-              className="w-full text-xs text-center lasik-table refraction-table-center"
+              className="w-full text-xs text-center lasik-table refraction-table-center border border-[#c3c6d6] border-t-0 rounded-b-md overflow-hidden"
               dir="ltr"
               style={{
                 direction: "ltr",
@@ -814,15 +764,15 @@ export default function ExternalOperationSheet() {
               }}
             >
               <thead>
-                <tr className="border-b bg-muted">
-                  <th className="border-r p-0.5 text-center" colSpan={4}>
-                    Dominant eye
+                <tr className="border-b bg-[#e7e8ea]">
+                  <th className="border-r p-1 text-center font-bold" colSpan={4}>
+                    Dominant Eye
                   </th>
-                  <th className="p-0.5 text-center" colSpan={6}>
+                  <th className="p-1 text-center font-bold" colSpan={6}>
                     Refraction
                   </th>
                 </tr>
-                <tr className="border-b bg-muted">
+                <tr className="border-b bg-[#e7e8ea]">
                   <th className="border-r p-0.5"></th>
                   <th className="border-r p-0.5">UCVA</th>
                   <th className="border-r p-0.5">BCVA</th>
@@ -848,8 +798,8 @@ export default function ExternalOperationSheet() {
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-b">
-                  <td className="border-r p-0.5 font-bold">OD</td>
+                <tr className="border-b bg-[#003d9b]/5">
+                  <td className="border-r p-0.5 font-bold text-[#003d9b]">OD</td>
                   <td className="border-r p-0.5">
                     <Input
                       placeholder=""
@@ -986,8 +936,8 @@ export default function ExternalOperationSheet() {
                     />
                   </td>
                 </tr>
-                <tr className="border-b">
-                  <td className="border-r p-0.5 font-bold">OS</td>
+                <tr className="border-b bg-[#f3f4f6]">
+                  <td className="border-r p-0.5 font-bold text-[#526069]">OS</td>
                   <td className="border-r p-0.5">
                     <Input
                       placeholder=""
@@ -1049,11 +999,16 @@ export default function ExternalOperationSheet() {
               </tbody>
             </table>
           </div>
+          </div>
 
-          <div className="grid grid-cols-2 gap-2 mb-4 sheet-section-card">
-            <div className="border">
-              <div className="bg-muted p-1 text-center font-bold text-xs border-b">
-                RT فحص القرنية
+          {/* Pentacam */}
+          <div className="mb-3">
+            <div className="bg-[#003d9b] text-white text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-t-md">Pentacam — Corneal Measurements</div>
+            <div className="border border-[#c3c6d6] border-t-0 rounded-b-md p-2 bg-[#f8f9fb]">
+            <div className="grid grid-cols-2 gap-3">
+            <div className="border border-[#003d9b]/20 rounded-md bg-[#003d9b]/5">
+              <div className="bg-[#003d9b]/10 px-2 py-1 text-center font-bold text-xs border-b border-[#003d9b]/20 text-[#003d9b] rounded-t-md">
+                Right Eye (OD)
               </div>
               <table
                 className="w-full text-xs text-center lasik-table"
@@ -1232,9 +1187,10 @@ export default function ExternalOperationSheet() {
               </table>
             </div>
 
-            <div className="border">
-              <div className="bg-muted p-1 text-center font-bold text-xs border-b">
-                LT فحص القرنية
+            </div>
+            <div className="border border-[#526069]/20 rounded-md bg-[#f3f4f6]">
+              <div className="bg-[#526069]/10 px-2 py-1 text-center font-bold text-xs border-b border-[#526069]/20 text-[#526069] rounded-t-md">
+                Left Eye (OS)
               </div>
               <table
                 className="w-full text-xs text-center lasik-table"
@@ -1408,11 +1364,16 @@ export default function ExternalOperationSheet() {
                 </tbody>
               </table>
             </div>
+            </div>
+            </div>
+            </div>
           </div>
 
-          <div className="mb-4 border sheet-section-card">
+          {/* Treatment Plan */}
+          <div className="mb-3">
+            <div className="bg-[#526069] text-white text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-t-md">Treatment Plan</div>
             <table
-              className="w-full text-xs text-center lasik-table"
+              className="w-full text-xs text-center lasik-table border border-[#c3c6d6] border-t-0 rounded-b-md overflow-hidden"
               dir="ltr"
               style={{
                 direction: "ltr",
@@ -1421,9 +1382,9 @@ export default function ExternalOperationSheet() {
               }}
             >
               <thead>
-                <tr className="border-b bg-muted">
-                  <th className="border-r p-0.5 text-center">
-                    Target refraction
+                <tr className="border-b bg-[#e7e8ea]">
+                  <th className="border-r p-1 text-center font-bold">
+                    Target Refraction
                   </th>
                   <th className="border-r p-0.5 text-center">OD / OS</th>
                   <th className="border-r p-0.5 text-center">Before Flap</th>
@@ -1439,7 +1400,7 @@ export default function ExternalOperationSheet() {
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-b">
+                <tr className="border-b bg-[#003d9b]/5">
                   <td className="border-r p-0.5">
                     <Input placeholder="" className="text-xs" dir="ltr" />
                   </td>
@@ -1469,90 +1430,56 @@ export default function ExternalOperationSheet() {
             </table>
           </div>
 
-          <div className="flex gap-0.5 mb-1 sheet-section-card" dir="rtl">
-            <div style={{ flex: "0 0 64%" }}>
+          </div>
+
+          {/* Notes */}
+          <div className="flex gap-2 mb-2" dir="rtl">
+            <div className="flex-1">
+              <label className="text-[10px] font-bold text-[#003d9b] uppercase tracking-wide block mb-1">Comments / ملاحظات</label>
               <Textarea
-                placeholder="Comments:"
-                className="text-xs w-full max-w-none"
+                placeholder=""
+                className="text-xs w-full border-[#c3c6d6] rounded-md"
                 rows={3}
                 dir="ltr"
-                style={{
-                  maxWidth: "none",
-                  width: "100%",
-                  marginInlineStart: "0",
-                  marginInlineEnd: "0",
-                  boxSizing: "border-box",
-                  textAlign: "left",
-                }}
               />
             </div>
-            <div
-              className="notes-col"
-              style={{
-                flex: "0 0 32%",
-                paddingInlineStart: "0",
-                marginInlineStart: "0",
-              }}
-            >
+            <div className="w-1/3">
+              <label className="text-[10px] font-bold text-[#003d9b] uppercase tracking-wide block mb-1">{sheetTemplate.notesLabel}</label>
               <Textarea
-                placeholder={sheetTemplate.notesLabel}
-                className="text-xs w-full max-w-none"
+                placeholder=""
+                className="text-xs w-full border-[#003d9b]/30 rounded-md bg-[#003d9b]/5"
                 rows={3}
                 dir="ltr"
-                style={{
-                  maxWidth: "none",
-                  width: "100%",
-                  boxSizing: "border-box",
-                  textAlign: "left",
-                }}
               />
             </div>
           </div>
 
-          <div className="mb-1 w-full">
+          <div className="mb-3 w-full">
+            <label className="text-[10px] font-bold text-[#003d9b] uppercase tracking-wide block mb-1">Final Decision / القرار النهائي</label>
             <Textarea
-              placeholder="Final:"
-              className="text-xs w-full max-w-none"
-              rows={3}
+              placeholder=""
+              className="text-xs w-full border-[#c3c6d6] rounded-md"
+              rows={2}
               dir="ltr"
-              style={{ maxWidth: "none", width: "100%", textAlign: "left" }}
             />
           </div>
 
-          <div className="border-t pt-3 mt-4">
+          {/* Signatures */}
+          <div className="border-t-2 border-[#003d9b] pt-3 mt-2">
             <div className="grid grid-cols-4 gap-4 text-xs" dir="rtl">
-              <div className="flex flex-col items-center">
-                <div className="border-b border-gray-400 w-full h-8 mb-1 flex items-center justify-center text-xs">
-                  {signatures.doctor ? (
-                    <span className="text-center">{signatures.doctor}</span>
-                  ) : null}
+              {[
+                ["طبيب / Doctor", signatures.doctor, true],
+                ["فني / Optometrist", signatures.technician, false],
+                ["تمريض / Nursing", signatures.nurse, false],
+                ["استقبال / Reception", signatures.reception, false],
+              ].map(([label, val, isDoctor], i) => (
+                <div key={i} className="flex flex-col items-center gap-1">
+                  <div className={`border-b-2 w-full h-9 flex items-end justify-center pb-1 ${isDoctor ? "border-[#003d9b]" : "border-[#c3c6d6]"}`}>
+                    {val && <span className={`text-xs italic ${isDoctor ? "text-[#003d9b] font-semibold" : "text-[#737685]"}`}>{val as string}</span>}
+                  </div>
+                  <span className={`text-[10px] font-bold uppercase tracking-wide ${isDoctor ? "text-[#003d9b]" : "text-[#434654]"}`}>{label as string}</span>
                 </div>
-                <span className="font-bold">طبيب</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="border-b border-gray-400 w-full h-8 mb-1 flex items-center justify-center text-xs">
-                  {signatures.technician ? (
-                    <span className="text-center">{signatures.technician}</span>
-                  ) : null}
-                </div>
-                <span className="font-bold">فني</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="border-b border-gray-400 w-full h-8 mb-1 flex items-center justify-center text-xs">
-                  {signatures.nurse ? (
-                    <span className="text-center">{signatures.nurse}</span>
-                  ) : null}
-                </div>
-                <span className="font-bold">تمريض</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="border-b border-gray-400 w-full h-8 mb-1 flex items-center justify-center text-xs">
-                  {signatures.reception ? (
-                    <span className="text-center">{signatures.reception}</span>
-                  ) : null}
-                </div>
-                <span className="font-bold">استقبال</span>
-              </div>
+              ))}
             </div>
           </div>
         </div>
