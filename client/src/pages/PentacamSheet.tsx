@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation, useRoute } from "wouter";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
@@ -12,14 +12,8 @@ import {
   Search,
   ShieldCheck,
   FolderCog,
-  User,
-  Phone,
-  MapPin,
-  Calendar,
-  Hash,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BRAND_NAME_EN } from "@/lib/brand";
 
 type PatientSummary = {
   id: number;
@@ -33,93 +27,44 @@ type PatientSummary = {
 };
 
 const locationFilters = [
-  { value: "all", label: "All / All" },
-  { value: "center", label: "Center / Center" },
-  { value: "external", label: "External / External" },
+  { value: "all", label: "الكل" },
+  { value: "center", label: "المركز" },
+  { value: "external", label: "الخارجي" },
 ] as const;
 
 function formatDate(value?: string | Date | null) {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.valueOf())) return String(value);
-  return date.toLocaleDateString("en-GB");
+  return date.toLocaleDateString();
 }
 
-function EmptyPanel() {
+function SummaryField({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex h-full min-h-[28rem] items-center justify-center rounded-2xl border-2 border-dashed border-[#c3c6d6] bg-[#f8f9fb] px-8 py-12 text-center">
-      <div className="max-w-xs space-y-4">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#003d9b] text-white shadow-lg">
-          <Search className="h-7 w-7" />
-        </div>
-        <div className="space-y-1">
-          <p className="text-lg font-bold text-[#191c1e]">Search by Patient Code</p>
-          <p className="text-sm text-[#737685] leading-relaxed">
-            Enter a patient code or name to view and review associated Pentacam JPG images.
-          </p>
-        </div>
-        <div className="text-xs text-[#434654] bg-[#e7e8ea] rounded-lg px-4 py-2">
-          Search by patient code to view JPG images
-        </div>
+    <div className="rounded-2xl border border-border bg-muted px-4 py-3">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+        {label}
       </div>
+      <div className="mt-1 text-sm font-medium text-foreground">{value}</div>
     </div>
   );
 }
 
-function PatientInfoCard({
-  patient,
-  onAdminClick,
-  isAdmin,
-}: {
-  patient: PatientSummary;
-  onAdminClick: () => void;
-  isAdmin: boolean;
-}) {
-  const fields = [
-    { icon: Hash, label: "Patient Code", value: patient.patientCode ?? `#${patient.id}` },
-    { icon: Calendar, label: "Age", value: patient.age ? `${patient.age} years` : "—" },
-    { icon: Phone, label: "Phone", value: patient.phone ?? "—" },
-    { icon: Calendar, label: "Date of Birth", value: formatDate(patient.dateOfBirth) },
-    { icon: MapPin, label: "Address", value: patient.address ?? "—" },
-  ];
-
+function EmptyPanel() {
   return (
-    <div className="rounded-xl border border-[#c3c6d6] bg-white shadow-sm overflow-hidden">
-      {/* Card Header */}
-      <div className="bg-[#003d9b] px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
-            <User className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <div className="font-bold text-white text-sm">{patient.fullName}</div>
-            <div className="text-white/70 text-xs">{patient.patientCode ?? `ID: ${patient.id}`}</div>
-          </div>
+    <div className="flex h-full min-h-[24rem] items-center justify-center rounded-[1.5rem] border border-dashed border-border bg-background px-6 py-10 text-center">
+      <div className="max-w-sm space-y-3">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+          <Search className="h-6 w-6" />
         </div>
-        {isAdmin && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-7 px-2 text-xs bg-white/10 border-white/30 text-white hover:bg-white/20"
-            onClick={onAdminClick}
-          >
-            <FolderCog className="ml-1 h-3.5 w-3.5" />
-            Admin Link
-          </Button>
-        )}
-      </div>
-      {/* Card Body */}
-      <div className="p-3 grid grid-cols-2 gap-2">
-        {fields.map(({ icon: Icon, label, value }) => (
-          <div key={label} className="flex items-start gap-2 p-2 rounded-lg bg-[#f8f9fb] border border-[#e7e8ea]">
-            <Icon className="h-3.5 w-3.5 text-[#003d9b] mt-0.5 flex-shrink-0" />
-            <div>
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-[#737685]">{label}</div>
-              <div className="text-xs font-medium text-[#191c1e] mt-0.5">{value}</div>
-            </div>
-          </div>
-        ))}
+        <div className="space-y-1">
+          <p className="text-lg font-semibold text-foreground">
+            ابحث برمز المريض
+          </p>
+          <p className="text-sm leading-6 text-muted-foreground">
+            اكتب كود المريض لعرض صور JPG المرتبطة ومراجعتها بسرعة.
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -132,16 +77,27 @@ export default function PentacamSheet() {
   const [, params] = useRoute("/sheets/:type/:id");
   const initialPatientId = params?.id ? Number(params.id) : undefined;
 
-  const [selectedPatient, setSelectedPatient] = useState<PatientSummary | null>(null);
-  const [locationType, setLocationType] = useState<"all" | "center" | "external">("all");
+  const [selectedPatient, setSelectedPatient] = useState<PatientSummary | null>(
+    null,
+  );
+  const [locationType, setLocationType] = useState<
+    "all" | "center" | "external"
+  >("all");
   const selectedPatientId = selectedPatient?.id ?? null;
 
   useEffect(() => {
-    if (!isAuthenticated) setLocation("/");
+    if (!isAuthenticated) {
+      setLocation("/");
+    }
   }, [isAuthenticated, setLocation]);
 
   const handleSelectPatient = (patient: PatientSummary) => {
-    if (locationType !== "all" && patient.locationType && patient.locationType !== locationType) return;
+    if (
+      locationType !== "all" &&
+      patient.locationType &&
+      patient.locationType !== locationType
+    )
+      return;
     setSelectedPatient(patient);
     setLocation(`/sheets/pentacam/${patient.id}`);
   };
@@ -153,80 +109,97 @@ export default function PentacamSheet() {
     setSelectedPatient(null);
   }, [locationType, selectedPatient]);
 
+  const summaryFields = useMemo(
+    () =>
+      selectedPatient
+        ? [
+            {
+              label: "الكود",
+              value: selectedPatient.patientCode ?? `#${selectedPatient.id}`,
+            },
+            {
+              label: "العمر",
+              value: selectedPatient.age ? `${selectedPatient.age} سنة` : "—",
+            },
+            { label: "الهاتف", value: selectedPatient.phone ?? "—" },
+            {
+              label: "تاريخ الميلاد",
+              value: formatDate(selectedPatient.dateOfBirth),
+            },
+            { label: "العنوان", value: selectedPatient.address ?? "—" },
+          ]
+        : [],
+    [selectedPatient],
+  );
+
   if (!isAuthenticated) return null;
 
   return (
-    <div dir="ltr" className="min-h-screen bg-[#F8F9FB] text-[#191c1e]">
+    <div
+      dir="rtl"
+      className="relative min-h-screen bg-background text-foreground"
+    >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-24 border-b border-border/40 bg-muted/20"
+      />
 
-      {/* ── TOP BAR ── */}
-      <header className="sticky top-0 z-50 bg-white border-b border-[#c3c6d6] shadow-sm px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => goBack()}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-[#434654] hover:text-[#003d9b] transition-colors"
-          >
-            <ArrowRight className="h-4 w-4" />
-            Back
-          </button>
-          <div className="h-5 w-px bg-[#c3c6d6]" />
-          <span className="text-lg font-bold text-[#003d9b]">{BRAND_NAME_EN}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-green-300 bg-green-50 px-3 py-1 text-[11px] font-semibold text-green-700">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            JPG Viewer Only
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-
-        {/* ── PAGE TITLE ── */}
-        <div className="mb-6 flex items-start justify-between">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#003d9b]/30 bg-[#003d9b] px-3 py-1 text-xs font-semibold text-white mb-2">
-              <FileSpreadsheet className="h-3.5 w-3.5" />
-              Pentacam Image Viewer
+      <main className="relative z-10 flex min-h-screen w-full flex-col px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
+        <header className="mb-5 rounded-[1.5rem] border border-border bg-background/95 px-4 py-4 shadow-sm">
+          {/* Top row: back + badge */}
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <button
+              onClick={() => goBack()}
+              className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ArrowRight className="h-4 w-4" />
+              رجوع
+            </button>
+            <div className="hidden items-center gap-2 rounded-full border border-success/30 bg-success/10 px-3 py-1 text-[11px] font-semibold text-success sm:inline-flex">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              عرض JPG فقط
             </div>
-            <h1 className="text-3xl font-black tracking-tight text-[#191c1e]">
-              Pentacam <span className="text-[#003d9b]">Pentacam</span>
-            </h1>
-            <p className="text-sm text-[#737685] mt-1">
-              Search for a patient to view and review their associated Pentacam JPG images.
-            </p>
           </div>
-        </div>
 
-        {/* ── MAIN GRID ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-[22rem_1fr] gap-6">
-
-          {/* ── LEFT SIDEBAR: SEARCH + PATIENT INFO ── */}
-          <aside className="space-y-4">
-            {/* Search Card */}
-            <div className="bg-white rounded-2xl border border-[#c3c6d6] shadow-sm p-4 space-y-3">
-              <div className="flex items-center gap-2 pb-2 border-b border-[#e7e8ea]">
-                <Search className="h-4 w-4 text-[#003d9b]" />
-                <span className="text-sm font-bold text-[#191c1e]">Patient Search</span>
+          {/* Main header row: title + search + summary */}
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-2 rounded-full border border-ring/30 bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
+                <FileSpreadsheet className="h-3.5 w-3.5" />
+                عرض JPG
               </div>
+              <h1 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl">
+                البنتاكام
+              </h1>
+              <p className="text-sm leading-6 text-muted-foreground">
+                افتح المريض الصحيح، وراجع صور JPG المرتبطة بسرعة.
+              </p>
+            </div>
 
-              {/* Location Filter */}
+            <div className="space-y-3">
+              {/* Search */}
               <div>
-                <p className="text-xs font-semibold text-[#434654] uppercase tracking-wide mb-2">Filter by Location</p>
-                <FilterBar
-                  filters={locationFilters.map((item) => ({ value: item.value, label: item.label }))}
-                  selected={locationType}
-                  onSelect={(value) => setLocationType(value as typeof locationType)}
-                  className="w-full flex-wrap"
-                />
-              </div>
-
-              {/* Patient Picker */}
-              <div>
-                <p className="text-xs font-semibold text-[#434654] uppercase tracking-wide mb-2">Search Patient</p>
+                <div className="mb-2 flex items-center gap-2">
+                  <Search className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold text-foreground">البحث بالكود</span>
+                </div>
+                <div className="mb-2">
+                  <FilterBar
+                    filters={locationFilters.map((item) => ({
+                      value: item.value,
+                      label: item.label,
+                    }))}
+                    selected={locationType}
+                    onSelect={(value) =>
+                      setLocationType(value as typeof locationType)
+                    }
+                    className="w-full flex-wrap"
+                  />
+                </div>
                 <PatientPicker
                   initialPatientId={selectedPatientId ?? initialPatientId}
                   onSelect={handleSelectPatient}
-                  placeholder="Search by code or name..."
+                  placeholder="ابحث برمز المريض"
                   wrapperClassName="max-w-none ml-0"
                   locationType={locationType === "all" ? undefined : locationType}
                   allowPatient={(patient) =>
@@ -237,48 +210,59 @@ export default function PentacamSheet() {
                   }
                 />
               </div>
-            </div>
 
-            {/* Patient Info Card */}
-            {selectedPatient && (
-              <PatientInfoCard
-                patient={selectedPatient}
-                isAdmin={user?.role === "admin"}
-                onAdminClick={() => setLocation(`/admin/pentacam/${selectedPatientId}`)}
-              />
-            )}
-
-            {/* Help hint */}
-            {!selectedPatient && (
-              <div className="rounded-xl border border-[#c3c6d6] bg-white p-4 text-center">
-                <BookOpenText className="h-8 w-8 text-[#003d9b] mx-auto mb-2 opacity-60" />
-                <p className="text-xs text-[#737685]">
-                  Select a patient to view their Pentacam images and corneal analysis data.
-                </p>
-              </div>
-            )}
-          </aside>
-
-          {/* ── RIGHT: IMAGE VIEWER ── */}
-          <div className="min-h-[28rem]">
-            {selectedPatientId ? (
-              <div className="bg-white rounded-2xl border border-[#c3c6d6] shadow-sm overflow-hidden">
-                <div className="bg-[#003d9b] px-4 py-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileSpreadsheet className="h-4 w-4 text-white" />
-                    <span className="text-sm font-bold text-white">Pentacam Images</span>
-                    <span className="text-white/70 text-xs">— {selectedPatient?.fullName}</span>
+              {/* Patient summary */}
+              {selectedPatient ? (
+                <div className="rounded-xl border border-border bg-muted/50 p-3">
+                  <div className="mb-2 flex items-center gap-2">
+                    <BookOpenText className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-semibold text-foreground">ملخص المريض</span>
+                    {user?.role === "admin" && selectedPatientId && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="mr-auto h-7 px-2 text-xs"
+                        onClick={() =>
+                          setLocation(`/admin/pentacam/${selectedPatientId}`)
+                        }
+                      >
+                        <FolderCog className="ml-1 h-3.5 w-3.5" />
+                        صفحة الربط
+                      </Button>
+                    )}
                   </div>
-                  <span className="text-[10px] text-white/60 uppercase tracking-widest">JPG Viewer</span>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="font-bold text-foreground">{selectedPatient.fullName}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {selectedPatient.patientCode ?? `#${selectedPatient.id}`}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {summaryFields.map((field) => (
+                      <SummaryField
+                        key={field.label}
+                        label={field.label}
+                        value={field.value}
+                      />
+                    ))}
+                  </div>
                 </div>
-                <div className="p-4">
-                  <PentacamFilesPanel patientId={selectedPatientId} active />
-                </div>
-              </div>
+              ) : null}
+            </div>
+          </div>
+        </header>
+
+        <div className="flex-1">
+          <section className="min-h-0">
+            {selectedPatientId ? (
+              <PentacamFilesPanel patientId={selectedPatientId} active />
             ) : (
               <EmptyPanel />
             )}
-          </div>
+          </section>
         </div>
       </main>
     </div>
