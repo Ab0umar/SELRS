@@ -15,7 +15,6 @@ import {
   CircleDot,
   Syringe,
   Repeat,
-  ChevronDown,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -26,12 +25,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import PatientPicker from "@/components/PatientPicker";
 import { patientNavPathForPageKey } from "@/lib/patientNavPaths";
 import type { PageKey } from "@/lib/dashboard-data";
@@ -108,13 +101,6 @@ const quickActions: QuickActionItem[] = [
     permPath: "/operations",
   },
   {
-    label: "القياسات و الفحص",
-    icon: Eye,
-    color: "bg-secondary text-secondary-foreground hover:bg-secondary/90",
-    kind: "measurements-panel",
-    permPath: "/examination",
-  },
-  {
     label: "حجز العمليات",
     icon: Syringe,
     color: "bg-success/15 text-success",
@@ -127,6 +113,13 @@ const quickActions: QuickActionItem[] = [
     color: "bg-primary/15 text-primary",
     kind: "followup-dialog",
     permPath: "action/followup-queue",
+  },
+  {
+    label: "القياسات و الفحص",
+    icon: Eye,
+    color: "bg-secondary text-secondary-foreground hover:bg-secondary/90",
+    kind: "measurements-panel",
+    permPath: "/examination",
   },
   {
     label: "مقاس النظارة",
@@ -243,27 +236,9 @@ export function QuickActions({
     return quickActions.filter((a) => isPermAllowed(a.permPath, allowedPaths));
   }, [isAdmin, permissionsQuery.isSuccess, allowedPaths]);
 
-  const isMoreAction = (action: QuickActionItem) => {
-    // Dialog-triggered actions always stay in the main bar regardless of color.
-    if (
-      action.kind === "quick-entry-dialog" ||
-      action.kind === "schedule-dialog" ||
-      action.kind === "portal-booking-dialog" ||
-      action.kind === "operations-booking-dialog" ||
-      action.kind === "followup-dialog"
-    )
-      return false;
-    return (
-      action.color.includes("bg-secondary") ||
-      action.color.includes("bg-warning") ||
-      (action.kind === "pick-patient" &&
-        ["medical-reports", "patient-details", "patient-summary"].includes(
-          action.page,
-        ))
-    );
-  };
-  const mainActions = visibleActions.filter((action) => !isMoreAction(action));
-  const moreActions = visibleActions.filter(isMoreAction);
+  const primaryActions = visibleActions.slice(0, 4);
+  const secondaryActions = visibleActions.slice(4);
+
 
   const navigateForPatient = (page: PageKey, patientId: number) => {
     const path = patientNavPathForPageKey(page, patientId);
@@ -348,88 +323,48 @@ export function QuickActions({
         </DialogContent>
       </Dialog>
 
-      <div
-        className="overflow-x-auto scrollbar-none"
-        aria-label="اختصارات لوحة التحكم"
-      >
-        <div className="flex w-max min-w-full items-center gap-2 pb-1">
-          {mainActions.map((action) => {
-            const Icon = action.icon;
-            const isPrimary = [
-              "quick-entry-dialog",
-              "schedule-dialog",
-              "operations-booking-dialog",
-              "portal-booking-dialog",
-            ].includes(action.kind);
-            return (
-              <button
-                key={action.label}
-                type="button"
-                aria-label={action.label}
-                onClick={() => handleAction(action)}
-                className={cn(
-                  "group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-lg border px-0 text-sm font-semibold transition-[background-color,border-color,transform] active:scale-[0.98] sm:w-auto sm:justify-start sm:px-3",
-                  isPrimary
-                    ? "border-primary/20 bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "border-border/60 bg-background text-foreground hover:border-primary/25 hover:bg-accent/30",
-                )}
-              >
-                <span
-                  className={cn(
-                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
-                    action.color,
-                  )}
-                >
-                  <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-                </span>
-                <span className="hidden whitespace-nowrap sm:inline">
-                  {action.label}
-                </span>
-              </button>
-            );
-          })}
-          {moreActions.length > 0 && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  aria-label="فتح اختصارات المزيد"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-secondary/30 bg-secondary/15 px-0 text-sm font-semibold text-secondary transition-[background-color,border-color,transform] hover:bg-secondary/20 active:scale-[0.98] sm:w-auto sm:justify-start sm:px-3 cursor-pointer"
-                >
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
-                    <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
-                  </span>
-                  <span className="hidden whitespace-nowrap sm:inline">المزيد</span>
-                  <span className="hidden rounded-full bg-secondary/15 px-1.5 text-[11px] tabular-nums sm:inline">
-                    {moreActions.length}
-                  </span>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="w-52 p-1 space-y-0.5 bg-background border border-border rounded-lg shadow-md"
-                style={{ direction: "rtl" }}
-              >
-                {moreActions.map((action) => {
-                  const Icon = action.icon;
-                  return (
-                    <DropdownMenuItem
-                      key={action.label}
-                      onClick={() => handleAction(action)}
-                      className="flex items-center gap-2.5 px-3 py-2 text-sm text-secondary hover:bg-secondary/5 focus:bg-secondary/5 focus:text-secondary rounded-md cursor-pointer transition-colors"
-                    >
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-secondary/10 text-secondary">
-                        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-                      </span>
-                      <span className="font-semibold">{action.label}</span>
-                    </DropdownMenuItem>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+      <div aria-label="اختصارات لوحة التحكم" className="space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {primaryActions.map((action) => renderActionButton(action, true))}
         </div>
+        {secondaryActions.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            {secondaryActions.map((action) => renderActionButton(action, false))}
+          </div>
+        )}
       </div>
     </>
   );
+
+  function renderActionButton(action: QuickActionItem, isPrimary: boolean) {
+    const Icon = action.icon;
+    return (
+      <button
+        key={action.label}
+        type="button"
+        aria-label={action.label}
+        onClick={() => handleAction(action)}
+        className={cn(
+          "group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-lg border px-0 text-sm font-semibold transition-[background-color,border-color,transform] active:scale-[0.98] sm:w-auto sm:justify-start sm:px-3",
+          isPrimary
+            ? "border-primary/20 bg-primary text-primary-foreground hover:bg-primary/90"
+            : "border-border/60 bg-background text-foreground hover:border-primary/25 hover:bg-accent/30",
+        )}
+      >
+        <span
+          className={cn(
+            "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
+            isPrimary
+              ? "bg-white/15 text-primary-foreground"
+              : "bg-muted text-muted-foreground",
+          )}
+        >
+          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+        </span>
+        <span className="hidden whitespace-nowrap sm:inline">
+          {action.label}
+        </span>
+      </button>
+    );
+  }
 }

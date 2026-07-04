@@ -3,6 +3,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn, getTrpcErrorMessage } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -38,6 +44,13 @@ const QUEUE_FILTERS: { value: QueueFilter; label: string }[] = [
   { value: "clinic2", label: "عيادة 2" },
   { value: "treated", label: "معالج" },
 ];
+
+const PRINT_SHEET_TYPES = [
+  { value: "consultant", label: "كشف استشاري" },
+  { value: "specialist", label: "كشف أخصائي" },
+  { value: "lasik", label: "ليزك" },
+  { value: "external", label: "خارجي" },
+] as const;
 
 const queueStatusStyles: Record<QueueStatus, string> = {
   checkedIn: "bg-info/10 text-info",
@@ -676,24 +689,43 @@ function QueuePatientCard({
         </div>
         <div className="mt-2 flex items-center justify-end gap-1.5 text-sm sm:mt-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-1.5">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              title="طباعة الشيت"
-              aria-label={`طباعة شيت ${patient.fullName ?? "المريض"}`}
-              className="h-11 w-11 shrink-0 text-slate-500 hover:text-slate-900"
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                const sType = patient.serviceType === "surgery" ? "operation" : patient.serviceType === "external" ? "external" : patient.serviceType || "consultant";
-                const isFollowup = (patient as any).visitType === "followup";
-                const suffix = isFollowup ? "/followup" : "";
-                window.open(`/sheets/${sType}/${patient.id}${suffix}?original=1`, "_blank");
-              }}
-            >
-              <Printer className="h-4 w-4" aria-hidden />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  title="طباعة الشيت"
+                  aria-label={`طباعة شيت ${patient.fullName ?? "المريض"}`}
+                  className="h-11 w-11 shrink-0 text-slate-500 hover:text-slate-900"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                >
+                  <Printer className="h-4 w-4" aria-hidden />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                onClick={(e) => e.stopPropagation()}
+                style={{ direction: "rtl" }}
+              >
+                {PRINT_SHEET_TYPES.map(({ value, label }) => (
+                  <DropdownMenuItem
+                    key={value}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const isFollowup = (patient as any).visitType === "followup";
+                      const suffix = isFollowup ? "/followup" : "";
+                      window.open(`/sheets/${value}/${patient.id}${suffix}?original=1`, "_blank");
+                    }}
+                  >
+                    {label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             {canMarkTreated ? (
               <Button
                 type="button"

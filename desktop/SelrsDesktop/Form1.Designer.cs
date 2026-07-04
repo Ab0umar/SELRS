@@ -48,7 +48,7 @@ partial class Form1
         this.topBar.Dock = System.Windows.Forms.DockStyle.Top;
         this.topBar.Location = new System.Drawing.Point(0, 0);
         this.topBar.Name = "topBar";
-        this.topBar.Size = new System.Drawing.Size(1280, 40);
+        this.topBar.Size = new System.Drawing.Size(1280, 44);
         this.topBar.TabIndex = 0;
         // 
         // btnMinimize
@@ -61,9 +61,9 @@ partial class Form1
         this.btnMinimize.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
         this.btnMinimize.Font = new System.Drawing.Font("Segoe UI Semibold", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
         this.btnMinimize.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(50)))), ((int)(((byte)(65)))), ((int)(((byte)(90)))));
-        this.btnMinimize.Location = new System.Drawing.Point(1144, 0);
+        this.btnMinimize.Location = new System.Drawing.Point(1140, 0);
         this.btnMinimize.Name = "btnMinimize";
-        this.btnMinimize.Size = new System.Drawing.Size(44, 40);
+        this.btnMinimize.Size = new System.Drawing.Size(44, 44);
         this.btnMinimize.TabIndex = 0;
         this.btnMinimize.Text = "–";
         this.btnMinimize.UseVisualStyleBackColor = false;
@@ -78,9 +78,9 @@ partial class Form1
         this.btnMaximize.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
         this.btnMaximize.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
         this.btnMaximize.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(50)))), ((int)(((byte)(65)))), ((int)(((byte)(90)))));
-        this.btnMaximize.Location = new System.Drawing.Point(1188, 0);
+        this.btnMaximize.Location = new System.Drawing.Point(1184, 0);
         this.btnMaximize.Name = "btnMaximize";
-        this.btnMaximize.Size = new System.Drawing.Size(44, 40);
+        this.btnMaximize.Size = new System.Drawing.Size(44, 44);
         this.btnMaximize.TabIndex = 1;
         this.btnMaximize.Text = "□";
         this.btnMaximize.UseVisualStyleBackColor = false;
@@ -95,9 +95,9 @@ partial class Form1
         this.btnClose.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
         this.btnClose.Font = new System.Drawing.Font("Segoe UI Semibold", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
         this.btnClose.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(50)))), ((int)(((byte)(65)))), ((int)(((byte)(90)))));
-        this.btnClose.Location = new System.Drawing.Point(1232, 0);
+        this.btnClose.Location = new System.Drawing.Point(1228, 0);
         this.btnClose.Name = "btnClose";
-        this.btnClose.Size = new System.Drawing.Size(48, 40);
+        this.btnClose.Size = new System.Drawing.Size(52, 44);
         this.btnClose.TabIndex = 2;
         this.btnClose.Text = "×";
         this.btnClose.UseVisualStyleBackColor = false;
@@ -107,7 +107,7 @@ partial class Form1
         this.titleLabel.AutoSize = true;
         this.titleLabel.Font = new System.Drawing.Font("Segoe UI Semibold", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
         this.titleLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(17)))), ((int)(((byte)(28)))), ((int)(((byte)(48)))));
-        this.titleLabel.Location = new System.Drawing.Point(14, 11);
+        this.titleLabel.Location = new System.Drawing.Point(16, 13);
         this.titleLabel.Name = "titleLabel";
         this.titleLabel.Size = new System.Drawing.Size(42, 15);
         this.titleLabel.TabIndex = 3;
@@ -119,9 +119,9 @@ partial class Form1
         this.webView.CreationProperties = null;
         this.webView.DefaultBackgroundColor = System.Drawing.Color.White;
         this.webView.Dock = System.Windows.Forms.DockStyle.Fill;
-        this.webView.Location = new System.Drawing.Point(0, 40);
+        this.webView.Location = new System.Drawing.Point(0, 44);
         this.webView.Name = "webView";
-        this.webView.Size = new System.Drawing.Size(1280, 760);
+        this.webView.Size = new System.Drawing.Size(1280, 756);
         this.webView.TabIndex = 1;
         this.webView.ZoomFactor = 1D;
         // 

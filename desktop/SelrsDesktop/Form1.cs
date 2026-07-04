@@ -17,6 +17,8 @@ using System.Threading;
 using System.Reflection;
 #endif
 
+#nullable enable
+
 namespace SelrsDesktop;
 
 public partial class Form1 : Form
@@ -41,9 +43,19 @@ public partial class Form1 : Form
     // Window chrome
     private const int WmNclbuttondown = 0xA1;
     private const int HtCaption = 0x2;
-    private const int TopBarExpandedHeight = 40;
+    private const int TopBarExpandedHeight = 44;
     private readonly System.Windows.Forms.Timer _topBarTimer = new() { Interval = 150 };
     private DateTime _lastTopEdgeHoverUtc = DateTime.UtcNow;
+
+    private static readonly Color ShellBg = Color.FromArgb(246, 248, 252);
+    private static readonly Color PanelBg = Color.FromArgb(253, 254, 255);
+    private static readonly Color SurfaceBg = Color.FromArgb(241, 245, 251);
+    private static readonly Color BorderColor = Color.FromArgb(214, 224, 239);
+    private static readonly Color TextPrimary = Color.FromArgb(24, 38, 61);
+    private static readonly Color TextMuted = Color.FromArgb(94, 108, 132);
+    private static readonly Color PrimaryBlue = Color.FromArgb(37, 99, 235);
+    private static readonly Color PrimaryBlueHover = Color.FromArgb(29, 78, 216);
+    private static readonly Color BrandOrange = Color.FromArgb(255, 107, 53);
 
     // Tray icon
     private NotifyIcon? _trayIcon;
@@ -350,7 +362,7 @@ public partial class Form1 : Form
     // ── URL helpers ───────────────────────────────────────────────────────────
     private static string NormalizeHomeUrl(string? value)
     {
-        var candidate = string.IsNullOrWhiteSpace(value) ? DefaultHomeUrl : value.Trim();
+        var candidate = string.IsNullOrWhiteSpace(value) ? DefaultHomeUrl : value!.Trim();
         if (!candidate.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
             !candidate.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
             candidate = $"https://{candidate}";
@@ -399,46 +411,129 @@ public partial class Form1 : Form
             MessageBox.Show("WebView is not initialized yet. Please try again in a moment.", "Navigation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
     }
 
+    private static Label CreateLabel(string text, Font font, Color color, Point location, Size size, ContentAlignment align = ContentAlignment.MiddleRight)
+    {
+        return new Label
+        {
+            Text = text,
+            Font = font,
+            ForeColor = color,
+            BackColor = Color.Transparent,
+            AutoSize = false,
+            Location = location,
+            Size = size,
+            TextAlign = align,
+        };
+    }
+
+    private static void StyleButton(Button button, bool primary)
+    {
+        button.FlatStyle = FlatStyle.Flat;
+        button.UseVisualStyleBackColor = false;
+        button.Font = new Font("Segoe UI", 9.5F, primary ? FontStyle.Bold : FontStyle.Regular);
+        button.ForeColor = primary ? Color.FromArgb(253, 254, 255) : Color.FromArgb(54, 71, 98);
+        button.BackColor = primary ? PrimaryBlue : PanelBg;
+        button.FlatAppearance.BorderSize = primary ? 0 : 1;
+        button.FlatAppearance.BorderColor = BorderColor;
+        button.FlatAppearance.MouseOverBackColor = primary ? PrimaryBlueHover : Color.FromArgb(232, 238, 248);
+        button.FlatAppearance.MouseDownBackColor = primary ? Color.FromArgb(30, 64, 175) : Color.FromArgb(218, 228, 243);
+    }
+
+    private static Panel CreateServerOption(RadioButton radio, string url, int y)
+    {
+        var panel = new Panel
+        {
+            BackColor = PanelBg,
+            Location = new Point(22, y),
+            Size = new Size(496, 58),
+            Cursor = Cursors.Hand,
+        };
+        panel.Paint += (_, e) =>
+        {
+            var border = radio.Checked ? PrimaryBlue : BorderColor;
+            using var pen = new Pen(border, radio.Checked ? 2 : 1);
+            var rect = new Rectangle(0, 0, panel.Width - 1, panel.Height - 1);
+            e.Graphics.DrawRectangle(pen, rect);
+            if (radio.Checked)
+            {
+                using var brush = new SolidBrush(Color.FromArgb(255, 241, 232));
+                e.Graphics.FillRectangle(brush, panel.Width - 7, 0, 7, panel.Height);
+            }
+        };
+
+        radio.BackColor = Color.Transparent;
+        radio.ForeColor = TextPrimary;
+        radio.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+        radio.Location = new Point(18, 9);
+        radio.Size = new Size(456, 22);
+        radio.RightToLeft = RightToLeft.Yes;
+
+        var urlLabel = CreateLabel(url, new Font("Consolas", 8.5F), TextMuted, new Point(18, 32), new Size(456, 18));
+        urlLabel.RightToLeft = RightToLeft.No;
+
+        panel.Controls.Add(radio);
+        panel.Controls.Add(urlLabel);
+        panel.Click += (_, _) => radio.Checked = true;
+        urlLabel.Click += (_, _) => radio.Checked = true;
+        radio.CheckedChanged += (_, _) => panel.Invalidate();
+        return panel;
+    }
+
     // ── URL chooser dialog ────────────────────────────────────────────────────
     private bool ShowStartupUrlChooser()
     {
-        var bg = Color.FromArgb(248, 250, 252);
-        var textPrimary = Color.FromArgb(17, 28, 48);
-        var textSubdued = Color.FromArgb(107, 119, 140);
-        var borderColor = Color.FromArgb(218, 228, 243);
-        var accentBlue = Color.FromArgb(37, 99, 235);
-
         using var dialog = new Form
         {
-            Text = "SELRS", StartPosition = FormStartPosition.CenterParent,
-            FormBorderStyle = FormBorderStyle.FixedSingle, MinimizeBox = false,
-            MaximizeBox = false, ShowInTaskbar = false, ClientSize = new Size(440, 320), BackColor = bg,
+            Text = "SELRS",
+            StartPosition = FormStartPosition.CenterParent,
+            FormBorderStyle = FormBorderStyle.FixedSingle,
+            MinimizeBox = false,
+            MaximizeBox = false,
+            ShowInTaskbar = false,
+            ClientSize = new Size(540, 472),
+            BackColor = ShellBg,
+            RightToLeft = RightToLeft.Yes,
+            RightToLeftLayout = true,
         };
 
-        var lblTitle = new Label { Text = "اختر اتصال SELRS", Font = new Font("Segoe UI", 12F, FontStyle.Bold), ForeColor = textPrimary, AutoSize = false, Location = new Point(20, 18), Size = new Size(400, 26), TextAlign = ContentAlignment.MiddleRight };
-        var sep = new Panel { BackColor = borderColor, Location = new Point(20, 52), Size = new Size(400, 1) };
+        var header = new Panel { BackColor = PanelBg, Location = new Point(0, 0), Size = new Size(540, 112) };
+        header.Paint += (_, e) =>
+        {
+            using var pen = new Pen(BorderColor);
+            e.Graphics.DrawLine(pen, 0, header.Height - 1, header.Width, header.Height - 1);
+        };
+        var brandMark = new Panel { BackColor = BrandOrange, Location = new Point(464, 28), Size = new Size(38, 38) };
+        var lblTitle = CreateLabel("اختيار خادم SELRS", new Font("Segoe UI", 15F, FontStyle.Bold), TextPrimary, new Point(30, 24), new Size(420, 28));
+        var lblSubtitle = CreateLabel("اختر نقطة الاتصال المناسبة لهذا الجهاز. سيتم حفظ الاختيار للمرات القادمة.", new Font("Segoe UI", 9.5F), TextMuted, new Point(30, 58), new Size(420, 24));
+        header.Controls.AddRange([brandMark, lblTitle, lblSubtitle]);
 
         var radios = new RadioButton[UrlPresets.Length];
         for (var i = 0; i < UrlPresets.Length; i++)
         {
             var preset = UrlPresets[i];
-            var y = 64 + i * 52;
-            var rb = new RadioButton { Text = preset.label, Tag = preset.url, Checked = NormalizeHomeUrl(preset.url) == _currentUrl, Font = new Font("Segoe UI", 10F), ForeColor = textPrimary, BackColor = bg, AutoSize = false, Location = new Point(20, y), Size = new Size(400, 22), RightToLeft = RightToLeft.Yes };
-            var urlLbl = new Label { Text = preset.url, Font = new Font("Segoe UI", 8.5F), ForeColor = textSubdued, BackColor = bg, AutoSize = false, Location = new Point(44, y + 23), Size = new Size(376, 16), TextAlign = ContentAlignment.MiddleRight };
+            var rb = new RadioButton
+            {
+                Text = preset.label,
+                Tag = preset.url,
+                Checked = NormalizeHomeUrl(preset.url) == _currentUrl,
+                AutoSize = false,
+            };
             radios[i] = rb;
-            dialog.Controls.Add(rb);
-            dialog.Controls.Add(urlLbl);
+            dialog.Controls.Add(CreateServerOption(rb, preset.url, 126 + i * 64));
         }
         if (!radios.Any(r => r.Checked)) radios[0].Checked = true;
 
-        var btnCancel = new Button { Text = "إلغاء", DialogResult = DialogResult.Cancel, Font = new Font("Segoe UI", 9.5F), ForeColor = Color.FromArgb(75, 90, 110), BackColor = bg, FlatStyle = FlatStyle.Flat, Size = new Size(88, 34), Location = new Point(20, 274), UseVisualStyleBackColor = false };
-        btnCancel.FlatAppearance.BorderSize = 1; btnCancel.FlatAppearance.BorderColor = borderColor; btnCancel.FlatAppearance.MouseOverBackColor = Color.FromArgb(229, 236, 246); btnCancel.FlatAppearance.MouseDownBackColor = Color.FromArgb(210, 222, 240);
+        var current = CreateLabel($"الاتصال الحالي: {_currentUrl}", new Font("Segoe UI", 8.75F), TextMuted, new Point(22, 396), new Size(496, 20), ContentAlignment.MiddleLeft);
+        current.RightToLeft = RightToLeft.No;
 
-        var btnOpen = new Button { Text = "فتح", DialogResult = DialogResult.OK, Font = new Font("Segoe UI", 9.5F, FontStyle.Bold), ForeColor = Color.White, BackColor = accentBlue, FlatStyle = FlatStyle.Flat, Size = new Size(88, 34), Location = new Point(332, 274), UseVisualStyleBackColor = false };
-        btnOpen.FlatAppearance.BorderSize = 0; btnOpen.FlatAppearance.MouseOverBackColor = Color.FromArgb(29, 78, 216); btnOpen.FlatAppearance.MouseDownBackColor = Color.FromArgb(30, 64, 175);
+        var btnCancel = new Button { Text = "إلغاء", DialogResult = DialogResult.Cancel, Size = new Size(92, 36), Location = new Point(22, 424) };
+        StyleButton(btnCancel, primary: false);
+
+        var btnOpen = new Button { Text = "فتح الاتصال", DialogResult = DialogResult.OK, Size = new Size(120, 36), Location = new Point(398, 424) };
+        StyleButton(btnOpen, primary: true);
 
         dialog.AcceptButton = btnOpen; dialog.CancelButton = btnCancel;
-        dialog.Controls.AddRange([lblTitle, sep, btnCancel, btnOpen]);
+        dialog.Controls.AddRange([header, current, btnCancel, btnOpen]);
 
         if (dialog.ShowDialog(this) != DialogResult.OK) return false;
         var selected = radios.FirstOrDefault(r => r.Checked)?.Tag?.ToString();
@@ -494,16 +589,37 @@ public partial class Form1 : Form
     private void EnableModernBorderlessShell()
     {
         FormBorderStyle = FormBorderStyle.None;
+        BackColor = ShellBg;
+        if (titleLabel != null)
+        {
+            titleLabel.Text = "SELRS Desktop";
+            titleLabel.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+            titleLabel.ForeColor = TextPrimary;
+        }
+        if (topBar != null) topBar.BackColor = PanelBg;
+        StyleChromeButton(btnMinimize, danger: false);
+        StyleChromeButton(btnMaximize, danger: false);
+        StyleChromeButton(btnClose, danger: true);
         if (topBar != null) { topBar.Visible = false; topBar.MouseMove += HandleAnyMouseMove; topBar.MouseDown += HandleTopBarMouseDown; }
         MouseMove += HandleAnyMouseMove;
         if (webView != null) webView.MouseMove += HandleAnyMouseMove;
         if (btnMinimize != null) btnMinimize.Click += (_, _) => WindowState = FormWindowState.Minimized;
         if (btnMaximize != null) btnMaximize.Click += (_, _) => WindowState = WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized;
-        if (btnClose != null) { btnClose.Click += (_, _) => Close(); btnClose.MouseEnter += (_, _) => btnClose.ForeColor = Color.White; btnClose.MouseLeave += (_, _) => btnClose.ForeColor = Color.FromArgb(50, 65, 90); }
-        if (topBar != null) topBar.Paint += (_, pe) => { using var pen = new Pen(Color.FromArgb(218, 228, 243)); pe.Graphics.DrawLine(pen, 0, topBar.Height - 1, topBar.Width - 1, topBar.Height - 1); };
+        if (btnClose != null) { btnClose.Click += (_, _) => Close(); btnClose.MouseEnter += (_, _) => btnClose.ForeColor = Color.FromArgb(253, 254, 255); btnClose.MouseLeave += (_, _) => btnClose.ForeColor = TextPrimary; }
+        if (topBar != null) topBar.Paint += (_, pe) => { using var pen = new Pen(BorderColor); pe.Graphics.DrawLine(pen, 0, topBar.Height - 1, topBar.Width - 1, topBar.Height - 1); };
         Resize += (_, _) => UpdateMaximizeButtonText();
         _topBarTimer.Tick += (_, _) => HandleTopBarAutoHideTick();
         _topBarTimer.Start();
+    }
+
+    private static void StyleChromeButton(Button button, bool danger)
+    {
+        if (button == null) return;
+        button.BackColor = PanelBg;
+        button.ForeColor = TextPrimary;
+        button.FlatAppearance.BorderSize = 0;
+        button.FlatAppearance.MouseOverBackColor = danger ? Color.FromArgb(220, 38, 38) : Color.FromArgb(232, 238, 248);
+        button.FlatAppearance.MouseDownBackColor = danger ? Color.FromArgb(185, 28, 28) : Color.FromArgb(218, 228, 243);
     }
 
     [DllImport("user32.dll")] private static extern bool ReleaseCapture();
@@ -535,12 +651,44 @@ public partial class Form1 : Form
         var safeDetails = WebUtility.HtmlEncode(details);
         var safeUrl = WebUtility.HtmlEncode(_homeUrl);
         var html = $$"""
-<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<style>*,*::before,*::after{box-sizing:border-box}body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:#f8fafc;color:#111c30;display:grid;place-items:center;min-height:100vh}.card{width:min(560px,calc(100vw - 40px));background:#fff;border:1px solid #dae4f3;border-radius:10px;padding:32px 36px}.icon{width:36px;height:36px;margin-bottom:16px;color:#dc2626}h1{font-size:19px;font-weight:600;margin:0 0 8px;line-height:1.4}.detail{font-size:13px;color:#6b7892;margin:0 0 12px;line-height:1.6}.url{display:inline-block;font-family:Consolas,monospace;font-size:13px;background:#eef2f9;border-radius:4px;padding:3px 8px;color:#374668;margin-bottom:16px;direction:ltr}.instruction{font-size:13px;color:#374668;background:#f0f5fc;border-radius:6px;padding:10px 14px;margin:0 0 20px;line-height:1.6}.actions{display:flex;gap:10px}.btn{font-family:"Segoe UI",system-ui,sans-serif;font-size:13px;padding:8px 18px;border-radius:6px;border:none;cursor:pointer}.btn-primary{background:#2563eb;color:#fff;font-weight:600}.btn-primary:hover{background:#1d4ed8}.btn-secondary{background:#f0f5fc;color:#374668}.btn-secondary:hover{background:#dae4f3}</style>
-</head><body><div class="card"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="0.5" fill="currentColor" stroke="none"/></svg>
-<h1>{{safeTitle}}</h1><p class="detail">{{safeDetails}}</p><code class="url">{{safeUrl}}</code>
-<p class="instruction">تحقق من تشغيل خادم SELRS وإمكانية الوصول إليه من هذا الجهاز.</p>
-<div class="actions"><button class="btn btn-primary" onclick="window.chrome.webview.postMessage('retry')">إعادة المحاولة</button><button class="btn btn-secondary" onclick="window.chrome.webview.postMessage('chooser')">تغيير الخادم</button></div></div></body></html>
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:#f6f8fc;color:#18263d;min-height:100vh;display:grid;place-items:center;padding:32px}
+.shell{width:min(720px,100%);background:#fdfeff;border:1px solid #d6e0ef;border-radius:8px;overflow:hidden}
+.head{display:flex;align-items:center;gap:14px;padding:22px 26px;border-bottom:1px solid #d6e0ef;background:#fbfcff}
+.mark{width:38px;height:38px;background:#ff6b35;flex:0 0 auto}
+.eyebrow{font-size:12px;font-weight:700;color:#2563eb;margin:0 0 2px}
+h1{font-size:20px;font-weight:700;margin:0;line-height:1.35}
+.body{padding:24px 26px 26px}
+.detail{font-size:13px;color:#5e6c84;margin:0 0 14px;line-height:1.7}
+.url{display:block;direction:ltr;text-align:left;font-family:Consolas,"Courier New",monospace;font-size:13px;background:#f1f5fb;border:1px solid #d6e0ef;border-radius:6px;padding:9px 11px;color:#364762;margin:0 0 16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.checks{margin:0 0 22px;padding:12px 16px;background:#fff5ef;border:1px solid #ffd9c8;border-radius:6px;color:#5e412e;font-size:13px;line-height:1.7}
+.actions{display:flex;gap:10px;justify-content:flex-start}
+.btn{font-family:"Segoe UI",system-ui,sans-serif;font-size:13px;min-width:112px;padding:9px 18px;border-radius:6px;border:1px solid transparent;cursor:pointer}
+.btn-primary{background:#2563eb;color:#fdfeff;font-weight:700}.btn-primary:hover{background:#1d4ed8}
+.btn-secondary{background:#fdfeff;color:#364762;border-color:#d6e0ef}.btn-secondary:hover{background:#e8eef8}
+</style>
+</head>
+<body>
+<main class="shell">
+<section class="head">
+<div class="mark" aria-hidden="true"></div>
+<div><p class="eyebrow">SELRS Desktop</p><h1>{{safeTitle}}</h1></div>
+</section>
+<section class="body">
+<p class="detail">{{safeDetails}}</p>
+<code class="url">{{safeUrl}}</code>
+<p class="checks">تحقق من تشغيل خادم SELRS، ومن اتصال الجهاز بنفس الشبكة، ثم أعد المحاولة أو اختر خادما آخر.</p>
+<div class="actions"><button class="btn btn-primary" onclick="window.chrome.webview.postMessage('retry')">إعادة المحاولة</button><button class="btn btn-secondary" onclick="window.chrome.webview.postMessage('chooser')">تغيير الخادم</button></div>
+</section>
+</main>
+</body>
+</html>
 """;
         Text = "SELRS Desktop - Offline";
         try { if (webView.CoreWebView2 != null) { webView.NavigateToString(html); return; } } catch (Exception ex) { LogError("Failed to render error page", ex); }
@@ -562,6 +710,6 @@ public partial class Form1 : Form
     private static string NormalizeUri(string? uri)
     {
         if (string.IsNullOrWhiteSpace(uri)) return string.Empty;
-        return Uri.TryCreate(uri, UriKind.Absolute, out var parsed) ? parsed.ToString() : uri.Trim();
+        return Uri.TryCreate(uri, UriKind.Absolute, out var parsed) ? parsed.ToString() : uri!.Trim();
     }
 }

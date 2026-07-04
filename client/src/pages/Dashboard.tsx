@@ -7,7 +7,6 @@ import {
   Activity,
   Eye,
   Users,
-  RefreshCw,
   Syringe,
   CircleDot,
   Glasses,
@@ -18,7 +17,6 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
   AlertTriangle,
   Zap,
   Cpu,
@@ -441,90 +439,11 @@ function TodayPanel({
     { refetchOnWindowFocus: false },
   );
 
-  const [totalsOpen, setTotalsOpen] = useState(true);
   const [subTab, setSubTab] = useState<"queue" | "analytics">("queue");
-
-  const total = merged.length;
-  const treated = merged.filter((p) => p.queueStatus === "treated").length;
-  const waiting = total - treated;
-  const completionRate = total > 0 ? Math.round((treated / total) * 100) : 0;
-  const opsCount = opsQuery.data?.length ?? 0;
-
-  const tiles = [
-    {
-      label: "مرضى اليوم",
-      value: total,
-      icon: Users,
-      cls: "bg-primary text-primary-foreground",
-      bgCls:
-        "bg-primary/5 border-primary/20 hover:border-primary/40 text-foreground",
-      labelCls: "text-primary/80",
-    },
-    {
-      label: "تم معالجتهم",
-      value: treated,
-      icon: Activity,
-      cls: "bg-success text-white",
-      bgCls:
-        "bg-success/5 border-success/20 hover:border-success/40 text-foreground",
-      labelCls: "text-success/80",
-    },
-    {
-      label: "في الانتظار",
-      value: waiting,
-      icon: Clock,
-      cls: "bg-warning text-white",
-      bgCls:
-        "bg-warning/5 border-warning/20 hover:border-warning/40 text-foreground",
-      labelCls: "text-warning/80",
-    },
-    {
-      label: "العمليات",
-      value: opsCount,
-      icon: Syringe,
-      cls: "bg-secondary text-secondary-foreground",
-      bgCls:
-        "bg-secondary/5 border-secondary/20 hover:border-secondary/40 text-foreground",
-      labelCls: "text-secondary/80",
-    },
-  ];
 
   if (queueLoading || opsQuery.isLoading) {
     return (
       <div className="space-y-4">
-        <button
-          type="button"
-          onClick={() => setTotalsOpen((value) => !value)}
-          className="flex w-full items-center justify-between rounded-lg border border-border/50 bg-background px-4 py-3 text-right transition-colors hover:bg-muted/40"
-          aria-expanded={totalsOpen}
-        >
-          <span className="text-sm font-bold text-foreground">
-            إحصائيات اليوم
-          </span>
-          {totalsOpen ? (
-            <ChevronDown className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
-        </button>
-        {totalsOpen && (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-            {tiles.map((_, i) => (
-              <div
-                key={i}
-                className="rounded-lg border border-border/50 bg-background px-3 py-2.5"
-              >
-                <div className="flex items-center gap-3">
-                  <Skeleton className="h-9 w-9 rounded-md" />
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <Skeleton className="h-3 w-20 rounded-full" />
-                    <Skeleton className="h-6 w-14 rounded-full" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
         <Skeleton className="h-10 rounded-lg" />
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
           <Skeleton className="lg:col-span-2 h-64 rounded-lg" />
@@ -564,100 +483,6 @@ function TodayPanel({
 
       {subTab === "queue" && (
         <div className="space-y-4">
-          <button
-            type="button"
-            onClick={() => setTotalsOpen((value) => !value)}
-            className="flex w-full items-center justify-between rounded-lg border border-border/50 bg-background px-4 py-3 text-right transition-colors hover:bg-muted/40"
-            aria-expanded={totalsOpen}
-          >
-            <span className="text-sm font-bold text-foreground">
-              إحصائيات اليوم
-            </span>
-            <span className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-              {total.toLocaleString("ar-EG")} مريض
-              {totalsOpen ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronLeft className="h-4 w-4" />
-              )}
-            </span>
-          </button>
-          {totalsOpen && (
-            <>
-              {/* Tiles */}
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                {tiles.map((t) => {
-                  const Icon = t.icon;
-                  return (
-                    <div
-                      key={t.label}
-                      className={cn(
-                        "rounded-lg border px-3.5 py-3 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm",
-                        t.bgCls,
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={cn(
-                            "flex h-9 w-9 shrink-0 items-center justify-center rounded-md shadow-xs",
-                            t.cls,
-                          )}
-                        >
-                          <Icon className="h-4 w-4" aria-hidden />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-2xl font-bold leading-none tabular-nums">
-                            {t.value}
-                          </p>
-                          <p
-                            className={cn(
-                              "mt-1 text-xs font-semibold",
-                              t.labelCls,
-                            )}
-                          >
-                            {t.label}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Completion bar */}
-              <div className="rounded-lg border border-primary/10 bg-primary/5 px-4 py-3 shadow-xs">
-                <div className="flex items-center gap-3">
-                  <span className="shrink-0 text-sm font-bold text-foreground">
-                    نسبة إنجاز اليوم
-                  </span>
-                  <div
-                    className="h-2.5 flex-1 overflow-hidden rounded-full bg-[#e2edf7]"
-                    role="progressbar"
-                    aria-valuenow={completionRate}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-label="نسبة الإنجاز"
-                  >
-                    <div
-                      className={cn(
-                        "h-full w-full origin-right rounded-full transition-transform duration-500 ease-out",
-                        completionRate >= 80
-                          ? "bg-success"
-                          : completionRate >= 50
-                            ? "bg-primary"
-                            : "bg-secondary",
-                      )}
-                      style={{ transform: `scaleX(${completionRate / 100})` }}
-                    />
-                  </div>
-                  <span className="w-10 text-left text-sm font-bold text-foreground tabular-nums">
-                    {completionRate}%
-                  </span>
-                </div>
-              </div>
-            </>
-          )}
-
           {/* Appointments list occupying full width */}
           <Surface className="w-full">
             <div className="p-3">
@@ -1552,12 +1377,6 @@ export default function Dashboard() {
     hour12: true,
   });
 
-  const handleRefreshToday = () => {
-    void utils.medical.getMedicalTotals.invalidate();
-    void utils.medical.getTodayOperationLists.invalidate();
-    void utils.medical.getTodayPatientsByQueueStatus.invalidate();
-  };
-
   const selectTab = (tab: TabId) => {
     setActiveTab(tab);
     if (typeof window === "undefined") return;
@@ -1589,76 +1408,6 @@ export default function Dashboard() {
           }}
         />
 
-        {/* ── 1. Floating Bento Top Header Capsule ── */}
-        <header className="bg-card border border-border/60 rounded-3xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="hidden xl:flex h-10 w-10 rounded-2xl shrink-0 hover:bg-muted/50 cursor-pointer"
-              aria-label={
-                sidebarOpen
-                  ? "إغلاق القائمة الجانبية"
-                  : "فتح القائمة الجانبية"
-              }
-            >
-              {sidebarOpen ? (
-                <ChevronRight className="h-5 w-5" />
-              ) : (
-                <ChevronLeft className="h-5 w-5" />
-              )}
-            </Button>
-          </div>
-
-          {/* Top metrics */}
-          <div className="grid w-full grid-cols-3 gap-2 sm:grid-cols-3 md:w-auto md:min-w-[420px]">
-            <div className="rounded-2xl border p-2.5 px-3 flex flex-col justify-center bg-primary/10 border-primary/20">
-              <span className="text-[9px] font-bold text-muted-foreground block leading-none">
-                مرضى اليوم
-              </span>
-              <span className="mt-1 text-xs font-black font-mono leading-none text-primary">
-                {todayBadge.toLocaleString("ar-EG")}
-              </span>
-            </div>
-            <div className="rounded-2xl border p-2.5 px-3 flex flex-col justify-center bg-warning/10 border-warning/20">
-              <span className="text-[9px] font-bold text-muted-foreground block leading-none">
-                غياب اليوم
-              </span>
-              <span className="mt-1 text-xs font-black font-mono leading-none text-warning">
-                {attBadge.toLocaleString("ar-EG")}
-              </span>
-            </div>
-            <div className="rounded-2xl border p-2.5 px-3 flex flex-col justify-center bg-destructive/10 border-destructive/20">
-              <span className="text-[9px] font-bold text-muted-foreground block leading-none">
-                تنبيه مخزون
-              </span>
-              <span className="mt-1 text-xs font-black font-mono leading-none text-destructive">
-                {stockBadge.toLocaleString("ar-EG")}
-              </span>
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="flex items-center gap-2">
-            <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-success/15 px-3 text-xs font-semibold text-success shrink-0">
-              <Activity className="h-3.5 w-3.5" aria-hidden />
-              مباشر
-            </span>
-            {activeTab === "today" && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRefreshToday}
-                className="h-8 gap-1.5 text-xs rounded-xl"
-              >
-                <RefreshCw className="h-3.5 w-3.5" aria-hidden />
-                تحديث
-              </Button>
-            )}
-          </div>
-        </header>
-
         {/* Quick Actions Bar */}
         <div className="bg-card border border-border/60 rounded-3xl px-4 py-3 shadow-sm">
           <QuickActions
@@ -1669,6 +1418,17 @@ export default function Dashboard() {
 
         {/* ── 2. Two-Column Floating Console Layout ── */}
         <div className="flex flex-col lg:flex-row gap-6 items-start">
+          {!sidebarOpen && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen(true)}
+              className="hidden xl:flex h-10 w-10 shrink-0 rounded-2xl border border-border/60 bg-card shadow-sm hover:bg-muted/50 cursor-pointer"
+              aria-label="فتح القائمة الجانبية"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+          )}
           {/* Floating Sidebar */}
           <aside
             className={cn(
@@ -1681,9 +1441,15 @@ export default function Dashboard() {
             {/* Workspaces header */}
             <div className="flex items-center justify-between mb-4 pb-2 border-b border-border/40">
               <h2 className="text-xs font-black text-foreground">مساحات العمل</h2>
-              <span className="rounded-full bg-success/15 px-2 py-0.5 text-[9px] font-semibold text-success">
-                مباشر
-              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarOpen(false)}
+                className="h-7 w-7 rounded-xl hover:bg-muted/50 cursor-pointer"
+                aria-label="إغلاق القائمة الجانبية"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
 
             <nav className="space-y-1.5" role="tablist" aria-label="أقسام لوحة التحكم">
