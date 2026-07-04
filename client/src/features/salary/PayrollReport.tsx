@@ -1100,6 +1100,47 @@ export default function PayrollReport() {
     openPrint(html, `كشف الشفتات — ${periodLabel}`, SHEET_CSS);
   }
 
+  function printShiftSlips() {
+    const html = enhancedShiftRows
+      .map((r: any) => {
+        const net = Number(r.netBasic);
+        const totalEarnings = r.shiftDayTotal + r.shiftNightTotal;
+        const table = `
+          <table class="main">
+            <tr>
+              <th colspan="2">شفت كبير</th>
+              <th colspan="2">شفت صغير</th>
+              <th>إجمالي الاستحقاقات</th>
+              <th rowspan="4" class="net-cell"><span class="net-label">صافي المستحق</span><span class="net-val">${fmt(net)}</span></th>
+            </tr>
+            <tr>
+              <th>عدد</th><th>قيمة</th>
+              <th>عدد</th><th>قيمة</th>
+              <th></th>
+            </tr>
+            <tr>
+              <td>${r.shiftDayCount}</td><td>${fmt(r.shiftDayRate)}</td>
+              <td>${r.shiftNightCount}</td><td>${fmt(r.shiftNightRate)}</td>
+              <td>${fmt(totalEarnings)}</td>
+            </tr>
+            <tr>
+              <th colspan="2">خصومات</th>
+              <th colspan="2">معامل الإجازة</th>
+              <th>صافي الأساسي</th>
+            </tr>
+            <tr>
+              <td colspan="2">${fmt(r.totalDeductions)}</td>
+              <td colspan="2">${pct(r.leaveMultiplier)}</td>
+              <td>${fmt(net)}</td>
+            </tr>
+          </table>`;
+        const slipRow = { ...r, jobTitle: r.type === "doctor" ? "طبيب" : "فني" };
+        return buildSlip(slipRow, `مرتب الشفتات — ${MONTHS[month - 1]} ${year}`, table, net, section);
+      })
+      .join("");
+    openPrint(html, `قسائم الشفتات — ${MONTHS[month - 1]} ${year}`, SLIPS_CSS);
+  }
+
   function printBasicSheet() {
     const today = new Date().toLocaleDateString("ar-EG");
     const nonShift = rows.filter(
@@ -2293,14 +2334,24 @@ export default function PayrollReport() {
                   الشفتات — {periodLabel}
                 </h3>
                 {enhancedShiftRows.length > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={printShiftsSheet}
-                    className="gap-1.5 h-8 text-xs"
-                  >
-                    <Printer size={13} /> طباعة كشف الشهر
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={printShiftsSheet}
+                      className="gap-1.5 h-8 text-xs"
+                    >
+                      <Printer size={13} /> كشف الشهر
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={printShiftSlips}
+                      className="gap-1.5 h-8 text-xs"
+                    >
+                      <Printer size={13} /> قسائم
+                    </Button>
+                  </div>
                 )}
               </div>
 
