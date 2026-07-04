@@ -1100,7 +1100,7 @@ export default function PayrollReport() {
     openPrint(html, `كشف الشفتات — ${periodLabel}`, SHEET_CSS);
   }
 
-  function printShiftSlips() {
+  function printShiftDay1Slips() {
     const html = enhancedShiftRows
       .map((r: any) => {
         const net = Number(r.netBasic);
@@ -1135,10 +1135,40 @@ export default function PayrollReport() {
             </tr>
           </table>`;
         const slipRow = { ...r, jobTitle: r.type === "doctor" ? "طبيب" : "فني" };
-        return buildSlip(slipRow, `مرتب الشفتات — ${MONTHS[month - 1]} ${year}`, table, net, section);
+        return buildSlip(slipRow, `مرتب الشفتات — يوم 1 — ${MONTHS[month - 1]} ${year}`, table, net, section);
       })
       .join("");
-    openPrint(html, `قسائم الشفتات — ${MONTHS[month - 1]} ${year}`, SLIPS_CSS);
+    openPrint(html, `قسائم الشفتات يوم 1 — ${MONTHS[month - 1]} ${year}`, SLIPS_CSS);
+  }
+
+  function printShiftDay10Slips() {
+    const html = enhancedShiftRows
+      .map((r: any) => {
+        const net = Number(r.netBasic);
+        const totalEarnings = r.shiftDayTotal + r.shiftNightTotal;
+        const table = `
+          <table class="main">
+            <tr>
+              <th>شفت كبير إجمالي</th>
+              <th>شفت صغير إجمالي</th>
+              <th>إجمالي الاستحقاقات</th>
+              <th>خصومات</th>
+              <th>صافي المستحق</th>
+              <th rowspan="2" class="net-cell"><span class="net-label">صافي المستحق</span><span class="net-val">${fmt(net)}</span></th>
+            </tr>
+            <tr>
+              <td>${fmt(r.shiftDayTotal)}</td>
+              <td>${fmt(r.shiftNightTotal)}</td>
+              <td>${fmt(totalEarnings)}</td>
+              <td>${fmt(r.totalDeductions)}</td>
+              <td>${fmt(net)}</td>
+            </tr>
+          </table>`;
+        const slipRow = { ...r, jobTitle: r.type === "doctor" ? "طبيب" : "فني" };
+        return buildSlip(slipRow, `مرتب الشفتات — يوم 10 — ${MONTHS[month - 1]} ${year}`, table, net, section);
+      })
+      .join("");
+    openPrint(html, `قسائم الشفتات يوم 10 — ${MONTHS[month - 1]} ${year}`, SLIPS_CSS);
   }
 
   function printBasicSheet() {
@@ -1884,10 +1914,16 @@ export default function PayrollReport() {
                           <Printer size={14} /> شفتات — كشف الشهر
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={printShiftSlips}
+                          onClick={printShiftDay1Slips}
                           className="gap-2 justify-start cursor-pointer"
                         >
-                          <Printer size={14} /> شفتات — قسائم
+                          <Printer size={14} /> شفتات — يوم 1
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={printShiftDay10Slips}
+                          className="gap-2 justify-start cursor-pointer"
+                        >
+                          <Printer size={14} /> شفتات — يوم 10
                         </DropdownMenuItem>
                       </>
                     )}
@@ -2362,10 +2398,18 @@ export default function PayrollReport() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={printShiftSlips}
+                      onClick={printShiftDay1Slips}
                       className="gap-1.5 h-8 text-xs"
                     >
-                      <Printer size={13} /> قسائم
+                      <Printer size={13} /> يوم 1
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={printShiftDay10Slips}
+                      className="gap-1.5 h-8 text-xs"
+                    >
+                      <Printer size={13} /> يوم 10
                     </Button>
                   </div>
                 )}
