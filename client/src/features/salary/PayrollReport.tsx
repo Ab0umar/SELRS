@@ -1875,6 +1875,22 @@ export default function PayrollReport() {
                     >
                       <Printer size={14} /> تأمينات
                     </DropdownMenuItem>
+                    {section === "مركز" && enhancedShiftRows.length > 0 && (
+                      <>
+                        <DropdownMenuItem
+                          onClick={printShiftsSheet}
+                          className="gap-2 justify-start cursor-pointer"
+                        >
+                          <Printer size={14} /> شفتات — كشف الشهر
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={printShiftSlips}
+                          className="gap-2 justify-start cursor-pointer"
+                        >
+                          <Printer size={14} /> شفتات — قسائم
+                        </DropdownMenuItem>
+                      </>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
