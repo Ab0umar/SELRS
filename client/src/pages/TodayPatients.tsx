@@ -154,11 +154,6 @@ export default function TodayPatients() {
 
         {/* ── Main Appointments Bento Card ──────────────────────────────── */}
         <div className="bg-card border border-border/60 rounded-3xl shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
-            <h3 className="text-base font-semibold leading-tight text-foreground">
-              مرضى اليوم و العمليات
-            </h3>
-          </div>
           <div className="p-4">
             <AppointmentsSection
               selectedDate={selectedDate}

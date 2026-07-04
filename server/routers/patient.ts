@@ -127,10 +127,11 @@ export const patientRouter = router({
     .input(
       z.object({
         date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        branch: z.enum(["tanta", "kfs"]).optional(),
       }),
     )
     .query(async ({ input }) => {
-      return await db.getVisitScheduleRequestsByDate(input.date);
+      return await db.getVisitScheduleRequestsByDate(input.date, input.branch);
     }),
 
   removeVisitScheduleRequest: protectedProcedure

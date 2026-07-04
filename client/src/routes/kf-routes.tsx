@@ -14,6 +14,7 @@ const KfOperationForm = lazy(() => import("../features/kf/KfOperationForm"));
 const KfFollowupForm = lazy(() => import("../features/kf/KfFollowupForm"));
 const KfOperations = lazy(() => import("../features/kf/KfOperations"));
 const KfFollowups = lazy(() => import("../features/kf/KfFollowups"));
+const KfBookings = lazy(() => import("../features/kf/KfBookings"));
 const KfConsultantSheet = lazy(() => import("../features/kf/KfConsultantSheet"));
 const KfConsultantFollowupSheet = lazy(() => import("../features/kf/KfConsultantFollowupSheet"));
 const KfAccounting = lazy(() => import("../features/kf/KfAccounting"));
@@ -141,6 +142,16 @@ export const KfRoutes = (
           <ProtectedRoute>
             <KfShell>
               <KfFollowups />
+            </KfShell>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={ROUTES.kfBookings}
+        component={() => (
+          <ProtectedRoute>
+            <KfShell>
+              <KfBookings />
             </KfShell>
           </ProtectedRoute>
         )}

@@ -14,7 +14,6 @@ import {
   Printer,
   Syringe,
   Trash2,
-  Users,
 } from "lucide-react";
 import { queueStatusLabelsAr, serviceTypeLabels } from "@/lib/dashboard-data";
 import {
@@ -32,11 +31,9 @@ import { FollowupFormDialog } from "@/components/today/FollowupFormDialog";
 import { getLocalDateIso } from "@/hooks/operations/operationsShared";
 import { DateInput } from "@/components/ui/date-input";
 
-type MainTab = "patients" | "operations" | "bookings";
-type QueueFilter = "all" | QueueStatus | "bookings" | "clinic1" | "clinic2";
+type QueueFilter = "all" | QueueStatus | "clinic1" | "clinic2";
 
 const QUEUE_FILTERS: { value: QueueFilter; label: string }[] = [
-  { value: "bookings", label: "حجز" },
   { value: "clinic1", label: "عيادة 1" },
   { value: "clinic2", label: "عيادة 2" },
   { value: "treated", label: "معالج" },
@@ -93,20 +90,6 @@ function formatDateLongAr(iso: string) {
   });
 }
 
-function localYmdFromInstant(value: string | Date | null | undefined) {
-  if (value == null) return null;
-  try {
-    const d = value instanceof Date ? value : new Date(value);
-    if (Number.isNaN(d.getTime())) return null;
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  } catch {
-    return null;
-  }
-}
-
 function isYmd(s: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(s);
 }
@@ -143,7 +126,6 @@ export function AppointmentsSection({
     else setInternalSelectedDate(ymd);
   };
 
-  const [mainTab, setMainTab] = useState<MainTab>("patients");
   const [queueFilter, setQueueFilter] = useState<QueueFilter>("all");
 
   const { merged, isLoading, byStatus } =
@@ -180,11 +162,6 @@ export function AppointmentsSection({
     onError: (error: unknown) => {
       toast.error(getTrpcErrorMessage(error, "تعذر تحديث حالة الطابور"));
     },
-  });
-
-  const appointmentsQuery = trpc.medical.getAppointments.useQuery(undefined, {
-    staleTime: 60 * 1000,
-    refetchOnWindowFocus: false,
   });
 
   /** Same source as Operations page aggregates: saved lists + optional MSSQL surgery rows (`medical.getTodayOperationLists`). */
@@ -266,53 +243,15 @@ export function AppointmentsSection({
     return out;
   }, [todayOperationListsQuery.data]);
 
-  const todayAppointments = useMemo(() => {
-    const rows = (appointmentsQuery.data ?? []) as Array<{
-      appointmentDate?: string | Date | null;
-      id?: number;
-      patientId?: number;
-      patientName?: string | null;
-      patientCode?: string | null;
-      appointmentType?: string | null;
-      status?: string | null;
-      branch?: string | null;
-    }>;
-    return rows
-      .filter((apt) => {
-        if (!apt.appointmentDate) return false;
-        const day = localYmdFromInstant(apt.appointmentDate as string | Date);
-        return day === selectedDate;
-      })
-      .sort((a, b) => {
-        const ta = a.appointmentDate
-          ? new Date(a.appointmentDate as string).getTime()
-          : 0;
-        const tb = b.appointmentDate
-          ? new Date(b.appointmentDate as string).getTime()
-          : 0;
-        return ta - tb;
-      });
-  }, [appointmentsQuery.data, selectedDate]);
-
-  const surgeryTodayCount = useMemo(
-    () =>
-      todayAppointments.filter((a) => a.appointmentType === "surgery").length,
-    [todayAppointments],
-  );
-
-  const operationListItemCount = todayOperationsFlat.length;
-
   const counts = useMemo(
     () => ({
       all: merged.length,
-      bookings: bookingsForDate.length,
       clinic1: byStatus.clinic1.length,
       clinic2: byStatus.clinic2.length,
       treated: byStatus.treated.length,
     }),
     [
       merged.length,
-      bookingsForDate.length,
       byStatus.clinic1.length,
       byStatus.clinic2.length,
       byStatus.treated.length,
@@ -320,7 +259,7 @@ export function AppointmentsSection({
   );
 
   const filteredPatients = useMemo(() => {
-    if (queueFilter === "all" || queueFilter === "bookings") return merged;
+    if (queueFilter === "all") return merged;
     if (queueFilter === "clinic1") return byStatus.clinic1;
     if (queueFilter === "clinic2") return byStatus.clinic2;
     if (queueFilter === "treated") return byStatus.treated;
@@ -363,106 +302,34 @@ export function AppointmentsSection({
         patientName={followupPatient?.fullName}
         serviceType={(followupPatient as any)?.serviceType}
       />
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
-        <div
-          className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4"
-          dir="rtl"
-        >
-          <div className="flex items-center gap-2 text-sm">
-            <Calendar
-              className="h-4 w-4 shrink-0 text-muted-foreground"
-              aria-hidden
-            />
-            <span className="font-semibold text-foreground">
-              تاريخ مرضى اليوم
-            </span>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+        {/* Patients queue: always visible, 3/4 width on desktop */}
+        <div className="xl:col-span-9 flex flex-col gap-3">
+          <div
+            className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4"
+            dir="rtl"
+          >
+            <div className="flex items-center gap-2 text-sm">
+              <Calendar className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+              <span className="font-semibold text-foreground">
+                مرضى اليوم و العمليات
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <DateInput
+                value={selectedDate}
+                onChange={(e) => setTodayPatientsDate(e.target.value)}
+                className="h-9 w-[11.5rem] shrink-0 font-mono text-sm"
+                dir="ltr"
+                aria-label="تاريخ مرضى اليوم والعمليات — تعديل"
+              />
+              <p className="max-w-full min-w-0 text-sm text-muted-foreground sm:max-w-[min(100%,28rem)]">
+                {formatDateLongAr(selectedDate)}
+              </p>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <DateInput
-              value={selectedDate}
-              onChange={(e) => setTodayPatientsDate(e.target.value)}
-              className="h-9 w-[11.5rem] shrink-0 font-mono text-sm"
-              dir="ltr"
-              aria-label="تاريخ مرضى اليوم — تعديل"
-            />
-            <p className="max-w-full min-w-0 text-sm text-muted-foreground sm:max-w-[min(100%,28rem)]">
-              {formatDateLongAr(selectedDate)}
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-          <span>
-            <span className="font-semibold text-foreground tabular-nums">
-              {merged.length.toLocaleString("ar-EG")}
-            </span>{" "}
-            مريض
-          </span>
-          <span className="text-border">|</span>
-          <span>
-            <span className="font-semibold text-foreground tabular-nums">
-              {operationListItemCount > 0
-                ? operationListItemCount.toLocaleString("ar-EG")
-                : surgeryTodayCount > 0
-                  ? surgeryTodayCount.toLocaleString("ar-EG")
-                  : todayAppointments.length.toLocaleString("ar-EG")}
-            </span>{" "}
-            {operationListItemCount > 0 || surgeryTodayCount > 0
-              ? "عملية"
-              : "موعد"}
-          </span>
-        </div>
-      </div>
 
-      <div className="flex gap-1 border-b border-border/60 pb-2 sm:inline-flex sm:w-auto">
-        <Button
-          type="button"
-          variant={mainTab === "patients" ? "default" : "ghost"}
-          size="sm"
-          className={cn(
-            "flex-1 gap-2 rounded-lg sm:flex-none",
-            mainTab === "patients" && "shadow-sm",
-          )}
-          onClick={() => setMainTab("patients")}
-        >
-          <Users className="h-4 w-4" />
-          مرضى اليوم
-        </Button>
-        <Button
-          type="button"
-          variant={mainTab === "operations" ? "default" : "ghost"}
-          size="sm"
-          className={cn(
-            "flex-1 gap-2 rounded-lg sm:flex-none",
-            mainTab === "operations" && "shadow-sm",
-          )}
-          onClick={() => setMainTab("operations")}
-        >
-          <Syringe className="h-4 w-4" />
-          العمليات
-        </Button>
-        <Button
-          type="button"
-          variant={mainTab === "bookings" ? "default" : "ghost"}
-          size="sm"
-          className={cn(
-            "relative flex-1 gap-2 rounded-lg sm:flex-none",
-            mainTab === "bookings" && "shadow-sm",
-          )}
-          onClick={() => setMainTab("bookings")}
-        >
-          <CalendarPlus className="h-4 w-4" />
-          حجز
-          {(bookingsForDate.length + (scheduleRequestsQuery.data?.length ?? 0)) > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-warning px-1 text-[10px] font-bold text-warning-foreground tabular-nums">
-              {bookingsForDate.length + (scheduleRequestsQuery.data?.length ?? 0)}
-            </span>
-          )}
-        </Button>
-      </div>
-
-      {mainTab === "patients" ? (
-        <>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex h-9 flex-wrap items-center gap-2">
             {QUEUE_FILTERS.map(({ value, label }) => {
               const n = (counts as Record<string, number>)[value] ?? 0;
               const active = queueFilter === value;
@@ -487,31 +354,7 @@ export function AppointmentsSection({
             })}
           </div>
 
-          {queueFilter === "bookings" ? (
-            <BookingsAndQueueView
-              bookingsForDate={bookingsForDate}
-              bookingsLoading={bookingsQuery.isLoading}
-              scheduleRequests={(scheduleRequestsQuery.data ?? []) as any[]}
-              scheduleRequestsLoading={scheduleRequestsQuery.isLoading}
-              queuePatients={merged}
-              queueLoading={isLoading}
-              medicalStatuses={medicalStatuses}
-              onSelectPatient={handleSelectPatient}
-              onMarkVisitTreated={(visitId, patient) =>
-                markVisitTreated.mutate({
-                  visitId,
-                  queueStatus: "treated",
-                  patientId: patient.id,
-                  date: selectedDate,
-                })
-              }
-              markVisitTreatedPendingVisitId={
-                markVisitTreated.isPending
-                  ? (markVisitTreated.variables?.visitId ?? null)
-                  : null
-              }
-            />
-          ) : isLoading ? (
+          {isLoading ? (
             <p className="py-10 text-center text-sm text-muted-foreground">
               جاري التحميل…
             </p>
@@ -520,7 +363,7 @@ export function AppointmentsSection({
               لا يوجد مرضى في هذه الفئة
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 xl:grid-cols-5">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4">
               {filteredPatients.map((patient) => (
                 <QueuePatientCard
                   key={`${patient.id}-${patient.queueStatus}`}
@@ -544,83 +387,99 @@ export function AppointmentsSection({
               ))}
             </div>
           )}
-        </>
-      ) : mainTab === "operations" ? (
-        <>
-          {todayOperationListsQuery.isLoading ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-40 rounded-xl" />
-              ))}
-            </div>
-          ) : todayOperationListsQuery.isError ? (
-            <div
-              className="flex min-h-[220px] flex-col items-center justify-center rounded-lg border border-destructive/25 bg-destructive text-destructive-foreground"
-              role="alert"
-            >
-              {getTrpcErrorMessage(
-                todayOperationListsQuery.error,
-                "تعذر تحميل قائمة العمليات",
+        </div>
+
+        {/* Sidebar: bookings section on top, operations section below, 1/4 width */}
+        <div className="xl:col-span-3 flex flex-col gap-6">
+          <div className="flex flex-col gap-3">
+            <div className="flex h-9 items-center gap-2 text-sm font-semibold text-foreground">
+              <CalendarPlus className="h-4 w-4" />
+              حجز
+              {(bookingsForDate.length + (scheduleRequestsQuery.data?.length ?? 0)) > 0 && (
+                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-warning px-1 text-[10px] font-bold text-warning-foreground tabular-nums">
+                  {bookingsForDate.length + (scheduleRequestsQuery.data?.length ?? 0)}
+                </span>
               )}
             </div>
-          ) : todayOperationsFlat.length === 0 ? (
-            <div className="flex min-h-[220px] flex-col items-center justify-center px-4 py-12 text-center text-sm text-muted-foreground">
-              لا توجد عمليات مسجّلة لهذا اليوم
-            </div>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {todayOperationsFlat.map((row) => (
-                <TodayOperationListItemCard
-                  key={row.key}
-                  row={row}
-                  doctorNameByCode={doctorNameByCode}
-                />
-              ))}
-            </div>
-          )}
-        </>
-      ) : mainTab === "bookings" ? (
-        <>
-          {bookingsQuery.isLoading || scheduleRequestsQuery.isLoading ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-20 rounded-xl" />
-              ))}
-            </div>
-          ) : bookingsForDate.length === 0 && (scheduleRequestsQuery.data?.length ?? 0) === 0 ? (
-            <div className="flex min-h-[220px] flex-col items-center justify-center px-4 py-12 text-center text-sm text-muted-foreground">
-              لا توجد حجوزات لهذا اليوم
-            </div>
-          ) : (
-            <div className="space-y-5">
-              {(scheduleRequestsQuery.data?.length ?? 0) > 0 && (
-                <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    مواعيد الاستقبال ({scheduleRequestsQuery.data?.length ?? 0})
-                  </p>
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {(scheduleRequestsQuery.data ?? []).map((r: any) => (
-                      <ScheduleRequestCard key={r.id} r={r} />
-                    ))}
+            {bookingsQuery.isLoading || scheduleRequestsQuery.isLoading ? (
+              <div className="grid gap-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-20 rounded-xl" />
+                ))}
+              </div>
+            ) : bookingsForDate.length === 0 && (scheduleRequestsQuery.data?.length ?? 0) === 0 ? (
+              <div className="flex min-h-[120px] flex-col items-center justify-center px-4 py-8 text-center text-xs text-muted-foreground">
+                لا توجد حجوزات لهذا اليوم
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {(scheduleRequestsQuery.data?.length ?? 0) > 0 && (
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      مواعيد الاستقبال ({scheduleRequestsQuery.data?.length ?? 0})
+                    </p>
+                    <div className="grid gap-2">
+                      {(scheduleRequestsQuery.data ?? []).map((r: any) => (
+                        <ScheduleRequestCard key={r.id} r={r} />
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-              {bookingsForDate.length > 0 && (
-                <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    حجوزات البوابة ({bookingsForDate.length})
-                  </p>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {bookingsForDate.map((booking) => (
-                      <BookingCard key={booking.id} booking={booking} />
-                    ))}
+                )}
+                {bookingsForDate.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      حجوزات البوابة ({bookingsForDate.length})
+                    </p>
+                    <div className="grid gap-2">
+                      {bookingsForDate.map((booking) => (
+                        <BookingCard key={booking.id} booking={booking} />
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-border/60 pt-6">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Syringe className="h-4 w-4" />
+              العمليات
             </div>
-          )}
-        </>
-      ) : null}
+            {todayOperationListsQuery.isLoading ? (
+              <div className="grid gap-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-24 rounded-xl" />
+                ))}
+              </div>
+            ) : todayOperationListsQuery.isError ? (
+              <div
+                className="flex min-h-[120px] flex-col items-center justify-center rounded-lg border border-destructive/25 bg-destructive text-destructive-foreground text-xs"
+                role="alert"
+              >
+                {getTrpcErrorMessage(
+                  todayOperationListsQuery.error,
+                  "تعذر تحميل قائمة العمليات",
+                )}
+              </div>
+            ) : todayOperationsFlat.length === 0 ? (
+              <div className="flex min-h-[120px] flex-col items-center justify-center px-4 py-8 text-center text-xs text-muted-foreground">
+                لا توجد عمليات مسجّلة لهذا اليوم
+              </div>
+            ) : (
+              <div className="grid gap-2">
+                {todayOperationsFlat.map((row) => (
+                  <TodayOperationListItemCard
+                    key={row.key}
+                    row={row}
+                    doctorNameByCode={doctorNameByCode}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -690,12 +549,17 @@ function BookingCard({ booking }: { booking: any }) {
   const type = BOOKING_TYPES_AR[booking.bookingType] ?? booking.typeLabel ?? booking.bookingType;
   const stStyle = BOOKING_STATUS_STYLE[booking.status] ?? BOOKING_STATUS_STYLE.completed;
   const stAr = BOOKING_STATUS_AR[booking.status] ?? booking.status;
+  const branchLabel =
+    booking.branch === "tanta" ? "طنطا" : booking.branch === "kfs" ? "كفر الشيخ" : null;
   return (
     <div className={cn("rounded-xl border p-3 shadow-sm", stStyle)}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-foreground">{name}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">{code} · {type}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {code} · {type}
+            {branchLabel ? ` · ${branchLabel}` : ""}
+          </p>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <span className={cn("rounded-full border px-2 py-0.5 text-[11px] font-medium", stStyle)}>
@@ -715,103 +579,6 @@ function BookingCard({ booking }: { booking: any }) {
       {booking.staffNotes ? (
         <p className="mt-2 truncate text-xs text-muted-foreground">{booking.staffNotes}</p>
       ) : null}
-    </div>
-  );
-}
-
-function BookingsAndQueueView({
-  bookingsForDate,
-  bookingsLoading,
-  scheduleRequests,
-  scheduleRequestsLoading,
-  queuePatients,
-  queueLoading,
-  medicalStatuses,
-  onSelectPatient,
-  onMarkVisitTreated,
-  markVisitTreatedPendingVisitId,
-}: {
-  bookingsForDate: any[];
-  bookingsLoading: boolean;
-  scheduleRequests: any[];
-  scheduleRequestsLoading: boolean;
-  queuePatients: TodayQueuePatient[];
-  queueLoading: boolean;
-  medicalStatuses: Record<number, PatientMedicalStatus> | undefined;
-  onSelectPatient: (p: TodayQueuePatient) => void;
-  onMarkVisitTreated: (visitId: number, patient: TodayQueuePatient) => void;
-  markVisitTreatedPendingVisitId: number | null;
-}) {
-  const loading = bookingsLoading || scheduleRequestsLoading || queueLoading;
-  if (loading) {
-    return (
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-20 rounded-xl" />
-        ))}
-      </div>
-    );
-  }
-  return (
-    <div className="space-y-5">
-      {/* Schedule requests from حجز موعد/كشف */}
-      <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          مواعيد الاستقبال ({scheduleRequests.length})
-        </p>
-        {scheduleRequests.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border/60 py-6 text-center text-sm text-muted-foreground">
-            لا توجد مواعيد لهذا اليوم
-          </p>
-        ) : (
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {scheduleRequests.map((r: any) => (
-              <ScheduleRequestCard key={r.id} r={r} />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Portal bookings */}
-      <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          حجوزات البوابة ({bookingsForDate.length})
-        </p>
-        {bookingsForDate.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border/60 py-6 text-center text-sm text-muted-foreground">
-            لا توجد حجوزات لهذا اليوم
-          </p>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {bookingsForDate.map((b) => <BookingCard key={b.id} booking={b} />)}
-          </div>
-        )}
-      </div>
-
-      {/* Queue patients */}
-      <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          مرضى الطابور ({queuePatients.length})
-        </p>
-        {queuePatients.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border/60 py-6 text-center text-sm text-muted-foreground">
-            لا يوجد مرضى في الطابور
-          </p>
-        ) : (
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 xl:grid-cols-5">
-            {queuePatients.map((patient) => (
-              <QueuePatientCard
-                key={`${patient.id}-${patient.queueStatus}`}
-                patient={patient}
-                medicalStatus={medicalStatuses?.[patient.id]}
-                onSelectPatient={() => onSelectPatient(patient)}
-                markVisitTreatedPendingVisitId={markVisitTreatedPendingVisitId}
-                onMarkVisitTreated={(visitId) => onMarkVisitTreated(visitId, patient)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
@@ -974,86 +741,41 @@ function TodayOperationListItemCard({
   };
   doctorNameByCode: Map<string, string>;
 }) {
-  const accent = row.isAutoFromMssql
-    ? "border-secondary/30 bg-secondary/[0.05]"
-    : "border-destructive/40 bg-destructive/5";
   const rawDoctor = String(row.item.doctor ?? row.listDoctorName ?? "").trim();
   const doctorDisplay = (() => {
     if (!rawDoctor) return "طبيب غير محدد";
     const byCode = doctorNameByCode.get(rawDoctor.toLowerCase());
     return byCode || rawDoctor;
   })();
+  const operationLabel =
+    row.item.operation?.trim() || row.listOperationType?.trim() || "عملية";
+  const stStyle = row.isAutoFromMssql
+    ? "border-secondary/30 bg-secondary/5 text-secondary"
+    : "border-destructive/30 bg-destructive/5 text-destructive";
 
   return (
-    <div
-      className={cn(
-        "rounded-xl border bg-card p-3 shadow-sm transition-[border-color,box-shadow,background-color] duration-200 hover:shadow-md sm:p-4",
-        accent,
-      )}
-    >
+    <div className={cn("rounded-xl border p-3 shadow-sm", stStyle)}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold leading-snug">
+          <p className="truncate text-sm font-semibold text-foreground">
             {row.item.name?.trim() || "مريض"}
           </p>
-          {row.item.code ? (
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              رقم: {row.item.code}
-            </p>
-          ) : null}
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {row.item.code ?? "—"} · {operationLabel}
+            {row.item.eye ? ` · ${row.item.eye}` : ""}
+          </p>
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-1">
-          {row.isAutoFromMssql ? (
-            <Badge variant="outline" className="text-[0.8125rem]">
-              مزامنة
-            </Badge>
-          ) : null}
-          <Badge
-            variant="outline"
-            className="max-w-[9rem] truncate text-[0.8125rem]"
-            title={doctorDisplay}
-          >
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className={cn("rounded-full border px-2 py-0.5 text-[11px] font-medium", stStyle)}>
             {doctorDisplay}
-          </Badge>
+          </span>
         </div>
       </div>
-      <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-        {row.item.doctor ? (
-          <p>الطبيب: {row.item.doctor}</p>
-        ) : row.listDoctorName ? (
-          <p>الطبيب: {row.listDoctorName}</p>
-        ) : null}
-        {row.item.operation ? (
-          <p className="font-medium text-foreground">
-            العملية: {row.item.operation}
-          </p>
-        ) : row.listOperationType ? (
-          <p className="font-medium text-foreground">
-            نوع القائمة: {row.listOperationType}
-          </p>
-        ) : null}
-        {row.item.eye ? <p>العين: {row.item.eye}</p> : null}
-        {row.item.hospital ? <p>المستشفى: {row.item.hospital}</p> : null}
-      </div>
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/50 pt-2 text-sm">
-        {row.item.payment ? (
-          <Badge className="bg-warning/10 text-[0.8125rem] text-warning">
-            {row.item.payment}
-          </Badge>
-        ) : (
-          <span />
-        )}
-        {row.listTime ? (
-          <span className="flex items-center gap-1 tabular-nums text-muted-foreground">
-            <Clock className="h-3 w-3 shrink-0" />
-            {row.listTime}
-          </span>
-        ) : (
-          <span className="flex items-center gap-1 text-muted-foreground">
-            <Clock className="h-3 w-3 shrink-0" />—
-          </span>
-        )}
-      </div>
+      {row.item.hospital || row.listTime ? (
+        <p className="mt-2 truncate text-xs text-muted-foreground">
+          {[row.item.hospital, row.listTime].filter(Boolean).join(" · ")}
+        </p>
+      ) : null}
     </div>
   );
 }

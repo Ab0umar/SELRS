@@ -61,8 +61,8 @@ export default function KfReceipts() {
 
   return (
     <div className="space-y-5" dir="rtl">
-      <Card className="print:hidden">
-        <CardHeader>
+      <Card className="print:hidden shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
+        <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <CardTitle className="text-xl">استعلام الإيصالات — KF</CardTitle>
             <div className="flex flex-wrap gap-2">
@@ -102,7 +102,7 @@ export default function KfReceipts() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
         <CardContent className="pt-4 space-y-0">
           {!q.isLoading && !q.isError && rows.length > 0 && (
             <div className="text-xs text-muted-foreground mb-2">

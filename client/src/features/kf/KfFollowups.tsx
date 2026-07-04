@@ -52,8 +52,8 @@ export default function KfFollowups() {
       </div>
 
       {/* Filters Card */}
-      <Card>
-        <CardHeader className="py-4">
+      <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
+        <CardHeader className="py-4 pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
           <CardTitle className="text-sm font-semibold">تصفية النتائج</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col sm:flex-row gap-4 items-end">
@@ -98,7 +98,7 @@ export default function KfFollowups() {
       </Card>
 
       {/* List Card */}
-      <Card>
+      <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
         <CardContent className="p-0">
           <Table>
             <TableHeader>

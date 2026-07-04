@@ -52,8 +52,8 @@ export default function KfAccounting() {
 
       {/* Revenue summary */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="sm:col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+        <Card className="sm:col-span-1 shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
             <CardTitle className="text-sm font-medium text-muted-foreground">إجمالي الإيراد</CardTitle>
             <Banknote className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -76,7 +76,7 @@ export default function KfAccounting() {
           const row = (revenue?.breakdown ?? []).find((b: any) => b.visitType === type);
           return (
             <Card key={type}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
                 <CardTitle className="text-sm font-medium text-muted-foreground">{KF_LABELS[type]}</CardTitle>
                 <span className="text-xs text-muted-foreground">{price} ج / كشف</span>
               </CardHeader>
@@ -96,8 +96,8 @@ export default function KfAccounting() {
       </div>
 
       {/* Receipts table */}
-      <Card>
-        <CardHeader className="flex flex-row items-center gap-2 py-4">
+      <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
+        <CardHeader className="flex flex-row items-center gap-2 py-4 pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
           <Receipt className="h-4 w-4 text-muted-foreground" />
           <CardTitle className="text-base">الإيصالات</CardTitle>
         </CardHeader>

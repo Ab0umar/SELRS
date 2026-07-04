@@ -115,8 +115,8 @@ export default function KfVisitForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <Card>
-          <CardHeader>
+        <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
+          <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
             <CardTitle className="text-lg">تفاصيل الموعد والزيارة</CardTitle>
             <CardDescription>أدخل بيانات الحجز ونوع الخدمة الطبية المطلوبة</CardDescription>
           </CardHeader>

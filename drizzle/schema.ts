@@ -1142,6 +1142,7 @@ export const visitScheduleRequests = mysqlTable(
     service: varchar("service", { length: 128 }).notNull(),
     patientType: varchar("patientType", { length: 32 }).default("existing"),
     createdByUserId: int("createdByUserId"),
+    branch: varchar("branch", { length: 20 }),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },

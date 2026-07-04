@@ -151,16 +151,21 @@ function useDebounce<T>(value: T, ms: number): T {
 
 function SectionHeader({
   title,
+  titleExtra,
   children,
 }: {
   title: string;
+  titleExtra?: React.ReactNode;
   children?: React.ReactNode;
 }) {
   return (
     <div className="flex items-center justify-between border-b border-border/40 px-4 py-2.5">
-      <h3 className="text-base font-semibold leading-tight text-foreground">
-        {title}
-      </h3>
+      <div className="flex min-w-0 items-center gap-3">
+        <h3 className="text-base font-semibold leading-tight text-foreground">
+          {title}
+        </h3>
+        {titleExtra}
+      </div>
       {children}
     </div>
   );
@@ -655,7 +660,6 @@ function TodayPanel({
 
           {/* Appointments list occupying full width */}
           <Surface className="w-full">
-            <SectionHeader title="مرضى اليوم و العمليات" />
             <div className="p-3">
               <AppointmentsSection
                 selectedDate={selectedDate}
@@ -1296,19 +1300,11 @@ function AdminPanel() {
   const navItems = ADMIN_GROUPS.flatMap((group) =>
     group.items.filter((item) => canAccess(item.href)),
   );
-  const adminStats = [
-    {
-      label: "مجموعات الإدارة",
-      value: ADMIN_GROUPS.length,
-      cls: "text-slate-900",
-    },
-    { label: "مسارات مباشرة", value: navItems.length, cls: "text-primary" },
-    { label: "حالة الوصول", value: "مفعل", cls: "text-success" },
-  ];
 
   return (
-    <div className="space-y-4">
-      {/* Flat top navigation chips */}
+    <div className="space-y-12 pb-12 animate-in fade-in duration-500">
+      
+      {/* ── Top Nav Chips (Flattened) ── */}
       <nav className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 print:hidden scrollbar-none">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -1316,90 +1312,75 @@ function AdminPanel() {
             <Link
               key={item.href}
               href={item.href}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border/60 bg-card px-4 py-2 text-xs font-bold text-muted-foreground transition-all hover:bg-muted/50 hover:text-foreground"
+              className="inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
             >
-              <Icon className="h-3.5 w-3.5" aria-hidden />
+              <Icon className="h-4 w-4" aria-hidden />
               <span>{item.label}</span>
             </Link>
           );
         })}
       </nav>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Hero / stats */}
-        <Surface className="overflow-hidden lg:col-span-1">
-          <SectionHeader title="إدارة النظام">
-            <PanelLink href="/booking-triage" label="مركز الإدارة" />
-          </SectionHeader>
-          <div className="px-4 py-3">
-            <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-slate-50">
-                  <Shield className="h-5 w-5" aria-hidden />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Admin Console
-                  </p>
-                  <h3 className="mt-0.5 text-lg font-bold leading-tight text-foreground">
-                    لوحة التحكم الإدارية
-                  </h3>
-                </div>
-              </div>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                مسارات المستخدمين، الصلاحيات، تعريفات المركز، وحالة النظام في مكان
-                واحد بنفس إيقاع صفحات التشغيل.
-              </p>
-            </div>
+      {/* ── Main Layout: Hero vs Links ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-16">
+        
+        {/* Left Side (Hero & Stats) */}
+        <div className="xl:col-span-4 flex flex-col space-y-6">
+          <div className="border-b border-slate-200 dark:border-slate-800 pb-4">
+            <h2 className="flex items-center gap-2.5 text-2xl font-black text-slate-900 dark:text-white">
+              <Shield className="h-6 w-6 text-slate-900 dark:text-white" />
+              لوحة التحكم الإدارية
+            </h2>
+            <p className="mt-3 text-base text-slate-500 dark:text-slate-400 leading-relaxed">
+              مسارات المستخدمين، الصلاحيات، تعريفات المركز، وحالة النظام في مكان واحد بنفس إيقاع صفحات التشغيل.
+            </p>
+          </div>
 
-            <div className="mt-3 space-y-1">
-              {adminStats.map((stat) => (
-                <StatRow
-                  key={stat.label}
-                  label={stat.label}
-                  value={<span className={stat.cls}>{stat.value}</span>}
-                  icon={Activity}
-                />
-              ))}
+          <div className="space-y-4 pt-2">
+            <div className="flex items-center justify-between py-2 text-base">
+              <span className="text-slate-600 dark:text-slate-400 font-semibold">مجموعات الإدارة</span>
+              <span className="font-bold text-slate-900 dark:text-white tabular-nums">{ADMIN_GROUPS.length}</span>
             </div>
-
-            <div className="mt-3 border-t border-border/40 pt-3">
-              <Link
-                href="/booking-triage"
-                className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-semibold text-slate-50 transition-colors hover:bg-slate-800"
-              >
-                فتح مركز الإدارة
-                <ChevronLeft className="h-4 w-4" aria-hidden />
-              </Link>
+            <div className="flex items-center justify-between py-2 text-base">
+              <span className="text-slate-600 dark:text-slate-400 font-semibold">مسارات مباشرة</span>
+              <span className="font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">{navItems.length}</span>
+            </div>
+            <div className="flex items-center justify-between py-2 text-base">
+              <span className="text-slate-600 dark:text-slate-400 font-semibold">حالة الوصول</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400">مفعل</span>
             </div>
           </div>
-        </Surface>
 
-        {/* Bento cards */}
-        <div className="grid gap-3 sm:grid-cols-2 lg:col-span-2">
+          <div className="pt-4">
+            <Link
+              href="/admin-hub"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-base font-bold transition-transform hover:bg-slate-800 dark:hover:bg-slate-200"
+            >
+              فتح مركز الإدارة الكامل
+              <ChevronLeft className="h-5 w-5" aria-hidden />
+            </Link>
+          </div>
+        </div>
+
+        {/* Right Side (List of Admin Links) */}
+        <div className="xl:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
-              <Link key={item.href} href={item.href} className="group">
-                <Surface className="h-full overflow-hidden transition-all hover:shadow-md">
-                  <div className="flex h-full items-start gap-3 p-4">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
-                      <Icon className="h-4 w-4" aria-hidden />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-bold leading-tight text-foreground group-hover:text-primary">
-                        {item.label}
-                      </span>
-                      <span className="mt-1 block text-xs leading-5 text-muted-foreground">
-                        {item.description}
-                      </span>
-                    </span>
-                    <ChevronLeft
-                      className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary"
-                      aria-hidden
-                    />
+              <Link key={item.href} href={item.href} className="group block">
+                <div className="flex items-start gap-4 p-4 -m-4 rounded-2xl transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors group-hover:bg-indigo-50 group-hover:text-indigo-600 dark:group-hover:bg-indigo-500/20 dark:group-hover:text-indigo-400">
+                    <Icon className="h-5 w-5" aria-hidden />
                   </div>
-                </Surface>
+                  <div className="pt-1">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                      {item.label}
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 leading-snug">
+                      {item.description}
+                    </p>
+                  </div>
+                </div>
               </Link>
             );
           })}
@@ -1565,11 +1546,6 @@ export default function Dashboard() {
       ) : null,
   };
 
-  const dateStr = now.toLocaleDateString("ar-EG", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
   const timeStr = now.toLocaleTimeString("ar-EG", {
     hour: "2-digit",
     minute: "2-digit",
@@ -1633,17 +1609,6 @@ export default function Dashboard() {
                 <ChevronLeft className="h-5 w-5" />
               )}
             </Button>
-            <div className="w-10 h-10 bg-primary text-primary-foreground rounded-2xl flex items-center justify-center font-mono font-black text-sm shrink-0">
-              <Zap className="h-5 w-5" aria-hidden />
-            </div>
-            <div>
-              <h1 className="text-sm font-black text-foreground leading-none">
-                أوامر التشغيل
-              </h1>
-              <span className="text-[10px] text-muted-foreground block mt-1 font-medium">
-                {dateStr}، {timeStr}
-              </span>
-            </div>
           </div>
 
           {/* Top metrics */}

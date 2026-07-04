@@ -144,10 +144,10 @@ export default function Home() {
 
   return (
     <div
-      className="h-dvh w-full overflow-hidden flex flex-col lg:flex-row bg-white text-foreground font-sans selection:bg-[#2a4f9a]/10 selection:text-[#1f3f82]"
+      className="h-dvh w-full overflow-hidden flex flex-col lg:flex-row-reverse bg-white text-foreground font-sans selection:bg-[#2a4f9a]/10 selection:text-[#1f3f82]"
       dir="rtl"
     >
-      {/* Brand panel (Right side on desktop, top banner on mobile) */}
+      {/* Brand panel (Left side on desktop, top banner on mobile) */}
       <div className="relative overflow-hidden w-full h-[34dvh] min-h-[220px] max-h-[285px] lg:h-auto lg:max-h-none lg:w-[56%] flex flex-col bg-gradient-to-br from-[#15296a] via-[#0f2050] to-[#0c1840] py-5 px-5 sm:p-8 lg:p-14 justify-between shrink-0">
         {/* soft glow blobs */}
         <div
@@ -214,23 +214,12 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Form Column (Left side on desktop, bottom sheet sliding up on mobile) */}
+      {/* Form Column (Right side on desktop, bottom sheet sliding up on mobile) */}
       <div className="flex-1 overflow-hidden bg-white rounded-t-[22px] lg:rounded-none -mt-5 lg:mt-0 p-5 sm:p-10 lg:p-20 flex flex-col justify-between relative z-10 shadow-[0_-8px_30px_rgba(15,32,80,0.06)] lg:shadow-none">
         {/* Top bar (for beautiful visual connection on mobile/desktop) */}
         <div className="lg:hidden absolute top-2.5 left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-full bg-slate-200" />
 
         <div className="w-full max-w-[420px] mx-auto my-auto flex flex-col justify-center">
-          <span className="inline-flex items-center gap-1.5 self-start text-[10px] sm:text-xs font-bold tracking-wider uppercase text-[#2a4f9a] mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#d39c2a]" />
-            تسجيل دخول آمن
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0f2050] tracking-tight m-0">
-            دخول النظام
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-2 mb-4 sm:mb-8 leading-relaxed">
-            أدخل بياناتك للوصول إلى نظام إدارة المرضى والفحوصات.
-          </p>
-
           {/* Form */}
           <form onSubmit={handleLogin} className="space-y-3 sm:space-y-5">
             {error ? (
@@ -347,10 +336,6 @@ export default function Home() {
           {/* Portals divider */}
           <div className="flex items-center gap-3.5 my-4 sm:my-8">
             <div className="flex-1 h-px bg-[#e6edf5]" />
-            <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-              بوابات أخرى
-            </span>
-            <div className="flex-1 h-px bg-[#e6edf5]" />
           </div>
 
           {/* Portals Grid */}
@@ -361,7 +346,7 @@ export default function Home() {
                   <UserRound className="size-5 sm:size-6" />
                 </span>
                 <span className="text-xs sm:text-sm font-bold text-[#0f2050]">
-                  بوابة المريض
+                  دخول المريض
                 </span>
               </div>
             </Link>
@@ -371,7 +356,7 @@ export default function Home() {
                   <Stethoscope className="size-5 sm:size-6" />
                 </span>
                 <span className="text-xs sm:text-sm font-bold text-[#0f2050]">
-                  بوابة الطبيب
+                  دخول الطبيب
                 </span>
               </div>
             </Link>
@@ -384,9 +369,7 @@ export default function Home() {
             className={`flex items-center gap-1.5 font-bold ${isOnline ? "text-[#0f766e]" : "text-warning-text"}`}
           >
             {!isOnline && <WifiOff className="size-3.5" />}
-            {isOnline
-              ? "متصل بالنظام"
-              : `غير متصل (${offlineCacheSummary.count})`}
+            {!isOnline ? `غير متصل (${offlineCacheSummary.count})` : null}
           </div>
           <p className="m-0 text-slate-400/80">
             © {new Date().getFullYear()} مركز عيون الشروق

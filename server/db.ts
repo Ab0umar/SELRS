@@ -7161,14 +7161,20 @@ export async function insertVisitScheduleRequest(
   return { id: insertId };
 }
 
-export async function getVisitScheduleRequestsByDate(dateIso: string) {
+export async function getVisitScheduleRequestsByDate(
+  dateIso: string,
+  branch?: string,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+
+  const conditions = [eq(visitScheduleRequests.visitDate, dateIso as any)];
+  if (branch) conditions.push(eq(visitScheduleRequests.branch, branch));
 
   return await db
     .select()
     .from(visitScheduleRequests)
-    .where(eq(visitScheduleRequests.visitDate, dateIso as any))
+    .where(and(...conditions))
     .orderBy(
       asc(visitScheduleRequests.createdAt),
       asc(visitScheduleRequests.id),

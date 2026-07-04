@@ -271,8 +271,8 @@ export default function KfPatients() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader className="pb-3 print:hidden">
+      <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
+        <CardHeader className="pb-3 print:hidden pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
           <CardTitle className="text-lg">قائمة البحث</CardTitle>
           <CardDescription>ابحث باستخدام الاسم، كود المريض (KF-XXXX)، رقم الهاتف، أو الرقم القومي</CardDescription>
           <div className="relative mt-2 max-w-md">

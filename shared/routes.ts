@@ -47,6 +47,7 @@ export const ROUTES = {
   kfPatientFollowupNew: "/kf/patients/:kfPatientId/followups/new",
   kfOperations: "/kf/operations",
   kfFollowups: "/kf/followups",
+  kfBookings: "/kf/bookings",
   kfSheetsConsultant: "/kf/sheets/consultant",
   kfAccounting: "/kf/accounting",
   kfAccountingDailyRevenue: "/kf/accounting/daily-revenue",

@@ -178,8 +178,8 @@ export default function KfExaminationForm() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Core Info: Date, Doctor, Visit link */}
-        <Card>
-          <CardHeader className="py-4">
+        <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
+          <CardHeader className="py-4 pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
             <CardTitle className="text-base">معلومات الفحص الأساسية</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-3">
@@ -233,8 +233,8 @@ export default function KfExaminationForm() {
         </Card>
 
         {/* Vision Acuity & IOP & Refraction Tables */}
-        <Card>
-          <CardHeader className="py-4">
+        <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
+          <CardHeader className="py-4 pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
             <CardTitle className="text-base">جدول حدة الإبصار والانكسار</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
@@ -393,8 +393,8 @@ export default function KfExaminationForm() {
         </Card>
 
         {/* Section 3: Diagnosis & Treatment Plan */}
-        <Card>
-          <CardHeader className="py-4">
+        <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
+          <CardHeader className="py-4 pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
             <CardTitle className="text-base flex items-center gap-2">
               <Activity className="h-5 w-5 text-primary" />
               <span>التشخيص والقرار الطبي</span>

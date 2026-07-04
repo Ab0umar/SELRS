@@ -399,7 +399,7 @@ export default function KfPatientDetail() {
       </div>
 
       {/* Patient Header Card */}
-      <Card className="overflow-hidden border-primary/10">
+      <Card className="overflow-hidden border-primary/10 shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
         <div className="bg-primary/5 px-6 py-4 border-b border-primary/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -547,7 +547,7 @@ export default function KfPatientDetail() {
 
         {/* Visits Tab */}
         <TabsContent value="visits">
-          <Card>
+          <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
@@ -633,7 +633,7 @@ export default function KfPatientDetail() {
 
         {/* Examinations Tab */}
         <TabsContent value="exams">
-          <Card>
+          <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
@@ -714,7 +714,7 @@ export default function KfPatientDetail() {
 
         {/* Operations Tab */}
         <TabsContent value="operations">
-          <Card>
+          <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
@@ -798,7 +798,7 @@ export default function KfPatientDetail() {
 
         {/* Followups Tab */}
         <TabsContent value="followups">
-          <Card>
+          <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
@@ -892,8 +892,8 @@ export default function KfPatientDetail() {
 
               {/* VA & IOP */}
               <div className="grid grid-cols-2 gap-4">
-                <Card className="border-primary/5">
-                  <CardHeader className="py-2.5 px-4 bg-primary/5">
+                <Card className="border-primary/5 shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
+                  <CardHeader className="py-2.5 px-4 bg-primary/5 pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
                     <CardTitle className="text-sm">حدة الإبصار (Visual Acuity)</CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 grid grid-cols-2 gap-2 text-sm">
@@ -908,8 +908,8 @@ export default function KfPatientDetail() {
                   </CardContent>
                 </Card>
 
-                <Card className="border-primary/5">
-                  <CardHeader className="py-2.5 px-4 bg-primary/5">
+                <Card className="border-primary/5 shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
+                  <CardHeader className="py-2.5 px-4 bg-primary/5 pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
                     <CardTitle className="text-sm">ضغط العين (IOP)</CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 grid grid-cols-2 gap-2 text-sm">
@@ -926,8 +926,8 @@ export default function KfPatientDetail() {
               </div>
 
               {/* Refraction (Sphere/Cylinder/Axis) */}
-              <Card className="border-primary/5">
-                <CardHeader className="py-2.5 px-4 bg-primary/5">
+              <Card className="border-primary/5 shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
+                <CardHeader className="py-2.5 px-4 bg-primary/5 pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
                   <CardTitle className="text-sm">مقاسات الانكسار (Refraction)</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 grid gap-4 sm:grid-cols-2 text-sm">

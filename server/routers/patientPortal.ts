@@ -363,15 +363,6 @@ export const patientPortalRouter = router({
         status: "pending",
       });
 
-      const [pat] = await db.select({ fullName: patients.fullName, phone: patients.phone })
-        .from(patients).where(eq(patients.id, ctx.patientSession.patientId)).limit(1);
-      await db.insert(visitScheduleRequests).values({
-        fullName: pat?.fullName ?? "مريض",
-        phone: pat?.phone ?? null,
-        visitDate: input.requestedDate as any,
-        service: input.bookingType,
-        patientType: "existing",
-      } as any);
 
       broadcastBookingUpdate();
 
@@ -429,14 +420,6 @@ export const patientPortalRouter = router({
         notes: input.notes ?? undefined,
         status: "pending",
       });
-
-      await db.insert(visitScheduleRequests).values({
-        fullName: input.guestName,
-        phone: normalizePhone(input.guestPhone),
-        visitDate: input.requestedDate as any,
-        service: input.bookingType,
-        patientType: "guest",
-      } as any);
 
       broadcastBookingUpdate();
 
@@ -621,6 +604,7 @@ export const patientPortalRouter = router({
         visitDate: input.requestedDate as any,
         service: input.bookingType,
         patientType: "existing",
+        branch: input.branch ?? null,
       } as any);
 
       broadcastBookingUpdate();
@@ -666,6 +650,7 @@ export const patientPortalRouter = router({
         visitDate: input.requestedDate as any,
         service: input.bookingType,
         patientType: "guest",
+        branch: input.branch ?? null,
       } as any);
 
       broadcastBookingUpdate();
