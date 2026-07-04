@@ -90,10 +90,10 @@ public partial class Form1 : Form
         var forceModernChrome = chromeMode == "modern" || chromeMode == "borderless";
 #if NETFRAMEWORK
         if (forceModernChrome) EnableModernBorderlessShell();
-        else { FormBorderStyle = FormBorderStyle.Sizable; ControlBox = true; MinimizeBox = true; MaximizeBox = true; topBar.Visible = false; topBar.Height = 0; DoubleBuffered = true; }
+        else EnableFullScreenShell();
 #else
         if (forceModernChrome) EnableModernBorderlessShell();
-        else { FormBorderStyle = FormBorderStyle.Sizable; ControlBox = true; MinimizeBox = true; MaximizeBox = true; topBar.Visible = false; topBar.Height = 0; DoubleBuffered = true; }
+        else EnableFullScreenShell();
 #endif
     }
 
@@ -586,9 +586,28 @@ public partial class Form1 : Form
     }
 
     // ── Window chrome ─────────────────────────────────────────────────────────
+    private void EnableFullScreenShell()
+    {
+        FormBorderStyle = FormBorderStyle.None;
+        ControlBox = false;
+        MinimizeBox = false;
+        MaximizeBox = false;
+        DoubleBuffered = true;
+        WindowState = FormWindowState.Normal;
+        Bounds = Screen.FromControl(this).Bounds;
+        Shown += (_, _) => Bounds = Screen.FromControl(this).Bounds;
+        EnableAutoHideTopBar();
+    }
+
     private void EnableModernBorderlessShell()
     {
         FormBorderStyle = FormBorderStyle.None;
+        BackColor = ShellBg;
+        EnableAutoHideTopBar();
+    }
+
+    private void EnableAutoHideTopBar()
+    {
         BackColor = ShellBg;
         if (titleLabel != null)
         {
