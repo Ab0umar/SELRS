@@ -1017,6 +1017,89 @@ export default function PayrollReport() {
     openPrint(html, `كشف الرواتب — ${section} — ${periodLabel}`, SHEET_CSS);
   }
 
+  function printShiftsSheet() {
+    const today = new Date().toLocaleDateString("ar-EG");
+    const tDayTotal = enhancedShiftRows.reduce((s: number, r: any) => s + r.shiftDayTotal, 0);
+    const tNightTotal = enhancedShiftRows.reduce((s: number, r: any) => s + r.shiftNightTotal, 0);
+    const tDed = enhancedShiftRows.reduce((s: number, r: any) => s + Number(r.totalDeductions), 0);
+    const tNet = enhancedShiftRows.reduce((s: number, r: any) => s + Number(r.netBasic), 0);
+
+    const bodyRows = enhancedShiftRows
+      .map(
+        (r: any) => `
+      <tr>
+        <td class="emp-col">${escapeHtml(r.fullName)}</td>
+        <td>${escapeHtml(r.type === "doctor" ? "طبيب" : "فني")}</td>
+        <td>${r.shiftDayCount}</td>
+        <td>${fmt(r.shiftDayRate)}</td>
+        <td>${fmt(r.shiftDayTotal)}</td>
+        <td>${r.shiftNightCount}</td>
+        <td>${fmt(r.shiftNightRate)}</td>
+        <td>${fmt(r.shiftNightTotal)}</td>
+        <td>${fmt(r.totalDeductions)}</td>
+        <td>${pct(r.leaveMultiplier)}</td>
+        <td class="money-strong">${fmt(r.netBasic)}</td>
+        <td class="sig-col"></td>
+      </tr>`,
+      )
+      .join("");
+
+    const html = `
+      <main class="payroll-sheet">
+        ${renderSheetHeader("كشف الشفتات الشهري", section)}
+        <section class="summary-strip" aria-label="ملخص كشف الشفتات">
+          <div class="summary-pill"><span class="summary-label">عدد الموظفين</span><span class="summary-value">${enhancedShiftRows.length}</span></div>
+          <div class="summary-pill"><span class="summary-label">إجمالي شفت كبير</span><span class="summary-value">${fmt(tDayTotal)}</span></div>
+          <div class="summary-pill"><span class="summary-label">إجمالي شفت صغير</span><span class="summary-value">${fmt(tNightTotal)}</span></div>
+          <div class="summary-pill"><span class="summary-label">إجمالي الخصومات</span><span class="summary-value">${fmt(tDed)}</span></div>
+          <div class="summary-pill"><span class="summary-label">صافي المستحق</span><span class="summary-value">${fmt(tNet)}</span></div>
+        </section>
+        <section class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th rowspan="2">الاسم</th>
+                <th rowspan="2">القسم</th>
+                <th colspan="3">شفت كبير</th>
+                <th colspan="3">شفت صغير</th>
+                <th rowspan="2">الخصومات</th>
+                <th rowspan="2">معامل</th>
+                <th rowspan="2">صافي الأساسي</th>
+                <th rowspan="2" class="sig-col">التوقيع</th>
+              </tr>
+              <tr>
+                <th>عدد</th><th>قيمة</th><th>إجمالي</th>
+                <th>عدد</th><th>قيمة</th><th>إجمالي</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${bodyRows}
+              <tr class="total-row">
+                <td class="emp-col" colspan="2">الإجمالي</td>
+                <td></td><td></td><td>${fmt(tDayTotal)}</td>
+                <td></td><td></td><td>${fmt(tNightTotal)}</td>
+                <td>${fmt(tDed)}</td>
+                <td></td>
+                <td class="money-strong">${fmt(tNet)}</td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+        <div class="footer">
+          <div class="footer-block"><div class="footer-line"></div>المدير الإداري</div>
+          <div class="footer-block"><div class="footer-line"></div>الحسابات</div>
+          <div class="footer-block"><div class="footer-line"></div>شئون العاملين</div>
+        </div>
+        <div class="footer-meta">
+          <span>صفحة 1 من 1</span>
+          <span>تاريخ الطباعة: ${escapeHtml(today)}</span>
+        </div>
+      </main>`;
+
+    openPrint(html, `كشف الشفتات — ${periodLabel}`, SHEET_CSS);
+  }
+
   function printBasicSheet() {
     const today = new Date().toLocaleDateString("ar-EG");
     const nonShift = rows.filter(
@@ -2209,6 +2292,16 @@ export default function PayrollReport() {
                 <h3 className="text-base font-semibold">
                   الشفتات — {periodLabel}
                 </h3>
+                {enhancedShiftRows.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={printShiftsSheet}
+                    className="gap-1.5 h-8 text-xs"
+                  >
+                    <Printer size={13} /> طباعة كشف الشهر
+                  </Button>
+                )}
               </div>
 
               {/* Desktop Table View */}
