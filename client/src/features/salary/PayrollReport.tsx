@@ -1022,11 +1022,25 @@ export default function PayrollReport() {
     const tDayTotal = enhancedShiftRows.reduce((s: number, r: any) => s + r.shiftDayTotal, 0);
     const tNightTotal = enhancedShiftRows.reduce((s: number, r: any) => s + r.shiftNightTotal, 0);
     const tDed = enhancedShiftRows.reduce((s: number, r: any) => s + Number(r.totalDeductions), 0);
-    const tNet = enhancedShiftRows.reduce((s: number, r: any) => s + Number(r.netBasic), 0);
+    const tNetBasic = enhancedShiftRows.reduce((s: number, r: any) => s + Number(r.netBasic), 0);
+    const tAttend = shiftRows.reduce((s: number, r: any) => s + Number(r.attendanceCommission), 0);
+    const tExam = shiftRows.reduce((s: number, r: any) => s + Number(r.examCommission), 0);
+    const tPenta = shiftRows.reduce((s: number, r: any) => s + Number(r.pentacamCommission), 0);
+    const tCola = shiftRows.reduce((s: number, r: any) => s + getAllowanceValues(r).cola, 0);
+    const tTravel = shiftRows.reduce((s: number, r: any) => s + getAllowanceValues(r).travel, 0);
+    const tOT = shiftRows.reduce((s: number, r: any) => s + Number(r.overtimePay ?? 0), 0);
+    const tTotal = shiftRows.reduce((s: number, r: any) => s + Number(r.totalPay), 0);
 
     const bodyRows = enhancedShiftRows
-      .map(
-        (r: any) => `
+      .map((r: any) => {
+        const sr = shiftRows.find((s: any) => s.empCd === `shift_${r.id}`);
+        const attend = sr ? Number(sr.attendanceCommission) : 0;
+        const exam = sr ? Number(sr.examCommission) : 0;
+        const penta = sr ? Number(sr.pentacamCommission) : 0;
+        const { cola, travel } = sr ? getAllowanceValues(sr) : { cola: 0, travel: 0 };
+        const ot = sr ? Number(sr.overtimePay ?? 0) : 0;
+        const totalPay = sr ? Number(sr.totalPay) : Number(r.netBasic);
+        return `
       <tr>
         <td class="emp-col">${escapeHtml(r.fullName)}</td>
         <td>${escapeHtml(r.type === "doctor" ? "طبيب" : "فني")}</td>
@@ -1038,10 +1052,17 @@ export default function PayrollReport() {
         <td>${fmt(r.shiftNightTotal)}</td>
         <td>${fmt(r.totalDeductions)}</td>
         <td>${pct(r.leaveMultiplier)}</td>
-        <td class="money-strong">${fmt(r.netBasic)}</td>
+        <td>${fmt(r.netBasic)}</td>
+        <td>${fmt(attend)}</td>
+        <td>${fmt(exam)}</td>
+        <td>${fmt(penta)}</td>
+        <td>${fmt(cola)}</td>
+        <td>${fmt(travel)}</td>
+        <td>${fmt(ot)}</td>
+        <td class="money-strong">${fmt(totalPay)}</td>
         <td class="sig-col"></td>
-      </tr>`,
-      )
+      </tr>`;
+      })
       .join("");
 
     const html = `
@@ -1049,10 +1070,10 @@ export default function PayrollReport() {
         ${renderSheetHeader("كشف الشفتات الشهري", section)}
         <section class="summary-strip" aria-label="ملخص كشف الشفتات">
           <div class="summary-pill"><span class="summary-label">عدد الموظفين</span><span class="summary-value">${enhancedShiftRows.length}</span></div>
-          <div class="summary-pill"><span class="summary-label">إجمالي شفت كبير</span><span class="summary-value">${fmt(tDayTotal)}</span></div>
-          <div class="summary-pill"><span class="summary-label">إجمالي شفت صغير</span><span class="summary-value">${fmt(tNightTotal)}</span></div>
-          <div class="summary-pill"><span class="summary-label">إجمالي الخصومات</span><span class="summary-value">${fmt(tDed)}</span></div>
-          <div class="summary-pill"><span class="summary-label">صافي المستحق</span><span class="summary-value">${fmt(tNet)}</span></div>
+          <div class="summary-pill"><span class="summary-label">إجمالي الشفتات</span><span class="summary-value">${fmt(tDayTotal + tNightTotal)}</span></div>
+          <div class="summary-pill"><span class="summary-label">صافي الأساسي</span><span class="summary-value">${fmt(tNetBasic)}</span></div>
+          <div class="summary-pill"><span class="summary-label">إجمالي العمولات</span><span class="summary-value">${fmt(tAttend + tExam + tPenta + tCola + tTravel + tOT)}</span></div>
+          <div class="summary-pill"><span class="summary-label">صافي المستحق</span><span class="summary-value">${fmt(tTotal)}</span></div>
         </section>
         <section class="table-wrap">
           <table>
@@ -1065,6 +1086,13 @@ export default function PayrollReport() {
                 <th rowspan="2">الخصومات</th>
                 <th rowspan="2">معامل</th>
                 <th rowspan="2">صافي الأساسي</th>
+                <th rowspan="2">عمولة حضور</th>
+                <th rowspan="2">عمولة فحص</th>
+                <th rowspan="2">عمولة بنتاكام</th>
+                <th rowspan="2">غلاء معيشة</th>
+                <th rowspan="2">مواصلات</th>
+                <th rowspan="2">إضافي</th>
+                <th rowspan="2">صافي المستحق</th>
                 <th rowspan="2" class="sig-col">التوقيع</th>
               </tr>
               <tr>
@@ -1080,7 +1108,14 @@ export default function PayrollReport() {
                 <td></td><td></td><td>${fmt(tNightTotal)}</td>
                 <td>${fmt(tDed)}</td>
                 <td></td>
-                <td class="money-strong">${fmt(tNet)}</td>
+                <td>${fmt(tNetBasic)}</td>
+                <td>${fmt(tAttend)}</td>
+                <td>${fmt(tExam)}</td>
+                <td>${fmt(tPenta)}</td>
+                <td>${fmt(tCola)}</td>
+                <td>${fmt(tTravel)}</td>
+                <td>${fmt(tOT)}</td>
+                <td class="money-strong">${fmt(tTotal)}</td>
                 <td></td>
               </tr>
             </tbody>
@@ -1111,7 +1146,7 @@ export default function PayrollReport() {
               <th colspan="2">شفت كبير</th>
               <th colspan="2">شفت صغير</th>
               <th>إجمالي الاستحقاقات</th>
-              <th rowspan="4" class="net-cell"><span class="net-label">صافي المستحق</span><span class="net-val">${fmt(net)}</span></th>
+              <th rowspan="5" class="net-cell"><span class="net-label">صافي المستحق</span><span class="net-val">${fmt(net)}</span></th>
             </tr>
             <tr>
               <th>عدد</th><th>قيمة</th>
@@ -1144,28 +1179,45 @@ export default function PayrollReport() {
   function printShiftDay10Slips() {
     const html = enhancedShiftRows
       .map((r: any) => {
-        const net = Number(r.netBasic);
-        const totalEarnings = r.shiftDayTotal + r.shiftNightTotal;
+        const sr = shiftRows.find((s: any) => s.empCd === `shift_${r.id}`);
+        const attend = sr ? Number(sr.attendanceCommission) : 0;
+        const attendRaw = sr ? Number(sr.attendanceCommissionRaw ?? attend) : 0;
+        const exam = sr ? Number(sr.examCommission) : 0;
+        const examRaw = sr ? Number(sr.examCommissionRaw ?? exam) : 0;
+        const penta = sr ? Number(sr.pentacamCommission) : 0;
+        const pentaRaw = sr ? Number(sr.pentacamCommissionRaw ?? penta) : 0;
+        const { cola, travel } = sr ? getAllowanceValues(sr) : { cola: 0, travel: 0 };
+        const ot = sr ? Number(sr.overtimePay ?? 0) : 0;
+        const net = attend + exam + penta + cola + travel + ot;
         const table = `
           <table class="main">
             <tr>
-              <th>شفت كبير إجمالي</th>
-              <th>شفت صغير إجمالي</th>
-              <th>إجمالي الاستحقاقات</th>
-              <th>خصومات</th>
-              <th>صافي المستحق</th>
-              <th rowspan="2" class="net-cell"><span class="net-label">صافي المستحق</span><span class="net-val">${fmt(net)}</span></th>
+              <th colspan="2">الحضور</th>
+              <th colspan="2">الكشف</th>
+              <th colspan="2">البنتاكام</th>
+              <th rowspan="2">غلاء معيشه</th>
+              <th rowspan="2">بدل مواصلات</th>
+              <th rowspan="2">أوفرتايم</th>
+              <th rowspan="2">إجمالي المكافآت</th>
+              <th rowspan="3" class="net-cell"><span class="net-label">صافي المستحق</span><span class="net-val">${fmt(net)}</span></th>
             </tr>
             <tr>
-              <td>${fmt(r.shiftDayTotal)}</td>
-              <td>${fmt(r.shiftNightTotal)}</td>
-              <td>${fmt(totalEarnings)}</td>
-              <td>${fmt(r.totalDeductions)}</td>
+              <th>النسبة</th><th>المستحق</th>
+              <th>النسبة</th><th>المستحق</th>
+              <th>النسبة</th><th>المستحق</th>
+            </tr>
+            <tr>
+              <td>${fmt(attendRaw)}</td><td>${fmt(attend)}</td>
+              <td>${fmt(examRaw)}</td><td>${fmt(exam)}</td>
+              <td>${fmt(pentaRaw)}</td><td>${fmt(penta)}</td>
+              <td>${fmt(cola)}</td>
+              <td>${fmt(travel)}</td>
+              <td>${fmt(ot)}</td>
               <td>${fmt(net)}</td>
             </tr>
           </table>`;
         const slipRow = { ...r, jobTitle: r.type === "doctor" ? "طبيب" : "فني" };
-        return buildSlip(slipRow, `مرتب الشفتات — يوم 10 — ${MONTHS[month - 1]} ${year}`, table, net, section);
+        return buildSlip(slipRow, `نسب الشفتات — ${MONTHS[month - 1]} ${year}`, table, net, section);
       })
       .join("");
     openPrint(html, `قسائم الشفتات يوم 10 — ${MONTHS[month - 1]} ${year}`, SLIPS_CSS);
