@@ -577,7 +577,7 @@
     page-break-inside: avoid;
   }
 
-  /* Force sheet contents to fit on a single A4 page by preventing breaks and scaling slightly */
+  /* Keep sheet content from splitting mid-section; let natural height size the page. */
   .sheet-layout,
   .lasik-print-root,
   .specialist-print-root,
@@ -589,9 +589,51 @@
     page-break-before: avoid !important;
     break-after: avoid !important;
     break-before: avoid !important;
-    max-height: 285mm !important;
-    overflow: hidden !important;
     font-size: 96% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    position: relative !important;
+    min-height: 0 !important;
+    height: auto !important;
+  }
+
+  body, html {
+    min-height: 0 !important;
+    height: auto !important;
+  }
+
+  /* Faint centered logo watermark behind every sheet's printed content */
+  .sheet-layout::before,
+  .lasik-print-root::before,
+  .specialist-print-root::before,
+  .followup-print-root::before,
+  .a4-page-card::before {
+    content: "" !important;
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 60% !important;
+    max-width: 420px !important;
+    aspect-ratio: 1 / 1 !important;
+    background-image: url("/center-logo.png") !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    background-size: contain !important;
+    opacity: 0.08 !important;
+    pointer-events: none !important;
+    z-index: 0 !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  .sheet-layout > *,
+  .lasik-print-root > *,
+  .specialist-print-root > *,
+  .followup-print-root > *,
+  .a4-page-card > * {
+    position: relative !important;
+    z-index: 1 !important;
   }
   .sheet-layout table,
   .lasik-print-root table,
@@ -700,6 +742,50 @@
   .a4-page-card input[type="radio"] {
     width: 12px !important;
     height: 12px !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    border: 1.2px solid #191c1e !important;
+    background: white !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+    flex-shrink: 0 !important;
+  }
+  .sheet-layout input[type="checkbox"]:checked,
+  .lasik-print-root input[type="checkbox"]:checked,
+  .specialist-print-root input[type="checkbox"]:checked,
+  .followup-print-root input[type="checkbox"]:checked,
+  .a4-page-card input[type="checkbox"]:checked {
+    background-color: #191c1e !important;
+    position: relative !important;
+  }
+  .sheet-layout input[type="checkbox"]:checked::after,
+  .lasik-print-root input[type="checkbox"]:checked::after,
+  .specialist-print-root input[type="checkbox"]:checked::after,
+  .followup-print-root input[type="checkbox"]:checked::after,
+  .a4-page-card input[type="checkbox"]:checked::after {
+    content: "" !important;
+    position: absolute !important;
+    left: 3px !important;
+    top: 0px !important;
+    width: 3px !important;
+    height: 6px !important;
+    border: solid white !important;
+    border-width: 0 1.5px 1.5px 0 !important;
+    transform: rotate(45deg) !important;
+  }
+  .sheet-layout input[type="radio"],
+  .lasik-print-root input[type="radio"],
+  .specialist-print-root input[type="radio"],
+  .followup-print-root input[type="radio"],
+  .a4-page-card input[type="radio"] {
+    border-radius: 50% !important;
+  }
+  .sheet-layout input[type="radio"]:checked,
+  .lasik-print-root input[type="radio"]:checked,
+  .specialist-print-root input[type="radio"]:checked,
+  .followup-print-root input[type="radio"]:checked,
+  .a4-page-card input[type="radio"]:checked {
+    background-color: #191c1e !important;
   }
 
   .notes-col {
@@ -1442,6 +1528,13 @@ select {
 }
 
 /* Final UI polish for sheet pages */
+.sheet-layout,
+.lasik-print-root,
+.specialist-print-root,
+.followup-print-root {
+  font-family: "Cairo", "Inter", sans-serif;
+}
+
 .sheet-layout h1,
 .sheet-layout h2 {
   letter-spacing: 0.01em;

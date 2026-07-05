@@ -174,7 +174,6 @@ export const DEFAULT_SHEET_DESIGNER_CONFIG: SheetDesignerConfig = {
             body { background: white; margin: 0; padding: 0; }
             .no-print { display: none !important; }
             .print-container { width: 100%; margin: 0; border: none; box-shadow: none; padding: 10mm; }
-            @page { size: landscape; margin: 10mm; }
         }
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
@@ -207,7 +206,6 @@ export const DEFAULT_SHEET_DESIGNER_CONFIG: SheetDesignerConfig = {
             body { background: white; }
             .no-print { display: none !important; }
             .print-container { width: 100%; margin: 0; padding: 0; box-shadow: none !important; }
-            @page { margin: 10mm; size: landscape; }
         }
         body {
             font-family: 'Inter', sans-serif;
