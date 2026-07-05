@@ -79,6 +79,18 @@ function monthDates(y: number, m: number) {
   );
 }
 
+function dateRange(from: string, to: string) {
+  const start = new Date(`${from}T00:00:00`);
+  const end = new Date(`${to}T00:00:00`);
+  const out: string[] = [];
+  for (let d = start; d <= end; d.setDate(d.getDate() + 1)) {
+    out.push(
+      `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+    );
+  }
+  return out;
+}
+
 function weekDates(anchor: string, y: number, m: number) {
   const d = new Date(anchor);
   const day = d.getDay();
@@ -291,8 +303,14 @@ export default function ShiftSchedule() {
   const [selectedMobileDate, setSelectedMobileDate] = useState(todayStr);
 
   const schedQ = isManager
-    ? (trpc as any).salary.getShiftSchedule.useQuery({ year, month })
-    : (trpc as any).salary.getShiftScheduleForStaff.useQuery({ year, month });
+    ? (trpc as any).salary.getShiftSchedule.useQuery({ year, month, fromDate, toDate })
+    : (trpc as any).salary.getShiftScheduleForStaff.useQuery({ year, month, fromDate, toDate });
+  const shiftDefsQ = (trpc as any).attendance.listShifts.useQuery();
+  const shiftOptions: { name: string; label: string }[] =
+    (shiftDefsQ.data ?? []).map((sd: any) => ({
+      name: sd.name,
+      label: SHIFT_META[sd.name as ShiftName]?.label ?? sd.name,
+    }));
   const payrollQ = (trpc as any).salary.computeShiftPayroll.useQuery(
     { year, month, fromDate, toDate },
     { enabled: isManager },
@@ -409,15 +427,13 @@ export default function ShiftSchedule() {
     attendMap.get(key)!.push(row);
   }
 
-  const allDates = monthDates(year, month).filter((ds) => {
+  const allDates = (fromDate && toDate ? dateRange(fromDate, toDate) : monthDates(year, month)).filter((ds) => {
     const dow = new Date(`${ds}T00:00:00`).getDay();
     if (dow === 5) return false;
     if (fromDate && ds < fromDate) return false;
     if (toDate && ds > toDate) return false;
     return true;
   });
-  const monthMin = `${year}-${pad(month)}-01`;
-  const monthMax = `${year}-${pad(month)}-${pad(daysInMonth(year, month))}`;
 
   const totalEntries = attendance.length;
   const totalPresent = attendance.filter((row: any) => row.present).length;
@@ -1068,8 +1084,11 @@ export default function ShiftSchedule() {
                 className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
               >
                 <option value="">-- الوردية --</option>
-                <option value="Morning">صباح</option>
-                <option value="Night">مساء</option>
+                {shiftOptions.map((opt) => (
+                  <option key={opt.name} value={opt.name}>
+                    {opt.label}
+                  </option>
+                ))}
               </select>
               <div className="flex overflow-hidden rounded-xl border border-border text-sm font-bold">
                 {(
@@ -1096,8 +1115,6 @@ export default function ShiftSchedule() {
               {addForm.period !== "month" && (
                 <DateInput
                   value={addForm.anchorDate}
-                  min={monthMin}
-                  max={monthMax}
                   onChange={(e) =>
                     setAddForm((f) => ({
                       ...f,
@@ -1161,8 +1178,6 @@ export default function ShiftSchedule() {
             <div className="mt-3 space-y-3 border-t border-border pt-3">
               <DateInput
                 value={holidayForm.date}
-                min={monthMin}
-                max={monthMax}
                 onChange={(e) =>
                   setHolidayForm((f) => ({ ...f, date: e.target.value }))
                 }
@@ -1680,8 +1695,11 @@ export default function ShiftSchedule() {
                         className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
                       >
                         <option value="">-- الوردية --</option>
-                        <option value="Morning">صباح</option>
-                        <option value="Night">مساء</option>
+                        {shiftOptions.map((opt) => (
+                          <option key={opt.name} value={opt.name}>
+                            {opt.label}
+                          </option>
+                        ))}
                       </select>
                       <div className="flex overflow-hidden rounded-xl border border-border text-sm font-bold">
                         {(
@@ -1710,8 +1728,6 @@ export default function ShiftSchedule() {
                       {addForm.period !== "month" && (
                         <DateInput
                           value={addForm.anchorDate}
-                          min={monthMin}
-                          max={monthMax}
                           onChange={(e) =>
                             setAddForm((f) => ({
                               ...f,
@@ -1782,8 +1798,6 @@ export default function ShiftSchedule() {
                       <div className="flex flex-col gap-3">
                         <DateInput
                           value={holidayForm.date}
-                          min={monthMin}
-                          max={monthMax}
                           onChange={(e) =>
                             setHolidayForm((f) => ({
                               ...f,

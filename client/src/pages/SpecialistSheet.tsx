@@ -24,6 +24,11 @@ import { printOrExportPdf } from "@/lib/nativePdf";
 import { BRAND_NAME_AR, BRAND_NAME_EN } from "@/lib/brand";
 import SheetCenterHeader from "@/components/SheetCenterHeader";
 import { DateInput } from "@/components/ui/date-input";
+import {
+  displaySheetDate,
+  formatSheetDate,
+  getPatientSheetDateOfBirth,
+} from "@/lib/sheetDates";
 
 export default function SpecialistSheet() {
   const { user, isAuthenticated } = useAuth();
@@ -177,13 +182,6 @@ export default function SpecialistSheet() {
     },
   });
 
-  const formatDate = (value?: string | Date | null) => {
-    if (!value) return "";
-    const date = value instanceof Date ? value : new Date(value);
-    if (Number.isNaN(date.valueOf())) return "";
-    return date.toISOString().split("T")[0];
-  };
-
   const handleSelectPatient = (patient: {
     id: number;
     fullName: string;
@@ -191,6 +189,11 @@ export default function SpecialistSheet() {
     phone?: string | null;
     age?: number | null;
     dateOfBirth?: string | Date | null;
+    date_of_birth?: string | Date | null;
+    birthDate?: string | Date | null;
+    dob?: string | Date | null;
+    birth?: string | Date | null;
+    BDT?: string | Date | null;
     address?: string | null;
     occupation?: string | null;
   }) => {
@@ -199,7 +202,7 @@ export default function SpecialistSheet() {
       patientName: patient.fullName ?? "",
       phone: patient.phone ?? "",
       age: patient.age != null ? String(patient.age) : "",
-      dateOfBirth: formatDate(patient.dateOfBirth),
+      dateOfBirth: getPatientSheetDateOfBirth(patient),
       address: patient.address ?? "",
       patientCode: patient.patientCode ?? "",
       job: patient.occupation ?? "",
@@ -217,7 +220,7 @@ export default function SpecialistSheet() {
       patientName: patient.fullName ?? "",
       phone: patient.phone ?? "",
       age: patient.age != null ? String(patient.age) : "",
-      dateOfBirth: formatDate(patient.dateOfBirth),
+      dateOfBirth: getPatientSheetDateOfBirth(patient),
       address: patient.address ?? "",
       patientCode: patient.patientCode ?? "",
       job: patient.occupation ?? "",
@@ -236,7 +239,8 @@ export default function SpecialistSheet() {
           patientName: prev.patientName || parsed.formData.patientName,
           phone: prev.phone || parsed.formData.phone,
           age: prev.age || parsed.formData.age,
-          dateOfBirth: prev.dateOfBirth || parsed.formData.dateOfBirth,
+          dateOfBirth:
+            prev.dateOfBirth || formatSheetDate(parsed.formData.dateOfBirth),
           address: prev.address || parsed.formData.address,
         }));
       }
@@ -601,7 +605,7 @@ export default function SpecialistSheet() {
             <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">السن:</span>
               <input className="w-12 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.age} onChange={(e) => setFormData((p) => ({ ...p, age: e.target.value }))} /></label>
             <span className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">تاريخ الميلاد:</span>
-              <span className="min-w-[70px] px-1 border-b border-[#c3c6d6] text-right">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</span></span>
+              <span className="min-w-[70px] px-1 border-b border-[#c3c6d6] text-right">{displaySheetDate(formData.dateOfBirth)}</span></span>
             <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">العنوان:</span>
               <input className="w-36 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} /></label>
             <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">التليفون:</span>

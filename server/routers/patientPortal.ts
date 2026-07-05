@@ -517,11 +517,15 @@ export const patientPortalRouter = router({
           message: "DB unavailable",
         });
 
-      const conditions: ReturnType<typeof eq>[] = [];
-      if (input.date)
+      const conditions: SQL[] = [];
+      if (input.date) {
+        const dayStart = new Date(`${input.date}T00:00:00`);
+        const dayEnd = new Date(`${input.date}T23:59:59.999`);
         conditions.push(
-          eq(patientPortalBookings.requestedDate, new Date(input.date)),
+          gte(patientPortalBookings.requestedDate, dayStart),
+          lte(patientPortalBookings.requestedDate, dayEnd),
         );
+      }
       if (input.status)
         conditions.push(eq(patientPortalBookings.status, input.status));
       if (input.branch)

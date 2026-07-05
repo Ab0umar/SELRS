@@ -21,6 +21,7 @@ import {
   shiftStaff,
   shiftAttendance,
   shiftStaffCycle,
+  shiftPayrollAttendanceOverrides,
   attendanceShifts,
   salarySupervisionBonus,
   salaryMissingCheckoutExclude,
@@ -53,6 +54,32 @@ function dateRangeToYearMonths(fromDate: string, toDate: string): { year: number
     if (m > 12) { m = 1; y++; }
   }
   return pairs.length ? pairs : [{ year: fy, month: fm }];
+}
+
+async function fetchShiftAttendanceRange(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  year: number,
+  month: number,
+  fromDate?: string,
+  toDate?: string,
+) {
+  const pairs = fromDate && toDate ? dateRangeToYearMonths(fromDate, toDate) : [{ year, month }];
+  const results = await Promise.all(
+    pairs.map(({ year: y, month: m }) =>
+      db.select().from(shiftAttendance).where(
+        and(eq(shiftAttendance.year, y), eq(shiftAttendance.month, m)),
+      ),
+    ),
+  );
+  const flat = results.flat();
+  if (!fromDate || !toDate) return flat;
+  return flat.filter((a: any) => {
+    const raw = a.workDate;
+    const d = raw instanceof Date
+      ? `${raw.getFullYear()}-${String(raw.getMonth() + 1).padStart(2, "0")}-${String(raw.getDate()).padStart(2, "0")}`
+      : String(raw).slice(0, 10);
+    return d >= fromDate && d <= toDate;
+  });
 }
 
 export const salaryRouter = router({
@@ -1285,7 +1312,14 @@ export const salaryRouter = router({
     }),
 
   getShiftSchedule: makeSalaryProcedure("/salary")
-    .input(z.object({ year: z.number(), month: z.number() }))
+    .input(
+      z.object({
+        year: z.number(),
+        month: z.number(),
+        fromDate: z.string().optional(),
+        toDate: z.string().optional(),
+      }),
+    )
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
@@ -1295,22 +1329,21 @@ export const salaryRouter = router({
           .from(shiftStaff)
           .where(eq(shiftStaff.active, true))
           .orderBy(shiftStaff.type, shiftStaff.name),
-        db
-          .select()
-          .from(shiftAttendance)
-          .where(
-            and(
-              eq(shiftAttendance.year, input.year),
-              eq(shiftAttendance.month, input.month),
-            ),
-          ),
+        fetchShiftAttendanceRange(db, input.year, input.month, input.fromDate, input.toDate),
       ]);
       return { staff, attendance };
     }),
 
   // ── Self-service shift procedures (any logged-in user) ──────────────────
   getShiftScheduleForStaff: protectedProcedure
-    .input(z.object({ year: z.number(), month: z.number() }))
+    .input(
+      z.object({
+        year: z.number(),
+        month: z.number(),
+        fromDate: z.string().optional(),
+        toDate: z.string().optional(),
+      }),
+    )
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
@@ -1320,15 +1353,7 @@ export const salaryRouter = router({
           .from(shiftStaff)
           .where(eq(shiftStaff.active, true))
           .orderBy(shiftStaff.type, shiftStaff.name),
-        db
-          .select()
-          .from(shiftAttendance)
-          .where(
-            and(
-              eq(shiftAttendance.year, input.year),
-              eq(shiftAttendance.month, input.month),
-            ),
-          ),
+        fetchShiftAttendanceRange(db, input.year, input.month, input.fromDate, input.toDate),
       ]);
       return { staff, attendance };
     }),
@@ -1647,6 +1672,19 @@ export const salaryRouter = router({
         db.select().from(attendanceShifts),
       ]);
 
+      const overrideRows = await db
+        .select()
+        .from(shiftPayrollAttendanceOverrides)
+        .where(
+          and(
+            eq(shiftPayrollAttendanceOverrides.year, input.year),
+            eq(shiftPayrollAttendanceOverrides.month, input.month),
+          ),
+        );
+      const overrideMap = new Map(
+        overrideRows.map((o: any) => [o.staffId, o]),
+      );
+
       // Build shift-name → size map
       const shiftSizeMap = new Map<string, "big" | "small">();
       for (const sd of shiftDefs as any[]) {
@@ -1761,22 +1799,14 @@ export const salaryRouter = router({
           { scheduled: number; attended: number; rate: number }
         > = {};
         let attended = 0;
-        // Explicit big/small breakdown (big = Morning / default, small = Night)
+        // Explicit big/small breakdown, sized per each shift's own definition (shiftSizeMap)
         let bigScheduled = 0, bigAttended = 0, smallScheduled = 0, smallAttended = 0;
 
         // Rules 1 & 2: scheduled shifts vs punches
         for (const a of rows) {
           const present = resolvePresent(s, a);
           if (present) attended++;
-          const defSize = shiftSizeMap.get(a.shiftName);
-          // Night is always a small shift, Morning always big (user rule).
-          // For any other shift name, fall back to its definition size.
-          const size: "big" | "small" =
-            a.shiftName === "Night"
-              ? "small"
-              : a.shiftName === "Morning"
-                ? "big"
-                : defSize ?? "big";
+          const size: "big" | "small" = shiftSizeMap.get(a.shiftName) ?? "big";
           const rate = size === "small" ? rateSmall : rateBig;
           if (!byShift[a.shiftName])
             byShift[a.shiftName] = { scheduled: 0, attended: 0, rate };
@@ -1813,6 +1843,16 @@ export const salaryRouter = router({
           bigAttended += extraAttended;
         }
 
+        // Manual override: accountant-entered attended counts win over computed attendance.
+        const override = overrideMap.get(s.id) as
+          | { bigAttended: number | null; smallAttended: number | null }
+          | undefined;
+        const hasBigOverride = override?.bigAttended != null;
+        const hasSmallOverride = override?.smallAttended != null;
+        const hasOverride = hasBigOverride || hasSmallOverride;
+        if (hasBigOverride) bigAttended = override!.bigAttended as number;
+        if (hasSmallOverride) smallAttended = override!.smallAttended as number;
+
         // Calculate pay per shift type
         const scheduled = rows.length + extraAttended; // roster entries + unscheduled punch days
         const absent = rows.length - attended; // only roster entries can be absent
@@ -1820,15 +1860,19 @@ export const salaryRouter = router({
         const smallAbsent = Math.max(0, smallScheduled - smallAttended);
         const bigTotal = Math.round(bigScheduled * rateBig * 100) / 100;
         const smallTotal = Math.round(smallScheduled * rateSmall * 100) / 100;
-        const basicSalary = Math.round(
-          Object.values(byShift).reduce((s, b) => s + b.scheduled * b.rate, 0) * 100,
-        ) / 100;
-        const absentDeduction = Math.round(
-          Object.entries(byShift).reduce((s, [, b]) => {
-            const absentInShift = Math.max(0, b.scheduled - b.attended);
-            return s + absentInShift * b.rate;
-          }, 0) * 100,
-        ) / 100;
+        const basicSalary = hasOverride
+          ? Math.round((bigAttended * rateBig + smallAttended * rateSmall) * 100) / 100
+          : Math.round(
+              Object.values(byShift).reduce((s, b) => s + b.scheduled * b.rate, 0) * 100,
+            ) / 100;
+        const absentDeduction = hasOverride
+          ? Math.round((bigAbsent * rateBig + smallAbsent * rateSmall) * 100) / 100
+          : Math.round(
+              Object.entries(byShift).reduce((s, [, b]) => {
+                const absentInShift = Math.max(0, b.scheduled - b.attended);
+                return s + absentInShift * b.rate;
+              }, 0) * 100,
+            ) / 100;
         const punchDeductionPct = s.empCd
           ? (deductionMap.get(s.empCd) ?? 0)
           : 0;
@@ -1863,8 +1907,72 @@ export const salaryRouter = router({
           punchDeduction,
           totalPay,
           byShift,
+          hasAttendanceOverride: hasOverride,
+          hasBigAttendanceOverride: hasBigOverride,
+          hasSmallAttendanceOverride: hasSmallOverride,
         };
       });
+    }),
+
+  setShiftAttendanceOverride: makeSalaryWriteProcedure("/salary/payroll")
+    .input(
+      z.object({
+        staffId: z.number(),
+        year: z.number(),
+        month: z.number(),
+        bigAttended: z.number().min(0).nullable(),
+        smallAttended: z.number().min(0).nullable(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+
+      if (input.bigAttended == null && input.smallAttended == null) {
+        await db
+          .delete(shiftPayrollAttendanceOverrides)
+          .where(
+            and(
+              eq(shiftPayrollAttendanceOverrides.staffId, input.staffId),
+              eq(shiftPayrollAttendanceOverrides.year, input.year),
+              eq(shiftPayrollAttendanceOverrides.month, input.month),
+            ),
+          );
+        return { ok: true };
+      }
+
+      const existing = await db
+        .select()
+        .from(shiftPayrollAttendanceOverrides)
+        .where(
+          and(
+            eq(shiftPayrollAttendanceOverrides.staffId, input.staffId),
+            eq(shiftPayrollAttendanceOverrides.year, input.year),
+            eq(shiftPayrollAttendanceOverrides.month, input.month),
+          ),
+        )
+        .limit(1);
+
+      if (existing.length > 0) {
+        await db
+          .update(shiftPayrollAttendanceOverrides)
+          .set({
+            bigAttended: input.bigAttended,
+            smallAttended: input.smallAttended,
+            updatedBy: (ctx.user as any).id,
+          })
+          .where(eq(shiftPayrollAttendanceOverrides.id, existing[0].id));
+      } else {
+        await db.insert(shiftPayrollAttendanceOverrides).values({
+          staffId: input.staffId,
+          year: input.year,
+          month: input.month,
+          bigAttended: input.bigAttended,
+          smallAttended: input.smallAttended,
+          updatedBy: (ctx as any).user?.id ?? null,
+        });
+      }
+      return { ok: true };
     }),
 
   // ── Shift Definitions ────────────────────────────────────

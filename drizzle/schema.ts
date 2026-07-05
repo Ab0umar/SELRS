@@ -1650,6 +1650,7 @@ export const attendanceDeviceSettings = mysqlTable(
     fkProtocol: int("fk_protocol").default(0).notNull(),
     commPassword: int("comm_password").default(0).notNull(),
     admsEnabled: boolean("adms_enabled").default(true).notNull(),
+    admsDetectedOffsetHours: int("adms_detected_offset_hours"),
   },
 );
 
@@ -2089,6 +2090,33 @@ export const shiftStaffCycle = mysqlTable(
     pk: primaryKey({ columns: [t.staffId, t.dayOfWeek, t.shiftName] }),
   }),
 );
+
+export const shiftPayrollAttendanceOverrides = mysqlTable(
+  "shift_payroll_attendance_overrides",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    staffId: int("staff_id").notNull(),
+    year: int("year").notNull(),
+    month: int("month").notNull(),
+    bigAttended: int("big_attended"),
+    smallAttended: int("small_attended"),
+    updatedBy: int("updated_by"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (t) => ({
+    uqStaffMonth: uniqueIndex("uq_shift_payroll_override_staff_month").on(
+      t.staffId,
+      t.year,
+      t.month,
+    ),
+  }),
+);
+
+export type ShiftPayrollAttendanceOverride =
+  typeof shiftPayrollAttendanceOverrides.$inferSelect;
+export type InsertShiftPayrollAttendanceOverride =
+  typeof shiftPayrollAttendanceOverrides.$inferInsert;
 
 // ============ EXTERNAL DOCTORS MODULE ============
 

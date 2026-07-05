@@ -23,15 +23,37 @@ import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 import { printOrExportPdf } from "@/lib/nativePdf";
 import { BRAND_NAME_AR, BRAND_NAME_EN } from "@/lib/brand";
 import { DateInput } from "@/components/ui/date-input";
-import SheetCenterHeader from "@/components/SheetCenterHeader";
 import FollowupTablesBody from "@/components/sheets/FollowupTablesBody";
+import {
+  displaySheetDate,
+  formatSheetDate,
+  getPatientSheetDateOfBirth,
+} from "@/lib/sheetDates";
 
 export default function LasikExamSheet() {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const { goBack } = useAppNavigation();
   const [, params] = useRoute("/sheets/:type/:id");
-  const initialPatientId = params?.id ? Number(params.id) : undefined;
+  const currentPath =
+    typeof window !== "undefined" ? window.location.pathname : "";
+  const currentSheetType = currentPath.includes("/sheets/consultant")
+    ? "consultant"
+    : currentPath.includes("/sheets/external") ||
+        currentPath.includes("/sheets/operation")
+      ? "external"
+      : "lasik";
+  const routePatientId = (() => {
+    if (params?.id) return Number(params.id);
+    if (typeof window === "undefined") return undefined;
+    const match = window.location.pathname.match(
+      /^\/(?:patient-hub\/)?sheets\/(?:lasik|consultant|external)\/(\d+)/,
+    );
+    return match?.[1] ? Number(match[1]) : undefined;
+  })();
+  const initialPatientId = Number.isFinite(routePatientId)
+    ? routePatientId
+    : undefined;
   const printMode = usePrintMode({ ready: Boolean(initialPatientId) });
   const originalMode =
     typeof window !== "undefined" &&
@@ -165,7 +187,7 @@ export default function LasikExamSheet() {
     refetchOnWindowFocus: false,
   });
   const sheetQuery = trpc.medical.getSheetEntry.useQuery(
-    { patientId: initialPatientId ?? 0, sheetType: "lasik" },
+    { patientId: initialPatientId ?? 0, sheetType: currentSheetType },
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   const examinationStateQuery = trpc.medical.getPatientPageState.useQuery(
@@ -243,13 +265,6 @@ export default function LasikExamSheet() {
     },
   });
 
-  const formatDate = (value?: string | Date | null) => {
-    if (!value) return "";
-    const date = value instanceof Date ? value : new Date(value);
-    if (Number.isNaN(date.valueOf())) return "";
-    return date.toISOString().split("T")[0];
-  };
-
   const handleSelectPatient = (patient: {
     id: number;
     fullName: string;
@@ -257,6 +272,11 @@ export default function LasikExamSheet() {
     phone?: string | null;
     age?: number | null;
     dateOfBirth?: string | Date | null;
+    date_of_birth?: string | Date | null;
+    birthDate?: string | Date | null;
+    dob?: string | Date | null;
+    birth?: string | Date | null;
+    BDT?: string | Date | null;
     address?: string | null;
     occupation?: string | null;
   }) => {
@@ -265,13 +285,16 @@ export default function LasikExamSheet() {
       patientName: patient.fullName ?? "",
       phone: patient.phone ?? "",
       age: patient.age != null ? String(patient.age) : "",
-      dateOfBirth: formatDate(patient.dateOfBirth),
+      dateOfBirth: getPatientSheetDateOfBirth(patient),
       address: patient.address ?? "",
       patientCode: patient.patientCode ?? "",
       job: patient.occupation ?? "",
     }));
     if (patient.id) {
-      setLocation(`/sheets/lasik/${patient.id}`);
+      const hubPrefix = currentPath.startsWith("/patient-hub/")
+        ? "/patient-hub"
+        : "";
+      setLocation(`${hubPrefix}/sheets/${currentSheetType}/${patient.id}`);
     }
   };
 
@@ -283,7 +306,7 @@ export default function LasikExamSheet() {
       patientName: patient.fullName ?? "",
       phone: patient.phone ?? "",
       age: patient.age != null ? String(patient.age) : "",
-      dateOfBirth: formatDate(patient.dateOfBirth),
+      dateOfBirth: getPatientSheetDateOfBirth(patient),
       address: patient.address ?? "",
       patientCode: patient.patientCode ?? "",
       job: patient.occupation ?? "",
@@ -301,7 +324,8 @@ export default function LasikExamSheet() {
           patientName: prev.patientName || parsed.formData.patientName,
           phone: prev.phone || parsed.formData.phone,
           age: prev.age || parsed.formData.age,
-          dateOfBirth: prev.dateOfBirth || parsed.formData.dateOfBirth,
+          dateOfBirth:
+            prev.dateOfBirth || formatSheetDate(parsed.formData.dateOfBirth),
           address: prev.address || parsed.formData.address,
         }));
       }
@@ -557,7 +581,7 @@ export default function LasikExamSheet() {
       };
       await saveSheetMutation.mutateAsync({
         patientId: initialPatientId,
-        sheetType: "lasik",
+        sheetType: currentSheetType,
         content: JSON.stringify({
           ...existing,
           formData: { ...(existing.formData ?? {}), ...formData },
@@ -624,13 +648,6 @@ export default function LasikExamSheet() {
         className="lasik-sheet bg-white text-[#191c1e] font-sans p-8 print:p-[10mm] print:border-0 print:shadow-none border border-[#c3c6d6] shadow-sm flex flex-col gap-5 w-[210mm] max-w-full mx-auto"
         dir="ltr"
       >
-        {/* Header */}
-        <SheetCenterHeader
-          titleEn="Lasik Exam Sheet"
-          titleAr="شيت فحص الليزك"
-          date={formData.examinationDate || today}
-        />
-
         {/* Patient Info */}
         <section className="print-lasik-patient-grid p-4 bg-[#f3f4f6] rounded-xl border border-[#c3c6d6] flex flex-wrap items-center gap-x-6 gap-y-2 text-sm" dir="rtl">
           <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">الاسم:</span>
@@ -638,7 +655,7 @@ export default function LasikExamSheet() {
           <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">السن:</span>
             <input className="w-12 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.age} onChange={(e) => setFormData((p) => ({ ...p, age: e.target.value }))} /></label>
           <span className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">تاريخ الميلاد:</span>
-            <span className="min-w-[70px] px-1 border-b border-[#c3c6d6] text-right">{formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString("en-GB") : ""}</span></span>
+            <span className="min-w-[70px] px-1 border-b border-[#c3c6d6] text-right">{displaySheetDate(formData.dateOfBirth)}</span></span>
           <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">العنوان:</span>
             <input className="w-36 font-semibold bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} /></label>
           <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-bold text-[#434654]">التليفون:</span>
@@ -668,54 +685,58 @@ export default function LasikExamSheet() {
           <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" className="w-4 h-4 rounded text-[#003d9b]" checked={operationEyes.both} onChange={(e) => { const both = e.target.checked; setOperationEyes({ right: both, left: both, both }); }} /> OU</label>
         </div>
 
-        {/* Medical History — two نعم/لا checklists */}
-        <section className="print-lasik-questions" dir="rtl">
-          <table className="w-full border-collapse border border-[#c3c6d6] rounded-lg overflow-hidden text-sm">
-            <thead className="bg-[#e7e8ea]">
-              <tr>
-                <th className="w-12 p-2 border border-[#c3c6d6]">لا</th>
-                <th className="w-12 p-2 border border-[#c3c6d6]">نعم</th>
-                <th className="p-2 border border-[#c3c6d6] text-right">التاريخ المرضي</th>
-                <th className="w-12 p-2 border border-[#c3c6d6]">لا</th>
-                <th className="w-12 p-2 border border-[#c3c6d6]">نعم</th>
-                <th className="p-2 border border-[#c3c6d6] text-right">التاريخ المرضي</th>
-                <th className="w-12 p-2 border border-[#c3c6d6]">لا</th>
-                <th className="w-12 p-2 border border-[#c3c6d6]">نعم</th>
-                <th className="p-2 border border-[#c3c6d6] text-right">التاريخ المرضي</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                ["كورتيزون/ضغط؟", "الغدة الدرقية؟", "أمراض مناعة؟"],
-                ["علاج لحب الشباب؟", "الأيزوتريتينوين؟", "مضادات حساسية/اكتئاب؟"],
-                ["أمراض عامة؟", "أمراض بالعين؟", "حمل؟"],
-                ["قرنية مخروطية بالعائلة؟", "ماء زرقاء؟", "بديل دموع؟"],
-              ].map((row, rowIndex) => (
-                <tr key={rowIndex}>
-                  {row.map((q, colIndex) => (
-                    q ? (
-                      <React.Fragment key={`${rowIndex}-${colIndex}`}>
-                        <td className="text-center border border-[#c3c6d6]"><input type="checkbox" className="w-4 h-4 rounded text-[#003d9b]" /></td>
-                        <td className="text-center border border-[#c3c6d6]"><input type="checkbox" className="w-4 h-4 rounded text-[#003d9b]" /></td>
-                        <td className="p-1.5 border border-[#c3c6d6] text-right">{q}</td>
-                      </React.Fragment>
-                    ) : (
-                      <React.Fragment key={`${rowIndex}-${colIndex}`}>
-                        <td className="border border-[#c3c6d6] bg-[#f8f9fb]" />
-                        <td className="border border-[#c3c6d6] bg-[#f8f9fb]" />
-                        <td className="border border-[#c3c6d6] bg-[#f8f9fb]" />
-                      </React.Fragment>
-                    )
+        {currentSheetType !== "external" ? (
+          <>
+            {/* Medical History — two نعم/لا checklists */}
+            <section className="print-lasik-questions" dir="rtl">
+              <table className="w-full border-collapse border border-[#c3c6d6] rounded-lg overflow-hidden text-sm">
+                <thead className="bg-[#e7e8ea]">
+                  <tr>
+                    <th className="w-12 p-2 border border-[#c3c6d6]">لا</th>
+                    <th className="w-12 p-2 border border-[#c3c6d6]">نعم</th>
+                    <th className="p-2 border border-[#c3c6d6] text-right">التاريخ المرضي</th>
+                    <th className="w-12 p-2 border border-[#c3c6d6]">لا</th>
+                    <th className="w-12 p-2 border border-[#c3c6d6]">نعم</th>
+                    <th className="p-2 border border-[#c3c6d6] text-right">التاريخ المرضي</th>
+                    <th className="w-12 p-2 border border-[#c3c6d6]">لا</th>
+                    <th className="w-12 p-2 border border-[#c3c6d6]">نعم</th>
+                    <th className="p-2 border border-[#c3c6d6] text-right">التاريخ المرضي</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    ["كورتيزون/ضغط؟", "الغدة الدرقية؟", "أمراض مناعة؟"],
+                    ["علاج لحب الشباب؟", "الأيزوتريتينوين؟", "مضادات حساسية/اكتئاب؟"],
+                    ["أمراض عامة؟", "أمراض بالعين؟", "حمل؟"],
+                    ["قرنية مخروطية بالعائلة؟", "ماء زرقاء؟", "بديل دموع؟"],
+                  ].map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {row.map((q, colIndex) => (
+                        q ? (
+                          <React.Fragment key={`${rowIndex}-${colIndex}`}>
+                            <td className="text-center border border-[#c3c6d6]"><input type="checkbox" className="w-4 h-4 rounded text-[#003d9b]" /></td>
+                            <td className="text-center border border-[#c3c6d6]"><input type="checkbox" className="w-4 h-4 rounded text-[#003d9b]" /></td>
+                            <td className="p-1.5 border border-[#c3c6d6] text-right">{q}</td>
+                          </React.Fragment>
+                        ) : (
+                          <React.Fragment key={`${rowIndex}-${colIndex}`}>
+                            <td className="border border-[#c3c6d6] bg-[#f8f9fb]" />
+                            <td className="border border-[#c3c6d6] bg-[#f8f9fb]" />
+                            <td className="border border-[#c3c6d6] bg-[#f8f9fb]" />
+                          </React.Fragment>
+                        )
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
+                </tbody>
+              </table>
+            </section>
+          </>
+        ) : null}
 
         {/* Visual Acuity + Tear Film */}
-        <section className="print-lasik-visual-grid grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-7">
+        <section className="print-lasik-visual-grid grid grid-cols-1 lg:grid-cols-[minmax(260px,0.82fr)_minmax(0,1.18fr)] gap-4">
+          <div className="min-w-0">
             <table className="w-full text-center border-collapse">
               <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
                 <tr><th className={ctd}>Eye</th><th className={ctd}>UCVA</th><th className={ctd}>BCVA</th><th className={ctd}>IOP</th></tr>
@@ -737,7 +758,7 @@ export default function LasikExamSheet() {
               <label className="flex items-center gap-2"><input type="radio" name="dominant" /> OS</label>
             </div>
           </div>
-          <div className="lg:col-span-5">
+          <div className="min-w-0">
             <table className="w-full border-collapse h-full text-sm">
               <thead className="bg-[#e7e8ea]"><tr><th className={`${ctd} text-xs uppercase`} colSpan={2}>Tear Film Examination</th></tr></thead>
               <tbody>
@@ -779,56 +800,86 @@ export default function LasikExamSheet() {
           </table>
         </section>
 
-        {/* Pentacam RT / LT */}
-        <section className="print-lasik-pentacam-right grid grid-cols-1 lg:grid-cols-[1fr_1.3fr_1.3fr] gap-4">
-          <div className="hidden lg:block print:block" /> {/* Empty space on the left */}
-          {(["od", "os"] as const).map((eye) => {
-            const isOD = eye === "od";
-            const thin = isOD ? odThinnestNum : osThinnestNum;
-            return (
-              <div key={eye} className={`${isOD ? "od-bg border-[#003d9b]/20" : "os-bg border-[#c3c6d6]"} print-lasik-eye-card p-2 rounded-xl border`}>
-                <div className="flex justify-between items-center mb-2">
-                  <span className={`text-[11px] font-bold uppercase px-2 py-1 bg-white rounded shadow-sm ${isOD ? "text-[#003d9b]" : "text-[#526069]"}`}>{isOD ? "Right Eye (RT)" : "Left Eye (LT)"}</span>
+        {currentSheetType === "consultant" ? (
+          <section className="print-consultant-diagrams grid grid-cols-1 lg:grid-cols-2 gap-8 border border-[#c3c6d6] rounded-xl p-8 bg-white flex-1 min-h-[85mm]" data-purpose="clinical-diagrams">
+            <div className="flex flex-col items-center justify-center">
+              <span className="text-xs uppercase px-3 py-1 bg-[#003d9b]/5 rounded shadow-sm text-[#003d9b] mb-4">Right Eye (OD)</span>
+              <div className="w-56 h-56 rounded-full border-4 border-[#003d9b]/30 flex items-center justify-center relative bg-white">
+                <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                  <div className="w-full border-t border-slate-900" />
+                  <div className="h-full border-l border-slate-900 absolute top-0" />
                 </div>
-                <table className="w-full border-collapse text-sm bg-white rounded-lg overflow-hidden">
-                  <tbody>
-                    <tr><td className={`${ctd} bg-[#f3f4f6] w-1/3 text-right text-[11px]`}>K1 (Flat)</td><td className={ctd}><input className={inp} value={examData.pentacam[eye].k1} onChange={mkPentaPatch(eye, "k1")} /></td>
-                      <td className={`${ctd} bg-[#f3f4f6] text-center w-8 text-[11px]`} rowSpan={2}>AX</td><td className={ctd} rowSpan={2}><input className={inp} value={examData.pentacam[eye].ax1} onChange={mkPentaPatch(eye, "ax1")} /></td></tr>
-                    <tr><td className={`${ctd} bg-[#f3f4f6] text-right text-[11px]`}>K2 (Steep)</td><td className={ctd}><input className={inp} value={examData.pentacam[eye].k2} onChange={mkPentaPatch(eye, "k2")} /></td></tr>
-                    <tr><td className={`${ctd} bg-[#f3f4f6] text-right text-[11px]`}>Thinnest</td><td className={ctd} colSpan={3}><input className={`${inp} ${thin < 480 ? "text-red-600" : ""}`} value={examData.pentacam[eye].thinnest} onChange={mkPentaPatch(eye, "thinnest")} /></td></tr>
-                    <tr><td className={`${ctd} bg-[#f3f4f6] text-right text-[11px]`}>Apex</td><td className={ctd} colSpan={3}><input className={inp} value={examData.pentacam[eye].apex} onChange={mkPentaPatch(eye, "apex")} /></td></tr>
-                    <tr><td className={`${ctd} bg-[#f3f4f6] text-[#003d9b] text-right text-[11px]`}>Residual</td><td className={`${ctd} bg-[#003d9b]/5`} colSpan={3}><input className={`${inp} text-[#003d9b]`} value={examData.pentacam[eye].residual} onChange={mkPentaPatch(eye, "residual")} /></td></tr>
-                    <tr><td className={`${ctd} bg-[#f3f4f6] text-right text-[11px]`}>Planned TTT</td><td className={ctd} colSpan={3}><input className={inp} value={examData.pentacam[eye].ttt} onChange={mkPentaPatch(eye, "ttt")} /></td></tr>
-                    <tr><td className={`${ctd} bg-[#f3f4f6] text-[#ba1a1a] text-right text-[11px]`}>Ablation</td><td className={ctd} colSpan={3}><input className={`${inp} text-[#ba1a1a]`} value={examData.pentacam[eye].ablation} onChange={mkPentaPatch(eye, "ablation")} /></td></tr>
-                  </tbody>
-                </table>
+                <span className="text-[#003d9b]/40 text-xl select-none">OD</span>
               </div>
-            );
-          })}
-        </section>
+              <p className="mt-4 text-[#003d9b]">العين اليمنى (OD)</p>
+            </div>
+            <div className="flex flex-col items-center justify-center">
+              <span className="text-xs uppercase px-3 py-1 bg-[#f3f4f6] rounded shadow-sm text-[#526069] mb-4">Left Eye (OS)</span>
+              <div className="w-56 h-56 rounded-full border-4 border-slate-300 flex items-center justify-center relative bg-white">
+                <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                  <div className="w-full border-t border-slate-900" />
+                  <div className="h-full border-l border-slate-900 absolute top-0" />
+                </div>
+                <span className="text-slate-300 text-xl select-none">OS</span>
+              </div>
+              <p className="mt-4 text-[#526069]">العين اليسرى (OS)</p>
+            </div>
+          </section>
+        ) : (
+          <section className="print-lasik-pentacam-right grid grid-cols-1 lg:grid-cols-[1fr_1.3fr_1.3fr] gap-4">
+            <div className="hidden lg:block print:block" /> {/* Empty space on the left */}
+            {(["od", "os"] as const).map((eye) => {
+              const isOD = eye === "od";
+              const thin = isOD ? odThinnestNum : osThinnestNum;
+              return (
+                <div key={eye} className={`${isOD ? "od-bg border-[#003d9b]/20" : "os-bg border-[#c3c6d6]"} print-lasik-eye-card p-2 rounded-xl border`}>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className={`text-[11px] font-bold uppercase px-2 py-1 bg-white rounded shadow-sm ${isOD ? "text-[#003d9b]" : "text-[#526069]"}`}>{isOD ? "Right Eye (RT)" : "Left Eye (LT)"}</span>
+                  </div>
+                  <table className="w-full border-collapse text-sm bg-white rounded-lg overflow-hidden">
+                    <tbody>
+                      <tr><td className={`${ctd} bg-[#f3f4f6] w-1/3 text-right text-[11px]`}>K1 (Flat)</td><td className={ctd}><input className={inp} value={examData.pentacam[eye].k1} onChange={mkPentaPatch(eye, "k1")} /></td>
+                        <td className={`${ctd} bg-[#f3f4f6] text-center w-8 text-[11px]`} rowSpan={2}>AX</td><td className={ctd} rowSpan={2}><input className={inp} value={examData.pentacam[eye].ax1} onChange={mkPentaPatch(eye, "ax1")} /></td></tr>
+                      <tr><td className={`${ctd} bg-[#f3f4f6] text-right text-[11px]`}>K2 (Steep)</td><td className={ctd}><input className={inp} value={examData.pentacam[eye].k2} onChange={mkPentaPatch(eye, "k2")} /></td></tr>
+                      <tr><td className={`${ctd} bg-[#f3f4f6] text-right text-[11px]`}>Thinnest</td><td className={ctd} colSpan={3}><input className={`${inp} ${thin < 480 ? "text-red-600" : ""}`} value={examData.pentacam[eye].thinnest} onChange={mkPentaPatch(eye, "thinnest")} /></td></tr>
+                      <tr><td className={`${ctd} bg-[#f3f4f6] text-right text-[11px]`}>Apex</td><td className={ctd} colSpan={3}><input className={inp} value={examData.pentacam[eye].apex} onChange={mkPentaPatch(eye, "apex")} /></td></tr>
+                      <tr><td className={`${ctd} bg-[#f3f4f6] text-[#003d9b] text-right text-[11px]`}>Residual</td><td className={`${ctd} bg-[#003d9b]/5`} colSpan={3}><input className={`${inp} text-[#003d9b]`} value={examData.pentacam[eye].residual} onChange={mkPentaPatch(eye, "residual")} /></td></tr>
+                      <tr><td className={`${ctd} bg-[#f3f4f6] text-right text-[11px]`}>Planned TTT</td><td className={ctd} colSpan={3}><input className={inp} value={examData.pentacam[eye].ttt} onChange={mkPentaPatch(eye, "ttt")} /></td></tr>
+                      <tr><td className={`${ctd} bg-[#f3f4f6] text-[#ba1a1a] text-right text-[11px]`}>Ablation</td><td className={ctd} colSpan={3}><input className={`${inp} text-[#ba1a1a]`} value={examData.pentacam[eye].ablation} onChange={mkPentaPatch(eye, "ablation")} /></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })}
+          </section>
+        )}
 
-        {/* Treatment plan */}
-        <section>
-          <table className="w-full text-center border-collapse text-sm">
-            <thead className="bg-[#e7e8ea] text-xs uppercase font-bold text-[#434654]">
-              <tr><th className={ctd}>Target Refraction</th><th className={ctd}>OD/OS</th><th className={ctd}>Before Flap</th><th className={ctd}>After Flap</th><th className={ctd}>After Treatment</th><th className={ctd}>Flap Reposition</th><th className={ctd}>Ciclo 3x</th><th className={ctd}>Note</th></tr>
-            </thead>
-            <tbody>
-              {(["OD", "OS"] as const).map((label) => (
-                <tr key={label}>
-                  <td className={ctd}><input className={inp} /></td>
-                  <td className={`${ctd} ${label === "OD" ? "text-[#003d9b] bg-[#003d9b]/5" : "text-[#526069] bg-[#f3f4f6]"}`}>{label}</td>
-                  <td className={ctd}><input className={inp} /></td>
-                  <td className={ctd}><input className={inp} /></td>
-                  <td className={ctd}><input className={inp} /></td>
-                  <td className={ctd}><input className={inp} /></td>
-                  <td className={ctd}><input className={inp} /></td>
-                  <td className={ctd}><input className={inp} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
+        {currentSheetType !== "consultant" ? (
+          <>
+            {/* Treatment plan */}
+            <section>
+              <table className="w-full text-center border-collapse text-sm">
+                <thead className="bg-[#e7e8ea] text-xs uppercase font-bold text-[#434654]">
+                  <tr><th className={ctd}>Target Refraction</th><th className={ctd}>OD/OS</th><th className={ctd}>Before Flap</th><th className={ctd}>After Flap</th><th className={ctd}>After Treatment</th><th className={ctd}>Flap Reposition</th><th className={ctd}>Ciclo 3x</th><th className={ctd}>Note</th></tr>
+                </thead>
+                <tbody>
+                  {(["OD", "OS"] as const).map((label) => (
+                    <tr key={label}>
+                      <td className={ctd}><input className={inp} /></td>
+                      <td className={`${ctd} ${label === "OD" ? "text-[#003d9b] bg-[#003d9b]/5" : "text-[#526069] bg-[#f3f4f6]"}`}>{label}</td>
+                      <td className={ctd}><input className={inp} /></td>
+                      <td className={ctd}><input className={inp} /></td>
+                      <td className={ctd}><input className={inp} /></td>
+                      <td className={ctd}><input className={inp} /></td>
+                      <td className={ctd}><input className={inp} /></td>
+                      <td className={ctd}><input className={inp} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+          </>
+        ) : null}
 
         {/* Notes + signatures */}
         <footer className="pt-6 border-t-2 border-[#003d9b] space-y-6">
@@ -973,6 +1024,20 @@ export default function LasikExamSheet() {
           .lasik-sheet .h-6 { height: 16px !important; }
           .print-lasik-patient-grid { display: flex !important; flex-wrap: wrap !important; column-gap: 6mm !important; row-gap: 1.5mm !important; }
           .print-lasik-pentacam-right { display: grid !important; grid-template-columns: 1fr 1.3fr 1.3fr !important; }
+          .print-consultant-diagrams {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            flex: 1 1 auto !important;
+            min-height: 85mm !important;
+            padding: 6mm !important;
+          }
+          .print-consultant-diagrams .w-56 {
+            width: 42mm !important;
+            height: 42mm !important;
+          }
+          .print-consultant-diagrams p {
+            margin-top: 2mm !important;
+          }
           .print-lasik-questions {
             display: block !important;
           }
@@ -991,7 +1056,7 @@ export default function LasikExamSheet() {
             width: 12px !important;
             height: 12px !important;
           }
-          .print-lasik-visual-grid { display: grid !important; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr) !important; }
+          .print-lasik-visual-grid { display: grid !important; grid-template-columns: minmax(260px, 0.82fr) minmax(0, 1.18fr) !important; }
           .print-lasik-footer-grid { display: grid !important; grid-template-columns: minmax(0, 8fr) minmax(0, 4fr) !important; }
           .print-lasik-signatures { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
         }

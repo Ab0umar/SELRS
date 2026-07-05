@@ -218,29 +218,14 @@ export default function PayrollReport() {
     const rateBig = Number(staff.ratePerShift ?? 0);
     const rateSmall = Number(staff.rateSmallShift ?? 0) || rateBig;
 
-    // ALWAYS classify big/small from byShift by name (Night=small, else=big).
-    // byShift is keyed by shiftName in every backend version, so this is
-    // independent of which server build is deployed.
-    let bigScheduled = 0,
-      bigAttended = 0,
-      bigTotal = 0;
-    let smallScheduled = 0,
-      smallAttended = 0,
-      smallTotal = 0;
-    for (const [sn, b] of Object.entries(liveRow?.byShift ?? {}) as any[]) {
-      const cnt = Number((b as any).scheduled ?? 0);
-      const att = Number((b as any).attended ?? 0);
-      const rate = Number((b as any).rate ?? 0);
-      if (sn === "Night") {
-        smallScheduled += cnt;
-        smallAttended += att;
-        smallTotal += cnt * (rate || rateSmall);
-      } else {
-        bigScheduled += cnt;
-        bigAttended += att;
-        bigTotal += cnt * (rate || rateBig);
-      }
-    }
+    // Trust the backend's big/small breakdown directly — it derives shift size
+    // from each shift's actual definition (attendanceShifts.shiftSize / duration).
+    const bigScheduled = Number(liveRow?.bigScheduled ?? 0);
+    const bigAttended = Number(liveRow?.bigAttended ?? 0);
+    const bigTotal = Number(liveRow?.bigTotal ?? bigScheduled * rateBig);
+    const smallScheduled = Number(liveRow?.smallScheduled ?? 0);
+    const smallAttended = Number(liveRow?.smallAttended ?? 0);
+    const smallTotal = Number(liveRow?.smallTotal ?? smallScheduled * rateSmall);
     const bigAbsent = Math.max(0, bigScheduled - bigAttended);
     const smallAbsent = Math.max(0, smallScheduled - smallAttended);
 

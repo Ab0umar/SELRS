@@ -27,6 +27,7 @@ export interface DeviceSettings {
   fkProtocol?: number; // 0 or 1 — --protocol flag for FKOldLogPuller.exe
   commPassword?: number; // Comm Key / Net Pwd on the device
   admsEnabled?: boolean; // accept ADMS push for this device
+  admsDetectedOffsetHours?: number | null; // auto-detected ADMS clock drift (K40 only)
 }
 
 // In-memory caches keyed by device id
@@ -120,6 +121,7 @@ export class DeviceSettingsService {
           fkProtocol: (dbK40 as any).fkProtocol ?? 0,
           commPassword: (dbK40 as any).commPassword ?? 0,
           admsEnabled: (dbK40 as any).admsEnabled ?? true,
+          admsDetectedOffsetHours: (dbK40 as any).admsDetectedOffsetHours ?? null,
         };
       } else {
         // Migrate from old single-row: copy zk40_* columns from id=1 into id=2
@@ -165,6 +167,12 @@ export class DeviceSettingsService {
     return { ...k40Settings };
   }
 
+  /** Persist the auto-detected ADMS clock offset for K40 (id=2) so it survives restarts. */
+  static async setK40AdmsDetectedOffset(hours: number): Promise<void> {
+    k40Settings = { ...k40Settings, admsDetectedOffsetHours: hours };
+    await this.persistRow(2, k40Settings);
+  }
+
   static async updateSettings(
     updates: Partial<DeviceSettings> & { deviceId?: number },
   ): Promise<DeviceSettings> {
@@ -202,6 +210,7 @@ export class DeviceSettingsService {
         fkProtocol: s.fkProtocol ?? 0,
         commPassword: s.commPassword ?? 0,
         admsEnabled: s.admsEnabled ?? true,
+        admsDetectedOffsetHours: s.admsDetectedOffsetHours ?? null,
       };
       await db
         .insert(attendanceDeviceSettings)

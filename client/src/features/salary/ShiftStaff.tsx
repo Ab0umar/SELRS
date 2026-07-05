@@ -57,6 +57,8 @@ function CycleEditor({
   onSaved: () => void;
 }) {
   const staffCycles = cycles.filter((c: any) => c.staffId === staffId);
+  const shiftDefsQ = (trpc as any).attendance.listShifts.useQuery();
+  const shiftDefs: { name: string }[] = shiftDefsQ.data ?? [];
 
   const [dayShifts, setDayShifts] = useState<Map<number, Set<string>>>(() =>
     buildDayShifts(staffCycles),
@@ -76,7 +78,7 @@ function CycleEditor({
     onError: (e: any) => toast.error(e.message),
   });
 
-  function toggleShift(dow: number, shiftName: "Morning" | "Night") {
+  function toggleShift(dow: number, shiftName: string) {
     setDayShifts((prev) => {
       const next = new Map(prev);
       const shifts = new Set(next.get(dow) ?? []);
@@ -87,7 +89,7 @@ function CycleEditor({
     });
   }
 
-  function applyPreset(dows: number[], shiftName: "Morning" | "Night") {
+  function applyPreset(dows: number[], shiftName: string) {
     setDayShifts((prev) => {
       const next = new Map(prev);
       for (const dow of dows) {
@@ -120,34 +122,24 @@ function CycleEditor({
             توزيع الورديات
           </p>
           <div className="flex gap-1 flex-wrap justify-end">
-            <button
-              type="button"
-              onClick={() => applyPreset(PRESET_SAT_WED, "Morning")}
-              className="rounded px-1.5 py-0.5 text-[10px] font-medium border border-secondary/20 bg-secondary/10 text-secondary hover:bg-secondary/15 transition-colors"
-            >
-              س→ر ☀
-            </button>
-            <button
-              type="button"
-              onClick={() => applyPreset(PRESET_SUN_THU, "Morning")}
-              className="rounded px-1.5 py-0.5 text-[10px] font-medium border border-secondary/20 bg-secondary/10 text-secondary hover:bg-secondary/15 transition-colors"
-            >
-              ح→خ ☀
-            </button>
-            <button
-              type="button"
-              onClick={() => applyPreset(PRESET_SAT_WED, "Night")}
-              className="rounded px-1.5 py-0.5 text-[10px] font-medium border border-primary/20 bg-primary/10 text-primary hover:bg-primary/15 transition-colors"
-            >
-              س→ر 🌙
-            </button>
-            <button
-              type="button"
-              onClick={() => applyPreset(PRESET_SUN_THU, "Night")}
-              className="rounded px-1.5 py-0.5 text-[10px] font-medium border border-primary/20 bg-primary/10 text-primary hover:bg-primary/15 transition-colors"
-            >
-              ح→خ 🌙
-            </button>
+            {shiftDefs.map((sd) => (
+              <div key={sd.name} className="flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => applyPreset(PRESET_SAT_WED, sd.name)}
+                  className="rounded px-1.5 py-0.5 text-[10px] font-medium border border-primary/20 bg-primary/10 text-primary hover:bg-primary/15 transition-colors"
+                >
+                  س→ر {sd.name}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyPreset(PRESET_SUN_THU, sd.name)}
+                  className="rounded px-1.5 py-0.5 text-[10px] font-medium border border-primary/20 bg-primary/10 text-primary hover:bg-primary/15 transition-colors"
+                >
+                  ح→خ {sd.name}
+                </button>
+              </div>
+            ))}
             <button
               type="button"
               onClick={() => setDayShifts(new Map())}
@@ -162,15 +154,14 @@ function CycleEditor({
           {DAYS_AR.map((name, dow) => {
             const isFri = dow === 5;
             const shifts = dayShifts.get(dow) ?? new Set<string>();
-            const hasMorning = shifts.has("Morning");
-            const hasNight = shifts.has("Night");
+            const hasAny = shifts.size > 0;
             return (
               <div
                 key={dow}
                 className={`flex flex-col items-center rounded-lg border px-2 py-1.5 gap-1 min-w-[44px] ${
                   isFri
                     ? "border-dashed border-border/40 bg-muted/20 opacity-40"
-                    : hasMorning || hasNight
+                    : hasAny
                       ? "border-primary/30 bg-primary/5"
                       : "border-border bg-background"
                 }`}
@@ -180,31 +171,25 @@ function CycleEditor({
                   {name}
                 </span>
                 {!isFri && (
-                  <div className="flex gap-0.5">
-                    <button
-                      type="button"
-                      onClick={() => toggleShift(dow, "Morning")}
-                      title="صباحي"
-                      className={`rounded px-1 py-0.5 text-[11px] leading-none transition-colors ${
-                        hasMorning
-                          ? "bg-secondary/20 text-secondary ring-1 ring-secondary/40"
-                          : "bg-muted/40 text-muted-foreground hover:bg-secondary/10 hover:text-secondary"
-                      }`}
-                    >
-                      ☀
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleShift(dow, "Night")}
-                      title="مسائي"
-                      className={`rounded px-1 py-0.5 text-[11px] leading-none transition-colors ${
-                        hasNight
-                          ? "bg-primary/20 text-primary ring-1 ring-primary/40"
-                          : "bg-muted/40 text-muted-foreground hover:bg-primary/10 hover:text-primary"
-                      }`}
-                    >
-                      🌙
-                    </button>
+                  <div className="flex flex-col gap-0.5">
+                    {shiftDefs.map((sd) => {
+                      const active = shifts.has(sd.name);
+                      return (
+                        <button
+                          key={sd.name}
+                          type="button"
+                          onClick={() => toggleShift(dow, sd.name)}
+                          title={sd.name}
+                          className={`rounded px-1 py-0.5 text-[9px] leading-none transition-colors ${
+                            active
+                              ? "bg-primary/20 text-primary ring-1 ring-primary/40"
+                              : "bg-muted/40 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                          }`}
+                        >
+                          {sd.name}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>

@@ -2,11 +2,15 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   CalendarPlus2,
+  Clock3,
   Eye,
   Loader2,
+  MessageCircle,
   Microscope,
+  Phone,
   Scan,
   ShieldCheck,
+  Smartphone,
   UserCheck,
   UserPlus,
   Zap,
@@ -24,6 +28,13 @@ const SERVICES = [
   { icon: Eye, ar: "المياه البيضاء" },
   { icon: Scan, ar: "أشعة القرنية" },
   { icon: Microscope, ar: "زراعة العدسات" },
+] as const;
+
+const CONTACT_INFO = [
+  { icon: Phone, label: "تليفون", value: "يضاف لاحقا" },
+  { icon: Smartphone, label: "موبايل", value: "يضاف لاحقا" },
+  { icon: MessageCircle, label: "واتساب", value: "يضاف لاحقا" },
+  { icon: Clock3, label: "مواعيد العمل", value: "يضاف لاحقا" },
 ] as const;
 
 export default function PatientLogin() {
@@ -296,6 +307,27 @@ export default function PatientLogin() {
               </p>
             </div>
           )}
+
+          <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-[#e6edf5] bg-slate-50 p-2.5 sm:mt-5 sm:p-3">
+            {CONTACT_INFO.map(({ icon: Icon, label, value }) => (
+              <div
+                key={label}
+                className="flex min-h-10 items-center gap-2 rounded-lg bg-white px-2.5 py-2"
+              >
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#1f3f82]/10 text-[#1f3f82]">
+                  <Icon className="size-3.5" />
+                </span>
+                <span className="min-w-0 leading-tight">
+                  <span className="block text-[10px] font-bold text-slate-400">
+                    {label}
+                  </span>
+                  <span className="block truncate text-[11px] font-bold text-[#0f2050]">
+                    {value}
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
 
         <footer className="mt-4 pt-4 sm:mt-8 sm:pt-6 border-t border-[#e6edf5] flex flex-row items-center justify-between text-[11px] sm:text-xs text-slate-400 w-full">

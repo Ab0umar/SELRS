@@ -90,6 +90,8 @@ function sha1(s: string): string {
 interface ParsedPunch {
   empCd: string;
   punchAt: Date;
+  /** Raw device-reported timestamp, before offset correction — stable across offset changes. */
+  rawPunchAt: Date;
   direction: "in" | "out" | "unknown";
   verifyMode: number;
 }
@@ -97,38 +99,62 @@ interface ParsedPunch {
 // ---------------------------------------------------------------------------
 // Device clock handling
 //
-// Measured fact: the device's internal timezone is UTC+DEVICE_TZ (default +9),
-// while the server runs at the correct local offset (e.g. Cairo = UTC+3). So the
-// device clock runs (DEVICE_TZ − serverOffset) hours ahead of real local time
-// (e.g. 9 − 3 = 6h). The device also re-syncs its RTC from our HTTP responses,
-// so the push can overwrite the device clock.
+// The device's internal timezone is a hidden firmware setting we don't control.
+// It NTP-syncs whenever ADMS is connected, then applies that internal TZ, so its
+// clock runs some number of hours ahead of correct local time — the exact delta
+// has changed over time (measured 6h, later 3h) as the firmware's internal TZ
+// setting has changed, so we never hardcode it.
 //
 // We defend on TWO independent layers so attendance data is always correct,
 // regardless of whether the device clock is right at any moment:
 //   1) parseAttlogBody subtracts the device-ahead offset from every punch on
 //      ingestion (auto-detected from fresh real-time punches, override via
-//      ZK_ADMS_PUNCH_OFFSET_HOURS). This is the authoritative data fix.
-//   2) the HTTP Date header is sent pre-compensated so that IF the device syncs
-//      from it, it lands on correct local time instead of UTC+DEVICE_TZ.
+//      ZK_ADMS_PUNCH_OFFSET_HOURS). This is the authoritative data fix. The
+//      detected value is persisted (K40 device settings row) so it survives
+//      restarts instead of resetting to an unverified guess.
+//   2) the ADMS handshake sends TimeZone=<serverOffsetHours> so that IF the
+//      device honors it on NTP sync, its clock lands on correct local time
+//      instead of its own hidden internal TZ.
 //
-// DEVICE_TZ is configurable via ZK_ADMS_DEVICE_TZ_OFFSET. serverOffset is read
-// live from the OS each time, so everything is DST-safe.
+// serverOffsetHours() is read live from the OS each time, so both layers are
+// DST-safe.
 // ---------------------------------------------------------------------------
-function deviceTzOffsetHours(): number {
-  return parseFloat(process.env.ZK_ADMS_DEVICE_TZ_OFFSET ?? "9");
-}
 function serverOffsetHours(): number {
   return -new Date().getTimezoneOffset() / 60;
 }
 
+// In-memory cache of the auto-detected offset; hydrated from persisted device
+// settings on first use so it survives server restarts.
 let detectedOffsetHours: number | null = null;
+let detectedOffsetHydrated = false;
+
+async function hydrateDetectedOffset(): Promise<void> {
+  if (detectedOffsetHydrated) return;
+  detectedOffsetHydrated = true;
+  try {
+    const { DeviceSettingsService } = await import("../services/attendance/deviceSettings.service");
+    const persisted = DeviceSettingsService.getK40Settings().admsDetectedOffsetHours;
+    if (typeof persisted === "number" && Number.isFinite(persisted)) {
+      detectedOffsetHours = persisted;
+      console.log(`[ADMS] Hydrated persisted clock offset = ${persisted}h`);
+    }
+  } catch {
+    // settings unavailable — stay with default
+  }
+}
+
+function parseFiniteFloat(raw: string | undefined, fallback: number): number {
+  if (raw === undefined || raw === "") return fallback;
+  const n = parseFloat(raw);
+  return Number.isFinite(n) ? n : fallback;
+}
 
 /** Hours the device clock runs AHEAD of correct local time (subtract on store). */
 function effectiveOffsetHours(): number {
-  const manual = process.env.ZK_ADMS_PUNCH_OFFSET_HOURS;
-  if (manual !== undefined && manual !== "") return parseFloat(manual);
+  const manual = parseFiniteFloat(process.env.ZK_ADMS_PUNCH_OFFSET_HOURS, NaN);
+  if (Number.isFinite(manual)) return manual;
   if (detectedOffsetHours !== null) return detectedOffsetHours;
-  return deviceTzOffsetHours() - serverOffsetHours(); // e.g. 9 - 3 = 6
+  return 0; // unknown until a fresh punch lets us auto-detect — safer than guessing
 }
 
 /** From a fresh real-time push, snap (deviceTime − now) to nearest hour. */
@@ -138,16 +164,23 @@ function maybeDetectOffset(punches: ParsedPunch[]): void {
   const newest = punches.reduce((mx, p) => (p.punchAt > mx ? p.punchAt : mx), punches[0].punchAt);
   const diffH = (newest.getTime() - Date.now()) / 3_600_000;
   const rounded = Math.round(diffH);
-  // Only trust it if the remainder is near-zero (a clean whole-hour offset) and sane
-  if (Math.abs(diffH - rounded) < 0.25 && Math.abs(rounded) <= 14) {
+  // Device only ever runs AHEAD (never behind), and only by a sane amount.
+  // Rejects stale/delayed uploads of old punches, which would produce a
+  // negative or wildly large diff and poison the offset for all later punches.
+  if (rounded < 0 || rounded > 12) return;
+  if (Math.abs(diffH - rounded) < 0.25) {
     if (detectedOffsetHours !== rounded) {
       detectedOffsetHours = rounded;
       console.log(`[ADMS] Detected device clock offset = ${rounded}h ahead — subtracting from punch times`);
+      import("../services/attendance/deviceSettings.service")
+        .then(({ DeviceSettingsService }) => DeviceSettingsService.setK40AdmsDetectedOffset(rounded))
+        .catch(() => {});
     }
   }
 }
 
-function parseAttlogBody(body: string, deviceId: string): ParsedPunch[] {
+async function parseAttlogBody(body: string, deviceId: string): Promise<ParsedPunch[]> {
+  await hydrateDetectedOffset();
   const punches: ParsedPunch[] = [];
   for (const raw of body.split("\n")) {
     const line = raw.trim();
@@ -159,13 +192,14 @@ function parseAttlogBody(body: string, deviceId: string): ParsedPunch[] {
     // Parse as local time — device sends local time with no timezone suffix.
     // Use component constructor (new Date(y,m,d,h,min,s)) which is always local.
     const tsParts = ts.trim().split(/[\s:-]/);
-    const punchAt = new Date(+tsParts[0], +tsParts[1] - 1, +tsParts[2], +tsParts[3], +tsParts[4], +tsParts[5]);
-    if (isNaN(punchAt.getTime())) continue;
+    const rawPunchAt = new Date(+tsParts[0], +tsParts[1] - 1, +tsParts[2], +tsParts[3], +tsParts[4], +tsParts[5]);
+    if (isNaN(rawPunchAt.getTime())) continue;
     const empCd = (userId ?? "").trim();
     if (!empCd) continue;
     punches.push({
       empCd,
-      punchAt,
+      punchAt: rawPunchAt,
+      rawPunchAt,
       direction: statusToDirection(parseInt(statusStr ?? "0", 10)),
       verifyMode: parseInt(verifyStr ?? "0", 10),
     });
@@ -184,10 +218,12 @@ export function registerZKTecoAdms(app: Express): void {
   app.use("/iclock", express.text({ type: "*/*", limit: "2mb" }));
   // NOTE: We deliberately do NOT manipulate the HTTP Date header. Testing showed
   // the device ignores it — when online via ADMS it NTP-syncs itself and applies
-  // its hidden internal UTC+9 timezone, landing the clock +6h ahead of Cairo. The
-  // device clock cannot be fixed from here (remote device, no exposed TZ setting).
-  // Attendance data is kept correct by the ingestion offset correction in
-  // parseAttlogBody(); the device's displayed clock is cosmetic only.
+  // its hidden internal timezone, landing the clock hours ahead of Cairo (measured
+  // 6h, later 3h — the delta has changed as firmware TZ settings drifted). We do
+  // send TimeZone=<hours> in the handshake options in case the firmware honors it
+  // on NTP sync (untested — some ZKTeco push firmwares support it, others ignore
+  // it). Either way, attendance data is kept correct by the ingestion offset
+  // correction in parseAttlogBody(); the device's displayed clock is cosmetic.
 
   // GET /iclock/cdata — device handshake / options request
   app.get("/iclock/cdata", (req: Request, res: Response) => {
@@ -214,6 +250,7 @@ export function registerZKTecoAdms(app: Express): void {
       `TransTimes=00:00;23:59\r\n` +
       `TransInterval=1\r\n` +
       `TransFlag=TransData AttLog OpLog\r\n` +
+      `TimeZone=${serverOffsetHours()}\r\n` +
       `Realtime=1\r\n` +
       `Encrypt=None\r\n`,
     );
@@ -237,7 +274,7 @@ export function registerZKTecoAdms(app: Express): void {
       res.send("OK: 0");
       return;
     }
-    const punches = parseAttlogBody(body, sn);
+    const punches = await parseAttlogBody(body, sn);
 
     if (punches.length === 0) {
       console.log(`[ADMS] SN=${sn} no punches parsed — raw: ${body.slice(0, 300)}`);
@@ -257,9 +294,13 @@ export function registerZKTecoAdms(app: Express): void {
         direction: p.direction,
         deviceId: sn,
         source: "tcp" as const,
-        sourceRowId: `${sn}_${p.empCd}_${p.punchAt.getTime()}`,
+        // Keyed off the raw (uncorrected) device timestamp so dedup stays stable
+        // across auto-detected offset changes — the corrected punchAt shifts
+        // when the device's clock drift changes, which would otherwise make the
+        // same physical punch look like a new row.
+        sourceRowId: `${sn}_${p.empCd}_${p.rawPunchAt.getTime()}`,
         sourceHash: sha1(
-          `${sn}|${p.empCd}|${p.punchAt.toISOString()}|${p.direction}`,
+          `${sn}|${p.empCd}|${p.rawPunchAt.toISOString()}|${p.direction}`,
         ),
         importedAt: now,
       }));

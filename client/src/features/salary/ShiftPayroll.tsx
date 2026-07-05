@@ -2,8 +2,78 @@
 import { canUseNativeAndroidPrint, requestNativeAndroidPrint } from "@/lib/nativePrint";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Printer, ChevronDown, ChevronUp } from "lucide-react";
+import { RefreshCw, Printer, ChevronDown, ChevronUp, Pencil, RotateCcw } from "lucide-react";
 import { DateInput } from "@/components/ui/date-input";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+
+function AttendedEditableCell({
+  value,
+  hasOverride,
+  onSave,
+}: {
+  value: number;
+  hasOverride: boolean;
+  onSave: (v: number | null) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(String(value));
+
+  if (editing) {
+    return (
+      <input
+        type="number"
+        min={0}
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          setEditing(false);
+          const n = Number(draft);
+          if (Number.isFinite(n) && n >= 0) onSave(n);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+          if (e.key === "Escape") {
+            setDraft(String(value));
+            setEditing(false);
+          }
+        }}
+        className="w-16 rounded border border-border bg-background px-1.5 py-0.5 text-right tabular-nums"
+      />
+    );
+  }
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 cursor-pointer group",
+        hasOverride && "underline decoration-dotted",
+      )}
+      onClick={() => {
+        setDraft(String(value));
+        setEditing(true);
+      }}
+      title="اضغط للتعديل"
+    >
+      {value}
+      <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-60" />
+      {hasOverride && (
+        <button
+          type="button"
+          title="إرجاع للحساب التلقائي"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSave(null);
+          }}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <RotateCcw className="h-3 w-3" />
+        </button>
+      )}
+    </span>
+  );
+}
 
 const now = new Date();
 const MONTHS = [
@@ -129,27 +199,20 @@ export default function ShiftPayroll() {
   });
   const rawRows: any[] = payrollQ.data ?? [];
 
-  // ALWAYS derive big/small counts from byShift by name (Night=small, else=big),
-  // independent of which backend build is deployed.
-  const rows = rawRows.map((r: any) => {
-    let bigScheduled = 0, bigAttended = 0;
-    let smallScheduled = 0, smallAttended = 0;
-    for (const [sn, b] of Object.entries(r.byShift ?? {}) as any[]) {
-      const cnt = Number((b as any).scheduled ?? 0);
-      const att = Number((b as any).attended ?? 0);
-      if (sn === "Night") { smallScheduled += cnt; smallAttended += att; }
-      else                { bigScheduled   += cnt; bigAttended   += att; }
-    }
-    return {
-      ...r,
-      bigScheduled,
-      bigAttended,
-      bigAbsent:    Math.max(0, bigScheduled - bigAttended),
-      smallScheduled,
-      smallAttended,
-      smallAbsent:  Math.max(0, smallScheduled - smallAttended),
-    };
+  const setOverrideMut = (trpc as any).salary.setShiftAttendanceOverride.useMutation({
+    onSuccess: () => {
+      toast.success("تم الحفظ");
+      payrollQ.refetch();
+    },
+    onError: (e: any) => {
+      toast.error(e?.message || "تعذر الحفظ");
+    },
   });
+
+  // Trust the backend's big/small breakdown directly — it derives shift size
+  // from each shift's actual definition (attendanceShifts.shiftSize / duration),
+  // not from the shift's name.
+  const rows = rawRows;
 
   const doctors = rows.filter((r: any) => r.type === "doctor");
   const techs = rows.filter((r: any) => r.type === "tech");
@@ -371,10 +434,38 @@ export default function ShiftPayroll() {
                     {r.smallScheduled ?? 0}
                   </td>
                   <td className="px-3 py-3 text-right tabular-nums text-success font-medium">
-                    {r.bigAttended ?? 0}
+                    <AttendedEditableCell
+                      value={r.bigAttended ?? 0}
+                      hasOverride={r.hasBigAttendanceOverride}
+                      onSave={(v) =>
+                        setOverrideMut.mutate({
+                          staffId: r.id,
+                          year,
+                          month,
+                          bigAttended: v,
+                          smallAttended: r.hasSmallAttendanceOverride
+                            ? r.smallAttended
+                            : null,
+                        })
+                      }
+                    />
                   </td>
                   <td className="px-3 py-3 text-right tabular-nums text-success font-medium">
-                    {r.smallAttended ?? 0}
+                    <AttendedEditableCell
+                      value={r.smallAttended ?? 0}
+                      hasOverride={r.hasSmallAttendanceOverride}
+                      onSave={(v) =>
+                        setOverrideMut.mutate({
+                          staffId: r.id,
+                          year,
+                          month,
+                          bigAttended: r.hasBigAttendanceOverride
+                            ? r.bigAttended
+                            : null,
+                          smallAttended: v,
+                        })
+                      }
+                    />
                   </td>
                   <td className="px-3 py-3 text-right tabular-nums text-destructive">
                     {r.bigAbsent ?? 0}

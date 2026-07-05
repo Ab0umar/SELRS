@@ -2113,6 +2113,16 @@ export async function createOrSyncPatientFromMssql(
   let patientId: number;
   let created = false;
 
+  const mssqlGenderRaw = String(mssqlRow?.gender ?? "").trim().toUpperCase();
+  const mssqlGender: "male" | "female" | null =
+    mssqlGenderRaw === "M" || mssqlGenderRaw === "MALE"
+      ? "male"
+      : mssqlGenderRaw === "F" || mssqlGenderRaw === "FEMALE"
+        ? "female"
+        : null;
+  const mssqlDob = String(mssqlRow?.dateOfBirth ?? "").trim();
+  const dateOfBirth = /^\d{4}-\d{2}-\d{2}$/.test(mssqlDob) ? mssqlDob : null;
+
   if (!existing) {
     // New patient — build from MSSQL data
     const fullName = String(mssqlRow?.fullName ?? patientCode).trim();
@@ -2122,7 +2132,8 @@ export async function createOrSyncPatientFromMssql(
       phone: String(mssqlRow?.phone ?? "").trim() || "",
       address: String(mssqlRow?.address ?? "").trim() || "",
       age: Number(mssqlRow?.age ?? 0) || null,
-      gender: null,
+      gender: mssqlGender,
+      dateOfBirth: dateOfBirth as any,
       branch,
       serviceType: resolvedServiceType,
       locationType,
@@ -2135,7 +2146,10 @@ export async function createOrSyncPatientFromMssql(
     created = true;
   } else {
     patientId = Number((existing as any).id);
-    await db.updatePatient(patientId, { lastVisit: today }).catch(() => null);
+    const patch: Record<string, any> = { lastVisit: today };
+    if (!(existing as any).dateOfBirth && dateOfBirth) patch.dateOfBirth = dateOfBirth;
+    if (!(existing as any).gender && mssqlGender) patch.gender = mssqlGender;
+    await db.updatePatient(patientId, patch).catch(() => null);
   }
 
   // Create a checkedIn visit for today only if one doesn't already exist
