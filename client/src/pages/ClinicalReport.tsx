@@ -43,6 +43,23 @@ export default function ClinicalReport() {
   const latestExam = (examinationsQuery.data as any[] | undefined)?.[0];
   const visits = (visitsQuery.data as any[] | undefined) ?? [];
 
+  const glasses: {
+    od: { s?: string; c?: string; axis?: string; pd?: string; bcva?: string };
+    os: { s?: string; c?: string; axis?: string; pd?: string; bcva?: string };
+  } = (() => {
+    const empty = { od: {}, os: {} };
+    if (!latestExam?.glassesData) return empty;
+    try {
+      const parsed = JSON.parse(latestExam.glassesData);
+      return {
+        od: parsed?.od ?? {},
+        os: parsed?.os ?? {},
+      };
+    } catch {
+      return empty;
+    }
+  })();
+
   const [selectedVisitId, setSelectedVisitId] = useState<number | undefined>();
   const [diagnosis, setDiagnosis] = useState("");
   const [recommendations, setRecommendations] = useState("");
@@ -209,10 +226,10 @@ export default function ClinicalReport() {
                 </div>
               </section>
 
-              {/* Autorefraction & Visual Acuity */}
+              {/* Glasses Prescription & Visual Acuity */}
               <div className="mb-6">
                 <h3 className="text-[11px] font-bold text-[#003d9b] uppercase tracking-wide mb-2 border-b border-[#e1e2e4] pb-1">
-                  فحص النظر / Autorefraction &amp; Visual Acuity
+                  وصفة النظارة / Glasses Prescription &amp; Visual Acuity
                 </h3>
                 <div className="border border-[#c3c6d6] rounded overflow-hidden clinical-ltr">
                   <table className="w-full text-[11px]">
@@ -222,6 +239,7 @@ export default function ClinicalReport() {
                         <th className="px-3 py-2 text-left">Sphere (S)</th>
                         <th className="px-3 py-2 text-left">Cylinder (C)</th>
                         <th className="px-3 py-2 text-left">Axis (A)</th>
+                        <th className="px-3 py-2 text-left">PD</th>
                         <th className="px-3 py-2 text-left">UCVA</th>
                         <th className="px-3 py-2 text-left">BCVA</th>
                         <th className="px-3 py-2 text-left">IOP</th>
@@ -230,20 +248,22 @@ export default function ClinicalReport() {
                     <tbody className="divide-y divide-[#c3c6d6]/30">
                       <tr className="bg-[#003d9b]/[0.04]">
                         <td className="px-3 py-2 font-bold text-[#003d9b]">OD (Right)</td>
-                        <td className="px-3 py-2 font-mono">{latestExam?.sphereOD || "—"}</td>
-                        <td className="px-3 py-2 font-mono">{latestExam?.cylinderOD || "—"}</td>
-                        <td className="px-3 py-2 font-mono">{latestExam?.axisOD || "—"}</td>
+                        <td className="px-3 py-2 font-mono">{glasses.od.s || "—"}</td>
+                        <td className="px-3 py-2 font-mono">{glasses.od.c || "—"}</td>
+                        <td className="px-3 py-2 font-mono">{glasses.od.axis || "—"}</td>
+                        <td className="px-3 py-2 font-mono">{glasses.od.pd || "—"}</td>
                         <td className="px-3 py-2">{latestExam?.ucvaOD || "—"}</td>
-                        <td className="px-3 py-2 font-bold">{latestExam?.bcvaOD || "—"}</td>
+                        <td className="px-3 py-2 font-bold">{glasses.od.bcva || "—"}</td>
                         <td className="px-3 py-2">{latestExam?.iopOD || "—"}</td>
                       </tr>
                       <tr>
                         <td className="px-3 py-2 font-bold">OS (Left)</td>
-                        <td className="px-3 py-2 font-mono">{latestExam?.sphereOS || "—"}</td>
-                        <td className="px-3 py-2 font-mono">{latestExam?.cylinderOS || "—"}</td>
-                        <td className="px-3 py-2 font-mono">{latestExam?.axisOS || "—"}</td>
+                        <td className="px-3 py-2 font-mono">{glasses.os.s || "—"}</td>
+                        <td className="px-3 py-2 font-mono">{glasses.os.c || "—"}</td>
+                        <td className="px-3 py-2 font-mono">{glasses.os.axis || "—"}</td>
+                        <td className="px-3 py-2 font-mono">{glasses.os.pd || "—"}</td>
                         <td className="px-3 py-2">{latestExam?.ucvaOS || "—"}</td>
-                        <td className="px-3 py-2 font-bold">{latestExam?.bcvaOS || "—"}</td>
+                        <td className="px-3 py-2 font-bold">{glasses.os.bcva || "—"}</td>
                         <td className="px-3 py-2">{latestExam?.iopOS || "—"}</td>
                       </tr>
                     </tbody>

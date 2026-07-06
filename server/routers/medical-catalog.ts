@@ -657,12 +657,16 @@ export const medicalCatalogRoutes = {
         preOpBCVA_OD: z.string().optional(),
         preOpBCVA_OS: z.string().optional(),
         surgeryNotes: z.string().optional(),
+        surgeon: z.string().optional(),
+        notes: z.string().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
       try {
+        const { preOpUCVA_OD, preOpUCVA_OS, preOpBCVA_OD, preOpBCVA_OS, surgeryNotes, ...rest } = input;
         await db.createSurgery({
-          ...input,
+          ...rest,
+          notes: input.notes ?? surgeryNotes,
           doctorId: ctx.user.id,
           surgeryDate: new Date(input.surgeryDate),
           status: "scheduled",
@@ -682,6 +686,33 @@ export const medicalCatalogRoutes = {
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {
       return await db.getSurgeriesByPatient(input.patientId);
+    }),
+
+  updateSurgery: medicalStaffProcedure
+    .input(
+      z.object({
+        surgeryId: z.number(),
+        surgeryType: z.string().optional(),
+        surgeryDate: z.string().optional(),
+        surgeon: z.string().optional(),
+        notes: z.string().optional(),
+        status: z.enum(["scheduled", "completed", "cancelled"]).optional(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const { surgeryId, surgeryDate, ...rest } = input;
+        await db.updateSurgery(surgeryId, {
+          ...rest,
+          ...(surgeryDate ? { surgeryDate: new Date(surgeryDate) } : {}),
+        });
+        await db.logAuditEvent(ctx.user.id, "UPDATE_SURGERY", "surgery", surgeryId, {
+          message: `Updated surgery ${surgeryId}`,
+        });
+        return { success: true };
+      } catch (error) {
+        throw new Error(`Failed to update surgery: ${error}`);
+      }
     }),
 
   deleteSurgery: medicalStaffProcedure

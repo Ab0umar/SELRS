@@ -1661,8 +1661,9 @@ export default function MedicalReports() {
         })();
 
         const auto = parsedSheet?.examData?.autorefraction;
-        const od = auto?.od;
-        const os = auto?.os;
+        const glasses = parsedSheet?.examData?.glasses;
+        const od = { ...auto?.od, ...glasses?.od };
+        const os = { ...auto?.os, ...glasses?.os };
 
         const fundus = parsedSheet?.examData?.fundus;
         const fundusODText = fundus?.od ? [

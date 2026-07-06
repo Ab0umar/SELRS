@@ -68,6 +68,11 @@ const ExternalDoctorReferrals = lazy(
 const ExternalDoctors = lazy(() => import("../pages/ExternalDoctors"));
 const ReferralLetter = lazy(() => import("../pages/ReferralLetter"));
 const ClinicalReport = lazy(() => import("../pages/ClinicalReport"));
+const PrePostOpReport = lazy(() => import("../pages/PrePostOpReport"));
+const PostOpOffdays = lazy(() => import("../pages/PostOpOffdays"));
+const PostOpOffdaysEnglish = lazy(
+  () => import("../pages/PostOpOffdaysEnglish"),
+);
 
 export const MedicalRoutes = (
   <>
@@ -593,6 +598,54 @@ export const MedicalRoutes = (
       component={() => (
         <ProtectedRoute>
           <ClinicalReport />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
+      path={ROUTES.prePostOpReportId}
+      component={() => (
+        <ProtectedRoute>
+          <PrePostOpReport />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
+      path={ROUTES.prePostOpReport}
+      component={() => (
+        <ProtectedRoute>
+          <PrePostOpReport />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
+      path={ROUTES.postOpOffdaysId}
+      component={() => (
+        <ProtectedRoute>
+          <PostOpOffdays />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
+      path={ROUTES.postOpOffdays}
+      component={() => (
+        <ProtectedRoute>
+          <PostOpOffdays />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
+      path={ROUTES.postOpOffdaysEnglishId}
+      component={() => (
+        <ProtectedRoute>
+          <PostOpOffdaysEnglish />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
+      path={ROUTES.postOpOffdaysEnglish}
+      component={() => (
+        <ProtectedRoute>
+          <PostOpOffdaysEnglish />
         </ProtectedRoute>
       )}
     />
