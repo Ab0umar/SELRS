@@ -103,7 +103,7 @@ export default function SheetPatientVisionBlock({
           <label className="inline-flex items-center gap-1 whitespace-nowrap">
             <span className="text-[#434654]">الاسم:</span>
             <input
-              size={patientName.length || 12}
+              size={(patientName || "").length || 12}
               className="text-[#003d9b] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right font-bold text-xs"
               dir="rtl"
               value={patientName}
@@ -119,7 +119,7 @@ export default function SheetPatientVisionBlock({
           <label className="inline-flex items-center gap-1 whitespace-nowrap">
             <span className="text-[#434654]">السن:</span>
             <input
-              size={age.length || 3}
+              size={(age || "").length || 3}
               className="bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right font-bold text-xs"
               dir="rtl"
               value={age}
@@ -129,7 +129,7 @@ export default function SheetPatientVisionBlock({
           <label className="inline-flex items-center gap-1 whitespace-nowrap">
             <span className="text-[#434654]">المهنة:</span>
             <input
-              size={job.length || 8}
+              size={(job || "").length || 8}
               className="bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right font-bold text-xs"
               dir="rtl"
               value={job}
