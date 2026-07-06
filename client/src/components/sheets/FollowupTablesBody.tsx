@@ -1,7 +1,8 @@
 import type { Dispatch, SetStateAction } from "react";
-import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui/date-input";
-import SheetCenterHeader from "@/components/SheetCenterHeader";
+import { Input } from "@/components/ui/input";
+import SheetPrintHeader from "@/components/sheets/SheetPrintHeader";
+import SheetWatermark from "@/components/sheets/SheetWatermark";
 
 export type FollowupItem = {
   id: number | string;
@@ -11,12 +12,14 @@ export type FollowupItem = {
 };
 
 export type FollowupLabelsShape = {
+  rtLabel?: string;
+  ltLabel?: string;
   operationDateLabel?: string;
   operationTypeLabel?: string;
   followupDateLabel?: string;
+  nextFollowupLabel?: string;
   vaLabel?: string;
   refractionLabel?: string;
-  flapLabel?: string;
   iopLabel?: string;
   treatmentLabel?: string;
   receptionLabel?: string;
@@ -24,14 +27,7 @@ export type FollowupLabelsShape = {
   doctorLabel?: string;
 };
 
-/**
- * Shared follow-up sheet body — used by the dedicated follow-up pages
- * (ConsultantFollowupPage/LasikFollowupPage) AND embedded as print-page-2
- * inside the main sheets (ConsultantSheet/LasikExamSheet), so both contexts
- * always render the exact same layout.
- */
 export default function FollowupTablesBody<T extends FollowupItem>({
-  titleEn,
   titleAr,
   patientName,
   patientDOB,
@@ -63,147 +59,288 @@ export default function FollowupTablesBody<T extends FollowupItem>({
   signatures: { doctor: string };
   readOnly?: boolean;
 }) {
+  const sheetTypeLabel = titleAr.includes("الاستشاري")
+    ? "متابعة استشاري"
+    : titleAr.includes("الليزك")
+      ? "متابعة ليزك"
+      : titleAr;
+
+  const updateFollowup = (id: T["id"], patch: Partial<T>) => {
+    setFollowups((prev) =>
+      prev.map((item) =>
+        item.id === id ? ({ ...item, ...patch } as T) : item,
+      ),
+    );
+  };
+
+  const inputClass =
+    "h-full w-full border-0 bg-transparent px-1 text-center text-[11px] font-semibold text-[#191c1e] outline-none focus:bg-[#dae2ff]/25";
+
   return (
-    <div className="sheet-followup-body space-y-5" dir="ltr">
-      <SheetCenterHeader titleEn={titleEn} titleAr={titleAr} />
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm px-1" dir="rtl">
-        <p className="inline-flex items-center gap-1 whitespace-nowrap"><span>الاسم:</span> <span className="min-w-[120px] px-1">{patientName}</span></p>
-        <p className="inline-flex items-center gap-1 whitespace-nowrap"><span>تاريخ الميلاد:</span> <span className="min-w-[70px] px-1">{patientDOB}</span></p>
-      </div>
+    <div
+      className="sheet-followup-body relative overflow-hidden border border-[#c3c6d6] bg-white p-6 shadow-sm"
+      dir="ltr"
+    >
+      <SheetWatermark />
+      <div className="sheet-followup-content relative z-10 flex min-h-0 flex-col gap-4">
+        <SheetPrintHeader sheetType={sheetTypeLabel} />
 
-      {/* Operation header */}
-      <div className="bg-white border border-[#c3c6d6] rounded-lg p-4 shadow-sm flex flex-col md:flex-row justify-between gap-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
-          <div>
-            <p className="text-xs uppercase tracking-wider text-[#434654] mb-1">{followupLabels.operationDateLabel ?? "Operation Date"}</p>
-            <DateInput value={operationDateRight} onChange={(e) => setOperationDateRight(e.target.value)} className="h-7 text-sm border-[#c3c6d6]" disabled={readOnly} />
+        <section className="followup-record-head grid grid-cols-4 gap-0 border border-[#c3c6d6] bg-[#f8f9fb] text-[11px]">
+          <div className="border-l border-[#c3c6d6] px-3 py-2" dir="rtl">
+            <span className="block text-[9px] font-bold uppercase text-[#526069]">
+              الاسم / Patient
+            </span>
+            <span className="block truncate font-bold text-[#003d9b]">
+              {patientName}
+            </span>
           </div>
-          <div className="col-span-2">
-            <p className="text-xs uppercase tracking-wider text-[#434654] mb-1">{followupLabels.operationTypeLabel ?? "Operation Type"}</p>
-            <Input
-              value={operationType}
-              onChange={(e) => setOperationType(e.target.value)}
-              className="h-7 text-sm text-[#003d9b] border-[#c3c6d6]"
-              disabled={readOnly}
-            />
+          <div className="border-l border-[#c3c6d6] px-3 py-2" dir="rtl">
+            <span className="block text-[9px] font-bold uppercase text-[#526069]">
+              تاريخ الميلاد / DOB
+            </span>
+            <span className="block font-bold text-[#191c1e]">{patientDOB}</span>
           </div>
-          <div className="flex gap-2 items-end">
+          <div
+            className="col-span-2 grid grid-cols-[1fr_1.15fr_0.75fr_0.75fr] items-end gap-2 px-3 py-2"
+            dir="rtl"
+          >
+            <label className="min-w-0">
+              <span className="mb-1 block text-[10px] font-bold text-[#737685]">
+                {followupLabels.operationDateLabel ?? "تاريخ العملية"}
+              </span>
+              <DateInput
+                value={operationDateRight}
+                onChange={(event) => setOperationDateRight(event.target.value)}
+                className="h-8 border-[#c3c6d6] bg-white text-[12px]"
+                disabled={readOnly}
+              />
+            </label>
+            <label className="min-w-0">
+              <span className="mb-1 block text-[10px] font-bold text-[#737685]">
+                {followupLabels.operationTypeLabel ?? "نوع العملية"}
+              </span>
+              <Input
+                value={operationType}
+                onChange={(event) => setOperationType(event.target.value)}
+                className="h-8 border-[#c3c6d6] bg-white text-center text-[12px] font-bold text-[#003d9b]"
+                disabled={readOnly}
+              />
+            </label>
             <button
               type="button"
               disabled={readOnly}
-              className={`text-center p-2 rounded border flex-1 text-xs transition-all ${operationEyes.right ? "border-[#003d9b] bg-[#dae2ff]/30 text-[#003d9b]" : "border-[#c3c6d6] text-[#737685]"}`}
-              onClick={() => setOperationEyes((prev: typeof operationEyes) => ({ ...prev, right: !prev.right }))}
-            >OD</button>
+              onClick={() =>
+                setOperationEyes((prev: typeof operationEyes) => ({
+                  ...prev,
+                  right: !prev.right,
+                }))
+              }
+              className={`h-8 border text-[11px] font-bold ${
+                operationEyes.right
+                  ? "border-[#003d9b] bg-[#dae2ff]/45 text-[#003d9b]"
+                  : "border-[#c3c6d6] bg-white text-[#526069]"
+              }`}
+            >
+              {followupLabels.rtLabel ?? "RT"} Power
+            </button>
             <button
               type="button"
               disabled={readOnly}
-              className={`text-center p-2 rounded border flex-1 text-xs transition-all ${operationEyes.left ? "border-[#003d9b] bg-[#dae2ff]/30 text-[#003d9b]" : "border-[#c3c6d6] text-[#737685]"}`}
-              onClick={() => setOperationEyes((prev: typeof operationEyes) => ({ ...prev, left: !prev.left }))}
-            >OS</button>
+              onClick={() =>
+                setOperationEyes((prev: typeof operationEyes) => ({
+                  ...prev,
+                  left: !prev.left,
+                }))
+              }
+              className={`h-8 border text-[11px] font-bold ${
+                operationEyes.left
+                  ? "border-[#003d9b] bg-[#dae2ff]/45 text-[#003d9b]"
+                  : "border-[#c3c6d6] bg-white text-[#526069]"
+              }`}
+            >
+              {followupLabels.ltLabel ?? "LT"} Power
+            </button>
           </div>
-        </div>
-        <div className="flex items-center justify-center">
-          <div className="px-4 py-2 bg-[#ffdad6] text-[#93000a] rounded text-xs uppercase border border-[#ba1a1a] tracking-widest">
-            Post-Op Day 1
-          </div>
-        </div>
-      </div>
+        </section>
 
-      {/* Page title */}
-      <div className="print:hidden flex items-center justify-between">
-        <h2 className="text-lg text-[#191c1e]">
-          متابعة ما بعد العمليات <span className="text-[#737685]">/ Post-Op Follow-up</span>
-        </h2>
-        <div className="flex gap-2">
-          <span className="px-2 py-1 bg-[#e7e8ea] rounded text-xs text-[#434654]">V.A: Visual Acuity</span>
-          <span className="px-2 py-1 bg-[#e7e8ea] rounded text-xs text-[#434654]">IOP: Intraocular Pressure</span>
-        </div>
-      </div>
-
-      {/* Followup sections */}
-      <div className="space-y-5">
-        {followups.map((f, idx) => (
-          <section key={f.id} className="bg-white border border-[#c3c6d6] overflow-hidden rounded-lg shadow-sm">
-            <div className={`px-4 py-2 border-b border-[#c3c6d6] flex justify-between items-center ${idx === 0 ? "bg-[#d3e2ed]/30" : "bg-[#edeef0]"}`}>
-              <div className="flex items-center gap-3">
-                <span className={`w-8 h-8 flex items-center justify-center rounded-full text-white text-sm ${idx === 0 ? "bg-[#003d9b]" : "bg-[#737685]"}`}>{idx + 1}</span>
+        <div className="followup-record-list flex flex-1 min-h-0 flex-col gap-3">
+          {followups.slice(0, 4).map((followup, index) => (
+            <section
+              key={followup.id}
+              className="followup-record-section overflow-hidden border border-[#c3c6d6] bg-white"
+            >
+              <div
+                className="followup-record-title grid grid-cols-[auto_1fr] items-center gap-4 border-b border-[#c3c6d6] bg-[#edeef0] px-3 py-1.5"
+                dir="rtl"
+              >
                 <Input
-                  value={f.type}
-                  onChange={(e) => setFollowups((prev) => prev.map((x) => x.id === f.id ? { ...x, type: e.target.value } : x))}
-                  className="h-7 text-base border-0 bg-transparent focus:bg-white focus:border-[#003d9b] w-56"
+                  value={followup.type}
+                  onChange={(event) =>
+                    updateFollowup(followup.id, {
+                      type: event.target.value,
+                    } as Partial<T>)
+                  }
+                  className="h-7 w-56 border-0 bg-transparent text-right text-[14px] font-bold text-[#191c1e] focus:border-[#003d9b] focus:bg-white"
                   disabled={readOnly}
+                  dir="rtl"
                 />
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-xs uppercase text-[#434654]">{followupLabels.followupDateLabel ?? "Date"}:</label>
-                <DateInput
-                  value={f.date}
-                  onChange={(e) => setFollowups((prev) => prev.map((x) => x.id === f.id ? { ...x, date: e.target.value } : x))}
-                  className="h-7 w-36 text-sm"
-                  disabled={readOnly}
-                />
-              </div>
-            </div>
-
-            <table className="w-full text-left border-collapse" dir="ltr">
-              <thead>
-                <tr className="bg-[#f3f4f6] text-xs uppercase tracking-wider text-[#434654] border-b border-[#c3c6d6]">
-                  <th className="px-3 py-2 w-14">Eye</th>
-                  <th className="px-3 py-2">{followupLabels.vaLabel ?? "V.A (UCVA/BCVA)"}</th>
-                  <th className="px-3 py-2">{followupLabels.refractionLabel ?? "Refraction (S/C/A)"}</th>
-                  <th className="px-3 py-2">{followupLabels.flapLabel ?? "Flap Status"}</th>
-                  <th className="px-3 py-2">{followupLabels.iopLabel ?? "IOP (mmHg)"}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b border-[#c3c6d6]" style={{ backgroundColor: "rgba(0,61,155,0.03)" }}>
-                  <td className="px-3 py-2.5 text-[#003d9b] text-sm">OD</td>
-                  <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 outline-none p-0 text-sm" disabled={readOnly} /></td>
-                  <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 outline-none p-0 text-sm" disabled={readOnly} /></td>
-                  <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 outline-none p-0 text-sm" disabled={readOnly} /></td>
-                  <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 outline-none p-0 text-sm" disabled={readOnly} /></td>
-                </tr>
-                <tr className="bg-white">
-                  <td className="px-3 py-2.5 text-[#526069] text-sm">OS</td>
-                  <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 outline-none p-0 text-sm" disabled={readOnly} /></td>
-                  <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 outline-none p-0 text-sm" disabled={readOnly} /></td>
-                  <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 outline-none p-0 text-sm" disabled={readOnly} /></td>
-                  <td className="px-3 py-2.5"><input className="w-full bg-transparent border-0 outline-none p-0 text-sm" disabled={readOnly} /></td>
-                </tr>
-              </tbody>
-            </table>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 p-4 gap-4">
-              <div>
-                <label className="text-xs uppercase tracking-wider text-[#434654] block mb-1">{followupLabels.treatmentLabel ?? "Treatment Plan"}</label>
-                <textarea className="w-full border border-[#c3c6d6] rounded-lg focus:ring-1 focus:ring-[#003d9b] focus:outline-none text-sm p-2 resize-none h-16" disabled={readOnly} />
-              </div>
-              <div className="grid grid-cols-3 gap-4 items-end">
-                <div className="text-center">
-                  <div className="h-10 mb-1" />
-                  <p className="text-[10px] uppercase text-[#434654] opacity-60">{followupLabels.receptionLabel ?? "Receptionist"}</p>
+                <div
+                  className="flex items-center justify-self-start gap-4 text-[10px] font-bold text-[#526069]"
+                  dir="rtl"
+                >
+                  <span>
+                    {followupLabels.followupDateLabel ?? "تاريخ المتابعة"}:
+                  </span>
+                  <DateInput
+                    value={followup.date}
+                    onChange={(event) =>
+                      updateFollowup(followup.id, {
+                        date: event.target.value,
+                      } as Partial<T>)
+                    }
+                    className="h-7 w-28 border-[#c3c6d6] bg-white text-[11px]"
+                    disabled={readOnly}
+                  />
+                  <span className="text-[#c3c6d6]">|</span>
+                  <span>{followupLabels.nextFollowupLabel ?? "القادمة"}:</span>
+                  <span className="inline-block min-w-20 border-b border-dotted border-[#737685]" />
                 </div>
-                <div className="text-center">
-                  <div className="h-10 mb-1" />
-                  <p className="text-[10px] uppercase text-[#434654] opacity-60">{followupLabels.nurseLabel ?? "Nurse"}</p>
-                </div>
-                <div className="text-center">
-                  <div className="h-10 mb-1 flex items-end justify-center">
-                    <span className="text-[10px] text-[#003d9b] italic">{signatures.doctor}</span>
+              </div>
+
+              <div className="followup-clinical-grid flex min-h-0">
+                <table
+                  className="followup-record-table min-w-0 flex-1 border-collapse text-center"
+                  dir="ltr"
+                >
+                  <thead>
+                    <tr className="bg-[#eef2f8] text-[9px] font-bold uppercase tracking-[0.01em] text-[#003d9b]">
+                      <th className="w-[7%] border-r border-[#c3c6d6] px-1 py-1">
+                        Eye
+                      </th>
+                      <th className="w-[12%] border-r border-[#c3c6d6] px-1 py-1">
+                        {followupLabels.vaLabel ?? "V.A"}
+                      </th>
+                      <th className="w-[10%] border-r border-[#c3c6d6] px-1 py-1">
+                        S
+                      </th>
+                      <th className="w-[10%] border-r border-[#c3c6d6] px-1 py-1">
+                        C
+                      </th>
+                      <th className="w-[10%] border-r border-[#c3c6d6] px-1 py-1">
+                        Ax
+                      </th>
+                      <th className="w-[10%] border-r border-[#c3c6d6] px-1 py-1">
+                        {followupLabels.iopLabel ?? "I.O.P"}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(["OD", "OS"] as const).map((eye, eyeIndex) => (
+                      <tr
+                        key={eye}
+                        className={`${eyeIndex === 0 ? "border-b border-[#c3c6d6]" : ""}`}
+                      >
+                        <td
+                          className={`border-r border-[#c3c6d6] bg-[#f3f4f6] text-[12px] font-bold ${eye === "OD" ? "text-[#003d9b]" : "text-[#526069]"}`}
+                        >
+                          {eye}
+                        </td>
+                        <td className="border-r border-[#c3c6d6] p-0">
+                          <input
+                            aria-label={`${eye} visual acuity`}
+                            className={inputClass}
+                            disabled={readOnly}
+                          />
+                        </td>
+                        <td className="border-r border-[#c3c6d6] p-0">
+                          <input
+                            aria-label={`${eye} sphere`}
+                            className={inputClass}
+                            disabled={readOnly}
+                          />
+                        </td>
+                        <td className="border-r border-[#c3c6d6] p-0">
+                          <input
+                            aria-label={`${eye} cylinder`}
+                            className={inputClass}
+                            disabled={readOnly}
+                          />
+                        </td>
+                        <td className="border-r border-[#c3c6d6] p-0">
+                          <input
+                            aria-label={`${eye} axis`}
+                            className={inputClass}
+                            disabled={readOnly}
+                          />
+                        </td>
+                        <td className="border-r border-[#c3c6d6] p-0">
+                          <input
+                            aria-label={`${eye} IOP`}
+                            className={inputClass}
+                            disabled={readOnly}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="followup-section-bottom grid grid-cols-[1fr_48mm] border-t border-[#c3c6d6] bg-white">
+                <label className="grid grid-rows-[auto_1fr] border-r border-[#c3c6d6]">
+                  <span className="bg-[#f3f4f6] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.01em] text-[#526069]">
+                    Clinical Notes / Findings
+                  </span>
+                  <textarea
+                    aria-label={`${followup.type} clinical notes`}
+                    className="min-h-0 w-full resize-none border-0 bg-transparent px-2 py-1 text-left text-[10px] outline-none focus:bg-[#dae2ff]/20"
+                    disabled={readOnly}
+                    dir="ltr"
+                  />
+                </label>
+                <div className="grid grid-rows-[auto_1fr] bg-[#f8f9fb]">
+                  <span className="bg-[#eef2f8] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.01em] text-[#003d9b]">
+                    {index < 3 ? "Compliance" : "Status"}
+                  </span>
+                  <div className="grid grid-cols-3 items-center gap-1 px-2 text-[8px] font-bold uppercase text-[#526069]">
+                    {(index < 3
+                      ? ["Antibiotic", "Steroid", "Lubricant"]
+                      : ["Stable Ref.", "PRN Lub.", "Routine"]
+                    ).map((label) => (
+                      <label key={label} className="flex items-center gap-1">
+                        <input
+                          type="checkbox"
+                          className="h-2.5 w-2.5 rounded-none border-[#737685] text-[#003d9b]"
+                          disabled={readOnly}
+                        />
+                        {label}
+                      </label>
+                    ))}
                   </div>
-                  <p className="text-[10px] uppercase text-[#003d9b]">{followupLabels.doctorLabel ?? "Doctor"}</p>
                 </div>
               </div>
-            </div>
-          </section>
-        ))}
-      </div>
+            </section>
+          ))}
+        </div>
 
-      <footer className="pt-4 border-t border-[#c3c6d6] flex justify-between items-center text-xs uppercase tracking-widest text-[#434654] opacity-50">
-        <div>Ref: OP-FUP-V2.1</div>
-        <div>Page 1 of 1</div>
-        <div>Ophthalmic Management System</div>
-      </footer>
+        <footer
+          className="followup-signature-row grid grid-cols-3 gap-6 border-t border-[#c3c6d6] pt-4 text-[11px] font-bold text-[#526069]"
+          dir="rtl"
+        >
+          <div className="text-right">
+            {followupLabels.doctorLabel ?? "توقيع الطبيب"}:{" "}
+            <span className="inline-block min-w-32 border-b border-dotted border-[#526069] text-center text-[#003d9b]">
+              {signatures.doctor}
+            </span>
+          </div>
+          <div className="text-center">
+            {followupLabels.nurseLabel ?? "التمريض"}:{" "}
+            <span className="inline-block min-w-32 border-b border-dotted border-[#526069]" />
+          </div>
+          <div className="text-left" dir="ltr">
+            STAMP:
+          </div>
+        </footer>
+      </div>
     </div>
   );
 }

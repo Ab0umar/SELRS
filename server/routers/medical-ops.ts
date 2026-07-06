@@ -744,16 +744,22 @@ export const medicalOpsRoutes = {
         diagnosis: z.string(),
         clinicalOpinion: z.string().optional(),
         recommendedTreatment: z.string().optional(),
+        recommendations: z.string().optional(),
+        diseases: z.array(z.any()).optional(),
         surgeryType: z.string().optional(),
         surgeryScheduledDate: z.string().optional(),
         additionalNotes: z.string().optional(),
+        followUpDate: z.string().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
       try {
+        const { diseases, followUpDate, ...rest } = input;
         await db.createDoctorReport({
-          ...input,
+          ...rest,
           doctorId: ctx.user.id,
+          diseases: diseases ? JSON.stringify(diseases) : null,
+          followUpDate: followUpDate ? new Date(followUpDate) : null,
           surgeryScheduledDate: input.surgeryScheduledDate
             ? new Date(input.surgeryScheduledDate)
             : null,
@@ -786,16 +792,20 @@ export const medicalOpsRoutes = {
         diseases: z.array(z.any()).optional(),
         prescription: z.string().optional(),
         recommendations: z.string().optional(),
+        followUpDate: z.string().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const { reportId, diseases, ...updates } = input;
-        const updateData = { ...updates };
+        const { reportId, diseases, followUpDate, ...updates } = input;
+        const updateData: Record<string, any> = { ...updates };
 
         // Convert diseases array to JSON string if provided
         if (diseases) {
           updateData.additionalNotes = JSON.stringify(diseases);
+        }
+        if (followUpDate) {
+          updateData.followUpDate = new Date(followUpDate);
         }
 
         // Convert surgeryScheduledDate to Date if provided

@@ -21,9 +21,10 @@ import {
 import { usePrintMode } from "@/hooks/usePrintMode";
 import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 import { printOrExportPdf } from "@/lib/nativePdf";
-import { BRAND_NAME_AR, BRAND_NAME_EN } from "@/lib/brand";
 import { DateInput } from "@/components/ui/date-input";
 import FollowupTablesBody from "@/components/sheets/FollowupTablesBody";
+import SheetPrintHeader from "@/components/sheets/SheetPrintHeader";
+import SheetWatermark from "@/components/sheets/SheetWatermark";
 import {
   displaySheetDate,
   formatSheetDate,
@@ -43,6 +44,12 @@ export default function LasikExamSheet() {
         currentPath.includes("/sheets/operation")
       ? "external"
       : "lasik";
+  const sheetTypeLabel =
+    currentSheetType === "consultant"
+      ? "كشف استشاري"
+      : currentSheetType === "external"
+        ? "اشعه خارجي"
+        : "فحص ليزك";
   const routePatientId = (() => {
     if (params?.id) return Number(params.id);
     if (typeof window === "undefined") return undefined;
@@ -640,9 +647,12 @@ export default function LasikExamSheet() {
 
     return (
       <div
-        className="lasik-sheet bg-white text-[#191c1e] font-sans p-8 print:p-[10mm] print:border-0 print:shadow-none border border-[#c3c6d6] shadow-sm flex flex-col gap-5 w-[210mm] max-w-full mx-auto"
+        className="lasik-sheet relative overflow-hidden bg-white text-[#191c1e] font-sans p-8 print:p-[10mm] print:border-0 print:shadow-none border border-[#c3c6d6] shadow-sm flex flex-col gap-5 w-[210mm] max-w-full mx-auto"
         dir="ltr"
       >
+        <SheetWatermark />
+        <SheetPrintHeader sheetType={sheetTypeLabel} />
+
         {/* Patient Info */}
         <section className="print-lasik-patient-grid p-4 bg-[#f3f4f6] rounded-xl border border-[#c3c6d6] flex flex-col gap-2 text-sm" dir="rtl">
           <div className="patient-row-bold flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs font-bold">
@@ -937,6 +947,39 @@ export default function LasikExamSheet() {
         .lasik-sheet .border-b-2 {
           border-bottom: none !important;
         }
+        .lasik-sheet .sheet-print-header {
+          display: grid !important;
+          grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+          align-items: center !important;
+          border-bottom: 2px solid #003d9b !important;
+          padding-bottom: 10px !important;
+          margin-bottom: 10px !important;
+        }
+        .lasik-sheet .sheet-print-clinic-name {
+          font-size: 24px !important;
+          font-weight: 700 !important;
+          line-height: 1.1 !important;
+          color: #003d9b !important;
+        }
+        .lasik-sheet .sheet-print-clinic-tagline {
+          font-size: 14px !important;
+          font-weight: 400 !important;
+          line-height: 1.2 !important;
+          color: #434654 !important;
+        }
+        .lasik-sheet .sheet-print-logo {
+          width: 64px !important;
+          height: 64px !important;
+        }
+        .lasik-sheet .sheet-print-type {
+          font-size: 20px !important;
+          font-weight: 700 !important;
+          line-height: 1.15 !important;
+          color: #191c1e !important;
+        }
+        .lasik-sheet .sheet-watermark {
+          opacity: 1 !important;
+        }
         @media print {
           .print-page-break { page-break-before: always !important; break-before: page !important; }
           .print-page-center-a4 { width: 210mm !important; margin: 0 auto !important; }
@@ -1009,6 +1052,34 @@ export default function LasikExamSheet() {
           .lasik-sheet .border-b-4,
           .lasik-sheet .border-b-8 {
             border-bottom: 0 !important;
+          }
+          .lasik-sheet .sheet-print-header {
+            border-bottom: 2px solid #003d9b !important;
+            padding-bottom: 2mm !important;
+            margin-bottom: 2mm !important;
+          }
+          .lasik-sheet .sheet-print-clinic-name {
+            font-size: 21px !important;
+            font-weight: 700 !important;
+          }
+          .lasik-sheet .sheet-print-clinic-tagline {
+            font-size: 12px !important;
+            font-weight: 400 !important;
+          }
+          .lasik-sheet .sheet-print-logo {
+            width: 15mm !important;
+            height: 15mm !important;
+          }
+          .lasik-sheet .sheet-print-type {
+            font-size: 18px !important;
+            font-weight: 700 !important;
+          }
+          .lasik-sheet .sheet-watermark img {
+            width: 120mm !important;
+            height: 120mm !important;
+            opacity: 0.055 !important;
+            print-color-adjust: exact !important;
+            -webkit-print-color-adjust: exact !important;
           }
           .lasik-sheet .gap-8 { gap: 12px !important; }
           .lasik-sheet .gap-6 { gap: 10px !important; }
@@ -1106,14 +1177,35 @@ export default function LasikExamSheet() {
         }
       `}</style>
       <header className="sticky top-0 z-50 print:hidden flex justify-between items-center px-6 py-2 bg-[#f8f9fb] border-b border-[#c3c6d6]" style={{ fontFamily: 'Inter, sans-serif' }}>
-        <div className="flex items-center gap-6">
-          <span className="text-xl font-bold text-[#003d9b]">{BRAND_NAME_EN}</span>
-          <nav className="hidden md:flex items-center gap-5 text-sm text-[#434654]">
-            <span className="cursor-pointer hover:text-[#003d9b]">Patients</span>
-            <span className="cursor-pointer font-bold text-[#003d9b] border-b-2 border-[#003d9b] pb-0.5">Surgery</span>
-            <span className="cursor-pointer hover:text-[#003d9b]">Reports</span>
-          </nav>
-        </div>
+        {initialPatientId ? (
+          <div className="flex items-center gap-1 text-sm">
+            {[
+              { key: "consultant", label: "استشاري" },
+              { key: "lasik", label: "ليزك" },
+              { key: "external", label: "اشعه خارجي" },
+              { key: "referral", label: "خطاب تحويل" },
+            ].map((tab) => {
+              const hubPrefix = currentPath.startsWith("/patient-hub/") ? "/patient-hub" : "";
+              const href =
+                tab.key === "referral"
+                  ? `${hubPrefix}/sheets/referral/${initialPatientId}`
+                  : `${hubPrefix}/sheets/${tab.key}/${initialPatientId}`;
+              const active = tab.key === currentSheetType;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setLocation(href)}
+                  className={`px-3 py-1.5 rounded font-bold ${active ? "bg-[#003d9b] text-white" : "text-[#434654] hover:bg-[#003d9b]/10"}`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div />
+        )}
         <div className="flex items-center gap-3">
           <div className="w-60">
             <PatientPicker initialPatientId={initialPatientId} onSelect={handleSelectPatient} />

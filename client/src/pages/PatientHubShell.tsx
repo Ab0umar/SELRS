@@ -2,6 +2,7 @@ import { Link, Redirect, Route, Switch, useLocation, useRoute } from "wouter";
 import PatientDetails from "./PatientDetails";
 import PatientSummary from "./PatientSummary";
 import MedicalReports from "./MedicalReports";
+import ClinicalReport from "./ClinicalReport";
 import Followups from "./Followups";
 import Visits from "./Visits";
 import WritePrescription from "./WritePrescription";
@@ -775,6 +776,10 @@ export default function PatientHubShell() {
             component={() => <HubNeedPatientSearch visitDate={visitDate} />}
           />
           <Route path="/patient-hub/reports/:id" component={MedicalReports} />
+          <Route
+            path="/patient-hub/clinical-report/:id"
+            component={ClinicalReport}
+          />
           <Route
             path="/patient-hub/doctor/:id"
             component={PatientHubDoctorToBriefRedirect}

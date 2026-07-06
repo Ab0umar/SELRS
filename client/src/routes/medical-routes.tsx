@@ -67,6 +67,7 @@ const ExternalDoctorReferrals = lazy(
 );
 const ExternalDoctors = lazy(() => import("../pages/ExternalDoctors"));
 const ReferralLetter = lazy(() => import("../pages/ReferralLetter"));
+const ClinicalReport = lazy(() => import("../pages/ClinicalReport"));
 
 export const MedicalRoutes = (
   <>
@@ -576,6 +577,22 @@ export const MedicalRoutes = (
       component={() => (
         <ProtectedRoute>
           <ReferralLetter />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
+      path={ROUTES.clinicalReportId}
+      component={() => (
+        <ProtectedRoute>
+          <ClinicalReport />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
+      path={ROUTES.clinicalReport}
+      component={() => (
+        <ProtectedRoute>
+          <ClinicalReport />
         </ProtectedRoute>
       )}
     />

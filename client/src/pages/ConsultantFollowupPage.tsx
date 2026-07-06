@@ -13,8 +13,6 @@ import {
   saveSheetDesignerConfig,
 } from "@/lib/sheetDesigner";
 import { printOrExportPdf } from "@/lib/nativePdf";
-import { DateInput } from "@/components/ui/date-input";
-import SheetCenterHeader from "@/components/SheetCenterHeader";
 import FollowupTablesBody from "@/components/sheets/FollowupTablesBody";
 
 export default function ConsultantFollowupPage() {
@@ -230,81 +228,298 @@ export default function ConsultantFollowupPage() {
     if (patient?.id) setLocation(`/sheets/consultant/${patient.id}/followup`);
   };
 
-  const followupTitles = ["1st Follow-up (Day 1)", "2nd Follow-up (1 Week)", "3rd Follow-up (1 Month)", "Later Follow-up"];
-
   return (
-    <div className="min-h-screen bg-[#dde1e7] text-foreground" style={{ fontFamily: "Inter, sans-serif" }}>
+    <div
+      className="min-h-screen bg-[#dde1e7] text-foreground"
+      style={{ fontFamily: "Inter, sans-serif" }}
+      dir="rtl"
+    >
       <style>{`
+        .consultant-followup-page {
+          background: #dde1e7;
+        }
+        .consultant-followup-toolbar {
+          backdrop-filter: blur(8px);
+        }
+        .consultant-followup-shell {
+          width: 210mm;
+          max-width: calc(100vw - 32px);
+          margin: 0 auto;
+        }
+        .consultant-followup-shell .sheet-followup-body {
+          width: 210mm;
+          min-height: 297mm;
+          margin: 0 auto;
+          border: 0;
+          padding: 10mm;
+          box-shadow: 0 18px 45px rgba(25, 28, 30, 0.12);
+        }
         @media print {
           @page { size: A4 portrait; margin: 0; }
-          .print\\:hidden { display: none !important; }
-          body { background: white !important; }
+          .print\\:hidden,
+          .consultant-followup-toolbar {
+            display: none !important;
+          }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          html, body {
+            width: 210mm !important;
+            height: 297mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            background: white !important;
+          }
+          .consultant-followup-page,
+          .consultant-followup-page main {
+            display: block !important;
+            width: 210mm !important;
+            height: 297mm !important;
+            min-height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+          }
           .print-page-center-a4 {
-            width: 190mm;
-            margin: 0 auto;
+            width: 210mm !important;
+            height: 297mm !important;
+            min-height: 0 !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            background: white !important;
           }
           .sheet-followup-body {
-            width: 190mm;
-            margin: 0 auto;
+            width: 210mm !important;
+            height: 297mm !important;
+            max-height: 297mm !important;
+            min-height: 0 !important;
+            margin: 0 auto !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+            box-shadow: none !important;
+            border: 0 !important;
+            padding: 8mm 10mm !important;
+            background: white !important;
           }
-          .sheet-followup-body, .sheet-followup-body * { font-weight: 400 !important; text-decoration: none !important; }
+          .sheet-followup-body .sheet-followup-content {
+            height: 100% !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 2.8mm !important;
+          }
+          .sheet-followup-body, .sheet-followup-body * {
+            box-sizing: border-box !important;
+            font-size: 9px !important;
+            line-height: 1.15 !important;
+            font-weight: 400 !important;
+            text-decoration: none !important;
+          }
           .sheet-followup-body th { font-weight: 700 !important; }
-          .sheet-followup-body > * + * { margin-top: 2mm !important; }
-          .sheet-followup-body .space-y-5 > * + * { margin-top: 2mm !important; }
-          .sheet-followup-body section { page-break-inside: avoid !important; }
-          .sheet-followup-body .sheet-center-header { padding-bottom: 1mm !important; margin-bottom: 1mm !important; }
-          .sheet-followup-body td, .sheet-followup-body th { padding: 1mm 2mm !important; }
-          .sheet-followup-body textarea { height: 9mm !important; min-height: 0 !important; }
-          .sheet-followup-body .h-16 { height: 9mm !important; }
+          .sheet-followup-body .sheet-print-header {
+            flex: 0 0 16mm !important;
+            height: 16mm !important;
+            min-height: 16mm !important;
+            padding: 0 0 1.5mm !important;
+            margin: 0 !important;
+            align-items: center !important;
+          }
+          .sheet-followup-body .sheet-print-clinic-name {
+            font-size: 14px !important;
+            font-weight: 700 !important;
+          }
+          .sheet-followup-body .sheet-print-clinic-tagline {
+            font-size: 8px !important;
+          }
+          .sheet-followup-body .sheet-print-type {
+            font-size: 12px !important;
+            font-weight: 700 !important;
+          }
+          .sheet-followup-body .sheet-print-logo {
+            width: 10mm !important;
+            height: 10mm !important;
+          }
+          .sheet-followup-body .followup-record-head {
+            flex: 0 0 14mm !important;
+            height: 14mm !important;
+            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+            border-radius: 0.8mm !important;
+          }
+          .sheet-followup-body .followup-record-head,
+          .sheet-followup-body .followup-record-head * {
+            font-size: 8.5px !important;
+            line-height: 1.1 !important;
+          }
+          .sheet-followup-body .followup-record-head input,
+          .sheet-followup-body .followup-record-head button {
+            height: 4.5mm !important;
+            min-height: 4.5mm !important;
+            border-radius: 1mm !important;
+          }
+          .sheet-followup-body .followup-record-list {
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            gap: 2.2mm !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: flex-start !important;
+          }
+          .sheet-followup-body .followup-record-section {
+            flex: 0 0 40mm !important;
+            height: 40mm !important;
+            min-height: 0 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+            border-radius: 0.8mm !important;
+          }
+          .sheet-followup-body .followup-record-title {
+            flex: 0 0 7mm !important;
+            height: 7mm !important;
+            min-height: 7mm !important;
+            padding: 0.6mm 1.5mm !important;
+            grid-template-columns: auto 1fr !important;
+            gap: 4mm !important;
+          }
+          .sheet-followup-body .followup-record-title input {
+            height: 4.5mm !important;
+            min-height: 4.5mm !important;
+            font-size: 9.5px !important;
+            padding: 0 1mm !important;
+          }
+          .sheet-followup-body .followup-clinical-grid {
+            flex: 0 0 21mm !important;
+            height: 21mm !important;
+            min-height: 0 !important;
+            display: flex !important;
+            overflow: hidden !important;
+          }
+          .sheet-followup-body .followup-record-table {
+            flex: 1 1 auto !important;
+            height: 21mm !important;
+            min-height: 0 !important;
+            table-layout: fixed !important;
+            border-collapse: collapse !important;
+          }
+          .sheet-followup-body .followup-record-table th {
+            height: 5mm !important;
+            padding: 0.35mm 0.6mm !important;
+            font-size: 7px !important;
+            letter-spacing: 0.02em !important;
+          }
+          .sheet-followup-body .followup-record-table td {
+            height: 8mm !important;
+            min-height: 0 !important;
+            padding: 0 !important;
+          }
+          .sheet-followup-body .followup-section-bottom {
+            flex: 0 0 12mm !important;
+            height: 12mm !important;
+            min-height: 12mm !important;
+            grid-template-columns: 1fr 48mm !important;
+          }
+          .sheet-followup-body .followup-section-bottom span,
+          .sheet-followup-body .followup-section-bottom label {
+            font-size: 7px !important;
+            line-height: 1.05 !important;
+          }
+          .sheet-followup-body .followup-section-bottom textarea {
+            height: 8mm !important;
+            min-height: 8mm !important;
+            padding: 0.7mm 1.2mm !important;
+            font-size: 8px !important;
+          }
+          .sheet-followup-body .followup-section-bottom input[type="checkbox"] {
+            width: 2.2mm !important;
+            height: 2.2mm !important;
+          }
+          .sheet-followup-body .followup-signature-row {
+            flex: 0 0 16mm !important;
+            height: 16mm !important;
+            gap: 4mm !important;
+            padding-top: 4mm !important;
+            font-size: 9px !important;
+          }
+          .sheet-followup-body section {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          .sheet-followup-body input,
+          .sheet-followup-body textarea {
+            font-size: 9px !important;
+            min-height: 0 !important;
+            box-shadow: none !important;
+            outline: 0 !important;
+          }
+          .sheet-followup-body input[type="date"]::-webkit-calendar-picker-indicator {
+            display: none !important;
+          }
           .sheet-followup-body .h-10 { height: 5mm !important; }
           .sheet-followup-body .h-8 { height: 5mm !important; }
           .sheet-followup-body .h-7 { height: 5mm !important; }
-          .sheet-followup-body .w-8 { width: 5mm !important; }
-          .sheet-followup-body .p-4 { padding: 1.5mm !important; }
-          .sheet-followup-body .py-2 { padding-top: 0.5mm !important; padding-bottom: 0.5mm !important; }
-          .sheet-followup-body footer { padding-top: 1mm !important; }
+          .sheet-followup-body .p-6 { padding: 8mm 10mm !important; }
           .sheet-followup-body section { box-shadow: none !important; }
+          .sheet-followup-body .sheet-watermark img {
+            width: 120mm !important;
+            height: 120mm !important;
+            opacity: 0.055 !important;
+            print-color-adjust: exact !important;
+            -webkit-print-color-adjust: exact !important;
+          }
         }
       `}</style>
 
       {/* Top nav */}
-      <header className="print:hidden sticky top-0 z-50 flex justify-between items-center w-full px-6 py-2 bg-background border-b border-border/70">
-        <span className="text-base font-bold text-primary">Ophthalmic Clinic Management</span>
+      <header className="consultant-followup-toolbar print:hidden sticky top-0 z-50 flex justify-between items-center w-full px-5 py-2 bg-[#f8f9fb]/95 border-b border-[#c3c6d6]">
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="border-[#737685] text-foreground text-xs font-bold px-4 py-2 rounded hover:bg-[#edeef0]"
+            onClick={() =>
+              setLocation(`/sheets/consultant/${initialPatientId ?? ""}`)
+            }
+          >
+            كشف الاستشاري
+          </Button>
+          <div className="w-60">
+            <PatientPicker
+              initialPatientId={initialPatientId}
+              onSelect={onPickPatient}
+            />
+          </div>
+        </div>
         <div className="flex items-center gap-3">
           <Button
             type="button"
-            variant="outline"
-            className="border-[#737685] text-foreground text-xs font-bold px-4 py-2 rounded uppercase tracking-wider hover:bg-[#edeef0]"
-            onClick={() => setLocation(`/sheets/consultant/${initialPatientId ?? ""}`)}
-          >
-            ← Consultant Sheet
-          </Button>
-          <div className="w-60">
-            <PatientPicker initialPatientId={initialPatientId} onSelect={onPickPatient} />
-          </div>
-          <Button
-            type="button"
-            className="bg-[#003d9b] text-white text-xs font-bold px-4 py-2 rounded uppercase tracking-wider hover:opacity-80 active:scale-95 disabled:opacity-60"
+            className="bg-[#003d9b] text-white text-xs font-bold px-4 py-2 rounded hover:opacity-80 active:scale-95 disabled:opacity-60"
             onClick={handleSaveFollowup}
             disabled={saveFollowupSheetMutation.isPending}
           >
-            {saveFollowupSheetMutation.isPending ? "Saving..." : "Save Sheet"}
+            {saveFollowupSheetMutation.isPending ? "جاري الحفظ..." : "حفظ"}
           </Button>
           <Button
             type="button"
             variant="outline"
-            className="border-[#737685] text-foreground text-xs font-bold px-4 py-2 rounded uppercase tracking-wider hover:bg-[#edeef0]"
-            onClick={() => void printOrExportPdf(`consultant-followup-${initialPatientId ?? "sheet"}.pdf`, { forceBrowserPrint: true })}
+            className="border-[#737685] text-foreground text-xs font-bold px-4 py-2 rounded hover:bg-[#edeef0]"
+            onClick={() =>
+              void printOrExportPdf(
+                `consultant-followup-${initialPatientId ?? "sheet"}.pdf`,
+                { forceBrowserPrint: true },
+              )
+            }
           >
-            <Printer className="h-3 w-3 mr-1" /> Print PDF
+            <Printer className="h-3 w-3 ml-1" /> طباعة
           </Button>
         </div>
       </header>
 
-      <div className="flex min-h-screen">
+      <div className="consultant-followup-page flex min-h-screen">
         {/* Main content */}
-        <main className="py-8 px-6 flex-1 print:p-0">
-          <div className="print-page-center-a4">
+        <main className="py-6 px-4 flex-1 print:p-0">
+          <div className="consultant-followup-shell print-page-center-a4">
             <FollowupTablesBody
               titleEn="Consultant Follow-up"
               titleAr="متابعة الاستشاري"

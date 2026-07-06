@@ -159,6 +159,8 @@ export const ROUTES = {
   marketingSettings: "/marketing/settings",
   medicalReports: "/medical-reports",
   medicalReportsId: "/medical-reports/:id",
+  clinicalReport: "/clinical-report",
+  clinicalReportId: "/clinical-report/:id",
   medicalSheets: "/medical-sheets",
   medicalFileDetail: "/medicalfile/:id",
   medicalFile: "/medicalfile",

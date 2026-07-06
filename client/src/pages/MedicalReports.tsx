@@ -803,6 +803,22 @@ export default function MedicalReports() {
               fireOnInitialPatientLoad={false}
             />
             {selectedPatientId ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setLocation(
+                    inHubReports
+                      ? `/patient-hub/clinical-report/${selectedPatientId}`
+                      : `/clinical-report/${selectedPatientId}`,
+                  )
+                }
+              >
+                <FileText className="h-4 w-4 ml-1" /> التقرير السريري الشامل
+              </Button>
+            ) : null}
+            {selectedPatientId ? (
               <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-3">
                 <p className="text-sm font-semibold">
                   التقارير المحفوظة لهذا المريض

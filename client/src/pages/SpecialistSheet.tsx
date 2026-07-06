@@ -21,8 +21,9 @@ import {
 import { usePrintMode } from "@/hooks/usePrintMode";
 import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 import { printOrExportPdf } from "@/lib/nativePdf";
-import { BRAND_NAME_AR, BRAND_NAME_EN } from "@/lib/brand";
 import SheetPatientVisionBlock from "@/components/sheets/SheetPatientVisionBlock";
+import SheetPrintHeader from "@/components/sheets/SheetPrintHeader";
+import SheetWatermark from "@/components/sheets/SheetWatermark";
 import {
   formatSheetDate,
   getPatientSheetDateOfBirth,
@@ -449,6 +450,39 @@ export default function SpecialistSheet() {
         .specialist-sheet .border-b-2 {
           border-bottom: none !important;
         }
+        .specialist-sheet .sheet-print-header {
+          display: grid !important;
+          grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+          align-items: center !important;
+          border-bottom: 2px solid #003d9b !important;
+          padding-bottom: 10px !important;
+          margin-bottom: 10px !important;
+        }
+        .specialist-sheet .sheet-print-clinic-name {
+          font-size: 24px !important;
+          font-weight: 700 !important;
+          line-height: 1.1 !important;
+          color: #003d9b !important;
+        }
+        .specialist-sheet .sheet-print-clinic-tagline {
+          font-size: 14px !important;
+          font-weight: 400 !important;
+          line-height: 1.2 !important;
+          color: #434654 !important;
+        }
+        .specialist-sheet .sheet-print-logo {
+          width: 64px !important;
+          height: 64px !important;
+        }
+        .specialist-sheet .sheet-print-type {
+          font-size: 20px !important;
+          font-weight: 700 !important;
+          line-height: 1.15 !important;
+          color: #191c1e !important;
+        }
+        .specialist-sheet .sheet-watermark {
+          opacity: 1 !important;
+        }
         @media print {
           .print-page-center-a5 { width: 100%; margin: 0 auto; }
           body { background: white !important; }
@@ -497,9 +531,33 @@ export default function SpecialistSheet() {
             text-decoration: none !important;
             line-height: 1.15 !important;
           }
-          .specialist-sheet .sheet-center-header {
-            padding-bottom: 3px !important;
-            margin-bottom: 3px !important;
+          .specialist-sheet .sheet-print-header {
+            border-bottom: 2px solid #003d9b !important;
+            padding-bottom: 2mm !important;
+            margin-bottom: 2mm !important;
+          }
+          .specialist-sheet .sheet-print-clinic-name {
+            font-size: 21px !important;
+            font-weight: 700 !important;
+          }
+          .specialist-sheet .sheet-print-clinic-tagline {
+            font-size: 12px !important;
+            font-weight: 400 !important;
+          }
+          .specialist-sheet .sheet-print-logo {
+            width: 15mm !important;
+            height: 15mm !important;
+          }
+          .specialist-sheet .sheet-print-type {
+            font-size: 18px !important;
+            font-weight: 700 !important;
+          }
+          .specialist-sheet .sheet-watermark img {
+            width: 120mm !important;
+            height: 120mm !important;
+            opacity: 0.055 !important;
+            print-color-adjust: exact !important;
+            -webkit-print-color-adjust: exact !important;
           }
           .specialist-sheet .p-8 { padding: 0 !important; }
           .specialist-sheet .p-4 { padding: 4px !important; }
@@ -542,7 +600,6 @@ export default function SpecialistSheet() {
           <Button variant="ghost" size="sm" type="button" onClick={() => goBack()}>
             رجوع
           </Button>
-          <span className="text-xl font-bold text-[#003d9b]">{BRAND_NAME_EN}</span>
         </div>
         <div className="flex items-center gap-3">
           <Button
@@ -576,7 +633,9 @@ export default function SpecialistSheet() {
 
       {/* Main Content */}
       <div className="py-8 print:py-0 print-page-center-a5">
-        <div data-mobile-pdf-root className={`specialist-sheet bg-white text-[#191c1e] font-sans p-8 border border-[#c3c6d6] shadow-sm flex flex-col gap-5 w-[210mm] max-w-full mx-auto ${printMode.printView ? "hidden print:flex" : ""}`} dir="ltr">
+        <div data-mobile-pdf-root className={`specialist-sheet relative overflow-hidden bg-white text-[#191c1e] font-sans p-8 border border-[#c3c6d6] shadow-sm flex flex-col gap-5 w-[210mm] max-w-full mx-auto ${printMode.printView ? "hidden print:flex" : ""}`} dir="ltr">
+          <SheetWatermark />
+          <SheetPrintHeader sheetType="كشف اخصائي" />
 
           <SheetPatientVisionBlock
             patientName={formData.patientName}

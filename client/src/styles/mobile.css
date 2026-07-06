@@ -602,31 +602,6 @@
     height: auto !important;
   }
 
-  /* Faint centered logo watermark behind every sheet's printed content */
-  .sheet-layout::before,
-  .lasik-print-root::before,
-  .specialist-print-root::before,
-  .followup-print-root::before,
-  .a4-page-card::before {
-    content: "" !important;
-    position: absolute !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    width: 60% !important;
-    max-width: 420px !important;
-    aspect-ratio: 1 / 1 !important;
-    background-image: url("/center-logo.png") !important;
-    background-repeat: no-repeat !important;
-    background-position: center !important;
-    background-size: contain !important;
-    opacity: 0.08 !important;
-    pointer-events: none !important;
-    z-index: 0 !important;
-    print-color-adjust: exact !important;
-    -webkit-print-color-adjust: exact !important;
-  }
-
   .sheet-layout > *,
   .lasik-print-root > *,
   .specialist-print-root > *,
