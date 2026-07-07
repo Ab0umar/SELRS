@@ -81,7 +81,7 @@ export default function SheetPatientVisionBlock({
   onRefractionOSChange: (v: EyeSC) => void;
   readingValue: string;
   onReadingValueChange: (v: string) => void;
-  /** Render Eye/UCVA/BCVA/IOP table minimized on the left with Clinical Refraction beside it (Specialist sheet layout). */
+  /** Render IOP above a separate Eye/UCVA/BCVA table beside Clinical Refraction (Specialist sheet layout). */
   compactEyeTable?: boolean;
 }) {
   const inp =
@@ -180,14 +180,32 @@ export default function SheetPatientVisionBlock({
       {(() => {
         const compactInp =
           "w-14 text-center bg-transparent border-0 border-b border-solid border-[#737685] focus:outline-none focus:border-[#003d9b] py-1 text-sm";
-        const eyeTable = (
+        const iopTable = (
+          <table className="text-center border-collapse w-auto">
+            <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
+              <tr>
+                <th className={`${ctd} w-auto`}>IOP</th>
+                <th className={`${ctd} w-auto text-[#003d9b]`}>OD</th>
+                <th className={`${ctd} w-auto text-[#526069]`}>OS</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className={`${ctd} bg-[#f3f4f6] text-[#434654]`}>mmHg</td>
+                <td className={ctd}><input className={compactInp} value={iopOD} onChange={onText(onIopODChange)} /></td>
+                <td className={ctd}><input className={compactInp} value={iopOS} onChange={onText(onIopOSChange)} /></td>
+              </tr>
+            </tbody>
+          </table>
+        );
+
+        const acuityTable = (
           <table className="text-center border-collapse w-auto">
             <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
               <tr>
                 <th className={`${ctd} w-auto`}>Eye</th>
                 <th className={`${ctd} w-auto`}>UCVA</th>
                 <th className={`${ctd} w-auto`}>BCVA</th>
-                <th className={`${ctd} w-auto`}>IOP</th>
               </tr>
             </thead>
             <tbody>
@@ -195,13 +213,11 @@ export default function SheetPatientVisionBlock({
                 <td className={`${ctd} text-[#003d9b] bg-[#003d9b]/5`}>OD</td>
                 <td className={ctd}><input className={compactInp} value={ucvaOD} onChange={onText(onUcvaODChange)} /></td>
                 <td className={ctd}><input className={compactInp} value={bcvaOD} onChange={onText(onBcvaODChange)} /></td>
-                <td className={ctd}><input className={compactInp} value={iopOD} onChange={onText(onIopODChange)} /></td>
               </tr>
               <tr>
                 <td className={`${ctd} text-[#526069] bg-[#f3f4f6]`}>OS</td>
                 <td className={ctd}><input className={compactInp} value={ucvaOS} onChange={onText(onUcvaOSChange)} /></td>
                 <td className={ctd}><input className={compactInp} value={bcvaOS} onChange={onText(onBcvaOSChange)} /></td>
-                <td className={ctd}><input className={compactInp} value={iopOS} onChange={onText(onIopOSChange)} /></td>
               </tr>
             </tbody>
           </table>
@@ -246,7 +262,10 @@ export default function SheetPatientVisionBlock({
         if (compactEyeTable) {
           return (
             <section className="print-sheet-visual-grid flex flex-nowrap items-start gap-3" dir="ltr">
-              <div className="w-auto shrink-0" dir="ltr">{eyeTable}</div>
+              <div className="flex w-auto shrink-0 flex-col gap-2" dir="ltr">
+                {iopTable}
+                {acuityTable}
+              </div>
               <div className="flex-1 min-w-0">{refractionTable}</div>
             </section>
           );
@@ -254,7 +273,10 @@ export default function SheetPatientVisionBlock({
 
         return (
           <>
-            <section className="print-sheet-visual-grid">{eyeTable}</section>
+            <section className="print-sheet-visual-grid flex flex-col gap-2">
+              {iopTable}
+              {acuityTable}
+            </section>
             <section>{refractionTable}</section>
           </>
         );

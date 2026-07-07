@@ -573,6 +573,32 @@ export default function KfConsultantSheet() {
           </div>
         </div>
 
+        {/* IOP */}
+        <div className="mb-2 border border-gray-200 rounded-lg overflow-hidden" dir="ltr">
+          <table className="w-full border-collapse text-center text-[11px]">
+            <thead>
+              <tr className="bg-[#1B2B6B] text-white">
+                <th className="px-3 py-2 font-semibold border-r border-[#2d3f82]">IOP</th>
+                <th className="px-3 py-2 font-semibold border-r border-[#2d3f82]">OD</th>
+                <th className="px-3 py-2 font-semibold">OS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(() => {
+                const odIopNum = Number(formData.iopOD);
+                const osIopNum = Number(formData.iopOS);
+                return (
+                  <tr>
+                    <td className="px-3 py-1.5 border-r border-gray-200 bg-gray-50 text-gray-600">mmHg</td>
+                    <td className="px-1 py-1 border-r border-gray-200"><Input className={`text-center text-[11px] h-7 border-gray-300 p-0 w-14 mx-auto ${odIopNum > 21 ? "text-red-600 font-bold" : ""}`} value={formData.iopOD} onChange={e => setFormData(p => ({ ...p, iopOD: e.target.value }))} placeholder="mmHg" /></td>
+                    <td className="px-1 py-1"><Input className={`text-center text-[11px] h-7 border-gray-300 p-0 w-14 mx-auto ${osIopNum > 21 ? "text-red-600 font-bold" : ""}`} value={formData.iopOS} onChange={e => setFormData(p => ({ ...p, iopOS: e.target.value }))} placeholder="mmHg" /></td>
+                  </tr>
+                );
+              })()}
+            </tbody>
+          </table>
+        </div>
+
         {/* Refraction Table */}
         <div className="mb-4 border border-gray-200 rounded-lg overflow-hidden" dir="ltr">
           <table className="w-full border-collapse text-center text-[11px]">
@@ -582,7 +608,6 @@ export default function KfConsultantSheet() {
                 <th className="px-3 py-2.5 font-semibold border-r border-[#2d3f82]">UCVA</th>
                 <th className="px-3 py-2.5 font-semibold border-r border-[#2d3f82]">BCVA</th>
                 <th className="px-3 py-2.5 font-semibold border-r border-[#2d3f82]" colSpan={3}>REFRACTION (S/C/A)</th>
-                <th className="px-3 py-2.5 font-semibold border-r border-[#2d3f82]">IOP</th>
                 <th className="px-3 py-2.5 font-semibold">DOMINANT</th>
               </tr>
             </thead>
@@ -591,12 +616,9 @@ export default function KfConsultantSheet() {
                 const ucva = isOD ? formData.ucvaOD : formData.ucvaOS;
                 const bcva = isOD ? formData.bcvaOD : formData.bcvaOS;
                 const ref = isOD ? formData.refractionOD : formData.refractionOS;
-                const iop = isOD ? formData.iopOD : formData.iopOS;
                 const setUcva = isOD ? (v: string) => setFormData(p => ({ ...p, ucvaOD: v })) : (v: string) => setFormData(p => ({ ...p, ucvaOS: v }));
                 const setBcva = isOD ? (v: string) => setFormData(p => ({ ...p, bcvaOD: v })) : (v: string) => setFormData(p => ({ ...p, bcvaOS: v }));
                 const setRef = isOD ? (k: "s"|"c"|"a", v: string) => setFormData(p => ({ ...p, refractionOD: { ...p.refractionOD, [k]: v } })) : (k: "s"|"c"|"a", v: string) => setFormData(p => ({ ...p, refractionOS: { ...p.refractionOS, [k]: v } }));
-                const setIop = isOD ? (v: string) => setFormData(p => ({ ...p, iopOD: v })) : (v: string) => setFormData(p => ({ ...p, iopOS: v }));
-                const iopNum = Number(iop);
                 return (
                   <tr key={eye} className="border-b border-gray-200 last:border-b-0">
                     <td className="px-3 py-2 border-r border-gray-200 text-left">
@@ -608,7 +630,6 @@ export default function KfConsultantSheet() {
                     <td className="px-1 py-1 border-r border-gray-200"><Input className="text-center text-[11px] h-7 border-gray-300 p-0 w-12 mx-auto" value={ref.a} onChange={e => setRef("a", e.target.value)} placeholder="A" /></td>
                     <td className="px-1 py-1 border-r border-gray-200"><Input className="text-center text-[11px] h-7 border-gray-300 p-0 w-12 mx-auto" value={ref.c} onChange={e => setRef("c", e.target.value)} placeholder="C" /></td>
                     <td className="px-1 py-1 border-r border-gray-200"><Input className="text-center text-[11px] h-7 border-gray-300 p-0 w-12 mx-auto" value={ref.s} onChange={e => setRef("s", e.target.value)} placeholder="S" /></td>
-                    <td className="px-1 py-1 border-r border-gray-200"><Input className={`text-center text-[11px] h-7 border-gray-300 p-0 w-14 mx-auto ${iopNum > 21 ? "text-red-600 font-bold" : ""}`} value={iop} onChange={e => setIop(e.target.value)} placeholder="mmHg" /></td>
                     <td className="px-3 py-1"><input type="radio" name="dominant-eye" value={eye} checked={formData.dominantEye === eye} onChange={() => setFormData(p => ({ ...p, dominantEye: eye }))} className="h-4 w-4 accent-[#003D9B]" /></td>
                   </tr>
                 );

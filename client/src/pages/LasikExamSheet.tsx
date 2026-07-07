@@ -755,20 +755,30 @@ export default function LasikExamSheet() {
           ) : null}
 
           {/* Visual Acuity */}
-          <div className="print-lasik-visual-grid w-72 shrink-0" dir="ltr">
+          <div className="print-lasik-visual-grid flex w-72 shrink-0 flex-col gap-2" dir="ltr">
             <table className="w-full text-center border-collapse">
               <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
-                <tr><th className={ctd}>Eye</th><th className={ctd}>UCVA</th><th className={ctd}>BCVA</th><th className={ctd}>IOP</th></tr>
+                <tr><th className={ctd}>IOP</th><th className={`${ctd} text-[#003d9b]`}>OD</th><th className={`${ctd} text-[#526069]`}>OS</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className={`${ctd} bg-[#f3f4f6] text-[#434654]`}>mmHg</td>
+                  <td className={ctd}><input className={`${inp} ${!Number.isNaN(odIopNum) && odIopNum > 21 ? "text-red-600" : ""}`} value={examData.autorefraction.od.iop} onChange={mkAutoPatch("od", "iop")} /></td>
+                  <td className={ctd}><input className={`${inp} ${!Number.isNaN(osIopNum) && osIopNum > 21 ? "text-red-600" : ""}`} value={examData.autorefraction.os.iop} onChange={mkAutoPatch("os", "iop")} /></td>
+                </tr>
+              </tbody>
+            </table>
+            <table className="w-full text-center border-collapse">
+              <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
+                <tr><th className={ctd}>Eye</th><th className={ctd}>UCVA</th><th className={ctd}>BCVA</th></tr>
               </thead>
               <tbody>
                 <tr><td className={`${ctd} text-[#003d9b] bg-[#003d9b]/5`}>OD</td>
                   <td className={ctd}><input className={inp} value={examData.autorefraction.od.ucva} onChange={mkAutoPatch("od", "ucva")} /></td>
-                  <td className={ctd}><input className={inp} value={examData.autorefraction.od.bcva} onChange={mkAutoPatch("od", "bcva")} /></td>
-                  <td className={ctd}><input className={`${inp} ${!Number.isNaN(odIopNum) && odIopNum > 21 ? "text-red-600" : ""}`} value={examData.autorefraction.od.iop} onChange={mkAutoPatch("od", "iop")} /></td></tr>
+                  <td className={ctd}><input className={inp} value={examData.autorefraction.od.bcva} onChange={mkAutoPatch("od", "bcva")} /></td></tr>
                 <tr><td className={`${ctd} text-[#526069] bg-[#f3f4f6]`}>OS</td>
                   <td className={ctd}><input className={inp} value={examData.autorefraction.os.ucva} onChange={mkAutoPatch("os", "ucva")} /></td>
-                  <td className={ctd}><input className={inp} value={examData.autorefraction.os.bcva} onChange={mkAutoPatch("os", "bcva")} /></td>
-                  <td className={ctd}><input className={`${inp} ${!Number.isNaN(osIopNum) && osIopNum > 21 ? "text-red-600" : ""}`} value={examData.autorefraction.os.iop} onChange={mkAutoPatch("os", "iop")} /></td></tr>
+                  <td className={ctd}><input className={inp} value={examData.autorefraction.os.bcva} onChange={mkAutoPatch("os", "bcva")} /></td></tr>
               </tbody>
             </table>
           </div>
