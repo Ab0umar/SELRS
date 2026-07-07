@@ -2074,6 +2074,44 @@ export const medicalExaminationsRoutes = {
       return { success: true };
     }),
 
+  undoVisitTreated: protectedProcedure
+    .input(z.object({ visitId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const permissions = await db.getEffectiveUserPermissions(
+        ctx.user.id,
+        ctx.user.role,
+      );
+      const role = String(ctx.user.role ?? "").toLowerCase();
+      const staffRoles = [
+        "doctor",
+        "nurse",
+        "technician",
+        "reception",
+        "manager",
+        "admin",
+      ];
+      const canUpdateQueue =
+        permissions.includes("/patients") || staffRoles.includes(role);
+      if (!canUpdateQueue) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to update patient queue status.",
+        });
+      }
+
+      const result = await db.undoVisitTreated(input.visitId);
+
+      await db.logAuditEvent(
+        ctx.user.id,
+        "UNDO_VISIT_TREATED",
+        "visit",
+        input.visitId,
+        { restoredStatus: result.queueStatus },
+      );
+
+      return { success: true, queueStatus: result.queueStatus };
+    }),
+
   addFollowupToQueue: protectedProcedure
     .input(
       z.object({
@@ -2105,13 +2143,18 @@ export const medicalExaminationsRoutes = {
       const branch =
         String((patient as any)?.branch ?? "").trim() || "examinations";
 
+      const dateIso = visitDate.toISOString().split("T")[0];
+      const clinicNo = await db.getNextAlternatingClinicNo(dateIso);
+      const clinicStatus = clinicNo === 1 ? "clinic1" : "clinic2";
+
       const visit = await db.createVisit({
         patientId: input.patientId,
         visitDate,
         visitType: "followup",
         branch,
-        queueStatus: "checkedIn",
+        queueStatus: clinicStatus as any,
         checkedInAt: new Date(),
+        movedToClinicAt: new Date(),
       });
 
       const visitId = (visit as any)?.insertId as number | undefined;
@@ -2147,7 +2190,10 @@ export const medicalExaminationsRoutes = {
         // Daily rollover: carry forward unfinished old queues as treated.
         await db.rolloverPreviousQueueVisitsAsTreated(dateIso);
 
-        // Auto-assign checkedIn patients to clinic1/clinic2
+        // Triage checkedIn patients that don't need a clinic slot
+        // (pentacam-code -> pentacam, no matching code -> treated immediately).
+        // Clinic1/clinic2 slot filling itself only happens via cascadeQueueStatus,
+        // triggered when a patient is marked treated.
         await db.autoAdvanceQueuePatients(dateIso);
 
         const visits = await db.getTodayVisitsByQueueStatus(

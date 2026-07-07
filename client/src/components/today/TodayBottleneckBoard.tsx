@@ -246,6 +246,8 @@ function CompactPatientCard({
   onSelectPatient,
   onMarkVisitTreated,
   markVisitTreatedPendingVisitId,
+  onUndoVisitTreated,
+  undoVisitTreatedPendingVisitId,
   isReadOnly,
 }: {
   patient: TodayQueuePatient;
@@ -253,15 +255,21 @@ function CompactPatientCard({
   onSelectPatient: () => void;
   onMarkVisitTreated: (visitId: number) => void;
   markVisitTreatedPendingVisitId: number | null;
+  onUndoVisitTreated?: (visitId: number) => void;
+  undoVisitTreatedPendingVisitId?: number | null;
   isReadOnly?: boolean;
 }) {
   const st = patient.queueStatus as QueueStage;
   const meta = STAGE_META[st];
   const visitId = coercePositiveInt((patient as { visitId?: unknown }).visitId);
   const canMarkTreated = !isReadOnly && st !== "treated" && visitId != null;
+  const canUndoTreated = !isReadOnly && st === "treated" && visitId != null;
   const markingThis =
     markVisitTreatedPendingVisitId != null &&
     markVisitTreatedPendingVisitId === visitId;
+  const undoingThis =
+    undoVisitTreatedPendingVisitId != null &&
+    undoVisitTreatedPendingVisitId === visitId;
   const doctorText = String(patient.doctorName ?? "").trim();
   const serviceText = getServiceLabel(patient.serviceType);
 
@@ -310,6 +318,24 @@ function CompactPatientCard({
           </Button>
         </div>
       ) : null}
+      {canUndoTreated ? (
+        <div className="flex justify-end border-t border-border/40 px-2.5 pb-2 pt-1.5">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={undoingThis}
+            aria-label={`تراجع عن معالجة ${getPatientLabel(patient)}`}
+            className="h-7 gap-1.5"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (visitId != null) onUndoVisitTreated?.(visitId);
+            }}
+          >
+            تراجع
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -320,6 +346,8 @@ function GridPatientCard({
   onSelectPatient,
   onMarkVisitTreated,
   markVisitTreatedPendingVisitId,
+  onUndoVisitTreated,
+  undoVisitTreatedPendingVisitId,
   isReadOnly,
 }: {
   patient: TodayQueuePatient;
@@ -327,15 +355,21 @@ function GridPatientCard({
   onSelectPatient: () => void;
   onMarkVisitTreated: (visitId: number) => void;
   markVisitTreatedPendingVisitId: number | null;
+  onUndoVisitTreated?: (visitId: number) => void;
+  undoVisitTreatedPendingVisitId?: number | null;
   isReadOnly?: boolean;
 }) {
   const st = patient.queueStatus as QueueStage;
   const meta = STAGE_META[st];
   const visitId = coercePositiveInt((patient as { visitId?: unknown }).visitId);
   const canMarkTreated = !isReadOnly && st !== "treated" && visitId != null;
+  const canUndoTreated = !isReadOnly && st === "treated" && visitId != null;
   const markingThis =
     markVisitTreatedPendingVisitId != null &&
     markVisitTreatedPendingVisitId === visitId;
+  const undoingThis =
+    undoVisitTreatedPendingVisitId != null &&
+    undoVisitTreatedPendingVisitId === visitId;
   const doctorText = String(patient.doctorName ?? "").trim() || "—";
   const serviceText = getServiceLabel(patient.serviceType);
   const timeText = String(patient.checkedInTime ?? "").trim() || "—";
@@ -419,6 +453,25 @@ function GridPatientCard({
               }}
             >
               <Check className="h-3.5 w-3.5" aria-hidden />
+            </Button>
+          </div>
+        ) : null}
+        {canUndoTreated ? (
+          <div className="mt-2 flex justify-end sm:mt-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={undoingThis}
+              aria-label={`تراجع عن معالجة ${getPatientLabel(patient)}`}
+              className="h-9 shrink-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                if (visitId != null) onUndoVisitTreated?.(visitId);
+              }}
+            >
+              تراجع
             </Button>
           </div>
         ) : null}
@@ -536,6 +589,8 @@ function KanbanColumn({
   onSelectPatient,
   onMarkVisitTreated,
   markVisitTreatedPendingVisitId,
+  onUndoVisitTreated,
+  undoVisitTreatedPendingVisitId,
   isReadOnly,
 }: {
   stage: QueueStage;
@@ -549,6 +604,8 @@ function KanbanColumn({
   onSelectPatient: (patient: TodayQueuePatient) => void;
   onMarkVisitTreated: (visitId: number, patient: TodayQueuePatient) => void;
   markVisitTreatedPendingVisitId: number | null;
+  onUndoVisitTreated: (visitId: number) => void;
+  undoVisitTreatedPendingVisitId: number | null;
   isReadOnly?: boolean;
 }) {
   const meta = STAGE_META[stage];
@@ -631,6 +688,8 @@ function KanbanColumn({
                 onMarkVisitTreated(visitId, patient)
               }
               markVisitTreatedPendingVisitId={markVisitTreatedPendingVisitId}
+              onUndoVisitTreated={onUndoVisitTreated}
+              undoVisitTreatedPendingVisitId={undoVisitTreatedPendingVisitId}
               isReadOnly={isReadOnly}
             />
           ))
@@ -695,6 +754,16 @@ export function TodayBottleneckBoard({
     },
     onError: (error: unknown) => {
       toast.error(getTrpcErrorMessage(error, "تعذر تحديث حالة المرضى"));
+    },
+  });
+
+  const undoVisitTreated = trpc.medical.undoVisitTreated.useMutation({
+    onSuccess: async () => {
+      await utils.medical.getTodayPatientsByQueueStatus.invalidate();
+      toast.success("تم التراجع عن حالة المعالج");
+    },
+    onError: (error: unknown) => {
+      toast.error(getTrpcErrorMessage(error, "تعذر التراجع"));
     },
   });
 
@@ -878,6 +947,14 @@ export function TodayBottleneckBoard({
       patientId: patient.id,
       date: selectedDate,
     });
+  };
+
+  const undoVisitTreatedPendingVisitId = undoVisitTreated.isPending
+    ? (undoVisitTreated.variables?.visitId ?? null)
+    : null;
+
+  const handleUndoVisitTreated = (visitId: number) => {
+    undoVisitTreated.mutate({ visitId });
   };
 
   return (
@@ -1184,6 +1261,12 @@ export function TodayBottleneckBoard({
                     }}
                     markVisitTreatedPendingVisitId={
                       markVisitTreatedPendingVisitId
+                    }
+                    onUndoVisitTreated={(visitId) => {
+                      if (!isHistoricalDate) handleUndoVisitTreated(visitId);
+                    }}
+                    undoVisitTreatedPendingVisitId={
+                      undoVisitTreatedPendingVisitId
                     }
                     isReadOnly={isHistoricalDate}
                   />

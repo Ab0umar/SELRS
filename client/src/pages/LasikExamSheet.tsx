@@ -657,13 +657,13 @@ export default function LasikExamSheet() {
         <section className="print-lasik-patient-grid p-4 bg-[#f3f4f6] rounded-xl border border-[#c3c6d6] flex flex-col gap-2 text-sm" dir="rtl">
           <div className="patient-row-bold flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs font-bold">
             <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="text-[#434654]">الاسم:</span>
-              <input size={(formData.patientName || "").length || 12} className="text-[#003d9b] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right font-bold text-xs" dir="rtl" value={formData.patientName} onChange={(e) => setFormData((p) => ({ ...p, patientName: e.target.value }))} /></label>
+              <input size={(formData.patientName || "").length || 12} className="patient-detail-emphasis text-[#003d9b] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right text-sm font-bold" dir="rtl" value={formData.patientName} onChange={(e) => setFormData((p) => ({ ...p, patientName: e.target.value }))} /></label>
             <span className="inline-flex items-center gap-1 whitespace-nowrap"><span className="text-[#434654]">تاريخ الميلاد:</span>
               <span className="px-1 border-b border-[#c3c6d6] text-right">{displaySheetDate(formData.dateOfBirth)}</span></span>
             <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="text-[#434654]">السن:</span>
-              <input size={(formData.age || "").length || 3} className="bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right font-bold text-xs" dir="rtl" value={formData.age} onChange={(e) => setFormData((p) => ({ ...p, age: e.target.value }))} /></label>
+              <input size={(formData.age || "").length || 3} className="patient-detail-emphasis bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right text-sm font-bold" dir="rtl" value={formData.age} onChange={(e) => setFormData((p) => ({ ...p, age: e.target.value }))} /></label>
             <label className="inline-flex items-center gap-1 whitespace-nowrap"><span className="text-[#434654]">المهنة:</span>
-              <input size={(formData.job || "").length || 8} className="bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right font-bold text-xs" dir="rtl" value={formData.job} onChange={(e) => setFormData((p) => ({ ...p, job: e.target.value }))} /></label>
+              <input size={(formData.job || "").length || 8} className="patient-detail-emphasis bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right text-sm font-bold" dir="rtl" value={formData.job} onChange={(e) => setFormData((p) => ({ ...p, job: e.target.value }))} /></label>
           </div>
           <div className="patient-row-normal flex flex-nowrap items-center justify-center gap-x-3 gap-y-2 text-xs font-normal">
             <label className="inline-flex items-center gap-1 whitespace-nowrap min-w-0 shrink"><span className="text-[#434654] shrink-0">العنوان:</span>
@@ -755,17 +755,19 @@ export default function LasikExamSheet() {
           ) : null}
 
           {/* Visual Acuity */}
-          <div className="print-lasik-visual-grid w-56 shrink-0" dir="ltr">
+          <div className="print-lasik-visual-grid w-72 shrink-0" dir="ltr">
             <table className="w-full text-center border-collapse">
               <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
-                <tr><th className={ctd}>Eye</th><th className={ctd}>UCVA</th><th className={ctd}>IOP</th></tr>
+                <tr><th className={ctd}>Eye</th><th className={ctd}>UCVA</th><th className={ctd}>BCVA</th><th className={ctd}>IOP</th></tr>
               </thead>
               <tbody>
                 <tr><td className={`${ctd} text-[#003d9b] bg-[#003d9b]/5`}>OD</td>
                   <td className={ctd}><input className={inp} value={examData.autorefraction.od.ucva} onChange={mkAutoPatch("od", "ucva")} /></td>
+                  <td className={ctd}><input className={inp} value={examData.autorefraction.od.bcva} onChange={mkAutoPatch("od", "bcva")} /></td>
                   <td className={ctd}><input className={`${inp} ${!Number.isNaN(odIopNum) && odIopNum > 21 ? "text-red-600" : ""}`} value={examData.autorefraction.od.iop} onChange={mkAutoPatch("od", "iop")} /></td></tr>
                 <tr><td className={`${ctd} text-[#526069] bg-[#f3f4f6]`}>OS</td>
                   <td className={ctd}><input className={inp} value={examData.autorefraction.os.ucva} onChange={mkAutoPatch("os", "ucva")} /></td>
+                  <td className={ctd}><input className={inp} value={examData.autorefraction.os.bcva} onChange={mkAutoPatch("os", "bcva")} /></td>
                   <td className={ctd}><input className={`${inp} ${!Number.isNaN(osIopNum) && osIopNum > 21 ? "text-red-600" : ""}`} value={examData.autorefraction.os.iop} onChange={mkAutoPatch("os", "iop")} /></td></tr>
               </tbody>
             </table>
@@ -778,31 +780,29 @@ export default function LasikExamSheet() {
             <thead className="bg-[#e7e8ea] text-xs uppercase font-bold">
               <tr>
                 <th className={`${ctd} w-48`} rowSpan={2}>Clinical Refraction</th>
-                <th className={`${ctd} text-[#003d9b]`} colSpan={4}>OD (Right)</th>
-                <th className={`${ctd} text-[#526069]`} colSpan={4}>OS (Left)</th>
+                <th className={`${ctd} text-[#003d9b]`} colSpan={3}>OD (Right)</th>
+                <th className={`${ctd} text-[#526069]`} colSpan={3}>OS (Left)</th>
               </tr>
-              <tr><th className={ctd}>BCVA</th><th className={ctd}>S</th><th className={ctd}>C</th><th className={ctd}>A</th><th className={ctd}>BCVA</th><th className={ctd}>S</th><th className={ctd}>C</th><th className={ctd}>A</th></tr>
+              <tr><th className={ctd}>S</th><th className={ctd}>C</th><th className={ctd}>A</th><th className={ctd}>S</th><th className={ctd}>C</th><th className={ctd}>A</th></tr>
             </thead>
             <tbody className="font-mono">
               <tr>
                 <td className={`${ctd} text-left bg-[#f3f4f6]`}>Refraction</td>
-                <td className={ctd}><input className={inp} value={examData.autorefraction.od.bcva} onChange={mkAutoPatch("od", "bcva")} /></td>
                 <td className={ctd}><input className={inp} value={examData.autorefraction.od.s} onChange={mkAutoPatch("od", "s")} /></td>
                 <td className={ctd}><input className={inp} value={examData.autorefraction.od.c} onChange={mkAutoPatch("od", "c")} /></td>
                 <td className={ctd}><input className={inp} value={examData.autorefraction.od.axis} onChange={mkAutoPatch("od", "axis")} /></td>
-                <td className={ctd}><input className={inp} value={examData.autorefraction.os.bcva} onChange={mkAutoPatch("os", "bcva")} /></td>
                 <td className={ctd}><input className={inp} value={examData.autorefraction.os.s} onChange={mkAutoPatch("os", "s")} /></td>
                 <td className={ctd}><input className={inp} value={examData.autorefraction.os.c} onChange={mkAutoPatch("os", "c")} /></td>
                 <td className={ctd}><input className={inp} value={examData.autorefraction.os.axis} onChange={mkAutoPatch("os", "axis")} /></td>
               </tr>
               <tr>
                 <td className={`${ctd} text-left bg-[#f3f4f6]`}>Reading</td>
-                <td className={ctd} colSpan={8}><input className={inp} value={readingValue} onChange={(e) => setReadingValue(e.target.value)} /></td>
+                <td className={ctd} colSpan={6}><input className={inp} value={readingValue} onChange={(e) => setReadingValue(e.target.value)} /></td>
               </tr>
               <tr>
                 <td className={`${ctd} text-left bg-[#f3f4f6]`}>Fundus</td>
-                <td className={ctd} colSpan={4}><input className={inp} /></td>
-                <td className={ctd} colSpan={4}><input className={inp} /></td>
+                <td className={ctd} colSpan={3}><input className={inp} /></td>
+                <td className={ctd} colSpan={3}><input className={inp} /></td>
               </tr>
             </tbody>
           </table>
@@ -1046,6 +1046,10 @@ export default function LasikExamSheet() {
           }
           .patient-row-normal input:not([type="checkbox"]):not([type="radio"]) {
             font-weight: 400 !important;
+          }
+          .lasik-sheet .patient-detail-emphasis {
+            font-size: 14px !important;
+            font-weight: 700 !important;
           }
           .lasik-sheet .border-b,
           .lasik-sheet .border-b-2,

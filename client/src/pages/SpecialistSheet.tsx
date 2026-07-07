@@ -531,6 +531,10 @@ export default function SpecialistSheet() {
             text-decoration: none !important;
             line-height: 1.15 !important;
           }
+          .specialist-sheet .patient-detail-emphasis {
+            font-size: 14px !important;
+            font-weight: 700 !important;
+          }
           .specialist-sheet .sheet-print-header {
             border-bottom: 2px solid #003d9b !important;
             padding-bottom: 2mm !important;

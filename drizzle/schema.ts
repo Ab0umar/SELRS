@@ -293,6 +293,13 @@ export const visits = mysqlTable("visits", {
   movedToClinicAt: timestamp("movedToClinicAt"),
   movedToPentacamAt: timestamp("movedToPentacamAt"),
   treatedAt: timestamp("treatedAt"),
+  preTreatedQueueStatus: mysqlEnum("preTreatedQueueStatus", [
+    "checkedIn",
+    "next",
+    "clinic1",
+    "clinic2",
+    "pentacam",
+  ]),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

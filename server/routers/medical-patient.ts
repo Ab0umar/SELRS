@@ -357,9 +357,10 @@ export const medicalPatientRoutes = {
             void autoLinkAndNotifyDoctors(existingCode, existingName, doctorCode);
           }
 
-          // Always create a fresh checkedIn visit for today so the patient
-          // appears in the queue. getTodayPatientsByQueueStatus deduplicates
-          // by patientId, so duplicate visits are harmless for display.
+          // Always create a fresh visit for today so the patient appears in
+          // the queue, routed immediately by service code (no checkedIn wait).
+          // getTodayPatientsByQueueStatus deduplicates by patientId, so
+          // duplicate visits are harmless for display.
           if (existingId > 0) {
             const branchRaw = String(
               (existingByIdentity as any)?.branch ??
@@ -367,15 +368,21 @@ export const medicalPatientRoutes = {
                 "",
             ).trim().toLowerCase();
             const branch = branchRaw === "surgery" ? "surgery" : "examinations";
+            const todayIso = new Date().toISOString().split("T")[0];
+            const routed = await db.resolveInitialQueueStatus(
+              [patientInput.serviceCode, (existingByIdentity as any)?.serviceCode],
+              todayIso,
+            );
             await db
               .createVisit({
                 patientId: existingId,
                 visitDate: new Date(),
                 visitType: "consultation",
                 branch,
-                queueStatus: "checkedIn",
+                queueStatus: routed.queueStatus as any,
                 checkedInAt: new Date(),
-              })
+                [routed.timestampField]: new Date(),
+              } as any)
               .catch((err) => {
                 console.error("[createPatient] createVisit failed for existing patient", existingId, err);
               });
@@ -433,18 +440,25 @@ export const medicalPatientRoutes = {
         console.log(
           `[createPatient] Retrieved patient: doctorId=${(created as any).doctorId}`,
         );
-        // Create today's visit so the patient appears in the queue immediately
+        // Create today's visit so the patient appears in the queue, routed
+        // immediately by service code (no checkedIn wait).
         const newPatientId = Number((created as any)?.id ?? 0);
         if (newPatientId > 0) {
+          const todayIso = new Date().toISOString().split("T")[0];
+          const routed = await db.resolveInitialQueueStatus(
+            [patientInput.serviceCode, (created as any)?.serviceCode],
+            todayIso,
+          );
           await db
             .createVisit({
               patientId: newPatientId,
               visitDate: new Date(),
               visitType: "consultation",
               branch: ((created as any).branch as string) || "examinations",
-              queueStatus: "checkedIn",
+              queueStatus: routed.queueStatus as any,
               checkedInAt: new Date(),
-            })
+              [routed.timestampField]: new Date(),
+            } as any)
             .catch(() => null);
         }
         let pushResult: {

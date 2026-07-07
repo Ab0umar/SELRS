@@ -6952,23 +6952,6 @@ export async function getTodayVisitsByQueueStatus(
   }));
 }
 
-/** Count active patients in clinic1/clinic2 for today. Returns {1: n, 2: n}. */
-async function countClinicPatientsByNo(conn: any, dateIso: string): Promise<Record<number, number>> {
-  const rows = await conn
-    .select({ queueStatus: visits.queueStatus, cnt: sql<number>`COUNT(*)` })
-    .from(visits)
-    .where(and(
-      sql`DATE(${visits.visitDate}) = ${dateIso}`,
-      sql`${visits.queueStatus} IN ('clinic1', 'clinic2')`,
-    ))
-    .groupBy(visits.queueStatus);
-  const result: Record<number, number> = { 1: 0, 2: 0 };
-  for (const r of rows) {
-    if (r.queueStatus === "clinic1") result[1] = Number(r.cnt ?? 0);
-    if (r.queueStatus === "clinic2") result[2] = Number(r.cnt ?? 0);
-  }
-  return result;
-}
 
 export async function getMedicalTotals() {
   const db = await getDb();
@@ -7080,12 +7063,39 @@ const PENTACAM_QUEUE_SERVICE_CODES = new Set([
   "1502", "1524", "1590", "1600", "1601", "1615",
 ]);
 
+/**
+ * Resolve the initial queue status/timestamp for a freshly created visit,
+ * based on the patient's service code(s). Clinic codes alternate 1/2,
+ * pentacam codes route to pentacam, anything else is treated (walk-through)
+ * — no visit should sit in "checkedIn" waiting for later polling to route it.
+ */
+export async function resolveInitialQueueStatus(
+  serviceCodes: Array<string | null | undefined>,
+  dateIso: string,
+): Promise<{ queueStatus: "clinic1" | "clinic2" | "pentacam" | "treated"; timestampField: "movedToClinicAt" | "movedToPentacamAt" | "treatedAt" }> {
+  const codes = new Set(serviceCodes.map((c) => String(c ?? "").trim()).filter(Boolean));
+  const hasClinicCode = [...codes].some((c) => CLINIC_QUEUE_SERVICE_CODES.has(c));
+  const hasPentacamCode = [...codes].some((c) => PENTACAM_QUEUE_SERVICE_CODES.has(c));
+
+  if (hasClinicCode) {
+    const clinicNo = await getNextAlternatingClinicNo(dateIso);
+    return {
+      queueStatus: clinicNo === 1 ? "clinic1" : "clinic2",
+      timestampField: "movedToClinicAt",
+    };
+  }
+  if (hasPentacamCode) {
+    return { queueStatus: "pentacam", timestampField: "movedToPentacamAt" };
+  }
+  return { queueStatus: "treated", timestampField: "treatedAt" };
+}
+
 export async function autoAdvanceQueuePatients(dateIso: string) {
   const conn = await getDb();
   if (!conn) throw new Error("Database not available");
 
   const checkedInRows = await conn
-    .select({ id: visits.id, patientId: visits.patientId })
+    .select({ id: visits.id, patientId: visits.patientId, visitType: visits.visitType })
     .from(visits)
     .where(and(
       sql`DATE(${visits.visitDate}) = ${dateIso}`,
@@ -7112,21 +7122,21 @@ export async function autoAdvanceQueuePatients(dateIso: string) {
     servicesByPatient.set(row.patientId, set);
   }
 
-  const counts = await countClinicPatientsByNo(conn, dateIso);
-
+  // Clinic1/clinic2 slot filling is owned by cascadeQueueStatus (next -> clinic,
+  // one at a time, triggered by a treated event). Here we only triage checkedIn
+  // patients that don't need a clinic slot: pentacam goes straight through,
+  // everything else (no matching service code) is treated immediately.
+  // Followup visits are routed like clinic-service-code visits (left in place
+  // for cascade to pull into clinic1/clinic2), never force-treated.
   for (const row of checkedInRows) {
     const codes = servicesByPatient.get(row.patientId) ?? new Set<string>();
-    const hasClinicCode = [...codes].some((c) => CLINIC_QUEUE_SERVICE_CODES.has(c));
+    const hasClinicCode =
+      row.visitType === "followup" ||
+      [...codes].some((c) => CLINIC_QUEUE_SERVICE_CODES.has(c));
     const hasPentacamCode = [...codes].some((c) => PENTACAM_QUEUE_SERVICE_CODES.has(c));
 
     if (hasClinicCode) {
-      const clinicNo = counts[1] <= counts[2] ? 1 : 2;
-      const clinicStatus = clinicNo === 1 ? "clinic1" : "clinic2";
-      await conn
-        .update(visits)
-        .set({ queueStatus: clinicStatus as any, movedToClinicAt: sql`CURRENT_TIMESTAMP` })
-        .where(eq(visits.id, row.id));
-      counts[clinicNo]++;
+      continue;
     } else if (hasPentacamCode) {
       await conn
         .update(visits)
@@ -7139,6 +7149,27 @@ export async function autoAdvanceQueuePatients(dateIso: string) {
         .where(eq(visits.id, row.id));
     }
   }
+}
+
+/** Determine next clinic (1 or 2) in strict alternation based on the last-assigned clinic today. */
+export async function getNextAlternatingClinicNo(dateIso: string): Promise<1 | 2>;
+export async function getNextAlternatingClinicNo(conn: any, dateIso: string): Promise<1 | 2>;
+export async function getNextAlternatingClinicNo(a: any, b?: string): Promise<1 | 2> {
+  const conn = typeof b === "string" ? a : await getDb();
+  const dateIso = typeof b === "string" ? b : a;
+  if (!conn) throw new Error("Database not available");
+  const rows = await conn
+    .select({ queueStatus: visits.queueStatus })
+    .from(visits)
+    .where(and(
+      sql`DATE(${visits.visitDate}) = ${dateIso}`,
+      sql`${visits.queueStatus} IN ('clinic1', 'clinic2', 'pentacam', 'treated')`,
+      sql`${visits.movedToClinicAt} IS NOT NULL`,
+    ))
+    .orderBy(desc(visits.movedToClinicAt))
+    .limit(1);
+  const last = rows[0]?.queueStatus;
+  return last === "clinic1" ? 2 : 1;
 }
 
 /**
@@ -7171,13 +7202,53 @@ export async function updateVisitQueueStatus(
     timestampCol.movedToClinicAt = sql`CURRENT_TIMESTAMP`;
   if (queueStatus === "pentacam")
     timestampCol.movedToPentacamAt = sql`CURRENT_TIMESTAMP`;
-  if (queueStatus === "treated")
+  if (queueStatus === "treated") {
     timestampCol.treatedAt = sql`CURRENT_TIMESTAMP`;
+    const [current] = await db
+      .select({ queueStatus: visits.queueStatus })
+      .from(visits)
+      .where(eq(visits.id, visitId))
+      .limit(1);
+    if (current?.queueStatus && current.queueStatus !== "treated") {
+      timestampCol.preTreatedQueueStatus = current.queueStatus;
+    }
+  }
 
   await db
     .update(visits)
     .set({ queueStatus: queueStatus as any, ...timestampCol })
     .where(eq(visits.id, visitId));
+}
+
+/** Revert a "treated" visit back to its status right before it was marked treated. */
+export async function undoVisitTreated(visitId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const [current] = await db
+    .select({
+      queueStatus: visits.queueStatus,
+      preTreatedQueueStatus: (visits as any).preTreatedQueueStatus,
+    })
+    .from(visits)
+    .where(eq(visits.id, visitId))
+    .limit(1);
+
+  if (!current || current.queueStatus !== "treated") {
+    throw new Error("Visit is not currently marked treated");
+  }
+
+  const restoreStatus = current.preTreatedQueueStatus || "checkedIn";
+  await db
+    .update(visits)
+    .set({
+      queueStatus: restoreStatus as any,
+      treatedAt: null,
+      preTreatedQueueStatus: null,
+    })
+    .where(eq(visits.id, visitId));
+
+  return { queueStatus: restoreStatus };
 }
 
 export async function getVisitDateIsoById(
@@ -7207,9 +7278,9 @@ export async function cascadeQueueStatus(dateIso: string) {
     OR LOWER(TRIM(${patients.locationType})) NOT IN ('external', 'خارجي', 'outside', 'out')
   )`;
 
-  // Move the first non-external "next" visit to "clinic"
+  // Move the first non-external "next" visit onward, routed by service code.
   const nextVisits = await db
-    .select({ id: visits.id })
+    .select({ id: visits.id, patientId: visits.patientId, visitType: visits.visitType })
     .from(visits)
     .innerJoin(patients, eq(visits.patientId, patients.id))
     .where(
@@ -7223,12 +7294,37 @@ export async function cascadeQueueStatus(dateIso: string) {
     .limit(1);
 
   if (nextVisits.length > 0) {
-    const counts = await countClinicPatientsByNo(db, dateIso);
-    const clinicStatus = counts[1] <= counts[2] ? "clinic1" : "clinic2";
-    await db
-      .update(visits)
-      .set({ queueStatus: clinicStatus as any, movedToClinicAt: sql`CURRENT_TIMESTAMP` })
-      .where(eq(visits.id, nextVisits[0].id));
+    const nextVisit = nextVisits[0];
+    const serviceRows = await db
+      .select({ serviceCode: patientServiceEntries.serviceCode })
+      .from(patientServiceEntries)
+      .where(eq(patientServiceEntries.patientId, nextVisit.patientId));
+    const codes = new Set<string>(
+      serviceRows.map((r: { serviceCode: string | null }) => String(r.serviceCode ?? "").trim()),
+    );
+    const hasClinicCode =
+      nextVisit.visitType === "followup" ||
+      [...codes].some((c) => CLINIC_QUEUE_SERVICE_CODES.has(c));
+    const hasPentacamCode = [...codes].some((c) => PENTACAM_QUEUE_SERVICE_CODES.has(c));
+
+    if (hasClinicCode) {
+      const clinicNo = await getNextAlternatingClinicNo(db, dateIso);
+      const clinicStatus = clinicNo === 1 ? "clinic1" : "clinic2";
+      await db
+        .update(visits)
+        .set({ queueStatus: clinicStatus as any, movedToClinicAt: sql`CURRENT_TIMESTAMP` })
+        .where(eq(visits.id, nextVisit.id));
+    } else if (hasPentacamCode) {
+      await db
+        .update(visits)
+        .set({ queueStatus: "pentacam" as any, movedToPentacamAt: sql`CURRENT_TIMESTAMP` })
+        .where(eq(visits.id, nextVisit.id));
+    } else {
+      await db
+        .update(visits)
+        .set({ queueStatus: "treated" as any, treatedAt: sql`CURRENT_TIMESTAMP` })
+        .where(eq(visits.id, nextVisit.id));
+    }
   }
 
   // Move the first non-external "checkedIn" visit to "next"

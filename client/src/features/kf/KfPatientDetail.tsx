@@ -86,10 +86,10 @@ function ConsultationSheet({ patient }: { patient: any }) {
         <tbody>
           <tr>
             <td style={{ ...cell, width: "50%" }}><strong>كود المريض:</strong> {patient.kfCode}</td>
-            <td style={cell}><strong>اسم المريض:</strong> {patient.fullName}</td>
+            <td style={{ ...cell, fontSize: 14 }}><strong>اسم المريض:</strong> {patient.fullName}</td>
           </tr>
           <tr>
-            <td style={cell}><strong>السن:</strong> {patient.age ? `${patient.age} سنة` : "—"}</td>
+            <td style={{ ...cell, fontSize: 14 }}><strong>السن:</strong> {patient.age ? `${patient.age} سنة` : "—"}</td>
             <td style={cell}><strong>الجنس:</strong> {patient.gender === "male" ? "ذكر" : patient.gender === "female" ? "أنثى" : "—"}</td>
           </tr>
           <tr>
@@ -97,7 +97,7 @@ function ConsultationSheet({ patient }: { patient: any }) {
             <td style={cell}><strong>الرقم القومي:</strong> {patient.nationalId || "—"}</td>
           </tr>
           <tr>
-            <td style={cell}><strong>المهنة:</strong> {patient.occupation || "—"}</td>
+            <td style={{ ...cell, fontSize: 14 }}><strong>المهنة:</strong> {patient.occupation || "—"}</td>
             <td style={cell}><strong>العنوان:</strong> {patient.address || "—"}</td>
           </tr>
           <tr>
@@ -172,10 +172,10 @@ function FollowupSheet({ patient, operations, followups }: { patient: any; opera
         <tbody>
           <tr>
             <td style={{ ...cell, width: "50%" }}><strong>كود المريض:</strong> {patient.kfCode}</td>
-            <td style={cell}><strong>اسم المريض:</strong> {patient.fullName}</td>
+            <td style={{ ...cell, fontSize: 14 }}><strong>اسم المريض:</strong> {patient.fullName}</td>
           </tr>
           <tr>
-            <td style={cell}><strong>السن:</strong> {patient.age ? `${patient.age} سنة` : "—"}</td>
+            <td style={{ ...cell, fontSize: 14 }}><strong>السن:</strong> {patient.age ? `${patient.age} سنة` : "—"}</td>
             <td style={cell}><strong>الجنس:</strong> {patient.gender === "male" ? "ذكر" : patient.gender === "female" ? "أنثى" : "—"}</td>
           </tr>
           <tr>
@@ -406,7 +406,7 @@ export default function KfPatientDetail() {
               <User className="h-6 w-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-foreground">{patient.fullName}</h2>
+              <h2 className="text-2xl font-bold text-foreground">{patient.fullName}</h2>
               <span className="font-mono text-xs text-primary font-bold bg-primary/10 px-2 py-0.5 rounded">
                 {patient.kfCode}
               </span>
@@ -425,7 +425,7 @@ export default function KfPatientDetail() {
           <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-4">
             <div className="space-y-1">
               <span className="text-xs text-muted-foreground block">السن / الجنس</span>
-              <span className="font-medium text-sm">
+              <span className="text-base font-semibold">
                 {patient.age ? `${patient.age} سنة` : "—"} / {patient.gender ? (GENDER_AR as Record<string, string>)[patient.gender] : "—"}
               </span>
             </div>
@@ -461,7 +461,7 @@ export default function KfPatientDetail() {
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-1">
               <span className="text-xs text-muted-foreground block">المهنة</span>
-              <span className="text-sm font-medium inline-flex items-center gap-1">
+              <span className="inline-flex items-center gap-1 text-base font-semibold">
                 <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
                 {patient.occupation || "—"}
               </span>

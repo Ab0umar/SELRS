@@ -154,7 +154,7 @@ export default function NewCases() {
                     <div className="mt-2 flex flex-col gap-1 text-sm text-muted-foreground">
                       <div>
                         العمر:{" "}
-                        <span className="font-medium">
+                        <span className="text-base font-semibold text-foreground">
                           {getPatientAge(patient?.dateOfBirth)} سنة
                         </span>
                       </div>

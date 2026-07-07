@@ -522,14 +522,14 @@ export default function KfConsultantSheet() {
         <div className="mb-4 border border-gray-200 rounded-lg overflow-hidden" dir="rtl">
           <div className="grid grid-cols-4 divide-x divide-gray-200 text-[11px]">
             {[
-              { label: "الاسم / Name", value: formData.patientName },
+              { label: "الاسم / Name", value: formData.patientName, emphasis: true },
               { label: "DOB / تاريخ الميلاد", value: formData.dateOfBirth },
-              { label: "السن / Age", value: formData.age },
+              { label: "السن / Age", value: formData.age, emphasis: true },
               { label: "Patient Code / كود المريض", value: formData.code ? `#${formData.code}` : "" },
-            ].map(({ label, value }, i) => (
+            ].map(({ label, value, emphasis }, i) => (
               <div key={i} className="p-2.5">
                 <p className="text-gray-500 text-[10px] mb-0.5">{label}</p>
-                <p className="font-bold text-gray-900">{value || <span className="text-gray-300">—</span>}</p>
+                <p className={`font-bold text-gray-900 ${emphasis ? "text-[13px]" : ""}`}>{value || <span className="text-gray-300">—</span>}</p>
               </div>
             ))}
           </div>
@@ -545,7 +545,7 @@ export default function KfConsultantSheet() {
           </div>
           <div className="border-t border-gray-200 p-2.5 text-[11px]">
             <span className="text-gray-500 text-[10px]">Job / الوظيفة</span>
-            <span className="font-bold text-gray-900 mr-2">{formData.job || <span className="text-gray-300">—</span>}</span>
+            <span className="font-bold text-gray-900 mr-2 text-[13px]">{formData.job || <span className="text-gray-300">—</span>}</span>
           </div>
         </div>
 

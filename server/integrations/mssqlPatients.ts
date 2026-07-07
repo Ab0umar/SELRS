@@ -2241,17 +2241,24 @@ export async function createOrSyncPatientFromMssql(
     await db.updatePatient(patientId, patch).catch(() => null);
   }
 
-  // Create a checkedIn visit for today only if one doesn't already exist
+  // Create a visit for today, routed immediately by service code, only if one
+  // doesn't already exist.
   const hasToday = await db.hasActiveVisitForDate(patientId, todayIso).catch(() => false);
   if (!hasToday) {
+    const serviceEntries = await db.getPatientServiceEntriesByPatient(patientId).catch(() => []);
+    const routed = await db.resolveInitialQueueStatus(
+      (serviceEntries as any[]).map((e) => e?.serviceCode),
+      todayIso,
+    );
     await db.createVisit({
       patientId,
       visitDate: today,
       visitType: "consultation",
       branch,
-      queueStatus: "checkedIn",
+      queueStatus: routed.queueStatus as any,
       checkedInAt: today,
-    }).catch((err) => console.error("[createOrSyncPatientFromMssql] createVisit failed:", err));
+      [routed.timestampField]: today,
+    } as any).catch((err) => console.error("[createOrSyncPatientFromMssql] createVisit failed:", err));
   }
 
   return { patientId, created };
@@ -5630,16 +5637,22 @@ export async function syncPatientsFromMssql(
                 .hasVisitForDate(targetPatientId, visitDateStr)
                 .catch(() => false);
               if (!alreadyHasVisit) {
+                const visitDateIso = visitDateStr;
+                const routed = await db.resolveInitialQueueStatus(
+                  [payload.serviceCode],
+                  visitDateIso,
+                );
                 await db
                   .createVisit({
                     patientId: targetPatientId,
                     visitDate: examinationDate,
                     visitType: "consultation",
                     branch: createPayload.branch || "examinations",
-                    queueStatus: "checkedIn",
+                    queueStatus: routed.queueStatus as any,
                     checkedInAt: registrationDate,
                     createdAt: registrationDate,
-                  })
+                    [routed.timestampField]: registrationDate,
+                  } as any)
                   .catch(() => {
                     // Silently fail if visit creation doesn't work - patient is still created
                   });
