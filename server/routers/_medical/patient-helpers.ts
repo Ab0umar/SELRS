@@ -132,6 +132,35 @@ export async function findExistingPatientByNameOrPhone(
   return null;
 }
 
+export async function findExistingPatientByPhoneAndDob(
+  phoneRaw?: string | null,
+  dateOfBirthRaw?: string | null,
+) {
+  const phone = String(phoneRaw ?? "").trim();
+  const dob = String(dateOfBirthRaw ?? "").trim();
+  if (!phone || !dob) return null;
+
+  const targetPhone = normalizePhoneKey(phone);
+  const targetDob = dob.slice(0, 10);
+  if (!targetPhone) return null;
+
+  const rows = await db.searchPatients(phone);
+  for (const candidate of rows ?? []) {
+    const candidatePhone = normalizePhoneKey((candidate as any)?.phone ?? "");
+    const candidateAltPhone = normalizePhoneKey(
+      (candidate as any)?.alternatePhone ?? "",
+    );
+    const candidateDob = String((candidate as any)?.dateOfBirth ?? "").slice(
+      0,
+      10,
+    );
+    const phoneMatch =
+      candidatePhone === targetPhone || candidateAltPhone === targetPhone;
+    if (phoneMatch && candidateDob === targetDob) return candidate;
+  }
+  return null;
+}
+
 export async function resolveServiceCodeForType(
   serviceType: string | undefined,
 ): Promise<string> {

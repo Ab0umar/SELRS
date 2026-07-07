@@ -5003,6 +5003,26 @@ async function loadDoctorServiceSheetMatchMap(): Promise<
   return map;
 }
 
+export async function getNextMssqlPatientCode(): Promise<string> {
+  const pool = await createMssqlPool();
+  try {
+    await pool.connect();
+    const targetTable = String(
+      process.env.MSSQL_PUSH_PATIENTS_TABLE ?? "op2026.dbo.PAJRNRCVH",
+    ).trim();
+    const result = await pool.request().query(`
+      SELECT MAX(CAST(PAT_CD AS INT)) AS maxCode
+      FROM ${targetTable}
+      WHERE ISNUMERIC(PAT_CD) = 1
+    `);
+    const maxCode = Number(result?.recordset?.[0]?.maxCode ?? 0);
+    const next = (Number.isFinite(maxCode) ? maxCode : 0) + 1;
+    return String(next).padStart(4, "0");
+  } finally {
+    await pool.close().catch(() => {});
+  }
+}
+
 export async function getMssqlSyncStatus() {
   const state = await readSyncState();
   const runtime = await readRuntimeStatus();

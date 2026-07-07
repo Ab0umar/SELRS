@@ -26,6 +26,7 @@ import {
   resolvePatientNotifTitle,
   resolveNotificationTargetRolesByUserRole,
   findExistingPatientByNameOrPhone,
+  findExistingPatientByPhoneAndDob,
   resolveServiceCodeForType,
   pushNewPatientToMssql,
   registrationPricingPayload,
@@ -146,12 +147,30 @@ export const medicalPatientRoutes = {
         const hasExplicitPatientCode = Boolean(
           String(patientInput.patientCode ?? "").trim(),
         );
+
+        const duplicateByPhoneDob = await findExistingPatientByPhoneAndDob(
+          patientInput.phone,
+          patientInput.dateOfBirth,
+        );
+        if (
+          duplicateByPhoneDob &&
+          hasExplicitPatientCode &&
+          String((duplicateByPhoneDob as any)?.patientCode ?? "").trim() !==
+            String(patientInput.patientCode ?? "").trim()
+        ) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: `يوجد مريض مسجل بنفس رقم الهاتف وتاريخ الميلاد بالكود ${(duplicateByPhoneDob as any)?.patientCode} — لا يمكن تكرار التسجيل`,
+          });
+        }
+
         const existingByIdentity = hasExplicitPatientCode
           ? await db.getPatientByCode(String(patientInput.patientCode ?? "").trim())
-          : await findExistingPatientByNameOrPhone(
+          : (duplicateByPhoneDob ??
+            (await findExistingPatientByNameOrPhone(
               patientInput.fullName,
               patientInput.phone,
-            );
+            )));
         if (existingByIdentity) {
           const existingId = Number((existingByIdentity as any)?.id ?? 0);
           const existingCode = String(

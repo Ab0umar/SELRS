@@ -1,11 +1,15 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
+import { useEffect, useState } from "react";
+import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowRight, Download, Printer } from "lucide-react";
+import { ArrowRight, Download, Printer, Save } from "lucide-react";
 import { DateInput } from "@/components/ui/date-input";
 import { BRAND_NAME_AR, BRAND_NAME_EN } from "@/lib/brand";
+import PatientPicker from "@/components/PatientPicker";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
+import { getTrpcErrorMessage } from "@/lib/utils";
 
 const TODAY = new Date().toISOString().split("T")[0];
 const REF_ID = `REF-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
@@ -78,7 +82,131 @@ const FIELD =
 
 export default function ReferralLetter() {
   const [, setLocation] = useLocation();
+  const [, params] = useRoute("/sheets/referral/:id");
+  const initialPatientId = params?.id ? Number(params.id) : undefined;
+  const [patientId, setPatientId] = useState<number | undefined>(initialPatientId);
+  const [existingLetterId, setExistingLetterId] = useState<number | undefined>();
   const [form, setForm] = useState<FormData>(initialForm);
+
+  useEffect(() => {
+    if (initialPatientId) setPatientId(initialPatientId);
+  }, [initialPatientId]);
+
+  const patientQuery = trpc.patient.getPatient.useQuery(patientId ?? 0, {
+    enabled: Boolean(patientId),
+    refetchOnWindowFocus: false,
+  });
+  const glassesQuery = trpc.medical.getGlassesRecordsByPatient.useQuery(
+    { patientId: patientId ?? 0 },
+    { enabled: Boolean(patientId), refetchOnWindowFocus: false },
+  );
+  const lettersQuery = trpc.medical.getReferralLettersByPatient.useQuery(
+    { patientId: patientId ?? 0 },
+    { enabled: Boolean(patientId), refetchOnWindowFocus: false },
+  );
+
+  const patient = patientQuery.data as any;
+  const glassesRecords = (glassesQuery.data as any[] | undefined) ?? [];
+  const letters = (lettersQuery.data as any[] | undefined) ?? [];
+
+  useEffect(() => {
+    if (!patient) return;
+    setForm((p) => ({
+      ...p,
+      patientName: p.patientName || patient.fullName || "",
+      patientId: p.patientId || patient.patientCode || "",
+      patientAge: p.patientAge || (patient.dateOfBirth ? String(new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear()) : ""),
+      patientGender: p.patientGender || (patient.gender === "male" ? "ذكر" : patient.gender === "female" ? "أنثى" : ""),
+      contact: p.contact || patient.phone || "",
+    }));
+  }, [patient]);
+
+  useEffect(() => {
+    if (glassesRecords.length === 0) return;
+    const latest = glassesRecords[0];
+    setForm((p) => ({
+      ...p,
+      refractionOD: p.refractionOD || [latest.sOD, latest.cOD, latest.axisOD].filter(Boolean).join(" / "),
+      refractionOS: p.refractionOS || [latest.sOS, latest.cOS, latest.axisOS].filter(Boolean).join(" / "),
+      vaBestOD: p.vaBestOD || latest.bcvaOD || "",
+      vaBestOS: p.vaBestOS || latest.bcvaOS || "",
+    }));
+  }, [glassesRecords]);
+
+  useEffect(() => {
+    const letter = letters[0];
+    if (!letter) return;
+    setExistingLetterId(Number(letter.id));
+    setForm((p) => ({
+      ...p,
+      examDate: letter.examDate ? String(letter.examDate).split("T")[0] : p.examDate,
+      refractionOD: letter.refractionOD || p.refractionOD,
+      refractionOS: letter.refractionOS || p.refractionOS,
+      vaOD: letter.vaOD || p.vaOD,
+      vaOS: letter.vaOS || p.vaOS,
+      vaBestOD: letter.vaBestOD || p.vaBestOD,
+      vaBestOS: letter.vaBestOS || p.vaBestOS,
+      iopOD: letter.iopOD || p.iopOD,
+      iopOS: letter.iopOS || p.iopOS,
+      slitLamp: letter.slitLamp || p.slitLamp,
+      fundus: letter.fundus || p.fundus,
+      diagnosisTags: letter.diagnosisTags || p.diagnosisTags,
+      reasonForReferral: letter.reasonForReferral || p.reasonForReferral,
+      referredPhysician: letter.referredPhysician || p.referredPhysician,
+      referredPhysicianTitle: letter.referredPhysicianTitle || p.referredPhysicianTitle,
+      referredFacility: letter.referredFacility || p.referredFacility,
+      referredDept: letter.referredDept || p.referredDept,
+      physicianName: letter.physicianName || p.physicianName,
+      physicianTitle: letter.physicianTitle || p.physicianTitle,
+      physicianLicense: letter.physicianLicense || p.physicianLicense,
+      patientName: letter.patientNameOverride || p.patientName,
+      patientId: letter.patientCodeOverride || p.patientId,
+      patientGender: letter.patientGenderOverride || p.patientGender,
+    }));
+  }, [letters]);
+
+  const saveLetterMutation = trpc.medical.saveReferralLetter.useMutation();
+
+  const handleSave = async () => {
+    if (!patientId) {
+      toast.error("اختر مريضاً أولاً");
+      return;
+    }
+    try {
+      await saveLetterMutation.mutateAsync({
+        id: existingLetterId,
+        patientId,
+        refCode: REF_ID,
+        examDate: form.examDate || undefined,
+        refractionOD: form.refractionOD || undefined,
+        refractionOS: form.refractionOS || undefined,
+        vaOD: form.vaOD || undefined,
+        vaOS: form.vaOS || undefined,
+        vaBestOD: form.vaBestOD || undefined,
+        vaBestOS: form.vaBestOS || undefined,
+        iopOD: form.iopOD || undefined,
+        iopOS: form.iopOS || undefined,
+        slitLamp: form.slitLamp || undefined,
+        fundus: form.fundus || undefined,
+        diagnosisTags: form.diagnosisTags || undefined,
+        reasonForReferral: form.reasonForReferral || undefined,
+        referredPhysician: form.referredPhysician || undefined,
+        referredPhysicianTitle: form.referredPhysicianTitle || undefined,
+        referredFacility: form.referredFacility || undefined,
+        referredDept: form.referredDept || undefined,
+        physicianName: form.physicianName || undefined,
+        physicianTitle: form.physicianTitle || undefined,
+        physicianLicense: form.physicianLicense || undefined,
+        patientNameOverride: form.patientName || undefined,
+        patientCodeOverride: form.patientId || undefined,
+        patientGenderOverride: form.patientGender || undefined,
+      });
+      toast.success("تم حفظ خطاب الإحالة");
+      await lettersQuery.refetch();
+    } catch (error) {
+      toast.error(getTrpcErrorMessage(error, "حدث خطأ أثناء الحفظ"));
+    }
+  };
 
   const set =
     (key: keyof FormData) =>
@@ -336,6 +464,17 @@ export default function ReferralLetter() {
           <span className="text-base font-bold text-primary">خطاب إحالة / Referral Letter</span>
         </div>
         <div className="flex items-center gap-3">
+          <div className="w-64 print:hidden">
+            <PatientPicker
+              initialPatientId={patientId}
+              onSelect={(selected) => {
+                if (selected?.id) setPatientId(Number(selected.id));
+              }}
+            />
+          </div>
+          <Button size="sm" variant="outline" className="border-primary text-primary font-bold hover:bg-primary/10 gap-1.5" onClick={handleSave} disabled={saveLetterMutation.isPending}>
+            <Save className="h-3.5 w-3.5" /> {saveLetterMutation.isPending ? "جارٍ الحفظ..." : "حفظ"}
+          </Button>
           <Button size="sm" variant="outline" className="border-primary text-primary font-bold hover:bg-primary/10 gap-1.5" onClick={handlePrint}>
             <Printer className="h-3.5 w-3.5" /> طباعة
           </Button>

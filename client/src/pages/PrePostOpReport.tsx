@@ -174,10 +174,20 @@ export default function PrePostOpReport() {
   const [postVaOs, setPostVaOs] = useState("");
   const [notes, setNotes] = useState("");
   const [surgeon, setSurgeon] = useState("");
+  const [patientName, setPatientName] = useState("");
+  const [patientDob, setPatientDob] = useState("");
+  const [patientCode, setPatientCode] = useState("");
 
   useEffect(() => {
     if (initialPatientId) setPatientId(initialPatientId);
   }, [initialPatientId]);
+
+  useEffect(() => {
+    if (!patient) return;
+    setPatientName(patient.fullName || "");
+    setPatientDob(patient.dateOfBirth ? String(patient.dateOfBirth).split("T")[0] : "");
+    setPatientCode(patient.patientCode || "");
+  }, [patient]);
 
   useEffect(() => {
     if (!selectedSurgeryId && surgeries.length > 0) {
@@ -195,6 +205,9 @@ export default function PrePostOpReport() {
     setProcedure(selectedSurgery.surgeryType || "");
     setSurgeon(selectedSurgery.surgeon || "");
     setNotes(selectedSurgery.notes || "");
+    if (selectedSurgery.patientNameOverride) setPatientName(selectedSurgery.patientNameOverride);
+    if (selectedSurgery.patientDobOverride) setPatientDob(String(selectedSurgery.patientDobOverride).split("T")[0]);
+    if (selectedSurgery.patientCodeOverride) setPatientCode(selectedSurgery.patientCodeOverride);
   }, [selectedSurgery]);
 
   useEffect(() => {
@@ -245,6 +258,9 @@ export default function PrePostOpReport() {
           surgeryDate: operationDate,
           surgeon,
           notes,
+          patientNameOverride: patientName || undefined,
+          patientDobOverride: patientDob || undefined,
+          patientCodeOverride: patientCode || undefined,
         });
       } else {
         await createSurgeryMutation.mutateAsync({
@@ -253,6 +269,9 @@ export default function PrePostOpReport() {
           surgeryDate: operationDate,
           surgeon,
           notes,
+          patientNameOverride: patientName || undefined,
+          patientDobOverride: patientDob || undefined,
+          patientCodeOverride: patientCode || undefined,
         });
       }
       toast.success("تم حفظ بيانات العملية");
@@ -390,22 +409,28 @@ export default function PrePostOpReport() {
           <section className="grid grid-cols-4 gap-4 bg-[#eef5f7] p-4">
             <div className="col-span-2">
               <FieldLabel>Patient Name</FieldLabel>
-              <p className="mt-1 text-lg font-bold">
-                {patient?.fullName || "—"}
-              </p>
+              <Input
+                value={patientName}
+                onChange={(event) => setPatientName(event.target.value)}
+                className="mt-1 h-9 border-[#c2c7d1] bg-white text-lg font-bold"
+              />
             </div>
-            <div>
+            <label>
               <FieldLabel>Date of Birth</FieldLabel>
-              <p className="mt-1 font-mono text-sm font-semibold">
-                {displaySheetDate(patient?.dateOfBirth || "") || "—"}
-              </p>
-            </div>
-            <div>
+              <DateInput
+                value={patientDob}
+                onChange={(event) => setPatientDob(event.target.value)}
+                className="mt-1 h-9 border-[#c2c7d1] bg-white font-mono text-sm font-semibold"
+              />
+            </label>
+            <label>
               <FieldLabel>Patient ID</FieldLabel>
-              <p className="mt-1 font-mono text-sm font-semibold">
-                {patient?.patientCode || patientId || "—"}
-              </p>
-            </div>
+              <Input
+                value={patientCode}
+                onChange={(event) => setPatientCode(event.target.value)}
+                className="mt-1 h-9 border-[#c2c7d1] bg-white font-mono text-sm font-semibold"
+              />
+            </label>
             <label>
               <FieldLabel>Operation Date</FieldLabel>
               <DateInput

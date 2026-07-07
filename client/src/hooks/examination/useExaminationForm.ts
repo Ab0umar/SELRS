@@ -121,6 +121,21 @@ export function useExaminationForm(
     glaucomaTreatment: false,
   });
 
+  const nextPatientCodeQuery = trpc.medical.getNextMssqlPatientCode.useQuery(
+    undefined,
+    { refetchOnWindowFocus: false },
+  );
+
+  useEffect(() => {
+    if (patientInfo.id || patientInfo.code) return;
+    const suggested = nextPatientCodeQuery.data?.code;
+    if (suggested) {
+      setPatientInfo((prev) =>
+        prev.id || prev.code ? prev : { ...prev, code: suggested },
+      );
+    }
+  }, [nextPatientCodeQuery.data, patientInfo.id, patientInfo.code]);
+
   const patientStateQuery = trpc.medical.getPatientPageState.useQuery(
     { patientId: patientInfo.id ?? 0, page: "examination" },
     { enabled: Boolean(patientInfo.id), refetchOnWindowFocus: false },

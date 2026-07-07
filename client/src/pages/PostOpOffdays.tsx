@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import PatientPicker from "@/components/PatientPicker";
 import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
+import { getTrpcErrorMessage } from "@/lib/utils";
 import { displaySheetDate } from "@/lib/sheetDates";
 
 function CertLabel({ children }: { children: string }) {
@@ -37,8 +39,14 @@ export default function PostOpOffdays() {
     enabled: Boolean(patientId),
     refetchOnWindowFocus: false,
   });
+  const certsQuery = trpc.medical.getPostOpOffdaysByPatient.useQuery(
+    { patientId: patientId ?? 0 },
+    { enabled: Boolean(patientId), refetchOnWindowFocus: false },
+  );
 
   const patient = patientQuery.data as any;
+  const certs = (certsQuery.data as any[] | undefined) ?? [];
+  const [existingCertId, setExistingCertId] = useState<number | undefined>();
   const [operationDate, setOperationDate] = useState("");
   const [leaveStart, setLeaveStart] = useState("");
   const [returnDate, setReturnDate] = useState("");
@@ -47,6 +55,9 @@ export default function PostOpOffdays() {
   const [vaOd, setVaOd] = useState("");
   const [vaOs, setVaOs] = useState("");
   const [doctorName, setDoctorName] = useState("");
+  const [patientName, setPatientName] = useState("");
+  const [patientCode, setPatientCode] = useState("");
+  const [patientDob, setPatientDob] = useState("");
 
   useEffect(() => {
     if (initialPatientId) setPatientId(initialPatientId);
@@ -61,6 +72,60 @@ export default function PostOpOffdays() {
     const fullName = String(user?.name ?? "").trim();
     if (fullName && !doctorName) setDoctorName(fullName);
   }, [doctorName, user?.name]);
+
+  useEffect(() => {
+    if (!patient) return;
+    setPatientName(patient.fullName || "");
+    setPatientCode(patient.patientCode || "");
+    setPatientDob(patient.dateOfBirth ? String(patient.dateOfBirth).split("T")[0] : "");
+  }, [patient]);
+
+  useEffect(() => {
+    const cert = certs[0];
+    if (!cert) return;
+    setExistingCertId(Number(cert.id));
+    setOperationDate(cert.operationDate ? String(cert.operationDate).split("T")[0] : "");
+    setMethod(cert.method || "");
+    setVaOd(cert.vaOD || "");
+    setVaOs(cert.vaOS || "");
+    setLeaveStart(cert.leaveStart ? String(cert.leaveStart).split("T")[0] : "");
+    setReturnDate(cert.returnDate ? String(cert.returnDate).split("T")[0] : "");
+    if (cert.durationDays) setDuration(String(cert.durationDays));
+    if (cert.doctorName) setDoctorName(cert.doctorName);
+    if (cert.patientNameOverride) setPatientName(cert.patientNameOverride);
+    if (cert.patientCodeOverride) setPatientCode(cert.patientCodeOverride);
+    if (cert.patientDobOverride) setPatientDob(String(cert.patientDobOverride).split("T")[0]);
+  }, [certs]);
+
+  const createCertMutation = trpc.medical.savePostOpOffdaysCertificate.useMutation();
+
+  const handleSave = async () => {
+    if (!patientId) {
+      toast.error("اختر مريضاً أولاً");
+      return;
+    }
+    try {
+      await createCertMutation.mutateAsync({
+        id: existingCertId,
+        patientId,
+        operationDate: operationDate || undefined,
+        method: method || undefined,
+        vaOD: vaOd || undefined,
+        vaOS: vaOs || undefined,
+        leaveStart: leaveStart || undefined,
+        returnDate: returnDate || undefined,
+        durationDays: duration ? Number(duration) : undefined,
+        doctorName: doctorName || undefined,
+        patientNameOverride: patientName || undefined,
+        patientCodeOverride: patientCode || undefined,
+        patientDobOverride: patientDob || undefined,
+      });
+      toast.success("تم حفظ الشهادة");
+      await certsQuery.refetch();
+    } catch (error) {
+      toast.error(getTrpcErrorMessage(error, "حدث خطأ أثناء الحفظ"));
+    }
+  };
 
   if (!isAuthenticated) return null;
 
@@ -178,9 +243,11 @@ export default function PostOpOffdays() {
               type="button"
               variant="outline"
               className="border-[#00355f] text-[#00355f]"
+              onClick={handleSave}
+              disabled={createCertMutation.isPending}
             >
               <Save className="mr-2 h-4 w-4" />
-              Save
+              {createCertMutation.isPending ? "جارٍ الحفظ..." : "Save"}
             </Button>
             <Button
               type="button"
@@ -222,22 +289,30 @@ export default function PostOpOffdays() {
           </section>
 
           <section className="mb-8 grid grid-cols-2 gap-x-10 gap-y-4">
-            <div className="flex justify-between border-b border-[#c2c7d1] py-2">
+            <label className="flex items-center justify-between gap-2 border-b border-[#c2c7d1] py-2">
               <CertLabel>الاسم الكامل:</CertLabel>
-              <span className="font-bold">{patient?.fullName || "—"}</span>
-            </div>
-            <div className="flex justify-between border-b border-[#c2c7d1] py-2">
+              <Input
+                value={patientName}
+                onChange={(event) => setPatientName(event.target.value)}
+                className="h-8 w-56 border-0 border-b border-dotted border-[#727780] bg-transparent text-right font-bold shadow-none focus-visible:ring-0"
+              />
+            </label>
+            <label className="flex items-center justify-between gap-2 border-b border-[#c2c7d1] py-2">
               <CertLabel>رقم المريض:</CertLabel>
-              <span className="font-mono font-semibold">
-                {patient?.patientCode || patientId || "—"}
-              </span>
-            </div>
-            <div className="flex justify-between border-b border-[#c2c7d1] py-2">
+              <Input
+                value={patientCode}
+                onChange={(event) => setPatientCode(event.target.value)}
+                className="h-8 w-36 border-0 border-b border-dotted border-[#727780] bg-transparent text-center font-mono font-semibold shadow-none focus-visible:ring-0"
+              />
+            </label>
+            <label className="flex items-center justify-between gap-2 border-b border-[#c2c7d1] py-2">
               <CertLabel>تاريخ الميلاد:</CertLabel>
-              <span className="font-mono font-semibold">
-                {displaySheetDate(patient?.dateOfBirth || "") || "—"}
-              </span>
-            </div>
+              <DateInput
+                value={patientDob}
+                onChange={(event) => setPatientDob(event.target.value)}
+                className="h-8 w-36 border-[#c2c7d1] text-center font-mono font-semibold"
+              />
+            </label>
             <label className="flex items-center justify-between gap-4 border-b border-[#c2c7d1] py-2">
               <CertLabel>تاريخ العملية:</CertLabel>
               <DateInput

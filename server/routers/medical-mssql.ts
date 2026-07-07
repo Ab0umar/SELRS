@@ -48,6 +48,7 @@ import {
   deletePatientFromMssqlByCode,
   ensurePatientServiceInMssql,
   getMssqlSyncStatus,
+  getNextMssqlPatientCode,
   insertPatientToMssql,
   syncPatientsFromMssql,
   syncSinglePatientFromMssql,
@@ -363,6 +364,15 @@ export const medicalMssqlRoutes = {
       );
       return { value: input.value };
     }),
+
+  getNextMssqlPatientCode: protectedProcedure.query(async () => {
+    try {
+      return { code: await getNextMssqlPatientCode() };
+    } catch (error) {
+      console.warn("[medical.getNextMssqlPatientCode] fallback", error);
+      return { code: await db.getNextPatientCode() };
+    }
+  }),
 
   getMssqlSyncStatus: adminProcedure.query(async () => {
     try {

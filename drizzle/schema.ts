@@ -506,12 +506,83 @@ export const doctorReports = mysqlTable("doctorReports", {
   clinicalOpinion: text("clinicalOpinion"),
   additionalNotes: text("additionalNotes"),
   followUpDate: timestamp("followUpDate"), // طھط§ط±ظٹط® ط§ظ„ظ…طھط§ط¨ط¹ط©
+  patientNameOverride: varchar("patientNameOverride", { length: 255 }),
+  patientCodeOverride: varchar("patientCodeOverride", { length: 64 }),
+  patientDobOverride: date("patientDobOverride"),
+  patientGenderOverride: varchar("patientGenderOverride", { length: 16 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
 export type DoctorReport = typeof doctorReports.$inferSelect;
 export type InsertDoctorReport = typeof doctorReports.$inferInsert;
+
+/**
+ * Referral Letters table - خطابات التحويل
+ */
+export const referralLetters = mysqlTable("referralLetters", {
+  id: int("id").autoincrement().primaryKey(),
+  patientId: int("patientId").notNull(),
+  refCode: varchar("refCode", { length: 32 }),
+  examDate: date("examDate"),
+  refractionOD: varchar("refractionOD", { length: 64 }),
+  refractionOS: varchar("refractionOS", { length: 64 }),
+  vaOD: varchar("vaOD", { length: 32 }),
+  vaOS: varchar("vaOS", { length: 32 }),
+  vaBestOD: varchar("vaBestOD", { length: 32 }),
+  vaBestOS: varchar("vaBestOS", { length: 32 }),
+  iopOD: varchar("iopOD", { length: 16 }),
+  iopOS: varchar("iopOS", { length: 16 }),
+  slitLamp: text("slitLamp"),
+  fundus: text("fundus"),
+  diagnosisTags: text("diagnosisTags"),
+  reasonForReferral: text("reasonForReferral"),
+  referredPhysician: varchar("referredPhysician", { length: 255 }),
+  referredPhysicianTitle: varchar("referredPhysicianTitle", { length: 255 }),
+  referredFacility: varchar("referredFacility", { length: 255 }),
+  referredDept: varchar("referredDept", { length: 255 }),
+  physicianName: varchar("physicianName", { length: 255 }),
+  physicianTitle: varchar("physicianTitle", { length: 255 }),
+  physicianLicense: varchar("physicianLicense", { length: 64 }),
+  patientNameOverride: varchar("patientNameOverride", { length: 255 }),
+  patientCodeOverride: varchar("patientCodeOverride", { length: 64 }),
+  patientDobOverride: date("patientDobOverride"),
+  patientGenderOverride: varchar("patientGenderOverride", { length: 16 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ReferralLetter = typeof referralLetters.$inferSelect;
+export type InsertReferralLetter = typeof referralLetters.$inferInsert;
+
+/**
+ * Post-Op Offdays Certificates table - شهادات إجازة ما بعد العملية
+ */
+export const postOpOffdaysCertificates = mysqlTable(
+  "postOpOffdaysCertificates",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    patientId: int("patientId").notNull(),
+    operationDate: date("operationDate"),
+    method: varchar("method", { length: 255 }),
+    vaOD: varchar("vaOD", { length: 32 }),
+    vaOS: varchar("vaOS", { length: 32 }),
+    leaveStart: date("leaveStart"),
+    returnDate: date("returnDate"),
+    durationDays: int("durationDays"),
+    doctorName: varchar("doctorName", { length: 255 }),
+    patientNameOverride: varchar("patientNameOverride", { length: 255 }),
+    patientCodeOverride: varchar("patientCodeOverride", { length: 64 }),
+    patientDobOverride: date("patientDobOverride"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+);
+
+export type PostOpOffdaysCertificate =
+  typeof postOpOffdaysCertificates.$inferSelect;
+export type InsertPostOpOffdaysCertificate =
+  typeof postOpOffdaysCertificates.$inferInsert;
 
 /**
  * Prescriptions table - ط§ظ„ط±ظˆط´ط§طھ
@@ -685,6 +756,10 @@ export const surgeries = mysqlTable("surgeries", {
     "scheduled",
   ),
   branch: mysqlEnum("branch", ["examinations", "surgery"]).default("surgery"),
+  patientNameOverride: varchar("patientNameOverride", { length: 255 }),
+  patientCodeOverride: varchar("patientCodeOverride", { length: 64 }),
+  patientDobOverride: date("patientDobOverride"),
+  patientGenderOverride: varchar("patientGenderOverride", { length: 16 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

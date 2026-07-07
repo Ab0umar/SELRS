@@ -65,6 +65,18 @@ export default function ClinicalReport() {
   const [recommendations, setRecommendations] = useState("");
   const [followUpDate, setFollowUpDate] = useState("");
   const [existingReportId, setExistingReportId] = useState<number | undefined>();
+  const [patientName, setPatientName] = useState("");
+  const [patientCode, setPatientCode] = useState("");
+  const [patientDob, setPatientDob] = useState("");
+  const [patientGender, setPatientGender] = useState("");
+
+  useEffect(() => {
+    if (!patient) return;
+    setPatientName(patient.fullName || "");
+    setPatientCode(patient.patientCode || "");
+    setPatientDob(patient.dateOfBirth ? String(patient.dateOfBirth).split("T")[0] : "");
+    setPatientGender(patient.gender || "");
+  }, [patient]);
 
   useEffect(() => {
     if (!selectedVisitId && visits.length > 0) {
@@ -84,6 +96,10 @@ export default function ClinicalReport() {
         ? String(forVisit.followUpDate).split("T")[0]
         : "",
     );
+    if (forVisit?.patientNameOverride) setPatientName(forVisit.patientNameOverride);
+    if (forVisit?.patientCodeOverride) setPatientCode(forVisit.patientCodeOverride);
+    if (forVisit?.patientDobOverride) setPatientDob(String(forVisit.patientDobOverride).split("T")[0]);
+    if (forVisit?.patientGenderOverride) setPatientGender(forVisit.patientGenderOverride);
   }, [selectedVisitId, reports]);
 
   const createReportMutation = trpc.medical.createDoctorReport.useMutation();
@@ -101,6 +117,10 @@ export default function ClinicalReport() {
           diagnosis,
           recommendations,
           followUpDate: followUpDate || undefined,
+          patientNameOverride: patientName || undefined,
+          patientCodeOverride: patientCode || undefined,
+          patientDobOverride: patientDob || undefined,
+          patientGenderOverride: patientGender || undefined,
         });
       } else {
         await createReportMutation.mutateAsync({
@@ -109,6 +129,10 @@ export default function ClinicalReport() {
           diagnosis,
           recommendations,
           followUpDate: followUpDate || undefined,
+          patientNameOverride: patientName || undefined,
+          patientCodeOverride: patientCode || undefined,
+          patientDobOverride: patientDob || undefined,
+          patientGenderOverride: patientGender || undefined,
         });
       }
       toast.success("تم حفظ التقرير");
@@ -195,19 +219,39 @@ export default function ClinicalReport() {
                 <div className="col-span-8 grid grid-cols-3 gap-y-4 p-4 bg-[#f3f4f6] rounded-lg border border-[#c3c6d6]">
                   <div className="col-span-2">
                     <p className="text-[10px] text-[#434654] uppercase font-bold">اسم المريض / Patient Name</p>
-                    <p className="text-sm font-bold">{patient?.fullName || "—"}</p>
+                    <input
+                      className="text-sm font-bold w-full bg-transparent border-b border-transparent hover:border-[#c3c6d6] focus:border-[#003d9b] outline-none print:border-0"
+                      value={patientName}
+                      onChange={(e) => setPatientName(e.target.value)}
+                    />
                   </div>
                   <div>
                     <p className="text-[10px] text-[#434654] uppercase font-bold">كود المريض / ID</p>
-                    <p className="text-sm font-bold">{patient?.patientCode || "—"}</p>
+                    <input
+                      className="text-sm font-bold w-full bg-transparent border-b border-transparent hover:border-[#c3c6d6] focus:border-[#003d9b] outline-none print:border-0"
+                      value={patientCode}
+                      onChange={(e) => setPatientCode(e.target.value)}
+                    />
                   </div>
                   <div>
                     <p className="text-[10px] text-[#434654] uppercase font-bold">DOB</p>
-                    <p className="text-sm">{displaySheetDate(patient?.dateOfBirth || "")}</p>
+                    <DateInput
+                      className="text-sm print:border-0 print:p-0 print:bg-transparent"
+                      value={patientDob}
+                      onChange={(e) => setPatientDob(e.target.value)}
+                    />
                   </div>
                   <div>
                     <p className="text-[10px] text-[#434654] uppercase font-bold">الجنس / Gender</p>
-                    <p className="text-sm">{patient?.gender === "male" ? "ذكر / Male" : patient?.gender === "female" ? "أنثى / Female" : "—"}</p>
+                    <select
+                      className="text-sm w-full bg-transparent border-b border-transparent hover:border-[#c3c6d6] focus:border-[#003d9b] outline-none print:border-0"
+                      value={patientGender}
+                      onChange={(e) => setPatientGender(e.target.value)}
+                    >
+                      <option value="">—</option>
+                      <option value="male">ذكر / Male</option>
+                      <option value="female">أنثى / Female</option>
+                    </select>
                   </div>
                 </div>
                 <div className="col-span-4 flex flex-col gap-2">

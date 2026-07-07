@@ -659,6 +659,10 @@ export const medicalCatalogRoutes = {
         surgeryNotes: z.string().optional(),
         surgeon: z.string().optional(),
         notes: z.string().optional(),
+        patientNameOverride: z.string().optional(),
+        patientCodeOverride: z.string().optional(),
+        patientDobOverride: z.string().optional(),
+        patientGenderOverride: z.string().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -697,6 +701,10 @@ export const medicalCatalogRoutes = {
         surgeon: z.string().optional(),
         notes: z.string().optional(),
         status: z.enum(["scheduled", "completed", "cancelled"]).optional(),
+        patientNameOverride: z.string().optional(),
+        patientCodeOverride: z.string().optional(),
+        patientDobOverride: z.string().optional(),
+        patientGenderOverride: z.string().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {

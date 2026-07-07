@@ -750,6 +750,10 @@ export const medicalOpsRoutes = {
         surgeryScheduledDate: z.string().optional(),
         additionalNotes: z.string().optional(),
         followUpDate: z.string().optional(),
+        patientNameOverride: z.string().optional(),
+        patientCodeOverride: z.string().optional(),
+        patientDobOverride: z.string().optional(),
+        patientGenderOverride: z.string().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -793,6 +797,10 @@ export const medicalOpsRoutes = {
         prescription: z.string().optional(),
         recommendations: z.string().optional(),
         followUpDate: z.string().optional(),
+        patientNameOverride: z.string().optional(),
+        patientCodeOverride: z.string().optional(),
+        patientDobOverride: z.string().optional(),
+        patientGenderOverride: z.string().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -840,6 +848,88 @@ export const medicalOpsRoutes = {
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {
       return await db.getDoctorReportsByPatient(input.patientId);
+    }),
+
+  getReferralLettersByPatient: protectedProcedure
+    .input(z.object({ patientId: z.number() }))
+    .query(async ({ input }) => {
+      return await db.getReferralLettersByPatient(input.patientId);
+    }),
+
+  saveReferralLetter: protectedProcedure
+    .input(
+      z.object({
+        id: z.number().optional(),
+        patientId: z.number(),
+        refCode: z.string().optional(),
+        examDate: z.string().optional(),
+        refractionOD: z.string().optional(),
+        refractionOS: z.string().optional(),
+        vaOD: z.string().optional(),
+        vaOS: z.string().optional(),
+        vaBestOD: z.string().optional(),
+        vaBestOS: z.string().optional(),
+        iopOD: z.string().optional(),
+        iopOS: z.string().optional(),
+        slitLamp: z.string().optional(),
+        fundus: z.string().optional(),
+        diagnosisTags: z.string().optional(),
+        reasonForReferral: z.string().optional(),
+        referredPhysician: z.string().optional(),
+        referredPhysicianTitle: z.string().optional(),
+        referredFacility: z.string().optional(),
+        referredDept: z.string().optional(),
+        physicianName: z.string().optional(),
+        physicianTitle: z.string().optional(),
+        physicianLicense: z.string().optional(),
+        patientNameOverride: z.string().optional(),
+        patientCodeOverride: z.string().optional(),
+        patientDobOverride: z.string().optional(),
+        patientGenderOverride: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      if (id) {
+        await db.updateReferralLetter(id, data);
+        return { id, updated: true };
+      }
+      const result = await db.createReferralLetter(data);
+      return { id: (result as any)?.[0]?.insertId ?? null, updated: false };
+    }),
+
+  getPostOpOffdaysByPatient: protectedProcedure
+    .input(z.object({ patientId: z.number() }))
+    .query(async ({ input }) => {
+      return await db.getPostOpOffdaysByPatient(input.patientId);
+    }),
+
+  savePostOpOffdaysCertificate: protectedProcedure
+    .input(
+      z.object({
+        id: z.number().optional(),
+        patientId: z.number(),
+        operationDate: z.string().optional(),
+        method: z.string().optional(),
+        vaOD: z.string().optional(),
+        vaOS: z.string().optional(),
+        leaveStart: z.string().optional(),
+        returnDate: z.string().optional(),
+        durationDays: z.number().optional(),
+        doctorName: z.string().optional(),
+        patientNameOverride: z.string().optional(),
+        patientCodeOverride: z.string().optional(),
+        patientDobOverride: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      if (id) {
+        await db.updatePostOpOffdaysCertificate(id, data);
+        return { id, updated: true };
+      }
+      const result = await db.createPostOpOffdaysCertificate(data);
+      return { id: (result as any)?.[0]?.insertId ?? null, updated: false };
     }),
 
   getMedicalReportsOverview: protectedProcedure

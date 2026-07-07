@@ -37,6 +37,8 @@ import {
   afterRefractionData,
   glassesRecords,
   doctorReports,
+  referralLetters,
+  postOpOffdaysCertificates,
   prescriptions,
   prescriptionItems,
   surgeries,
@@ -4516,6 +4518,71 @@ export async function getDoctorReportsByVisit(visitId: number) {
     .select()
     .from(doctorReports)
     .where(eq(doctorReports.visitId, visitId));
+}
+
+// ============ REFERRAL LETTER OPERATIONS ============
+
+export async function getReferralLettersByPatient(patientId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db
+    .select()
+    .from(referralLetters)
+    .where(eq(referralLetters.patientId, patientId))
+    .orderBy(desc(referralLetters.createdAt));
+}
+
+export async function createReferralLetter(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.insert(referralLetters).values(data);
+  return result;
+}
+
+export async function updateReferralLetter(id: number, updates: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db
+    .update(referralLetters)
+    .set(updates)
+    .where(eq(referralLetters.id, id));
+}
+
+// ============ POST-OP OFFDAYS CERTIFICATE OPERATIONS ============
+
+export async function getPostOpOffdaysByPatient(patientId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db
+    .select()
+    .from(postOpOffdaysCertificates)
+    .where(eq(postOpOffdaysCertificates.patientId, patientId))
+    .orderBy(desc(postOpOffdaysCertificates.createdAt));
+}
+
+export async function createPostOpOffdaysCertificate(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.insert(postOpOffdaysCertificates).values(data);
+  return result;
+}
+
+export async function updatePostOpOffdaysCertificate(
+  id: number,
+  updates: any,
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db
+    .update(postOpOffdaysCertificates)
+    .set(updates)
+    .where(eq(postOpOffdaysCertificates.id, id));
 }
 
 export async function getAllDoctorReports() {
