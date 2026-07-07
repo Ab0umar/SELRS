@@ -39,14 +39,16 @@ const QUEUE_FILTERS: { value: QueueFilter; label: string }[] = [
   { value: "bookings", label: "حجز" },
   { value: "checkedIn", label: "تسجيل" },
   { value: "next", label: "التالي" },
-  { value: "clinic", label: "عيادة" },
+  { value: "clinic1", label: "عيادة 1" },
+  { value: "clinic2", label: "عيادة 2" },
   { value: "treated", label: "معالج" },
 ];
 
 const queueStatusStyles: Record<QueueStatus, string> = {
   checkedIn: "bg-info/10 text-info",
   next: "bg-warning text-warning-foreground",
-  clinic: "bg-primary text-primary-foreground",
+  clinic1: "bg-primary text-primary-foreground",
+  clinic2: "bg-primary text-primary-foreground",
   pentacam: "bg-secondary text-secondary-foreground",
   treated: "bg-success text-success-foreground",
 };
@@ -54,7 +56,8 @@ const queueStatusStyles: Record<QueueStatus, string> = {
 const queueCardStyles: Record<QueueStatus, string> = {
   checkedIn: "border-info/30 bg-info/5",
   next: "border-warning/30 bg-warning/5",
-  clinic: "border-primary/30 bg-primary/5",
+  clinic1: "border-primary/30 bg-primary/5",
+  clinic2: "border-primary/30 bg-primary/5",
   pentacam: "border-secondary/30 bg-secondary/5",
   treated: "border-success/30 bg-success/5",
 };
@@ -311,7 +314,8 @@ export function AppointmentsSection({
       bookings: bookingsForDate.length,
       checkedIn: byStatus.checkedIn.length,
       next: byStatus.next.length,
-      clinic: byStatus.clinic.length,
+      clinic1: byStatus.clinic1.length,
+      clinic2: byStatus.clinic2.length,
       treated: byStatus.treated.length,
     }),
     [
@@ -319,7 +323,8 @@ export function AppointmentsSection({
       bookingsForDate.length,
       byStatus.checkedIn.length,
       byStatus.next.length,
-      byStatus.clinic.length,
+      byStatus.clinic1.length,
+      byStatus.clinic2.length,
       byStatus.treated.length,
     ],
   );

@@ -185,7 +185,8 @@ const QUEUE_COLORS: Record<string, string> = {
 const QUEUE_LABELS_AR: Record<string, string> = {
   checkedIn: "في الانتظار",
   next: "التالي",
-  clinic: "في العيادة",
+  clinic1: "عيادة 1",
+  clinic2: "عيادة 2",
   treated: "تم العلاج",
 };
 
@@ -199,9 +200,13 @@ export function AppointmentDistributionChart() {
     date: todayIso,
     queueStatus: "next",
   });
-  const clinic = trpc.medical.getTodayPatientsByQueueStatus.useQuery({
+  const clinic1 = trpc.medical.getTodayPatientsByQueueStatus.useQuery({
     date: todayIso,
-    queueStatus: "clinic",
+    queueStatus: "clinic1",
+  });
+  const clinic2 = trpc.medical.getTodayPatientsByQueueStatus.useQuery({
+    date: todayIso,
+    queueStatus: "clinic2",
   });
   const treated = trpc.medical.getTodayPatientsByQueueStatus.useQuery({
     date: todayIso,
@@ -211,7 +216,8 @@ export function AppointmentDistributionChart() {
   const isLoading =
     checkedIn.isLoading ||
     next.isLoading ||
-    clinic.isLoading ||
+    clinic1.isLoading ||
+    clinic2.isLoading ||
     treated.isLoading;
 
   const data = [
@@ -222,9 +228,14 @@ export function AppointmentDistributionChart() {
     },
     { key: "next", name: QUEUE_LABELS_AR.next, value: next.data?.length ?? 0 },
     {
-      key: "clinic",
-      name: QUEUE_LABELS_AR.clinic,
-      value: clinic.data?.length ?? 0,
+      key: "clinic1",
+      name: QUEUE_LABELS_AR.clinic1,
+      value: clinic1.data?.length ?? 0,
+    },
+    {
+      key: "clinic2",
+      name: QUEUE_LABELS_AR.clinic2,
+      value: clinic2.data?.length ?? 0,
     },
     {
       key: "treated",

@@ -1,6 +1,5 @@
 import {
   int,
-  tinyint,
   varchar,
   text,
   mediumtext,
@@ -284,7 +283,8 @@ export const visits = mysqlTable("visits", {
   queueStatus: mysqlEnum("queueStatus", [
     "checkedIn",
     "next",
-    "clinic",
+    "clinic1",
+    "clinic2",
     "pentacam",
     "treated",
   ]).default("checkedIn"),
@@ -293,7 +293,6 @@ export const visits = mysqlTable("visits", {
   movedToClinicAt: timestamp("movedToClinicAt"),
   movedToPentacamAt: timestamp("movedToPentacamAt"),
   treatedAt: timestamp("treatedAt"),
-  clinicNo: tinyint("clinicNo"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

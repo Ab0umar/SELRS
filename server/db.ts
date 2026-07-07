@@ -6908,7 +6908,6 @@ export async function getTodayPatients(dateIso: string) {
 export async function getTodayVisitsByQueueStatus(
   dateIso: string,
   queueStatus?: string,
-  clinicNo?: number,
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -6916,9 +6915,6 @@ export async function getTodayVisitsByQueueStatus(
   const whereClauses: any[] = [sql`DATE(${visits.visitDate}) = ${dateIso}`];
   if (queueStatus) {
     whereClauses.push(eq(visits.queueStatus, queueStatus as any));
-  }
-  if (clinicNo != null) {
-    whereClauses.push(eq((visits as any).clinicNo, clinicNo));
   }
 
   const rows = await db
@@ -6935,7 +6931,6 @@ export async function getTodayVisitsByQueueStatus(
       visitDate: visits.visitDate,
       visitType: visits.visitType,
       queueStatus: visits.queueStatus,
-      clinicNo: (visits as any).clinicNo,
       checkedInAt: visits.checkedInAt,
       checkedInTime: sql<string>`DATE_FORMAT(${visits.checkedInAt}, '%H:%i')`,
       movedToNextAt: visits.movedToNextAt,
@@ -6957,19 +6952,20 @@ export async function getTodayVisitsByQueueStatus(
   }));
 }
 
-/** Count active clinic patients per clinicNo for today. Returns {1: n, 2: n}. */
+/** Count active patients in clinic1/clinic2 for today. Returns {1: n, 2: n}. */
 async function countClinicPatientsByNo(conn: any, dateIso: string): Promise<Record<number, number>> {
   const rows = await conn
-    .select({ clinicNo: (visits as any).clinicNo, cnt: sql<number>`COUNT(*)` })
+    .select({ queueStatus: visits.queueStatus, cnt: sql<number>`COUNT(*)` })
     .from(visits)
     .where(and(
       sql`DATE(${visits.visitDate}) = ${dateIso}`,
-      eq(visits.queueStatus, "clinic" as any),
+      sql`${visits.queueStatus} IN ('clinic1', 'clinic2')`,
     ))
-    .groupBy((visits as any).clinicNo);
+    .groupBy(visits.queueStatus);
   const result: Record<number, number> = { 1: 0, 2: 0 };
   for (const r of rows) {
-    if (r.clinicNo === 1 || r.clinicNo === 2) result[r.clinicNo] = Number(r.cnt ?? 0);
+    if (r.queueStatus === "clinic1") result[1] = Number(r.cnt ?? 0);
+    if (r.queueStatus === "clinic2") result[2] = Number(r.cnt ?? 0);
   }
   return result;
 }
@@ -7065,7 +7061,7 @@ export async function rolloverPreviousQueueVisitsAsTreated(dateIso: string) {
     .where(
       and(
         sql`DATE(${visits.visitDate}) < ${dateIso}`,
-        sql`${visits.queueStatus} IN ('checkedIn', 'next', 'clinic')`,
+        sql`${visits.queueStatus} IN ('checkedIn', 'next', 'clinic1', 'clinic2')`,
       ),
     );
 }
@@ -7125,9 +7121,10 @@ export async function autoAdvanceQueuePatients(dateIso: string) {
 
     if (hasClinicCode) {
       const clinicNo = counts[1] <= counts[2] ? 1 : 2;
+      const clinicStatus = clinicNo === 1 ? "clinic1" : "clinic2";
       await conn
         .update(visits)
-        .set({ queueStatus: "clinic" as any, clinicNo, movedToClinicAt: sql`CURRENT_TIMESTAMP` })
+        .set({ queueStatus: clinicStatus as any, movedToClinicAt: sql`CURRENT_TIMESTAMP` })
         .where(eq(visits.id, row.id));
       counts[clinicNo]++;
     } else if (hasPentacamCode) {
@@ -7170,7 +7167,7 @@ export async function updateVisitQueueStatus(
     timestampCol.checkedInAt = sql`CURRENT_TIMESTAMP`;
   if (queueStatus === "next")
     timestampCol.movedToNextAt = sql`CURRENT_TIMESTAMP`;
-  if (queueStatus === "clinic")
+  if (queueStatus === "clinic1" || queueStatus === "clinic2")
     timestampCol.movedToClinicAt = sql`CURRENT_TIMESTAMP`;
   if (queueStatus === "pentacam")
     timestampCol.movedToPentacamAt = sql`CURRENT_TIMESTAMP`;
@@ -7226,9 +7223,11 @@ export async function cascadeQueueStatus(dateIso: string) {
     .limit(1);
 
   if (nextVisits.length > 0) {
+    const counts = await countClinicPatientsByNo(db, dateIso);
+    const clinicStatus = counts[1] <= counts[2] ? "clinic1" : "clinic2";
     await db
       .update(visits)
-      .set({ queueStatus: "clinic", movedToClinicAt: sql`CURRENT_TIMESTAMP` })
+      .set({ queueStatus: clinicStatus as any, movedToClinicAt: sql`CURRENT_TIMESTAMP` })
       .where(eq(visits.id, nextVisits[0].id));
   }
 

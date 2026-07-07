@@ -179,7 +179,7 @@ describe.sequential("medical patient service and queue mutations", () => {
     await expect(
       caller.medical.setPatientQueue({
         patientId,
-        queueStatus: "clinic",
+        queueStatus: "clinic1",
       }),
     ).resolves.toEqual({ success: true });
 
@@ -189,7 +189,7 @@ describe.sequential("medical patient service and queue mutations", () => {
       .from(visits)
       .where(eq(visits.id, visitId))
       .limit(1);
-    expect(row?.queueStatus).toBe("clinic");
+    expect(row?.queueStatus).toBe("clinic1");
     expect(row?.movedToClinicAt).toBeTruthy();
   });
 

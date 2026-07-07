@@ -1,6 +1,6 @@
 // Navigation metadata + labels (dashboard queue data comes from tRPC live queries).
 
-export type QueueStatus = "checkedIn" | "next" | "clinic" | "pentacam" | "treated";
+export type QueueStatus = "checkedIn" | "next" | "clinic1" | "clinic2" | "pentacam" | "treated";
 
 export interface Patient {
   id: number;
@@ -29,7 +29,8 @@ export const serviceTypeLabels: Record<string, string> = {
 export const queueStatusLabelsAr: Record<QueueStatus, string> = {
   checkedIn: "تسجيل",
   next: "التالي",
-  clinic: "عيادة",
+  clinic1: "عيادة 1",
+  clinic2: "عيادة 2",
   pentacam: "بنتاكام",
   treated: "معالج",
 };

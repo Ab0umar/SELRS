@@ -2015,7 +2015,7 @@ export const medicalExaminationsRoutes = {
     .input(
       z.object({
         visitId: z.number(),
-        queueStatus: z.enum(["checkedIn", "next", "clinic", "pentacam", "treated"]),
+        queueStatus: z.enum(["checkedIn", "next", "clinic1", "clinic2", "pentacam", "treated"]),
         patientId: z.number().optional(),
         date: z.string().optional(),
       }),
@@ -2137,8 +2137,7 @@ export const medicalExaminationsRoutes = {
     .input(
       z.object({
         date: z.string().optional(),
-        queueStatus: z.enum(["checkedIn", "next", "clinic", "pentacam", "treated"]),
-        clinicNo: z.number().int().optional(),
+        queueStatus: z.enum(["checkedIn", "next", "clinic1", "clinic2", "pentacam", "treated"]),
       }),
     )
     .query(async ({ input }) => {
@@ -2154,7 +2153,6 @@ export const medicalExaminationsRoutes = {
         const visits = await db.getTodayVisitsByQueueStatus(
           dateIso,
           input.queueStatus,
-          input.clinicNo,
         );
 
         // Reshape flattened data back to structured format.
@@ -2176,7 +2174,6 @@ export const medicalExaminationsRoutes = {
             visitDate: visit.visitDate,
             visitType: visit.visitType,
             queueStatus: visit.queueStatus,
-            clinicNo: (visit as any).clinicNo ?? null,
             checkedInAt: visit.checkedInAt,
             checkedInTime: (visit as any).checkedInTime ?? null,
             movedToNextAt: visit.movedToNextAt,

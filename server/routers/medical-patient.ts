@@ -960,7 +960,7 @@ export const medicalPatientRoutes = {
     .input(
       z.object({
         patientId: z.number(),
-        queueStatus: z.enum(["checkedIn", "next", "clinic", "pentacam", "treated"]),
+        queueStatus: z.enum(["checkedIn", "next", "clinic1", "clinic2", "pentacam", "treated"]),
       }),
     )
     .mutation(async ({ input }) => {

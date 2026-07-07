@@ -13,8 +13,7 @@ export type TodayQueuePatient = {
   serviceType?: string;
   doctorName?: string | null;
   visitType?: string | null;
-  queueStatus: "checkedIn" | "next" | "clinic" | "pentacam" | "treated";
-  clinicNo?: number | null;
+  queueStatus: "checkedIn" | "next" | "clinic1" | "clinic2" | "pentacam" | "treated";
   checkedInTime?: string | null;
 };
 
@@ -44,11 +43,11 @@ export function useTodayQueuePatientsMerged(dateIso?: string) {
   );
 
   const clinic1 = trpc.medical.getTodayPatientsByQueueStatus.useQuery(
-    { date: todayIso, queueStatus: "clinic", clinicNo: 1 },
+    { date: todayIso, queueStatus: "clinic1" },
     { refetchInterval: 10000, refetchOnWindowFocus: true },
   );
   const clinic2 = trpc.medical.getTodayPatientsByQueueStatus.useQuery(
-    { date: todayIso, queueStatus: "clinic", clinicNo: 2 },
+    { date: todayIso, queueStatus: "clinic2" },
     { refetchInterval: 10000, refetchOnWindowFocus: true },
   );
   const pentacam = trpc.medical.getTodayPatientsByQueueStatus.useQuery(

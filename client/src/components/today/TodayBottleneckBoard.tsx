@@ -43,13 +43,14 @@ import { TodayOperationListItemCard } from "./TodayOperationListItemCard";
 type QueueStage = QueueStatus;
 type QueueFilter = QueueStage | "bookings";
 
-const STAGES: QueueStage[] = ["checkedIn", "next", "clinic", "treated"];
+const STAGES: QueueStage[] = ["checkedIn", "next", "clinic1", "clinic2", "treated"];
 
 const QUEUE_FILTERS: { value: QueueFilter; label: string }[] = [
   { value: "bookings", label: "حجز" },
   { value: "checkedIn", label: "تسجيل" },
   { value: "next", label: "التالي" },
-  { value: "clinic", label: "عيادة" },
+  { value: "clinic1", label: "عيادة 1" },
+  { value: "clinic2", label: "عيادة 2" },
   { value: "treated", label: "معالج" },
 ];
 
@@ -77,8 +78,15 @@ const STAGE_META: Record<
     softTone: "bg-warning text-warning-foreground",
     accent: "border-warning/35 bg-warning/5",
   },
-  clinic: {
-    label: "عيادة",
+  clinic1: {
+    label: "عيادة 1",
+    icon: Stethoscope,
+    tone: "text-card-foreground",
+    softTone: "bg-primary text-primary-foreground",
+    accent: "border-primary/30 bg-primary/5",
+  },
+  clinic2: {
+    label: "عيادة 2",
     icon: Stethoscope,
     tone: "text-card-foreground",
     softTone: "bg-primary text-primary-foreground",
@@ -205,7 +213,7 @@ function getBottleneckStage(
   counts: Record<QueueStage, number>,
   waitSnapshot: Record<QueueStage, number | null>,
 ) {
-  const candidates: QueueStage[] = ["checkedIn", "next", "clinic"];
+  const candidates: QueueStage[] = ["checkedIn", "next", "clinic1", "clinic2"];
   let best: QueueStage = "checkedIn";
   let bestScore = -1;
   for (const stage of candidates) {
@@ -811,7 +819,8 @@ export function TodayBottleneckBoard({
       bookings: visitScheduleRequestsQuery.data?.length ?? 0,
       checkedIn: byStatus.checkedIn.length,
       next: byStatus.next.length,
-      clinic: byStatus.clinic.length,
+      clinic1: byStatus.clinic1.length,
+      clinic2: byStatus.clinic2.length,
       pentacam: byStatus.pentacam.length,
       treated: byStatus.treated.length,
     }),
@@ -819,7 +828,8 @@ export function TodayBottleneckBoard({
       visitScheduleRequestsQuery.data?.length,
       byStatus.checkedIn.length,
       byStatus.next.length,
-      byStatus.clinic.length,
+      byStatus.clinic1.length,
+      byStatus.clinic2.length,
       byStatus.pentacam.length,
       byStatus.treated.length,
     ],
@@ -829,7 +839,8 @@ export function TodayBottleneckBoard({
     const out: Record<QueueStage, number | null> = {
       checkedIn: null,
       next: null,
-      clinic: null,
+      clinic1: null,
+      clinic2: null,
       pentacam: null,
       treated: null,
     };
