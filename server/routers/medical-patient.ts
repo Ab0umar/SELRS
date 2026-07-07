@@ -113,6 +113,7 @@ export const medicalPatientRoutes = {
         serviceCode: z.string().optional(),
         servicePrice: z.number().nonnegative().optional(),
         discountValue: z.number().nonnegative().optional(),
+        shiftNumber: z.union([z.literal(1), z.literal(2)]).optional(),
         lastVisit: z.string().optional(),
         skipIfExists: z.boolean().optional(),
       }),
@@ -260,6 +261,7 @@ export const medicalPatientRoutes = {
             servicePrice: pricingPayload.servicePrice,
             discountValue: pricingPayload.discountValue,
             paValue: pricingPayload.paValue,
+            shiftNumber: patientInput.shiftNumber ?? null,
           }).catch((error) => {
             mssqlPushError = String(
               (error as any)?.message ?? error ?? "unknown",
@@ -473,6 +475,7 @@ export const medicalPatientRoutes = {
             servicePrice: pricingPayload.servicePrice,
             discountValue: pricingPayload.discountValue,
             paValue: pricingPayload.paValue,
+            shiftNumber: patientInput.shiftNumber ?? null,
           }).catch((error) => {
             mssqlPushError = String(
               (error as any)?.message ?? error ?? "unknown",
@@ -746,6 +749,7 @@ export const medicalPatientRoutes = {
           )
           .optional(),
         visitDate: z.string().optional(), // client local date yyyy-MM-dd
+        shiftNumber: z.union([z.literal(1), z.literal(2)]).optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -799,6 +803,7 @@ export const medicalPatientRoutes = {
           doctorCode: doctorCode || null,
           enteredBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
           serviceCode: processServices[0]?.code || null,
+          shiftNumber: input.shiftNumber ?? null,
           ...pricingPayload,
         }).catch((err) => { console.warn("[createPatientFromExamination] MSSQL push failed:", err); return null; });
 
@@ -806,7 +811,7 @@ export const medicalPatientRoutes = {
         for (let i = 1; i < processServices.length; i++) {
           const srv = processServices[i];
           const p = registrationPricingPayload({ servicePrice: srv.price, serviceQty: Number(srv.qty) || 1, discountValue: srv.discount });
-          await pushNewPatientToMssql({ patientCode, fullName: input.fullName, branch: "examinations", serviceCode: srv.code, doctorCode: doctorCode || null, ...p })
+          await pushNewPatientToMssql({ patientCode, fullName: input.fullName, branch: "examinations", serviceCode: srv.code, doctorCode: doctorCode || null, shiftNumber: input.shiftNumber ?? null, ...p })
             .catch(() => null);
         }
 
@@ -936,7 +941,7 @@ export const medicalPatientRoutes = {
     .input(
       z.object({
         patientId: z.number(),
-        queueStatus: z.enum(["checkedIn", "next", "clinic", "treated"]),
+        queueStatus: z.enum(["checkedIn", "next", "clinic", "pentacam", "treated"]),
       }),
     )
     .mutation(async ({ input }) => {

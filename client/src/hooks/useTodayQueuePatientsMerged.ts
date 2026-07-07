@@ -13,7 +13,7 @@ export type TodayQueuePatient = {
   serviceType?: string;
   doctorName?: string | null;
   visitType?: string | null;
-  queueStatus: "checkedIn" | "next" | "clinic" | "treated";
+  queueStatus: "checkedIn" | "next" | "clinic" | "pentacam" | "treated";
   clinicNo?: number | null;
   checkedInTime?: string | null;
 };
@@ -51,6 +51,10 @@ export function useTodayQueuePatientsMerged(dateIso?: string) {
     { date: todayIso, queueStatus: "clinic", clinicNo: 2 },
     { refetchInterval: 10000, refetchOnWindowFocus: true },
   );
+  const pentacam = trpc.medical.getTodayPatientsByQueueStatus.useQuery(
+    { date: todayIso, queueStatus: "pentacam" },
+    { refetchInterval: 10000, refetchOnWindowFocus: true },
+  );
   const treated = trpc.medical.getTodayPatientsByQueueStatus.useQuery(
     { date: todayIso, queueStatus: "treated" },
     { refetchInterval: 10000, refetchOnWindowFocus: true },
@@ -62,15 +66,17 @@ export function useTodayQueuePatientsMerged(dateIso?: string) {
       ...(treated.data ?? []),
       ...(clinic1.data ?? []),
       ...(clinic2.data ?? []),
+      ...(pentacam.data ?? []),
     ];
     for (const p of ordered) {
       const row = p as TodayQueuePatient;
       if (typeof row?.id === "number" && !map.has(row.id)) map.set(row.id, row);
     }
     return sortTodayQueuePatients([...map.values()]);
-  }, [clinic1.data, clinic2.data, treated.data]);
+  }, [clinic1.data, clinic2.data, pentacam.data, treated.data]);
 
-  const isLoading = clinic1.isLoading || clinic2.isLoading || treated.isLoading;
+  const isLoading =
+    clinic1.isLoading || clinic2.isLoading || pentacam.isLoading || treated.isLoading;
 
   return {
     todayIso,
@@ -82,6 +88,7 @@ export function useTodayQueuePatientsMerged(dateIso?: string) {
       clinic: [...(clinic1.data ?? []), ...(clinic2.data ?? [])] as TodayQueuePatient[],
       clinic1: clinic1.data as TodayQueuePatient[] ?? [],
       clinic2: clinic2.data as TodayQueuePatient[] ?? [],
+      pentacam: pentacam.data as TodayQueuePatient[] ?? [],
       treated: treated.data as TodayQueuePatient[] ?? [],
     },
   };

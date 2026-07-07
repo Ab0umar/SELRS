@@ -22,12 +22,12 @@ const envSchema = z.object({
   FK_PULLER_PATH: z
     .string()
     .optional()
-    .default("D:\\Programs\\fp\\FKOldLogPuller.exe"),
+    .default("D:\\C\\SRV100_Acc\\scripts\\FKOldLogPuller.exe"),
   FK_USER_PULLER_PATH: z
     .string()
     .optional()
-    .default("D:\\Programs\\fp\\FKUserPuller.exe"),
-  FK_MDB_PATH: z.string().optional().default("D:\\Programs\\fp\\Taurus.mdb"),
+    .default("D:\\C\\SRV100_Acc\\scripts\\FKUserPuller.exe"),
+  FK_MDB_PATH: z.string().optional().default("D:\\C\\SRV100_Acc\\scripts\\Taurus.mdb"),
   ATTENDANCE_ENABLED: z.enum(["true", "false"]).optional().default("true"),
   ATTENDANCE_SOURCE: z.enum(["access", "tcp"]).optional().default("access"),
   ATTENDANCE_ACCESS_PATH: z.string().optional().default(""),

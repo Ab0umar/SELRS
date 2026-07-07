@@ -1698,7 +1698,7 @@ export const salaryRouter = router({
           let dur = (eh * 60 + em) - (sh * 60 + sm);
           if (dur < 0) dur += 24 * 60; // crosses midnight
           const threshold = sd.autoSmallThresholdMin ?? 270;
-          size = dur < threshold ? "small" : "big";
+          size = dur <= threshold ? "small" : "big";
         }
         shiftSizeMap.set(sd.name as string, size);
       }
@@ -1821,7 +1821,7 @@ export const salaryRouter = router({
           }
         }
 
-        // Rule 3: punch days with no scheduled shift → also pay (use big rate)
+        // Rule 3: punch days with no scheduled shift → also pay
         let extraAttended = 0;
         if (s.empCd) {
           const presentDates = presentDatesMap.get(s.empCd);
@@ -1837,10 +1837,19 @@ export const salaryRouter = router({
 
         const totalAttended = attended + extraAttended;
         if (extraAttended > 0) {
-          // Punch days with no roster entry: treat as fully-attended scheduled shifts so basicSalary is non-zero
-          byShift["إضافي"] = { scheduled: extraAttended, attended: extraAttended, rate: rateBig };
-          bigScheduled += extraAttended;
-          bigAttended += extraAttended;
+          // Punch days with no roster entry: treat as fully-attended scheduled shifts so basicSalary is non-zero.
+          // Infer big vs small from this staff member's actual usage this period — a staff whose only
+          // scheduled shifts are small (e.g. اطباء صغير ص/م) shouldn't have unscheduled punches billed at the big rate.
+          const usesOnlySmall = smallScheduled > 0 && bigScheduled === 0;
+          const extraRate = usesOnlySmall ? rateSmall : rateBig;
+          byShift["إضافي"] = { scheduled: extraAttended, attended: extraAttended, rate: extraRate };
+          if (usesOnlySmall) {
+            smallScheduled += extraAttended;
+            smallAttended += extraAttended;
+          } else {
+            bigScheduled += extraAttended;
+            bigAttended += extraAttended;
+          }
         }
 
         // Manual override: accountant-entered attended counts win over computed attendance.

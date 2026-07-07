@@ -178,10 +178,14 @@ export const attendanceLeavesRoutes = {
       await LeaveManagementService.approveLeave(input.leaveId);
 
       // Recompute daily records for the leave date range
+      const toDateKey = (value: unknown): string => {
+        if (value instanceof Date) return value.toISOString().slice(0, 10);
+        return String(value).slice(0, 10);
+      };
       await PermissionAdjustmentService.recomputeRange(
         leave[0].empCd,
-        new Date(String(leave[0].dateFrom) + "T12:00:00"),
-        new Date(String(leave[0].dateTo) + "T12:00:00"),
+        new Date(toDateKey(leave[0].dateFrom) + "T12:00:00"),
+        new Date(toDateKey(leave[0].dateTo) + "T12:00:00"),
       );
 
       // Notify the employee whose leave was approved
@@ -257,8 +261,12 @@ export const attendanceLeavesRoutes = {
         throw new TRPCError({ code: "NOT_FOUND", message: "السجل غير موجود" });
       }
 
-      const oldDateFrom = String(existing[0].dateFrom);
-      const oldDateTo = String(existing[0].dateTo);
+      const toDateKeyEdit = (value: unknown): string => {
+        if (value instanceof Date) return value.toISOString().slice(0, 10);
+        return String(value).slice(0, 10);
+      };
+      const oldDateFrom = toDateKeyEdit(existing[0].dateFrom);
+      const oldDateTo = toDateKeyEdit(existing[0].dateTo);
       const empCd = existing[0].empCd;
 
       await db

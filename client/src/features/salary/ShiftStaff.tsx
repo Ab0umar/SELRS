@@ -16,8 +16,6 @@ const DAYS_AR = [
 ];
 const DAYS_SHORT = ["ح", "ن", "ث", "ر", "خ", "ج", "س"];
 // dow: 0=Sunday … 6=Saturday
-const PRESET_SAT_WED = [6, 0, 1, 2, 3]; // السبت→الأربعاء
-const PRESET_SUN_THU = [0, 1, 2, 3, 4]; // الأحد→الخميس
 
 interface StaffForm {
   name: string;
@@ -78,29 +76,6 @@ function CycleEditor({
     onError: (e: any) => toast.error(e.message),
   });
 
-  function toggleShift(dow: number, shiftName: string) {
-    setDayShifts((prev) => {
-      const next = new Map(prev);
-      const shifts = new Set(next.get(dow) ?? []);
-      shifts.has(shiftName) ? shifts.delete(shiftName) : shifts.add(shiftName);
-      if (shifts.size === 0) next.delete(dow);
-      else next.set(dow, shifts);
-      return next;
-    });
-  }
-
-  function applyPreset(dows: number[], shiftName: string) {
-    setDayShifts((prev) => {
-      const next = new Map(prev);
-      for (const dow of dows) {
-        const shifts = new Set(next.get(dow) ?? []);
-        shifts.add(shiftName);
-        next.set(dow, shifts);
-      }
-      return next;
-    });
-  }
-
   function save() {
     const cycle: { dayOfWeek: number; shiftName: string }[] = [];
     for (const [dow, shifts] of dayShifts) {
@@ -122,24 +97,6 @@ function CycleEditor({
             توزيع الورديات
           </p>
           <div className="flex gap-1 flex-wrap justify-end">
-            {shiftDefs.map((sd) => (
-              <div key={sd.name} className="flex gap-1">
-                <button
-                  type="button"
-                  onClick={() => applyPreset(PRESET_SAT_WED, sd.name)}
-                  className="rounded px-1.5 py-0.5 text-[10px] font-medium border border-primary/20 bg-primary/10 text-primary hover:bg-primary/15 transition-colors"
-                >
-                  س→ر {sd.name}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => applyPreset(PRESET_SUN_THU, sd.name)}
-                  className="rounded px-1.5 py-0.5 text-[10px] font-medium border border-primary/20 bg-primary/10 text-primary hover:bg-primary/15 transition-colors"
-                >
-                  ح→خ {sd.name}
-                </button>
-              </div>
-            ))}
             <button
               type="button"
               onClick={() => setDayShifts(new Map())}
@@ -150,15 +107,39 @@ function CycleEditor({
           </div>
         </div>
 
-        <div className="flex gap-1.5 flex-wrap">
+        <div className="grid w-full grid-cols-7 gap-1.5">
           {DAYS_AR.map((name, dow) => {
             const isFri = dow === 5;
             const shifts = dayShifts.get(dow) ?? new Set<string>();
             const hasAny = shifts.size > 0;
+            const availableToAdd = shiftDefs.filter((sd) => !shifts.has(sd.name));
+
+            function removeShift(shiftName: string) {
+              setDayShifts((prev) => {
+                const next = new Map(prev);
+                const set = new Set(next.get(dow) ?? []);
+                set.delete(shiftName);
+                if (set.size === 0) next.delete(dow);
+                else next.set(dow, set);
+                return next;
+              });
+            }
+
+            function addShift(shiftName: string) {
+              if (!shiftName) return;
+              setDayShifts((prev) => {
+                const next = new Map(prev);
+                const set = new Set(next.get(dow) ?? []);
+                set.add(shiftName);
+                next.set(dow, set);
+                return next;
+              });
+            }
+
             return (
               <div
                 key={dow}
-                className={`flex flex-col items-center rounded-lg border px-2 py-1.5 gap-1 min-w-[44px] ${
+                className={`flex min-h-[110px] flex-col gap-1 rounded-lg border p-1.5 ${
                   isFri
                     ? "border-dashed border-border/40 bg-muted/20 opacity-40"
                     : hasAny
@@ -166,31 +147,42 @@ function CycleEditor({
                       : "border-border bg-background"
                 }`}
               >
-                <span className="text-xs font-bold">{DAYS_SHORT[dow]}</span>
-                <span className="text-[9px] text-muted-foreground leading-tight">
-                  {name}
-                </span>
+                <span className="text-center text-[11px] font-bold">{name}</span>
                 {!isFri && (
-                  <div className="flex flex-col gap-0.5">
-                    {shiftDefs.map((sd) => {
-                      const active = shifts.has(sd.name);
-                      return (
-                        <button
-                          key={sd.name}
-                          type="button"
-                          onClick={() => toggleShift(dow, sd.name)}
-                          title={sd.name}
-                          className={`rounded px-1 py-0.5 text-[9px] leading-none transition-colors ${
-                            active
-                              ? "bg-primary/20 text-primary ring-1 ring-primary/40"
-                              : "bg-muted/40 text-muted-foreground hover:bg-primary/10 hover:text-primary"
-                          }`}
+                  <>
+                    <div className="flex flex-1 flex-col gap-1 overflow-y-auto">
+                      {[...shifts].map((sh) => (
+                        <span
+                          key={sh}
+                          className="flex items-center justify-between gap-1 rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary"
                         >
-                          {sd.name}
-                        </button>
-                      );
-                    })}
-                  </div>
+                          <span className="truncate">{sh}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeShift(sh)}
+                            className="shrink-0 text-primary/70 hover:text-destructive"
+                            title="إزالة"
+                          >
+                            <X size={10} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                    {availableToAdd.length > 0 && (
+                      <select
+                        value=""
+                        onChange={(e) => addShift(e.target.value)}
+                        className="w-full rounded border border-input bg-background px-1 py-0.5 text-[10px]"
+                      >
+                        <option value="">+ إضافة وردية</option>
+                        {availableToAdd.map((sd) => (
+                          <option key={sd.name} value={sd.name}>
+                            {sd.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </>
                 )}
               </div>
             );
@@ -525,7 +517,7 @@ export default function ShiftStaff() {
         )}
         {showCycle && (
           <tr className="border-b border-border/50 bg-primary/5">
-            <td colSpan={5} className="p-0">
+            <td colSpan={8} className="p-0">
               <CycleEditor
                 staffId={s.id}
                 cycles={cycles}

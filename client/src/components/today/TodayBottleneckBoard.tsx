@@ -84,6 +84,13 @@ const STAGE_META: Record<
     softTone: "bg-primary text-primary-foreground",
     accent: "border-primary/30 bg-primary/5",
   },
+  pentacam: {
+    label: "بنتاكام",
+    icon: Stethoscope,
+    tone: "text-card-foreground",
+    softTone: "bg-secondary text-secondary-foreground",
+    accent: "border-secondary/30 bg-secondary/5",
+  },
   treated: {
     label: "معالج",
     icon: CheckCircle2,
@@ -805,6 +812,7 @@ export function TodayBottleneckBoard({
       checkedIn: byStatus.checkedIn.length,
       next: byStatus.next.length,
       clinic: byStatus.clinic.length,
+      pentacam: byStatus.pentacam.length,
       treated: byStatus.treated.length,
     }),
     [
@@ -812,6 +820,7 @@ export function TodayBottleneckBoard({
       byStatus.checkedIn.length,
       byStatus.next.length,
       byStatus.clinic.length,
+      byStatus.pentacam.length,
       byStatus.treated.length,
     ],
   );
@@ -821,6 +830,7 @@ export function TodayBottleneckBoard({
       checkedIn: null,
       next: null,
       clinic: null,
+      pentacam: null,
       treated: null,
     };
     for (const stage of STAGES) {

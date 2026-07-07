@@ -540,7 +540,7 @@ export class PayrollComputeService {
         let dur = eh * 60 + em - (sh * 60 + sm);
         if (dur < 0) dur += 24 * 60;
         const threshold = sd.autoSmallThresholdMin ?? 270;
-        size = dur < threshold ? "small" : "big";
+        size = dur <= threshold ? "small" : "big";
       }
       shiftSizeMap.set(sd.name as string, size);
     }

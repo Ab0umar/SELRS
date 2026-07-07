@@ -35,7 +35,7 @@ internal sealed class Program
 {
     private static int Main(string[] args)
     {
-        string ip       = GetArg(args, "--ip",       "192.168.1.10");
+        string ip       = GetArg(args, "--ip",       "41.199.252.107");
         int    port     = int.Parse(GetArg(args, "--port",     "5005"),  CultureInfo.InvariantCulture);
         int    machineNo= int.Parse(GetArg(args, "--machine",  "1"),     CultureInfo.InvariantCulture);
         int    password = int.Parse(GetArg(args, "--password", "0"),     CultureInfo.InvariantCulture);
@@ -49,7 +49,7 @@ internal sealed class Program
             : new[] { mdbArg };
         string mdbPath = "";
         foreach (var c in mdbCandidates) { if (File.Exists(c)) { mdbPath = c; break; } }
-        string outPath  = GetArg(args, "--out",  @"E:\users.csv");
+        string outPath  = GetArg(args, "--out",  @"D:\users.csv");
 
         var dir = Path.GetDirectoryName(Path.GetFullPath(outPath));
         if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);

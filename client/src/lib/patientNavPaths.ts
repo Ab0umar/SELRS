@@ -77,6 +77,14 @@ export function patientNavPathForPageKey(
       return `/refraction/${patientId}`;
     case "followups":
       return `/followup/${patientId}`;
+    case "referral-letter":
+      return `/sheets/referral/${patientId}`;
+    case "clinical-report":
+      return `/clinical-report/${patientId}`;
+    case "pre-post-op-report":
+      return `/pre-post-op-report/${patientId}`;
+    case "post-op-offdays":
+      return `/post-op-offdays/${patientId}`;
     default:
       return null;
   }

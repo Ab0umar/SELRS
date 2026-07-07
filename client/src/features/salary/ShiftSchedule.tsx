@@ -617,26 +617,28 @@ export default function ShiftSchedule() {
           });
         });
 
-        const morningEntries = dayEntries.filter(
-          (item) => item.entry.shiftName === "Morning",
-        );
-        const nightEntries = dayEntries.filter(
-          (item) => item.entry.shiftName === "Night",
-        );
+        const entriesByShiftName = new Map<
+          string,
+          Array<{ staff: any; entry: any }>
+        >();
+        for (const item of dayEntries) {
+          const key = item.entry.shiftName as string;
+          if (!entriesByShiftName.has(key)) entriesByShiftName.set(key, []);
+          entriesByShiftName.get(key)!.push(item);
+        }
 
-        const morningHTML = morningEntries.length
-          ? `<div class="cal-shift">
-              <span class="cal-shift-title">الصباحية</span>
-              ${morningEntries.map((e) => `<div>${escapeHtml(compactStaffName(e.staff))}</div>`).join("")}
-            </div>`
-          : "";
-
-        const nightHTML = nightEntries.length
-          ? `<div class="cal-shift">
-              <span class="cal-shift-title">المسائية</span>
-              ${nightEntries.map((e) => `<div>${escapeHtml(compactStaffName(e.staff))}</div>`).join("")}
-            </div>`
-          : "";
+        const shiftsHTML = Array.from(entriesByShiftName.entries())
+          .map(([shiftName, entries]) => {
+            const label =
+              shiftOptions.find((o) => o.name === shiftName)?.label ??
+              SHIFT_META[shiftName as ShiftName]?.label ??
+              shiftName;
+            return `<div class="cal-shift">
+              <span class="cal-shift-title">${escapeHtml(label)}</span>
+              ${entries.map((e) => `<div>${escapeHtml(compactStaffName(e.staff))}</div>`).join("")}
+            </div>`;
+          })
+          .join("");
 
         cellsHTML += `
           <div class="cal-cell ${holiday ? "holiday" : ""}">
@@ -645,8 +647,7 @@ export default function ShiftSchedule() {
               ${holiday ? `<span class="cal-holiday-tag">عطلة</span>` : ""}
             </div>
             <div class="cal-shifts-grid">
-              ${morningHTML}
-              ${nightHTML}
+              ${shiftsHTML}
             </div>
           </div>`;
       });
@@ -1359,11 +1360,24 @@ export default function ShiftSchedule() {
                       });
                     });
 
-                    const morningEntries = dayEntries.filter(
-                      (item) => item.entry.shiftName === "Morning",
-                    );
-                    const nightEntries = dayEntries.filter(
-                      (item) => item.entry.shiftName === "Night",
+                    const entriesByShift = new Map<
+                      string,
+                      Array<{ staff: any; entry: any }>
+                    >();
+                    for (const item of dayEntries) {
+                      const key = item.entry.shiftName as string;
+                      if (!entriesByShift.has(key)) entriesByShift.set(key, []);
+                      entriesByShift.get(key)!.push(item);
+                    }
+                    const shiftGroups = Array.from(entriesByShift.entries()).map(
+                      ([shiftName, entries]) => {
+                        const meta = SHIFT_META[shiftName as ShiftName];
+                        const label =
+                          shiftOptions.find((o) => o.name === shiftName)?.label ??
+                          meta?.label ??
+                          shiftName;
+                        return { shiftName, label, entries, meta };
+                      },
                     );
 
                     return (
@@ -1405,18 +1419,13 @@ export default function ShiftSchedule() {
                           ) : null}
                         </div>
 
-                        <div className="mt-3 grid flex-1 grid-cols-2 gap-2 text-right">
-                          {(
-                            [
-                              ["Morning", "الصباحية", morningEntries],
-                              ["Night", "المسائية", nightEntries],
-                            ] as [
-                              ShiftName,
-                              string,
-                              Array<{ staff: any; entry: any }>,
-                            ][]
-                          ).map(([shiftName, label, entries]) => {
-                            const meta = SHIFT_META[shiftName];
+                        <div
+                          className="mt-3 grid flex-1 gap-2 text-right"
+                          style={{
+                            gridTemplateColumns: `repeat(${Math.max(shiftGroups.length, 1)}, minmax(0, 1fr))`,
+                          }}
+                        >
+                          {shiftGroups.map(({ shiftName, label, entries, meta }) => {
                             return (
                               <div
                                 key={shiftName}
@@ -1459,7 +1468,7 @@ export default function ShiftSchedule() {
                                             isMyRow
                                               ? "bg-primary text-primary-foreground"
                                               : entry.present
-                                                ? meta.tone
+                                                ? (meta?.tone ?? "bg-secondary/10 text-secondary ring-1 ring-inset ring-secondary/20 hover:bg-secondary/15")
                                                 : "border border-border bg-muted text-muted-foreground line-through"
                                           } ${canEdit ? "cursor-pointer" : "cursor-default"}`}
                                           title={compactStaffName(staff)}

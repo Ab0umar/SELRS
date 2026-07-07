@@ -38,6 +38,8 @@ export default function ExaminationPatientInfoTab({
     selectedDoctorEntry,
     doctorName,
     setDoctorName,
+    shiftNumber,
+    setShiftNumber,
     services,
     addService,
     removeService,
@@ -325,6 +327,28 @@ export default function ExaminationPatientInfoTab({
                         {String((doc as any)?.name ?? "")}
                       </SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="font-bold text-[11px] text-primary">
+                  الوردية
+                </Label>
+                <Select
+                  value={shiftNumber ? String(shiftNumber) : ""}
+                  onValueChange={(v) => setShiftNumber(v ? (Number(v) as 1 | 2) : undefined)}
+                >
+                  <SelectTrigger className="h-9 bg-background border-ring/30 text-xs">
+                    <SelectValue placeholder="اختر الوردية" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1" className="text-xs">
+                      الوردية الأولى
+                    </SelectItem>
+                    <SelectItem value="2" className="text-xs">
+                      الوردية الثانية
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>

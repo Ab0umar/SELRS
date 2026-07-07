@@ -344,9 +344,9 @@ export async function upsertRegistrationCatalogRows(params: {
       .values(serviceRows)
       .onDuplicateKeyUpdate({
         set: {
-          // Strictly preserve local edits for existing services.
-          // Keep duplicate-key branch as a no-op so sync only inserts missing services.
-          id: sql`id`,
+          name: sql`VALUES(name)`,
+          price: sql`VALUES(price)`,
+          updatedAt: sql`VALUES(updatedAt)`,
         },
       });
   }
@@ -7006,12 +7006,23 @@ export async function rolloverPreviousQueueVisitsAsTreated(dateIso: string) {
 /**
  * Auto-assign checkedIn visits to clinic 1 or 2 (least-loaded).
  */
+/** Service codes routed to clinic 1/2 (load-balanced). */
+const CLINIC_QUEUE_SERVICE_CODES = new Set([
+  "1522", "1523", "1586", "1589", "1602", "1604", "1605", "1606", "1608",
+  "1609", "1613",
+]);
+
+/** Service codes routed to the Pentacam queue. */
+const PENTACAM_QUEUE_SERVICE_CODES = new Set([
+  "1502", "1524", "1590", "1600", "1601", "1615",
+]);
+
 export async function autoAdvanceQueuePatients(dateIso: string) {
   const conn = await getDb();
   if (!conn) throw new Error("Database not available");
 
   const checkedInRows = await conn
-    .select({ id: visits.id })
+    .select({ id: visits.id, patientId: visits.patientId })
     .from(visits)
     .where(and(
       sql`DATE(${visits.visitDate}) = ${dateIso}`,
@@ -7021,15 +7032,48 @@ export async function autoAdvanceQueuePatients(dateIso: string) {
 
   if (checkedInRows.length === 0) return;
 
+  const patientIds = checkedInRows.map((row: { patientId: number }) => row.patientId);
+  const serviceRows = patientIds.length
+    ? await conn
+        .select({
+          patientId: patientServiceEntries.patientId,
+          serviceCode: patientServiceEntries.serviceCode,
+        })
+        .from(patientServiceEntries)
+        .where(inArray(patientServiceEntries.patientId, patientIds))
+    : [];
+  const servicesByPatient = new Map<number, Set<string>>();
+  for (const row of serviceRows) {
+    const set = servicesByPatient.get(row.patientId) ?? new Set<string>();
+    set.add(String(row.serviceCode ?? "").trim());
+    servicesByPatient.set(row.patientId, set);
+  }
+
   const counts = await countClinicPatientsByNo(conn, dateIso);
 
   for (const row of checkedInRows) {
-    const clinicNo = counts[1] <= counts[2] ? 1 : 2;
-    await conn
-      .update(visits)
-      .set({ queueStatus: "clinic" as any, clinicNo, movedToClinicAt: sql`CURRENT_TIMESTAMP` })
-      .where(eq(visits.id, row.id));
-    counts[clinicNo]++;
+    const codes = servicesByPatient.get(row.patientId) ?? new Set<string>();
+    const hasClinicCode = [...codes].some((c) => CLINIC_QUEUE_SERVICE_CODES.has(c));
+    const hasPentacamCode = [...codes].some((c) => PENTACAM_QUEUE_SERVICE_CODES.has(c));
+
+    if (hasClinicCode) {
+      const clinicNo = counts[1] <= counts[2] ? 1 : 2;
+      await conn
+        .update(visits)
+        .set({ queueStatus: "clinic" as any, clinicNo, movedToClinicAt: sql`CURRENT_TIMESTAMP` })
+        .where(eq(visits.id, row.id));
+      counts[clinicNo]++;
+    } else if (hasPentacamCode) {
+      await conn
+        .update(visits)
+        .set({ queueStatus: "pentacam" as any, movedToPentacamAt: sql`CURRENT_TIMESTAMP` })
+        .where(eq(visits.id, row.id));
+    } else {
+      await conn
+        .update(visits)
+        .set({ queueStatus: "treated" as any, treatedAt: sql`CURRENT_TIMESTAMP` })
+        .where(eq(visits.id, row.id));
+    }
   }
 }
 
@@ -7061,6 +7105,8 @@ export async function updateVisitQueueStatus(
     timestampCol.movedToNextAt = sql`CURRENT_TIMESTAMP`;
   if (queueStatus === "clinic")
     timestampCol.movedToClinicAt = sql`CURRENT_TIMESTAMP`;
+  if (queueStatus === "pentacam")
+    timestampCol.movedToPentacamAt = sql`CURRENT_TIMESTAMP`;
   if (queueStatus === "treated")
     timestampCol.treatedAt = sql`CURRENT_TIMESTAMP`;
 

@@ -51,6 +51,7 @@ export type MssqlPatientInsertInput = {
   serviceQty?: number | null;
   discountValue?: number | null;
   paValue?: number | null;
+  shiftNumber?: 1 | 2 | null;
 };
 
 type MssqlSyncState = {
@@ -147,6 +148,33 @@ function normalizeIsoDate(input: unknown): string | undefined {
   const date = new Date(raw);
   if (Number.isNaN(date.valueOf())) return undefined;
   return date.toISOString().slice(0, 10);
+}
+
+/**
+ * Age remainder in whole months/days beyond the whole-year AGE, matching
+ * the OP system's AGE_MONTHS/AGE_DAYS columns (confirmed against real
+ * PAJRNRCVH/PAPATMF/PAPAT_IO rows: BDT=1999-10-01, DT=2026-01-03, AGE=26
+ * → AGE_MONTHS=3, AGE_DAYS=2).
+ */
+function computeAgeMonthsDays(
+  bdt: Date | null | undefined,
+  dt: Date | null | undefined,
+): { ageMonths: number | null; ageDays: number | null } {
+  if (!bdt || !dt || Number.isNaN(bdt.valueOf()) || Number.isNaN(dt.valueOf())) {
+    return { ageMonths: null, ageDays: null };
+  }
+  let months =
+    (dt.getFullYear() - bdt.getFullYear()) * 12 +
+    (dt.getMonth() - bdt.getMonth());
+  let days = dt.getDate() - bdt.getDate();
+  if (days < 0) {
+    months -= 1;
+    const prevMonth = new Date(dt.getFullYear(), dt.getMonth(), 0);
+    days += prevMonth.getDate();
+  }
+  const ageYears = Math.floor(months / 12);
+  const ageMonths = months - ageYears * 12;
+  return { ageMonths, ageDays: days };
 }
 
 function normalizeIsoDateTime(input: unknown): string | undefined {
@@ -1127,6 +1155,7 @@ async function ensurePapatMfDefaults(
       CASE WHEN ISNUMERIC(CONVERT(varchar(50), IDNO)) = 1 THEN CAST(CONVERT(varchar(50), IDNO) AS INT) ELSE NULL END AS IDNO,
       CASE WHEN ISNUMERIC(CONVERT(varchar(50), DRS_CD)) = 1 THEN CAST(CONVERT(varchar(50), DRS_CD) AS INT) ELSE NULL END AS DRS_CD,
       CASE WHEN ISDATE(DT) = 1 THEN CONVERT(datetime, DT) ELSE NULL END AS DT,
+      CASE WHEN ISDATE(BDT) = 1 THEN CONVERT(datetime, BDT) ELSE NULL END AS BDT,
       CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) ELSE NULL END AS ENTRYDATE
     FROM op2026.dbo.PAJRNRCVH
     WHERE PAT_CD = @PAT_CD
@@ -1216,6 +1245,39 @@ async function ensurePapatMfDefaults(
           ? Math.trunc(Number(h.DRS_CD))
           : null,
       );
+    }
+    if (cols.has("BDT")) {
+      insertCols.push("BDT");
+      insertVals.push("@BDT");
+      insReq.input("BDT", h?.BDT ? new Date(h.BDT) : null);
+    }
+    if (cols.has("AGE_MONTHS") || cols.has("AGE_DAYS")) {
+      const { ageMonths, ageDays } = computeAgeMonthsDays(
+        h?.BDT ? new Date(h.BDT) : null,
+        visitDt,
+      );
+      if (cols.has("AGE_MONTHS")) {
+        insertCols.push("AGE_MONTHS");
+        insertVals.push("@AGE_MONTHS");
+        insReq.input("AGE_MONTHS", ageMonths);
+      }
+      if (cols.has("AGE_DAYS")) {
+        insertCols.push("AGE_DAYS");
+        insertVals.push("@AGE_DAYS");
+        insReq.input("AGE_DAYS", ageDays);
+      }
+    }
+    if (cols.has("RLTN")) {
+      insertCols.push("RLTN");
+      insertVals.push("1");
+    }
+    if (cols.has("PRC_DGR")) {
+      insertCols.push("PRC_DGR");
+      insertVals.push("1");
+    }
+    if (cols.has("CA_CD")) {
+      insertCols.push("CA_CD");
+      insertVals.push("'00000'");
     }
 
     try {
@@ -1440,6 +1502,8 @@ async function ensurePapatIoDefaults(
   fullName?: string | null,
   enteredBy?: string | null,
   serviceNetAmount?: number | null,
+  ageMonthsIn?: number | null,
+  ageDaysIn?: number | null,
 ): Promise<void> {
   if (!Number.isFinite(Number(vstNo))) return;
   const cols = await getTableColumns(pool, "op2026.dbo.PAPAT_IO");
@@ -1478,6 +1542,16 @@ async function ensurePapatIoDefaults(
   if (cols.has("PRC_DGR")) {
     insertCols.push("PRC_DGR");
     insertVals.push("1");
+  }
+  if (cols.has("AGE_MONTHS") && Number.isFinite(Number(ageMonthsIn))) {
+    insertCols.push("AGE_MONTHS");
+    insertVals.push("@IO_AGE_MONTHS");
+    insReq.input("IO_AGE_MONTHS", Math.trunc(Number(ageMonthsIn)));
+  }
+  if (cols.has("AGE_DAYS") && Number.isFinite(Number(ageDaysIn))) {
+    insertCols.push("AGE_DAYS");
+    insertVals.push("@IO_AGE_DAYS");
+    insReq.input("IO_AGE_DAYS", Math.trunc(Number(ageDaysIn)));
   }
   if (cols.has("BAL")) {
     insertCols.push("BAL");
@@ -1716,43 +1790,54 @@ async function applyPajrnrCvhDefaults(
   genderCode: number | null,
   payAmount: number | null,
   doctorCode?: string | null,
+  trNo?: number | null,
 ): Promise<void> {
   const cols = await getTableColumns(pool, targetTable);
+  const trNoCol = cols.has("TR_NO")
+    ? "TR_NO"
+    : cols.has("TR_NONEW")
+      ? "tr_noNew"
+      : "";
+  const hasScopedTrNo = Boolean(trNoCol) && Number.isFinite(Number(trNo));
+  const whereClause = hasScopedTrNo
+    ? `PAT_CD = @PAT_CD AND ${trNoCol} = @TR_NO`
+    : "PAT_CD = @PAT_CD";
   const run = async (sqlText: string, bind?: (req: any) => void) => {
     const req = pool.request();
     req.input("PAT_CD", patientCode);
+    if (hasScopedTrNo) req.input("TR_NO", Math.trunc(Number(trNo)));
     if (bind) bind(req);
     await req.query(sqlText);
   };
   if (cols.has("PAT_TY"))
-    await run(`UPDATE ${targetTable} SET PAT_TY = 1 WHERE PAT_CD = @PAT_CD`);
+    await run(`UPDATE ${targetTable} SET PAT_TY = 1 WHERE ${whereClause}`);
   if (cols.has("PRC_DGR"))
-    await run(`UPDATE ${targetTable} SET PRC_DGR = 1 WHERE PAT_CD = @PAT_CD`);
+    await run(`UPDATE ${targetTable} SET PRC_DGR = 1 WHERE ${whereClause}`);
   if (cols.has("CA_VL"))
-    await run(`UPDATE ${targetTable} SET CA_VL = 0 WHERE PAT_CD = @PAT_CD`);
+    await run(`UPDATE ${targetTable} SET CA_VL = 0 WHERE ${whereClause}`);
   if (cols.has("CA_ACC"))
     await run(
-      `UPDATE ${targetTable} SET CA_ACC = ISNULL(NULLIF(CA_ACC, ''), '00000') WHERE PAT_CD = @PAT_CD`,
+      `UPDATE ${targetTable} SET CA_ACC = ISNULL(NULLIF(CA_ACC, ''), '00000') WHERE ${whereClause}`,
     );
   if (cols.has("XSEC_CD"))
-    await run(`UPDATE ${targetTable} SET XSEC_CD = 0 WHERE PAT_CD = @PAT_CD`);
+    await run(`UPDATE ${targetTable} SET XSEC_CD = 0 WHERE ${whereClause}`);
   if (cols.has("MNGEXP"))
-    await run(`UPDATE ${targetTable} SET MNGEXP = 0 WHERE PAT_CD = @PAT_CD`);
+    await run(`UPDATE ${targetTable} SET MNGEXP = 0 WHERE ${whereClause}`);
   if (cols.has("PMNGEXP"))
-    await run(`UPDATE ${targetTable} SET PMNGEXP = 0 WHERE PAT_CD = @PAT_CD`);
+    await run(`UPDATE ${targetTable} SET PMNGEXP = 0 WHERE ${whereClause}`);
   if (cols.has("BRNCH"))
-    await run(`UPDATE ${targetTable} SET BRNCH = NULL WHERE PAT_CD = @PAT_CD`);
+    await run(`UPDATE ${targetTable} SET BRNCH = NULL WHERE ${whereClause}`);
   if (cols.has("DUE"))
-    await run(`UPDATE ${targetTable} SET DUE = NULL WHERE PAT_CD = @PAT_CD`);
+    await run(`UPDATE ${targetTable} SET DUE = NULL WHERE ${whereClause}`);
   if (cols.has("GNDR") && genderCode != null) {
     await run(
-      `UPDATE ${targetTable} SET GNDR = @GNDR WHERE PAT_CD = @PAT_CD`,
+      `UPDATE ${targetTable} SET GNDR = @GNDR WHERE ${whereClause}`,
       (req) => req.input("GNDR", genderCode),
     );
   }
   if (cols.has("PAY") && payAmount != null) {
     await run(
-      `UPDATE ${targetTable} SET PAY = @PAY WHERE PAT_CD = @PAT_CD`,
+      `UPDATE ${targetTable} SET PAY = @PAY WHERE ${whereClause}`,
       (req) => req.input("PAY", payAmount),
     );
   }
@@ -1765,7 +1850,7 @@ async function applyPajrnrCvhDefaults(
         `[MSSQL Defaults] Setting DRS_CD=${doctorCode} for ${patientCode}`,
       );
       await run(
-        `UPDATE ${targetTable} SET DRS_CD = @DRS_CD WHERE PAT_CD = @PAT_CD`,
+        `UPDATE ${targetTable} SET DRS_CD = @DRS_CD WHERE ${whereClause}`,
         (req) => req.input("DRS_CD", doctorCode),
       );
     } else {
@@ -1779,6 +1864,10 @@ async function applyPajrnrCvhDefaults(
   if (cols.has("TOTL") || cols.has("DISC") || cols.has("PA_VL")) {
     const aggReq = pool.request();
     aggReq.input("PAT_CD", patientCode);
+    if (hasScopedTrNo) aggReq.input("TR_NO", Math.trunc(Number(trNo)));
+    const srvWhere = hasScopedTrNo
+      ? `PAT_CD = @PAT_CD AND ${trNoCol} = @TR_NO`
+      : "PAT_CD = @PAT_CD";
     const agg = await aggReq.query(`
       SELECT
         SUM(
@@ -1791,7 +1880,7 @@ async function applyPajrnrCvhDefaults(
         SUM(CASE WHEN ISNUMERIC(CONVERT(varchar(50), DISC_VL)) = 1 THEN CAST(CONVERT(varchar(50), DISC_VL) AS decimal(18,2)) ELSE 0 END) AS totalDisc,
         SUM(CASE WHEN ISNUMERIC(CONVERT(varchar(50), PA_VL)) = 1 THEN CAST(CONVERT(varchar(50), PA_VL) AS decimal(18,2)) ELSE 0 END) AS totalNet
       FROM op2026.dbo.PAPAT_SRV
-      WHERE PAT_CD = @PAT_CD
+      WHERE ${srvWhere}
     `);
     const row =
       Array.isArray(agg?.recordset) && agg.recordset.length > 0
@@ -1803,21 +1892,21 @@ async function applyPajrnrCvhDefaults(
     if (cols.has("PA_VL")) {
       // PA_VL = gross (ما يخص المريض = price before discount)
       await run(
-        `UPDATE ${targetTable} SET PA_VL = @PAVL WHERE PAT_CD = @PAT_CD`,
+        `UPDATE ${targetTable} SET PA_VL = @PAVL WHERE ${whereClause}`,
         (req) =>
           req.input("PAVL", Number.isFinite(totalGross) ? totalGross : 0),
       );
     }
     if (cols.has("DISC")) {
       await run(
-        `UPDATE ${targetTable} SET DISC = @DISC WHERE PAT_CD = @PAT_CD`,
+        `UPDATE ${targetTable} SET DISC = @DISC WHERE ${whereClause}`,
         (req) => req.input("DISC", Number.isFinite(totalDisc) ? totalDisc : 0),
       );
     }
     if (cols.has("TOTL")) {
       // TOTL = net (المدفوع = price after discount)
       await run(
-        `UPDATE ${targetTable} SET TOTL = @TOTL WHERE PAT_CD = @PAT_CD`,
+        `UPDATE ${targetTable} SET TOTL = @TOTL WHERE ${whereClause}`,
         (req) => req.input("TOTL", Number.isFinite(totalNet) ? totalNet : 0),
       );
     }
@@ -2192,6 +2281,10 @@ export async function insertPatientToMssql(
   const todayDateOnly = `${nowIso.slice(0, 10)} 00:00:00`;
   const dobIso = normalizeIsoDate(input.dateOfBirth);
   const dobLiteral = dobIso ? `${dobIso} 00:00:00` : null;
+  const { ageMonths, ageDays } = computeAgeMonthsDays(
+    dobIso ? new Date(dobIso) : null,
+    new Date(nowIso.slice(0, 10)),
+  );
   const branchRaw = String(input.branch ?? "")
     .trim()
     .toLowerCase();
@@ -2225,7 +2318,7 @@ export async function insertPatientToMssql(
   const strNo = Number.isFinite(strNoRaw) ? Math.trunc(strNoRaw) : 916;
   const secCd = Number.isFinite(secCdRaw) ? Math.trunc(secCdRaw) : 15;
   const trTy = Number.isFinite(trTyRaw) ? Math.trunc(trTyRaw) : 1;
-  const shft = resolveShiftNumber();
+  const shft = Number.isFinite(Number(input.shiftNumber)) && [1, 2].includes(Number(input.shiftNumber)) ? Number(input.shiftNumber) : resolveShiftNumber();
   const dedupWindowSecondsRaw = Number(
     process.env.MSSQL_PUSH_DEDUP_SECONDS ?? 90,
   );
@@ -2270,6 +2363,12 @@ export async function insertPatientToMssql(
         ? "tr_noNew"
         : "";
     const hasTrNoCol = Boolean(trNoCol);
+    const hasAgeMonths = targetCols.has("AGE_MONTHS");
+    const hasAgeDays = targetCols.has("AGE_DAYS");
+    const hasCncl = targetCols.has("CNCL");
+    const hasPrcDgr = targetCols.has("PRC_DGR");
+    const hasCaAcc = targetCols.has("CA_ACC");
+    const hasCaVl = targetCols.has("CA_VL");
 
     const insertColumns = [
       "PAT_CD",
@@ -2297,6 +2396,12 @@ export async function insertPatientToMssql(
       "IDNO",
       "PAY",
       "DUE",
+      ...(hasAgeMonths ? ["AGE_MONTHS"] : []),
+      ...(hasAgeDays ? ["AGE_DAYS"] : []),
+      ...(hasCncl ? ["CNCL"] : []),
+      ...(hasPrcDgr ? ["PRC_DGR"] : []),
+      ...(hasCaAcc ? ["CA_ACC"] : []),
+      ...(hasCaVl ? ["CA_VL"] : []),
       ...(enteredBy ? ["ENTEREDBY"] : []),
     ];
     const insertValues = [
@@ -2338,6 +2443,12 @@ export async function insertPatientToMssql(
       "@IDNO",
       "@PAY",
       "@DUE",
+      ...(hasAgeMonths ? ["@AGE_MONTHS"] : []),
+      ...(hasAgeDays ? ["@AGE_DAYS"] : []),
+      ...(hasCncl ? ["@CNCL"] : []),
+      ...(hasPrcDgr ? ["@PRC_DGR"] : []),
+      ...(hasCaAcc ? ["@CA_ACC"] : []),
+      ...(hasCaVl ? ["@CA_VL"] : []),
       ...(enteredBy ? ["@ENTEREDBY"] : []),
     ];
     const insertSql = `
@@ -2425,6 +2536,12 @@ export async function insertPatientToMssql(
       req.input("IDNO", idno);
       req.input("PAY", payValue);
       req.input("DUE", dueValue);
+      if (hasAgeMonths) req.input("AGE_MONTHS", ageMonths);
+      if (hasAgeDays) req.input("AGE_DAYS", ageDays);
+      if (hasCncl) req.input("CNCL", "0");
+      if (hasPrcDgr) req.input("PRC_DGR", 1);
+      if (hasCaAcc) req.input("CA_ACC", "00000");
+      if (hasCaVl) req.input("CA_VL", 0);
       if (enteredBy) req.input("ENTEREDBY", enteredBy);
       console.log(`[MSSQL Insert] Inserting patient record...`);
       console.log(`[MSSQL Insert SQL] ${insertSql.substring(0, 200)}...`);
@@ -2490,6 +2607,7 @@ export async function insertPatientToMssql(
       gender,
       payValue,
       doctorCode,
+      Number.isFinite(trNo) ? trNo : null,
     );
     console.log(`[MSSQL Insert] Ensuring PAPAT_IO defaults...`);
     await ensurePapatIoDefaults(
@@ -2502,6 +2620,8 @@ export async function insertPatientToMssql(
       fullName,
       enteredBy,
       netServiceValue,
+      ageMonths,
+      ageDays,
     );
     console.log(`[MSSQL Insert] Ensuring PAPATMF defaults...`);
     await ensurePapatMfDefaults(
@@ -2690,6 +2810,7 @@ export async function insertPatientToMssql(
           gender,
           payValue,
           doctorCode,
+          Number.isFinite(trNo) ? trNo : null,
         );
       } catch (err) {
         console.error(
@@ -2750,6 +2871,10 @@ export async function upsertPatientToMssql(
   const todayDateOnly = `${nowIso.slice(0, 10)} 00:00:00`;
   const dobIso = normalizeIsoDate(input.dateOfBirth);
   const dobLiteral = dobIso ? `${dobIso} 00:00:00` : null;
+  const { ageMonths, ageDays } = computeAgeMonthsDays(
+    dobIso ? new Date(dobIso) : null,
+    new Date(nowIso.slice(0, 10)),
+  );
   const branchRaw = String(input.branch ?? "")
     .trim()
     .toLowerCase();
@@ -2783,7 +2908,7 @@ export async function upsertPatientToMssql(
   const strNo = Number.isFinite(strNoRaw) ? Math.trunc(strNoRaw) : 916;
   const secCd = Number.isFinite(secCdRaw) ? Math.trunc(secCdRaw) : 15;
   const trTy = Number.isFinite(trTyRaw) ? Math.trunc(trTyRaw) : 1;
-  const shft = resolveShiftNumber();
+  const shft = Number.isFinite(Number(input.shiftNumber)) && [1, 2].includes(Number(input.shiftNumber)) ? Number(input.shiftNumber) : resolveShiftNumber();
   const { nam1, nam2, nam3 } = splitArabicName(fullName);
   const doctorCode = String(input.doctorCode ?? "").trim() || null;
   const inputQtyNum2 = Number(input.serviceQty ?? NaN);
@@ -2957,6 +3082,25 @@ export async function upsertPatientToMssql(
         },
       );
     }
+    const cvhTrNoReq = pool.request();
+    cvhTrNoReq.input("PAT_CD", patientCode);
+    const cvhTrNoRs = await cvhTrNoReq.query(`
+      SELECT TOP 1
+        ${
+          trNoCol
+            ? `CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${trNoCol})) = 1 THEN CAST(CONVERT(varchar(50), ${trNoCol}) AS INT) ELSE NULL END AS TR_NO`
+            : "NULL AS TR_NO"
+        }
+      FROM ${targetTable}
+      WHERE PAT_CD = @PAT_CD
+      ORDER BY
+        CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
+        CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC
+    `);
+    const cvhTrNoRow =
+      Array.isArray(cvhTrNoRs?.recordset) && cvhTrNoRs.recordset.length > 0
+        ? cvhTrNoRs.recordset[0]
+        : {};
     await applyPajrnrCvhDefaults(
       pool,
       targetTable,
@@ -2964,6 +3108,9 @@ export async function upsertPatientToMssql(
       gender,
       payValue,
       doctorCode,
+      Number.isFinite(Number(cvhTrNoRow?.TR_NO))
+        ? Math.trunc(Number(cvhTrNoRow.TR_NO))
+        : null,
     );
     const latestHeaderReq = pool.request();
     latestHeaderReq.input("PAT_CD", patientCode);
@@ -3004,6 +3151,8 @@ export async function upsertPatientToMssql(
       fullName,
       enteredBy,
       netServiceValue,
+      ageMonths,
+      ageDays,
     );
     await ensurePapatMfDefaults(
       pool,
@@ -3125,11 +3274,38 @@ export async function upsertPatientToMssql(
           "6",
           "1",
         ];
+        const upsertSrvExistsFilter = srvTrNoCol
+          ? `PAT_CD = @PAT_CD AND SRV_CD = @SRV_CD AND ${srvTrNoCol} = (
+              ISNULL(
+                (
+                  SELECT TOP 1
+                    CASE
+                      WHEN ISNUMERIC(CONVERT(varchar(50), ${headerTrSelectExpr})) = 1 THEN CAST(CONVERT(varchar(50), ${headerTrSelectExpr}) AS INT)
+                      ELSE NULL
+                    END
+                  FROM op2026.dbo.PAJRNRCVH
+                  WHERE PAT_CD = @PAT_CD
+                  ORDER BY
+                    CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
+                    CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC
+                ),
+                (
+                  SELECT ISNULL(MAX(
+                    CASE
+                      WHEN ISNUMERIC(CONVERT(varchar(50), ${srvTrSelectExpr})) = 1 THEN CAST(CONVERT(varchar(50), ${srvTrSelectExpr}) AS INT)
+                      ELSE NULL
+                    END
+                  ), 0)
+                  FROM op2026.dbo.PAPAT_SRV
+                )
+              )
+            )`
+          : `PAT_CD = @PAT_CD AND SRV_CD = @SRV_CD`;
         const serviceSql = `
             INSERT INTO op2026.dbo.PAPAT_SRV (${srvInsertCols.join(", ")})
             SELECT ${srvInsertVals.join(", ")}
             WHERE NOT EXISTS (
-              SELECT 1 FROM op2026.dbo.PAPAT_SRV WHERE PAT_CD = @PAT_CD AND SRV_CD = @SRV_CD
+              SELECT 1 FROM op2026.dbo.PAPAT_SRV WHERE ${upsertSrvExistsFilter}
             )
         `;
         await withMssqlServiceInsertLock(
@@ -3164,6 +3340,10 @@ export async function upsertPatientToMssql(
           patientCode,
           gender,
           payValue,
+          undefined,
+          Number.isFinite(Number(cvhTrNoRow?.TR_NO))
+            ? Math.trunc(Number(cvhTrNoRow.TR_NO))
+            : null,
         );
       } catch {
         // optional service mirror table
@@ -3323,11 +3503,38 @@ export async function ensurePatientServiceInMssql(
       "6",
       "1",
     ];
+    const ensureSrvExistsFilter = srvTrNoCol
+      ? `PAT_CD = @PAT_CD AND SRV_CD = @SRV_CD AND ${srvTrNoCol} = (
+          ISNULL(
+            (
+              SELECT TOP 1
+                CASE
+                  WHEN ISNUMERIC(CONVERT(varchar(50), ${headerTrExpr})) = 1 THEN CAST(CONVERT(varchar(50), ${headerTrExpr}) AS INT)
+                  ELSE NULL
+                END
+              FROM ${targetTable}
+              WHERE PAT_CD = @PAT_CD
+              ORDER BY
+                CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
+                CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC
+            ),
+            (
+              SELECT ISNULL(MAX(
+                CASE
+                  WHEN ISNUMERIC(CONVERT(varchar(50), ${srvTrExpr})) = 1 THEN CAST(CONVERT(varchar(50), ${srvTrExpr}) AS INT)
+                  ELSE NULL
+                END
+              ), 0)
+              FROM op2026.dbo.PAPAT_SRV
+            )
+          )
+        )`
+      : `PAT_CD = @PAT_CD AND SRV_CD = @SRV_CD`;
     const serviceSql = `
         INSERT INTO op2026.dbo.PAPAT_SRV (${srvInsertCols.join(", ")})
         SELECT ${srvInsertVals.join(", ")}
         WHERE NOT EXISTS (
-          SELECT 1 FROM op2026.dbo.PAPAT_SRV WHERE PAT_CD = @PAT_CD AND SRV_CD = @SRV_CD
+          SELECT 1 FROM op2026.dbo.PAPAT_SRV WHERE ${ensureSrvExistsFilter}
         )
     `;
     await withMssqlServiceInsertLock(
@@ -3436,7 +3643,42 @@ export async function ensurePatientServiceInMssql(
       entryDate: todayDateOnly,
       discountValue,
     });
-    await applyPajrnrCvhDefaults(pool, targetTable, patientCode, null, null);
+    const headerTrLookupCols = await getTableColumns(pool, targetTable);
+    const headerTrLookupCol = headerTrLookupCols.has("TR_NO")
+      ? "TR_NO"
+      : headerTrLookupCols.has("TR_NONEW")
+        ? "tr_noNew"
+        : "";
+    let latestTrNo: number | null = null;
+    if (headerTrLookupCol) {
+      const latestTrReq = pool.request();
+      latestTrReq.input("PAT_CD", patientCode);
+      const latestTrRs = await latestTrReq.query(`
+        SELECT TOP 1
+          CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${headerTrLookupCol})) = 1 THEN CAST(CONVERT(varchar(50), ${headerTrLookupCol}) AS INT) ELSE NULL END AS TR_NO
+        FROM ${targetTable}
+        WHERE PAT_CD = @PAT_CD
+        ORDER BY
+          CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
+          CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC
+      `);
+      const latestTrRow =
+        Array.isArray(latestTrRs?.recordset) && latestTrRs.recordset.length > 0
+          ? latestTrRs.recordset[0]
+          : {};
+      latestTrNo = Number.isFinite(Number(latestTrRow?.TR_NO))
+        ? Math.trunc(Number(latestTrRow.TR_NO))
+        : null;
+    }
+    await applyPajrnrCvhDefaults(
+      pool,
+      targetTable,
+      patientCode,
+      null,
+      null,
+      undefined,
+      latestTrNo,
+    );
     await ensurePapatMfDefaults(
       pool,
       patientCode,
@@ -3456,6 +3698,7 @@ export async function addServiceReceiptInMssql(
   doctorCodeRaw?: string | null,
   discountValueRaw?: number | null,
   servicePriceOverride?: number | null,
+  shiftNumberRaw?: 1 | 2 | null,
 ): Promise<{ inserted: boolean; note?: string; trNo?: number | null }> {
   const patientCode = String(patientCodeRaw ?? "").trim();
   const serviceCode = String(serviceCodeRaw ?? "").trim();
@@ -3500,7 +3743,7 @@ export async function addServiceReceiptInMssql(
       ? Number(process.env.MSSQL_PUSH_STR_NO)
       : 916,
   );
-  const shft = resolveShiftNumber();
+  const shft = Number.isFinite(Number(shiftNumberRaw)) && [1, 2].includes(Number(shiftNumberRaw)) ? Number(shiftNumberRaw) : resolveShiftNumber();
 
   const pool = await createMssqlPool();
   try {
@@ -3850,6 +4093,8 @@ export async function addMultiServiceReceiptInMssql(
     priceOverride?: number | null;
   }>,
   doctorCodeRaw?: string | null,
+  shiftNumberRaw?: 1 | 2 | null,
+  serviceDateRaw?: string | null,
 ): Promise<{ inserted: boolean; note?: string; trNo?: number | null }> {
   const patientCode = String(patientCodeRaw ?? "").trim();
   const validLines = lines.filter((l) => String(l.serviceCode ?? "").trim());
@@ -3863,7 +4108,11 @@ export async function addMultiServiceReceiptInMssql(
   const targetTable = String(
     process.env.MSSQL_PUSH_PATIENTS_TABLE ?? "op2026.dbo.PAJRNRCVH",
   ).trim();
-  const nowIso = new Date().toISOString();
+  const requestedDate = serviceDateRaw ? new Date(serviceDateRaw) : null;
+  const nowIso =
+    requestedDate && !Number.isNaN(requestedDate.valueOf())
+      ? requestedDate.toISOString()
+      : new Date().toISOString();
   const nowLiteral = toSqlDateTimeLiteral(nowIso);
   const todayDateOnly = `${nowIso.slice(0, 10)} 00:00:00`;
   const doctorCode = String(doctorCodeRaw ?? "").trim() || null;
@@ -3884,7 +4133,7 @@ export async function addMultiServiceReceiptInMssql(
       ? Number(process.env.MSSQL_PUSH_STR_NO)
       : 916,
   );
-  const shft = resolveShiftNumber();
+  const shft = Number.isFinite(Number(shiftNumberRaw)) && [1, 2].includes(Number(shiftNumberRaw)) ? Number(shiftNumberRaw) : resolveShiftNumber();
 
   const pool = await createMssqlPool();
   try {

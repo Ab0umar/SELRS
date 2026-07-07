@@ -40,11 +40,7 @@ internal sealed class Program
 {
     private static int Main(string[] args)
     {
-<<<<<<< HEAD
-        string ip = GetArg(args, "--ip", "192.168.1.10");
-=======
         string ip = GetArg(args, "--ip", "41.199.252.107");
->>>>>>> 64805bc2cc3c4a2a79ef722ea88924d18cda4943
         int port = int.Parse(GetArg(args, "--port", "5005"), CultureInfo.InvariantCulture);
         int machineNo = int.Parse(GetArg(args, "--machine", "1"), CultureInfo.InvariantCulture);
         int password = int.Parse(GetArg(args, "--password", "0"), CultureInfo.InvariantCulture);
@@ -52,7 +48,7 @@ internal sealed class Program
         int timeout = int.Parse(GetArg(args, "--timeout", "5000"), CultureInfo.InvariantCulture);
         int protocol = int.Parse(GetArg(args, "--protocol", "0"), CultureInfo.InvariantCulture);
         int readMark = int.Parse(GetArg(args, "--readmark", "0"), CultureInfo.InvariantCulture);
-        string outPath = GetArg(args, "--out", @"E:\SRV100_Acc\old_device_logs.csv");
+        string outPath = GetArg(args, "--out", @"D:\c\SRV100_Acc\old_device_logs.csv");
 
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outPath)));
 

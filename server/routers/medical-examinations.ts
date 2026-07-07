@@ -2015,7 +2015,7 @@ export const medicalExaminationsRoutes = {
     .input(
       z.object({
         visitId: z.number(),
-        queueStatus: z.enum(["checkedIn", "next", "clinic", "treated"]),
+        queueStatus: z.enum(["checkedIn", "next", "clinic", "pentacam", "treated"]),
         patientId: z.number().optional(),
         date: z.string().optional(),
       }),
@@ -2137,7 +2137,7 @@ export const medicalExaminationsRoutes = {
     .input(
       z.object({
         date: z.string().optional(),
-        queueStatus: z.enum(["checkedIn", "next", "clinic", "treated"]),
+        queueStatus: z.enum(["checkedIn", "next", "clinic", "pentacam", "treated"]),
         clinicNo: z.number().int().optional(),
       }),
     )

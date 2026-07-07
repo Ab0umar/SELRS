@@ -88,6 +88,7 @@ export function useExaminationForm(
   const [technicianSignature, setTechnicianSignature] = useState("");
   const [doctorName, setDoctorName] = useState("");
   const [sheetSelection, setSheetSelection] = useState("");
+  const [shiftNumber, setShiftNumber] = useState<1 | 2 | undefined>(undefined);
   const [isFollowup, setIsFollowup] = useState(false);
   const [patientInfo, setPatientInfo] = useState({
     id: 0,
@@ -1313,6 +1314,7 @@ export function useExaminationForm(
           visitDate: localISODate(),
           ...(doctorCode ? { doctorCode } : {}),
           ...(validServices.length > 0 ? { services: validServices } : {}),
+          ...(shiftNumber ? { shiftNumber } : {}),
         });
         effectivePatientId = created.id ?? 0;
         setPatientInfo((prev) => ({
@@ -1329,6 +1331,7 @@ export function useExaminationForm(
           serviceType: (sheetSelection as any) || "consultant",
           locationType,
           visitDate: localISODate(),
+          ...(shiftNumber ? { shiftNumber } : {}),
         }).catch((err) => console.warn("[ExaminationForm] existing patient MSSQL push failed:", err));
 
         // Link additional services
@@ -1520,6 +1523,8 @@ export function useExaminationForm(
     setDoctorName,
     sheetSelection,
     setSheetSelection,
+    shiftNumber,
+    setShiftNumber,
     isFollowup,
     setIsFollowup,
     patientInfo,

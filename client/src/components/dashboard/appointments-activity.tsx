@@ -42,6 +42,7 @@ type QueueFilter = "all" | QueueStatus | "clinic1" | "clinic2";
 const QUEUE_FILTERS: { value: QueueFilter; label: string }[] = [
   { value: "clinic1", label: "عيادة 1" },
   { value: "clinic2", label: "عيادة 2" },
+  { value: "pentacam", label: "بنتاكام" },
   { value: "treated", label: "معالج" },
 ];
 
@@ -56,6 +57,7 @@ const queueStatusStyles: Record<QueueStatus, string> = {
   checkedIn: "bg-info/10 text-info",
   next: "bg-warning text-warning-foreground",
   clinic: "bg-primary text-primary-foreground",
+  pentacam: "bg-secondary text-secondary-foreground",
   treated: "bg-success text-success-foreground",
 };
 
@@ -63,6 +65,7 @@ const queueCardStyles: Record<QueueStatus, string> = {
   checkedIn: "border-info/30 bg-info/5",
   next: "border-warning/30 bg-warning/5",
   clinic: "border-primary/30 bg-primary/5",
+  pentacam: "border-secondary/30 bg-secondary/5",
   treated: "border-success/30 bg-success/5",
 };
 
@@ -261,12 +264,14 @@ export function AppointmentsSection({
       all: merged.length,
       clinic1: byStatus.clinic1.length,
       clinic2: byStatus.clinic2.length,
+      pentacam: byStatus.pentacam.length,
       treated: byStatus.treated.length,
     }),
     [
       merged.length,
       byStatus.clinic1.length,
       byStatus.clinic2.length,
+      byStatus.pentacam.length,
       byStatus.treated.length,
     ],
   );
@@ -721,6 +726,38 @@ function QueuePatientCard({
                     {label}
                   </DropdownMenuItem>
                 ))}
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(`/sheets/referral/${patient.id}`, "_blank");
+                  }}
+                >
+                  خطاب تحويل
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(`/clinical-report/${patient.id}`, "_blank");
+                  }}
+                >
+                  التقرير السريري الشامل
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(`/pre-post-op-report/${patient.id}`, "_blank");
+                  }}
+                >
+                  تقرير ما قبل/بعد العملية
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(`/post-op-offdays/${patient.id}`, "_blank");
+                  }}
+                >
+                  إجازة ما بعد العملية
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             {canMarkTreated ? (

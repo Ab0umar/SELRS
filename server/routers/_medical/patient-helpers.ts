@@ -215,6 +215,7 @@ export async function pushNewPatientToMssql(patient: {
   serviceQty?: number | null;
   discountValue?: number | null;
   paValue?: number | null;
+  shiftNumber?: 1 | 2 | null;
 }) {
   console.log(
     `[pushNewPatientToMssql] Patient ${patient.patientCode}, serviceType="${patient.serviceType}", providedServiceCode="${patient.serviceCode}"`,
@@ -242,6 +243,7 @@ export async function pushNewPatientToMssql(patient: {
     serviceQty: patient.serviceQty ?? undefined,
     discountValue: patient.discountValue ?? undefined,
     paValue: patient.paValue ?? undefined,
+    shiftNumber: patient.shiftNumber ?? undefined,
   });
 }
 

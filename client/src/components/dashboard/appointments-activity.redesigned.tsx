@@ -47,6 +47,7 @@ const queueStatusStyles: Record<QueueStatus, string> = {
   checkedIn: "bg-info/10 text-info",
   next: "bg-warning text-warning-foreground",
   clinic: "bg-primary text-primary-foreground",
+  pentacam: "bg-secondary text-secondary-foreground",
   treated: "bg-success text-success-foreground",
 };
 
@@ -54,6 +55,7 @@ const queueCardStyles: Record<QueueStatus, string> = {
   checkedIn: "border-info/30 bg-info/5",
   next: "border-warning/30 bg-warning/5",
   clinic: "border-primary/30 bg-primary/5",
+  pentacam: "border-secondary/30 bg-secondary/5",
   treated: "border-success/30 bg-success/5",
 };
 
@@ -464,7 +466,7 @@ export function AppointmentsSection({
         <>
           <div className="flex flex-wrap gap-2 pt-1">
             {QUEUE_FILTERS.map(({ value, label }) => {
-              const n = counts[value];
+              const n = (counts as Record<string, number>)[value] ?? 0;
               const active = queueFilter === value;
               return (
                 <button

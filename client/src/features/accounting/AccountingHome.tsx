@@ -82,6 +82,10 @@ export default function AccountingHome() {
   const [serviceLines, setServiceLines] = useState([
     { svcCode: "", qty: "1", discount: "", price: "" },
   ]);
+  const [serviceShiftNumber, setServiceShiftNumber] = useState<1 | 2 | undefined>(undefined);
+  const [serviceDate, setServiceDate] = useState(
+    () => new Date().toISOString().split("T")[0],
+  );
   const [serviceSaved, setServiceSaved] = useState(false);
   const [deletingTrNo, setDeletingTrNo] = useState<string | null>(null);
   const [editingReceipt, setEditingReceipt] = useState<{
@@ -119,6 +123,8 @@ export default function AccountingHome() {
       setServicePat("");
       setServiceDocCode("");
       setServiceLines([{ svcCode: "", qty: "1", discount: "", price: "" }]);
+      setServiceShiftNumber(undefined);
+      setServiceDate(new Date().toISOString().split("T")[0]);
       setServiceSaved(true);
       setTimeout(() => setServiceSaved(false), 2000);
     },
@@ -235,6 +241,8 @@ export default function AccountingHome() {
       patientCode: servicePat.trim(),
       doctorCode: serviceDocCode || undefined,
       doctorName: catalogDoctors.find((d) => d.code === serviceDocCode)?.name,
+      shiftNumber: serviceShiftNumber,
+      serviceDate,
       lines,
     });
   }
@@ -516,6 +524,42 @@ export default function AccountingHome() {
                         </option>
                       ))}
                     </select>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label
+                      htmlFor="qk-svc-shift"
+                      className="w-16 shrink-0 text-xs font-medium text-muted-foreground"
+                    >
+                      الوردية
+                    </label>
+                    <select
+                      id="qk-svc-shift"
+                      value={serviceShiftNumber ?? ""}
+                      onChange={(e) =>
+                        setServiceShiftNumber(
+                          e.target.value ? (Number(e.target.value) as 1 | 2) : undefined,
+                        )
+                      }
+                      className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
+                    >
+                      <option value="">تلقائي</option>
+                      <option value="1">الوردية الأولى</option>
+                      <option value="2">الوردية الثانية</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label
+                      htmlFor="qk-svc-date"
+                      className="w-16 shrink-0 text-xs font-medium text-muted-foreground"
+                    >
+                      التاريخ
+                    </label>
+                    <DateInput
+                      id="qk-svc-date"
+                      value={serviceDate}
+                      onChange={(e) => setServiceDate(e.target.value)}
+                      className="flex-1"
+                    />
                   </div>
                   {/* Service lines */}
                   <div className="flex flex-col gap-1">

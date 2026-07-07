@@ -1,6 +1,6 @@
 // Navigation metadata + labels (dashboard queue data comes from tRPC live queries).
 
-export type QueueStatus = "checkedIn" | "next" | "clinic" | "treated";
+export type QueueStatus = "checkedIn" | "next" | "clinic" | "pentacam" | "treated";
 
 export interface Patient {
   id: number;
@@ -30,6 +30,7 @@ export const queueStatusLabelsAr: Record<QueueStatus, string> = {
   checkedIn: "تسجيل",
   next: "التالي",
   clinic: "عيادة",
+  pentacam: "بنتاكام",
   treated: "معالج",
 };
 
@@ -386,7 +387,11 @@ export type PageKey =
   | "notification-settings"
   | "pentacam-failed"
   | "card-visibility"
-  | "admin-diagnostics";
+  | "admin-diagnostics"
+  | "referral-letter"
+  | "clinical-report"
+  | "pre-post-op-report"
+  | "post-op-offdays";
 
 // ===== Route Map (DSC PageKey → SELRS URL) =====
 
@@ -452,4 +457,8 @@ export const routeMap: Record<PageKey, string> = {
   "pentacam-failed": "/pentacam-failed",
   "card-visibility": "/card-visibility",
   "admin-diagnostics": "/admin-diagnostics",
+  "referral-letter": "/sheets/referral",
+  "clinical-report": "/clinical-report",
+  "pre-post-op-report": "/pre-post-op-report",
+  "post-op-offdays": "/post-op-offdays",
 };

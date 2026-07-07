@@ -16,6 +16,9 @@ import {
   Pill,
   FlaskConical,
   FileText,
+  Send,
+  Stethoscope,
+  Scissors,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import {
@@ -112,6 +115,34 @@ const menuItems: MenuItemDef[] = [
     semantic: "info",
     group: "reports",
     page: "medical-reports",
+  },
+  {
+    label: "خطاب تحويل",
+    icon: Send,
+    semantic: "info",
+    group: "reports",
+    page: "referral-letter",
+  },
+  {
+    label: "التقرير السريري الشامل",
+    icon: Stethoscope,
+    semantic: "info",
+    group: "reports",
+    page: "clinical-report",
+  },
+  {
+    label: "تقرير ما قبل/بعد العملية",
+    icon: Scissors,
+    semantic: "info",
+    group: "reports",
+    page: "pre-post-op-report",
+  },
+  {
+    label: "إجازة ما بعد العملية",
+    icon: FileHeart,
+    semantic: "info",
+    group: "reports",
+    page: "post-op-offdays",
   },
 ];
 

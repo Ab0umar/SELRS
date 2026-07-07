@@ -248,6 +248,8 @@ export const accountingRouter = router({
         patientCode: z.string().min(1),
         doctorCode: z.string().optional(),
         doctorName: z.string().optional(),
+        shiftNumber: z.union([z.literal(1), z.literal(2)]).optional(),
+        serviceDate: z.string().optional(),
         lines: z
           .array(
             z.object({
@@ -332,7 +334,8 @@ export const accountingRouter = router({
       }
 
       let mysqlLinked = 0;
-      const serviceDate = new Date().toISOString().slice(0, 10);
+      const serviceDate =
+        input.serviceDate || new Date().toISOString().slice(0, 10);
 
       const mssqlLines = Array.from(serviceTotals.entries()).map(
         ([serviceCode, line]) => ({
@@ -346,6 +349,8 @@ export const accountingRouter = router({
         patientCode,
         mssqlLines,
         input.doctorCode ?? null,
+        input.shiftNumber ?? null,
+        serviceDate,
       );
       const mssqlLinked = mssqlResult.inserted ? 1 : 0;
 
