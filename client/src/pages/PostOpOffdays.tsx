@@ -166,7 +166,7 @@ export default function PostOpOffdays() {
             margin: 0 !important;
             border: 0 !important;
             box-shadow: none !important;
-            padding: 14mm 18mm 12mm !important;
+            padding: 30mm 18mm 12mm !important;
             overflow: hidden !important;
           }
           .offdays-paper header {
@@ -175,6 +175,9 @@ export default function PostOpOffdays() {
           }
           .offdays-paper section {
             margin-bottom: 5mm !important;
+          }
+          .offdays-recommendations {
+            margin-bottom: 1mm !important;
           }
           .offdays-paper section:nth-of-type(1) {
             padding: 4mm !important;
@@ -194,17 +197,17 @@ export default function PostOpOffdays() {
           .offdays-paper input {
             height: 7mm !important;
             min-height: 0 !important;
+            font-size: 15px !important;
+          }
+          .offdays-status-table input {
+            font-size: 16px !important;
           }
           .offdays-paper .h-20 {
             height: 14mm !important;
           }
-          .offdays-paper .h-32,
-          .offdays-paper .w-32 {
-            height: 24mm !important;
-            width: 24mm !important;
-          }
           .offdays-paper footer {
-            padding-top: 6mm !important;
+            margin-top: 4mm !important;
+            padding-top: 3mm !important;
             gap: 14mm !important;
           }
           .offdays-paper footer p {
@@ -271,17 +274,17 @@ export default function PostOpOffdays() {
       </header>
 
       <main className="offdays-print-shell flex justify-center p-8" dir="rtl">
-        <article className="offdays-paper relative flex flex-col border border-[#c2c7d1] bg-white p-[40mm] shadow-sm">
+        <article className="offdays-paper relative flex flex-col border border-[#c2c7d1] bg-white px-[40mm] pb-[40mm] pt-[48mm] shadow-sm">
           <section className="mb-8 border border-[#c2c7d1] bg-[#eef5f7] p-5">
             <h3 className="mb-3 text-lg font-bold text-[#00355f]">
-              بيان ضرورة طبية
+              إفادة
             </h3>
             <p className="text-[15px] leading-8 text-[#161d1f]">
               يشهد المركز بأن المريض المذكور أدناه قد خضع لإجراء{" "}
               <Input
                 value={method}
                 onChange={(event) => setMethod(event.target.value)}
-                className="mx-1 inline-flex h-8 w-52 border-0 border-b border-dotted border-[#727780] bg-transparent px-2 text-center font-bold shadow-none focus-visible:ring-0"
+                className="mx-1 inline-flex h-8 w-52 border-0 border-b border-dotted border-[#727780] bg-transparent px-2 text-center text-base font-bold shadow-none focus-visible:ring-0"
               />{" "}
               ، ويتطلب فترة راحة طبية لتقليل الإجهاد البصري وحماية العين أثناء
               مرحلة التعافي.
@@ -294,7 +297,7 @@ export default function PostOpOffdays() {
               <Input
                 value={patientName}
                 onChange={(event) => setPatientName(event.target.value)}
-                className="h-8 w-56 border-0 border-b border-dotted border-[#727780] bg-transparent text-right font-bold shadow-none focus-visible:ring-0"
+                className="h-8 w-56 border-0 border-b border-dotted border-[#727780] bg-transparent text-right text-base font-bold shadow-none focus-visible:ring-0"
               />
             </label>
             <label className="flex items-center justify-between gap-2 border-b border-[#c2c7d1] py-2">
@@ -302,7 +305,7 @@ export default function PostOpOffdays() {
               <Input
                 value={patientCode}
                 onChange={(event) => setPatientCode(event.target.value)}
-                className="h-8 w-36 border-0 border-b border-dotted border-[#727780] bg-transparent text-center font-mono font-semibold shadow-none focus-visible:ring-0"
+                className="h-8 w-36 border-0 border-b border-dotted border-[#727780] bg-transparent text-center font-mono text-base font-semibold shadow-none focus-visible:ring-0"
               />
             </label>
             <label className="flex items-center justify-between gap-2 border-b border-[#c2c7d1] py-2">
@@ -310,7 +313,7 @@ export default function PostOpOffdays() {
               <DateInput
                 value={patientDob}
                 onChange={(event) => setPatientDob(event.target.value)}
-                className="h-8 w-36 border-[#c2c7d1] text-center font-mono font-semibold"
+                className="h-8 w-36 border-[#c2c7d1] text-center font-mono text-base font-semibold"
               />
             </label>
             <label className="flex items-center justify-between gap-4 border-b border-[#c2c7d1] py-2">
@@ -318,7 +321,7 @@ export default function PostOpOffdays() {
               <DateInput
                 value={operationDate}
                 onChange={(event) => setOperationDate(event.target.value)}
-                className="h-8 w-36 border-[#c2c7d1] text-center"
+                className="h-8 w-36 border-[#c2c7d1] text-center text-base"
               />
             </label>
           </section>
@@ -330,7 +333,7 @@ export default function PostOpOffdays() {
             <h3 className="border-b border-[#c2c7d1] bg-[#00355f] px-4 py-2 text-center text-sm font-extrabold text-white">
               قياسات ما بعد العملية / Post-Op Status
             </h3>
-            <table className="w-full border-collapse text-center">
+            <table className="offdays-status-table w-full border-collapse text-center">
               <thead>
                 <tr className="bg-[#e8eff1] text-[12px] font-bold text-[#42474f]">
                   <th className="border border-[#c2c7d1] px-3 py-2">Eye</th>
@@ -347,14 +350,14 @@ export default function PostOpOffdays() {
                     <Input
                       value={vaOd}
                       onChange={(event) => setVaOd(event.target.value)}
-                      className="h-10 border-0 text-center font-bold"
+                      className="h-10 border-0 text-center text-lg font-bold"
                     />
                   </td>
                   <td className="border border-[#c2c7d1] p-0" rowSpan={2}>
                     <Input
                       value={method}
                       onChange={(event) => setMethod(event.target.value)}
-                      className="h-20 border-0 text-center font-bold"
+                      className="h-20 border-0 text-center text-lg font-bold"
                       placeholder="PRK / LASIK"
                     />
                   </td>
@@ -367,7 +370,7 @@ export default function PostOpOffdays() {
                     <Input
                       value={vaOs}
                       onChange={(event) => setVaOs(event.target.value)}
-                      className="h-10 border-0 text-center font-bold"
+                      className="h-10 border-0 text-center text-lg font-bold"
                     />
                   </td>
                 </tr>
@@ -381,7 +384,7 @@ export default function PostOpOffdays() {
               <DateInput
                 value={leaveStart}
                 onChange={(event) => setLeaveStart(event.target.value)}
-                className="mt-2 h-9 border-[#c2c7d1] text-center font-bold"
+                className="mt-2 h-9 border-[#c2c7d1] text-center text-base font-bold"
               />
             </label>
             <label className="border-l border-[#c2c7d1] px-4 text-center">
@@ -389,7 +392,7 @@ export default function PostOpOffdays() {
               <DateInput
                 value={returnDate}
                 onChange={(event) => setReturnDate(event.target.value)}
-                className="mt-2 h-9 border-[#c2c7d1] text-center font-bold"
+                className="mt-2 h-9 border-[#c2c7d1] text-center text-base font-bold"
               />
             </label>
             <label className="px-4 text-center">
@@ -398,14 +401,14 @@ export default function PostOpOffdays() {
                 <Input
                   value={duration}
                   onChange={(event) => setDuration(event.target.value)}
-                  className="h-9 w-20 border-[#c2c7d1] text-center text-lg font-bold text-[#00355f]"
+                  className="h-9 w-20 border-[#c2c7d1] text-center text-xl font-bold text-[#00355f]"
                 />
                 <span className="font-bold text-[#00355f]">يوماً</span>
               </div>
             </label>
           </section>
 
-          <section className="mb-10">
+          <section className="offdays-recommendations mb-2">
             <h3 className="mb-3 text-sm font-bold text-[#00355f]">
               وقد اوصى الطبيب
             </h3>
@@ -426,26 +429,19 @@ export default function PostOpOffdays() {
             </div>
           </section>
 
-          <footer className="mt-auto grid grid-cols-2 gap-12 border-t border-[#c2c7d1] pt-10">
-            <div>
-              <p className="mb-10 font-bold">توقيع الطبيب المعالج:</p>
+          <footer className="mt-4 border-t border-[#c2c7d1] pt-4">
+            <div dir="ltr" className="text-left">
+              <p dir="ltr" className="mb-5 text-left font-bold">
+                توقيع الطبيب المعالج:
+              </p>
               <div className="mb-2 w-56 border-b border-[#42474f]" />
               <Input
                 value={doctorName}
                 onChange={(event) => setDoctorName(event.target.value)}
-                className="w-64 border-0 bg-transparent p-0 font-bold shadow-none"
+                dir="ltr"
+                className="w-64 border-0 bg-transparent p-0 text-left font-bold shadow-none"
               />
               <p className="text-xs text-[#727780]">استشاري جراحة العيون</p>
-            </div>
-            <div className="flex flex-col items-center">
-              <p className="mb-4 font-bold">ختم العيادة الرسمي:</p>
-              <div className="flex h-32 w-32 rotate-12 items-center justify-center rounded-full border-2 border-[#00355f]/30 text-center text-[#00355f]/50">
-                <div>
-                  <p className="text-[10px] font-bold">AL SHROUQ</p>
-                  <p className="text-[10px] font-bold">EYE CENTER</p>
-                  <p className="text-[8px]">OFFICIAL STAMP</p>
-                </div>
-              </div>
             </div>
           </footer>
         </article>
