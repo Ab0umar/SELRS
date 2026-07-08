@@ -3539,11 +3539,13 @@ export async function ensurePatientServiceInMssql(
       : `PAT_CD = @PAT_CD AND SRV_CD = @SRV_CD`;
     const serviceSql = `
         INSERT INTO op2026.dbo.PAPAT_SRV (${srvInsertCols.join(", ")})
+        ${srvTrNoCol ? `OUTPUT INSERTED.${srvTrNoCol} AS TR_NO` : ""}
         SELECT ${srvInsertVals.join(", ")}
         WHERE NOT EXISTS (
           SELECT 1 FROM op2026.dbo.PAPAT_SRV WHERE ${ensureSrvExistsFilter}
         )
     `;
+    let resolvedSrvTrNo: number | null = null;
     await withMssqlServiceInsertLock(
       pool,
       patientCode,
@@ -3553,9 +3555,40 @@ export async function ensurePatientServiceInMssql(
         reqService.input("PAT_CD", patientCode);
         reqService.input("SRV_CD", serviceCode);
         reqService.input("SEC_CD", secCd);
-        await reqService.query(serviceSql);
+        const insertRs = await reqService.query(serviceSql);
+        const insertedRow =
+          Array.isArray(insertRs?.recordset) && insertRs.recordset.length > 0
+            ? insertRs.recordset[0]
+            : null;
+        resolvedSrvTrNo = Number.isFinite(Number(insertedRow?.TR_NO))
+          ? Number(insertedRow.TR_NO)
+          : null;
       },
     );
+
+    // If the row already existed (NOT EXISTS blocked the insert, OUTPUT
+    // returned nothing), fall back to looking up the existing row's TR_NO so
+    // doctor/price/discount updates below still scope to the right receipt.
+    if (resolvedSrvTrNo == null && srvTrNoCol) {
+      const trNoLookupReq = pool.request();
+      trNoLookupReq.input("PAT_CD", patientCode);
+      trNoLookupReq.input("SRV_CD", serviceCode);
+      const trNoLookupRs = await trNoLookupReq.query(`
+        SELECT TOP 1
+          CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${srvTrNoCol})) = 1 THEN CAST(CONVERT(varchar(50), ${srvTrNoCol}) AS INT) ELSE NULL END AS TR_NO
+        FROM op2026.dbo.PAPAT_SRV
+        WHERE PAT_CD = @PAT_CD AND SRV_CD = @SRV_CD
+        ORDER BY ${srvTrNoCol} DESC
+      `);
+      resolvedSrvTrNo = Number.isFinite(Number(trNoLookupRs?.recordset?.[0]?.TR_NO))
+        ? Number(trNoLookupRs.recordset[0].TR_NO)
+        : null;
+    }
+    const srvTrNoFilter =
+      resolvedSrvTrNo != null && srvTrNoCol
+        ? ` AND ${srvTrNoCol} = ${resolvedSrvTrNo}`
+        : "";
+
     if (doctorCode || doctorName) {
       const doctorBy = String(doctorCode || "").trim() || null;
       const doctorNameEffective =
@@ -3579,7 +3612,7 @@ export async function ensurePatientServiceInMssql(
         req.input("SRV_CD", serviceCode);
         req.input("VAL", value);
         await req.query(
-          `UPDATE op2026.dbo.PAPAT_SRV SET ${column} = @VAL WHERE PAT_CD = @PAT_CD AND SRV_CD = @SRV_CD`,
+          `UPDATE op2026.dbo.PAPAT_SRV SET ${column} = @VAL WHERE PAT_CD = @PAT_CD AND SRV_CD = @SRV_CD${srvTrNoFilter}`,
         );
       };
       if (doctorBy) {
@@ -3649,6 +3682,8 @@ export async function ensurePatientServiceInMssql(
       enteredBy,
       entryDate: todayDateOnly,
       discountValue,
+      doctorCode: doctorCode || null,
+      trNo: resolvedSrvTrNo,
     });
     const headerTrLookupCols = await getTableColumns(pool, targetTable);
     const headerTrLookupCol = headerTrLookupCols.has("TR_NO")
@@ -4460,7 +4495,9 @@ export async function addMultiServiceReceiptInMssql(
       `ISNULL((SELECT TOP 1 NULLIF(CONVERT(varchar(50), TR_TIM), '') FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), CONVERT(varchar(8), GETDATE(), 108))`,
       ...(srvTrNoCol
         ? [
-            `ISNULL((SELECT TOP 1 CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${headerTrExpr})) = 1 THEN CAST(CONVERT(varchar(50), ${headerTrExpr}) AS INT) ELSE NULL END FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), (SELECT ISNULL(MAX(CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${srvTrExpr})) = 1 THEN CAST(CONVERT(varchar(50), ${srvTrExpr}) AS INT) ELSE NULL END), 0) + 1 FROM op2026.dbo.PAPAT_SRV))`,
+            Number.isFinite(trNo)
+              ? String(Math.trunc(trNo))
+              : `(SELECT ISNULL(MAX(CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${srvTrExpr})) = 1 THEN CAST(CONVERT(varchar(50), ${srvTrExpr}) AS INT) ELSE NULL END), 0) + 1 FROM op2026.dbo.PAPAT_SRV)`,
           ]
         : []),
       `ISNULL((SELECT TOP 1 CASE WHEN ISNUMERIC(CONVERT(varchar(50), TR_TY)) = 1 THEN CAST(CONVERT(varchar(50), TR_TY) AS INT) ELSE NULL END FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), 1)`,

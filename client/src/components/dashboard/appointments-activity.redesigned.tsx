@@ -3,6 +3,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn, getTrpcErrorMessage } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -11,6 +17,8 @@ import {
   Check,
   CheckCircle2,
   Clock,
+  FlaskConical,
+  Pill,
   Printer,
   Syringe,
   Trash2,
@@ -34,6 +42,13 @@ import { DateInput } from "@/components/ui/date-input";
 
 type MainTab = "patients" | "operations" | "bookings";
 type QueueFilter = "all" | QueueStatus | "bookings";
+
+const PRINT_SHEET_TYPES = [
+  { value: "consultant", label: "كشف استشاري" },
+  { value: "specialist", label: "كشف أخصائي" },
+  { value: "lasik", label: "ليزك" },
+  { value: "external", label: "خارجي" },
+] as const;
 
 const QUEUE_FILTERS: { value: QueueFilter; label: string }[] = [
   { value: "bookings", label: "حجز" },
@@ -708,6 +723,28 @@ function BookingCard({ booking }: { booking: any }) {
           <span className={cn("rounded-full border px-2 py-0.5 text-[11px] font-medium", stStyle)}>
             {stAr}
           </span>
+          {booking.patientId ? (
+            <>
+              <button
+                type="button"
+                title="طباعة روشتة"
+                onClick={() => window.open(`/prescription/${booking.patientId}?print=1`, "_blank")}
+                className="text-muted-foreground hover:text-error transition-colors"
+                aria-label="طباعة روشتة"
+              >
+                <Pill className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                title="طباعة طلب تحاليل"
+                onClick={() => window.open(`/request-tests/${booking.patientId}?print=1`, "_blank")}
+                className="text-muted-foreground hover:text-error transition-colors"
+                aria-label="طباعة طلب تحاليل"
+              >
+                <FlaskConical className="h-3.5 w-3.5" />
+              </button>
+            </>
+          ) : null}
           <button
             type="button"
             disabled={del.isPending}
@@ -916,24 +953,99 @@ function QueuePatientCard({
         </div>
         <div className="mt-2 flex items-center justify-end gap-1.5 text-sm sm:mt-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-1.5">
-            <Button
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  title="طباعة الشيت"
+                  aria-label={`طباعة شيت ${patient.fullName ?? "المريض"}`}
+                  className="h-11 w-11 shrink-0 text-slate-500 hover:text-slate-900"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                >
+                  <Printer className="h-4 w-4" aria-hidden />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                onClick={(e) => e.stopPropagation()}
+                style={{ direction: "rtl" }}
+              >
+                {PRINT_SHEET_TYPES.map(({ value, label }) => (
+                  <DropdownMenuItem
+                    key={value}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const isFollowup = (patient as any).visitType === "followup";
+                      const suffix = isFollowup ? "/followup" : "";
+                      window.open(`/sheets/${value}/${patient.id}${suffix}?original=1`, "_blank");
+                    }}
+                  >
+                    {label}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(`/sheets/referral/${patient.id}`, "_blank");
+                  }}
+                >
+                  خطاب تحويل
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(`/clinical-report/${patient.id}`, "_blank");
+                  }}
+                >
+                  التقرير السريري الشامل
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(`/pre-post-op-report/${patient.id}`, "_blank");
+                  }}
+                >
+                  تقرير ما قبل/بعد العملية
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(`/post-op-offdays/${patient.id}`, "_blank");
+                  }}
+                >
+                  إجازة ما بعد العملية
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <button
               type="button"
-              variant="outline"
-              size="sm"
-              title="طباعة الشيت"
-              aria-label={`طباعة شيت ${patient.fullName ?? "المريض"}`}
-              className="h-11 w-11 shrink-0 text-slate-500 hover:text-slate-900"
+              title="طباعة روشتة"
+              aria-label="طباعة روشتة"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-500 hover:text-error"
               onClick={(e) => {
                 e.stopPropagation();
-                e.preventDefault();
-                const sType = patient.serviceType === "surgery" ? "operation" : patient.serviceType === "external" ? "external" : patient.serviceType || "consultant";
-                const isFollowup = (patient as any).visitType === "followup";
-                const suffix = isFollowup ? "/followup" : "";
-                window.open(`/sheets/${sType}/${patient.id}${suffix}?original=1`, "_blank");
+                window.open(`/prescription/${patient.id}?print=1`, "_blank");
               }}
             >
-              <Printer className="h-4 w-4" aria-hidden />
-            </Button>
+              <Pill className="h-4 w-4" aria-hidden />
+            </button>
+            <button
+              type="button"
+              title="طباعة طلب تحاليل"
+              aria-label="طباعة طلب تحاليل"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-500 hover:text-error"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(`/request-tests/${patient.id}?print=1`, "_blank");
+              }}
+            >
+              <FlaskConical className="h-4 w-4" aria-hidden />
+            </button>
             {canMarkTreated ? (
               <Button
                 type="button"

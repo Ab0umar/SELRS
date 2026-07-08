@@ -15,6 +15,8 @@ import {
   ChevronRight,
   Banknote,
   Sparkles,
+  Pill,
+  FlaskConical,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
@@ -63,6 +65,18 @@ const navigationSections = [
         label: "حجز",
         icon: CalendarPlus,
         activeFor: ["/kf/bookings"],
+      },
+      {
+        href: "/kf/prescription",
+        label: "الروشتة",
+        icon: Pill,
+        activeFor: ["/kf/prescription"],
+      },
+      {
+        href: "/kf/request-tests",
+        label: "طلب فحوصات",
+        icon: FlaskConical,
+        activeFor: ["/kf/request-tests"],
       },
     ],
   },
@@ -240,4 +254,3 @@ export default function KfShell({ children }: KfShellProps) {
     </div>
   );
 }
-

@@ -274,6 +274,14 @@ export const MedicalRoutes = (
       )}
     />
     <Route
+      path="/sheets/consultant"
+      component={() => (
+        <ProtectedRoute>
+          <ConsultantSheet />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
       path={ROUTES.sheetsConsultantId}
       component={() => (
         <ProtectedRoute>
@@ -291,6 +299,14 @@ export const MedicalRoutes = (
     />
     <Route
       path={ROUTES.sheetsSpecialistId}
+      component={() => (
+        <ProtectedRoute>
+          <SpecialistSheet />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
+      path="/sheets/specialist"
       component={() => (
         <ProtectedRoute>
           <SpecialistSheet />

@@ -18,6 +18,11 @@ import {
   kfOperations,
   kfFollowups,
   kfLedger,
+  kfTestRequests,
+  kfTestRequestItems,
+  kfPrescriptions,
+  kfPrescriptionItems,
+  tests,
   patients,
 } from "../../drizzle/schema";
 import {
@@ -33,14 +38,19 @@ import {
   kfCreateFollowupInputSchema,
   kfCreateOperationInputSchema,
   kfCreatePatientInputSchema,
+  kfCreatePrescriptionInputSchema,
+  kfCreateTestRequestInputSchema,
   kfCreateVisitInputSchema,
   kfGetExaminationInputSchema,
   kfGetPatientInputSchema,
+  kfListExamImagesInputSchema,
   kfListExaminationsInputSchema,
   kfListFollowupsInputSchema,
   kfListOperationsInputSchema,
   kfListPatientsInputSchema,
   kfListPatientsResultSchema,
+  kfListPrescriptionsInputSchema,
+  kfListTestRequestsInputSchema,
   kfListVisitsInputSchema,
   kfSearchPatientsInputSchema,
   kfUpdateExaminationInputSchema,
@@ -456,6 +466,7 @@ export const kfRouter = router({
         notes: input.notes ?? null,
         doctorName: input.doctorName ?? null,
         examinedByUserId: ctx.user?.id ?? null,
+        medicalHistory: input.medicalHistory ?? null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -485,6 +496,7 @@ export const kfRouter = router({
       setDefined(patch, "plan", input.plan);
       setDefined(patch, "notes", input.notes);
       setDefined(patch, "doctorName", input.doctorName);
+      setDefined(patch, "medicalHistory", input.medicalHistory);
       await db
         .update(kfExaminations)
         .set(patch)
@@ -877,5 +889,149 @@ export const kfRouter = router({
       ) as any;
       const insertId = Number(result?.insertId ?? result?.[0]?.insertId ?? 0);
       return { id: insertId, viewUrl: `/api/srv100/uploads/${insertId}` };
+    }),
+
+  listExamImages: makeKfProcedure("/kf/patients")
+    .input(kfListExamImagesInputSchema)
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const rows = (await db.execute(
+        sql`SELECT id, file_name, mime_type, created_at
+            FROM srv100_uploads
+            WHERE patient_id = ${input.kfPatientId}
+              AND source_printer = 'kf-exam'
+            ORDER BY id DESC
+            LIMIT 50`,
+      )) as any;
+      const list = Array.isArray(rows)
+        ? Array.isArray(rows[0])
+          ? (rows[0] as any[])
+          : (rows as any[])
+        : [];
+      return list.map((row) => ({
+        id: Number(row.id),
+        fileName: String(row.file_name ?? ""),
+        mimeType: String(row.mime_type ?? "image/jpeg"),
+        createdAt: row.created_at ? new Date(row.created_at).toISOString() : "",
+        viewUrl: `/api/srv100/uploads/${row.id}`,
+      }));
+    }),
+
+  createTestRequest: makeKfWriteProcedure("/kf/patients")
+    .input(kfCreateTestRequestInputSchema)
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      await ensurePatientExists(db, input.kfPatientId);
+      if (input.kfVisitId) await ensureVisitExists(db, input.kfVisitId);
+      const result = await db.insert(kfTestRequests).values({
+        kfPatientId: input.kfPatientId,
+        kfVisitId: input.kfVisitId ?? null,
+        kfExamId: input.kfExamId ?? null,
+        requestDate: toMysqlDate(input.requestDate) as Date,
+        status: "pending",
+        notes: input.notes ?? null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      const kfTestRequestId = insertIdOf(result);
+      await db.insert(kfTestRequestItems).values(
+        input.items.map((item) => ({
+          kfTestRequestId,
+          testId: item.testId,
+          result: item.result ?? null,
+        })),
+      );
+      return { kfTestRequestId };
+    }),
+
+  listTestRequests: makeKfProcedure("/kf/patients")
+    .input(kfListTestRequestsInputSchema)
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const requests = await db
+        .select()
+        .from(kfTestRequests)
+        .where(eq(kfTestRequests.kfPatientId, input.kfPatientId))
+        .orderBy(desc(kfTestRequests.requestDate));
+      if (requests.length === 0) return [];
+      const requestIds = requests.map((r: any) => r.kfTestRequestId);
+      const items = await db
+        .select({
+          id: kfTestRequestItems.id,
+          kfTestRequestId: kfTestRequestItems.kfTestRequestId,
+          testId: kfTestRequestItems.testId,
+          result: kfTestRequestItems.result,
+          testName: tests.name,
+        })
+        .from(kfTestRequestItems)
+        .leftJoin(tests, eq(kfTestRequestItems.testId, tests.id))
+        .where(sql`${kfTestRequestItems.kfTestRequestId} IN (${sql.join(requestIds, sql`, `)})`);
+      return requests.map((r: any) => ({
+        ...r,
+        items: items.filter((i: any) => i.kfTestRequestId === r.kfTestRequestId),
+      }));
+    }),
+
+  createPrescription: makeKfWriteProcedure("/kf/patients")
+    .input(kfCreatePrescriptionInputSchema)
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      await ensurePatientExists(db, input.kfPatientId);
+      if (input.kfVisitId) await ensureVisitExists(db, input.kfVisitId);
+      const result = await db.insert(kfPrescriptions).values({
+        kfPatientId: input.kfPatientId,
+        kfVisitId: input.kfVisitId ?? null,
+        kfExamId: input.kfExamId ?? null,
+        doctorName: input.doctorName ?? null,
+        notes: input.notes ?? null,
+        prescriptionDate: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      const kfPrescriptionId = insertIdOf(result);
+      await db.insert(kfPrescriptionItems).values(
+        input.items.map((item) => ({
+          kfPrescriptionId,
+          medicationId: item.medicationId ?? null,
+          medicationName: item.medicationName,
+          dosage: item.dosage ?? null,
+          frequency: item.frequency ?? null,
+          duration: item.duration ?? null,
+          instructions: item.instructions ?? null,
+        })),
+      );
+      return { kfPrescriptionId };
+    }),
+
+  listPrescriptions: makeKfProcedure("/kf/patients")
+    .input(kfListPrescriptionsInputSchema)
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const prescriptionRows = await db
+        .select()
+        .from(kfPrescriptions)
+        .where(eq(kfPrescriptions.kfPatientId, input.kfPatientId))
+        .orderBy(desc(kfPrescriptions.prescriptionDate));
+      if (prescriptionRows.length === 0) return [];
+      const prescriptionIds = prescriptionRows.map((r: any) => r.kfPrescriptionId);
+      const items = await db
+        .select({
+          id: kfPrescriptionItems.id,
+          kfPrescriptionId: kfPrescriptionItems.kfPrescriptionId,
+          medicationId: kfPrescriptionItems.medicationId,
+          medicationName: kfPrescriptionItems.medicationName,
+          dosage: kfPrescriptionItems.dosage,
+          frequency: kfPrescriptionItems.frequency,
+          duration: kfPrescriptionItems.duration,
+          instructions: kfPrescriptionItems.instructions,
+        })
+        .from(kfPrescriptionItems)
+        .where(
+          sql`${kfPrescriptionItems.kfPrescriptionId} IN (${sql.join(prescriptionIds, sql`, `)})`,
+        );
+      return prescriptionRows.map((r: any) => ({
+        ...r,
+        items: items.filter((i: any) => i.kfPrescriptionId === r.kfPrescriptionId),
+      }));
     }),
 });

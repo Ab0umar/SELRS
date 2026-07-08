@@ -21,7 +21,6 @@ import {
   Pencil,
   Upload,
   Pill,
-  CalendarDays,
   UserRound,
   ClipboardList,
   ChevronDown,
@@ -31,6 +30,9 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { toast } from "sonner";
 import { cn, formatDateLabel, getTrpcErrorMessage } from "@/lib/utils";
 import PatientPicker from "@/components/PatientPicker";
+import KfPatientPicker, {
+  type KfPatientOption,
+} from "@/features/kf/KfPatientPicker";
 import { trpc } from "@/lib/trpc";
 import { READY_PRESCRIPTION_TEMPLATES } from "@/data/readyPrescriptionTemplates";
 import { usePrintMode } from "@/hooks/usePrintMode";
@@ -68,12 +70,18 @@ export default function WritePrescription({
   patientHubViewOnlyHint = "العرض فقط داخل المركز",
 }: WritePrescriptionProps = {}) {
   const { isAuthenticated, user } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [, prescriptionParams] = useRoute("/prescription/:id");
   const [, prescriptionsParams] = useRoute("/prescriptions/:id");
   const [, hubPrescriptionParams] = useRoute("/patient-hub/prescription/:id");
+  const [, kfPrescriptionParams] = useRoute("/kf/prescription/:id");
   const params =
-    prescriptionParams ?? prescriptionsParams ?? hubPrescriptionParams;
+    prescriptionParams ??
+    prescriptionsParams ??
+    hubPrescriptionParams ??
+    kfPrescriptionParams;
+  const isKfRoute = location.startsWith("/kf/prescription");
+  const draftScope = isKfRoute ? "kf-prescription" : "prescription";
   const isAdmin = user?.role === "admin";
   const canDeletePrescriptions = ["admin", "manager"].includes(
     user?.role || "",
@@ -133,7 +141,7 @@ export default function WritePrescription({
   const patientStateQuery = trpc.medical.getPatientPageState.useQuery(
     { patientId: patientId ?? 0, page: "prescription" },
     {
-      enabled: Boolean(patientId) && !editingForbidden,
+      enabled: Boolean(patientId) && !editingForbidden && !isKfRoute,
       refetchOnWindowFocus: false,
     },
   );
@@ -259,9 +267,16 @@ export default function WritePrescription({
     refetchOnWindowFocus: false,
   });
   const patientQuery = trpc.patient.getPatient.useQuery(patientId ?? 0, {
-    enabled: Boolean(patientId),
+    enabled: Boolean(patientId) && !isKfRoute,
     refetchOnWindowFocus: false,
   });
+  const kfPatientQuery = trpc.kf.getPatient.useQuery(
+    { kfId: patientId ?? 0 },
+    {
+      enabled: Boolean(patientId) && isKfRoute,
+      refetchOnWindowFocus: false,
+    },
+  );
 
   const createPrescriptionMutation =
     trpc.medical.createPrescriptionWithItems.useMutation({
@@ -323,6 +338,14 @@ export default function WritePrescription({
   }, [patientQuery.data]);
 
   useEffect(() => {
+    const patient = kfPatientQuery.data as any;
+    if (!patient || !isKfRoute) return;
+    setPatientName(patient.fullName ?? "");
+    setPatientAge(patient.age != null ? String(patient.age) : "");
+    setPatientCode(String(patient.kfCode ?? "").trim());
+  }, [kfPatientQuery.data, isKfRoute]);
+
+  useEffect(() => {
     if (editingForbidden) return;
     const data = (patientStateQuery.data as any)?.data;
     if (!data) return;
@@ -340,9 +363,9 @@ export default function WritePrescription({
   useEffect(() => {
     if (editingForbidden) return;
     const patientKey = patientId
-      ? `selrs:patient-draft:prescription:${patientId}`
+      ? `selrs:patient-draft:${draftScope}:${patientId}`
       : null;
-    const tempKey = "selrs:patient-draft:prescription:temp";
+    const tempKey = `selrs:patient-draft:${draftScope}:temp`;
     const keysToCheck = patientKey ? [patientKey, tempKey] : [tempKey];
     try {
       const raw = readDraft(keysToCheck);
@@ -391,10 +414,11 @@ export default function WritePrescription({
     } catch {
       // Ignore invalid local draft.
     }
-  }, [patientId, editingForbidden, patientStateQuery.data]);
+  }, [patientId, editingForbidden, patientStateQuery.data, draftScope]);
 
   useEffect(() => {
     if (!patientId || editingForbidden) return;
+    if (isKfRoute) return;
     if (patientStateTimerRef.current)
       clearTimeout(patientStateTimerRef.current);
     const payload = {
@@ -418,6 +442,7 @@ export default function WritePrescription({
     medicationSearch,
     prescriptionItems,
     savePatientPageState,
+    isKfRoute,
   ]);
 
   useEffect(() => {
@@ -431,8 +456,8 @@ export default function WritePrescription({
     };
     localDraftTimerRef.current = setTimeout(() => {
       const key = patientId
-        ? `selrs:patient-draft:prescription:${patientId}`
-        : "selrs:patient-draft:prescription:temp";
+        ? `selrs:patient-draft:${draftScope}:${patientId}`
+        : `selrs:patient-draft:${draftScope}:temp`;
       const draft = {
         updatedAt: new Date().toISOString(),
         data: payload,
@@ -449,6 +474,7 @@ export default function WritePrescription({
     generalNotes,
     medicationSearch,
     prescriptionItems,
+    draftScope,
   ]);
 
   useEffect(() => {
@@ -465,8 +491,8 @@ export default function WritePrescription({
         data: payload,
       };
       const key = patientId
-        ? `selrs:patient-draft:prescription:${patientId}`
-        : "selrs:patient-draft:prescription:temp";
+        ? `selrs:patient-draft:${draftScope}:${patientId}`
+        : `selrs:patient-draft:${draftScope}:temp`;
       writeDraft(key, draft);
     };
     const handleVisibility = () => {
@@ -597,13 +623,23 @@ export default function WritePrescription({
     setLocation(
       embeddedInPatientHub
         ? `/patient-hub/prescription/${patient.id}`
-        : `/prescription/${patient.id}`,
+        : isKfRoute
+          ? `/kf/prescription/${patient.id}`
+          : `/prescription/${patient.id}`,
     );
+  };
+
+  const handleSelectKfPatient = (patient: KfPatientOption) => {
+    setPatientId(patient.kfId);
+    setPatientName(patient.fullName ?? "");
+    setPatientAge(patient.age != null ? String(patient.age) : "");
+    setPatientCode(String(patient.kfCode ?? "").trim());
+    setLocation(`/kf/prescription/${patient.kfId}`);
   };
 
   const historyQuery = trpc.medical.getPrescriptionsWithItemsByPatient.useQuery(
     { patientId: patientId ?? 0 },
-    { enabled: Boolean(patientId), refetchOnWindowFocus: false },
+    { enabled: Boolean(patientId) && !isKfRoute, refetchOnWindowFocus: false },
   );
   useEffect(() => {
     if (!editingForbidden) return;
@@ -646,6 +682,10 @@ export default function WritePrescription({
     }
     if (!patientId) {
       toast.error("يرجى اختيار المريض أولاً.");
+      return;
+    }
+    if (isKfRoute) {
+      toast.error("الحفظ داخل KF منفصل عن جداول الروشتة العامة حالياً.");
       return;
     }
     const itemsToSave = prescriptionItems.filter(
@@ -1107,14 +1147,14 @@ export default function WritePrescription({
   return (
     <div
       className={cn(
-        "prescription-root bg-background",
+        "prescription-root bg-[#f5f7fb] text-[#172033]",
         hidePageChrome ? "min-h-0" : "min-h-screen",
       )}
       dir="rtl"
       style={{ direction: "rtl" }}
     >
       {printMode.printView ? null : hidePageChrome ? null : (
-        <div className="mx-auto max-w-[1280px] px-4 pt-4 md:px-6">
+        <div className="mx-auto max-w-[1280px] px-4 pt-4 md:px-6 print:hidden">
           <PageHeader
             title="كتابة الروشتة"
             subtitle="صف الأدوية والتعليمات قبل وبعد العملية"
@@ -1127,7 +1167,7 @@ export default function WritePrescription({
         data-mobile-pdf-root
         className={cn(
           "mx-auto print:p-0",
-          hidePageChrome ? "max-w-none px-2 pb-4 pt-1" : "max-w-[1280px]",
+          hidePageChrome ? "max-w-none px-2 pb-4 pt-1" : "max-w-[1360px]",
           printMode.printView
             ? "px-3 py-3"
             : hidePageChrome
@@ -1146,36 +1186,53 @@ export default function WritePrescription({
           className={
             editingForbidden
               ? "space-y-6"
-              : "grid grid-cols-1 lg:grid-cols-[0.65fr_1.35fr] gap-6"
+              : "grid grid-cols-1 gap-5 xl:grid-cols-[360px_minmax(0,1fr)]"
           }
         >
-          <div className="space-y-6">
-            <Card className="print:hidden">
-              <CardContent className="space-y-4 pt-6">
+          <div className="space-y-4">
+            <Card className="overflow-hidden border-[#d9e2ef] shadow-none print:hidden">
+              <CardHeader className="border-b border-[#e5ebf3] bg-[#f8fafc] px-4 py-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-bold text-[#1e3a66]">
+                  <UserRound className="h-4 w-4" />
+                  بيانات المريض
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 p-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="md:col-span-2 space-y-2">
-                    <Select
-                      value={locationTypeFilter}
-                      onValueChange={(v) => setLocationTypeFilter(v as any)}
-                    >
-                      <SelectTrigger className="h-9 rounded-lg text-sm">
-                        <SelectValue placeholder="مكان الخدمة" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">الكل</SelectItem>
-                        <SelectItem value="center">مركز</SelectItem>
-                        <SelectItem value="external">خارجي</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <PatientPicker
-                      initialPatientId={patientId ?? undefined}
-                      onSelect={handleSelectPatient}
-                      locationType={
-                        locationTypeFilter === "all"
-                          ? undefined
-                          : locationTypeFilter
-                      }
-                    />
+                    {isKfRoute ? (
+                      <KfPatientPicker
+                        initialKfPatientId={patientId ?? undefined}
+                        onSelect={handleSelectKfPatient}
+                      />
+                    ) : (
+                      <>
+                        <Select
+                          value={locationTypeFilter}
+                          onValueChange={(v) =>
+                            setLocationTypeFilter(v as any)
+                          }
+                        >
+                          <SelectTrigger className="h-9 rounded-lg text-sm">
+                            <SelectValue placeholder="مكان الخدمة" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">الكل</SelectItem>
+                            <SelectItem value="center">مركز</SelectItem>
+                            <SelectItem value="external">خارجي</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <PatientPicker
+                          initialPatientId={patientId ?? undefined}
+                          onSelect={handleSelectPatient}
+                          locationType={
+                            locationTypeFilter === "all"
+                              ? undefined
+                              : locationTypeFilter
+                          }
+                        />
+                      </>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <DateInput
@@ -1191,10 +1248,11 @@ export default function WritePrescription({
               </CardContent>
             </Card>
             {!editingForbidden && (
-              <Card className="print:hidden">
-                <div className="flex items-center gap-3 px-6 pt-6 flex-nowrap">
-                  <div className="text-sm font-semibold shrink-0">
-                    الأدوية المتاحة
+              <Card className="overflow-hidden border-[#d9e2ef] shadow-none print:hidden">
+                <div className="flex items-center gap-3 border-b border-[#e5ebf3] bg-[#f8fafc] px-4 py-3 flex-nowrap">
+                  <div className="flex shrink-0 items-center gap-2 text-sm font-bold text-[#1e3a66]">
+                    <Pill className="h-4 w-4" />
+                    الأدوية
                   </div>
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <Input
@@ -1223,9 +1281,9 @@ export default function WritePrescription({
                   </div>
                 </div>
                 {medicationsOpen ? (
-                  <CardContent className="space-y-2 max-h-80 overflow-y-auto">
+                  <CardContent className="space-y-2 max-h-[52vh] overflow-y-auto p-3">
                     <Button
-                      className="w-full"
+                      className="w-full bg-[#ff6b35] text-white hover:bg-[#e85f2f]"
                       onClick={() => {
                         const name = window.prompt("اسم الدواء");
                         if (!name) return;
@@ -1252,10 +1310,17 @@ export default function WritePrescription({
                       return (
                         <label
                           key={med.id}
-                          className="flex items-center justify-between gap-2 rounded border p-2"
+                          className={cn(
+                            "flex items-center justify-between gap-2 rounded-md border px-3 py-2 transition-colors",
+                            checked
+                              ? "border-[#2563eb] bg-[#eef5ff]"
+                              : "border-[#e2e8f0] bg-white hover:bg-[#f8fafc]",
+                          )}
                           dir="ltr"
                         >
-                          <span className="text-sm text-left">{med.name}</span>
+                          <span className="text-sm font-medium text-left text-[#172033]">
+                            {med.name}
+                          </span>
                           <input
                             type="checkbox"
                             checked={checked}
@@ -1274,12 +1339,15 @@ export default function WritePrescription({
               </Card>
             )}
           </div>
-          <div className="space-y-6">
+          <div className="space-y-4">
             {!editingForbidden && (
-              <Card className="print:hidden">
-                <CardHeader>
+              <Card className="overflow-hidden border-[#d9e2ef] shadow-none print:hidden">
+                <CardHeader className="border-b border-[#e5ebf3] bg-white px-4 py-3">
                   <div className="flex items-center justify-between gap-2">
-                    <CardTitle>روشتات جاهزة</CardTitle>
+                    <CardTitle className="flex items-center gap-2 text-sm font-bold text-[#1e3a66]">
+                      <ClipboardList className="h-4 w-4" />
+                      روشتات جاهزة
+                    </CardTitle>
                     {canImportReadyTemplates ? (
                       <div className="flex items-center gap-2">
                         <input
@@ -1305,7 +1373,7 @@ export default function WritePrescription({
                     ) : null}
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-2 pt-0">
+                <CardContent className="space-y-3 p-4">
                   {canImportReadyTemplates ? (
                     <>
                       <div className="text-xs text-muted-foreground">
@@ -1341,19 +1409,19 @@ export default function WritePrescription({
                     persistKey={READY_TABS_PERSIST_KEY}
                     dir="rtl"
                   >
-                    <TabsList className="w-full justify-start gap-2 overflow-x-auto flex-nowrap">
+                    <TabsList className="w-full justify-start gap-1 overflow-x-auto flex-nowrap bg-[#f3f6fb] p-1">
                       {READY_TABS.map((tab) => (
                         <TabsTrigger
                           key={tab}
                           value={tab}
-                          className="text-xs whitespace-nowrap"
+                          className="whitespace-nowrap rounded-md px-3 text-xs data-[state=active]:bg-white data-[state=active]:text-[#1e3a66] data-[state=active]:shadow-sm"
                         >
                           {tab}
                         </TabsTrigger>
                       ))}
                     </TabsList>
                   </Tabs>
-                  <div className="flex flex-wrap items-center gap-2 rounded border p-2">
+                  <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-2">
                     <label className="flex items-center gap-2 text-sm">
                       <Checkbox
                         checked={allFilteredReadyTemplatesSelected}
@@ -1400,9 +1468,12 @@ export default function WritePrescription({
                     </Button>
                   </div>
                 </CardContent>
-                <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 max-h-[55vh] overflow-y-auto">
+                <CardContent className="grid max-h-[34vh] grid-cols-1 gap-2 overflow-y-auto border-t border-[#eef2f7] p-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {filteredReadyTemplates.map((template) => (
-                    <div key={template.id} className="flex items-center gap-1">
+                    <div
+                      key={template.id}
+                      className="flex items-center gap-1 rounded-lg border border-[#e2e8f0] bg-white p-1"
+                    >
                       <Checkbox
                         checked={selectedTemplateIds.includes(template.id)}
                         onCheckedChange={(checked) =>
@@ -1416,7 +1487,7 @@ export default function WritePrescription({
                       <Button
                         variant="outline"
                         type="button"
-                        className="justify-start flex-1 h-8 px-2 text-xs"
+                        className="h-8 flex-1 justify-start border-0 bg-transparent px-2 text-xs shadow-none hover:bg-[#eef5ff]"
                         onClick={() =>
                           handleApplyReadyPrescription(template.id)
                         }
@@ -1469,27 +1540,34 @@ export default function WritePrescription({
             )}
 
             <div
-              className="prescription-print-content space-y-6"
+              className="prescription-print-content prescription-paper space-y-5"
               data-print-prescription-content
             >
-              <div className="hidden print:block">
+              <div className="prescription-paper-header">
                 <div
-                  className="pt-2 flex items-center justify-between gap-4 text-sm"
+                  className="flex flex-wrap items-center justify-between gap-3 text-sm"
                   dir="rtl"
                 >
-                  <span className="inline-flex items-center gap-1" dir="rtl">
-                    <span className="font-semibold">الاسم:</span>
-                    <span>{patientName}</span>
+                  <span
+                    className="inline-flex min-w-[12rem] items-center gap-1"
+                    dir="rtl"
+                  >
+                    <span className="font-bold text-[#1e3a66]">الاسم</span>
+                    <span className="font-semibold">
+                      {patientName || "غير محدد"}
+                    </span>
                   </span>
                   {prescriptionDate ? (
                     <span className="inline-flex items-center gap-1" dir="rtl">
-                      <span className="font-semibold">التاريخ:</span>
-                      <span dir="ltr">{formatDateLabel(prescriptionDate)}</span>
+                      <span className="font-bold text-[#1e3a66]">التاريخ</span>
+                      <span className="font-semibold" dir="ltr">
+                        {formatDateLabel(prescriptionDate)}
+                      </span>
                     </span>
                   ) : null}
                   <span className="inline-flex items-center gap-1" dir="rtl">
-                    <span className="font-semibold">الكود:</span>
-                    <span dir="ltr">
+                    <span className="font-bold text-[#1e3a66]">الكود</span>
+                    <span className="font-semibold" dir="ltr">
                       {patientCode ||
                         (patientId != null ? String(patientId) : "")}
                     </span>
@@ -1497,24 +1575,31 @@ export default function WritePrescription({
                 </div>
               </div>
 
-              <Card className="print:[direction:ltr] print:border-0 print:shadow-none">
+              <Card className="border-0 bg-transparent shadow-none print:[direction:ltr] print:border-0 print:shadow-none">
                 <CardHeader className="hidden print:hidden" />
-                <CardContent className="prescription-print-rx space-y-3 pt-3">
-                  <div className="text-base font-semibold">R/</div>
+                <CardContent className="prescription-print-rx space-y-3 p-0">
+                  <div className="rx-mark text-2xl font-black tracking-tight text-[#1e3a66]">
+                    R/
+                  </div>
                   {editingForbidden ? (
                     prescriptionItems.length === 0 ? (
-                      <p className="text-center text-muted-foreground">
+                      <p className="rounded-lg border border-dashed border-[#cbd5e1] py-10 text-center text-muted-foreground">
                         لا توجد روشتة مسجلة لهذا المريض
                       </p>
                     ) : (
                       prescriptionItems.map((item) => (
                         <div
                           key={item.id}
-                          className="border rounded-lg p-3 print:border-0 print:rounded-none"
+                          className="prescription-item border rounded-lg p-3 print:border-0 print:rounded-none"
                         >
-                          <div className="font-bold">{item.medicationName}</div>
+                          <div className="font-bold text-left" dir="ltr">
+                            {item.medicationName}
+                          </div>
                           {item.instructions ? (
-                            <div className="mt-1 text-sm whitespace-pre-line">
+                            <div
+                              className="mt-1 text-sm whitespace-pre-line text-right"
+                              dir="rtl"
+                            >
                               {item.instructions}
                             </div>
                           ) : null}
@@ -1522,14 +1607,14 @@ export default function WritePrescription({
                       ))
                     )
                   ) : prescriptionItems.length === 0 ? (
-                    <p className="text-center text-muted-foreground">
+                    <p className="rounded-xl border border-dashed border-[#cbd5e1] bg-[#f8fafc] py-12 text-center text-sm text-muted-foreground">
                       لا توجد أدوية بعد
                     </p>
                   ) : (
                     filteredItems.map((item) => (
                       <div
                         key={item.id}
-                        className="border rounded-lg p-3 print:border-0 print:rounded-none"
+                        className="prescription-item rounded-xl border border-[#dbe4f0] bg-white p-3 print:border-0 print:rounded-none"
                       >
                         <div
                           className="flex items-start justify-between gap-3"
@@ -1548,7 +1633,7 @@ export default function WritePrescription({
                                 )
                               }
                               placeholder="Medication name"
-                              className="print:hidden text-left"
+                              className="h-9 border-[#dbe4f0] bg-[#f8fafc] text-left font-semibold print:hidden"
                               dir="ltr"
                             />
                             <div className="hidden print:block font-bold text-left">
@@ -1574,7 +1659,7 @@ export default function WritePrescription({
                                 )
                               }
                               placeholder="الجرعة / التكرار / المدة / تعليمات"
-                              className="min-h-12 text-center w-full print:hidden"
+                              className="min-h-14 w-full border-[#dbe4f0] bg-[#f8fafc] text-center print:hidden"
                             />
                           </div>
                           <Button
@@ -1598,16 +1683,16 @@ export default function WritePrescription({
               dir="rtl"
             >
               <div className="space-y-6 text-[14px] leading-7">
-                <div>
-                  <h3 className="font-bold mb-2">قبل العملية</h3>
+                <div className="print-instruction-panel">
+                  <h3 className="mb-2 font-bold">قبل العملية</h3>
                   <ul className="space-y-1 pr-5 list-disc">
                     {preOpInstructions.map((line, idx) => (
                       <li key={`pre-${idx}`}>{line}</li>
                     ))}
                   </ul>
                 </div>
-                <div>
-                  <h3 className="font-bold mb-2">بعد العملية</h3>
+                <div className="print-instruction-panel">
+                  <h3 className="mb-2 font-bold">بعد العملية</h3>
                   <ul className="space-y-1 pr-5 list-disc">
                     {postOpInstructions.map((line, idx) => (
                       <li key={`post-${idx}`}>{line}</li>
@@ -1729,10 +1814,14 @@ export default function WritePrescription({
               )}
             </div>
             <div
-              className={`print:hidden flex justify-end gap-2 mt-4 ${printMode.printView ? "hidden" : ""}`}
+              className={`print:hidden sticky bottom-3 z-10 flex justify-end gap-2 rounded-xl border border-[#d9e2ef] bg-white/95 p-3 shadow-sm ${printMode.printView ? "hidden" : ""}`}
             >
               {!editingForbidden && (
-                <Button variant="outline" onClick={handleSave} type="button">
+                <Button
+                  className="bg-[#ff6b35] text-white hover:bg-[#e85f2f]"
+                  onClick={handleSave}
+                  type="button"
+                >
                   <Save className="h-4 w-4 ml-2" />
                   حفظ
                 </Button>
@@ -1746,6 +1835,32 @@ export default function WritePrescription({
         </div>
       </main>
       <style>{`
+          .prescription-paper {
+            min-height: 620px;
+            border: 1px solid #d9e2ef;
+            border-radius: 14px;
+            background: #fbfcfe;
+            padding: 22px;
+            box-shadow: 0 12px 30px rgba(37, 99, 235, 0.06);
+          }
+          .prescription-paper-header {
+            border: 1px solid #dbe4f0;
+            border-radius: 12px;
+            background: #ffffff;
+            padding: 12px 14px;
+          }
+          .rx-mark {
+            width: max-content;
+            border-bottom: 2px solid #ff6b35;
+            padding-bottom: 2px;
+          }
+          .prescription-item {
+            transition: border-color 150ms ease-out, background-color 150ms ease-out;
+          }
+          .prescription-item:focus-within {
+            border-color: #2563eb;
+            background: #f8fbff;
+          }
           @media print {
             /* print fidelity: black ink, white paper for physical output */
             .prescription-root,
@@ -1773,18 +1888,35 @@ export default function WritePrescription({
             }
             @page {
               size: A5;
-              margin: 10mm;
+              margin: 9mm 9mm 8mm;
             }
           .prescription-root {
             min-height: auto !important;
           }
+          .prescription-root,
+          .prescription-root body {
+            width: auto !important;
+          }
           .prescription-root [data-print-prescription-content] {
-            margin-top: 30mm !important;
+            margin-top: 25mm !important;
           }
           .prescription-root main,
           .prescription-root [data-print-prescription-content] {
             display: block !important;
             overflow: visible !important;
+          }
+          .prescription-root .prescription-paper {
+            min-height: auto !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+          }
+          .prescription-root .prescription-paper-header {
+            border: 0 !important;
+            border-bottom: 1px solid #000 !important;
+            border-radius: 0 !important;
+            padding: 0 0 3mm !important;
           }
           .prescription-root [data-print-prescription-content] .card-header {
             display: none !important;
@@ -1803,17 +1935,44 @@ export default function WritePrescription({
             page-break-inside: avoid;
           }
           .prescription-root .prescription-print-rx {
-            padding-top: 0 !important;
+            padding-top: 4mm !important;
+            font-size: 13pt !important;
+            line-height: 1.45 !important;
+          }
+          .prescription-root .rx-mark {
+            border-bottom: 0 !important;
+            font-size: 22pt !important;
+            line-height: 1 !important;
+            margin-bottom: 3mm !important;
           }
           .prescription-root .prescription-print-rx > div,
           .prescription-root .prescription-print-rx > p {
             break-inside: avoid;
             page-break-inside: avoid;
           }
+          .prescription-root .prescription-item {
+            margin-bottom: 4mm !important;
+            padding: 0 !important;
+          }
+          .prescription-root .prescription-item .font-bold {
+            font-size: 14pt !important;
+            line-height: 1.35 !important;
+          }
+          .prescription-root .prescription-item .whitespace-pre-line {
+            font-size: 12pt !important;
+            line-height: 1.55 !important;
+            margin-top: 1mm !important;
+          }
           .prescription-root .prescription-print-backside {
             page-break-before: always;
             break-before: page;
-            padding-top: 6mm;
+            padding-top: 12mm;
+          }
+          .prescription-root .print-instruction-panel {
+            border: 1px solid #000 !important;
+            padding: 4mm !important;
+            break-inside: avoid;
+            page-break-inside: avoid;
           }
         }
       `}</style>

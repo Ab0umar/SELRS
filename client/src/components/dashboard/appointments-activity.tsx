@@ -17,6 +17,8 @@ import {
   Check,
   CheckCircle2,
   Clock,
+  FlaskConical,
+  Pill,
   Printer,
   Syringe,
   Trash2,
@@ -585,6 +587,28 @@ function BookingCard({ booking }: { booking: any }) {
           <span className={cn("rounded-full border px-1.5 py-0.5 text-[10px] font-medium", stStyle)}>
             {stAr}
           </span>
+          {booking.patientId ? (
+            <>
+              <button
+                type="button"
+                title="طباعة روشتة"
+                onClick={() => window.open(`/prescription/${booking.patientId}?print=1`, "_blank")}
+                className="text-muted-foreground hover:text-error transition-colors"
+                aria-label="طباعة روشتة"
+              >
+                <Pill className="h-3 w-3" />
+              </button>
+              <button
+                type="button"
+                title="طباعة طلب تحاليل"
+                onClick={() => window.open(`/request-tests/${booking.patientId}?print=1`, "_blank")}
+                className="text-muted-foreground hover:text-error transition-colors"
+                aria-label="طباعة طلب تحاليل"
+              >
+                <FlaskConical className="h-3 w-3" />
+              </button>
+            </>
+          ) : null}
           <button
             type="button"
             disabled={del.isPending}
@@ -762,6 +786,30 @@ function QueuePatientCard({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <button
+              type="button"
+              title="طباعة روشتة"
+              aria-label="طباعة روشتة"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-500 hover:text-error"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(`/prescription/${patient.id}?print=1`, "_blank");
+              }}
+            >
+              <Pill className="h-4 w-4" aria-hidden />
+            </button>
+            <button
+              type="button"
+              title="طباعة طلب تحاليل"
+              aria-label="طباعة طلب تحاليل"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-500 hover:text-error"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(`/request-tests/${patient.id}?print=1`, "_blank");
+              }}
+            >
+              <FlaskConical className="h-4 w-4" aria-hidden />
+            </button>
             {canMarkTreated ? (
               <Button
                 type="button"

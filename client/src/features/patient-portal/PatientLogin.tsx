@@ -4,7 +4,9 @@ import {
   CalendarPlus2,
   Clock3,
   Eye,
+  Hospital,
   Loader2,
+  MapPin,
   MessageCircle,
   Microscope,
   Phone,
@@ -15,6 +17,7 @@ import {
   UserPlus,
   Zap,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -30,12 +33,51 @@ const SERVICES = [
   { icon: Microscope, ar: "زراعة العدسات" },
 ] as const;
 
-const CONTACT_INFO = [
-  { icon: Phone, label: "تليفون", value: "يضاف لاحقا" },
-  { icon: Smartphone, label: "موبايل", value: "يضاف لاحقا" },
-  { icon: MessageCircle, label: "واتساب", value: "يضاف لاحقا" },
-  { icon: Clock3, label: "مواعيد العمل", value: "يضاف لاحقا" },
-] as const;
+const InfoLine = ({
+  icon: Icon,
+  value,
+  dir = "rtl",
+  align = "right",
+}: {
+  icon: LucideIcon;
+  value: string;
+  dir?: "rtl" | "ltr";
+  align?: "right" | "left";
+}) => (
+  <div
+    dir={align === "left" ? "ltr" : "rtl"}
+    className={cn(
+      "flex items-start gap-1.5 text-[11px] font-bold leading-5 text-[#0f2050]",
+      align === "left" ? "justify-start text-left" : "justify-start text-right",
+    )}
+  >
+    <Icon className="mt-0.5 size-3.5 shrink-0 text-[#1f3f82]" />
+    <span
+      dir={dir}
+      className="min-w-0 [unicode-bidi:isolate]"
+    >
+      {value}
+    </span>
+  </div>
+);
+
+const InfoBlock = ({
+  icon: Icon,
+  value,
+}: {
+  icon: LucideIcon;
+  value: string;
+}) => (
+  <div
+    dir="rtl"
+    className="flex items-start gap-1.5 text-right text-[11px] font-bold leading-5 text-[#0f2050]"
+  >
+    <Icon className="mt-0.5 size-3.5 shrink-0 text-[#1f3f82]" />
+    <span dir="rtl" className="min-w-0 [unicode-bidi:isolate]">
+      <span>{value}</span>
+    </span>
+  </div>
+);
 
 export default function PatientLogin() {
   const [, navigate] = useLocation();
@@ -136,14 +178,10 @@ export default function PatientLogin() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden bg-white rounded-t-[22px] lg:rounded-none -mt-5 lg:mt-0 p-5 sm:p-10 lg:p-20 flex flex-col justify-between relative z-10 shadow-[0_-8px_30px_rgba(15,32,80,0.06)] lg:shadow-none">
+      <div className="flex-1 overflow-y-auto bg-white rounded-t-[22px] lg:rounded-none -mt-5 lg:mt-0 p-5 sm:p-10 lg:p-20 flex flex-col justify-between relative z-10 shadow-[0_-8px_30px_rgba(15,32,80,0.06)] lg:shadow-none">
         <div className="lg:hidden absolute top-2.5 left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-full bg-slate-200" />
 
         <div className="w-full max-w-[420px] mx-auto my-auto flex flex-col justify-center">
-          <span className="inline-flex items-center gap-1.5 self-start text-[10px] sm:text-xs font-bold tracking-wider uppercase text-[#2a4f9a] mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#d39c2a]" />
-            تسجيل دخول آمن
-          </span>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0f2050] tracking-tight m-0">
             دخول المريض
           </h2>
@@ -308,25 +346,42 @@ export default function PatientLogin() {
             </div>
           )}
 
-          <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-[#e6edf5] bg-slate-50 p-2.5 sm:mt-5 sm:p-3">
-            {CONTACT_INFO.map(({ icon: Icon, label, value }) => (
-              <div
-                key={label}
-                className="flex min-h-10 items-center gap-2 rounded-lg bg-white px-2.5 py-2"
-              >
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#1f3f82]/10 text-[#1f3f82]">
-                  <Icon className="size-3.5" />
-                </span>
-                <span className="min-w-0 leading-tight">
-                  <span className="block text-[10px] font-bold text-slate-400">
-                    {label}
-                  </span>
-                  <span className="block truncate text-[11px] font-bold text-[#0f2050]">
-                    {value}
-                  </span>
-                </span>
-              </div>
-            ))}
+          <div className="mt-4 space-y-1.5 rounded-xl border border-[#e6edf5] bg-slate-50 p-3 sm:mt-5">
+            <InfoLine
+              icon={Phone}
+              value="0403320833 - 0403288778"
+              dir="ltr"
+              align="left"
+            />
+            <InfoLine
+              icon={Smartphone}
+              value="01272303303 - 01027357352"
+              dir="ltr"
+              align="left"
+            />
+            <InfoLine
+              icon={MessageCircle}
+              value="01285800309"
+              dir="ltr"
+              align="left"
+            />
+            <InfoBlock
+              icon={MapPin}
+              value="بطرس مع الحلو اعلي توكيل ال جي - مركز أ.د محمد السعدني غرابه"
+            />
+            <InfoBlock
+              icon={Hospital}
+              value="علي بيك الكبير - داخل مستشفي الشروق - الدور الثاني"
+            />
+            <div
+              dir="rtl"
+              className="mt-2 flex items-center justify-center gap-1.5 border-t border-[#e6edf5] pt-2 text-center text-[11px] font-bold text-[#0f2050]"
+            >
+              <Clock3 className="size-3.5 shrink-0 text-[#1f3f82]" />
+              <p className="m-0">
+                يوميا من 10ص لـ 7م عدا الجمعه - الاطباء من 12ظ لـ 6م
+              </p>
+            </div>
           </div>
         </div>
 

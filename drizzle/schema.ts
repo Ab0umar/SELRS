@@ -2618,12 +2618,69 @@ export const kfExaminations = mysqlTable("kf_examinations", {
   notes: text("notes"),
   doctorName: varchar("doctor_name", { length: 255 }),
   examinedByUserId: int("examined_by_user_id"),
+  medicalHistory: json("medical_history"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });
 
 export type KfExamination = typeof kfExaminations.$inferSelect;
 export type InsertKfExamination = typeof kfExaminations.$inferInsert;
+
+export const kfTestRequests = mysqlTable("kf_test_requests", {
+  kfTestRequestId: int("kf_test_request_id").autoincrement().primaryKey(),
+  kfPatientId: int("kf_patient_id").notNull(),
+  kfVisitId: int("kf_visit_id"),
+  kfExamId: int("kf_exam_id"),
+  requestDate: date("request_date").notNull(),
+  status: mysqlEnum("status", ["pending", "completed", "cancelled"])
+    .default("pending")
+    .notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type KfTestRequest = typeof kfTestRequests.$inferSelect;
+export type InsertKfTestRequest = typeof kfTestRequests.$inferInsert;
+
+export const kfTestRequestItems = mysqlTable("kf_test_request_items", {
+  id: int("id").autoincrement().primaryKey(),
+  kfTestRequestId: int("kf_test_request_id").notNull(),
+  testId: int("test_id").notNull(),
+  result: text("result"),
+});
+
+export type KfTestRequestItem = typeof kfTestRequestItems.$inferSelect;
+export type InsertKfTestRequestItem = typeof kfTestRequestItems.$inferInsert;
+
+export const kfPrescriptions = mysqlTable("kf_prescriptions", {
+  kfPrescriptionId: int("kf_prescription_id").autoincrement().primaryKey(),
+  kfPatientId: int("kf_patient_id").notNull(),
+  kfVisitId: int("kf_visit_id"),
+  kfExamId: int("kf_exam_id"),
+  doctorName: varchar("doctor_name", { length: 255 }),
+  prescriptionDate: timestamp("prescription_date").defaultNow().notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type KfPrescription = typeof kfPrescriptions.$inferSelect;
+export type InsertKfPrescription = typeof kfPrescriptions.$inferInsert;
+
+export const kfPrescriptionItems = mysqlTable("kf_prescription_items", {
+  id: int("id").autoincrement().primaryKey(),
+  kfPrescriptionId: int("kf_prescription_id").notNull(),
+  medicationId: int("medication_id"),
+  medicationName: varchar("medication_name", { length: 255 }).notNull(),
+  dosage: varchar("dosage", { length: 128 }),
+  frequency: varchar("frequency", { length: 128 }),
+  duration: varchar("duration", { length: 128 }),
+  instructions: text("instructions"),
+});
+
+export type KfPrescriptionItem = typeof kfPrescriptionItems.$inferSelect;
+export type InsertKfPrescriptionItem = typeof kfPrescriptionItems.$inferInsert;
 
 export const kfOperations = mysqlTable("kf_operations", {
   kfOpId: int("kf_op_id").autoincrement().primaryKey(),

@@ -514,10 +514,10 @@ export default function SpecialistSheet() {
           .specialist-sheet th {
             page-break-inside: avoid !important;
           }
-          .specialist-sheet table { font-size: 10px !important; }
+          .specialist-sheet table { font-size: 12px !important; }
           .specialist-sheet input,
           .specialist-sheet select {
-            font-size: 10px !important;
+            font-size: 12px !important;
             padding-top: 0 !important;
             padding-bottom: 0 !important;
           }
@@ -639,7 +639,7 @@ export default function SpecialistSheet() {
       <div className="py-8 print:py-0 print-page-center-a5">
         <div data-mobile-pdf-root className={`specialist-sheet relative overflow-hidden bg-white text-[#191c1e] font-sans p-8 border border-[#c3c6d6] shadow-sm flex flex-col gap-5 w-[210mm] max-w-full mx-auto ${printMode.printView ? "hidden print:flex" : ""}`} dir="ltr">
           <SheetWatermark />
-          <SheetPrintHeader sheetType="كشف اخصائي" />
+          <SheetPrintHeader sheetType="مقاس نظاره" />
 
           <SheetPatientVisionBlock
             patientName={formData.patientName}
@@ -657,6 +657,8 @@ export default function SpecialistSheet() {
             onExaminationDateChange={(v) => setFormData((p) => ({ ...p, examinationDate: v }))}
             job={formData.job}
             onJobChange={(v) => setFormData((p) => ({ ...p, job: v }))}
+            doctorName={signatures.doctor}
+            onDoctorNameChange={(v) => setSignatures((p) => ({ ...p, doctor: v }))}
             ucvaOD={formData.ucvaOD}
             onUcvaODChange={(v) => setFormData((p) => ({ ...p, ucvaOD: v }))}
             ucvaOS={formData.ucvaOS}

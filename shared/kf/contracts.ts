@@ -105,6 +105,7 @@ export const kfExaminationSchema = z.object({
   notes: z.string().nullable().optional(),
   doctorName: z.string().nullable().optional(),
   examinedByUserId: z.number().int().nullable().optional(),
+  medicalHistory: z.unknown().nullable().optional(),
   createdAt: z.union([z.date(), z.string()]),
   updatedAt: z.union([z.date(), z.string()]),
 });
@@ -247,6 +248,7 @@ export const kfCreateExaminationInputSchema = z.object({
   plan: z.string().trim().max(4000).optional().nullable(),
   notes: z.string().trim().max(4000).optional().nullable(),
   doctorName: z.string().trim().max(255).optional().nullable(),
+  medicalHistory: z.unknown().optional().nullable(),
 });
 export type KfCreateExaminationInput = z.infer<
   typeof kfCreateExaminationInputSchema
@@ -303,3 +305,72 @@ export const kfListPatientsResultSchema = z.object({
   total: z.number().int(),
 });
 export type KfListPatientsResult = z.infer<typeof kfListPatientsResultSchema>;
+
+export const kfTestRequestStatusSchema = z.enum([
+  "pending",
+  "completed",
+  "cancelled",
+]);
+
+export const kfCreateTestRequestInputSchema = z.object({
+  kfPatientId: z.number().int().positive(),
+  kfVisitId: z.number().int().positive().optional().nullable(),
+  kfExamId: z.number().int().positive().optional().nullable(),
+  requestDate: dateStringSchema,
+  notes: z.string().trim().max(4000).optional().nullable(),
+  items: z
+    .array(
+      z.object({
+        testId: z.number().int().positive(),
+        result: z.string().trim().max(2000).optional().nullable(),
+      }),
+    )
+    .min(1),
+});
+export type KfCreateTestRequestInput = z.infer<
+  typeof kfCreateTestRequestInputSchema
+>;
+
+export const kfListTestRequestsInputSchema = z.object({
+  kfPatientId: z.number().int().positive(),
+});
+export type KfListTestRequestsInput = z.infer<
+  typeof kfListTestRequestsInputSchema
+>;
+
+export const kfCreatePrescriptionInputSchema = z.object({
+  kfPatientId: z.number().int().positive(),
+  kfVisitId: z.number().int().positive().optional().nullable(),
+  kfExamId: z.number().int().positive().optional().nullable(),
+  doctorName: z.string().trim().max(255).optional().nullable(),
+  notes: z.string().trim().max(4000).optional().nullable(),
+  items: z
+    .array(
+      z.object({
+        medicationId: z.number().int().positive().optional().nullable(),
+        medicationName: z.string().trim().min(1).max(255),
+        dosage: z.string().trim().max(128).optional().nullable(),
+        frequency: z.string().trim().max(128).optional().nullable(),
+        duration: z.string().trim().max(128).optional().nullable(),
+        instructions: z.string().trim().max(2000).optional().nullable(),
+      }),
+    )
+    .min(1),
+});
+export type KfCreatePrescriptionInput = z.infer<
+  typeof kfCreatePrescriptionInputSchema
+>;
+
+export const kfListPrescriptionsInputSchema = z.object({
+  kfPatientId: z.number().int().positive(),
+});
+export type KfListPrescriptionsInput = z.infer<
+  typeof kfListPrescriptionsInputSchema
+>;
+
+export const kfListExamImagesInputSchema = z.object({
+  kfPatientId: z.number().int().positive(),
+});
+export type KfListExamImagesInput = z.infer<
+  typeof kfListExamImagesInputSchema
+>;

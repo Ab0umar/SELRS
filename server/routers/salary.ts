@@ -2032,6 +2032,23 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
+  clearGeneratedShiftAttendance: makeSalaryWriteProcedure("/salary/payroll")
+    .input(z.object({ staffId: z.number(), year: z.number(), month: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db
+        .delete(shiftAttendance)
+        .where(
+          and(
+            eq(shiftAttendance.staffId, input.staffId),
+            eq(shiftAttendance.year, input.year),
+            eq(shiftAttendance.month, input.month),
+          ),
+        );
+      return { success: true };
+    }),
+
   generateFromCycles: makeSalaryWriteProcedure("/salary/payroll")
     .input(z.object({ year: z.number(), month: z.number() }))
     .mutation(async ({ input }) => {

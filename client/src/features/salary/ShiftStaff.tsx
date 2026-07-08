@@ -76,6 +76,18 @@ function CycleEditor({
     onError: (e: any) => toast.error(e.message),
   });
 
+  const now = new Date();
+  const [resetYear, setResetYear] = useState(now.getFullYear());
+  const [resetMonth, setResetMonth] = useState(now.getMonth() + 1);
+  const clearGeneratedMut = (
+    trpc as any
+  ).salary.clearGeneratedShiftAttendance.useMutation({
+    onSuccess: () => {
+      toast.success("تم مسح الشفتات المولّدة لهذا الشهر");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   function save() {
     const cycle: { dayOfWeek: number; shiftName: string }[] = [];
     for (const [dow, shifts] of dayShifts) {
@@ -196,15 +208,71 @@ function CycleEditor({
         )}
       </div>
 
+      <p className="text-[10px] text-muted-foreground/80">
+        اختياري — اتركه فارغًا إذا يتم إضافة الطبيب في الروستر وإدخال المرتب يدويًا في الشفتات.
+      </p>
+
       <div className="flex gap-2 pt-1">
         <button
           type="button"
           onClick={save}
-          disabled={saveMut.isPending || totalAssignments === 0}
+          disabled={saveMut.isPending}
           className="flex-1 rounded-lg border border-primary bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
         >
-          {saveMut.isPending ? "جاري الحفظ…" : "حفظ"}
+          {saveMut.isPending ? "جاري الحفظ…" : totalAssignments === 0 ? "حفظ (بدون جدول)" : "حفظ"}
         </button>
+      </div>
+
+      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-2.5 space-y-2">
+        <p className="text-[10px] font-semibold text-destructive">
+          مسح الشفتات المولّدة مسبقًا لهذا الطبيب (لا يمسحها مجرد حفظ جدول فارغ)
+        </p>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <select
+            value={resetMonth}
+            onChange={(e) => setResetMonth(Number(e.target.value))}
+            className="rounded border border-input bg-background px-1.5 py-1 text-[10px]"
+          >
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+          <select
+            value={resetYear}
+            onChange={(e) => setResetYear(Number(e.target.value))}
+            className="rounded border border-input bg-background px-1.5 py-1 text-[10px]"
+          >
+            {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map(
+              (y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ),
+            )}
+          </select>
+          <button
+            type="button"
+            disabled={clearGeneratedMut.isPending}
+            onClick={() => {
+              if (
+                confirm(
+                  `مسح كل الشفتات المولّدة لهذا الطبيب في ${resetMonth}/${resetYear}؟`,
+                )
+              ) {
+                clearGeneratedMut.mutate({
+                  staffId,
+                  year: resetYear,
+                  month: resetMonth,
+                });
+              }
+            }}
+            className="rounded border border-destructive bg-background px-2 py-1 text-[10px] font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
+          >
+            {clearGeneratedMut.isPending ? "جاري المسح…" : "مسح الشفتات المولّدة"}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -26,12 +26,15 @@ import {
   CheckCircle2,
   ChevronDown,
   Clock3,
+  FlaskConical,
+  Pill,
   Stethoscope,
   Syringe,
   UserPlus,
   Users,
   Zap,
 } from "lucide-react";
+import { patientNavPathForPageKey } from "@/lib/patientNavPaths";
 import type { LucideIcon } from "lucide-react";
 import { getLocalDateIso } from "@/hooks/operations/operationsShared";
 import { queueStatusLabelsAr, serviceTypeLabels } from "@/lib/dashboard-data";
@@ -398,6 +401,34 @@ function GridPatientCard({
             <p className="line-clamp-2 text-xs font-semibold leading-snug text-foreground sm:text-sm">
               {getPatientLabel(patient)}
             </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              title="طباعة روشتة"
+              aria-label="طباعة روشتة"
+              className="rounded-md p-1 text-muted-foreground hover:bg-error/10 hover:text-error"
+              onClick={(e) => {
+                e.stopPropagation();
+                const path = patientNavPathForPageKey("write-prescription", patient.id);
+                if (path) window.open(`${path}?print=1`, "_blank");
+              }}
+            >
+              <Pill className="h-3.5 w-3.5" aria-hidden />
+            </button>
+            <button
+              type="button"
+              title="طباعة طلب تحاليل"
+              aria-label="طباعة طلب تحاليل"
+              className="rounded-md p-1 text-muted-foreground hover:bg-error/10 hover:text-error"
+              onClick={(e) => {
+                e.stopPropagation();
+                const path = patientNavPathForPageKey("request-tests", patient.id);
+                if (path) window.open(`${path}?print=1`, "_blank");
+              }}
+            >
+              <FlaskConical className="h-3.5 w-3.5" aria-hidden />
+            </button>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">
             {st === "treated" ? (

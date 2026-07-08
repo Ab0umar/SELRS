@@ -353,6 +353,9 @@ export const accountingRouter = router({
         serviceDate,
       );
       const mssqlLinked = mssqlResult.inserted ? 1 : 0;
+      const receiptRef = mssqlResult.trNo != null
+        ? String(mssqlResult.trNo)
+        : `${serviceDate}:${Date.now()}`;
 
       for (const [serviceCode, line] of serviceTotals) {
         const [serviceRes] = (await db.execute(
@@ -369,7 +372,7 @@ export const accountingRouter = router({
           serviceCode,
           serviceName,
           source: "manual",
-          sourceRef: `manual:accounting:${patientCode}:${serviceCode}`,
+          sourceRef: `manual:accounting:${patientCode}:${serviceCode}:${receiptRef}`,
           serviceDate,
         });
         mysqlLinked += 1;

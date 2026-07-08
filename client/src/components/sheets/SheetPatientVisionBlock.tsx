@@ -25,6 +25,8 @@ export default function SheetPatientVisionBlock({
   onExaminationDateChange,
   job,
   onJobChange,
+  doctorName,
+  onDoctorNameChange,
   extraPatientField,
   ucvaOD,
   onUcvaODChange,
@@ -61,7 +63,9 @@ export default function SheetPatientVisionBlock({
   onExaminationDateChange: (v: string) => void;
   job: string;
   onJobChange: (v: string) => void;
-  /** Optional extra field rendered at the end of the patient-info row (e.g. "الطبيب:" on the specialist sheet). */
+  doctorName: string;
+  onDoctorNameChange: (v: string) => void;
+  /** Optional extra field rendered at the end of the patient-info grid. */
   extraPatientField?: React.ReactNode;
   ucvaOD: string;
   onUcvaODChange: (v: string) => void;
@@ -99,8 +103,8 @@ export default function SheetPatientVisionBlock({
         className="print-sheet-patient-grid p-4 bg-[#f3f4f6] rounded-xl border border-[#c3c6d6] flex flex-col gap-2 text-sm"
         dir="rtl"
       >
-        <div className="patient-row-bold flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs font-bold">
-          <label className="inline-flex items-center gap-1 whitespace-nowrap">
+        <div className="patient-info-grid-3x3 grid grid-cols-3 gap-x-4 gap-y-2 text-xs">
+          <label className="inline-flex items-center gap-1 whitespace-nowrap font-bold">
             <span className="text-[#434654]">الاسم:</span>
             <input
               size={(patientName || "").length || 12}
@@ -110,13 +114,13 @@ export default function SheetPatientVisionBlock({
               onChange={onText(onPatientNameChange)}
             />
           </label>
-          <span className="inline-flex items-center gap-1 whitespace-nowrap">
+          <span className="inline-flex items-center gap-1 whitespace-nowrap font-bold">
             <span className="text-[#434654]">تاريخ الميلاد:</span>
             <span className="px-1 border-b border-[#c3c6d6] text-right">
               {displaySheetDate(dateOfBirth)}
             </span>
           </span>
-          <label className="inline-flex items-center gap-1 whitespace-nowrap">
+          <label className="inline-flex items-center gap-1 whitespace-nowrap font-bold">
             <span className="text-[#434654]">السن:</span>
             <input
               size={(age || "").length || 3}
@@ -136,8 +140,6 @@ export default function SheetPatientVisionBlock({
               onChange={onText(onJobChange)}
             />
           </label>
-        </div>
-        <div className="patient-row-normal flex flex-nowrap items-center justify-center gap-x-2 gap-y-2 text-xs font-normal">
           <label className="inline-flex items-center gap-1 whitespace-nowrap min-w-0 shrink">
             <span className="text-[#434654] shrink-0">العنوان:</span>
             <input
@@ -171,6 +173,16 @@ export default function SheetPatientVisionBlock({
               className="h-6 w-16 min-w-0 font-normal text-xs bg-transparent border-0 border-b border-[#c3c6d6] rounded-none px-0.5 text-right"
               value={examinationDate}
               onChange={(e) => onExaminationDateChange(e.target.value)}
+            />
+          </label>
+          <label className="inline-flex items-center gap-1 whitespace-nowrap min-w-0 shrink">
+            <span className="text-[#434654] shrink-0">الطبيب:</span>
+            <input
+              size={(doctorName || "").length || 10}
+              className="min-w-0 font-normal text-xs bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right"
+              dir="rtl"
+              value={doctorName}
+              onChange={onText(onDoctorNameChange)}
             />
           </label>
           {extraPatientField}
@@ -249,11 +261,6 @@ export default function SheetPatientVisionBlock({
               <tr>
                 <td className={`${ctd} text-left bg-[#f3f4f6]`}>Reading</td>
                 <td className={ctd} colSpan={6}><input className={inp} value={readingValue} onChange={onText(onReadingValueChange)} /></td>
-              </tr>
-              <tr>
-                <td className={`${ctd} text-left bg-[#f3f4f6]`}>Fundus</td>
-                <td className={ctd} colSpan={3}><input className={inp} /></td>
-                <td className={ctd} colSpan={3}><input className={inp} /></td>
               </tr>
             </tbody>
           </table>

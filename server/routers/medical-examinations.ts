@@ -2120,8 +2120,14 @@ export const medicalExaminationsRoutes = {
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const allowedRoles = ["doctor", "nurse", "admin", "manager", "receptionist"];
-      if (!allowedRoles.includes(ctx.user.role)) {
+      const permissions = await db.getEffectiveUserPermissions(
+        ctx.user.id,
+        ctx.user.role,
+      );
+      if (
+        String(ctx.user.role ?? "").toLowerCase() !== "admin" &&
+        !permissions.includes("action/followup-queue")
+      ) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "غير مصرح لك بإضافة متابعة للطابور",

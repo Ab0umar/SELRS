@@ -22,6 +22,8 @@ const KfDailyRevenue = lazy(() => import("../features/kf/KfDailyRevenue"));
 const KfServiceRevenue = lazy(() => import("../features/kf/KfServiceRevenue"));
 const KfReceipts = lazy(() => import("../features/kf/KfReceipts"));
 const KfLedger = lazy(() => import("../features/kf/KfLedger"));
+const WritePrescription = lazy(() => import("../pages/WritePrescription"));
+const RequestTests = lazy(() => import("../pages/RequestTests"));
 
 export const KfRoutes = (
   <>
@@ -152,6 +154,46 @@ export const KfRoutes = (
           <ProtectedRoute>
             <KfShell>
               <KfBookings />
+            </KfShell>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={ROUTES.kfPrescriptionId}
+        component={() => (
+          <ProtectedRoute>
+            <KfShell>
+              <WritePrescription hidePageChrome />
+            </KfShell>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={ROUTES.kfPrescription}
+        component={() => (
+          <ProtectedRoute>
+            <KfShell>
+              <WritePrescription hidePageChrome />
+            </KfShell>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={ROUTES.kfRequestTestsId}
+        component={() => (
+          <ProtectedRoute>
+            <KfShell>
+              <RequestTests hidePageChrome />
+            </KfShell>
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path={ROUTES.kfRequestTests}
+        component={() => (
+          <ProtectedRoute>
+            <KfShell>
+              <RequestTests hidePageChrome />
             </KfShell>
           </ProtectedRoute>
         )}
