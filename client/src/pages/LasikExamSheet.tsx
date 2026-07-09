@@ -767,10 +767,9 @@ export default function LasikExamSheet() {
                                     onChange={(e) => setDiabetesDuration(e.target.value)}
                                   >
                                     <option value="">مدة الإصابة</option>
-                                    <option value="1 year or less">سنة أو أقل</option>
-                                    <option value="2-3 years">2-3 سنوات</option>
-                                    <option value="4-5 years">4-5 سنوات</option>
-                                    <option value="more than 5 years">أكثر من 5 سنوات</option>
+                                    <option value="less than 5 years">أقل من 5 سنوات</option>
+                                    <option value="5-10 years">من 5 إلى 10 سنوات</option>
+                                    <option value="more than 10 years">أكثر من 10 سنوات</option>
                                   </select>
                                 ) : null}
                               </div>
@@ -909,7 +908,6 @@ export default function LasikExamSheet() {
               </div>
             </div>
             <div className="flex flex-col items-center justify-center">
-              <span className="text-xs uppercase px-3 py-1 bg-[#003d9b]/5 rounded shadow-sm text-[#003d9b] mb-4">Right Eye (OD)</span>
               <div className="w-28 h-28 rounded-full border-4 border-[#003d9b]/30 flex items-center justify-center relative bg-white">
                 <div className="absolute inset-0 flex items-center justify-center opacity-10">
                   <div className="w-full border-t border-slate-900" />
@@ -917,10 +915,8 @@ export default function LasikExamSheet() {
                 </div>
                 <span className="text-[#003d9b]/40 text-xl select-none">OD</span>
               </div>
-              <p className="mt-4 text-[#003d9b]">العين اليمنى (OD)</p>
             </div>
             <div className="flex flex-col items-center justify-center">
-              <span className="text-xs uppercase px-3 py-1 bg-[#f3f4f6] rounded shadow-sm text-[#526069] mb-4">Left Eye (OS)</span>
               <div className="w-28 h-28 rounded-full border-4 border-slate-300 flex items-center justify-center relative bg-white">
                 <div className="absolute inset-0 flex items-center justify-center opacity-10">
                   <div className="w-full border-t border-slate-900" />
@@ -928,7 +924,6 @@ export default function LasikExamSheet() {
                 </div>
                 <span className="text-slate-300 text-xl select-none">OS</span>
               </div>
-              <p className="mt-4 text-[#526069]">العين اليسرى (OS)</p>
             </div>
           </section>
         ) : (

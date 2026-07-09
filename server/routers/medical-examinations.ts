@@ -449,6 +449,8 @@ export const medicalExaminationsRoutes = {
           z.object({
             tableIndex: z.number(),
             followupDate: z.string().optional(),
+            operationDate: z.string().optional(),
+            operationType: z.string().optional(),
             followupName: z.string().optional(),
             vaOD: z.string().optional(),
             vaOS: z.string().optional(),
@@ -522,6 +524,10 @@ export const medicalExaminationsRoutes = {
             followupDate: item.followupDate
               ? new Date(item.followupDate)
               : null,
+            operationDate: item.operationDate
+              ? new Date(item.operationDate)
+              : null,
+            operationType: item.operationType,
             followupName: item.followupName,
             vaOD: item.vaOD,
             vaOS: item.vaOS,
@@ -543,6 +549,10 @@ export const medicalExaminationsRoutes = {
             followupDate: item.followupDate
               ? new Date(item.followupDate)
               : null,
+            operationDate: item.operationDate
+              ? new Date(item.operationDate)
+              : null,
+            operationType: item.operationType,
             followupName: item.followupName,
             vaOD: item.vaOD,
             vaOS: item.vaOS,

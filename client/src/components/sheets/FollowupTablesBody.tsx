@@ -8,6 +8,7 @@ export type FollowupItem = {
   id: number | string;
   date: string;
   type: string;
+  notes?: string;
   [key: string]: unknown;
 };
 
@@ -72,6 +73,11 @@ export default function FollowupTablesBody<T extends FollowupItem>({
       ),
     );
   };
+
+  const eyeFieldKey = (
+    eye: "OD" | "OS",
+    suffix: "Va" | "S" | "C" | "Axis" | "Iop",
+  ) => `${eye === "OD" ? "od" : "os"}${suffix}`;
 
   const inputClass =
     "h-full w-full border-0 bg-transparent px-1 text-center text-[11px] font-semibold text-[#191c1e] outline-none focus:bg-[#dae2ff]/25";
@@ -249,6 +255,12 @@ export default function FollowupTablesBody<T extends FollowupItem>({
                           <input
                             aria-label={`${eye} visual acuity`}
                             className={inputClass}
+                            value={(followup[eyeFieldKey(eye, "Va")] as string) ?? ""}
+                            onChange={(event) =>
+                              updateFollowup(followup.id, {
+                                [eyeFieldKey(eye, "Va")]: event.target.value,
+                              } as Partial<T>)
+                            }
                             disabled={readOnly}
                           />
                         </td>
@@ -256,6 +268,12 @@ export default function FollowupTablesBody<T extends FollowupItem>({
                           <input
                             aria-label={`${eye} sphere`}
                             className={inputClass}
+                            value={(followup[eyeFieldKey(eye, "S")] as string) ?? ""}
+                            onChange={(event) =>
+                              updateFollowup(followup.id, {
+                                [eyeFieldKey(eye, "S")]: event.target.value,
+                              } as Partial<T>)
+                            }
                             disabled={readOnly}
                           />
                         </td>
@@ -263,6 +281,12 @@ export default function FollowupTablesBody<T extends FollowupItem>({
                           <input
                             aria-label={`${eye} cylinder`}
                             className={inputClass}
+                            value={(followup[eyeFieldKey(eye, "C")] as string) ?? ""}
+                            onChange={(event) =>
+                              updateFollowup(followup.id, {
+                                [eyeFieldKey(eye, "C")]: event.target.value,
+                              } as Partial<T>)
+                            }
                             disabled={readOnly}
                           />
                         </td>
@@ -270,6 +294,12 @@ export default function FollowupTablesBody<T extends FollowupItem>({
                           <input
                             aria-label={`${eye} axis`}
                             className={inputClass}
+                            value={(followup[eyeFieldKey(eye, "Axis")] as string) ?? ""}
+                            onChange={(event) =>
+                              updateFollowup(followup.id, {
+                                [eyeFieldKey(eye, "Axis")]: event.target.value,
+                              } as Partial<T>)
+                            }
                             disabled={readOnly}
                           />
                         </td>
@@ -277,6 +307,12 @@ export default function FollowupTablesBody<T extends FollowupItem>({
                           <input
                             aria-label={`${eye} IOP`}
                             className={inputClass}
+                            value={(followup[eyeFieldKey(eye, "Iop")] as string) ?? ""}
+                            onChange={(event) =>
+                              updateFollowup(followup.id, {
+                                [eyeFieldKey(eye, "Iop")]: event.target.value,
+                              } as Partial<T>)
+                            }
                             disabled={readOnly}
                           />
                         </td>
@@ -293,6 +329,12 @@ export default function FollowupTablesBody<T extends FollowupItem>({
                   <textarea
                     aria-label={`${followup.type} clinical notes`}
                     className="min-h-0 w-full resize-none border-0 bg-transparent px-2 py-1 text-left text-[10px] outline-none focus:bg-[#dae2ff]/20"
+                    value={(followup.notes as string) ?? ""}
+                    onChange={(event) =>
+                      updateFollowup(followup.id, {
+                        notes: event.target.value,
+                      } as Partial<T>)
+                    }
                     disabled={readOnly}
                     dir="ltr"
                   />

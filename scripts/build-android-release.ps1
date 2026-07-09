@@ -132,7 +132,16 @@ if ($apkFile) {
         Write-Host "Source: $($apkFile.FullName)"
         Write-Host "Dest:   $copiedApkPath"
         Copy-Item -Path $apkFile.FullName -Destination $copiedApkPath -Force
-        
+
+        # Also copy to android/releases/ so the server can serve it for auto-updates
+        $localReleasesDir = Join-Path $androidDir "releases"
+        if (-not (Test-Path $localReleasesDir)) {
+            New-Item -ItemType Directory -Path $localReleasesDir -Force | Out-Null
+        }
+        $localApkPath = Join-Path $localReleasesDir $newApkName
+        Copy-Item -Path $apkFile.FullName -Destination $localApkPath -Force
+        Write-Host "Also copied to: $localApkPath (served at /updates/android)" -ForegroundColor Green
+
         Write-Host "Successfully generated: $newApkName" -ForegroundColor Green
     }
     else {

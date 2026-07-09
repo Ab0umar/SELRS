@@ -13,6 +13,7 @@ import { type NativeAppInfo } from "@/lib/appRuntime";
 import { shouldRegisterNativePush } from "@/lib/nativePushConfig";
 import { notifyNativeFeedItem } from "@/lib/nativeNotifications";
 import { useLocation } from "wouter";
+import { getApiUrl } from "@/const";
 
 const APP_NOTIFICATION_FEED_KEY = "app_notifications_feed_v1";
 const APP_NOTIFICATION_SETTINGS_KEY = "app_notification_settings_v1";
@@ -215,6 +216,68 @@ function PullToRefresh() {
     </div>,
     document.body,
   );
+}
+
+function isNewerVersion(server: string, current: string): boolean {
+  const serverParts = server.split(".").map((n) => parseInt(n, 10) || 0);
+  const currentParts = current.split(".").map((n) => parseInt(n, 10) || 0);
+  const len = Math.max(serverParts.length, currentParts.length);
+  for (let i = 0; i < len; i += 1) {
+    const s = serverParts[i] ?? 0;
+    const c = currentParts[i] ?? 0;
+    if (s > c) return true;
+    if (s < c) return false;
+  }
+  return false;
+}
+
+/** Mirrors the desktop WebView2 shell's self-updater: check /healthz for a newer
+ *  build than the installed APK, then hand the download off to the OS. */
+function NativeApkUpdateCheck({
+  nativeAppInfo,
+}: {
+  nativeAppInfo: NativeAppInfo | null;
+}) {
+  const checkedRef = useRef(false);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    if (checkedRef.current) return;
+    const currentVersion = nativeAppInfo?.version?.trim();
+    if (!currentVersion) return;
+    checkedRef.current = true;
+
+    (async () => {
+      try {
+        const response = await fetch(getApiUrl("/healthz"), {
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        const serverVersion = String(data?.version ?? "").trim();
+        if (!/^\d+\.\d+\.\d+$/.test(serverVersion)) return;
+        if (!isNewerVersion(serverVersion, currentVersion)) return;
+
+        toast(`تحديث جديد للتطبيق متاح (${serverVersion})`, {
+          description: "اضغط لتنزيل النسخة الجديدة",
+          duration: 20000,
+          action: {
+            label: "تنزيل",
+            onClick: () => {
+              window.open(
+                getApiUrl(`/updates/android/SELRS_${serverVersion}.apk`),
+                "_blank",
+              );
+            },
+          },
+        });
+      } catch {
+        // Silent — same as the desktop shell's background update check.
+      }
+    })();
+  }, [nativeAppInfo?.version]);
+
+  return null;
 }
 
 function NativeThemeSync() {
@@ -565,6 +628,7 @@ export default function MobileAppEnhancements({
     <>
       <AppNotificationsBridge />
       <NativePushNotificationsBridge nativeAppInfo={nativeAppInfo} />
+      <NativeApkUpdateCheck nativeAppInfo={nativeAppInfo} />
       <NativeThemeSync />
       <PullToRefresh />
     </>

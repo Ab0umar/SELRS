@@ -1,7 +1,5 @@
 param(
-    [string]$ServiceWeb = "selrs-web",
-    [string]$ServiceApi = "selrs-api",
-    [string]$ServiceTunnel = "cloudFlared"
+    [string]$ServiceWeb = "selrs-web"
 )
 
 $ErrorActionPreference = "Stop"
@@ -20,11 +18,6 @@ try {
     Write-Step "Restarting service $Serviceweb"
     nssm restart $Serviceweb
 
- Write-Step "Restarting service $ServiceApi"
-    nssm restart $ServiceApi
-
- Write-Step "Restarting service $ServiceTunnel"
-    nssm restart $ServiceTunnel
 
     }
 finally {

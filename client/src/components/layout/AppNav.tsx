@@ -9,10 +9,12 @@ import {
   BookOpen,
   CalendarCheck,
   CalendarDays,
+  CalendarOff,
   CircleDot,
   ClipboardList,
   DollarSign,
   Eye,
+  FileCheck2,
   FileSpreadsheet,
   FileText,
   FlaskConical,
@@ -25,6 +27,7 @@ import {
   Pill,
   ReceiptText,
   Repeat,
+  Send,
   Settings,
   Smartphone,
   Stethoscope,
@@ -33,6 +36,7 @@ import {
   Users,
   Wallet,
   BarChart3,
+  Zap,
 } from "lucide-react";
 
 export type NavLeaf = {
@@ -211,6 +215,31 @@ export const adminNavGroups: NavGroup[] = [
     items: [
       { icon: Pill, label: "الروشتات", path: "/prescription" },
       { icon: ClipboardList, label: "التقارير الطبية", path: "/medical-reports" },
+    ],
+  },
+  {
+    label: "الشيتات",
+    navKey: "clinics-sheets",
+    groupPath: "/sheets/consultant",
+    items: [
+      { icon: Stethoscope, label: "شيت استشاري", path: "/sheets/consultant" },
+      { icon: UserRound, label: "شيت أخصائي", path: "/sheets/specialist" },
+      { icon: Zap, label: "شيت ليزك", path: "/sheets/lasik" },
+    ],
+  },
+  {
+    label: "التقارير",
+    navKey: "clinics-reports",
+    groupPath: "/clinical-report",
+    items: [
+      { icon: FileText, label: "التقرير الشامل", path: "/clinical-report" },
+      {
+        icon: FileCheck2,
+        label: "تقرير ما قبل وبعد العملية",
+        path: "/pre-post-op-report",
+      },
+      { icon: CalendarOff, label: "إجازة ما بعد العملية", path: "/post-op-offdays" },
+      { icon: Send, label: "خطاب الإحالة", path: "/sheets/referral" },
     ],
   },
   {

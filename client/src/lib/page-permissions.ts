@@ -273,6 +273,38 @@ export const PAGE_PERMISSION_DEFINITIONS = [
     group: "العيادات",
   },
   { id: "/patient-summary", label: "تقرير المريض المجمع", group: "العيادات" },
+  {
+    id: "/clinical-report/:id",
+    label: "التقرير الشامل (برقم مريض)",
+    group: "العيادات",
+  },
+  { id: "/clinical-report", label: "التقرير الشامل", group: "العيادات" },
+  {
+    id: "/pre-post-op-report/:id",
+    label: "تقرير ما قبل وبعد العملية (برقم مريض)",
+    group: "العيادات",
+  },
+  {
+    id: "/pre-post-op-report",
+    label: "تقرير ما قبل وبعد العملية",
+    group: "العيادات",
+  },
+  {
+    id: "/post-op-offdays/:id",
+    label: "إجازة ما بعد العملية (برقم مريض)",
+    group: "العيادات",
+  },
+  {
+    id: "/post-op-offdays",
+    label: "إجازة ما بعد العملية",
+    group: "العيادات",
+  },
+  {
+    id: "/sheets/referral/:id",
+    label: "خطاب الإحالة (برقم مريض)",
+    group: "العيادات",
+  },
+  { id: "/sheets/referral", label: "خطاب الإحالة", group: "العيادات" },
   { id: "/doctor/patient/:id", label: "عرض الطبيب للمريض", group: "العيادات" },
 
   // ── المرضى ──

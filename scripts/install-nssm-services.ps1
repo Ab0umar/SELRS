@@ -1,14 +1,7 @@
 param(
-  [string]$NssmPath = "C:\Users\selrs\AppData\Local\Microsoft\WinGet\Packages\NSSM.NSSM_Microsoft.Winget.Source_8wekyb3d8bbwe\nssm-2.24-101-g897c7ad\win64\nssm.exe",
-  [string]$ApiPython = "C:\Python314\python.exe",
-  [string]$ApiDir = "E:\SELRS\api-server-python",
-  [string]$ApiScript = "SFC.py",
-  [string]$WebPnpm = "C:\Users\selrs\AppData\Roaming\npm\pnpm.cmd",
-  [string]$WebDir = "E:\SELRS.cc\MySQL",
-  [string]$TunnelExe = "C:\Program Files (x86)\cloudflared\cloudflared.exe",
-  [string]$TunnelConfig = "C:\Windows\System32\config\systemprofile\.cloudflared\config.yml",
-  [string]$TunnelName = "selrs-fresh",
-  [string]$LogDir = "E:\SELRS.cc\logs"
+  [string]$NssmPath = "C:\Users\A\AppData\Local\Microsoft\WinGet\Links\nssm.exe",
+  [string]$WebPnpm = "C:\Users\A\AppData\Roaming\npm\pnpm.cmd",
+  [string]$WebDir = "D:\SRV100_Acc"
 )
 
 $ErrorActionPreference = "Stop"
@@ -35,9 +28,7 @@ function Ensure-Service([string]$Name, [string]$App, [string]$Args, [string]$Dir
 
   & $NssmPath set $Name Application $App | Out-Host
   & $NssmPath set $Name AppParameters $Args | Out-Host
-  & $NssmPath set $Name AppDirectory $Dir | Out-Host
-  & $NssmPath set $Name AppStdout (Join-Path $LogDir "$Name.out.log") | Out-Host
-  & $NssmPath set $Name AppStderr (Join-Path $LogDir "$Name.err.log") | Out-Host
+  & $NssmPath set $Name AppDirectory $Dir	 | Out-Host
   & $NssmPath set $Name AppRotateFiles 1 | Out-Host
   & $NssmPath set $Name AppRotateOnline 1 | Out-Host
   & $NssmPath set $Name AppRotateBytes 10485760 | Out-Host
@@ -46,30 +37,18 @@ function Ensure-Service([string]$Name, [string]$App, [string]$Args, [string]$Dir
 
 Ensure-Admin
 Ensure-Path $NssmPath "NSSM"
-Ensure-Path $ApiPython "Python"
-Ensure-Path (Join-Path $ApiDir $ApiScript) "API script"
 Ensure-Path $WebPnpm "pnpm"
 Ensure-Path $WebDir "Web directory"
-Ensure-Path $TunnelExe "cloudflared"
-Ensure-Path $TunnelConfig "cloudflared config"
 
-New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 
-Ensure-Service -Name "SELRS-API" -App $ApiPython -Args $ApiScript -Dir $ApiDir -LogDir $LogDir -NssmPath $NssmPath
-Ensure-Service -Name "SELRS-WEB" -App $WebPnpm -Args "start" -Dir $WebDir -LogDir $LogDir -NssmPath $NssmPath
-Ensure-Service -Name "SELRS-TUNNEL" -App $TunnelExe -Args "--config `"$TunnelConfig`" tunnel run $TunnelName" -Dir "C:\Windows\System32" -LogDir $LogDir -NssmPath $NssmPath
+Ensure-Service -Name "SELRS-WEB" -App $WebPnpm -Args "start" -Dir $WebDir -NssmPath $NssmPath
 
 sc.exe stop "pm2.exe" | Out-Host
 sc.exe config "pm2.exe" start= demand | Out-Host
 
-sc.exe start "SELRS-API" | Out-Host
 sc.exe start "SELRS-WEB" | Out-Host
-sc.exe start "SELRS-TUNNEL" | Out-Host
 
-sc.exe query "SELRS-API" | Out-Host
 sc.exe query "SELRS-WEB" | Out-Host
-sc.exe query "SELRS-TUNNEL" | Out-Host
 
 Write-Host ""
 Write-Host "Done. Services installed and started."
-Write-Host "Logs: $LogDir"

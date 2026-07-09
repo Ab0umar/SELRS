@@ -3,7 +3,7 @@ const Service = require("node-windows").Service;
 let svc = new Service({
   name: "SELRS-Dev",
   description: "SELRS Development Server",
-  script: "E:\\SELRS.cc\\dist\\index.js",
+  script: "D:\\srv100_acc\\dist\\index.js",
 });
 
 svc.on("install", () => {

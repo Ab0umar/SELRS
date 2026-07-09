@@ -330,6 +330,14 @@ export const MedicalRoutes = (
       )}
     />
     <Route
+      path="/sheets/lasik"
+      component={() => (
+        <ProtectedRoute>
+          <LasikExamSheet />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
       path={ROUTES.sheetsLasikIdFollowup}
       component={() => (
         <ProtectedRoute>

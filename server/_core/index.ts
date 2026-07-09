@@ -2143,6 +2143,9 @@ async function startServer() {
   // WebView2 auto-updater: serve installer files from desktop/installer/
   const webviewUpdatesDir = path.resolve(process.cwd(), "desktop", "installer");
   app.use("/updates/webview", express.static(webviewUpdatesDir, { maxAge: "5m", fallthrough: true }));
+  // Android auto-updater: serve release APKs from android/releases/
+  const androidUpdatesDir = path.resolve(process.cwd(), "android", "releases");
+  app.use("/updates/android", express.static(androidUpdatesDir, { maxAge: "5m", fallthrough: true }));
 
   // Facebook OAuth callback — security: state is verified, token never logged or returned to client
   app.get("/api/marketing/facebook/callback", async (req, res) => {

@@ -12,11 +12,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import RefractionValueSelect from "@/components/RefractionValueSelect";
+import SearchableCombobox from "@/components/SearchableCombobox";
 import {
   SPHERE_OPTIONS,
   CYLINDER_OPTIONS,
   UCVA_BCVA_OPTIONS,
-  AIR_PUFF_OPTIONS,
 } from "@/lib/refractionOptions";
 import { DateInput } from "@/components/ui/date-input";
 import { toast } from "sonner";
@@ -30,18 +30,28 @@ const fieldClass = "h-10 w-full text-sm text-center";
 const labelClass = "text-sm font-semibold";
 const subLabelClass = "text-xs text-muted-foreground pl-2";
 
+const OP_TYPE_OPTIONS = [
+  { value: "PRK", label: "PRK" },
+  { value: "LASIK", label: "LASIK" },
+  { value: "Femto", label: "Femto" },
+  { value: "Cataract", label: "Cataract" },
+  { value: "ICL", label: "ICL" },
+  { value: "IOL", label: "IOL" },
+  { value: "other", label: "Other" },
+];
+
 type EyeData = {
   s: string; c: string; axis: string;
   ucva: string; bcva: string;
-  afterS: string; afterC: string; afterA: string;
-  airPuff1: string; iop: string;
+  glassesS: string; glassesC: string; glassesAxis: string;
+  iop: string;
 };
 
 const emptyEye = (): EyeData => ({
   s: "---", c: "---", axis: "",
   ucva: "", bcva: "",
-  afterS: "---", afterC: "---", afterA: "",
-  airPuff1: "", iop: "",
+  glassesS: "---", glassesC: "---", glassesAxis: "",
+  iop: "",
 });
 
 export function FollowupFormDialog({
@@ -58,6 +68,8 @@ export function FollowupFormDialog({
   serviceType?: string | null;
 }) {
   const [followupDate, setFollowupDate] = useState(new Date().toISOString().slice(0, 10));
+  const [operationDate, setOperationDate] = useState("");
+  const [operationType, setOperationType] = useState("");
   const [od, setOd] = useState<EyeData>(emptyEye());
   const [os, setOs] = useState<EyeData>(emptyEye());
   const [notes, setNotes] = useState("");
@@ -66,6 +78,8 @@ export function FollowupFormDialog({
   useEffect(() => {
     if (open) {
       setFollowupDate(new Date().toISOString().slice(0, 10));
+      setOperationDate("");
+      setOperationType("");
       setOd(emptyEye());
       setOs(emptyEye());
       setNotes("");
@@ -94,10 +108,18 @@ export function FollowupFormDialog({
         followupItems: [{
           tableIndex: 0,
           followupDate,
+          operationDate: operationDate || undefined,
+          operationType: operationType || undefined,
           vaOD: od.ucva,
           vaOS: os.ucva,
-          refracOD: { s: od.s, c: od.c, axis: od.axis },
-          refracOS: { s: os.s, c: os.c, axis: os.axis },
+          refracOD: {
+            s: od.s, c: od.c, axis: od.axis, bcva: od.bcva,
+            glasses: { s: od.glassesS, c: od.glassesC, axis: od.glassesAxis },
+          },
+          refracOS: {
+            s: os.s, c: os.c, axis: os.axis, bcva: os.bcva,
+            glasses: { s: os.glassesS, c: os.glassesC, axis: os.glassesAxis },
+          },
           iopOD: od.iop,
           iopOS: os.iop,
           treatment: notes,
@@ -129,14 +151,35 @@ export function FollowupFormDialog({
 
         <div className="space-y-4">
           {/* Date */}
-          <div className="flex items-center gap-3">
-            <Label className="text-sm shrink-0">تاريخ المتابعة:</Label>
-            <DateInput
-              value={followupDate}
-              onChange={(e) => setFollowupDate(e.target.value)}
-              className="h-7 w-36 text-xs"
-              dir="ltr"
-            />
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-3">
+              <Label className="text-sm shrink-0">تاريخ المتابعة:</Label>
+              <DateInput
+                value={followupDate}
+                onChange={(e) => setFollowupDate(e.target.value)}
+                className="h-7 w-36 text-xs"
+                dir="ltr"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <Label className="text-sm shrink-0">تاريخ العملية:</Label>
+              <DateInput
+                value={operationDate}
+                onChange={(e) => setOperationDate(e.target.value)}
+                className="h-7 w-36 text-xs"
+                dir="ltr"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <Label className="text-sm shrink-0">نوع العملية:</Label>
+              <SearchableCombobox
+                value={operationType}
+                onChange={setOperationType}
+                options={OP_TYPE_OPTIONS}
+                placeholder="اختر النوع"
+                className="h-7 w-36 text-xs"
+              />
+            </div>
           </div>
 
           {/* Autoref/IOP form */}
@@ -178,30 +221,24 @@ export function FollowupFormDialog({
             </div>
 
             <div className={sectionDivider}>
-              <div className={labelClass}>After S</div>
-              <RefractionValueSelect value={od.afterS} onChange={(v) => updOd("afterS", v)} options={SPHERE_OPTIONS} allowEmpty={false} />
-              <RefractionValueSelect value={os.afterS} onChange={(v) => updOs("afterS", v)} options={SPHERE_OPTIONS} allowEmpty={false} />
+              <div className={labelClass}>Refraction S</div>
+              <RefractionValueSelect value={od.glassesS} onChange={(v) => updOd("glassesS", v)} options={SPHERE_OPTIONS} allowEmpty={false} />
+              <RefractionValueSelect value={os.glassesS} onChange={(v) => updOs("glassesS", v)} options={SPHERE_OPTIONS} allowEmpty={false} />
             </div>
 
             <div className={rowClass}>
               <div className={subLabelClass}>C</div>
-              <RefractionValueSelect value={od.afterC} onChange={(v) => updOd("afterC", v)} options={CYLINDER_OPTIONS} allowEmpty={false} />
-              <RefractionValueSelect value={os.afterC} onChange={(v) => updOs("afterC", v)} options={CYLINDER_OPTIONS} allowEmpty={false} />
+              <RefractionValueSelect value={od.glassesC} onChange={(v) => updOd("glassesC", v)} options={CYLINDER_OPTIONS} allowEmpty={false} />
+              <RefractionValueSelect value={os.glassesC} onChange={(v) => updOs("glassesC", v)} options={CYLINDER_OPTIONS} allowEmpty={false} />
             </div>
 
             <div className={rowClass}>
               <div className={subLabelClass}>Axis</div>
-              <Input value={od.afterA} onChange={(e) => updOd("afterA", e.target.value)} className={fieldClass} placeholder="0-180" />
-              <Input value={os.afterA} onChange={(e) => updOs("afterA", e.target.value)} className={fieldClass} placeholder="0-180" />
+              <Input value={od.glassesAxis} onChange={(e) => updOd("glassesAxis", e.target.value)} className={fieldClass} placeholder="0-180" />
+              <Input value={os.glassesAxis} onChange={(e) => updOs("glassesAxis", e.target.value)} className={fieldClass} placeholder="0-180" />
             </div>
 
             <div className={sectionDivider}>
-              <div className={labelClass}>Air Puff</div>
-              <RefractionValueSelect value={od.airPuff1} onChange={(v) => updOd("airPuff1", v)} options={AIR_PUFF_OPTIONS} />
-              <RefractionValueSelect value={os.airPuff1} onChange={(v) => updOs("airPuff1", v)} options={AIR_PUFF_OPTIONS} />
-            </div>
-
-            <div className={rowClass}>
               <div className={labelClass}>IOP</div>
               <Input value={od.iop} onChange={(e) => updOd("iop", e.target.value)} className={fieldClass} placeholder="mmHg" />
               <Input value={os.iop} onChange={(e) => updOs("iop", e.target.value)} className={fieldClass} placeholder="mmHg" />

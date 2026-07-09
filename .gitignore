@@ -52,6 +52,9 @@ desktop/installer/
 desktop/*.msi
 desktop/*.zip
 desktop/SelrsDesktop/*.user
+
+# Android auto-updater output
+android/releases/
 desktop/SelrsDesktop/*.suo
 
 # Electron build/runtime outputs

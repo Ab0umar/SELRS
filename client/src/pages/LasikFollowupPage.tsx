@@ -39,11 +39,20 @@ export default function LasikFollowupPage() {
   const [patientName, setPatientName] = useState("");
   const [patientDOB, setPatientDOB] = useState("");
   const [signatures, setSignatures] = useState({ doctor: "" });
+  const emptyFollowupRow = (id: number | string, type: string) => ({
+    id, date: "", type,
+    odVa: "", osVa: "",
+    odS: "", odC: "", odAxis: "",
+    osS: "", osC: "", osAxis: "",
+    odIop: "", osIop: "",
+    notes: "",
+  });
+
   const [followups, setFollowups] = useState([
-    { id: 1, date: "", type: "المتابعة الأولى" },
-    { id: 2, date: "", type: "المتابعة الثانية" },
-    { id: 3, date: "", type: "المتابعة الثالثة" },
-    { id: 4, date: "", type: "المتابعة الرابعة" },
+    emptyFollowupRow(1, "المتابعة الأولى"),
+    emptyFollowupRow(2, "المتابعة الثانية"),
+    emptyFollowupRow(3, "المتابعة الثالثة"),
+    emptyFollowupRow(4, "المتابعة الرابعة"),
   ]);
 
   const patientQuery = trpc.patient.getPatient.useQuery(initialPatientId ?? 0, {
@@ -54,8 +63,8 @@ export default function LasikFollowupPage() {
     { patientId: initialPatientId ?? 0, page: "examination" },
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
-  const followupVisitsQuery = trpc.medical.getFollowupVisitsByPatient.useQuery(
-    initialPatientId ?? 0,
+  const followupSheetsQuery = trpc.medical.getFollowupSheets.useQuery(
+    { patientId: initialPatientId ?? 0, sheetType: "lasik" },
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   const designerSettingsQuery = trpc.medical.getSystemSetting.useQuery(
@@ -86,31 +95,62 @@ export default function LasikFollowupPage() {
   }, [designerConfig.followupLasik?.followupNames]);
 
   useEffect(() => {
-    if (!followupVisitsQuery.data) return;
-    const visits = followupVisitsQuery.data as any[];
-    if (visits.length === 0) {
+    if (!followupSheetsQuery.data) return;
+    const sheets = followupSheetsQuery.data as any[];
+    // Fetch items from the followup sheet's own table, one by one, oldest sheet/item first
+    const items = sheets
+      .slice()
+      .sort((a, b) => a.version - b.version)
+      .flatMap((sheet) =>
+        (sheet.items ?? [])
+          .slice()
+          .sort((a: any, b: any) => a.tableIndex - b.tableIndex),
+      );
+    if (items.length === 0) {
       // Keep template data if no followups found
       return;
     }
-    // Transform visits to followup format
-    const transformedFollowups = visits.map((visit, index) => {
+    const parseRefrac = (json: unknown) => {
+      if (!json) return { s: "", c: "", axis: "" };
+      try {
+        const parsed = typeof json === "string" ? JSON.parse(json) : json;
+        return {
+          s: parsed?.s ?? "",
+          c: parsed?.c ?? "",
+          axis: parsed?.axis ?? "",
+        };
+      } catch {
+        return { s: "", c: "", axis: "" };
+      }
+    };
+    const transformedFollowups = items.map((item: any, index: number) => {
       const followupName =
-        designerConfig.followupLasik?.followupNames?.[index] ??
+        item.followupName ||
+        designerConfig.followupLasik?.followupNames?.[index % 4] ||
         `المتابعة #${index + 1}`;
-      const visitDate =
-        typeof visit.visitDate === "string"
-          ? visit.visitDate.split("T")[0]
-          : visit.visitDate instanceof Date
-            ? visit.visitDate.toISOString().split("T")[0]
-            : new Date(visit.visitDate).toISOString().split("T")[0];
+      const followupDate = item.followupDate
+        ? (typeof item.followupDate === "string"
+            ? item.followupDate
+            : new Date(item.followupDate).toISOString()
+          ).split("T")[0]
+        : "";
+      const od = parseRefrac(item.refracOD);
+      const os = parseRefrac(item.refracOS);
       return {
-        id: visit.id,
-        date: visitDate,
+        id: item.id,
+        date: followupDate,
         type: followupName,
+        odVa: item.vaOD ?? "",
+        osVa: item.vaOS ?? "",
+        odS: od.s, odC: od.c, odAxis: od.axis,
+        osS: os.s, osC: os.c, osAxis: os.axis,
+        odIop: item.iopOD ?? "",
+        osIop: item.iopOS ?? "",
+        notes: item.notes ?? item.treatment ?? "",
       };
     });
     setFollowups(transformedFollowups);
-  }, [followupVisitsQuery.data, designerConfig.followupLasik?.followupNames]);
+  }, [followupSheetsQuery.data, designerConfig.followupLasik?.followupNames]);
 
   // Dynamic loading: add 4 new followups when last one is filled
   useEffect(() => {
@@ -142,11 +182,7 @@ export default function LasikFollowupPage() {
           const followupName =
             designerConfig.followupLasik?.followupNames?.[index % 4] ??
             `المتابعة #${(index % 4) + 1}`;
-          newFollowups.push({
-            id: nextId + i,
-            date: "",
-            type: followupName,
-          });
+          newFollowups.push(emptyFollowupRow(nextId + i, followupName));
         }
         setFollowups([...followups, ...newFollowups]);
       }
@@ -191,11 +227,14 @@ export default function LasikFollowupPage() {
       tableIndex: index % 4,
       followupDate: f.date,
       followupName: f.type,
-      // Add other empty fields for now
-      vaOD: "",
-      vaOS: "",
-      treatment: "",
-      notes: "",
+      vaOD: f.odVa,
+      vaOS: f.osVa,
+      refracOD: { s: f.odS, c: f.odC, axis: f.odAxis },
+      refracOS: { s: f.osS, c: f.osC, axis: f.osAxis },
+      iopOD: f.odIop,
+      iopOS: f.osIop,
+      treatment: f.notes,
+      notes: f.notes,
     }));
 
     try {

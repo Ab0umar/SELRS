@@ -1337,6 +1337,7 @@ export function useExaminationForm(
           id: effectivePatientId,
           code: created.patientCode || prev.code,
         }));
+        utils.medical.getNextMssqlPatientCode.invalidate();
       } else {
         // Existing patient — push to MSSQL (new receipt) + create today's visit
         await createPatientFromExamMutation.mutateAsync({

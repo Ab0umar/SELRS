@@ -1169,6 +1169,8 @@ export const followupItems = mysqlTable(
     followupSheetId: int("followupSheetId").notNull(), // الرابط إلى followup_sheets
     tableIndex: int("tableIndex").notNull(), // رقم الجدول (0-3 في كل شيت)
     followupDate: timestamp("followupDate"), // تاريخ المتابعة
+    operationDate: timestamp("operationDate"), // تاريخ العملية
+    operationType: varchar("operationType", { length: 50 }), // نوع العملية (PRK, LASIK, Femto, Cataract, ICL, IOL, other)
     followupName: varchar("followupName", { length: 255 }), // اسم المتابعة (المتابعة الأولى، إلخ)
 
     // Visual Acuity (VA) - حدة الإبصار
