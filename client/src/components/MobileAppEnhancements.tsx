@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Capacitor } from "@capacitor/core";
+import { Browser } from "@capacitor/browser";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { toast } from "sonner";
@@ -264,10 +265,9 @@ function NativeApkUpdateCheck({
           action: {
             label: "تنزيل",
             onClick: () => {
-              window.open(
-                getApiUrl(`/updates/android/SELRS_${serverVersion}.apk`),
-                "_blank",
-              );
+              void Browser.open({
+                url: getApiUrl(`/updates/android/SELRS_${serverVersion}.apk`),
+              });
             },
           },
         });
