@@ -17,6 +17,7 @@ import {
   salaryMissingCheckoutExclude,
 } from "../../../drizzle/schema";
 import { eq, and, gte, lte, isNull, or, inArray } from "drizzle-orm";
+import { computeMarkazAutoPools } from "./commissionPoolsMssql.service";
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
@@ -280,7 +281,17 @@ export class PayrollComputeService {
         .select()
         .from(salaryPenalties)
         .where(
-          and(eq(salaryPenalties.year, year), eq(salaryPenalties.month, month)),
+          or(
+            and(
+              gte(salaryPenalties.penaltyDate, firstDay as any),
+              lte(salaryPenalties.penaltyDate, lastDay as any),
+            ),
+            and(
+              isNull(salaryPenalties.penaltyDate),
+              eq(salaryPenalties.year, year),
+              eq(salaryPenalties.month, month),
+            ),
+          ),
         ),
       db
         .select()
@@ -373,7 +384,14 @@ export class PayrollComputeService {
           Number((p as any).costOfLivingAllowanceAmount ?? 0) > 0 ||
           Number((p as any).transportAllowanceAmount ?? 0) > 0,
       ) ?? pool;
-    const examPool = pool ? Number(pool.examPool) : 0;
+    const markazAutoPools = isMarkaz
+      ? await computeMarkazAutoPools(year, month)
+      : null;
+    const examPool = markazAutoPools
+      ? markazAutoPools.examPool
+      : pool
+        ? Number(pool.examPool)
+        : 0;
     const examPoolConsultant =
       pool?.examPoolConsultant != null ? Number(pool.examPoolConsultant) : null;
     const examPoolSpecialist =
@@ -384,22 +402,26 @@ export class PayrollComputeService {
     const transportAllowance = allowancePool
       ? Number((allowancePool as any).transportAllowanceAmount ?? 0)
       : 0;
-    const pentacamPool = pool
-      ? calcPentacamPool(
-          pool.cases450 ?? 0,
-          pool.cases400 ?? 0,
-          pool.cases350 ?? 0,
-          pool.cases250 ?? 0,
-        )
-      : 0;
-    const pentacamDrPool = pool
-      ? calcPentacamDrPool(
-          pool.cases450 ?? 0,
-          pool.cases400 ?? 0,
-          pool.cases350 ?? 0,
-          pool.cases250 ?? 0,
-        )
-      : 0;
+    const pentacamPool = markazAutoPools
+      ? markazAutoPools.pentacamPool
+      : pool
+        ? calcPentacamPool(
+            pool.cases450 ?? 0,
+            pool.cases400 ?? 0,
+            pool.cases350 ?? 0,
+            pool.cases250 ?? 0,
+          )
+        : 0;
+    const pentacamDrPool = markazAutoPools
+      ? markazAutoPools.pentacamDrPool
+      : pool
+        ? calcPentacamDrPool(
+            pool.cases450 ?? 0,
+            pool.cases400 ?? 0,
+            pool.cases350 ?? 0,
+            pool.cases250 ?? 0,
+          )
+        : 0;
 
     // Resolve each employee's current basic (most recent effectiveFrom)
     const empBasicMap = new Map<string, number>();

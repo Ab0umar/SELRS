@@ -106,7 +106,7 @@ try {
         Write-Step "Running Gradle assembleRelease"
         $env:APP_VERSION_CODE = [string]$VersionCode
         if (-not $DryRun) {
-            .\gradlew assembleRelease "-PversionCode=$VersionCode"
+            .\gradlew assembleRelease "-PversionCode=$VersionCode" "-PversionName=$VersionName"
         }
     }
     finally { Pop-Location }

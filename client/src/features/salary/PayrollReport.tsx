@@ -40,11 +40,12 @@ const MONTHS = [
 function isoMonth(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
-const DEFAULT_FROM = `${isoMonth(now)}-01`;
-const DEFAULT_TO = (() => {
-  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  return `${isoMonth(last)}-${String(last.getDate()).padStart(2, "0")}`;
+// يوم 1 (الحضور/الأساسي) بيتحسب من 26 الشهر اللي فات لـ 25 الشهر الحالي
+const DEFAULT_FROM = (() => {
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 26);
+  return `${isoMonth(prev)}-26`;
 })();
+const DEFAULT_TO = `${isoMonth(now)}-25`;
 
 function fmt(n: any): string {
   return Number(n).toLocaleString("ar-EG", {
@@ -84,7 +85,9 @@ export default function PayrollReport() {
     setExpandedCards((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const [year, month] = fromDate.split("-").map(Number);
+  // يوم 10 (النسب/العمولات — الكشف والبنتاكام) بيتحسب دايمًا على الشهر الميلادي كامل (1-31)
+  // بغض النظر عن نطاق تاريخ يوم 1، فبنشتق السنة/الشهر من toDate عشان نفضل في الشهر الصح
+  const [year, month] = toDate.split("-").map(Number);
   const periodLabel = `${new Date(fromDate + "T00:00:00").toLocaleDateString("ar-EG")} — ${new Date(toDate + "T00:00:00").toLocaleDateString("ar-EG")}`;
 
   const handleFromDateChange = (val: string) => {
@@ -259,6 +262,23 @@ export default function PayrollReport() {
           ? Number(payrollRow.leaveMultiplier)
           : 1,
       netBasic,
+      attendanceCommission: Number(payrollRow?.attendanceCommission ?? 0),
+      attendanceCommissionRaw: Number(
+        payrollRow?.attendanceCommissionRaw ?? payrollRow?.attendanceCommission ?? 0,
+      ),
+      examCommission: Number(payrollRow?.examCommission ?? 0),
+      examCommissionRaw: Number(
+        payrollRow?.examCommissionRaw ?? payrollRow?.examCommission ?? 0,
+      ),
+      pentacamCommission: Number(payrollRow?.pentacamCommission ?? 0),
+      pentacamCommissionRaw: Number(
+        payrollRow?.pentacamCommissionRaw ?? payrollRow?.pentacamCommission ?? 0,
+      ),
+      costOfLivingAllowance: Number(payrollRow?.costOfLivingAllowance ?? 0),
+      transportAllowance: Number(payrollRow?.transportAllowance ?? 0),
+      overtimeMinutes: Number(payrollRow?.overtimeMinutes ?? 0),
+      overtimePay: Number(payrollRow?.overtimePay ?? 0),
+      totalCommission: Number(payrollRow?.totalCommission ?? 0),
     };
   });
 
@@ -3257,53 +3277,9 @@ export default function PayrollReport() {
                     {/* ── Tech shift rows appended to salary commissions ── */}
                     {section === "مركز" &&
                       filteredTechRows.map((tech: any) => {
-                        const EXAM_PRICE_T = 50;
-                        const EXAM_EMP_PCT_T = 0.4;
-                        const TIERS_T = [
-                          { deduction: 123.75, empPct: 0.455 },
-                          { deduction: 110, empPct: 0.455 },
-                          { deduction: 85, empPct: 0.47 },
-                          { deduction: 60, empPct: 0.5 },
-                        ];
-                        const pool2 = sectionPool;
-                        const examPool2 =
-                          Math.round(
-                            Number(pool2?.examCount ?? 0) *
-                              EXAM_PRICE_T *
-                              EXAM_EMP_PCT_T *
-                              100,
-                          ) / 100;
-                        const pentPool2 =
-                          Math.round(
-                            (Number(pool2?.cases450 ?? 0) *
-                              TIERS_T[0].deduction *
-                              TIERS_T[0].empPct +
-                              Number(pool2?.cases400 ?? 0) *
-                                TIERS_T[1].deduction *
-                                TIERS_T[1].empPct +
-                              Number(pool2?.cases350 ?? 0) *
-                                TIERS_T[2].deduction *
-                                TIERS_T[2].empPct +
-                              Number(pool2?.cases250 ?? 0) *
-                                TIERS_T[3].deduction *
-                                TIERS_T[3].empPct) *
-                              100,
-                          ) / 100;
-                        const totalSalary =
-                          regularRows.reduce(
-                            (s: number, r: any) => s + Number(r.basicSalary),
-                            0,
-                          ) + Number(tech.netBasic);
-                        const techShare =
-                          totalSalary > 0
-                            ? Number(tech.netBasic) / totalSalary
-                            : 0;
-                        const tAttend2 =
-                          Math.round(Number(tech.netBasic) * 0.25 * 100) / 100;
-                        const tExam2 =
-                          Math.round(techShare * examPool2 * 100) / 100;
-                        const tPent2 =
-                          Math.round(techShare * pentPool2 * 100) / 100;
+                        const tAttend2 = Number(tech.attendanceCommission ?? 0);
+                        const tExam2 = Number(tech.examCommission ?? 0);
+                        const tPent2 = Number(tech.pentacamCommission ?? 0);
                         const techAllowances = getAllowanceValues(tech);
                         const tCola2 = techAllowances.cola;
                         const tTravel2 = techAllowances.travel;
@@ -3327,11 +3303,20 @@ export default function PayrollReport() {
                                 فني شفتات
                               </div>
                             </td>
+                            <td className="px-3 py-3 text-center text-muted-foreground">
+                              {fmt(tech.attendanceCommissionRaw ?? tAttend2)}
+                            </td>
                             <td className="px-3 py-3 text-center text-success">
                               {fmt(tAttend2)}
                             </td>
+                            <td className="px-3 py-3 text-center text-muted-foreground">
+                              {fmt(tech.examCommissionRaw ?? tExam2)}
+                            </td>
                             <td className="px-3 py-3 text-center text-success">
                               {fmt(tExam2)}
+                            </td>
+                            <td className="px-3 py-3 text-center text-muted-foreground">
+                              {fmt(tech.pentacamCommissionRaw ?? tPent2)}
                             </td>
                             <td className="px-3 py-3 text-center text-success">
                               {fmt(tPent2)}
@@ -3369,13 +3354,8 @@ export default function PayrollReport() {
                             ) +
                               (section === "مركز"
                                 ? filteredTechRows.reduce(
-                                    (s: number, tech: any) => {
-                                      const tAttend2 =
-                                        Math.round(
-                                          Number(tech.netBasic) * 0.25 * 100,
-                                        ) / 100;
-                                      return s + tAttend2;
-                                    },
+                                    (s: number, tech: any) =>
+                                      s + Number(tech.attendanceCommission ?? 0),
                                     0,
                                   )
                                 : 0),
@@ -3390,33 +3370,8 @@ export default function PayrollReport() {
                             ) +
                               (section === "مركز"
                                 ? filteredTechRows.reduce(
-                                    (s: number, tech: any) => {
-                                      const EXAM_PRICE_T = 50;
-                                      const EXAM_EMP_PCT_T = 0.4;
-                                      const pool2 = sectionPool;
-                                      const examPool2 =
-                                        Math.round(
-                                          Number(pool2?.examCount ?? 0) *
-                                            EXAM_PRICE_T *
-                                            EXAM_EMP_PCT_T *
-                                            100,
-                                        ) / 100;
-                                      const totalSalary =
-                                        regularRows.reduce(
-                                          (sum: number, reg: any) =>
-                                            sum + Number(reg.basicSalary),
-                                          0,
-                                        ) + Number(tech.netBasic);
-                                      const techShare =
-                                        totalSalary > 0
-                                          ? Number(tech.netBasic) / totalSalary
-                                          : 0;
-                                      const tExam2 =
-                                        Math.round(
-                                          techShare * examPool2 * 100,
-                                        ) / 100;
-                                      return s + tExam2;
-                                    },
+                                    (s: number, tech: any) =>
+                                      s + Number(tech.examCommission ?? 0),
                                     0,
                                   )
                                 : 0),
@@ -3431,46 +3386,8 @@ export default function PayrollReport() {
                             ) +
                               (section === "مركز"
                                 ? filteredTechRows.reduce(
-                                    (s: number, tech: any) => {
-                                      const TIERS_T = [
-                                        { deduction: 123.75, empPct: 0.455 },
-                                        { deduction: 110, empPct: 0.455 },
-                                        { deduction: 85, empPct: 0.47 },
-                                        { deduction: 60, empPct: 0.5 },
-                                      ];
-                                      const pool2 = sectionPool;
-                                      const pentPool2 =
-                                        Math.round(
-                                          (Number(pool2?.cases450 ?? 0) *
-                                            TIERS_T[0].deduction *
-                                            TIERS_T[0].empPct +
-                                            Number(pool2?.cases400 ?? 0) *
-                                              TIERS_T[1].deduction *
-                                              TIERS_T[1].empPct +
-                                            Number(pool2?.cases350 ?? 0) *
-                                              TIERS_T[2].deduction *
-                                              TIERS_T[2].empPct +
-                                            Number(pool2?.cases250 ?? 0) *
-                                              TIERS_T[3].deduction *
-                                              TIERS_T[3].empPct) *
-                                            100,
-                                        ) / 100;
-                                      const totalSalary =
-                                        regularRows.reduce(
-                                          (sum: number, reg: any) =>
-                                            sum + Number(reg.basicSalary),
-                                          0,
-                                        ) + Number(tech.netBasic);
-                                      const techShare =
-                                        totalSalary > 0
-                                          ? Number(tech.netBasic) / totalSalary
-                                          : 0;
-                                      const tPent2 =
-                                        Math.round(
-                                          techShare * pentPool2 * 100,
-                                        ) / 100;
-                                      return s + tPent2;
-                                    },
+                                    (s: number, tech: any) =>
+                                      s + Number(tech.pentacamCommission ?? 0),
                                     0,
                                   )
                                 : 0),
@@ -3543,60 +3460,9 @@ export default function PayrollReport() {
                               (section === "مركز"
                                 ? filteredTechRows.reduce(
                                     (s: number, tech: any) => {
-                                      const EXAM_PRICE_T = 50;
-                                      const EXAM_EMP_PCT_T = 0.4;
-                                      const TIERS_T = [
-                                        { deduction: 123.75, empPct: 0.455 },
-                                        { deduction: 110, empPct: 0.455 },
-                                        { deduction: 85, empPct: 0.47 },
-                                        { deduction: 60, empPct: 0.5 },
-                                      ];
-                                      const pool2 = sectionPool;
-                                      const examPool2 =
-                                        Math.round(
-                                          Number(pool2?.examCount ?? 0) *
-                                            EXAM_PRICE_T *
-                                            EXAM_EMP_PCT_T *
-                                            100,
-                                        ) / 100;
-                                      const pentPool2 =
-                                        Math.round(
-                                          (Number(pool2?.cases450 ?? 0) *
-                                            TIERS_T[0].deduction *
-                                            TIERS_T[0].empPct +
-                                            Number(pool2?.cases400 ?? 0) *
-                                              TIERS_T[1].deduction *
-                                              TIERS_T[1].empPct +
-                                            Number(pool2?.cases350 ?? 0) *
-                                              TIERS_T[2].deduction *
-                                              TIERS_T[2].empPct +
-                                            Number(pool2?.cases250 ?? 0) *
-                                              TIERS_T[3].deduction *
-                                              TIERS_T[3].empPct) *
-                                            100,
-                                        ) / 100;
-                                      const totalSalary =
-                                        regularRows.reduce(
-                                          (sum: number, reg: any) =>
-                                            sum + Number(reg.basicSalary),
-                                          0,
-                                        ) + Number(tech.netBasic);
-                                      const techShare =
-                                        totalSalary > 0
-                                          ? Number(tech.netBasic) / totalSalary
-                                          : 0;
-                                      const tAttend2 =
-                                        Math.round(
-                                          Number(tech.netBasic) * 0.25 * 100,
-                                        ) / 100;
-                                      const tExam2 =
-                                        Math.round(
-                                          techShare * examPool2 * 100,
-                                        ) / 100;
-                                      const tPent2 =
-                                        Math.round(
-                                          techShare * pentPool2 * 100,
-                                        ) / 100;
+                                      const tAttend2 = Number(tech.attendanceCommission ?? 0);
+                                      const tExam2 = Number(tech.examCommission ?? 0);
+                                      const tPent2 = Number(tech.pentacamCommission ?? 0);
                                       const techAllowances =
                                         getAllowanceValues(tech);
                                       const tCola2 = techAllowances.cola;
@@ -3742,51 +3608,9 @@ export default function PayrollReport() {
                 {section === "مركز" &&
                   filteredTechRows.map((tech: any) => {
                     const isExpanded = !!expandedCards[`comm-tech-${tech.id}`];
-                    const EXAM_PRICE_T = 50;
-                    const EXAM_EMP_PCT_T = 0.4;
-                    const TIERS_T = [
-                      { deduction: 123.75, empPct: 0.455 },
-                      { deduction: 110, empPct: 0.455 },
-                      { deduction: 85, empPct: 0.47 },
-                      { deduction: 60, empPct: 0.5 },
-                    ];
-                    const pool2 = sectionPool;
-                    const examPool2 =
-                      Math.round(
-                        Number(pool2?.examCount ?? 0) *
-                          EXAM_PRICE_T *
-                          EXAM_EMP_PCT_T *
-                          100,
-                      ) / 100;
-                    const pentPool2 =
-                      Math.round(
-                        (Number(pool2?.cases450 ?? 0) *
-                          TIERS_T[0].deduction *
-                          TIERS_T[0].empPct +
-                          Number(pool2?.cases400 ?? 0) *
-                            TIERS_T[1].deduction *
-                            TIERS_T[1].empPct +
-                          Number(pool2?.cases350 ?? 0) *
-                            TIERS_T[2].deduction *
-                            TIERS_T[2].empPct +
-                          Number(pool2?.cases250 ?? 0) *
-                            TIERS_T[3].deduction *
-                            TIERS_T[3].empPct) *
-                          100,
-                      ) / 100;
-                    const totalSalary =
-                      regularRows.reduce(
-                        (s: number, r: any) => s + Number(r.basicSalary),
-                        0,
-                      ) + Number(tech.netBasic);
-                    const techShare =
-                      totalSalary > 0 ? Number(tech.netBasic) / totalSalary : 0;
-                    const tAttend2 =
-                      Math.round(Number(tech.netBasic) * 0.25 * 100) / 100;
-                    const tExam2 =
-                      Math.round(techShare * examPool2 * 100) / 100;
-                    const tPent2 =
-                      Math.round(techShare * pentPool2 * 100) / 100;
+                    const tAttend2 = Number(tech.attendanceCommission ?? 0);
+                    const tExam2 = Number(tech.examCommission ?? 0);
+                    const tPent2 = Number(tech.pentacamCommission ?? 0);
                     const techAllowances = getAllowanceValues(tech);
                     const tCola2 = techAllowances.cola;
                     const tTravel2 = techAllowances.travel;
@@ -3919,13 +3743,8 @@ export default function PayrollReport() {
                           ) +
                             (section === "مركز"
                               ? filteredTechRows.reduce(
-                                  (s: number, tech: any) => {
-                                    const tAttend2 =
-                                      Math.round(
-                                        Number(tech.netBasic) * 0.25 * 100,
-                                      ) / 100;
-                                    return s + tAttend2;
-                                  },
+                                  (s: number, tech: any) =>
+                                    s + Number(tech.attendanceCommission ?? 0),
                                   0,
                                 )
                               : 0),
@@ -3944,32 +3763,8 @@ export default function PayrollReport() {
                           ) +
                             (section === "مركز"
                               ? filteredTechRows.reduce(
-                                  (s: number, tech: any) => {
-                                    const EXAM_PRICE_T = 50;
-                                    const EXAM_EMP_PCT_T = 0.4;
-                                    const pool2 = sectionPool;
-                                    const examPool2 =
-                                      Math.round(
-                                        Number(pool2?.examCount ?? 0) *
-                                          EXAM_PRICE_T *
-                                          EXAM_EMP_PCT_T *
-                                          100,
-                                      ) / 100;
-                                    const totalSalary =
-                                      regularRows.reduce(
-                                        (sum: number, reg: any) =>
-                                          sum + Number(reg.basicSalary),
-                                        0,
-                                      ) + Number(tech.netBasic);
-                                    const techShare =
-                                      totalSalary > 0
-                                        ? Number(tech.netBasic) / totalSalary
-                                        : 0;
-                                    const tExam2 =
-                                      Math.round(techShare * examPool2 * 100) /
-                                      100;
-                                    return s + tExam2;
-                                  },
+                                  (s: number, tech: any) =>
+                                    s + Number(tech.examCommission ?? 0),
                                   0,
                                 )
                               : 0),
@@ -3990,46 +3785,8 @@ export default function PayrollReport() {
                             ) +
                               (section === "مركز"
                                 ? filteredTechRows.reduce(
-                                    (s: number, tech: any) => {
-                                      const TIERS_T = [
-                                        { deduction: 123.75, empPct: 0.455 },
-                                        { deduction: 110, empPct: 0.455 },
-                                        { deduction: 85, empPct: 0.47 },
-                                        { deduction: 60, empPct: 0.5 },
-                                      ];
-                                      const pool2 = sectionPool;
-                                      const pentPool2 =
-                                        Math.round(
-                                          (Number(pool2?.cases450 ?? 0) *
-                                            TIERS_T[0].deduction *
-                                            TIERS_T[0].empPct +
-                                            Number(pool2?.cases400 ?? 0) *
-                                              TIERS_T[1].deduction *
-                                              TIERS_T[1].empPct +
-                                            Number(pool2?.cases350 ?? 0) *
-                                              TIERS_T[2].deduction *
-                                              TIERS_T[2].empPct +
-                                            Number(pool2?.cases250 ?? 0) *
-                                              TIERS_T[3].deduction *
-                                              TIERS_T[3].empPct) *
-                                            100,
-                                        ) / 100;
-                                      const totalSalary =
-                                        regularRows.reduce(
-                                          (sum: number, reg: any) =>
-                                            sum + Number(reg.basicSalary),
-                                          0,
-                                        ) + Number(tech.netBasic);
-                                      const techShare =
-                                        totalSalary > 0
-                                          ? Number(tech.netBasic) / totalSalary
-                                          : 0;
-                                      const tPent2 =
-                                        Math.round(
-                                          techShare * pentPool2 * 100,
-                                        ) / 100;
-                                      return s + tPent2;
-                                    },
+                                    (s: number, tech: any) =>
+                                      s + Number(tech.pentacamCommission ?? 0),
                                     0,
                                   )
                                 : 0),
@@ -4095,58 +3852,9 @@ export default function PayrollReport() {
                             (section === "مركز"
                               ? filteredTechRows.reduce(
                                   (s: number, tech: any) => {
-                                    const EXAM_PRICE_T = 50;
-                                    const EXAM_EMP_PCT_T = 0.4;
-                                    const TIERS_T = [
-                                      { deduction: 123.75, empPct: 0.455 },
-                                      { deduction: 110, empPct: 0.455 },
-                                      { deduction: 85, empPct: 0.47 },
-                                      { deduction: 60, empPct: 0.5 },
-                                    ];
-                                    const pool2 = sectionPool;
-                                    const examPool2 =
-                                      Math.round(
-                                        Number(pool2?.examCount ?? 0) *
-                                          EXAM_PRICE_T *
-                                          EXAM_EMP_PCT_T *
-                                          100,
-                                      ) / 100;
-                                    const pentPool2 =
-                                      Math.round(
-                                        (Number(pool2?.cases450 ?? 0) *
-                                          TIERS_T[0].deduction *
-                                          TIERS_T[0].empPct +
-                                          Number(pool2?.cases400 ?? 0) *
-                                            TIERS_T[1].deduction *
-                                            TIERS_T[1].empPct +
-                                          Number(pool2?.cases350 ?? 0) *
-                                            TIERS_T[2].deduction *
-                                            TIERS_T[2].empPct +
-                                          Number(pool2?.cases250 ?? 0) *
-                                            TIERS_T[3].deduction *
-                                            TIERS_T[3].empPct) *
-                                          100,
-                                      ) / 100;
-                                    const totalSalary =
-                                      regularRows.reduce(
-                                        (sum: number, reg: any) =>
-                                          sum + Number(reg.basicSalary),
-                                        0,
-                                      ) + Number(tech.netBasic);
-                                    const techShare =
-                                      totalSalary > 0
-                                        ? Number(tech.netBasic) / totalSalary
-                                        : 0;
-                                    const tAttend2 =
-                                      Math.round(
-                                        Number(tech.netBasic) * 0.25 * 100,
-                                      ) / 100;
-                                    const tExam2 =
-                                      Math.round(techShare * examPool2 * 100) /
-                                      100;
-                                    const tPent2 =
-                                      Math.round(techShare * pentPool2 * 100) /
-                                      100;
+                                    const tAttend2 = Number(tech.attendanceCommission ?? 0);
+                                    const tExam2 = Number(tech.examCommission ?? 0);
+                                    const tPent2 = Number(tech.pentacamCommission ?? 0);
                                     const techAllowances =
                                       getAllowanceValues(tech);
                                     const tCola2 = techAllowances.cola;

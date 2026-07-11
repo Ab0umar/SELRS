@@ -34,7 +34,6 @@ Pentacam/failed/
 Uploads/
 
 # Android build outputs
-android/
 
 # Nested legacy repos (keep local only)
 SELRS.cc/

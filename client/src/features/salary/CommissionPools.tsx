@@ -124,6 +124,53 @@ export default function CommissionPools() {
     section,
   });
   const pool = poolQ.data;
+  const isMarkaz = section === "مركز";
+  const autoPoolsQ = (trpc as any).salary.getMarkazAutoCommissionPools.useQuery(
+    { year, month },
+    { enabled: isMarkaz },
+  );
+  const autoPools = autoPoolsQ.data;
+
+  const priceOverridesQ = (trpc as any).salary.getPriceOverrides.useQuery(
+    undefined,
+    { enabled: isMarkaz },
+  );
+  const [specialistPriceInput, setSpecialistPriceInput] = useState("");
+  const [consultantPriceInput, setConsultantPriceInput] = useState("");
+  const [xray1600PriceInput, setXray1600PriceInput] = useState("");
+  const [xrayRemainingPriceInput, setXrayRemainingPriceInput] = useState("");
+  const [xray1502PriceInput, setXray1502PriceInput] = useState("");
+  useEffect(() => {
+    if (priceOverridesQ.data) {
+      setSpecialistPriceInput(priceOverridesQ.data.examSpecialist ?? "");
+      setConsultantPriceInput(priceOverridesQ.data.examConsultant ?? "");
+      setXray1600PriceInput(priceOverridesQ.data.xray1600 ?? "");
+      setXrayRemainingPriceInput(priceOverridesQ.data.xrayRemaining ?? "");
+      setXray1502PriceInput(priceOverridesQ.data.xray1502 ?? "");
+    }
+  }, [priceOverridesQ.data]);
+  const setPriceOverridesMut = (trpc as any).salary.setPriceOverrides.useMutation({
+    onSuccess: () => {
+      priceOverridesQ.refetch();
+      autoPoolsQ.refetch();
+      toast.success("تم حفظ السعر");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const saveExamPrices = () => {
+    setPriceOverridesMut.mutate({
+      examSpecialist: specialistPriceInput === "" ? null : Number(specialistPriceInput),
+      examConsultant: consultantPriceInput === "" ? null : Number(consultantPriceInput),
+    });
+  };
+  const saveXrayPrices = () => {
+    setPriceOverridesMut.mutate({
+      xray1600: xray1600PriceInput === "" ? null : Number(xray1600PriceInput),
+      xrayRemaining: xrayRemainingPriceInput === "" ? null : Number(xrayRemainingPriceInput),
+      xray1502: xray1502PriceInput === "" ? null : Number(xray1502PriceInput),
+    });
+  };
+
   const allPoolsQ = (trpc as any).salary.listCommissionPools.useQuery({
     year,
     section,
@@ -223,7 +270,6 @@ export default function CommissionPools() {
     return Math.round((p450 + p400 + p350 + p250) * 100) / 100;
   };
 
-  const isMarkaz = section === "مركز";
   const examCount = parseInt(form.examCount) || 0;
   const xrayCount = parseInt(form.xrayCount) || 0;
   const consultantCount = parseInt(form.consultantCount) || 0;
@@ -365,17 +411,11 @@ export default function CommissionPools() {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (isMarkaz) {
+      // exam/x-ray pools are auto-computed from MSSQL revenue — only day-10 allowances + notes are manual
       saveMut.mutate({
         year,
         month,
         section,
-        examCount,
-        xrayCount: xrayTotalCount,
-        cases450: parseInt(form.xray450) || 0,
-        cases400: parseInt(form.xray400) || 0,
-        cases350: parseInt(form.xray350) || 0,
-        cases250: parseInt(form.xray250) || 0,
-        examPoolOverride: Math.round(examCount * markazExamRateNum * 100) / 100,
         costOfLivingAllowanceAmount,
         costOfLivingAllowanceCount,
         transportAllowanceAmount,
@@ -458,317 +498,252 @@ export default function CommissionPools() {
           <form onSubmit={handleSave} className="space-y-6">
             {isMarkaz ? (
               <>
-                {/* Exams Section */}
+                {/* Exams Section — auto-computed from MSSQL service revenue */}
                 <div className="space-y-3">
-                  <h3 className="font-semibold text-base">الكشوفات</h3>
-                  <div className="hidden lg:block overflow-x-auto" dir="rtl">
-                    <table
-                      className="w-full text-sm border border-border rounded-lg"
-                      dir="rtl"
-                    >
-                      <thead>
-                        <tr className="bg-muted/50 border-b">
-                          <th className="px-4 py-3 text-right font-semibold">البيان</th>
-                          <th className="px-4 py-3 text-center font-semibold">القيمة</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-b hover:bg-muted/20">
-                          <td className="px-4 py-3 font-medium">العدد</td>
-                          <td className="px-4 py-3 text-center">
-                            <input
-                              type="number"
-                              value={form.examCount}
-                              min={0}
-                              step="1"
-                              onChange={set("examCount")}
-                              className="w-24 rounded border border-border bg-background px-2 py-1 text-center text-sm"
-                            />
-                          </td>
-                        </tr>
-                        <tr className="border-b hover:bg-muted/20">
-                          <td className="px-4 py-3 font-medium">التكلفة (ج)</td>
-                          <td className="px-4 py-3 text-center">
-                            <input
-                              type="number"
-                              value={markazExamRate}
-                              min={0}
-                              step="0.5"
-                              onChange={(e) => setMarkazExamRate(e.target.value)}
-                              className="w-24 rounded border border-border bg-background px-2 py-1 text-center text-sm"
-                            />
-                          </td>
-                        </tr>
-                        <tr className="border-b bg-primary/5 hover:bg-muted/20">
-                          <td className="px-4 py-3 font-medium">الإجمالي</td>
-                          <td className="px-4 py-3 text-center font-semibold text-primary">
-                            {examTotal.toLocaleString("ar-EG")} ج
-                          </td>
-                        </tr>
-                        <tr className="border-b bg-primary/8 hover:bg-primary/10">
-                          <td className="px-4 py-3 font-medium text-primary">الأطباء (60%)</td>
-                          <td className="px-4 py-3 text-center font-semibold text-primary">
-                            {examDrPool.toLocaleString("ar-EG")} ج
-                          </td>
-                        </tr>
-                        <tr className="bg-success/8 hover:bg-success/10">
-                          <td className="px-4 py-3 font-medium text-success">الموظفين والفنيين (40%)</td>
-                          <td className="px-4 py-3 text-center font-semibold text-success">
-                            {examEmpPool.toLocaleString("ar-EG")} ج
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Mobile View */}
-                  <div className="block lg:hidden space-y-3">
-                    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <label className="text-xs font-semibold text-muted-foreground">العدد</label>
-                          <input
-                            type="number"
-                            value={form.examCount}
-                            min={0}
-                            step="1"
-                            onChange={set("examCount")}
-                            className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-xs font-semibold text-muted-foreground">التكلفة (ج)</label>
-                          <input
-                            type="number"
-                            value={markazExamRate}
-                            min={0}
-                            step="0.5"
-                            onChange={(e) => setMarkazExamRate(e.target.value)}
-                            className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center pt-2 border-t border-border/40">
-                        <span className="text-xs text-muted-foreground">الإجمالي:</span>
-                        <span className="text-sm font-bold text-primary">{examTotal.toLocaleString("ar-EG")} ج</span>
-                      </div>
+                  <h3 className="font-semibold text-base">الكشوفات (محسوبة تلقائيًا من الإيراد)</h3>
+                  <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                    <div className="text-xs font-semibold text-muted-foreground">
+                      سعر الكشف (اتركه فارغًا للقراءة التلقائية من جدول الأسعار)
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="rounded-xl border border-primary/20 bg-primary/8 p-3 text-center">
-                        <div className="text-[10px] text-primary font-semibold mb-1">الأطباء (60%)</div>
-                        <div className="text-base font-black text-primary">{examDrPool.toLocaleString("ar-EG")} ج</div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">سعر كشف الأخصائي</label>
+                        <input
+                          type="number"
+                          value={specialistPriceInput}
+                          min={0}
+                          step="0.5"
+                          placeholder={String(autoPools?.breakdown.examSpecialistPrice ?? "")}
+                          onChange={(e) => setSpecialistPriceInput(e.target.value)}
+                          className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                        />
                       </div>
-                      <div className="rounded-xl border border-success/20 bg-success/8 p-3 text-center">
-                        <div className="text-[10px] text-success font-semibold mb-1">الموظفين والفنيين (40%)</div>
-                        <div className="text-base font-black text-success">{examEmpPool.toLocaleString("ar-EG")} ج</div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">سعر كشف الاستشاري</label>
+                        <input
+                          type="number"
+                          value={consultantPriceInput}
+                          min={0}
+                          step="0.5"
+                          placeholder={String(autoPools?.breakdown.examConsultantPrice ?? "")}
+                          onChange={(e) => setConsultantPriceInput(e.target.value)}
+                          className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                        />
                       </div>
                     </div>
+                    <Button type="button" size="sm" onClick={saveExamPrices} disabled={setPriceOverridesMut.isPending}>
+                      حفظ الأسعار
+                    </Button>
                   </div>
+                  {autoPoolsQ.isLoading ? (
+                    <div className="text-sm text-muted-foreground">جاري التحميل...</div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="hidden lg:block overflow-x-auto" dir="rtl">
+                        <table
+                          className="w-full text-sm border border-border rounded-lg"
+                          dir="rtl"
+                        >
+                          <thead>
+                            <tr className="bg-muted/50 border-b">
+                              <th className="px-4 py-3 text-right font-semibold">الكشف</th>
+                              <th className="px-4 py-3 text-center font-semibold">الإيراد</th>
+                              <th className="px-4 py-3 text-center font-semibold">النسبة</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className="border-b hover:bg-muted/20">
+                              <td className="px-4 py-3 font-medium">أخصائي</td>
+                              <td className="px-4 py-3 text-center">
+                                {(autoPools?.breakdown.examSpecialistRevenue ?? 0).toLocaleString("ar-EG")} ج
+                              </td>
+                              <td className="px-4 py-3 text-center font-semibold text-primary">
+                                {(autoPools?.breakdown.examSpecialistPool ?? 0).toLocaleString("ar-EG")} ج
+                              </td>
+                            </tr>
+                            <tr className="border-b bg-primary/5 hover:bg-muted/20">
+                              <td className="px-4 py-3 font-medium">استشاري</td>
+                              <td className="px-4 py-3 text-center">
+                                {(autoPools?.breakdown.examConsultantRevenue ?? 0).toLocaleString("ar-EG")} ج
+                              </td>
+                              <td className="px-4 py-3 text-center font-semibold text-primary">
+                                {(autoPools?.breakdown.examConsultantPool ?? 0).toLocaleString("ar-EG")} ج
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Mobile View */}
+                      <div className="block lg:hidden space-y-3">
+                        {[
+                          { label: "أخصائي", revenue: autoPools?.breakdown.examSpecialistRevenue, pool: autoPools?.breakdown.examSpecialistPool },
+                          { label: "استشاري", revenue: autoPools?.breakdown.examConsultantRevenue, pool: autoPools?.breakdown.examConsultantPool },
+                        ].map((row) => (
+                          <div key={row.label} className="rounded-xl border border-border bg-card p-4 flex justify-between items-center">
+                            <div>
+                              <div className="text-sm font-bold text-foreground">{row.label}</div>
+                              <div className="text-[10px] text-muted-foreground">{(row.revenue ?? 0).toLocaleString("ar-EG")} ج إيراد</div>
+                            </div>
+                            <div className="text-base font-black text-primary">{(row.pool ?? 0).toLocaleString("ar-EG")} ج</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="rounded-xl border border-border bg-card p-4 text-center">
+                          <div className="text-[10px] text-muted-foreground mb-1">إجمالي الكشف</div>
+                          <div className="text-lg font-black text-foreground">
+                            {(autoPools?.examPool ?? 0).toLocaleString("ar-EG")} ج
+                          </div>
+                        </div>
+                        <div className="rounded-xl border border-primary/20 bg-primary/8 p-4 text-center">
+                          <div className="text-[10px] text-primary font-semibold mb-1">الأطباء (60%)</div>
+                          <div className="text-lg font-black text-primary">
+                            {Math.round((autoPools?.examPool ?? 0) * 0.6 * 100) / 100} ج
+                          </div>
+                        </div>
+                        <div className="rounded-xl border border-success/20 bg-success/8 p-4 text-center">
+                          <div className="text-[10px] text-success font-semibold mb-1">الموظفين والفنيين (40%)</div>
+                          <div className="text-lg font-black text-success">
+                            {Math.round((autoPools?.examPool ?? 0) * 0.4 * 100) / 100} ج
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Pentacam Section */}
+                {/* Pentacam/X-ray Section — auto-computed from MSSQL service revenue */}
                 <div className="space-y-3">
-                  <h3 className="font-semibold text-base">البنتاكام</h3>
-                  <div className="hidden lg:block overflow-x-auto" dir="rtl">
-                    <table
-                      className="w-full text-sm border border-border rounded-lg"
-                      dir="rtl"
-                    >
-                      <thead>
-                        <tr className="bg-secondary/8 border-b">
-                          <th className="px-4 py-3 text-right font-semibold">
-                            البيان
-                          </th>
-                          <th className="px-4 py-3 text-center font-semibold">
-                            450
-                          </th>
-                          <th className="px-4 py-3 text-center font-semibold">
-                            400
-                          </th>
-                          <th className="px-4 py-3 text-center font-semibold">
-                            350
-                          </th>
-                          <th className="px-4 py-3 text-center font-semibold">
-                            250
-                          </th>
-                          <th className="px-4 py-3 text-center font-semibold">
-                            الإجمالي
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-b hover:bg-muted/20">
-                          <td className="px-4 py-3 font-medium">العدد</td>
-                          <td className="px-4 py-3 text-center">
-                            <input
-                              type="number"
-                              value={form.xray450}
-                              min={0}
-                              step="1"
-                              onChange={set("xray450")}
-                              className="w-16 rounded border border-border bg-background px-2 py-1 text-center text-sm"
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <input
-                              type="number"
-                              value={form.xray400}
-                              min={0}
-                              step="1"
-                              onChange={set("xray400")}
-                              className="w-16 rounded border border-border bg-background px-2 py-1 text-center text-sm"
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <input
-                              type="number"
-                              value={form.xray350}
-                              min={0}
-                              step="1"
-                              onChange={set("xray350")}
-                              className="w-16 rounded border border-border bg-background px-2 py-1 text-center text-sm"
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <input
-                              type="number"
-                              value={form.xray250}
-                              min={0}
-                              step="1"
-                              onChange={set("xray250")}
-                              className="w-16 rounded border border-border bg-background px-2 py-1 text-center text-sm"
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-center font-semibold text-primary">
-                            {xrayTotalCount.toLocaleString("ar-EG")}
-                          </td>
-                        </tr>
-                        <tr className="border-b bg-primary/8 hover:bg-primary/10">
-                          <td className="px-4 py-3 font-medium">الإجمالي</td>
-                          <td className="px-4 py-3 text-center font-semibold text-primary">
-                            {xrayTierTotals[450].toLocaleString("ar-EG")} ج
-                          </td>
-                          <td className="px-4 py-3 text-center font-semibold text-primary">
-                            {xrayTierTotals[400].toLocaleString("ar-EG")} ج
-                          </td>
-                          <td className="px-4 py-3 text-center font-semibold text-primary">
-                            {xrayTierTotals[350].toLocaleString("ar-EG")} ج
-                          </td>
-                          <td className="px-4 py-3 text-center font-semibold text-primary">
-                            {xrayTierTotals[250].toLocaleString("ar-EG")} ج
-                          </td>
-                          <td className="px-4 py-3 text-center font-semibold text-primary">
-                            {xrayGrandTotal.toLocaleString("ar-EG")} ج
-                          </td>
-                        </tr>
-                        <tr className="border-b bg-primary/8 hover:bg-primary/10">
-                          <td className="px-4 py-3 font-medium">الأطباء</td>
-                          <td className="px-4 py-3 text-center font-semibold text-primary">
-                            {xrayTierDoctors[450].toLocaleString("ar-EG")} ج
-                          </td>
-                          <td className="px-4 py-3 text-center font-semibold text-primary">
-                            {xrayTierDoctors[400].toLocaleString("ar-EG")} ج
-                          </td>
-                          <td className="px-4 py-3 text-center font-semibold text-primary">
-                            {xrayTierDoctors[350].toLocaleString("ar-EG")} ج
-                          </td>
-                          <td className="px-4 py-3 text-center font-semibold text-primary">
-                            {xrayTierDoctors[250].toLocaleString("ar-EG")} ج
-                          </td>
-                          <td className="px-4 py-3 text-center font-semibold text-primary">
-                            {xrayDoctorsTotal.toLocaleString("ar-EG")} ج
-                          </td>
-                        </tr>
-                        <tr className="bg-success/8 hover:bg-success/10">
-                          <td className="px-4 py-3 font-medium">الموظفين</td>
-                          <td className="px-4 py-3 text-center font-semibold text-success">
-                            {xrayTierStaff[450].toLocaleString("ar-EG")} ج
-                          </td>
-                          <td className="px-4 py-3 text-center font-semibold text-success">
-                            {xrayTierStaff[400].toLocaleString("ar-EG")} ج
-                          </td>
-                          <td className="px-4 py-3 text-center font-semibold text-success">
-                            {xrayTierStaff[350].toLocaleString("ar-EG")} ج
-                          </td>
-                          <td className="px-4 py-3 text-center font-semibold text-success">
-                            {xrayTierStaff[250].toLocaleString("ar-EG")} ج
-                          </td>
-                          <td className="px-4 py-3 text-center font-semibold text-success">
-                            {xrayStaffTotal.toLocaleString("ar-EG")} ج
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Mobile View: X-ray cards list */}
-                  <div className="block lg:hidden space-y-4">
-                    {([450, 400, 350, 250] as const).map((tier) => {
-                      const tierFieldMap = {
-                        450: "xray450",
-                        400: "xray400",
-                        350: "xray350",
-                        250: "xray250",
-                      } as const;
-                      const fieldName = tierFieldMap[tier];
-                      return (
-                        <div key={tier} className="rounded-xl border border-border bg-card p-4 space-y-3">
-                          <div className="flex justify-between items-center">
-                            <span className="font-bold text-sm text-foreground">فئة {tier}</span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                              <label className="text-xs font-semibold text-muted-foreground">عدد الحالات</label>
-                              <input
-                                type="number"
-                                value={form[fieldName]}
-                                min={0}
-                                step="1"
-                                onChange={set(fieldName)}
-                                className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
-                              />
-                            </div>
-                            <div className="flex flex-col justify-end text-left">
-                              <div className="text-[10px] text-muted-foreground">الإجمالي:</div>
-                              <div className="text-sm font-bold text-primary">{xrayTierTotals[tier].toLocaleString("ar-EG")} ج</div>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/40 text-[11px]">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">الأطباء:</span>
-                              <span className="font-semibold text-primary">{xrayTierDoctors[tier].toLocaleString("ar-EG")} ج</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">الموظفين:</span>
-                              <span className="font-semibold text-success">{xrayTierStaff[tier].toLocaleString("ar-EG")} ج</span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    {/* X-Ray Summary Card */}
-                    <div className="rounded-xl bg-secondary/5 border border-secondary/15 p-4 space-y-2">
-                      <div className="flex justify-between items-center text-xs font-bold text-foreground">
-                        <span>إجمالي حالات الأشعة:</span>
-                        <span className="text-sm">{xrayTotalCount.toLocaleString("ar-EG")} حالة</span>
+                  <h3 className="font-semibold text-base">البنتاكام (محسوبة تلقائيًا من الإيراد)</h3>
+                  <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                    <div className="text-xs font-semibold text-muted-foreground">
+                      سعر الخدمة (اتركه فارغًا للقراءة التلقائية من جدول الأسعار)
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">سعر خدمة 1600</label>
+                        <input
+                          type="number"
+                          value={xray1600PriceInput}
+                          min={0}
+                          step="0.5"
+                          placeholder={String(autoPools?.breakdown.xray1600Price ?? "")}
+                          onChange={(e) => setXray1600PriceInput(e.target.value)}
+                          className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                        />
                       </div>
-                      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-secondary/15/60 text-xs">
-                        <div className="text-center">
-                          <div className="text-[10px] text-muted-foreground">الإجمالي</div>
-                          <div className="font-bold text-primary">{xrayGrandTotal.toLocaleString("ar-EG")} ج</div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">سعر باقي الخدمات</label>
+                        <input
+                          type="number"
+                          value={xrayRemainingPriceInput}
+                          min={0}
+                          step="0.5"
+                          placeholder={String(autoPools?.breakdown.xrayRemainingPrice ?? "")}
+                          onChange={(e) => setXrayRemainingPriceInput(e.target.value)}
+                          className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">سعر خدمة 1502</label>
+                        <input
+                          type="number"
+                          value={xray1502PriceInput}
+                          min={0}
+                          step="0.5"
+                          placeholder={String(autoPools?.breakdown.xray1502Price ?? "")}
+                          onChange={(e) => setXray1502PriceInput(e.target.value)}
+                          className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                        />
+                      </div>
+                    </div>
+                    <Button type="button" size="sm" onClick={saveXrayPrices} disabled={setPriceOverridesMut.isPending}>
+                      حفظ الأسعار
+                    </Button>
+                  </div>
+                  {autoPoolsQ.isLoading ? (
+                    <div className="text-sm text-muted-foreground">جاري التحميل...</div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="hidden lg:block overflow-x-auto" dir="rtl">
+                        <table
+                          className="w-full text-sm border border-border rounded-lg"
+                          dir="rtl"
+                        >
+                          <thead>
+                            <tr className="bg-secondary/8 border-b">
+                              <th className="px-4 py-3 text-right font-semibold">الخدمة</th>
+                              <th className="px-4 py-3 text-center font-semibold">الإيراد</th>
+                              <th className="px-4 py-3 text-center font-semibold">النسبة</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className="border-b hover:bg-muted/20">
+                              <td className="px-4 py-3 font-medium">خدمة 1600</td>
+                              <td className="px-4 py-3 text-center">
+                                {(autoPools?.breakdown.xray1600Revenue ?? 0).toLocaleString("ar-EG")} ج
+                              </td>
+                              <td className="px-4 py-3 text-center font-semibold text-primary">
+                                {(autoPools?.breakdown.xray1600Pool ?? 0).toLocaleString("ar-EG")} ج
+                              </td>
+                            </tr>
+                            <tr className="border-b hover:bg-muted/20">
+                              <td className="px-4 py-3 font-medium">خدمة 1502</td>
+                              <td className="px-4 py-3 text-center">
+                                {(autoPools?.breakdown.xray1502Revenue ?? 0).toLocaleString("ar-EG")} ج
+                              </td>
+                              <td className="px-4 py-3 text-center font-semibold text-primary">
+                                {(autoPools?.breakdown.xray1502Pool ?? 0).toLocaleString("ar-EG")} ج
+                              </td>
+                            </tr>
+                            <tr className="border-b bg-primary/5 hover:bg-muted/20">
+                              <td className="px-4 py-3 font-medium">باقي الخدمات</td>
+                              <td className="px-4 py-3 text-center">
+                                {(autoPools?.breakdown.xrayRemainingRevenue ?? 0).toLocaleString("ar-EG")} ج
+                              </td>
+                              <td className="px-4 py-3 text-center font-semibold text-primary">
+                                {(autoPools?.breakdown.xrayRemainingPool ?? 0).toLocaleString("ar-EG")} ج
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Mobile View */}
+                      <div className="block lg:hidden space-y-3">
+                        {[
+                          { label: "خدمة 1600", revenue: autoPools?.breakdown.xray1600Revenue, pool: autoPools?.breakdown.xray1600Pool },
+                          { label: "خدمة 1502", revenue: autoPools?.breakdown.xray1502Revenue, pool: autoPools?.breakdown.xray1502Pool },
+                          { label: "باقي الخدمات", revenue: autoPools?.breakdown.xrayRemainingRevenue, pool: autoPools?.breakdown.xrayRemainingPool },
+                        ].map((row) => (
+                          <div key={row.label} className="rounded-xl border border-border bg-card p-4 flex justify-between items-center">
+                            <div>
+                              <div className="text-sm font-bold text-foreground">{row.label}</div>
+                              <div className="text-[10px] text-muted-foreground">{(row.revenue ?? 0).toLocaleString("ar-EG")} ج إيراد</div>
+                            </div>
+                            <div className="text-base font-black text-primary">{(row.pool ?? 0).toLocaleString("ar-EG")} ج</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-xl border border-primary/20 bg-primary/8 p-4 text-center">
+                          <div className="text-[10px] text-primary font-semibold mb-1">الأطباء</div>
+                          <div className="text-lg font-black text-primary">
+                            {(autoPools?.pentacamDrPool ?? 0).toLocaleString("ar-EG")} ج
+                          </div>
                         </div>
-                        <div className="text-center border-r border-secondary/15/60">
-                          <div className="text-[10px] text-muted-foreground">الأطباء</div>
-                          <div className="font-bold text-primary">{xrayDoctorsTotal.toLocaleString("ar-EG")} ج</div>
-                        </div>
-                        <div className="text-center border-r border-secondary/15/60">
-                          <div className="text-[10px] text-muted-foreground">الموظفين</div>
-                          <div className="font-bold text-success">{xrayStaffTotal.toLocaleString("ar-EG")} ج</div>
+                        <div className="rounded-xl border border-success/20 bg-success/8 p-4 text-center">
+                          <div className="text-[10px] text-success font-semibold mb-1">الموظفين</div>
+                          <div className="text-lg font-black text-success">
+                            {(autoPools?.pentacamPool ?? 0).toLocaleString("ar-EG")} ج
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </>
             ) : (
@@ -948,9 +923,11 @@ export default function CommissionPools() {
             )}
 
             {/* Totals Summary */}
-            {isMarkaz && (() => {
-              const drTotal = Math.round((examDrPool + xrayDoctorsTotal) * 100) / 100;
-              const empTechTotal = Math.round((examEmpPool + xrayStaffTotal) * 100) / 100;
+            {isMarkaz && autoPools && (() => {
+              const examDr = Math.round(autoPools.examPool * 0.6 * 100) / 100;
+              const examEmp = Math.round(autoPools.examPool * 0.4 * 100) / 100;
+              const drTotal = Math.round((examDr + autoPools.pentacamDrPool) * 100) / 100;
+              const empTechTotal = Math.round((examEmp + autoPools.pentacamPool) * 100) / 100;
               return (
                 <div className="space-y-2">
                   <h3 className="font-semibold text-base">ملخص التوزيع</h3>
@@ -961,8 +938,8 @@ export default function CommissionPools() {
                         {drTotal.toLocaleString("ar-EG")} ج
                       </div>
                       <div className="mt-1.5 text-[10px] text-primary space-y-0.5">
-                        <div>كشف: {examDrPool.toLocaleString("ar-EG")} ج</div>
-                        <div>بنتاكام: {xrayDoctorsTotal.toLocaleString("ar-EG")} ج</div>
+                        <div>كشف: {examDr.toLocaleString("ar-EG")} ج</div>
+                        <div>بنتاكام: {autoPools.pentacamDrPool.toLocaleString("ar-EG")} ج</div>
                       </div>
                     </div>
                     <div className="rounded-xl border border-success/20 bg-success/10/40 p-4">
@@ -971,8 +948,8 @@ export default function CommissionPools() {
                         {empTechTotal.toLocaleString("ar-EG")} ج
                       </div>
                       <div className="mt-1.5 text-[10px] text-success space-y-0.5">
-                        <div>كشف: {examEmpPool.toLocaleString("ar-EG")} ج</div>
-                        <div>بنتاكام: {xrayStaffTotal.toLocaleString("ar-EG")} ج</div>
+                        <div>كشف: {examEmp.toLocaleString("ar-EG")} ج</div>
+                        <div>بنتاكام: {autoPools.pentacamPool.toLocaleString("ar-EG")} ج</div>
                       </div>
                     </div>
                   </div>

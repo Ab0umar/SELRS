@@ -384,6 +384,44 @@ export const salaryRouter = router({
       return rows[0] ?? null;
     }),
 
+  getMarkazAutoCommissionPools: makeSalaryProcedure("/salary/pools")
+    .input(
+      z.object({
+        year: z.number().int(),
+        month: z.number().int(),
+      }),
+    )
+    .query(async ({ input }) => {
+      const { computeMarkazAutoPools } = await import(
+        "../services/salary/commissionPoolsMssql.service"
+      );
+      return computeMarkazAutoPools(input.year, input.month);
+    }),
+
+  getPriceOverrides: makeSalaryProcedure("/salary/pools").query(async () => {
+    const { getPriceOverrides } = await import(
+      "../services/salary/commissionPoolsMssql.service"
+    );
+    return getPriceOverrides();
+  }),
+
+  setPriceOverrides: makeSalaryWriteProcedure("/salary/pools")
+    .input(
+      z.object({
+        examSpecialist: z.number().min(0).nullable().optional(),
+        examConsultant: z.number().min(0).nullable().optional(),
+        xray1600: z.number().min(0).nullable().optional(),
+        xrayRemaining: z.number().min(0).nullable().optional(),
+        xray1502: z.number().min(0).nullable().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const { setPriceOverrides } = await import(
+        "../services/salary/commissionPoolsMssql.service"
+      );
+      return setPriceOverrides(input);
+    }),
+
   setCommissionPool: makeSalaryWriteProcedure("/salary/pools")
     .input(
       z.object({
