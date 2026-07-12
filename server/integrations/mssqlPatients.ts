@@ -2385,11 +2385,16 @@ export async function insertPatientToMssql(
   const netServiceValue = grossServiceValue - discountServiceValue;
 
   const pool = await createMssqlPool();
+  const _t0 = Date.now();
+  const _mark = (label: string) =>
+    console.log(`[MSSQL Insert][timing] ${label}: +${Date.now() - _t0}ms`);
   try {
     console.log(`[MSSQL Insert] Connecting to ${targetTable}...`);
     await pool.connect();
+    _mark("pool.connect() done");
     console.log(`[MSSQL Insert] Connected! Fetching table columns...`);
     const targetCols = await getTableColumns(pool, targetTable);
+    _mark("getTableColumns(target) done");
     console.log(
       `[MSSQL Insert] Fetched ${targetCols.size} columns from ${targetTable}`,
     );
@@ -2525,6 +2530,7 @@ export async function insertPatientToMssql(
       Date.now() - latestTouchedMs >= 0 &&
       Date.now() - latestTouchedMs <= dedupWindowSeconds * 1000;
 
+    _mark("dedup-check query done");
     console.log(
       `[MSSQL Insert] Latest patient record exists: ${Boolean(latestRow)}, withinDedupWindow: ${withinDedupWindow}`,
     );
@@ -2582,6 +2588,7 @@ export async function insertPatientToMssql(
       console.log(`[MSSQL Insert] Inserting patient record...`);
       console.log(`[MSSQL Insert SQL] ${insertSql.substring(0, 200)}...`);
       const inserted = await req.query(insertSql);
+      _mark("header INSERT (with UPDLOCK/HOLDLOCK next-number subquery) done");
       console.log(`[MSSQL Insert] Insert successful!`);
       const insertedRow =
         Array.isArray(inserted?.recordset) && inserted.recordset.length > 0
@@ -2616,6 +2623,7 @@ export async function insertPatientToMssql(
           : {};
       headerVstNo = Number(hrow?.VST_NO);
       headerDt = hrow?.DT ? new Date(hrow.DT) : new Date(todayDateOnly);
+      _mark("headerInfoRs query done");
       await applyPajrnrImmediateMonetaryValues(
         pool,
         targetTable,
@@ -2627,6 +2635,7 @@ export async function insertPatientToMssql(
           netValue: netServiceValue,
         },
       );
+      _mark("applyPajrnrImmediateMonetaryValues done");
     }
     console.log(`[MSSQL Insert] Applying defaults to PAJRNRCVH...`);
     await applyPajrnrReportDefaults(
@@ -2635,6 +2644,7 @@ export async function insertPatientToMssql(
       patientCode,
       Number.isFinite(trNo) ? trNo : null,
     );
+    _mark("applyPajrnrReportDefaults done");
     console.log(`[MSSQL Insert] Setting DRS_CD in PAJRNRCVH...`);
     await applyPajrnrCvhDefaults(
       pool,
@@ -2645,6 +2655,7 @@ export async function insertPatientToMssql(
       doctorCode,
       Number.isFinite(trNo) ? trNo : null,
     );
+    _mark("applyPajrnrCvhDefaults done");
     console.log(`[MSSQL Insert] Ensuring PAPAT_IO defaults...`);
     await ensurePapatIoDefaults(
       pool,
@@ -2659,6 +2670,7 @@ export async function insertPatientToMssql(
       ageMonths,
       ageDays,
     );
+    _mark("ensurePapatIoDefaults done");
     console.log(`[MSSQL Insert] Ensuring PAPATMF defaults...`);
     await ensurePapatMfDefaults(
       pool,
@@ -2667,6 +2679,7 @@ export async function insertPatientToMssql(
       fullName,
       enteredBy,
     );
+    _mark("ensurePapatMfDefaults done");
     console.log(`[MSSQL Insert] All defaults applied successfully!`);
 
     console.log(
@@ -2678,6 +2691,7 @@ export async function insertPatientToMssql(
       );
       try {
         const srvCols = await getTableColumns(pool, "op2026.dbo.PAPAT_SRV");
+        _mark("getTableColumns(PAPAT_SRV) done");
         const srvTrNoCol = srvCols.has("TR_NO")
           ? "TR_NO"
           : srvCols.has("TR_NONEW")
@@ -2838,6 +2852,7 @@ export async function insertPatientToMssql(
             );
           },
         );
+        _mark("withMssqlServiceInsertLock (sp_getapplock + service insert) done");
         console.log(`[MSSQL Insert] ✅ Service row created successfully`);
         await applyPajrnrCvhDefaults(
           pool,
@@ -2848,6 +2863,7 @@ export async function insertPatientToMssql(
           doctorCode,
           Number.isFinite(trNo) ? trNo : null,
         );
+        _mark("second applyPajrnrCvhDefaults done");
       } catch (err) {
         console.error(
           `[MSSQL Service Insert Error] Patient ${patientCode}:`,
