@@ -613,34 +613,29 @@ async function applyPapatSrvDefaults(
   const whereSrv = hasScopedTrNo
     ? `PAT_CD = @PAT_CD AND SRV_CD = @SRV_CD AND ${srvTrNoCol} = @TR_NO`
     : "PAT_CD = @PAT_CD AND SRV_CD = @SRV_CD";
-  const run = async (sqlText: string, bind?: (req: any) => void) => {
-    const req = pool.request();
-    req.input("PAT_CD", patientCode);
-    req.input("SRV_CD", serviceCode);
-    if (hasScopedTrNo) req.input("TR_NO", Math.trunc(scopedTrNo));
-    if (bind) bind(req);
-    await req.query(sqlText);
-  };
   const qtyCol = cols.has("QTY") ? "QTY" : cols.has("SRV_QTY") ? "SRV_QTY" : "";
-  if (qtyCol) {
-    await run(
-      `UPDATE op2026.dbo.PAPAT_SRV SET ${qtyCol} = @QTY WHERE ${whereSrv}`,
-      (req) => req.input("QTY", qty),
-    );
-  }
-  if (cols.has("DISC_VL")) {
-    const dv = options?.discountValue;
-    if (dv != null && Number.isFinite(Number(dv))) {
-      await run(
-        `UPDATE op2026.dbo.PAPAT_SRV SET DISC_VL = @DISC_VL WHERE ${whereSrv}`,
-        (req) => req.input("DISC_VL", Number(dv)),
-      );
-    } else {
-      await run(
-        `UPDATE op2026.dbo.PAPAT_SRV SET DISC_VL = ISNULL(DISC_VL, 0) WHERE ${whereSrv}`,
-      );
-    }
-  }
+
+  // Resolve DISC_VL's *new* value in JS so DISC/DISC_P (which mirror DISC_VL)
+  // can reference the same value directly further down, instead of reading a
+  // stale pre-update column value once everything is combined into one
+  // UPDATE statement (all SET expressions in a single UPDATE see the OLD row).
+  const discVlProvided =
+    cols.has("DISC_VL") &&
+    options?.discountValue != null &&
+    Number.isFinite(Number(options.discountValue));
+  const discVlNewValue = discVlProvided ? Number(options!.discountValue) : null;
+
+  // ── Resolve base service price: SRVLSTD -> SRVCMF -> existing row -> most
+  // recent row for this service code. Each step is now a single query (using
+  // COALESCE across candidate columns) instead of looping one query per
+  // candidate column — this loop was the main N+1 cost in this function. ────
+  const priceCandidateExpr = (candidateCols: string[]) =>
+    candidateCols
+      .map(
+        (col) =>
+          `CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${col})) = 1 AND CAST(CONVERT(varchar(50), ${col}) AS decimal(18,2)) > 0 THEN CAST(CONVERT(varchar(50), ${col}) AS decimal(18,2)) END`,
+      )
+      .join(",\n          ");
   let basePrice: number | null = null;
   try {
     const srvlstdCols = await getTableColumns(pool, "op2026.dbo.SRVLSTD");
@@ -661,50 +656,47 @@ async function applyPapatSrvDefaults(
       "CASH_PRC",
     ].filter((c) => srvlstdCols.has(c));
     if (srvlstdCodeCol && srvlstdPriceCols.length > 0) {
-      for (const col of srvlstdPriceCols) {
-        const masterReq = pool.request();
-        masterReq.input("SRV_CD", serviceCode);
-        const master = await masterReq.query(`
-          SELECT TOP 1
-            CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${col})) = 1 THEN CAST(CONVERT(varchar(50), ${col}) AS decimal(18,2)) ELSE NULL END AS PRC
-          FROM op2026.dbo.SRVLSTD
-          WHERE ${srvlstdCodeCol} = @SRV_CD
-        `);
-        const masterRow =
-          Array.isArray(master?.recordset) && master.recordset.length > 0
-            ? master.recordset[0]
-            : {};
-        const p = Number(masterRow?.PRC);
-        if (Number.isFinite(p) && p > 0) {
-          basePrice = p;
-          break;
-        }
-      }
+      const masterReq = pool.request();
+      masterReq.input("SRV_CD", serviceCode);
+      const master = await masterReq.query(`
+        SELECT TOP 1 COALESCE(
+          ${priceCandidateExpr(srvlstdPriceCols)}
+        ) AS PRC
+        FROM op2026.dbo.SRVLSTD
+        WHERE ${srvlstdCodeCol} = @SRV_CD
+      `);
+      const masterRow =
+        Array.isArray(master?.recordset) && master.recordset.length > 0
+          ? master.recordset[0]
+          : {};
+      const p = Number(masterRow?.PRC);
+      if (Number.isFinite(p) && p > 0) basePrice = p;
     }
   } catch {
     // optional SRVLSTD table
   }
   try {
-    const srvcmfCols = await getTableColumns(pool, "op2026.dbo.SRVCMF");
-    const srvcmfPriceCols = [
-      "PRC",
-      "PRC1",
-      "PRC2",
-      "PRC3",
-      "PRICE",
-      "SRV_PRICE",
-      "AMT",
-      "BASIC_PRC",
-      "NET_PRC",
-      "CASH_PRC",
-    ].filter((c) => srvcmfCols.has(c));
-    if (basePrice == null && srvcmfPriceCols.length > 0) {
-      for (const col of srvcmfPriceCols) {
+    if (basePrice == null) {
+      const srvcmfCols = await getTableColumns(pool, "op2026.dbo.SRVCMF");
+      const srvcmfPriceCols = [
+        "PRC",
+        "PRC1",
+        "PRC2",
+        "PRC3",
+        "PRICE",
+        "SRV_PRICE",
+        "AMT",
+        "BASIC_PRC",
+        "NET_PRC",
+        "CASH_PRC",
+      ].filter((c) => srvcmfCols.has(c));
+      if (srvcmfPriceCols.length > 0) {
         const masterReq = pool.request();
         masterReq.input("SRV_CD", serviceCode);
         const master = await masterReq.query(`
-          SELECT TOP 1
-            CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${col})) = 1 THEN CAST(CONVERT(varchar(50), ${col}) AS decimal(18,2)) ELSE NULL END AS PRC
+          SELECT TOP 1 COALESCE(
+            ${priceCandidateExpr(srvcmfPriceCols)}
+          ) AS PRC
           FROM op2026.dbo.SRVCMF
           WHERE SRV_CD = @SRV_CD
         `);
@@ -713,10 +705,7 @@ async function applyPapatSrvDefaults(
             ? master.recordset[0]
             : {};
         const p = Number(masterRow?.PRC);
-        if (Number.isFinite(p) && p > 0) {
-          basePrice = p;
-          break;
-        }
+        if (Number.isFinite(p) && p > 0) basePrice = p;
       }
     }
   } catch {
@@ -787,43 +776,6 @@ async function applyPapatSrvDefaults(
   if (linePx != null && Number.isFinite(Number(linePx)) && Number(linePx) > 0) {
     basePrice = Number(linePx);
   }
-  if (cols.has("PRC") && basePrice != null) {
-    await run(
-      `UPDATE op2026.dbo.PAPAT_SRV
-       SET PRC = CASE
-         WHEN ISNUMERIC(CONVERT(varchar(50), PRC)) = 1
-           AND CAST(CONVERT(varchar(50), PRC) AS decimal(18,2)) > 0
-         THEN PRC
-         ELSE @PRC
-       END
-       WHERE ${whereSrv}`,
-      (req) => req.input("PRC", basePrice),
-    );
-  } else if (priceCol && basePrice != null) {
-    await run(
-      `UPDATE op2026.dbo.PAPAT_SRV
-       SET ${priceCol} = CASE
-         WHEN ISNUMERIC(CONVERT(varchar(50), ${priceCol})) = 1
-           AND CAST(CONVERT(varchar(50), ${priceCol}) AS decimal(18,2)) > 0
-         THEN ${priceCol}
-         ELSE @PRC
-       END
-       WHERE ${whereSrv}`,
-      (req) => req.input("PRC", basePrice),
-    );
-  }
-  if (cols.has("PA_VL")) {
-    // PA_VL in PAPAT_SRV = gross (PRC × QTY, before discount).
-    // The op reporting query computes net as: PA_VL - DISC_VL.
-    // Setting PA_VL to net here causes the report to double-deduct the discount.
-    const price = Number.isFinite(Number(basePrice)) ? Number(basePrice) : 0;
-    const gross = Math.max(0, price * qty);
-    await run(
-      `UPDATE op2026.dbo.PAPAT_SRV SET PA_VL = @PA_VL WHERE ${whereSrv}`,
-      (req) => req.input("PA_VL", gross),
-    );
-  }
-
   let patientNameForSrv = String(options?.patientNameAr ?? "").trim();
   if (!patientNameForSrv) {
     try {
@@ -847,41 +799,72 @@ async function applyPapatSrvDefaults(
       // best-effort fallback only
     }
   }
+
+  // ── Combine every flat column update below into a single UPDATE statement
+  // instead of one round trip per column (was ~20 sequential queries). ──────
+  const drCode = String(options?.doctorCode ?? "").trim() || null;
+  const setClauses: string[] = [];
+  const req = pool.request();
+  req.input("PAT_CD", patientCode);
+  req.input("SRV_CD", serviceCode);
+  if (hasScopedTrNo) req.input("TR_NO", Math.trunc(scopedTrNo));
+
+  if (qtyCol) {
+    setClauses.push(`${qtyCol} = @QTY`);
+    req.input("QTY", qty);
+  }
+  if (cols.has("DISC_VL")) {
+    if (discVlProvided) {
+      setClauses.push(`DISC_VL = @DISC_VL`);
+      req.input("DISC_VL", discVlNewValue);
+    } else {
+      setClauses.push(`DISC_VL = ISNULL(DISC_VL, 0)`);
+    }
+  }
+  if (cols.has("PRC") && basePrice != null) {
+    setClauses.push(`PRC = CASE
+      WHEN ISNUMERIC(CONVERT(varchar(50), PRC)) = 1
+        AND CAST(CONVERT(varchar(50), PRC) AS decimal(18,2)) > 0
+      THEN PRC
+      ELSE @PRC
+    END`);
+    req.input("PRC", basePrice);
+  } else if (priceCol && basePrice != null) {
+    setClauses.push(`${priceCol} = CASE
+      WHEN ISNUMERIC(CONVERT(varchar(50), ${priceCol})) = 1
+        AND CAST(CONVERT(varchar(50), ${priceCol}) AS decimal(18,2)) > 0
+      THEN ${priceCol}
+      ELSE @PRC
+    END`);
+    req.input("PRC", basePrice);
+  }
+  if (cols.has("PA_VL")) {
+    // PA_VL in PAPAT_SRV = gross (PRC × QTY, before discount).
+    // The op reporting query computes net as: PA_VL - DISC_VL.
+    // Setting PA_VL to net here causes the report to double-deduct the discount.
+    const price = Number.isFinite(Number(basePrice)) ? Number(basePrice) : 0;
+    const gross = Math.max(0, price * qty);
+    setClauses.push(`PA_VL = @PA_VL`);
+    req.input("PA_VL", gross);
+  }
   if (patientNameForSrv) {
     if (cols.has("NAM")) {
-      await run(
-        `UPDATE op2026.dbo.PAPAT_SRV SET NAM = @NAM WHERE ${whereSrv}`,
-        (req) => req.input("NAM", patientNameForSrv),
-      );
+      setClauses.push(`NAM = @NAM`);
+      req.input("NAM", patientNameForSrv);
     }
     if (cols.has("PAT_NM_AR")) {
-      await run(
-        `UPDATE op2026.dbo.PAPAT_SRV SET PAT_NM_AR = @PAT_NM_AR WHERE ${whereSrv}`,
-        (req) => req.input("PAT_NM_AR", patientNameForSrv),
-      );
+      setClauses.push(`PAT_NM_AR = @PAT_NM_AR`);
+      req.input("PAT_NM_AR", patientNameForSrv);
     }
   }
-  if (cols.has("PAT_TYP"))
-    await run(`UPDATE op2026.dbo.PAPAT_SRV SET PAT_TYP = 2 WHERE ${whereSrv}`);
-  const drCode = String(options?.doctorCode ?? "").trim() || null;
+  if (cols.has("PAT_TYP")) setClauses.push(`PAT_TYP = 2`);
   if (cols.has("SRV_BY1") && drCode) {
-    await run(
-      `UPDATE op2026.dbo.PAPAT_SRV SET SRV_BY1 = @SRV_BY1 WHERE ${whereSrv}`,
-      (req) => req.input("SRV_BY1", drCode),
-    );
+    setClauses.push(`SRV_BY1 = @SRV_BY1`);
+    req.input("SRV_BY1", drCode);
   }
-  if (cols.has("CUR_SRV_BY"))
-    await run(
-      `UPDATE op2026.dbo.PAPAT_SRV SET CUR_SRV_BY = NULL WHERE ${whereSrv}`,
-    );
-  if (cols.has("PRG_BY"))
-    await run(
-      `UPDATE op2026.dbo.PAPAT_SRV SET PRG_BY = NULL WHERE ${whereSrv}`,
-    );
-  if (cols.has("CA_CD"))
-    await run(
-      `UPDATE op2026.dbo.PAPAT_SRV SET CA_CD = '00000' WHERE ${whereSrv}`,
-    );
+  if (cols.has("CUR_SRV_BY")) setClauses.push(`CUR_SRV_BY = NULL`);
+  if (cols.has("PRG_BY")) setClauses.push(`PRG_BY = NULL`);
+  if (cols.has("CA_CD")) setClauses.push(`CA_CD = '00000'`);
   for (const c of [
     "CA_VL",
     "MNGEXP",
@@ -895,52 +878,56 @@ async function applyPapatSrvDefaults(
     "PTAX3",
     "PTAX4",
   ]) {
-    if (cols.has(c))
-      await run(`UPDATE op2026.dbo.PAPAT_SRV SET ${c} = 0 WHERE ${whereSrv}`);
+    if (cols.has(c)) setClauses.push(`${c} = 0`);
   }
   if (cols.has("DISC")) {
     if (cols.has("DISC_VL")) {
-      await run(
-        `UPDATE op2026.dbo.PAPAT_SRV SET DISC = CASE WHEN ISNUMERIC(CONVERT(varchar(50), DISC_VL))=1 THEN CAST(CONVERT(varchar(50), DISC_VL) AS decimal(18,2)) ELSE 0 END WHERE ${whereSrv}`,
-      );
+      if (discVlProvided) {
+        // DISC_VL is being set to discVlNewValue in this same statement —
+        // mirror that value directly instead of reading the pre-update column.
+        setClauses.push(`DISC = @DISC_FROM_VL`);
+        req.input("DISC_FROM_VL", discVlNewValue);
+      } else {
+        setClauses.push(
+          `DISC = CASE WHEN ISNUMERIC(CONVERT(varchar(50), DISC_VL))=1 THEN CAST(CONVERT(varchar(50), DISC_VL) AS decimal(18,2)) ELSE 0 END`,
+        );
+      }
     } else {
-      await run(`UPDATE op2026.dbo.PAPAT_SRV SET DISC = 0 WHERE ${whereSrv}`);
+      setClauses.push(`DISC = 0`);
     }
   }
-  if (cols.has("LN_SRC"))
-    await run(
-      `UPDATE op2026.dbo.PAPAT_SRV SET LN_SRC = 'PAJRNRCV' WHERE ${whereSrv}`,
-    );
-  if (cols.has("enter_no"))
-    await run(`UPDATE op2026.dbo.PAPAT_SRV SET enter_no = 1 WHERE ${whereSrv}`);
-  if (cols.has("EFCT"))
-    await run(`UPDATE op2026.dbo.PAPAT_SRV SET EFCT = 1 WHERE ${whereSrv}`);
-  if (cols.has("DISC_CA"))
-    await run(`UPDATE op2026.dbo.PAPAT_SRV SET DISC_CA = 0 WHERE ${whereSrv}`);
+  if (cols.has("LN_SRC")) setClauses.push(`LN_SRC = 'PAJRNRCV'`);
+  if (cols.has("enter_no")) setClauses.push(`enter_no = 1`);
+  if (cols.has("EFCT")) setClauses.push(`EFCT = 1`);
+  if (cols.has("DISC_CA")) setClauses.push(`DISC_CA = 0`);
   if (cols.has("DISC_P")) {
     if (cols.has("DISC_VL")) {
-      await run(
-        `UPDATE op2026.dbo.PAPAT_SRV SET DISC_P = CASE WHEN ISNUMERIC(CONVERT(varchar(50), DISC_VL))=1 THEN CAST(CONVERT(varchar(50), DISC_VL) AS decimal(18,2)) ELSE 0 END WHERE ${whereSrv}`,
-      );
+      if (discVlProvided) {
+        setClauses.push(`DISC_P = @DISC_P_FROM_VL`);
+        req.input("DISC_P_FROM_VL", discVlNewValue);
+      } else {
+        setClauses.push(
+          `DISC_P = CASE WHEN ISNUMERIC(CONVERT(varchar(50), DISC_VL))=1 THEN CAST(CONVERT(varchar(50), DISC_VL) AS decimal(18,2)) ELSE 0 END`,
+        );
+      }
     } else {
-      await run(`UPDATE op2026.dbo.PAPAT_SRV SET DISC_P = 0 WHERE ${whereSrv}`);
+      setClauses.push(`DISC_P = 0`);
     }
   }
-  if (cols.has("PDISC_VL"))
-    await run(`UPDATE op2026.dbo.PAPAT_SRV SET PDISC_VL = 0 WHERE ${whereSrv}`);
+  if (cols.has("PDISC_VL")) setClauses.push(`PDISC_VL = 0`);
   // TRF_SRV1 report filters with: PAPAT_SRV.CNCL IS NULL
-  if (cols.has("CNCL"))
-    await run(`UPDATE op2026.dbo.PAPAT_SRV SET CNCL = NULL WHERE ${whereSrv}`);
+  if (cols.has("CNCL")) setClauses.push(`CNCL = NULL`);
   if (cols.has("ENTEREDBY") && String(options?.enteredBy ?? "").trim()) {
-    await run(
-      `UPDATE op2026.dbo.PAPAT_SRV SET ENTEREDBY = @ENTEREDBY WHERE ${whereSrv}`,
-      (req) => req.input("ENTEREDBY", String(options?.enteredBy ?? "").trim()),
-    );
+    setClauses.push(`ENTEREDBY = @ENTEREDBY`);
+    req.input("ENTEREDBY", String(options?.enteredBy ?? "").trim());
   }
   if (cols.has("ENTRYDATE") && String(options?.entryDate ?? "").trim()) {
-    await run(
-      `UPDATE op2026.dbo.PAPAT_SRV SET ENTRYDATE = @ENTRYDATE WHERE ${whereSrv}`,
-      (req) => req.input("ENTRYDATE", String(options?.entryDate ?? "").trim()),
+    setClauses.push(`ENTRYDATE = @ENTRYDATE`);
+    req.input("ENTRYDATE", String(options?.entryDate ?? "").trim());
+  }
+  if (setClauses.length > 0) {
+    await req.query(
+      `UPDATE op2026.dbo.PAPAT_SRV SET ${setClauses.join(", ")} WHERE ${whereSrv}`,
     );
   }
 
