@@ -1824,6 +1824,80 @@ async function ensurePapatIoDefaults(
   }
 }
 
+/**
+ * Recomputes PAJRNRCVH's PA_VL/DISC/TOTL aggregate totals from the sum of
+ * this receipt's PAPAT_SRV rows. Split out from applyPajrnrCvhDefaults so
+ * insertPatientToMssql can re-run just this (cheap) part after the service
+ * row insert, instead of re-running every static default field too.
+ */
+async function applyPajrnrHeaderTotals(
+  pool: any,
+  targetTable: string,
+  patientCode: string,
+  trNo?: number | null,
+): Promise<void> {
+  const cols = await getTableColumns(pool, targetTable);
+  if (!(cols.has("TOTL") || cols.has("DISC") || cols.has("PA_VL"))) return;
+  const trNoCol = cols.has("TR_NO")
+    ? "TR_NO"
+    : cols.has("TR_NONEW")
+      ? "tr_noNew"
+      : "";
+  const hasScopedTrNo = Boolean(trNoCol) && Number.isFinite(Number(trNo));
+  const whereClause = hasScopedTrNo
+    ? `PAT_CD = @PAT_CD AND ${trNoCol} = @TR_NO`
+    : "PAT_CD = @PAT_CD";
+
+  const aggReq = pool.request();
+  aggReq.input("PAT_CD", patientCode);
+  if (hasScopedTrNo) aggReq.input("TR_NO", Math.trunc(Number(trNo)));
+  const agg = await aggReq.query(`
+    SELECT
+      SUM(
+        CASE WHEN ISNUMERIC(CONVERT(varchar(50), ISNULL(QTY,1))) = 1
+              AND ISNUMERIC(CONVERT(varchar(50), ISNULL(PRC,0))) = 1
+             THEN CAST(CONVERT(varchar(50), ISNULL(QTY,1)) AS decimal(18,2))
+                * CAST(CONVERT(varchar(50), ISNULL(PRC,0)) AS decimal(18,2))
+             ELSE 0 END
+      ) AS totalGross,
+      SUM(CASE WHEN ISNUMERIC(CONVERT(varchar(50), DISC_VL)) = 1 THEN CAST(CONVERT(varchar(50), DISC_VL) AS decimal(18,2)) ELSE 0 END) AS totalDisc,
+      SUM(CASE WHEN ISNUMERIC(CONVERT(varchar(50), PA_VL)) = 1 THEN CAST(CONVERT(varchar(50), PA_VL) AS decimal(18,2)) ELSE 0 END) AS totalNet
+    FROM op2026.dbo.PAPAT_SRV
+    WHERE ${whereClause}
+  `);
+  const row =
+    Array.isArray(agg?.recordset) && agg.recordset.length > 0
+      ? agg.recordset[0]
+      : {};
+  const totalGross = Number(row?.totalGross ?? 0);
+  const totalDisc = Number(row?.totalDisc ?? 0);
+  const totalNet = Number(row?.totalNet ?? 0);
+
+  const setClauses: string[] = [];
+  const req = pool.request();
+  req.input("PAT_CD", patientCode);
+  if (hasScopedTrNo) req.input("TR_NO", Math.trunc(Number(trNo)));
+  if (cols.has("PA_VL")) {
+    // PA_VL = gross (ما يخص المريض = price before discount)
+    setClauses.push(`PA_VL = @PAVL`);
+    req.input("PAVL", Number.isFinite(totalGross) ? totalGross : 0);
+  }
+  if (cols.has("DISC")) {
+    setClauses.push(`DISC = @DISC`);
+    req.input("DISC", Number.isFinite(totalDisc) ? totalDisc : 0);
+  }
+  if (cols.has("TOTL")) {
+    // TOTL = net (المدفوع = price after discount)
+    setClauses.push(`TOTL = @TOTL`);
+    req.input("TOTL", Number.isFinite(totalNet) ? totalNet : 0);
+  }
+  if (setClauses.length > 0) {
+    await req.query(
+      `UPDATE ${targetTable} SET ${setClauses.join(", ")} WHERE ${whereClause}`,
+    );
+  }
+}
+
 async function applyPajrnrCvhDefaults(
   pool: any,
   targetTable: string,
@@ -1843,44 +1917,31 @@ async function applyPajrnrCvhDefaults(
   const whereClause = hasScopedTrNo
     ? `PAT_CD = @PAT_CD AND ${trNoCol} = @TR_NO`
     : "PAT_CD = @PAT_CD";
-  const run = async (sqlText: string, bind?: (req: any) => void) => {
-    const req = pool.request();
-    req.input("PAT_CD", patientCode);
-    if (hasScopedTrNo) req.input("TR_NO", Math.trunc(Number(trNo)));
-    if (bind) bind(req);
-    await req.query(sqlText);
-  };
-  if (cols.has("PAT_TY"))
-    await run(`UPDATE ${targetTable} SET PAT_TY = 1 WHERE ${whereClause}`);
-  if (cols.has("PRC_DGR"))
-    await run(`UPDATE ${targetTable} SET PRC_DGR = 1 WHERE ${whereClause}`);
-  if (cols.has("CA_VL"))
-    await run(`UPDATE ${targetTable} SET CA_VL = 0 WHERE ${whereClause}`);
+
+  // Combine all flat default fields into one UPDATE instead of one round
+  // trip per column (was up to 12 separate queries).
+  const setClauses: string[] = [];
+  const req = pool.request();
+  req.input("PAT_CD", patientCode);
+  if (hasScopedTrNo) req.input("TR_NO", Math.trunc(Number(trNo)));
+
+  if (cols.has("PAT_TY")) setClauses.push(`PAT_TY = 1`);
+  if (cols.has("PRC_DGR")) setClauses.push(`PRC_DGR = 1`);
+  if (cols.has("CA_VL")) setClauses.push(`CA_VL = 0`);
   if (cols.has("CA_ACC"))
-    await run(
-      `UPDATE ${targetTable} SET CA_ACC = ISNULL(NULLIF(CA_ACC, ''), '00000') WHERE ${whereClause}`,
-    );
-  if (cols.has("XSEC_CD"))
-    await run(`UPDATE ${targetTable} SET XSEC_CD = 0 WHERE ${whereClause}`);
-  if (cols.has("MNGEXP"))
-    await run(`UPDATE ${targetTable} SET MNGEXP = 0 WHERE ${whereClause}`);
-  if (cols.has("PMNGEXP"))
-    await run(`UPDATE ${targetTable} SET PMNGEXP = 0 WHERE ${whereClause}`);
-  if (cols.has("BRNCH"))
-    await run(`UPDATE ${targetTable} SET BRNCH = NULL WHERE ${whereClause}`);
-  if (cols.has("DUE"))
-    await run(`UPDATE ${targetTable} SET DUE = NULL WHERE ${whereClause}`);
+    setClauses.push(`CA_ACC = ISNULL(NULLIF(CA_ACC, ''), '00000')`);
+  if (cols.has("XSEC_CD")) setClauses.push(`XSEC_CD = 0`);
+  if (cols.has("MNGEXP")) setClauses.push(`MNGEXP = 0`);
+  if (cols.has("PMNGEXP")) setClauses.push(`PMNGEXP = 0`);
+  if (cols.has("BRNCH")) setClauses.push(`BRNCH = NULL`);
+  if (cols.has("DUE")) setClauses.push(`DUE = NULL`);
   if (cols.has("GNDR") && genderCode != null) {
-    await run(
-      `UPDATE ${targetTable} SET GNDR = @GNDR WHERE ${whereClause}`,
-      (req) => req.input("GNDR", genderCode),
-    );
+    setClauses.push(`GNDR = @GNDR`);
+    req.input("GNDR", genderCode);
   }
   if (cols.has("PAY") && payAmount != null) {
-    await run(
-      `UPDATE ${targetTable} SET PAY = @PAY WHERE ${whereClause}`,
-      (req) => req.input("PAY", payAmount),
-    );
+    setClauses.push(`PAY = @PAY`);
+    req.input("PAY", payAmount);
   }
   if (cols.has("DRS_CD")) {
     console.log(
@@ -1890,10 +1951,8 @@ async function applyPajrnrCvhDefaults(
       console.log(
         `[MSSQL Defaults] Setting DRS_CD=${doctorCode} for ${patientCode}`,
       );
-      await run(
-        `UPDATE ${targetTable} SET DRS_CD = @DRS_CD WHERE ${whereClause}`,
-        (req) => req.input("DRS_CD", doctorCode),
-      );
+      setClauses.push(`DRS_CD = @DRS_CD`);
+      req.input("DRS_CD", doctorCode);
     } else {
       console.log(
         `[MSSQL Defaults] doctorCode is null/empty, skipping DRS_CD update`,
@@ -1902,56 +1961,13 @@ async function applyPajrnrCvhDefaults(
   } else {
     console.log(`[MSSQL Defaults] DRS_CD column not found in ${targetTable}`);
   }
-  if (cols.has("TOTL") || cols.has("DISC") || cols.has("PA_VL")) {
-    const aggReq = pool.request();
-    aggReq.input("PAT_CD", patientCode);
-    if (hasScopedTrNo) aggReq.input("TR_NO", Math.trunc(Number(trNo)));
-    const srvWhere = hasScopedTrNo
-      ? `PAT_CD = @PAT_CD AND ${trNoCol} = @TR_NO`
-      : "PAT_CD = @PAT_CD";
-    const agg = await aggReq.query(`
-      SELECT
-        SUM(
-          CASE WHEN ISNUMERIC(CONVERT(varchar(50), ISNULL(QTY,1))) = 1
-                AND ISNUMERIC(CONVERT(varchar(50), ISNULL(PRC,0))) = 1
-               THEN CAST(CONVERT(varchar(50), ISNULL(QTY,1)) AS decimal(18,2))
-                  * CAST(CONVERT(varchar(50), ISNULL(PRC,0)) AS decimal(18,2))
-               ELSE 0 END
-        ) AS totalGross,
-        SUM(CASE WHEN ISNUMERIC(CONVERT(varchar(50), DISC_VL)) = 1 THEN CAST(CONVERT(varchar(50), DISC_VL) AS decimal(18,2)) ELSE 0 END) AS totalDisc,
-        SUM(CASE WHEN ISNUMERIC(CONVERT(varchar(50), PA_VL)) = 1 THEN CAST(CONVERT(varchar(50), PA_VL) AS decimal(18,2)) ELSE 0 END) AS totalNet
-      FROM op2026.dbo.PAPAT_SRV
-      WHERE ${srvWhere}
-    `);
-    const row =
-      Array.isArray(agg?.recordset) && agg.recordset.length > 0
-        ? agg.recordset[0]
-        : {};
-    const totalGross = Number(row?.totalGross ?? 0);
-    const totalDisc = Number(row?.totalDisc ?? 0);
-    const totalNet = Number(row?.totalNet ?? 0);
-    if (cols.has("PA_VL")) {
-      // PA_VL = gross (ما يخص المريض = price before discount)
-      await run(
-        `UPDATE ${targetTable} SET PA_VL = @PAVL WHERE ${whereClause}`,
-        (req) =>
-          req.input("PAVL", Number.isFinite(totalGross) ? totalGross : 0),
-      );
-    }
-    if (cols.has("DISC")) {
-      await run(
-        `UPDATE ${targetTable} SET DISC = @DISC WHERE ${whereClause}`,
-        (req) => req.input("DISC", Number.isFinite(totalDisc) ? totalDisc : 0),
-      );
-    }
-    if (cols.has("TOTL")) {
-      // TOTL = net (المدفوع = price after discount)
-      await run(
-        `UPDATE ${targetTable} SET TOTL = @TOTL WHERE ${whereClause}`,
-        (req) => req.input("TOTL", Number.isFinite(totalNet) ? totalNet : 0),
-      );
-    }
+  if (setClauses.length > 0) {
+    await req.query(
+      `UPDATE ${targetTable} SET ${setClauses.join(", ")} WHERE ${whereClause}`,
+    );
   }
+
+  await applyPajrnrHeaderTotals(pool, targetTable, patientCode, trNo);
 }
 
 async function applyPajrnrReportDefaults(
@@ -2885,16 +2901,16 @@ export async function insertPatientToMssql(
         );
         _mark("withMssqlServiceInsertLock (sp_getapplock + service insert) done");
         console.log(`[MSSQL Insert] ✅ Service row created successfully`);
-        await applyPajrnrCvhDefaults(
+        // Only the aggregate totals depend on the service row that was just
+        // inserted — the static default fields were already set correctly
+        // by the first applyPajrnrCvhDefaults call above, no need to redo them.
+        await applyPajrnrHeaderTotals(
           pool,
           targetTable,
           patientCode,
-          gender,
-          payValue,
-          doctorCode,
           Number.isFinite(trNo) ? trNo : null,
         );
-        _mark("second applyPajrnrCvhDefaults done");
+        _mark("header totals recompute done");
       } catch (err) {
         console.error(
           `[MSSQL Service Insert Error] Patient ${patientCode}:`,
