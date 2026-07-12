@@ -187,10 +187,10 @@ export function AppTopNav({
       {
         icon: Clock,
         label: "اليوم",
-        path: "/dashboard",
+        path: "/bookings",
         key: "today",
-        paths: ["/today", "/today-patients", "/dashboard"],
-        checkPath: "/dashboard",
+        paths: ["/today", "/today-patients", "/dashboard", "/bookings"],
+        checkPath: "/bookings",
       },
       {
         icon: Users,

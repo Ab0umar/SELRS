@@ -5637,7 +5637,7 @@ function getDefaultTeamPermissions(): TeamPermissionsMap {
     accountant: [
       "/appointments",
       "/ops/mssql-add",
-      "/dashboard",
+      "/bookings",
       "/operations",
       "/accounting",
       "/kf",
