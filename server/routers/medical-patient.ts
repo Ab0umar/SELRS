@@ -794,6 +794,9 @@ export const medicalPatientRoutes = {
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      const _t0 = Date.now();
+      const _mark = (label: string) =>
+        console.log(`[createPatientFromExamination][timing] ${label}: +${Date.now() - _t0}ms`);
       try {
         // ── Step 1: resolve patientCode ────────────────────────────────────
         let patientCode = String(input.patientCode ?? "").trim();
@@ -808,6 +811,7 @@ export const medicalPatientRoutes = {
         if (!patientCode) {
           patientCode = await db.getNextPatientCode();
         }
+        _mark("patientCode resolved");
 
         // ── Step 2: resolve doctorCode ─────────────────────────────────────
         let doctorCode = String(input.doctorCode ?? "").trim() || null;
@@ -817,6 +821,7 @@ export const medicalPatientRoutes = {
         if (!doctorCode && input.doctorName) {
           doctorCode = (await resolveDoctorCodeByName(input.doctorName)) ?? null;
         }
+        _mark("doctorCode resolved");
 
         const processServices =
           input.services && input.services.length > 0
@@ -847,17 +852,20 @@ export const medicalPatientRoutes = {
           shiftNumber: input.shiftNumber ?? null,
           ...pricingPayload,
         }).catch((err) => { console.warn("[createPatientFromExamination] MSSQL push failed:", err); return null; });
+        _mark("primary MSSQL push done");
 
-        // Push remaining services separately
+        // Push remaining services in the background — not needed for the
+        // MSSQL->MySQL readback below, which only reads patient demographics.
         for (let i = 1; i < processServices.length; i++) {
           const srv = processServices[i];
           const p = registrationPricingPayload({ servicePrice: srv.price, serviceQty: Number(srv.qty) || 1, discountValue: srv.discount });
-          await pushNewPatientToMssql({ patientCode, fullName: input.fullName, branch: "examinations", serviceCode: srv.code, doctorCode: doctorCode || null, shiftNumber: input.shiftNumber ?? null, ...p })
-            .catch(() => null);
+          void pushNewPatientToMssql({ patientCode, fullName: input.fullName, branch: "examinations", serviceCode: srv.code, doctorCode: doctorCode || null, shiftNumber: input.shiftNumber ?? null, ...p })
+            .catch((err) => console.warn("[createPatientFromExamination] extra service push failed:", err));
         }
 
         // ── Step 4: sync MSSQL → MySQL (create/update patient + today visit) ─
         const { patientId } = await createOrSyncPatientFromMssql(patientCode, input.serviceType, input.visitDate);
+        _mark("createOrSyncPatientFromMssql done");
 
         // ── Step 5: notify ─────────────────────────────────────────────────
         const notifSettings = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
@@ -873,6 +881,7 @@ export const medicalPatientRoutes = {
             channels: { inApp: notifSettings.patients.inApp, push: notifSettings.patients.push, local: notifSettings.patients.local },
           }).catch((e) => console.warn("[createPatientFromExamination] notif failed:", e));
         }
+        _mark("notification done, returning");
 
         return { id: patientId, patientCode, fullName: input.fullName, receiptNo: pushResult?.trNo ?? null };
       } catch (error: any) {
