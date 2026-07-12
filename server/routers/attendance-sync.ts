@@ -58,6 +58,22 @@ import { isNull } from "drizzle-orm";
 import { desc, eq, and, or, gte, lte, lt, max, count, sql } from "drizzle-orm";
 import { fmtDate } from "./_attendance/schedule-helpers";
 
+interface Zk40ConnState {
+  connected: boolean;
+  lastConnected: Date | null;
+  connectionError: string | null;
+}
+
+let zk40ConnState: Zk40ConnState = { connected: false, lastConnected: null, connectionError: null };
+
+function getZk40ConnState(): Zk40ConnState {
+  return { ...zk40ConnState };
+}
+
+function setZk40ConnState(update: Partial<Zk40ConnState>): void {
+  zk40ConnState = { ...zk40ConnState, ...update };
+}
+
 export const attendanceSyncRoutes = {
   deviceSettings: makeAttProcedure("/attendance/admin/device").query(async () => {
     return {
@@ -209,6 +225,39 @@ export const attendanceSyncRoutes = {
       details: {},
       status: "success",
     });
+    return { success: true };
+  }),
+
+  // K40/ZK is pull-based (no persistent session) — "connect" is a live reachability
+  // test via the TCP client, mirroring EF10K's connect/disconnect/reset trio.
+  zk40Status: makeAttProcedure("/attendance/admin/device").query(async () => {
+    return getZk40ConnState();
+  }),
+
+  connectZK40Device: makeAttWriteProcedure("/attendance/admin/device").mutation(async () => {
+    const k40 = DeviceSettingsService.getK40Settings();
+    if (!k40.ip) {
+      AuditLogService.log({ action: "zk40_connected", details: { error: "no IP configured" }, status: "error" });
+      return { success: false, error: "K40 IP not configured" };
+    }
+    const { ZKDevicePuller } = await import("../services/attendance/zkDevicePuller");
+    const info = await ZKDevicePuller.getDeviceInfo(k40.ip, k40.port);
+    setZk40ConnState({
+      connected: info.ok,
+      lastConnected: info.ok ? new Date() : zk40ConnState.lastConnected,
+      connectionError: info.ok ? null : info.error ?? "unreachable",
+    });
+    AuditLogService.log({
+      action: "zk40_connected",
+      details: { success: info.ok, ip: k40.ip, port: k40.port },
+      status: info.ok ? "success" : "error",
+    });
+    return { success: info.ok, error: info.ok ? undefined : info.error };
+  }),
+
+  disconnectZK40Device: makeAttWriteProcedure("/attendance/admin/device").mutation(async () => {
+    setZk40ConnState({ connected: false });
+    AuditLogService.log({ action: "zk40_disconnected", details: {}, status: "success" });
     return { success: true };
   }),
 

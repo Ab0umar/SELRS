@@ -93,6 +93,13 @@ yarn-error.log
 *.swp
 *.swo
 
+# Dev debug screenshots/logs
+.codex-dev/
+.tmp-pnpm-dev.*
+.tmp-dashboard-*.png
+.codex-dev-*.png
+.codex-operations-*.png
+
 # Local/editor/worktree metadata
 .idea/
 

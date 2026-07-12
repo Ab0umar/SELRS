@@ -4,7 +4,7 @@
  */
 
 import crypto from "crypto";
-import { ZK4370LogPuller } from "./zk4370LogPuller";
+import { ZKDevicePuller as ZK4370LogPuller } from "./zkDevicePuller";
 import { ZK4370Client } from "./zk4370Client";
 import { DailyMaterializer } from "./dailyMaterializer";
 import { getDb } from "../../db";

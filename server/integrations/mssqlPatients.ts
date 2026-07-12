@@ -465,7 +465,16 @@ function resolveShiftNumber(now: Date = new Date()): number {
   return hour >= startShift2 ? 2 : 1;
 }
 
+// Reused across calls so every patient insert/lookup doesn't pay a fresh
+// TCP+auth handshake to MSSQL. Each callsite still calls pool.connect(),
+// which the mssql driver treats as a no-op once already connected.
+let cachedMssqlPool: any = null;
+
 export async function createMssqlPool(): Promise<any> {
+  if (cachedMssqlPool && cachedMssqlPool.connected) {
+    return cachedMssqlPool;
+  }
+  cachedMssqlPool = null;
   const explicitAuthMode = String(process.env.MSSQL_AUTH_MODE ?? "")
     .trim()
     .toLowerCase();
@@ -496,7 +505,7 @@ export async function createMssqlPool(): Promise<any> {
         "Missing MSSQL Windows auth config. Set MSSQL_CONNECTION_STRING or MSSQL_SERVER + MSSQL_DATABASE",
       );
     }
-    return new mssqlV8.ConnectionPool({
+    const pool = new mssqlV8.ConnectionPool({
       connectionString,
       connectionTimeout: Number.isFinite(connectionTimeout)
         ? connectionTimeout
@@ -510,6 +519,11 @@ export async function createMssqlPool(): Promise<any> {
         ),
       },
     });
+    pool.on("error", () => {
+      if (cachedMssqlPool === pool) cachedMssqlPool = null;
+    });
+    cachedMssqlPool = pool;
+    return pool;
   }
 
   const user = String(process.env.MSSQL_USER ?? "").trim();
@@ -520,7 +534,7 @@ export async function createMssqlPool(): Promise<any> {
     );
   }
   const mssql = await loadMssqlModule();
-  return new mssql.ConnectionPool({
+  const pool = new mssql.ConnectionPool({
     server,
     user,
     password,
@@ -539,6 +553,11 @@ export async function createMssqlPool(): Promise<any> {
       enableArithAbort: true,
     },
   });
+  pool.on("error", () => {
+    if (cachedMssqlPool === pool) cachedMssqlPool = null;
+  });
+  cachedMssqlPool = pool;
+  return pool;
 }
 
 function splitArabicName(fullName: string): {
@@ -1061,10 +1080,16 @@ async function applyPapatSrvDefaults(
   }
 }
 
+// Table schema doesn't change at runtime — cache it so every insert doesn't
+// pay an extra sys.columns round trip per table it touches.
+const tableColumnsCache = new Map<string, Set<string>>();
+
 async function getTableColumns(
   pool: any,
   tableName: string,
 ): Promise<Set<string>> {
+  const cached = tableColumnsCache.get(tableName);
+  if (cached) return cached;
   const req = pool.request();
   req.input("TBL", tableName);
   const result = await req.query(`
@@ -1072,11 +1097,13 @@ async function getTableColumns(
     FROM sys.columns
     WHERE object_id = OBJECT_ID(@TBL)
   `);
-  return new Set<string>(
+  const cols = new Set<string>(
     (Array.isArray(result?.recordset) ? result.recordset : [])
       .map((r: any) => String(r?.name ?? "").toUpperCase())
       .filter(Boolean),
   );
+  tableColumnsCache.set(tableName, cols);
+  return cols;
 }
 
 async function withMssqlServiceInsertLock<T>(

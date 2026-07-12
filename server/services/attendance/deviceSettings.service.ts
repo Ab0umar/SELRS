@@ -42,15 +42,15 @@ let ef10kSettings: DeviceSettings = {
 };
 
 let k40Settings: DeviceSettings = {
-  enabled: false,
-  ip: "",
-  port: 4370,
+  enabled: process.env.ZK_DEVICE_ENABLED === "true",
+  ip: process.env.ZK_DEVICE_IP || "",
+  port: parseInt(process.env.ZK_DEVICE_PORT || "4370", 10),
   protocol: "tcp",
   fallbackToAccess: false,
   realTimeSync: true,
   zk40Protocol: "tcp",
   fkProtocol: 0,
-  commPassword: 0,
+  commPassword: parseInt(process.env.ZK_COMM_KEY || "0", 10),
   admsEnabled: true,
 };
 
@@ -110,16 +110,16 @@ export class DeviceSettingsService {
 
       if (dbK40) {
         k40Settings = {
-          enabled: dbK40.enabled,
-          ip: dbK40.ip,
-          port: dbK40.port,
+          enabled: process.env.ZK_DEVICE_ENABLED === "true" || dbK40.enabled,
+          ip: process.env.ZK_DEVICE_IP || dbK40.ip,
+          port: parseInt(process.env.ZK_DEVICE_PORT || "", 10) || dbK40.port,
           protocol: dbK40.protocol as "tcp" | "udp",
           fallbackToAccess: dbK40.fallbackToAccess,
           realTimeSync: dbK40.realTimeSync,
           lastConfigUpdate: dbK40.lastConfigUpdate || undefined,
           zk40Protocol: ((dbK40 as any).zk40Protocol ?? "tcp") as "adms" | "tcp",
           fkProtocol: (dbK40 as any).fkProtocol ?? 0,
-          commPassword: (dbK40 as any).commPassword ?? 0,
+          commPassword: parseInt(process.env.ZK_COMM_KEY || "", 10) || (dbK40 as any).commPassword || 0,
           admsEnabled: (dbK40 as any).admsEnabled ?? true,
           admsDetectedOffsetHours: (dbK40 as any).admsDetectedOffsetHours ?? null,
         };

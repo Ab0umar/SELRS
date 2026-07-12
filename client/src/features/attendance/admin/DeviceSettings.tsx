@@ -44,9 +44,14 @@ export default function DeviceSettings() {
   const admsStatus = tRPC.attendance.admsStatus.useQuery(undefined, {
     refetchInterval: 15000,
   });
+  const zk40Status = tRPC.attendance.zk40Status.useQuery(undefined, {
+    refetchInterval: 10000,
+  });
   const connectDevice = tRPC.attendance.connectDevice.useMutation();
   const disconnectDevice = tRPC.attendance.disconnectDevice.useMutation();
   const resetConnection = tRPC.attendance.resetDeviceConnection.useMutation();
+  const connectZK40 = tRPC.attendance.connectZK40Device.useMutation();
+  const disconnectZK40 = tRPC.attendance.disconnectZK40Device.useMutation();
   const updateSettings = tRPC.attendance.updateDeviceSettings.useMutation();
   const syncZK40 = tRPC.attendance.syncFromZK40.useMutation();
   const pushEmployeesZK40 = tRPC.attendance.pushEmployeesToZK40.useMutation();
@@ -226,7 +231,21 @@ export default function DeviceSettings() {
                 <h3 className="text-xs font-black text-sky-950">جهاز K40 Pro (الفرعي)</h3>
               </div>
               
-              {admsOnline ? (
+              {k40.zk40Protocol === "tcp" ? (
+                zk40Status.data?.connected ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold bg-sky-600/10 text-sky-700 border border-sky-350 shadow-[0_0_12px_rgba(56,189,248,0.1)]">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
+                    </span>
+                    متصل
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold bg-rose-600/10 text-rose-700 border border-rose-350">
+                    غير متصل
+                  </span>
+                )
+              ) : admsOnline ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold bg-sky-600/10 text-sky-700 border border-sky-350 shadow-[0_0_12px_rgba(56,189,248,0.1)]">
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
@@ -243,9 +262,17 @@ export default function DeviceSettings() {
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="p-3 bg-white/80 rounded-xl border border-sky-100/50">
-                <span className="text-[9px] text-sky-800/60 block font-bold">آخر نبضة مستلمة</span>
+                <span className="text-[9px] text-sky-800/60 block font-bold">
+                  {k40.zk40Protocol === "tcp" ? "آخر وقت للاتصال" : "آخر نبضة مستلمة"}
+                </span>
                 <span className="font-mono font-bold text-sky-950 text-[10px] mt-1 block">
-                  {lastAdmsPunch ? lastAdmsPunch.toLocaleTimeString("ar-EG") : "—"}
+                  {k40.zk40Protocol === "tcp"
+                    ? zk40Status.data?.lastConnected
+                      ? new Date(zk40Status.data.lastConnected).toLocaleTimeString("ar-EG")
+                      : "—"
+                    : lastAdmsPunch
+                      ? lastAdmsPunch.toLocaleTimeString("ar-EG")
+                      : "—"}
                 </span>
               </div>
               <div className="p-3 bg-white/80 rounded-xl border border-sky-100/50">
@@ -259,6 +286,23 @@ export default function DeviceSettings() {
             <div className="flex gap-2 flex-wrap pt-3 border-t border-sky-100/50">
               <Button
                 size="sm"
+                onClick={() => connectZK40.mutateAsync().then(() => zk40Status.refetch())}
+                disabled={connectZK40.isPending || !k40.ip}
+                className="bg-sky-600 hover:bg-sky-700 text-white text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg shadow-sm"
+              >
+                اتصال
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => disconnectZK40.mutateAsync().then(() => zk40Status.refetch())}
+                disabled={disconnectZK40.isPending}
+                className="border-sky-250 hover:bg-sky-100 text-sky-950 text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg"
+              >
+                فصل
+              </Button>
+              <Button
+                size="sm"
                 onClick={async () => {
                   try {
                     await syncZK40.mutateAsync();
@@ -269,15 +313,6 @@ export default function DeviceSettings() {
                 className="bg-sky-600 hover:bg-sky-700 text-white text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg shadow-sm"
               >
                 تزامن يدوي
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => admsStatus.refetch()}
-                disabled={admsStatus.isRefetching}
-                className="border-sky-250 hover:bg-sky-100 text-sky-950 text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg"
-              >
-                فصل
               </Button>
             </div>
           </div>
