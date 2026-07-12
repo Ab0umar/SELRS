@@ -2390,14 +2390,39 @@ export async function insertPatientToMssql(
     : 0;
   const netServiceValue = grossServiceValue - discountServiceValue;
 
-  const pool = await createMssqlPool();
+  const rawPool = await createMssqlPool();
   const _t0 = Date.now();
   const _mark = (label: string) =>
     console.log(`[MSSQL Insert][timing] ${label}: +${Date.now() - _t0}ms`);
+  let tx: any;
   try {
     console.log(`[MSSQL Insert] Connecting to ${targetTable}...`);
-    await pool.connect();
+    await rawPool.connect();
     _mark("pool.connect() done");
+    // Every statement below was previously its own auto-committed transaction
+    // (measured ~91 separate WRITELOG flushes for one patient insert). Wrap
+    // the whole insert in one explicit transaction so it's a single commit —
+    // also pins every request to one physical connection/session, which
+    // fixes withMssqlServiceInsertLock's sp_getapplock/release potentially
+    // running on different sessions when using the shared pool directly.
+    // Transaction must come from the same driver module the pool was built
+    // with (plain mssql for SQL auth, mssql/msnodesqlv8 for Windows auth) —
+    // see createMssqlPool's own auth-mode detection.
+    const isWindowsAuthPool =
+      String(process.env.MSSQL_AUTH_MODE ?? "").trim().toLowerCase() ===
+        "windows" ||
+      /trusted_connection\s*=\s*yes/i.test(
+        String(process.env.MSSQL_CONNECTION_STRING ?? ""),
+      ) ||
+      /integrated security\s*=\s*sspi/i.test(
+        String(process.env.MSSQL_CONNECTION_STRING ?? ""),
+      );
+    const mssqlModule = isWindowsAuthPool
+      ? await loadMssqlMsNodeSqlV8Module()
+      : await loadMssqlModule();
+    tx = new mssqlModule.Transaction(rawPool);
+    await tx.begin();
+    const pool = tx;
     console.log(`[MSSQL Insert] Connected! Fetching table columns...`);
     const targetCols = await getTableColumns(pool, targetTable);
     _mark("getTableColumns(target) done");
@@ -2882,11 +2907,16 @@ export async function insertPatientToMssql(
       );
     }
 
+    await tx.commit();
+    _mark("transaction committed");
     console.log(
       `[MSSQL Insert] ✅ Successfully inserted patient ${patientCode}!`,
     );
     return { inserted: true, trNo: Number.isFinite(trNo) ? trNo : null };
   } catch (err) {
+    if (tx) {
+      await tx.rollback().catch(() => {});
+    }
     console.error(
       `[MSSQL Insert Error] Patient ${patientCode}: ${err instanceof Error ? err.message : String(err)}`,
     );
