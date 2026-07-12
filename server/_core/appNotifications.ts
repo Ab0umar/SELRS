@@ -200,7 +200,9 @@ export async function pushAppNotification(
       entityId: entry.entityId ?? null,
     };
 
-    await sendFcmPushToRegisteredDevices({
+    // FCM/WebPush are external network calls to third-party services — don't
+    // block the caller's response on them, they're best-effort anyway.
+    void sendFcmPushToRegisteredDevices({
       ...pushPayload,
       targetRoles: entry.targetRoles ?? null,
       targetUserIds: entry.targetUserIds ?? null,
@@ -208,7 +210,7 @@ export async function pushAppNotification(
       console.warn("[FCM] pushAppNotification send failed:", error);
     });
 
-    await sendWebPushNotifications(
+    void sendWebPushNotifications(
       pushPayload,
       entry.targetRoles ?? null,
       entry.targetUserIds ?? null,

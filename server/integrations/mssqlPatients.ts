@@ -2170,11 +2170,8 @@ export async function syncSinglePatientFromMssql(
       message,
     );
     return { synced: false, message };
-  } finally {
-    try {
-      await pool.close();
-    } catch {}
   }
+  // Pool is shared/cached across calls (see createMssqlPool) — don't close it here.
 }
 
 /**
@@ -2192,33 +2189,30 @@ export async function createOrSyncPatientFromMssql(
 
   const pool = await createMssqlPool();
   let mssqlRow: Record<string, any> | null = null;
-  try {
-    await pool.connect();
-    const req = pool.request();
-    req.input("PAT_CD", patientCode);
-    const result = await req.query(`
-      SELECT TOP 1
-        PAT_CD AS patientCode,
-        NAM    AS fullName,
-        TEL1   AS phone,
-        ADDRS  AS address,
-        AGE    AS age,
-        GNDR   AS gender,
-        CONVERT(varchar(10), BDT, 120) AS dateOfBirth,
-        IDNO   AS idno,
-        BRNCH  AS branch,
-        COALESCE(ENTEREDBY,'') AS receptionSignature
-      FROM op2026.dbo.PAJRNRCVH
-      WHERE PAT_CD = @PAT_CD
-      ORDER BY
-        CASE WHEN ISDATE(UPDATEDATE)=1 THEN CONVERT(datetime,UPDATEDATE) END DESC,
-        CASE WHEN ISDATE(ENTRYDATE) =1 THEN CONVERT(datetime,ENTRYDATE)  END DESC
-    `);
-    const rows = Array.isArray(result?.recordset) ? result.recordset : [];
-    if (rows.length > 0) mssqlRow = rows[0] as Record<string, any>;
-  } finally {
-    try { await pool.close(); } catch {}
-  }
+  await pool.connect();
+  const req = pool.request();
+  req.input("PAT_CD", patientCode);
+  const result = await req.query(`
+    SELECT TOP 1
+      PAT_CD AS patientCode,
+      NAM    AS fullName,
+      TEL1   AS phone,
+      ADDRS  AS address,
+      AGE    AS age,
+      GNDR   AS gender,
+      CONVERT(varchar(10), BDT, 120) AS dateOfBirth,
+      IDNO   AS idno,
+      BRNCH  AS branch,
+      COALESCE(ENTEREDBY,'') AS receptionSignature
+    FROM op2026.dbo.PAJRNRCVH
+    WHERE PAT_CD = @PAT_CD
+    ORDER BY
+      CASE WHEN ISDATE(UPDATEDATE)=1 THEN CONVERT(datetime,UPDATEDATE) END DESC,
+      CASE WHEN ISDATE(ENTRYDATE) =1 THEN CONVERT(datetime,ENTRYDATE)  END DESC
+  `);
+  const rows = Array.isArray(result?.recordset) ? result.recordset : [];
+  if (rows.length > 0) mssqlRow = rows[0] as Record<string, any>;
+  // Pool is shared/cached across calls (see createMssqlPool) — don't close it here.
 
   // Use client-supplied local date if available to avoid UTC/local mismatch
   const todayIso = visitDateIso?.trim() || (() => {
@@ -2882,13 +2876,8 @@ export async function insertPatientToMssql(
       inserted: false,
       note: String(err instanceof Error ? err.message : err),
     };
-  } finally {
-    try {
-      await pool.close();
-    } catch {
-      // ignore close errors
-    }
   }
+  // Pool is shared/cached across calls (see createMssqlPool) — don't close it here.
 }
 
 export async function upsertPatientToMssql(
@@ -3394,7 +3383,7 @@ export async function upsertPatientToMssql(
 
     return { upserted: true };
   } finally {
-    await pool.close();
+    // Pool is shared/cached across calls (see createMssqlPool) — don't close it here.
   }
 }
 
@@ -3764,7 +3753,7 @@ export async function ensurePatientServiceInMssql(
     );
     return { linked: true };
   } finally {
-    await pool.close();
+    // Pool is shared/cached across calls (see createMssqlPool) — don't close it here.
   }
 }
 
@@ -4155,9 +4144,7 @@ export async function addServiceReceiptInMssql(
 
     return { inserted: true, trNo: Number.isFinite(trNo) ? trNo : null };
   } finally {
-    try {
-      await pool.close();
-    } catch {}
+    // Pool is shared/cached across calls (see createMssqlPool) — don't close it here.
   }
 }
 
@@ -4580,9 +4567,7 @@ export async function addMultiServiceReceiptInMssql(
 
     return { inserted: true, trNo: Number.isFinite(trNo) ? trNo : null };
   } finally {
-    try {
-      await pool.close();
-    } catch {}
+    // Pool is shared/cached across calls (see createMssqlPool) — don't close it here.
   }
 }
 
@@ -4632,7 +4617,7 @@ export async function deletePatientFromMssqlByCode(
           : "No MSSQL row found for PAT_CD in SRV/IO/MF/header",
     };
   } finally {
-    await pool.close();
+    // Pool is shared/cached across calls (see createMssqlPool) — don't close it here.
   }
 }
 
@@ -4711,7 +4696,7 @@ export async function backfillPapatSrvNamesInMssql(
     );
     return { updated };
   } finally {
-    await pool.close();
+    // Pool is shared/cached across calls (see createMssqlPool) — don't close it here.
   }
 }
 
@@ -5098,7 +5083,7 @@ export async function getNextMssqlPatientCode(): Promise<string> {
     const next = (Number.isFinite(maxCode) ? maxCode : 0) + 1;
     return String(next).padStart(4, "0");
   } finally {
-    await pool.close().catch(() => {});
+    // Pool is shared/cached across calls (see createMssqlPool) — don't close it here.
   }
 }
 
@@ -6175,7 +6160,7 @@ export async function syncPatientsFromMssql(
     }
   } finally {
     result.finishedAt = new Date().toISOString();
-    await pool.close();
+    // Pool is shared/cached across calls (see createMssqlPool) — don't close it here.
   }
 
   return result;

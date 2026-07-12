@@ -1292,8 +1292,18 @@ export const medicalExaminationsRoutes = {
 
       let examinationId: number | undefined;
 
+      // DB is a remote server (network round trip per query) — these four
+      // lookups are independent (all keyed only by visitId), so fetch them
+      // concurrently instead of paying 4 sequential round trips.
+      const [existingExams, existingReports, existingRequests, existingPrescriptions] =
+        await Promise.all([
+          db.getExaminationsByVisit(visitId),
+          db.getDoctorReportsByVisit(visitId),
+          db.getTestRequestsByVisit(visitId),
+          db.getPrescriptionsWithItemsByVisit(visitId),
+        ]);
+
       // Ensure there is one examination row per visit (FK target for dedicated exam tables).
-      const existingExams = await db.getExaminationsByVisit(visitId);
       if (existingExams.length > 0) {
         await db.updateExamination(existingExams[0].id, examinationData);
         examinationId = existingExams[0].id;
@@ -1488,7 +1498,6 @@ export const medicalExaminationsRoutes = {
       const diseasesArray = parseAnyArray(input.data["diseases"]);
 
       // Same behavior as other save flows: always ensure a doctor report row exists per visit.
-      const existingReports = await db.getDoctorReportsByVisit(visitId);
       const doctorReportData = {
         visitId,
         patientId: input.patientId,
@@ -1524,7 +1533,6 @@ export const medicalExaminationsRoutes = {
             .filter((id: number) => Number.isFinite(id) && id > 0),
         ),
       );
-      const existingRequests = await db.getTestRequestsByVisit(visitId);
       if ((existingRequests ?? []).length === 0) {
         const createdRequest: any = await db.createTestRequest({
           patientId: input.patientId,
@@ -1555,8 +1563,6 @@ export const medicalExaminationsRoutes = {
             .filter((id: number) => Number.isFinite(id) && id > 0),
         ),
       );
-      const existingPrescriptions =
-        await db.getPrescriptionsWithItemsByVisit(visitId);
       if ((existingPrescriptions ?? []).length === 0) {
         if (requestedMedicationIds.length > 0) {
           const meds = await db.getAllMedications();
@@ -1586,13 +1592,17 @@ export const medicalExaminationsRoutes = {
         }
       }
 
-      await db.logAuditEvent(
-        ctx.user.id,
-        "CREATE_EXAMINATION_FORM",
-        "examination",
-        input.patientId,
-        { message: "Saved examination form" },
-      );
+      void db
+        .logAuditEvent(
+          ctx.user.id,
+          "CREATE_EXAMINATION_FORM",
+          "examination",
+          input.patientId,
+          { message: "Saved examination form" },
+        )
+        .catch((error) => {
+          console.warn("[Exam Save] Audit log failed:", error);
+        });
 
       // Clear examination cache so next open fetches fresh medical data
       try {
