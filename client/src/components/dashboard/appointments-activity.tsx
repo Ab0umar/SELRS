@@ -1,8 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -123,6 +134,13 @@ export function AppointmentsSection({
   selectedDate?: string;
   onSelectedDateChange?: (date: string) => void;
 } = {}) {
+  const { user } = useAuth();
+  const canDeletePatient =
+    String((user as any)?.role ?? "").toLowerCase() === "admin";
+  const [deleteTarget, setDeleteTarget] = useState<TodayQueuePatient | null>(
+    null,
+  );
+  const [alsoDeleteMssql, setAlsoDeleteMssql] = useState(false);
   const [shortcutPatient, setShortcutPatient] =
     useState<TodayQueuePatient | null>(null);
   const [followupPatient, setFollowupPatient] =
@@ -183,6 +201,35 @@ export function AppointmentsSection({
       toast.error(getTrpcErrorMessage(error, "تعذر تحديث حالة الطابور"));
     },
   });
+
+  const deleteFromMssql = trpc.medical.deletePatientFromMssql.useMutation();
+  const deletePatientWithAllData =
+    trpc.medical.deletePatientWithAllData.useMutation({
+      onSuccess: async () => {
+        await utils.medical.getTodayPatientsByQueueStatus.invalidate();
+      },
+    });
+
+  const closeDeleteDialog = () => {
+    setDeleteTarget(null);
+    setAlsoDeleteMssql(false);
+  };
+
+  const confirmDeletePatient = async () => {
+    if (!deleteTarget) return;
+    const patientId = deleteTarget.id;
+    const patientCode = deleteTarget.patientCode ?? undefined;
+    try {
+      if (alsoDeleteMssql) {
+        await deleteFromMssql.mutateAsync({ patientId, patientCode });
+      }
+      await deletePatientWithAllData.mutateAsync({ patientId });
+      toast.success("تم حذف المريض");
+      closeDeleteDialog();
+    } catch (error) {
+      toast.error(getTrpcErrorMessage(error, "تعذر حذف المريض"));
+    }
+  };
 
   /** Same source as Operations page aggregates: saved lists + optional MSSQL surgery rows (`medical.getTodayOperationLists`). */
   const todayOperationListsQuery = trpc.medical.getTodayOperationLists.useQuery(
@@ -324,6 +371,52 @@ export function AppointmentsSection({
         patientName={followupPatient?.fullName}
         serviceType={(followupPatient as any)?.serviceType}
       />
+      <Dialog
+        open={deleteTarget != null}
+        onOpenChange={(next) => {
+          if (!next) closeDeleteDialog();
+        }}
+      >
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle>حذف المريض</DialogTitle>
+            <DialogDescription>
+              سيتم حذف المريض{" "}
+              <span className="font-semibold text-foreground">
+                {deleteTarget?.fullName ?? ""}
+              </span>{" "}
+              وكل بياناته من قاعدة البيانات نهائيًا. هذا الإجراء لا يمكن التراجع
+              عنه.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center gap-2 py-2">
+            <Checkbox
+              id="also-delete-mssql"
+              checked={alsoDeleteMssql}
+              onCheckedChange={(checked) => setAlsoDeleteMssql(checked === true)}
+            />
+            <Label htmlFor="also-delete-mssql" className="cursor-pointer">
+              حذف المريض من MSSQL أيضًا
+            </Label>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeDeleteDialog}>
+              إلغاء
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={
+                deleteFromMssql.isPending || deletePatientWithAllData.isPending
+              }
+              onClick={() => void confirmDeletePatient()}
+            >
+              {deleteFromMssql.isPending || deletePatientWithAllData.isPending
+                ? "جاري الحذف..."
+                : "حذف نهائي"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
         {/* Patients queue: always visible, 3/4 width on desktop */}
         <div className="xl:col-span-9 flex flex-col gap-3">
@@ -405,6 +498,8 @@ export function AppointmentsSection({
                       date: selectedDate,
                     });
                   }}
+                  canDelete={canDeletePatient}
+                  onRequestDelete={() => setDeleteTarget(patient)}
                 />
               ))}
             </div>
@@ -630,12 +725,16 @@ function QueuePatientCard({
   onSelectPatient,
   onMarkVisitTreated,
   markVisitTreatedPendingVisitId,
+  canDelete,
+  onRequestDelete,
 }: {
   patient: TodayQueuePatient;
   medicalStatus?: PatientMedicalStatus;
   onSelectPatient: () => void;
   onMarkVisitTreated: (visitId: number) => void;
   markVisitTreatedPendingVisitId: number | null;
+  canDelete?: boolean;
+  onRequestDelete?: () => void;
 }) {
   const st = patient.queueStatus as QueueStatus;
   const visitId = coercePositiveInt((patient as { visitId?: unknown }).visitId);
@@ -826,6 +925,23 @@ function QueuePatientCard({
                 }}
               >
                 <Check className="h-3.5 w-3.5" aria-hidden />
+              </Button>
+            ) : null}
+            {canDelete ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                title="حذف المريض"
+                aria-label={`حذف ${patient.fullName ?? "المريض"}`}
+                className="h-11 w-11 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  onRequestDelete?.();
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5" aria-hidden />
               </Button>
             ) : null}
           </div>
