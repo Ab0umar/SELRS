@@ -907,23 +907,23 @@ export default function LasikExamSheet() {
                 </div>
               </div>
             </div>
-            <div className="flex flex-col items-center justify-center">
+            <div className="flex flex-col items-center justify-center gap-1">
               <div className="w-28 h-28 rounded-full border-4 border-[#003d9b]/30 flex items-center justify-center relative bg-white">
                 <div className="absolute inset-0 flex items-center justify-center opacity-10">
                   <div className="w-full border-t border-slate-900" />
                   <div className="h-full border-l border-slate-900 absolute top-0" />
                 </div>
-                <span className="text-[#003d9b]/40 text-xl select-none">OD</span>
               </div>
+              <span className="text-[#003d9b]/70 text-xs font-bold select-none">OD</span>
             </div>
-            <div className="flex flex-col items-center justify-center">
+            <div className="flex flex-col items-center justify-center gap-1">
               <div className="w-28 h-28 rounded-full border-4 border-slate-300 flex items-center justify-center relative bg-white">
                 <div className="absolute inset-0 flex items-center justify-center opacity-10">
                   <div className="w-full border-t border-slate-900" />
                   <div className="h-full border-l border-slate-900 absolute top-0" />
                 </div>
-                <span className="text-slate-300 text-xl select-none">OS</span>
               </div>
+              <span className="text-slate-500 text-xs font-bold select-none">OS</span>
             </div>
           </section>
         ) : (
