@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { FileText, Download, Filter, RefreshCw } from "lucide-react";
+import { FileText, Download, Filter, RefreshCw, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -12,9 +12,19 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 function getStatusClass(status: string) {
   switch (status) {
@@ -38,6 +48,47 @@ export default function StockroomReports() {
 
   const additionsLog = transactions.filter((t: any) => t.type === "add");
   const dispenseLog = transactions.filter((t: any) => t.type === "dispense");
+
+  const [editingTx, setEditingTx] = useState<{
+    id: number;
+    type: "add" | "dispense";
+    quantity: string;
+    unitPrice: string;
+    employeeName: string;
+  } | null>(null);
+
+  const updateTransactionMutation = trpc.stockroom.updateTransaction.useMutation({
+    onSuccess: () => {
+      toast.success("تم تعديل الحركة بنجاح");
+      setEditingTx(null);
+      reportsQuery.refetch();
+    },
+    onError: (error) => toast.error(error.message || "فشل تعديل الحركة"),
+  });
+
+  const deleteTransactionMutation = trpc.stockroom.deleteTransaction.useMutation({
+    onSuccess: () => {
+      toast.success("تم حذف الحركة بنجاح");
+      reportsQuery.refetch();
+    },
+    onError: (error) => toast.error(error.message || "فشل حذف الحركة"),
+  });
+
+  const handleSaveEdit = () => {
+    if (!editingTx) return;
+    const quantity = Number(editingTx.quantity);
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      toast.error("الكمية غير صحيحة");
+      return;
+    }
+    updateTransactionMutation.mutate({
+      id: editingTx.id,
+      quantity,
+      ...(editingTx.type === "add"
+        ? { unitPrice: Number(editingTx.unitPrice) || undefined }
+        : { employeeName: editingTx.employeeName || undefined }),
+    });
+  };
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -199,6 +250,7 @@ export default function StockroomReports() {
                   <TableHead className="text-right">سعر الوحدة</TableHead>
                   <TableHead className="text-right">الإجمالي</TableHead>
                   <TableHead className="text-right">المستخدم</TableHead>
+                  <TableHead className="text-right">إجراءات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -228,6 +280,9 @@ export default function StockroomReports() {
                           <TableCell>
                             <Skeleton className="h-4 w-24" />
                           </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-4 w-16" />
+                          </TableCell>
                         </TableRow>
                       ))
                   : additionsLog.map((row: any) => (
@@ -254,6 +309,39 @@ export default function StockroomReports() {
                         <TableCell className="text-muted-foreground text-sm text-right">
                           {row.performedBy}
                         </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                              onClick={() =>
+                                setEditingTx({
+                                  id: row.id,
+                                  type: "add",
+                                  quantity: String(row.quantity),
+                                  unitPrice: String(row.unitPrice || ""),
+                                  employeeName: "",
+                                })
+                              }
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                              onClick={() => {
+                                if (confirm(`حذف حركة الإستلام رقم ${row.id}؟`)) {
+                                  deleteTransactionMutation.mutate({ id: row.id });
+                                }
+                              }}
+                              disabled={deleteTransactionMutation.isPending}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))}
               </TableBody>
@@ -274,6 +362,7 @@ export default function StockroomReports() {
                     المستلم (موظف/قسم)
                   </TableHead>
                   <TableHead className="text-right">المستخدم</TableHead>
+                  <TableHead className="text-right">إجراءات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -300,6 +389,9 @@ export default function StockroomReports() {
                           <TableCell>
                             <Skeleton className="h-4 w-24" />
                           </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-4 w-16" />
+                          </TableCell>
                         </TableRow>
                       ))
                   : dispenseLog.map((row: any) => (
@@ -323,6 +415,39 @@ export default function StockroomReports() {
                         <TableCell className="text-muted-foreground text-sm text-right">
                           {row.performedBy}
                         </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                              onClick={() =>
+                                setEditingTx({
+                                  id: row.id,
+                                  type: "dispense",
+                                  quantity: String(row.quantity),
+                                  unitPrice: "",
+                                  employeeName: row.employeeName || "",
+                                })
+                              }
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                              onClick={() => {
+                                if (confirm(`حذف حركة الصرف رقم ${row.id}؟`)) {
+                                  deleteTransactionMutation.mutate({ id: row.id });
+                                }
+                              }}
+                              disabled={deleteTransactionMutation.isPending}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))}
               </TableBody>
@@ -330,6 +455,60 @@ export default function StockroomReports() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!editingTx} onOpenChange={(open) => !open && setEditingTx(null)}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle>
+              تعديل حركة {editingTx?.type === "add" ? "الإستلام" : "الصرف"}
+            </DialogTitle>
+          </DialogHeader>
+          {editingTx && (
+            <div className="space-y-3">
+              <div>
+                <Label>الكمية</Label>
+                <Input
+                  type="number"
+                  value={editingTx.quantity}
+                  onChange={(e) =>
+                    setEditingTx({ ...editingTx, quantity: e.target.value })
+                  }
+                />
+              </div>
+              {editingTx.type === "add" ? (
+                <div>
+                  <Label>سعر الوحدة</Label>
+                  <Input
+                    type="number"
+                    value={editingTx.unitPrice}
+                    onChange={(e) =>
+                      setEditingTx({ ...editingTx, unitPrice: e.target.value })
+                    }
+                  />
+                </div>
+              ) : (
+                <div>
+                  <Label>المستلم (موظف/قسم)</Label>
+                  <Input
+                    value={editingTx.employeeName}
+                    onChange={(e) =>
+                      setEditingTx({ ...editingTx, employeeName: e.target.value })
+                    }
+                  />
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={updateTransactionMutation.isPending}
+            >
+              {updateTransactionMutation.isPending ? "جاري الحفظ..." : "حفظ"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

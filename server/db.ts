@@ -7571,6 +7571,106 @@ export async function insertStockTransaction(data: InsertStockTransaction) {
   });
 }
 
+function stockStatusForQuantity(quantity: number): "متوفر" | "كمية قليلة" | "نفذ المخزون" {
+  if (quantity === 0) return "نفذ المخزون";
+  if (quantity < 10) return "كمية قليلة";
+  return "متوفر";
+}
+
+export async function updateStockTransaction(
+  id: number,
+  updates: {
+    quantity?: number;
+    unitPrice?: string | null;
+    totalValue?: string | null;
+    employeeName?: string | null;
+    destination?: string | null;
+  },
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.transaction(async (tx: any) => {
+    const [txRow] = await tx
+      .select()
+      .from(stockTransactions)
+      .where(eq(stockTransactions.id, id))
+      .limit(1);
+    if (!txRow) throw new Error("Transaction not found");
+
+    const [item] = await tx
+      .select()
+      .from(stockItems)
+      .where(eq(stockItems.id, txRow.itemId))
+      .limit(1);
+    if (!item) throw new Error("Item not found");
+
+    // Reverse the transaction's original effect, then reapply with the new quantity.
+    if (updates.quantity !== undefined && updates.quantity !== txRow.quantity) {
+      const sign = txRow.type === "add" ? 1 : -1;
+      const delta = (updates.quantity - txRow.quantity) * sign;
+      const nextQuantity = item.quantity + delta;
+      if (nextQuantity < 0) {
+        throw new Error("الكمية غير كافية لإجراء هذا التعديل");
+      }
+      await tx
+        .update(stockItems)
+        .set({
+          quantity: nextQuantity,
+          status: stockStatusForQuantity(nextQuantity),
+          updatedAt: new Date(),
+        })
+        .where(eq(stockItems.id, item.id));
+    }
+
+    await tx
+      .update(stockTransactions)
+      .set(updates)
+      .where(eq(stockTransactions.id, id));
+
+    return { success: true };
+  });
+}
+
+export async function deleteStockTransaction(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.transaction(async (tx: any) => {
+    const [txRow] = await tx
+      .select()
+      .from(stockTransactions)
+      .where(eq(stockTransactions.id, id))
+      .limit(1);
+    if (!txRow) throw new Error("Transaction not found");
+
+    const [item] = await tx
+      .select()
+      .from(stockItems)
+      .where(eq(stockItems.id, txRow.itemId))
+      .limit(1);
+    if (!item) throw new Error("Item not found");
+
+    // Reverse this transaction's effect on the item quantity before deleting it.
+    const sign = txRow.type === "add" ? -1 : 1;
+    const nextQuantity = item.quantity + sign * txRow.quantity;
+    if (nextQuantity < 0) {
+      throw new Error("لا يمكن حذف هذه الحركة لأن الكمية ستصبح سالبة");
+    }
+
+    await tx
+      .update(stockItems)
+      .set({
+        quantity: nextQuantity,
+        status: stockStatusForQuantity(nextQuantity),
+        updatedAt: new Date(),
+      })
+      .where(eq(stockItems.id, item.id));
+
+    await tx.delete(stockTransactions).where(eq(stockTransactions.id, id));
+
+    return { success: true };
+  });
+}
+
 export async function getStockTransactions(limit = 500) {
   const db = await getDb();
   if (!db) return [];

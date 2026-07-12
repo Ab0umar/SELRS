@@ -425,9 +425,7 @@ export const accountingRouter = router({
         }
         return { deleted: true };
       } finally {
-        try {
-          await pool.close();
-        } catch {}
+        // Pool is shared/cached across calls (see createMssqlPool) — don't close it here.
       }
     }),
 
@@ -461,9 +459,7 @@ export const accountingRouter = router({
         );
         return { updated: true };
       } finally {
-        try {
-          await pool.close();
-        } catch {}
+        // Pool is shared/cached across calls (see createMssqlPool) — don't close it here.
       }
     }),
 

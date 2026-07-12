@@ -152,6 +152,34 @@ export const stockroomRouter = router({
       return { success: true };
     }),
 
+  updateTransaction: makeStockroomWriteProcedure("/stockroom/reports")
+    .input(
+      z.object({
+        id: z.number(),
+        quantity: z.number().optional(),
+        unitPrice: z.number().optional(),
+        totalValue: z.number().optional(),
+        employeeName: z.string().optional(),
+        destination: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const { id, unitPrice, totalValue, ...rest } = input;
+      await db.updateStockTransaction(id, {
+        ...rest,
+        ...(unitPrice !== undefined ? { unitPrice: String(unitPrice) } : {}),
+        ...(totalValue !== undefined ? { totalValue: String(totalValue) } : {}),
+      });
+      return { success: true };
+    }),
+
+  deleteTransaction: makeStockroomWriteProcedure("/stockroom/reports")
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.deleteStockTransaction(input.id);
+      return { success: true };
+    }),
+
   getReports: makeStockroomProcedure("/stockroom/reports")
     .input(z.object({ limit: z.number().optional() }))
     .query(async ({ input }) => {

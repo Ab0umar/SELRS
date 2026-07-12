@@ -121,6 +121,9 @@ export const medicalPatientRoutes = {
     )
     .mutation(async (opts) => {
       const { input, ctx } = opts;
+      const _t0 = Date.now();
+      const _mark = (label: string) =>
+        console.log(`[createPatient][timing] ${label}: +${Date.now() - _t0}ms`);
       console.log(`[createPatient] ===== START =====`);
       console.log(
         `[createPatient] Input received: doctorId=${input.doctorId}, doctorCode=${input.doctorCode}, serviceType=${input.serviceType}`,
@@ -131,6 +134,7 @@ export const medicalPatientRoutes = {
         ctx.user.id,
         ctx.user.role,
       );
+      _mark("permissions checked");
       const canCreatePatient =
         permissions.includes("/patient-data/edit") ||
         permissions.includes("/quick-entry") ||
@@ -152,6 +156,7 @@ export const medicalPatientRoutes = {
           patientInput.phone,
           patientInput.dateOfBirth,
         );
+        _mark("duplicate phone/dob lookup done");
         if (
           duplicateByPhoneDob &&
           hasExplicitPatientCode &&
@@ -171,6 +176,7 @@ export const medicalPatientRoutes = {
               patientInput.fullName,
               patientInput.phone,
             )));
+        _mark("identity lookup resolved");
         if (existingByIdentity) {
           const existingId = Number((existingByIdentity as any)?.id ?? 0);
           const existingCode = String(
@@ -194,6 +200,7 @@ export const medicalPatientRoutes = {
               })
               .catch(() => null);
           }
+          _mark("existing-patient updatePatient done");
           if (!existingCode) {
             throw new TRPCError({
               code: "BAD_REQUEST",
@@ -214,6 +221,7 @@ export const medicalPatientRoutes = {
                 patientInput.doctorName ?? null,
               )) ?? null;
           }
+          _mark("existing-patient doctorCode resolved");
           const pricingPayload = registrationPricingPayload({
             servicePrice: patientInput.servicePrice,
             discountValue: patientInput.discountValue,
@@ -382,6 +390,7 @@ export const medicalPatientRoutes = {
                 console.error("[createPatient] createVisit failed for existing patient", existingId, err);
               });
           }
+          _mark("existing-patient createVisit done, returning");
           return {
             success: true,
             reused: true,
@@ -398,6 +407,7 @@ export const medicalPatientRoutes = {
             ? patientInput.patientCode.trim()
             : await db.getNextPatientCode();
         const existing = await db.getPatientByCode(code);
+        _mark("code-uniqueness check done");
         if (existing) {
           if (skipIfExists) {
             return {
@@ -431,8 +441,10 @@ export const medicalPatientRoutes = {
             : new Date(),
           status: "new",
         });
+        _mark("db.createPatient done");
 
         const created = await db.getPatientByCode(code);
+        _mark("getPatientByCode (created) done");
         console.log(
           `[createPatient] Retrieved patient: doctorId=${(created as any).doctorId}`,
         );
@@ -457,6 +469,7 @@ export const medicalPatientRoutes = {
             } as any)
             .catch(() => null);
         }
+        _mark("new-patient createVisit done");
         // MSSQL push is several sequential round trips to a remote server —
         // don't block the response on it. Runs in background; outcome is
         // logged/notified once it settles.
@@ -531,9 +544,11 @@ export const medicalPatientRoutes = {
             message: `Created patient: ${input.fullName}`,
           },
         );
+        _mark("new-patient logAuditEvent done");
         const notificationSettings = await getAppNotificationSettings().catch(
           () => DEFAULT_APP_NOTIFICATION_SETTINGS,
         );
+        _mark("notification settings fetched");
         if (notificationSettings.patients.enabled) {
           const targetRoles = resolveNotificationTargetRolesByUserRole(
             (ctx.user as any)?.role,
@@ -569,27 +584,34 @@ export const medicalPatientRoutes = {
             );
           });
         }
+        _mark("push app notification done");
 
-        // Auto-link to external doctor portal and notify
+        // Auto-link to external doctor portal and notify — resolution moved
+        // inside the void'd async call since autoLinkAndNotifyDoctors itself
+        // is fire-and-forget; awaiting the code lookups here just added
+        // latency to the response for no benefit.
         if (created?.patientCode && created?.fullName) {
-          let resolvedCode = String(patientInput.doctorCode ?? "").trim() || null;
-          if (!resolvedCode) {
-            resolvedCode =
-              (await resolveDoctorCodeById((created as any).doctorId)) ?? null;
-          }
-          if (!resolvedCode) {
-            resolvedCode =
-              (await resolveDoctorCodeByName(patientInput.doctorName ?? null)) ??
-              null;
-          }
-          if (resolvedCode) {
-            void autoLinkAndNotifyDoctors(
-              String(created.patientCode),
-              String(created.fullName),
-              resolvedCode,
-            );
-          }
+          void (async () => {
+            let resolvedCode = String(patientInput.doctorCode ?? "").trim() || null;
+            if (!resolvedCode) {
+              resolvedCode =
+                (await resolveDoctorCodeById((created as any).doctorId)) ?? null;
+            }
+            if (!resolvedCode) {
+              resolvedCode =
+                (await resolveDoctorCodeByName(patientInput.doctorName ?? null)) ??
+                null;
+            }
+            if (resolvedCode) {
+              await autoLinkAndNotifyDoctors(
+                String(created.patientCode),
+                String(created.fullName),
+                resolvedCode,
+              );
+            }
+          })();
         }
+        _mark("new-patient auto-link dispatched, returning");
 
         return {
           success: true,
