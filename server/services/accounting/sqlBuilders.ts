@@ -427,7 +427,11 @@ SELECT DISTINCT ${top}
   h.SEC_CD AS secCd,
   h.TR_TY AS trTy,
   h.TR_NO AS trNo,
-  h.TR_DT AS trDate,
+  CASE
+    WHEN h.TR_TIM IS NOT NULL
+      THEN CAST(CONVERT(varchar(10), h.TR_DT, 120) + ' ' + CONVERT(varchar(8), h.TR_TIM, 108) AS datetime)
+    ELSE h.TR_DT
+  END AS trDate,
   RTRIM(LTRIM(CONVERT(VARCHAR(40), h.PAT_CD))) AS patientCode,
   h.NAM AS patientName,
   h.PA_VL AS totalValue,

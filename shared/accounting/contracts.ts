@@ -2,7 +2,10 @@ import { z } from "zod";
 
 const isoDateStringSchema = z.union([
   z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  z.string().datetime(),
+  // `local: true` accepts timestamps without a timezone offset — these
+  // represent naive local wall-clock values from MSSQL (no real UTC/offset
+  // concept), not true UTC. See isoDateValue() in mappers.ts.
+  z.string().datetime({ local: true }),
 ]);
 
 const codeStringSchema = z.string();

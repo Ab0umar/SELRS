@@ -60,9 +60,26 @@ function optionalString(value: unknown): string | null {
   return text ? text : null;
 }
 
+// mssql/tedious returns SQL Server's naive datetime/datetime2 values (no
+// timezone concept) as a JS Date whose UTC-labeled fields hold the exact
+// same wall-clock numbers — it does NOT convert them to true UTC. Calling
+// .toISOString() on that Date re-labels those numbers with a "Z" suffix,
+// asserting they're real UTC. The client then does `new Date(iso).getHours()`,
+// which converts UTC -> browser-local — a second, spurious conversion that
+// shifts the displayed time by the local UTC offset (verified: SQL Server's
+// GETDATE() and this app's own local clock are in the same timezone).
+// Building the ISO string from the Date's own UTC-getter fields (without
+// "Z") keeps the exact wall-clock numbers, so the client's local parsing
+// reproduces them unchanged.
 function isoDateValue(value: unknown): string {
   if (value instanceof Date) {
-    return value.toISOString();
+    const y = value.getUTCFullYear();
+    const mo = String(value.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(value.getUTCDate()).padStart(2, "0");
+    const h = String(value.getUTCHours()).padStart(2, "0");
+    const mi = String(value.getUTCMinutes()).padStart(2, "0");
+    const s = String(value.getUTCSeconds()).padStart(2, "0");
+    return `${y}-${mo}-${d}T${h}:${mi}:${s}`;
   }
 
   const text = stringValue(value);
