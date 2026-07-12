@@ -239,6 +239,22 @@ export function AppTopNav({
         paths: ["/stockroom"],
         checkPath: "/stockroom",
       },
+      {
+        icon: DollarSign,
+        label: "المرتبات",
+        path: "/salary",
+        key: "salary",
+        paths: ["/salary"],
+        checkPath: "/salary",
+      },
+      {
+        icon: Activity,
+        label: "الحضور",
+        path: "/attendance",
+        key: "attendance",
+        paths: ["/attendance"],
+        checkPath: "/attendance",
+      },
     ],
     [],
   );

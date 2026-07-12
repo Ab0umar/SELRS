@@ -5634,7 +5634,17 @@ function getDefaultTeamPermissions(): TeamPermissionsMap {
   return {
     admin: [],
     manager: [],
-    accountant: ["/appointments", "/ops/mssql-add"],
+    accountant: [
+      "/appointments",
+      "/ops/mssql-add",
+      "/dashboard",
+      "/operations",
+      "/accounting",
+      "/kf",
+      "/salary",
+      "/stockroom",
+      "/attendance",
+    ],
     reception: [],
     nurse: [],
     technician: [],
