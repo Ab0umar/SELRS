@@ -1121,6 +1121,7 @@ async function withMssqlServiceInsertLock<T>(
   work: () => Promise<T>,
 ): Promise<T> {
   const resource = `papat_srv:${String(patientCode ?? "").trim()}:${String(serviceCode ?? "").trim()}`;
+  const _lockT0 = Date.now();
   const lockReq = pool.request();
   lockReq.input("RES", resource);
   lockReq.input("LOCK_TIMEOUT", 10000);
@@ -1138,6 +1139,11 @@ async function withMssqlServiceInsertLock<T>(
       ? lockRs.recordset[0]?.lockResult
       : NaN,
   );
+  // sp_getapplock return codes: 0 = granted immediately, 1 = granted after
+  // waiting for another session's lock, <0 = timeout/error/deadlock.
+  console.log(
+    `[MSSQL Lock] sp_getapplock resource=${resource} result=${lockResult} waitedMs=${Date.now() - _lockT0}`,
+  );
   if (!Number.isFinite(lockResult) || lockResult < 0) {
     throw new Error(
       `Failed to acquire MSSQL service lock for ${resource} (result=${String(lockResult)})`,
@@ -1145,8 +1151,13 @@ async function withMssqlServiceInsertLock<T>(
   }
 
   try {
-    return await work();
+    const result = await work();
+    console.log(
+      `[MSSQL Lock] work() done resource=${resource} elapsedMs=${Date.now() - _lockT0}`,
+    );
+    return result;
   } finally {
+    const _releaseT0 = Date.now();
     const unlockReq = pool.request();
     unlockReq.input("RES", resource);
     await unlockReq
@@ -1158,7 +1169,15 @@ async function withMssqlServiceInsertLock<T>(
         @LockOwner = 'Session';
     `,
       )
-      .catch(() => undefined);
+      .catch((err: unknown) => {
+        console.warn(
+          `[MSSQL Lock] sp_releaseapplock FAILED resource=${resource}:`,
+          err instanceof Error ? err.message : err,
+        );
+      });
+    console.log(
+      `[MSSQL Lock] release done resource=${resource} releaseMs=${Date.now() - _releaseT0}`,
+    );
   }
 }
 
