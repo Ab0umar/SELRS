@@ -472,7 +472,15 @@ let cachedMssqlPool: any = null;
 
 export async function createMssqlPool(): Promise<any> {
   if (cachedMssqlPool && cachedMssqlPool.connected) {
-    return cachedMssqlPool;
+    // .connected can stay true even after the underlying connection dies
+    // (remote idle timeout, dropped socket) — cheap health check catches
+    // that before a real query fails with "Connection is closed".
+    try {
+      await cachedMssqlPool.request().query("SELECT 1");
+      return cachedMssqlPool;
+    } catch {
+      cachedMssqlPool = null;
+    }
   }
   cachedMssqlPool = null;
   const explicitAuthMode = String(process.env.MSSQL_AUTH_MODE ?? "")

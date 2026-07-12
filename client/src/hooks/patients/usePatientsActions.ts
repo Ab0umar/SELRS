@@ -519,9 +519,8 @@ export function usePatientsActions(
         : undefined,
       ...(selectedDoctorCode ? { doctorCode: selectedDoctorCode } : {}),
     });
-    const receiptPart = created?.receiptNo ? ` — إيصال #${created.receiptNo}` : "";
-    const mssqlPart = created?.mssqlLinked ? " ✓ MSSQL" : created?.mssqlNote ? ` ⚠ ${created.mssqlNote}` : "";
-    toast.success(`تم إضافة المريض${receiptPart}${mssqlPart}`);
+    const mssqlPart = (created as any)?.mssqlPending ? " (مزامنة MSSQL جارية...)" : "";
+    toast.success(`تم إضافة المريض${mssqlPart}`);
   };
 
   return {

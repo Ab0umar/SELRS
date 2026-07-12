@@ -241,7 +241,7 @@ export const attendanceSyncRoutes = {
       return { success: false, error: "K40 IP not configured" };
     }
     const { ZKDevicePuller } = await import("../services/attendance/zkDevicePuller");
-    const info = await ZKDevicePuller.getDeviceInfo(k40.ip, k40.port);
+    const info = await ZKDevicePuller.getDeviceInfo(k40.ip, k40.port, k40.commPassword);
     setZk40ConnState({
       connected: info.ok,
       lastConnected: info.ok ? new Date() : zk40ConnState.lastConnected,

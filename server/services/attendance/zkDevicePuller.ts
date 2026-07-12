@@ -59,7 +59,7 @@ export class ZKDevicePuller {
     }
   }
 
-  static async getDeviceInfo(ip: string, port: number): Promise<ZKDeviceInfo> {
+  static async getDeviceInfo(ip: string, port: number, commKey = 258288): Promise<ZKDeviceInfo> {
     if (USE_LEGACY) {
       const { ZK4370LogPuller } = await import("./zk4370LogPuller");
       return ZK4370LogPuller.getDeviceInfo(ip, port);
@@ -67,7 +67,7 @@ export class ZKDevicePuller {
     const { ZKTcpClient } = await import("./zkTcpClient");
     const client = new ZKTcpClient(ip, port);
     try {
-      await client.connect();
+      await client.connect(commKey);
       return await client.getDeviceInfo();
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };

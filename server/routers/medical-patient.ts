@@ -176,12 +176,6 @@ export const medicalPatientRoutes = {
           const existingCode = String(
             (existingByIdentity as any)?.patientCode ?? "",
           ).trim();
-          let pushResult: {
-            inserted: boolean;
-            note?: string;
-            trNo?: number | null;
-          } | null = null;
-          let mssqlPushError: string | null = null;
           if (existingId > 0) {
             await db
               .updatePatient(existingId, {
@@ -224,131 +218,132 @@ export const medicalPatientRoutes = {
             servicePrice: patientInput.servicePrice,
             discountValue: patientInput.discountValue,
           });
-          pushResult = await pushNewPatientToMssql({
-            patientCode: existingCode,
-            fullName: String(
-              (existingByIdentity as any)?.fullName ??
-                patientInput.fullName ??
-                "",
-            ).trim(),
-            phone:
-              String(
-                (existingByIdentity as any)?.phone ?? patientInput.phone ?? "",
-              ).trim() || null,
-            address:
-              String(
-                (existingByIdentity as any)?.address ??
-                  patientInput.address ??
-                  "",
-              ).trim() || null,
-            age: Number.isFinite(Number((existingByIdentity as any)?.age))
-              ? Number((existingByIdentity as any)?.age)
-              : Number.isFinite(Number(patientInput.age))
-                ? Number(patientInput.age)
-                : null,
-            gender:
-              String((existingByIdentity as any)?.gender ?? "").trim() || null,
-            dateOfBirth:
-              (existingByIdentity as any)?.dateOfBirth ??
-              patientInput.dateOfBirth ??
-              null,
-            branch:
-              String(
-                (existingByIdentity as any)?.branch ??
-                  patientInput.branch ??
-                  "examinations",
-              ).trim() || "examinations",
-            serviceType:
-              patientInput.serviceType ??
-              (existingByIdentity as any)?.serviceType ??
-              null,
-            locationType:
-              (patientInput.serviceType === "external"
-                ? "external"
-                : patientInput.locationType) ??
-              (String(
-                (existingByIdentity as any)?.locationType ?? "",
-              ).trim() === "external"
-                ? "external"
-                : "center"),
-            doctorCode: doctorCode || null,
-            enteredBy:
-              String(
-                (ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "",
-              ).trim() || null,
-            serviceCode: patientInput.serviceCode || null,
-            servicePrice: pricingPayload.servicePrice,
-            discountValue: pricingPayload.discountValue,
-            paValue: pricingPayload.paValue,
-            shiftNumber: patientInput.shiftNumber ?? null,
-          }).catch((error) => {
-            mssqlPushError = String(
-              (error as any)?.message ?? error ?? "unknown",
-            );
-            console.warn("[mssql-push] createPatient(existing) failed", {
+          const existingFullNameForPush = String(
+            (existingByIdentity as any)?.fullName ??
+              patientInput.fullName ??
+              "",
+          ).trim();
+          // MSSQL push is several sequential round trips to a remote server
+          // (schema lookup, applock, header+service inserts) — don't block
+          // the response on it. Runs in background; outcome is logged/notified
+          // once it settles.
+          void (async () => {
+            const result = await pushNewPatientToMssql({
               patientCode: existingCode,
-              message: mssqlPushError,
-            });
-            return null;
-          });
-          if (!pushResult?.inserted && pushResult?.note) {
-            mssqlPushError = pushResult.note;
-          }
-          await db.logAuditEvent(
-            ctx.user.id,
-            "CREATE_PATIENT_RECEIPT_EXISTING",
-            "patient",
-            existingId,
-            {
-              message: `Created new receipt for existing patient (name/phone match): ${String((existingByIdentity as any)?.fullName ?? "")}`,
-              patientCode: existingCode,
-              mssqlPushError,
-            },
-          );
-          const notificationSettings = await getAppNotificationSettings().catch(
-            () => DEFAULT_APP_NOTIFICATION_SETTINGS,
-          );
-          if (notificationSettings.patients.enabled) {
-            const notifTitle = resolvePatientNotifTitle(
-              [patientInput.serviceCode].filter(Boolean) as string[],
-            );
-            const existingFullName = String(
-              (existingByIdentity as any)?.fullName ??
-                patientInput.fullName ??
-                "",
-            ).trim();
-            await pushAppNotification({
-              title: notifTitle,
-              message:
-                existingFullName || String(patientInput.fullName ?? "").trim(),
-              kind: "success",
-              source: "manual_patient_create",
-              entityType: "patient",
-              entityId: existingId || null,
-              meta: {
-                patientCode: existingCode,
-                fullName: existingFullName || patientInput.fullName,
-                reused: true,
-                receiptNo: pushResult?.trNo ?? null,
-                createdBy:
-                  String(
-                    (ctx.user as any)?.name ??
-                      (ctx.user as any)?.username ??
-                      "",
-                  ).trim() || null,
-              },
-              channels: {
-                inApp: notificationSettings.patients.inApp,
-                push: notificationSettings.patients.push,
-                local: notificationSettings.patients.local,
-              },
+              fullName: existingFullNameForPush,
+              phone:
+                String(
+                  (existingByIdentity as any)?.phone ?? patientInput.phone ?? "",
+                ).trim() || null,
+              address:
+                String(
+                  (existingByIdentity as any)?.address ??
+                    patientInput.address ??
+                    "",
+                ).trim() || null,
+              age: Number.isFinite(Number((existingByIdentity as any)?.age))
+                ? Number((existingByIdentity as any)?.age)
+                : Number.isFinite(Number(patientInput.age))
+                  ? Number(patientInput.age)
+                  : null,
+              gender:
+                String((existingByIdentity as any)?.gender ?? "").trim() || null,
+              dateOfBirth:
+                (existingByIdentity as any)?.dateOfBirth ??
+                patientInput.dateOfBirth ??
+                null,
+              branch:
+                String(
+                  (existingByIdentity as any)?.branch ??
+                    patientInput.branch ??
+                    "examinations",
+                ).trim() || "examinations",
+              serviceType:
+                patientInput.serviceType ??
+                (existingByIdentity as any)?.serviceType ??
+                null,
+              locationType:
+                (patientInput.serviceType === "external"
+                  ? "external"
+                  : patientInput.locationType) ??
+                (String(
+                  (existingByIdentity as any)?.locationType ?? "",
+                ).trim() === "external"
+                  ? "external"
+                  : "center"),
+              doctorCode: doctorCode || null,
+              enteredBy:
+                String(
+                  (ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "",
+                ).trim() || null,
+              serviceCode: patientInput.serviceCode || null,
+              servicePrice: pricingPayload.servicePrice,
+              discountValue: pricingPayload.discountValue,
+              paValue: pricingPayload.paValue,
+              shiftNumber: patientInput.shiftNumber ?? null,
             }).catch((error) => {
-              console.warn(
-                "[patient-create-existing] Failed to append app notification:",
-                error,
-              );
+              console.warn("[mssql-push] createPatient(existing) failed", {
+                patientCode: existingCode,
+                message: String((error as any)?.message ?? error ?? "unknown"),
+              });
+              return null;
             });
-          }
+            const mssqlPushError =
+              !result?.inserted && result?.note ? result.note : null;
+            await db
+              .logAuditEvent(
+                ctx.user.id,
+                "CREATE_PATIENT_RECEIPT_EXISTING",
+                "patient",
+                existingId,
+                {
+                  message: `Created new receipt for existing patient (name/phone match): ${existingFullNameForPush}`,
+                  patientCode: existingCode,
+                  mssqlPushError,
+                },
+              )
+              .catch(() => null);
+            const notificationSettings = await getAppNotificationSettings().catch(
+              () => DEFAULT_APP_NOTIFICATION_SETTINGS,
+            );
+            if (notificationSettings.patients.enabled) {
+              const notifTitle = resolvePatientNotifTitle(
+                [patientInput.serviceCode].filter(Boolean) as string[],
+              );
+              await pushAppNotification({
+                title: notifTitle,
+                message:
+                  existingFullNameForPush ||
+                  String(patientInput.fullName ?? "").trim(),
+                kind: "success",
+                source: "manual_patient_create",
+                entityType: "patient",
+                entityId: existingId || null,
+                meta: {
+                  patientCode: existingCode,
+                  fullName: existingFullNameForPush || patientInput.fullName,
+                  reused: true,
+                  receiptNo: result?.trNo ?? null,
+                  createdBy:
+                    String(
+                      (ctx.user as any)?.name ??
+                        (ctx.user as any)?.username ??
+                        "",
+                    ).trim() || null,
+                },
+                channels: {
+                  inApp: notificationSettings.patients.inApp,
+                  push: notificationSettings.patients.push,
+                  local: notificationSettings.patients.local,
+                },
+              }).catch((error) => {
+                console.warn(
+                  "[patient-create-existing] Failed to append app notification:",
+                  error,
+                );
+              });
+            }
+          })();
           // Auto-link to external doctor portal and notify
           if (existingCode && doctorCode) {
             const existingName = String(
@@ -392,9 +387,10 @@ export const medicalPatientRoutes = {
             reused: true,
             patientId: existingId,
             patientCode: existingCode,
-            receiptNo: pushResult?.trNo ?? null,
-            mssqlLinked: Boolean(pushResult?.inserted),
-            ...(mssqlPushError ? { mssqlWarning: mssqlPushError } : {}),
+            // MSSQL push runs in background now — receipt # isn't known yet.
+            receiptNo: null,
+            mssqlLinked: false,
+            mssqlPending: true,
           };
         }
         const code =
@@ -461,64 +457,70 @@ export const medicalPatientRoutes = {
             } as any)
             .catch(() => null);
         }
-        let pushResult: {
-          inserted: boolean;
-          note?: string;
-          trNo?: number | null;
-        } | null = null;
-        let mssqlPushError: string | null = null;
+        // MSSQL push is several sequential round trips to a remote server —
+        // don't block the response on it. Runs in background; outcome is
+        // logged/notified once it settles.
         if (created?.patientCode && created?.fullName) {
-          // Prefer explicit doctorCode, then doctorId, then doctorName.
-          let doctorCode = String(patientInput.doctorCode ?? "").trim() || null;
-          if (!doctorCode) {
-            doctorCode =
-              (await resolveDoctorCodeById((created as any).doctorId)) ?? null;
-          }
-          if (!doctorCode) {
-            doctorCode =
-              (await resolveDoctorCodeByName(
-                patientInput.doctorName ?? null,
-              )) ?? null;
-          }
-          console.log(`[createPatient] Resolved doctorCode=${doctorCode}`);
-          const pricingPayload = registrationPricingPayload({
-            servicePrice: patientInput.servicePrice,
-            discountValue: patientInput.discountValue,
-          });
-          console.log("[createPatient] Attempting MSSQL push for new patient", {
-            patientCode: String(created.patientCode),
-          });
-          pushResult = await pushNewPatientToMssql({
-            patientCode: String(created.patientCode),
-            fullName: String(created.fullName),
-            phone: created.phone,
-            address: created.address,
-            age: created.age,
-            gender: (created as any).gender ?? null,
-            dateOfBirth: (created as any).dateOfBirth ?? null,
-            branch: (created as any).branch ?? "examinations",
-            serviceType: (created as any).serviceType ?? null,
-            locationType: (created as any).locationType ?? "center",
-            doctorCode: doctorCode || null,
-            enteredBy:
-              String(
-                (ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "",
-              ).trim() || null,
-            serviceCode: patientInput.serviceCode || null,
-            servicePrice: pricingPayload.servicePrice,
-            discountValue: pricingPayload.discountValue,
-            paValue: pricingPayload.paValue,
-            shiftNumber: patientInput.shiftNumber ?? null,
-          }).catch((error) => {
-            mssqlPushError = String(
-              (error as any)?.message ?? error ?? "unknown",
-            );
-            console.warn("[mssql-push] createPatient failed", {
-              patientCode: String(created.patientCode),
-              message: mssqlPushError,
+          void (async () => {
+            let doctorCode = String(patientInput.doctorCode ?? "").trim() || null;
+            if (!doctorCode) {
+              doctorCode =
+                (await resolveDoctorCodeById((created as any).doctorId)) ?? null;
+            }
+            if (!doctorCode) {
+              doctorCode =
+                (await resolveDoctorCodeByName(
+                  patientInput.doctorName ?? null,
+                )) ?? null;
+            }
+            const pricingPayload = registrationPricingPayload({
+              servicePrice: patientInput.servicePrice,
+              discountValue: patientInput.discountValue,
             });
-            return null;
-          });
+            const result = await pushNewPatientToMssql({
+              patientCode: String(created.patientCode),
+              fullName: String(created.fullName),
+              phone: created.phone,
+              address: created.address,
+              age: created.age,
+              gender: (created as any).gender ?? null,
+              dateOfBirth: (created as any).dateOfBirth ?? null,
+              branch: (created as any).branch ?? "examinations",
+              serviceType: (created as any).serviceType ?? null,
+              locationType: (created as any).locationType ?? "center",
+              doctorCode: doctorCode || null,
+              enteredBy:
+                String(
+                  (ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "",
+                ).trim() || null,
+              serviceCode: patientInput.serviceCode || null,
+              servicePrice: pricingPayload.servicePrice,
+              discountValue: pricingPayload.discountValue,
+              paValue: pricingPayload.paValue,
+              shiftNumber: patientInput.shiftNumber ?? null,
+            }).catch((error) => {
+              console.warn("[mssql-push] createPatient failed", {
+                patientCode: String(created.patientCode),
+                message: String((error as any)?.message ?? error ?? "unknown"),
+              });
+              return null;
+            });
+            const mssqlLinked = Boolean(result?.inserted);
+            if (!mssqlLinked) {
+              await db
+                .logAuditEvent(
+                  ctx.user.id,
+                  "CREATE_PATIENT",
+                  "patient",
+                  created?.id ?? 0,
+                  {
+                    message: `Created patient: ${input.fullName}`,
+                    mssqlWarning: result?.note || "MSSQL sync failed",
+                  },
+                )
+                .catch(() => null);
+            }
+          })();
         }
         await db.logAuditEvent(
           ctx.user.id,
@@ -568,21 +570,6 @@ export const medicalPatientRoutes = {
           });
         }
 
-        const mssqlLinked = Boolean(pushResult?.inserted);
-        if (!mssqlLinked && (mssqlPushError || pushResult?.note)) {
-          await db.logAuditEvent(
-            ctx.user.id,
-            "CREATE_PATIENT",
-            "patient",
-            created?.id ?? 0,
-            {
-              message: `Created patient: ${input.fullName}`,
-              mssqlWarning:
-                mssqlPushError || pushResult?.note || "MSSQL sync failed",
-            },
-          );
-        }
-
         // Auto-link to external doctor portal and notify
         if (created?.patientCode && created?.fullName) {
           let resolvedCode = String(patientInput.doctorCode ?? "").trim() || null;
@@ -608,11 +595,10 @@ export const medicalPatientRoutes = {
           success: true,
           patientId: created?.id ?? 0,
           patientCode: code,
-          receiptNo: pushResult?.trNo ?? null,
-          mssqlLinked,
-          mssqlNote: !mssqlLinked
-            ? mssqlPushError || pushResult?.note
-            : undefined,
+          // MSSQL push runs in background now — receipt # isn't known yet.
+          receiptNo: null,
+          mssqlLinked: false,
+          mssqlPending: true,
         };
       } catch (error) {
         if (error instanceof TRPCError) throw error;

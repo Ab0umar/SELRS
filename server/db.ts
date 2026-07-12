@@ -7052,16 +7052,46 @@ export async function rolloverPreviousQueueVisitsAsTreated(dateIso: string) {
 /**
  * Auto-assign checkedIn visits to clinic 1 or 2 (least-loaded).
  */
-/** Service codes routed to clinic 1/2 (load-balanced). */
-const CLINIC_QUEUE_SERVICE_CODES = new Set([
-  "1522", "1523", "1586", "1589", "1602", "1604", "1605", "1606", "1608",
-  "1609", "1613",
-]);
+// Which service codes route to clinic vs pentacam is derived from the live
+// services catalog (category: "examination" -> clinic, "radiology" -> pentacam)
+// instead of a hardcoded list, which went stale as services were added and
+// silently dropped every unlisted code into "treated".
+let queueServiceCodeSetsCache: {
+  clinic: Set<string>;
+  pentacam: Set<string>;
+  fetchedAt: number;
+} | null = null;
+const QUEUE_SERVICE_CODE_CACHE_MS = 60_000;
 
-/** Service codes routed to the Pentacam queue. */
-const PENTACAM_QUEUE_SERVICE_CODES = new Set([
-  "1502", "1524", "1590", "1600", "1601", "1615",
-]);
+async function getQueueServiceCodeSets(): Promise<{
+  clinic: Set<string>;
+  pentacam: Set<string>;
+}> {
+  if (
+    queueServiceCodeSetsCache &&
+    Date.now() - queueServiceCodeSetsCache.fetchedAt < QUEUE_SERVICE_CODE_CACHE_MS
+  ) {
+    return queueServiceCodeSetsCache;
+  }
+  const conn = await getDb();
+  const clinic = new Set<string>();
+  const pentacam = new Set<string>();
+  if (conn) {
+    const rows = await conn
+      .select({ code: services.code, category: services.category })
+      .from(services)
+      .where(eq(services.isActive, true));
+    for (const row of rows as { code: string; category: string | null }[]) {
+      const code = String(row.code ?? "").trim();
+      if (!code) continue;
+      const category = String(row.category ?? "").trim().toLowerCase();
+      if (category === "examination") clinic.add(code);
+      else if (category === "radiology") pentacam.add(code);
+    }
+  }
+  queueServiceCodeSetsCache = { clinic, pentacam, fetchedAt: Date.now() };
+  return queueServiceCodeSetsCache;
+}
 
 /**
  * Resolve the initial queue status/timestamp for a freshly created visit,
@@ -7074,8 +7104,9 @@ export async function resolveInitialQueueStatus(
   dateIso: string,
 ): Promise<{ queueStatus: "clinic1" | "clinic2" | "pentacam" | "treated"; timestampField: "movedToClinicAt" | "movedToPentacamAt" | "treatedAt" }> {
   const codes = new Set(serviceCodes.map((c) => String(c ?? "").trim()).filter(Boolean));
-  const hasClinicCode = [...codes].some((c) => CLINIC_QUEUE_SERVICE_CODES.has(c));
-  const hasPentacamCode = [...codes].some((c) => PENTACAM_QUEUE_SERVICE_CODES.has(c));
+  const { clinic, pentacam } = await getQueueServiceCodeSets();
+  const hasClinicCode = [...codes].some((c) => clinic.has(c));
+  const hasPentacamCode = [...codes].some((c) => pentacam.has(c));
 
   if (hasClinicCode) {
     const clinicNo = await getNextAlternatingClinicNo(dateIso);
@@ -7128,12 +7159,13 @@ export async function autoAdvanceQueuePatients(dateIso: string) {
   // everything else (no matching service code) is treated immediately.
   // Followup visits are routed like clinic-service-code visits (left in place
   // for cascade to pull into clinic1/clinic2), never force-treated.
+  const { clinic: clinicCodes, pentacam: pentacamCodes } = await getQueueServiceCodeSets();
   for (const row of checkedInRows) {
     const codes = servicesByPatient.get(row.patientId) ?? new Set<string>();
     const hasClinicCode =
       row.visitType === "followup" ||
-      [...codes].some((c) => CLINIC_QUEUE_SERVICE_CODES.has(c));
-    const hasPentacamCode = [...codes].some((c) => PENTACAM_QUEUE_SERVICE_CODES.has(c));
+      [...codes].some((c) => clinicCodes.has(c));
+    const hasPentacamCode = [...codes].some((c) => pentacamCodes.has(c));
 
     if (hasClinicCode) {
       continue;
@@ -7302,10 +7334,11 @@ export async function cascadeQueueStatus(dateIso: string) {
     const codes = new Set<string>(
       serviceRows.map((r: { serviceCode: string | null }) => String(r.serviceCode ?? "").trim()),
     );
+    const { clinic: clinicCodes2, pentacam: pentacamCodes2 } = await getQueueServiceCodeSets();
     const hasClinicCode =
       nextVisit.visitType === "followup" ||
-      [...codes].some((c) => CLINIC_QUEUE_SERVICE_CODES.has(c));
-    const hasPentacamCode = [...codes].some((c) => PENTACAM_QUEUE_SERVICE_CODES.has(c));
+      [...codes].some((c) => clinicCodes2.has(c));
+    const hasPentacamCode = [...codes].some((c) => pentacamCodes2.has(c));
 
     if (hasClinicCode) {
       const clinicNo = await getNextAlternatingClinicNo(db, dateIso);
