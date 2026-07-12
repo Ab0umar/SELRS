@@ -440,7 +440,7 @@ SELECT DISTINCT ${top}
   h.ENTEREDBY AS enteredBy
 ${receiptsInquiryTables(patientFiltered)}
 ${andWhere(where)}
-ORDER BY h.TR_DT DESC, h.TR_NO DESC`.trim();
+ORDER BY trDate DESC, trNo DESC`.trim();
 
   return { sql, params: cleanParams(params) };
 }
