@@ -3,7 +3,7 @@
  * Syncs punch data from FK device to MySQL via FKOldLogPuller.exe
  */
 
-import { FKAttendLogPuller, FKPunch } from "./fkAttendLogPuller";
+import { FKAttendLogPuller, FKPunch, FKDeviceConfig } from "./fkAttendLogPuller";
 import { DeviceSettingsService } from "./deviceSettings.service";
 import { DailyMaterializer } from "./dailyMaterializer";
 import { getDb } from "../../db";
@@ -71,7 +71,7 @@ export class FKDeviceSyncService {
       console.log("[FKSync] Pulling logs from device...");
       const settings = DeviceSettingsService.getSettings();
       const resolvedConfig = { protocol: settings.fkProtocol ?? 0, ...deviceConfig };
-      const allPunches = await FKAttendLogPuller.pullLogs(resolvedConfig);
+      const allPunches = await this.pullLogsWithProtocolFallback(resolvedConfig);
       // Filter to new punches only (after last HWM)
       const fkPunches = lastHwm
         ? allPunches.filter((p) => p.timestamp > lastHwm)
@@ -263,6 +263,39 @@ export class FKDeviceSyncService {
       console.error(
         `[FKSync] Failed to record sync run: ${error instanceof Error ? error.message : error}`,
       );
+    }
+  }
+
+  /**
+   * Pull logs using the configured protocol; on connect failure, retry once with
+   * the other protocol value (0/1) and persist it as the working setting so
+   * subsequent syncs don't keep failing on a stale/wrong protocol.
+   */
+  private static async pullLogsWithProtocolFallback(
+    resolvedConfig: Partial<FKDeviceConfig>,
+  ): Promise<FKPunch[]> {
+    try {
+      return await FKAttendLogPuller.pullLogs(resolvedConfig);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (!/connect failed/i.test(msg)) throw error;
+
+      const altProtocol = resolvedConfig.protocol === 1 ? 0 : 1;
+      console.warn(
+        `[FKSync] Connect failed with protocol=${resolvedConfig.protocol}, retrying with protocol=${altProtocol}`,
+      );
+      const punches = await FKAttendLogPuller.pullLogs({
+        ...resolvedConfig,
+        protocol: altProtocol,
+      });
+
+      console.log(`[FKSync] Retry succeeded — persisting fkProtocol=${altProtocol}`);
+      await DeviceSettingsService.updateSettings({
+        deviceId: 1,
+        fkProtocol: altProtocol as 0 | 1,
+      });
+
+      return punches;
     }
   }
 
