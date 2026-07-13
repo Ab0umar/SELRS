@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,7 +34,7 @@ export default function DeviceConsole() {
   const [commandInput, setCommandInput] = useState("");
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [logId, setLogId] = useState(1);
-  const [diagnosticIP, setDiagnosticIP] = useState("41.199.252.107");
+  const [diagnosticIP, setDiagnosticIP] = useState("192.168.0.10");
   const [diagnosticPort, setDiagnosticPort] = useState("5005");
   const consoleBottomRef = useRef<HTMLDivElement>(null);
 
@@ -55,9 +55,7 @@ export default function DeviceConsole() {
     refetchInterval: 3000,
   });
 
-  const sendCommand = useMutation({
-    mutationFn: (hex: string) =>
-      tRPC.attendance.sendDeviceCommand.mutate({ hex }),
+  const sendCommand = tRPC.attendance.sendDeviceCommand.useMutation({
     onSuccess: (result: any) => {
       addLog("command", `Sent: ${commandInput}`);
       addLog(
@@ -71,9 +69,7 @@ export default function DeviceConsole() {
     },
   });
 
-  const requestStatus = useMutation({
-    mutationFn: () =>
-      tRPC.attendance.sendDeviceCommand.mutate({ hex: "AABB0000" }),
+  const requestStatus = tRPC.attendance.sendDeviceCommand.useMutation({
     onSuccess: () => {
       addLog("command", "Requested device status");
     },
@@ -82,9 +78,7 @@ export default function DeviceConsole() {
     },
   });
 
-  const requestEmployeeData = useMutation({
-    mutationFn: () =>
-      tRPC.attendance.sendDeviceCommand.mutate({ hex: "AABB0100" }),
+  const requestEmployeeData = tRPC.attendance.sendDeviceCommand.useMutation({
     onSuccess: () => {
       addLog("command", "Requested employee data");
     },
@@ -93,12 +87,7 @@ export default function DeviceConsole() {
     },
   });
 
-  const runDiagnostics = useMutation({
-    mutationFn: () =>
-      tRPC.attendance.runDeviceDiagnostics.mutate({
-        ip: diagnosticIP,
-        port: parseInt(diagnosticPort) || 5005,
-      }),
+  const runDiagnostics = tRPC.attendance.runDeviceDiagnostics.useMutation({
     onSuccess: (result: any) => {
       addLog(
         "command",
@@ -158,7 +147,7 @@ export default function DeviceConsole() {
       return;
     }
 
-    sendCommand.mutate(commandInput.toUpperCase());
+    sendCommand.mutate({ hex: commandInput.toUpperCase() });
   };
 
   const isConnected = !!deviceStatusQuery.data?.connected;
@@ -244,7 +233,7 @@ export default function DeviceConsole() {
                 <span className="text-xs font-medium text-zinc-500">Quick Commands</span>
                 <div className="grid grid-cols-2 gap-2">
                   <Button
-                    onClick={() => requestStatus.mutate()}
+                    onClick={() => requestStatus.mutate({ hex: "AABB0000" })}
                     disabled={requestStatus.isPending}
                     variant="outline"
                     className="text-xs py-1.5 h-auto font-medium hover:bg-zinc-50 border-zinc-200 active:opacity-90 transition-opacity"
@@ -252,7 +241,7 @@ export default function DeviceConsole() {
                     {requestStatus.isPending ? "Sending..." : "Query Status"}
                   </Button>
                   <Button
-                    onClick={() => requestEmployeeData.mutate()}
+                    onClick={() => requestEmployeeData.mutate({ hex: "AABB0100" })}
                     disabled={requestEmployeeData.isPending}
                     variant="outline"
                     className="text-xs py-1.5 h-auto font-medium hover:bg-zinc-50 border-zinc-200 active:opacity-90 transition-opacity"
@@ -316,7 +305,7 @@ export default function DeviceConsole() {
                     type="text"
                     value={diagnosticIP}
                     onChange={(e) => setDiagnosticIP(e.target.value)}
-                    placeholder="41.199.252.107"
+                    placeholder="192.168.0.10"
                     className="text-xs h-9 border-zinc-200 placeholder:text-zinc-400"
                   />
                 </div>
@@ -334,7 +323,12 @@ export default function DeviceConsole() {
                 </div>
               </div>
               <Button
-                onClick={() => runDiagnostics.mutate()}
+                onClick={() =>
+                  runDiagnostics.mutate({
+                    ip: diagnosticIP,
+                    port: parseInt(diagnosticPort) || 5005,
+                  })
+                }
                 disabled={runDiagnostics.isPending}
                 className="w-full text-xs font-semibold bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-200 rounded-md transition-opacity active:opacity-90 py-2 h-auto"
               >
