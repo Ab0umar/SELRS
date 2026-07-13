@@ -432,16 +432,19 @@ export const attendanceSyncRoutes = {
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const config = input.ip
-          ? { ip: input.ip, port: input.port }
-          : undefined;
+        const settings = DeviceSettingsService.getSettings();
+        const config = {
+          ip: input.ip || settings.ip || undefined,
+          port: input.port || settings.port || undefined,
+          protocol: settings.fkProtocol ?? 0,
+        };
         const punches = await FKAttendLogPuller.pullLogs(config);
 
         AuditLogService.log({
           action: "device_logs_pulled",
           details: {
             count: punches.length,
-            ip: input.ip || "192.168.0.10",
+            ip: config.ip,
           },
           status: "success",
         });
@@ -480,7 +483,12 @@ export const attendanceSyncRoutes = {
       }),
     )
     .mutation(async ({ input }) => {
-      const config = input.ip ? { ip: input.ip, port: input.port } : undefined;
+      const settings = DeviceSettingsService.getSettings();
+      const config = {
+        ip: input.ip || settings.ip || undefined,
+        port: input.port || settings.port || undefined,
+        protocol: settings.fkProtocol ?? 0,
+      };
       const punches = await FKAttendLogPuller.pullLogs(config);
       return {
         success: true,

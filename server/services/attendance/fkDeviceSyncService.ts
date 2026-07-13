@@ -70,7 +70,12 @@ export class FKDeviceSyncService {
       // Step 1: Pull logs from device (always returns all records from device memory)
       console.log("[FKSync] Pulling logs from device...");
       const settings = DeviceSettingsService.getSettings();
-      const resolvedConfig = { protocol: settings.fkProtocol ?? 0, ...deviceConfig };
+      const resolvedConfig = {
+        ip: settings.ip || undefined,
+        port: settings.port || undefined,
+        protocol: settings.fkProtocol ?? 0,
+        ...deviceConfig,
+      };
       const allPunches = await this.pullLogsWithProtocolFallback(resolvedConfig);
       // Filter to new punches only (after last HWM)
       const fkPunches = lastHwm
