@@ -91,7 +91,7 @@ function LoadingRows() {
     <>
       {Array.from({ length: 4 }).map((_, rowIndex) => (
         <tr key={rowIndex}>
-          {Array.from({ length: 7 }).map((__, cellIndex) => (
+          {Array.from({ length: 8 }).map((__, cellIndex) => (
             <td key={cellIndex}>
               <Skeleton className="h-5 w-full min-w-16" />
             </td>
@@ -157,6 +157,7 @@ export default function ReceiptDetail() {
         { key: "serviceName", label: "الخدمة" },
         { key: "doctorCode", label: "كود الطبيب" },
         { key: "doctorName", label: "الطبيب" },
+        { key: "quantity", label: "العدد", align: "right" },
         { key: "price", label: "السعر", align: "right" },
         { key: "discountValue", label: "الخصم", align: "right" },
         { key: "paidValue", label: "المدفوع", align: "right" },
@@ -166,6 +167,7 @@ export default function ReceiptDetail() {
         serviceName: line.serviceName ?? "",
         doctorCode: line.doctorCode ?? line.serviceBy1 ?? "",
         doctorName: line.doctorName ?? "",
+        quantity: line.quantity,
         price: line.price,
         discountValue: line.discountValue,
         paidValue: line.paidValue,
@@ -401,6 +403,14 @@ export default function ReceiptDetail() {
                           </div>
                           <div className="rounded-xl bg-muted px-3 py-2">
                             <div className="text-[10px] text-muted-foreground">
+                              العدد
+                            </div>
+                            <div className="mt-1 font-semibold tabular-nums text-foreground">
+                              {toArabicDigits(String(line.quantity))}
+                            </div>
+                          </div>
+                          <div className="rounded-xl bg-muted px-3 py-2">
+                            <div className="text-[10px] text-muted-foreground">
                               السعر
                             </div>
                             <div className="mt-1 font-semibold tabular-nums text-foreground">
@@ -441,6 +451,7 @@ export default function ReceiptDetail() {
                         <col className={reportStyles.colCompact} />
                         <col className={reportStyles.colCompact} />
                         <col className={reportStyles.colCompact} />
+                        <col className={reportStyles.colCompact} />
                       </colgroup>
                       <thead>
                         <tr>
@@ -451,6 +462,9 @@ export default function ReceiptDetail() {
                           <th scope="col">الطبيب</th>
                           <th scope="col" className={reportStyles.numeric}>
                             التاريخ
+                          </th>
+                          <th scope="col" className={reportStyles.numeric}>
+                            العدد
                           </th>
                           <th scope="col" className={reportStyles.numeric}>
                             السعر
@@ -492,6 +506,12 @@ export default function ReceiptDetail() {
                                   {formatDateAr(line.entryDate)}
                                 </td>
                                 <td
+                                  data-label="العدد"
+                                  className={reportStyles.numeric}
+                                >
+                                  {toArabicDigits(String(line.quantity))}
+                                </td>
+                                <td
                                   data-label="السعر"
                                   className={reportStyles.numeric}
                                 >
@@ -515,7 +535,7 @@ export default function ReceiptDetail() {
                       </tbody>
                       <tfoot>
                         <tr className={reportStyles.detailFooterRow}>
-                          <td colSpan={4}>إجمالي الإيصال</td>
+                          <td colSpan={5}>إجمالي الإيصال</td>
                           <td className={reportStyles.numeric}>
                             {formatMoney(totals.totalGross)}
                           </td>
