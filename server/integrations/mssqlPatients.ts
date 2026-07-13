@@ -3661,6 +3661,11 @@ export async function ensurePatientServiceInMssql(
       },
     );
 
+    // Row already existed if OUTPUT returned nothing (NOT EXISTS blocked the
+    // insert) — e.g. this same service code was already added earlier in this
+    // receipt. Used below to accumulate quantity instead of overwriting it.
+    const rowAlreadyExisted = resolvedSrvTrNo == null;
+
     // If the row already existed (NOT EXISTS blocked the insert, OUTPUT
     // returned nothing), fall back to looking up the existing row's TR_NO so
     // doctor/price/discount updates below still scope to the right receipt.
@@ -3763,10 +3768,39 @@ export async function ensurePatientServiceInMssql(
       }
     }
     const q = Number(quantityRaw);
-    const desiredQty =
+    const requestedQty =
       Number.isFinite(q) && q > 0
         ? Math.trunc(q)
         : await getDesiredServiceQty(serviceCode);
+    // Adding the same service again to a receipt that already has a row for
+    // it (e.g. two "add service" lines with the same code in one submission)
+    // must accumulate onto the existing quantity — applyPapatSrvDefaults does
+    // an absolute SET QTY = @QTY, so without this the second call silently
+    // resets the row back down to its own single-call quantity instead of
+    // reflecting both additions.
+    let desiredQty = requestedQty;
+    if (rowAlreadyExisted) {
+      const qtyColName = srvCols.has("QTY")
+        ? "QTY"
+        : srvCols.has("SRV_QTY")
+          ? "SRV_QTY"
+          : "";
+      if (qtyColName) {
+        const existingQtyReq = pool.request();
+        existingQtyReq.input("PAT_CD", patientCode);
+        existingQtyReq.input("SRV_CD", serviceCode);
+        const existingQtyRs = await existingQtyReq.query(`
+          SELECT TOP 1
+            CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${qtyColName})) = 1 THEN CAST(CONVERT(varchar(50), ${qtyColName}) AS INT) ELSE NULL END AS QTY
+          FROM op2026.dbo.PAPAT_SRV
+          WHERE PAT_CD = @PAT_CD AND SRV_CD = @SRV_CD${srvTrNoFilter}
+        `);
+        const existingQty = Number(existingQtyRs?.recordset?.[0]?.QTY);
+        if (Number.isFinite(existingQty) && existingQty > 0) {
+          desiredQty = existingQty + requestedQty;
+        }
+      }
+    }
     const discountValue =
       discountValueRaw != null &&
       Number.isFinite(Number(discountValueRaw)) &&
