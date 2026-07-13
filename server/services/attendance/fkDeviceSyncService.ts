@@ -74,6 +74,7 @@ export class FKDeviceSyncService {
         ip: settings.ip || undefined,
         port: settings.port || undefined,
         protocol: settings.fkProtocol ?? 0,
+        password: settings.commPassword ?? 0,
         ...deviceConfig,
       };
       const allPunches = await this.pullLogsWithProtocolFallback(resolvedConfig);

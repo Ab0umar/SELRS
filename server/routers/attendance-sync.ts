@@ -437,6 +437,7 @@ export const attendanceSyncRoutes = {
           ip: input.ip || settings.ip || undefined,
           port: input.port || settings.port || undefined,
           protocol: settings.fkProtocol ?? 0,
+          password: settings.commPassword ?? 0,
         };
         const punches = await FKAttendLogPuller.pullLogs(config);
 
@@ -488,6 +489,7 @@ export const attendanceSyncRoutes = {
         ip: input.ip || settings.ip || undefined,
         port: input.port || settings.port || undefined,
         protocol: settings.fkProtocol ?? 0,
+        password: settings.commPassword ?? 0,
       };
       const punches = await FKAttendLogPuller.pullLogs(config);
       return {

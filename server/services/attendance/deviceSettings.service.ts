@@ -30,11 +30,33 @@ export interface DeviceSettings {
   admsDetectedOffsetHours?: number | null; // auto-detected ADMS clock drift (K40 only)
 }
 
+// Verified working LAN address for the EF10K device (FK_DLL_DISCOVERY.md) — used
+// as the fallback when ATTENDANCE_DEVICE_IP isn't set.
+const EF10K_DEFAULT_IP = "192.168.0.10";
+
+// Connection fields (ip, port, comm key) come from environment variables only —
+// never from the DB — so device wiring lives in one place (.env) and can't drift
+// out of sync with what's actually reachable on the LAN.
+function ef10kEnvConfig() {
+  return {
+    ip: process.env.ATTENDANCE_DEVICE_IP || EF10K_DEFAULT_IP,
+    port: parseInt(process.env.ATTENDANCE_DEVICE_PORT || "5005", 10),
+    commPassword: parseInt(process.env.ATTENDANCE_DEVICE_COMM_KEY || "0", 10),
+  };
+}
+
+function k40EnvConfig() {
+  return {
+    ip: process.env.ZK_DEVICE_IP || "",
+    port: parseInt(process.env.ZK_DEVICE_PORT || "4370", 10),
+    commPassword: parseInt(process.env.ZK_COMM_KEY || "0", 10),
+  };
+}
+
 // In-memory caches keyed by device id
 let ef10kSettings: DeviceSettings = {
   enabled: process.env.ATTENDANCE_DEVICE_ENABLED === "true",
-  ip: process.env.ATTENDANCE_DEVICE_IP || "41.199.252.107",
-  port: parseInt(process.env.ATTENDANCE_DEVICE_PORT || "5005"),
+  ...ef10kEnvConfig(),
   protocol: "tcp",
   fallbackToAccess: true,
   realTimeSync: true,
@@ -43,14 +65,12 @@ let ef10kSettings: DeviceSettings = {
 
 let k40Settings: DeviceSettings = {
   enabled: process.env.ZK_DEVICE_ENABLED === "true",
-  ip: process.env.ZK_DEVICE_IP || "",
-  port: parseInt(process.env.ZK_DEVICE_PORT || "4370", 10),
+  ...k40EnvConfig(),
   protocol: "tcp",
   fallbackToAccess: false,
   realTimeSync: true,
   zk40Protocol: "tcp",
   fkProtocol: 0,
-  commPassword: parseInt(process.env.ZK_COMM_KEY || "0", 10),
   admsEnabled: true,
 };
 
@@ -85,15 +105,13 @@ export class DeviceSettingsService {
       if (dbEF10K) {
         ef10kSettings = {
           enabled: dbEF10K.enabled,
-          ip: process.env.ATTENDANCE_DEVICE_IP || dbEF10K.ip,
-          port: parseInt(process.env.ATTENDANCE_DEVICE_PORT || "", 10) || dbEF10K.port,
+          ...ef10kEnvConfig(),
           protocol: dbEF10K.protocol as "tcp" | "udp",
           fallbackToAccess: dbEF10K.fallbackToAccess,
           realTimeSync: dbEF10K.realTimeSync,
           lastConfigUpdate: dbEF10K.lastConfigUpdate || undefined,
           zk40Protocol: ((dbEF10K as any).zk40Protocol ?? "tcp") as "adms" | "tcp",
           fkProtocol: (dbEF10K as any).fkProtocol ?? 0,
-          commPassword: (dbEF10K as any).commPassword ?? 0,
           admsEnabled: (dbEF10K as any).admsEnabled ?? true,
         };
       } else {
@@ -111,15 +129,13 @@ export class DeviceSettingsService {
       if (dbK40) {
         k40Settings = {
           enabled: process.env.ZK_DEVICE_ENABLED === "true" || dbK40.enabled,
-          ip: process.env.ZK_DEVICE_IP || dbK40.ip,
-          port: parseInt(process.env.ZK_DEVICE_PORT || "", 10) || dbK40.port,
+          ...k40EnvConfig(),
           protocol: dbK40.protocol as "tcp" | "udp",
           fallbackToAccess: dbK40.fallbackToAccess,
           realTimeSync: dbK40.realTimeSync,
           lastConfigUpdate: dbK40.lastConfigUpdate || undefined,
           zk40Protocol: ((dbK40 as any).zk40Protocol ?? "tcp") as "adms" | "tcp",
           fkProtocol: (dbK40 as any).fkProtocol ?? 0,
-          commPassword: parseInt(process.env.ZK_COMM_KEY || "", 10) || (dbK40 as any).commPassword || 0,
           admsEnabled: (dbK40 as any).admsEnabled ?? true,
           admsDetectedOffsetHours: (dbK40 as any).admsDetectedOffsetHours ?? null,
         };
@@ -129,8 +145,8 @@ export class DeviceSettingsService {
         await db.insert(attendanceDeviceSettings).values({
           id: 2,
           enabled: src?.zk40Enabled ?? false,
-          ip: src?.zk40Ip ?? "",
-          port: src?.zk40Port ?? 4370,
+          ip: k40Settings.ip,
+          port: k40Settings.port,
           protocol: "tcp",
           fallbackToAccess: false,
           realTimeSync: true,
@@ -139,8 +155,7 @@ export class DeviceSettingsService {
         } as any);
         k40Settings = {
           enabled: src?.zk40Enabled ?? false,
-          ip: src?.zk40Ip ?? "",
-          port: src?.zk40Port ?? 4370,
+          ...k40EnvConfig(),
           protocol: "tcp",
           fallbackToAccess: false,
           realTimeSync: true,
@@ -157,14 +172,14 @@ export class DeviceSettingsService {
     }
   }
 
-  /** EF10K settings (id=1) */
+  /** EF10K settings (id=1). ip/port/commPassword always reflect current env vars. */
   static getSettings(): DeviceSettings {
-    return { ...ef10kSettings };
+    return { ...ef10kSettings, ...ef10kEnvConfig() };
   }
 
-  /** K40 Pro settings (id=2) */
+  /** K40 Pro settings (id=2). ip/port/commPassword always reflect current env vars. */
   static getK40Settings(): DeviceSettings {
-    return { ...k40Settings };
+    return { ...k40Settings, ...k40EnvConfig() };
   }
 
   /** Persist the auto-detected ADMS clock offset for K40 (id=2) so it survives restarts. */
@@ -177,17 +192,17 @@ export class DeviceSettingsService {
     updates: Partial<DeviceSettings> & { deviceId?: number },
   ): Promise<DeviceSettings> {
     const deviceId = updates.deviceId ?? 1;
-    const { deviceId: _, ...rest } = updates as any;
-
-    if (rest.ip && !this.isValidIP(rest.ip)) throw new Error("Invalid IP address format");
-    if (rest.port && (rest.port < 1 || rest.port > 65535)) throw new Error("Port must be between 1 and 65535");
+    // ip/port/commPassword are env-only (see ef10kEnvConfig/k40EnvConfig) and are
+    // not editable through this API — silently ignored if passed.
+    const { deviceId: _, ip: _ip, port: _port, commPassword: _cp, ...rest } =
+      updates as any;
 
     if (deviceId === 2) {
-      k40Settings = { ...k40Settings, ...rest, lastConfigUpdate: new Date() };
+      k40Settings = { ...k40Settings, ...rest, ...k40EnvConfig(), lastConfigUpdate: new Date() };
       await this.persistRow(2, k40Settings);
       return { ...k40Settings };
     } else {
-      ef10kSettings = { ...ef10kSettings, ...rest, lastConfigUpdate: new Date() };
+      ef10kSettings = { ...ef10kSettings, ...rest, ...ef10kEnvConfig(), lastConfigUpdate: new Date() };
       await this.persistRow(1, ef10kSettings);
       return { ...ef10kSettings };
     }
@@ -255,17 +270,6 @@ export class DeviceSettingsService {
     setTimeout(() => {
       if (ef10kSettings.enabled) device.connect();
     }, 1000);
-  }
-
-  private static isValidIP(ip: string): boolean {
-    if (!ip) return true; // empty is ok (K40 not configured yet)
-    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$|^localhost$|^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*$/;
-    if (!ipRegex.test(ip)) return false;
-    if (/^\d/.test(ip)) {
-      const parts = ip.split(".");
-      return parts.length === 4 && parts.every((p) => { const n = parseInt(p); return n >= 0 && n <= 255; });
-    }
-    return true;
   }
 
   static getConnectionUrl(): string {

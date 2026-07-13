@@ -94,12 +94,9 @@ export default function DeviceSettings() {
     try {
       await updateSettings.mutateAsync({
         deviceId: 1,
-        ip: ef10k.ip,
-        port: ef10k.port,
         enabled: ef10k.enabled,
         zk40Protocol: ef10k.zk40Protocol,
         fkProtocol: ef10k.fkProtocol,
-        commPassword: ef10k.commPassword,
       });
       setShowSuccess(true);
       settingsQuery.refetch();
@@ -110,12 +107,9 @@ export default function DeviceSettings() {
     try {
       await updateSettings.mutateAsync({
         deviceId: 2,
-        ip: k40.ip,
-        port: k40.port,
         enabled: k40.enabled,
         zk40Protocol: k40.zk40Protocol,
         fkProtocol: k40.fkProtocol,
-        commPassword: k40.commPassword,
       });
       setShowSuccess(true);
       settingsQuery.refetch();
@@ -352,9 +346,9 @@ export default function DeviceSettings() {
                   <input
                     type="text"
                     value={ef10k.ip}
-                    onChange={(e) => setEf10k({ ...ef10k, ip: e.target.value })}
-                    placeholder="192.168.0.10"
-                    className={`${inputCls} font-mono`}
+                    disabled
+                    readOnly
+                    className={`${inputCls} font-mono bg-slate-50 text-slate-500 cursor-not-allowed`}
                   />
                 </div>
                 <div className="space-y-1">
@@ -362,11 +356,15 @@ export default function DeviceSettings() {
                   <input
                     type="number"
                     value={ef10k.port}
-                    onChange={(e) => setEf10k({ ...ef10k, port: parseInt(e.target.value) || 5005 })}
-                    className={`${inputCls} font-mono`}
+                    disabled
+                    readOnly
+                    className={`${inputCls} font-mono bg-slate-50 text-slate-500 cursor-not-allowed`}
                   />
                 </div>
               </div>
+              <p className="text-[9px] text-slate-400">
+                * يُقرأ IP والمنفذ من متغيرات البيئة (.env) فقط ولا يمكن تعديلهما من هنا
+              </p>
 
               <div className="flex items-center gap-2">
                 <input
@@ -426,9 +424,9 @@ export default function DeviceSettings() {
                   <input
                     type="text"
                     value={k40.ip}
-                    onChange={(e) => setK40({ ...k40, ip: e.target.value })}
-                    placeholder="192.168.0.20"
-                    className={`${inputCls} font-mono`}
+                    disabled
+                    readOnly
+                    className={`${inputCls} font-mono bg-slate-50 text-slate-500 cursor-not-allowed`}
                   />
                 </div>
                 <div className="space-y-1">
@@ -436,11 +434,15 @@ export default function DeviceSettings() {
                   <input
                     type="number"
                     value={k40.port}
-                    onChange={(e) => setK40({ ...k40, port: parseInt(e.target.value) || 4370 })}
-                    className={`${inputCls} font-mono`}
+                    disabled
+                    readOnly
+                    className={`${inputCls} font-mono bg-slate-50 text-slate-500 cursor-not-allowed`}
                   />
                 </div>
               </div>
+              <p className="text-[9px] text-slate-400">
+                * يُقرأ IP والمنفذ من متغيرات البيئة (.env) فقط ولا يمكن تعديلهما من هنا
+              </p>
 
               <div className="flex items-center gap-2">
                 <input
