@@ -160,11 +160,16 @@ export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
             aria-required={required}
             aria-label={ariaLabel}
             placeholder={placeholder || "dd/mm/yyyy"}
-            // `size` (not a CSS width) sizes the box to ~10 characters using
+            // `size` (not a CSS width) sizes the box to ~11 characters using
             // the actual rendered font, and — unlike a fixed CSS width —
             // isn't ignored by a flex-basis:0 ancestor or clipped when a
             // caller sets an explicit wrapper width (e.g. className="w-32").
-            size={10}
+            // min-w-28 is a hard floor on top of that: size-based sizing
+            // varies with the actual font's digit widths, so this guarantees
+            // "dd/mm/yyyy" (10 chars, plus padding) never gets clipped even
+            // if a caller's wrapper width is too small — the box will grow
+            // past that wrapper rather than silently cut off the year.
+            size={11}
             value={text}
             onChange={(e) => setText(formatTyped(e.target.value))}
             onBlur={() => {
@@ -177,7 +182,7 @@ export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
                 commitText(text);
               }
             }}
-            className="w-auto min-w-0 border-0 shadow-none focus-visible:ring-0 tabular-nums"
+            className="w-auto min-w-28 border-0 shadow-none focus-visible:ring-0 tabular-nums"
           />
           <PopoverTrigger asChild>
             <Button
