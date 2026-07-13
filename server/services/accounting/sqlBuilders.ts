@@ -467,7 +467,7 @@ SELECT
   s.SRV_CD AS serviceCode,
   s.SRV_BY1 AS doctorCode,
   s.QTY AS quantity,
-  s.PRC AS price,
+  ISNULL(s.QTY, 0) * ISNULL(s.PRC, 0) AS price,
   h.TOTL AS receiptTotal,
   ISNULL(s.QTY, 0) * ISNULL(s.PRC, 0) AS lineGross,
   ISNULL(s.PA_VL, 0) - ISNULL(s.DISC_VL, 0) AS linePaid,
