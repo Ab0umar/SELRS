@@ -691,7 +691,7 @@ export default function LasikExamSheet() {
             <label className="inline-flex items-center gap-1 whitespace-nowrap min-w-0 shrink"><span className="text-[#434654] shrink-0">كود العميل:</span>
               <input size={(formData.patientCode || "").length || 6} className="min-w-0 font-normal text-xs text-[#526069] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={formData.patientCode} onChange={(e) => setFormData((p) => ({ ...p, patientCode: e.target.value }))} /></label>
             <label className="inline-flex items-center gap-1 whitespace-nowrap min-w-0 shrink"><span className="text-[#434654] shrink-0">تاريخ الفحص:</span>
-              <DateInput className="h-6 w-20 min-w-0 font-normal text-xs bg-transparent border-0 border-b border-[#c3c6d6] rounded-none px-1 text-right" value={formData.examinationDate} onChange={(e) => setFormData((p) => ({ ...p, examinationDate: e.target.value }))} /></label>
+              <DateInput className="h-6 font-normal text-xs bg-transparent border-0 border-b border-[#c3c6d6] rounded-none px-1 text-right" value={formData.examinationDate} onChange={(e) => setFormData((p) => ({ ...p, examinationDate: e.target.value }))} /></label>
             <label className="inline-flex items-center gap-1 whitespace-nowrap min-w-0 shrink"><span className="text-[#434654] shrink-0">الطبيب:</span>
               <input size={(signatures.doctor || "").length || 10} className="min-w-0 font-normal text-xs bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={signatures.doctor} onChange={(e) => setSignatures((p) => ({ ...p, doctor: e.target.value }))} /></label>
           </div>

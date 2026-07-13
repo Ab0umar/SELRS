@@ -213,7 +213,7 @@ export default function KfExamPage() {
         <div className="flex gap-2 items-end">
           <div className="space-y-1">
             <Label className="text-xs">التاريخ</Label>
-            <DateInput value={visitDate} onChange={(e) => setVisitDate(e.target.value)} className="h-8 text-xs w-32" />
+            <DateInput value={visitDate} onChange={(e) => setVisitDate(e.target.value)} className="h-8 text-xs w-36" />
           </div>
           <div className="space-y-1">
             <Label className="text-xs">الطبيب</Label>
