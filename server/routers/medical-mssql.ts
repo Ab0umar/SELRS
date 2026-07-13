@@ -536,6 +536,8 @@ export const medicalMssqlRoutes = {
             quantity: z.number().int().min(1).max(10).optional(),
             doctorCode: z.string().optional(),
             doctorName: z.string().optional(),
+            servicePrice: z.number().nonnegative().optional(),
+            discountValue: z.number().nonnegative().optional(),
           }),
         ),
       }),
@@ -565,6 +567,8 @@ export const medicalMssqlRoutes = {
           srv.quantity ?? null,
           String(srv.doctorCode ?? "").trim() || null,
           String(srv.doctorName ?? "").trim() || null,
+          srv.discountValue ?? null,
+          srv.servicePrice ?? null,
         );
         results.push({
           serviceCode: srv.code,
@@ -596,6 +600,8 @@ export const medicalMssqlRoutes = {
         quantity: z.number().int().min(1).max(10).optional(),
         doctorCode: z.string().optional(),
         doctorName: z.string().optional(),
+        servicePrice: z.number().nonnegative().optional(),
+        discountValue: z.number().nonnegative().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -621,6 +627,8 @@ export const medicalMssqlRoutes = {
         input.quantity ?? null,
         String(input.doctorCode ?? "").trim() || null,
         String(input.doctorName ?? "").trim() || null,
+        input.discountValue ?? null,
+        input.servicePrice ?? null,
       );
       if (!result.linked) {
         throw new TRPCError({

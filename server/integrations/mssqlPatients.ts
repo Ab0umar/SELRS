@@ -3464,6 +3464,7 @@ export async function ensurePatientServiceInMssql(
   doctorCodeRaw?: string | null,
   doctorNameRaw?: string | null,
   discountValueRaw?: number | null,
+  servicePriceRaw?: number | null,
 ): Promise<{ linked: boolean; note?: string }> {
   const patientCode = String(patientCodeRaw ?? "").trim();
   const serviceCode = String(serviceCodeRaw ?? "").trim();
@@ -3772,10 +3773,17 @@ export async function ensurePatientServiceInMssql(
       Number(discountValueRaw) >= 0
         ? Number(discountValueRaw)
         : null;
+    const servicePrice =
+      servicePriceRaw != null &&
+      Number.isFinite(Number(servicePriceRaw)) &&
+      Number(servicePriceRaw) > 0
+        ? Number(servicePriceRaw)
+        : null;
     await applyPapatSrvDefaults(pool, patientCode, serviceCode, desiredQty, {
       enteredBy,
       entryDate: todayDateOnly,
       discountValue,
+      serviceLinePrice: servicePrice,
       doctorCode: doctorCode || null,
       trNo: resolvedSrvTrNo,
     });

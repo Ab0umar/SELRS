@@ -1366,6 +1366,8 @@ export function useExaminationForm(
                   String(
                     (selectedDoctorEntry as any)?.name ?? doctorName ?? "",
                   ).trim() || undefined,
+                servicePrice: Number(srv.price) > 0 ? Number(srv.price) : undefined,
+                discountValue: Number(srv.discount) > 0 ? Number(srv.discount) : undefined,
               });
             } catch (err) {
               console.warn(`Failed to link service ${srv.code}:`, err);
