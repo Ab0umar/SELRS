@@ -100,6 +100,7 @@ export function useExaminationForm(
     age: "",
     address: "",
     phone: "",
+    alternatePhone: "",
     job: "",
     gender: "" as "male" | "female" | "",
   });
@@ -777,6 +778,7 @@ export function useExaminationForm(
       age: data.age != null ? String(data.age) : "",
       address: data.address ?? "",
       phone: data.phone ?? "",
+      alternatePhone: (data as any).alternatePhone ?? "",
       job: data.occupation ?? "",
       gender: (data.gender === "male" || data.gender === "female") ? data.gender : "",
     });
@@ -1321,6 +1323,7 @@ export function useExaminationForm(
           dateOfBirth: patientDetails.dateOfBirth || undefined,
           age: patientDetails.age ? Number(patientDetails.age) : undefined,
           phone: patientDetails.phone || undefined,
+          alternatePhone: patientDetails.alternatePhone || undefined,
           address: patientDetails.address || undefined,
           occupation: patientDetails.job || undefined,
           gender: (patientDetails.gender || undefined) as "male" | "female" | undefined,
@@ -1344,6 +1347,7 @@ export function useExaminationForm(
           patientCode: patientInfo.code || undefined,
           fullName: patientInfo.name.trim(),
           phone: patientDetails.phone || undefined,
+          alternatePhone: patientDetails.alternatePhone || undefined,
           serviceType: (sheetSelection as any) || "consultant",
           locationType,
           visitDate: localISODate(),
@@ -1483,6 +1487,7 @@ export function useExaminationForm(
           age: "",
           address: "",
           phone: "",
+          alternatePhone: "",
           job: "",
           gender: "",
         });

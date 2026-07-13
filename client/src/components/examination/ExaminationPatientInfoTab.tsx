@@ -184,6 +184,24 @@ export default function ExaminationPatientInfoTab({
                     dir="ltr"
                   />
                 </div>
+                <div>
+                  <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                    رقم موبايل بديل
+                  </Label>
+                  <Input
+                    value={patientDetails.alternatePhone}
+                    onChange={(e) =>
+                      setPatientDetails((prev) => ({
+                        ...prev,
+                        alternatePhone: digitsOnly(e.target.value),
+                      }))
+                    }
+                    readOnly={!canEditPatientData}
+                    className="text-sm border h-9 px-3 tracking-widest bg-background"
+                    placeholder="01xxxxxxxxx (اختياري)"
+                    dir="ltr"
+                  />
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">

@@ -765,6 +765,7 @@ export const medicalPatientRoutes = {
         dateOfBirth: z.string().optional(),
         age: z.number().optional(),
         phone: z.string().optional(),
+        alternatePhone: z.string().optional(),
         address: z.string().optional(),
         occupation: z.string().optional(),
         gender: z.enum(["male", "female"]).optional(),
@@ -871,6 +872,21 @@ export const medicalPatientRoutes = {
         // ── Step 4: sync MSSQL → MySQL (create/update patient + today visit) ─
         const { patientId } = await createOrSyncPatientFromMssql(patientCode, input.serviceType, input.visitDate);
         _mark("createOrSyncPatientFromMssql done");
+
+        // alternatePhone has no MSSQL column mapping — store it locally only,
+        // after the MSSQL sync above so it isn't overwritten by that sync.
+        if (patientId && String(input.alternatePhone ?? "").trim()) {
+          await db
+            .updatePatient(patientId, {
+              alternatePhone: String(input.alternatePhone).trim(),
+            })
+            .catch((err) =>
+              console.warn(
+                "[createPatientFromExamination] alternatePhone update failed:",
+                err,
+              ),
+            );
+        }
 
         // ── Step 5: notify ─────────────────────────────────────────────────
         const notifSettings = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
