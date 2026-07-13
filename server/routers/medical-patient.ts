@@ -854,12 +854,17 @@ export const medicalPatientRoutes = {
         }).catch((err) => { console.warn("[createPatientFromExamination] MSSQL push failed:", err); return null; });
         _mark("primary MSSQL push done");
 
-        // Push remaining services in the background — not needed for the
-        // MSSQL->MySQL readback below, which only reads patient demographics.
+        // Push remaining services sequentially (must be awaited, not fired
+        // concurrently): each call independently does a dedup-check-then-
+        // insert-header decision and a sum-all-service-lines total recompute
+        // for this receipt. Running them in parallel raced — two calls could
+        // both see "no recent receipt yet" and each insert a duplicate header,
+        // or the total recompute could run before a sibling call's service
+        // row had committed, leaving the receipt total short.
         for (let i = 1; i < processServices.length; i++) {
           const srv = processServices[i];
           const p = registrationPricingPayload({ servicePrice: srv.price, serviceQty: Number(srv.qty) || 1, discountValue: srv.discount });
-          void pushNewPatientToMssql({ patientCode, fullName: input.fullName, branch: "examinations", serviceCode: srv.code, doctorCode: doctorCode || null, shiftNumber: input.shiftNumber ?? null, ...p })
+          await pushNewPatientToMssql({ patientCode, fullName: input.fullName, branch: "examinations", serviceCode: srv.code, doctorCode: doctorCode || null, shiftNumber: input.shiftNumber ?? null, ...p })
             .catch((err) => console.warn("[createPatientFromExamination] extra service push failed:", err));
         }
 
