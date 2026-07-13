@@ -140,7 +140,7 @@ export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
       >
         <div
           className={cn(
-            "flex items-center gap-1 rounded-md border border-input bg-transparent",
+            "inline-flex items-center gap-1 rounded-md border border-input bg-transparent",
             "focus-within:ring-1 focus-within:ring-ring",
             isDisabled && "opacity-50",
             className,
@@ -172,7 +172,7 @@ export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
                 commitText(text);
               }
             }}
-            className="border-0 shadow-none focus-visible:ring-0 tabular-nums"
+            className="w-[6.5rem] min-w-0 flex-1 border-0 shadow-none focus-visible:ring-0 tabular-nums"
           />
           <PopoverTrigger asChild>
             <Button
