@@ -126,7 +126,7 @@ export default function ExaminationPatientInfoTab({
                 <DateInput
                   value={visitDate}
                   onChange={(e) => setVisitDate(e.target.value)}
-                  className="text-xs border h-8 px-2 w-32"
+                  className="text-xs h-8 w-36"
                 />
                 <label className="flex items-center gap-2 cursor-pointer rounded-md border border-warning/50 bg-warning/10/30 px-3 py-1.5 h-8">
                   <Checkbox
