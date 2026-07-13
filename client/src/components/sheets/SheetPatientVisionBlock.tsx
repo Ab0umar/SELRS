@@ -170,7 +170,7 @@ export default function SheetPatientVisionBlock({
           <label className="inline-flex items-center gap-1 whitespace-nowrap min-w-0 shrink">
             <span className="text-[#434654] shrink-0">تاريخ الفحص:</span>
             <DateInput
-              className="h-6 w-16 min-w-0 font-normal text-xs bg-transparent border-0 border-b border-[#c3c6d6] rounded-none px-0.5 text-right"
+              className="h-6 font-normal text-xs bg-transparent border-0 border-b border-[#c3c6d6] rounded-none px-0.5 text-right"
               value={examinationDate}
               onChange={(e) => onExaminationDateChange(e.target.value)}
             />
