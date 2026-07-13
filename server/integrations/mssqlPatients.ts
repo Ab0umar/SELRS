@@ -1860,8 +1860,7 @@ async function applyPajrnrHeaderTotals(
                 * CAST(CONVERT(varchar(50), ISNULL(PRC,0)) AS decimal(18,2))
              ELSE 0 END
       ) AS totalGross,
-      SUM(CASE WHEN ISNUMERIC(CONVERT(varchar(50), DISC_VL)) = 1 THEN CAST(CONVERT(varchar(50), DISC_VL) AS decimal(18,2)) ELSE 0 END) AS totalDisc,
-      SUM(CASE WHEN ISNUMERIC(CONVERT(varchar(50), PA_VL)) = 1 THEN CAST(CONVERT(varchar(50), PA_VL) AS decimal(18,2)) ELSE 0 END) AS totalNet
+      SUM(CASE WHEN ISNUMERIC(CONVERT(varchar(50), DISC_VL)) = 1 THEN CAST(CONVERT(varchar(50), DISC_VL) AS decimal(18,2)) ELSE 0 END) AS totalDisc
     FROM op2026.dbo.PAPAT_SRV
     WHERE ${whereClause}
   `);
@@ -1871,7 +1870,10 @@ async function applyPajrnrHeaderTotals(
       : {};
   const totalGross = Number(row?.totalGross ?? 0);
   const totalDisc = Number(row?.totalDisc ?? 0);
-  const totalNet = Number(row?.totalNet ?? 0);
+  // PAPAT_SRV.PA_VL is gross (see applyPapatSrvDefaults) — net must be
+  // derived as gross minus discount, not read back from PA_VL itself
+  // (that was the bug: TOTL ended up equal to gross, discount had no effect).
+  const totalNet = Math.max(0, totalGross - totalDisc);
 
   const setClauses: string[] = [];
   const req = pool.request();
