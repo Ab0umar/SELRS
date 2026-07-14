@@ -49,7 +49,7 @@ internal sealed class Program
             : new[] { mdbArg };
         string mdbPath = "";
         foreach (var c in mdbCandidates) { if (File.Exists(c)) { mdbPath = c; break; } }
-        string outPath  = GetArg(args, "--out",  @"E:\users.csv");
+        string outPath  = GetArg(args, "--out",  @"D:\users.csv");
 
         var dir = Path.GetDirectoryName(Path.GetFullPath(outPath));
         if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);

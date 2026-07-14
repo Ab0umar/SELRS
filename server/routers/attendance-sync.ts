@@ -521,7 +521,7 @@ export const attendanceSyncRoutes = {
     )
     .mutation(async ({ input }) => {
       const settings = DeviceSettingsService.getSettings();
-      const ip = input.ip || settings.ip || "192.168.0.10";
+      const ip = input.ip || settings.ip || "41.199.252.107";
       const port = input.port || settings.port || 5005;
 
       const pullerPath =

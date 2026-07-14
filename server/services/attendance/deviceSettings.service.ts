@@ -32,7 +32,7 @@ export interface DeviceSettings {
 
 // Verified working LAN address for the EF10K device (FK_DLL_DISCOVERY.md) — used
 // as the fallback when ATTENDANCE_DEVICE_IP isn't set.
-const EF10K_DEFAULT_IP = "192.168.0.10";
+const EF10K_DEFAULT_IP = "41.199.252.107";
 
 // Connection fields (ip, port, comm key) come from environment variables only —
 // never from the DB — so device wiring lives in one place (.env) and can't drift
