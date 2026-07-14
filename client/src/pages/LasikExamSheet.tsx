@@ -868,7 +868,7 @@ export default function LasikExamSheet() {
 
         {currentSheetType === "consultant" ? (
           <section className="print-consultant-diagrams flex flex-wrap items-end justify-center gap-2 border border-[#c3c6d6] rounded-xl p-4 bg-white flex-1 min-h-[90mm]" data-purpose="clinical-diagrams">
-            <div className="consultant-complains-block w-full rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] p-3 text-left text-[12px] text-[#1f2937]" dir="ltr">
+            <div className="consultant-complains-block w-full sm:w-[calc(50%-0.25rem)] rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] p-3 text-left text-[12px] text-[#1f2937]" dir="ltr">
               <p className="mb-2 text-[13px] font-bold text-[#003d9b]">Complains:</p>
               <textarea
                 className="w-full min-h-[48px] rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none print:placeholder-transparent"
@@ -924,7 +924,7 @@ export default function LasikExamSheet() {
                 ) : null}
               </div>
             </div>
-            <div className="consultant-examination-block w-full rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] p-3 text-left text-[12px] text-[#1f2937]" dir="ltr">
+            <div className="consultant-examination-block w-full sm:w-[calc(50%-0.25rem)] rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] p-3 text-left text-[12px] text-[#1f2937]" dir="ltr">
               <p className="mb-2 text-[13px] font-bold text-[#003d9b]">Examination:</p>
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
