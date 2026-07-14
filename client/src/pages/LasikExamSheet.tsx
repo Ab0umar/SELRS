@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Printer, User, LayoutGrid, Layers, Target, Clock } from "lucide-react";
+import { Printer, User, LayoutGrid, Layers, Target, Clock, Search } from "lucide-react";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import PatientPicker from "@/components/PatientPicker";
@@ -144,6 +144,12 @@ export default function LasikExamSheet() {
     fundusNormal: false,
     fundusAbnormal: false,
     fundusAbnormalNote: "",
+    complains: "",
+  });
+  const [complainsSearchText, setComplainsSearchText] = useState("");
+  const [complainsSearchOpen, setComplainsSearchOpen] = useState(false);
+  const symptomsQuery = trpc.medical.getAllSymptoms.useQuery(undefined, {
+    refetchOnWindowFocus: false,
   });
   const setConsultantExamField = (
     field: keyof typeof consultantExam,
@@ -390,6 +396,9 @@ export default function LasikExamSheet() {
           doctor: parsed.signatures.doctor ?? "",
         });
       }
+      if (parsed.consultantExam) {
+        setConsultantExam((prev) => ({ ...prev, ...parsed.consultantExam }));
+      }
       if (parsed.operationDetails) {
         setOperationType(parsed.operationDetails.type ?? "ليزك");
         const parsedEyes = parsed.operationDetails.eyes ?? {};
@@ -615,6 +624,7 @@ export default function LasikExamSheet() {
           ...existing,
           formData: { ...(existing.formData ?? {}), ...formData },
           examData: mergedExamData,
+          consultantExam,
           operationDetails: {
             type: operationType,
             eyes: operationEyes,
@@ -858,6 +868,62 @@ export default function LasikExamSheet() {
 
         {currentSheetType === "consultant" ? (
           <section className="print-consultant-diagrams flex flex-wrap items-end justify-center gap-2 border border-[#c3c6d6] rounded-xl p-4 bg-white flex-1 min-h-[90mm]" data-purpose="clinical-diagrams">
+            <div className="consultant-complains-block w-full rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] p-3 text-left text-[12px] text-[#1f2937]" dir="ltr">
+              <p className="mb-2 text-[13px] font-bold text-[#003d9b]">Complains:</p>
+              <textarea
+                className="w-full min-h-[48px] rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none"
+                value={consultantExam.complains}
+                onChange={(e) => setConsultantExamField("complains", e.target.value)}
+                placeholder="اكتب الشكوى يدويًا أو ابحث من الأعراض بالأسفل..."
+              />
+              <div className="relative mt-2 refraction-no-print">
+                <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  className="h-8 w-full rounded-md border border-[#c3c6d6] bg-white pl-7 pr-2 text-[12px] outline-none"
+                  placeholder="ابحث عن الأعراض..."
+                  value={complainsSearchText}
+                  onChange={(e) => setComplainsSearchText(e.target.value)}
+                  onFocus={() => setComplainsSearchOpen(true)}
+                  onBlur={() => window.setTimeout(() => setComplainsSearchOpen(false), 150)}
+                />
+                {complainsSearchOpen && complainsSearchText ? (
+                  <div className="absolute z-10 mt-1 max-h-[160px] w-full overflow-y-auto rounded-md border border-[#c3c6d6] bg-white p-1 shadow-md">
+                    {symptomsQuery.isLoading ? (
+                      <p className="px-2 py-1 text-[11px] text-muted-foreground">جاري التحميل...</p>
+                    ) : (symptomsQuery.data ?? []).filter((s: any) =>
+                        String(s.name ?? "").toLowerCase().includes(complainsSearchText.toLowerCase()),
+                      ).length === 0 ? (
+                      <p className="px-2 py-1 text-[11px] text-muted-foreground">لا توجد نتائج</p>
+                    ) : (
+                      (symptomsQuery.data ?? [])
+                        .filter((s: any) =>
+                          String(s.name ?? "").toLowerCase().includes(complainsSearchText.toLowerCase()),
+                        )
+                        .map((s: any) => (
+                          <button
+                            type="button"
+                            key={s.id}
+                            className="block w-full rounded px-2 py-1 text-left text-[12px] hover:bg-muted/60"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setConsultantExamField(
+                                "complains",
+                                consultantExam.complains
+                                  ? `${consultantExam.complains}, ${s.name}`
+                                  : s.name,
+                              );
+                              setComplainsSearchText("");
+                              setComplainsSearchOpen(false);
+                            }}
+                          >
+                            {s.name}
+                          </button>
+                        ))
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            </div>
             <div className="consultant-examination-block w-full rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] p-3 text-left text-[12px] text-[#1f2937]" dir="ltr">
               <p className="mb-2 text-[13px] font-bold text-[#003d9b]">Examination:</p>
               <div className="space-y-2">

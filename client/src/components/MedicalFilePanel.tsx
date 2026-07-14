@@ -186,6 +186,7 @@ export default function MedicalFilePanel({
   });
   const [testSearchText, setTestSearchText] = useState("");
   const [diseaseSearchText, setDiseaseSearchText] = useState("");
+  const [symptomSearchText, setSymptomSearchText] = useState("");
   const [medicationSearchText, setMedicationSearchText] = useState("");
   const [prescriptionTab, setPrescriptionTab] = useState("Tracoma");
   const [selectedPrescriptionIds, setSelectedPrescriptionIds] = useState<
@@ -293,6 +294,10 @@ export default function MedicalFilePanel({
   });
 
   const diseasesQuery = trpc.medical.getAllDiseases.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
+
+  const symptomsQuery = trpc.medical.getAllSymptoms.useQuery(undefined, {
     refetchOnWindowFocus: false,
   });
 
@@ -2971,10 +2976,10 @@ export default function MedicalFilePanel({
                 </div>
               </div>
 
-              {/* Medical History */}
+              {/* Complaint & Symptoms */}
               <div>
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  التاريخ المرضي
+                  الشكوى و الاعراض
                 </h3>
                 <Textarea
                   value={formData.medicalHistory}
@@ -2984,10 +2989,69 @@ export default function MedicalFilePanel({
                       medicalHistory: e.target.value,
                     }))
                   }
-                  placeholder="اكتب التاريخ المرضي هنا..."
+                  placeholder="اكتب الشكوى و الاعراض هنا..."
                   className="text-sm"
                   rows={3}
                 />
+                <div className="relative mt-2">
+                  <Search className="absolute right-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="ابحث عن الأعراض..."
+                    value={symptomSearchText}
+                    onChange={(e) => setSymptomSearchText(e.target.value)}
+                    className="pr-8 text-xs h-8"
+                  />
+                </div>
+                {symptomSearchText && (
+                  <>
+                    {symptomsQuery.isLoading ? (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        جاري التحميل...
+                      </p>
+                    ) : symptomsQuery.isError ? (
+                      <p className="text-xs text-destructive mt-1">
+                        خطأ في تحميل الأعراض
+                      </p>
+                    ) : (
+                      <div className="space-y-1 max-h-[160px] overflow-y-auto border rounded-md p-1.5 mt-1">
+                        {(symptomsQuery.data ?? []).filter((symptom: any) =>
+                          symptom.name
+                            .toLowerCase()
+                            .includes(symptomSearchText.toLowerCase()),
+                        ).length === 0 ? (
+                          <p className="text-xs text-muted-foreground px-1.5">
+                            لا توجد نتائج
+                          </p>
+                        ) : (
+                          (symptomsQuery.data ?? [])
+                            .filter((symptom: any) =>
+                              symptom.name
+                                .toLowerCase()
+                                .includes(symptomSearchText.toLowerCase()),
+                            )
+                            .map((symptom: any) => (
+                              <button
+                                type="button"
+                                key={symptom.id}
+                                className="block w-full rounded px-1.5 py-1 text-left text-xs hover:bg-muted/50"
+                                onClick={() => {
+                                  setFormData((prev: any) => ({
+                                    ...prev,
+                                    medicalHistory: prev.medicalHistory
+                                      ? `${prev.medicalHistory}, ${symptom.name}`
+                                      : symptom.name,
+                                  }));
+                                  setSymptomSearchText("");
+                                }}
+                              >
+                                {symptom.name}
+                              </button>
+                            ))
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
               {/* Diagnosis + Diseases */}
