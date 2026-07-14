@@ -1996,7 +1996,7 @@ async function applyPajrnrReportDefaults(
   if (cols.has("TR_TIM")) {
     await run(
       `UPDATE ${targetTable}
-       SET TR_TIM = CASE WHEN ISNULL(CONVERT(varchar(50), TR_TIM), '') = '' THEN CONVERT(varchar(8), GETDATE(), 108) ELSE TR_TIM END
+       SET TR_TIM = CASE WHEN ISNULL(CONVERT(varchar(50), TR_TIM), '') = '' THEN CONVERT(varchar(50), GETDATE(), 120) ELSE TR_TIM END
        WHERE ${whereClause}`,
     );
   }
@@ -2809,7 +2809,7 @@ export async function insertPatientToMssql(
                     CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
                     CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC
                 ),
-                CONVERT(varchar(8), GETDATE(), 108)
+                CONVERT(varchar(50), GETDATE(), 120)
               )`,
           ...(hasSrvTrNoCol
             ? [
@@ -3345,7 +3345,7 @@ export async function upsertPatientToMssql(
                     CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
                     CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC
                 ),
-                CONVERT(varchar(8), GETDATE(), 108)
+                CONVERT(varchar(50), GETDATE(), 120)
               )`,
           ...(srvTrNoCol
             ? [
@@ -3581,7 +3581,7 @@ export async function ensurePatientServiceInMssql(
                 CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
                 CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC
             ),
-            CONVERT(varchar(8), GETDATE(), 108)
+            CONVERT(varchar(50), GETDATE(), 120)
           )`,
       ...(srvTrNoCol
         ? [
@@ -4257,7 +4257,7 @@ export async function addServiceReceiptInMssql(
       "@SRV_CD",
       `ISNULL((SELECT TOP 1 CASE WHEN ISNUMERIC(CONVERT(varchar(50), VST_NO)) = 1 THEN CAST(CONVERT(varchar(50), VST_NO) AS INT) ELSE NULL END FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), 1)`,
       `ISNULL((SELECT TOP 1 CASE WHEN ISDATE(DT) = 1 THEN CONVERT(datetime, DT) END FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), GETDATE())`,
-      `ISNULL((SELECT TOP 1 NULLIF(CONVERT(varchar(50), TR_TIM), '') FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), CONVERT(varchar(8), GETDATE(), 108))`,
+      `ISNULL((SELECT TOP 1 NULLIF(CONVERT(varchar(50), TR_TIM), '') FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), CONVERT(varchar(50), GETDATE(), 120))`,
       ...(srvTrNoCol
         ? [
             `ISNULL((SELECT TOP 1 CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${headerTrExpr})) = 1 THEN CAST(CONVERT(varchar(50), ${headerTrExpr}) AS INT) ELSE NULL END FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), (SELECT ISNULL(MAX(CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${srvTrExpr})) = 1 THEN CAST(CONVERT(varchar(50), ${srvTrExpr}) AS INT) ELSE NULL END), 0) + 1 FROM op2026.dbo.PAPAT_SRV))`,
@@ -4672,7 +4672,7 @@ export async function addMultiServiceReceiptInMssql(
       "@SRV_CD",
       `ISNULL((SELECT TOP 1 CASE WHEN ISNUMERIC(CONVERT(varchar(50), VST_NO)) = 1 THEN CAST(CONVERT(varchar(50), VST_NO) AS INT) ELSE NULL END FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), 1)`,
       `ISNULL((SELECT TOP 1 CASE WHEN ISDATE(DT) = 1 THEN CONVERT(datetime, DT) END FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), GETDATE())`,
-      `ISNULL((SELECT TOP 1 NULLIF(CONVERT(varchar(50), TR_TIM), '') FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), CONVERT(varchar(8), GETDATE(), 108))`,
+      `ISNULL((SELECT TOP 1 NULLIF(CONVERT(varchar(50), TR_TIM), '') FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), CONVERT(varchar(50), GETDATE(), 120))`,
       ...(srvTrNoCol
         ? [
             Number.isFinite(trNo)
