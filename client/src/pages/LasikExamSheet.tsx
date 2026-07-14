@@ -1298,6 +1298,9 @@ export default function LasikExamSheet() {
           .print-consultant-diagrams p {
             margin-top: 2mm !important;
           }
+          .print-consultant-diagrams .consultant-complains-block p {
+            margin-top: 0 !important;
+          }
           .print-lasik-questions {
             display: flex !important;
             flex-direction: column !important;
