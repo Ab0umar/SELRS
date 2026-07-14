@@ -1343,20 +1343,39 @@ export function useExaminationForm(
         utils.medical.getNextMssqlPatientCode.invalidate();
       } else {
         // Existing patient — push to MSSQL (new receipt) + create today's visit
-        await createPatientFromExamMutation.mutateAsync({
-          patientCode: patientInfo.code || undefined,
-          fullName: patientInfo.name.trim(),
-          phone: patientDetails.phone || undefined,
-          alternatePhone: patientDetails.alternatePhone || undefined,
-          serviceType: (sheetSelection as any) || "consultant",
-          locationType,
-          visitDate: localISODate(),
-          ...(shiftNumber ? { shiftNumber } : {}),
-        }).catch((err) => console.warn("[ExaminationForm] existing patient MSSQL push failed:", err));
+        let receiptPushFailed = false;
+        await createPatientFromExamMutation
+          .mutateAsync({
+            patientCode: patientInfo.code || undefined,
+            fullName: patientInfo.name.trim(),
+            phone: patientDetails.phone || undefined,
+            alternatePhone: patientDetails.alternatePhone || undefined,
+            serviceType: (sheetSelection as any) || "consultant",
+            locationType,
+            visitDate: localISODate(),
+            ...(shiftNumber ? { shiftNumber } : {}),
+          })
+          .catch((err) => {
+            console.warn("[ExaminationForm] existing patient MSSQL push failed:", err);
+            receiptPushFailed = true;
+            toast.error(
+              `فشل إنشاء الإيصال في MSSQL: ${getTrpcErrorMessage(err, "خطأ غير معروف")}`,
+              { duration: 15000 },
+            );
+          });
 
-        // Link additional services
+        // Link additional services — skipped entirely if the receipt itself
+        // failed to create above: attaching services would either fail too
+        // or silently attach to a stale prior receipt instead of a new one.
         const failedServiceLinks: { code: string; message: string }[] = [];
-        for (const srv of services) {
+        const servicesToLink = receiptPushFailed ? [] : services;
+        if (receiptPushFailed && services.some((s) => s.code.trim())) {
+          toast.error(
+            "لم تتم إضافة الخدمات لأن إنشاء الإيصال فشل — أعد المحاولة",
+            { duration: 15000 },
+          );
+        }
+        for (const srv of servicesToLink) {
           if (srv.code.trim()) {
             try {
               const doctorCode = selectedDoctorEntry
