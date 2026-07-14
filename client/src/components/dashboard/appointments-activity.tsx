@@ -50,6 +50,7 @@ import { TodayPatientShortcutsDialog } from "@/components/today/TodayPatientShor
 import { FollowupFormDialog } from "@/components/today/FollowupFormDialog";
 import { getLocalDateIso } from "@/hooks/operations/operationsShared";
 import { DateInput } from "@/components/ui/date-input";
+import { buildPrintUrl } from "@/lib/print";
 
 type QueueFilter = "all" | QueueStatus | "clinic1" | "clinic2";
 
@@ -679,7 +680,7 @@ function BookingCard({ booking }: { booking: any }) {
             {branchLabel ? ` · ${branchLabel}` : ""}
           </p>
         </div>
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex flex-wrap items-center justify-end gap-1 shrink-0">
           <span className={cn("rounded-full border px-1.5 py-0.5 text-[10px] font-medium", stStyle)}>
             {stAr}
           </span>
@@ -706,7 +707,7 @@ function BookingCard({ booking }: { booking: any }) {
               <button
                 type="button"
                 title="طباعة مقاس النظارة"
-                onClick={() => window.open(`/refraction/${booking.patientId}?print=1`, "_blank")}
+                onClick={() => window.open(buildPrintUrl(`/refraction/${booking.patientId}`), "_blank")}
                 className="text-muted-foreground hover:text-error transition-colors"
                 aria-label="طباعة مقاس النظارة"
               >
@@ -824,8 +825,8 @@ function QueuePatientCard({
             {timeText}
           </span>
         </div>
-        <div className="mt-2 flex items-center justify-end gap-1.5 text-sm sm:mt-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-1.5">
+        <div className="mt-2 flex flex-wrap items-center justify-end gap-1.5 text-sm sm:mt-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-1.5">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -926,7 +927,7 @@ function QueuePatientCard({
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-500 hover:text-error"
               onClick={(e) => {
                 e.stopPropagation();
-                window.open(`/refraction/${patient.id}?print=1`, "_blank");
+                window.open(buildPrintUrl(`/refraction/${patient.id}`), "_blank");
               }}
             >
               <Glasses className="h-4 w-4" aria-hidden />

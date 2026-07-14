@@ -36,6 +36,7 @@ import {
   Zap,
 } from "lucide-react";
 import { patientNavPathForPageKey } from "@/lib/patientNavPaths";
+import { buildPrintUrl } from "@/lib/print";
 import type { LucideIcon } from "lucide-react";
 import { getLocalDateIso } from "@/hooks/operations/operationsShared";
 import { queueStatusLabelsAr, serviceTypeLabels } from "@/lib/dashboard-data";
@@ -438,7 +439,7 @@ function GridPatientCard({
               onClick={(e) => {
                 e.stopPropagation();
                 const path = patientNavPathForPageKey("refraction", patient.id);
-                if (path) window.open(`${path}?print=1`, "_blank");
+                if (path) window.open(buildPrintUrl(path), "_blank");
               }}
             >
               <Glasses className="h-3.5 w-3.5" aria-hidden />
