@@ -165,6 +165,10 @@ export function mapServiceRow(
     ),
     doctorCode,
     doctorName: optionalString(row.doctorName),
+    lineNo:
+      row.lineNo === undefined || row.lineNo === null
+        ? undefined
+        : numberValue(row.lineNo),
   };
 }
 

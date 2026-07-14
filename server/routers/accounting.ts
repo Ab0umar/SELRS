@@ -8,6 +8,7 @@ import { getDb, upsertPatientServiceEntry } from "../db";
 import {
   addMultiServiceReceiptInMssql,
   createMssqlPool,
+  editReceiptServiceLine,
 } from "../integrations/mssqlPatients";
 import {
   dailyRevenueInputSchema,
@@ -478,6 +479,24 @@ export const accountingRouter = router({
       } finally {
         // Pool is shared/cached across calls (see createMssqlPool) — don't close it here.
       }
+    }),
+
+  editReceiptServiceLine: makeAccWriteProcedure("/accounting/receipts")
+    .input(
+      z.object({
+        patientCode: z.string().min(1),
+        sectionCode: z.number().int(),
+        trTy: z.number().int(),
+        trNo: z.number().int(),
+        lineNo: z.number().int(),
+        serviceCode: z.string().min(1),
+        quantity: z.number().int().min(1).max(99),
+        price: z.number().min(0),
+        discount: z.number().min(0),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      return editReceiptServiceLine(input);
     }),
 
   // ── Access DB (الخزنه) ────────────────────────────────────────────────────

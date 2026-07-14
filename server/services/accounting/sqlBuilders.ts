@@ -465,6 +465,7 @@ SELECT
   s.CA_CD AS companyCode,
   s.DISC_VL AS lineDiscount,
   s.SRV_CD AS serviceCode,
+  s.LN_NO AS lineNo,
   s.SRV_BY1 AS doctorCode,
   s.QTY AS quantity,
   ISNULL(s.QTY, 0) * ISNULL(s.PRC, 0) AS price,
@@ -496,6 +497,7 @@ LEFT JOIN APPCODES a
 WHERE h.SEC_CD = @secCd
   AND h.TR_TY = @trTy
   AND h.TR_NO = @trNo
+  AND ISNULL(CONVERT(varchar(10), s.CNCL), '0') IN ('', '0')
 ORDER BY s.SRV_CD`.trim();
 
   return { sql, params };

@@ -56,6 +56,9 @@ export const serviceRowSchema = z.object({
   currentServiceBy: codeStringSchema.nullable().optional(),
   doctorCode: codeStringSchema.nullable().optional(),
   doctorName: z.string().nullable().optional(),
+  /** PAPAT_SRV.LN_NO — only populated by the receipt-detail query, used to
+   * target an exact row for editing. Undefined everywhere else. */
+  lineNo: countSchema.optional(),
 });
 
 export type ServiceRow = z.infer<typeof serviceRowSchema>;

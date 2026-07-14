@@ -3915,6 +3915,182 @@ export async function ensurePatientServiceInMssql(
   }
 }
 
+/**
+ * Edit an existing PAPAT_SRV line (service code / qty / price / discount) on
+ * a specific receipt. Void+recreate, not in-place UPDATE: marks the old row
+ * CNCL='*' (the schema's existing cancel convention — already read by every
+ * other query in sqlBuilders.ts) and inserts a replacement row copying the
+ * original's VST_NO/DT/FRMTIM/doctor/company fields, so nothing is silently
+ * overwritten with no trace. Recomputes header totals afterward.
+ */
+export async function editReceiptServiceLine(input: {
+  patientCode: string;
+  sectionCode: number;
+  trTy: number;
+  trNo: number;
+  lineNo: number;
+  serviceCode: string;
+  quantity: number;
+  price: number;
+  discount: number;
+}): Promise<{ updated: boolean; note?: string }> {
+  const patientCode = String(input.patientCode ?? "").trim();
+  const serviceCode = String(input.serviceCode ?? "").trim();
+  const lineNo = Math.trunc(Number(input.lineNo));
+  if (!patientCode || !serviceCode || !Number.isFinite(lineNo)) {
+    return { updated: false, note: "بيانات ناقصة" };
+  }
+  const quantity = Math.max(1, Math.trunc(Number(input.quantity) || 1));
+  const price = Math.max(0, Number(input.price) || 0);
+  const discount = Math.max(0, Number(input.discount) || 0);
+
+  const rawPool = await createMssqlPool();
+  let tx: any;
+  try {
+    await rawPool.connect();
+    // Void (UPDATE CNCL) + insert replacement must commit together — if the
+    // insert failed after the void alone committed, the line would just
+    // vanish with nothing replacing it. Same tx-pinning pattern as
+    // insertPatientToMssql (also required so this connection matches the
+    // one the transaction was opened on).
+    const isWindowsAuthPool =
+      String(process.env.MSSQL_AUTH_MODE ?? "").trim().toLowerCase() ===
+        "windows" ||
+      /trusted_connection\s*=\s*yes/i.test(
+        String(process.env.MSSQL_CONNECTION_STRING ?? ""),
+      ) ||
+      /integrated security\s*=\s*sspi/i.test(
+        String(process.env.MSSQL_CONNECTION_STRING ?? ""),
+      );
+    const mssqlModule = isWindowsAuthPool
+      ? await loadMssqlMsNodeSqlV8Module()
+      : await loadMssqlModule();
+    tx = new mssqlModule.Transaction(rawPool);
+    await tx.begin();
+    const pool = tx;
+
+    const srvCols = await getTableColumns(pool, "op2026.dbo.PAPAT_SRV");
+    if (!srvCols.has("LN_NO") || !srvCols.has("CNCL")) {
+      await tx.rollback().catch(() => {});
+      return { updated: false, note: "العمود LN_NO أو CNCL غير موجود" };
+    }
+
+    const oldReq = pool.request();
+    oldReq.input("PAT_CD", patientCode);
+    oldReq.input("LN_NO", lineNo);
+    oldReq.input("SEC_CD", input.sectionCode);
+    oldReq.input("TR_TY", input.trTy);
+    oldReq.input("TR_NO", input.trNo);
+    const oldRs = await oldReq.query(`
+      SELECT TOP 1 *
+      FROM op2026.dbo.PAPAT_SRV
+      WHERE PAT_CD = @PAT_CD AND LN_NO = @LN_NO AND SEC_CD = @SEC_CD
+        AND TR_TY = @TR_TY AND TR_NO = @TR_NO
+        AND ISNULL(CONVERT(varchar(10), CNCL), '0') IN ('', '0')
+    `);
+    const oldRow = oldRs.recordset?.[0];
+    if (!oldRow) {
+      await tx.rollback().catch(() => {});
+      return {
+        updated: false,
+        note: "لم يتم العثور على السطر أو تم إلغاؤه بالفعل",
+      };
+    }
+
+    const svcReq = pool.request();
+    svcReq.input("SRV_CD", serviceCode);
+    const svcRs = await svcReq.query(
+      `SELECT TOP 1 SRV_CD FROM op2026.dbo.SRVCMF WHERE SRV_CD = @SRV_CD`,
+    );
+    if (!svcRs.recordset?.length) {
+      await tx.rollback().catch(() => {});
+      return { updated: false, note: `كود الخدمة ${serviceCode} غير موجود` };
+    }
+
+    const voidReq = pool.request();
+    voidReq.input("PAT_CD", patientCode);
+    voidReq.input("LN_NO", lineNo);
+    await voidReq.query(`
+      UPDATE op2026.dbo.PAPAT_SRV
+      SET CNCL = '*', UPDATEDATE = GETDATE()
+      WHERE PAT_CD = @PAT_CD AND LN_NO = @LN_NO
+    `);
+
+    const paValue = Math.max(0, price * quantity);
+    const copyCols = [
+      "VST_NO",
+      "DT",
+      "FRMTIM",
+      "PRG_SNO",
+      "CUR_STAT",
+      "CA_CD",
+      "DISC_CA",
+      "CA_VL",
+      "SRV_BY1",
+      "CUR_SRV_BY",
+      "DR_CD",
+    ].filter((c) => srvCols.has(c));
+    const insReq = pool.request();
+    insReq.input("PAT_CD", patientCode);
+    insReq.input("SRV_CD", serviceCode);
+    insReq.input("SEC_CD", input.sectionCode);
+    insReq.input("TR_TY", input.trTy);
+    insReq.input("TR_NO", input.trNo);
+    insReq.input("QTY", quantity);
+    insReq.input("PRC", price);
+    insReq.input("DISC_VL", discount);
+    insReq.input("PA_VL", paValue);
+    for (const c of copyCols) insReq.input(`COPY_${c}`, oldRow[c] ?? null);
+    const insertCols = [
+      "PAT_CD",
+      "SRV_CD",
+      "SEC_CD",
+      "TR_TY",
+      "TR_NO",
+      "QTY",
+      "PRC",
+      "DISC_VL",
+      "PA_VL",
+      ...copyCols,
+    ];
+    const insertVals = [
+      "@PAT_CD",
+      "@SRV_CD",
+      "@SEC_CD",
+      "@TR_TY",
+      "@TR_NO",
+      "@QTY",
+      "@PRC",
+      "@DISC_VL",
+      "@PA_VL",
+      ...copyCols.map((c) => `@COPY_${c}`),
+    ];
+    await insReq.query(
+      `INSERT INTO op2026.dbo.PAPAT_SRV (${insertCols.join(", ")}) VALUES (${insertVals.join(", ")})`,
+    );
+
+    const targetTable = String(
+      process.env.MSSQL_PUSH_PATIENTS_TABLE ?? "op2026.dbo.PAJRNRCVH",
+    ).trim();
+    await applyPajrnrHeaderTotals(pool, targetTable, patientCode, input.trNo);
+
+    await tx.commit();
+    return { updated: true };
+  } catch (err) {
+    if (tx) await tx.rollback().catch(() => {});
+    console.error(
+      `[editReceiptServiceLine] failed for PAT_CD=${patientCode} LN_NO=${lineNo}:`,
+      err instanceof Error ? err.message : err,
+    );
+    return {
+      updated: false,
+      note: err instanceof Error ? err.message : String(err),
+    };
+  } finally {
+    // Pool is shared/cached across calls (see createMssqlPool) — don't close it here.
+  }
+}
+
 export async function addServiceReceiptInMssql(
   patientCodeRaw: string,
   serviceCodeRaw: string,

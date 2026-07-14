@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -13,9 +14,18 @@ import type {
   ReceiptDetailInput,
   ReceiptDetailOutput,
 } from "@shared/accounting/contracts";
-import { ArrowLeft, CircleAlert, Printer, RefreshCw } from "lucide-react";
-import { useMemo } from "react";
+import {
+  ArrowLeft,
+  Check,
+  CircleAlert,
+  Pencil,
+  Printer,
+  RefreshCw,
+  X,
+} from "lucide-react";
+import { useMemo, useState } from "react";
 import { useLocation, useRoute } from "wouter";
+import { toast } from "sonner";
 import {
   formatDateAr,
   formatMoneyAr,
@@ -34,6 +44,18 @@ type ReceiptDetailQuery = {
   refetch: () => Promise<unknown>;
 };
 
+type EditLineInput = {
+  patientCode: string;
+  sectionCode: number;
+  trTy: number;
+  trNo: number;
+  lineNo: number;
+  serviceCode: string;
+  quantity: number;
+  price: number;
+  discount: number;
+};
+
 type AccountingTrpc = typeof trpc & {
   accounting: {
     receiptDetail: {
@@ -41,6 +63,17 @@ type AccountingTrpc = typeof trpc & {
         input: ReceiptDetailInput,
         options?: { enabled?: boolean; refetchOnWindowFocus?: boolean },
       ) => ReceiptDetailQuery;
+    };
+    editReceiptServiceLine: {
+      useMutation: (options?: {
+        onSuccess?: (result: { updated: boolean; note?: string | null }) => void;
+      }) => {
+        mutateAsync: (input: EditLineInput) => Promise<{
+          updated: boolean;
+          note?: string | null;
+        }>;
+        isPending: boolean;
+      };
     };
   };
 };
@@ -91,7 +124,7 @@ function LoadingRows() {
     <>
       {Array.from({ length: 4 }).map((_, rowIndex) => (
         <tr key={rowIndex}>
-          {Array.from({ length: 8 }).map((__, cellIndex) => (
+          {Array.from({ length: 9 }).map((__, cellIndex) => (
             <td key={cellIndex}>
               <Skeleton className="h-5 w-full min-w-16" />
             </td>
@@ -114,6 +147,62 @@ export default function ReceiptDetail() {
       refetchOnWindowFocus: false,
     },
   );
+
+  const [editingLineNo, setEditingLineNo] = useState<number | null>(null);
+  const [editDraft, setEditDraft] = useState({
+    serviceCode: "",
+    quantity: "1",
+    price: "0",
+    discount: "0",
+  });
+
+  const editLineMut = accountingTrpc.accounting.editReceiptServiceLine.useMutation({
+    onSuccess: (result) => {
+      if (!result.updated) {
+        toast.error(result.note ?? "فشل تعديل السطر", { duration: 15000 });
+        return;
+      }
+      toast.success("تم تعديل السطر");
+      setEditingLineNo(null);
+      void detailQuery.refetch();
+    },
+  });
+
+  const startEdit = (line: ReceiptDetailOutput["lines"][number]) => {
+    if (line.lineNo == null) {
+      toast.error("لا يمكن تعديل هذا السطر (لا يوجد رقم سطر)");
+      return;
+    }
+    setEditingLineNo(line.lineNo);
+    setEditDraft({
+      serviceCode: line.serviceCode,
+      quantity: String(line.quantity),
+      price: String((line.price / Math.max(1, line.quantity)).toFixed(2)),
+      discount: String(line.discountValue),
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!header || editingLineNo == null) return;
+    const quantity = Math.max(1, Math.trunc(Number(editDraft.quantity) || 1));
+    const price = Math.max(0, Number(editDraft.price) || 0);
+    const discount = Math.max(0, Number(editDraft.discount) || 0);
+    if (!editDraft.serviceCode.trim()) {
+      toast.error("كود الخدمة مطلوب");
+      return;
+    }
+    await editLineMut.mutateAsync({
+      patientCode: header.patientCode,
+      sectionCode: header.sectionCode,
+      trTy: header.trTy,
+      trNo: Number(header.trNo),
+      lineNo: editingLineNo,
+      serviceCode: editDraft.serviceCode.trim(),
+      quantity,
+      price,
+      discount,
+    });
+  };
 
   const header = detailQuery.data?.header;
   const lines = detailQuery.data?.lines ?? [];
@@ -452,6 +541,7 @@ export default function ReceiptDetail() {
                         <col className={reportStyles.colCompact} />
                         <col className={reportStyles.colCompact} />
                         <col className={reportStyles.colCompact} />
+                        <col className={reportStyles.colCompact} />
                       </colgroup>
                       <thead>
                         <tr>
@@ -475,62 +565,189 @@ export default function ReceiptDetail() {
                           <th scope="col" className={reportStyles.numeric}>
                             المدفوع
                           </th>
+                          <th scope="col" className={reportStyles.numeric}>
+                            إجراءات
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         {detailQuery.isLoading ? <LoadingRows /> : null}
                         {!detailQuery.isLoading
-                          ? lines.map((line, index) => (
-                              <tr
-                                key={`${line.serviceCode}-${line.entryDate}-${index}`}
-                              >
-                                <td
-                                  data-label="كود الخدمة"
-                                  className={reportStyles.numeric}
+                          ? lines.map((line, index) => {
+                              const isEditing =
+                                line.lineNo != null &&
+                                editingLineNo === line.lineNo;
+                              return (
+                                <tr
+                                  key={`${line.serviceCode}-${line.entryDate}-${index}`}
                                 >
-                                  {toArabicDigits(line.serviceCode)}
-                                </td>
-                                <td data-label="الخدمة">
-                                  {line.serviceName || "خدمة غير مسمى"}
-                                </td>
-                                <td data-label="الطبيب">
-                                  {line.doctorName ||
-                                    line.doctorCode ||
-                                    line.serviceBy1 ||
-                                    "غير معين"}
-                                </td>
-                                <td
-                                  data-label="التاريخ"
-                                  className={reportStyles.numeric}
-                                >
-                                  {formatDateAr(line.entryDate)}
-                                </td>
-                                <td
-                                  data-label="العدد"
-                                  className={reportStyles.numeric}
-                                >
-                                  {toArabicDigits(String(line.quantity))}
-                                </td>
-                                <td
-                                  data-label="السعر"
-                                  className={reportStyles.numeric}
-                                >
-                                  {formatMoney(line.price)}
-                                </td>
-                                <td
-                                  data-label="الخصم"
-                                  className={reportStyles.numeric}
-                                >
-                                  {formatMoney(line.discountValue)}
-                                </td>
-                                <td
-                                  data-label="المدفوع"
-                                  className={reportStyles.numeric}
-                                >
-                                  {formatMoney(line.paidValue)}
-                                </td>
-                              </tr>
-                            ))
+                                  <td
+                                    data-label="كود الخدمة"
+                                    className={reportStyles.numeric}
+                                  >
+                                    {isEditing ? (
+                                      <Input
+                                        dir="ltr"
+                                        value={editDraft.serviceCode}
+                                        onChange={(e) =>
+                                          setEditDraft((d) => ({
+                                            ...d,
+                                            serviceCode: e.target.value,
+                                          }))
+                                        }
+                                        className="h-8 w-24 text-xs"
+                                      />
+                                    ) : (
+                                      toArabicDigits(line.serviceCode)
+                                    )}
+                                  </td>
+                                  <td data-label="الخدمة">
+                                    {line.serviceName || "خدمة غير مسمى"}
+                                  </td>
+                                  <td data-label="الطبيب">
+                                    {line.doctorName ||
+                                      line.doctorCode ||
+                                      line.serviceBy1 ||
+                                      "غير معين"}
+                                  </td>
+                                  <td
+                                    data-label="التاريخ"
+                                    className={reportStyles.numeric}
+                                  >
+                                    {formatDateAr(line.entryDate)}
+                                  </td>
+                                  <td
+                                    data-label="العدد"
+                                    className={reportStyles.numeric}
+                                  >
+                                    {isEditing ? (
+                                      <Input
+                                        type="number"
+                                        min={1}
+                                        dir="ltr"
+                                        value={editDraft.quantity}
+                                        onChange={(e) =>
+                                          setEditDraft((d) => ({
+                                            ...d,
+                                            quantity: e.target.value,
+                                          }))
+                                        }
+                                        className="h-8 w-16 text-xs"
+                                      />
+                                    ) : (
+                                      toArabicDigits(String(line.quantity))
+                                    )}
+                                  </td>
+                                  <td
+                                    data-label="السعر"
+                                    className={reportStyles.numeric}
+                                  >
+                                    {isEditing ? (
+                                      <Input
+                                        type="number"
+                                        min={0}
+                                        step="0.01"
+                                        dir="ltr"
+                                        value={editDraft.price}
+                                        onChange={(e) =>
+                                          setEditDraft((d) => ({
+                                            ...d,
+                                            price: e.target.value,
+                                          }))
+                                        }
+                                        className="h-8 w-20 text-xs"
+                                      />
+                                    ) : (
+                                      formatMoney(line.price)
+                                    )}
+                                  </td>
+                                  <td
+                                    data-label="الخصم"
+                                    className={reportStyles.numeric}
+                                  >
+                                    {isEditing ? (
+                                      <Input
+                                        type="number"
+                                        min={0}
+                                        step="0.01"
+                                        dir="ltr"
+                                        value={editDraft.discount}
+                                        onChange={(e) =>
+                                          setEditDraft((d) => ({
+                                            ...d,
+                                            discount: e.target.value,
+                                          }))
+                                        }
+                                        className="h-8 w-20 text-xs"
+                                      />
+                                    ) : (
+                                      formatMoney(line.discountValue)
+                                    )}
+                                  </td>
+                                  <td
+                                    data-label="المدفوع"
+                                    className={reportStyles.numeric}
+                                  >
+                                    {isEditing
+                                      ? formatMoney(
+                                          Math.max(
+                                            0,
+                                            (Number(editDraft.price) || 0) *
+                                              Math.max(
+                                                1,
+                                                Math.trunc(
+                                                  Number(editDraft.quantity) ||
+                                                    1,
+                                                ),
+                                              ) -
+                                              (Number(editDraft.discount) ||
+                                                0),
+                                          ),
+                                        )
+                                      : formatMoney(line.paidValue)}
+                                  </td>
+                                  <td
+                                    data-label="إجراءات"
+                                    className={reportStyles.numeric}
+                                  >
+                                    {isEditing ? (
+                                      <div className="flex items-center justify-end gap-1">
+                                        <Button
+                                          type="button"
+                                          size="icon"
+                                          variant="ghost"
+                                          disabled={editLineMut.isPending}
+                                          onClick={() => void saveEdit()}
+                                          aria-label="حفظ"
+                                        >
+                                          <Check className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                          type="button"
+                                          size="icon"
+                                          variant="ghost"
+                                          disabled={editLineMut.isPending}
+                                          onClick={() => setEditingLineNo(null)}
+                                          aria-label="إلغاء"
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="ghost"
+                                        onClick={() => startEdit(line)}
+                                        aria-label="تعديل السطر"
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })
                           : null}
                       </tbody>
                       <tfoot>
@@ -545,6 +762,7 @@ export default function ReceiptDetail() {
                           <td className={reportStyles.numeric}>
                             {formatMoney(totals.totalPaid)}
                           </td>
+                          <td className={reportStyles.numeric} />
                         </tr>
                       </tfoot>
                     </table>
