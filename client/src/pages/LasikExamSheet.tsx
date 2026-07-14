@@ -801,8 +801,8 @@ export default function LasikExamSheet() {
           ) : null}
 
           {/* Visual Acuity */}
-          <div className="print-lasik-visual-grid flex h-full w-full sm:w-[calc(25%-0.375rem)] shrink-0 flex-col justify-between gap-2" dir="ltr">
-            <table className="w-full text-center border-collapse">
+          <div className="print-lasik-visual-grid flex h-full w-full sm:w-[calc(25%-0.375rem)] shrink-0 flex-col gap-2" dir="ltr">
+            <table className="w-full flex-1 text-center border-collapse">
               <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
                 <tr><th className={ctd}>IOP</th><th className={`${ctd} text-[#003d9b]`}>OD</th><th className={`${ctd} text-[#526069]`}>OS</th></tr>
               </thead>
@@ -814,7 +814,7 @@ export default function LasikExamSheet() {
                 </tr>
               </tbody>
             </table>
-            <table className="w-full text-center border-collapse">
+            <table className="w-full flex-1 text-center border-collapse">
               <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
                 <tr><th className={ctd}>Eye</th><th className={ctd}>UCVA</th><th className={ctd}>BCVA</th></tr>
               </thead>
@@ -1171,7 +1171,7 @@ export default function LasikExamSheet() {
             min-height: 0 !important;
             box-sizing: border-box !important;
             padding: 6mm !important;
-            padding-top: 12mm !important;
+            padding-top: 0 !important;
             gap: 10px !important;
             font-size: 104% !important;
             line-height: 1.15 !important;
@@ -1311,9 +1311,14 @@ export default function LasikExamSheet() {
             align-items: stretch !important;
           }
           .print-lasik-visual-grid {
+            display: flex !important;
+            flex-direction: column !important;
             height: 100% !important;
             width: calc(25% - 3mm) !important;
-            justify-content: space-between !important;
+          }
+          .print-lasik-visual-grid table {
+            flex: 1 1 0 !important;
+            height: auto !important;
           }
           .print-lasik-questions table {
             font-size: 10px !important;
