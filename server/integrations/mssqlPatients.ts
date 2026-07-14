@@ -3632,13 +3632,20 @@ export async function ensurePatientServiceInMssql(
           )
         )`
       : `PAT_CD = @PAT_CD AND SRV_CD = @SRV_CD`;
+    // PAPAT_SRV has an enabled trigger — SQL Server forbids a bare OUTPUT
+    // clause (no INTO) on a DML statement against a table with triggers
+    // ("cannot have any enabled triggers if the statement contains an
+    // OUTPUT clause without INTO clause"). Route it through a table
+    // variable instead and select back out of that.
     const serviceSql = `
+        ${srvTrNoCol ? "DECLARE @InsertedSrv TABLE (TR_NO INT);" : ""}
         INSERT INTO op2026.dbo.PAPAT_SRV (${srvInsertCols.join(", ")})
-        ${srvTrNoCol ? `OUTPUT INSERTED.${srvTrNoCol} AS TR_NO` : ""}
+        ${srvTrNoCol ? `OUTPUT INSERTED.${srvTrNoCol} INTO @InsertedSrv (TR_NO)` : ""}
         SELECT ${srvInsertVals.join(", ")}
         WHERE NOT EXISTS (
           SELECT 1 FROM op2026.dbo.PAPAT_SRV WHERE ${ensureSrvExistsFilter}
-        )
+        );
+        ${srvTrNoCol ? "SELECT TR_NO FROM @InsertedSrv;" : ""}
     `;
     let resolvedSrvTrNo: number | null = null;
     try {
