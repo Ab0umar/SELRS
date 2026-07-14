@@ -383,6 +383,10 @@ export const accountingRouter = router({
         patientName: String(patient.fullName ?? mssqlPatientRows[0].NAM ?? ""),
         mysqlLinked,
         mssqlLinked,
+        // mssqlLinked=0 alone was never surfaced to the frontend before —
+        // same silent-failure class fixed elsewhere: caller previously had
+        // no way to know the MSSQL push failed short of a thrown exception.
+        mssqlNote: mssqlResult.note ?? null,
       };
     }),
 

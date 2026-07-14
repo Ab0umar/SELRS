@@ -1341,21 +1341,50 @@ export function useExaminationForm(
           code: created.patientCode || prev.code,
         }));
         utils.medical.getNextMssqlPatientCode.invalidate();
+        const newPatientMssqlWarnings = (created as any)?.mssqlWarnings as
+          | string[]
+          | undefined;
+        if (newPatientMssqlWarnings && newPatientMssqlWarnings.length > 0) {
+          toast.error(
+            `مشاكل في MSSQL: ${newPatientMssqlWarnings.join("، ")}`,
+            { duration: 15000 },
+          );
+        }
       } else {
         // Existing patient — push to MSSQL (new receipt) + create today's visit
-        await createPatientFromExamMutation.mutateAsync({
-          patientCode: patientInfo.code || undefined,
-          fullName: patientInfo.name.trim(),
-          phone: patientDetails.phone || undefined,
-          alternatePhone: patientDetails.alternatePhone || undefined,
-          serviceType: (sheetSelection as any) || "consultant",
-          locationType,
-          visitDate: localISODate(),
-          ...(shiftNumber ? { shiftNumber } : {}),
-        }).catch((err) => console.warn("[ExaminationForm] existing patient MSSQL push failed:", err));
+        let receiptPushFailed = false;
+        await createPatientFromExamMutation
+          .mutateAsync({
+            patientCode: patientInfo.code || undefined,
+            fullName: patientInfo.name.trim(),
+            phone: patientDetails.phone || undefined,
+            alternatePhone: patientDetails.alternatePhone || undefined,
+            serviceType: (sheetSelection as any) || "consultant",
+            locationType,
+            visitDate: localISODate(),
+            ...(shiftNumber ? { shiftNumber } : {}),
+          })
+          .catch((err) => {
+            console.warn("[ExaminationForm] existing patient MSSQL push failed:", err);
+            receiptPushFailed = true;
+            toast.error(
+              `فشل إنشاء الإيصال في MSSQL: ${getTrpcErrorMessage(err, "خطأ غير معروف")}`,
+              { duration: 15000 },
+            );
+          });
 
-        // Link additional services
-        for (const srv of services) {
+        // Link additional services — skipped entirely if the receipt itself
+        // failed to create above: attaching services would either fail too
+        // or silently attach to a stale prior receipt instead of a new one.
+        const failedServiceLinks: { code: string; message: string }[] = [];
+        const servicesToLink = receiptPushFailed ? [] : services;
+        if (receiptPushFailed && services.some((s) => s.code.trim())) {
+          toast.error(
+            "لم تتم إضافة الخدمات لأن إنشاء الإيصال فشل — أعد المحاولة",
+            { duration: 15000 },
+          );
+        }
+        for (const srv of servicesToLink) {
           if (srv.code.trim()) {
             try {
               const doctorCode = selectedDoctorEntry
@@ -1375,8 +1404,25 @@ export function useExaminationForm(
               });
             } catch (err) {
               console.warn(`Failed to link service ${srv.code}:`, err);
+              failedServiceLinks.push({
+                code: srv.code,
+                message: getTrpcErrorMessage(err, "خطأ غير معروف"),
+              });
             }
           }
+        }
+        // This used to fail silently (console.warn only) — the exam save
+        // would report success even when every service failed to reach
+        // MSSQL, leaving PAPAT_SRV with no row and no visible sign anything
+        // was wrong. Surface it so staff know to retry/report it.
+        if (failedServiceLinks.length > 0) {
+          toast.error(
+            `فشلت إضافة ${failedServiceLinks.length === 1 ? "خدمة" : "بعض الخدمات"} في MSSQL: ` +
+              failedServiceLinks
+                .map((f) => `${f.code} (${f.message})`)
+                .join("، "),
+            { duration: 15000 },
+          );
         }
       }
 

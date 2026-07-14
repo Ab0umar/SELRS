@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, Plus, Scissors, Trash2, X } from "lucide-react";
+import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -47,7 +48,13 @@ export default function AccServiceDrawer({ open, onClose, onSaved }: Props) {
   );
 
   const addServices = trpc.accounting.addPatientServices.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (result: any) => {
+      if (!result?.mssqlLinked) {
+        toast.error(
+          `فشل ربط الخدمات في MSSQL${result?.mssqlNote ? `: ${result.mssqlNote}` : ""}`,
+          { duration: 15000 },
+        );
+      }
       await Promise.all([
         utils.accounting.lasikServices.invalidate(),
         utils.accounting.patientLasikSummary.invalidate(),

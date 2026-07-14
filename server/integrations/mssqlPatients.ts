@@ -1996,7 +1996,7 @@ async function applyPajrnrReportDefaults(
   if (cols.has("TR_TIM")) {
     await run(
       `UPDATE ${targetTable}
-       SET TR_TIM = CASE WHEN ISNULL(CONVERT(varchar(50), TR_TIM), '') = '' THEN CONVERT(varchar(8), GETDATE(), 108) ELSE TR_TIM END
+       SET TR_TIM = CASE WHEN ISNULL(CONVERT(varchar(50), TR_TIM), '') = '' THEN CONVERT(varchar(50), GETDATE(), 120) ELSE TR_TIM END
        WHERE ${whereClause}`,
     );
   }
@@ -2319,7 +2319,14 @@ export async function createOrSyncPatientFromMssql(
 
 export async function insertPatientToMssql(
   input: MssqlPatientInsertInput,
-): Promise<{ inserted: boolean; note?: string; trNo?: number | null }> {
+): Promise<{
+  inserted: boolean;
+  note?: string;
+  trNo?: number | null;
+  /** Header insert succeeded, but the accompanying first-service insert
+   * failed — patient/receipt exists in MSSQL but with no service row. */
+  serviceInsertWarning?: string;
+}> {
   console.log(`[MSSQL Insert] Starting for patient: ${input.patientCode}`);
   const patientCode = String(input.patientCode ?? "").trim();
   const fullName = String(input.fullName ?? "").trim();
@@ -2413,6 +2420,7 @@ export async function insertPatientToMssql(
   const _mark = (label: string) =>
     console.log(`[MSSQL Insert][timing] ${label}: +${Date.now() - _t0}ms`);
   let tx: any;
+  let serviceInsertWarning: string | undefined;
   try {
     console.log(`[MSSQL Insert] Connecting to ${targetTable}...`);
     await rawPool.connect();
@@ -2801,7 +2809,7 @@ export async function insertPatientToMssql(
                     CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
                     CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC
                 ),
-                CONVERT(varchar(8), GETDATE(), 108)
+                CONVERT(varchar(50), GETDATE(), 120)
               )`,
           ...(hasSrvTrNoCol
             ? [
@@ -2914,10 +2922,17 @@ export async function insertPatientToMssql(
         );
         _mark("header totals recompute done");
       } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
         console.error(
           `[MSSQL Service Insert Error] Patient ${patientCode}:`,
-          err instanceof Error ? err.message : String(err),
+          msg,
         );
+        // Header/receipt insert already succeeded at this point — don't fail
+        // the whole patient creation over the accompanying service row, but
+        // don't silently swallow it either (this is exactly the class of bug
+        // that left PAPAT_SRV empty with no visible error for existing
+        // patients). Surface it so the caller can warn the user.
+        serviceInsertWarning = `فشلت إضافة الخدمة ${serviceCode}: ${msg}`;
       }
     } else {
       console.log(
@@ -2930,7 +2945,11 @@ export async function insertPatientToMssql(
     console.log(
       `[MSSQL Insert] ✅ Successfully inserted patient ${patientCode}!`,
     );
-    return { inserted: true, trNo: Number.isFinite(trNo) ? trNo : null };
+    return {
+      inserted: true,
+      trNo: Number.isFinite(trNo) ? trNo : null,
+      serviceInsertWarning,
+    };
   } catch (err) {
     if (tx) {
       await tx.rollback().catch(() => {});
@@ -3326,7 +3345,7 @@ export async function upsertPatientToMssql(
                     CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
                     CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC
                 ),
-                CONVERT(varchar(8), GETDATE(), 108)
+                CONVERT(varchar(50), GETDATE(), 120)
               )`,
           ...(srvTrNoCol
             ? [
@@ -3446,8 +3465,14 @@ export async function upsertPatientToMssql(
             ? Math.trunc(Number(cvhTrNoRow.TR_NO))
             : null,
         );
-      } catch {
-        // optional service mirror table
+      } catch (err) {
+        // Optional service mirror — the patient upsert above already
+        // succeeded, so this stays best-effort, but log it rather than
+        // discarding the error entirely with no trace anywhere.
+        console.warn(
+          `[upsertPatientToMssql] optional service mirror failed for PAT_CD=${patientCode} SRV_CD=${serviceCode}:`,
+          err instanceof Error ? err.message : err,
+        );
       }
     }
 
@@ -3556,7 +3581,7 @@ export async function ensurePatientServiceInMssql(
                 CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
                 CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC
             ),
-            CONVERT(varchar(8), GETDATE(), 108)
+            CONVERT(varchar(50), GETDATE(), 120)
           )`,
       ...(srvTrNoCol
         ? [
@@ -3632,34 +3657,55 @@ export async function ensurePatientServiceInMssql(
           )
         )`
       : `PAT_CD = @PAT_CD AND SRV_CD = @SRV_CD`;
+    // PAPAT_SRV has an enabled trigger — SQL Server forbids a bare OUTPUT
+    // clause (no INTO) on a DML statement against a table with triggers
+    // ("cannot have any enabled triggers if the statement contains an
+    // OUTPUT clause without INTO clause"). Route it through a table
+    // variable instead and select back out of that.
     const serviceSql = `
+        ${srvTrNoCol ? "DECLARE @InsertedSrv TABLE (TR_NO INT);" : ""}
         INSERT INTO op2026.dbo.PAPAT_SRV (${srvInsertCols.join(", ")})
-        ${srvTrNoCol ? `OUTPUT INSERTED.${srvTrNoCol} AS TR_NO` : ""}
+        ${srvTrNoCol ? `OUTPUT INSERTED.${srvTrNoCol} INTO @InsertedSrv (TR_NO)` : ""}
         SELECT ${srvInsertVals.join(", ")}
         WHERE NOT EXISTS (
           SELECT 1 FROM op2026.dbo.PAPAT_SRV WHERE ${ensureSrvExistsFilter}
-        )
+        );
+        ${srvTrNoCol ? "SELECT TR_NO FROM @InsertedSrv;" : ""}
     `;
     let resolvedSrvTrNo: number | null = null;
-    await withMssqlServiceInsertLock(
-      pool,
-      patientCode,
-      serviceCode,
-      async () => {
-        const reqService = pool.request();
-        reqService.input("PAT_CD", patientCode);
-        reqService.input("SRV_CD", serviceCode);
-        reqService.input("SEC_CD", secCd);
-        const insertRs = await reqService.query(serviceSql);
-        const insertedRow =
-          Array.isArray(insertRs?.recordset) && insertRs.recordset.length > 0
-            ? insertRs.recordset[0]
+    try {
+      await withMssqlServiceInsertLock(
+        pool,
+        patientCode,
+        serviceCode,
+        async () => {
+          const reqService = pool.request();
+          reqService.input("PAT_CD", patientCode);
+          reqService.input("SRV_CD", serviceCode);
+          reqService.input("SEC_CD", secCd);
+          const insertRs = await reqService.query(serviceSql);
+          const insertedRow =
+            Array.isArray(insertRs?.recordset) && insertRs.recordset.length > 0
+              ? insertRs.recordset[0]
+              : null;
+          resolvedSrvTrNo = Number.isFinite(Number(insertedRow?.TR_NO))
+            ? Number(insertedRow.TR_NO)
             : null;
-        resolvedSrvTrNo = Number.isFinite(Number(insertedRow?.TR_NO))
-          ? Number(insertedRow.TR_NO)
-          : null;
-      },
-    );
+        },
+      );
+    } catch (err) {
+      // Previously this exception had no server-side log at all — it just
+      // propagated up through the router as a generic failed mutation, and
+      // the frontend's per-service catch only did console.warn (now fixed
+      // to surface a toast too). Log the real SQL/driver error here so a
+      // failed service-link is diagnosable from server logs alone.
+      console.error(
+        `[ensurePatientServiceInMssql] service INSERT failed for PAT_CD=${patientCode} SRV_CD=${serviceCode}:`,
+        err instanceof Error ? err.message : err,
+      );
+      console.error(`[ensurePatientServiceInMssql] failing SQL:\n${serviceSql}`);
+      throw err;
+    }
 
     // Row already existed if OUTPUT returned nothing (NOT EXISTS blocked the
     // insert) — e.g. this same service code was already added earlier in this
@@ -4211,7 +4257,7 @@ export async function addServiceReceiptInMssql(
       "@SRV_CD",
       `ISNULL((SELECT TOP 1 CASE WHEN ISNUMERIC(CONVERT(varchar(50), VST_NO)) = 1 THEN CAST(CONVERT(varchar(50), VST_NO) AS INT) ELSE NULL END FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), 1)`,
       `ISNULL((SELECT TOP 1 CASE WHEN ISDATE(DT) = 1 THEN CONVERT(datetime, DT) END FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), GETDATE())`,
-      `ISNULL((SELECT TOP 1 NULLIF(CONVERT(varchar(50), TR_TIM), '') FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), CONVERT(varchar(8), GETDATE(), 108))`,
+      `ISNULL((SELECT TOP 1 NULLIF(CONVERT(varchar(50), TR_TIM), '') FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), CONVERT(varchar(50), GETDATE(), 120))`,
       ...(srvTrNoCol
         ? [
             `ISNULL((SELECT TOP 1 CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${headerTrExpr})) = 1 THEN CAST(CONVERT(varchar(50), ${headerTrExpr}) AS INT) ELSE NULL END FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), (SELECT ISNULL(MAX(CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${srvTrExpr})) = 1 THEN CAST(CONVERT(varchar(50), ${srvTrExpr}) AS INT) ELSE NULL END), 0) + 1 FROM op2026.dbo.PAPAT_SRV))`,
@@ -4626,7 +4672,7 @@ export async function addMultiServiceReceiptInMssql(
       "@SRV_CD",
       `ISNULL((SELECT TOP 1 CASE WHEN ISNUMERIC(CONVERT(varchar(50), VST_NO)) = 1 THEN CAST(CONVERT(varchar(50), VST_NO) AS INT) ELSE NULL END FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), 1)`,
       `ISNULL((SELECT TOP 1 CASE WHEN ISDATE(DT) = 1 THEN CONVERT(datetime, DT) END FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), GETDATE())`,
-      `ISNULL((SELECT TOP 1 NULLIF(CONVERT(varchar(50), TR_TIM), '') FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), CONVERT(varchar(8), GETDATE(), 108))`,
+      `ISNULL((SELECT TOP 1 NULLIF(CONVERT(varchar(50), TR_TIM), '') FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), CONVERT(varchar(50), GETDATE(), 120))`,
       ...(srvTrNoCol
         ? [
             Number.isFinite(trNo)

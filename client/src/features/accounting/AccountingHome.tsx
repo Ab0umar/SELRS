@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 import { useState, useMemo, useEffect, Fragment } from "react";
 import {
   ArrowUpRight,
@@ -112,7 +113,13 @@ export default function AccountingHome() {
     },
   );
   const addServicesMut = trpc.accounting.addPatientServices.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (result: any) => {
+      if (!result?.mssqlLinked) {
+        toast.error(
+          `فشل ربط الخدمات في MSSQL${result?.mssqlNote ? `: ${result.mssqlNote}` : ""}`,
+          { duration: 15000 },
+        );
+      }
       await Promise.all([
         summaryQuery.refetch(),
         activityQuery.refetch(),
