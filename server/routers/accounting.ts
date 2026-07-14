@@ -458,9 +458,22 @@ export const accountingRouter = router({
         req.input("TR_NO", input.trNo);
         if (input.paidAmount != null) req.input("PA_VL", input.paidAmount);
         if (input.discount != null) req.input("DISC", input.discount);
-        await req.query(
+        const result = await req.query(
           `UPDATE ${targetTable} SET ${parts.join(", ")}, UPDATEDATE = GETDATE() WHERE PAT_CD = @PAT_CD AND CAST(ISNULL(CONVERT(varchar(20), TR_NO), '0') AS INT) = @TR_NO`,
         );
+        const rowsAffected = (result?.rowsAffected ?? []).reduce(
+          (sum: number, n: number) => sum + n,
+          0,
+        );
+        // Previously returned {updated:true} unconditionally — if
+        // patientCode/trNo didn't match any row, the UI closed the edit
+        // form as if it saved, with nothing actually changed.
+        if (rowsAffected === 0) {
+          return {
+            updated: false,
+            note: `لم يتم العثور على إيصال مطابق (PAT_CD=${input.patientCode}, TR_NO=${input.trNo})`,
+          };
+        }
         return { updated: true };
       } finally {
         // Pool is shared/cached across calls (see createMssqlPool) — don't close it here.

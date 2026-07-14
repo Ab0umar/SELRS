@@ -196,7 +196,11 @@ export default function AccountingHome() {
     },
   });
   const updateReceiptMut = trpc.accounting.updateReceipt.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (result: any) => {
+      if (!result?.updated) {
+        toast.error(result?.note ?? "فشل تحديث الإيصال", { duration: 15000 });
+        return;
+      }
       setEditingReceipt(null);
       await activityQuery.refetch();
     },
