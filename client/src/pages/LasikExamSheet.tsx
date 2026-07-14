@@ -868,6 +868,55 @@ export default function LasikExamSheet() {
 
         {currentSheetType === "consultant" ? (
           <section className="print-consultant-diagrams flex flex-wrap items-end justify-center gap-2 border border-[#c3c6d6] rounded-xl p-4 bg-white flex-1 min-h-[90mm]" data-purpose="clinical-diagrams">
+            <div className="consultant-examination-block w-full sm:w-[calc(50%-0.25rem)] rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] p-3 text-left text-[12px] text-[#1f2937]" dir="ltr">
+              <p className="mb-2 text-[13px] font-bold text-[#003d9b]">Examination:</p>
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span className="font-semibold">1. External Apperance:</span>
+                  <label className="inline-flex items-center gap-1.5">
+                    <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.externalPtosis} onChange={(e) => setConsultantExamField("externalPtosis", e.target.checked)} />
+                    <span>Ptosis</span>
+                  </label>
+                  <label className="inline-flex items-center gap-1.5">
+                    <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.externalSquint} onChange={(e) => setConsultantExamField("externalSquint", e.target.checked)} />
+                    <span>Squint</span>
+                  </label>
+                  <label className="inline-flex items-center gap-1.5">
+                    <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.externalOthers} onChange={(e) => setConsultantExamField("externalOthers", e.target.checked)} />
+                    <span>Others</span>
+                  </label>
+                  <input className="h-6 min-w-[170px] flex-1 border-0 border-b border-[#c3c6d6] bg-transparent px-1 outline-none" value={consultantExam.externalOthersNote} onChange={(e) => setConsultantExamField("externalOthersNote", e.target.value)} />
+                </div>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span className="font-semibold">2. Muscle action:</span>
+                  <label className="inline-flex items-center gap-1.5">
+                    <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.muscleNormal} onChange={(e) => setConsultantExamField("muscleNormal", e.target.checked)} />
+                    <span>Normal</span>
+                  </label>
+                  <label className="inline-flex items-center gap-1.5">
+                    <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.muscleAbnormal} onChange={(e) => setConsultantExamField("muscleAbnormal", e.target.checked)} />
+                    <span>Abnormal</span>
+                  </label>
+                  <input className="h-6 min-w-[190px] flex-1 border-0 border-b border-[#c3c6d6] bg-transparent px-1 outline-none" value={consultantExam.muscleAbnormalNote} onChange={(e) => setConsultantExamField("muscleAbnormalNote", e.target.value)} />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold">3. Other abnormalities:</span>
+                  <input className="h-6 flex-1 border-0 border-b border-[#c3c6d6] bg-transparent px-1 outline-none" value={consultantExam.otherAbnormalities} onChange={(e) => setConsultantExamField("otherAbnormalities", e.target.value)} />
+                </div>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[#d9dce8] pt-2">
+                  <span className="font-bold">Fundus:</span>
+                  <label className="inline-flex items-center gap-1.5">
+                    <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.fundusNormal} onChange={(e) => setConsultantExamField("fundusNormal", e.target.checked)} />
+                    <span>Normal</span>
+                  </label>
+                  <label className="inline-flex items-center gap-1.5">
+                    <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.fundusAbnormal} onChange={(e) => setConsultantExamField("fundusAbnormal", e.target.checked)} />
+                    <span>Abnormal</span>
+                  </label>
+                  <input className="h-6 min-w-[220px] flex-1 border-0 border-b border-[#c3c6d6] bg-transparent px-1 outline-none" value={consultantExam.fundusAbnormalNote} onChange={(e) => setConsultantExamField("fundusAbnormalNote", e.target.value)} />
+                </div>
+              </div>
+            </div>
             <div className="consultant-complains-block w-full sm:w-[calc(50%-0.25rem)] rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] p-3 text-left text-[12px] text-[#1f2937]" dir="ltr">
               <p className="mb-2 text-[13px] font-bold text-[#003d9b]">Complains:</p>
               <textarea
@@ -922,55 +971,6 @@ export default function LasikExamSheet() {
                     )}
                   </div>
                 ) : null}
-              </div>
-            </div>
-            <div className="consultant-examination-block w-full sm:w-[calc(50%-0.25rem)] rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] p-3 text-left text-[12px] text-[#1f2937]" dir="ltr">
-              <p className="mb-2 text-[13px] font-bold text-[#003d9b]">Examination:</p>
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <span className="font-semibold">1. External Apperance:</span>
-                  <label className="inline-flex items-center gap-1.5">
-                    <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.externalPtosis} onChange={(e) => setConsultantExamField("externalPtosis", e.target.checked)} />
-                    <span>Ptosis</span>
-                  </label>
-                  <label className="inline-flex items-center gap-1.5">
-                    <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.externalSquint} onChange={(e) => setConsultantExamField("externalSquint", e.target.checked)} />
-                    <span>Squint</span>
-                  </label>
-                  <label className="inline-flex items-center gap-1.5">
-                    <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.externalOthers} onChange={(e) => setConsultantExamField("externalOthers", e.target.checked)} />
-                    <span>Others</span>
-                  </label>
-                  <input className="h-6 min-w-[170px] flex-1 border-0 border-b border-[#c3c6d6] bg-transparent px-1 outline-none" value={consultantExam.externalOthersNote} onChange={(e) => setConsultantExamField("externalOthersNote", e.target.value)} />
-                </div>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <span className="font-semibold">2. Muscle action:</span>
-                  <label className="inline-flex items-center gap-1.5">
-                    <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.muscleNormal} onChange={(e) => setConsultantExamField("muscleNormal", e.target.checked)} />
-                    <span>Normal</span>
-                  </label>
-                  <label className="inline-flex items-center gap-1.5">
-                    <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.muscleAbnormal} onChange={(e) => setConsultantExamField("muscleAbnormal", e.target.checked)} />
-                    <span>Abnormal</span>
-                  </label>
-                  <input className="h-6 min-w-[190px] flex-1 border-0 border-b border-[#c3c6d6] bg-transparent px-1 outline-none" value={consultantExam.muscleAbnormalNote} onChange={(e) => setConsultantExamField("muscleAbnormalNote", e.target.value)} />
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">3. Other abnormalities:</span>
-                  <input className="h-6 flex-1 border-0 border-b border-[#c3c6d6] bg-transparent px-1 outline-none" value={consultantExam.otherAbnormalities} onChange={(e) => setConsultantExamField("otherAbnormalities", e.target.value)} />
-                </div>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[#d9dce8] pt-2">
-                  <span className="font-bold">Fundus:</span>
-                  <label className="inline-flex items-center gap-1.5">
-                    <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.fundusNormal} onChange={(e) => setConsultantExamField("fundusNormal", e.target.checked)} />
-                    <span>Normal</span>
-                  </label>
-                  <label className="inline-flex items-center gap-1.5">
-                    <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.fundusAbnormal} onChange={(e) => setConsultantExamField("fundusAbnormal", e.target.checked)} />
-                    <span>Abnormal</span>
-                  </label>
-                  <input className="h-6 min-w-[220px] flex-1 border-0 border-b border-[#c3c6d6] bg-transparent px-1 outline-none" value={consultantExam.fundusAbnormalNote} onChange={(e) => setConsultantExamField("fundusAbnormalNote", e.target.value)} />
-                </div>
               </div>
             </div>
             <div className="flex flex-col items-center justify-center gap-1">
@@ -1274,6 +1274,10 @@ export default function LasikExamSheet() {
           .print-consultant-diagrams .w-28 {
             width: 32mm !important;
             height: 32mm !important;
+          }
+          .print-consultant-diagrams .consultant-examination-block,
+          .print-consultant-diagrams .consultant-complains-block {
+            width: calc(50% - 1.5mm) !important;
           }
           .print-consultant-diagrams p {
             margin-top: 2mm !important;
