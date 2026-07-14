@@ -1355,6 +1355,7 @@ export function useExaminationForm(
         }).catch((err) => console.warn("[ExaminationForm] existing patient MSSQL push failed:", err));
 
         // Link additional services
+        const failedServiceLinks: { code: string; message: string }[] = [];
         for (const srv of services) {
           if (srv.code.trim()) {
             try {
@@ -1375,8 +1376,25 @@ export function useExaminationForm(
               });
             } catch (err) {
               console.warn(`Failed to link service ${srv.code}:`, err);
+              failedServiceLinks.push({
+                code: srv.code,
+                message: getTrpcErrorMessage(err, "خطأ غير معروف"),
+              });
             }
           }
+        }
+        // This used to fail silently (console.warn only) — the exam save
+        // would report success even when every service failed to reach
+        // MSSQL, leaving PAPAT_SRV with no row and no visible sign anything
+        // was wrong. Surface it so staff know to retry/report it.
+        if (failedServiceLinks.length > 0) {
+          toast.error(
+            `فشلت إضافة ${failedServiceLinks.length === 1 ? "خدمة" : "بعض الخدمات"} في MSSQL: ` +
+              failedServiceLinks
+                .map((f) => `${f.code} (${f.message})`)
+                .join("، "),
+            { duration: 15000 },
+          );
         }
       }
 

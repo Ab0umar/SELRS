@@ -3641,25 +3641,39 @@ export async function ensurePatientServiceInMssql(
         )
     `;
     let resolvedSrvTrNo: number | null = null;
-    await withMssqlServiceInsertLock(
-      pool,
-      patientCode,
-      serviceCode,
-      async () => {
-        const reqService = pool.request();
-        reqService.input("PAT_CD", patientCode);
-        reqService.input("SRV_CD", serviceCode);
-        reqService.input("SEC_CD", secCd);
-        const insertRs = await reqService.query(serviceSql);
-        const insertedRow =
-          Array.isArray(insertRs?.recordset) && insertRs.recordset.length > 0
-            ? insertRs.recordset[0]
+    try {
+      await withMssqlServiceInsertLock(
+        pool,
+        patientCode,
+        serviceCode,
+        async () => {
+          const reqService = pool.request();
+          reqService.input("PAT_CD", patientCode);
+          reqService.input("SRV_CD", serviceCode);
+          reqService.input("SEC_CD", secCd);
+          const insertRs = await reqService.query(serviceSql);
+          const insertedRow =
+            Array.isArray(insertRs?.recordset) && insertRs.recordset.length > 0
+              ? insertRs.recordset[0]
+              : null;
+          resolvedSrvTrNo = Number.isFinite(Number(insertedRow?.TR_NO))
+            ? Number(insertedRow.TR_NO)
             : null;
-        resolvedSrvTrNo = Number.isFinite(Number(insertedRow?.TR_NO))
-          ? Number(insertedRow.TR_NO)
-          : null;
-      },
-    );
+        },
+      );
+    } catch (err) {
+      // Previously this exception had no server-side log at all — it just
+      // propagated up through the router as a generic failed mutation, and
+      // the frontend's per-service catch only did console.warn (now fixed
+      // to surface a toast too). Log the real SQL/driver error here so a
+      // failed service-link is diagnosable from server logs alone.
+      console.error(
+        `[ensurePatientServiceInMssql] service INSERT failed for PAT_CD=${patientCode} SRV_CD=${serviceCode}:`,
+        err instanceof Error ? err.message : err,
+      );
+      console.error(`[ensurePatientServiceInMssql] failing SQL:\n${serviceSql}`);
+      throw err;
+    }
 
     // Row already existed if OUTPUT returned nothing (NOT EXISTS blocked the
     // insert) — e.g. this same service code was already added earlier in this
