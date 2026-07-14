@@ -889,7 +889,7 @@ export default function LasikExamSheet() {
               </div>
             </div>
             <div className="consultant-right-column flex w-full sm:w-[calc(75%-0.5rem)] flex-col gap-2">
-              <div className="consultant-complains-block flex-[1] rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] p-3 text-left text-[12px] text-[#1f2937]" dir="ltr">
+              <div className="consultant-complains-block flex-[1] rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] px-3 pb-3 pt-0 text-left text-[12px] text-[#1f2937]" dir="ltr">
                 <p className="mb-2 text-[13px] font-bold text-[#003d9b]">Complains:</p>
                 <textarea
                   className="w-full min-h-[48px] rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none print:placeholder-transparent"
@@ -1308,9 +1308,11 @@ export default function LasikExamSheet() {
             width: calc(75% - 3mm) !important;
           }
           .print-lasik-questions table {
-            height: 100% !important;
+            flex: 1 1 0 !important;
+            height: auto !important;
           }
           .print-lasik-history-visual-row {
+            display: flex !important;
             align-items: stretch !important;
           }
           .print-lasik-visual-grid {
