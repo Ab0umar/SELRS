@@ -1302,29 +1302,14 @@ export default function LasikExamSheet() {
             margin-top: 0 !important;
           }
           .print-lasik-history-visual-row {
-            display: table !important;
-            table-layout: fixed !important;
-            width: 100% !important;
-            border-collapse: separate !important;
-            border-spacing: 3mm 0 !important;
+            display: flex !important;
+            align-items: stretch !important;
           }
           .print-lasik-questions {
-            display: table-cell !important;
-            vertical-align: top !important;
-            width: 75% !important;
-          }
-          .print-lasik-questions table {
-            height: 100% !important;
+            width: calc(75% - 3mm) !important;
           }
           .print-lasik-visual-grid {
-            display: table-cell !important;
-            vertical-align: top !important;
-            width: 25% !important;
-          }
-          .print-lasik-visual-grid table {
-            display: table !important;
-            height: 50% !important;
-            margin-bottom: 2mm !important;
+            width: calc(25% - 3mm) !important;
           }
           .print-lasik-questions table {
             font-size: 10px !important;
