@@ -1341,6 +1341,15 @@ export function useExaminationForm(
           code: created.patientCode || prev.code,
         }));
         utils.medical.getNextMssqlPatientCode.invalidate();
+        const newPatientMssqlWarnings = (created as any)?.mssqlWarnings as
+          | string[]
+          | undefined;
+        if (newPatientMssqlWarnings && newPatientMssqlWarnings.length > 0) {
+          toast.error(
+            `مشاكل في MSSQL: ${newPatientMssqlWarnings.join("، ")}`,
+            { duration: 15000 },
+          );
+        }
       } else {
         // Existing patient — push to MSSQL (new receipt) + create today's visit
         let receiptPushFailed = false;

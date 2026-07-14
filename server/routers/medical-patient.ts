@@ -836,6 +836,12 @@ export const medicalPatientRoutes = {
           ? registrationPricingPayload({ servicePrice: processServices[0].price, serviceQty: Number(processServices[0].qty) || 1, discountValue: processServices[0].discount })
           : {};
 
+        // Collected here instead of only console.warn'd — a silently
+        // swallowed MSSQL push failure is exactly what left PAPAT_SRV empty
+        // with the exam form reporting success (see the linkPatientService
+        // path). Returned to the caller so the frontend can warn the user.
+        const mssqlWarnings: string[] = [];
+
         const pushResult = await pushNewPatientToMssql({
           patientCode,
           fullName: input.fullName,
@@ -852,7 +858,16 @@ export const medicalPatientRoutes = {
           serviceCode: processServices[0]?.code || null,
           shiftNumber: input.shiftNumber ?? null,
           ...pricingPayload,
-        }).catch((err) => { console.warn("[createPatientFromExamination] MSSQL push failed:", err); return null; });
+        }).catch((err) => {
+          console.warn("[createPatientFromExamination] MSSQL push failed:", err);
+          mssqlWarnings.push(
+            `فشل إنشاء الإيصال في MSSQL: ${err instanceof Error ? err.message : String(err)}`,
+          );
+          return null;
+        });
+        if (pushResult?.serviceInsertWarning) {
+          mssqlWarnings.push(pushResult.serviceInsertWarning);
+        }
         _mark("primary MSSQL push done");
 
         // Push remaining services sequentially (must be awaited, not fired
@@ -866,7 +881,12 @@ export const medicalPatientRoutes = {
           const srv = processServices[i];
           const p = registrationPricingPayload({ servicePrice: srv.price, serviceQty: Number(srv.qty) || 1, discountValue: srv.discount });
           await pushNewPatientToMssql({ patientCode, fullName: input.fullName, branch: "examinations", serviceCode: srv.code, doctorCode: doctorCode || null, shiftNumber: input.shiftNumber ?? null, ...p })
-            .catch((err) => console.warn("[createPatientFromExamination] extra service push failed:", err));
+            .catch((err) => {
+              console.warn("[createPatientFromExamination] extra service push failed:", err);
+              mssqlWarnings.push(
+                `فشلت إضافة الخدمة ${srv.code}: ${err instanceof Error ? err.message : String(err)}`,
+              );
+            });
         }
 
         // ── Step 4: sync MSSQL → MySQL (create/update patient + today visit) ─
@@ -904,7 +924,13 @@ export const medicalPatientRoutes = {
         }
         _mark("notification done, returning");
 
-        return { id: patientId, patientCode, fullName: input.fullName, receiptNo: pushResult?.trNo ?? null };
+        return {
+          id: patientId,
+          patientCode,
+          fullName: input.fullName,
+          receiptNo: pushResult?.trNo ?? null,
+          mssqlWarnings,
+        };
       } catch (error: any) {
         console.error("[medical:createPatientFromExamination]", error);
         throw new TRPCError({ code: error.code || "INTERNAL_SERVER_ERROR", message: error.message || "Failed to create patient" });

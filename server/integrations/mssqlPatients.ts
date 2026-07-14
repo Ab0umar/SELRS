@@ -2319,7 +2319,14 @@ export async function createOrSyncPatientFromMssql(
 
 export async function insertPatientToMssql(
   input: MssqlPatientInsertInput,
-): Promise<{ inserted: boolean; note?: string; trNo?: number | null }> {
+): Promise<{
+  inserted: boolean;
+  note?: string;
+  trNo?: number | null;
+  /** Header insert succeeded, but the accompanying first-service insert
+   * failed — patient/receipt exists in MSSQL but with no service row. */
+  serviceInsertWarning?: string;
+}> {
   console.log(`[MSSQL Insert] Starting for patient: ${input.patientCode}`);
   const patientCode = String(input.patientCode ?? "").trim();
   const fullName = String(input.fullName ?? "").trim();
@@ -2413,6 +2420,7 @@ export async function insertPatientToMssql(
   const _mark = (label: string) =>
     console.log(`[MSSQL Insert][timing] ${label}: +${Date.now() - _t0}ms`);
   let tx: any;
+  let serviceInsertWarning: string | undefined;
   try {
     console.log(`[MSSQL Insert] Connecting to ${targetTable}...`);
     await rawPool.connect();
@@ -2914,10 +2922,17 @@ export async function insertPatientToMssql(
         );
         _mark("header totals recompute done");
       } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
         console.error(
           `[MSSQL Service Insert Error] Patient ${patientCode}:`,
-          err instanceof Error ? err.message : String(err),
+          msg,
         );
+        // Header/receipt insert already succeeded at this point — don't fail
+        // the whole patient creation over the accompanying service row, but
+        // don't silently swallow it either (this is exactly the class of bug
+        // that left PAPAT_SRV empty with no visible error for existing
+        // patients). Surface it so the caller can warn the user.
+        serviceInsertWarning = `فشلت إضافة الخدمة ${serviceCode}: ${msg}`;
       }
     } else {
       console.log(
@@ -2930,7 +2945,11 @@ export async function insertPatientToMssql(
     console.log(
       `[MSSQL Insert] ✅ Successfully inserted patient ${patientCode}!`,
     );
-    return { inserted: true, trNo: Number.isFinite(trNo) ? trNo : null };
+    return {
+      inserted: true,
+      trNo: Number.isFinite(trNo) ? trNo : null,
+      serviceInsertWarning,
+    };
   } catch (err) {
     if (tx) {
       await tx.rollback().catch(() => {});
@@ -3446,8 +3465,14 @@ export async function upsertPatientToMssql(
             ? Math.trunc(Number(cvhTrNoRow.TR_NO))
             : null,
         );
-      } catch {
-        // optional service mirror table
+      } catch (err) {
+        // Optional service mirror — the patient upsert above already
+        // succeeded, so this stays best-effort, but log it rather than
+        // discarding the error entirely with no trace anywhere.
+        console.warn(
+          `[upsertPatientToMssql] optional service mirror failed for PAT_CD=${patientCode} SRV_CD=${serviceCode}:`,
+          err instanceof Error ? err.message : err,
+        );
       }
     }
 
