@@ -871,12 +871,12 @@ export default function LasikExamSheet() {
             <div className="consultant-complains-block w-full rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] p-3 text-left text-[12px] text-[#1f2937]" dir="ltr">
               <p className="mb-2 text-[13px] font-bold text-[#003d9b]">Complains:</p>
               <textarea
-                className="w-full min-h-[48px] rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none"
+                className="w-full min-h-[48px] rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none print:placeholder-transparent"
                 value={consultantExam.complains}
                 onChange={(e) => setConsultantExamField("complains", e.target.value)}
                 placeholder="اكتب الشكوى يدويًا أو ابحث من الأعراض بالأسفل..."
               />
-              <div className="relative mt-2 refraction-no-print">
+              <div className="relative mt-2 print:hidden">
                 <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <input
                   className="h-8 w-full rounded-md border border-[#c3c6d6] bg-white pl-7 pr-2 text-[12px] outline-none"
