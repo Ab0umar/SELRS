@@ -465,7 +465,7 @@ SELECT
   s.CA_CD AS companyCode,
   s.DISC_VL AS lineDiscount,
   s.SRV_CD AS serviceCode,
-  s.LN_NO AS lineNo,
+  s.LN_NO AS lineNumber,
   s.SRV_BY1 AS doctorCode,
   s.QTY AS quantity,
   ISNULL(s.QTY, 0) * ISNULL(s.PRC, 0) AS price,
