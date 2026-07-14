@@ -153,42 +153,49 @@ export default function RefractionPage() {
   const { goBack } = useAppNavigation();
   const [, params] = useRoute("/refraction/:id");
   const patientId = Number(params?.id ?? 0);
-  const printMode = usePrintMode({
-    ready: Number.isFinite(patientId) && patientId > 0,
-  });
+  const patientIdValid = Number.isFinite(patientId) && patientId > 0;
 
   const patientQuery = trpc.patient.getPatient.useQuery(patientId, {
-    enabled: Number.isFinite(patientId) && patientId > 0,
+    enabled: patientIdValid,
     refetchOnWindowFocus: false,
   });
   const consultantQuery = trpc.medical.getSheetEntry.useQuery(
     { patientId, sheetType: "consultant" },
     {
-      enabled: Number.isFinite(patientId) && patientId > 0,
+      enabled: patientIdValid,
       refetchOnWindowFocus: false,
     },
   );
   const specialistQuery = trpc.medical.getSheetEntry.useQuery(
     { patientId, sheetType: "specialist" },
     {
-      enabled: Number.isFinite(patientId) && patientId > 0,
+      enabled: patientIdValid,
       refetchOnWindowFocus: false,
     },
   );
   const lasikQuery = trpc.medical.getSheetEntry.useQuery(
     { patientId, sheetType: "lasik" },
     {
-      enabled: Number.isFinite(patientId) && patientId > 0,
+      enabled: patientIdValid,
       refetchOnWindowFocus: false,
     },
   );
   const externalQuery = trpc.medical.getSheetEntry.useQuery(
     { patientId, sheetType: "external" },
     {
-      enabled: Number.isFinite(patientId) && patientId > 0,
+      enabled: patientIdValid,
       refetchOnWindowFocus: false,
     },
   );
+
+  const dataReady =
+    !patientIdValid ||
+    (!patientQuery.isLoading &&
+      !consultantQuery.isLoading &&
+      !specialistQuery.isLoading &&
+      !lasikQuery.isLoading &&
+      !externalQuery.isLoading);
+  const printMode = usePrintMode({ ready: patientIdValid && dataReady });
 
   const utils = trpc.useUtils();
   const saveSheetMutation = trpc.medical.saveSheetEntry.useMutation();
@@ -440,6 +447,9 @@ export default function RefractionPage() {
   };
 
   const todayLabel = new Date().toISOString().split("T")[0];
+  const patient = (patientQuery.data as any) ?? {};
+  const patientName = String(patient.fullName ?? "");
+  const patientCode = String(patient.patientCode ?? patientId ?? "");
 
   return (
     <div
@@ -518,22 +528,87 @@ export default function RefractionPage() {
           }
           .refraction-print-wrapper {
             position: fixed !important;
-            inset: 0 !important;
-            display: flex !important;
-            justify-content: center !important;
-            align-items: center !important;
+            inset: auto auto auto auto !important;
+            top: 53mm !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            display: block !important;
+            width: 132mm !important;
+            max-width: 132mm !important;
             visibility: visible !important;
           }
           .refraction-print-card {
-            break-inside: avoid;
-            page-break-inside: avoid;
-            width: 135mm !important;
-            max-width: 135mm !important;
-            margin: 0 auto !important;
+            width: 132mm !important;
+            max-width: 132mm !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            padding: 0 !important;
+            background: #fff !important;
           }
-          .refraction-print-card,
-          .refraction-print-card * {
+          .refraction-live-header-row,
+          .refraction-live-summary-row,
+          .refraction-live-eye-grid {
+            border: 1px solid #e5e5e5 !important;
+          }
+          .refraction-live-header-row {
+            grid-template-columns: 1.4fr 1fr 0.8fr !important;
+            direction: rtl !important;
+            padding: 2.4mm 2.8mm !important;
+            margin-bottom: 3mm !important;
+          }
+          .refraction-live-summary-row {
+            grid-template-columns: 1fr 1fr 1fr !important;
+            direction: ltr !important;
+            border-bottom: 0 !important;
+            margin-bottom: 0 !important;
+            padding: 2.3mm 3mm !important;
+          }
+          .refraction-live-eye-grid {
+            display: grid !important;
+            grid-template-columns: 66mm 66mm !important;
+            gap: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border-top: 0 !important;
+          }
+          .refraction-live-eye-column {
+            display: block !important;
+            width: 66mm !important;
+            max-width: 66mm !important;
+            min-width: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          .refraction-live-eye-column table {
+            width: 66mm !important;
+            max-width: 66mm !important;
+            table-layout: fixed !important;
+            border-collapse: collapse !important;
+            font-size: 9pt !important;
+            line-height: 1.2 !important;
+          }
+          .refraction-live-eye-column > div {
+            display: none !important;
+          }
+          .refraction-live-eye-table {
+            display: table !important;
+            width: 66mm !important;
+            min-width: 66mm !important;
+            max-width: 66mm !important;
+          }
+          .refraction-live-eye-title {
+            font-weight: 800 !important;
+            background: #fff !important;
+            color: #000 !important;
+          }
+          .refraction-live-eye-column th,
+          .refraction-live-eye-column td {
+            border: 1px solid #000 !important;
+            padding: 1.65mm 1mm !important;
             text-align: center !important;
+            vertical-align: middle !important;
           }
         }
       `}</style>
@@ -584,25 +659,20 @@ export default function RefractionPage() {
                 background: "var(--background)",
               }}
             >
-              <div className="mb-2 grid grid-cols-1 gap-2 text-xs font-semibold sm:grid-cols-2 sm:gap-3 sm:text-sm">
-                <div className="text-center sm:text-left">
-                  <span>Name :</span>{" "}
-                  <span className="break-words">
-                    {String((patientQuery.data as any)?.fullName ?? "")}
-                  </span>
-                </div>
+              <div className="refraction-live-header-row mb-2 grid grid-cols-1 gap-2 text-xs font-semibold sm:grid-cols-3 sm:gap-3 sm:text-sm">
                 <div className="text-center sm:text-right">
-                  Date : {todayLabel}
+                  <span>الاسم :</span>{" "}
+                  <span className="break-words">{patientName}</span>
+                </div>
+                <div className="text-center">التاريخ : {todayLabel}</div>
+                <div className="text-center sm:text-left">
+                  الكود : {patientCode}
                 </div>
               </div>
-              <div className="mb-3 grid grid-cols-1 gap-2 text-xs font-semibold sm:grid-cols-3 sm:gap-3 sm:text-sm">
-                <div className="text-center sm:text-left">
-                  Colour :
-                </div>
+              <div className="refraction-live-summary-row mb-3 grid grid-cols-1 gap-2 text-xs font-semibold sm:grid-cols-3 sm:gap-3 sm:text-sm">
                 <div className="min-w-0">
                   <span className="hidden print:inline">
-                    V.A : {form.bcvaOD || ""} /{" "}
-                    {form.bcvaOS || ""}
+                    V.A : {form.bcvaOD || ""} / {form.bcvaOS || ""}
                   </span>
                   <span className="print:hidden flex flex-wrap items-center justify-center gap-1 sm:inline-flex sm:justify-center">
                     <span>V.A :</span>
@@ -627,12 +697,12 @@ export default function RefractionPage() {
                     </div>
                   </span>
                 </div>
-                <div className="text-center sm:text-right">
+                <div className="text-center">
                   <span className="hidden print:inline">
-                    P.D. : {form.pdOS || ""}
+                    PD : {form.pdOS || ""}
                   </span>
                   <span className="print:hidden inline-flex flex-wrap items-center justify-center gap-1">
-                    <span>P.D. :</span>
+                    <span>PD :</span>
                     <Input
                       value={form.pdOS}
                       onChange={(e) =>
@@ -642,24 +712,28 @@ export default function RefractionPage() {
                     />
                   </span>
                 </div>
+                <div className="text-center sm:text-right">Colour :</div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <div
-                    className="text-center text-card-foreground font-bold py-1"
-                    style={{
-                      background: "var(--primary)",
-                      borderRadius: "8px 8px 0 0",
-                    }}
-                  >
-                    RIGHT
-                  </div>
+              <div className="refraction-live-eye-grid grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="refraction-live-eye-column">
                   <table
-                    className="w-full border-collapse text-center text-sm"
+                    className="refraction-live-eye-table w-full border-collapse text-center text-sm"
                     style={{ tableLayout: "fixed" }}
                   >
                     <thead>
+                      <tr className="hidden print:table-row">
+                        <th
+                          colSpan={4}
+                          className="refraction-live-eye-title"
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 6,
+                          }}
+                        >
+                          RIGHT
+                        </th>
+                      </tr>
                       <tr>
                         <th
                           style={{
@@ -780,21 +854,24 @@ export default function RefractionPage() {
                   </table>
                 </div>
 
-                <div>
-                  <div
-                    className="text-center text-card-foreground font-bold py-1"
-                    style={{
-                      background: "var(--primary)",
-                      borderRadius: "8px 8px 0 0",
-                    }}
-                  >
-                    LEFT
-                  </div>
+                <div className="refraction-live-eye-column">
                   <table
-                    className="w-full border-collapse text-center text-sm"
+                    className="refraction-live-eye-table w-full border-collapse text-center text-sm"
                     style={{ tableLayout: "fixed" }}
                   >
                     <thead>
+                      <tr className="hidden print:table-row">
+                        <th
+                          colSpan={4}
+                          className="refraction-live-eye-title"
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 6,
+                          }}
+                        >
+                          LEFT
+                        </th>
+                      </tr>
                       <tr>
                         <th
                           style={{
