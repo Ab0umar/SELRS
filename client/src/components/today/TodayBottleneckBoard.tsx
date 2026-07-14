@@ -27,6 +27,7 @@ import {
   ChevronDown,
   Clock3,
   FlaskConical,
+  Glasses,
   Pill,
   Stethoscope,
   Syringe,
@@ -428,6 +429,19 @@ function GridPatientCard({
               }}
             >
               <FlaskConical className="h-3.5 w-3.5" aria-hidden />
+            </button>
+            <button
+              type="button"
+              title="طباعة مقاس النظارة"
+              aria-label="طباعة مقاس النظارة"
+              className="rounded-md p-1 text-muted-foreground hover:bg-error/10 hover:text-error"
+              onClick={(e) => {
+                e.stopPropagation();
+                const path = patientNavPathForPageKey("refraction", patient.id);
+                if (path) window.open(`${path}?print=1`, "_blank");
+              }}
+            >
+              <Glasses className="h-3.5 w-3.5" aria-hidden />
             </button>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">

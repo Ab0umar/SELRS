@@ -29,6 +29,7 @@ import {
   CheckCircle2,
   Clock,
   FlaskConical,
+  Glasses,
   Pill,
   Printer,
   Syringe,
@@ -702,6 +703,15 @@ function BookingCard({ booking }: { booking: any }) {
               >
                 <FlaskConical className="h-3 w-3" />
               </button>
+              <button
+                type="button"
+                title="طباعة مقاس النظارة"
+                onClick={() => window.open(`/refraction/${booking.patientId}?print=1`, "_blank")}
+                className="text-muted-foreground hover:text-error transition-colors"
+                aria-label="طباعة مقاس النظارة"
+              >
+                <Glasses className="h-3 w-3" />
+              </button>
             </>
           ) : null}
           <button
@@ -908,6 +918,18 @@ function QueuePatientCard({
               }}
             >
               <FlaskConical className="h-4 w-4" aria-hidden />
+            </button>
+            <button
+              type="button"
+              title="طباعة مقاس النظارة"
+              aria-label="طباعة مقاس النظارة"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-500 hover:text-error"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(`/refraction/${patient.id}?print=1`, "_blank");
+              }}
+            >
+              <Glasses className="h-4 w-4" aria-hidden />
             </button>
             {canMarkTreated ? (
               <Button
