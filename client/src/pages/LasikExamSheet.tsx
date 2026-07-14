@@ -867,129 +867,133 @@ export default function LasikExamSheet() {
         </section>
 
         {currentSheetType === "consultant" ? (
-          <section className="print-consultant-diagrams flex flex-wrap items-end justify-center gap-2 border border-[#c3c6d6] rounded-xl p-4 bg-white flex-1 min-h-[90mm]" data-purpose="clinical-diagrams">
-            <div className="consultant-examination-block self-start w-full sm:w-[calc(75%-0.25rem)] rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] p-3 text-left text-[12px] text-[#1f2937]" dir="ltr">
-              <p className="mb-2 text-[13px] font-bold text-[#003d9b]">Examination:</p>
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <span className="font-semibold">1. External Apperance:</span>
-                  <label className="inline-flex items-center gap-1.5">
-                    <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.externalPtosis} onChange={(e) => setConsultantExamField("externalPtosis", e.target.checked)} />
-                    <span>Ptosis</span>
-                  </label>
-                  <label className="inline-flex items-center gap-1.5">
-                    <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.externalSquint} onChange={(e) => setConsultantExamField("externalSquint", e.target.checked)} />
-                    <span>Squint</span>
-                  </label>
-                  <label className="inline-flex items-center gap-1.5">
-                    <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.externalOthers} onChange={(e) => setConsultantExamField("externalOthers", e.target.checked)} />
-                    <span>Others</span>
-                  </label>
-                  <input className="h-6 min-w-[170px] flex-1 border-0 border-b border-[#c3c6d6] bg-transparent px-1 outline-none" value={consultantExam.externalOthersNote} onChange={(e) => setConsultantExamField("externalOthersNote", e.target.value)} />
-                </div>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <span className="font-semibold">2. Muscle action:</span>
-                  <label className="inline-flex items-center gap-1.5">
-                    <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.muscleNormal} onChange={(e) => setConsultantExamField("muscleNormal", e.target.checked)} />
-                    <span>Normal</span>
-                  </label>
-                  <label className="inline-flex items-center gap-1.5">
-                    <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.muscleAbnormal} onChange={(e) => setConsultantExamField("muscleAbnormal", e.target.checked)} />
-                    <span>Abnormal</span>
-                  </label>
-                  <input className="h-6 min-w-[190px] flex-1 border-0 border-b border-[#c3c6d6] bg-transparent px-1 outline-none" value={consultantExam.muscleAbnormalNote} onChange={(e) => setConsultantExamField("muscleAbnormalNote", e.target.value)} />
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">3. Other abnormalities:</span>
-                  <input className="h-6 flex-1 border-0 border-b border-[#c3c6d6] bg-transparent px-1 outline-none" value={consultantExam.otherAbnormalities} onChange={(e) => setConsultantExamField("otherAbnormalities", e.target.value)} />
-                </div>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[#d9dce8] pt-2">
-                  <span className="font-bold">Fundus:</span>
-                  <label className="inline-flex items-center gap-1.5">
-                    <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.fundusNormal} onChange={(e) => setConsultantExamField("fundusNormal", e.target.checked)} />
-                    <span>Normal</span>
-                  </label>
-                  <label className="inline-flex items-center gap-1.5">
-                    <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.fundusAbnormal} onChange={(e) => setConsultantExamField("fundusAbnormal", e.target.checked)} />
-                    <span>Abnormal</span>
-                  </label>
-                  <input className="h-6 min-w-[220px] flex-1 border-0 border-b border-[#c3c6d6] bg-transparent px-1 outline-none" value={consultantExam.fundusAbnormalNote} onChange={(e) => setConsultantExamField("fundusAbnormalNote", e.target.value)} />
-                </div>
-              </div>
-            </div>
-            <div className="consultant-complains-block self-start w-full sm:w-[calc(25%-0.25rem)] rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] p-3 text-left text-[12px] text-[#1f2937]" dir="ltr">
-              <p className="mb-2 text-[13px] font-bold text-[#003d9b]">Complains:</p>
-              <textarea
-                className="w-full min-h-[48px] rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none print:placeholder-transparent"
-                value={consultantExam.complains}
-                onChange={(e) => setConsultantExamField("complains", e.target.value)}
-                placeholder="اكتب الشكوى يدويًا أو ابحث من الأعراض بالأسفل..."
-              />
-              <div className="relative mt-2 print:hidden">
-                <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  className="h-8 w-full rounded-md border border-[#c3c6d6] bg-white pl-7 pr-2 text-[12px] outline-none"
-                  placeholder="ابحث عن الأعراض..."
-                  value={complainsSearchText}
-                  onChange={(e) => setComplainsSearchText(e.target.value)}
-                  onFocus={() => setComplainsSearchOpen(true)}
-                  onBlur={() => window.setTimeout(() => setComplainsSearchOpen(false), 150)}
-                />
-                {complainsSearchOpen && complainsSearchText ? (
-                  <div className="absolute z-10 mt-1 max-h-[160px] w-full overflow-y-auto rounded-md border border-[#c3c6d6] bg-white p-1 shadow-md">
-                    {symptomsQuery.isLoading ? (
-                      <p className="px-2 py-1 text-[11px] text-muted-foreground">جاري التحميل...</p>
-                    ) : (symptomsQuery.data ?? []).filter((s: any) =>
-                        String(s.name ?? "").toLowerCase().includes(complainsSearchText.toLowerCase()),
-                      ).length === 0 ? (
-                      <p className="px-2 py-1 text-[11px] text-muted-foreground">لا توجد نتائج</p>
-                    ) : (
-                      (symptomsQuery.data ?? [])
-                        .filter((s: any) =>
-                          String(s.name ?? "").toLowerCase().includes(complainsSearchText.toLowerCase()),
-                        )
-                        .map((s: any) => (
-                          <button
-                            type="button"
-                            key={s.id}
-                            className="block w-full rounded px-2 py-1 text-left text-[12px] hover:bg-muted/60"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              setConsultantExamField(
-                                "complains",
-                                consultantExam.complains
-                                  ? `${consultantExam.complains}, ${s.name}`
-                                  : s.name,
-                              );
-                              setComplainsSearchText("");
-                              setComplainsSearchOpen(false);
-                            }}
-                          >
-                            {s.name}
-                          </button>
-                        ))
-                    )}
+          <section className="print-consultant-diagrams flex flex-wrap items-stretch gap-2 border border-[#c3c6d6] rounded-xl p-4 bg-white flex-1 min-h-[90mm]" data-purpose="clinical-diagrams">
+            <div className="consultant-eyes-block flex w-full sm:w-1/4 flex-col items-center justify-center gap-4">
+              <div className="flex flex-col items-center justify-center gap-1">
+                <div className="w-28 h-28 rounded-full border-4 border-[#003d9b]/30 flex items-center justify-center relative bg-white">
+                  <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                    <div className="w-full border-t border-slate-900" />
+                    <div className="h-full border-l border-slate-900 absolute top-0" />
                   </div>
-                ) : null}
+                </div>
+                <span className="text-[#003d9b]/70 text-xs font-bold select-none">OD</span>
+              </div>
+              <div className="flex flex-col items-center justify-center gap-1">
+                <div className="w-28 h-28 rounded-full border-4 border-slate-300 flex items-center justify-center relative bg-white">
+                  <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                    <div className="w-full border-t border-slate-900" />
+                    <div className="h-full border-l border-slate-900 absolute top-0" />
+                  </div>
+                </div>
+                <span className="text-slate-500 text-xs font-bold select-none">OS</span>
               </div>
             </div>
-            <div className="flex flex-col items-center justify-center gap-1">
-              <div className="w-28 h-28 rounded-full border-4 border-[#003d9b]/30 flex items-center justify-center relative bg-white">
-                <div className="absolute inset-0 flex items-center justify-center opacity-10">
-                  <div className="w-full border-t border-slate-900" />
-                  <div className="h-full border-l border-slate-900 absolute top-0" />
+            <div className="consultant-right-column flex w-full sm:w-[calc(75%-0.5rem)] flex-col gap-2">
+              <div className="consultant-complains-block flex-[1] rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] p-3 text-left text-[12px] text-[#1f2937]" dir="ltr">
+                <p className="mb-2 text-[13px] font-bold text-[#003d9b]">Complains:</p>
+                <textarea
+                  className="w-full min-h-[48px] rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none print:placeholder-transparent"
+                  value={consultantExam.complains}
+                  onChange={(e) => setConsultantExamField("complains", e.target.value)}
+                  placeholder="اكتب الشكوى يدويًا أو ابحث من الأعراض بالأسفل..."
+                />
+                <div className="relative mt-2 print:hidden">
+                  <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    className="h-8 w-full rounded-md border border-[#c3c6d6] bg-white pl-7 pr-2 text-[12px] outline-none"
+                    placeholder="ابحث عن الأعراض..."
+                    value={complainsSearchText}
+                    onChange={(e) => setComplainsSearchText(e.target.value)}
+                    onFocus={() => setComplainsSearchOpen(true)}
+                    onBlur={() => window.setTimeout(() => setComplainsSearchOpen(false), 150)}
+                  />
+                  {complainsSearchOpen && complainsSearchText ? (
+                    <div className="absolute z-10 mt-1 max-h-[160px] w-full overflow-y-auto rounded-md border border-[#c3c6d6] bg-white p-1 shadow-md">
+                      {symptomsQuery.isLoading ? (
+                        <p className="px-2 py-1 text-[11px] text-muted-foreground">جاري التحميل...</p>
+                      ) : (symptomsQuery.data ?? []).filter((s: any) =>
+                          String(s.name ?? "").toLowerCase().includes(complainsSearchText.toLowerCase()),
+                        ).length === 0 ? (
+                        <p className="px-2 py-1 text-[11px] text-muted-foreground">لا توجد نتائج</p>
+                      ) : (
+                        (symptomsQuery.data ?? [])
+                          .filter((s: any) =>
+                            String(s.name ?? "").toLowerCase().includes(complainsSearchText.toLowerCase()),
+                          )
+                          .map((s: any) => (
+                            <button
+                              type="button"
+                              key={s.id}
+                              className="block w-full rounded px-2 py-1 text-left text-[12px] hover:bg-muted/60"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                setConsultantExamField(
+                                  "complains",
+                                  consultantExam.complains
+                                    ? `${consultantExam.complains}, ${s.name}`
+                                    : s.name,
+                                );
+                                setComplainsSearchText("");
+                                setComplainsSearchOpen(false);
+                              }}
+                            >
+                              {s.name}
+                            </button>
+                          ))
+                      )}
+                    </div>
+                  ) : null}
                 </div>
               </div>
-              <span className="text-[#003d9b]/70 text-xs font-bold select-none">OD</span>
-            </div>
-            <div className="flex flex-col items-center justify-center gap-1">
-              <div className="w-28 h-28 rounded-full border-4 border-slate-300 flex items-center justify-center relative bg-white">
-                <div className="absolute inset-0 flex items-center justify-center opacity-10">
-                  <div className="w-full border-t border-slate-900" />
-                  <div className="h-full border-l border-slate-900 absolute top-0" />
+              <div className="consultant-examination-block flex-[3] rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] p-3 text-left text-[12px] text-[#1f2937]" dir="ltr">
+                <p className="mb-2 text-[13px] font-bold text-[#003d9b]">Examination:</p>
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="font-semibold">1. External Apperance:</span>
+                    <label className="inline-flex items-center gap-1.5">
+                      <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.externalPtosis} onChange={(e) => setConsultantExamField("externalPtosis", e.target.checked)} />
+                      <span>Ptosis</span>
+                    </label>
+                    <label className="inline-flex items-center gap-1.5">
+                      <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.externalSquint} onChange={(e) => setConsultantExamField("externalSquint", e.target.checked)} />
+                      <span>Squint</span>
+                    </label>
+                    <label className="inline-flex items-center gap-1.5">
+                      <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.externalOthers} onChange={(e) => setConsultantExamField("externalOthers", e.target.checked)} />
+                      <span>Others</span>
+                    </label>
+                    <input className="h-6 min-w-[170px] flex-1 border-0 border-b border-[#c3c6d6] bg-transparent px-1 outline-none" value={consultantExam.externalOthersNote} onChange={(e) => setConsultantExamField("externalOthersNote", e.target.value)} />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="font-semibold">2. Muscle action:</span>
+                    <label className="inline-flex items-center gap-1.5">
+                      <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.muscleNormal} onChange={(e) => setConsultantExamField("muscleNormal", e.target.checked)} />
+                      <span>Normal</span>
+                    </label>
+                    <label className="inline-flex items-center gap-1.5">
+                      <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.muscleAbnormal} onChange={(e) => setConsultantExamField("muscleAbnormal", e.target.checked)} />
+                      <span>Abnormal</span>
+                    </label>
+                    <input className="h-6 min-w-[190px] flex-1 border-0 border-b border-[#c3c6d6] bg-transparent px-1 outline-none" value={consultantExam.muscleAbnormalNote} onChange={(e) => setConsultantExamField("muscleAbnormalNote", e.target.value)} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">3. Other abnormalities:</span>
+                    <input className="h-6 flex-1 border-0 border-b border-[#c3c6d6] bg-transparent px-1 outline-none" value={consultantExam.otherAbnormalities} onChange={(e) => setConsultantExamField("otherAbnormalities", e.target.value)} />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[#d9dce8] pt-2">
+                    <span className="font-bold">Fundus:</span>
+                    <label className="inline-flex items-center gap-1.5">
+                      <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.fundusNormal} onChange={(e) => setConsultantExamField("fundusNormal", e.target.checked)} />
+                      <span>Normal</span>
+                    </label>
+                    <label className="inline-flex items-center gap-1.5">
+                      <input type="checkbox" className="h-3.5 w-3.5 accent-[#003d9b]" checked={consultantExam.fundusAbnormal} onChange={(e) => setConsultantExamField("fundusAbnormal", e.target.checked)} />
+                      <span>Abnormal</span>
+                    </label>
+                    <input className="h-6 min-w-[220px] flex-1 border-0 border-b border-[#c3c6d6] bg-transparent px-1 outline-none" value={consultantExam.fundusAbnormalNote} onChange={(e) => setConsultantExamField("fundusAbnormalNote", e.target.value)} />
+                  </div>
                 </div>
               </div>
-              <span className="text-slate-500 text-xs font-bold select-none">OS</span>
             </div>
           </section>
         ) : (
@@ -1275,13 +1279,20 @@ export default function LasikExamSheet() {
             width: 32mm !important;
             height: 32mm !important;
           }
-          .print-consultant-diagrams .consultant-examination-block {
+          .print-consultant-diagrams .consultant-eyes-block {
+            width: calc(25% - 1.5mm) !important;
+          }
+          .print-consultant-diagrams .consultant-right-column {
             width: calc(75% - 1.5mm) !important;
-            align-self: flex-start !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 2mm !important;
           }
           .print-consultant-diagrams .consultant-complains-block {
-            width: calc(25% - 1.5mm) !important;
-            align-self: flex-start !important;
+            flex: 1 !important;
+          }
+          .print-consultant-diagrams .consultant-examination-block {
+            flex: 3 !important;
           }
           .print-consultant-diagrams p {
             margin-top: 2mm !important;
