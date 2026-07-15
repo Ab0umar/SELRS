@@ -875,6 +875,9 @@ export default function LasikExamSheet() {
                     <div className="w-full border-t border-slate-900" />
                     <div className="h-full border-l border-slate-900 absolute top-0" />
                   </div>
+                  <div className="absolute h-9 w-9 translate-x-3 -translate-y-1 rounded-full bg-[#f4c98a] border border-[#c98f4a]/60 flex items-center justify-center">
+                    <div className="h-4 w-4 rounded-full bg-white border border-[#c98f4a]/50" />
+                  </div>
                 </div>
                 <span className="text-[#003d9b]/70 text-xs font-bold select-none">OD</span>
               </div>
@@ -883,6 +886,9 @@ export default function LasikExamSheet() {
                   <div className="absolute inset-0 flex items-center justify-center opacity-10">
                     <div className="w-full border-t border-slate-900" />
                     <div className="h-full border-l border-slate-900 absolute top-0" />
+                  </div>
+                  <div className="absolute h-9 w-9 -translate-x-3 -translate-y-1 rounded-full bg-[#f4c98a] border border-[#c98f4a]/60 flex items-center justify-center">
+                    <div className="h-4 w-4 rounded-full bg-white border border-[#c98f4a]/50" />
                   </div>
                 </div>
                 <span className="text-slate-500 text-xs font-bold select-none">OS</span>
@@ -1279,6 +1285,10 @@ export default function LasikExamSheet() {
           .print-consultant-diagrams .w-28 {
             width: 32mm !important;
             height: 32mm !important;
+          }
+          .print-consultant-diagrams [class*="f4c98a"] {
+            print-color-adjust: exact !important;
+            -webkit-print-color-adjust: exact !important;
           }
           .print-consultant-diagrams .consultant-eyes-block {
             width: calc(25% - 1.5mm) !important;
