@@ -1209,9 +1209,7 @@ export default function WritePrescription({
                       <>
                         <Select
                           value={locationTypeFilter}
-                          onValueChange={(v) =>
-                            setLocationTypeFilter(v as any)
-                          }
+                          onValueChange={(v) => setLocationTypeFilter(v as any)}
                         >
                           <SelectTrigger className="h-9 rounded-lg text-sm">
                             <SelectValue placeholder="مكان الخدمة" />
@@ -1540,46 +1538,74 @@ export default function WritePrescription({
             )}
 
             <div
-              className="prescription-print-content prescription-paper space-y-5"
+              className="prescription-print-content prescription-paper"
               data-print-prescription-content
             >
               <div className="prescription-paper-header">
                 <div
-                  className="flex flex-wrap items-center justify-between gap-3 text-sm"
+                  className="prescription-patient-grid flex flex-wrap items-center justify-between gap-3 text-sm"
                   dir="rtl"
                 >
                   <span
-                    className="inline-flex min-w-[12rem] items-center gap-1"
+                    className="prescription-patient-field prescription-patient-name inline-flex min-w-[12rem] items-center gap-1"
                     dir="rtl"
                   >
-                    <span className="font-bold text-[#1e3a66]">الاسم</span>
-                    <span className="font-semibold">
+                    <span className="prescription-patient-label font-bold text-[#1e3a66]">
+                      Name:
+                    </span>
+                    <span className="prescription-patient-value font-semibold">
                       {patientName || "غير محدد"}
                     </span>
                   </span>
-                  {prescriptionDate ? (
-                    <span className="inline-flex items-center gap-1" dir="rtl">
-                      <span className="font-bold text-[#1e3a66]">التاريخ</span>
-                      <span className="font-semibold" dir="ltr">
-                        {formatDateLabel(prescriptionDate)}
-                      </span>
+                  <span
+                    className="prescription-patient-field inline-flex items-center gap-1"
+                    dir="ltr"
+                  >
+                    <span className="prescription-patient-label font-bold text-[#1e3a66]">
+                      ID:
                     </span>
-                  ) : null}
-                  <span className="inline-flex items-center gap-1" dir="rtl">
-                    <span className="font-bold text-[#1e3a66]">الكود</span>
-                    <span className="font-semibold" dir="ltr">
+                    <span className="prescription-patient-value font-semibold">
                       {patientCode ||
                         (patientId != null ? String(patientId) : "")}
                     </span>
                   </span>
+                  {prescriptionDate ? (
+                    <span
+                      className="prescription-patient-field inline-flex items-center gap-1"
+                      dir="ltr"
+                    >
+                      <span className="prescription-patient-label font-bold text-[#1e3a66]">
+                        Date:
+                      </span>
+                      <span
+                        className="prescription-patient-value font-semibold"
+                        dir="ltr"
+                      >
+                        {formatDateLabel(prescriptionDate)}
+                      </span>
+                    </span>
+                  ) : null}
+                  <span
+                    className="prescription-patient-field inline-flex items-center gap-1"
+                    dir="ltr"
+                  >
+                    <span className="prescription-patient-label font-bold text-[#1e3a66]">
+                      Age:
+                    </span>
+                    <span className="prescription-patient-value font-semibold">
+                      {patientAge ? `${patientAge} years` : ""}
+                    </span>
+                  </span>
+                  <span className="prescription-patient-field" />
+                  <span className="prescription-patient-field" />
                 </div>
               </div>
 
               <Card className="border-0 bg-transparent shadow-none print:[direction:ltr] print:border-0 print:shadow-none">
                 <CardHeader className="hidden print:hidden" />
-                <CardContent className="prescription-print-rx space-y-3 p-0">
+                <CardContent className="prescription-print-rx p-0">
                   <div className="rx-mark text-2xl font-black tracking-tight text-[#1e3a66]">
-                    R/
+                    RX :
                   </div>
                   {editingForbidden ? (
                     prescriptionItems.length === 0 ? (
@@ -1592,12 +1618,15 @@ export default function WritePrescription({
                           key={item.id}
                           className="prescription-item border rounded-lg p-3 print:border-0 print:rounded-none"
                         >
-                          <div className="font-bold text-left" dir="ltr">
+                          <div
+                            className="prescription-medication-name font-bold text-left"
+                            dir="ltr"
+                          >
                             {item.medicationName}
                           </div>
                           {item.instructions ? (
                             <div
-                              className="mt-1 text-sm whitespace-pre-line text-right"
+                              className="prescription-medication-instructions mt-1 text-sm whitespace-pre-line text-right"
                               dir="rtl"
                             >
                               {item.instructions}
@@ -1636,12 +1665,12 @@ export default function WritePrescription({
                               className="h-9 border-[#dbe4f0] bg-[#f8fafc] text-left font-semibold print:hidden"
                               dir="ltr"
                             />
-                            <div className="hidden print:block font-bold text-left">
+                            <div className="prescription-medication-name hidden print:block font-bold text-left">
                               {item.medicationName}
                             </div>
                             {item.instructions ? (
                               <div
-                                className="hidden print:block mt-1 text-sm whitespace-pre-line text-right"
+                                className="prescription-medication-instructions hidden print:block mt-1 text-sm whitespace-pre-line text-right"
                                 dir="rtl"
                               >
                                 {item.instructions}
@@ -1888,7 +1917,7 @@ export default function WritePrescription({
             }
             @page {
               size: A5;
-              margin: 9mm 9mm 8mm;
+              margin: 0;
             }
           .prescription-root {
             min-height: auto !important;
@@ -1898,7 +1927,9 @@ export default function WritePrescription({
             width: auto !important;
           }
           .prescription-root [data-print-prescription-content] {
-            margin-top: 25mm !important;
+            margin: 35mm auto 0 !important;
+            width: 132mm !important;
+            max-width: 132mm !important;
           }
           .prescription-root main,
           .prescription-root [data-print-prescription-content] {
@@ -1913,10 +1944,44 @@ export default function WritePrescription({
             box-shadow: none !important;
           }
           .prescription-root .prescription-paper-header {
-            border: 0 !important;
-            border-bottom: 1px solid #000 !important;
+            border: 1px solid #e5e5e5 !important;
             border-radius: 0 !important;
-            padding: 0 0 3mm !important;
+            padding: 2.4mm 2.8mm !important;
+          }
+          .prescription-root .prescription-patient-grid {
+            display: grid !important;
+            grid-template-columns: 1.4fr 0.72fr 1fr !important;
+            gap: 2mm 5mm !important;
+            align-items: center !important;
+            direction: ltr !important;
+            font-size: 9.5pt !important;
+            line-height: 1.25 !important;
+          }
+          .prescription-root .prescription-patient-field {
+            display: inline-flex !important;
+            min-width: 0 !important;
+            gap: 1.5mm !important;
+            align-items: baseline !important;
+            justify-content: flex-start !important;
+            white-space: nowrap !important;
+          }
+          .prescription-root .prescription-patient-name {
+            direction: ltr !important;
+          }
+          .prescription-root .prescription-patient-address {
+            grid-column: 2 !important;
+          }
+          .prescription-root .prescription-patient-clinic {
+            grid-column: 3 !important;
+            justify-content: flex-end !important;
+          }
+          .prescription-root .prescription-patient-label,
+          .prescription-root .prescription-patient-value {
+            font-size: inherit !important;
+            line-height: inherit !important;
+          }
+          .prescription-root .prescription-patient-value {
+            font-weight: 700 !important;
           }
           .prescription-root [data-print-prescription-content] .card-header {
             display: none !important;
@@ -1935,15 +2000,20 @@ export default function WritePrescription({
             page-break-inside: avoid;
           }
           .prescription-root .prescription-print-rx {
-            padding-top: 4mm !important;
-            font-size: 13pt !important;
-            line-height: 1.45 !important;
+            margin-top: 3mm !important;
+            border: 1px solid #e5e5e5 !important;
+            font-size: 10pt !important;
+            line-height: 1.3 !important;
           }
           .prescription-root .rx-mark {
-            border-bottom: 0 !important;
-            font-size: 22pt !important;
-            line-height: 1 !important;
-            margin-bottom: 3mm !important;
+            display: block !important;
+            width: 100% !important;
+            border-bottom: 1px solid #e5e5e5 !important;
+            font-size: 12pt !important;
+            line-height: 1.25 !important;
+            margin: 0 !important;
+            padding: 2.5mm 2mm !important;
+            font-weight: 800 !important;
           }
           .prescription-root .prescription-print-rx > div,
           .prescription-root .prescription-print-rx > p {
@@ -1951,22 +2021,31 @@ export default function WritePrescription({
             page-break-inside: avoid;
           }
           .prescription-root .prescription-item {
-            margin-bottom: 4mm !important;
-            padding: 0 !important;
+            display: grid !important;
+            grid-template-columns: 1fr 0.9fr !important;
+            column-gap: 10mm !important;
+            align-items: center !important;
+            min-height: 11.3mm !important;
+            margin: 0 !important;
+            padding: 2.2mm 2mm !important;
           }
-          .prescription-root .prescription-item .font-bold {
-            font-size: 14pt !important;
+          .prescription-root .prescription-medication-name {
+            font-size: 9.8pt !important;
+            line-height: 1.25 !important;
+            font-weight: 800 !important;
+            text-transform: uppercase !important;
+            text-align: left !important;
+          }
+          .prescription-root .prescription-medication-instructions {
+            margin: 0 !important;
+            font-size: 9pt !important;
             line-height: 1.35 !important;
-          }
-          .prescription-root .prescription-item .whitespace-pre-line {
-            font-size: 12pt !important;
-            line-height: 1.55 !important;
-            margin-top: 1mm !important;
+            font-weight: 700 !important;
+            text-align: right !important;
+            white-space: pre-line !important;
           }
           .prescription-root .prescription-print-backside {
-            page-break-before: always;
-            break-before: page;
-            padding-top: 12mm;
+            display: none !important;
           }
           .prescription-root .print-instruction-panel {
             border: 1px solid #000 !important;

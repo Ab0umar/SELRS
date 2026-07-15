@@ -660,9 +660,8 @@ export default function RefractionPage() {
               }}
             >
               <div className="refraction-live-header-row mb-2 grid grid-cols-1 gap-2 text-xs font-semibold sm:grid-cols-3 sm:gap-3 sm:text-sm">
-                <div className="text-center sm:text-right">
-                  <span>الاسم :</span>{" "}
-                  <span className="break-words">{patientName}</span>
+                <div className="text-center sm:text-right" dir="rtl">
+                  <span className="break-words">الاسم: {patientName}</span>
                 </div>
                 <div className="text-center">التاريخ : {todayLabel}</div>
                 <div className="text-center sm:text-left">
