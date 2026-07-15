@@ -76,6 +76,7 @@ export default function LasikExamSheet() {
   ]);
 
   const [medicalHistory, setMedicalHistory] = useState<Record<string, "no" | "yes" | "">>({});
+  const [medicalHistoryOther, setMedicalHistoryOther] = useState("");
   const [diabetesDuration, setDiabetesDuration] = useState("");
   const [operationType, setOperationType] = useState("ليزك");
   const [operationDateRight, setOperationDateRight] = useState("");
@@ -399,6 +400,12 @@ export default function LasikExamSheet() {
       if (parsed.consultantExam) {
         setConsultantExam((prev) => ({ ...prev, ...parsed.consultantExam }));
       }
+      if (parsed.medicalHistory) {
+        setMedicalHistory(parsed.medicalHistory);
+      }
+      if (parsed.medicalHistoryOther) {
+        setMedicalHistoryOther(parsed.medicalHistoryOther);
+      }
       if (parsed.operationDetails) {
         setOperationType(parsed.operationDetails.type ?? "ليزك");
         const parsedEyes = parsed.operationDetails.eyes ?? {};
@@ -625,6 +632,8 @@ export default function LasikExamSheet() {
           formData: { ...(existing.formData ?? {}), ...formData },
           examData: mergedExamData,
           consultantExam,
+          medicalHistory,
+          medicalHistoryOther,
           operationDetails: {
             type: operationType,
             eyes: operationEyes,
@@ -795,6 +804,18 @@ export default function LasikExamSheet() {
                       ))}
                     </tr>
                   ))}
+                  <tr>
+                    <td className="p-1.5 border border-[#c3c6d6] text-right bg-[#f3f4f6]" colSpan={2}>
+                      أخرى؟
+                    </td>
+                    <td className="p-1.5 border border-[#c3c6d6]" colSpan={4}>
+                      <input
+                        className="w-full h-6 border-0 border-b border-[#c3c6d6] bg-transparent px-1 outline-none"
+                        value={medicalHistoryOther}
+                        onChange={(e) => setMedicalHistoryOther(e.target.value)}
+                      />
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
