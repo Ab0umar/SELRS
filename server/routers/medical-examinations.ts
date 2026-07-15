@@ -168,7 +168,21 @@ export const medicalExaminationsRoutes = {
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      await db.updateExamination(input.examinationId, input.updates);
+      // autoref/IOP/glasses fields belong exclusively to autorefractometryData /
+      // glassesRecords — never duplicate them onto the examinations row itself.
+      const DEDICATED_TABLE_ONLY_FIELDS = [
+        "sphereOD", "sphereOS", "cylinderOD", "cylinderOS",
+        "axisOD", "axisOS", "ucvaOD", "ucvaOS",
+        "bcvaOD", "bcvaOS", "iopOD", "iopOS",
+        "glassesData",
+      ] as const;
+      const examinationUpdates = { ...input.updates };
+      for (const field of DEDICATED_TABLE_ONLY_FIELDS) {
+        delete examinationUpdates[field];
+      }
+      if (Object.keys(examinationUpdates).length > 0) {
+        await db.updateExamination(input.examinationId, examinationUpdates);
+      }
 
       // Also persist to dedicated tables if autoref/glasses fields are in updates
       const u = input.updates;
@@ -1852,40 +1866,12 @@ export const medicalExaminationsRoutes = {
         });
       }
 
-      // Prepare examination data from autoref, IOP, glasses, pentacam
+      // autoref/IOP/glasses/pentacam are saved to their dedicated tables below;
+      // examinationData only carries the fields that genuinely belong on the row.
       const examinationData: any = {
         patientId: input.patientId,
         visitId: visitId,
       };
-
-      // Map autoref data
-      if (input.autoref) {
-        if (input.autoref.od) {
-          examinationData.sphereOD = input.autoref.od.s;
-          examinationData.cylinderOD = input.autoref.od.c;
-          examinationData.axisOD = input.autoref.od.axis;
-          examinationData.ucvaOD = input.autoref.od.ucva;
-          examinationData.bcvaOD = input.autoref.od.bcva;
-        }
-        if (input.autoref.os) {
-          examinationData.sphereOS = input.autoref.os.s;
-          examinationData.cylinderOS = input.autoref.os.c;
-          examinationData.axisOS = input.autoref.os.axis;
-          examinationData.ucvaOS = input.autoref.os.ucva;
-          examinationData.bcvaOS = input.autoref.os.bcva;
-        }
-      }
-
-      // Map IOP data
-      if (input.iop) {
-        examinationData.iopOD = input.iop.od;
-        examinationData.iopOS = input.iop.os;
-      }
-
-      // Map glasses data (store as JSON)
-      if (input.glasses?.od || input.glasses?.os) {
-        examinationData.glassesData = JSON.stringify(input.glasses);
-      }
 
       // Map fundus data (store as JSON in posteriorSegment fields for now)
       if (input.fundus?.od || input.fundus?.os) {

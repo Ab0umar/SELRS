@@ -38,6 +38,10 @@ export default function ClinicalReport() {
     initialPatientId ?? null,
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
+  const glassesRecordsQuery = trpc.medical.getGlassesRecordsByPatient.useQuery(
+    { patientId: initialPatientId ?? 0 },
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
+  );
 
   const patient = patientQuery.data as any;
   const latestExam = (examinationsQuery.data as any[] | undefined)?.[0];
@@ -48,16 +52,26 @@ export default function ClinicalReport() {
     os: { s?: string; c?: string; axis?: string; pd?: string; bcva?: string };
   } = (() => {
     const empty = { od: {}, os: {} };
-    if (!latestExam?.glassesData) return empty;
-    try {
-      const parsed = JSON.parse(latestExam.glassesData);
-      return {
-        od: parsed?.od ?? {},
-        os: parsed?.os ?? {},
-      };
-    } catch {
-      return empty;
-    }
+    const glassesRecord = (
+      glassesRecordsQuery.data as any[] | undefined
+    )?.find((r) => r.examinationId === latestExam?.id);
+    if (!glassesRecord) return empty;
+    return {
+      od: {
+        s: glassesRecord.sOD,
+        c: glassesRecord.cOD,
+        axis: glassesRecord.axisOD,
+        pd: glassesRecord.pdOD,
+        bcva: glassesRecord.bcvaOD,
+      },
+      os: {
+        s: glassesRecord.sOS,
+        c: glassesRecord.cOS,
+        axis: glassesRecord.axisOS,
+        pd: glassesRecord.pdOS,
+        bcva: glassesRecord.bcvaOS,
+      },
+    };
   })();
 
   const [selectedVisitId, setSelectedVisitId] = useState<number | undefined>();

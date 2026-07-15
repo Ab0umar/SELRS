@@ -288,30 +288,7 @@ export default function PatientSummary() {
               iop: autorefRecord.iopOS,
             },
           }
-        : (exam as any).sphereOD ||
-            (exam as any).sphereOS ||
-            (exam as any).cylinderOD ||
-            (exam as any).ucvaOD ||
-            (exam as any).ucvaOS
-          ? {
-              od: {
-                s: (exam as any).sphereOD,
-                c: (exam as any).cylinderOD,
-                axis: (exam as any).axisOD,
-                ucva: (exam as any).ucvaOD,
-                bcva: (exam as any).bcvaOD,
-                iop: (exam as any).iopOD,
-              },
-              os: {
-                s: (exam as any).sphereOS,
-                c: (exam as any).cylinderOS,
-                axis: (exam as any).axisOS,
-                ucva: (exam as any).ucvaOS,
-                bcva: (exam as any).bcvaOS,
-                iop: (exam as any).iopOS,
-              },
-            }
-          : undefined;
+        : undefined;
 
       const glassesRecord = glassesMap.get(exam.id);
       let glassesData: any = undefined;
@@ -340,12 +317,6 @@ export default function PatientSummary() {
                 }
               : undefined,
         };
-      } else if ((exam as any).glassesData) {
-        try {
-          glassesData = JSON.parse((exam as any).glassesData);
-        } catch {
-          /* ignore */
-        }
       }
 
       if (!glassesData) {

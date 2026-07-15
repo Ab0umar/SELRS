@@ -506,31 +506,7 @@ export function usePatientDetails({
               iop: autorefRecord.iopOS,
             },
           }
-        : exam.sphereOD ||
-            exam.sphereOS ||
-            exam.cylinderOD ||
-            exam.cylinderOS ||
-            exam.ucvaOD ||
-            exam.ucvaOS
-          ? {
-              od: {
-                s: exam.sphereOD,
-                c: exam.cylinderOD,
-                axis: exam.axisOD,
-                ucva: exam.ucvaOD,
-                bcva: exam.bcvaOD,
-                iop: exam.iopOD,
-              },
-              os: {
-                s: exam.sphereOS,
-                c: exam.cylinderOS,
-                axis: exam.axisOS,
-                ucva: exam.ucvaOS,
-                bcva: exam.bcvaOS,
-                iop: exam.iopOS,
-              },
-            }
-          : undefined;
+        : undefined;
 
       const glassesRecord = glassesMap.get(exam.id);
       let glassesData: any = undefined;
@@ -559,12 +535,6 @@ export function usePatientDetails({
                 }
               : undefined,
         };
-      } else if (exam.glassesData) {
-        try {
-          glassesData = JSON.parse(exam.glassesData);
-        } catch {
-          /* ignore */
-        }
       }
       if (!glassesData) {
         for (const sheet of [
