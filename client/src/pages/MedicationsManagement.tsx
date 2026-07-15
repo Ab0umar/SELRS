@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Card,
   CardContent,
@@ -18,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  ClipboardList,
   FlaskConical,
   Link2,
   MessageSquareWarning,
@@ -244,6 +246,18 @@ export default function MedicationsManagement() {
     },
   });
 
+  const testTemplateOverridesQuery =
+    trpc.medical.getReadyTemplateOverrides.useQuery(
+      { scope: "tests" },
+      { refetchOnWindowFocus: false },
+    );
+  const upsertTestTemplateOverrideMutation =
+    trpc.medical.upsertReadyTemplateOverride.useMutation({
+      onSuccess: async () => {
+        await testTemplateOverridesQuery.refetch();
+      },
+    });
+
   const createDiseaseMutation = trpc.medical.createDisease.useMutation({
     onSuccess: () => {
       toast.success("تم إضافة المرض بنجاح");
@@ -395,6 +409,45 @@ export default function MedicationsManagement() {
         .includes(q),
     );
   }, [medications, medListSearch]);
+
+  const TEST_TEMPLATE_CATEGORIES = ["مياه بيضاء", "ليزك", "زراعة عدسات", "اخري"];
+  const testTemplateOverrides = (testTemplateOverridesQuery.data ?? {}) as Record<
+    string,
+    {
+      name?: string;
+      testItems?: Array<{ testId: number; testName?: string; notes?: string }>;
+    }
+  >;
+  const testTemplates = Object.keys(testTemplateOverrides)
+    .filter((id) => (testTemplateOverrides[id]?.testItems?.length ?? 0) > 0)
+    .map((id) => {
+      const raw = testTemplateOverrides[id]?.name?.trim() || id;
+      const match = raw.match(/^\[(.+?)\]\s*/);
+      const category =
+        match && TEST_TEMPLATE_CATEGORIES.includes(match[1])
+          ? match[1]
+          : "اخري";
+      const name = raw.replace(/^\[(.+?)\]\s*/, "").trim() || id;
+      return {
+        id,
+        name,
+        category,
+        items: testTemplateOverrides[id]?.testItems ?? [],
+      };
+    });
+
+  const [templateBuilderOpen, setTemplateBuilderOpen] = useState(false);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(
+    null,
+  );
+  const [templateName, setTemplateName] = useState("");
+  const [templateCategory, setTemplateCategory] = useState(
+    TEST_TEMPLATE_CATEGORIES[0],
+  );
+  const [templateSelectedTestIds, setTemplateSelectedTestIds] = useState<
+    number[]
+  >([]);
+  const [templateTestSearch, setTemplateTestSearch] = useState("");
 
   const filteredTests = useMemo(() => {
     const q = testListSearch.trim().toLowerCase();
@@ -591,6 +644,89 @@ export default function MedicationsManagement() {
 
   const handleDeleteTest = async (id: number) => {
     await deleteTestMutation.mutateAsync({ testId: id });
+  };
+
+  const normalizeTemplateId = (value: string) =>
+    value
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^\p{L}\p{N}\-_]/gu, "")
+      .slice(0, 64);
+
+  const filteredBuilderTests = useMemo(() => {
+    const q = templateTestSearch.trim().toLowerCase();
+    if (!q) return tests;
+    return tests.filter((test) =>
+      `${test.name ?? ""} ${test.category ?? ""}`.toLowerCase().includes(q),
+    );
+  }, [tests, templateTestSearch]);
+
+  const resetTemplateBuilder = () => {
+    setEditingTemplateId(null);
+    setTemplateName("");
+    setTemplateCategory(TEST_TEMPLATE_CATEGORIES[0]);
+    setTemplateSelectedTestIds([]);
+    setTemplateTestSearch("");
+  };
+
+  const handleEditTemplate = (template: (typeof testTemplates)[number]) => {
+    setEditingTemplateId(template.id);
+    setTemplateName(template.name);
+    setTemplateCategory(template.category);
+    setTemplateSelectedTestIds(
+      template.items.map((item) => item.testId).filter((id) => id > 0),
+    );
+    setTemplateBuilderOpen(true);
+  };
+
+  const handleSaveTemplate = async () => {
+    const cleanName = templateName.trim();
+    if (!cleanName) {
+      toast.error("يرجى إدخال اسم القالب");
+      return;
+    }
+    if (templateSelectedTestIds.length === 0) {
+      toast.error("يرجى اختيار فحص واحد على الأقل");
+      return;
+    }
+    const templateId =
+      editingTemplateId || `${normalizeTemplateId(cleanName)}-${Date.now().toString(36)}`;
+    const testItems = templateSelectedTestIds
+      .map((id) => {
+        const test = tests.find((t) => t.id === id);
+        return test ? { testId: id, testName: test.name, notes: "" } : null;
+      })
+      .filter((item): item is { testId: number; testName: string; notes: string } =>
+        Boolean(item),
+      );
+    try {
+      await upsertTestTemplateOverrideMutation.mutateAsync({
+        scope: "tests",
+        templateId,
+        name: `[${templateCategory}] ${cleanName}`,
+        testItems,
+      });
+      toast.success(editingTemplateId ? "تم تحديث القالب" : "تم إنشاء القالب");
+      resetTemplateBuilder();
+      setTemplateBuilderOpen(false);
+    } catch (error) {
+      toast.error(getTrpcErrorMessage(error, "فشل حفظ القالب."));
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId: string) => {
+    try {
+      await upsertTestTemplateOverrideMutation.mutateAsync({
+        scope: "tests",
+        templateId,
+        name: "",
+        testItems: [],
+      });
+      toast.success("تم حذف القالب");
+    } catch (error) {
+      toast.error(getTrpcErrorMessage(error, "فشل حذف القالب."));
+    }
   };
 
   const handleSaveDisease = async () => {
@@ -1187,6 +1323,167 @@ export default function MedicationsManagement() {
               </CardContent>
             </Card>
           </div>
+
+          <Card className="mt-6 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+            <CardHeader className="space-y-1 border-b border-border/80 bg-muted/20 pb-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/[0.07] text-primary">
+                    <ClipboardList className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">قوالب فحوصات جاهزة</CardTitle>
+                    <CardDescription>
+                      اختر من الفحوصات الموجودة بالأعلى لبناء قالب جاهز يُستخدم
+                      في صفحة طلب الفحوصات
+                    </CardDescription>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant={templateBuilderOpen ? "outline" : "default"}
+                  className="gap-2"
+                  onClick={() => {
+                    if (templateBuilderOpen) {
+                      resetTemplateBuilder();
+                      setTemplateBuilderOpen(false);
+                    } else {
+                      resetTemplateBuilder();
+                      setTemplateBuilderOpen(true);
+                    }
+                  }}
+                >
+                  {templateBuilderOpen ? "إلغاء" : "+ قالب جديد"}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-5">
+              {templateBuilderOpen ? (
+                <div className="grid grid-cols-1 gap-4 rounded-lg border border-border/80 bg-muted/10 p-4 lg:grid-cols-2">
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold">اسم القالب</label>
+                      <Input
+                        value={templateName}
+                        onChange={(e) => setTemplateName(e.target.value)}
+                        placeholder="مثال: تحاليل ما قبل الليزك"
+                        className="text-right"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold">التصنيف</label>
+                      <Select
+                        value={templateCategory}
+                        onValueChange={setTemplateCategory}
+                      >
+                        <SelectTrigger className="w-full rounded-lg">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TEST_TEMPLATE_CATEGORIES.map((cat) => (
+                            <SelectItem key={cat} value={cat}>
+                              {cat}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {templateSelectedTestIds.length} فحص محدد
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={() => void handleSaveTemplate()}
+                      className="selrs-gradient-btn w-full gap-2 text-primary-foreground"
+                      disabled={upsertTestTemplateOverrideMutation.isPending}
+                    >
+                      <Save className="h-4 w-4" />
+                      {editingTemplateId ? "تحديث القالب" : "حفظ القالب"}
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    <SearchBar
+                      value={templateTestSearch}
+                      onChange={setTemplateTestSearch}
+                      placeholder="بحث في الفحوصات…"
+                    />
+                    <div className="max-h-[320px] space-y-1 overflow-y-auto rounded-lg border border-border/80 p-2">
+                      {filteredBuilderTests.length === 0 ? (
+                        <p className="py-6 text-center text-sm text-muted-foreground">
+                          لا توجد نتائج.
+                        </p>
+                      ) : (
+                        filteredBuilderTests.map((test: any) => (
+                          <label
+                            key={test.id}
+                            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/50"
+                          >
+                            <Checkbox
+                              checked={templateSelectedTestIds.includes(test.id)}
+                              onCheckedChange={(checked) =>
+                                setTemplateSelectedTestIds((prev) =>
+                                  Boolean(checked)
+                                    ? Array.from(new Set([...prev, test.id]))
+                                    : prev.filter((id) => id !== test.id),
+                                )
+                              }
+                            />
+                            <span className="min-w-0 flex-1 truncate">
+                              {test.name}
+                            </span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {testTemplates.length === 0 ? (
+                  <p className="col-span-full py-6 text-center text-sm text-muted-foreground">
+                    لا توجد قوالب فحوصات بعد.
+                  </p>
+                ) : (
+                  testTemplates.map((template) => (
+                    <div
+                      key={template.id}
+                      className="flex items-center gap-1 rounded-lg border border-border/80 bg-white p-2"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold">
+                          {template.name}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {template.category} · {template.items.length} فحص
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        onClick={() => handleEditTemplate(template)}
+                        title="تعديل"
+                        aria-label="تعديل القالب"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        onClick={() => handleDeleteTemplate(template.id)}
+                        title="حذف"
+                        aria-label="حذف القالب"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="diseases" className="mt-0">
