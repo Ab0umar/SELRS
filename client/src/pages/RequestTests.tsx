@@ -475,19 +475,10 @@ export default function RequestTests({
       }>;
     }
   >;
-  const READY_TABS = [
-    "معمل",
-    "أشعة",
-    "بنتاكام",
-    "OCT",
-    "فيجوال فيلد",
-    "أخرى 1",
-    "أخرى 2",
-    "أخرى 3",
-  ];
+  const READY_TABS = ["مياه بيضاء", "ليزك", "زراعة عدسات", "اخري"];
   const READY_TABS_PERSIST_KEY = "ready-tests";
   const [readyTab, setReadyTab] = useState(() => {
-    if (typeof window === "undefined") return "أخرى 1";
+    if (typeof window === "undefined") return "اخري";
     try {
       const stored =
         localStorage.getItem(`tabs:${READY_TABS_PERSIST_KEY}`) || "";
@@ -495,10 +486,10 @@ export default function RequestTests({
     } catch {
       // ignore
     }
-    return "أخرى 1";
+    return "اخري";
   });
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
-  const [moveReadyTabTarget, setMoveReadyTabTarget] = useState("معمل");
+  const [moveReadyTabTarget, setMoveReadyTabTarget] = useState("مياه بيضاء");
 
   const normalizeTemplateId = (value: string) =>
     value
@@ -526,7 +517,7 @@ export default function RequestTests({
 
   const getTemplateCategory = (templateId: string, fallbackName: string) => {
     const raw = getTemplateRawName(templateId, fallbackName);
-    return readTemplateCategory(raw) || "أخرى 1";
+    return readTemplateCategory(raw) || "اخري";
   };
 
   const readyTemplates = [
