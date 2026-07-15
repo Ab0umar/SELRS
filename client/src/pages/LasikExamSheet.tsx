@@ -1269,11 +1269,11 @@ export default function LasikExamSheet() {
           .print-consultant-diagrams {
             display: flex !important;
             flex-wrap: wrap !important;
-            align-items: flex-end !important;
+            align-items: stretch !important;
             justify-content: center !important;
             gap: 3mm !important;
             flex: 1 1 auto !important;
-            min-height: 90mm !important;
+            min-height: 0 !important;
             padding: 6mm !important;
           }
           .print-consultant-diagrams .w-28 {
