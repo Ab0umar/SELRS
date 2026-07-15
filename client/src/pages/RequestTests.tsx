@@ -1,10 +1,12 @@
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -12,7 +14,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ClipboardList, FileText, Printer, Save, Trash2, UserRound } from "lucide-react";
+import {
+  ClipboardList,
+  FileText,
+  Printer,
+  Save,
+  Trash2,
+  UserRound,
+  Upload,
+  Pencil,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn, formatDateLabel, getTrpcErrorMessage } from "@/lib/utils";
 import PatientPicker from "@/components/PatientPicker";
@@ -24,7 +35,10 @@ import PageHeader from "@/components/PageHeader";
 import { usePrintMode } from "@/hooks/usePrintMode";
 import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 import { printOrExportPdf } from "@/lib/nativePdf";
+import { loadXlsx } from "@/lib/xlsx";
+import { buildRowLookup, getRowValue } from "@/lib/importUtils";
 import { DateInput } from "@/components/ui/date-input";
+import { READY_TEST_TEMPLATES } from "@/data/readyTestTemplates";
 
 interface TestItem {
   id: number;
@@ -64,6 +78,12 @@ export default function RequestTests({
   const isAdmin = user?.role === "admin";
   const isReadOnly = !isAdmin;
   const editingForbidden = isReadOnly || Boolean(patientHubReadOnly);
+  const canImportReadyTemplates = isAdmin;
+  const importInputId = "ready-tests-import";
+  const importInputRef = useRef<HTMLInputElement | null>(null);
+  const importPollRef = useRef<number | null>(null);
+  const [importStatus, setImportStatus] = useState<string>("");
+  const [importPath, setImportPath] = useState("");
 
   const [patientId, setPatientId] = useState<number | null>(
     initialPatientId > 0 ? initialPatientId : null,
@@ -95,6 +115,28 @@ export default function RequestTests({
   );
   const savePatientStateMutation =
     trpc.medical.savePatientPageState.useMutation();
+  const templateOverridesQuery = trpc.medical.getReadyTemplateOverrides.useQuery(
+    { scope: "tests" },
+    { refetchOnWindowFocus: false },
+  );
+  const upsertTemplateOverrideMutation =
+    trpc.medical.upsertReadyTemplateOverride.useMutation({
+      onSuccess: async () => {
+        await templateOverridesQuery.refetch();
+      },
+    });
+  const importReadyTemplateOverridesMutation =
+    trpc.medical.importReadyTemplateOverrides.useMutation({
+      onSuccess: async () => {
+        await templateOverridesQuery.refetch();
+      },
+    });
+  const importReadyTemplateOverridesFromFileMutation =
+    trpc.medical.importReadyTemplateOverridesFromFile.useMutation({
+      onSuccess: async () => {
+        await templateOverridesQuery.refetch();
+      },
+    });
   const patientStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -422,6 +464,404 @@ export default function RequestTests({
 
   if (!isAuthenticated) return null;
 
+  const templateOverrides = (templateOverridesQuery.data ?? {}) as Record<
+    string,
+    {
+      name?: string;
+      testItems?: Array<{
+        testId: number;
+        testName?: string;
+        notes?: string;
+      }>;
+    }
+  >;
+  const READY_TABS = [
+    "معمل",
+    "أشعة",
+    "بنتاكام",
+    "OCT",
+    "فيجوال فيلد",
+    "أخرى 1",
+    "أخرى 2",
+    "أخرى 3",
+  ];
+  const READY_TABS_PERSIST_KEY = "ready-tests";
+  const [readyTab, setReadyTab] = useState(() => {
+    if (typeof window === "undefined") return "أخرى 1";
+    try {
+      const stored =
+        localStorage.getItem(`tabs:${READY_TABS_PERSIST_KEY}`) || "";
+      if (READY_TABS.includes(stored)) return stored;
+    } catch {
+      // ignore
+    }
+    return "أخرى 1";
+  });
+  const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
+  const [moveReadyTabTarget, setMoveReadyTabTarget] = useState("معمل");
+
+  const normalizeTemplateId = (value: string) =>
+    value
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^\p{L}\p{N}\-_]/gu, "")
+      .slice(0, 64);
+
+  const stripTemplateCategory = (value: string) =>
+    String(value ?? "")
+      .replace(/^\[(.+?)\]\s*/, "")
+      .trim();
+
+  const readTemplateCategory = (value: string) => {
+    const match = String(value ?? "").match(/^\[(.+?)\]\s*/);
+    if (!match) return "";
+    return READY_TABS.includes(match[1]) ? match[1] : "";
+  };
+
+  const getTemplateRawName = (templateId: string, fallbackName: string) => {
+    const overrideName = templateOverrides[templateId]?.name;
+    return overrideName && overrideName.trim() ? overrideName : fallbackName;
+  };
+
+  const getTemplateCategory = (templateId: string, fallbackName: string) => {
+    const raw = getTemplateRawName(templateId, fallbackName);
+    return readTemplateCategory(raw) || "أخرى 1";
+  };
+
+  const readyTemplates = [
+    ...READY_TEST_TEMPLATES.map((t) => ({
+      id: t.id,
+      name: t.name,
+      items: t.items,
+    })),
+    ...Object.keys(templateOverrides)
+      .filter((id) => !READY_TEST_TEMPLATES.some((t) => t.id === id))
+      .map((id) => ({
+        id,
+        name: templateOverrides[id]?.name?.trim() || id,
+        items: templateOverrides[id]?.testItems ?? [],
+      })),
+  ];
+  const filteredReadyTemplates = readyTemplates.filter(
+    (template) => getTemplateCategory(template.id, template.name) === readyTab,
+  );
+  const filteredReadyTemplateIds = filteredReadyTemplates.map(
+    (template) => template.id,
+  );
+  const allFilteredReadyTemplatesSelected =
+    filteredReadyTemplateIds.length > 0 &&
+    filteredReadyTemplateIds.every((id) => selectedTemplateIds.includes(id));
+
+  const getTemplateDisplayName = (templateId: string, fallbackName: string) =>
+    stripTemplateCategory(getTemplateRawName(templateId, fallbackName));
+
+  const handleApplyReadyTestTemplate = (templateId: string) => {
+    if (editingForbidden) return;
+    const template = readyTemplates.find((t) => t.id === templateId);
+    if (!template) return;
+    const sourceItems =
+      templateOverrides[templateId]?.testItems ?? template.items;
+    setSelectedTests(
+      sourceItems.map((item) => ({
+        id: item.testId,
+        name: item.testName || "",
+        category: "",
+        selected: true,
+        notes: item.notes ?? "",
+      })),
+    );
+  };
+
+  const handleSaveTemplateContent = async (templateId: string) => {
+    const items = selectedTests
+      .map((t) => ({
+        testId: t.id,
+        testName: t.name,
+        notes: t.notes ?? "",
+      }))
+      .filter((item) => item.testId > 0);
+    try {
+      await upsertTemplateOverrideMutation.mutateAsync({
+        scope: "tests",
+        templateId,
+        testItems: items,
+      });
+      toast.success("تم حفظ محتوى القالب");
+    } catch (error) {
+      toast.error(getTrpcErrorMessage(error, "فشل حفظ محتوى القالب."));
+    }
+  };
+
+  const handleRenameTemplate = async (
+    templateId: string,
+    fallbackName: string,
+  ) => {
+    const currentRaw = getTemplateRawName(templateId, fallbackName);
+    const currentCategory = readTemplateCategory(currentRaw);
+    const currentName = stripTemplateCategory(currentRaw) || fallbackName;
+    const nextName = window.prompt("إعادة تسمية القالب", currentName);
+    if (nextName === null) return;
+
+    const clean = nextName.trim();
+    try {
+      if (!clean && currentCategory) {
+        await upsertTemplateOverrideMutation.mutateAsync({
+          scope: "tests",
+          templateId,
+          name: `[${currentCategory}] ${fallbackName}`,
+        });
+      } else {
+        const nameWithCategory = currentCategory
+          ? `[${currentCategory}] ${clean || fallbackName}`
+          : clean;
+        await upsertTemplateOverrideMutation.mutateAsync({
+          scope: "tests",
+          templateId,
+          name:
+            !clean || clean === fallbackName
+              ? currentCategory
+                ? nameWithCategory
+                : ""
+              : nameWithCategory,
+        });
+      }
+      toast.success("تم تحديث اسم القالب");
+    } catch (error) {
+      toast.error(getTrpcErrorMessage(error, "فشل إعادة تسمية القالب."));
+    }
+  };
+
+  const handleMoveSelectedTemplates = async () => {
+    const idsToMove = selectedTemplateIds.filter((id) =>
+      filteredReadyTemplateIds.includes(id),
+    );
+    if (idsToMove.length === 0) {
+      toast.error("اختر قالب واحد على الأقل");
+      return;
+    }
+    try {
+      for (const templateId of idsToMove) {
+        const template = readyTemplates.find((item) => item.id === templateId);
+        if (!template) continue;
+        const raw = getTemplateRawName(templateId, template.name);
+        const baseName =
+          stripTemplateCategory(raw) || template.name || templateId;
+        await upsertTemplateOverrideMutation.mutateAsync({
+          scope: "tests",
+          templateId,
+          name: `[${moveReadyTabTarget}] ${baseName}`,
+        });
+      }
+      await templateOverridesQuery.refetch();
+      setSelectedTemplateIds((prev) =>
+        prev.filter((id) => !idsToMove.includes(id)),
+      );
+      toast.success(`تم نقل ${idsToMove.length} قالب`);
+    } catch (error) {
+      toast.error(getTrpcErrorMessage(error, "فشل نقل القوالب."));
+    }
+  };
+
+  const handleDeleteTemplateOverride = async (templateId: string) => {
+    try {
+      await upsertTemplateOverrideMutation.mutateAsync({
+        scope: "tests",
+        templateId,
+        name: "",
+        testItems: [],
+      });
+      toast.success("تم حذف القالب");
+    } catch (error) {
+      toast.error(getTrpcErrorMessage(error, "فشل حذف القالب."));
+    }
+  };
+
+  const importFromFile = async (file: File) => {
+    try {
+      toast.info(`جارٍ استيراد الملف: ${file.name}`);
+      setImportStatus(`تم اختيار الملف: ${file.name}`);
+      const buffer = await file.arrayBuffer();
+      const XLSX = await loadXlsx();
+      const workbook = XLSX.read(buffer, { type: "array" });
+      if (!workbook.SheetNames.length) {
+        toast.error("الملف لا يحتوي على شيتات.");
+        setImportStatus("فشل: الملف لا يحتوي على شيتات");
+        return;
+      }
+      const rows = workbook.SheetNames.flatMap((sheetName, sheetIndex) => {
+        const sheet = workbook.Sheets[sheetName];
+        if (!sheet) return [] as Array<Record<string, unknown>>;
+        return XLSX.utils
+          .sheet_to_json<Record<string, unknown>>(sheet, { defval: "" })
+          .map((row) => ({
+            ...row,
+            __sheetName: sheetName,
+            __sheetIndex: sheetIndex,
+          }));
+      });
+
+      const grouped = new Map<
+        string,
+        {
+          templateId: string;
+          name?: string;
+          testItems: Array<{ testId: number; testName: string; notes: string }>;
+        }
+      >();
+      const templateIdUsage = new Map<string, number>();
+
+      for (const row of rows) {
+        const lookup = buildRowLookup(row);
+        const templateIdRaw = String(
+          getRowValue(
+            lookup,
+            "templateId",
+            "template_id",
+            "template id",
+            "كود القالب",
+          ) ?? "",
+        );
+        const templateNameRaw = String(
+          getRowValue(
+            lookup,
+            "templateName",
+            "template_name",
+            "template name",
+            "اسم القالب",
+          ) ?? "",
+        );
+        const templateKeyRaw = String(
+          getRowValue(lookup, "templateKey", "template_key", "template key") ??
+            "",
+        );
+        const sheetNameRaw = String((row as any).__sheetName ?? "");
+        const sheetIndexRaw = Number((row as any).__sheetIndex ?? -1);
+        const testIdRaw = String(
+          getRowValue(lookup, "testId", "test_id", "test id", "كود الفحص") ?? "",
+        ).trim();
+        const testNameRaw = String(
+          getRowValue(lookup, "testName", "test_name", "test name", "اسم الفحص") ??
+            "",
+        ).trim();
+        const notesRaw = String(
+          getRowValue(lookup, "notes", "ملاحظات") ?? "",
+        ).trim();
+
+        const normalizedBaseId =
+          normalizeTemplateId(templateKeyRaw) ||
+          normalizeTemplateId(
+            templateIdRaw && sheetIndexRaw >= 0
+              ? `${templateIdRaw}__s${sheetIndexRaw}`
+              : "",
+          ) ||
+          normalizeTemplateId(templateIdRaw) ||
+          normalizeTemplateId(
+            templateNameRaw && sheetIndexRaw >= 0
+              ? `${templateNameRaw}__s${sheetIndexRaw}`
+              : "",
+          ) ||
+          normalizeTemplateId(templateNameRaw) ||
+          normalizeTemplateId(sheetNameRaw) ||
+          "";
+        let normalizedId = normalizedBaseId;
+        if (normalizedId) {
+          const currentCount = templateIdUsage.get(normalizedId) ?? 0;
+          if (!grouped.has(normalizedId) && currentCount > 0) {
+            normalizedId = `${normalizedId}-${currentCount + 1}`;
+          }
+          templateIdUsage.set(normalizedBaseId, currentCount + 1);
+        }
+        const testId = Number(testIdRaw) || 0;
+        if (!normalizedId || (!testId && !testNameRaw)) continue;
+
+        if (!grouped.has(normalizedId)) {
+          grouped.set(normalizedId, {
+            templateId: normalizedId,
+            name: templateNameRaw.trim() || undefined,
+            testItems: [],
+          });
+        }
+        grouped.get(normalizedId)!.testItems.push({
+          testId,
+          testName: testNameRaw,
+          notes: notesRaw,
+        });
+      }
+
+      const templates = Array.from(grouped.values()).filter(
+        (t) => t.testItems.length > 0,
+      );
+      if (templates.length === 0) {
+        toast.error("لم يتم العثور على قوالب صالحة في الملف.");
+        setImportStatus("فشل: لم يتم العثور على قوالب صالحة");
+        return;
+      }
+      setImportStatus(`تم تحليل الملف: ${templates.length} قالب`);
+
+      await importReadyTemplateOverridesMutation.mutateAsync({
+        scope: "tests",
+        templates,
+      });
+      toast.success(`تم استيراد ${templates.length} قالب`);
+      setImportStatus(`تم الاستيراد: ${templates.length} قالب`);
+    } catch (error) {
+      console.error("[importReadyTestTemplates] failed", error);
+      toast.error(getTrpcErrorMessage(error, "فشل استيراد القوالب."));
+      setImportStatus("فشل: راجع الـ Console");
+    } finally {
+      if (importInputRef.current) {
+        importInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleImportReadyTests = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    if (!file) return;
+    await importFromFile(file);
+  };
+
+  const startFilePick = () => {
+    setImportStatus("تم الضغط على الاستيراد");
+    importInputRef.current?.click();
+    if (importPollRef.current) window.clearInterval(importPollRef.current);
+    const startedAt = Date.now();
+    importPollRef.current = window.setInterval(() => {
+      const file = importInputRef.current?.files?.[0];
+      if (file) {
+        window.clearInterval(importPollRef.current!);
+        importPollRef.current = null;
+        void importFromFile(file);
+        return;
+      }
+      if (Date.now() - startedAt > 5_000) {
+        window.clearInterval(importPollRef.current!);
+        importPollRef.current = null;
+        setImportStatus("لم يتم اختيار ملف");
+      }
+    }, 200);
+  };
+
+  const handleImportFromPath = async () => {
+    const trimmed = importPath.trim();
+    if (!trimmed) {
+      setImportStatus("اكتب مسار الملف أولاً");
+      return;
+    }
+    try {
+      setImportStatus(`جاري الاستيراد من المسار`);
+      const result =
+        await importReadyTemplateOverridesFromFileMutation.mutateAsync({
+          scope: "tests",
+          filePath: trimmed,
+        });
+      setImportStatus(`تم الاستيراد: ${result.count} قالب`);
+    } catch (error) {
+      setImportStatus(getTrpcErrorMessage(error, "فشل الاستيراد من المسار."));
+    }
+  };
+
   const handleUpdateTestNotes = (testId: number, notes: string) => {
     if (editingForbidden) return;
     setSelectedTests(
@@ -649,6 +1089,199 @@ export default function RequestTests({
                 </div>
               </CardContent>
             </Card>
+
+            {!editingForbidden && !printMode.printView && (
+              <Card className="overflow-hidden border-[#d9e2ef] shadow-none print:hidden">
+                <CardHeader className="border-b border-[#e5ebf3] bg-white px-4 py-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <CardTitle className="flex items-center gap-2 text-sm font-bold text-[#1e3a66]">
+                      <ClipboardList className="h-4 w-4" />
+                      فحوصات جاهزة
+                    </CardTitle>
+                    {canImportReadyTemplates ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          ref={importInputRef}
+                          id={importInputId}
+                          type="file"
+                          accept=".xlsx,.xls"
+                          className="sr-only"
+                          onChange={(e) => void handleImportReadyTests(e)}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={startFilePick}
+                        >
+                          <Upload className="h-4 w-4 ml-1" />
+                          استيراد Excel
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3 p-4">
+                  {canImportReadyTemplates ? (
+                    <>
+                      <div className="text-xs text-muted-foreground">
+                        استيراد مباشر من مسار السيرفر
+                      </div>
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <Input
+                          value={importPath}
+                          onChange={(e) => setImportPath(e.target.value)}
+                          placeholder="E:\\path\\to\\file.xlsx"
+                          className="text-left"
+                          dir="ltr"
+                        />
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={handleImportFromPath}
+                        >
+                          استيراد من المسار
+                        </Button>
+                      </div>
+                      {importStatus ? (
+                        <div className="text-xs text-muted-foreground">
+                          {importStatus}
+                        </div>
+                      ) : null}
+                    </>
+                  ) : null}
+                  <Tabs
+                    value={readyTab}
+                    onValueChange={setReadyTab}
+                    persistKey={READY_TABS_PERSIST_KEY}
+                    dir="rtl"
+                  >
+                    <TabsList className="w-full justify-start gap-1 overflow-x-auto flex-nowrap bg-[#f3f6fb] p-1">
+                      {READY_TABS.map((tab) => (
+                        <TabsTrigger
+                          key={tab}
+                          value={tab}
+                          className="whitespace-nowrap rounded-md px-3 text-xs data-[state=active]:bg-white data-[state=active]:text-[#1e3a66] data-[state=active]:shadow-sm"
+                        >
+                          {tab}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                  </Tabs>
+                  <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-2">
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={allFilteredReadyTemplatesSelected}
+                        onCheckedChange={(checked) => {
+                          if (Boolean(checked)) {
+                            setSelectedTemplateIds((prev) =>
+                              Array.from(
+                                new Set([...prev, ...filteredReadyTemplateIds]),
+                              ),
+                            );
+                            return;
+                          }
+                          setSelectedTemplateIds((prev) =>
+                            prev.filter(
+                              (id) => !filteredReadyTemplateIds.includes(id),
+                            ),
+                          );
+                        }}
+                      />
+                      تحديد الكل
+                    </label>
+                    <Select
+                      value={moveReadyTabTarget}
+                      onValueChange={setMoveReadyTabTarget}
+                    >
+                      <SelectTrigger className="w-[220px]">
+                        <SelectValue placeholder="نقل إلى تاب" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {READY_TABS.map((tab) => (
+                          <SelectItem key={`move-${tab}`} value={tab}>
+                            {tab}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => void handleMoveSelectedTemplates()}
+                      disabled={selectedTemplateIds.length === 0}
+                    >
+                      نقل المحدد
+                    </Button>
+                  </div>
+                </CardContent>
+                <CardContent className="grid max-h-[34vh] grid-cols-1 gap-2 overflow-y-auto border-t border-[#eef2f7] p-3 sm:grid-cols-2">
+                  {filteredReadyTemplates.map((template) => (
+                    <div
+                      key={template.id}
+                      className="flex items-center gap-1 rounded-lg border border-[#e2e8f0] bg-white p-1"
+                    >
+                      <Checkbox
+                        checked={selectedTemplateIds.includes(template.id)}
+                        onCheckedChange={(checked) =>
+                          setSelectedTemplateIds((prev) =>
+                            Boolean(checked)
+                              ? Array.from(new Set([...prev, template.id]))
+                              : prev.filter((id) => id !== template.id),
+                          )
+                        }
+                      />
+                      <Button
+                        variant="outline"
+                        type="button"
+                        className="h-8 flex-1 justify-start border-0 bg-transparent px-2 text-xs shadow-none hover:bg-[#eef5ff]"
+                        onClick={() => handleApplyReadyTestTemplate(template.id)}
+                      >
+                        {getTemplateDisplayName(template.id, template.name)}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        onClick={() => handleSaveTemplateContent(template.id)}
+                        title="حفظ محتوى القالب"
+                        aria-label="حفظ محتوى القالب"
+                      >
+                        <Save className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        onClick={() =>
+                          handleRenameTemplate(template.id, template.name)
+                        }
+                        title="إعادة تسمية"
+                        aria-label="إعادة تسمية القالب"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        onClick={() => handleDeleteTemplateOverride(template.id)}
+                        title="حذف القالب"
+                        aria-label="حذف القالب"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  {filteredReadyTemplates.length === 0 ? (
+                    <div className="col-span-full text-center text-xs text-muted-foreground py-6">
+                      لا توجد فحوصات جاهزة في هذا التاب
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+            )}
 
             {!printMode.printView && (
               <Card className="overflow-hidden border-[#d9e2ef] shadow-none">
