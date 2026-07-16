@@ -13,10 +13,42 @@
  * the service just logs "Disabled" and idles.
  */
 import "dotenv/config";
+import fs from "node:fs";
+import path from "node:path";
 
 // Tell the imported module NOT to launch the Express web server — we only want
 // the background loops. Must be set before the dynamic import below runs.
 process.env.SELRS_PENTACAM_SERVICE = "1";
+
+const CRASH_LOG = path.join(
+  process.cwd(),
+  "Pentacam",
+  "Watcher",
+  "_pentacam_service_crash.log",
+);
+
+function logCrash(label: string, err: unknown): void {
+  try {
+    fs.appendFileSync(
+      CRASH_LOG,
+      `${new Date().toISOString()} ${label} :: ${String((err as any)?.stack ?? err)}\n\n`,
+    );
+  } catch {
+    // best-effort only
+  }
+}
+
+process.on("uncaughtException", (err) => {
+  logCrash("uncaughtException", err);
+  console.error("[pentacam-service] uncaughtException:", err);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason) => {
+  logCrash("unhandledRejection", reason);
+  console.error("[pentacam-service] unhandledRejection:", reason);
+  process.exit(1);
+});
 
 async function main(): Promise<void> {
   const { startPentacamServices } = await import("../_core/index");
@@ -25,6 +57,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
+  logCrash("main().catch", err);
   console.error("[pentacam-service] Fatal:", err);
   process.exit(1);
 });

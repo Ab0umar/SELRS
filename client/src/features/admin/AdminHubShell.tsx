@@ -265,6 +265,7 @@ const navigationSections = [
     items: [
       { href: "/booking-triage/patients", label: "سجل المرضى الكلي", description: "البحث في كافة المرضى المسجلين بالمركز", activeFor: ["/booking-triage/patients"] },
       { href: "/booking-triage/portal-bookings", label: "حجوزات البوابة الخارجية", description: "حجوزات موقع الويب الخارجي والطلبات", activeFor: ["/booking-triage/portal-bookings"] },
+      { href: "/admin/legacy-patients", label: "بحث المرضى القدامى (23/24/25)", description: "بحث للمراجعة فقط في قواعد بيانات السنوات السابقة", activeFor: ["/admin/legacy-patients"] },
     ],
   },
   {
@@ -302,6 +303,7 @@ const topbarNavItems = [
   { href: "/booking-triage/services", label: "ربط الخدمات", icon: LayoutGrid },
   { href: "/booking-triage/sheet-designer", label: "نماذج الملفات", icon: Scan },
   { href: "/booking-triage/patients", label: "المرضى", icon: Users },
+  { href: "/admin/legacy-patients", label: "المرضى القدامى", icon: HeartPulse },
   { href: "/booking-triage/portal-bookings", label: "الحجز", icon: CalendarDays },
   { href: "/booking-triage/status", label: "السيرفر", icon: Terminal },
   { href: "/booking-triage/migrations", label: "اسكيما", icon: Database },

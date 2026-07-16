@@ -19,6 +19,7 @@ import {
   FileText,
   FlaskConical,
   Glasses,
+  History,
   Home,
   Hospital,
   LayoutDashboard,
@@ -182,6 +183,12 @@ export const adminNavGroups: NavGroup[] = [
   { icon: Syringe, label: "العمليات", path: "/operations", isMain: true },
   { icon: Network, label: "مركز المريض", path: "/patient-hub", isMain: true },
   {
+    icon: History,
+    label: "بحث المرضى القدامى",
+    path: "/admin/legacy-patients",
+    isMain: true,
+  },
+  {
     label: "ملف المريض",
     navKey: "clinics-file",
     groupPath: "/medicalfile",
@@ -258,6 +265,11 @@ export const adminNavGroups: NavGroup[] = [
       { icon: FileText, label: "ملف المريض", path: "/medicalfile" },
       { icon: Repeat, label: "المتابعات", path: "/followups" },
       { icon: CalendarCheck, label: "الزيارات", path: "/visits" },
+      {
+        icon: History,
+        label: "بحث المرضى القدامى",
+        path: "/admin/legacy-patients",
+      },
     ],
   },
   {

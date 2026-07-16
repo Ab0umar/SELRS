@@ -103,6 +103,7 @@ export const ROUTES = {
   adminHubRoot: "/admin-hub",
   adminHubRestWildcard: "/admin-hub/:rest*",
   adminPatients: "/admin-patients",
+  adminLegacyPatients: "/admin/legacy-patients",
   adminApiTools: "/admin/api-tools",
   adminCardVisibility: "/admin/card-visibility",
   adminDataSourceAudit: "/admin/data-source-audit",

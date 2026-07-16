@@ -944,6 +944,27 @@ async function findAvailablePort(
       `[srv100-import] Watching ${cfg.sourceDir} every ${cfg.pollIntervalMs}ms (source -> ${cfg.processedDir})`,
     );
 
+    // In-memory cache of already-imported file_names so steady-state cycles
+    // skip known files without a DB round-trip per file — collectFiles() can't
+    // rename foldered files to mark them done (would fight FolderOrganizer),
+    // so without this cache every cycle re-queries the DB for every file forever.
+    const importedFileNames = new Set<string>();
+    try {
+      const rows = await withDb((conn) =>
+        conn.query(`SELECT file_name FROM srv100_uploads WHERE file_name IS NOT NULL`),
+      );
+      for (const row of rows[0] as any[]) {
+        if (row.file_name) importedFileNames.add(String(row.file_name));
+      }
+      console.log(
+        `[srv100-import] Preloaded ${importedFileNames.size} already-imported file names`,
+      );
+    } catch (error: any) {
+      console.warn(
+        `[srv100-import] Failed to preload imported file names: ${String(error?.message ?? error)}`,
+      );
+    }
+
     let busy = false;
     const runCycle = async () => {
       if (busy) return;
@@ -980,6 +1001,9 @@ async function findAvailablePort(
         }
 
         for (const fileName of fileNames) {
+          const dbFileNameEarly = path.basename(fileName).slice(0, 255);
+          if (importedFileNames.has(dbFileNameEarly)) continue;
+
           const fullPath = path.join(cfg.sourceDir, fileName);
           const fileInfo = await stat(fullPath).catch(() => null);
           if (!fileInfo?.isFile()) continue;
@@ -995,7 +1019,7 @@ async function findAvailablePort(
             // Use the basename only — collectFiles may return "{code}/{name}.JPG"
             // for files already inside a patient subfolder; the subfolder prefix
             // must not leak into the DB file_name or the S3 key.
-            const dbFileName = path.basename(fileName).slice(0, 255);
+            const dbFileName = dbFileNameEarly;
             // document_id convention in srv100_uploads is the full filename (with
             // extension) — existing rows use that scheme, so we match it here.
             const documentId = dbFileName;
@@ -1011,6 +1035,7 @@ async function findAvailablePort(
 
             if ((existing as any[]).length > 0) {
               // already-imported skips are too verbose to log individually
+              importedFileNames.add(dbFileName);
               continue;
             }
 
@@ -1046,6 +1071,7 @@ async function findAvailablePort(
               );
               return Number((insertResult as any)?.insertId ?? 0);
             });
+            importedFileNames.add(dbFileName);
 
             let importCode = "";
             const ocrCfg = getSrv100OcrLinkOptions();

@@ -17,6 +17,7 @@ import { externalDoctorsRouter } from "./routers/externalDoctors";
 import { doctorPortalRouter } from "./routers/doctorPortal";
 import { marketingRouter } from "./routers/marketing";
 import { kfRouter } from "./routers/kf";
+import { legacyPatientsRouter } from "./routers/legacyPatients";
 import * as db from "./db";
 import {
   authService,
@@ -201,6 +202,7 @@ export const appRouter = router({
   salary: salaryRouter,
   marketing: marketingRouter,
   kf: kfRouter,
+  legacyPatients: legacyPatientsRouter,
 });
 
 export type AppRouter = typeof appRouter;
