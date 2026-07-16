@@ -3,6 +3,7 @@ import { Share } from "@capacitor/share";
 import html2canvas from "html2canvas";
 import { Capacitor } from "@capacitor/core";
 import { PDFDocument } from "pdf-lib";
+import { toast } from "sonner";
 import { triggerBlobDownload } from "@/_core/utils/export";
 import {
   canUseNativeAndroidPrint,
@@ -510,13 +511,24 @@ export async function printOrExportPdf(
   const selector = options?.selector ?? "[data-mobile-pdf-root]";
   const hasSpecificTarget = Boolean(options?.selector || options?.element);
 
+  // TEMP DIAGNOSTIC — remove once mobile print path is confirmed. Shows
+  // which of the three print strategies actually ran on the test device.
+  if (Capacitor.isNativePlatform()) {
+    toast.info(
+      `print debug: forceBrowserPrint=${String(Boolean(options?.forceBrowserPrint))} hasTarget=${String(hasSpecificTarget)} canNative=${String(canUseNativeAndroidPrint())} platform=${Capacitor.getPlatform()}`,
+    );
+  }
+
   if (!options?.forceBrowserPrint && preferPdfOverBrowserPrint()) {
     const ok = await exportElementToPdf({
       fileName,
       selector,
       element: options?.element,
     });
-    if (ok) return true;
+    if (ok) {
+      if (Capacitor.isNativePlatform()) toast.info("print debug: took PDF export path");
+      return true;
+    }
   }
 
   // Only use native Android print (full page dump) when no specific element
@@ -524,6 +536,7 @@ export async function printOrExportPdf(
   // the CSS @media print visibility hack on the target element.
   if (!hasSpecificTarget && canUseNativeAndroidPrint()) {
     try {
+      if (Capacitor.isNativePlatform()) toast.info("print debug: took native Android print path");
       await requestNativeAndroidPrint(document.title || "SELRS Print");
       return true;
     } catch {
@@ -531,6 +544,7 @@ export async function printOrExportPdf(
     }
   }
 
+  if (Capacitor.isNativePlatform()) toast.info("print debug: took window.print() fallback path");
   window.print();
   return true;
 }
