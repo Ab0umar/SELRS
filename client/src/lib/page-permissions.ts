@@ -394,6 +394,7 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   { id: "/admin/services", label: "الخدمات والأسعار", group: "مركز الإدارة" },
   { id: "/admin/patients", label: "مرضى الإدارة", group: "مركز الإدارة" },
   { id: "/admin/legacy-patients", label: "بحث المرضى القدامى", group: "مركز الإدارة" },
+  { id: "/admin/op-history", label: "سجل العمليات", group: "مركز الإدارة" },
   { id: "/admin/forms", label: "النماذج الإدارية", group: "مركز الإدارة" },
   { id: "/admin/settings", label: "إعدادات النظام", group: "مركز الإدارة" },
   {

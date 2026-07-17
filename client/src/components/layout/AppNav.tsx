@@ -28,6 +28,7 @@ import {
   Pill,
   ReceiptText,
   Repeat,
+  ScrollText,
   Send,
   Settings,
   Smartphone,
@@ -189,6 +190,12 @@ export const adminNavGroups: NavGroup[] = [
     isMain: true,
   },
   {
+    icon: ScrollText,
+    label: "سجل العمليات",
+    path: "/admin/op-history",
+    isMain: true,
+  },
+  {
     label: "ملف المريض",
     navKey: "clinics-file",
     groupPath: "/medicalfile",
@@ -229,9 +236,9 @@ export const adminNavGroups: NavGroup[] = [
     navKey: "clinics-sheets",
     groupPath: "/sheets/consultant",
     items: [
-      { icon: Stethoscope, label: "شيت استشاري", path: "/sheets/consultant" },
-      { icon: UserRound, label: "شيت أخصائي", path: "/sheets/specialist" },
-      { icon: Zap, label: "شيت ليزك", path: "/sheets/lasik" },
+      { icon: Stethoscope, label: "شيت كشف", path: "/sheets/consultant" },
+      { icon: UserRound, label: "شيت مقاس نظاره / اشعه خارجي", path: "/sheets/specialist" },
+      { icon: Zap, label: "شيت تصحيح ابصار", path: "/sheets/lasik" },
     ],
   },
   {
@@ -269,6 +276,11 @@ export const adminNavGroups: NavGroup[] = [
         icon: History,
         label: "بحث المرضى القدامى",
         path: "/admin/legacy-patients",
+      },
+      {
+        icon: ScrollText,
+        label: "سجل العمليات",
+        path: "/admin/op-history",
       },
     ],
   },

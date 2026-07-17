@@ -23,7 +23,7 @@ import { toast } from "sonner";
 const SHEET_COPY_LINKS = [
   {
     key: "consultant",
-    title: "نسخة استشاري",
+    title: "نسخة كشف",
     path: "/sheets/consultant/0?original=1",
     family: "consultant" as const,
     status: "active" as const,
@@ -39,7 +39,7 @@ const SHEET_COPY_LINKS = [
   },
   {
     key: "specialist",
-    title: "نسخة متخصص",
+    title: "نسخة مقاس نظاره / اشعه خارجي",
     path: "/sheets/specialist/0?original=1",
     family: "specialist",
     status: "active" as const,
@@ -47,7 +47,7 @@ const SHEET_COPY_LINKS = [
   },
   {
     key: "lasik",
-    title: "نسخة ليزك",
+    title: "نسخة تصحيح ابصار",
     path: "/sheets/lasik/0?original=1",
     family: "lasik",
     status: "active" as const,
@@ -63,7 +63,7 @@ const SHEET_COPY_LINKS = [
   },
   {
     key: "external",
-    title: "نسخة خارجي",
+    title: "نسخة د.الصواف",
     path: "/sheets/external/0?original=1",
     family: "external",
     status: "active" as const,

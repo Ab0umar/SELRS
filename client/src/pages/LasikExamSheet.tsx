@@ -48,8 +48,8 @@ export default function LasikExamSheet() {
     currentSheetType === "consultant"
       ? "كشف"
       : currentSheetType === "external"
-        ? "اشعه خارجي"
-        : "فحص ليزك";
+        ? "د.الصواف"
+        : "تصحيح ابصار";
   const routePatientId = (() => {
     if (params?.id) return Number(params.id);
     if (typeof window === "undefined") return undefined;
@@ -78,7 +78,7 @@ export default function LasikExamSheet() {
   const [medicalHistory, setMedicalHistory] = useState<Record<string, "no" | "yes" | "">>({});
   const [medicalHistoryOther, setMedicalHistoryOther] = useState("");
   const [diabetesDuration, setDiabetesDuration] = useState("");
-  const [operationType, setOperationType] = useState("ليزك");
+  const [operationType, setOperationType] = useState("");
   const [operationDateRight, setOperationDateRight] = useState("");
   const [operationEyes, setOperationEyes] = useState({
     right: true,
@@ -130,7 +130,7 @@ export default function LasikExamSheet() {
     reception: "",
     nurse: "",
     technician: "",
-    doctor: "",
+    doctor: currentSheetType === "external" ? "د. الصواف" : "",
   });
   const [readingValue, setReadingValue] = useState("");
   const [consultantExam, setConsultantExam] = useState({
@@ -407,7 +407,8 @@ export default function LasikExamSheet() {
         setMedicalHistoryOther(parsed.medicalHistoryOther);
       }
       if (parsed.operationDetails) {
-        setOperationType(parsed.operationDetails.type ?? "ليزك");
+        setOperationType(parsed.operationDetails.type ?? "");
+        setOperationDateRight(parsed.operationDetails.date ?? "");
         const parsedEyes = parsed.operationDetails.eyes ?? {};
         const right = Boolean(parsedEyes.right);
         const left = Boolean(parsedEyes.left);
@@ -636,6 +637,7 @@ export default function LasikExamSheet() {
           medicalHistoryOther,
           operationDetails: {
             type: operationType,
+            date: operationDateRight,
             eyes: operationEyes,
           },
         }),
@@ -690,7 +692,32 @@ export default function LasikExamSheet() {
         dir="ltr"
       >
         <SheetWatermark />
-        <SheetPrintHeader sheetType={sheetTypeLabel} />
+        <SheetPrintHeader
+          sheetType={sheetTypeLabel}
+          logoLeftContent={
+            currentSheetType !== "consultant" ? (
+              <div className="inline-flex flex-col items-center gap-0.5 text-xs" dir="rtl">
+                <span className="font-bold text-[#434654]">نوع العملية</span>
+                <select className="w-24 text-xs rounded border-[#c3c6d6] bg-white py-1" value={operationType} onChange={(e) => setOperationType(e.target.value)}>
+                  <option value="">اختر</option>
+                  <option value="ليزك">ليزك</option>
+                  <option value="فيمتو ليزك">فيمتو ليزك</option>
+                  <option value="PRK">PRK</option>
+                  <option value="فيمتو سمايل">سمايل</option>
+                  <option value="ICL">ICL</option>
+                </select>
+              </div>
+            ) : undefined
+          }
+          logoRightContent={
+            currentSheetType !== "consultant" ? (
+              <div className="inline-flex flex-col items-center gap-0.5 text-xs" dir="rtl">
+                <span className="font-bold text-[#434654]">تاريخ العملية</span>
+                <DateInput className="h-6 w-24 font-normal text-xs bg-transparent border-0 border-b border-[#c3c6d6] rounded-none px-1 text-center" value={operationDateRight} onChange={(e) => setOperationDateRight(e.target.value)} />
+              </div>
+            ) : undefined
+          }
+        />
 
         {/* Patient Info */}
         <section className="print-lasik-patient-grid p-4 bg-[#f3f4f6] rounded-xl border border-[#c3c6d6] flex flex-col gap-2 text-sm" dir="rtl">
@@ -714,17 +741,6 @@ export default function LasikExamSheet() {
             <label className="inline-flex items-center gap-1 whitespace-nowrap min-w-0 shrink"><span className="text-[#434654] shrink-0">الطبيب:</span>
               <input size={(signatures.doctor || "").length || 10} className="min-w-0 font-normal text-xs bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right" dir="rtl" value={signatures.doctor} onChange={(e) => setSignatures((p) => ({ ...p, doctor: e.target.value }))} /></label>
           </div>
-          {currentSheetType !== "consultant" ? (
-            <div className="inline-flex items-center gap-1 whitespace-nowrap text-xs"><span className="font-bold text-[#434654]">نوع العملية:</span>
-              <select className="w-28 text-xs rounded border-[#c3c6d6] bg-white py-1" value={operationType} onChange={(e) => setOperationType(e.target.value)}>
-                <option value="ليزك">ليزك</option>
-                <option value="فيمتو ليزك">فيمتو ليزك</option>
-                <option value="PRK">PRK</option>
-                <option value="فيمتو سمايل">سمايل</option>
-                <option value="ICL">ICL</option>
-              </select>
-            </div>
-          ) : null}
         </section>
 
         {currentSheetType !== "consultant" ? (
@@ -1456,7 +1472,7 @@ export default function LasikExamSheet() {
       </header>
       {printMode.printView && (
         <PrintPreviewBanner
-          title="شيت الليزك"
+          title={sheetTypeLabel}
           subtitle={formData.patientName || undefined}
           onPrint={handlePrint}
         />

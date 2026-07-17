@@ -303,25 +303,25 @@ export default function AdminSheetDesigner() {
     },
     {
       id: "consultant-template",
-      label: "قالب استشاري",
+      label: "قالب كشف",
       sections: "عناوين الشيت",
     },
     {
       id: "specialist-template",
-      label: "قالب متخصص",
+      label: "قالب مقاس نظاره / اشعه خارجي",
       sections: "عناوين الشيت",
     },
-    { id: "lasik-template", label: "قالب ليزك", sections: "عناوين الشيت" },
-    { id: "external-template", label: "قالب خارجي", sections: "عناوين الشيت" },
+    { id: "lasik-template", label: "قالب تصحيح ابصار", sections: "عناوين الشيت" },
+    { id: "external-template", label: "قالب د.الصواف", sections: "عناوين الشيت" },
     {
       id: "pentacam-template",
       label: "قالب Pentacam",
       sections: "عناوين الشيت",
     },
-    { id: "consultant-css", label: "CSS استشاري", sections: "أنماط مخصصة" },
-    { id: "specialist-css", label: "CSS متخصص", sections: "أنماط مخصصة" },
-    { id: "lasik-css", label: "CSS ليزك", sections: "أنماط مخصصة" },
-    { id: "external-css", label: "CSS خارجي", sections: "أنماط مخصصة" },
+    { id: "consultant-css", label: "CSS كشف", sections: "أنماط مخصصة" },
+    { id: "specialist-css", label: "CSS مقاس نظاره / اشعه خارجي", sections: "أنماط مخصصة" },
+    { id: "lasik-css", label: "CSS تصحيح ابصار", sections: "أنماط مخصصة" },
+    { id: "external-css", label: "CSS د.الصواف", sections: "أنماط مخصصة" },
     { id: "pentacam-css", label: "CSS Pentacam", sections: "أنماط مخصصة" },
   ];
 
@@ -461,25 +461,25 @@ export default function AdminSheetDesigner() {
             value="consultant-template"
             className="shrink-0 rounded-lg text-xs sm:text-sm"
           >
-            استشاري
+            كشف
           </TabsTrigger>
           <TabsTrigger
             value="specialist-template"
             className="shrink-0 rounded-lg text-xs sm:text-sm"
           >
-            متخصص
+            مقاس نظاره / اشعه خارجي
           </TabsTrigger>
           <TabsTrigger
             value="lasik-template"
             className="shrink-0 rounded-lg text-xs sm:text-sm"
           >
-            ليزك
+            تصحيح ابصار
           </TabsTrigger>
           <TabsTrigger
             value="external-template"
             className="shrink-0 rounded-lg text-xs sm:text-sm"
           >
-            خارجي
+            د.الصواف
           </TabsTrigger>
           <TabsTrigger
             value="pentacam-template"
@@ -491,25 +491,25 @@ export default function AdminSheetDesigner() {
             value="consultant-css"
             className="shrink-0 rounded-lg text-xs sm:text-sm"
           >
-            CSS استشاري
+            CSS كشف
           </TabsTrigger>
           <TabsTrigger
             value="specialist-css"
             className="shrink-0 rounded-lg text-xs sm:text-sm"
           >
-            CSS متخصص
+            CSS مقاس نظاره / اشعه خارجي
           </TabsTrigger>
           <TabsTrigger
             value="lasik-css"
             className="shrink-0 rounded-lg text-xs sm:text-sm"
           >
-            CSS ليزك
+            CSS تصحيح ابصار
           </TabsTrigger>
           <TabsTrigger
             value="external-css"
             className="shrink-0 rounded-lg text-xs sm:text-sm"
           >
-            CSS خارجي
+            CSS د.الصواف
           </TabsTrigger>
           <TabsTrigger
             value="pentacam-css"

@@ -52,10 +52,10 @@ import { buildPrintUrl } from "@/lib/print";
 type QueueFilter = "all" | QueueStatus | "clinic1" | "clinic2";
 
 const PRINT_SHEET_TYPES = [
-  { value: "consultant", label: "كشف استشاري" },
-  { value: "specialist", label: "كشف أخصائي" },
-  { value: "lasik", label: "ليزك" },
-  { value: "external", label: "خارجي" },
+  { value: "consultant", label: "كشف" },
+  { value: "specialist", label: "مقاس نظاره / اشعه خارجي" },
+  { value: "lasik", label: "تصحيح ابصار" },
+  { value: "external", label: "د.الصواف" },
 ] as const;
 
 const QUEUE_FILTERS: { value: QueueFilter; label: string }[] = [

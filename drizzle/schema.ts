@@ -749,6 +749,68 @@ export type InsertPatientServiceEntry =
   typeof patientServiceEntries.$inferInsert;
 
 /**
+ * Patient Operations - unified OP History view merged from sheetEntries
+ * (lasik/external operationDetails), surgeries, and followupItems, plus
+ * manual entries. Mirrors patientServiceEntries's source/sourceRef
+ * upsert-dedup pattern above.
+ */
+export const patientOperations = mysqlTable(
+  "patientOperations",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    patientId: int("patientId").notNull(),
+    operationType: varchar("operationType", { length: 50 }).notNull(),
+    operationDate: date("operationDate"),
+    source: mysqlEnum("source", [
+      "sheet",
+      "surgery",
+      "followup",
+      "service_code",
+      "manual",
+    ])
+      .default("manual")
+      .notNull(),
+    sourceRef: varchar("sourceRef", { length: 128 }).notNull().unique(),
+    doctorCode: varchar("doctorCode", { length: 64 }),
+    eye: varchar("eye", { length: 16 }),
+    notes: text("notes"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    typeIdx: index("idx_patientops_type").on(
+      table.operationType,
+      table.operationDate,
+    ),
+    patientIdx: index("idx_patientops_patient").on(
+      table.patientId,
+      table.operationDate,
+    ),
+  }),
+);
+
+export type PatientOperation = typeof patientOperations.$inferSelect;
+export type InsertPatientOperation = typeof patientOperations.$inferInsert;
+
+/**
+ * Admin-managed mapping from a service code (patientServiceEntries.serviceCode)
+ * to a canonical OP History operation type — lets OP History sync directly
+ * from a patient's assigned service code instead of only free-text sources.
+ */
+export const serviceCodeOpTypeMap = mysqlTable("serviceCodeOpTypeMap", {
+  id: int("id").autoincrement().primaryKey(),
+  serviceCode: varchar("serviceCode", { length: 64 }).notNull().unique(),
+  operationType: varchar("operationType", { length: 50 }).notNull(),
+  label: varchar("label", { length: 255 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ServiceCodeOpTypeMap = typeof serviceCodeOpTypeMap.$inferSelect;
+export type InsertServiceCodeOpTypeMap =
+  typeof serviceCodeOpTypeMap.$inferInsert;
+
+/**
  * Surgeries table - ط§ظ„ط¹ظ…ظ„ظٹط§طھ ط§ظ„ط¬ط±ط§ط­ظٹط©
  */
 export const surgeries = mysqlTable("surgeries", {

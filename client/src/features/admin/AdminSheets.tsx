@@ -29,7 +29,7 @@ type FormStatus = "approved" | "draft";
 const SHEET_LINKS = [
   {
     key: "consultant",
-    title: "شيت استشاري",
+    title: "شيت كشف",
     path: (id: number) => `/sheets/consultant/${id}`,
     status: "approved" as FormStatus,
     doctorLabel: "قالب النظام",
@@ -43,21 +43,21 @@ const SHEET_LINKS = [
   },
   {
     key: "specialist",
-    title: "شيت متخصص",
+    title: "شيت مقاس نظاره / اشعه خارجي",
     path: (id: number) => `/sheets/specialist/${id}`,
     status: "approved" as FormStatus,
     doctorLabel: "قالب النظام",
   },
   {
     key: "lasik",
-    title: "شيت ليزك",
+    title: "شيت تصحيح ابصار",
     path: (id: number) => `/sheets/lasik/${id}`,
     status: "approved" as FormStatus,
     doctorLabel: "قالب النظام",
   },
   {
     key: "external",
-    title: "شيت عملية خارجية",
+    title: "شيت د.الصواف",
     path: (id: number) => `/sheets/external/${id}`,
     status: "draft" as FormStatus,
     doctorLabel: "قالب النظام",

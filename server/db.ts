@@ -65,6 +65,8 @@ import {
   patientPageStates,
   testFavorites,
   patientServiceEntries,
+  patientOperations,
+  serviceCodeOpTypeMap,
   pushDeviceRegistrations,
   InsertAuditLog,
   InsertDoctorReport,
@@ -81,6 +83,7 @@ import {
 } from "../drizzle/schema";
 import { PENTACAM_ALLOWED_SRV_CODES } from "../shared/pentacam";
 import { getServiceTypeFilterVariants } from "../shared/serviceType";
+import { OP_TYPES, resolveCanonicalOpType } from "../shared/opTypes";
 const exec = promisify(execCb);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -6817,6 +6820,413 @@ export async function upsertPatientServiceEntry(input: {
       updatedAt: new Date(),
     } as any)
     .where(eq(patientServiceEntries.id, existing[0].id));
+}
+
+// ============ OP HISTORY ============
+
+export async function upsertPatientOperation(input: {
+  patientId: number;
+  operationType: string;
+  operationDate?: string | Date | null;
+  source: "sheet" | "surgery" | "followup" | "service_code" | "manual";
+  sourceRef: string;
+  doctorCode?: string | null;
+  eye?: string | null;
+  notes?: string | null;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const sourceRef = String(input.sourceRef ?? "").trim();
+  if (!sourceRef) return;
+  const existing = await db
+    .select()
+    .from(patientOperations)
+    .where(eq(patientOperations.sourceRef, sourceRef))
+    .limit(1);
+  const payload = {
+    patientId: Number(input.patientId),
+    operationType: String(input.operationType ?? "").trim(),
+    operationDate: input.operationDate
+      ? input.operationDate instanceof Date
+        ? input.operationDate.toISOString().slice(0, 10)
+        : String(input.operationDate).slice(0, 10)
+      : null,
+    source: input.source,
+    sourceRef,
+    doctorCode: input.doctorCode ? String(input.doctorCode).trim() : null,
+    eye: input.eye ? String(input.eye).trim() : null,
+    notes: input.notes ? String(input.notes).trim() : null,
+  };
+  if (!payload.patientId || !payload.operationType) return;
+  if (!existing.length) {
+    await db.insert(patientOperations).values(payload as any);
+    return;
+  }
+  await db
+    .update(patientOperations)
+    .set({
+      patientId: payload.patientId,
+      operationType: payload.operationType,
+      operationDate: payload.operationDate as any,
+      source: payload.source,
+      doctorCode: payload.doctorCode,
+      eye: payload.eye,
+      notes: payload.notes,
+      updatedAt: new Date(),
+    } as any)
+    .where(eq(patientOperations.id, existing[0].id));
+}
+
+function deriveOperationEye(
+  eyes: { right?: boolean; left?: boolean; both?: boolean } | undefined | null,
+): string | null {
+  if (!eyes) return null;
+  if (eyes.both) return "OU";
+  if (eyes.right) return "OD";
+  if (eyes.left) return "OS";
+  return null;
+}
+
+async function syncOperationsFromSheets(): Promise<{
+  processed: number;
+  upserted: number;
+  skipped: number;
+}> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const sheets = await db
+    .select()
+    .from(sheetEntries)
+    .where(inArray(sheetEntries.sheetType, ["lasik", "external"]));
+
+  let processed = 0;
+  let upserted = 0;
+  let skipped = 0;
+  for (const sheet of sheets) {
+    processed++;
+    try {
+      const content =
+        typeof sheet.content === "string"
+          ? JSON.parse(sheet.content)
+          : sheet.content;
+      const details = content?.operationDetails;
+      const type = String(details?.type ?? "").trim();
+      if (!type) {
+        skipped++;
+        continue;
+      }
+      await upsertPatientOperation({
+        patientId: sheet.patientId,
+        operationType: type,
+        operationDate: details?.date ?? null,
+        source: "sheet",
+        sourceRef: `sheet:${sheet.id}`,
+        eye: deriveOperationEye(details?.eyes),
+      });
+      upserted++;
+    } catch {
+      skipped++;
+    }
+  }
+  return { processed, upserted, skipped };
+}
+
+async function syncOperationsFromSurgeries(): Promise<{
+  processed: number;
+  upserted: number;
+  skipped: number;
+}> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const rows = await db
+    .select()
+    .from(surgeries)
+    .where(ne(surgeries.status, "cancelled"));
+
+  let processed = 0;
+  let upserted = 0;
+  let skipped = 0;
+  for (const row of rows) {
+    processed++;
+    const type = String(row.surgeryType ?? "").trim() || "other";
+    if (!row.patientId) {
+      skipped++;
+      continue;
+    }
+    await upsertPatientOperation({
+      patientId: row.patientId,
+      operationType: type,
+      operationDate: row.surgeryDate
+        ? new Date(row.surgeryDate).toISOString().slice(0, 10)
+        : null,
+      source: "surgery",
+      sourceRef: `surgery:${row.id}`,
+      notes: row.notes ?? null,
+    });
+    upserted++;
+  }
+  return { processed, upserted, skipped };
+}
+
+async function syncOperationsFromFollowups(): Promise<{
+  processed: number;
+  upserted: number;
+  skipped: number;
+}> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const rows = await db
+    .select({
+      id: followupItems.id,
+      operationType: followupItems.operationType,
+      operationDate: followupItems.operationDate,
+      patientId: followupSheets.patientId,
+    })
+    .from(followupItems)
+    .innerJoin(
+      followupSheets,
+      eq(followupItems.followupSheetId, followupSheets.id),
+    )
+    .where(
+      and(
+        isNotNull(followupItems.operationType),
+        isNotNull(followupItems.operationDate),
+      ),
+    );
+
+  let processed = 0;
+  let upserted = 0;
+  let skipped = 0;
+  for (const row of rows) {
+    processed++;
+    const type = String(row.operationType ?? "").trim();
+    if (!type) {
+      skipped++;
+      continue;
+    }
+    await upsertPatientOperation({
+      patientId: row.patientId,
+      operationType: type,
+      operationDate: row.operationDate
+        ? new Date(row.operationDate).toISOString().slice(0, 10)
+        : null,
+      source: "followup",
+      sourceRef: `followup:${row.id}`,
+    });
+    upserted++;
+  }
+  return { processed, upserted, skipped };
+}
+
+// ============ OP HISTORY: SERVICE CODE MAPPING ============
+
+export async function getServiceCodeOpTypeMappings() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db
+    .select()
+    .from(serviceCodeOpTypeMap)
+    .orderBy(serviceCodeOpTypeMap.serviceCode);
+}
+
+export async function upsertServiceCodeOpTypeMapping(input: {
+  serviceCode: string;
+  operationType: string;
+  label?: string | null;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const serviceCode = String(input.serviceCode ?? "").trim();
+  const operationType = String(input.operationType ?? "").trim();
+  if (!serviceCode || !operationType) return;
+  const existing = await db
+    .select()
+    .from(serviceCodeOpTypeMap)
+    .where(eq(serviceCodeOpTypeMap.serviceCode, serviceCode))
+    .limit(1);
+  if (!existing.length) {
+    await db.insert(serviceCodeOpTypeMap).values({
+      serviceCode,
+      operationType,
+      label: input.label ? String(input.label).trim() : null,
+    });
+    return;
+  }
+  await db
+    .update(serviceCodeOpTypeMap)
+    .set({
+      operationType,
+      label: input.label ? String(input.label).trim() : null,
+      updatedAt: new Date(),
+    })
+    .where(eq(serviceCodeOpTypeMap.id, existing[0].id));
+}
+
+/** Distinct serviceCode values seen in patientServiceEntries that don't yet
+ * have a row in serviceCodeOpTypeMap — feeds the "unmapped codes" picker. */
+export async function getUnmappedServiceCodes() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [allCodes, mappedRows] = await Promise.all([
+    db.selectDistinct({ serviceCode: patientServiceEntries.serviceCode }).from(
+      patientServiceEntries,
+    ),
+    db.select({ serviceCode: serviceCodeOpTypeMap.serviceCode }).from(
+      serviceCodeOpTypeMap,
+    ),
+  ]);
+  const mapped = new Set(
+    mappedRows.map((r: { serviceCode: string }) => r.serviceCode),
+  );
+  return allCodes
+    .map((r: { serviceCode: string | null }) => r.serviceCode)
+    .filter(
+      (code: string | null): code is string =>
+        Boolean(code) && !mapped.has(code),
+    )
+    .sort();
+}
+
+async function syncOperationsFromServiceCodes(): Promise<{
+  processed: number;
+  upserted: number;
+  skipped: number;
+}> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const mappings = await getServiceCodeOpTypeMappings();
+  if (!mappings.length) return { processed: 0, upserted: 0, skipped: 0 };
+  const codeToType = new Map<string, string>(
+    mappings.map((m: { serviceCode: string; operationType: string }) => [
+      m.serviceCode,
+      m.operationType,
+    ]),
+  );
+  const codes: string[] = Array.from(codeToType.keys());
+  const rows = await db
+    .select()
+    .from(patientServiceEntries)
+    .where(inArray(patientServiceEntries.serviceCode, codes));
+
+  let processed = 0;
+  let upserted = 0;
+  let skipped = 0;
+  for (const row of rows) {
+    processed++;
+    const type = codeToType.get(row.serviceCode);
+    if (!type) {
+      skipped++;
+      continue;
+    }
+    await upsertPatientOperation({
+      patientId: row.patientId,
+      operationType: type,
+      operationDate: row.serviceDate
+        ? new Date(row.serviceDate).toISOString().slice(0, 10)
+        : null,
+      source: "service_code",
+      sourceRef: `service_code:${row.id}`,
+    });
+    upserted++;
+  }
+  return { processed, upserted, skipped };
+}
+
+export async function syncPatientOperationsFromSources() {
+  const [sheetsResult, surgeriesResult, followupsResult, serviceCodeResult] =
+    await Promise.all([
+      syncOperationsFromSheets(),
+      syncOperationsFromSurgeries(),
+      syncOperationsFromFollowups(),
+      syncOperationsFromServiceCodes(),
+    ]);
+  return {
+    sheets: sheetsResult,
+    surgeries: surgeriesResult,
+    followups: followupsResult,
+    serviceCodes: serviceCodeResult,
+  };
+}
+
+export async function getPatientOperationTypeCounts() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const raw = await db
+    .select({
+      operationType: patientOperations.operationType,
+      count: sql<number>`COUNT(*)`.as("count"),
+    })
+    .from(patientOperations)
+    .groupBy(patientOperations.operationType);
+
+  const buckets = new Map<string, number>(OP_TYPES.map((t) => [t, 0]));
+  for (const row of raw) {
+    const canonical = resolveCanonicalOpType(row.operationType);
+    buckets.set(canonical, (buckets.get(canonical) ?? 0) + Number(row.count));
+  }
+  // Fixed tab order (PRK/Lasik/FL/FS/IOL/ICL/Cataract/Squint/Others), not
+  // resorted by count — these are stable tabs, not a leaderboard.
+  return OP_TYPES.map((t) => ({ operationType: t, count: buckets.get(t) ?? 0 }));
+}
+
+async function rawOperationTypesForCanonical(
+  canonical: string,
+): Promise<string[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const distinctRows = await db
+    .selectDistinct({ operationType: patientOperations.operationType })
+    .from(patientOperations);
+  return distinctRows
+    .map((r: { operationType: string }) => r.operationType)
+    .filter((raw: string) => resolveCanonicalOpType(raw) === canonical);
+}
+
+export async function getPatientOperationsByType(input: {
+  operationType: string;
+  page: number;
+  pageSize: number;
+  query?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const offset = (input.page - 1) * input.pageSize;
+  const matchingRawTypes = await rawOperationTypesForCanonical(
+    input.operationType,
+  );
+  const typeCondition = matchingRawTypes.length
+    ? inArray(patientOperations.operationType, matchingRawTypes)
+    : sql`1 = 0`;
+  const whereClause = input.query
+    ? and(
+        typeCondition,
+        or(
+          like(patients.fullName, `%${input.query}%`),
+          like(patients.patientCode, `%${input.query}%`),
+        ),
+      )
+    : typeCondition;
+
+  const rows = await db
+    .select({
+      id: patientOperations.id,
+      patientId: patientOperations.patientId,
+      patientFullName: patients.fullName,
+      patientCode: patients.patientCode,
+      operationDate: patientOperations.operationDate,
+      source: patientOperations.source,
+      doctorCode: patientOperations.doctorCode,
+      eye: patientOperations.eye,
+      notes: patientOperations.notes,
+    })
+    .from(patientOperations)
+    .innerJoin(patients, eq(patientOperations.patientId, patients.id))
+    .where(whereClause)
+    .orderBy(desc(patientOperations.operationDate))
+    .limit(input.pageSize)
+    .offset(offset);
+
+  return rows;
 }
 
 export async function getPatientServiceEntriesByPatients(patientIds: number[]) {

@@ -49,7 +49,7 @@ async function getYearConnection(dbName: string): Promise<mysql.Connection> {
 // Doctor/service names live only in the main (26) database's reference
 // tables — the code catalog is shared across years, so resolve names there
 // regardless of which year's patients are being viewed.
-async function loadNameMaps(): Promise<{
+export async function loadNameMaps(): Promise<{
   doctorNames: Map<string, string>;
   serviceNames: Map<string, string>;
 }> {

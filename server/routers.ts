@@ -18,6 +18,7 @@ import { doctorPortalRouter } from "./routers/doctorPortal";
 import { marketingRouter } from "./routers/marketing";
 import { kfRouter } from "./routers/kf";
 import { legacyPatientsRouter } from "./routers/legacyPatients";
+import { opHistoryRouter } from "./routers/opHistory";
 import * as db from "./db";
 import {
   authService,
@@ -203,6 +204,7 @@ export const appRouter = router({
   marketing: marketingRouter,
   kf: kfRouter,
   legacyPatients: legacyPatientsRouter,
+  opHistory: opHistoryRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -30,6 +30,7 @@ const AdminPatients = lazy(() => import("../features/admin/AdminPatients"));
 const AdminLegacyPatients = lazy(
   () => import("../features/admin/AdminLegacyPatients"),
 );
+const OpHistory = lazy(() => import("../features/admin/OpHistory"));
 const AdminCardVisibility = lazy(
   () => import("../features/admin/AdminCardVisibility"),
 );
@@ -161,6 +162,14 @@ export const AdminRoutes = (
       component={() => (
         <ProtectedRoute requiredRoles={["admin"]}>
           <AdminLegacyPatients />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
+      path={ROUTES.opHistory}
+      component={() => (
+        <ProtectedRoute requiredRoles={["admin"]}>
+          <OpHistory />
         </ProtectedRoute>
       )}
     />

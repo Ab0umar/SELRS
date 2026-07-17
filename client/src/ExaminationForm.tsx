@@ -1169,10 +1169,10 @@ export default function ExaminationForm() {
                   </div>
                   <div className="mt-4 flex items-center justify-between gap-4 flex-wrap w-full">
                     {[
-                      { type: "consultant", label: "استشاري", isFirst: true },
-                      { type: "specialist", label: "اخصائي" },
-                      { type: "lasik", label: "فحوصات الليزك" },
-                      { type: "external", label: "خارجي" },
+                      { type: "consultant", label: "كشف", isFirst: true },
+                      { type: "specialist", label: "مقاس نظاره / اشعه خارجي" },
+                      { type: "lasik", label: "تصحيح ابصار" },
+                      { type: "external", label: "د.الصواف" },
                       { type: "surgery_center", label: "عمليات مركز" },
                       { type: "surgery_external", label: "عمليات خارجي" },
                     ].map((sheet) => (

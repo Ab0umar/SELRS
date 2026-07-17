@@ -6,27 +6,29 @@ export function canUseNativeAndroidPrint() {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
 }
 
-// The native printer plugin renders a raw HTML string outside the browser's
-// print pipeline — it does not reliably apply `@media print` rules the way
-// window.print() does. So instead of trusting print:hidden CSS to hide nav/
-// sidebar/header chrome, physically strip those elements from a cloned DOM
-// before handing the HTML off. Mirrors what real @media print already hides.
-// Some pages isolate a single section for printing via a body class +
-// `* { visibility: hidden }` under @media print (see index.css). That only
-// works if @media print activates in the render surface, which the native
-// printer doesn't guarantee — so replace the body with just that section.
+// The native printer plugin's Android side loads our HTML into a fresh
+// WebView via `loadDataWithBaseURL(null, content, ...)` — null baseUrl, so
+// none of our <link>/<img>/<script> relative URLs can resolve (see
+// extractAllCss below for the real consequence of that). It's a real WebView
+// print pipeline once loaded, so @media print itself isn't the problem, but
+// we still physically strip nav/sidebar/header chrome and single-section
+// isolation rather than lean on CSS for it, since a plain clone would also
+// carry stale open-dialog state that was never meant to print.
 const PRINT_ISOLATION_SECTIONS: Record<string, string> = {
   "print-only-refraction": ".refraction-print-section",
   "print-ops-list": ".ops-print-table",
 };
 
-// A4 sizing/layout for sheets (.sheet-layout, .lasik-print-root, etc.) lives
-// inside `@media print { ... }` blocks in index.css/web.css/mobile.css. Those
-// never activate in the native renderer either, so the sheet renders at its
-// normal on-screen mobile width instead of the desktop print layout — this is
-// the "content is scaled/cut off wrong" symptom. Pull every print-media rule
-// out of its @media wrapper and re-emit it unconditionally.
-function extractPrintOnlyCss(): string {
+// The plugin's Android side loads our HTML via
+// `webView.loadDataWithBaseURL(null, content, "text/HTML", "UTF-8", null)` —
+// baseUrl is null, so <link rel="stylesheet" href="/assets/....css"> can
+// never resolve (no origin to combine with). Every compiled Tailwind rule
+// silently fails to load and the printed page renders with NO styling at
+// all — not a `@media print` problem, a "the stylesheet never loaded"
+// problem. Fix: inline every readable stylesheet's full CSS text directly,
+// and while at it, unwrap @media print rules so they apply unconditionally
+// too (A4 sizing for .sheet-layout/.lasik-print-root/etc. lives there).
+function extractAllCss(): string {
   const parts: string[] = [];
   for (const sheet of Array.from(document.styleSheets)) {
     let rules: CSSRuleList;
@@ -41,6 +43,8 @@ function extractPrintOnlyCss(): string {
         for (const inner of Array.from(rule.cssRules)) {
           parts.push(inner.cssText);
         }
+      } else {
+        parts.push(rule.cssText);
       }
     }
   }
@@ -54,9 +58,29 @@ const OVERLAY_SELECTOR =
   '[data-slot="dialog-overlay"], [data-slot="dialog-content"], [role="dialog"], [role="alertdialog"], [data-radix-popper-content-wrapper]';
 
 function buildScopedPrintHtml(): string {
+  // Read all CSS from the LIVE document (styleSheets only expose cssRules
+  // for same-origin sheets that have actually loaded) before cloning.
+  const allCss = extractAllCss();
+
   const clone = document.documentElement.cloneNode(true) as HTMLElement;
   clone.querySelectorAll('[class~="print:hidden"]').forEach((el) => el.remove());
   clone.querySelectorAll(OVERLAY_SELECTOR).forEach((el) => el.remove());
+  // <link rel="stylesheet"> can never resolve under the plugin's null
+  // baseUrl — drop them so there's no dead network request/flash, since
+  // their content is now inlined below instead.
+  clone.querySelectorAll('link[rel="stylesheet"]').forEach((el) => el.remove());
+  // Same null-baseUrl problem hits relative <img src="/...">. Absolute URLs
+  // resolve fine without a base, so rewrite them instead of dropping them.
+  clone.querySelectorAll("img[src]").forEach((img) => {
+    const src = img.getAttribute("src") ?? "";
+    if (src && !/^(https?:|data:)/i.test(src)) {
+      img.setAttribute("src", new URL(src, window.location.origin).href);
+    }
+  });
+  // No reason to re-execute the whole SPA bundle in the throwaway print
+  // WebView, and its <script src> tags can't resolve under null baseUrl
+  // anyway — strip them so there's no dead-load noise.
+  clone.querySelectorAll("script").forEach((el) => el.remove());
 
   for (const [bodyClass, sectionSelector] of Object.entries(
     PRINT_ISOLATION_SECTIONS,
@@ -69,10 +93,9 @@ function buildScopedPrintHtml(): string {
     }
   }
 
-  const printCss = extractPrintOnlyCss();
-  if (printCss) {
+  if (allCss) {
     const style = document.createElement("style");
-    style.textContent = printCss;
+    style.textContent = allCss;
     (clone.querySelector("head") ?? clone).appendChild(style);
   }
 

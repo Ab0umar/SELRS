@@ -62,6 +62,8 @@ export default function SpecialistSheet() {
     doctor: "",
   });
   const [readingValue, setReadingValue] = useState("");
+  const [glassesCheck, setGlassesCheck] = useState(false);
+  const [xrayCheck, setXrayCheck] = useState(false);
   const [printOffsetXmm, setPrintOffsetXmm] = useState(0);
   const [printOffsetYmm, setPrintOffsetYmm] = useState(0);
   const [printScale, setPrintScale] = useState(1);
@@ -274,6 +276,10 @@ export default function SpecialistSheet() {
           doctor: parsed.signatures.doctor ?? "",
         });
       }
+      if (parsed.checks) {
+        setGlassesCheck(Boolean(parsed.checks.glasses));
+        setXrayCheck(Boolean(parsed.checks.xray));
+      }
     } catch {
       // ignore malformed data
     }
@@ -409,6 +415,7 @@ export default function SpecialistSheet() {
           ...existing,
           formData: { ...(existing.formData ?? {}), ...formData },
           examData: mergedExamData,
+          checks: { glasses: glassesCheck, xray: xrayCheck },
         }),
       });
     } catch (error) {
@@ -629,7 +636,7 @@ export default function SpecialistSheet() {
 
       {printMode.printView && (
         <PrintPreviewBanner
-          title="شيت الأخصائي"
+          title="مقاس نظاره / اشعه خارجي"
           subtitle={formData.patientName || undefined}
           onPrint={handlePrint}
         />
@@ -639,7 +646,31 @@ export default function SpecialistSheet() {
       <div className="py-8 print:py-0 print-page-center-a5">
         <div data-mobile-pdf-root className={`specialist-sheet relative overflow-hidden bg-white text-[#191c1e] font-sans p-8 border border-[#c3c6d6] shadow-sm flex flex-col gap-5 w-[210mm] max-w-full mx-auto ${printMode.printView ? "hidden print:flex" : ""}`} dir="ltr">
           <SheetWatermark />
-          <SheetPrintHeader sheetType="مقاس نظاره" />
+          <SheetPrintHeader
+            sheetType="مقاس نظاره / اشعه خارجي"
+            sheetTypeContent={
+              <div className="flex flex-col gap-1" dir="rtl">
+                <label className="flex items-center gap-2 text-sm font-bold text-[#191c1e]">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 rounded text-[#003d9b]"
+                    checked={glassesCheck}
+                    onChange={(e) => setGlassesCheck(e.target.checked)}
+                  />
+                  مقاس نظارة
+                </label>
+                <label className="flex items-center gap-2 text-sm font-bold text-[#191c1e]">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 rounded text-[#003d9b]"
+                    checked={xrayCheck}
+                    onChange={(e) => setXrayCheck(e.target.checked)}
+                  />
+                  أشعة
+                </label>
+              </div>
+            }
+          />
 
           <SheetPatientVisionBlock
             patientName={formData.patientName}

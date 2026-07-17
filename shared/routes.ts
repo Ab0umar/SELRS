@@ -104,6 +104,7 @@ export const ROUTES = {
   adminHubRestWildcard: "/admin-hub/:rest*",
   adminPatients: "/admin-patients",
   adminLegacyPatients: "/admin/legacy-patients",
+  opHistory: "/admin/op-history",
   adminApiTools: "/admin/api-tools",
   adminCardVisibility: "/admin/card-visibility",
   adminDataSourceAudit: "/admin/data-source-audit",
