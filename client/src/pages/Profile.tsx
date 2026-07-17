@@ -14,9 +14,10 @@ import { trpc } from "@/lib/trpc";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { KeyRound, Moon, Sun } from "lucide-react";
+import { KeyRound, Moon, Server, Sun } from "lucide-react";
 import type { User } from "@shared/types";
 import { useTheme, type ThemePref } from "@/contexts/ThemeContext";
+import { canSwitchServer, openServerSwitcher } from "@/lib/nativeServerSwitcher";
 
 export default function Profile() {
   const { user } = useAuth();
@@ -223,6 +224,23 @@ export default function Profile() {
           </CardContent>
         </Card>
       }
+
+      {canSwitchServer() && (
+        <Card className="border-border/80 bg-background/95 shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Server className="h-4 w-4 text-muted-foreground" />
+              السيرفر
+            </CardTitle>
+            <CardDescription>الاتصال بالإنترنت أو بالشبكة الداخلية</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" onClick={() => openServerSwitcher()}>
+              تبديل السيرفر
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
