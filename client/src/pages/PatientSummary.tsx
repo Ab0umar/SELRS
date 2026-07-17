@@ -1,9 +1,15 @@
 import { useMemo, useEffect, useRef, useState, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoute } from "wouter";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Printer } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarDays,
+  ClipboardCheck,
+  Eye,
+  ListTree,
+  Printer,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
@@ -72,14 +78,13 @@ type TocSection = { id: string; label: string };
 
 function SectionHeading({ id, label }: { id: string; label: string }) {
   return (
-    <div className="mb-4 flex items-center gap-3">
+    <div className="mb-4 flex items-center gap-3 border-b border-border pb-2">
       <h2
         id={`sum-${id}`}
-        className="shrink-0 text-xs font-semibold uppercase tracking-widest text-muted-foreground/70 scroll-mt-20"
+        className="scroll-mt-20 shrink-0 text-base font-bold text-foreground"
       >
         {label}
       </h2>
-      <div className="h-px flex-1 bg-border/50" aria-hidden />
     </div>
   );
 }
@@ -113,22 +118,33 @@ function DataTable({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, i) => (
-            <tr
-              key={i}
-              className="border-b border-border/40 last:border-0 hover:bg-muted/20"
-            >
-              {row.map((cell, j) => (
-                <td
-                  key={j}
-                  className="px-3 py-2 font-mono text-xs text-foreground"
-                  dir="auto"
-                >
-                  {formatDisplayValue(cell)}
-                </td>
-              ))}
+          {rows.length === 0 ? (
+            <tr>
+              <td
+                colSpan={headers.length}
+                className="px-3 py-6 text-center text-sm text-muted-foreground"
+              >
+                لا توجد بيانات محفوظة في الجدول
+              </td>
             </tr>
-          ))}
+          ) : (
+            rows.map((row, i) => (
+              <tr
+                key={i}
+                className="border-b border-border/40 last:border-0 hover:bg-muted/20"
+              >
+                {row.map((cell, j) => (
+                  <td
+                    key={j}
+                    className="px-3 py-2 font-mono text-xs text-foreground"
+                    dir="auto"
+                  >
+                    {formatDisplayValue(cell)}
+                  </td>
+                ))}
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>
@@ -167,32 +183,15 @@ export default function PatientSummary() {
     { patientId: patientId ?? 0 },
     { enabled: Boolean(patientId), staleTime: 0 },
   );
+  const afterRefractionQuery =
+    trpc.medical.getAfterRefractionByPatient.useQuery(
+      { patientId: patientId ?? 0 },
+      { enabled: Boolean(patientId), staleTime: 0 },
+    );
 
   const visitsQuery = trpc.medical.getVisitsByPatient.useQuery(
     { patientId: patientId ?? 0 },
     { enabled: Boolean(patientId), refetchOnWindowFocus: false },
-  );
-
-  const reportsQuery = trpc.medical.getMedicalReportsByPatient.useQuery(
-    { patientId: patientId ?? 0 },
-    { enabled: Boolean(patientId) },
-  );
-
-  const consultantSheetQuery = trpc.medical.getSheetEntry.useQuery(
-    { patientId: patientId ?? 0, sheetType: "consultant" },
-    { enabled: Boolean(patientId), staleTime: 0 },
-  );
-  const specialistSheetQuery = trpc.medical.getSheetEntry.useQuery(
-    { patientId: patientId ?? 0, sheetType: "specialist" },
-    { enabled: Boolean(patientId), staleTime: 0 },
-  );
-  const lasikSheetQuery = trpc.medical.getSheetEntry.useQuery(
-    { patientId: patientId ?? 0, sheetType: "lasik" },
-    { enabled: Boolean(patientId), staleTime: 0 },
-  );
-  const externalSheetQuery = trpc.medical.getSheetEntry.useQuery(
-    { patientId: patientId ?? 0, sheetType: "external" },
-    { enabled: Boolean(patientId), staleTime: 0 },
   );
 
   const prescriptionsQuery =
@@ -202,38 +201,35 @@ export default function PatientSummary() {
     );
 
   const pentacamQuery = trpc.medical.getPentacamMeasurementsByPatient.useQuery(
-    { patientId: patientId ?? 0, limit: 10 },
+    { patientId: patientId ?? 0, limit: 500 },
     { enabled: Boolean(patientId), refetchOnWindowFocus: false },
   );
-
-  const followupSheetsQuery = trpc.medical.getFollowupSheets.useQuery(
+  const pentacamFilesQuery =
+    trpc.medical.getSrv100DiagnosticImagesByPatient.useQuery(
+      { patientId: patientId ?? 0, limit: 500 },
+      { enabled: Boolean(patientId), refetchOnWindowFocus: false },
+    );
+  const medicalHistoryQuery = trpc.medical.getMedicalHistoryByPatient.useQuery(
     { patientId: patientId ?? 0 },
-    { enabled: Boolean(patientId), staleTime: 0, refetchOnWindowFocus: true },
-  );
-
-  const requestTestsStateQuery = trpc.medical.getPatientPageState.useQuery(
-    { patientId: patientId ?? 0, page: "request-tests" },
     { enabled: Boolean(patientId), refetchOnWindowFocus: false },
   );
+  const examinationChecklistsQuery =
+    trpc.medical.getExaminationChecklistsByPatient.useQuery(
+      { patientId: patientId ?? 0 },
+      { enabled: Boolean(patientId), refetchOnWindowFocus: false },
+    );
 
   const testRequestsQuery = trpc.medical.getPatientTestRequests?.useQuery?.(
     { patientId: patientId ?? 0 },
     { enabled: Boolean(patientId), refetchOnWindowFocus: false },
   );
 
-  const medicationsQuery = trpc.medical.getAllMedications.useQuery(undefined, {
-    refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000,
-  });
-
   useEffect(() => {
     if (!patientId) return;
     examinationsQuery.refetch();
     visitsQuery.refetch();
-    reportsQuery.refetch();
     prescriptionsQuery.refetch();
     pentacamQuery.refetch();
-    followupSheetsQuery.refetch();
     testRequestsQuery?.refetch?.();
   }, [patientId]);
 
@@ -248,13 +244,13 @@ export default function PatientSummary() {
 
   const patient = patientQuery.data as any;
   const examinations = examinationsQuery.data ?? [];
-  const reports = reportsQuery.data ?? [];
 
   const parsedExamSources = useMemo(() => {
     if (!Array.isArray(examinations)) return [];
 
     const autorefMap = new Map<number, any>();
     const glassesMap = new Map<number, any>();
+    const afterMap = new Map<number, any>();
 
     if (Array.isArray(autorefractometryQuery.data)) {
       for (const record of autorefractometryQuery.data) {
@@ -266,9 +262,15 @@ export default function PatientSummary() {
         glassesMap.set(record.examinationId, record);
       }
     }
+    if (Array.isArray(afterRefractionQuery.data)) {
+      for (const record of afterRefractionQuery.data) {
+        afterMap.set(record.examinationId, record);
+      }
+    }
 
     return examinations.map((exam) => {
       const autorefRecord = autorefMap.get(exam.id);
+      const afterRecord = afterMap.get(exam.id);
       let autorefraction = autorefRecord
         ? {
             od: {
@@ -319,32 +321,27 @@ export default function PatientSummary() {
         };
       }
 
-      if (!glassesData) {
-        const sheetSources = [
-          consultantSheetQuery.data,
-          specialistSheetQuery.data,
-          lasikSheetQuery.data,
-          externalSheetQuery.data,
-        ];
-        for (const sheet of sheetSources) {
-          if ((sheet as any)?.examData) {
-            const sheetExamData = parseJson((sheet as any).examData);
-            if (sheetExamData?.glasses) {
-              glassesData = sheetExamData.glasses;
-              break;
-            }
-          }
-        }
-      }
-
       const visitDate =
         autorefRecord?.visitDate || glassesRecord?.visitDate || exam?.createdAt;
 
       return {
         autorefraction,
+        after: afterRecord
+          ? {
+              od: {
+                s: afterRecord.sphereOD,
+                c: afterRecord.cylinderOD,
+                axis: afterRecord.axisOD,
+              },
+              os: {
+                s: afterRecord.sphereOS,
+                c: afterRecord.cylinderOS,
+                axis: afterRecord.axisOS,
+              },
+            }
+          : undefined,
         glasses: glassesData,
         visitDate,
-        radiologyLabsNotes: exam?.radiologyLabsNotes,
         fundusOD: exam?.posteriorSegmentOD
           ? parseJson(exam.posteriorSegmentOD)
           : undefined,
@@ -355,12 +352,9 @@ export default function PatientSummary() {
     });
   }, [
     examinations,
+    afterRefractionQuery.data,
     autorefractometryQuery.data,
     glassesRecordsQuery.data,
-    consultantSheetQuery.data,
-    specialistSheetQuery.data,
-    lasikSheetQuery.data,
-    externalSheetQuery.data,
   ]);
 
   const examinationData = useMemo(() => {
@@ -369,6 +363,8 @@ export default function PatientSummary() {
       if (!source) continue;
       const od = source.autorefraction?.od;
       const os = source.autorefraction?.os;
+      const afterOD = source.after?.od;
+      const afterOS = source.after?.os;
       const fundusOD = source.fundusOD;
       const fundusOS = source.fundusOS;
       const visitDate = formatDate(source.visitDate);
@@ -382,6 +378,9 @@ export default function PatientSummary() {
           s: od.s || "-",
           c: od.c || "-",
           axis: od.axis || "-",
+          afterS: afterOD?.s || "-",
+          afterC: afterOD?.c || "-",
+          afterAxis: afterOD?.axis || "-",
           iop: od.iop || "-",
           fundus: fundusOD
             ? typeof fundusOD === "object"
@@ -407,6 +406,9 @@ export default function PatientSummary() {
           s: os.s || "-",
           c: os.c || "-",
           axis: os.axis || "-",
+          afterS: afterOS?.s || "-",
+          afterC: afterOS?.c || "-",
+          afterAxis: afterOS?.axis || "-",
           iop: os.iop || "-",
           fundus: fundusOS
             ? typeof fundusOS === "object"
@@ -424,6 +426,25 @@ export default function PatientSummary() {
         });
       }
     }
+    return rows;
+  }, [parsedExamSources]);
+
+  const afterData = useMemo(() => {
+    const rows: (string | number)[][] = [];
+    parsedExamSources.forEach((source) => {
+      const visitDate = formatDate(source.visitDate);
+      (["od", "os"] as const).forEach((eyeKey) => {
+        const eye = source.after?.[eyeKey];
+        if (!eye || ![eye.s, eye.c, eye.axis].some(Boolean)) return;
+        rows.push([
+          visitDate,
+          eyeKey === "od" ? "OD" : "OS",
+          eye.s || "—",
+          eye.c || "—",
+          eye.axis || "—",
+        ]);
+      });
+    });
     return rows;
   }, [parsedExamSources]);
 
@@ -453,6 +474,47 @@ export default function PatientSummary() {
     return rows;
   }, [parsedExamSources]);
 
+  const technicalTrendRows = useMemo(() => {
+    const refractionRows = glassesRows.flatMap((row) => [
+      [
+        row.visit,
+        "glassesrecords",
+        "OD",
+        row.odS,
+        row.odC,
+        row.odAx,
+        "—",
+        row.add,
+        "—",
+      ],
+      [
+        row.visit,
+        "glassesrecords",
+        "OS",
+        row.osS,
+        row.osC,
+        row.osAx,
+        row.osPd,
+        row.add,
+        "—",
+      ],
+    ]);
+    const iopRows = examinationData
+      .filter((row) => row.iop && row.iop !== "-" && row.iop !== "—")
+      .map((row) => [
+        row.visitDate,
+        "autorefractometrydata",
+        row.eye,
+        "—",
+        "—",
+        "—",
+        "—",
+        "—",
+        row.iop,
+      ]);
+    return [...refractionRows, ...iopRows];
+  }, [examinationData, glassesRows]);
+
   const pentacamMeasurements = useMemo(
     () =>
       Array.isArray(pentacamQuery.data) ? (pentacamQuery.data as any[]) : [],
@@ -464,9 +526,9 @@ export default function PatientSummary() {
     for (const source of pentacamMeasurements) {
       const visitDate = formatDate(source?.visitDate);
       const odData = {
-        k1: source?.k1OD,
+        k1: source?.k1OD ?? source?.keratometryOD,
         k2: source?.k2OD,
-        thinnest: source?.thinnestPointOD,
+        thinnest: source?.thinnestPointOD ?? source?.pachymetryOD,
         apex: source?.apexOD,
         residual: source?.residualOD,
         ttt: source?.tttOD,
@@ -492,9 +554,9 @@ export default function PatientSummary() {
         });
       }
       const osData = {
-        k1: source?.k1OS,
+        k1: source?.k1OS ?? source?.keratometryOS,
         k2: source?.k2OS,
-        thinnest: source?.thinnestPointOS,
+        thinnest: source?.thinnestPointOS ?? source?.pachymetryOS,
         apex: source?.apexOS,
         residual: source?.residualOS,
         ttt: source?.tttOS,
@@ -521,325 +583,244 @@ export default function PatientSummary() {
       }
     }
 
-    const sheetSources = [
-      consultantSheetQuery.data,
-      specialistSheetQuery.data,
-      lasikSheetQuery.data,
-      externalSheetQuery.data,
-    ];
-    for (const sheet of sheetSources) {
-      if ((sheet as any)?.examData) {
-        const sheetExamData = parseJson((sheet as any).examData);
-        if (sheetExamData?.pentacam) {
-          if (sheetExamData.pentacam.od) {
-            rows.push({
-              visit: "Sheet Data",
-              eye: "OD",
-              k1: sheetExamData.pentacam.od.k1 || "-",
-              k2: sheetExamData.pentacam.od.k2 || "-",
-              thinnest: sheetExamData.pentacam.od.thinnest || "-",
-              apex: sheetExamData.pentacam.od.apex || "-",
-              residual: sheetExamData.pentacam.od.residualStroma || "-",
-              ttt: "-",
-              ablation: "-",
-            });
-          }
-          if (sheetExamData.pentacam.os) {
-            rows.push({
-              visit: "Sheet Data",
-              eye: "OS",
-              k1: sheetExamData.pentacam.os.k1 || "-",
-              k2: sheetExamData.pentacam.os.k2 || "-",
-              thinnest: sheetExamData.pentacam.os.thinnest || "-",
-              apex: sheetExamData.pentacam.os.apex || "-",
-              residual: sheetExamData.pentacam.os.residualStroma || "-",
-              ttt: "-",
-              ablation: "-",
-            });
-          }
-        }
-      }
-    }
     return rows;
-  }, [
-    pentacamMeasurements,
-    examinationData,
-    consultantSheetQuery.data,
-    specialistSheetQuery.data,
-    lasikSheetQuery.data,
-    externalSheetQuery.data,
-  ]);
+  }, [pentacamMeasurements]);
 
-  const selectedTests = useMemo(() => {
-    const data = (requestTestsStateQuery.data as any)?.data ?? {};
-    return Array.isArray(data.selectedTests)
-      ? (data.selectedTests as any[])
-      : [];
-  }, [requestTestsStateQuery.data]);
-
-  const classifyTest = (test: any): "lab" | "imaging" | "other" => {
-    const type = String(test?.type ?? "")
-      .trim()
-      .toLowerCase();
-    if (type === "lab") return "lab";
-    if (type === "imaging") return "imaging";
-    const category = String(test?.category ?? test?.serviceCategory ?? "")
-      .trim()
-      .toLowerCase();
-    const name = String(test?.name ?? test?.serviceName ?? "")
-      .trim()
-      .toLowerCase();
-    const isUncategorized = category.includes("uncategorized");
-    if (
-      category.includes("اشع") ||
-      category.includes("تصوير") ||
-      category.includes("radiology") ||
-      category.includes("imaging") ||
-      name.includes("اشع") ||
-      name.includes("سونار") ||
-      name.includes("sonar") ||
-      name.includes("xray") ||
-      name.includes("x-ray") ||
-      name.includes("ct") ||
-      name.includes("mri") ||
-      name.includes("ultrasound") ||
-      name.includes("ocular") ||
-      name.includes("iol") ||
-      name.includes("pf iol")
-    )
-      return "imaging";
-    if (
-      category.includes("تحليل") ||
-      category.includes("lab") ||
-      name.includes("cbc") ||
-      name.includes("تحاليل") ||
-      name.includes("analysis") ||
-      name.includes("blood") ||
-      name.includes("sugar") ||
-      name.includes("urea") ||
-      name.includes("creatinine") ||
-      name.includes("culture") ||
-      name.includes("sensitivity") ||
-      name.includes("prothombine") ||
-      name.includes("prothrombin")
-    )
-      return "lab";
-    if (isUncategorized) return "lab";
-    return "other";
-  };
-
-  const treatmentFromExams = useMemo(() => {
-    const allTreatment: any[] = [];
-    for (const source of parsedExamSources) {
-      if (source?.radiologyLabsNotes) {
-        try {
-          const parsed = JSON.parse(source.radiologyLabsNotes);
-          if (
-            parsed.treatment &&
-            Array.isArray(parsed.treatment) &&
-            parsed.treatment.length > 0
-          ) {
-            allTreatment.push(...parsed.treatment);
-          }
-        } catch {
-          /* ignore */
-        }
-      }
-    }
-    return [...new Set(allTreatment)];
-  }, [parsedExamSources]);
-
-  const followupRows = useMemo(() => {
-    const rows: (string | number)[][] = [];
-    const items = ((followupSheetsQuery.data ?? []) as any[])
-      .flatMap((sheet: any) =>
-        (sheet.items ?? [])
-          .filter((item: any) => item.followupDate)
-          .map((item: any) => {
-            let refOD: any = null;
-            let refOS: any = null;
-            try {
-              refOD =
-                typeof item.refracOD === "string"
-                  ? JSON.parse(item.refracOD)
-                  : item.refracOD;
-            } catch {}
-            try {
-              refOS =
-                typeof item.refracOS === "string"
-                  ? JSON.parse(item.refracOS)
-                  : item.refracOS;
-            } catch {}
-            return { ...item, refOD, refOS };
-          }),
-      )
-      .sort(
-        (a: any, b: any) =>
-          new Date(a.followupDate).getTime() -
-          new Date(b.followupDate).getTime(),
-      );
-
-    const v = (val: any) => (!val || val === "----" ? "—" : String(val));
-    items.forEach((item: any, i: number) => {
-      const num = i + 1;
-      const date = formatDate(item.followupDate);
-      rows.push([
-        num,
-        date,
-        "OD",
-        v(item.vaOD),
-        v(item.refOD?.s),
-        v(item.refOD?.c),
-        v(item.refOD?.axis ?? item.refOD?.a),
-        v(item.iopOD),
-        item.notes || "",
-      ]);
-      rows.push([
-        "",
-        "",
-        "OS",
-        v(item.vaOS),
-        v(item.refOS?.s),
-        v(item.refOS?.c),
-        v(item.refOS?.axis ?? item.refOS?.a),
-        v(item.iopOS),
-        item.treatment || "",
-      ]);
-    });
-    return rows;
-  }, [followupSheetsQuery.data]);
-
-  const prescriptions = prescriptionsQuery.data ?? [];
-  const medicationNames = useMemo(() => {
-    const names: string[] = [];
-    (prescriptions as any[]).forEach((prescription) => {
-      if (
-        prescription.prescriptionItems &&
-        Array.isArray(prescription.prescriptionItems)
-      ) {
-        prescription.prescriptionItems.forEach((item: any) => {
-          if (item.medicationName) names.push(item.medicationName);
-        });
-      }
-    });
-    return [...new Set(names)];
-  }, [prescriptions]);
-
-  const latestReport = reports && reports.length > 0 ? reports[0] : null;
-  const latestReportContent = latestReport?.diagnosis
-    ? parseJson(latestReport.diagnosis) || latestReport.diagnosis
-    : null;
   const patientName = firstNonEmpty(patient?.fullName, "—");
 
-  const clinicalTests = selectedTests.filter((t) => {
-    const k = classifyTest(t);
-    return k === "imaging" || k === "lab";
-  });
-  const hasHistory = !!(
-    reports?.[0]?.clinicalOpinion || patient?.medicalHistory
-  );
-  const hasPrescriptions =
-    medicationNames.length > 0 || treatmentFromExams.length > 0;
-  const hasFollowups = followupRows.length > 0;
+  const medicalHistoryRows = useMemo(() => {
+    const rows = Array.isArray(medicalHistoryQuery.data)
+      ? (medicalHistoryQuery.data as any[])
+      : [];
+    return rows.map((row) => [
+      formatDate(row.updatedAt ?? row.createdAt),
+      row.diabetes ? "نعم" : "لا",
+      row.hypertension ? "نعم" : "لا",
+      row.heartDisease ? "نعم" : "لا",
+      row.asthma ? "نعم" : "لا",
+      row.allergies ? "نعم" : "لا",
+      row.previousSurgeries || "—",
+      row.medications || "—",
+      row.familyHistory || "—",
+    ]);
+  }, [medicalHistoryQuery.data]);
+
+  const symptomRows = useMemo(() => {
+    const labels: Array<[string, string]> = [
+      ["generalDiseases", "أمراض عامة"],
+      ["pregnancyOrLactation", "حمل أو رضاعة"],
+      [
+        "usesAllergySupplementsSteroidsOrPressureMeds",
+        "حساسية أو كورتيزون أو علاج ضغط",
+      ],
+      ["acneTreatment", "علاج حب الشباب"],
+      ["familyKeratoconus", "تاريخ عائلي للقرنية المخروطية"],
+      [
+        "usesTearSubstituteOrExcessTearsOrSandySensation",
+        "جفاف أو دموع زائدة أو إحساس بالرمل",
+      ],
+      ["symptomsWorseWithAirOrAC", "تزداد مع الهواء أو التكييف"],
+      ["glaucomaTreatment", "علاج الجلوكوما"],
+    ];
+    const rows = Array.isArray(examinationChecklistsQuery.data)
+      ? (examinationChecklistsQuery.data as any[])
+      : [];
+    const checklistRows = rows.map((row) => [
+      formatDate(row.visitDate ?? row.updatedAt ?? row.createdAt),
+      labels
+        .filter(([key]) => Boolean(row[key]))
+        .map(([, label]) => label)
+        .join("، ") || "—",
+    ]);
+    return checklistRows;
+  }, [examinationChecklistsQuery.data]);
+
+  const diagnosticTestRows = useMemo(() => {
+    const requests = Array.isArray(testRequestsQuery?.data)
+      ? (testRequestsQuery.data as any[])
+      : [];
+    return requests.flatMap((request) =>
+      (request.items ?? []).map((test: any) => [
+        formatDate(request.requestDate ?? request.createdAt),
+        test.testName || "—",
+        test.result || "—",
+        request.status || "—",
+      ]),
+    );
+  }, [testRequestsQuery?.data]);
+
+  const treatmentPlanRows = useMemo(() => {
+    const rows = Array.isArray(prescriptionsQuery.data)
+      ? (prescriptionsQuery.data as any[])
+      : [];
+    return rows.flatMap((prescription) =>
+      (prescription.items ?? []).map((item: any) => [
+        formatDate(prescription.prescriptionDate),
+        item.medicationName || "—",
+        item.dosage || "—",
+        item.frequency || "—",
+        item.duration || "—",
+        item.instructions || prescription.notes || "—",
+      ]),
+    );
+  }, [prescriptionsQuery.data]);
+
+  const hasHistory = medicalHistoryRows.length > 0;
+  const hasPrescriptions = treatmentPlanRows.length > 0;
 
   const tocSections = useMemo<TocSection[]>(
     () =>
       [
         { id: "basic", label: "البيانات الأساسية", show: true },
-        { id: "history", label: "التاريخ المرضي", show: hasHistory },
+        { id: "symptoms", label: "Symptoms", show: true },
+        { id: "history", label: "Medical History", show: true },
         {
           id: "examinations",
-          label: "القياسات",
-          show: examinationData.length > 0,
+          label: "Autoref / IOP",
+          show: true,
         },
-        { id: "glasses", label: "النظارة", show: glassesRows.length > 0 },
-        { id: "pentacam", label: "بنتاكام", show: pentacamRows.length > 0 },
+        { id: "after", label: "After", show: true },
+        {
+          id: "glasses",
+          label: "Clinical Refraction",
+          show: true,
+        },
+        {
+          id: "trends",
+          label: "Technical Trends",
+          show: true,
+        },
+        {
+          id: "pentacam",
+          label: "Pentacam HR Analysis",
+          show: true,
+        },
+        {
+          id: "topography",
+          label: "Corneal Topography",
+          show: true,
+        },
+        {
+          id: "imaging",
+          label: "Diagnostic Imaging",
+          show: true,
+        },
         {
           id: "tests",
-          label: "الأشعات والتحاليل",
-          show: clinicalTests.length > 0,
+          label: "Diagnostic Tests",
+          show: true,
         },
         {
           id: "prescriptions",
-          label: "الروشتة والعلاج",
-          show: hasPrescriptions,
+          label: "Treatment Plan",
+          show: true,
         },
-        { id: "diagnosis", label: "التشخيص", show: !!latestReport },
-        { id: "followups", label: "المتابعات", show: hasFollowups },
         { id: "visits", label: "الزيارات", show: true },
       ].filter((s) => s.show),
     [
       hasHistory,
+      symptomRows.length,
       examinationData.length,
+      afterData.length,
       glassesRows.length,
+      technicalTrendRows.length,
       pentacamRows.length,
-      clinicalTests.length,
+      pentacamFilesQuery.data,
+      diagnosticTestRows.length,
       hasPrescriptions,
-      latestReport,
-      hasFollowups,
     ],
   );
 
   return (
-    <div className="flex h-full min-h-0 flex-col" dir="ltr">
-      {/* Identity strip — info/blue tint distinguishes from patient-file */}
-      <header className="z-20 shrink-0 border-b border-info/25 bg-info/5 print:border-border print:bg-background">
-        <div className="flex items-center gap-2 px-3 py-2.5">
+    <div className="flex h-full min-h-0 flex-col bg-muted/10" dir="rtl">
+      <header className="z-20 shrink-0 border-b border-border bg-background print:border-b-2">
+        <div className="flex flex-col gap-3 px-4 py-3 lg:flex-row lg:items-center">
           <Button
-            variant="ghost"
+            variant="outline"
             size="icon"
-            className="h-8 w-8 shrink-0 print:hidden"
+            className="h-9 w-9 shrink-0 print:hidden"
             onClick={() => goBack()}
             aria-label="رجوع"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowRight className="h-4 w-4" />
           </Button>
 
-          <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <span
-              className="truncate font-semibold leading-tight text-foreground"
-              dir="auto"
-            >
-              {patientName}
-            </span>
-            {patient?.patientCode && (
-              <span
-                dir="ltr"
-                className="shrink-0 font-mono text-xs text-muted-foreground"
-              >
-                #{patient.patientCode as string}
-              </span>
-            )}
-            {patient?.age && (
-              <span className="shrink-0 text-xs text-muted-foreground">
-                <span dir="auto">{String(patient.age)}</span> سنة
-              </span>
-            )}
-            <Badge
-              variant="outline"
-              className="shrink-0 border-info/40 bg-info/10 text-[11px] text-info"
-            >
-              التقرير المجمع
-            </Badge>
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-info/10 text-info">
+              <ClipboardCheck className="h-5 w-5" aria-hidden />
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <h1 className="text-lg font-bold leading-tight text-foreground">
+                  التقرير الملخص
+                </h1>
+                <span
+                  className="truncate text-sm text-muted-foreground"
+                  dir="auto"
+                >
+                  {patientName}
+                </span>
+                {patient?.patientCode && (
+                  <span
+                    dir="ltr"
+                    className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground"
+                  >
+                    {patient.patientCode as string}
+                  </span>
+                )}
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                {patient?.age && <span>العمر: {String(patient.age)} سنة</span>}
+                <span className="inline-flex items-center gap-1">
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  {visitsQuery.data?.length ?? 0} زيارة
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Eye className="h-3.5 w-3.5" />
+                  {examinations.length} كشف
+                </span>
+              </div>
+            </div>
           </div>
 
           <Button
-            variant="outline"
             size="sm"
-            className="shrink-0 gap-1.5 text-xs print:hidden"
+            className="shrink-0 gap-1.5 print:hidden"
             onClick={() => window.print()}
           >
-            <Printer className="h-3.5 w-3.5" aria-hidden />
-            طباعة
+            <Printer className="h-4 w-4" aria-hidden />
+            طباعة التقرير
           </Button>
         </div>
       </header>
 
-      {/* Unified single-column report layout */}
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* Scrollable content */}
+        <aside className="hidden w-[210px] shrink-0 border-e border-border bg-background lg:block print:hidden">
+          <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+            <ListTree className="h-4 w-4 text-primary" aria-hidden />
+            <p className="text-sm font-semibold">محتويات التقرير</p>
+          </div>
+          <nav className="space-y-0.5 p-2" aria-label="محتويات التقرير الملخص">
+            {tocSections.map((section, index) => (
+              <a
+                key={section.id}
+                href={`#sum-${section.id}`}
+                className="flex min-h-9 items-center gap-2 rounded-md px-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                <span
+                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-muted font-mono text-[10px]"
+                  dir="ltr"
+                >
+                  {index + 1}
+                </span>
+                {section.label}
+              </a>
+            ))}
+          </nav>
+        </aside>
+
         <main ref={contentRef} className="flex-1 overflow-y-auto">
-          <div className="space-y-10 px-4 py-6 pb-16 max-w-4xl mx-auto w-full print:space-y-8 print:px-6 print:py-4">
+          <article className="mx-auto w-full max-w-5xl space-y-8 bg-background px-4 py-6 pb-16 sm:px-6 lg:my-5 lg:border lg:border-border lg:px-8 print:my-0 print:max-w-none print:space-y-6 print:border-0 print:px-6 print:py-4">
             {/* البيانات الأساسية */}
             <section id="sum-basic" className="scroll-mt-4">
               <SectionHeading id="basic" label="البيانات الأساسية" />
@@ -877,25 +858,41 @@ export default function PatientSummary() {
               </dl>
             </section>
 
-            {/* التاريخ المرضي */}
-            {hasHistory && (
-              <section id="sum-history" className="scroll-mt-4">
-                <SectionHeading id="history" label="التاريخ المرضي" />
-                <p
-                  className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/80"
-                  dir="auto"
-                >
-                  {reports?.[0]?.clinicalOpinion ||
-                    patient?.medicalHistory ||
-                    "لا توجد ملاحظات"}
-                </p>
+            {
+              <section id="sum-symptoms" className="scroll-mt-4">
+                <SectionHeading id="symptoms" label="Symptoms" />
+                <DataTable
+                  headers={["تاريخ الزيارة", "الأعراض المسجلة"]}
+                  rows={symptomRows}
+                />
               </section>
-            )}
+            }
+
+            {/* التاريخ المرضي */}
+            {
+              <section id="sum-history" className="scroll-mt-4">
+                <SectionHeading id="history" label="Medical History" />
+                <DataTable
+                  headers={[
+                    "التاريخ",
+                    "سكري",
+                    "ضغط",
+                    "قلب",
+                    "ربو",
+                    "حساسية",
+                    "عمليات سابقة",
+                    "أدوية",
+                    "تاريخ عائلي",
+                  ]}
+                  rows={medicalHistoryRows}
+                />
+              </section>
+            }
 
             {/* القياسات */}
-            {examinationData.length > 0 && (
+            {
               <section id="sum-examinations" className="scroll-mt-4">
-                <SectionHeading id="examinations" label="القياسات البصرية" />
+                <SectionHeading id="examinations" label="Autoref / IOP" />
                 <DataTable
                   headers={[
                     "التاريخ",
@@ -906,7 +903,6 @@ export default function PatientSummary() {
                     "C",
                     "Axis",
                     "IOP",
-                    "Fundus",
                   ]}
                   rows={examinationData.map((r) => [
                     r.visitDate,
@@ -917,18 +913,37 @@ export default function PatientSummary() {
                     r.c,
                     r.axis,
                     r.iop,
-                    r.fundus,
                   ])}
                 />
               </section>
-            )}
+            }
+
+            {
+              <section id="sum-after" className="scroll-mt-4">
+                <SectionHeading id="after" label="After" />
+                <DataTable
+                  headers={["التاريخ", "العين", "S", "C", "Axis"]}
+                  rows={afterData}
+                />
+              </section>
+            }
 
             {/* النظارة */}
-            {glassesRows.length > 0 && (
+            {
               <section id="sum-glasses" className="scroll-mt-4">
-                <SectionHeading id="glasses" label="النظارة" />
+                <SectionHeading id="glasses" label="Clinical Refraction" />
                 <DataTable
-                  headers={["التاريخ", "OD S", "OD C", "OD Ax", "OS S", "OS C", "OS Ax", "OS PD", "Add"]}
+                  headers={[
+                    "التاريخ",
+                    "OD S",
+                    "OD C",
+                    "OD Ax",
+                    "OS S",
+                    "OS C",
+                    "OS Ax",
+                    "OS PD",
+                    "Add",
+                  ]}
                   rows={glassesRows.map((r) => [
                     r.visit,
                     r.odS,
@@ -942,18 +957,39 @@ export default function PatientSummary() {
                   ])}
                 />
               </section>
-            )}
+            }
+
+            {
+              <section id="sum-trends" className="scroll-mt-4">
+                <SectionHeading
+                  id="trends"
+                  label="Technical Trends: Refraction and IOP"
+                />
+                <DataTable
+                  headers={[
+                    "التاريخ",
+                    "المصدر",
+                    "العين",
+                    "S",
+                    "C",
+                    "Axis",
+                    "PD",
+                    "Add",
+                    "IOP",
+                  ]}
+                  rows={technicalTrendRows}
+                />
+              </section>
+            }
 
             {/* بنتاكام */}
-            {pentacamRows.length > 0 && (
+            {
               <section id="sum-pentacam" className="scroll-mt-4">
-                <SectionHeading id="pentacam" label="بنتاكام" />
+                <SectionHeading id="pentacam" label="Pentacam HR Analysis" />
                 <DataTable
                   headers={[
                     "التاريخ",
                     "العين",
-                    "K1",
-                    "K2",
                     "Thinnest",
                     "Apex",
                     "Residual",
@@ -963,8 +999,6 @@ export default function PatientSummary() {
                   rows={pentacamRows.map((r) => [
                     r.visit,
                     r.eye,
-                    r.k1,
-                    r.k2,
                     r.thinnest,
                     r.apex,
                     r.residual,
@@ -973,134 +1007,87 @@ export default function PatientSummary() {
                   ])}
                 />
               </section>
-            )}
+            }
 
-            {/* الأشعات والتحاليل */}
-            {clinicalTests.length > 0 && (
-              <section id="sum-tests" className="scroll-mt-4">
-                <SectionHeading id="tests" label="الأشعات والتحاليل" />
-                <ul className="space-y-2">
-                  {clinicalTests.map((test: any, idx: number) => (
-                    <li
-                      key={idx}
-                      className="flex items-start justify-between rounded-lg border border-border/50 bg-muted/20 px-4 py-2.5"
-                    >
-                      <div className="min-w-0">
-                        <p
-                          className="text-sm font-medium text-foreground"
-                          dir="auto"
-                        >
-                          {test.name || test.serviceName || "—"}
-                        </p>
-                        {(test.category || test.serviceCategory) && (
-                          <p
-                            className="text-xs text-muted-foreground"
-                            dir="auto"
-                          >
-                            {test.category || test.serviceCategory}
-                          </p>
-                        )}
-                      </div>
-                      {test.result && (
-                        <Badge
-                          variant="outline"
-                          className="me-3 shrink-0 text-xs"
-                          dir="auto"
-                        >
-                          {test.result}
-                        </Badge>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
-
-            {/* الروشتة والعلاج */}
-            {hasPrescriptions && (
-              <section id="sum-prescriptions" className="scroll-mt-4">
-                <SectionHeading id="prescriptions" label="الروشتة والعلاج" />
-                {medicationNames.length > 0 && (
-                  <div className="mb-3">
-                    <p className="mb-2 text-xs font-semibold text-muted-foreground">
-                      الروشات المحفوظة
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {medicationNames.map((name, idx) => (
-                        <Badge
-                          key={idx}
-                          variant="secondary"
-                          className="text-xs"
-                          dir="auto"
-                        >
-                          {formatDisplayValue(name)}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {treatmentFromExams.length > 0 && (
-                  <div>
-                    <p className="mb-2 text-xs font-semibold text-muted-foreground">
-                      من الملف الطبي
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {treatmentFromExams.map((id) => {
-                        const med = (medicationsQuery.data ?? []).find(
-                          (m: any) => m.id === id,
-                        );
-                        return (
-                          <Badge key={id} className="text-xs" dir="auto">
-                            {formatDisplayValue(med?.name ?? `علاج #${id}`)}
-                          </Badge>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </section>
-            )}
-
-            {/* التشخيص */}
-            {latestReport && (
-              <section id="sum-diagnosis" className="scroll-mt-4">
-                <SectionHeading id="diagnosis" label="التشخيص" />
-                <div className="space-y-1.5">
-                  <p className="text-xs text-muted-foreground" dir="auto">
-                    {formatDate((latestReport as any).createdAt)}
-                  </p>
-                  <p
-                    className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/85"
-                    dir="auto"
-                  >
-                    {typeof latestReportContent === "string"
-                      ? latestReportContent
-                      : JSON.stringify(latestReportContent, null, 2)}
-                  </p>
-                </div>
-              </section>
-            )}
-
-            {/* المتابعات */}
-            {hasFollowups && (
-              <section id="sum-followups" className="scroll-mt-4">
-                <SectionHeading id="followups" label="المتابعات" />
+            {
+              <section id="sum-topography" className="scroll-mt-4">
+                <SectionHeading id="topography" label="Corneal Topography" />
                 <DataTable
-                  headers={[
-                    "#",
-                    "التاريخ",
-                    "العين",
-                    "VA",
-                    "S",
-                    "C",
-                    "Axis",
-                    "IOP",
-                    "ملاحظات / علاج",
-                  ]}
-                  rows={followupRows}
+                  headers={["التاريخ", "العين", "K1", "K2", "Thinnest"]}
+                  rows={pentacamRows.map((row) => [
+                    row.visit,
+                    row.eye,
+                    row.k1,
+                    row.k2,
+                    row.thinnest,
+                  ])}
                 />
               </section>
-            )}
+            }
+
+            {
+              <section id="sum-imaging" className="scroll-mt-4">
+                <SectionHeading id="imaging" label="Diagnostic Imaging" />
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-2">
+                  {(pentacamFilesQuery.data ?? []).length === 0 ? (
+                    <p className="col-span-full py-6 text-center text-sm text-muted-foreground">
+                      لا توجد صور محفوظة في srv100_uploads
+                    </p>
+                  ) : (
+                    (pentacamFilesQuery.data ?? []).map((file: any) => (
+                      <figure
+                        key={file.id}
+                        className="overflow-hidden rounded-lg border border-border"
+                      >
+                        <img
+                          src={file.storageUrl}
+                          alt={file.sourceFileName || "Diagnostic Imaging"}
+                          className="aspect-[4/3] w-full object-contain"
+                          loading="lazy"
+                        />
+                        <figcaption
+                          className="px-3 py-2 text-xs text-muted-foreground"
+                          dir="auto"
+                        >
+                          {file.sourceFileName || "Diagnostic Imaging"}
+                        </figcaption>
+                      </figure>
+                    ))
+                  )}
+                </div>
+              </section>
+            }
+
+            {/* الأشعات والتحاليل */}
+            {
+              <section id="sum-tests" className="scroll-mt-4">
+                <SectionHeading id="tests" label="Diagnostic Tests" />
+                <DataTable
+                  headers={["التاريخ", "الفحص", "النتيجة", "الحالة"]}
+                  rows={diagnosticTestRows}
+                />
+              </section>
+            }
+
+            {/* الروشتة والعلاج */}
+            {
+              <section id="sum-prescriptions" className="scroll-mt-4">
+                <SectionHeading id="prescriptions" label="Treatment Plan" />
+                {treatmentPlanRows.length > 0 && (
+                  <DataTable
+                    headers={[
+                      "التاريخ",
+                      "العلاج",
+                      "الجرعة",
+                      "التكرار",
+                      "المدة",
+                      "التعليمات",
+                    ]}
+                    rows={treatmentPlanRows}
+                  />
+                )}
+              </section>
+            }
 
             {/* الزيارات */}
             <section id="sum-visits" className="scroll-mt-4">
@@ -1189,7 +1176,7 @@ export default function PatientSummary() {
                 })()
               )}
             </section>
-          </div>
+          </article>
         </main>
       </div>
     </div>

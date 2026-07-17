@@ -1,8 +1,16 @@
-import { useMemo, useState } from "react";
-import { Search, Users } from "lucide-react";
+import { useState } from "react";
+import {
+  Archive,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  Users,
+} from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -43,7 +51,8 @@ export default function AdminLegacyPatients() {
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(25);
+  const [pageSize, setPageSize] =
+    useState<(typeof PAGE_SIZE_OPTIONS)[number]>(25);
 
   const { data, isLoading, isFetching, error } =
     trpc.legacyPatients.search.useQuery({
@@ -74,159 +83,250 @@ export default function AdminLegacyPatients() {
   const hasMore = rows.length === pageSize;
 
   return (
-    <div className="w-full space-y-6 pb-4 text-right" dir="rtl">
-      <Card>
-        <CardHeader className="flex flex-row items-center gap-2">
-          <Users className="h-5 w-5 text-primary" />
-          <div>
-            <h1 className="text-lg font-semibold">بحث المرضى القدامى</h1>
-            <p className="text-sm text-muted-foreground">
-              عرض للمراجعة فقط — بيانات المريض وخدماته المرتبطة لكل سنة على حدة
-            </p>
+    <div className="w-full space-y-4 pb-6 text-right" dir="rtl">
+      <Card
+        dir="rtl"
+        className="overflow-hidden border-border text-right shadow-sm"
+      >
+        <CardHeader className="space-y-0 border-b border-border bg-muted/20 p-4 sm:p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Archive className="h-5 w-5" aria-hidden />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-foreground sm:text-xl">
+                  سجل المرضى
+                </h1>
+                <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
+                  بيانات السنوات السابقة للمراجعة فقط
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="gap-1.5 px-2.5 py-1">
+                <Users className="h-3.5 w-3.5" aria-hidden />
+                {rows.length} نتيجة
+              </Badge>
+              <Badge variant="secondary">سنة {year}</Badge>
+            </div>
           </div>
         </CardHeader>
-        <CardContent className="flex flex-wrap items-center gap-3">
-          <Select value={year} onValueChange={handleYearChange}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="السنة" />
-            </SelectTrigger>
-            <SelectContent>
-              {YEAR_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
 
-          <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="عدد النتائج" />
-            </SelectTrigger>
-            <SelectContent>
-              {PAGE_SIZE_OPTIONS.map((size) => (
-                <SelectItem key={size} value={String(size)}>
-                  {size} مريض / صفحة
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
+        <CardContent className="p-4 sm:p-5">
           <form
             onSubmit={handleSearchSubmit}
-            className="flex flex-1 min-w-[240px] items-center gap-2"
+            dir="rtl"
+            className="grid grid-cols-2 gap-3 lg:grid-cols-[minmax(18rem,1fr)_10rem_11rem_auto]"
           >
-            <Input
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="بحث بالاسم أو كود المريض..."
-              className="flex-1"
-            />
-            <button
-              type="submit"
-              className="inline-flex h-9 items-center gap-1 rounded-md border bg-background px-3 text-sm hover:bg-accent"
-            >
-              <Search className="h-4 w-4" />
-              بحث
-            </button>
-          </form>
+            <div className="relative col-span-2 lg:col-span-1">
+              <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="الاسم أو كود المريض"
+                className="h-10 pr-9"
+              />
+            </div>
 
-          {isFetching && !isLoading && (
-            <span className="text-xs text-muted-foreground">...تحديث</span>
-          )}
+            <Select value={year} onValueChange={handleYearChange}>
+              <SelectTrigger className="h-10 w-full">
+                <SelectValue placeholder="السنة" />
+              </SelectTrigger>
+              <SelectContent>
+                {YEAR_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={String(pageSize)}
+              onValueChange={handlePageSizeChange}
+            >
+              <SelectTrigger className="h-10 w-full">
+                <SelectValue placeholder="عدد النتائج" />
+              </SelectTrigger>
+              <SelectContent>
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <SelectItem key={size} value={String(size)}>
+                    {size} مريض / صفحة
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Button
+              type="submit"
+              className="col-span-2 h-10 gap-2 lg:col-span-1"
+              disabled={isFetching}
+            >
+              <Search className="h-4 w-4" aria-hidden />
+              {isFetching && !isLoading ? "جاري التحديث" : "بحث"}
+            </Button>
+          </form>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card
+        dir="rtl"
+        className="overflow-hidden border-border text-right shadow-sm"
+      >
         <CardContent className="p-0">
-          {error && (
-            <div className="p-4 text-sm text-destructive">
-              خطأ: {error.message}
+          {error ? (
+            <div
+              className="m-4 rounded-lg border border-destructive/25 bg-destructive/10 p-4 text-sm text-destructive"
+              role="alert"
+            >
+              تعذر تحميل المرضى: {error.message}
             </div>
-          )}
-          {isLoading ? (
-            <div className="p-6 text-center text-sm text-muted-foreground">
-              ...جاري التحميل
+          ) : isLoading ? (
+            <div className="space-y-2 p-4">
+              {Array.from({ length: 7 }).map((_, index) => (
+                <Skeleton key={index} className="h-12 w-full rounded-md" />
+              ))}
             </div>
           ) : rows.length === 0 ? (
-            <div className="p-6 text-center text-sm text-muted-foreground">
-              لا توجد نتائج
+            <div className="flex min-h-64 flex-col items-center justify-center gap-3 p-6 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <Search className="h-5 w-5" aria-hidden />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground">لا توجد نتائج</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  جرّب اسمًا أو كودًا مختلفًا، أو غيّر السنة
+                </p>
+              </div>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>كود المريض</TableHead>
-                  <TableHead>الاسم</TableHead>
-                  <TableHead>الهاتف</TableHead>
-                  <TableHead>تاريخ الميلاد</TableHead>
-                  <TableHead>الجنس</TableHead>
-                  <TableHead>الطبيب</TableHead>
-                  <TableHead>آخر زيارة</TableHead>
-                  <TableHead>تاريخ الإضافة</TableHead>
-                  <TableHead>الخدمات المرتبطة</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((row: any) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-mono">
-                      {row.patientCode}
-                    </TableCell>
-                    <TableCell>{row.fullName}</TableCell>
-                    <TableCell>{row.phone || "—"}</TableCell>
-                    <TableCell>{formatDate(row.dateOfBirth)}</TableCell>
-                    <TableCell>
-                      {row.gender === "male"
-                        ? "ذكر"
-                        : row.gender === "female"
-                          ? "أنثى"
-                          : "—"}
-                    </TableCell>
-                    <TableCell>
-                      {row.doctorName || row.doctorCode || "—"}
-                    </TableCell>
-                    <TableCell>{formatDate(row.lastVisit)}</TableCell>
-                    <TableCell>{formatDate(row.createdAt)}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {(row.services ?? []).length === 0 ? (
-                          <span className="text-muted-foreground">—</span>
-                        ) : (
-                          row.services.map((svc: any) => (
-                            <Badge key={svc.id} variant="secondary">
-                              {svc.serviceName || svc.serviceCode}
-                              {svc.serviceDate ? ` (${formatDate(svc.serviceDate)})` : ""}
-                            </Badge>
-                          ))
-                        )}
-                      </div>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table
+                dir="rtl"
+                className="min-w-[1180px] text-center [&_td]:text-center [&_th]:text-center"
+              >
+                <TableHeader className="bg-muted/50">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead dir="rtl" className="w-28 text-right">
+                      كود المريض
+                    </TableHead>
+                    <TableHead className="min-w-48 text-right">الاسم</TableHead>
+                    <TableHead className="w-32 text-right">الهاتف</TableHead>
+                    <TableHead className="w-32 text-right">
+                      تاريخ الميلاد
+                    </TableHead>
+                    <TableHead className="w-20 text-right">الجنس</TableHead>
+                    <TableHead className="min-w-36 text-right">
+                      الطبيب
+                    </TableHead>
+                    <TableHead className="w-28 text-right">آخر زيارة</TableHead>
+                    <TableHead className="w-28 text-right">
+                      تاريخ الإضافة
+                    </TableHead>
+                    <TableHead className="min-w-72 text-right">
+                      الخدمات المرتبطة
+                    </TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((patient: any, index: number) => (
+                    <TableRow
+                      key={patient.id}
+                      className={index % 2 === 1 ? "bg-muted/20" : undefined}
+                    >
+                      <TableCell dir="rtl" className="text-right">
+                        <Badge
+                          dir="rtl"
+                          variant="outline"
+                          className="justify-center font-mono tabular-nums [unicode-bidi:plaintext]"
+                        >
+                          {patient.patientCode || "—"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-semibold text-foreground">
+                        {patient.fullName || "—"}
+                      </TableCell>
+                      <TableCell dir="ltr" className="font-mono tabular-nums">
+                        {patient.phone || "—"}
+                      </TableCell>
+                      <TableCell className="tabular-nums">
+                        {formatDate(patient.dateOfBirth)}
+                      </TableCell>
+                      <TableCell>
+                        {patient.gender === "male"
+                          ? "ذكر"
+                          : patient.gender === "female"
+                            ? "أنثى"
+                            : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {patient.doctorName || patient.doctorCode || "—"}
+                      </TableCell>
+                      <TableCell className="tabular-nums">
+                        {formatDate(patient.lastVisit)}
+                      </TableCell>
+                      <TableCell className="tabular-nums text-muted-foreground">
+                        {formatDate(patient.createdAt)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap justify-center gap-1.5">
+                          {(patient.services ?? []).length === 0 ? (
+                            <span className="text-muted-foreground">—</span>
+                          ) : (
+                            patient.services.map((service: any) => (
+                              <Badge
+                                key={service.id}
+                                variant="secondary"
+                                className="font-normal"
+                              >
+                                {service.serviceName || service.serviceCode}
+                                {service.serviceDate
+                                  ? ` · ${formatDate(service.serviceDate)}`
+                                  : ""}
+                              </Badge>
+                            ))
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
+
+          <div className="flex items-center justify-between border-t border-border bg-muted/20 px-4 py-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={page <= 1 || isFetching}
+              onClick={() =>
+                setPage((currentPage) => Math.max(1, currentPage - 1))
+              }
+              className="gap-1"
+            >
+              <ChevronRight className="h-4 w-4" aria-hidden />
+              السابق
+            </Button>
+            <span className="text-sm font-medium text-foreground">
+              صفحة {page}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!hasMore || isFetching}
+              onClick={() => setPage((currentPage) => currentPage + 1)}
+              className="gap-1"
+            >
+              التالي
+              <ChevronLeft className="h-4 w-4" aria-hidden />
+            </Button>
+          </div>
         </CardContent>
       </Card>
-
-      <div className="flex items-center justify-between">
-        <button
-          disabled={page <= 1}
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-          className="rounded-md border px-3 py-1.5 text-sm disabled:opacity-40"
-        >
-          السابق
-        </button>
-        <span className="text-sm text-muted-foreground">صفحة {page}</span>
-        <button
-          disabled={!hasMore}
-          onClick={() => setPage((p) => p + 1)}
-          className="rounded-md border px-3 py-1.5 text-sm disabled:opacity-40"
-        >
-          التالي
-        </button>
-      </div>
     </div>
   );
 }

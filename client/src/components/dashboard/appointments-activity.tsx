@@ -41,6 +41,10 @@ import {
   useTodayQueuePatientsMerged,
   type TodayQueuePatient,
 } from "@/hooks/useTodayQueuePatientsMerged";
+import {
+  PatientMedicalStatusStrip,
+  type PatientMedicalStatus,
+} from "@/components/patients/PatientMedicalStatusBadges";
 import type { QueueStatus } from "@/lib/dashboard-data";
 import { trpc } from "@/lib/trpc";
 import { TodayPatientShortcutsDialog } from "@/components/today/TodayPatientShortcutsDialog";
@@ -170,6 +174,20 @@ export function AppointmentsSection({
 
   const { merged, isLoading, byStatus } =
     useTodayQueuePatientsMerged(selectedDate);
+  const todayPatientIds = useMemo(
+    () => merged.map((patient) => patient.id).filter(Boolean),
+    [merged],
+  );
+  const medicalStatusQuery = trpc.medical.getPatientMedicalStatusBatch.useQuery(
+    { patientIds: todayPatientIds },
+    {
+      enabled: todayPatientIds.length > 0,
+      staleTime: 120_000,
+      refetchOnWindowFocus: false,
+    },
+  );
+  const medicalStatuses = medicalStatusQuery.data as
+    Record<number, PatientMedicalStatus> | undefined;
 
   // ── Portal bookings for the selected date ───────────────────────────────
   const bookingsQuery = (trpc as any).patientPortal.listBookings.useQuery(
@@ -523,6 +541,7 @@ export function AppointmentsSection({
                   <QueuePatientCard
                     key={`${patient.id}-${patient.queueStatus}`}
                     patient={patient}
+                    medicalStatus={medicalStatuses?.[patient.id]}
                     onSelectPatient={() => handleSelectPatient(patient)}
                     markVisitTreatedPendingVisitId={
                       markVisitTreated.isPending
@@ -810,6 +829,7 @@ function BookingCard({ booking }: { booking: any }) {
 
 function QueuePatientCard({
   patient,
+  medicalStatus,
   onSelectPatient,
   onMarkVisitTreated,
   markVisitTreatedPendingVisitId,
@@ -817,6 +837,7 @@ function QueuePatientCard({
   onRequestDelete,
 }: {
   patient: TodayQueuePatient;
+  medicalStatus?: PatientMedicalStatus;
   onSelectPatient: () => void;
   onMarkVisitTreated: (visitId: number) => void;
   markVisitTreatedPendingVisitId: number | null;
@@ -852,11 +873,17 @@ function QueuePatientCard({
         "cursor-pointer",
       )}
     >
+      <PatientMedicalStatusStrip status={medicalStatus} />
       <div className="p-3">
         <div className="flex min-w-0 items-center gap-2">
           <p className="min-w-0 flex-1 truncate text-sm font-bold text-foreground">
             {patient.fullName ?? "—"}
           </p>
+          {(patient as { visitType?: string }).visitType === "followup" ? (
+            <Badge className="border-info/20 bg-info/15 text-[10px] text-info">
+              متابعة
+            </Badge>
+          ) : null}
           {canDelete ? (
             <button
               type="button"

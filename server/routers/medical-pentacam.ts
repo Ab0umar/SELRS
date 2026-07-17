@@ -55,7 +55,44 @@ import {
   upsertPatientToMssql,
 } from "../integrations/mssqlPatients";
 
-import { buildFailedPentacamGroupKey, buildFailedPentacamGroupLabel, buildPentacamNameKeys, buildPentacamObjectUrl, buildPentacamPatientCandidates, buildPentacamPatientKey, buildPentacamPatientPrefix, buildPentacamTokenSignatureSet, expandPentacamDashboardRows, extractPatientCodeCandidatesFromFileName, extractPentacamNameFragment, extractPentacamPageType, inferPentacamCapturedAtFromName, inferPentacamEyeSideFromName, inferPentacamMimeType, listFailedPentacamRows, moveFailedPentacamFile, movePentacamObjectToPatient, normalizePentacamKey, normalizePentacamMatchText, normalizePentacamPhoneticToken, parsePentacamLocalMeta, pathExists, pentacamEyeHasAnyData, pentacamEyeIsComplete, previewFailedPentacamRenameTargets, reorderPatientNameSecondThirdFirst, resolvePatientForPentacamFileName, resolvePentacamSourceKeyCandidates, sanitizeLabel, scanMismatchedLocalPentacamLinks, stripLeadingCodeLabel, suggestPatientsForPentacamFileName, tokenizePentacamMatchText, assertSafePentacamFileName, nextAvailablePentacamPath } from "./_medical/pentacam-helpers";
+import {
+  buildFailedPentacamGroupKey,
+  buildFailedPentacamGroupLabel,
+  buildPentacamNameKeys,
+  buildPentacamObjectUrl,
+  buildPentacamPatientCandidates,
+  buildPentacamPatientKey,
+  buildPentacamPatientPrefix,
+  buildPentacamTokenSignatureSet,
+  expandPentacamDashboardRows,
+  extractPatientCodeCandidatesFromFileName,
+  extractPentacamNameFragment,
+  extractPentacamPageType,
+  inferPentacamCapturedAtFromName,
+  inferPentacamEyeSideFromName,
+  inferPentacamMimeType,
+  listFailedPentacamRows,
+  moveFailedPentacamFile,
+  movePentacamObjectToPatient,
+  normalizePentacamKey,
+  normalizePentacamMatchText,
+  normalizePentacamPhoneticToken,
+  parsePentacamLocalMeta,
+  pathExists,
+  pentacamEyeHasAnyData,
+  pentacamEyeIsComplete,
+  previewFailedPentacamRenameTargets,
+  reorderPatientNameSecondThirdFirst,
+  resolvePatientForPentacamFileName,
+  resolvePentacamSourceKeyCandidates,
+  sanitizeLabel,
+  scanMismatchedLocalPentacamLinks,
+  stripLeadingCodeLabel,
+  suggestPatientsForPentacamFileName,
+  tokenizePentacamMatchText,
+  assertSafePentacamFileName,
+  nextAvailablePentacamPath,
+} from "./_medical/pentacam-helpers";
 
 export const medicalPentacamRoutes = {
   updatePentacamResult: medicalStaffProcedure
@@ -289,6 +326,31 @@ export const medicalPentacamRoutes = {
       ];
 
       return combined.slice(0, safeLimit);
+    }),
+
+  getSrv100DiagnosticImagesByPatient: protectedProcedure
+    .input(z.object({ patientId: z.number(), limit: z.number().optional() }))
+    .query(async ({ input, ctx }) => {
+      await assertPentacamViewPermission(ctx.user);
+      const safeLimit = Math.min(Math.max(1, input.limit ?? 100), 500);
+      const rows = await db.getSrv100UploadsByPatient(
+        input.patientId,
+        safeLimit,
+      );
+      return rows
+        .filter((row) =>
+          /\.(jpg|jpeg|png|webp)$/i.test(String(row.file_name ?? "")),
+        )
+        .map((row) => ({
+          id: row.id,
+          sourceFileName: path.posix.basename(String(row.file_name ?? "")),
+          storageUrl: `/api/srv100/uploads/${row.id}`,
+          mimeType:
+            String(row.mime_type ?? "").trim() ||
+            inferPentacamMimeType(String(row.file_name ?? "")),
+          capturedAt: row.created_at ? String(row.created_at) : null,
+          importedAt: row.created_at ? String(row.created_at) : null,
+        }));
     }),
 
   getPentacamMeasurementsByPatient: protectedProcedure
@@ -983,7 +1045,13 @@ export async function autoLinkUnlinkedPentacamFiles(): Promise<{
 }> {
   const rows = await db.getUnlinkedSrv100Uploads(10000);
   if (rows.length === 0) {
-    return { processed: 0, imported: 0, alreadyLinked: 0, unmatched: 0, skipped: 0 };
+    return {
+      processed: 0,
+      imported: 0,
+      alreadyLinked: 0,
+      unmatched: 0,
+      skipped: 0,
+    };
   }
 
   const fileNames = rows
@@ -1043,5 +1111,11 @@ export async function autoLinkUnlinkedPentacamFiles(): Promise<{
     linkPairs.length > 0 ? await db.linkSrv100UploadsBatch(linkPairs) : 0;
   const alreadyLinked = Math.max(0, linkPairs.length - imported);
 
-  return { processed: fileNames.length, imported, alreadyLinked, unmatched, skipped };
+  return {
+    processed: fileNames.length,
+    imported,
+    alreadyLinked,
+    unmatched,
+    skipped,
+  };
 }

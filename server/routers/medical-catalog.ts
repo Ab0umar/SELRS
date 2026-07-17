@@ -500,6 +500,12 @@ export const medicalCatalogRoutes = {
       return await db.getTestRequestsByPatient(input.patientId);
     }),
 
+  getMedicalHistoryByPatient: protectedProcedure
+    .input(z.object({ patientId: z.number() }))
+    .query(async ({ input }) => {
+      return await db.getMedicalHistoryByPatient(input.patientId);
+    }),
+
   getTestRequestsByVisit: protectedProcedure
     .input(z.object({ visitId: z.number() }))
     .query(async ({ input }) => {
@@ -667,7 +673,14 @@ export const medicalCatalogRoutes = {
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const { preOpUCVA_OD, preOpUCVA_OS, preOpBCVA_OD, preOpBCVA_OS, surgeryNotes, ...rest } = input;
+        const {
+          preOpUCVA_OD,
+          preOpUCVA_OS,
+          preOpBCVA_OD,
+          preOpBCVA_OS,
+          surgeryNotes,
+          ...rest
+        } = input;
         await db.createSurgery({
           ...rest,
           notes: input.notes ?? surgeryNotes,
@@ -714,9 +727,15 @@ export const medicalCatalogRoutes = {
           ...rest,
           ...(surgeryDate ? { surgeryDate: new Date(surgeryDate) } : {}),
         });
-        await db.logAuditEvent(ctx.user.id, "UPDATE_SURGERY", "surgery", surgeryId, {
-          message: `Updated surgery ${surgeryId}`,
-        });
+        await db.logAuditEvent(
+          ctx.user.id,
+          "UPDATE_SURGERY",
+          "surgery",
+          surgeryId,
+          {
+            message: `Updated surgery ${surgeryId}`,
+          },
+        );
         return { success: true };
       } catch (error) {
         throw new Error(`Failed to update surgery: ${error}`);

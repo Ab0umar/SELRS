@@ -117,6 +117,7 @@ interface UsePatientDetailsParams {
   user: any;
   isAuthenticated: boolean;
   setLocation: (to: string) => void;
+  mode?: "visit-report" | "clinical-portal";
 }
 
 export function usePatientDetails({
@@ -124,7 +125,9 @@ export function usePatientDetails({
   user,
   isAuthenticated,
   setLocation,
+  mode = "clinical-portal",
 }: UsePatientDetailsParams) {
+  const isVisitReport = mode === "visit-report";
   const patientQuery = trpc.patient.getPatient.useQuery(patientId ?? 0, {
     enabled: Boolean(patientId),
     refetchOnWindowFocus: false,
@@ -147,29 +150,13 @@ export function usePatientDetails({
       { patientId: patientId ?? 0 },
       { enabled: Boolean(patientId), staleTime: 0 },
     );
-  const consultantSheetQuery = trpc.medical.getSheetEntry.useQuery(
-    { patientId: patientId ?? 0, sheetType: "consultant" },
-    { enabled: Boolean(patientId), staleTime: 0 },
-  );
-  const specialistSheetQuery = trpc.medical.getSheetEntry.useQuery(
-    { patientId: patientId ?? 0, sheetType: "specialist" },
-    { enabled: Boolean(patientId), staleTime: 0 },
-  );
-  const lasikSheetQuery = trpc.medical.getSheetEntry.useQuery(
-    { patientId: patientId ?? 0, sheetType: "lasik" },
-    { enabled: Boolean(patientId), staleTime: 0 },
-  );
-  const externalSheetQuery = trpc.medical.getSheetEntry.useQuery(
-    { patientId: patientId ?? 0, sheetType: "external" },
-    { enabled: Boolean(patientId), staleTime: 0 },
-  );
   const visitsQuery = trpc.medical.getVisitsByPatient.useQuery(
     { patientId: patientId ?? 0 },
     { enabled: Boolean(patientId), refetchOnWindowFocus: false },
   );
   const reportsQuery = trpc.medical.getMedicalReportsByPatient.useQuery(
     { patientId: patientId ?? 0 },
-    { enabled: Boolean(patientId) },
+    { enabled: Boolean(patientId) && !isVisitReport },
   );
   const prescriptionsQuery =
     trpc.medical.getPrescriptionsWithItemsByPatient.useQuery(
@@ -178,18 +165,27 @@ export function usePatientDetails({
     );
   const surgeriesQuery = trpc.medical.getSurgeriesByPatient.useQuery(
     { patientId: patientId ?? 0 },
-    { enabled: Boolean(patientId) },
+    { enabled: Boolean(patientId) && !isVisitReport },
   );
   const followupsQuery = trpc.medical.getPostOpFollowupsByPatient.useQuery(
     { patientId: patientId ?? 0 },
-    { enabled: Boolean(patientId) },
+    { enabled: Boolean(patientId) && !isVisitReport },
   );
   const followupSheetsQuery = trpc.medical.getFollowupSheets.useQuery(
     { patientId: patientId ?? 0 },
-    { enabled: Boolean(patientId), staleTime: 0 },
+    { enabled: Boolean(patientId) && !isVisitReport, staleTime: 0 },
   );
   const pentacamQuery = trpc.medical.getPentacamMeasurementsByPatient.useQuery(
-    { patientId: patientId ?? 0, limit: 10 },
+    { patientId: patientId ?? 0, limit: 500 },
+    { enabled: Boolean(patientId), refetchOnWindowFocus: false },
+  );
+  const pentacamFilesQuery =
+    trpc.medical.getSrv100DiagnosticImagesByPatient.useQuery(
+      { patientId: patientId ?? 0, limit: 500 },
+      { enabled: Boolean(patientId), refetchOnWindowFocus: false },
+    );
+  const medicalHistoryQuery = trpc.medical.getMedicalHistoryByPatient.useQuery(
+    { patientId: patientId ?? 0 },
     { enabled: Boolean(patientId), refetchOnWindowFocus: false },
   );
   const patientServiceEntriesQuery =
@@ -197,18 +193,10 @@ export function usePatientDetails({
       { patientId: patientId ?? 0 },
       { enabled: Boolean(patientId), refetchOnWindowFocus: false },
     );
-  const requestTestsStateQuery = trpc.medical.getPatientPageState.useQuery(
-    { patientId: patientId ?? 0, page: "request-tests" },
-    { enabled: Boolean(patientId), refetchOnWindowFocus: false },
-  );
   const testRequestsQuery = trpc.medical.getPatientTestRequests?.useQuery?.(
     { patientId: patientId ?? 0 },
     { enabled: Boolean(patientId), refetchOnWindowFocus: false },
   );
-  const medicationsQuery = trpc.medical.getAllMedications.useQuery(undefined, {
-    refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000,
-  });
   const permissionsQuery = trpc.medical.getMyPermissions.useQuery(undefined, {
     enabled: Boolean(user),
     refetchOnWindowFocus: false,
@@ -229,6 +217,56 @@ export function usePatientDetails({
     undefined,
     { refetchOnWindowFocus: false },
   );
+  const latestVisitId = useMemo(() => {
+    const patientVisits = [...((visitsQuery.data ?? []) as any[])];
+    const mappedVisitIds = new Set<number>();
+
+    for (const examination of (examinationsQuery.data ?? []) as any[]) {
+      const visitId = Number(examination.visitId);
+      if (visitId) mappedVisitIds.add(visitId);
+    }
+    for (const measurement of (pentacamQuery.data ?? []) as any[]) {
+      const visitId = Number(measurement.visitId);
+      if (visitId) mappedVisitIds.add(visitId);
+    }
+    for (const request of (testRequestsQuery?.data ?? []) as any[]) {
+      const visitId = Number(request.visitId);
+      if (visitId) mappedVisitIds.add(visitId);
+    }
+    for (const prescription of (prescriptionsQuery.data ?? []) as any[]) {
+      const visitId = Number(prescription.visitId);
+      if (visitId) mappedVisitIds.add(visitId);
+    }
+
+    const reportVisits = patientVisits.filter((visit) =>
+      mappedVisitIds.has(Number(visit.id)),
+    );
+    const candidates = reportVisits.length ? reportVisits : patientVisits;
+    candidates.sort(
+      (a, b) =>
+        new Date(b.visitDate ?? b.createdAt).getTime() -
+        new Date(a.visitDate ?? a.createdAt).getTime(),
+    );
+    return Number(candidates[0]?.id ?? 0) || null;
+  }, [
+    examinationsQuery.data,
+    pentacamQuery.data,
+    prescriptionsQuery.data,
+    testRequestsQuery?.data,
+    visitsQuery.data,
+  ]);
+  const latestExaminationId = useMemo(() => {
+    const patientExaminations = (examinationsQuery.data ?? []) as any[];
+    const latestExam = patientExaminations.find(
+      (exam: any) => Number(exam.visitId) === latestVisitId,
+    );
+    return Number(latestExam?.id ?? 0) || null;
+  }, [examinationsQuery.data, latestVisitId]);
+  const examinationChecklistQuery =
+    trpc.medical.getExaminationChecklist.useQuery(
+      { examinationId: latestExaminationId ?? 0 },
+      { enabled: Boolean(latestExaminationId), refetchOnWindowFocus: false },
+    );
 
   const deleteExamMutation = trpc.medical.deleteExaminationDirect.useMutation({
     onSuccess: () => {
@@ -303,13 +341,13 @@ export function usePatientDetails({
 
   useEffect(() => {
     if (!patientId) return;
-    reportsQuery.refetch();
+    if (!isVisitReport) reportsQuery.refetch();
     pentacamQuery.refetch();
     examinationsQuery.refetch();
     visitsQuery.refetch();
     testRequestsQuery?.refetch?.();
     prescriptionsQuery.refetch();
-    followupSheetsQuery.refetch();
+    if (!isVisitReport) followupSheetsQuery.refetch();
   }, [patientId]);
 
   useEffect(() => {
@@ -396,22 +434,9 @@ export function usePatientDetails({
     setServiceCodeDraft(serviceCode);
   }, [serviceCode]);
 
-  const parseMedicalHistoryValue = (rawValue: unknown) => {
-    const raw = String(rawValue ?? "").trim();
-    if (!raw) return { history: "", symptoms: [] as string[] };
-    const marker = "الأعراض:";
-    const markerIndex = raw.indexOf(marker);
-    if (markerIndex === -1) return { history: raw, symptoms: [] as string[] };
-    const history = raw.slice(0, markerIndex).trim();
-    const symptomsRaw = raw.slice(markerIndex + marker.length).trim();
-    const parsedSymptoms = symptomsRaw
-      .split(/[,\n،]/)
-      .map((item) => String(item ?? "").trim())
-      .filter(Boolean);
-    return { history, symptoms: Array.from(new Set(parsedSymptoms)) };
-  };
-
-  const latestReport = reports[0];
+  const latestReport = reports.find(
+    (report: any) => Number(report.visitId) === latestVisitId,
+  );
   const latestReportContent =
     parseJson((latestReport as any)?.content ?? latestReport?.diagnosis) ??
     (latestReport as any)?.content ??
@@ -421,53 +446,43 @@ export function usePatientDetails({
 
   const overviewData = useMemo(() => {
     const symptomSet = new Set<string>();
-    const pushSymptoms = (value: unknown) => {
-      if (Array.isArray(value)) {
-        for (const item of value) {
-          const text = String(item ?? "").trim();
-          if (text) symptomSet.add(text);
-        }
-        return;
-      }
-      const text = String(value ?? "").trim();
-      if (!text) return;
-      text
-        .split(/[,\n،]/)
-        .map((item) => String(item ?? "").trim())
-        .filter(Boolean)
-        .forEach((item) => symptomSet.add(item));
-    };
     let history = "";
-    if (typeof latestReportContent === "string") {
-      const parsed = parseMedicalHistoryValue(latestReportContent);
-      history = parsed.history || latestReportContent;
-      pushSymptoms(parsed.symptoms);
-    } else if (latestReportContent && typeof latestReportContent === "object") {
-      const contentObj = latestReportContent as Record<string, unknown>;
-      const parsed = parseMedicalHistoryValue(
-        firstNonEmpty(
-          contentObj.medicalHistory,
-          contentObj.history,
-          contentObj.chiefComplaint,
-          contentObj.notes,
-          contentObj.note,
-          contentObj.text,
-        ),
-      );
-      history = parsed.history;
-      pushSymptoms(parsed.symptoms);
-      pushSymptoms(contentObj.selectedSymptoms);
-      pushSymptoms(contentObj.symptoms);
-    }
-    if (!history)
-      history = firstNonEmpty(
-        (latestReport as any)?.clinicalOpinion,
-        (latestReport as any)?.diagnosis,
-        (latestReport as any)?.recommendations,
-      );
-    pushSymptoms((latestReport as any)?.symptoms);
+    const checklist = examinationChecklistQuery.data as any;
+    const symptomLabels: Array<[string, string]> = [
+      [
+        "usesTearSubstituteOrExcessTearsOrSandySensation",
+        "جفاف أو دموع زائدة أو إحساس بالرمل",
+      ],
+      ["symptomsWorseWithAirOrAC", "تزداد الأعراض مع الهواء أو التكييف"],
+      ["glaucomaTreatment", "استخدام علاج الجلوكوما"],
+      ["familyKeratoconus", "تاريخ عائلي للقرنية المخروطية"],
+    ];
+    symptomLabels.forEach(([key, label]) => {
+      if (checklist?.[key]) symptomSet.add(label);
+    });
+
+    const historyRows = Array.isArray(medicalHistoryQuery.data)
+      ? [...(medicalHistoryQuery.data as any[])].sort(
+          (a, b) =>
+            new Date(b.updatedAt ?? b.createdAt).getTime() -
+            new Date(a.updatedAt ?? a.createdAt).getTime(),
+        )
+      : [];
+    const historyRow = historyRows[0];
+    const historyParts = [
+      historyRow?.diabetes && "السكري",
+      historyRow?.hypertension && "ضغط الدم",
+      historyRow?.heartDisease && "أمراض القلب",
+      historyRow?.asthma && "الربو",
+      historyRow?.allergies && "الحساسية",
+      historyRow?.previousSurgeries &&
+        `عمليات سابقة: ${historyRow.previousSurgeries}`,
+      historyRow?.medications && `أدوية حالية: ${historyRow.medications}`,
+      historyRow?.familyHistory && `تاريخ عائلي: ${historyRow.familyHistory}`,
+    ].filter(Boolean);
+    if (historyParts.length) history = historyParts.join("، ");
     return { history: history.trim(), symptoms: Array.from(symptomSet) };
-  }, [latestReport, latestReportContent]);
+  }, [examinationChecklistQuery.data, medicalHistoryQuery.data]);
 
   const parsedExamSources = useMemo(() => {
     const autorefMap = new Map<number, any>();
@@ -483,8 +498,12 @@ export function usePatientDetails({
       for (const record of afterRefractionQuery.data)
         afterMap.set(record.examinationId, record);
 
-    return examinations.map((exam: any) => {
-      const notesData = parseJson(exam?.radiologyLabsNotes) ?? {};
+    const latestExaminations = latestVisitId
+      ? examinations.filter(
+          (exam: any) => Number(exam.visitId) === latestVisitId,
+        )
+      : [];
+    return latestExaminations.map((exam: any) => {
       const afterRecord = afterMap.get(exam.id);
       const autorefRecord = autorefMap.get(exam.id);
       const autorefraction = autorefRecord
@@ -536,28 +555,6 @@ export function usePatientDetails({
               : undefined,
         };
       }
-      if (!glassesData) {
-        for (const sheet of [
-          consultantSheetQuery.data,
-          specialistSheetQuery.data,
-          lasikSheetQuery.data,
-          externalSheetQuery.data,
-        ]) {
-          if (
-            sheet &&
-            typeof sheet === "object" &&
-            "examData" in sheet &&
-            (sheet as any).examData
-          ) {
-            const sheetExamData = parseJson((sheet as any).examData);
-            if (sheetExamData?.glasses) {
-              glassesData = sheetExamData.glasses;
-              break;
-            }
-          }
-        }
-      }
-
       const visitDate =
         autorefRecord?.visitDate || glassesRecord?.visitDate || exam?.createdAt;
       return {
@@ -572,8 +569,6 @@ export function usePatientDetails({
             ? parseJson(exam.posteriorSegmentOS)
             : undefined,
         },
-        radiologyLabsNotes: exam?.radiologyLabsNotes,
-        pentacam: (notesData as any)?.pentacam || undefined,
         after: afterRecord
           ? {
               od: {
@@ -587,20 +582,15 @@ export function usePatientDetails({
                 axis: afterRecord.axisOS,
               },
             }
-          : (notesData as any)?.measurements?.after ||
-            (notesData as any)?.after ||
-            undefined,
+          : undefined,
       };
     });
   }, [
     examinations,
+    latestVisitId,
     autorefractometryQuery.data,
     afterRefractionQuery.data,
     glassesRecordsQuery.data,
-    consultantSheetQuery.data,
-    specialistSheetQuery.data,
-    lasikSheetQuery.data,
-    externalSheetQuery.data,
   ]);
 
   const autorefractionRows = useMemo(() => {
@@ -640,17 +630,48 @@ export function usePatientDetails({
     );
   }, [parsedExamSources]);
 
-  const pentacamMeasurements = useMemo(
-    () =>
-      Array.isArray(pentacamQuery.data) ? (pentacamQuery.data as any[]) : [],
-    [pentacamQuery.data],
-  );
+  const pentacamMeasurements = useMemo(() => {
+    const rows = Array.isArray(pentacamQuery.data)
+      ? (pentacamQuery.data as any[])
+      : [];
+    if (!latestVisitId) return [];
+    const linkedRows = rows.filter(
+      (row) => Number(row.visitId) === latestVisitId,
+    );
+    if (linkedRows.length) return linkedRows;
+    return rows
+      .filter((row) => !Number(row.visitId))
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
+      .slice(0, 1);
+  }, [latestVisitId, pentacamQuery.data]);
+
+  const pentacamFiles = useMemo(() => {
+    const files = Array.isArray(pentacamFilesQuery.data)
+      ? (pentacamFilesQuery.data as any[])
+      : [];
+    if (!files.length) return [];
+    const latestFileDate = formatDate(
+      files[0]?.capturedAt ?? files[0]?.importedAt,
+    );
+    return files.filter(
+      (file) =>
+        formatDate(file?.capturedAt ?? file?.importedAt) === latestFileDate,
+    );
+  }, [pentacamFilesQuery.data]);
 
   const glassesRows = useMemo(() => {
     const rows: Array<{
       visit: string;
-      odS: string; odC: string; odAx: string;
-      osS: string; osC: string; osAx: string; osPd: string;
+      odS: string;
+      odC: string;
+      odAx: string;
+      osS: string;
+      osC: string;
+      osAx: string;
+      osPd: string;
       add: string;
     }> = [];
     for (const source of parsedExamSources) {
@@ -663,8 +684,12 @@ export function usePatientDetails({
       if (!hasData) continue;
       rows.push({
         visit: formatDate(source.visitDate),
-        odS: od?.s || "-", odC: od?.c || "-", odAx: od?.axis || "-",
-        osS: os?.s || "-", osC: os?.c || "-", osAx: os?.axis || "-",
+        odS: od?.s || "-",
+        odC: od?.c || "-",
+        odAx: od?.axis || "-",
+        osS: os?.s || "-",
+        osC: os?.c || "-",
+        osAx: os?.axis || "-",
         osPd: os?.pd || "-",
         add: od?.add || os?.add || "-",
       });
@@ -679,39 +704,23 @@ export function usePatientDetails({
       eyeDisplay: "OD" | "OS",
     ) => {
       const dbSources = pentacamMeasurements.map((source) => ({
-        k1: source?.[`k1${eyeSuffix}`],
+        k1: source?.[`k1${eyeSuffix}`] ?? source?.[`keratometry${eyeSuffix}`],
         k2: source?.[`k2${eyeSuffix}`],
-        thinnest: source?.[`thinnestPoint${eyeSuffix}`],
+        thinnest:
+          source?.[`thinnestPoint${eyeSuffix}`] ??
+          source?.[`pachymetry${eyeSuffix}`],
         apex: source?.[`apex${eyeSuffix}`],
         residual: source?.[`residual${eyeSuffix}`],
         ttt: source?.[`ttt${eyeSuffix}`],
         ablation: source?.[`ablation${eyeSuffix}`],
       }));
-      const examPentacamSources = parsedExamSources
-        .map((source: any) => source?.pentacam?.[eyeKey])
-        .filter(Boolean);
       return {
         eye: eyeDisplay,
-        k1: firstNonEmpty(
-          ...dbSources.map((item) => item?.k1),
-          ...examPentacamSources.map((item: any) => item?.k1),
-        ),
-        k2: firstNonEmpty(
-          ...dbSources.map((item) => item?.k2),
-          ...examPentacamSources.map((item: any) => item?.k2),
-        ),
-        thinnest: firstNonEmpty(
-          ...dbSources.map((item) => item?.thinnest),
-          ...examPentacamSources.map((item: any) => item?.thinnest),
-        ),
-        apex: firstNonEmpty(
-          ...dbSources.map((item) => item?.apex),
-          ...examPentacamSources.map((item: any) => item?.apex),
-        ),
-        residual: firstNonEmpty(
-          ...dbSources.map((item) => item?.residual),
-          ...examPentacamSources.map((item: any) => item?.residualStroma),
-        ),
+        k1: firstNonEmpty(...dbSources.map((item) => item?.k1)),
+        k2: firstNonEmpty(...dbSources.map((item) => item?.k2)),
+        thinnest: firstNonEmpty(...dbSources.map((item) => item?.thinnest)),
+        apex: firstNonEmpty(...dbSources.map((item) => item?.apex)),
+        residual: firstNonEmpty(...dbSources.map((item) => item?.residual)),
         ttt: firstNonEmpty(...dbSources.map((item) => item?.ttt)),
         ablation: firstNonEmpty(...dbSources.map((item) => item?.ablation)),
       };
@@ -729,38 +738,6 @@ export function usePatientDetails({
         ].some(Boolean),
     );
   }, [pentacamMeasurements, parsedExamSources]);
-
-  const testsData = useMemo(() => {
-    const allTests: any[] = [];
-    parsedExamSources.forEach((source: any) => {
-      if (source?.radiologyLabsNotes) {
-        try {
-          const parsed = JSON.parse(source.radiologyLabsNotes);
-          if (parsed.tests && Array.isArray(parsed.tests))
-            allTests.push(...parsed.tests);
-        } catch {
-          /* ignore */
-        }
-      }
-    });
-    return [...new Set(allTests)];
-  }, [parsedExamSources]);
-
-  const treatmentData = useMemo(() => {
-    const allTreatment: any[] = [];
-    parsedExamSources.forEach((source: any) => {
-      if (source?.radiologyLabsNotes) {
-        try {
-          const parsed = JSON.parse(source.radiologyLabsNotes);
-          if (parsed.treatment && Array.isArray(parsed.treatment))
-            allTreatment.push(...parsed.treatment);
-        } catch {
-          /* ignore */
-        }
-      }
-    });
-    return [...new Set(allTreatment)];
-  }, [parsedExamSources]);
 
   const fundusRows = useMemo(() => {
     const buildEye = (eyeKey: "od" | "os", eye: "OD" | "OS") => {
@@ -789,32 +766,28 @@ export function usePatientDetails({
     );
   }, [parsedExamSources]);
 
-  const selectedTests = useMemo(() => {
-    const data = (requestTestsStateQuery.data as any)?.data ?? {};
-    return Array.isArray(data.selectedTests)
-      ? (data.selectedTests as any[])
-      : [];
-  }, [requestTestsStateQuery.data]);
-
   const requestedImagingAndLabs = useMemo(() => {
-    const allTests = [...selectedTests, ...testsData];
-    const uniqueTests = Array.from(
-      new Map(
-        allTests.map((test) => [
-          test?.id ?? `${test?.name}-${Math.random()}`,
-          test,
-        ]),
-      ).values(),
-    );
-    return uniqueTests.filter((test) => {
-      const kind = classifyTest(test);
-      return kind === "imaging" || kind === "lab";
-    });
-  }, [selectedTests, testsData]);
+    const requests = Array.isArray(testRequestsQuery?.data)
+      ? (testRequestsQuery.data as any[])
+      : [];
+    return requests
+      .filter((request) => Number(request.visitId) === latestVisitId)
+      .flatMap((request) =>
+        (request.items ?? []).map((item: any) => ({
+          id: item.id,
+          name: item.testName,
+          result: item.result,
+          requestDate: request.requestDate,
+          status: request.status,
+        })),
+      );
+  }, [latestVisitId, testRequestsQuery?.data]);
 
   const treatmentRows = useMemo(() => {
     const source = Array.isArray(prescriptionsQuery.data)
-      ? (prescriptionsQuery.data as any[])
+      ? (prescriptionsQuery.data as any[]).filter(
+          (prescription) => Number(prescription.visitId) === latestVisitId,
+        )
       : [];
     const rows: Array<{
       key: string;
@@ -859,7 +832,7 @@ export function usePatientDetails({
       }
     });
     return rows;
-  }, [prescriptionsQuery.data]);
+  }, [latestVisitId, prescriptionsQuery.data]);
 
   const serviceDirectory = useMemo(() => {
     const raw = (serviceDirectoryQuery.data as any)?.value;
@@ -998,17 +971,31 @@ export function usePatientDetails({
   };
 
   const onRefresh = async () => {
-    await Promise.all([
+    const reportRefreshes = [
       patientQuery.refetch(),
       examinationsQuery.refetch(),
-      reportsQuery.refetch(),
+      visitsQuery.refetch(),
+      autorefractometryQuery.refetch(),
+      afterRefractionQuery.refetch(),
+      glassesRecordsQuery.refetch(),
+      pentacamQuery.refetch(),
+      pentacamFilesQuery.refetch(),
+      medicalHistoryQuery.refetch(),
+      examinationChecklistQuery.refetch(),
+      testRequestsQuery?.refetch?.(),
       prescriptionsQuery.refetch(),
-      surgeriesQuery.refetch(),
-      followupsQuery.refetch(),
-      followupSheetsQuery.refetch(),
       patientStateQuery.refetch(),
       examStateQuery.refetch(),
-    ]);
+    ];
+    if (!isVisitReport) {
+      reportRefreshes.push(
+        reportsQuery.refetch(),
+        surgeriesQuery.refetch(),
+        followupsQuery.refetch(),
+        followupSheetsQuery.refetch(),
+      );
+    }
+    await Promise.all(reportRefreshes);
   };
 
   return {
@@ -1021,8 +1008,10 @@ export function usePatientDetails({
     followupsQuery,
     followupSheetsQuery,
     pentacamQuery,
+    pentacamFilesQuery,
+    medicalHistoryQuery,
+    examinationChecklistQuery,
     testRequestsQuery,
-    medicationsQuery,
     deleteExamMutation,
     updateVisitDateMutation,
     deletePatientMutation,
@@ -1056,10 +1045,11 @@ export function usePatientDetails({
     afterRows,
     glassesRows,
     pentacamRows,
+    pentacamFiles,
+    latestVisitId,
     fundusRows,
     requestedImagingAndLabs,
     treatmentRows,
-    treatmentData,
     latestReport,
     latestReportContent,
     onRefresh,

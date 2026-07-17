@@ -1,513 +1,307 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronDown, ChevronUp } from "lucide-react";
-import { classifyTest } from "@/hooks/patient-details/usePatientDetails";
 
-const FOLLOWUP_ORDINALS = [
-  "الأولى",
-  "الثانية",
-  "الثالثة",
-  "الرابعة",
-  "الخامسة",
-  "السادسة",
-  "السابعة",
-  "الثامنة",
-  "التاسعة",
-  "العاشرة",
-];
+interface EyeMeasurement {
+  eye: string;
+  ucva: string;
+  bcva: string;
+  s: string;
+  c: string;
+  axis: string;
+  iop: string;
+}
+
+interface AfterMeasurement {
+  eye: string;
+  s: string;
+  c: string;
+  axis: string;
+}
+
+interface ClinicalRefraction {
+  visit: string;
+  odS: string;
+  odC: string;
+  odAx: string;
+  osS: string;
+  osC: string;
+  osAx: string;
+  osPd: string;
+  add: string;
+}
 
 interface ExaminationsTabProps {
-  autorefractionRows: Array<{
-    eye: string;
-    ucva: string;
-    bcva: string;
-    s: string;
-    c: string;
-    axis: string;
-    iop: string;
-  }>;
-  afterRows: Array<{ eye: string; s: string; c: string; axis: string }>;
-  glassesRows: Array<{
-    visit: string;
-    odS: string; odC: string; odAx: string;
-    osS: string; osC: string; osAx: string; osPd: string;
-    add: string;
-  }>;
-  fundusRows: Array<{ eye: string; findings: string }>;
-  requestedImagingAndLabs: any[];
-  parsedExamSources: any[];
-  openExamSections: {
-    autoref: boolean;
-    glasses: boolean;
-    fundus: boolean;
-    requestTests: boolean;
-  };
-  toggleExamSection: (
-    key: "autoref" | "glasses" | "fundus" | "requestTests",
-  ) => void;
-  followupSheets?: any[];
+  autorefractionRows: EyeMeasurement[];
+  afterRows: AfterMeasurement[];
+  glassesRows: ClinicalRefraction[];
 }
+
+function ReportSection({
+  title,
+  source,
+  children,
+}: {
+  title: string;
+  source: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Card className="border-border/80 bg-background shadow-none">
+      <CardHeader className="flex-row items-center justify-between border-b border-border py-3">
+        <CardTitle className="text-base">{title}</CardTitle>
+        <span className="font-mono text-[10px] text-muted-foreground" dir="ltr">
+          {source}
+        </span>
+      </CardHeader>
+      <CardContent className="pt-4">{children}</CardContent>
+    </Card>
+  );
+}
+
+const EmptyRow = ({ label }: { label: string }) => (
+  <p className="text-sm text-muted-foreground">لا توجد بيانات {label} محفوظة</p>
+);
 
 export function ExaminationsTab({
   autorefractionRows,
   afterRows,
   glassesRows,
-  fundusRows,
-  requestedImagingAndLabs,
-  parsedExamSources,
-  openExamSections,
-  toggleExamSection,
-  followupSheets,
 }: ExaminationsTabProps) {
-  const [openFollowups, setOpenFollowups] = useState<Record<number, boolean>>(
-    {},
+  const iopRows = autorefractionRows.filter(
+    (row) => row.iop && row.iop !== "-" && row.iop !== "—",
   );
 
-  const followupItems = (followupSheets ?? [])
-    .flatMap((sheet: any) =>
-      (sheet.items ?? []).filter((item: any) => item.followupDate),
-    )
-    .sort(
-      (a: any, b: any) =>
-        new Date(a.followupDate).getTime() - new Date(b.followupDate).getTime(),
-    );
-
-  const toggleFollowup = (idx: number) =>
-    setOpenFollowups((prev) => ({ ...prev, [idx]: !prev[idx] }));
-
   return (
-    <Card className="border-border/80 bg-background/92 shadow-sm" dir="ltr">
-      <CardHeader className="border-b border-border pb-3">
-        <CardTitle className="text-base">القياسات</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3 pt-4">
-        {/* Autoref + IOP */}
-        <div className="rounded-xl border border-border bg-background">
-          <Button
-            type="button"
-            variant="ghost"
-            className="h-auto w-full justify-between rounded-xl px-4 py-3 text-start font-semibold text-muted-foreground bg-muted"
-            onClick={() => toggleExamSection("autoref")}
-          >
-            <span>Autoref + IOP</span>
-            {openExamSections.autoref ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-          </Button>
-          {openExamSections.autoref && (
-            <div className="space-y-3 border-t border-border p-3">
-              {autorefractionRows.length ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[560px] border-collapse text-center">
-                    <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                      <tr>
-                        <th className="border px-3 py-3">Eye</th>
-                        <th className="border px-3 py-3">UCVA</th>
-                        <th className="border px-3 py-3">S</th>
-                        <th className="border px-3 py-3">C</th>
-                        <th className="border px-3 py-3">Axis</th>
-                        <th className="border px-3 py-3">IOP</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {autorefractionRows.map((row) => (
-                        <tr
-                          key={row.eye}
-                          className="bg-background text-sm font-medium text-foreground"
-                        >
-                          <td className="border px-3 py-3 font-bold">
-                            {row.eye}
-                          </td>
-                          <td className="border px-3 py-3">
-                            {row.ucva || "-"}
-                          </td>
-                          <td className="border px-3 py-3">{row.s || "-"}</td>
-                          <td className="border px-3 py-3">{row.c || "-"}</td>
-                          <td className="border px-3 py-3">
-                            {row.axis || "-"}
-                          </td>
-                          <td className="border px-3 py-3">{row.iop || "-"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  لا توجد بيانات Autoref محفوظة
-                </p>
-              )}
-
-              {afterRows.length ? (
-                <div className="overflow-x-auto">
-                  <div className="mb-2 text-xs font-semibold text-muted-foreground">
-                    After
-                  </div>
-                  <table className="w-full min-w-[440px] border-collapse text-center">
-                    <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                      <tr>
-                        <th className="border px-3 py-3">Eye</th>
-                        <th className="border px-3 py-3">S</th>
-                        <th className="border px-3 py-3">C</th>
-                        <th className="border px-3 py-3">Axis</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {afterRows.map((row) => (
-                        <tr
-                          key={`after-${row.eye}`}
-                          className="bg-background text-sm font-medium text-foreground"
-                        >
-                          <td className="border px-3 py-3 font-bold">
-                            {row.eye}
-                          </td>
-                          <td className="border px-3 py-3">{row.s || "-"}</td>
-                          <td className="border px-3 py-3">{row.c || "-"}</td>
-                          <td className="border px-3 py-3">
-                            {row.axis || "-"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : null}
-            </div>
-          )}
-        </div>
-
-        {/* Glasses */}
-        <div className="rounded-xl border border-border bg-background">
-          <Button
-            type="button"
-            variant="ghost"
-            className="h-auto w-full justify-between rounded-xl px-4 py-3 text-start font-semibold text-muted-foreground bg-muted"
-            onClick={() => toggleExamSection("glasses")}
-          >
-            <span>👓 مقاس النظاره</span>
-            {openExamSections.glasses ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-          </Button>
-          {openExamSections.glasses && (
-            <div className="overflow-x-auto border-t border-border">
-              {glassesRows.length ? (
-                <table className="w-full min-w-[680px] border-collapse text-center">
-                  <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                    <tr>
-                      <th className="border px-3 py-3">التاريخ</th>
-                      <th className="border px-3 py-3">OD S</th>
-                      <th className="border px-3 py-3">OD C</th>
-                      <th className="border px-3 py-3">OD Ax</th>
-                      <th className="border px-3 py-3">OS S</th>
-                      <th className="border px-3 py-3">OS C</th>
-                      <th className="border px-3 py-3">OS Ax</th>
-                      <th className="border px-3 py-3">OS PD</th>
-                      <th className="border px-3 py-3">Add</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {glassesRows.map((row, i) => (
-                      <tr
-                        key={`glass-${i}`}
-                        className="bg-background text-sm font-medium text-foreground"
-                      >
-                        <td className="border px-3 py-3 font-bold">{row.visit}</td>
-                        <td className="border px-3 py-3">{row.odS}</td>
-                        <td className="border px-3 py-3">{row.odC}</td>
-                        <td className="border px-3 py-3">{row.odAx}</td>
-                        <td className="border px-3 py-3">{row.osS}</td>
-                        <td className="border px-3 py-3">{row.osC}</td>
-                        <td className="border px-3 py-3">{row.osAx}</td>
-                        <td className="border px-3 py-3">{row.osPd}</td>
-                        <td className="border px-3 py-3">{row.add}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p className="p-4 text-sm text-muted-foreground">
-                  لا توجد بيانات مقاس النظاره محفوظة
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Fundus */}
-        <div className="rounded-xl border border-border bg-background">
-          <Button
-            type="button"
-            variant="ghost"
-            className="h-auto w-full justify-between rounded-xl px-4 py-3 text-start font-semibold text-muted-foreground bg-muted"
-            onClick={() => toggleExamSection("fundus")}
-          >
-            <span>Fundus</span>
-            {openExamSections.fundus ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-          </Button>
-          {openExamSections.fundus && (
-            <div className="overflow-x-auto border-t border-border">
-              {fundusRows.length ? (
-                <table className="w-full min-w-[360px] border-collapse text-center">
-                  <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                    <tr>
-                      <th className="border px-3 py-3">Eye</th>
-                      <th className="border px-3 py-3">Findings</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {fundusRows.map((row) => (
-                      <tr
-                        key={`fundus-${row.eye}`}
-                        className="bg-background text-sm font-medium text-foreground"
-                      >
-                        <td className="border px-3 py-3 font-bold">
-                          {row.eye}
-                        </td>
-                        <td className="border px-3 py-3 text-left" dir="auto">
-                          {row.findings || "-"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p className="p-4 text-sm text-muted-foreground">
-                  لا توجد بيانات Fundus محفوظة
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Radiology + Tests */}
-        <div className="rounded-xl border border-border bg-background">
-          <Button
-            type="button"
-            variant="ghost"
-            className="h-auto w-full justify-between rounded-xl px-4 py-3 text-start font-semibold text-muted-foreground bg-muted"
-            onClick={() => toggleExamSection("requestTests")}
-          >
-            <span>الأشعات + التحاليل (من طلب الفحوصات)</span>
-            {openExamSections.requestTests ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-          </Button>
-          {openExamSections.requestTests && (
-            <div className="overflow-x-auto border-t border-border space-y-4 p-4">
-              {parsedExamSources.some((s) => s?.radiologyLabsNotes) && (
-                <div className="bg-primary/5 border border-ring/30 rounded-lg p-4">
-                  <h4 className="font-semibold text-primary mb-2">
-                    📋 ملخص الأشعات والتحاليل من الزيارات:
-                  </h4>
-                  {parsedExamSources.map((source, idx) => {
-                    if (!source?.radiologyLabsNotes) return null;
-                    try {
-                      const data = JSON.parse(source.radiologyLabsNotes);
-                      return (
-                        <div key={idx} className="text-sm text-primary mb-2">
-                          {data.tests?.length > 0 && (
-                            <p>
-                              🔬 <strong>الاختبارات:</strong>{" "}
-                              <span dir="auto">{data.tests.join(", ")}</span>
-                            </p>
-                          )}
-                          {data.diagnosis?.length > 0 && (
-                            <p>
-                              ⚕️ <strong>التشخيص:</strong>{" "}
-                              <span dir="auto">
-                                {data.diagnosis.join(", ")}
-                              </span>
-                            </p>
-                          )}
-                          {data.treatment?.length > 0 && (
-                            <p>
-                              💊 <strong>العلاج:</strong>{" "}
-                              <span dir="auto">
-                                {data.treatment.join(", ")}
-                              </span>
-                            </p>
-                          )}
-                        </div>
-                      );
-                    } catch {
-                      return null;
-                    }
-                  })}
-                </div>
-              )}
-              {requestedImagingAndLabs.length ? (
-                <table className="w-full min-w-[640px] border-collapse text-center">
-                  <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                    <tr>
-                      <th className="border px-3 py-3">Type</th>
-                      <th className="border px-3 py-3">Test Name</th>
-                      <th className="border px-3 py-3">Category</th>
-                      <th className="border px-3 py-3">Notes</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {requestedImagingAndLabs.map((test: any, index: number) => (
-                      <tr
-                        key={`req-${String(test?.id ?? "")}-${index}`}
-                        className="bg-background text-sm font-medium text-foreground"
-                      >
-                        <td className="border px-3 py-3">
-                          {classifyTest(test) === "imaging" ? "Imaging" : "Lab"}
-                        </td>
-                        <td className="border px-3 py-3" dir="auto">
-                          {String(test?.name ?? "—")}
-                        </td>
-                        <td className="border px-3 py-3" dir="auto">
-                          {String(test?.category ?? "—")}
-                        </td>
-                        <td className="border px-3 py-3 text-left" dir="auto">
-                          {String(test?.notes ?? "").trim() || "-"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p className="p-4 text-sm text-muted-foreground">
-                  لا توجد أشعات أو تحاليل محفوظة في طلب الفحوصات
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-        {/* Followup Sections */}
-        {followupItems.map((item: any, idx: number) => {
-          let refOD: any = null;
-          let refOS: any = null;
-          try {
-            refOD =
-              typeof item.refracOD === "string"
-                ? JSON.parse(item.refracOD)
-                : item.refracOD;
-          } catch {}
-          try {
-            refOS =
-              typeof item.refracOS === "string"
-                ? JSON.parse(item.refracOS)
-                : item.refracOS;
-          } catch {}
-          const label = `المتابعة ${FOLLOWUP_ORDINALS[idx] ?? String(idx + 1)}`;
-          const dateLabel = item.followupDate
-            ? new Date(item.followupDate).toLocaleDateString("ar-EG")
-            : "";
-          const rows = [
-            {
-              eye: "OD",
-              va: item.vaOD,
-              s: refOD?.s,
-              c: refOD?.c,
-              axis: refOD?.axis,
-              iop: item.iopOD,
-            },
-            {
-              eye: "OS",
-              va: item.vaOS,
-              s: refOS?.s,
-              c: refOS?.c,
-              axis: refOS?.axis,
-              iop: item.iopOS,
-            },
-          ];
-          return (
-            <div
-              key={`followup-${idx}`}
-              className="rounded-xl border border-border bg-background"
-            >
-              <Button
-                type="button"
-                variant="ghost"
-                className="h-auto w-full justify-between rounded-xl px-4 py-3 text-start font-semibold text-muted-foreground bg-muted"
-                onClick={() => toggleFollowup(idx)}
-              >
-                <span>
-                  {label}
-                  {dateLabel ? (
-                    <>
-                      {" — "}
-                      <span dir="auto">{dateLabel}</span>
-                    </>
-                  ) : (
-                    ""
+    <div className="space-y-5" dir="ltr">
+      <ReportSection title="Autoref / IOP" source="autorefractometrydata">
+        {autorefractionRows.length ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[620px] border-collapse text-center text-sm">
+              <thead className="bg-muted text-xs text-muted-foreground">
+                <tr>
+                  {["Eye", "UCVA", "BCVA", "S", "C", "Axis", "IOP"].map(
+                    (header) => (
+                      <th key={header} className="border px-3 py-2.5">
+                        {header}
+                      </th>
+                    ),
                   )}
-                </span>
-                {openFollowups[idx] ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-              </Button>
-              {openFollowups[idx] && (
-                <div className="space-y-3 border-t border-border p-3">
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[560px] border-collapse text-center">
-                      <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                        <tr>
-                          <th className="border px-3 py-3">Eye</th>
-                          <th className="border px-3 py-3">VA</th>
-                          <th className="border px-3 py-3">S</th>
-                          <th className="border px-3 py-3">C</th>
-                          <th className="border px-3 py-3">Axis</th>
-                          <th className="border px-3 py-3">IOP</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {rows.map((row) => (
-                          <tr
-                            key={`fu-${idx}-${row.eye}`}
-                            className="bg-background text-sm font-medium text-foreground"
-                          >
-                            <td className="border px-3 py-3 font-bold">
-                              {row.eye}
-                            </td>
-                            <td className="border px-3 py-3">
-                              {row.va || "-"}
-                            </td>
-                            <td className="border px-3 py-3">{row.s || "-"}</td>
-                            <td className="border px-3 py-3">{row.c || "-"}</td>
-                            <td className="border px-3 py-3">
-                              {row.axis || "-"}
-                            </td>
-                            <td className="border px-3 py-3">
-                              {row.iop || "-"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  {item.notes && (
-                    <p className="text-sm text-muted-foreground">
-                      ملاحظات: <span dir="auto">{item.notes}</span>
-                    </p>
-                  )}
-                  {item.treatment && (
-                    <p className="text-sm text-muted-foreground">
-                      العلاج: <span dir="auto">{item.treatment}</span>
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </CardContent>
-    </Card>
+                </tr>
+              </thead>
+              <tbody>
+                {autorefractionRows.map((row) => (
+                  <tr key={row.eye}>
+                    {[
+                      row.eye,
+                      row.ucva,
+                      row.bcva,
+                      row.s,
+                      row.c,
+                      row.axis,
+                      row.iop,
+                    ].map((value, index) => (
+                      <td
+                        key={index}
+                        className="border px-3 py-2.5 tabular-nums"
+                      >
+                        {value || "—"}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyRow label="Autoref / IOP" />
+        )}
+      </ReportSection>
+
+      <ReportSection title="After" source="afterrefractiondata">
+        {afterRows.length ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[440px] border-collapse text-center text-sm">
+              <thead className="bg-muted text-xs text-muted-foreground">
+                <tr>
+                  {["Eye", "S", "C", "Axis"].map((header) => (
+                    <th key={header} className="border px-3 py-2.5">
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {afterRows.map((row) => (
+                  <tr key={row.eye}>
+                    {[row.eye, row.s, row.c, row.axis].map((value, index) => (
+                      <td
+                        key={index}
+                        className="border px-3 py-2.5 tabular-nums"
+                      >
+                        {value || "—"}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyRow label="After" />
+        )}
+      </ReportSection>
+
+      <ReportSection title="Clinical Refraction" source="glassesrecords">
+        {glassesRows.length ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] border-collapse text-center text-sm">
+              <thead className="bg-muted text-xs text-muted-foreground">
+                <tr>
+                  {[
+                    "Date",
+                    "OD S",
+                    "OD C",
+                    "OD Axis",
+                    "OS S",
+                    "OS C",
+                    "OS Axis",
+                    "OS PD",
+                    "Add",
+                  ].map((header) => (
+                    <th key={header} className="border px-3 py-2.5">
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {glassesRows.map((row, index) => (
+                  <tr key={`${row.visit}-${index}`}>
+                    {[
+                      row.visit,
+                      row.odS,
+                      row.odC,
+                      row.odAx,
+                      row.osS,
+                      row.osC,
+                      row.osAx,
+                      row.osPd,
+                      row.add,
+                    ].map((value, cellIndex) => (
+                      <td
+                        key={cellIndex}
+                        className="border px-3 py-2.5 tabular-nums"
+                      >
+                        {value || "—"}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyRow label="Clinical Refraction" />
+        )}
+      </ReportSection>
+
+      <ReportSection
+        title="Technical Trends: Refraction and IOP"
+        source="Refraction: glassesrecords | IOP: autorefractometrydata"
+      >
+        {glassesRows.length || iopRows.length ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] border-collapse text-center text-sm">
+              <thead className="bg-muted text-xs text-muted-foreground">
+                <tr>
+                  {[
+                    "Date",
+                    "Source",
+                    "Eye",
+                    "S",
+                    "C",
+                    "Axis",
+                    "PD",
+                    "Add",
+                    "IOP",
+                  ].map((header) => (
+                    <th key={header} className="border px-3 py-2.5">
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {glassesRows.flatMap((row, index) => [
+                  <tr key={`clinical-od-${index}`}>
+                    {[
+                      row.visit,
+                      "glassesrecords",
+                      "OD",
+                      row.odS,
+                      row.odC,
+                      row.odAx,
+                      "—",
+                      row.add,
+                      "—",
+                    ].map((value, cellIndex) => (
+                      <td
+                        key={cellIndex}
+                        className="border px-3 py-2.5 tabular-nums"
+                      >
+                        {value}
+                      </td>
+                    ))}
+                  </tr>,
+                  <tr key={`clinical-os-${index}`}>
+                    {[
+                      row.visit,
+                      "glassesrecords",
+                      "OS",
+                      row.osS,
+                      row.osC,
+                      row.osAx,
+                      row.osPd,
+                      row.add,
+                      "—",
+                    ].map((value, cellIndex) => (
+                      <td
+                        key={cellIndex}
+                        className="border px-3 py-2.5 tabular-nums"
+                      >
+                        {value}
+                      </td>
+                    ))}
+                  </tr>,
+                ])}
+                {iopRows.map((row) => (
+                  <tr key={`iop-${row.eye}`}>
+                    {[
+                      "آخر زيارة",
+                      "autorefractometrydata",
+                      row.eye,
+                      "—",
+                      "—",
+                      "—",
+                      "—",
+                      "—",
+                      row.iop,
+                    ].map((value, index) => (
+                      <td
+                        key={index}
+                        className="border px-3 py-2.5 tabular-nums"
+                      >
+                        {value || "—"}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyRow label="Technical Trends" />
+        )}
+      </ReportSection>
+    </div>
   );
 }

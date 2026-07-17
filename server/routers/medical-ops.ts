@@ -55,8 +55,42 @@ import {
   upsertPatientToMssql,
 } from "../integrations/mssqlPatients";
 
-import { canPushToMssql, findExistingPatientByNameOrPhone, normalizePhoneKey, pushNewPatientToMssql, readDoctorNameFromStateData, readFreshDoctorNameForPatient, readRoleSignatureFromStateData, registrationPricingPayload, resolveDoctorCodeById, resolveDoctorCodeByName, resolveNotificationTargetRolesByUserRole, resolvePatientNotifTitle, resolveServiceCodeForType } from "./_medical/patient-helpers";
-import { DEFAULT_MSSQL_SYNC_RUNTIME_CONFIG, assertPentacamViewPermission, decodeMojibake, doctorDirectoryEntrySchema, doctorLocationTypeSchema, doctorTypeSchema, getSystemSettingFallbackValue, inferSrvTyp, normalizeServiceCodeKey, normalizeServiceDefaultSheet, normalizeVisitType, readReadyPrescriptionTemplatesFromFile, readReadyTestTemplatesFromFile, readyTemplateOverrideImportSchema, readyTemplateOverrideUpdateSchema, readyTemplateScopeSchema, serviceDirectoryEntrySchema, serviceTypeFromSheetOrType, symptomDirectoryEntrySchema } from "./_medical/service-helpers";
+import {
+  canPushToMssql,
+  findExistingPatientByNameOrPhone,
+  normalizePhoneKey,
+  pushNewPatientToMssql,
+  readDoctorNameFromStateData,
+  readFreshDoctorNameForPatient,
+  readRoleSignatureFromStateData,
+  registrationPricingPayload,
+  resolveDoctorCodeById,
+  resolveDoctorCodeByName,
+  resolveNotificationTargetRolesByUserRole,
+  resolvePatientNotifTitle,
+  resolveServiceCodeForType,
+} from "./_medical/patient-helpers";
+import {
+  DEFAULT_MSSQL_SYNC_RUNTIME_CONFIG,
+  assertPentacamViewPermission,
+  decodeMojibake,
+  doctorDirectoryEntrySchema,
+  doctorLocationTypeSchema,
+  doctorTypeSchema,
+  getSystemSettingFallbackValue,
+  inferSrvTyp,
+  normalizeServiceCodeKey,
+  normalizeServiceDefaultSheet,
+  normalizeVisitType,
+  readReadyPrescriptionTemplatesFromFile,
+  readReadyTestTemplatesFromFile,
+  readyTemplateOverrideImportSchema,
+  readyTemplateOverrideUpdateSchema,
+  readyTemplateScopeSchema,
+  serviceDirectoryEntrySchema,
+  serviceTypeFromSheetOrType,
+  symptomDirectoryEntrySchema,
+} from "./_medical/service-helpers";
 
 export const medicalOpsRoutes = {
   getOpsHealth: adminProcedure.query(async () => {
@@ -1536,6 +1570,12 @@ export const medicalOpsRoutes = {
       );
     }),
 
+  getExaminationChecklistsByPatient: protectedProcedure
+    .input(z.object({ patientId: z.number().int().positive() }))
+    .query(async ({ input }) => {
+      return await db.getExaminationChecklistsByPatient(input.patientId);
+    }),
+
   savePatientPageState: protectedProcedure
     .input(
       z.object({
@@ -1915,12 +1955,9 @@ export const medicalOpsRoutes = {
       name: decodeMojibake(String(doctor.name ?? "")),
       isActive: Boolean(doctor.isActive),
       locationType: String(doctor.locationType ?? "center") as
-        | "center"
-        | "external",
+        "center" | "external",
       doctorType: String(doctor.doctorType ?? "consultant") as
-        | "consultant"
-        | "specialist"
-        | "external",
+        "consultant" | "specialist" | "external",
     }));
   }),
 

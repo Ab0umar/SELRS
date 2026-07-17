@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface TreatmentRow {
@@ -13,20 +12,19 @@ interface TreatmentRow {
 
 interface TreatmentTabProps {
   treatmentRows: TreatmentRow[];
-  treatmentData: any[];
-  medications: any[];
 }
 
-export function TreatmentTab({
-  treatmentRows,
-  treatmentData,
-  medications,
-}: TreatmentTabProps) {
+export function TreatmentTab({ treatmentRows }: TreatmentTabProps) {
   return (
     <div className="space-y-6">
       <Card className="border-border/80 bg-background/92 shadow-sm" dir="ltr">
         <CardHeader className="border-b border-border">
-          <CardTitle>الروشتات</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Treatment Plan</CardTitle>
+            <span className="font-mono text-[10px] text-muted-foreground">
+              prescriptions + prescriptionitems
+            </span>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {treatmentRows.length === 0 && (
@@ -79,33 +77,6 @@ export function TreatmentTab({
           )}
         </CardContent>
       </Card>
-
-      {treatmentData.length > 0 && (
-        <Card className="border-border/80 bg-background/92 shadow-sm" dir="ltr">
-          <CardHeader className="border-b border-border">
-            <CardTitle>العلاجات المختارة من الملف الطبي</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {treatmentData.map((treatmentId) => {
-                const medication = medications.find(
-                  (m: any) => m.id === treatmentId,
-                );
-                return (
-                  <Badge
-                    key={treatmentId}
-                    variant="default"
-                    className="rounded-full"
-                    dir="auto"
-                  >
-                    {medication?.name ?? `العلاج #${treatmentId}`}
-                  </Badge>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
