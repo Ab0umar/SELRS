@@ -1,12 +1,15 @@
 {
   "name": "SELRS",
-  "version": "1.0.204",
+  "version": "1.0.207",
   "type": "module",
   "license": "MIT",
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx watch server/_core/index.ts",
     "pentacam:service": "cross-env tsx server/services/pentacam.ts",
     "pentacam:service:watch": "cross-env tsx watch server/services/pentacam.ts",
+    "sync:year2023": "cross-env tsx server/integrations/syncYearPatients.ts 2023",
+    "sync:year2024": "cross-env tsx server/integrations/syncYearPatients.ts 2024",
+    "sync:year2025": "cross-env tsx server/integrations/syncYearPatients.ts 2025",
     "check:encoding": "node scripts/check-mojibake.mjs",
     "build": "pnpm check:encoding && vite build && esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "build:watch": "cross-env FAST_BUILD=1 vite build && esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
