@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { ExaminationPatientQuickDialogContent } from "@/components/examination/ExaminationPatientQuickDialogContent";
 
 export function QuickPatientEntryDialog({
@@ -21,24 +21,27 @@ export function QuickPatientEntryDialog({
   }, [open]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="max-h-[min(92dvh,calc(100vh-24px))] gap-4 overflow-x-hidden overflow-y-auto sm:max-w-6xl"
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="top"
+        className="max-h-[92dvh] w-full gap-0 overflow-hidden p-0"
         dir="rtl"
       >
-        <DialogHeader>
-          <DialogTitle>تسجيل مريض</DialogTitle>
-          <DialogDescription className="sr-only">
+        <SheetHeader className="shrink-0 border-b px-5 py-4 text-right">
+          <SheetTitle>تسجيل مريض</SheetTitle>
+          <SheetDescription className="sr-only">
             نموذج تسجيل مريض جديد
-          </DialogDescription>
-        </DialogHeader>
-        {open ? (
-          <ExaminationPatientQuickDialogContent
-            key={mountKey}
-            onClose={() => onOpenChange(false)}
-          />
-        ) : null}
-      </DialogContent>
-    </Dialog>
+          </SheetDescription>
+        </SheetHeader>
+        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-5">
+          {open ? (
+            <ExaminationPatientQuickDialogContent
+              key={mountKey}
+              onClose={() => onOpenChange(false)}
+            />
+          ) : null}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

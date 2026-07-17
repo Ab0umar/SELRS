@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import PatientPicker from "@/components/PatientPicker";
@@ -22,8 +22,13 @@ export function FollowupQuickDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [patient, setPatient] = useState<{ id: number; fullName?: string } | null>(null);
-  const [visitDate, setVisitDate] = useState(new Date().toISOString().slice(0, 10));
+  const [patient, setPatient] = useState<{
+    id: number;
+    fullName?: string;
+  } | null>(null);
+  const [visitDate, setVisitDate] = useState(
+    new Date().toISOString().slice(0, 10),
+  );
 
   useEffect(() => {
     if (open) {
@@ -51,19 +56,20 @@ export function FollowupQuickDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="max-h-[min(92dvh,calc(100vh-24px))] overflow-x-hidden overflow-y-auto sm:max-w-md"
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="top"
+        className="max-h-[92dvh] w-full gap-0 overflow-hidden p-0"
         dir="rtl"
       >
-        <DialogHeader className="text-right">
-          <DialogTitle className="text-right">إضافة متابعة للطابور</DialogTitle>
-          <DialogDescription className="text-right text-muted-foreground">
+        <SheetHeader className="shrink-0 border-b px-5 py-4 text-right">
+          <SheetTitle className="text-right">إضافة متابعة للطابور</SheetTitle>
+          <SheetDescription className="text-right text-muted-foreground">
             ابحث عن المريض واختر التاريخ ثم أضفه للطابور
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
-        <div className="space-y-4">
+        <div className="mx-auto min-h-0 w-full max-w-2xl flex-1 space-y-4 overflow-y-auto p-5">
           <PatientPicker onSelect={(p) => setPatient(p)} />
 
           <div className="flex items-center gap-3">
@@ -85,7 +91,7 @@ export function FollowupQuickDialog({
             إضافة للطابور
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

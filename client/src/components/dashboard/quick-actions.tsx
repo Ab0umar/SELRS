@@ -1,4 +1,5 @@
 ﻿import { useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
 import type { LucideIcon } from "lucide-react";
@@ -202,11 +203,13 @@ function isPermAllowed(permPath: string, allowedPaths: string[]): boolean {
 export type QuickActionsProps = {
   onOpenMeasurementsMedicalFile?: () => void;
   onOpenOperationsBooking?: () => void;
+  extraPrimaryAction?: ReactNode;
 };
 
 export function QuickActions({
   onOpenMeasurementsMedicalFile,
   onOpenOperationsBooking,
+  extraPrimaryAction,
 }: QuickActionsProps) {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
@@ -238,7 +241,6 @@ export function QuickActions({
 
   const primaryActions = visibleActions.slice(0, 4);
   const secondaryActions = visibleActions.slice(4);
-
 
   const navigateForPatient = (page: PageKey, patientId: number) => {
     const path = patientNavPathForPageKey(page, patientId);
@@ -326,10 +328,13 @@ export function QuickActions({
       <div aria-label="اختصارات لوحة التحكم" className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           {primaryActions.map((action) => renderActionButton(action, true))}
+          {extraPrimaryAction}
         </div>
         {secondaryActions.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
-            {secondaryActions.map((action) => renderActionButton(action, false))}
+            {secondaryActions.map((action) =>
+              renderActionButton(action, false),
+            )}
           </div>
         )}
       </div>

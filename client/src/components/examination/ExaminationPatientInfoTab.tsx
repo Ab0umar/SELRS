@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import PatientPicker from "@/components/PatientPicker";
 import SearchableCombobox from "@/components/SearchableCombobox";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -35,7 +34,6 @@ export default function ExaminationPatientInfoTab({
     setPatientDetails,
     canEditPatientData,
     digitsOnly,
-    selectedDoctorEntry,
     doctorName,
     setDoctorName,
     shiftNumber,
@@ -45,8 +43,6 @@ export default function ExaminationPatientInfoTab({
     removeService,
     updateService,
     patientShare,
-    isFollowup,
-    setIsFollowup,
     receptionSignature,
     setReceptionSignature,
     medicalChecklist,
@@ -95,61 +91,61 @@ export default function ExaminationPatientInfoTab({
     [sortedServices],
   );
 
+  const doctorOptions = useMemo(
+    () => [
+      { value: "none", label: "— اختر الطبيب" },
+      ...mysqlDoctors.map((doctor) => {
+        const code = String((doctor as any)?.code ?? "").trim();
+        const name = String((doctor as any)?.name ?? "").trim();
+        return {
+          value: name,
+          label: code ? `${code} - ${name}` : name,
+          keywords: `${code} ${name}`,
+        };
+      }),
+    ],
+    [mysqlDoctors],
+  );
+
   return (
     <TabsContent value="patient-info" className="w-full">
       <Card className="border-0 shadow-none">
         <CardContent className="pt-2 space-y-4 px-4" dir="rtl">
-          {/* Top Bar: Mode & Search & Timing combined */}
-          <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 bg-muted/20 p-3 rounded-xl border border-dashed">
-            <div className="flex items-center gap-3 shrink-0">
-              <Badge
-                variant={!patientInfo.id ? "warning" : "default"}
-                className="px-2 py-0.5 text-[10px] uppercase font-bold"
-              >
-                {!patientInfo.id ? "تسجيل جديد" : "ملف حالي"}
-              </Badge>
-              <h2
-                className={cn(
-                  "text-lg font-bold whitespace-nowrap",
-                  !patientInfo.id ? "text-secondary" : "text-primary",
-                )}
-              >
-                {!patientInfo.id ? "مريض جديد" : patientInfo.name}
-              </h2>
-            </div>
-
-            <div className="flex-1 w-full flex flex-col sm:flex-row items-center gap-3">
-              <div className="flex-1 w-full min-w-[200px]">
+          <div className="flex justify-center rounded-xl border border-dashed bg-muted/20 p-3">
+            <div className="flex w-full flex-col items-end justify-center gap-3 sm:flex-row">
+              <div className="w-full sm:w-[28rem]">
                 <PatientPicker onSelect={handleSelectPatient} />
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <DateInput
-                  value={visitDate}
-                  onChange={(e) => setVisitDate(e.target.value)}
-                  className="text-xs h-8 w-40"
-                />
-                <label className="flex items-center gap-2 cursor-pointer rounded-md border border-warning/50 bg-warning/10/30 px-3 py-1.5 h-8">
-                  <Checkbox
-                    checked={isFollowup}
-                    onCheckedChange={(checked) =>
-                      setIsFollowup(Boolean(checked))
-                    }
-                    id="followup-main"
-                    className="h-4 w-4 border-warning data-[state=checked]:bg-warning"
+              <div className="flex w-full items-end gap-3 sm:w-auto">
+                <div className="min-w-0 flex-1 sm:w-32 sm:flex-none">
+                  <Label className="mb-1 block text-[10px] font-semibold text-muted-foreground">
+                    الكود
+                  </Label>
+                  <Input
+                    value={patientInfo.code || "—"}
+                    readOnly
+                    className="h-8 bg-muted/50 px-2 text-center font-mono text-xs"
                   />
-                  <span className="text-[11px] font-bold text-warning">
-                    متابعة
-                  </span>
-                </label>
+                </div>
+                <div className="min-w-0 flex-1 sm:w-44 sm:flex-none">
+                  <Label className="mb-1 block text-[10px] font-semibold text-muted-foreground">
+                    تاريخ الزيارة
+                  </Label>
+                  <DateInput
+                    value={visitDate}
+                    onChange={(e) => setVisitDate(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <div className="grid grid-cols-1 gap-6 items-start">
             {/* Right Column: Patient Information (Now first in RTL) */}
             <div className="space-y-4 order-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="sm:col-span-2">
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-12 sm:gap-3 xl:grid-cols-[minmax(10rem,1.6fr)_minmax(9.5rem,1.2fr)_4.5rem_7rem_8.5rem_8.5rem_7rem_minmax(10rem,1.4fr)]">
+                <div className="order-1 min-w-0 sm:col-span-6 xl:col-span-1">
                   <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                     الاسم بالكامل
                   </Label>
@@ -166,7 +162,7 @@ export default function ExaminationPatientInfoTab({
                     placeholder="اسم المريض..."
                   />
                 </div>
-                <div>
+                <div className="order-5 min-w-0 sm:col-span-2 xl:col-span-1">
                   <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                     رقم الموبايل
                   </Label>
@@ -184,7 +180,7 @@ export default function ExaminationPatientInfoTab({
                     dir="ltr"
                   />
                 </div>
-                <div>
+                <div className="order-6 min-w-0 sm:col-span-2 xl:col-span-1">
                   <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                     رقم موبايل بديل
                   </Label>
@@ -202,8 +198,8 @@ export default function ExaminationPatientInfoTab({
                     dir="ltr"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
+                <div className="contents">
+                  <div className="order-3 min-w-0 sm:col-span-3 xl:col-span-1">
                     <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                       السن
                     </Label>
@@ -219,51 +215,32 @@ export default function ExaminationPatientInfoTab({
                       className="text-sm border h-9 px-2 text-center font-bold bg-background"
                     />
                   </div>
-                  <div>
-                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
-                      الكود
-                    </Label>
-                    <Input
-                      value={patientInfo.code || "—"}
-                      readOnly
-                      className="text-sm border h-9 px-2 bg-muted/50 font-mono text-center"
-                    />
-                  </div>
                 </div>
-                <div className="sm:col-span-2">
+                <div className="order-4 min-w-0 sm:col-span-2 xl:col-span-1">
                   <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                     الجنس
                   </Label>
-                  <div className="flex gap-2">
-                    {(
-                      [
-                        { value: "male", label: "ذكر" },
-                        { value: "female", label: "أنثى" },
-                      ] as const
-                    ).map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        disabled={!canEditPatientData}
-                        onClick={() =>
-                          setPatientDetails((prev) => ({
-                            ...prev,
-                            gender: prev.gender === opt.value ? "" : opt.value,
-                          }))
-                        }
-                        className={`flex-1 h-9 rounded-lg border text-xs font-bold transition-all ${
-                          patientDetails.gender === opt.value
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-background text-muted-foreground border-border hover:bg-muted/40"
-                        } ${!canEditPatientData ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
+                  <Select
+                    value={patientDetails.gender || ""}
+                    onValueChange={(gender) =>
+                      setPatientDetails((prev) => ({
+                        ...prev,
+                        gender: gender as "male" | "female",
+                      }))
+                    }
+                    disabled={!canEditPatientData}
+                  >
+                    <SelectTrigger className="h-9 bg-background text-xs">
+                      <SelectValue placeholder="اختر الجنس" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">ذكر</SelectItem>
+                      <SelectItem value="female">أنثى</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div className="sm:col-span-2 grid grid-cols-2 gap-3">
-                  <div>
+                <div className="contents">
+                  <div className="order-2 flex min-w-0 flex-col sm:col-span-3 xl:col-span-1">
                     <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                       تاريخ الميلاد
                     </Label>
@@ -286,7 +263,7 @@ export default function ExaminationPatientInfoTab({
                       className="text-sm border h-9 px-2 bg-background"
                     />
                   </div>
-                  <div>
+                  <div className="order-7 min-w-0 sm:col-span-2 xl:col-span-1">
                     <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                       الوظيفة
                     </Label>
@@ -303,7 +280,7 @@ export default function ExaminationPatientInfoTab({
                     />
                   </div>
                 </div>
-                <div className="sm:col-span-2">
+                <div className="order-8 min-w-0 sm:col-span-4 xl:col-span-1">
                   <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                     العنوان
                   </Label>
@@ -324,51 +301,46 @@ export default function ExaminationPatientInfoTab({
 
             {/* Left Column: Visit Assignment & Financials (Now second in RTL) */}
             <div className="bg-primary/40 p-4 rounded-xl border border-primary/20 space-y-3 order-2 h-full flex flex-col">
-              <div className="space-y-1">
-                <Label className="font-bold text-[11px] text-primary">
-                  الطبيب المعالج
-                </Label>
-                <Select
-                  value={doctorName || ""}
-                  onValueChange={(name) => setDoctorName(name)}
-                >
-                  <SelectTrigger className="h-9 bg-background border-ring/30 text-xs">
-                    <SelectValue placeholder="اختر الطبيب" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mysqlDoctors.map((doc) => (
-                      <SelectItem
-                        key={`${(doc as any).id}`}
-                        value={String((doc as any)?.name ?? "")}
-                        className="text-xs"
-                      >
-                        {String((doc as any)?.name ?? "")}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_10rem]">
+                <div className="space-y-1">
+                  <Label className="font-bold text-[11px] text-primary">
+                    الطبيب المعالج
+                  </Label>
+                  <SearchableCombobox
+                    value={doctorName || ""}
+                    onChange={(value) =>
+                      setDoctorName(value === "none" ? "" : value)
+                    }
+                    options={doctorOptions}
+                    placeholder="ابحث باسم الطبيب أو الكود"
+                    searchPlaceholder="ابحث بالاسم أو الكود..."
+                    className="h-9 bg-background border-ring/30 text-xs"
+                  />
+                </div>
 
-              <div className="space-y-1">
-                <Label className="font-bold text-[11px] text-primary">
-                  الوردية
-                </Label>
-                <Select
-                  value={shiftNumber ? String(shiftNumber) : ""}
-                  onValueChange={(v) => setShiftNumber(v ? (Number(v) as 1 | 2) : undefined)}
-                >
-                  <SelectTrigger className="h-9 bg-background border-ring/30 text-xs">
-                    <SelectValue placeholder="اختر الوردية" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1" className="text-xs">
-                      الوردية الأولى
-                    </SelectItem>
-                    <SelectItem value="2" className="text-xs">
-                      الوردية الثانية
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="space-y-1">
+                  <Label className="font-bold text-[11px] text-primary">
+                    الوردية
+                  </Label>
+                  <Select
+                    value={shiftNumber ? String(shiftNumber) : ""}
+                    onValueChange={(v) =>
+                      setShiftNumber(v ? (Number(v) as 1 | 2) : undefined)
+                    }
+                  >
+                    <SelectTrigger className="h-9 bg-background border-ring/30 text-xs">
+                      <SelectValue placeholder="اختر الوردية" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1" className="text-xs">
+                        الوردية الأولى
+                      </SelectItem>
+                      <SelectItem value="2" className="text-xs">
+                        الوردية الثانية
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">

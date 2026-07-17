@@ -34,16 +34,13 @@ import {
   Printer,
   Syringe,
   Trash2,
+  Users,
 } from "lucide-react";
 import { queueStatusLabelsAr, serviceTypeLabels } from "@/lib/dashboard-data";
 import {
   useTodayQueuePatientsMerged,
   type TodayQueuePatient,
 } from "@/hooks/useTodayQueuePatientsMerged";
-import {
-  PatientMedicalStatusStrip,
-  type PatientMedicalStatus,
-} from "@/components/patients/PatientMedicalStatusBadges";
 import type { QueueStatus } from "@/lib/dashboard-data";
 import { trpc } from "@/lib/trpc";
 import { TodayPatientShortcutsDialog } from "@/components/today/TodayPatientShortcutsDialog";
@@ -54,19 +51,19 @@ import { buildPrintUrl } from "@/lib/print";
 
 type QueueFilter = "all" | QueueStatus | "clinic1" | "clinic2";
 
-const QUEUE_FILTERS: { value: QueueFilter; label: string }[] = [
-  { value: "clinic1", label: "عيادة 1" },
-  { value: "clinic2", label: "عيادة 2" },
-  { value: "pentacam", label: "بنتاكام" },
-  { value: "treated", label: "معالج" },
-];
-
 const PRINT_SHEET_TYPES = [
   { value: "consultant", label: "كشف استشاري" },
   { value: "specialist", label: "كشف أخصائي" },
   { value: "lasik", label: "ليزك" },
   { value: "external", label: "خارجي" },
 ] as const;
+
+const QUEUE_FILTERS: { value: QueueFilter; label: string }[] = [
+  { value: "clinic1", label: "عيادة 1" },
+  { value: "clinic2", label: "عيادة 2" },
+  { value: "pentacam", label: "بنتاكام" },
+  { value: "treated", label: "معالج" },
+];
 
 const queueStatusStyles: Record<QueueStatus, string> = {
   checkedIn: "bg-info/10 text-info",
@@ -167,6 +164,9 @@ export function AppointmentsSection({
   };
 
   const [queueFilter, setQueueFilter] = useState<QueueFilter>("all");
+  const [activeSection, setActiveSection] = useState<
+    "patients" | "bookings" | "operations"
+  >("patients");
 
   const { merged, isLoading, byStatus } =
     useTodayQueuePatientsMerged(selectedDate);
@@ -337,22 +337,6 @@ export function AppointmentsSection({
     return merged.filter((p) => p.queueStatus === queueFilter);
   }, [queueFilter, merged, byStatus]);
 
-  const todayPatientIds = useMemo(
-    () => merged.map((p) => p.id).filter(Boolean),
-    [merged],
-  );
-  const medicalStatusQuery = trpc.medical.getPatientMedicalStatusBatch.useQuery(
-    { patientIds: todayPatientIds },
-    {
-      enabled: todayPatientIds.length > 0,
-      staleTime: 120_000,
-      refetchOnWindowFocus: false,
-    },
-  );
-  const medicalStatuses = medicalStatusQuery.data as
-    | Record<number, PatientMedicalStatus>
-    | undefined;
-
   return (
     <div className="space-y-4">
       <TodayPatientShortcutsDialog
@@ -395,7 +379,9 @@ export function AppointmentsSection({
             <Checkbox
               id="also-delete-mssql"
               checked={alsoDeleteMssql}
-              onCheckedChange={(checked) => setAlsoDeleteMssql(checked === true)}
+              onCheckedChange={(checked) =>
+                setAlsoDeleteMssql(checked === true)
+              }
             />
             <Label htmlFor="also-delete-mssql" className="cursor-pointer">
               حذف المريض من MSSQL أيضًا
@@ -419,185 +405,247 @@ export function AppointmentsSection({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-        {/* Patients queue: always visible, 3/4 width on desktop */}
-        <div className="xl:col-span-9 flex flex-col gap-3">
-          <div
-            className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4"
-            dir="rtl"
-          >
-            <div className="flex items-center gap-2 text-sm">
-              <Calendar className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-              <span className="font-semibold text-foreground">
-                مرضى اليوم و العمليات
-              </span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <DateInput
-                value={selectedDate}
-                onChange={(e) => setTodayPatientsDate(e.target.value)}
-                className="h-9 w-[11.5rem] shrink-0 font-mono text-sm"
-                dir="ltr"
-                aria-label="تاريخ مرضى اليوم والعمليات — تعديل"
-              />
-              <p className="max-w-full min-w-0 text-sm text-muted-foreground sm:max-w-[min(100%,28rem)]">
-                {formatDateLongAr(selectedDate)}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex h-9 flex-wrap items-center gap-2">
-            {QUEUE_FILTERS.map(({ value, label }) => {
-              const n = (counts as Record<string, number>)[value] ?? 0;
-              const active = queueFilter === value;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setQueueFilter(value)}
-                  className={cn(
-                    "rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors",
-                    active
-                      ? "border-foreground bg-foreground text-background"
-                      : "border-border bg-card text-foreground",
-                  )}
-                >
-                  {label}{" "}
-                  <span className="tabular-nums opacity-90">
-                    ({n.toLocaleString("ar-EG")})
+      <div
+        className="mb-5 grid grid-cols-3 gap-1 rounded-xl border border-border/60 bg-muted/30 p-1"
+        role="tablist"
+        aria-label="قوائم المرضى والحجوزات والعمليات"
+      >
+        {(
+          [
+            { id: "patients", label: "مرضى اليوم", icon: Users },
+            { id: "bookings", label: "حجز", icon: CalendarPlus },
+            { id: "operations", label: "العمليات", icon: Syringe },
+          ] as const
+        ).map((tab) => {
+          const Icon = tab.icon;
+          const selected = activeSection === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              onClick={() => setActiveSection(tab.id)}
+              className={cn(
+                "flex min-h-11 items-center justify-center gap-2 rounded-lg px-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                selected
+                  ? "bg-background text-primary shadow-sm"
+                  : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
+              )}
+            >
+              <Icon className="h-4 w-4" aria-hidden />
+              <span>{tab.label}</span>
+              {tab.id === "bookings" &&
+                bookingsForDate.length +
+                  (scheduleRequestsQuery.data?.length ?? 0) >
+                  0 && (
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-warning px-1 text-[10px] font-bold text-warning-foreground tabular-nums">
+                    {bookingsForDate.length +
+                      (scheduleRequestsQuery.data?.length ?? 0)}
                   </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {isLoading ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">
-              جاري التحميل…
-            </p>
-          ) : filteredPatients.length === 0 ? (
-            <div className="flex min-h-[220px] flex-col items-center justify-center px-4 py-12 text-center text-sm text-muted-foreground">
-              لا يوجد مرضى في هذه الفئة
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4">
-              {filteredPatients.map((patient) => (
-                <QueuePatientCard
-                  key={`${patient.id}-${patient.queueStatus}`}
-                  patient={patient}
-                  medicalStatus={medicalStatuses?.[patient.id]}
-                  onSelectPatient={() => handleSelectPatient(patient)}
-                  markVisitTreatedPendingVisitId={
-                    markVisitTreated.isPending
-                      ? (markVisitTreated.variables?.visitId ?? null)
-                      : null
-                  }
-                  onMarkVisitTreated={(visitId) => {
-                    markVisitTreated.mutate({
-                      visitId,
-                      queueStatus: "treated",
-                      patientId: patient.id,
-                      date: selectedDate,
-                    });
-                  }}
-                  canDelete={canDeletePatient}
-                  onRequestDelete={() => setDeleteTarget(patient)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Sidebar: bookings section on top, operations section below, 1/4 width */}
-        <div className="xl:col-span-3 flex flex-col gap-6">
-          <div className="flex flex-col gap-3">
-            <div className="flex h-9 items-center gap-2 text-sm font-semibold text-foreground">
-              <CalendarPlus className="h-4 w-4" />
-              حجز
-              {(bookingsForDate.length + (scheduleRequestsQuery.data?.length ?? 0)) > 0 && (
-                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-warning px-1 text-[10px] font-bold text-warning-foreground tabular-nums">
-                  {bookingsForDate.length + (scheduleRequestsQuery.data?.length ?? 0)}
+                )}
+              {tab.id === "operations" && todayOperationsFlat.length > 0 && (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-bold text-secondary-foreground tabular-nums">
+                  {todayOperationsFlat.length}
                 </span>
               )}
-            </div>
-            {bookingsQuery.isLoading || scheduleRequestsQuery.isLoading ? (
-              <div className="grid gap-2">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-20 rounded-xl" />
-                ))}
-              </div>
-            ) : bookingsForDate.length === 0 && (scheduleRequestsQuery.data?.length ?? 0) === 0 ? (
-              <div className="flex min-h-[120px] flex-col items-center justify-center px-4 py-8 text-center text-xs text-muted-foreground">
-                لا توجد حجوزات لهذا اليوم
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {(scheduleRequestsQuery.data?.length ?? 0) > 0 && (
-                  <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      مواعيد الاستقبال ({scheduleRequestsQuery.data?.length ?? 0})
-                    </p>
-                    <div className="grid gap-2">
-                      {(scheduleRequestsQuery.data ?? []).map((r: any) => (
-                        <ScheduleRequestCard key={r.id} r={r} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {bookingsForDate.length > 0 && (
-                  <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      حجوزات البوابة ({bookingsForDate.length})
-                    </p>
-                    <div className="grid gap-2">
-                      {bookingsForDate.map((booking) => (
-                        <BookingCard key={booking.id} booking={booking} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+            </button>
+          );
+        })}
+      </div>
 
-          <div className="flex flex-col gap-3 border-t border-border/60 pt-6">
-            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <Syringe className="h-4 w-4" />
-              العمليات
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+        {activeSection === "patients" && (
+          <div className="xl:col-span-12 flex flex-col gap-3">
+            <div
+              className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4"
+              dir="rtl"
+            >
+              <div className="flex items-center gap-2 text-sm">
+                <Calendar
+                  className="h-4 w-4 shrink-0 text-muted-foreground"
+                  aria-hidden
+                />
+                <span className="font-semibold text-foreground">
+                  مرضى اليوم
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <DateInput
+                  value={selectedDate}
+                  onChange={(e) => setTodayPatientsDate(e.target.value)}
+                  className="h-9 w-[11.5rem] shrink-0 font-mono text-sm"
+                  dir="ltr"
+                  aria-label="تاريخ مرضى اليوم — تعديل"
+                />
+                <p className="max-w-full min-w-0 text-sm text-muted-foreground sm:max-w-[min(100%,28rem)]">
+                  {formatDateLongAr(selectedDate)}
+                </p>
+              </div>
             </div>
-            {todayOperationListsQuery.isLoading ? (
-              <div className="grid gap-2">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-24 rounded-xl" />
-                ))}
-              </div>
-            ) : todayOperationListsQuery.isError ? (
-              <div
-                className="flex min-h-[120px] flex-col items-center justify-center rounded-lg border border-destructive/25 bg-destructive text-destructive-foreground text-xs"
-                role="alert"
-              >
-                {getTrpcErrorMessage(
-                  todayOperationListsQuery.error,
-                  "تعذر تحميل قائمة العمليات",
-                )}
-              </div>
-            ) : todayOperationsFlat.length === 0 ? (
-              <div className="flex min-h-[120px] flex-col items-center justify-center px-4 py-8 text-center text-xs text-muted-foreground">
-                لا توجد عمليات مسجّلة لهذا اليوم
+
+            <div className="flex h-9 flex-wrap items-center gap-2">
+              {QUEUE_FILTERS.map(({ value, label }) => {
+                const n = (counts as Record<string, number>)[value] ?? 0;
+                const active = queueFilter === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setQueueFilter(value)}
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors",
+                      active
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-border bg-card text-foreground",
+                    )}
+                  >
+                    {label}{" "}
+                    <span className="tabular-nums opacity-90">
+                      ({n.toLocaleString("ar-EG")})
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {isLoading ? (
+              <p className="py-10 text-center text-sm text-muted-foreground">
+                جاري التحميل…
+              </p>
+            ) : filteredPatients.length === 0 ? (
+              <div className="flex min-h-[220px] flex-col items-center justify-center px-4 py-12 text-center text-sm text-muted-foreground">
+                لا يوجد مرضى في هذه الفئة
               </div>
             ) : (
-              <div className="grid gap-2">
-                {todayOperationsFlat.map((row) => (
-                  <TodayOperationListItemCard
-                    key={row.key}
-                    row={row}
-                    doctorNameByCode={doctorNameByCode}
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
+                {filteredPatients.map((patient) => (
+                  <QueuePatientCard
+                    key={`${patient.id}-${patient.queueStatus}`}
+                    patient={patient}
+                    onSelectPatient={() => handleSelectPatient(patient)}
+                    markVisitTreatedPendingVisitId={
+                      markVisitTreated.isPending
+                        ? (markVisitTreated.variables?.visitId ?? null)
+                        : null
+                    }
+                    onMarkVisitTreated={(visitId) => {
+                      markVisitTreated.mutate({
+                        visitId,
+                        queueStatus: "treated",
+                        patientId: patient.id,
+                        date: selectedDate,
+                      });
+                    }}
+                    canDelete={canDeletePatient}
+                    onRequestDelete={() => setDeleteTarget(patient)}
                   />
                 ))}
               </div>
             )}
           </div>
-        </div>
+        )}
+
+        {activeSection === "bookings" && (
+          <div className="xl:col-span-12 flex flex-col gap-6">
+            <div className="flex flex-col gap-3">
+              <div className="flex h-9 items-center gap-2 text-sm font-semibold text-foreground">
+                <CalendarPlus className="h-4 w-4" />
+                حجز
+                {bookingsForDate.length +
+                  (scheduleRequestsQuery.data?.length ?? 0) >
+                  0 && (
+                  <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-warning px-1 text-[10px] font-bold text-warning-foreground tabular-nums">
+                    {bookingsForDate.length +
+                      (scheduleRequestsQuery.data?.length ?? 0)}
+                  </span>
+                )}
+              </div>
+              {bookingsQuery.isLoading || scheduleRequestsQuery.isLoading ? (
+                <div className="grid gap-2">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-20 rounded-xl" />
+                  ))}
+                </div>
+              ) : bookingsForDate.length === 0 &&
+                (scheduleRequestsQuery.data?.length ?? 0) === 0 ? (
+                <div className="flex min-h-[120px] flex-col items-center justify-center px-4 py-8 text-center text-xs text-muted-foreground">
+                  لا توجد حجوزات لهذا اليوم
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {(scheduleRequestsQuery.data?.length ?? 0) > 0 && (
+                    <div>
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        مواعيد الاستقبال (
+                        {scheduleRequestsQuery.data?.length ?? 0})
+                      </p>
+                      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                        {(scheduleRequestsQuery.data ?? []).map((r: any) => (
+                          <ScheduleRequestCard key={r.id} r={r} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {bookingsForDate.length > 0 && (
+                    <div>
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        حجوزات البوابة ({bookingsForDate.length})
+                      </p>
+                      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                        {bookingsForDate.map((booking) => (
+                          <BookingCard key={booking.id} booking={booking} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeSection === "operations" && (
+          <div className="xl:col-span-12 flex flex-col gap-6">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Syringe className="h-4 w-4" />
+                العمليات
+              </div>
+              {todayOperationListsQuery.isLoading ? (
+                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-24 rounded-xl" />
+                  ))}
+                </div>
+              ) : todayOperationListsQuery.isError ? (
+                <div
+                  className="flex min-h-[120px] flex-col items-center justify-center rounded-lg border border-destructive/25 bg-destructive text-destructive-foreground text-xs"
+                  role="alert"
+                >
+                  {getTrpcErrorMessage(
+                    todayOperationListsQuery.error,
+                    "تعذر تحميل قائمة العمليات",
+                  )}
+                </div>
+              ) : todayOperationsFlat.length === 0 ? (
+                <div className="flex min-h-[120px] flex-col items-center justify-center px-4 py-8 text-center text-xs text-muted-foreground">
+                  لا توجد عمليات مسجّلة لهذا اليوم
+                </div>
+              ) : (
+                <div className="grid gap-2">
+                  {todayOperationsFlat.map((row) => (
+                    <TodayOperationListItemCard
+                      key={row.key}
+                      row={row}
+                      doctorNameByCode={doctorNameByCode}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -665,23 +713,38 @@ function BookingCard({ booking }: { booking: any }) {
   });
   const name = booking.patientName ?? booking.guestName ?? "—";
   const code = booking.patientCode ?? (booking.isGuest ? "زائر" : "جديد");
-  const type = BOOKING_TYPES_AR[booking.bookingType] ?? booking.typeLabel ?? booking.bookingType;
-  const stStyle = BOOKING_STATUS_STYLE[booking.status] ?? BOOKING_STATUS_STYLE.completed;
+  const type =
+    BOOKING_TYPES_AR[booking.bookingType] ??
+    booking.typeLabel ??
+    booking.bookingType;
+  const stStyle =
+    BOOKING_STATUS_STYLE[booking.status] ?? BOOKING_STATUS_STYLE.completed;
   const stAr = BOOKING_STATUS_AR[booking.status] ?? booking.status;
   const branchLabel =
-    booking.branch === "tanta" ? "طنطا" : booking.branch === "kfs" ? "كفر الشيخ" : null;
+    booking.branch === "tanta"
+      ? "طنطا"
+      : booking.branch === "kfs"
+        ? "كفر الشيخ"
+        : null;
   return (
     <div className={cn("rounded-lg border px-2.5 py-1.5 shadow-sm", stStyle)}>
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-semibold text-foreground">{name}</p>
+          <p className="truncate text-xs font-semibold text-foreground">
+            {name}
+          </p>
           <p className="truncate text-[10px] text-muted-foreground">
             {code} · {type}
             {branchLabel ? ` · ${branchLabel}` : ""}
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-1 shrink-0">
-          <span className={cn("rounded-full border px-1.5 py-0.5 text-[10px] font-medium", stStyle)}>
+          <span
+            className={cn(
+              "rounded-full border px-1.5 py-0.5 text-[10px] font-medium",
+              stStyle,
+            )}
+          >
             {stAr}
           </span>
           {booking.patientId ? (
@@ -689,7 +752,12 @@ function BookingCard({ booking }: { booking: any }) {
               <button
                 type="button"
                 title="طباعة روشتة"
-                onClick={() => window.open(`/prescription/${booking.patientId}?print=1`, "_blank")}
+                onClick={() =>
+                  window.open(
+                    `/prescription/${booking.patientId}?print=1`,
+                    "_blank",
+                  )
+                }
                 className="text-muted-foreground hover:text-error transition-colors"
                 aria-label="طباعة روشتة"
               >
@@ -698,7 +766,12 @@ function BookingCard({ booking }: { booking: any }) {
               <button
                 type="button"
                 title="طباعة طلب تحاليل"
-                onClick={() => window.open(`/request-tests/${booking.patientId}?print=1`, "_blank")}
+                onClick={() =>
+                  window.open(
+                    `/request-tests/${booking.patientId}?print=1`,
+                    "_blank",
+                  )
+                }
                 className="text-muted-foreground hover:text-error transition-colors"
                 aria-label="طباعة طلب تحاليل"
               >
@@ -707,7 +780,12 @@ function BookingCard({ booking }: { booking: any }) {
               <button
                 type="button"
                 title="طباعة مقاس النظارة"
-                onClick={() => window.open(buildPrintUrl(`/refraction/${booking.patientId}`), "_blank")}
+                onClick={() =>
+                  window.open(
+                    buildPrintUrl(`/refraction/${booking.patientId}`),
+                    "_blank",
+                  )
+                }
                 className="text-muted-foreground hover:text-error transition-colors"
                 aria-label="طباعة مقاس النظارة"
               >
@@ -732,7 +810,6 @@ function BookingCard({ booking }: { booking: any }) {
 
 function QueuePatientCard({
   patient,
-  medicalStatus,
   onSelectPatient,
   onMarkVisitTreated,
   markVisitTreatedPendingVisitId,
@@ -740,7 +817,6 @@ function QueuePatientCard({
   onRequestDelete,
 }: {
   patient: TodayQueuePatient;
-  medicalStatus?: PatientMedicalStatus;
   onSelectPatient: () => void;
   onMarkVisitTreated: (visitId: number) => void;
   markVisitTreatedPendingVisitId: number | null;
@@ -776,198 +852,188 @@ function QueuePatientCard({
         "cursor-pointer",
       )}
     >
-      <PatientMedicalStatusStrip status={medicalStatus} />
-      <div className="px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
-        <div className="flex items-start justify-between gap-1.5">
-          <div className="min-w-0 flex-1">
-            <p className="line-clamp-2 text-sm font-semibold leading-snug text-foreground">
-              {patient.fullName ?? "—"}
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-col items-end gap-1">
-            {st === "treated" ? (
-              <CheckCircle2 className="h-4 w-4 text-success" aria-hidden />
-            ) : null}
-            {(patient as any).visitType === "followup" ? (
-              <Badge className="max-w-full truncate text-[10px] bg-info/15 text-info border-info/20">
-                متابعة
-              </Badge>
-            ) : null}
-            <Badge
-              className={cn(
-                "max-w-full truncate text-[0.8125rem]",
-                queueStatusStyles[st],
-              )}
+      <div className="p-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <p className="min-w-0 flex-1 truncate text-sm font-bold text-foreground">
+            {patient.fullName ?? "—"}
+          </p>
+          {canDelete ? (
+            <button
+              type="button"
+              title="حذف المريض"
+              aria-label={`حذف ${patient.fullName ?? "المريض"}`}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-destructive hover:bg-destructive/10"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onRequestDelete?.();
+              }}
             >
-              {queueStatusLabelsAr[st] ?? st}
-            </Badge>
-          </div>
+              <Trash2 className="h-3.5 w-3.5" aria-hidden />
+            </button>
+          ) : null}
         </div>
-        <div className="mt-2.5 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 border-t border-border/50 pt-2 text-sm">
-          <span className="text-muted-foreground">الطبيب</span>
-          <span className="text-right text-foreground break-words">
-            {doctorText}
-          </span>
-          <span className="text-muted-foreground">نوع الخدمة</span>
-          <span className="text-right">
-            <Badge
+
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <Badge className={cn("text-xs", queueStatusStyles[st])}>
+            {queueStatusLabelsAr[st] ?? st}
+          </Badge>
+          {canMarkTreated ? (
+            <Button
+              type="button"
               variant="outline"
-              className={cn(
-                "max-w-full text-[0.8125rem]",
-                serviceTypeStyles[patient.serviceType ?? ""],
-              )}
+              size="sm"
+              disabled={markingThis}
+              className="h-8 gap-1 border-success/35 px-2 text-xs text-success hover:bg-success/10"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                if (visitId != null) onMarkVisitTreated(visitId);
+              }}
             >
-              {serviceTypeText}
-            </Badge>
-          </span>
-          <span className="text-muted-foreground">الوقت</span>
-          <span className="text-right text-foreground tabular-nums">
-            {timeText}
-          </span>
+              <Check className="h-3.5 w-3.5" aria-hidden />
+              معالج
+            </Button>
+          ) : (
+            <CheckCircle2 className="h-4 w-4 text-success" aria-hidden />
+          )}
         </div>
-        <div className="mt-2 flex flex-wrap items-center justify-end gap-1.5 text-sm sm:mt-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  title="طباعة الشيت"
-                  aria-label={`طباعة شيت ${patient.fullName ?? "المريض"}`}
-                  className="h-11 w-11 shrink-0 text-slate-500 hover:text-slate-900"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                  }}
-                >
-                  <Printer className="h-4 w-4" aria-hidden />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                onClick={(e) => e.stopPropagation()}
-                style={{ direction: "rtl" }}
-              >
-                {PRINT_SHEET_TYPES.map(({ value, label }) => (
-                  <DropdownMenuItem
-                    key={value}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const isFollowup = (patient as any).visitType === "followup";
-                      const suffix = isFollowup ? "/followup" : "";
-                      window.open(`/sheets/${value}/${patient.id}${suffix}?original=1`, "_blank");
-                    }}
-                  >
-                    {label}
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    window.open(`/sheets/referral/${patient.id}`, "_blank");
-                  }}
-                >
-                  خطاب تحويل
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    window.open(`/clinical-report/${patient.id}`, "_blank");
-                  }}
-                >
-                  التقرير السريري الشامل
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    window.open(`/pre-post-op-report/${patient.id}`, "_blank");
-                  }}
-                >
-                  تقرير ما قبل/بعد العملية
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    window.open(`/post-op-offdays/${patient.id}`, "_blank");
-                  }}
-                >
-                  إجازة ما بعد العملية
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <button
-              type="button"
-              title="طباعة روشتة"
-              aria-label="طباعة روشتة"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-500 hover:text-error"
-              onClick={(e) => {
-                e.stopPropagation();
-                window.open(`/prescription/${patient.id}?print=1`, "_blank");
-              }}
-            >
-              <Pill className="h-4 w-4" aria-hidden />
-            </button>
-            <button
-              type="button"
-              title="طباعة طلب تحاليل"
-              aria-label="طباعة طلب تحاليل"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-500 hover:text-error"
-              onClick={(e) => {
-                e.stopPropagation();
-                window.open(`/request-tests/${patient.id}?print=1`, "_blank");
-              }}
-            >
-              <FlaskConical className="h-4 w-4" aria-hidden />
-            </button>
-            <button
-              type="button"
-              title="طباعة مقاس النظارة"
-              aria-label="طباعة مقاس النظارة"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-500 hover:text-error"
-              onClick={(e) => {
-                e.stopPropagation();
-                window.open(buildPrintUrl(`/refraction/${patient.id}`), "_blank");
-              }}
-            >
-              <Glasses className="h-4 w-4" aria-hidden />
-            </button>
-            {canMarkTreated ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={markingThis}
-                title="معالج"
-                aria-label={`تسجيل ${patient.fullName ?? "المريض"} كمعالج`}
-                className="h-11 w-11 shrink-0 border-secondary/35 bg-secondary text-secondary-foreground hover:border-secondary/50 hover:bg-secondary/90"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  if (visitId != null) onMarkVisitTreated(visitId);
-                }}
-              >
-                <Check className="h-3.5 w-3.5" aria-hidden />
-              </Button>
-            ) : null}
-            {canDelete ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                title="حذف المريض"
-                aria-label={`حذف ${patient.fullName ?? "المريض"}`}
-                className="h-11 w-11 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  onRequestDelete?.();
-                }}
-              >
-                <Trash2 className="h-3.5 w-3.5" aria-hidden />
-              </Button>
-            ) : null}
+
+        <div className="mt-2 border-t border-border/50 pt-2 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="shrink-0 text-muted-foreground">الطبيب</span>
+            <span className="min-w-0 flex-1 truncate text-foreground">
+              {doctorText}
+            </span>
           </div>
+          <div className="mt-1.5 flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="shrink-0 text-muted-foreground">الخدمة</span>
+              <Badge
+                variant="outline"
+                className={cn(
+                  "max-w-full truncate text-xs",
+                  serviceTypeStyles[patient.serviceType ?? ""],
+                )}
+              >
+                {serviceTypeText}
+              </Badge>
+            </div>
+            <span className="shrink-0 text-foreground tabular-nums">
+              {timeText}
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-2 flex items-center justify-center gap-2 border-t border-border/50 pt-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                title="طباعة الشيتات والتقارير"
+                aria-label="طباعة الشيتات والتقارير"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                }}
+              >
+                <Printer className="h-4 w-4" aria-hidden />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              onClick={(e) => e.stopPropagation()}
+              style={{ direction: "rtl" }}
+            >
+              {PRINT_SHEET_TYPES.map(({ value, label }) => (
+                <DropdownMenuItem
+                  key={value}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const suffix =
+                      (patient as any).visitType === "followup"
+                        ? "/followup"
+                        : "";
+                    window.open(
+                      `/sheets/${value}/${patient.id}${suffix}?original=1`,
+                      "_blank",
+                    );
+                  }}
+                >
+                  {label}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(`/sheets/referral/${patient.id}`, "_blank");
+                }}
+              >
+                خطاب تحويل
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(`/clinical-report/${patient.id}`, "_blank");
+                }}
+              >
+                التقرير السريري الشامل
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(`/pre-post-op-report/${patient.id}`, "_blank");
+                }}
+              >
+                تقرير ما قبل/بعد العملية
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(`/post-op-offdays/${patient.id}`, "_blank");
+                }}
+              >
+                إجازة ما بعد العملية
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <button
+            type="button"
+            title="طباعة روشتة"
+            aria-label="طباعة روشتة"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(`/prescription/${patient.id}?print=1`, "_blank");
+            }}
+          >
+            <Pill className="h-4 w-4" aria-hidden />
+          </button>
+          <button
+            type="button"
+            title="طباعة طلب تحاليل"
+            aria-label="طباعة طلب تحاليل"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(`/request-tests/${patient.id}?print=1`, "_blank");
+            }}
+          >
+            <FlaskConical className="h-4 w-4" aria-hidden />
+          </button>
+          <button
+            type="button"
+            title="طباعة مقاس النظارة"
+            aria-label="طباعة مقاس النظارة"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(buildPrintUrl(`/refraction/${patient.id}`), "_blank");
+            }}
+          >
+            <Glasses className="h-4 w-4" aria-hidden />
+          </button>
         </div>
       </div>
     </div>
@@ -1021,7 +1087,12 @@ function TodayOperationListItemCard({
           </p>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
-          <span className={cn("rounded-full border px-2 py-0.5 text-[11px] font-medium", stStyle)}>
+          <span
+            className={cn(
+              "rounded-full border px-2 py-0.5 text-[11px] font-medium",
+              stStyle,
+            )}
+          >
             {doctorDisplay}
           </span>
         </div>

@@ -4,12 +4,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { DateInput } from "@/components/ui/date-input";
@@ -23,11 +23,7 @@ const STAFF_BOOKING_TYPES = [
 ];
 
 type BookingType =
-  | "consultant"
-  | "specialist"
-  | "lasik"
-  | "external"
-  | "followup";
+  "consultant" | "specialist" | "lasik" | "external" | "followup";
 
 type Branch = "tanta" | "kfs";
 
@@ -79,7 +75,9 @@ export function AddPortalBookingDialog({
     onError: (e) => toast.error(e.message),
   });
 
-  const createNew = (trpc as any).patientPortal.createStaffGuestBooking.useMutation({
+  const createNew = (
+    trpc as any
+  ).patientPortal.createStaffGuestBooking.useMutation({
     onSuccess: async () => {
       await (utils as any).patientPortal.listBookings.invalidate();
       toast.success("تم إضافة الحجز بنجاح");
@@ -119,30 +117,34 @@ export function AddPortalBookingDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent
+    <Sheet open={open} onOpenChange={handleOpenChange}>
+      <SheetContent
+        side="top"
         dir="rtl"
-        className="max-h-[min(92dvh,calc(100vh-24px))] overflow-x-hidden overflow-y-auto sm:max-w-2xl border-none shadow-2xl p-0"
+        className="max-h-[92dvh] w-full gap-0 overflow-x-hidden overflow-y-auto p-0"
       >
         {/* Header */}
-        <DialogHeader className="p-4 border-b bg-muted/20" dir="rtl">
+        <SheetHeader className="p-4 border-b bg-muted/20" dir="rtl">
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
               <Plus className="h-4 w-4 text-primary" />
             </div>
             <div className="text-right">
-              <DialogTitle className="text-base font-bold">
+              <SheetTitle className="text-base font-bold">
                 إضافة حجز للمريض
-              </DialogTitle>
-              <DialogDescription className="text-[11px]">
+              </SheetTitle>
+              <SheetDescription className="text-[11px]">
                 ابحث عن المريض، حدد نوع الخدمة والتاريخ، ثم احفظ الحجز مباشرةً.
-              </DialogDescription>
+              </SheetDescription>
             </div>
           </div>
-        </DialogHeader>
+        </SheetHeader>
 
         {/* Body */}
-        <div className="p-4 bg-background space-y-5" dir="rtl">
+        <div
+          className="mx-auto w-full max-w-3xl space-y-5 bg-background p-4"
+          dir="rtl"
+        >
           {/* Patient type */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground block text-right">
@@ -370,7 +372,10 @@ export function AddPortalBookingDialog({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center gap-2 border-t bg-muted/10 px-4 py-3" dir="rtl">
+        <div
+          className="flex items-center gap-2 border-t bg-muted/10 px-4 py-3"
+          dir="rtl"
+        >
           <Button
             type="button"
             disabled={!canSubmit}
@@ -408,7 +413,7 @@ export function AddPortalBookingDialog({
             إلغاء
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

@@ -136,19 +136,23 @@ export default function TodayPatients() {
               <QuickActions
                 onOpenMeasurementsMedicalFile={openMedicalFilePicker}
                 onOpenOperationsBooking={() => setBookingOpen(true)}
+                extraPrimaryAction={
+                  userRole === "reception" || userRole === "admin" ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setLocation("/booking-triage/portal-bookings")
+                      }
+                      className="gap-2 shrink-0 rounded-xl"
+                    >
+                      <CalendarDays className="size-4" />
+                      حجوزات البوابة
+                    </Button>
+                  ) : null
+                }
               />
             </div>
-            {(userRole === "reception" || userRole === "admin") && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setLocation("/booking-triage/portal-bookings")}
-                className="gap-2 shrink-0 rounded-xl"
-              >
-                <CalendarDays className="size-4" />
-                حجوزات البوابة
-              </Button>
-            )}
           </div>
         </div>
 

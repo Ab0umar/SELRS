@@ -160,7 +160,12 @@ function computeAgeMonthsDays(
   bdt: Date | null | undefined,
   dt: Date | null | undefined,
 ): { ageMonths: number | null; ageDays: number | null } {
-  if (!bdt || !dt || Number.isNaN(bdt.valueOf()) || Number.isNaN(dt.valueOf())) {
+  if (
+    !bdt ||
+    !dt ||
+    Number.isNaN(bdt.valueOf()) ||
+    Number.isNaN(dt.valueOf())
+  ) {
     return { ageMonths: null, ageDays: null };
   }
   let months =
@@ -2239,23 +2244,36 @@ export async function createOrSyncPatientFromMssql(
   // Pool is shared/cached across calls (see createMssqlPool) — don't close it here.
 
   // Use client-supplied local date if available to avoid UTC/local mismatch
-  const todayIso = visitDateIso?.trim() || (() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-  })();
+  const todayIso =
+    visitDateIso?.trim() ||
+    (() => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    })();
   const today = new Date(`${todayIso}T12:00:00`);
-  const branchRaw = String(mssqlRow?.branch ?? "").trim().toLowerCase();
+  const now = new Date();
+  const checkedInAt = new Date(
+    `${todayIso}T${String(now.getHours()).padStart(2, "0")}:${String(
+      now.getMinutes(),
+    ).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`,
+  );
+  const branchRaw = String(mssqlRow?.branch ?? "")
+    .trim()
+    .toLowerCase();
   const branch = branchRaw === "surgery" ? "surgery" : "examinations";
   const idno = Number(mssqlRow?.idno ?? 0);
   const locationType = idno === 2 ? "external" : "center";
-  const resolvedServiceType = serviceType || (locationType === "external" ? "external" : "consultant");
+  const resolvedServiceType =
+    serviceType || (locationType === "external" ? "external" : "consultant");
 
   // Create or update MySQL patient
   const existing = await db.getPatientByCode(patientCode);
   let patientId: number;
   let created = false;
 
-  const mssqlGenderRaw = String(mssqlRow?.gender ?? "").trim().toUpperCase();
+  const mssqlGenderRaw = String(mssqlRow?.gender ?? "")
+    .trim()
+    .toUpperCase();
   const mssqlGender: "male" | "female" | null =
     mssqlGenderRaw === "M" || mssqlGenderRaw === "MALE"
       ? "male"
@@ -2283,35 +2301,48 @@ export async function createOrSyncPatientFromMssql(
       status: "new",
     });
     const newRow = await db.getPatientByCode(patientCode);
-    if (!newRow) throw new Error("Failed to create MySQL patient after MSSQL sync");
+    if (!newRow)
+      throw new Error("Failed to create MySQL patient after MSSQL sync");
     patientId = Number((newRow as any).id);
     created = true;
   } else {
     patientId = Number((existing as any).id);
     const patch: Record<string, any> = { lastVisit: today };
-    if (!(existing as any).dateOfBirth && dateOfBirth) patch.dateOfBirth = dateOfBirth;
+    if (!(existing as any).dateOfBirth && dateOfBirth)
+      patch.dateOfBirth = dateOfBirth;
     if (!(existing as any).gender && mssqlGender) patch.gender = mssqlGender;
     await db.updatePatient(patientId, patch).catch(() => null);
   }
 
   // Create a visit for today, routed immediately by service code, only if one
   // doesn't already exist.
-  const hasToday = await db.hasActiveVisitForDate(patientId, todayIso).catch(() => false);
+  const hasToday = await db
+    .hasActiveVisitForDate(patientId, todayIso)
+    .catch(() => false);
   if (!hasToday) {
-    const serviceEntries = await db.getPatientServiceEntriesByPatient(patientId).catch(() => []);
+    const serviceEntries = await db
+      .getPatientServiceEntriesByPatient(patientId)
+      .catch(() => []);
     const routed = await db.resolveInitialQueueStatus(
       (serviceEntries as any[]).map((e) => e?.serviceCode),
       todayIso,
     );
-    await db.createVisit({
-      patientId,
-      visitDate: today,
-      visitType: "consultation",
-      branch,
-      queueStatus: routed.queueStatus as any,
-      checkedInAt: today,
-      [routed.timestampField]: today,
-    } as any).catch((err) => console.error("[createOrSyncPatientFromMssql] createVisit failed:", err));
+    await db
+      .createVisit({
+        patientId,
+        visitDate: today,
+        visitType: "consultation",
+        branch,
+        queueStatus: routed.queueStatus as any,
+        checkedInAt,
+        [routed.timestampField]: checkedInAt,
+      } as any)
+      .catch((err) =>
+        console.error(
+          "[createOrSyncPatientFromMssql] createVisit failed:",
+          err,
+        ),
+      );
   }
 
   return { patientId, created };
@@ -2385,7 +2416,11 @@ export async function insertPatientToMssql(
   const strNo = Number.isFinite(strNoRaw) ? Math.trunc(strNoRaw) : 916;
   const secCd = Number.isFinite(secCdRaw) ? Math.trunc(secCdRaw) : 15;
   const trTy = Number.isFinite(trTyRaw) ? Math.trunc(trTyRaw) : 1;
-  const shft = Number.isFinite(Number(input.shiftNumber)) && [1, 2].includes(Number(input.shiftNumber)) ? Number(input.shiftNumber) : resolveShiftNumber();
+  const shft =
+    Number.isFinite(Number(input.shiftNumber)) &&
+    [1, 2].includes(Number(input.shiftNumber))
+      ? Number(input.shiftNumber)
+      : resolveShiftNumber();
   const dedupWindowSecondsRaw = Number(
     process.env.MSSQL_PUSH_DEDUP_SECONDS ?? 90,
   );
@@ -2435,8 +2470,9 @@ export async function insertPatientToMssql(
     // with (plain mssql for SQL auth, mssql/msnodesqlv8 for Windows auth) —
     // see createMssqlPool's own auth-mode detection.
     const isWindowsAuthPool =
-      String(process.env.MSSQL_AUTH_MODE ?? "").trim().toLowerCase() ===
-        "windows" ||
+      String(process.env.MSSQL_AUTH_MODE ?? "")
+        .trim()
+        .toLowerCase() === "windows" ||
       /trusted_connection\s*=\s*yes/i.test(
         String(process.env.MSSQL_CONNECTION_STRING ?? ""),
       ) ||
@@ -2909,7 +2945,9 @@ export async function insertPatientToMssql(
             );
           },
         );
-        _mark("withMssqlServiceInsertLock (sp_getapplock + service insert) done");
+        _mark(
+          "withMssqlServiceInsertLock (sp_getapplock + service insert) done",
+        );
         console.log(`[MSSQL Insert] ✅ Service row created successfully`);
         // Only the aggregate totals depend on the service row that was just
         // inserted — the static default fields were already set correctly
@@ -3028,7 +3066,11 @@ export async function upsertPatientToMssql(
   const strNo = Number.isFinite(strNoRaw) ? Math.trunc(strNoRaw) : 916;
   const secCd = Number.isFinite(secCdRaw) ? Math.trunc(secCdRaw) : 15;
   const trTy = Number.isFinite(trTyRaw) ? Math.trunc(trTyRaw) : 1;
-  const shft = Number.isFinite(Number(input.shiftNumber)) && [1, 2].includes(Number(input.shiftNumber)) ? Number(input.shiftNumber) : resolveShiftNumber();
+  const shft =
+    Number.isFinite(Number(input.shiftNumber)) &&
+    [1, 2].includes(Number(input.shiftNumber))
+      ? Number(input.shiftNumber)
+      : resolveShiftNumber();
   const { nam1, nam2, nam3 } = splitArabicName(fullName);
   const doctorCode = String(input.doctorCode ?? "").trim() || null;
   const inputQtyNum2 = Number(input.serviceQty ?? NaN);
@@ -3703,7 +3745,9 @@ export async function ensurePatientServiceInMssql(
         `[ensurePatientServiceInMssql] service INSERT failed for PAT_CD=${patientCode} SRV_CD=${serviceCode}:`,
         err instanceof Error ? err.message : err,
       );
-      console.error(`[ensurePatientServiceInMssql] failing SQL:\n${serviceSql}`);
+      console.error(
+        `[ensurePatientServiceInMssql] failing SQL:\n${serviceSql}`,
+      );
       throw err;
     }
 
@@ -3726,7 +3770,9 @@ export async function ensurePatientServiceInMssql(
         WHERE PAT_CD = @PAT_CD AND SRV_CD = @SRV_CD
         ORDER BY ${srvTrNoCol} DESC
       `);
-      resolvedSrvTrNo = Number.isFinite(Number(trNoLookupRs?.recordset?.[0]?.TR_NO))
+      resolvedSrvTrNo = Number.isFinite(
+        Number(trNoLookupRs?.recordset?.[0]?.TR_NO),
+      )
         ? Number(trNoLookupRs.recordset[0].TR_NO)
         : null;
     }
@@ -3954,8 +4000,9 @@ export async function editReceiptServiceLine(input: {
     // insertPatientToMssql (also required so this connection matches the
     // one the transaction was opened on).
     const isWindowsAuthPool =
-      String(process.env.MSSQL_AUTH_MODE ?? "").trim().toLowerCase() ===
-        "windows" ||
+      String(process.env.MSSQL_AUTH_MODE ?? "")
+        .trim()
+        .toLowerCase() === "windows" ||
       /trusted_connection\s*=\s*yes/i.test(
         String(process.env.MSSQL_CONNECTION_STRING ?? ""),
       ) ||
@@ -4143,7 +4190,11 @@ export async function addServiceReceiptInMssql(
       ? Number(process.env.MSSQL_PUSH_STR_NO)
       : 916,
   );
-  const shft = Number.isFinite(Number(shiftNumberRaw)) && [1, 2].includes(Number(shiftNumberRaw)) ? Number(shiftNumberRaw) : resolveShiftNumber();
+  const shft =
+    Number.isFinite(Number(shiftNumberRaw)) &&
+    [1, 2].includes(Number(shiftNumberRaw))
+      ? Number(shiftNumberRaw)
+      : resolveShiftNumber();
 
   const pool = await createMssqlPool();
   try {
@@ -4531,7 +4582,11 @@ export async function addMultiServiceReceiptInMssql(
       ? Number(process.env.MSSQL_PUSH_STR_NO)
       : 916,
   );
-  const shft = Number.isFinite(Number(shiftNumberRaw)) && [1, 2].includes(Number(shiftNumberRaw)) ? Number(shiftNumberRaw) : resolveShiftNumber();
+  const shft =
+    Number.isFinite(Number(shiftNumberRaw)) &&
+    [1, 2].includes(Number(shiftNumberRaw))
+      ? Number(shiftNumberRaw)
+      : resolveShiftNumber();
 
   const pool = await createMssqlPool();
   try {
@@ -5090,11 +5145,15 @@ function getSyncQuery(
         ) AS changedAt
       FROM op2026.dbo.PAJRNRCVH
       WHERE ISNULL(PAT_CD, '') <> ''
-        ${sinceLiteral ? `AND COALESCE(
+        ${
+          sinceLiteral
+            ? `AND COALESCE(
           CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END,
           CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END,
           CASE WHEN ISDATE(VST_DT) = 1 THEN CONVERT(datetime, VST_DT) END
-        ) IS NOT NULL` : ""}
+        ) IS NOT NULL`
+            : ""
+        }
         ${sinceClause}
     )
     SELECT TOP (${limit})

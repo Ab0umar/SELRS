@@ -620,13 +620,7 @@ type StagePatientImportRowInput = {
   address?: string | null;
   branch?: "examinations" | "surgery" | "" | null;
   serviceType?:
-    | "consultant"
-    | "specialist"
-    | "lasik"
-    | "surgery"
-    | "external"
-    | ""
-    | null;
+    "consultant" | "specialist" | "lasik" | "surgery" | "external" | "" | null;
   locationType?: "center" | "external" | "" | null;
   doctorCode?: string | null;
   doctorName?: string | null;
@@ -2053,8 +2047,9 @@ function buildPatientFilterClauses(filters?: {
   }
   const normalizedServiceType = String(filters?.serviceType ?? "").trim();
   if (normalizedServiceType) {
-    const serviceTypeVariants: string[] =
-      getServiceTypeFilterVariants(normalizedServiceType);
+    const serviceTypeVariants: string[] = getServiceTypeFilterVariants(
+      normalizedServiceType,
+    );
 
     if (normalizedServiceType === "lasik") {
       whereClauses.push(
@@ -2223,11 +2218,7 @@ export async function getPatientStats(
     searchTerm?: string;
     doctorName?: string;
     serviceType?:
-      | "consultant"
-      | "specialist"
-      | "lasik"
-      | "surgery"
-      | "external";
+      "consultant" | "specialist" | "lasik" | "surgery" | "external";
     locationType?: "center" | "external";
     dateFrom?: string;
     dateTo?: string;
@@ -2259,8 +2250,8 @@ export async function getPatientStats(
   const whereClauses: any[] = [];
   const hasDateFilter = Boolean(
     (safeMonth && safeMonth >= 1 && safeMonth <= 12) ||
-      filters?.dateFrom ||
-      filters?.dateTo,
+    filters?.dateFrom ||
+    filters?.dateTo,
   );
   if (hasDateFilter) {
     whereClauses.push(sql`YEAR(${effectivePatientDate}) = ${safeYear}`);
@@ -2286,7 +2277,8 @@ export async function getPatientStats(
       dateTo: undefined,
     }),
   );
-  const whereClause = whereClauses.length > 0 ? and(...whereClauses) : undefined;
+  const whereClause =
+    whereClauses.length > 0 ? and(...whereClauses) : undefined;
 
   const rows = await db
     .select({
@@ -2488,7 +2480,9 @@ export async function getTodayPatientsBySheet(dateIso?: string) {
   };
 
   // Debug logging
-  const withNames = rows.filter((r: any) => r.fullName && String(r.fullName).trim());
+  const withNames = rows.filter(
+    (r: any) => r.fullName && String(r.fullName).trim(),
+  );
   const withoutNames = rows.filter(
     (r: any) => !r.fullName || !String(r.fullName).trim(),
   );
@@ -2793,9 +2787,7 @@ async function attachTreatingDoctor(patientRows: any[]) {
       return serviceCodeMetaMap.get(resolvedCode)?.serviceType ?? "";
     })(),
     locationType: (() => {
-      const dbLocationType = String(
-        (patient as any).locationType ?? "",
-      ).trim();
+      const dbLocationType = String((patient as any).locationType ?? "").trim();
       if (dbLocationType) return dbLocationType;
       const fromEntries =
         mssqlServiceCodesByPatient.get(patient.id) ??
@@ -3012,7 +3004,10 @@ export async function hasVisitForDate(
     .select({ id: visits.id })
     .from(visits)
     .where(
-      and(eq(visits.patientId, patientId), sql`DATE(${visits.visitDate}) = ${dateIso}`),
+      and(
+        eq(visits.patientId, patientId),
+        sql`DATE(${visits.visitDate}) = ${dateIso}`,
+      ),
     )
     .limit(1);
   return rows.length > 0;
@@ -3218,7 +3213,10 @@ export async function getAllFollowupItems() {
       patientCode: patients.patientCode,
     })
     .from(followupItems)
-    .innerJoin(followupSheets, eq(followupItems.followupSheetId, followupSheets.id))
+    .innerJoin(
+      followupSheets,
+      eq(followupItems.followupSheetId, followupSheets.id),
+    )
     .innerJoin(patients, eq(followupSheets.patientId, patients.id))
     .where(sql`${followupItems.followupDate} IS NOT NULL`)
     .orderBy(desc(followupItems.followupDate));
@@ -4244,9 +4242,7 @@ export async function getLinkedSrv100UploadsWithPatient(limit = 80000) {
   return Array.isArray(rows) ? rows : [];
 }
 
-export async function unlinkSrv100UploadsByIds(
-  ids: number[],
-): Promise<number> {
+export async function unlinkSrv100UploadsByIds(ids: number[]): Promise<number> {
   if (!ids.length) return 0;
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL not set");
@@ -4468,7 +4464,10 @@ export async function getSrv100UploadsByIds(ids: number[]) {
   const normalized = ids.map(Number).filter((n) => Number.isFinite(n) && n > 0);
   if (!normalized.length) return [];
   const result = await db.execute(
-    sql`SELECT id, file_name, s3_key, patient_id FROM srv100_uploads WHERE id IN (${sql.join(normalized.map((id) => sql`${id}`), sql`, `)})`,
+    sql`SELECT id, file_name, s3_key, patient_id FROM srv100_uploads WHERE id IN (${sql.join(
+      normalized.map((id) => sql`${id}`),
+      sql`, `,
+    )})`,
   );
   const rows = Array.isArray(result) ? result[0] : result;
   return (Array.isArray(rows) ? rows : []) as Array<{
@@ -4485,7 +4484,10 @@ export async function deleteSrv100UploadsByIds(ids: number[]) {
   const normalized = ids.map(Number).filter((n) => Number.isFinite(n) && n > 0);
   if (!normalized.length) return 0;
   await db.execute(
-    sql`DELETE FROM srv100_uploads WHERE id IN (${sql.join(normalized.map((id) => sql`${id}`), sql`, `)})`,
+    sql`DELETE FROM srv100_uploads WHERE id IN (${sql.join(
+      normalized.map((id) => sql`${id}`),
+      sql`, `,
+    )})`,
   );
   return normalized.length;
 }
@@ -4572,10 +4574,7 @@ export async function createPostOpOffdaysCertificate(data: any) {
   return result;
 }
 
-export async function updatePostOpOffdaysCertificate(
-  id: number,
-  updates: any,
-) {
+export async function updatePostOpOffdaysCertificate(id: number, updates: any) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -4913,7 +4912,9 @@ export async function getPrescriptionsOverviewRows(input: {
     .where(inArray(prescriptionItems.prescriptionId, ids))
     .groupBy(prescriptionItems.prescriptionId);
 
-  const countMap = new Map(countRows.map((r: any) => [r.prescriptionId, r.cnt]));
+  const countMap = new Map(
+    countRows.map((r: any) => [r.prescriptionId, r.cnt]),
+  );
 
   return {
     rows: base
@@ -6941,8 +6942,8 @@ export async function getTodayVisitsByQueueStatus(
       visitDate: visits.visitDate,
       visitType: visits.visitType,
       queueStatus: visits.queueStatus,
-      checkedInAt: visits.checkedInAt,
-      checkedInTime: sql<string>`DATE_FORMAT(${visits.checkedInAt}, '%H:%i')`,
+      checkedInAt: visits.createdAt,
+      checkedInTime: sql<string>`DATE_FORMAT(${visits.createdAt}, '%H:%i')`,
       movedToNextAt: visits.movedToNextAt,
       movedToClinicAt: visits.movedToClinicAt,
       treatedAt: visits.treatedAt,
@@ -6961,7 +6962,6 @@ export async function getTodayVisitsByQueueStatus(
     doctorName: row.doctorName ?? null,
   }));
 }
-
 
 export async function getMedicalTotals() {
   const db = await getDb();
@@ -7079,7 +7079,8 @@ async function getQueueServiceCodeSets(): Promise<{
 }> {
   if (
     queueServiceCodeSetsCache &&
-    Date.now() - queueServiceCodeSetsCache.fetchedAt < QUEUE_SERVICE_CODE_CACHE_MS
+    Date.now() - queueServiceCodeSetsCache.fetchedAt <
+      QUEUE_SERVICE_CODE_CACHE_MS
   ) {
     return queueServiceCodeSetsCache;
   }
@@ -7094,7 +7095,9 @@ async function getQueueServiceCodeSets(): Promise<{
     for (const row of rows as { code: string; category: string | null }[]) {
       const code = String(row.code ?? "").trim();
       if (!code) continue;
-      const category = String(row.category ?? "").trim().toLowerCase();
+      const category = String(row.category ?? "")
+        .trim()
+        .toLowerCase();
       if (category === "examination") clinic.add(code);
       else if (category === "radiology") pentacam.add(code);
     }
@@ -7112,8 +7115,13 @@ async function getQueueServiceCodeSets(): Promise<{
 export async function resolveInitialQueueStatus(
   serviceCodes: Array<string | null | undefined>,
   dateIso: string,
-): Promise<{ queueStatus: "clinic1" | "clinic2" | "pentacam" | "treated"; timestampField: "movedToClinicAt" | "movedToPentacamAt" | "treatedAt" }> {
-  const codes = new Set(serviceCodes.map((c) => String(c ?? "").trim()).filter(Boolean));
+): Promise<{
+  queueStatus: "clinic1" | "clinic2" | "pentacam" | "treated";
+  timestampField: "movedToClinicAt" | "movedToPentacamAt" | "treatedAt";
+}> {
+  const codes = new Set(
+    serviceCodes.map((c) => String(c ?? "").trim()).filter(Boolean),
+  );
   const { clinic, pentacam } = await getQueueServiceCodeSets();
   const hasClinicCode = [...codes].some((c) => clinic.has(c));
   const hasPentacamCode = [...codes].some((c) => pentacam.has(c));
@@ -7136,17 +7144,25 @@ export async function autoAdvanceQueuePatients(dateIso: string) {
   if (!conn) throw new Error("Database not available");
 
   const checkedInRows = await conn
-    .select({ id: visits.id, patientId: visits.patientId, visitType: visits.visitType })
+    .select({
+      id: visits.id,
+      patientId: visits.patientId,
+      visitType: visits.visitType,
+    })
     .from(visits)
-    .where(and(
-      sql`DATE(${visits.visitDate}) = ${dateIso}`,
-      eq(visits.queueStatus, "checkedIn" as any),
-    ))
+    .where(
+      and(
+        sql`DATE(${visits.visitDate}) = ${dateIso}`,
+        eq(visits.queueStatus, "checkedIn" as any),
+      ),
+    )
     .orderBy(visits.id);
 
   if (checkedInRows.length === 0) return;
 
-  const patientIds = checkedInRows.map((row: { patientId: number }) => row.patientId);
+  const patientIds = checkedInRows.map(
+    (row: { patientId: number }) => row.patientId,
+  );
   const serviceRows = patientIds.length
     ? await conn
         .select({
@@ -7169,7 +7185,8 @@ export async function autoAdvanceQueuePatients(dateIso: string) {
   // everything else (no matching service code) is treated immediately.
   // Followup visits are routed like clinic-service-code visits (left in place
   // for cascade to pull into clinic1/clinic2), never force-treated.
-  const { clinic: clinicCodes, pentacam: pentacamCodes } = await getQueueServiceCodeSets();
+  const { clinic: clinicCodes, pentacam: pentacamCodes } =
+    await getQueueServiceCodeSets();
   for (const row of checkedInRows) {
     const codes = servicesByPatient.get(row.patientId) ?? new Set<string>();
     const hasClinicCode =
@@ -7182,32 +7199,48 @@ export async function autoAdvanceQueuePatients(dateIso: string) {
     } else if (hasPentacamCode) {
       await conn
         .update(visits)
-        .set({ queueStatus: "pentacam" as any, movedToPentacamAt: sql`CURRENT_TIMESTAMP` })
+        .set({
+          queueStatus: "pentacam" as any,
+          movedToPentacamAt: sql`CURRENT_TIMESTAMP`,
+        })
         .where(eq(visits.id, row.id));
     } else {
       await conn
         .update(visits)
-        .set({ queueStatus: "treated" as any, treatedAt: sql`CURRENT_TIMESTAMP` })
+        .set({
+          queueStatus: "treated" as any,
+          treatedAt: sql`CURRENT_TIMESTAMP`,
+        })
         .where(eq(visits.id, row.id));
     }
   }
 }
 
 /** Determine next clinic (1 or 2) in strict alternation based on the last-assigned clinic today. */
-export async function getNextAlternatingClinicNo(dateIso: string): Promise<1 | 2>;
-export async function getNextAlternatingClinicNo(conn: any, dateIso: string): Promise<1 | 2>;
-export async function getNextAlternatingClinicNo(a: any, b?: string): Promise<1 | 2> {
+export async function getNextAlternatingClinicNo(
+  dateIso: string,
+): Promise<1 | 2>;
+export async function getNextAlternatingClinicNo(
+  conn: any,
+  dateIso: string,
+): Promise<1 | 2>;
+export async function getNextAlternatingClinicNo(
+  a: any,
+  b?: string,
+): Promise<1 | 2> {
   const conn = typeof b === "string" ? a : await getDb();
   const dateIso = typeof b === "string" ? b : a;
   if (!conn) throw new Error("Database not available");
   const rows = await conn
     .select({ queueStatus: visits.queueStatus })
     .from(visits)
-    .where(and(
-      sql`DATE(${visits.visitDate}) = ${dateIso}`,
-      sql`${visits.queueStatus} IN ('clinic1', 'clinic2', 'pentacam', 'treated')`,
-      sql`${visits.movedToClinicAt} IS NOT NULL`,
-    ))
+    .where(
+      and(
+        sql`DATE(${visits.visitDate}) = ${dateIso}`,
+        sql`${visits.queueStatus} IN ('clinic1', 'clinic2', 'pentacam', 'treated')`,
+        sql`${visits.movedToClinicAt} IS NOT NULL`,
+      ),
+    )
     .orderBy(desc(visits.movedToClinicAt))
     .limit(1);
   const last = rows[0]?.queueStatus;
@@ -7322,7 +7355,11 @@ export async function cascadeQueueStatus(dateIso: string) {
 
   // Move the first non-external "next" visit onward, routed by service code.
   const nextVisits = await db
-    .select({ id: visits.id, patientId: visits.patientId, visitType: visits.visitType })
+    .select({
+      id: visits.id,
+      patientId: visits.patientId,
+      visitType: visits.visitType,
+    })
     .from(visits)
     .innerJoin(patients, eq(visits.patientId, patients.id))
     .where(
@@ -7342,9 +7379,12 @@ export async function cascadeQueueStatus(dateIso: string) {
       .from(patientServiceEntries)
       .where(eq(patientServiceEntries.patientId, nextVisit.patientId));
     const codes = new Set<string>(
-      serviceRows.map((r: { serviceCode: string | null }) => String(r.serviceCode ?? "").trim()),
+      serviceRows.map((r: { serviceCode: string | null }) =>
+        String(r.serviceCode ?? "").trim(),
+      ),
     );
-    const { clinic: clinicCodes2, pentacam: pentacamCodes2 } = await getQueueServiceCodeSets();
+    const { clinic: clinicCodes2, pentacam: pentacamCodes2 } =
+      await getQueueServiceCodeSets();
     const hasClinicCode =
       nextVisit.visitType === "followup" ||
       [...codes].some((c) => clinicCodes2.has(c));
@@ -7355,17 +7395,26 @@ export async function cascadeQueueStatus(dateIso: string) {
       const clinicStatus = clinicNo === 1 ? "clinic1" : "clinic2";
       await db
         .update(visits)
-        .set({ queueStatus: clinicStatus as any, movedToClinicAt: sql`CURRENT_TIMESTAMP` })
+        .set({
+          queueStatus: clinicStatus as any,
+          movedToClinicAt: sql`CURRENT_TIMESTAMP`,
+        })
         .where(eq(visits.id, nextVisit.id));
     } else if (hasPentacamCode) {
       await db
         .update(visits)
-        .set({ queueStatus: "pentacam" as any, movedToPentacamAt: sql`CURRENT_TIMESTAMP` })
+        .set({
+          queueStatus: "pentacam" as any,
+          movedToPentacamAt: sql`CURRENT_TIMESTAMP`,
+        })
         .where(eq(visits.id, nextVisit.id));
     } else {
       await db
         .update(visits)
-        .set({ queueStatus: "treated" as any, treatedAt: sql`CURRENT_TIMESTAMP` })
+        .set({
+          queueStatus: "treated" as any,
+          treatedAt: sql`CURRENT_TIMESTAMP`,
+        })
         .where(eq(visits.id, nextVisit.id));
     }
   }
@@ -7581,7 +7630,9 @@ export async function insertStockTransaction(data: InsertStockTransaction) {
   });
 }
 
-function stockStatusForQuantity(quantity: number): "متوفر" | "كمية قليلة" | "نفذ المخزون" {
+function stockStatusForQuantity(
+  quantity: number,
+): "متوفر" | "كمية قليلة" | "نفذ المخزون" {
   if (quantity === 0) return "نفذ المخزون";
   if (quantity < 10) return "كمية قليلة";
   return "متوفر";

@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { getLocalDateIso } from "@/hooks/operations/operationsShared";
 import { TAB_CONFIG } from "@/lib/operationsPricing";
 import { trpc } from "@/lib/trpc";
@@ -91,22 +91,25 @@ export function OperationsBookingQuickDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="max-h-[min(92dvh,calc(100vh-24px))] w-[96vw] overflow-x-hidden overflow-y-auto sm:max-w-5xl"
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="top"
+        className="max-h-[92dvh] w-full gap-0 overflow-hidden p-0"
         dir="rtl"
       >
-        <DialogHeader className="text-right">
-          <DialogTitle className="text-right">حجز عملية</DialogTitle>
-        </DialogHeader>
-        <OperationsBookingFormContent
-          draft={draft}
-          onChange={handleChange}
-          onSubmit={handleSubmit}
-          onCancel={() => onOpenChange(false)}
-          isSubmitting={createBooking.isPending}
-        />
-      </DialogContent>
-    </Dialog>
+        <SheetHeader className="shrink-0 border-b px-5 py-4 text-right">
+          <SheetTitle className="text-right">حجز عملية</SheetTitle>
+        </SheetHeader>
+        <div className="mx-auto min-h-0 w-full max-w-5xl flex-1 overflow-y-auto p-5">
+          <OperationsBookingFormContent
+            draft={draft}
+            onChange={handleChange}
+            onSubmit={handleSubmit}
+            onCancel={() => onOpenChange(false)}
+            isSubmitting={createBooking.isPending}
+          />
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
