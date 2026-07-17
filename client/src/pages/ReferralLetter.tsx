@@ -4,9 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowRight, Download, Printer, Save } from "lucide-react";
-import { DateInput } from "@/components/ui/date-input";
-import { BRAND_NAME_AR, BRAND_NAME_EN } from "@/lib/brand";
 import PatientPicker from "@/components/PatientPicker";
+import { ClinicalReportFrame } from "@/components/reports/ClinicalReportFrame";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
@@ -80,12 +79,50 @@ const initialForm: FormData = {
 const FIELD =
   "h-auto border-none shadow-none bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-gray-300 disabled:opacity-100 disabled:cursor-default";
 
+function refractionParts(value: string) {
+  const [sphere = "", cylinder = "", axis = ""] = value
+    .split(/\s*(?:\/|x)\s*/i)
+    .map((part) => part.trim());
+  return [sphere, cylinder, axis];
+}
+
+function updateRefractionPart(value: string, index: number, next: string) {
+  const parts = refractionParts(value);
+  parts[index] = next;
+  return parts.join(" / ");
+}
+
+function formatFundusFinding(value: unknown) {
+  if (!value) return "";
+  let finding = value as Record<string, unknown>;
+  if (typeof value === "string") {
+    try {
+      finding = JSON.parse(value) as Record<string, unknown>;
+    } catch {
+      return value;
+    }
+  }
+  return [
+    finding.discStatus && `Disc: ${finding.discStatus}`,
+    finding.cupDiscRatio && `C/D: ${finding.cupDiscRatio}`,
+    finding.macuaStatus && `Macula: ${finding.macuaStatus}`,
+    finding.vesselStatus && `Vessels: ${finding.vesselStatus}`,
+    finding.otherFindings && `Other: ${finding.otherFindings}`,
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
 export default function ReferralLetter() {
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/sheets/referral/:id");
   const initialPatientId = params?.id ? Number(params.id) : undefined;
-  const [patientId, setPatientId] = useState<number | undefined>(initialPatientId);
-  const [existingLetterId, setExistingLetterId] = useState<number | undefined>();
+  const [patientId, setPatientId] = useState<number | undefined>(
+    initialPatientId,
+  );
+  const [existingLetterId, setExistingLetterId] = useState<
+    number | undefined
+  >();
   const [form, setForm] = useState<FormData>(initialForm);
 
   useEffect(() => {
@@ -97,6 +134,18 @@ export default function ReferralLetter() {
     refetchOnWindowFocus: false,
   });
   const glassesQuery = trpc.medical.getGlassesRecordsByPatient.useQuery(
+    { patientId: patientId ?? 0 },
+    { enabled: Boolean(patientId), refetchOnWindowFocus: false },
+  );
+  const autorefQuery = trpc.medical.getAutorefractometryByPatient.useQuery(
+    { patientId: patientId ?? 0 },
+    { enabled: Boolean(patientId), refetchOnWindowFocus: false },
+  );
+  const examinationsQuery = trpc.medical.getExaminationsByPatient.useQuery(
+    { patientId: patientId ?? 0 },
+    { enabled: Boolean(patientId), refetchOnWindowFocus: false },
+  );
+  const reportsQuery = trpc.medical.getMedicalReportsByPatient.useQuery(
     { patientId: patientId ?? 0 },
     { enabled: Boolean(patientId), refetchOnWindowFocus: false },
   );
@@ -115,8 +164,21 @@ export default function ReferralLetter() {
       ...p,
       patientName: p.patientName || patient.fullName || "",
       patientId: p.patientId || patient.patientCode || "",
-      patientAge: p.patientAge || (patient.dateOfBirth ? String(new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear()) : ""),
-      patientGender: p.patientGender || (patient.gender === "male" ? "ذكر" : patient.gender === "female" ? "أنثى" : ""),
+      patientAge:
+        p.patientAge ||
+        (patient.dateOfBirth
+          ? String(
+              new Date().getFullYear() -
+                new Date(patient.dateOfBirth).getFullYear(),
+            )
+          : ""),
+      patientGender:
+        p.patientGender ||
+        (patient.gender === "male"
+          ? "ذكر"
+          : patient.gender === "female"
+            ? "أنثى"
+            : ""),
       contact: p.contact || patient.phone || "",
     }));
   }, [patient]);
@@ -126,12 +188,67 @@ export default function ReferralLetter() {
     const latest = glassesRecords[0];
     setForm((p) => ({
       ...p,
-      refractionOD: p.refractionOD || [latest.sOD, latest.cOD, latest.axisOD].filter(Boolean).join(" / "),
-      refractionOS: p.refractionOS || [latest.sOS, latest.cOS, latest.axisOS].filter(Boolean).join(" / "),
+      refractionOD:
+        p.refractionOD ||
+        [latest.sOD, latest.cOD, latest.axisOD].filter(Boolean).join(" / "),
+      refractionOS:
+        p.refractionOS ||
+        [latest.sOS, latest.cOS, latest.axisOS].filter(Boolean).join(" / "),
       vaBestOD: p.vaBestOD || latest.bcvaOD || "",
       vaBestOS: p.vaBestOS || latest.bcvaOS || "",
     }));
   }, [glassesRecords]);
+
+  useEffect(() => {
+    const latestGlasses = glassesRecords[0];
+    const examinations = (examinationsQuery.data as any[] | undefined) ?? [];
+    const latestExam =
+      examinations.find(
+        (exam) => Number(exam.id) === Number(latestGlasses?.examinationId),
+      ) ?? examinations[0];
+    const autorefRecords = (autorefQuery.data as any[] | undefined) ?? [];
+    const autoref =
+      autorefRecords.find(
+        (record) => Number(record.examinationId) === Number(latestExam?.id),
+      ) ?? autorefRecords[0];
+    const report = ((reportsQuery.data as any[] | undefined) ?? []).find(
+      (item) => Number(item.visitId) === Number(latestExam?.visitId),
+    );
+    if (!latestExam && !autoref && !report) return;
+    const slitLamp = [
+      latestExam?.anteriorSegmentOD && `OD: ${latestExam.anteriorSegmentOD}`,
+      latestExam?.anteriorSegmentOS && `OS: ${latestExam.anteriorSegmentOS}`,
+    ]
+      .filter(Boolean)
+      .join(" | ");
+    const fundus = [
+      latestExam?.posteriorSegmentOD &&
+        `OD: ${formatFundusFinding(latestExam.posteriorSegmentOD)}`,
+      latestExam?.posteriorSegmentOS &&
+        `OS: ${formatFundusFinding(latestExam.posteriorSegmentOS)}`,
+    ]
+      .filter(Boolean)
+      .join(" | ");
+    setForm((previous) => ({
+      ...previous,
+      vaOD: previous.vaOD || autoref?.ucvaOD || "",
+      vaOS: previous.vaOS || autoref?.ucvaOS || "",
+      vaBestOD: previous.vaBestOD || autoref?.bcvaOD || "",
+      vaBestOS: previous.vaBestOS || autoref?.bcvaOS || "",
+      iopOD: previous.iopOD || autoref?.iopOD || "",
+      iopOS: previous.iopOS || autoref?.iopOS || "",
+      slitLamp: previous.slitLamp || slitLamp,
+      fundus: previous.fundus || fundus,
+      diagnosisTags: previous.diagnosisTags || report?.diagnosis || "",
+      reasonForReferral:
+        previous.reasonForReferral || report?.recommendations || "",
+    }));
+  }, [
+    autorefQuery.data,
+    examinationsQuery.data,
+    glassesRecords,
+    reportsQuery.data,
+  ]);
 
   useEffect(() => {
     const letter = letters[0];
@@ -139,7 +256,9 @@ export default function ReferralLetter() {
     setExistingLetterId(Number(letter.id));
     setForm((p) => ({
       ...p,
-      examDate: letter.examDate ? String(letter.examDate).split("T")[0] : p.examDate,
+      examDate: letter.examDate
+        ? String(letter.examDate).split("T")[0]
+        : p.examDate,
       refractionOD: letter.refractionOD || p.refractionOD,
       refractionOS: letter.refractionOS || p.refractionOS,
       vaOD: letter.vaOD || p.vaOD,
@@ -153,7 +272,8 @@ export default function ReferralLetter() {
       diagnosisTags: letter.diagnosisTags || p.diagnosisTags,
       reasonForReferral: letter.reasonForReferral || p.reasonForReferral,
       referredPhysician: letter.referredPhysician || p.referredPhysician,
-      referredPhysicianTitle: letter.referredPhysicianTitle || p.referredPhysicianTitle,
+      referredPhysicianTitle:
+        letter.referredPhysicianTitle || p.referredPhysicianTitle,
       referredFacility: letter.referredFacility || p.referredFacility,
       referredDept: letter.referredDept || p.referredDept,
       physicianName: letter.physicianName || p.physicianName,
@@ -222,113 +342,212 @@ export default function ReferralLetter() {
   const renderBody = (readOnly = false) => (
     <fieldset
       disabled={readOnly}
-      className="border-0 p-0 m-0 min-w-0 disabled:opacity-95 referral-print-root"
+      className="medical-report-brand border-0 p-0 m-0 min-w-0 disabled:opacity-95 referral-print-root"
     >
-      {/* A4 document */}
-      <article
-        className="a4-canvas print-container flex flex-col border border-border/70 bg-card w-[210mm] min-h-[297mm] mx-auto shadow-2xl shadow-primary/5 rounded-2xl print:rounded-none text-foreground overflow-hidden"
-        dir="rtl"
+      <ClinicalReportFrame
+        title="Medical Referral | خطاب تحويل طبي"
+        generatedDate={form.examDate}
+        patient={{
+          name: form.patientName,
+          code: form.patientId,
+          age: form.patientAge,
+          phone: form.contact,
+          occupation: form.nationality,
+        }}
+        signatureLabel="Signature & Stamp / التوقيع والختم"
       >
-        {/* Letterhead */}
-        <header className="flex justify-between items-start bg-primary text-white px-[15mm] py-6">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-card/15 rounded-lg flex items-center justify-center">
-              <svg className="w-9 h-9" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M3 12c0-3 3-6 9-6s9 3 9 6-3 6-9 6-9-3-9-6z" />
-              </svg>
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold leading-tight">{BRAND_NAME_AR}</h1>
-              <p className="text-[11px] font-bold tracking-widest uppercase opacity-80">
-                {BRAND_NAME_EN} — Ophthalmic ERP
-              </p>
-            </div>
-          </div>
-          <div className="text-left" dir="ltr">
-            <h2 className="text-lg font-bold uppercase tracking-wider">Medical Referral</h2>
-            <p className="text-xs font-mono opacity-80">REF: {REF_ID}</p>
-            <div className="flex items-center gap-1 justify-end mt-1">
-              <span className="text-xs opacity-80">DATE:</span>
-              <DateInput
-                className={`${FIELD} h-5 w-28 text-xs font-mono text-white`}
-                value={form.examDate}
-                onChange={set("examDate")}
-              />
-            </div>
-          </div>
-        </header>
-
-        <div className="px-[15mm] py-8 space-y-8 flex-1 flex flex-col">
+        <div className="flex flex-1 flex-col space-y-8">
           {/* Patient Info */}
-          <section>
+          <section className="hidden">
             <div className="grid grid-cols-3 gap-4 bg-muted/40 p-4 rounded-lg border border-border/70">
               <div className="col-span-1">
                 <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-0.5">
                   Full Name / الاسم الكامل
                 </label>
-                <Input className={`${FIELD} text-base font-bold`} value={form.patientName} onChange={set("patientName")} placeholder="اسم المريض" />
+                <Input
+                  className={`${FIELD} text-base font-bold`}
+                  value={form.patientName}
+                  onChange={set("patientName")}
+                  placeholder="اسم المريض"
+                />
               </div>
               <div>
                 <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-0.5">
                   Patient ID / رقم المريض
                 </label>
-                <Input className={`${FIELD} text-base font-mono`} value={form.patientId} onChange={set("patientId")} placeholder="P-0000000" />
+                <Input
+                  className={`${FIELD} text-base font-mono`}
+                  value={form.patientId}
+                  onChange={set("patientId")}
+                  placeholder="P-0000000"
+                />
               </div>
               <div>
                 <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-0.5">
                   Age &amp; Gender / العمر والجنس
                 </label>
                 <div className="flex gap-2">
-                  <Input className={`${FIELD} text-base w-16`} value={form.patientAge} onChange={set("patientAge")} placeholder="45" />
-                  <Input className={`${FIELD} text-base`} value={form.patientGender} onChange={set("patientGender")} placeholder="ذكر" />
+                  <Input
+                    className={`${FIELD} text-base w-16`}
+                    value={form.patientAge}
+                    onChange={set("patientAge")}
+                    placeholder="45"
+                  />
+                  <Input
+                    className={`${FIELD} text-base`}
+                    value={form.patientGender}
+                    onChange={set("patientGender")}
+                    placeholder="ذكر"
+                  />
                 </div>
               </div>
               <div>
                 <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-0.5">
                   Nationality / الجنسية
                 </label>
-                <Input className={`${FIELD} text-base`} value={form.nationality} onChange={set("nationality")} placeholder="—" />
+                <Input
+                  className={`${FIELD} text-base`}
+                  value={form.nationality}
+                  onChange={set("nationality")}
+                  placeholder="—"
+                />
               </div>
               <div className="col-span-2">
                 <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-0.5">
                   Contact / التواصل
                 </label>
-                <Input className={`${FIELD} text-base`} dir="ltr" value={form.contact} onChange={set("contact")} placeholder="+20 ..." />
+                <Input
+                  className={`${FIELD} text-base`}
+                  dir="ltr"
+                  value={form.contact}
+                  onChange={set("contact")}
+                  placeholder="+20 ..."
+                />
               </div>
             </div>
           </section>
 
           {/* Clinical Findings table */}
           <section>
-            <h3 className="text-[11px] font-bold text-primary uppercase tracking-wider mb-2">
-              Clinical Findings
-            </h3>
-            <div className="border border-border/70 rounded-lg overflow-hidden" dir="ltr">
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr className="bg-muted/40 text-[10px] font-bold uppercase text-slate-600 dark:text-slate-400 text-left">
-                    <th className="py-2 px-3 border-b border-border/70 w-24">Eye</th>
-                    <th className="py-2 px-3 border-b border-border/70">Refraction (S/C/A)</th>
-                    <th className="py-2 px-3 border-b border-border/70">VA (Uncorrected)</th>
-                    <th className="py-2 px-3 border-b border-border/70">VA (Best Corrected)</th>
-                    <th className="py-2 px-3 border-b border-border/70">IOP (mmHg)</th>
-                  </tr>
-                </thead>
-                <tbody className="font-mono">
-                  <tr className="bg-primary/5">
-                    <td className="py-2 px-3 border-b border-border/70 font-bold text-primary font-sans">OD (Right)</td>
-                    <td className="py-1 px-2 border-b border-border/70"><Input className={`${FIELD} text-sm`} value={form.refractionOD} onChange={set("refractionOD")} placeholder="-0.00 / -0.00 x 000" /></td>
-                    <td className="py-1 px-2 border-b border-border/70"><Input className={`${FIELD} text-sm`} value={form.vaOD} onChange={set("vaOD")} placeholder="6/12" /></td>
-                    <td className="py-1 px-2 border-b border-border/70"><Input className={`${FIELD} text-sm`} value={form.vaBestOD} onChange={set("vaBestOD")} placeholder="6/6" /></td>
-                    <td className="py-1 px-2 border-b border-border/70"><Input className={`${FIELD} text-sm font-bold ${iopODNum > 21 ? "text-destructive" : ""}`} value={form.iopOD} onChange={set("iopOD")} placeholder="18.0" /></td>
+            <div className="mb-2 flex flex-row-reverse items-center justify-between gap-4 border-b border-border/70 pb-2">
+              <h3 className="shrink-0 text-[11px] font-bold uppercase tracking-wider text-primary">
+                Clinical Findings
+              </h3>
+              <div className="flex flex-1 items-center justify-center gap-5 text-center text-[11px] font-bold uppercase">
+                <label className="flex items-center gap-1">
+                  UCVA
+                  <Input
+                    className={`${FIELD} w-8 text-center text-xs font-bold`}
+                    value={form.vaOD}
+                    onChange={set("vaOD")}
+                    placeholder="..."
+                  />
+                  /
+                  <Input
+                    className={`${FIELD} w-8 text-center text-xs font-bold`}
+                    value={form.vaOS}
+                    onChange={set("vaOS")}
+                    placeholder="..."
+                  />
+                </label>
+                <label className="flex items-center gap-1">
+                  BCVA
+                  <Input
+                    className={`${FIELD} w-8 text-center text-xs font-bold`}
+                    value={form.vaBestOD}
+                    onChange={set("vaBestOD")}
+                    placeholder="..."
+                  />
+                  /
+                  <Input
+                    className={`${FIELD} w-8 text-center text-xs font-bold`}
+                    value={form.vaBestOS}
+                    onChange={set("vaBestOS")}
+                    placeholder="..."
+                  />
+                </label>
+                <label className="flex items-center gap-1">
+                  IOP
+                  <Input
+                    className={`${FIELD} w-8 text-center text-xs font-bold ${iopODNum > 21 ? "text-destructive" : ""}`}
+                    value={form.iopOD}
+                    onChange={set("iopOD")}
+                    placeholder="..."
+                  />
+                  /
+                  <Input
+                    className={`${FIELD} w-8 text-center text-xs font-bold ${iopOSNum > 21 ? "text-destructive" : ""}`}
+                    value={form.iopOS}
+                    onChange={set("iopOS")}
+                    placeholder="..."
+                  />
+                </label>
+              </div>
+            </div>
+            <div
+              className="overflow-hidden rounded-md border border-[#c3c6d6]"
+              dir="ltr"
+            >
+              <table className="w-full table-fixed border-collapse text-center text-xs">
+                <thead className="bg-[#e7e8ea] font-bold">
+                  <tr>
+                    <th className="w-[18%] border border-[#c3c6d6] px-2 py-2">
+                      Refraction
+                    </th>
+                    <th
+                      colSpan={3}
+                      className="border border-[#c3c6d6] px-2 py-2"
+                    >
+                      OD
+                    </th>
+                    <th
+                      colSpan={3}
+                      className="border border-[#c3c6d6] px-2 py-2"
+                    >
+                      OS
+                    </th>
                   </tr>
                   <tr>
-                    <td className="py-2 px-3 font-bold text-slate-500 dark:text-slate-400 font-sans">OS (Left)</td>
-                    <td className="py-1 px-2"><Input className={`${FIELD} text-sm`} value={form.refractionOS} onChange={set("refractionOS")} placeholder="-0.00 / -0.00 x 000" /></td>
-                    <td className="py-1 px-2"><Input className={`${FIELD} text-sm`} value={form.vaOS} onChange={set("vaOS")} placeholder="6/9" /></td>
-                    <td className="py-1 px-2"><Input className={`${FIELD} text-sm`} value={form.vaBestOS} onChange={set("vaBestOS")} placeholder="6/6" /></td>
-                    <td className="py-1 px-2"><Input className={`${FIELD} text-sm font-bold ${iopOSNum > 21 ? "text-destructive" : ""}`} value={form.iopOS} onChange={set("iopOS")} placeholder="18.0" /></td>
+                    <th className="border border-[#c3c6d6] px-2 py-2">
+                      Distance
+                    </th>
+                    {["S", "C", "A", "S", "C", "A"].map((label, index) => (
+                      <th
+                        key={`${label}-${index}`}
+                        className="border border-[#c3c6d6] px-2 py-2"
+                      >
+                        {label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="bg-primary/[0.04]">
+                    <td className="border border-[#c3c6d6]">&nbsp;</td>
+                    {(["refractionOD", "refractionOS"] as const).flatMap(
+                      (eye) =>
+                        refractionParts(form[eye]).map((value, index) => (
+                          <td
+                            key={`${eye}-${index}`}
+                            className="border border-[#c3c6d6] px-2 py-2"
+                          >
+                            <Input
+                              className={`${FIELD} text-center font-mono text-xs`}
+                              value={value}
+                              onChange={(event) =>
+                                setForm((previous) => ({
+                                  ...previous,
+                                  [eye]: updateRefractionPart(
+                                    previous[eye],
+                                    index,
+                                    event.target.value,
+                                  ),
+                                }))
+                              }
+                            />
+                          </td>
+                        )),
+                    )}
                   </tr>
                 </tbody>
               </table>
@@ -340,13 +559,25 @@ export default function ReferralLetter() {
                 <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">
                   Slit Lamp
                 </p>
-                <Textarea className={`${FIELD} text-[13px] w-full resize-none min-h-[56px]`} rows={3} value={form.slitLamp} onChange={set("slitLamp")} placeholder="OD: ... OS: ..." />
+                <Textarea
+                  className={`${FIELD} text-[13px] w-full resize-none min-h-[56px]`}
+                  rows={3}
+                  value={form.slitLamp}
+                  onChange={set("slitLamp")}
+                  placeholder="OD: ... OS: ..."
+                />
               </div>
               <div className="p-3 bg-background rounded-lg border border-border/70">
                 <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">
                   Fundus
                 </p>
-                <Textarea className={`${FIELD} text-[13px] w-full resize-none min-h-[56px]`} rows={3} value={form.fundus} onChange={set("fundus")} placeholder="OD: ... OS: ..." />
+                <Textarea
+                  className={`${FIELD} text-[13px] w-full resize-none min-h-[56px]`}
+                  rows={3}
+                  value={form.fundus}
+                  onChange={set("fundus")}
+                  placeholder="OD: ... OS: ..."
+                />
               </div>
             </div>
           </section>
@@ -358,12 +589,18 @@ export default function ReferralLetter() {
                 Diagnosis
               </h3>
               <div className="flex flex-wrap gap-1.5 mb-2">
-                {form.diagnosisTags.split(",").filter((t) => t.trim()).map((tag) => (
-                  <span key={tag} className="inline-flex items-center gap-1.5 text-[12px] font-semibold">
-                    <span className="w-2 h-2 rounded-full bg-destructive" />
-                    {tag.trim()}
-                  </span>
-                ))}
+                {form.diagnosisTags
+                  .split(",")
+                  .filter((t) => t.trim())
+                  .map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center gap-1.5 text-[12px] font-semibold"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-destructive" />
+                      {tag.trim()}
+                    </span>
+                  ))}
               </div>
               <Input
                 className={`${FIELD} text-[11px] print:hidden border-b border-dotted border-border/70 w-full`}
@@ -393,42 +630,82 @@ export default function ReferralLetter() {
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-[10px] text-slate-600 dark:text-slate-400 uppercase block">Physician Name</label>
-                <Input className={`${FIELD} text-base font-bold`} value={form.referredPhysician} onChange={set("referredPhysician")} placeholder="د. ..." />
-                <Input className={`${FIELD} text-[12px] text-slate-500 dark:text-slate-400`} value={form.referredPhysicianTitle} onChange={set("referredPhysicianTitle")} placeholder="استشاري ..." />
+                <label className="text-[10px] text-slate-600 dark:text-slate-400 uppercase block">
+                  Physician Name
+                </label>
+                <Input
+                  className={`${FIELD} text-base font-bold`}
+                  value={form.referredPhysician}
+                  onChange={set("referredPhysician")}
+                  placeholder="د. ..."
+                />
+                <Input
+                  className={`${FIELD} text-[12px] text-slate-500 dark:text-slate-400`}
+                  value={form.referredPhysicianTitle}
+                  onChange={set("referredPhysicianTitle")}
+                  placeholder="استشاري ..."
+                />
               </div>
               <div>
-                <label className="text-[10px] text-slate-600 dark:text-slate-400 uppercase block">Facility</label>
-                <Input className={`${FIELD} text-base font-bold`} value={form.referredFacility} onChange={set("referredFacility")} placeholder="المستشفى / المركز" />
-                <Input className={`${FIELD} text-[12px] text-slate-500 dark:text-slate-400`} value={form.referredDept} onChange={set("referredDept")} placeholder="القسم" />
+                <label className="text-[10px] text-slate-600 dark:text-slate-400 uppercase block">
+                  Facility
+                </label>
+                <Input
+                  className={`${FIELD} text-base font-bold`}
+                  value={form.referredFacility}
+                  onChange={set("referredFacility")}
+                  placeholder="المستشفى / المركز"
+                />
+                <Input
+                  className={`${FIELD} text-[12px] text-slate-500 dark:text-slate-400`}
+                  value={form.referredDept}
+                  onChange={set("referredDept")}
+                  placeholder="القسم"
+                />
               </div>
             </div>
           </section>
 
           {/* Signature footer */}
-          <footer className="mt-auto flex justify-between items-end border-t border-border/70 pt-6">
+          <footer className="hidden">
             <div className="text-[13px] space-y-0.5">
-              <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase">Referring Clinician / الطبيب المحوِّل</p>
-              <Input className={`${FIELD} text-base font-bold`} value={form.physicianName} onChange={set("physicianName")} placeholder="د. ..." />
-              <Input className={`${FIELD} text-[13px]`} value={form.physicianTitle} onChange={set("physicianTitle")} placeholder="استشاري طب وجراحة العيون" />
-              <div className="flex items-center gap-1 text-muted-foreground/80" dir="ltr">
+              <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase">
+                Referring Clinician / الطبيب المحوِّل
+              </p>
+              <Input
+                className={`${FIELD} text-base font-bold`}
+                value={form.physicianName}
+                onChange={set("physicianName")}
+                placeholder="د. ..."
+              />
+              <Input
+                className={`${FIELD} text-[13px]`}
+                value={form.physicianTitle}
+                onChange={set("physicianTitle")}
+                placeholder="استشاري طب وجراحة العيون"
+              />
+              <div
+                className="flex items-center gap-1 text-muted-foreground/80"
+                dir="ltr"
+              >
                 <span className="text-[11px]">License:</span>
-                <Input className={`${FIELD} text-[11px] w-32`} value={form.physicianLicense} onChange={set("physicianLicense")} placeholder="MOH-EYE-0000" />
+                <Input
+                  className={`${FIELD} text-[11px] w-32`}
+                  value={form.physicianLicense}
+                  onChange={set("physicianLicense")}
+                  placeholder="MOH-EYE-0000"
+                />
               </div>
             </div>
             <div className="text-center">
               <div className="w-48 h-16 border-b-2 border-foreground/80" />
-              <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase mt-1">Signature &amp; Stamp / التوقيع والختم</p>
+              <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase mt-1">
+                Signature &amp; Stamp / التوقيع والختم
+              </p>
             </div>
           </footer>
-
-          <div className="text-center border-t border-border/40 pt-3 opacity-50">
-            <p className="text-[8px] font-mono uppercase tracking-widest">
-              {BRAND_NAME_EN} © {new Date().getFullYear()} — Confidential Medical Record
-            </p>
-          </div>
         </div>
-      </article>
+      </ClinicalReportFrame>
     </fieldset>
   );
 
@@ -456,12 +733,21 @@ export default function ReferralLetter() {
         }
       `}</style>
 
-      <header className="sticky top-0 z-50 print:hidden flex justify-between items-center px-6 py-2 bg-background border-b border-border/70" style={{ fontFamily: "Inter, sans-serif" }}>
+      <header
+        className="sticky top-0 z-50 print:hidden flex justify-between items-center px-6 py-2 bg-background border-b border-border/70"
+        style={{ fontFamily: "Inter, sans-serif" }}
+      >
         <div className="flex items-center gap-4">
-          <button type="button" className="text-slate-600 dark:text-slate-400 hover:text-primary text-sm font-bold flex items-center gap-1" onClick={() => setLocation(-1 as any)}>
+          <button
+            type="button"
+            className="text-slate-600 dark:text-slate-400 hover:text-primary text-sm font-bold flex items-center gap-1"
+            onClick={() => setLocation(-1 as any)}
+          >
             <ArrowRight className="h-4 w-4" /> رجوع
           </button>
-          <span className="text-base font-bold text-primary">خطاب إحالة / Referral Letter</span>
+          <span className="text-base font-bold text-primary">
+            خطاب إحالة / Referral Letter
+          </span>
         </div>
         <div className="flex items-center gap-3">
           <div className="w-64 print:hidden">
@@ -472,13 +758,29 @@ export default function ReferralLetter() {
               }}
             />
           </div>
-          <Button size="sm" variant="outline" className="border-primary text-primary font-bold hover:bg-primary/10 gap-1.5" onClick={handleSave} disabled={saveLetterMutation.isPending}>
-            <Save className="h-3.5 w-3.5" /> {saveLetterMutation.isPending ? "جارٍ الحفظ..." : "حفظ"}
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-primary text-primary font-bold hover:bg-primary/10 gap-1.5"
+            onClick={handleSave}
+            disabled={saveLetterMutation.isPending}
+          >
+            <Save className="h-3.5 w-3.5" />{" "}
+            {saveLetterMutation.isPending ? "جارٍ الحفظ..." : "حفظ"}
           </Button>
-          <Button size="sm" variant="outline" className="border-primary text-primary font-bold hover:bg-primary/10 gap-1.5" onClick={handlePrint}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-primary text-primary font-bold hover:bg-primary/10 gap-1.5"
+            onClick={handlePrint}
+          >
             <Printer className="h-3.5 w-3.5" /> طباعة
           </Button>
-          <Button size="sm" className="bg-primary hover:opacity-90 text-white font-bold gap-1.5" onClick={handleDownloadPDF}>
+          <Button
+            size="sm"
+            className="bg-primary hover:opacity-90 text-white font-bold gap-1.5"
+            onClick={handleDownloadPDF}
+          >
             <Download className="h-3.5 w-3.5" /> Print PDF
           </Button>
         </div>

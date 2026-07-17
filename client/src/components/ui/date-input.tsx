@@ -24,6 +24,7 @@ export interface DateInputProps {
   id?: string;
   name?: string;
   className?: string;
+  inputClassName?: string;
   style?: React.CSSProperties;
   dir?: string;
   placeholder?: string;
@@ -57,6 +58,7 @@ export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
       onChange,
       onBlur,
       className,
+      inputClassName,
       style,
       dir,
       disabled,
@@ -103,9 +105,11 @@ export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
     // typing 8 digits (ddmmyyyy) without needing to hit "/" manually.
     const formatTyped = (raw: string): string => {
       const digits = raw.replace(/\D/g, "").slice(0, 8);
-      const parts = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)].filter(
-        Boolean,
-      );
+      const parts = [
+        digits.slice(0, 2),
+        digits.slice(2, 4),
+        digits.slice(4, 8),
+      ].filter(Boolean);
       return parts.join("/");
     };
 
@@ -160,15 +164,8 @@ export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
             aria-required={required}
             aria-label={ariaLabel}
             placeholder={placeholder || "dd/mm/yyyy"}
-            // `size` (not a CSS width) sizes the box to ~11 characters using
-            // the actual rendered font, and — unlike a fixed CSS width —
-            // isn't ignored by a flex-basis:0 ancestor or clipped when a
-            // caller sets an explicit wrapper width (e.g. className="w-32").
-            // min-w-28 is a hard floor on top of that: size-based sizing
-            // varies with the actual font's digit widths, so this guarantees
-            // "dd/mm/yyyy" (10 chars, plus padding) never gets clipped even
-            // if a caller's wrapper width is too small — the box will grow
-            // past that wrapper rather than silently cut off the year.
+            // Keep the default wide enough for the full date. Dense layouts
+            // can opt into a smaller input through inputClassName.
             size={11}
             value={text}
             onChange={(e) => setText(formatTyped(e.target.value))}
@@ -182,7 +179,10 @@ export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
                 commitText(text);
               }
             }}
-            className="w-auto min-w-28 border-0 shadow-none focus-visible:ring-0 tabular-nums"
+            className={cn(
+              "w-auto min-w-28 border-0 shadow-none focus-visible:ring-0 tabular-nums",
+              inputClassName,
+            )}
           />
           <PopoverTrigger asChild>
             <Button

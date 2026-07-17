@@ -6,6 +6,7 @@ import { DateInput } from "@/components/ui/date-input";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import PatientPicker from "@/components/PatientPicker";
+import { ClinicalReportFrame } from "@/components/reports/ClinicalReportFrame";
 import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -16,9 +17,11 @@ type EyeValues = {
   s: string;
   c: string;
   ax: string;
+  pd: string;
+  add: string;
 };
 
-const emptyEye: EyeValues = { s: "", c: "", ax: "" };
+const emptyEye: EyeValues = { s: "", c: "", ax: "", pd: "", add: "" };
 
 function FieldLabel({ children }: { children: string }) {
   return (
@@ -34,12 +37,14 @@ function RefractionTable({
   os,
   setOd,
   setOs,
+  showReading = true,
 }: {
   title: string;
   od: EyeValues;
   os: EyeValues;
   setOd: (value: EyeValues) => void;
   setOs: (value: EyeValues) => void;
+  showReading?: boolean;
 }) {
   const setValue = (eye: "od" | "os", key: keyof EyeValues, value: string) => {
     if (eye === "od") setOd({ ...od, [key]: value });
@@ -48,88 +53,118 @@ function RefractionTable({
 
   return (
     <section className="report-block overflow-hidden border border-[#c2c7d1] bg-white">
-      <div className="bg-[#e8eff1] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.04em] text-[#00355f]">
-        {title}
-      </div>
-      <table className="w-full border-collapse text-center" dir="ltr">
+      <table
+        className="prepost-refraction-table w-full table-fixed border-collapse text-center text-[11px]"
+        dir="ltr"
+      >
         <thead>
-          <tr className="bg-[#f4fafd] text-[9px] font-bold uppercase text-[#42474f]">
-            <th className="w-[18%] border-r border-t border-[#c2c7d1] px-1.5 py-1">
-              Eye
+          <tr className="bg-[#e8eff1] font-bold uppercase text-[#00355f]">
+            <th className="w-[18%] px-2 py-1.5">{title}</th>
+            <th colSpan={3} className="px-2 py-1.5">
+              OD
             </th>
-            <th className="border-r border-t border-[#c2c7d1] px-1.5 py-1">S</th>
-            <th className="border-r border-t border-[#c2c7d1] px-1.5 py-1">C</th>
-            <th className="border-t border-[#c2c7d1] px-1.5 py-1">Ax</th>
+            <th colSpan={3} className="px-2 py-1.5">
+              OS
+            </th>
+            <th className="w-[12%] px-2 py-1.5" />
+          </tr>
+          <tr className="bg-[#f4fafd] text-[9px] font-bold uppercase text-[#42474f]">
+            <th className="px-1.5 py-1">Distance</th>
+            <th className="px-1.5 py-1">S</th>
+            <th className="px-1.5 py-1">C</th>
+            <th className="px-1.5 py-1">A</th>
+            <th className="px-1.5 py-1">S</th>
+            <th className="px-1.5 py-1">C</th>
+            <th className="px-1.5 py-1">A</th>
+            <th className="px-1.5 py-1">IPD</th>
           </tr>
         </thead>
         <tbody>
-          {(["od", "os"] as const).map((eye) => {
-            const values = eye === "od" ? od : os;
-            return (
-              <tr key={eye}>
-                <td className="border-r border-t border-[#c2c7d1] bg-[#eef5f7] px-1.5 py-1 text-[11px] font-bold text-[#00355f]">
-                  {eye.toUpperCase()}
-                </td>
-                {(["s", "c", "ax"] as const).map((key) => (
-                  <td
-                    key={key}
-                    className="border-r border-t border-[#c2c7d1] p-0 last:border-r-0"
-                  >
-                    <input
-                      value={values[key]}
-                      onChange={(event) =>
-                        setValue(eye, key, event.target.value)
-                      }
-                      className="h-6 w-full border-0 bg-transparent px-1.5 text-center text-[11px] font-semibold outline-none focus:bg-[#d2e4ff]/40"
-                    />
-                  </td>
-                ))}
-              </tr>
-            );
-          })}
+          <tr>
+            <td className="px-1.5 py-1">&nbsp;</td>
+            {(["s", "c", "ax"] as const).map((key) => (
+              <td key={`od-${key}`} className="p-0">
+                <input
+                  value={od[key]}
+                  onChange={(event) => setValue("od", key, event.target.value)}
+                  className="h-7 w-full border-0 bg-transparent px-1 text-center font-semibold outline-none focus:bg-[#d2e4ff]/40"
+                />
+              </td>
+            ))}
+            {(["s", "c", "ax"] as const).map((key) => (
+              <td key={`os-${key}`} className="p-0">
+                <input
+                  value={os[key]}
+                  onChange={(event) => setValue("os", key, event.target.value)}
+                  className="h-7 w-full border-0 bg-transparent px-1 text-center font-semibold outline-none focus:bg-[#d2e4ff]/40"
+                />
+              </td>
+            ))}
+            <td className="p-0">
+              <input
+                value={od.pd || os.pd}
+                onChange={(event) => {
+                  setOd({ ...od, pd: event.target.value });
+                  setOs({ ...os, pd: event.target.value });
+                }}
+                className="h-7 w-full border-0 bg-transparent px-1 text-center font-semibold outline-none focus:bg-[#d2e4ff]/40"
+              />
+            </td>
+          </tr>
+          {showReading ? (
+            <tr>
+              <td className="px-2 py-1.5 font-bold text-[#00355f]">Reading</td>
+              <td colSpan={7} className="px-4 py-1.5">
+                <div className="flex items-center justify-center gap-2">
+                  <span className="whitespace-nowrap font-bold">Add +</span>
+                  <input
+                    value={od.add || os.add}
+                    onChange={(event) => {
+                      setOd({ ...od, add: event.target.value });
+                      setOs({ ...os, add: event.target.value });
+                    }}
+                    className="h-6 w-24 border-0 bg-transparent text-center font-semibold outline-none focus:bg-[#d2e4ff]/40"
+                  />
+                </div>
+              </td>
+            </tr>
+          ) : null}
         </tbody>
       </table>
     </section>
   );
 }
 
-function VaBox({
-  title,
-  od,
-  os,
-  setOd,
-  setOs,
+function VaSummary({
+  metrics,
 }: {
-  title: string;
-  od: string;
-  os: string;
-  setOd: (value: string) => void;
-  setOs: (value: string) => void;
+  metrics: Array<{
+    title: string;
+    od: string;
+    os: string;
+    setOd: (value: string) => void;
+    setOs: (value: string) => void;
+  }>;
 }) {
   return (
-    <section className="report-block overflow-hidden border border-[#c2c7d1] bg-white">
-      <div className="bg-[#e8eff1] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.04em] text-[#00355f]">
-        {title}
-      </div>
-      <div className="grid grid-cols-2">
-        <label className="border-r border-t border-[#c2c7d1] p-1.5 text-center">
-          <FieldLabel>OD</FieldLabel>
-          <Input
-            value={od}
-            onChange={(event) => setOd(event.target.value)}
-            className="mt-1 h-7 border-[#c2c7d1] text-center text-sm font-bold"
+    <div className="ml-auto flex items-center justify-center gap-6 text-center text-[11px] font-bold uppercase tracking-wide">
+      {metrics.map((metric) => (
+        <span key={metric.title} className="flex items-center gap-1">
+          {metric.title}
+          <input
+            value={metric.od}
+            onChange={(event) => metric.setOd(event.target.value)}
+            className="h-6 w-14 border-0 bg-transparent text-center font-bold outline-none focus:bg-[#d2e4ff]/40"
           />
-        </label>
-        <label className="border-t border-[#c2c7d1] p-1.5 text-center">
-          <FieldLabel>OS</FieldLabel>
-          <Input
-            value={os}
-            onChange={(event) => setOs(event.target.value)}
-            className="mt-1 h-7 border-[#c2c7d1] text-center text-sm font-bold"
+          /
+          <input
+            value={metric.os}
+            onChange={(event) => metric.setOs(event.target.value)}
+            className="h-6 w-14 border-0 bg-transparent text-center font-bold outline-none focus:bg-[#d2e4ff]/40"
           />
-        </label>
-      </div>
-    </section>
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -153,13 +188,20 @@ export default function PrePostOpReport() {
     { patientId: patientId ?? 0 },
     { enabled: Boolean(patientId), refetchOnWindowFocus: false },
   );
+  const autorefQuery = trpc.medical.getAutorefractometryByPatient.useQuery(
+    { patientId: patientId ?? 0 },
+    { enabled: Boolean(patientId), refetchOnWindowFocus: false },
+  );
 
   const patient = patientQuery.data as any;
   const surgeries = (surgeriesQuery.data as any[] | undefined) ?? [];
   const glassesRecords = (glassesQuery.data as any[] | undefined) ?? [];
+  const autorefRecords = (autorefQuery.data as any[] | undefined) ?? [];
   const today = useMemo(() => new Date().toISOString().split("T")[0], []);
 
-  const [selectedSurgeryId, setSelectedSurgeryId] = useState<number | undefined>();
+  const [selectedSurgeryId, setSelectedSurgeryId] = useState<
+    number | undefined
+  >();
   const [operationDate, setOperationDate] = useState("");
   const [procedure, setProcedure] = useState("");
   const [preOd, setPreOd] = useState<EyeValues>(emptyEye);
@@ -185,7 +227,9 @@ export default function PrePostOpReport() {
   useEffect(() => {
     if (!patient) return;
     setPatientName(patient.fullName || "");
-    setPatientDob(patient.dateOfBirth ? String(patient.dateOfBirth).split("T")[0] : "");
+    setPatientDob(
+      patient.dateOfBirth ? String(patient.dateOfBirth).split("T")[0] : "",
+    );
     setPatientCode(patient.patientCode || "");
   }, [patient]);
 
@@ -205,38 +249,73 @@ export default function PrePostOpReport() {
     setProcedure(selectedSurgery.surgeryType || "");
     setSurgeon(selectedSurgery.surgeon || "");
     setNotes(selectedSurgery.notes || "");
-    if (selectedSurgery.patientNameOverride) setPatientName(selectedSurgery.patientNameOverride);
-    if (selectedSurgery.patientDobOverride) setPatientDob(String(selectedSurgery.patientDobOverride).split("T")[0]);
-    if (selectedSurgery.patientCodeOverride) setPatientCode(selectedSurgery.patientCodeOverride);
+    if (selectedSurgery.patientNameOverride)
+      setPatientName(selectedSurgery.patientNameOverride);
+    if (selectedSurgery.patientDobOverride)
+      setPatientDob(String(selectedSurgery.patientDobOverride).split("T")[0]);
+    if (selectedSurgery.patientCodeOverride)
+      setPatientCode(selectedSurgery.patientCodeOverride);
   }, [selectedSurgery]);
 
   useEffect(() => {
-    if (!operationDate || glassesRecords.length === 0) return;
-    const opTime = new Date(operationDate).getTime();
-    const withDates = glassesRecords
-      .filter((r) => r.visitDate)
-      .map((r) => ({ ...r, _time: new Date(r.visitDate).getTime() }));
-
-    const preRecord = withDates
-      .filter((r) => r._time <= opTime)
-      .sort((a, b) => b._time - a._time)[0];
-    const postRecord = withDates
-      .filter((r) => r._time > opTime)
-      .sort((a, b) => a._time - b._time)[0];
+    if (glassesRecords.length === 0) return;
+    const orderedRecords = [...glassesRecords].sort(
+      (left, right) => Number(left.id) - Number(right.id),
+    );
+    const preRecord = orderedRecords[0];
+    const postRecord = orderedRecords[orderedRecords.length - 1];
+    const preAutoref = autorefRecords.find(
+      (record) =>
+        Number(record.examinationId) === Number(preRecord?.examinationId),
+    );
+    const postAutoref = autorefRecords.find(
+      (record) =>
+        Number(record.examinationId) === Number(postRecord?.examinationId),
+    );
 
     if (preRecord) {
-      setPreOd({ s: preRecord.sOD || "", c: preRecord.cOD || "", ax: preRecord.axisOD || "" });
-      setPreOs({ s: preRecord.sOS || "", c: preRecord.cOS || "", ax: preRecord.axisOS || "" });
-      setBcvaOd(preRecord.bcvaOD || "");
-      setBcvaOs(preRecord.bcvaOS || "");
+      setPreOd({
+        s: preRecord.sOD || "",
+        c: preRecord.cOD || "",
+        ax: preRecord.axisOD || "",
+        pd: preRecord.pdOD || "",
+        add: preRecord.addOD || "",
+      });
+      setPreOs({
+        s: preRecord.sOS || "",
+        c: preRecord.cOS || "",
+        ax: preRecord.axisOS || "",
+        pd: preRecord.pdOS || "",
+        add: preRecord.addOS || "",
+      });
+      setUcvaOd(preAutoref?.ucvaOD || "");
+      setUcvaOs(preAutoref?.ucvaOS || "");
+      setBcvaOd(preRecord.bcvaOD || preAutoref?.bcvaOD || "");
+      setBcvaOs(preRecord.bcvaOS || preAutoref?.bcvaOS || "");
     }
     if (postRecord) {
-      setResidualOd({ s: postRecord.sOD || "", c: postRecord.cOD || "", ax: postRecord.axisOD || "" });
-      setResidualOs({ s: postRecord.sOS || "", c: postRecord.cOS || "", ax: postRecord.axisOS || "" });
-      setPostVaOd(postRecord.bcvaOD || "");
-      setPostVaOs(postRecord.bcvaOS || "");
+      setResidualOd({
+        s: postRecord.sOD || "",
+        c: postRecord.cOD || "",
+        ax: postRecord.axisOD || "",
+        pd: postRecord.pdOD || "",
+        add: postRecord.addOD || "",
+      });
+      setResidualOs({
+        s: postRecord.sOS || "",
+        c: postRecord.cOS || "",
+        ax: postRecord.axisOS || "",
+        pd: postRecord.pdOS || "",
+        add: postRecord.addOS || "",
+      });
+      setPostVaOd(
+        postAutoref?.bcvaOD || postAutoref?.ucvaOD || postRecord.bcvaOD || "",
+      );
+      setPostVaOs(
+        postAutoref?.bcvaOS || postAutoref?.ucvaOS || postRecord.bcvaOS || "",
+      );
     }
-  }, [operationDate, glassesRecords]);
+  }, [autorefRecords, glassesRecords]);
 
   const createSurgeryMutation = trpc.medical.createSurgery.useMutation();
   const updateSurgeryMutation = trpc.medical.updateSurgery.useMutation();
@@ -284,14 +363,21 @@ export default function PrePostOpReport() {
   if (!isAuthenticated) return null;
 
   return (
-    <div className="prepost-report-root min-h-screen bg-[#eef5f7] text-[#161d1f]">
+    <div className="prepost-report-root medical-report-brand min-h-screen bg-[#eef5f7] text-[#161d1f]">
       <style>{`
         .prepost-paper {
+          box-sizing: border-box;
           width: 210mm;
           min-height: 297mm;
         }
         .report-block {
           border-radius: 4px;
+        }
+        .prepost-refraction-table th,
+        .prepost-refraction-table td {
+          border: 1px solid #c2c7d1;
+          text-align: center;
+          vertical-align: middle;
         }
         @media print {
           @page { size: A4 portrait; margin: 0; }
@@ -307,16 +393,23 @@ export default function PrePostOpReport() {
             background: white !important;
           }
           .prepost-print-shell {
+            box-sizing: border-box;
+            width: 210mm !important;
+            margin: 0 auto !important;
             padding: 0 !important;
           }
           .prepost-paper {
+            box-sizing: border-box !important;
             width: 210mm !important;
+            height: 297mm !important;
             min-height: 297mm !important;
             margin: 0 !important;
             border: 0 !important;
             box-shadow: none !important;
             border-radius: 0 !important;
             padding: 10mm !important;
+            justify-content: center !important;
+            gap: 4mm !important;
           }
           .report-block {
             break-inside: avoid !important;
@@ -368,7 +461,8 @@ export default function PrePostOpReport() {
               >
                 {surgeries.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {displaySheetDate(String(s.surgeryDate).split("T")[0])} — {s.surgeryType}
+                    {displaySheetDate(String(s.surgeryDate).split("T")[0])} —{" "}
+                    {s.surgeryType}
                   </option>
                 ))}
               </select>
@@ -378,10 +472,16 @@ export default function PrePostOpReport() {
               variant="outline"
               className="border-[#00355f] text-[#00355f]"
               onClick={handleSave}
-              disabled={createSurgeryMutation.isPending || updateSurgeryMutation.isPending}
+              disabled={
+                createSurgeryMutation.isPending ||
+                updateSurgeryMutation.isPending
+              }
             >
               <Save className="mr-2 h-4 w-4" />
-              {createSurgeryMutation.isPending || updateSurgeryMutation.isPending ? "جارٍ الحفظ..." : "Save"}
+              {createSurgeryMutation.isPending ||
+              updateSurgeryMutation.isPending
+                ? "جارٍ الحفظ..."
+                : "Save"}
             </Button>
             <Button
               type="button"
@@ -404,150 +504,170 @@ export default function PrePostOpReport() {
         </div>
       </header>
 
-      <main className="prepost-print-shell flex justify-center p-8">
-        <div className="prepost-paper flex flex-col gap-6 border border-[#c2c7d1] bg-white p-10 shadow-sm">
-          <section className="grid grid-cols-4 gap-4 bg-[#eef5f7] p-4">
-            <div className="col-span-2">
-              <FieldLabel>Patient Name</FieldLabel>
-              <Input
-                value={patientName}
-                onChange={(event) => setPatientName(event.target.value)}
-                className="mt-1 h-9 border-[#c2c7d1] bg-white text-lg font-bold"
-              />
-            </div>
-            <label>
-              <FieldLabel>Date of Birth</FieldLabel>
-              <DateInput
-                value={patientDob}
-                onChange={(event) => setPatientDob(event.target.value)}
-                className="mt-1 h-9 border-[#c2c7d1] bg-white font-mono text-sm font-semibold"
-              />
-            </label>
-            <label>
-              <FieldLabel>Patient ID</FieldLabel>
-              <Input
-                value={patientCode}
-                onChange={(event) => setPatientCode(event.target.value)}
-                className="mt-1 h-9 border-[#c2c7d1] bg-white font-mono text-sm font-semibold"
-              />
-            </label>
-            <label>
-              <FieldLabel>Operation Date</FieldLabel>
-              <DateInput
-                value={operationDate}
-                onChange={(event) => setOperationDate(event.target.value)}
-                className="mt-1 h-9 border-[#c2c7d1] bg-white"
-              />
-            </label>
-            <div>
-              <FieldLabel>Report Date</FieldLabel>
-              <p className="mt-1 font-mono text-sm font-semibold">
-                {displaySheetDate(today)}
-              </p>
-            </div>
-            <label className="col-span-2">
-              <FieldLabel>Planned Procedure</FieldLabel>
-              <Input
-                value={procedure}
-                onChange={(event) => setProcedure(event.target.value)}
-                className="mt-1 h-9 border-[#c2c7d1] bg-white font-semibold"
-                placeholder="PRK / LASIK / Femto LASIK"
-              />
-            </label>
-          </section>
+      <div className="prepost-print-shell flex justify-center p-8">
+        <ClinicalReportFrame
+          title="Pre & Post Op Report | تقرير ما قبل وبعد العملية"
+          generatedDate={today}
+          patient={{
+            name: patientName,
+            code: patientCode,
+            age: patient?.age,
+            birthDate: patientDob,
+            phone: patient?.phone,
+            occupation: patient?.occupation,
+          }}
+          signatureLabel="Doctor Signature & Stamp / توقيع وختم الطبيب"
+        >
+          <div className="flex flex-col gap-6">
+            <section className="hidden">
+              <div className="col-span-6 min-w-0">
+                <FieldLabel>اسم المريض</FieldLabel>
+                <Input
+                  value={patientName}
+                  onChange={(event) => setPatientName(event.target.value)}
+                  className="mt-1 h-8 border-transparent bg-transparent text-center text-base font-bold shadow-none hover:border-[#c2c7d1] focus:border-[#00355f]"
+                />
+              </div>
+              <label className="col-span-3 min-w-0">
+                <FieldLabel>تاريخ الميلاد</FieldLabel>
+                <DateInput
+                  value={patientDob}
+                  onChange={(event) => setPatientDob(event.target.value)}
+                  className="mt-1 h-8 w-full min-w-0 border-transparent bg-transparent font-mono text-sm font-semibold shadow-none [&_input]:min-w-0 [&_input]:w-full"
+                />
+              </label>
+              <label className="col-span-3 min-w-0">
+                <FieldLabel>الكود</FieldLabel>
+                <Input
+                  value={patientCode}
+                  onChange={(event) => setPatientCode(event.target.value)}
+                  className="mt-1 h-8 border-transparent bg-transparent text-center font-mono text-sm font-semibold shadow-none hover:border-[#c2c7d1] focus:border-[#00355f]"
+                />
+              </label>
+              <label className="col-span-3 min-w-0">
+                <FieldLabel>تاريخ العملية</FieldLabel>
+                <DateInput
+                  value={operationDate}
+                  onChange={(event) => setOperationDate(event.target.value)}
+                  className="mt-1 h-8 w-full min-w-0 border-transparent bg-transparent shadow-none [&_input]:min-w-0 [&_input]:w-full"
+                />
+              </label>
+              <div className="col-span-3 min-w-0">
+                <FieldLabel>تاريخ التقرير</FieldLabel>
+                <p className="mt-2 font-mono text-sm font-semibold">
+                  {displaySheetDate(today)}
+                </p>
+              </div>
+              <label className="col-span-6 min-w-0">
+                <FieldLabel>العملية</FieldLabel>
+                <Input
+                  value={procedure}
+                  onChange={(event) => setProcedure(event.target.value)}
+                  className="mt-1 h-8 border-transparent bg-transparent text-center font-semibold shadow-none hover:border-[#c2c7d1] focus:border-[#00355f]"
+                  placeholder="PRK / LASIK / Femto LASIK"
+                />
+              </label>
+            </section>
 
-          <section className="space-y-3">
-            <div className="flex items-center gap-2" dir="ltr">
-              <span className="h-2 w-2 rounded-full bg-[#00355f]" />
-              <h3 className="text-lg font-bold text-[#00355f]">
-                Pre-Operative Metrics
-              </h3>
-            </div>
-            <RefractionTable
-              title="Refraction Measurement (Pre-Op)"
-              od={preOd}
-              os={preOs}
-              setOd={setPreOd}
-              setOs={setPreOs}
-            />
-            <div className="grid grid-cols-2 gap-4">
-              <VaBox
-                title="UCVA"
-                od={ucvaOd}
-                os={ucvaOs}
-                setOd={setUcvaOd}
-                setOs={setUcvaOs}
-              />
-              <VaBox
-                title="BCVA"
-                od={bcvaOd}
-                os={bcvaOs}
-                setOd={setBcvaOd}
-                setOs={setBcvaOs}
-              />
-            </div>
-          </section>
-
-          <section className="border border-[#0f4c81] bg-[#d2e4ff] p-4">
-            <FieldLabel>Planned Treatment</FieldLabel>
-            <p className="mt-1 text-xl font-extrabold text-[#00355f]">
-              {procedure || "—"}
-            </p>
-          </section>
-
-          <section className="space-y-3">
-            <div className="flex items-center gap-2" dir="ltr">
-              <span className="h-2 w-2 rounded-full bg-[#00355f]" />
-              <h3 className="text-lg font-bold text-[#00355f]">
-                Post-Operative Results
-              </h3>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <VaBox
-                title="VA Post-Op"
-                od={postVaOd}
-                os={postVaOs}
-                setOd={setPostVaOd}
-                setOs={setPostVaOs}
-              />
+            <section className="space-y-3">
+              <div
+                className="flex items-center gap-2 border-b border-[#c2c7d1] pb-1"
+                dir="ltr"
+              >
+                <span className="h-2 w-2 rounded-full bg-[#00355f]" />
+                <h3 className="text-lg font-bold text-[#00355f]">
+                  Pre-Operative Metrics
+                </h3>
+                <VaSummary
+                  metrics={[
+                    {
+                      title: "UCVA",
+                      od: ucvaOd,
+                      os: ucvaOs,
+                      setOd: setUcvaOd,
+                      setOs: setUcvaOs,
+                    },
+                    {
+                      title: "BCVA",
+                      od: bcvaOd,
+                      os: bcvaOs,
+                      setOd: setBcvaOd,
+                      setOs: setBcvaOs,
+                    },
+                  ]}
+                />
+              </div>
               <RefractionTable
-                title="Residual Refraction"
+                title="Refraction"
+                od={preOd}
+                os={preOs}
+                setOd={setPreOd}
+                setOs={setPreOs}
+              />
+            </section>
+
+            <section className="border border-[#0f4c81] bg-[#d2e4ff] p-4">
+              <FieldLabel>Planned Treatment</FieldLabel>
+              <p className="mt-1 text-xl font-extrabold text-[#00355f]">
+                {procedure || "—"}
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <div
+                className="flex items-center gap-2 border-b border-[#c2c7d1] pb-1"
+                dir="ltr"
+              >
+                <span className="h-2 w-2 rounded-full bg-[#00355f]" />
+                <h3 className="text-lg font-bold text-[#00355f]">
+                  Post-Operative Results
+                </h3>
+                <VaSummary
+                  metrics={[
+                    {
+                      title: "VA Post-Op",
+                      od: postVaOd,
+                      os: postVaOs,
+                      setOd: setPostVaOd,
+                      setOs: setPostVaOs,
+                    },
+                  ]}
+                />
+              </div>
+              <RefractionTable
+                title="Refraction"
                 od={residualOd}
                 os={residualOs}
                 setOd={setResidualOd}
                 setOs={setResidualOs}
+                showReading={false}
               />
-            </div>
-          </section>
+            </section>
 
-          <section className="mt-auto grid grid-cols-[1fr_72mm] gap-8 border-t border-[#c2c7d1] pt-5">
-            <label>
-              <FieldLabel>Clinical Notes</FieldLabel>
-              <Textarea
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                className="mt-2 min-h-[96px] resize-none border-dashed border-[#c2c7d1] bg-[#f4fafd]"
-                placeholder="Procedure notes, complications, attachments, and follow-up instructions."
-              />
-            </label>
-            <div className="flex flex-col justify-end gap-4">
+            <section className="grid grid-cols-[1fr_72mm] gap-8 border-t border-[#c2c7d1] pt-5">
               <label>
-                <FieldLabel>Consultant Surgeon</FieldLabel>
-                <Input
-                  value={surgeon}
-                  onChange={(event) => setSurgeon(event.target.value)}
-                  className="mt-2 border-[#c2c7d1]"
+                <FieldLabel>Clinical Notes</FieldLabel>
+                <Textarea
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  className="mt-2 min-h-[96px] resize-none border-dashed border-[#c2c7d1] bg-[#f4fafd]"
+                  placeholder="Procedure notes, complications, attachments, and follow-up instructions."
                 />
               </label>
-              <div className="border-t border-[#727780] pt-2 text-center">
-                <p className="text-xs font-bold text-[#161d1f]">
-                  Doctor Signature & Stamp
-                </p>
+              <div className="flex flex-col justify-end gap-4">
+                <label>
+                  <FieldLabel>Consultant Surgeon</FieldLabel>
+                  <Input
+                    value={surgeon}
+                    onChange={(event) => setSurgeon(event.target.value)}
+                    className="mt-2 border-[#c2c7d1]"
+                  />
+                </label>
               </div>
-            </div>
-          </section>
-        </div>
-      </main>
+            </section>
+          </div>
+        </ClinicalReportFrame>
+      </div>
     </div>
   );
 }

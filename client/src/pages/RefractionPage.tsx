@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,19 +24,6 @@ import {
   SPHERE_OPTIONS,
   UCVA_BCVA_OPTIONS,
 } from "@/lib/refractionOptions";
-
-type AutoEye = {
-  bcva?: string;
-  pd?: string;
-  s?: string;
-  c?: string;
-  axis?: string;
-};
-
-type AutoData = {
-  od?: AutoEye;
-  os?: AutoEye;
-};
 
 type RefractionForm = {
   bcvaOD: string;
@@ -72,41 +59,6 @@ const ADD_OPTIONS = Array.from({ length: 25 }, (_, i) => {
   const value = (i * 0.25).toFixed(2);
   return i === 0 ? value : `+${value}`;
 });
-
-function parseSheetAuto(content: string | null | undefined): AutoData {
-  if (!content) return {};
-  try {
-    const parsed = JSON.parse(content) as any;
-    const auto = parsed?.examData?.autorefraction;
-    if (!auto || typeof auto !== "object") return {};
-    return {
-      od: {
-        bcva: String(auto?.od?.bcva ?? "").trim(),
-        pd: String(auto?.od?.pd ?? "").trim(),
-        s: String(auto?.od?.s ?? "").trim(),
-        c: String(auto?.od?.c ?? "").trim(),
-        axis: String(auto?.od?.axis ?? "").trim(),
-      },
-      os: {
-        bcva: String(auto?.os?.bcva ?? "").trim(),
-        pd: String(auto?.os?.pd ?? "").trim(),
-        s: String(auto?.os?.s ?? "").trim(),
-        c: String(auto?.os?.c ?? "").trim(),
-        axis: String(auto?.os?.axis ?? "").trim(),
-      },
-    };
-  } catch {
-    return {};
-  }
-}
-
-function firstValue(...values: Array<string | undefined>) {
-  for (const value of values) {
-    const text = String(value ?? "").trim();
-    if (text) return text;
-  }
-  return "";
-}
 
 type ComboBoxFieldProps = {
   value: string;
@@ -187,6 +139,10 @@ export default function RefractionPage() {
       refetchOnWindowFocus: false,
     },
   );
+  const glassesQuery = trpc.medical.getGlassesRecordsByPatient.useQuery(
+    { patientId },
+    { enabled: patientIdValid, refetchOnWindowFocus: false },
+  );
 
   const dataReady =
     !patientIdValid ||
@@ -194,7 +150,8 @@ export default function RefractionPage() {
       !consultantQuery.isLoading &&
       !specialistQuery.isLoading &&
       !lasikQuery.isLoading &&
-      !externalQuery.isLoading);
+      !externalQuery.isLoading &&
+      !glassesQuery.isLoading);
   const printMode = usePrintMode({ ready: patientIdValid && dataReady });
 
   const utils = trpc.useUtils();
@@ -211,87 +168,29 @@ export default function RefractionPage() {
     "all" | "center" | "external"
   >("all");
 
-  const sourceAutos = useMemo(() => {
-    const consultant = parseSheetAuto(consultantQuery.data);
-    const specialist = parseSheetAuto(specialistQuery.data);
-    const lasik = parseSheetAuto(lasikQuery.data);
-    const external = parseSheetAuto(externalQuery.data);
-    return { consultant, specialist, lasik, external };
-  }, [
-    consultantQuery.data,
-    specialistQuery.data,
-    lasikQuery.data,
-    externalQuery.data,
-  ]);
-
   useEffect(() => {
     if (!patientId) return;
+    const latest = ((glassesQuery.data as any[]) ?? [])[0];
+    if (!latest) {
+      setForm(EMPTY_FORM);
+      return;
+    }
     const next: RefractionForm = {
-      bcvaOD: firstValue(
-        sourceAutos.consultant.od?.bcva,
-        sourceAutos.specialist.od?.bcva,
-        sourceAutos.lasik.od?.bcva,
-        sourceAutos.external.od?.bcva,
-      ),
-      bcvaOS: firstValue(
-        sourceAutos.consultant.os?.bcva,
-        sourceAutos.specialist.os?.bcva,
-        sourceAutos.lasik.os?.bcva,
-        sourceAutos.external.os?.bcva,
-      ),
-      pdOD: firstValue(
-        sourceAutos.consultant.od?.pd,
-        sourceAutos.specialist.od?.pd,
-        sourceAutos.lasik.od?.pd,
-        sourceAutos.external.od?.pd,
-      ),
-      pdOS: firstValue(
-        sourceAutos.consultant.os?.pd,
-        sourceAutos.specialist.os?.pd,
-        sourceAutos.lasik.os?.pd,
-        sourceAutos.external.os?.pd,
-      ),
-      sOD: firstValue(
-        sourceAutos.consultant.od?.s,
-        sourceAutos.specialist.od?.s,
-        sourceAutos.lasik.od?.s,
-        sourceAutos.external.od?.s,
-      ),
-      cOD: firstValue(
-        sourceAutos.consultant.od?.c,
-        sourceAutos.specialist.od?.c,
-        sourceAutos.lasik.od?.c,
-        sourceAutos.external.od?.c,
-      ),
-      aOD: firstValue(
-        sourceAutos.consultant.od?.axis,
-        sourceAutos.specialist.od?.axis,
-        sourceAutos.lasik.od?.axis,
-        sourceAutos.external.od?.axis,
-      ),
-      addOD: "",
-      sOS: firstValue(
-        sourceAutos.consultant.os?.s,
-        sourceAutos.specialist.os?.s,
-        sourceAutos.lasik.os?.s,
-        sourceAutos.external.os?.s,
-      ),
-      cOS: firstValue(
-        sourceAutos.consultant.os?.c,
-        sourceAutos.specialist.os?.c,
-        sourceAutos.lasik.os?.c,
-        sourceAutos.external.os?.c,
-      ),
-      aOS: firstValue(
-        sourceAutos.consultant.os?.axis,
-        sourceAutos.specialist.os?.axis,
-        sourceAutos.lasik.os?.axis,
-        sourceAutos.external.os?.axis,
-      ),
-      addOS: "",
+      bcvaOD: String(latest.bcvaOD ?? ""),
+      bcvaOS: String(latest.bcvaOS ?? ""),
+      pdOD: String(latest.pdOD ?? ""),
+      pdOS: String(latest.pdOS ?? ""),
+      sOD: String(latest.sOD ?? ""),
+      cOD: String(latest.cOD ?? ""),
+      aOD: String(latest.axisOD ?? ""),
+      addOD: String(latest.addOD ?? ""),
+      sOS: String(latest.sOS ?? ""),
+      cOS: String(latest.cOS ?? ""),
+      aOS: String(latest.axisOS ?? ""),
+      addOS: String(latest.addOS ?? ""),
     };
     setForm(next);
-  }, [patientId, sourceAutos]);
+  }, [patientId, glassesQuery.data]);
 
   const mergeAndSerialize = (
     content: string | null | undefined,
@@ -305,31 +204,7 @@ export default function RefractionPage() {
         return {} as any;
       }
     })();
-    const next = {
-      ...parsed,
-      examData: {
-        ...(parsed.examData ?? {}),
-        autorefraction: {
-          ...(parsed.examData?.autorefraction ?? {}),
-          od: {
-            ...(parsed.examData?.autorefraction?.od ?? {}),
-            bcva: form.bcvaOD,
-            pd: form.pdOD,
-            s: form.sOD,
-            c: form.cOD,
-            axis: form.aOD,
-          },
-          os: {
-            ...(parsed.examData?.autorefraction?.os ?? {}),
-            bcva: form.bcvaOS,
-            pd: form.pdOS,
-            s: form.sOS,
-            c: form.cOS,
-            axis: form.aOS,
-          },
-        },
-      },
-    } as any;
+    const next = { ...parsed } as any;
 
     if (sheetType === "consultant" || sheetType === "specialist") {
       next.formData = {
@@ -383,33 +258,7 @@ export default function RefractionPage() {
         }),
       ]);
 
-      // Build autorefraction object from form fields
-      const autorefraction = {
-        od:
-          form.sOD || form.cOD || form.aOD || form.bcvaOD
-            ? {
-                s: form.sOD || undefined,
-                c: form.cOD || undefined,
-                axis: form.aOD || undefined,
-                ucva: undefined,
-                bcva: form.bcvaOD || undefined,
-                iop: undefined,
-              }
-            : undefined,
-        os:
-          form.sOS || form.cOS || form.aOS || form.bcvaOS
-            ? {
-                s: form.sOS || undefined,
-                c: form.cOS || undefined,
-                axis: form.aOS || undefined,
-                ucva: undefined,
-                bcva: form.bcvaOS || undefined,
-                iop: undefined,
-              }
-            : undefined,
-      };
-
-      // Extract glasses and pentacam from sheets
+      // The glasses prescription belongs exclusively to glassesrecords.
       const getParsedSheet = (content: string | null | undefined) => {
         if (!content) return {};
         try {
@@ -420,13 +269,29 @@ export default function RefractionPage() {
       };
 
       const consultantParsed = getParsedSheet(consultantQuery.data);
-      const glassesData = consultantParsed?.examData?.glasses;
       const pentacam = consultantParsed?.examData?.pentacam;
+      const glassesData = {
+        od: {
+          s: form.sOD || undefined,
+          c: form.cOD || undefined,
+          axis: form.aOD || undefined,
+          pd: form.pdOD || undefined,
+          add: form.addOD || undefined,
+          bcva: form.bcvaOD || undefined,
+        },
+        os: {
+          s: form.sOS || undefined,
+          c: form.cOS || undefined,
+          axis: form.aOS || undefined,
+          pd: form.pdOS || undefined,
+          add: form.addOS || undefined,
+          bcva: form.bcvaOS || undefined,
+        },
+      };
 
       // Also save all refraction data to examination (for patient file/summary display)
       await saveRefractionMutation.mutateAsync({
         patientId,
-        autorefraction,
         glassesData,
         pentacam,
       });

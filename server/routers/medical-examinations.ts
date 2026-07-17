@@ -1014,6 +1014,8 @@ export const medicalExaminationsRoutes = {
                 c: z.string().optional(),
                 axis: z.string().optional(),
                 pd: z.string().optional(),
+                add: z.string().optional(),
+                bcva: z.string().optional(),
               })
               .optional(),
             os: z
@@ -1022,6 +1024,8 @@ export const medicalExaminationsRoutes = {
                 c: z.string().optional(),
                 axis: z.string().optional(),
                 pd: z.string().optional(),
+                add: z.string().optional(),
+                bcva: z.string().optional(),
               })
               .optional(),
           })

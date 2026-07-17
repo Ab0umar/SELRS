@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./styles/medical-report-brand.css";
 @import url("https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
 
 @custom-variant dark (&:is(.dark *));
@@ -1789,3 +1790,42 @@ select {
 }
 
 @media print { * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }
+
+/* Center printable sheets and reports on A4; the specialist sheet keeps its
+   established print positioning. */
+@media print {
+  body:not(:has(.specialist-print-root)) {
+    display: flex !important;
+    min-height: 297mm !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  body:not(:has(.specialist-print-root)) > #root {
+    display: flex !important;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 auto !important;
+  }
+
+  body:not(:has(.specialist-print-root))
+    :is(
+      .sheet-layout,
+      .lasik-print-root,
+      .followup-print-root,
+      .a4-page-card,
+      .referral-print-root,
+      .clinical-report-root,
+      [data-mobile-pdf-root]
+    ) {
+    margin: auto !important;
+  }
+
+  body:has(.specialist-print-root),
+  body:has(.specialist-print-root) > #root {
+    display: block !important;
+    min-height: 0 !important;
+  }
+}

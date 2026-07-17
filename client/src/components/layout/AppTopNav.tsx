@@ -313,20 +313,65 @@ export function AppTopNav({
     [leafVisible],
   );
 
-  const moreGroups = useMemo(
-    () =>
-      navGroups
-        .filter(
-          (item): item is NavGroupSection =>
-            "items" in item &&
-            item.navKey !== "accounting" &&
-            item.navKey !== "attendance" &&
-            item.navKey !== "salary",
-        )
-        .map((group) => ({ ...group, items: group.items.filter(leafVisible) }))
-        .filter((group) => group.items.length > 0),
-    [navGroups, leafVisible],
-  );
+  const moreGroups = useMemo(() => {
+    const sections = navGroups.filter(
+      (item): item is NavGroupSection => "items" in item,
+    );
+    const leafByPath = new Map(
+      sections.flatMap((section) =>
+        section.items.map((item) => [item.path, item] as const),
+      ),
+    );
+    const recordItems = [
+      ["/admin/legacy-patients", "المرضى"],
+      ["/followups", "المتابعات"],
+      ["/visits", "الزيارات"],
+      ["/admin/op-history", "العمليات"],
+      ["/sheets/autorefs/dashboard", "AutoRef"],
+      ["/sheets/refractions/dashboard", "Refractions"],
+      ["/sheets/pentacam/dashboard", "Pentacam"],
+      ["/medical-reports", "Medical Reports"],
+    ]
+      .map(([path, label]) => {
+        const leaf = leafByPath.get(path);
+        return leaf ? { ...leaf, label } : null;
+      })
+      .filter((leaf): leaf is NavLeaf => leaf != null && leafVisible(leaf));
+
+    const excludedSections = new Set([
+      "accounting",
+      "attendance",
+      "salary",
+      "clinics-file",
+      "clinics-measurements",
+      "clinics-prescriptions",
+      "clinics-tests",
+      "patients",
+    ]);
+    const movedPaths = new Set([
+      "/sheets/pentacam/dashboard",
+      "/medical-reports",
+    ]);
+    const remainingSections = sections
+      .filter((section) => !excludedSections.has(section.navKey ?? ""))
+      .map((section) => ({
+        ...section,
+        items: section.items.filter(
+          (leaf) => !movedPaths.has(leaf.path) && leafVisible(leaf),
+        ),
+      }))
+      .filter((section) => section.items.length > 0);
+
+    return [
+      {
+        label: "سجل",
+        navKey: "records",
+        groupPath: "/patients-hub",
+        items: recordItems,
+      },
+      ...remainingSections,
+    ].filter((section) => section.items.length > 0);
+  }, [navGroups, leafVisible]);
 
   const logoTarget = isAdmin ? "/dashboard?tab=admin" : "/today";
 

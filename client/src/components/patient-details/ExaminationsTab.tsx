@@ -1,3 +1,4 @@
+import { UnifiedRefractionTable } from "@/components/medical/UnifiedRefractionTable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface EyeMeasurement {
@@ -57,249 +58,83 @@ function ReportSection({
   );
 }
 
-const EmptyRow = ({ label }: { label: string }) => (
-  <p className="text-sm text-muted-foreground">لا توجد بيانات {label} محفوظة</p>
-);
+const getEye = <T extends { eye: string }>(rows: T[], eye: "OD" | "OS") =>
+  rows.find((row) => row.eye.toUpperCase() === eye);
+
+const opticalFields = [
+  { key: "s", label: "S" },
+  { key: "c", label: "C" },
+  { key: "axis", label: "A" },
+];
 
 export function ExaminationsTab({
   autorefractionRows,
   afterRows,
   glassesRows,
 }: ExaminationsTabProps) {
-  const iopRows = autorefractionRows.filter(
-    (row) => row.iop && row.iop !== "-" && row.iop !== "—",
-  );
+  const autorefOD = getEye(autorefractionRows, "OD");
+  const autorefOS = getEye(autorefractionRows, "OS");
+  const afterOD = getEye(afterRows, "OD");
+  const afterOS = getEye(afterRows, "OS");
 
   return (
     <div className="space-y-5" dir="ltr">
       <ReportSection title="Autoref / IOP" source="autorefractometrydata">
-        {autorefractionRows.length ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[620px] border-collapse text-center text-sm">
-              <thead className="bg-muted text-xs text-muted-foreground">
-                <tr>
-                  {["Eye", "UCVA", "BCVA", "S", "C", "Axis", "IOP"].map(
-                    (header) => (
-                      <th key={header} className="border px-3 py-2.5">
-                        {header}
-                      </th>
-                    ),
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {autorefractionRows.map((row) => (
-                  <tr key={row.eye}>
-                    {[
-                      row.eye,
-                      row.ucva,
-                      row.bcva,
-                      row.s,
-                      row.c,
-                      row.axis,
-                      row.iop,
-                    ].map((value, index) => (
-                      <td
-                        key={index}
-                        className="border px-3 py-2.5 tabular-nums"
-                      >
-                        {value || "—"}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <EmptyRow label="Autoref / IOP" />
-        )}
+        <UnifiedRefractionTable
+          title="Autoref"
+          fields={[
+            ...opticalFields,
+            { key: "ucva", label: "UCVA" },
+            { key: "iop", label: "IOP" },
+          ]}
+          od={{
+            s: autorefOD?.s,
+            c: autorefOD?.c,
+            axis: autorefOD?.axis,
+            ucva: autorefOD?.ucva,
+            iop: autorefOD?.iop,
+          }}
+          os={{
+            s: autorefOS?.s,
+            c: autorefOS?.c,
+            axis: autorefOS?.axis,
+            ucva: autorefOS?.ucva,
+            iop: autorefOS?.iop,
+          }}
+          emptyText="لا توجد بيانات Autoref / IOP محفوظة"
+        />
       </ReportSection>
 
       <ReportSection title="After" source="afterrefractiondata">
-        {afterRows.length ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[440px] border-collapse text-center text-sm">
-              <thead className="bg-muted text-xs text-muted-foreground">
-                <tr>
-                  {["Eye", "S", "C", "Axis"].map((header) => (
-                    <th key={header} className="border px-3 py-2.5">
-                      {header}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {afterRows.map((row) => (
-                  <tr key={row.eye}>
-                    {[row.eye, row.s, row.c, row.axis].map((value, index) => (
-                      <td
-                        key={index}
-                        className="border px-3 py-2.5 tabular-nums"
-                      >
-                        {value || "—"}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <EmptyRow label="After" />
-        )}
+        <UnifiedRefractionTable
+          title="After"
+          fields={opticalFields}
+          od={{ s: afterOD?.s, c: afterOD?.c, axis: afterOD?.axis }}
+          os={{ s: afterOS?.s, c: afterOS?.c, axis: afterOS?.axis }}
+          emptyText="لا توجد بيانات After محفوظة"
+        />
       </ReportSection>
 
       <ReportSection title="Clinical Refraction" source="glassesrecords">
         {glassesRows.length ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] border-collapse text-center text-sm">
-              <thead className="bg-muted text-xs text-muted-foreground">
-                <tr>
-                  {[
-                    "Date",
-                    "OD S",
-                    "OD C",
-                    "OD Axis",
-                    "OS S",
-                    "OS C",
-                    "OS Axis",
-                    "OS PD",
-                    "Add",
-                  ].map((header) => (
-                    <th key={header} className="border px-3 py-2.5">
-                      {header}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {glassesRows.map((row, index) => (
-                  <tr key={`${row.visit}-${index}`}>
-                    {[
-                      row.visit,
-                      row.odS,
-                      row.odC,
-                      row.odAx,
-                      row.osS,
-                      row.osC,
-                      row.osAx,
-                      row.osPd,
-                      row.add,
-                    ].map((value, cellIndex) => (
-                      <td
-                        key={cellIndex}
-                        className="border px-3 py-2.5 tabular-nums"
-                      >
-                        {value || "—"}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="space-y-5">
+            {glassesRows.map((row, index) => (
+              <UnifiedRefractionTable
+                key={`${row.visit}-${index}`}
+                title="Refraction"
+                fields={opticalFields}
+                od={{ s: row.odS, c: row.odC, axis: row.odAx }}
+                os={{ s: row.osS, c: row.osC, axis: row.osAx }}
+                trailing={[{ label: "IPD", value: row.osPd }]}
+                reading={row.add}
+                date={row.visit}
+              />
+            ))}
           </div>
         ) : (
-          <EmptyRow label="Clinical Refraction" />
-        )}
-      </ReportSection>
-
-      <ReportSection
-        title="Technical Trends: Refraction and IOP"
-        source="Refraction: glassesrecords | IOP: autorefractometrydata"
-      >
-        {glassesRows.length || iopRows.length ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] border-collapse text-center text-sm">
-              <thead className="bg-muted text-xs text-muted-foreground">
-                <tr>
-                  {[
-                    "Date",
-                    "Source",
-                    "Eye",
-                    "S",
-                    "C",
-                    "Axis",
-                    "PD",
-                    "Add",
-                    "IOP",
-                  ].map((header) => (
-                    <th key={header} className="border px-3 py-2.5">
-                      {header}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {glassesRows.flatMap((row, index) => [
-                  <tr key={`clinical-od-${index}`}>
-                    {[
-                      row.visit,
-                      "glassesrecords",
-                      "OD",
-                      row.odS,
-                      row.odC,
-                      row.odAx,
-                      "—",
-                      row.add,
-                      "—",
-                    ].map((value, cellIndex) => (
-                      <td
-                        key={cellIndex}
-                        className="border px-3 py-2.5 tabular-nums"
-                      >
-                        {value}
-                      </td>
-                    ))}
-                  </tr>,
-                  <tr key={`clinical-os-${index}`}>
-                    {[
-                      row.visit,
-                      "glassesrecords",
-                      "OS",
-                      row.osS,
-                      row.osC,
-                      row.osAx,
-                      row.osPd,
-                      row.add,
-                      "—",
-                    ].map((value, cellIndex) => (
-                      <td
-                        key={cellIndex}
-                        className="border px-3 py-2.5 tabular-nums"
-                      >
-                        {value}
-                      </td>
-                    ))}
-                  </tr>,
-                ])}
-                {iopRows.map((row) => (
-                  <tr key={`iop-${row.eye}`}>
-                    {[
-                      "آخر زيارة",
-                      "autorefractometrydata",
-                      row.eye,
-                      "—",
-                      "—",
-                      "—",
-                      "—",
-                      "—",
-                      row.iop,
-                    ].map((value, index) => (
-                      <td
-                        key={index}
-                        className="border px-3 py-2.5 tabular-nums"
-                      >
-                        {value || "—"}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <EmptyRow label="Technical Trends" />
+          <p className="text-sm text-muted-foreground">
+            لا توجد بيانات Clinical Refraction محفوظة
+          </p>
         )}
       </ReportSection>
     </div>

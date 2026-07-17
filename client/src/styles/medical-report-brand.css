@@ -1,0 +1,103 @@
+.medical-report-brand {
+  --report-primary: #003d9b;
+  --report-primary-dark: #00355f;
+  --report-ink: #161d1f;
+  --report-muted: #727780;
+  --report-border: #c3c6d6;
+  --report-header: #e7e8ea;
+  --report-tint: #f3f4f6;
+  background: #eef5f7;
+  color: var(--report-ink);
+  font-family: "Inter", "Cairo", "Segoe UI", sans-serif;
+}
+
+.medical-report-page {
+  box-sizing: border-box;
+  width: 210mm;
+  min-height: 297mm;
+  margin-inline: auto;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgb(0 53 95 / 8%);
+}
+
+.medical-report-brand table {
+  border-color: var(--report-border);
+}
+
+.medical-report-brand table th,
+.medical-report-brand table td {
+  border-color: var(--report-border);
+  text-align: center;
+  vertical-align: middle;
+}
+
+.medical-report-brand table thead,
+.medical-report-brand table thead tr {
+  background: var(--report-header);
+  color: var(--report-ink);
+}
+
+.medical-report-brand table th {
+  font-weight: 700;
+}
+
+.medical-report-brand .report-title {
+  color: var(--report-primary);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.medical-report-brand .report-section-title {
+  color: var(--report-primary);
+  font-weight: 700;
+}
+
+.clinical-report-content {
+  color: var(--report-ink);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.clinical-report-content h2,
+.clinical-report-content h3 {
+  color: var(--report-primary) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.clinical-report-content input,
+.clinical-report-content textarea,
+.clinical-report-content select {
+  font-size: 13px;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  .medical-report-brand {
+    min-height: 0 !important;
+    background: #fff !important;
+  }
+
+  .medical-report-page {
+    width: 210mm !important;
+    min-height: 297mm !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .medical-report-brand table,
+  .medical-report-brand section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

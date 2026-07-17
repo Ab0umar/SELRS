@@ -4847,6 +4847,7 @@ export async function getPrescriptionsWithItemsByPatient(patientId: number) {
   const rows = await db
     .select({
       prescriptionId: prescriptions.id,
+      visitId: prescriptions.visitId,
       prescriptionDate: prescriptions.prescriptionDate,
       notes: prescriptions.notes,
       itemId: prescriptionItems.id,
@@ -4870,6 +4871,7 @@ export async function getPrescriptionsWithItemsByPatient(patientId: number) {
     if (!grouped[row.prescriptionId]) {
       grouped[row.prescriptionId] = {
         id: row.prescriptionId,
+        visitId: row.visitId,
         prescriptionDate: row.prescriptionDate,
         notes: row.notes ?? "",
         items: [],

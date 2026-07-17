@@ -124,6 +124,14 @@ export default function SpecialistSheet() {
     { patientId: initialPatientId ?? 0 },
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
+  const glassesQuery = trpc.medical.getGlassesRecordsByPatient.useQuery(
+    { patientId: initialPatientId ?? 0 },
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
+  );
+  const autorefQuery = trpc.medical.getAutorefractometryByPatient.useQuery(
+    { patientId: initialPatientId ?? 0 },
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
+  );
   const visitsQuery = trpc.medical.getVisitsByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
@@ -160,6 +168,8 @@ export default function SpecialistSheet() {
           sheetQuery.refetch(),
           patientQuery.refetch(),
           examinationsQuery.refetch(),
+          glassesQuery.refetch(),
+          autorefQuery.refetch(),
           visitsQuery.refetch(),
           reportsQuery.refetch(),
           prescriptionsQuery.refetch(),
@@ -173,6 +183,8 @@ export default function SpecialistSheet() {
     sheetQuery,
     patientQuery,
     examinationsQuery,
+    glassesQuery,
+    autorefQuery,
     visitsQuery,
     reportsQuery,
     prescriptionsQuery,
@@ -183,6 +195,8 @@ export default function SpecialistSheet() {
       toast.success("تم الحفظ");
     },
   });
+  const saveRefractionMutation =
+    trpc.medical.saveRefractionToExamination.useMutation();
 
   const handleSelectPatient = (patient: {
     id: number;
@@ -254,16 +268,6 @@ export default function SpecialistSheet() {
           ucvaOS: auto.os?.ucva ? auto.os.ucva : prev.ucvaOS,
           bcvaOD: auto.od?.bcva ? auto.od.bcva : prev.bcvaOD,
           bcvaOS: auto.os?.bcva ? auto.os.bcva : prev.bcvaOS,
-          refractionOD: {
-            s: auto.od?.s ? auto.od.s : prev.refractionOD.s,
-            c: auto.od?.c ? auto.od.c : prev.refractionOD.c,
-            a: auto.od?.axis ? auto.od.axis : prev.refractionOD.a,
-          },
-          refractionOS: {
-            s: auto.os?.s ? auto.os.s : prev.refractionOS.s,
-            c: auto.os?.c ? auto.os.c : prev.refractionOS.c,
-            a: auto.os?.axis ? auto.os.axis : prev.refractionOS.a,
-          },
           iopOD: auto.od?.iop ? auto.od.iop : prev.iopOD,
           iopOS: auto.os?.iop ? auto.os.iop : prev.iopOS,
         }));
@@ -296,20 +300,42 @@ export default function SpecialistSheet() {
       ucvaOS: auto.os?.ucva ? auto.os.ucva : prev.ucvaOS,
       bcvaOD: auto.od?.bcva ? auto.od.bcva : prev.bcvaOD,
       bcvaOS: auto.os?.bcva ? auto.os.bcva : prev.bcvaOS,
-      refractionOD: {
-        s: auto.od?.s ? auto.od.s : prev.refractionOD.s,
-        c: auto.od?.c ? auto.od.c : prev.refractionOD.c,
-        a: auto.od?.axis ? auto.od.axis : prev.refractionOD.a,
-      },
-      refractionOS: {
-        s: auto.os?.s ? auto.os.s : prev.refractionOS.s,
-        c: auto.os?.c ? auto.os.c : prev.refractionOS.c,
-        a: auto.os?.axis ? auto.os.axis : prev.refractionOS.a,
-      },
       iopOD: auto.od?.iop ? auto.od.iop : prev.iopOD,
       iopOS: auto.os?.iop ? auto.os.iop : prev.iopOS,
     }));
   }, [examinationsQuery.data]);
+
+  useEffect(() => {
+    const latest = ((glassesQuery.data as any[]) ?? [])[0];
+    if (!latest) return;
+    setFormData((previous) => ({
+      ...previous,
+      bcvaOD: String(latest.bcvaOD ?? previous.bcvaOD),
+      bcvaOS: String(latest.bcvaOS ?? previous.bcvaOS),
+      refractionOD: {
+        s: String(latest.sOD ?? ""),
+        c: String(latest.cOD ?? ""),
+        a: String(latest.axisOD ?? ""),
+      },
+      refractionOS: {
+        s: String(latest.sOS ?? ""),
+        c: String(latest.cOS ?? ""),
+        a: String(latest.axisOS ?? ""),
+      },
+    }));
+  }, [glassesQuery.data]);
+
+  useEffect(() => {
+    const latest = ((autorefQuery.data as any[]) ?? [])[0];
+    if (!latest) return;
+    setFormData((previous) => ({
+      ...previous,
+      ucvaOD: String(latest.ucvaOD ?? ""),
+      ucvaOS: String(latest.ucvaOS ?? ""),
+      iopOD: String(latest.iopOD ?? ""),
+      iopOS: String(latest.iopOS ?? ""),
+    }));
+  }, [autorefQuery.data]);
 
   useEffect(() => {
     const stateData = (examinationStateQuery.data as any)?.data;
@@ -361,18 +387,6 @@ export default function SpecialistSheet() {
               formData.bcvaOD,
               existing.examData?.autorefraction?.od?.bcva,
             ),
-            s: pickValue(
-              formData.refractionOD?.s,
-              existing.examData?.autorefraction?.od?.s,
-            ),
-            c: pickValue(
-              formData.refractionOD?.c,
-              existing.examData?.autorefraction?.od?.c,
-            ),
-            axis: pickValue(
-              formData.refractionOD?.a,
-              existing.examData?.autorefraction?.od?.axis,
-            ),
             iop: pickValue(
               formData.iopOD,
               existing.examData?.autorefraction?.od?.iop,
@@ -387,18 +401,6 @@ export default function SpecialistSheet() {
             bcva: pickValue(
               formData.bcvaOS,
               existing.examData?.autorefraction?.os?.bcva,
-            ),
-            s: pickValue(
-              formData.refractionOS?.s,
-              existing.examData?.autorefraction?.os?.s,
-            ),
-            c: pickValue(
-              formData.refractionOS?.c,
-              existing.examData?.autorefraction?.os?.c,
-            ),
-            axis: pickValue(
-              formData.refractionOS?.a,
-              existing.examData?.autorefraction?.os?.axis,
             ),
             iop: pickValue(
               formData.iopOS,
@@ -417,6 +419,23 @@ export default function SpecialistSheet() {
           examData: mergedExamData,
           checks: { glasses: glassesCheck, xray: xrayCheck },
         }),
+      });
+      await saveRefractionMutation.mutateAsync({
+        patientId: initialPatientId,
+        glassesData: {
+          od: {
+            s: formData.refractionOD.s || undefined,
+            c: formData.refractionOD.c || undefined,
+            axis: formData.refractionOD.a || undefined,
+            bcva: formData.bcvaOD || undefined,
+          },
+          os: {
+            s: formData.refractionOS.s || undefined,
+            c: formData.refractionOS.c || undefined,
+            axis: formData.refractionOS.a || undefined,
+            bcva: formData.bcvaOS || undefined,
+          },
+        },
       });
     } catch (error) {
       toast.error(getTrpcErrorMessage(error, "حدث خطأ أثناء الحفظ"));

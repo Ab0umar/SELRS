@@ -204,8 +204,20 @@ export default function SheetPatientVisionBlock({
             <tbody>
               <tr>
                 <td className={`${ctd} bg-[#f3f4f6] text-[#434654]`}>mmHg</td>
-                <td className={ctd}><input className={compactInp} value={iopOD} onChange={onText(onIopODChange)} /></td>
-                <td className={ctd}><input className={compactInp} value={iopOS} onChange={onText(onIopOSChange)} /></td>
+                <td className={ctd}>
+                  <input
+                    className={compactInp}
+                    value={iopOD}
+                    onChange={onText(onIopODChange)}
+                  />
+                </td>
+                <td className={ctd}>
+                  <input
+                    className={compactInp}
+                    value={iopOS}
+                    onChange={onText(onIopOSChange)}
+                  />
+                </td>
               </tr>
             </tbody>
           </table>
@@ -223,13 +235,37 @@ export default function SheetPatientVisionBlock({
             <tbody>
               <tr>
                 <td className={`${ctd} text-[#003d9b] bg-[#003d9b]/5`}>OD</td>
-                <td className={ctd}><input className={compactInp} value={ucvaOD} onChange={onText(onUcvaODChange)} /></td>
-                <td className={ctd}><input className={compactInp} value={bcvaOD} onChange={onText(onBcvaODChange)} /></td>
+                <td className={ctd}>
+                  <input
+                    className={compactInp}
+                    value={ucvaOD}
+                    onChange={onText(onUcvaODChange)}
+                  />
+                </td>
+                <td className={ctd}>
+                  <input
+                    className={compactInp}
+                    value={bcvaOD}
+                    onChange={onText(onBcvaODChange)}
+                  />
+                </td>
               </tr>
               <tr>
                 <td className={`${ctd} text-[#526069] bg-[#f3f4f6]`}>OS</td>
-                <td className={ctd}><input className={compactInp} value={ucvaOS} onChange={onText(onUcvaOSChange)} /></td>
-                <td className={ctd}><input className={compactInp} value={bcvaOS} onChange={onText(onBcvaOSChange)} /></td>
+                <td className={ctd}>
+                  <input
+                    className={compactInp}
+                    value={ucvaOS}
+                    onChange={onText(onUcvaOSChange)}
+                  />
+                </td>
+                <td className={ctd}>
+                  <input
+                    className={compactInp}
+                    value={bcvaOS}
+                    onChange={onText(onBcvaOSChange)}
+                  />
+                </td>
               </tr>
             </tbody>
           </table>
@@ -239,28 +275,114 @@ export default function SheetPatientVisionBlock({
           <table className="w-full text-center border-collapse">
             <thead className="bg-[#e7e8ea] text-xs uppercase font-bold">
               <tr>
-                <th className={`${ctd} w-48`} rowSpan={2}>Clinical Refraction</th>
-                <th className={`${ctd} text-[#003d9b]`} colSpan={3}>OD (Right)</th>
-                <th className={`${ctd} text-[#526069]`} colSpan={3}>OS (Left)</th>
+                <th className={`${ctd} w-48`}>Refraction</th>
+                <th className={`${ctd} text-[#003d9b]`} colSpan={3}>
+                  OD (Right)
+                </th>
+                <th className={`${ctd} text-[#526069]`} colSpan={3}>
+                  OS (Left)
+                </th>
               </tr>
               <tr>
-                <th className={ctd}>S</th><th className={ctd}>C</th><th className={ctd}>A</th>
-                <th className={ctd}>S</th><th className={ctd}>C</th><th className={ctd}>A</th>
+                <th className={ctd}>Distance</th>
+                <th className={ctd}>S</th>
+                <th className={ctd}>C</th>
+                <th className={ctd}>A</th>
+                <th className={ctd}>S</th>
+                <th className={ctd}>C</th>
+                <th className={ctd}>A</th>
               </tr>
             </thead>
             <tbody className="font-mono">
               <tr>
-                <td className={`${ctd} text-left bg-[#f3f4f6]`}>Refraction</td>
-                <td className={ctd}><input className={inp} value={refractionOD.s} onChange={(e) => onRefractionODChange({ ...refractionOD, s: e.target.value })} /></td>
-                <td className={ctd}><input className={inp} value={refractionOD.c} onChange={(e) => onRefractionODChange({ ...refractionOD, c: e.target.value })} /></td>
-                <td className={ctd}><input className={inp} value={refractionOD.a} onChange={(e) => onRefractionODChange({ ...refractionOD, a: e.target.value })} /></td>
-                <td className={ctd}><input className={inp} value={refractionOS.s} onChange={(e) => onRefractionOSChange({ ...refractionOS, s: e.target.value })} /></td>
-                <td className={ctd}><input className={inp} value={refractionOS.c} onChange={(e) => onRefractionOSChange({ ...refractionOS, c: e.target.value })} /></td>
-                <td className={ctd}><input className={inp} value={refractionOS.a} onChange={(e) => onRefractionOSChange({ ...refractionOS, a: e.target.value })} /></td>
+                <td className={`${ctd} bg-[#f3f4f6]`}>&nbsp;</td>
+                <td className={ctd}>
+                  <input
+                    className={inp}
+                    value={refractionOD.s}
+                    onChange={(e) =>
+                      onRefractionODChange({
+                        ...refractionOD,
+                        s: e.target.value,
+                      })
+                    }
+                  />
+                </td>
+                <td className={ctd}>
+                  <input
+                    className={inp}
+                    value={refractionOD.c}
+                    onChange={(e) =>
+                      onRefractionODChange({
+                        ...refractionOD,
+                        c: e.target.value,
+                      })
+                    }
+                  />
+                </td>
+                <td className={ctd}>
+                  <input
+                    className={inp}
+                    value={refractionOD.a}
+                    onChange={(e) =>
+                      onRefractionODChange({
+                        ...refractionOD,
+                        a: e.target.value,
+                      })
+                    }
+                  />
+                </td>
+                <td className={ctd}>
+                  <input
+                    className={inp}
+                    value={refractionOS.s}
+                    onChange={(e) =>
+                      onRefractionOSChange({
+                        ...refractionOS,
+                        s: e.target.value,
+                      })
+                    }
+                  />
+                </td>
+                <td className={ctd}>
+                  <input
+                    className={inp}
+                    value={refractionOS.c}
+                    onChange={(e) =>
+                      onRefractionOSChange({
+                        ...refractionOS,
+                        c: e.target.value,
+                      })
+                    }
+                  />
+                </td>
+                <td className={ctd}>
+                  <input
+                    className={inp}
+                    value={refractionOS.a}
+                    onChange={(e) =>
+                      onRefractionOSChange({
+                        ...refractionOS,
+                        a: e.target.value,
+                      })
+                    }
+                  />
+                </td>
               </tr>
               <tr>
-                <td className={`${ctd} text-left bg-[#f3f4f6]`}>Reading</td>
-                <td className={ctd} colSpan={6}><input className={inp} value={readingValue} onChange={onText(onReadingValueChange)} /></td>
+                <td className={`${ctd} bg-[#f3f4f6] font-bold text-[#003d9b]`}>
+                  Reading
+                </td>
+                <td className={ctd} colSpan={6}>
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="whitespace-nowrap font-bold">Add +</span>
+                    <input
+                      className={`${inp} max-w-24`}
+                      value={readingValue}
+                      onChange={onText(onReadingValueChange)}
+                    />
+                  </div>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -268,7 +390,10 @@ export default function SheetPatientVisionBlock({
 
         if (compactEyeTable) {
           return (
-            <section className="print-sheet-visual-grid flex flex-nowrap items-start gap-3" dir="ltr">
+            <section
+              className="print-sheet-visual-grid flex flex-nowrap items-start gap-3"
+              dir="ltr"
+            >
               <div className="flex w-auto shrink-0 flex-col gap-2" dir="ltr">
                 {iopTable}
                 {acuityTable}

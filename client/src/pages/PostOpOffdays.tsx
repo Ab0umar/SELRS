@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
 import { Input } from "@/components/ui/input";
 import PatientPicker from "@/components/PatientPicker";
+import { ClinicalReportFrame } from "@/components/reports/ClinicalReportFrame";
 import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -77,14 +78,18 @@ export default function PostOpOffdays() {
     if (!patient) return;
     setPatientName(patient.fullName || "");
     setPatientCode(patient.patientCode || "");
-    setPatientDob(patient.dateOfBirth ? String(patient.dateOfBirth).split("T")[0] : "");
+    setPatientDob(
+      patient.dateOfBirth ? String(patient.dateOfBirth).split("T")[0] : "",
+    );
   }, [patient]);
 
   useEffect(() => {
     const cert = certs[0];
     if (!cert) return;
     setExistingCertId(Number(cert.id));
-    setOperationDate(cert.operationDate ? String(cert.operationDate).split("T")[0] : "");
+    setOperationDate(
+      cert.operationDate ? String(cert.operationDate).split("T")[0] : "",
+    );
     setMethod(cert.method || "");
     setVaOd(cert.vaOD || "");
     setVaOs(cert.vaOS || "");
@@ -94,10 +99,12 @@ export default function PostOpOffdays() {
     if (cert.doctorName) setDoctorName(cert.doctorName);
     if (cert.patientNameOverride) setPatientName(cert.patientNameOverride);
     if (cert.patientCodeOverride) setPatientCode(cert.patientCodeOverride);
-    if (cert.patientDobOverride) setPatientDob(String(cert.patientDobOverride).split("T")[0]);
+    if (cert.patientDobOverride)
+      setPatientDob(String(cert.patientDobOverride).split("T")[0]);
   }, [certs]);
 
-  const createCertMutation = trpc.medical.savePostOpOffdaysCertificate.useMutation();
+  const createCertMutation =
+    trpc.medical.savePostOpOffdaysCertificate.useMutation();
 
   const handleSave = async () => {
     if (!patientId) {
@@ -130,7 +137,7 @@ export default function PostOpOffdays() {
   if (!isAuthenticated) return null;
 
   return (
-    <div className="post-op-offdays-root min-h-screen bg-[#eef5f7] text-[#161d1f]">
+    <div className="post-op-offdays-root medical-report-brand min-h-screen bg-[#eef5f7] text-[#161d1f]">
       <style>{`
         .offdays-paper {
           width: 210mm;
@@ -273,179 +280,195 @@ export default function PostOpOffdays() {
         </div>
       </header>
 
-      <main className="offdays-print-shell flex justify-center p-8" dir="rtl">
-        <article className="offdays-paper relative flex flex-col border border-[#c2c7d1] bg-white px-[40mm] pb-[40mm] pt-[48mm] shadow-sm">
-          <section className="mb-8 border border-[#c2c7d1] bg-[#eef5f7] p-5">
-            <h3 className="mb-3 text-lg font-bold text-[#00355f]">
-              إفادة
-            </h3>
-            <p className="text-[15px] leading-8 text-[#161d1f]">
-              يشهد المركز بأن المريض المذكور أدناه قد خضع لإجراء{" "}
-              <Input
-                value={method}
-                onChange={(event) => setMethod(event.target.value)}
-                className="mx-1 inline-flex h-8 w-52 border-0 border-b border-dotted border-[#727780] bg-transparent px-2 text-center text-base font-bold shadow-none focus-visible:ring-0"
-              />{" "}
-              ، ويتطلب فترة راحة طبية لتقليل الإجهاد البصري وحماية العين أثناء
-              مرحلة التعافي.
-            </p>
-          </section>
-
-          <section className="mb-8 grid grid-cols-2 gap-x-10 gap-y-4">
-            <label className="flex items-center justify-between gap-2 border-b border-[#c2c7d1] py-2">
-              <CertLabel>الاسم الكامل:</CertLabel>
-              <Input
-                value={patientName}
-                onChange={(event) => setPatientName(event.target.value)}
-                className="h-8 w-56 border-0 border-b border-dotted border-[#727780] bg-transparent text-right text-base font-bold shadow-none focus-visible:ring-0"
-              />
-            </label>
-            <label className="flex items-center justify-between gap-2 border-b border-[#c2c7d1] py-2">
-              <CertLabel>رقم المريض:</CertLabel>
-              <Input
-                value={patientCode}
-                onChange={(event) => setPatientCode(event.target.value)}
-                className="h-8 w-36 border-0 border-b border-dotted border-[#727780] bg-transparent text-center font-mono text-base font-semibold shadow-none focus-visible:ring-0"
-              />
-            </label>
-            <label className="flex items-center justify-between gap-2 border-b border-[#c2c7d1] py-2">
-              <CertLabel>تاريخ الميلاد:</CertLabel>
-              <DateInput
-                value={patientDob}
-                onChange={(event) => setPatientDob(event.target.value)}
-                className="h-8 w-36 border-[#c2c7d1] text-center font-mono text-base font-semibold"
-              />
-            </label>
-            <label className="flex items-center justify-between gap-4 border-b border-[#c2c7d1] py-2">
-              <CertLabel>تاريخ العملية:</CertLabel>
-              <DateInput
-                value={operationDate}
-                onChange={(event) => setOperationDate(event.target.value)}
-                className="h-8 w-36 border-[#c2c7d1] text-center text-base"
-              />
-            </label>
-          </section>
-
-          <section
-            className="mb-8 overflow-hidden border border-[#c2c7d1]"
-            dir="ltr"
-          >
-            <h3 className="border-b border-[#c2c7d1] bg-[#00355f] px-4 py-2 text-center text-sm font-extrabold text-white">
-              قياسات ما بعد العملية / Post-Op Status
-            </h3>
-            <table className="offdays-status-table w-full border-collapse text-center">
-              <thead>
-                <tr className="bg-[#e8eff1] text-[12px] font-bold text-[#42474f]">
-                  <th className="border border-[#c2c7d1] px-3 py-2">Eye</th>
-                  <th className="border border-[#c2c7d1] px-3 py-2">VA</th>
-                  <th className="border border-[#c2c7d1] px-3 py-2">Method</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="border border-[#c2c7d1] px-3 py-2 font-bold">
-                    OD
-                  </td>
-                  <td className="border border-[#c2c7d1] p-0">
-                    <Input
-                      value={vaOd}
-                      onChange={(event) => setVaOd(event.target.value)}
-                      className="h-10 border-0 text-center text-lg font-bold"
-                    />
-                  </td>
-                  <td className="border border-[#c2c7d1] p-0" rowSpan={2}>
-                    <Input
-                      value={method}
-                      onChange={(event) => setMethod(event.target.value)}
-                      className="h-20 border-0 text-center text-lg font-bold"
-                      placeholder="PRK / LASIK"
-                    />
-                  </td>
-                </tr>
-                <tr>
-                  <td className="border border-[#c2c7d1] px-3 py-2 font-bold">
-                    OS
-                  </td>
-                  <td className="border border-[#c2c7d1] p-0">
-                    <Input
-                      value={vaOs}
-                      onChange={(event) => setVaOs(event.target.value)}
-                      className="h-10 border-0 text-center text-lg font-bold"
-                    />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </section>
-
-          <section className="mb-8 grid grid-cols-3 gap-0 border-2 border-[#c2c7d1] p-5">
-            <label className="border-l border-[#c2c7d1] px-4 text-center">
-              <CertLabel>تاريخ البدء</CertLabel>
-              <DateInput
-                value={leaveStart}
-                onChange={(event) => setLeaveStart(event.target.value)}
-                className="mt-2 h-9 border-[#c2c7d1] text-center text-base font-bold"
-              />
-            </label>
-            <label className="border-l border-[#c2c7d1] px-4 text-center">
-              <CertLabel>تاريخ العودة</CertLabel>
-              <DateInput
-                value={returnDate}
-                onChange={(event) => setReturnDate(event.target.value)}
-                className="mt-2 h-9 border-[#c2c7d1] text-center text-base font-bold"
-              />
-            </label>
-            <label className="px-4 text-center">
-              <CertLabel>المدة</CertLabel>
-              <div className="mt-2 flex items-center justify-center gap-2">
+      <div className="offdays-print-shell flex justify-center p-8" dir="rtl">
+        <ClinicalReportFrame
+          title="Post-Operative Leave Report | تقرير إجازة ما بعد العملية"
+          generatedDate={operationDate}
+          patient={{
+            name: patientName,
+            code: patientCode,
+            age: patient?.age,
+            birthDate: patientDob,
+            phone: patient?.phone,
+            occupation: patient?.occupation,
+          }}
+          signatureLabel="توقيع الطبيب المعالج"
+        >
+          <div className="flex flex-col">
+            <section className="mb-8 border border-[#c2c7d1] bg-[#eef5f7] p-5">
+              <h3 className="mb-3 text-lg font-bold text-[#00355f]">إفادة</h3>
+              <p className="text-[15px] leading-8 text-[#161d1f]">
+                يشهد المركز بأن المريض المذكور أدناه قد خضع لإجراء{" "}
                 <Input
-                  value={duration}
-                  onChange={(event) => setDuration(event.target.value)}
-                  className="h-9 w-20 border-[#c2c7d1] text-center text-xl font-bold text-[#00355f]"
-                />
-                <span className="font-bold text-[#00355f]">يوماً</span>
-              </div>
-            </label>
-          </section>
-
-          <section className="offdays-recommendations mb-2">
-            <h3 className="mb-3 text-sm font-bold text-[#00355f]">
-              وقد اوصى الطبيب
-            </h3>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                "لا وقت للشاشة / No screen time",
-                "تجنب الإجهاد البدني / Avoid strain",
-                "الحماية من الضوء / Light protection",
-                "تجنب ملامسة الماء / Keep dry",
-              ].map((label) => (
-                <div
-                  key={label}
-                  className="border border-[#ba1a1a]/25 bg-[#ffdad6]/70 px-3 py-2 text-sm font-bold text-[#93000a]"
-                >
-                  {label}
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <footer className="mt-4 border-t border-[#c2c7d1] pt-4">
-            <div dir="ltr" className="text-left">
-              <p dir="ltr" className="mb-5 text-left font-bold">
-                توقيع الطبيب المعالج:
+                  value={method}
+                  onChange={(event) => setMethod(event.target.value)}
+                  className="mx-1 inline-flex h-8 w-52 border-0 border-b border-dotted border-[#727780] bg-transparent px-2 text-center text-base font-bold shadow-none focus-visible:ring-0"
+                />{" "}
+                ، ويتطلب فترة راحة طبية لتقليل الإجهاد البصري وحماية العين أثناء
+                مرحلة التعافي.
               </p>
-              <div className="mb-2 w-56 border-b border-[#42474f]" />
-              <Input
-                value={doctorName}
-                onChange={(event) => setDoctorName(event.target.value)}
-                dir="ltr"
-                className="w-64 border-0 bg-transparent p-0 text-left font-bold shadow-none"
-              />
-              <p className="text-xs text-[#727780]">استشاري جراحة العيون</p>
-            </div>
-          </footer>
-        </article>
-      </main>
+            </section>
+
+            <section className="hidden">
+              <label className="flex items-center justify-between gap-2 border-b border-[#c2c7d1] py-2">
+                <CertLabel>الاسم الكامل:</CertLabel>
+                <Input
+                  value={patientName}
+                  onChange={(event) => setPatientName(event.target.value)}
+                  className="h-8 w-56 border-0 border-b border-dotted border-[#727780] bg-transparent text-right text-base font-bold shadow-none focus-visible:ring-0"
+                />
+              </label>
+              <label className="flex items-center justify-between gap-2 border-b border-[#c2c7d1] py-2">
+                <CertLabel>رقم المريض:</CertLabel>
+                <Input
+                  value={patientCode}
+                  onChange={(event) => setPatientCode(event.target.value)}
+                  className="h-8 w-36 border-0 border-b border-dotted border-[#727780] bg-transparent text-center font-mono text-base font-semibold shadow-none focus-visible:ring-0"
+                />
+              </label>
+              <label className="flex items-center justify-between gap-2 border-b border-[#c2c7d1] py-2">
+                <CertLabel>تاريخ الميلاد:</CertLabel>
+                <DateInput
+                  value={patientDob}
+                  onChange={(event) => setPatientDob(event.target.value)}
+                  className="h-8 w-36 border-[#c2c7d1] text-center font-mono text-base font-semibold"
+                />
+              </label>
+              <label className="flex items-center justify-between gap-4 border-b border-[#c2c7d1] py-2">
+                <CertLabel>تاريخ العملية:</CertLabel>
+                <DateInput
+                  value={operationDate}
+                  onChange={(event) => setOperationDate(event.target.value)}
+                  className="h-8 w-36 border-[#c2c7d1] text-center text-base"
+                />
+              </label>
+            </section>
+
+            <section
+              className="mb-8 overflow-hidden border border-[#c2c7d1]"
+              dir="ltr"
+            >
+              <h3 className="border-b border-[#c2c7d1] bg-[#00355f] px-4 py-2 text-center text-sm font-extrabold text-white">
+                قياسات ما بعد العملية / Post-Op Status
+              </h3>
+              <table className="offdays-status-table w-full border-collapse text-center">
+                <thead>
+                  <tr className="bg-[#e8eff1] text-[12px] font-bold text-[#42474f]">
+                    <th className="border border-[#c2c7d1] px-3 py-2">Eye</th>
+                    <th className="border border-[#c2c7d1] px-3 py-2">VA</th>
+                    <th className="border border-[#c2c7d1] px-3 py-2">
+                      Method
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="border border-[#c2c7d1] px-3 py-2 font-bold">
+                      OD
+                    </td>
+                    <td className="border border-[#c2c7d1] p-0">
+                      <Input
+                        value={vaOd}
+                        onChange={(event) => setVaOd(event.target.value)}
+                        className="h-10 border-0 text-center text-lg font-bold"
+                      />
+                    </td>
+                    <td className="border border-[#c2c7d1] p-0" rowSpan={2}>
+                      <Input
+                        value={method}
+                        onChange={(event) => setMethod(event.target.value)}
+                        className="h-20 border-0 text-center text-lg font-bold"
+                        placeholder="PRK / LASIK"
+                      />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="border border-[#c2c7d1] px-3 py-2 font-bold">
+                      OS
+                    </td>
+                    <td className="border border-[#c2c7d1] p-0">
+                      <Input
+                        value={vaOs}
+                        onChange={(event) => setVaOs(event.target.value)}
+                        className="h-10 border-0 text-center text-lg font-bold"
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+
+            <section className="mb-8 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)] gap-0 border-2 border-[#c2c7d1] p-5">
+              <label className="min-w-0 border-l border-[#c2c7d1] px-3 text-center">
+                <CertLabel>تاريخ البدء</CertLabel>
+                <DateInput
+                  value={leaveStart}
+                  onChange={(event) => setLeaveStart(event.target.value)}
+                  className="mt-2 h-9 w-full min-w-0 border-[#c2c7d1] px-2 text-center text-sm font-bold"
+                  inputClassName="min-w-0 flex-1 basis-0 px-1 text-sm"
+                />
+              </label>
+              <label className="min-w-0 border-l border-[#c2c7d1] px-3 text-center">
+                <CertLabel>تاريخ العودة</CertLabel>
+                <DateInput
+                  value={returnDate}
+                  onChange={(event) => setReturnDate(event.target.value)}
+                  className="mt-2 h-9 w-full min-w-0 border-[#c2c7d1] px-2 text-center text-sm font-bold"
+                  inputClassName="min-w-0 flex-1 basis-0 px-1 text-sm"
+                />
+              </label>
+              <label className="min-w-0 px-3 text-center">
+                <CertLabel>المدة</CertLabel>
+                <div className="mt-2 flex items-center justify-center gap-2">
+                  <Input
+                    value={duration}
+                    onChange={(event) => setDuration(event.target.value)}
+                    className="h-9 w-20 border-[#c2c7d1] text-center text-xl font-bold text-[#00355f]"
+                  />
+                  <span className="font-bold text-[#00355f]">يوماً</span>
+                </div>
+              </label>
+            </section>
+
+            <section className="offdays-recommendations mb-2">
+              <h3 className="mb-3 text-sm font-bold text-[#00355f]">
+                وقد اوصى الطبيب
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  "لا وقت للشاشة / No screen time",
+                  "تجنب الإجهاد البدني / Avoid strain",
+                  "الحماية من الضوء / Light protection",
+                  "تجنب ملامسة الماء / Keep dry",
+                ].map((label) => (
+                  <div
+                    key={label}
+                    className="border border-[#ba1a1a]/25 bg-[#ffdad6]/70 px-3 py-2 text-sm font-bold text-[#93000a]"
+                  >
+                    {label}
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <footer className="hidden">
+              <div dir="ltr" className="text-left">
+                <p dir="ltr" className="mb-5 text-left font-bold">
+                  توقيع الطبيب المعالج:
+                </p>
+                <div className="mb-2 w-56 border-b border-[#42474f]" />
+                <Input
+                  value={doctorName}
+                  onChange={(event) => setDoctorName(event.target.value)}
+                  dir="ltr"
+                  className="w-64 border-0 bg-transparent p-0 text-left font-bold shadow-none"
+                />
+                <p className="text-xs text-[#727780]">استشاري جراحة العيون</p>
+              </div>
+            </footer>
+          </div>
+        </ClinicalReportFrame>
+      </div>
     </div>
   );
 }

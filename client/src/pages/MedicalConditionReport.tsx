@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import PatientPicker from "@/components/PatientPicker";
+import { ClinicalReportFrame } from "@/components/reports/ClinicalReportFrame";
 import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -43,18 +44,22 @@ export default function MedicalConditionReport() {
     enabled: Boolean(patientId),
     refetchOnWindowFocus: false,
   });
-  const reportsQuery = trpc.medical.getMedicalConditionReportsByPatient.useQuery(
-    { patientId: patientId ?? 0 },
-    { enabled: Boolean(patientId), refetchOnWindowFocus: false },
-  );
+  const reportsQuery =
+    trpc.medical.getMedicalConditionReportsByPatient.useQuery(
+      { patientId: patientId ?? 0 },
+      { enabled: Boolean(patientId), refetchOnWindowFocus: false },
+    );
 
-  const templatesQuery = trpc.medical.getMedicalConditionReportTemplates.useQuery();
+  const templatesQuery =
+    trpc.medical.getMedicalConditionReportTemplates.useQuery();
   const templates = (templatesQuery.data as any[] | undefined) ?? [];
   const [templatesDialogOpen, setTemplatesDialogOpen] = useState(false);
 
   const patient = patientQuery.data as any;
   const reports = (reportsQuery.data as any[] | undefined) ?? [];
-  const [existingReportId, setExistingReportId] = useState<number | undefined>();
+  const [existingReportId, setExistingReportId] = useState<
+    number | undefined
+  >();
   const [reportDate, setReportDate] = useState("");
   const [operationType, setOperationType] = useState("");
   const [operationDate, setOperationDate] = useState("");
@@ -93,16 +98,22 @@ export default function MedicalConditionReport() {
     if (!patient) return;
     setPatientName(patient.fullName || "");
     setPatientCode(patient.patientCode || "");
-    setPatientDob(patient.dateOfBirth ? String(patient.dateOfBirth).split("T")[0] : "");
+    setPatientDob(
+      patient.dateOfBirth ? String(patient.dateOfBirth).split("T")[0] : "",
+    );
   }, [patient]);
 
   useEffect(() => {
     const report = reports[0];
     if (!report) return;
     setExistingReportId(Number(report.id));
-    setReportDate(report.reportDate ? String(report.reportDate).split("T")[0] : "");
+    setReportDate(
+      report.reportDate ? String(report.reportDate).split("T")[0] : "",
+    );
     setOperationType(report.operationType || "");
-    setOperationDate(report.operationDate ? String(report.operationDate).split("T")[0] : "");
+    setOperationDate(
+      report.operationDate ? String(report.operationDate).split("T")[0] : "",
+    );
     setCondition(report.condition || "");
     setIncludeCurrentStatus(report.includeCurrentStatus ?? true);
     setVaOd(report.vaOD || "");
@@ -112,10 +123,12 @@ export default function MedicalConditionReport() {
     if (report.doctorName) setDoctorName(report.doctorName);
     if (report.patientNameOverride) setPatientName(report.patientNameOverride);
     if (report.patientCodeOverride) setPatientCode(report.patientCodeOverride);
-    if (report.patientDobOverride) setPatientDob(String(report.patientDobOverride).split("T")[0]);
+    if (report.patientDobOverride)
+      setPatientDob(String(report.patientDobOverride).split("T")[0]);
   }, [reports]);
 
-  const saveReportMutation = trpc.medical.saveMedicalConditionReport.useMutation();
+  const saveReportMutation =
+    trpc.medical.saveMedicalConditionReport.useMutation();
 
   const handleSave = async () => {
     if (!patientId) {
@@ -150,7 +163,7 @@ export default function MedicalConditionReport() {
   if (!isAuthenticated) return null;
 
   return (
-    <div className="medical-condition-report-root min-h-screen bg-[#eef5f7] text-[#161d1f]">
+    <div className="medical-condition-report-root medical-report-brand min-h-screen bg-[#eef5f7] text-[#161d1f]">
       <style>{`
         .mcr-paper {
           width: 210mm;
@@ -303,172 +316,188 @@ export default function MedicalConditionReport() {
         </div>
       </header>
 
-      <main className="mcr-print-shell flex justify-center p-8" dir="rtl">
-        <article className="mcr-paper relative flex flex-col border border-[#c2c7d1] bg-white px-[40mm] pb-[40mm] pt-[48mm] shadow-sm">
-          <section className="mb-8 border border-[#c2c7d1] bg-[#eef5f7] p-5">
-            <h3 className="mb-3 text-lg font-bold text-[#00355f]">
-              تقرير طبي
-            </h3>
-            <p className="text-[15px] leading-8 text-[#161d1f]">
-              تشهد العيادة بأن المريض المذكور أدناه يعاني من الحالة الطبية
-              التالية:{" "}
-              <Input
-                value={condition}
-                onChange={(event) => setCondition(event.target.value)}
-                className="mx-1 inline-flex h-8 w-64 border-0 border-b border-dotted border-[#727780] bg-transparent px-2 text-center text-base font-bold shadow-none focus-visible:ring-0"
-              />{" "}
-              ، وأن حالته تستدعي المتابعة الطبية اللازمة على النحو المبين
-              أدناه.
-            </p>
-          </section>
-
-          <section className="mb-8 grid grid-cols-2 gap-x-10 gap-y-4">
-            <label className="flex items-center justify-between gap-2 border-b border-[#c2c7d1] py-2">
-              <CertLabel>الاسم الكامل:</CertLabel>
-              <Input
-                value={patientName}
-                onChange={(event) => setPatientName(event.target.value)}
-                className="h-8 w-56 border-0 border-b border-dotted border-[#727780] bg-transparent text-right text-base font-bold shadow-none focus-visible:ring-0"
-              />
-            </label>
-            <label className="flex items-center justify-between gap-2 border-b border-[#c2c7d1] py-2">
-              <CertLabel>رقم المريض:</CertLabel>
-              <Input
-                value={patientCode}
-                onChange={(event) => setPatientCode(event.target.value)}
-                className="h-8 w-36 border-0 border-b border-dotted border-[#727780] bg-transparent text-center font-mono text-base font-semibold shadow-none focus-visible:ring-0"
-              />
-            </label>
-            <label className="flex items-center justify-between gap-2 border-b border-[#c2c7d1] py-2">
-              <CertLabel>تاريخ الميلاد:</CertLabel>
-              <DateInput
-                value={patientDob}
-                onChange={(event) => setPatientDob(event.target.value)}
-                className="h-8 w-36 border-[#c2c7d1] text-center font-mono text-base font-semibold"
-              />
-            </label>
-            <label className="flex items-center justify-between gap-4 border-b border-[#c2c7d1] py-2">
-              <CertLabel>تاريخ التقرير:</CertLabel>
-              <DateInput
-                value={reportDate}
-                onChange={(event) => setReportDate(event.target.value)}
-                className="h-8 w-36 border-[#c2c7d1] text-center text-base"
-              />
-            </label>
-            <label className="flex items-center justify-between gap-2 border-b border-[#c2c7d1] py-2">
-              <CertLabel>نوع العملية:</CertLabel>
-              <Input
-                value={operationType}
-                onChange={(event) => setOperationType(event.target.value)}
-                className="h-8 w-36 border-0 border-b border-dotted border-[#727780] bg-transparent text-center text-base font-bold shadow-none focus-visible:ring-0"
-              />
-            </label>
-            <label className="flex items-center justify-between gap-4 border-b border-[#c2c7d1] py-2">
-              <CertLabel>تاريخ العملية:</CertLabel>
-              <DateInput
-                value={operationDate}
-                onChange={(event) => setOperationDate(event.target.value)}
-                className="h-8 w-36 border-[#c2c7d1] text-center text-base"
-              />
-            </label>
-          </section>
-
-          <label className="no-print mb-3 flex items-center gap-2 text-sm font-bold text-[#00355f]">
-            <Checkbox
-              checked={includeCurrentStatus}
-              onCheckedChange={(checked) => setIncludeCurrentStatus(checked === true)}
-            />
-            إضافة الفحص الحالي / Current Status
-          </label>
-
-          {includeCurrentStatus && (
-            <section
-              className="mb-8 overflow-hidden border border-[#c2c7d1]"
-              dir="ltr"
-            >
-              <h3 className="border-b border-[#c2c7d1] bg-[#00355f] px-4 py-2 text-center text-sm font-extrabold text-white">
-                الفحص الحالي / Current Status
+      <div className="mcr-print-shell flex justify-center p-8" dir="rtl">
+        <ClinicalReportFrame
+          title="Medical Condition Report | تقرير حالة طبية"
+          generatedDate={reportDate}
+          patient={{
+            name: patientName,
+            code: patientCode,
+            age: patient?.age,
+            birthDate: patientDob,
+            phone: patient?.phone,
+            occupation: patient?.occupation,
+          }}
+          signatureLabel="توقيع الطبيب المعالج"
+        >
+          <div className="flex flex-col">
+            <section className="mb-8 border border-[#c2c7d1] bg-[#eef5f7] p-5">
+              <h3 className="mb-3 text-lg font-bold text-[#00355f]">
+                تقرير طبي
               </h3>
-              <table className="w-full border-collapse text-center">
-                <thead>
-                  <tr className="bg-[#e8eff1] text-[12px] font-bold text-[#42474f]">
-                    <th className="border border-[#c2c7d1] px-3 py-2">Eye</th>
-                    <th className="border border-[#c2c7d1] px-3 py-2">VA</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="border border-[#c2c7d1] px-3 py-2 font-bold">
-                      OD
-                    </td>
-                    <td className="border border-[#c2c7d1] p-0">
-                      <Input
-                        value={vaOd}
-                        onChange={(event) => setVaOd(event.target.value)}
-                        className="h-10 border-0 text-center text-lg font-bold"
-                      />
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="border border-[#c2c7d1] px-3 py-2 font-bold">
-                      OS
-                    </td>
-                    <td className="border border-[#c2c7d1] p-0">
-                      <Input
-                        value={vaOs}
-                        onChange={(event) => setVaOs(event.target.value)}
-                        className="h-10 border-0 text-center text-lg font-bold"
-                      />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </section>
-          )}
-
-          <section className="mb-8">
-            <h3 className="mb-2 text-sm font-bold text-[#00355f]">
-              المضاعفات / Complications
-            </h3>
-            <Textarea
-              value={complications}
-              onChange={(event) => setComplications(event.target.value)}
-              rows={4}
-              className="border-[#c2c7d1] text-[15px]"
-              placeholder="اذكر أي مضاعفات ملاحظة، إن وجدت..."
-            />
-          </section>
-
-          <section className="mb-8">
-            <h3 className="mb-2 text-sm font-bold text-[#00355f]">
-              خطة المتابعة / Follow-up Plan
-            </h3>
-            <Textarea
-              value={followUpPlan}
-              onChange={(event) => setFollowUpPlan(event.target.value)}
-              rows={4}
-              className="border-[#c2c7d1] text-[15px]"
-              placeholder="اذكر توصيات المتابعة والموعد القادم..."
-            />
-          </section>
-
-          <footer className="mt-4 border-t border-[#c2c7d1] pt-4">
-            <div dir="ltr" className="text-left">
-              <p dir="ltr" className="mb-5 text-left font-bold">
-                توقيع الطبيب المعالج:
+              <p className="text-[15px] leading-8 text-[#161d1f]">
+                تشهد العيادة بأن المريض المذكور أدناه يعاني من الحالة الطبية
+                التالية:{" "}
+                <Input
+                  value={condition}
+                  onChange={(event) => setCondition(event.target.value)}
+                  className="mx-1 inline-flex h-8 w-64 border-0 border-b border-dotted border-[#727780] bg-transparent px-2 text-center text-base font-bold shadow-none focus-visible:ring-0"
+                />{" "}
+                ، وأن حالته تستدعي المتابعة الطبية اللازمة على النحو المبين
+                أدناه.
               </p>
-              <div className="mb-2 w-56 border-b border-[#42474f]" />
-              <Input
-                value={doctorName}
-                onChange={(event) => setDoctorName(event.target.value)}
-                dir="ltr"
-                className="w-64 border-0 bg-transparent p-0 text-left font-bold shadow-none"
+            </section>
+
+            <section className="hidden">
+              <label className="flex items-center justify-between gap-2 border-b border-[#c2c7d1] py-2">
+                <CertLabel>الاسم الكامل:</CertLabel>
+                <Input
+                  value={patientName}
+                  onChange={(event) => setPatientName(event.target.value)}
+                  className="h-8 w-56 border-0 border-b border-dotted border-[#727780] bg-transparent text-right text-base font-bold shadow-none focus-visible:ring-0"
+                />
+              </label>
+              <label className="flex items-center justify-between gap-2 border-b border-[#c2c7d1] py-2">
+                <CertLabel>رقم المريض:</CertLabel>
+                <Input
+                  value={patientCode}
+                  onChange={(event) => setPatientCode(event.target.value)}
+                  className="h-8 w-36 border-0 border-b border-dotted border-[#727780] bg-transparent text-center font-mono text-base font-semibold shadow-none focus-visible:ring-0"
+                />
+              </label>
+              <label className="flex items-center justify-between gap-2 border-b border-[#c2c7d1] py-2">
+                <CertLabel>تاريخ الميلاد:</CertLabel>
+                <DateInput
+                  value={patientDob}
+                  onChange={(event) => setPatientDob(event.target.value)}
+                  className="h-8 w-36 border-[#c2c7d1] text-center font-mono text-base font-semibold"
+                />
+              </label>
+              <label className="flex items-center justify-between gap-4 border-b border-[#c2c7d1] py-2">
+                <CertLabel>تاريخ التقرير:</CertLabel>
+                <DateInput
+                  value={reportDate}
+                  onChange={(event) => setReportDate(event.target.value)}
+                  className="h-8 w-36 border-[#c2c7d1] text-center text-base"
+                />
+              </label>
+              <label className="flex items-center justify-between gap-2 border-b border-[#c2c7d1] py-2">
+                <CertLabel>نوع العملية:</CertLabel>
+                <Input
+                  value={operationType}
+                  onChange={(event) => setOperationType(event.target.value)}
+                  className="h-8 w-36 border-0 border-b border-dotted border-[#727780] bg-transparent text-center text-base font-bold shadow-none focus-visible:ring-0"
+                />
+              </label>
+              <label className="flex items-center justify-between gap-4 border-b border-[#c2c7d1] py-2">
+                <CertLabel>تاريخ العملية:</CertLabel>
+                <DateInput
+                  value={operationDate}
+                  onChange={(event) => setOperationDate(event.target.value)}
+                  className="h-8 w-36 border-[#c2c7d1] text-center text-base"
+                />
+              </label>
+            </section>
+
+            <label className="no-print mb-3 flex items-center gap-2 text-sm font-bold text-[#00355f]">
+              <Checkbox
+                checked={includeCurrentStatus}
+                onCheckedChange={(checked) =>
+                  setIncludeCurrentStatus(checked === true)
+                }
               />
-              <p className="text-xs text-[#727780]">استشاري جراحة العيون</p>
-            </div>
-          </footer>
-        </article>
-      </main>
+              إضافة الفحص الحالي / Current Status
+            </label>
+
+            {includeCurrentStatus && (
+              <section
+                className="mb-8 overflow-hidden border border-[#c2c7d1]"
+                dir="ltr"
+              >
+                <h3 className="border-b border-[#c2c7d1] bg-[#00355f] px-4 py-2 text-center text-sm font-extrabold text-white">
+                  الفحص الحالي / Current Status
+                </h3>
+                <table className="w-full border-collapse text-center">
+                  <thead>
+                    <tr className="bg-[#e8eff1] text-[12px] font-bold text-[#42474f]">
+                      <th className="border border-[#c2c7d1] px-3 py-2">Eye</th>
+                      <th className="border border-[#c2c7d1] px-3 py-2">VA</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border border-[#c2c7d1] px-3 py-2 font-bold">
+                        OD
+                      </td>
+                      <td className="border border-[#c2c7d1] p-0">
+                        <Input
+                          value={vaOd}
+                          onChange={(event) => setVaOd(event.target.value)}
+                          className="h-10 border-0 text-center text-lg font-bold"
+                        />
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="border border-[#c2c7d1] px-3 py-2 font-bold">
+                        OS
+                      </td>
+                      <td className="border border-[#c2c7d1] p-0">
+                        <Input
+                          value={vaOs}
+                          onChange={(event) => setVaOs(event.target.value)}
+                          className="h-10 border-0 text-center text-lg font-bold"
+                        />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </section>
+            )}
+
+            <section className="mb-8">
+              <h3 className="mb-2 text-sm font-bold text-[#00355f]">
+                المضاعفات / Complications
+              </h3>
+              <Textarea
+                value={complications}
+                onChange={(event) => setComplications(event.target.value)}
+                rows={4}
+                className="border-[#c2c7d1] text-[15px]"
+                placeholder="اذكر أي مضاعفات ملاحظة، إن وجدت..."
+              />
+            </section>
+
+            <section className="mb-8">
+              <h3 className="mb-2 text-sm font-bold text-[#00355f]">
+                خطة المتابعة / Follow-up Plan
+              </h3>
+              <Textarea
+                value={followUpPlan}
+                onChange={(event) => setFollowUpPlan(event.target.value)}
+                rows={4}
+                className="border-[#c2c7d1] text-[15px]"
+                placeholder="اذكر توصيات المتابعة والموعد القادم..."
+              />
+            </section>
+
+            <footer className="hidden">
+              <div dir="ltr" className="text-left">
+                <p dir="ltr" className="mb-5 text-left font-bold">
+                  توقيع الطبيب المعالج:
+                </p>
+                <div className="mb-2 w-56 border-b border-[#42474f]" />
+                <Input
+                  value={doctorName}
+                  onChange={(event) => setDoctorName(event.target.value)}
+                  dir="ltr"
+                  className="w-64 border-0 bg-transparent p-0 text-left font-bold shadow-none"
+                />
+                <p className="text-xs text-[#727780]">استشاري جراحة العيون</p>
+              </div>
+            </footer>
+          </div>
+        </ClinicalReportFrame>
+      </div>
 
       <TemplatesManagerDialog
         open={templatesDialogOpen}
@@ -505,26 +534,28 @@ function TemplatesManagerDialog({
     setFollowUpPlan("");
   };
 
-  const saveMutation = trpc.medical.saveMedicalConditionReportTemplate.useMutation({
-    onSuccess: () => {
-      toast.success("تم الحفظ");
-      resetForm();
-      utils.medical.getMedicalConditionReportTemplates.invalidate();
-    },
-    onError: (error) => {
-      toast.error(getTrpcErrorMessage(error, "حدث خطأ أثناء الحفظ"));
-    },
-  });
+  const saveMutation =
+    trpc.medical.saveMedicalConditionReportTemplate.useMutation({
+      onSuccess: () => {
+        toast.success("تم الحفظ");
+        resetForm();
+        utils.medical.getMedicalConditionReportTemplates.invalidate();
+      },
+      onError: (error) => {
+        toast.error(getTrpcErrorMessage(error, "حدث خطأ أثناء الحفظ"));
+      },
+    });
 
-  const deleteMutation = trpc.medical.deleteMedicalConditionReportTemplate.useMutation({
-    onSuccess: () => {
-      toast.success("تم الحذف");
-      utils.medical.getMedicalConditionReportTemplates.invalidate();
-    },
-    onError: (error) => {
-      toast.error(getTrpcErrorMessage(error, "حدث خطأ أثناء الحذف"));
-    },
-  });
+  const deleteMutation =
+    trpc.medical.deleteMedicalConditionReportTemplate.useMutation({
+      onSuccess: () => {
+        toast.success("تم الحذف");
+        utils.medical.getMedicalConditionReportTemplates.invalidate();
+      },
+      onError: (error) => {
+        toast.error(getTrpcErrorMessage(error, "حدث خطأ أثناء الحذف"));
+      },
+    });
 
   const handleEdit = (template: any) => {
     setEditingId(Number(template.id));
@@ -560,7 +591,9 @@ function TemplatesManagerDialog({
         <div className="space-y-4">
           <div className="max-h-52 space-y-1 overflow-y-auto rounded-md border p-2">
             {templates.length === 0 ? (
-              <span className="text-sm text-muted-foreground">لا توجد نماذج بعد</span>
+              <span className="text-sm text-muted-foreground">
+                لا توجد نماذج بعد
+              </span>
             ) : (
               templates.map((template) => (
                 <div
@@ -578,7 +611,9 @@ function TemplatesManagerDialog({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    onClick={() => deleteMutation.mutate({ id: Number(template.id) })}
+                    onClick={() =>
+                      deleteMutation.mutate({ id: Number(template.id) })
+                    }
                     disabled={deleteMutation.isPending}
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
@@ -594,20 +629,37 @@ function TemplatesManagerDialog({
               <Input value={name} onChange={(e) => setName(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">نوع العملية (اختياري)</label>
-              <Input value={operationType} onChange={(e) => setOperationType(e.target.value)} />
+              <label className="text-sm font-medium">
+                نوع العملية (اختياري)
+              </label>
+              <Input
+                value={operationType}
+                onChange={(e) => setOperationType(e.target.value)}
+              />
             </div>
             <div className="space-y-1">
               <label className="text-sm font-medium">الحالة الطبية</label>
-              <Textarea rows={2} value={condition} onChange={(e) => setCondition(e.target.value)} />
+              <Textarea
+                rows={2}
+                value={condition}
+                onChange={(e) => setCondition(e.target.value)}
+              />
             </div>
             <div className="space-y-1">
               <label className="text-sm font-medium">المضاعفات</label>
-              <Textarea rows={2} value={complications} onChange={(e) => setComplications(e.target.value)} />
+              <Textarea
+                rows={2}
+                value={complications}
+                onChange={(e) => setComplications(e.target.value)}
+              />
             </div>
             <div className="space-y-1">
               <label className="text-sm font-medium">خطة المتابعة</label>
-              <Textarea rows={2} value={followUpPlan} onChange={(e) => setFollowUpPlan(e.target.value)} />
+              <Textarea
+                rows={2}
+                value={followUpPlan}
+                onChange={(e) => setFollowUpPlan(e.target.value)}
+              />
             </div>
             <div className="flex items-center gap-2">
               <Button type="submit" disabled={saveMutation.isPending}>

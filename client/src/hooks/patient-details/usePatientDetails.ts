@@ -267,6 +267,11 @@ export function usePatientDetails({
       { examinationId: latestExaminationId ?? 0 },
       { enabled: Boolean(latestExaminationId), refetchOnWindowFocus: false },
     );
+  const examinationChecklistsQuery =
+    trpc.medical.getExaminationChecklistsByPatient.useQuery(
+      { patientId: patientId ?? 0 },
+      { enabled: Boolean(patientId), refetchOnWindowFocus: false },
+    );
 
   const deleteExamMutation = trpc.medical.deleteExaminationDirect.useMutation({
     onSuccess: () => {
@@ -447,8 +452,17 @@ export function usePatientDetails({
   const overviewData = useMemo(() => {
     const symptomSet = new Set<string>();
     let history = "";
-    const checklist = examinationChecklistQuery.data as any;
-    const symptomLabels: Array<[string, string]> = [
+    const checklists = isVisitReport
+      ? [examinationChecklistQuery.data as any].filter(Boolean)
+      : (((examinationChecklistsQuery.data as any[]) ?? []) as any[]);
+    const checklistHistoryLabels: Array<[string, string]> = [
+      ["generalDiseases", "أمراض عامة"],
+      ["pregnancyOrLactation", "حمل أو رضاعة"],
+      [
+        "usesAllergySupplementsSteroidsOrPressureMeds",
+        "أدوية حساسية أو كورتيزون أو ضغط",
+      ],
+      ["acneTreatment", "علاج حب الشباب"],
       [
         "usesTearSubstituteOrExcessTearsOrSandySensation",
         "جفاف أو دموع زائدة أو إحساس بالرمل",
@@ -457,8 +471,20 @@ export function usePatientDetails({
       ["glaucomaTreatment", "استخدام علاج الجلوكوما"],
       ["familyKeratoconus", "تاريخ عائلي للقرنية المخروطية"],
     ];
-    symptomLabels.forEach(([key, label]) => {
-      if (checklist?.[key]) symptomSet.add(label);
+    const checklistHistory = new Set<string>();
+    checklists.forEach((checklist) => {
+      checklistHistoryLabels.forEach(([key, label]) => {
+        if (checklist?.[key]) checklistHistory.add(label);
+      });
+    });
+    const symptomVisits = isVisitReport
+      ? ((visitsQuery.data as any[]) ?? []).filter(
+          (visit) => Number(visit.id) === latestVisitId,
+        )
+      : ((visitsQuery.data as any[]) ?? []);
+    symptomVisits.forEach((visit) => {
+      const complaint = String(visit?.chiefComplaint ?? "").trim();
+      if (complaint) symptomSet.add(complaint);
     });
 
     const historyRows = Array.isArray(medicalHistoryQuery.data)
@@ -470,6 +496,7 @@ export function usePatientDetails({
       : [];
     const historyRow = historyRows[0];
     const historyParts = [
+      ...Array.from(checklistHistory),
       historyRow?.diabetes && "السكري",
       historyRow?.hypertension && "ضغط الدم",
       historyRow?.heartDisease && "أمراض القلب",
@@ -482,7 +509,14 @@ export function usePatientDetails({
     ].filter(Boolean);
     if (historyParts.length) history = historyParts.join("، ");
     return { history: history.trim(), symptoms: Array.from(symptomSet) };
-  }, [examinationChecklistQuery.data, medicalHistoryQuery.data]);
+  }, [
+    examinationChecklistQuery.data,
+    examinationChecklistsQuery.data,
+    isVisitReport,
+    latestVisitId,
+    medicalHistoryQuery.data,
+    visitsQuery.data,
+  ]);
 
   const parsedExamSources = useMemo(() => {
     const autorefMap = new Map<number, any>();
@@ -498,12 +532,12 @@ export function usePatientDetails({
       for (const record of afterRefractionQuery.data)
         afterMap.set(record.examinationId, record);
 
-    const latestExaminations = latestVisitId
+    const selectedExaminations = isVisitReport && latestVisitId
       ? examinations.filter(
           (exam: any) => Number(exam.visitId) === latestVisitId,
         )
-      : [];
-    return latestExaminations.map((exam: any) => {
+      : examinations;
+    return selectedExaminations.map((exam: any) => {
       const afterRecord = afterMap.get(exam.id);
       const autorefRecord = autorefMap.get(exam.id);
       const autorefraction = autorefRecord
@@ -538,8 +572,8 @@ export function usePatientDetails({
                   c: glassesRecord.cOD,
                   axis: glassesRecord.axisOD,
                   pd: glassesRecord.pdOD,
-                  add: glassesRecord.addOD,
-                  bcva: glassesRecord.bcvaOD,
+                  add: glassesRecord.addOD || glassesRecord.addOS,
+                  bcva: glassesRecord.bcvaOD || autorefRecord?.bcvaOD,
                 }
               : undefined,
           os:
@@ -549,8 +583,8 @@ export function usePatientDetails({
                   c: glassesRecord.cOS,
                   axis: glassesRecord.axisOS,
                   pd: glassesRecord.pdOS,
-                  add: glassesRecord.addOS,
-                  bcva: glassesRecord.bcvaOS,
+                  add: glassesRecord.addOS || glassesRecord.addOD,
+                  bcva: glassesRecord.bcvaOS || autorefRecord?.bcvaOS,
                 }
               : undefined,
         };
@@ -587,6 +621,7 @@ export function usePatientDetails({
     });
   }, [
     examinations,
+    isVisitReport,
     latestVisitId,
     autorefractometryQuery.data,
     afterRefractionQuery.data,
@@ -770,23 +805,34 @@ export function usePatientDetails({
     const requests = Array.isArray(testRequestsQuery?.data)
       ? (testRequestsQuery.data as any[])
       : [];
-    return requests
-      .filter((request) => Number(request.visitId) === latestVisitId)
+    const visitRequests = isVisitReport
+      ? requests.filter(
+          (request) => Number(request.visitId) === latestVisitId,
+        )
+      : requests;
+    const selectedRequests =
+      isVisitReport && visitRequests.length === 0
+        ? requests.filter((request) => !Number(request.visitId))
+        : visitRequests;
+    return selectedRequests
       .flatMap((request) =>
         (request.items ?? []).map((item: any) => ({
           id: item.id,
+          visitId: request.visitId,
           name: item.testName,
           result: item.result,
           requestDate: request.requestDate,
           status: request.status,
         })),
       );
-  }, [latestVisitId, testRequestsQuery?.data]);
+  }, [isVisitReport, latestVisitId, testRequestsQuery?.data]);
 
   const treatmentRows = useMemo(() => {
     const source = Array.isArray(prescriptionsQuery.data)
       ? (prescriptionsQuery.data as any[]).filter(
-          (prescription) => Number(prescription.visitId) === latestVisitId,
+          (prescription) =>
+            !isVisitReport ||
+            Number(prescription.visitId) === latestVisitId,
         )
       : [];
     const rows: Array<{
@@ -816,7 +862,7 @@ export function usePatientDetails({
             dosage: firstNonEmpty(item?.dosage, "—"),
             frequency: firstNonEmpty(item?.frequency, "—"),
             duration: firstNonEmpty(item?.duration, "—"),
-            notes: firstNonEmpty(item?.notes, ""),
+            notes: firstNonEmpty(item?.instructions, ""),
           });
         });
       } else {
@@ -832,7 +878,7 @@ export function usePatientDetails({
       }
     });
     return rows;
-  }, [latestVisitId, prescriptionsQuery.data]);
+  }, [isVisitReport, latestVisitId, prescriptionsQuery.data]);
 
   const serviceDirectory = useMemo(() => {
     const raw = (serviceDirectoryQuery.data as any)?.value;

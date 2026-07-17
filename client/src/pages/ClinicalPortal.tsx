@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useLocation, useRoute } from "wouter";
 import {
   CalendarDays,
@@ -11,6 +11,7 @@ import {
   Stethoscope,
 } from "lucide-react";
 import PatientPicker from "@/components/PatientPicker";
+import { UnifiedRefractionTable } from "@/components/medical/UnifiedRefractionTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -56,6 +57,81 @@ const fieldLabels: Record<string, string> = {
   ttt: "TTT",
   ablation: "Ablation",
 };
+
+const opticalFields = [
+  { key: "s", label: "S" },
+  { key: "c", label: "C" },
+  { key: "axis", label: "A" },
+];
+
+function sourceEye(
+  source: any,
+  key: "autorefraction" | "after" | "glasses",
+  eye: "od" | "os",
+) {
+  return source?.[key]?.[eye] ?? {};
+}
+
+function hasRefractionSource(
+  source: any,
+  type: "autorefraction" | "after" | "glasses",
+) {
+  return (["od", "os"] as const).some((eye) =>
+    Object.values(sourceEye(source, type, eye)).some(
+      (value) => value !== null && value !== undefined && value !== "",
+    ),
+  );
+}
+
+function RefractionSourceTable({
+  source,
+  type,
+  date,
+}: {
+  source: any;
+  type: "autorefraction" | "after" | "glasses";
+  date?: ReactNode;
+}) {
+  const od = sourceEye(source, type, "od");
+  const os = sourceEye(source, type, "os");
+  if (type === "autorefraction") {
+    return (
+      <UnifiedRefractionTable
+        title="Autoref"
+        fields={[
+          ...opticalFields,
+          { key: "ucva", label: "UCVA" },
+          { key: "iop", label: "IOP" },
+        ]}
+        od={od}
+        os={os}
+        date={date}
+      />
+    );
+  }
+  if (type === "after") {
+    return (
+      <UnifiedRefractionTable
+        title="After"
+        fields={opticalFields}
+        od={od}
+        os={os}
+        date={date}
+      />
+    );
+  }
+  return (
+    <UnifiedRefractionTable
+      title="Refraction"
+      fields={[...opticalFields, { key: "bcva", label: "BCVA" }]}
+      od={od}
+      os={os}
+      trailing={[{ label: "IPD", value: od.pd || os.pd }]}
+      reading={od.add || os.add}
+      date={date}
+    />
+  );
+}
 
 function readable(value: unknown, fallback = "—") {
   const text = formatDisplayValue(value).trim();
@@ -197,8 +273,14 @@ function ClinicalTable({
         <tbody>
           {rows.map((row, index) => (
             <tr
-              key={`${row.eye ?? row.label ?? index}`}
-              className="border-t border-border/70"
+              key={`${row.Date ?? ""}-${row.Eye ?? row.eye ?? row.label ?? index}`}
+              className={cn(
+                "border-t border-border/70",
+                index > 0 &&
+                  Boolean(row.Date) &&
+                  row.Date !== rows[index - 1]?.Date &&
+                  "border-t-4 border-t-primary/35",
+              )}
             >
               {columns.map((column) => (
                 <td key={column} className="px-3 py-2 align-top tabular-nums">
@@ -272,24 +354,6 @@ function PatientFileView({ pd }: { pd: any }) {
     (item) => item.visitDate,
   );
   const latestSource = sources[0];
-  const latestAutorefRows = buildEyeRows(latestSource).map((row) => ({
-    Eye: row.eye,
-    UCVA: row.ucva,
-    BCVA: row.bcva,
-    Sphere: row.s,
-    Cylinder: row.c,
-    Axis: row.axis,
-    IOP: row.iop,
-  }));
-  const latestGlassesRows = buildGlassesRows(latestSource).map((row) => ({
-    Eye: row.eye,
-    Sphere: row.s,
-    Cylinder: row.c,
-    Axis: row.axis,
-    PD: row.pd,
-    Add: row.add,
-    BCVA: row.bcva,
-  }));
   const pentacamMetrics = buildPentacamMetrics(pd.pentacamRows ?? []).map(
     (row) => ({
       Metric: row.label,
@@ -313,28 +377,15 @@ function PatientFileView({ pd }: { pd: any }) {
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.65fr)]">
       <div className="space-y-4">
         <Section title="Autoref + IOP" icon={<Eye className="size-4" />}>
-          <ClinicalTable
-            columns={[
-              "Eye",
-              "UCVA",
-              "BCVA",
-              "Sphere",
-              "Cylinder",
-              "Axis",
-              "IOP",
-            ]}
-            rows={latestAutorefRows}
-          />
+          <RefractionSourceTable source={latestSource} type="autorefraction" />
         </Section>
 
-        <Section
-          title="Clinical Refraction"
-          icon={<ScanEye className="size-4" />}
-        >
-          <ClinicalTable
-            columns={["Eye", "Sphere", "Cylinder", "Axis", "PD", "Add", "BCVA"]}
-            rows={latestGlassesRows}
-          />
+        <Section title="After Refraction" icon={<ScanEye className="size-4" />}>
+          <RefractionSourceTable source={latestSource} type="after" />
+        </Section>
+
+        <Section title="Refraction" icon={<ScanEye className="size-4" />}>
+          <RefractionSourceTable source={latestSource} type="glasses" />
         </Section>
 
         <Section
@@ -384,9 +435,22 @@ function PatientFileView({ pd }: { pd: any }) {
                 .map((test: any, index: number) => (
                   <li
                     key={test?.id ?? `${test?.name}-${index}`}
-                    className="rounded-md border border-border bg-muted/20 px-3 py-2 text-sm"
+                    className={cn(
+                      "rounded-md border border-border bg-muted/20 px-3 py-2 text-sm",
+                      index > 0 &&
+                        dateValue(test?.requestDate) !==
+                          dateValue(
+                            pd.requestedImagingAndLabs[index - 1]?.requestDate,
+                          ) &&
+                        "mt-4 border-t-4 border-t-primary/35",
+                    )}
                   >
-                    {readable(test?.name ?? test?.serviceName ?? test?.label)}
+                    {compactText(
+                      test?.name ?? test?.serviceName ?? test?.label,
+                      test?.result,
+                      test?.status,
+                      dateValue(test?.requestDate),
+                    )}
                   </li>
                 ))}
             </ul>
@@ -396,20 +460,8 @@ function PatientFileView({ pd }: { pd: any }) {
         </Section>
 
         <Section title="Treatment Plan" icon={<Pill className="size-4" />}>
-          {pd.treatmentRows?.length || recommendations || diagnosis ? (
+          {pd.treatmentRows?.length ? (
             <ol className="space-y-2">
-              {diagnosis ? (
-                <li className="rounded-md border border-border bg-muted/20 px-3 py-2 text-sm">
-                  <span className="font-semibold">التقييم: </span>
-                  {diagnosis}
-                </li>
-              ) : null}
-              {recommendations ? (
-                <li className="rounded-md border border-border bg-muted/20 px-3 py-2 text-sm">
-                  <span className="font-semibold">الخطة: </span>
-                  {recommendations}
-                </li>
-              ) : null}
               {pd.treatmentRows?.slice(0, 5).map((row: any, index: number) => (
                 <li
                   key={`${row.medication}-${index}`}
@@ -430,40 +482,6 @@ function PatientFileView({ pd }: { pd: any }) {
         </Section>
       </div>
     </div>
-  );
-}
-
-function TrendTable({ sources }: { sources: any[] }) {
-  const rows = sources.flatMap((source) => {
-    const visitDate = dateValue(source.visitDate);
-    const refractionRows = buildGlassesRows(source).map((row) => ({
-      Date: visitDate,
-      Source: "glassesrecords",
-      Eye: row.eye,
-      Sphere: row.s,
-      Cylinder: row.c,
-      Axis: row.axis,
-      IOP: null,
-    }));
-    const iopRows = buildEyeRows(source)
-      .filter((row) => readable(row.iop, "") !== "")
-      .map((row) => ({
-        Date: visitDate,
-        Source: "autorefractometrydata",
-        Eye: row.eye,
-        Sphere: null,
-        Cylinder: null,
-        Axis: null,
-        IOP: row.iop,
-      }));
-    return [...refractionRows, ...iopRows];
-  });
-
-  return (
-    <ClinicalTable
-      columns={["Date", "Source", "Eye", "Sphere", "Cylinder", "Axis", "IOP"]}
-      rows={rows}
-    />
   );
 }
 
@@ -524,7 +542,6 @@ function PatientReportView({ pd, patientId }: { pd: any; patientId: number }) {
     (pd.reports ?? []) as any[],
     (item) => item.createdAt,
   );
-
   return (
     <div className="space-y-4">
       <Section
@@ -544,11 +561,49 @@ function PatientReportView({ pd, patientId }: { pd: any; patientId: number }) {
         )}
       </Section>
 
-      <Section
-        title="Technical Trends: Refraction and IOP"
-        icon={<Eye className="size-4" />}
-      >
-        <TrendTable sources={sources} />
+      <Section title="Autoref + IOP" icon={<Eye className="size-4" />}>
+        <div className="space-y-5">
+          {sources
+            .filter((source) => hasRefractionSource(source, "autorefraction"))
+            .map((source, index) => (
+              <RefractionSourceTable
+                key={`autoref-${source.visitDate}-${index}`}
+                source={source}
+                type="autorefraction"
+                date={dateValue(source.visitDate) || "بدون تاريخ"}
+              />
+            ))}
+        </div>
+      </Section>
+
+      <Section title="After Refraction" icon={<ScanEye className="size-4" />}>
+        <div className="space-y-5">
+          {sources
+            .filter((source) => hasRefractionSource(source, "after"))
+            .map((source, index) => (
+              <RefractionSourceTable
+                key={`after-${source.visitDate}-${index}`}
+                source={source}
+                type="after"
+                date={dateValue(source.visitDate) || "بدون تاريخ"}
+              />
+            ))}
+        </div>
+      </Section>
+
+      <Section title="Refraction" icon={<ScanEye className="size-4" />}>
+        <div className="space-y-5">
+          {sources
+            .filter((source) => hasRefractionSource(source, "glasses"))
+            .map((source, index) => (
+              <RefractionSourceTable
+                key={`glasses-${source.visitDate}-${index}`}
+                source={source}
+                type="glasses"
+                date={dateValue(source.visitDate) || "بدون تاريخ"}
+              />
+            ))}
+        </div>
       </Section>
 
       <div className="grid gap-4 xl:grid-cols-2">
@@ -571,6 +626,55 @@ function PatientReportView({ pd, patientId }: { pd: any; patientId: number }) {
               OS: row.os,
             }))}
           />
+        </Section>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <Section title="Symptoms" icon={<Stethoscope className="size-4" />}>
+          {pd.overviewData?.symptoms?.length ? (
+            <div className="flex flex-wrap gap-2">
+              {pd.overviewData.symptoms.map((symptom: string) => (
+                <Badge key={symptom} variant="outline">
+                  {symptom}
+                </Badge>
+              ))}
+            </div>
+          ) : (
+            <EmptyLine>لا توجد أعراض مسجلة.</EmptyLine>
+          )}
+        </Section>
+
+        <Section
+          title="Diagnostic Tests"
+          icon={<ClipboardList className="size-4" />}
+        >
+          {pd.requestedImagingAndLabs?.length ? (
+            <ul className="space-y-2">
+              {pd.requestedImagingAndLabs.map((test: any, index: number) => (
+                <li
+                  key={test?.id ?? `${test?.name}-${index}`}
+                  className={cn(
+                    "rounded-md border border-border bg-muted/20 px-3 py-2 text-sm",
+                    index > 0 &&
+                      dateValue(test?.requestDate) !==
+                        dateValue(
+                          pd.requestedImagingAndLabs[index - 1]?.requestDate,
+                        ) &&
+                      "mt-4 border-t-4 border-t-primary/35",
+                  )}
+                >
+                  {compactText(
+                    test?.name,
+                    test?.result,
+                    test?.status,
+                    dateValue(test?.requestDate),
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyLine>لا توجد طلبات فحوصات أو أشعة مسجلة.</EmptyLine>
+          )}
         </Section>
       </div>
 
@@ -633,6 +737,7 @@ export default function ClinicalPortal({ mode }: ClinicalPortalProps) {
     user,
     isAuthenticated,
     setLocation,
+    mode: mode === "file" ? "visit-report" : "clinical-portal",
   });
 
   const headerStats = useMemo(
