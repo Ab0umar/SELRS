@@ -259,7 +259,7 @@ export function AppTopNav({
       },
       {
         icon: History,
-        label: "المرضى القدامى",
+        label: "سجل المرضى",
         path: "/admin/legacy-patients",
         key: "legacy-patients",
         paths: ["/admin/legacy-patients"],
@@ -301,7 +301,7 @@ export function AppTopNav({
       { icon: Hospital, label: "كفرالشيخ", path: "/kf" },
       { icon: Archive, label: "المخزن", path: "/stockroom" },
       { icon: Megaphone, label: "التسويق", path: "/marketing" },
-      { icon: History, label: "المرضى القدامى", path: "/admin/legacy-patients" },
+      { icon: History, label: "سجل المرضى", path: "/admin/legacy-patients" },
       { icon: ScrollText, label: "سجل العمليات", path: "/admin/op-history" },
       { icon: Settings, label: "مركز الإدارة", path: "/admin-hub" },
     ],
@@ -374,14 +374,14 @@ export function AppTopNav({
           aria-label="الرئيسية"
         >
           <BrandLogo className="h-7 w-7 shrink-0 rounded-xl border border-border/60 bg-background" />
-          <span className="hidden text-sm font-black text-foreground md:block">
+          <span className="hidden text-sm font-black text-foreground 2xl:block">
             {BRAND_NAME_AR}
           </span>
         </button>
 
         {/* Main tabs, desktop only */}
         <nav
-          className="hidden items-stretch md:flex"
+          className="hidden min-w-0 flex-1 items-stretch whitespace-nowrap md:flex"
           aria-label="القائمة الرئيسية"
         >
           {isAdmin
@@ -394,18 +394,18 @@ export function AppTopNav({
                     type="button"
                     onClick={() => onNavigate(tab.path)}
                     className={cn(
-                      "my-1 flex h-10 items-center gap-1.5 rounded-2xl border px-3.5 text-sm font-semibold transition-colors",
+                      "my-1 flex h-10 min-w-0 items-center gap-0.5 whitespace-nowrap rounded-xl border px-1.5 text-[10px] font-semibold transition-colors xl:px-2 xl:text-[11px] 2xl:text-xs",
                       active
                         ? "border-primary/20 bg-primary text-primary-foreground shadow-sm"
                         : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/70",
                     )}
                   >
                     <Icon
-                      className="h-[15px] w-[15px] shrink-0"
+                      className="h-3.5 w-3.5 shrink-0"
                       strokeWidth={active ? 2.2 : 1.8}
                       aria-hidden
                     />
-                    <span>{tab.label}</span>
+                    <span className="whitespace-nowrap">{tab.label}</span>
                   </button>
                 );
               })
@@ -421,18 +421,18 @@ export function AppTopNav({
                     type="button"
                     onClick={() => onNavigate(tab.path)}
                     className={cn(
-                      "my-1 flex h-10 items-center gap-1.5 rounded-2xl border px-3.5 text-sm font-semibold transition-colors",
+                      "my-1 flex h-10 min-w-0 items-center gap-0.5 whitespace-nowrap rounded-xl border px-1.5 text-[10px] font-semibold transition-colors xl:px-2 xl:text-[11px] 2xl:text-xs",
                       active
                         ? "border-primary/20 bg-primary text-primary-foreground shadow-sm"
                         : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/70",
                     )}
                   >
                     <Icon
-                      className="h-[15px] w-[15px] shrink-0"
+                      className="h-3.5 w-3.5 shrink-0"
                       strokeWidth={active ? 2.2 : 1.8}
                       aria-hidden
                     />
-                    <span>{tab.label}</span>
+                    <span className="whitespace-nowrap">{tab.label}</span>
                   </button>
                 );
               })}
@@ -441,25 +441,25 @@ export function AppTopNav({
           {!isAdmin &&
             accountingItems.length > 0 &&
             !mainNavTabs.some((t) => t.key === "accounting") && (
-              <div className="flex h-full items-stretch">
+              <div className="flex h-full items-stretch whitespace-nowrap">
                 <button
                   type="button"
                   onClick={() => onNavigate("/accounting")}
                   className={cn(
-                    "my-1 flex h-10 items-center rounded-s-2xl border px-3 text-sm font-semibold transition-colors focus-visible:outline-none",
+                    "my-1 flex h-10 min-w-0 items-center whitespace-nowrap rounded-s-xl border px-1.5 text-[10px] font-semibold transition-colors focus-visible:outline-none xl:text-[11px] 2xl:text-xs",
                     accountingActive
                       ? "border-primary/20 bg-primary text-primary-foreground shadow-sm"
                       : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/70",
                   )}
                 >
-                  <span>الحسابات</span>
+                  <span className="whitespace-nowrap">الحسابات</span>
                 </button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
                       className={cn(
-                        "my-1 flex h-10 items-center rounded-e-2xl border px-2.5 text-sm transition-colors focus-visible:outline-none",
+                        "my-1 flex h-10 items-center rounded-e-xl border px-1 text-xs transition-colors focus-visible:outline-none",
                         accountingActive
                           ? "border-primary/20 bg-primary text-primary-foreground shadow-sm"
                           : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/70",
@@ -550,11 +550,8 @@ export function AppTopNav({
             )}
         </nav>
 
-        {/* Spacer */}
-        <div className="flex-1" />
-
         {/* Controls */}
-        <div className="flex shrink-0 items-center gap-0.5 px-2">
+        <div className="flex shrink-0 items-center gap-0.5 px-1">
           {isDashboardRoute && <DashboardAppbarIndicators />}
 
           {/* المزيد popover, desktop only, accordion sections closed by default */}
@@ -571,7 +568,7 @@ export function AppTopNav({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="hidden h-9 gap-1 rounded-2xl border border-border bg-background/70 px-3 text-sm font-semibold md:flex"
+                  className="hidden h-9 shrink-0 gap-0.5 whitespace-nowrap rounded-xl border border-border bg-background/70 px-2 text-[10px] font-semibold md:flex xl:text-xs"
                 >
                   <span>المزيد</span>
                   <ChevronDown
@@ -663,7 +660,7 @@ export function AppTopNav({
           {/* Date badge, hidden on small screens */}
           <Badge
             variant="outline"
-            className="hidden rounded-2xl bg-background/70 py-1 text-[10px] font-semibold sm:inline-flex"
+            className="hidden rounded-2xl bg-background/70 py-1 text-[10px] font-semibold 2xl:inline-flex"
           >
             <span className="me-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-success/100" />
             {dateStr || "…"}
@@ -681,10 +678,10 @@ export function AppTopNav({
                     {userName.slice(0, 2).toUpperCase() || "؟"}
                   </AvatarFallback>
                 </Avatar>
-                <span className="hidden max-w-[100px] truncate text-sm font-semibold sm:inline">
+                <span className="hidden max-w-[100px] truncate text-sm font-semibold 2xl:inline">
                   {userName}
                 </span>
-                <ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground sm:inline" />
+                <ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground 2xl:inline" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent

@@ -4722,6 +4722,7 @@ export async function getPrescriptionsWithItemsByVisit(visitId: number) {
   const rows = await db
     .select({
       prescriptionId: prescriptions.id,
+      visitId: prescriptions.visitId,
       prescriptionDate: prescriptions.prescriptionDate,
       notes: prescriptions.notes,
       itemId: prescriptionItems.id,
@@ -4746,6 +4747,7 @@ export async function getPrescriptionsWithItemsByVisit(visitId: number) {
     if (!grouped[row.prescriptionId]) {
       grouped[row.prescriptionId] = {
         id: row.prescriptionId,
+        visitId: row.visitId,
         prescriptionDate: row.prescriptionDate,
         notes: row.notes ?? "",
         items: [],
@@ -5148,6 +5150,29 @@ export async function getExaminationChecklistByExaminationId(
     .where(eq(examinationChecklistItems.examinationId, examinationId))
     .limit(1);
   return rows[0] ?? null;
+}
+
+export async function getExaminationChecklistsByPatient(patientId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db
+    .select({
+      ...getTableColumns(examinationChecklistItems),
+      visitId: examinations.visitId,
+      visitDate: visits.visitDate,
+    })
+    .from(examinationChecklistItems)
+    .innerJoin(
+      examinations,
+      eq(examinationChecklistItems.examinationId, examinations.id),
+    )
+    .leftJoin(visits, eq(examinations.visitId, visits.id))
+    .where(eq(examinationChecklistItems.patientId, patientId))
+    .orderBy(
+      desc(
+        sql`COALESCE(${visits.visitDate}, ${examinationChecklistItems.createdAt})`,
+      ),
+    );
 }
 
 export async function upsertExaminationChecklist(input: {
@@ -7068,12 +7093,12 @@ export async function getUnmappedServiceCodes() {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const [allCodes, mappedRows] = await Promise.all([
-    db.selectDistinct({ serviceCode: patientServiceEntries.serviceCode }).from(
-      patientServiceEntries,
-    ),
-    db.select({ serviceCode: serviceCodeOpTypeMap.serviceCode }).from(
-      serviceCodeOpTypeMap,
-    ),
+    db
+      .selectDistinct({ serviceCode: patientServiceEntries.serviceCode })
+      .from(patientServiceEntries),
+    db
+      .select({ serviceCode: serviceCodeOpTypeMap.serviceCode })
+      .from(serviceCodeOpTypeMap),
   ]);
   const mapped = new Set(
     mappedRows.map((r: { serviceCode: string }) => r.serviceCode),
@@ -7166,7 +7191,10 @@ export async function getPatientOperationTypeCounts() {
   }
   // Fixed tab order (PRK/Lasik/FL/FS/IOL/ICL/Cataract/Squint/Others), not
   // resorted by count — these are stable tabs, not a leaderboard.
-  return OP_TYPES.map((t) => ({ operationType: t, count: buckets.get(t) ?? 0 }));
+  return OP_TYPES.map((t) => ({
+    operationType: t,
+    count: buckets.get(t) ?? 0,
+  }));
 }
 
 async function rawOperationTypesForCanonical(

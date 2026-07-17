@@ -10,7 +10,6 @@ import {
   ScanEye,
   Stethoscope,
 } from "lucide-react";
-import AuthenticatedImage from "@/components/AuthenticatedImage";
 import PatientPicker from "@/components/PatientPicker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -435,39 +434,42 @@ function PatientFileView({ pd }: { pd: any }) {
 }
 
 function TrendTable({ sources }: { sources: any[] }) {
-  const rows = sources.flatMap((source) =>
-    buildEyeRows(source).map((row) => ({
-      Date: dateValue(source.visitDate),
+  const rows = sources.flatMap((source) => {
+    const visitDate = dateValue(source.visitDate);
+    const refractionRows = buildGlassesRows(source).map((row) => ({
+      Date: visitDate,
+      Source: "glassesrecords",
       Eye: row.eye,
-      UCVA: row.ucva,
-      BCVA: row.bcva,
       Sphere: row.s,
       Cylinder: row.c,
       Axis: row.axis,
-      IOP: row.iop,
-    })),
-  );
+      IOP: null,
+    }));
+    const iopRows = buildEyeRows(source)
+      .filter((row) => readable(row.iop, "") !== "")
+      .map((row) => ({
+        Date: visitDate,
+        Source: "autorefractometrydata",
+        Eye: row.eye,
+        Sphere: null,
+        Cylinder: null,
+        Axis: null,
+        IOP: row.iop,
+      }));
+    return [...refractionRows, ...iopRows];
+  });
 
   return (
     <ClinicalTable
-      columns={[
-        "Date",
-        "Eye",
-        "UCVA",
-        "BCVA",
-        "Sphere",
-        "Cylinder",
-        "Axis",
-        "IOP",
-      ]}
+      columns={["Date", "Source", "Eye", "Sphere", "Cylinder", "Axis", "IOP"]}
       rows={rows}
     />
   );
 }
 
 function DiagnosticImages({ patientId }: { patientId: number }) {
-  const uploadsQuery = trpc.medical.getPatientDiagnosisUploads.useQuery(
-    { patientId },
+  const uploadsQuery = trpc.medical.getSrv100DiagnosticImagesByPatient.useQuery(
+    { patientId, limit: 500 },
     { enabled: Boolean(patientId), refetchOnWindowFocus: false },
   );
   const images = uploadsQuery.data ?? [];
@@ -482,26 +484,30 @@ function DiagnosticImages({ patientId }: { patientId: number }) {
   }
 
   if (!images.length) {
-    return <EmptyLine>لا توجد صور تشخيصية مرفقة بهذا المريض.</EmptyLine>;
+    return <EmptyLine>لا توجد صور محفوظة في srv100_uploads.</EmptyLine>;
   }
 
   return (
     <div className="grid gap-3 sm:grid-cols-2">
-      {images.slice(0, 4).map((image) => (
+      {images.map((image) => (
         <a
           key={image.id}
-          href={image.viewUrl}
+          href={image.storageUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="overflow-hidden rounded-lg border border-border bg-muted/20"
         >
-          <AuthenticatedImage
-            src={image.viewUrl}
-            alt={image.fileName}
+          <img
+            src={image.storageUrl}
+            alt={image.sourceFileName || "صورة بنتاكام"}
             className="h-52 w-full object-cover"
+            loading="lazy"
           />
           <div className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
-            {compactText(image.fileName, dateValue(image.createdAt))}
+            {compactText(
+              image.sourceFileName,
+              dateValue(image.capturedAt ?? image.importedAt),
+            )}
           </div>
         </a>
       ))}

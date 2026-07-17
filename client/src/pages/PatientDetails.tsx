@@ -1,13 +1,14 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation, useRoute } from "wouter";
 import {
-  CalendarDays,
+  ArrowRight,
+  ClipboardList,
   Eye,
   FileText,
   FlaskConical,
   Pill,
+  Printer,
   ScanEye,
-  Stethoscope,
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,22 +21,18 @@ import { MedicalHistoryTab } from "@/components/patient-details/MedicalHistoryTa
 import { ExternalDoctorReferralPanel } from "@/components/patient-details/ExternalDoctorReferralPanel";
 import { ExaminationsTab } from "@/components/patient-details/ExaminationsTab";
 import { PentacamTab } from "@/components/patient-details/PentacamTab";
-import { DiagnosisTab } from "@/components/patient-details/DiagnosisTab";
 import { TreatmentTab } from "@/components/patient-details/TreatmentTab";
 import { TestsTab } from "@/components/patient-details/TestsTab";
-import { FollowupTab } from "@/components/patient-details/FollowupTab";
 import PatientPicker from "@/components/PatientPicker";
 import type { LucideIcon } from "lucide-react";
 
 type Section = { key: string; label: string; icon: LucideIcon };
 
 const ALL_SECTIONS: Section[] = [
-  { key: "examinations", label: "القياسات", icon: Eye },
+  { key: "examinations", label: "Refraction / IOP", icon: Eye },
   { key: "pentacam", label: "بنتاكام", icon: ScanEye },
-  { key: "diagnosis", label: "التشخيص", icon: Stethoscope },
-  { key: "treatment", label: "العلاج", icon: Pill },
-  { key: "tests", label: "الفحوصات", icon: FlaskConical },
-  { key: "followup", label: "المتابعة", icon: CalendarDays },
+  { key: "tests", label: "Diagnostic Tests", icon: FlaskConical },
+  { key: "treatment", label: "Treatment Plan", icon: Pill },
 ];
 
 function getShortDiagnosis(
@@ -69,6 +66,7 @@ export default function PatientDetails() {
     user,
     isAuthenticated,
     setLocation,
+    mode: "visit-report",
   });
 
   if (!isAuthenticated) return null;
@@ -110,6 +108,19 @@ export default function PatientDetails() {
     pd.latestReportContent,
   );
   const age = String(pd.overviewStats.age ?? "").trim();
+  const visits = (pd.visitsQuery.data ?? []) as Array<{
+    visitDate?: string | Date | null;
+  }>;
+  const latestVisit = visits
+    .map((visit) => visit.visitDate)
+    .filter(Boolean)
+    .sort((a, b) => new Date(b!).getTime() - new Date(a!).getTime())[0];
+  const latestVisitLabel = latestVisit
+    ? new Date(latestVisit).toLocaleDateString("ar-EG")
+    : "لا توجد زيارات";
+  const latestTestRequests = (
+    (pd.testRequestsQuery?.data ?? []) as any[]
+  ).filter((request) => Number(request.visitId) === pd.latestVisitId);
 
   const qs = typeof window !== "undefined" ? window.location.search : "";
   const reportPath = patientId
@@ -119,11 +130,97 @@ export default function PatientDetails() {
     : null;
 
   return (
-    <div className="flex h-full min-h-0 flex-col" dir="ltr">
+    <div className="flex h-full min-h-0 flex-col bg-muted/10" dir="rtl">
+      <header className="shrink-0 border-b border-border bg-background print:border-b-2">
+        <div className="flex flex-col gap-3 px-4 py-3 lg:flex-row lg:items-center">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 shrink-0 print:hidden"
+              onClick={() => goBack()}
+              aria-label="رجوع"
+            >
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <ClipboardList className="h-5 w-5" aria-hidden />
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <h1 className="text-lg font-bold leading-tight text-foreground">
+                  تقرير الزيارات
+                </h1>
+                <span className="text-sm text-muted-foreground" dir="auto">
+                  {pd.patientName || "اختر مريضاً"}
+                </span>
+                {pd.patientCode && (
+                  <span
+                    className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground"
+                    dir="ltr"
+                  >
+                    {pd.patientCode}
+                  </span>
+                )}
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                {age && <span>العمر: {age} سنة</span>}
+                {pd.overviewStats.gender && (
+                  <span>الجنس: {String(pd.overviewStats.gender)}</span>
+                )}
+                <span>عدد الزيارات: {visits.length}</span>
+                <span>آخر زيارة: {latestVisitLabel}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 print:hidden">
+            <div className="min-w-[210px] flex-1 lg:flex-none">
+              <PatientPicker
+                initialPatientId={patientId}
+                onSelect={handleSelectPatient}
+                label=""
+                placeholder="بحث عن مريض..."
+              />
+            </div>
+            {reportPath && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 whitespace-nowrap"
+                onClick={() => setLocation(reportPath)}
+              >
+                <FileText className="h-4 w-4" aria-hidden />
+                التقرير الملخص
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              onClick={() => window.print()}
+              aria-label="طباعة تقرير الزيارات"
+            >
+              <Printer className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </header>
+
       {/* Two-column layout */}
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Desktop sidebar — in RTL renders on the right */}
-        <aside className="hidden w-[200px] shrink-0 flex-col border-e border-border/60 bg-muted/20 md:flex print:hidden">
+        <aside className="hidden w-[210px] shrink-0 flex-col border-e border-border bg-background md:flex print:hidden">
+          <div className="border-b border-border px-4 py-3">
+            <p className="text-xs font-semibold text-muted-foreground">
+              تفاصيل التقرير
+            </p>
+            {diagnosisLabel && (
+              <p className="mt-1 truncate text-sm font-medium" dir="auto">
+                {diagnosisLabel}
+              </p>
+            )}
+          </div>
           <nav className="flex flex-col py-2" aria-label="أقسام ملف المريض">
             {sections.map((section) => {
               const active = pd.activeTab === section.key;
@@ -157,23 +254,6 @@ export default function PatientDetails() {
           )}
 
           <div className="mt-auto space-y-1.5 border-t border-border/50 p-3">
-            <PatientPicker
-              initialPatientId={patientId}
-              onSelect={handleSelectPatient}
-              label=""
-              placeholder="تغيير المريض..."
-            />
-            {reportPath && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start gap-2 text-xs text-muted-foreground hover:text-foreground"
-                onClick={() => setLocation(reportPath)}
-              >
-                <FileText className="h-3.5 w-3.5" aria-hidden />
-                التقرير المجمع
-              </Button>
-            )}
             {patientId && pd.isAdmin && !inPatientHub && (
               <Button
                 variant="ghost"
@@ -219,63 +299,19 @@ export default function PatientDetails() {
                   autorefractionRows={pd.autorefractionRows}
                   afterRows={pd.afterRows}
                   glassesRows={pd.glassesRows}
-                  fundusRows={pd.fundusRows}
-                  requestedImagingAndLabs={pd.requestedImagingAndLabs}
-                  parsedExamSources={pd.parsedExamSources}
-                  openExamSections={pd.openExamSections}
-                  toggleExamSection={pd.toggleExamSection}
-                  followupSheets={(pd.followupSheetsQuery.data ?? []) as any[]}
                 />
               )}
               {pd.canViewPentacam && pd.activeTab === "pentacam" && (
-                <PentacamTab pentacamRows={pd.pentacamRows} />
-              )}
-              {pd.activeTab === "diagnosis" && (
-                <DiagnosisTab
-                  latestReport={pd.latestReport}
-                  latestReportContent={pd.latestReportContent}
-                  patientId={patientId}
+                <PentacamTab
+                  pentacamRows={pd.pentacamRows}
+                  pentacamFiles={pd.pentacamFiles}
                 />
               )}
               {pd.activeTab === "treatment" && (
-                <TreatmentTab
-                  treatmentRows={pd.treatmentRows}
-                  treatmentData={pd.treatmentData}
-                  medications={(pd.medicationsQuery.data ?? []) as any[]}
-                />
+                <TreatmentTab treatmentRows={pd.treatmentRows} />
               )}
               {pd.activeTab === "tests" && (
-                <TestsTab
-                  testRequestsData={
-                    pd.testRequestsQuery?.data as any[] | undefined
-                  }
-                />
-              )}
-              {pd.activeTab === "followup" && (
-                <FollowupTab
-                  examinations={pd.examinations}
-                  visitsData={(pd.visitsQuery.data ?? []) as any[]}
-                  surgeries={pd.surgeries}
-                  followups={pd.followups}
-                  followupSheets={(pd.followupSheetsQuery.data ?? []) as any[]}
-                  isAdmin={pd.isAdmin && !inPatientHub}
-                  patientId={patientId}
-                  editingVisitId={pd.editingVisitId}
-                  editVisitDate={pd.editVisitDate}
-                  setEditingVisitId={pd.setEditingVisitId}
-                  setEditVisitDate={pd.setEditVisitDate}
-                  updateVisitDateMutation={pd.updateVisitDateMutation}
-                  deleteExamMutation={pd.deleteExamMutation}
-                  deleteVisitMutation={pd.deleteVisitMutation}
-                  onAfterDelete={async () => {
-                    await Promise.all([
-                      pd.examinationsQuery.refetch(),
-                      pd.pentacamQuery.refetch(),
-                      pd.followupsQuery.refetch(),
-                      pd.followupSheetsQuery.refetch(),
-                    ]);
-                  }}
-                />
+                <TestsTab testRequestsData={latestTestRequests} />
               )}
             </div>
           </PullToRefresh>

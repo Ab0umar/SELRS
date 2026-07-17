@@ -185,7 +185,7 @@ export const adminNavGroups: NavGroup[] = [
   { icon: Network, label: "مركز المريض", path: "/patient-hub", isMain: true },
   {
     icon: History,
-    label: "بحث المرضى القدامى",
+    label: "سجل المرضى",
     path: "/admin/legacy-patients",
     isMain: true,
   },
@@ -199,17 +199,23 @@ export const adminNavGroups: NavGroup[] = [
     label: "ملف المريض",
     navKey: "clinics-file",
     groupPath: "/medicalfile",
-    items: [
-      { icon: FileText, label: "ملف المريض", path: "/medicalfile" },
-    ],
+    items: [{ icon: FileText, label: "ملف المريض", path: "/medicalfile" }],
   },
   {
     label: "القياسات",
     navKey: "clinics-measurements",
     groupPath: "/sheets/refractions/dashboard",
     items: [
-      { icon: Activity, label: "لوحة Autoref", path: "/sheets/autorefs/dashboard" },
-      { icon: Glasses, label: "لوحة الانكسارات", path: "/sheets/refractions/dashboard" },
+      {
+        icon: Activity,
+        label: "لوحة Autoref",
+        path: "/sheets/autorefs/dashboard",
+      },
+      {
+        icon: Glasses,
+        label: "لوحة الانكسارات",
+        path: "/sheets/refractions/dashboard",
+      },
     ],
   },
   {
@@ -217,8 +223,16 @@ export const adminNavGroups: NavGroup[] = [
     navKey: "clinics-pentacam",
     groupPath: "/sheets/pentacam/dashboard",
     items: [
-      { icon: CircleDot, label: "لوحة البنتاكام", path: "/sheets/pentacam/dashboard" },
-      { icon: FileSpreadsheet, label: "شيتات البنتاكام", path: "/sheets/pentacam" },
+      {
+        icon: CircleDot,
+        label: "لوحة البنتاكام",
+        path: "/sheets/pentacam/dashboard",
+      },
+      {
+        icon: FileSpreadsheet,
+        label: "شيتات البنتاكام",
+        path: "/sheets/pentacam",
+      },
       { icon: Eye, label: "البنتاكام (إداري)", path: "/admin/pentacam" },
     ],
   },
@@ -228,7 +242,11 @@ export const adminNavGroups: NavGroup[] = [
     groupPath: "/prescription",
     items: [
       { icon: Pill, label: "الروشتات", path: "/prescription" },
-      { icon: ClipboardList, label: "التقارير الطبية", path: "/medical-reports" },
+      {
+        icon: ClipboardList,
+        label: "التقارير الطبية",
+        path: "/medical-reports",
+      },
     ],
   },
   {
@@ -237,7 +255,11 @@ export const adminNavGroups: NavGroup[] = [
     groupPath: "/sheets/consultant",
     items: [
       { icon: Stethoscope, label: "شيت كشف", path: "/sheets/consultant" },
-      { icon: UserRound, label: "شيت مقاس نظاره / اشعه خارجي", path: "/sheets/specialist" },
+      {
+        icon: UserRound,
+        label: "شيت مقاس نظاره / اشعه خارجي",
+        path: "/sheets/specialist",
+      },
       { icon: Zap, label: "شيت تصحيح ابصار", path: "/sheets/lasik" },
     ],
   },
@@ -252,7 +274,11 @@ export const adminNavGroups: NavGroup[] = [
         label: "تقرير ما قبل وبعد العملية",
         path: "/pre-post-op-report",
       },
-      { icon: CalendarOff, label: "إجازة ما بعد العملية", path: "/post-op-offdays" },
+      {
+        icon: CalendarOff,
+        label: "إجازة ما بعد العملية",
+        path: "/post-op-offdays",
+      },
       { icon: Send, label: "خطاب الإحالة", path: "/sheets/referral" },
     ],
   },
@@ -274,7 +300,7 @@ export const adminNavGroups: NavGroup[] = [
       { icon: CalendarCheck, label: "الزيارات", path: "/visits" },
       {
         icon: History,
-        label: "بحث المرضى القدامى",
+        label: "سجل المرضى",
         path: "/admin/legacy-patients",
       },
       {

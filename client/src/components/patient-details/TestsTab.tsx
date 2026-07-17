@@ -8,7 +8,12 @@ export function TestsTab({ testRequestsData }: TestsTabProps) {
   return (
     <Card className="border-border/80 bg-background/92 shadow-sm">
       <CardHeader className="border-b border-border">
-        <CardTitle>الفحوصات</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>Diagnostic Tests</CardTitle>
+          <span className="font-mono text-[10px] text-muted-foreground">
+            testrequests + testrequestitems
+          </span>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {!testRequestsData || testRequestsData.length === 0 ? (
