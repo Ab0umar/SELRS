@@ -73,6 +73,9 @@ const PostOpOffdays = lazy(() => import("../pages/PostOpOffdays"));
 const PostOpOffdaysEnglish = lazy(
   () => import("../pages/PostOpOffdaysEnglish"),
 );
+const MedicalConditionReport = lazy(
+  () => import("../pages/MedicalConditionReport"),
+);
 
 export const MedicalRoutes = (
   <>
@@ -670,6 +673,22 @@ export const MedicalRoutes = (
       component={() => (
         <ProtectedRoute>
           <PostOpOffdaysEnglish />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
+      path={ROUTES.medicalConditionReportId}
+      component={() => (
+        <ProtectedRoute>
+          <MedicalConditionReport />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
+      path={ROUTES.medicalConditionReport}
+      component={() => (
+        <ProtectedRoute>
+          <MedicalConditionReport />
         </ProtectedRoute>
       )}
     />

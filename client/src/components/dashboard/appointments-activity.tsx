@@ -996,6 +996,14 @@ function QueuePatientCard({
               >
                 إجازة ما بعد العملية
               </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(`/medical-condition-report/${patient.id}`, "_blank");
+                }}
+              >
+                تقرير حالة طبية
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           <button

@@ -85,6 +85,8 @@ export function patientNavPathForPageKey(
       return `/pre-post-op-report/${patientId}`;
     case "post-op-offdays":
       return `/post-op-offdays/${patientId}`;
+    case "medical-condition-report":
+      return `/medical-condition-report/${patientId}`;
     default:
       return null;
   }

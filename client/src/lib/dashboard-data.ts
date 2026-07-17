@@ -392,7 +392,8 @@ export type PageKey =
   | "referral-letter"
   | "clinical-report"
   | "pre-post-op-report"
-  | "post-op-offdays";
+  | "post-op-offdays"
+  | "medical-condition-report";
 
 // ===== Route Map (DSC PageKey → SELRS URL) =====
 
@@ -462,4 +463,5 @@ export const routeMap: Record<PageKey, string> = {
   "clinical-report": "/clinical-report",
   "pre-post-op-report": "/pre-post-op-report",
   "post-op-offdays": "/post-op-offdays",
+  "medical-condition-report": "/medical-condition-report",
 };

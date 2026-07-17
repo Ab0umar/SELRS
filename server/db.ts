@@ -39,6 +39,8 @@ import {
   doctorReports,
   referralLetters,
   postOpOffdaysCertificates,
+  medicalConditionReports,
+  medicalConditionReportTemplates,
   prescriptions,
   prescriptionItems,
   surgeries,
@@ -4587,6 +4589,75 @@ export async function updatePostOpOffdaysCertificate(id: number, updates: any) {
     .where(eq(postOpOffdaysCertificates.id, id));
 }
 
+export async function getMedicalConditionReportsByPatient(patientId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db
+    .select()
+    .from(medicalConditionReports)
+    .where(eq(medicalConditionReports.patientId, patientId))
+    .orderBy(desc(medicalConditionReports.createdAt));
+}
+
+export async function createMedicalConditionReport(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.insert(medicalConditionReports).values(data);
+  return result;
+}
+
+export async function updateMedicalConditionReport(id: number, updates: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db
+    .update(medicalConditionReports)
+    .set(updates)
+    .where(eq(medicalConditionReports.id, id));
+}
+
+export async function getMedicalConditionReportTemplates() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db
+    .select()
+    .from(medicalConditionReportTemplates)
+    .orderBy(medicalConditionReportTemplates.name);
+}
+
+export async function upsertMedicalConditionReportTemplate(input: {
+  id?: number;
+  name: string;
+  operationType?: string | null;
+  condition?: string | null;
+  complications?: string | null;
+  followUpPlan?: string | null;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { id, ...data } = input;
+  if (id) {
+    await db
+      .update(medicalConditionReportTemplates)
+      .set(data)
+      .where(eq(medicalConditionReportTemplates.id, id));
+    return { id };
+  }
+  const result = await db.insert(medicalConditionReportTemplates).values(data);
+  return { id: (result as any)?.[0]?.insertId ?? null };
+}
+
+export async function deleteMedicalConditionReportTemplate(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .delete(medicalConditionReportTemplates)
+    .where(eq(medicalConditionReportTemplates.id, id));
+}
+
 export async function getAllDoctorReports() {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -7104,8 +7175,15 @@ async function syncOperationsFromServiceCodes(): Promise<{
   );
   const codes: string[] = Array.from(codeToType.keys());
   const rows = await db
-    .select()
+    .select({
+      id: patientServiceEntries.id,
+      patientId: patientServiceEntries.patientId,
+      serviceCode: patientServiceEntries.serviceCode,
+      serviceDate: patientServiceEntries.serviceDate,
+      doctorCode: patients.doctorCode,
+    })
     .from(patientServiceEntries)
+    .innerJoin(patients, eq(patientServiceEntries.patientId, patients.id))
     .where(inArray(patientServiceEntries.serviceCode, codes));
 
   let processed = 0;
@@ -7126,6 +7204,7 @@ async function syncOperationsFromServiceCodes(): Promise<{
         : null,
       source: "service_code",
       sourceRef: `service_code:${row.id}`,
+      doctorCode: row.doctorCode || null,
     });
     upserted++;
   }

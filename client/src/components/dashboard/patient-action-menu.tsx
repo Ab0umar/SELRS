@@ -19,6 +19,7 @@ import {
   Send,
   Stethoscope,
   Scissors,
+  FileWarning,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import {
@@ -143,6 +144,13 @@ const menuItems: MenuItemDef[] = [
     semantic: "info",
     group: "reports",
     page: "post-op-offdays",
+  },
+  {
+    label: "تقرير حالة طبية",
+    icon: FileWarning,
+    semantic: "info",
+    group: "reports",
+    page: "medical-condition-report",
   },
 ];
 

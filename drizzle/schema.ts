@@ -591,6 +591,59 @@ export type InsertPostOpOffdaysCertificate =
   typeof postOpOffdaysCertificates.$inferInsert;
 
 /**
+ * Medical Condition Reports table - تقارير الحالة الطبية (مضاعفات/متابعة)
+ */
+export const medicalConditionReports = mysqlTable(
+  "medicalConditionReports",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    patientId: int("patientId").notNull(),
+    reportDate: date("reportDate"),
+    operationType: varchar("operationType", { length: 100 }),
+    operationDate: date("operationDate"),
+    condition: text("condition"),
+    includeCurrentStatus: boolean("includeCurrentStatus").default(true),
+    vaOD: varchar("vaOD", { length: 32 }),
+    vaOS: varchar("vaOS", { length: 32 }),
+    complications: text("complications"),
+    followUpPlan: text("followUpPlan"),
+    doctorName: varchar("doctorName", { length: 255 }),
+    patientNameOverride: varchar("patientNameOverride", { length: 255 }),
+    patientCodeOverride: varchar("patientCodeOverride", { length: 64 }),
+    patientDobOverride: date("patientDobOverride"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+);
+
+export type MedicalConditionReport =
+  typeof medicalConditionReports.$inferSelect;
+export type InsertMedicalConditionReport =
+  typeof medicalConditionReports.$inferInsert;
+
+/**
+ * Medical Condition Report Templates - نماذج جاهزة لتقرير الحالة الطبية
+ */
+export const medicalConditionReportTemplates = mysqlTable(
+  "medicalConditionReportTemplates",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    name: varchar("name", { length: 255 }).notNull(),
+    operationType: varchar("operationType", { length: 100 }),
+    condition: text("condition"),
+    complications: text("complications"),
+    followUpPlan: text("followUpPlan"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+);
+
+export type MedicalConditionReportTemplate =
+  typeof medicalConditionReportTemplates.$inferSelect;
+export type InsertMedicalConditionReportTemplate =
+  typeof medicalConditionReportTemplates.$inferInsert;
+
+/**
  * Prescriptions table - ط§ظ„ط±ظˆط´ط§طھ
  */
 export const prescriptions = mysqlTable("prescriptions", {

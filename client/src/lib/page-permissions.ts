@@ -300,6 +300,16 @@ export const PAGE_PERMISSION_DEFINITIONS = [
     group: "العيادات",
   },
   {
+    id: "/medical-condition-report/:id",
+    label: "تقرير حالة طبية (برقم مريض)",
+    group: "العيادات",
+  },
+  {
+    id: "/medical-condition-report",
+    label: "تقرير حالة طبية",
+    group: "العيادات",
+  },
+  {
     id: "/sheets/referral/:id",
     label: "خطاب الإحالة (برقم مريض)",
     group: "العيادات",

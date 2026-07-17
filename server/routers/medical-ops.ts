@@ -932,6 +932,68 @@ export const medicalOpsRoutes = {
       return { id: (result as any)?.[0]?.insertId ?? null, updated: false };
     }),
 
+  getMedicalConditionReportsByPatient: protectedProcedure
+    .input(z.object({ patientId: z.number() }))
+    .query(async ({ input }) => {
+      return await db.getMedicalConditionReportsByPatient(input.patientId);
+    }),
+
+  saveMedicalConditionReport: protectedProcedure
+    .input(
+      z.object({
+        id: z.number().optional(),
+        patientId: z.number(),
+        reportDate: z.string().optional(),
+        operationType: z.string().optional(),
+        operationDate: z.string().optional(),
+        condition: z.string().optional(),
+        includeCurrentStatus: z.boolean().optional(),
+        vaOD: z.string().optional(),
+        vaOS: z.string().optional(),
+        complications: z.string().optional(),
+        followUpPlan: z.string().optional(),
+        doctorName: z.string().optional(),
+        patientNameOverride: z.string().optional(),
+        patientCodeOverride: z.string().optional(),
+        patientDobOverride: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      if (id) {
+        await db.updateMedicalConditionReport(id, data);
+        return { id, updated: true };
+      }
+      const result = await db.createMedicalConditionReport(data);
+      return { id: (result as any)?.[0]?.insertId ?? null, updated: false };
+    }),
+
+  getMedicalConditionReportTemplates: protectedProcedure.query(async () => {
+    return await db.getMedicalConditionReportTemplates();
+  }),
+
+  saveMedicalConditionReportTemplate: protectedProcedure
+    .input(
+      z.object({
+        id: z.number().optional(),
+        name: z.string().min(1),
+        operationType: z.string().optional(),
+        condition: z.string().optional(),
+        complications: z.string().optional(),
+        followUpPlan: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      return await db.upsertMedicalConditionReportTemplate(input);
+    }),
+
+  deleteMedicalConditionReportTemplate: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.deleteMedicalConditionReportTemplate(input.id);
+      return { success: true };
+    }),
+
   getMedicalReportsOverview: protectedProcedure
     .input(
       z.object({ limit: z.number().min(1).max(500).optional() }).optional(),

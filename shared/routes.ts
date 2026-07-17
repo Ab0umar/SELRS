@@ -174,6 +174,8 @@ export const ROUTES = {
   postOpOffdaysId: "/post-op-offdays/:id",
   postOpOffdaysEnglish: "/post-op-offdays-en",
   postOpOffdaysEnglishId: "/post-op-offdays-en/:id",
+  medicalConditionReport: "/medical-condition-report",
+  medicalConditionReportId: "/medical-condition-report/:id",
   medicalSheets: "/medical-sheets",
   medicalFileDetail: "/medicalfile/:id",
   medicalFile: "/medicalfile",
