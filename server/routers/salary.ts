@@ -26,7 +26,18 @@ import {
   salarySupervisionBonus,
   salaryMissingCheckoutExclude,
 } from "../../drizzle/schema";
-import { eq, and, gte, lte, gt, isNull, or, desc, inArray, sql } from "drizzle-orm";
+import {
+  eq,
+  and,
+  gte,
+  lte,
+  gt,
+  isNull,
+  or,
+  desc,
+  inArray,
+  sql,
+} from "drizzle-orm";
 import {
   PayrollComputeService,
   calcPentacamPool,
@@ -43,15 +54,22 @@ const allowanceInput = z.object({
   insuranceDeduction: z.number().min(0).optional().default(0),
 });
 
-function dateRangeToYearMonths(fromDate: string, toDate: string): { year: number; month: number }[] {
+function dateRangeToYearMonths(
+  fromDate: string,
+  toDate: string,
+): { year: number; month: number }[] {
   const pairs: { year: number; month: number }[] = [];
   const [fy, fm] = fromDate.split("-").map(Number);
   const [ty, tm] = toDate.split("-").map(Number);
-  let y = fy, m = fm;
+  let y = fy,
+    m = fm;
   while (y < ty || (y === ty && m <= tm)) {
     pairs.push({ year: y, month: m });
     m++;
-    if (m > 12) { m = 1; y++; }
+    if (m > 12) {
+      m = 1;
+      y++;
+    }
   }
   return pairs.length ? pairs : [{ year: fy, month: fm }];
 }
@@ -63,21 +81,26 @@ async function fetchShiftAttendanceRange(
   fromDate?: string,
   toDate?: string,
 ) {
-  const pairs = fromDate && toDate ? dateRangeToYearMonths(fromDate, toDate) : [{ year, month }];
+  const pairs =
+    fromDate && toDate
+      ? dateRangeToYearMonths(fromDate, toDate)
+      : [{ year, month }];
   const results = await Promise.all(
     pairs.map(({ year: y, month: m }) =>
-      db.select().from(shiftAttendance).where(
-        and(eq(shiftAttendance.year, y), eq(shiftAttendance.month, m)),
-      ),
+      db
+        .select()
+        .from(shiftAttendance)
+        .where(and(eq(shiftAttendance.year, y), eq(shiftAttendance.month, m))),
     ),
   );
   const flat = results.flat();
   if (!fromDate || !toDate) return flat;
   return flat.filter((a: any) => {
     const raw = a.workDate;
-    const d = raw instanceof Date
-      ? `${raw.getFullYear()}-${String(raw.getMonth() + 1).padStart(2, "0")}-${String(raw.getDate()).padStart(2, "0")}`
-      : String(raw).slice(0, 10);
+    const d =
+      raw instanceof Date
+        ? `${raw.getFullYear()}-${String(raw.getMonth() + 1).padStart(2, "0")}-${String(raw.getDate()).padStart(2, "0")}`
+        : String(raw).slice(0, 10);
     return d >= fromDate && d <= toDate;
   });
 }
@@ -231,7 +254,10 @@ export const salaryRouter = router({
         .where(
           or(
             ...ymPairs.map(({ year, month }) =>
-              and(eq(salaryPenalties.year, year), eq(salaryPenalties.month, month)),
+              and(
+                eq(salaryPenalties.year, year),
+                eq(salaryPenalties.month, month),
+              ),
             ),
           ),
         )
@@ -261,7 +287,9 @@ export const salaryRouter = router({
         month: input.month,
         amount: String(input.amount) as any,
         penaltyDays: input.penaltyDays ?? null,
-        penaltyDate: input.penaltyDate ? sql.raw(`'${input.penaltyDate}'`) as any : null,
+        penaltyDate: input.penaltyDate
+          ? (sql.raw(`'${input.penaltyDate}'`) as any)
+          : null,
         reason: input.reason,
       });
       return { id: (result as any).insertId };
@@ -291,7 +319,9 @@ export const salaryRouter = router({
           month: input.month,
           amount: String(input.amount) as any,
           penaltyDays: input.penaltyDays ?? null,
-          penaltyDate: input.penaltyDate ? sql.raw(`'${input.penaltyDate}'`) as any : null,
+          penaltyDate: input.penaltyDate
+            ? (sql.raw(`'${input.penaltyDate}'`) as any)
+            : null,
           reason: input.reason ?? null,
         })
         .where(eq(salaryPenalties.id, input.id));
@@ -320,7 +350,10 @@ export const salaryRouter = router({
         .where(
           or(
             ...ymPairs.map(({ year, month }) =>
-              and(eq(salaryAdvances.year, year), eq(salaryAdvances.month, month)),
+              and(
+                eq(salaryAdvances.year, year),
+                eq(salaryAdvances.month, month),
+              ),
             ),
           ),
         );
@@ -392,16 +425,41 @@ export const salaryRouter = router({
       }),
     )
     .query(async ({ input }) => {
-      const { computeMarkazAutoPools } = await import(
-        "../services/salary/commissionPoolsMssql.service"
+      const { computeMarkazEffectivePools } =
+        await import("../services/salary/commissionPoolsMssql.service");
+      return computeMarkazEffectivePools(input.year, input.month);
+    }),
+
+  setMarkazManualCommissionPools: makeSalaryWriteProcedure("/salary/pools")
+    .input(
+      z.object({
+        year: z.number().int(),
+        month: z.number().int().min(1).max(12),
+        examPool: z.number().min(0).nullable(),
+        pentacamPool: z.number().min(0).nullable(),
+        pentacamDrPool: z.number().min(0).nullable(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const { setMarkazManualPoolOverrides } =
+        await import("../services/salary/commissionPoolsMssql.service");
+      await setMarkazManualPoolOverrides(input.year, input.month, {
+        examPool: input.examPool,
+        pentacamPool: input.pentacamPool,
+        pentacamDrPool: input.pentacamDrPool,
+      });
+      const rows = await PayrollComputeService.compute(
+        input.year,
+        input.month,
+        "مركز",
       );
-      return computeMarkazAutoPools(input.year, input.month);
+      const saved = await PayrollComputeService.savePayroll(rows);
+      return { success: true, saved };
     }),
 
   getPriceOverrides: makeSalaryProcedure("/salary/pools").query(async () => {
-    const { getPriceOverrides } = await import(
-      "../services/salary/commissionPoolsMssql.service"
-    );
+    const { getPriceOverrides } =
+      await import("../services/salary/commissionPoolsMssql.service");
     return getPriceOverrides();
   }),
 
@@ -416,9 +474,8 @@ export const salaryRouter = router({
       }),
     )
     .mutation(async ({ input }) => {
-      const { setPriceOverrides } = await import(
-        "../services/salary/commissionPoolsMssql.service"
-      );
+      const { setPriceOverrides } =
+        await import("../services/salary/commissionPoolsMssql.service");
       return setPriceOverrides(input);
     }),
 
@@ -565,7 +622,13 @@ export const salaryRouter = router({
     }),
 
   getSupervisionBonuses: makeSalaryProcedure("/salary/payroll")
-    .input(z.object({ year: z.number().int(), month: z.number().int(), section: z.string().default("مركز") }))
+    .input(
+      z.object({
+        year: z.number().int(),
+        month: z.number().int(),
+        section: z.string().default("مركز"),
+      }),
+    )
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
@@ -673,7 +736,10 @@ export const salaryRouter = router({
             const id = parseInt(row.empCd.slice(6), 10);
             fullName = shiftNameMap.get(id) ?? row.empCd;
             department = "مناوبة";
-            jobTitle = shiftStaffRows.find((s: any) => s.id === id)?.type === "doctor" ? "طبيب" : "فني";
+            jobTitle =
+              shiftStaffRows.find((s: any) => s.id === id)?.type === "doctor"
+                ? "طبيب"
+                : "فني";
           } else {
             const emp = empMap.get(row.empCd) as any;
             if (emp) {
@@ -944,7 +1010,9 @@ export const salaryRouter = router({
           eq(salaryConfig.key, "attendance_rate_7") ||
           (eq(salaryConfig.key, "attendance_rate_10") as any),
       );
-    const map = Object.fromEntries(rows.map((r: any) => [r.key, Number(r.value)]));
+    const map = Object.fromEntries(
+      rows.map((r: any) => [r.key, Number(r.value)]),
+    );
     return {
       rate3: map["attendance_rate_3"] ?? 0.25,
       rate5: map["attendance_rate_5"] ?? 0.15,
@@ -980,12 +1048,43 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
+  getDeductionsEnabled: makeSalaryProcedure("/salary").query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+    const rows = await db
+      .select({ value: salaryConfig.value })
+      .from(salaryConfig)
+      .where(eq(salaryConfig.key, "salary_deductions_enabled"))
+      .limit(1);
+    return rows[0]?.value !== "false";
+  }),
+
+  setDeductionsEnabled: makeSalaryWriteProcedure("/salary")
+    .input(z.object({ enabled: z.boolean() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db
+        .insert(salaryConfig)
+        .values({
+          key: "salary_deductions_enabled",
+          value: String(input.enabled),
+        })
+        .onDuplicateKeyUpdate({ set: { value: String(input.enabled) } });
+      return { success: true };
+    }),
+
   getLateTiers: makeSalaryProcedure("/salary").query(async () => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
-    const rows = await db.select().from(salaryConfig).where(eq(salaryConfig.key, "salary_late_tiers"));
+    const rows = await db
+      .select()
+      .from(salaryConfig)
+      .where(eq(salaryConfig.key, "salary_late_tiers"));
     if (rows.length && rows[0].value) {
-      try { return JSON.parse(rows[0].value as string); } catch {}
+      try {
+        return JSON.parse(rows[0].value as string);
+      } catch {}
     }
     return [
       { minMin: 1, maxMin: 14, type: "linear" },
@@ -997,16 +1096,21 @@ export const salaryRouter = router({
   }),
 
   setLateTiers: makeSalaryWriteProcedure("/salary")
-    .input(z.array(z.object({
-      minMin: z.number().int().min(0),
-      maxMin: z.number().int().min(0).nullable(),
-      type: z.literal("linear").optional(),
-      dayFraction: z.number().min(0).optional(),
-    })))
+    .input(
+      z.array(
+        z.object({
+          minMin: z.number().int().min(0),
+          maxMin: z.number().int().min(0).nullable(),
+          type: z.literal("linear").optional(),
+          dayFraction: z.number().min(0).optional(),
+        }),
+      ),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      await db.insert(salaryConfig)
+      await db
+        .insert(salaryConfig)
         .values({ key: "salary_late_tiers", value: JSON.stringify(input) })
         .onDuplicateKeyUpdate({ set: { value: JSON.stringify(input) } });
       return { success: true };
@@ -1022,11 +1126,13 @@ export const salaryRouter = router({
         department: attendanceEmployees.department,
         salaryType: attendanceEmployees.salaryType,
         attendanceCommissionRate: attendanceEmployees.attendanceCommissionRate,
-        attendanceLeaveMultiplier: attendanceEmployees.attendanceLeaveMultiplier,
+        attendanceLeaveMultiplier:
+          attendanceEmployees.attendanceLeaveMultiplier,
         commAttendance: attendanceEmployees.commAttendance,
         commExam: attendanceEmployees.commExam,
         commPentacam: attendanceEmployees.commPentacam,
         commDay10: attendanceEmployees.commDay10,
+        commOvertime: attendanceEmployees.commOvertime,
       })
       .from(attendanceEmployees)
       .orderBy(attendanceEmployees.fullName);
@@ -1150,27 +1256,38 @@ export const salaryRouter = router({
         );
       return rows.map((r: any) => ({
         empCd: r.empCd,
-        workDate: r.workDate instanceof Date
-          ? `${r.workDate.getFullYear()}-${String(r.workDate.getMonth() + 1).padStart(2, "0")}-${String(r.workDate.getDate()).padStart(2, "0")}`
-          : String(r.workDate).slice(0, 10),
+        workDate:
+          r.workDate instanceof Date
+            ? `${r.workDate.getFullYear()}-${String(r.workDate.getMonth() + 1).padStart(2, "0")}-${String(r.workDate.getDate()).padStart(2, "0")}`
+            : String(r.workDate).slice(0, 10),
       }));
     }),
 
   toggleMissingCheckoutExclusion: makeSalaryWriteProcedure("/salary")
-    .input(z.object({ empCd: z.string(), workDate: z.string(), exclude: z.boolean() }))
+    .input(
+      z.object({
+        empCd: z.string(),
+        workDate: z.string(),
+        exclude: z.boolean(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       if (input.exclude) {
-        await db.insert(salaryMissingCheckoutExclude)
+        await db
+          .insert(salaryMissingCheckoutExclude)
           .values({ empCd: input.empCd, workDate: input.workDate as any })
           .onDuplicateKeyUpdate({ set: { empCd: input.empCd } });
       } else {
-        await db.delete(salaryMissingCheckoutExclude)
-          .where(and(
-            eq(salaryMissingCheckoutExclude.empCd, input.empCd),
-            eq(salaryMissingCheckoutExclude.workDate, input.workDate as any),
-          ));
+        await db
+          .delete(salaryMissingCheckoutExclude)
+          .where(
+            and(
+              eq(salaryMissingCheckoutExclude.empCd, input.empCd),
+              eq(salaryMissingCheckoutExclude.workDate, input.workDate as any),
+            ),
+          );
       }
       return { success: true };
     }),
@@ -1254,6 +1371,7 @@ export const salaryRouter = router({
         commExam: z.boolean(),
         commPentacam: z.boolean(),
         commDay10: z.boolean(),
+        commOvertime: z.boolean(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -1266,9 +1384,68 @@ export const salaryRouter = router({
           commExam: input.commExam,
           commPentacam: input.commPentacam,
           commDay10: input.commDay10,
+          commOvertime: input.commOvertime,
         })
         .where(eq(attendanceEmployees.empCd, input.empCd));
       return { success: true };
+    }),
+
+  setEmployeeCommissionSettingsBulk: makeSalaryWriteProcedure("/salary/pools")
+    .input(
+      z.object({
+        empCds: z.array(z.string().min(1)).min(1),
+        attendanceCommissionRate: z
+          .number()
+          .min(0)
+          .max(1)
+          .nullable()
+          .optional(),
+        attendanceLeaveMultiplier: z
+          .number()
+          .min(0)
+          .max(1)
+          .nullable()
+          .optional(),
+        commAttendance: z.boolean().optional(),
+        commExam: z.boolean().optional(),
+        commPentacam: z.boolean().optional(),
+        commDay10: z.boolean().optional(),
+        commOvertime: z.boolean().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const updates: Record<string, unknown> = {};
+      if (input.attendanceCommissionRate !== undefined) {
+        updates.attendanceCommissionRate =
+          input.attendanceCommissionRate === null
+            ? null
+            : String(input.attendanceCommissionRate);
+      }
+      if (input.attendanceLeaveMultiplier !== undefined) {
+        updates.attendanceLeaveMultiplier =
+          input.attendanceLeaveMultiplier === null
+            ? null
+            : String(input.attendanceLeaveMultiplier);
+      }
+      for (const field of [
+        "commAttendance",
+        "commExam",
+        "commPentacam",
+        "commDay10",
+        "commOvertime",
+      ] as const) {
+        if (input[field] !== undefined) updates[field] = input[field];
+      }
+      if (Object.keys(updates).length === 0) {
+        throw new Error("اختر إعدادًا واحدًا على الأقل للتطبيق");
+      }
+      await db
+        .update(attendanceEmployees)
+        .set(updates)
+        .where(inArray(attendanceEmployees.empCd, input.empCds));
+      return { success: true, updated: input.empCds.length };
     }),
 
   // ── Shift Staff ──────────────────────────────────────────
@@ -1294,15 +1471,13 @@ export const salaryRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const result = await db
-        .insert(shiftStaff)
-        .values({
-          name: input.name,
-          type: input.type,
-          ratePerShift: String(input.ratePerShift) as any,
-          rateSmallShift: String(input.rateSmallShift ?? 0) as any,
-          empCd: input.empCd ?? null,
-        });
+      const result = await db.insert(shiftStaff).values({
+        name: input.name,
+        type: input.type,
+        ratePerShift: String(input.ratePerShift) as any,
+        rateSmallShift: String(input.rateSmallShift ?? 0) as any,
+        empCd: input.empCd ?? null,
+      });
       return { id: (result as any).insertId };
     }),
 
@@ -1367,7 +1542,13 @@ export const salaryRouter = router({
           .from(shiftStaff)
           .where(eq(shiftStaff.active, true))
           .orderBy(shiftStaff.type, shiftStaff.name),
-        fetchShiftAttendanceRange(db, input.year, input.month, input.fromDate, input.toDate),
+        fetchShiftAttendanceRange(
+          db,
+          input.year,
+          input.month,
+          input.fromDate,
+          input.toDate,
+        ),
       ]);
       return { staff, attendance };
     }),
@@ -1391,7 +1572,13 @@ export const salaryRouter = router({
           .from(shiftStaff)
           .where(eq(shiftStaff.active, true))
           .orderBy(shiftStaff.type, shiftStaff.name),
-        fetchShiftAttendanceRange(db, input.year, input.month, input.fromDate, input.toDate),
+        fetchShiftAttendanceRange(
+          db,
+          input.year,
+          input.month,
+          input.fromDate,
+          input.toDate,
+        ),
       ]);
       return { staff, attendance };
     }),
@@ -1652,7 +1839,14 @@ export const salaryRouter = router({
     }),
 
   computeShiftPayroll: makeSalaryProcedure("/salary/payroll")
-    .input(z.object({ year: z.number(), month: z.number(), fromDate: z.string().optional(), toDate: z.string().optional() }))
+    .input(
+      z.object({
+        year: z.number(),
+        month: z.number(),
+        fromDate: z.string().optional(),
+        toDate: z.string().optional(),
+      }),
+    )
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
@@ -1661,7 +1855,9 @@ export const salaryRouter = router({
       const mm = String(input.month).padStart(2, "0");
       const lastDay = new Date(input.year, input.month, 0).getDate();
       const rangeFrom = input.fromDate ?? `${input.year}-${mm}-01`;
-      const rangeTo = input.toDate ?? `${input.year}-${mm}-${String(lastDay).padStart(2, "0")}`;
+      const rangeTo =
+        input.toDate ??
+        `${input.year}-${mm}-${String(lastDay).padStart(2, "0")}`;
       const rangeFromParts = rangeFrom.split("-").map(Number);
       const rangeToParts = rangeTo.split("-").map(Number);
 
@@ -1670,45 +1866,61 @@ export const salaryRouter = router({
       let cur = new Date(rangeFromParts[0], rangeFromParts[1] - 1, 1);
       const end = new Date(rangeToParts[0], rangeToParts[1] - 1, 1);
       while (cur <= end) {
-        yearMonthPairs.push({ year: cur.getFullYear(), month: cur.getMonth() + 1 });
+        yearMonthPairs.push({
+          year: cur.getFullYear(),
+          month: cur.getMonth() + 1,
+        });
         cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
       }
 
-      const [staff, attendanceAll, monthlyReports, basics, shiftDefs] = await Promise.all([
-        db.select().from(shiftStaff).where(eq(shiftStaff.active, true)),
-        Promise.all(
-          yearMonthPairs.map(({ year, month }) =>
-            db.select().from(shiftAttendance).where(
-              and(eq(shiftAttendance.year, year), eq(shiftAttendance.month, month)),
+      const [staff, attendanceAll, monthlyReports, basics, shiftDefs] =
+        await Promise.all([
+          db.select().from(shiftStaff).where(eq(shiftStaff.active, true)),
+          Promise.all(
+            yearMonthPairs.map(({ year, month }) =>
+              db
+                .select()
+                .from(shiftAttendance)
+                .where(
+                  and(
+                    eq(shiftAttendance.year, year),
+                    eq(shiftAttendance.month, month),
+                  ),
+                ),
             ),
+          ).then((results) =>
+            results.flat().filter((a: any) => {
+              const raw = a.workDate;
+              const d =
+                raw instanceof Date
+                  ? `${raw.getFullYear()}-${String(raw.getMonth() + 1).padStart(2, "0")}-${String(raw.getDate()).padStart(2, "0")}`
+                  : String(raw).slice(0, 10);
+              return d >= rangeFrom && d <= rangeTo;
+            }),
           ),
-        ).then((results) => results.flat().filter((a: any) => {
-          const raw = a.workDate;
-          const d = raw instanceof Date
-            ? `${raw.getFullYear()}-${String(raw.getMonth() + 1).padStart(2, "0")}-${String(raw.getDate()).padStart(2, "0")}`
-            : String(raw).slice(0, 10);
-          return d >= rangeFrom && d <= rangeTo;
-        })),
-        db
-          .select()
-          .from(attendanceMonthlyReport)
-          .where(
-            and(
-              eq(attendanceMonthlyReport.year, input.year),
-              eq(attendanceMonthlyReport.month, input.month),
+          db
+            .select()
+            .from(attendanceMonthlyReport)
+            .where(
+              and(
+                eq(attendanceMonthlyReport.year, input.year),
+                eq(attendanceMonthlyReport.month, input.month),
+              ),
             ),
-          ),
-        db
-          .select()
-          .from(salaryBasics)
-          .where(
-            and(
-              lte(salaryBasics.effectiveFrom, rangeTo as any),
-              or(isNull(salaryBasics.effectiveTo), gte(salaryBasics.effectiveTo, rangeFrom as any)),
+          db
+            .select()
+            .from(salaryBasics)
+            .where(
+              and(
+                lte(salaryBasics.effectiveFrom, rangeTo as any),
+                or(
+                  isNull(salaryBasics.effectiveTo),
+                  gte(salaryBasics.effectiveTo, rangeFrom as any),
+                ),
+              ),
             ),
-          ),
-        db.select().from(attendanceShifts),
-      ]);
+          db.select().from(attendanceShifts),
+        ]);
 
       const overrideRows = await db
         .select()
@@ -1719,9 +1931,13 @@ export const salaryRouter = router({
             eq(shiftPayrollAttendanceOverrides.month, input.month),
           ),
         );
-      const overrideMap = new Map(
-        overrideRows.map((o: any) => [o.staffId, o]),
-      );
+      const overrideMap = new Map(overrideRows.map((o: any) => [o.staffId, o]));
+      const deductionsConfig = await db
+        .select({ value: salaryConfig.value })
+        .from(salaryConfig)
+        .where(eq(salaryConfig.key, "salary_deductions_enabled"))
+        .limit(1);
+      const deductionsEnabled = deductionsConfig[0]?.value !== "false";
 
       // Build shift-name → size map
       const shiftSizeMap = new Map<string, "big" | "small">();
@@ -1733,7 +1949,7 @@ export const salaryRouter = router({
           // auto: compute duration in minutes
           const [sh, sm] = (sd.startTime as string).split(":").map(Number);
           const [eh, em] = (sd.endTime as string).split(":").map(Number);
-          let dur = (eh * 60 + em) - (sh * 60 + sm);
+          let dur = eh * 60 + em - (sh * 60 + sm);
           if (dur < 0) dur += 24 * 60; // crosses midnight
           const threshold = sd.autoSmallThresholdMin ?? 270;
           size = dur <= threshold ? "small" : "big";
@@ -1744,8 +1960,9 @@ export const salaryRouter = router({
       const attendance = attendanceAll;
 
       // For staff linked to attendance employees, fetch fingerprint daily presence and deductions
-      const linkedEmpCds = staff.filter((s: any) => s.empCd).map((s: any) => s.empCd!);
-      const presentDatesMap = new Map<string, Set<string>>();
+      const linkedEmpCds = staff
+        .filter((s: any) => s.empCd)
+        .map((s: any) => s.empCd!);
       const deductionMap = new Map<string, number>();
       if (linkedEmpCds.length > 0) {
         const dailyRows = await db
@@ -1762,23 +1979,6 @@ export const salaryRouter = router({
               lte(attendanceDaily.workDate, rangeTo as any),
             ),
           );
-        for (const row of dailyRows) {
-          if (
-            row.status !== "present" &&
-            row.status !== "partial" &&
-            row.status !== "missing_checkout"
-          )
-            continue;
-          const d = row.workDate as any;
-          const ds =
-            d instanceof Date
-              ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-              : String(d).slice(0, 10);
-          if (!presentDatesMap.has(row.empCd))
-            presentDatesMap.set(row.empCd, new Set());
-          presentDatesMap.get(row.empCd)!.add(ds);
-        }
-
         // Calculate deductions for linked employees
         for (const empCd of linkedEmpCds) {
           const report = monthlyReports.find((r: any) => r.empCd === empCd);
@@ -1798,10 +1998,15 @@ export const salaryRouter = router({
               Number((basicRow as any).yearlyRaise ?? 0);
             const lateMinutes = report.totalLateMins ?? 0;
             const earlyLeaveMinutes = report.totalEarlyLeaveMins ?? 0;
-            const empDailyRows = dailyRows.filter((d: any) => d.empCd === empCd);
-            const missingCheckoutDays = empDailyRows.filter((d: any) => d.status === "missing_checkout").length;
+            const empDailyRows = dailyRows.filter(
+              (d: any) => d.empCd === empCd,
+            );
+            const missingCheckoutDays = empDailyRows.filter(
+              (d: any) => d.status === "missing_checkout",
+            ).length;
             const workingDays =
-              empDailyRows.filter((d: any) => d.status !== "holiday").length || 1;
+              empDailyRows.filter((d: any) => d.status !== "holiday").length ||
+              1;
             const dailyRate = basic / workingDays;
             const minuteRate = dailyRate / 360;
             const totalDeduction =
@@ -1810,22 +2015,6 @@ export const salaryRouter = router({
             deductionMap.set(empCd, Math.min(1, totalDeduction / basic));
           }
         }
-      }
-
-      function fmtDate(d: any): string {
-        return d instanceof Date
-          ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-          : String(d).slice(0, 10);
-      }
-
-      function resolvePresent(
-        s: (typeof staff)[number],
-        a: (typeof attendance)[number],
-      ): boolean {
-        if (!s.empCd) return a.present;
-        const presentDates = presentDatesMap.get(s.empCd);
-        if (!presentDates) return false;
-        return presentDates.has(fmtDate(a.workDate));
       }
 
       return staff.map((s: any) => {
@@ -1838,11 +2027,16 @@ export const salaryRouter = router({
         > = {};
         let attended = 0;
         // Explicit big/small breakdown, sized per each shift's own definition (shiftSizeMap)
-        let bigScheduled = 0, bigAttended = 0, smallScheduled = 0, smallAttended = 0;
+        let bigScheduled = 0,
+          bigAttended = 0,
+          smallScheduled = 0,
+          smallAttended = 0;
 
-        // Rules 1 & 2: scheduled shifts vs punches
+        // The roster entry is the source of truth for both the shift and its
+        // attendance state. A day-level punch cannot identify which one of
+        // multiple shifts was worked and must not mark every shift present.
         for (const a of rows) {
-          const present = resolvePresent(s, a);
+          const present = Boolean(a.present);
           if (present) attended++;
           const size: "big" | "small" = shiftSizeMap.get(a.shiftName) ?? "big";
           const rate = size === "small" ? rateSmall : rateBig;
@@ -1859,37 +2053,6 @@ export const salaryRouter = router({
           }
         }
 
-        // Rule 3: punch days with no scheduled shift → also pay
-        let extraAttended = 0;
-        if (s.empCd) {
-          const presentDates = presentDatesMap.get(s.empCd);
-          if (presentDates) {
-            const scheduledDates = new Set(
-              rows.map((a: any) => fmtDate(a.workDate)),
-            );
-            for (const d of presentDates) {
-              if (!scheduledDates.has(d)) extraAttended++;
-            }
-          }
-        }
-
-        const totalAttended = attended + extraAttended;
-        if (extraAttended > 0) {
-          // Punch days with no roster entry: treat as fully-attended scheduled shifts so basicSalary is non-zero.
-          // Infer big vs small from this staff member's actual usage this period — a staff whose only
-          // scheduled shifts are small (e.g. اطباء صغير ص/م) shouldn't have unscheduled punches billed at the big rate.
-          const usesOnlySmall = smallScheduled > 0 && bigScheduled === 0;
-          const extraRate = usesOnlySmall ? rateSmall : rateBig;
-          byShift["إضافي"] = { scheduled: extraAttended, attended: extraAttended, rate: extraRate };
-          if (usesOnlySmall) {
-            smallScheduled += extraAttended;
-            smallAttended += extraAttended;
-          } else {
-            bigScheduled += extraAttended;
-            bigAttended += extraAttended;
-          }
-        }
-
         // Manual override: accountant-entered attended counts win over computed attendance.
         const override = overrideMap.get(s.id) as
           | { bigAttended: number | null; smallAttended: number | null }
@@ -1901,28 +2064,40 @@ export const salaryRouter = router({
         if (hasSmallOverride) smallAttended = override!.smallAttended as number;
 
         // Calculate pay per shift type
-        const scheduled = rows.length + extraAttended; // roster entries + unscheduled punch days
-        const absent = rows.length - attended; // only roster entries can be absent
+        const scheduled = rows.length;
+        const absent = rows.length - attended;
         const bigAbsent = Math.max(0, bigScheduled - bigAttended);
         const smallAbsent = Math.max(0, smallScheduled - smallAttended);
         const bigTotal = Math.round(bigScheduled * rateBig * 100) / 100;
         const smallTotal = Math.round(smallScheduled * rateSmall * 100) / 100;
-        const basicSalary = hasOverride
-          ? Math.round((bigAttended * rateBig + smallAttended * rateSmall) * 100) / 100
-          : Math.round(
-              Object.values(byShift).reduce((s, b) => s + b.scheduled * b.rate, 0) * 100,
-            ) / 100;
-        const absentDeduction = hasOverride
-          ? Math.round((bigAbsent * rateBig + smallAbsent * rateSmall) * 100) / 100
-          : Math.round(
-              Object.entries(byShift).reduce((s, [, b]) => {
-                const absentInShift = Math.max(0, b.scheduled - b.attended);
-                return s + absentInShift * b.rate;
-              }, 0) * 100,
-            ) / 100;
-        const punchDeductionPct = s.empCd
-          ? (deductionMap.get(s.empCd) ?? 0)
-          : 0;
+        const basicSalary = !deductionsEnabled
+          ? Math.round(
+              (bigScheduled * rateBig + smallScheduled * rateSmall) * 100,
+            ) / 100
+          : hasOverride
+            ? Math.round(
+                (bigAttended * rateBig + smallAttended * rateSmall) * 100,
+              ) / 100
+            : Math.round(
+                Object.values(byShift).reduce(
+                  (s, b) => s + b.scheduled * b.rate,
+                  0,
+                ) * 100,
+              ) / 100;
+        const absentDeduction = !deductionsEnabled
+          ? 0
+          : hasOverride
+            ? Math.round(
+                (bigAbsent * rateBig + smallAbsent * rateSmall) * 100,
+              ) / 100
+            : Math.round(
+                Object.entries(byShift).reduce((s, [, b]) => {
+                  const absentInShift = Math.max(0, b.scheduled - b.attended);
+                  return s + absentInShift * b.rate;
+                }, 0) * 100,
+              ) / 100;
+        const punchDeductionPct =
+          deductionsEnabled && s.empCd ? (deductionMap.get(s.empCd) ?? 0) : 0;
         const punchDeduction =
           Math.round(basicSalary * punchDeductionPct * 100) / 100;
         const netPay =
@@ -1938,7 +2113,7 @@ export const salaryRouter = router({
           ratePerShift: rateBig,
           rateSmallShift: rateSmall,
           scheduled,
-          attended: totalAttended,
+          attended,
           absent,
           // Big/small breakdown
           bigScheduled,
@@ -2057,21 +2232,21 @@ export const salaryRouter = router({
         .delete(shiftStaffCycle)
         .where(eq(shiftStaffCycle.staffId, input.staffId));
       if (input.cycle.length > 0) {
-        await db
-          .insert(shiftStaffCycle)
-          .values(
-            input.cycle.map((c) => ({
-              staffId: input.staffId,
-              dayOfWeek: c.dayOfWeek,
-              shiftName: c.shiftName,
-            })),
-          );
+        await db.insert(shiftStaffCycle).values(
+          input.cycle.map((c) => ({
+            staffId: input.staffId,
+            dayOfWeek: c.dayOfWeek,
+            shiftName: c.shiftName,
+          })),
+        );
       }
       return { success: true };
     }),
 
   clearGeneratedShiftAttendance: makeSalaryWriteProcedure("/salary/payroll")
-    .input(z.object({ staffId: z.number(), year: z.number(), month: z.number() }))
+    .input(
+      z.object({ staffId: z.number(), year: z.number(), month: z.number() }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
@@ -2108,7 +2283,9 @@ export const salaryRouter = router({
         for (let day = 1; day <= daysInMonth; day++) {
           const d = new Date(input.year, input.month - 1, day);
           const dow = d.getDay(); // 0=Sun
-          const cycleEntries = staffCycles.filter((c: any) => c.dayOfWeek === dow);
+          const cycleEntries = staffCycles.filter(
+            (c: any) => c.dayOfWeek === dow,
+          );
           if (cycleEntries.length === 0) continue;
 
           const mm = String(input.month).padStart(2, "0");
@@ -2126,7 +2303,9 @@ export const salaryRouter = router({
                 shiftName: cycleEntry.shiftName,
                 present: true,
               })
-              .onDuplicateKeyUpdate({ set: { shiftName: cycleEntry.shiftName } }); // no-op: safe to re-run without resetting absences
+              .onDuplicateKeyUpdate({
+                set: { shiftName: cycleEntry.shiftName },
+              }); // no-op: safe to re-run without resetting absences
             inserted++;
           }
         }

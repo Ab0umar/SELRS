@@ -63,6 +63,7 @@ const BRANCHES = [
   { value: "kfs" as const, label: "كفرالشيخ" },
 ] as const;
 type Branch = "tanta" | "kfs";
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function isConsultantTantaDay(date: Date) {
   return [0, 2, 3].includes(date.getDay());
@@ -85,9 +86,11 @@ export default function PatientGuestBook() {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
   const [errors, setErrors] = useState<{
     guestName?: string;
     guestPhone?: string;
+    guestEmail?: string;
   }>({});
   const [branch, setBranch] = useState<Branch | null>(null);
   const [bookingType, setBookingType] =
@@ -155,6 +158,9 @@ export default function PatientGuestBook() {
       newErrors.guestPhone =
         "يرجى إدخال رقم موبايل مصري صحيح من 11 رقماً يبدأ بـ 01";
     }
+    if (guestEmail.trim() && !EMAIL_PATTERN.test(guestEmail.trim())) {
+      newErrors.guestEmail = "يرجى إدخال بريد إلكتروني صحيح";
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -196,6 +202,7 @@ export default function PatientGuestBook() {
     createGuestBooking.mutate({
       guestName: guestName.trim(),
       guestPhone: guestPhone.trim(),
+      guestEmail: guestEmail.trim() || undefined,
       bookingType,
       branch: branch ?? undefined,
       requestedDate: selectedDate,
@@ -362,6 +369,30 @@ export default function PatientGuestBook() {
                     <p className="text-xs text-destructive font-semibold mt-1">
                       {errors.guestPhone}
                     </p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-foreground">
+                    البريد الإلكتروني <span className="font-normal text-muted-foreground">(اختياري)</span>
+                  </label>
+                  <Input
+                    type="email"
+                    value={guestEmail}
+                    onChange={(e) => {
+                      setGuestEmail(e.target.value);
+                      if (errors.guestEmail) {
+                        setErrors((previous) => ({ ...previous, guestEmail: undefined }));
+                      }
+                    }}
+                    placeholder="name@example.com"
+                    className={`h-11 rounded-xl border-[#d7e2ee] focus-visible:ring-primary/10 text-left font-medium transition-all ${
+                      errors.guestEmail ? "border-destructive focus-visible:ring-destructive/10 bg-destructive/5" : ""
+                    }`}
+                    dir="ltr"
+                    autoComplete="email"
+                  />
+                  {errors.guestEmail && (
+                    <p className="text-xs text-destructive font-semibold mt-1">{errors.guestEmail}</p>
                   )}
                 </div>
               </div>
@@ -605,6 +636,7 @@ export default function PatientGuestBook() {
                 {[
                   { label: "الاسم الكامل", value: guestName },
                   { label: "رقم الموبايل", value: guestPhone },
+                  { label: "البريد الإلكتروني", value: guestEmail || "—" },
                   {
                     label: "الفرع",
                     value: branch ? BRANCHES.find((b) => b.value === branch)?.label ?? branch : "—",

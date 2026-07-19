@@ -20,7 +20,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DateInput } from "@/components/ui/date-input";
 
 const now = new Date();
 const MONTHS = [
@@ -49,8 +48,8 @@ const DEFAULT_TO = `${isoMonth(now)}-25`;
 
 function fmt(n: any): string {
   return Number(n).toLocaleString("ar-EG", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   });
 }
 function pct(n: any): string {
@@ -88,14 +87,18 @@ export default function PayrollReport() {
   // يوم 10 (النسب/العمولات — الكشف والبنتاكام) بيتحسب دايمًا على الشهر الميلادي كامل (1-31)
   // بغض النظر عن نطاق تاريخ يوم 1، فبنشتق السنة/الشهر من toDate عشان نفضل في الشهر الصح
   const [year, month] = toDate.split("-").map(Number);
-  const periodLabel = `${new Date(fromDate + "T00:00:00").toLocaleDateString("ar-EG")} — ${new Date(toDate + "T00:00:00").toLocaleDateString("ar-EG")}`;
+  const fromPeriodDate = new Date(fromDate + "T00:00:00");
+  const toPeriodDate = new Date(toDate + "T00:00:00");
+  const fromDateLabel = fromPeriodDate.toLocaleDateString("ar-EG");
+  const toDateLabel = toPeriodDate.toLocaleDateString("ar-EG");
+  const periodLabel = `${fromDateLabel} — ${toDateLabel}`;
+  const compactPeriodFrom = `${fromPeriodDate.getDate().toLocaleString("ar-EG")}/${(fromPeriodDate.getMonth() + 1).toLocaleString("ar-EG")}/${fromPeriodDate.getFullYear().toLocaleString("ar-EG", { useGrouping: false })}`;
+  const compactPeriodTo = `${toPeriodDate.getDate().toLocaleString("ar-EG")}/${(toPeriodDate.getMonth() + 1).toLocaleString("ar-EG")}/${toPeriodDate.getFullYear().toLocaleString("ar-EG", { useGrouping: false })}`;
 
-  const handleFromDateChange = (val: string) => {
-    setFromDate(val);
-  };
-
-  const handleToDateChange = (val: string) => {
-    setToDate(val);
+  const selectPayrollMonth = (selectedYear: number, selectedMonth: number) => {
+    const previousMonth = new Date(selectedYear, selectedMonth - 2, 26);
+    setFromDate(`${isoMonth(previousMonth)}-26`);
+    setToDate(`${selectedYear}-${String(selectedMonth).padStart(2, "0")}-25`);
   };
 
   const centerQ = (trpc as any).salary.getPayroll.useQuery({
@@ -112,17 +115,6 @@ export default function PayrollReport() {
     fromDate,
     toDate,
   });
-  const sectionPoolQ = (trpc as any).salary.getCommissionPool.useQuery({
-    year,
-    month,
-    section,
-  });
-  const otherSectionPoolQ = (trpc as any).salary.getCommissionPool.useQuery({
-    year,
-    month,
-    section: section === "مركز" ? "عيادة" : "مركز",
-  });
-
   const supervisionBonusQ = (trpc as any).salary.getSupervisionBonuses.useQuery(
     { year, month, section },
   );
@@ -176,22 +168,32 @@ export default function PayrollReport() {
   const filteredShiftSchedule = shiftSchedule;
 
   const rows: any[] = (section === "مركز" ? centerQ : clinicQ).data ?? [];
-  const sectionPool = sectionPoolQ.data;
-  const otherSectionPool = otherSectionPoolQ.data;
-  const allowanceSource =
-    sectionPool &&
-    (Number(sectionPool.costOfLivingAllowanceAmount ?? 0) > 0 ||
-      Number(sectionPool.transportAllowanceAmount ?? 0) > 0)
-      ? sectionPool
-      : otherSectionPool;
-  const colaFallback = Number(
-    allowanceSource?.costOfLivingAllowanceAmount ?? 0,
-  );
-  const travelFallback = Number(allowanceSource?.transportAllowanceAmount ?? 0);
   const getAllowanceValues = (r: any) => ({
-    cola: Number(r.costOfLivingAllowance) || colaFallback,
-    travel: Number(r.transportAllowance) || travelFallback,
+    cola: Number(r.costOfLivingAllowance ?? 0),
+    travel: Number(r.transportAllowance ?? 0),
   });
+  const getDeductionBreakdown = (row: any) => {
+    const late =
+      Number(row.lateDeduction ?? 0) + Number(row.earlyLeaveDeduction ?? 0);
+    const absent = Number(row.absentDeduction ?? 0);
+    const penalty = Number(row.penaltyDeduction ?? 0);
+    const advances = Number(row.advancesDeduction ?? 0);
+    const insurance = Number(row.insuranceDeduction ?? 0);
+    const total = Number(row.totalDeductions ?? 0);
+    const missingCheckout = Math.max(
+      0,
+      total - late - absent - penalty - advances - insurance,
+    );
+    return {
+      late,
+      absent,
+      penalty,
+      missingCheckout,
+      advances,
+      insurance,
+      total,
+    };
+  };
   const getCommissionTotal = (r: any) => {
     const a = getAllowanceValues(r);
     return (
@@ -228,7 +230,9 @@ export default function PayrollReport() {
     const bigTotal = Number(liveRow?.bigTotal ?? bigScheduled * rateBig);
     const smallScheduled = Number(liveRow?.smallScheduled ?? 0);
     const smallAttended = Number(liveRow?.smallAttended ?? 0);
-    const smallTotal = Number(liveRow?.smallTotal ?? smallScheduled * rateSmall);
+    const smallTotal = Number(
+      liveRow?.smallTotal ?? smallScheduled * rateSmall,
+    );
     const bigAbsent = Math.max(0, bigScheduled - bigAttended);
     const smallAbsent = Math.max(0, smallScheduled - smallAttended);
 
@@ -264,7 +268,9 @@ export default function PayrollReport() {
       netBasic,
       attendanceCommission: Number(payrollRow?.attendanceCommission ?? 0),
       attendanceCommissionRaw: Number(
-        payrollRow?.attendanceCommissionRaw ?? payrollRow?.attendanceCommission ?? 0,
+        payrollRow?.attendanceCommissionRaw ??
+          payrollRow?.attendanceCommission ??
+          0,
       ),
       examCommission: Number(payrollRow?.examCommission ?? 0),
       examCommissionRaw: Number(
@@ -272,7 +278,9 @@ export default function PayrollReport() {
       ),
       pentacamCommission: Number(payrollRow?.pentacamCommission ?? 0),
       pentacamCommissionRaw: Number(
-        payrollRow?.pentacamCommissionRaw ?? payrollRow?.pentacamCommission ?? 0,
+        payrollRow?.pentacamCommissionRaw ??
+          payrollRow?.pentacamCommission ??
+          0,
       ),
       costOfLivingAllowance: Number(payrollRow?.costOfLivingAllowance ?? 0),
       transportAllowance: Number(payrollRow?.transportAllowance ?? 0),
@@ -891,19 +899,19 @@ export default function PayrollReport() {
       0,
     );
     const tAbsent = nonShift.reduce(
-      (s: number, r: any) => s + Number(r.absentDeduction),
+      (sum: number, row: any) => sum + Number(row.absentDeduction ?? 0),
       0,
     );
     const tLate = nonShift.reduce(
-      (s: number, r: any) => s + Number(r.lateDeduction ?? 0),
+      (sum: number, row: any) => sum + Number(row.lateDeduction ?? 0),
       0,
     );
     const tEarly = nonShift.reduce(
-      (s: number, r: any) => s + Number(r.earlyLeaveDeduction ?? 0),
+      (sum: number, row: any) => sum + Number(row.earlyLeaveDeduction ?? 0),
       0,
     );
     const tPenalty = nonShift.reduce(
-      (s: number, r: any) => s + Number(r.penaltyDeduction),
+      (sum: number, row: any) => sum + Number(row.penaltyDeduction ?? 0),
       0,
     );
     const tDed = nonShift.reduce(
@@ -1024,17 +1032,50 @@ export default function PayrollReport() {
 
   function printShiftsSheet() {
     const today = new Date().toLocaleDateString("ar-EG");
-    const tDayTotal = enhancedShiftRows.reduce((s: number, r: any) => s + r.shiftDayTotal, 0);
-    const tNightTotal = enhancedShiftRows.reduce((s: number, r: any) => s + r.shiftNightTotal, 0);
-    const tDed = enhancedShiftRows.reduce((s: number, r: any) => s + Number(r.totalDeductions), 0);
-    const tNetBasic = enhancedShiftRows.reduce((s: number, r: any) => s + Number(r.netBasic), 0);
-    const tAttend = shiftRows.reduce((s: number, r: any) => s + Number(r.attendanceCommission), 0);
-    const tExam = shiftRows.reduce((s: number, r: any) => s + Number(r.examCommission), 0);
-    const tPenta = shiftRows.reduce((s: number, r: any) => s + Number(r.pentacamCommission), 0);
-    const tCola = shiftRows.reduce((s: number, r: any) => s + getAllowanceValues(r).cola, 0);
-    const tTravel = shiftRows.reduce((s: number, r: any) => s + getAllowanceValues(r).travel, 0);
-    const tOT = shiftRows.reduce((s: number, r: any) => s + Number(r.overtimePay ?? 0), 0);
-    const tTotal = shiftRows.reduce((s: number, r: any) => s + Number(r.totalPay), 0);
+    const tDayTotal = enhancedShiftRows.reduce(
+      (s: number, r: any) => s + r.shiftDayTotal,
+      0,
+    );
+    const tNightTotal = enhancedShiftRows.reduce(
+      (s: number, r: any) => s + r.shiftNightTotal,
+      0,
+    );
+    const tDed = enhancedShiftRows.reduce(
+      (s: number, r: any) => s + Number(r.totalDeductions),
+      0,
+    );
+    const tNetBasic = enhancedShiftRows.reduce(
+      (s: number, r: any) => s + Number(r.netBasic),
+      0,
+    );
+    const tAttend = shiftRows.reduce(
+      (s: number, r: any) => s + Number(r.attendanceCommission),
+      0,
+    );
+    const tExam = shiftRows.reduce(
+      (s: number, r: any) => s + Number(r.examCommission),
+      0,
+    );
+    const tPenta = shiftRows.reduce(
+      (s: number, r: any) => s + Number(r.pentacamCommission),
+      0,
+    );
+    const tCola = shiftRows.reduce(
+      (s: number, r: any) => s + getAllowanceValues(r).cola,
+      0,
+    );
+    const tTravel = shiftRows.reduce(
+      (s: number, r: any) => s + getAllowanceValues(r).travel,
+      0,
+    );
+    const tOT = shiftRows.reduce(
+      (s: number, r: any) => s + Number(r.overtimePay ?? 0),
+      0,
+    );
+    const tTotal = shiftRows.reduce(
+      (s: number, r: any) => s + Number(r.totalPay),
+      0,
+    );
 
     const bodyRows = enhancedShiftRows
       .map((r: any) => {
@@ -1042,7 +1083,9 @@ export default function PayrollReport() {
         const attend = sr ? Number(sr.attendanceCommission) : 0;
         const exam = sr ? Number(sr.examCommission) : 0;
         const penta = sr ? Number(sr.pentacamCommission) : 0;
-        const { cola, travel } = sr ? getAllowanceValues(sr) : { cola: 0, travel: 0 };
+        const { cola, travel } = sr
+          ? getAllowanceValues(sr)
+          : { cola: 0, travel: 0 };
         const ot = sr ? Number(sr.overtimePay ?? 0) : 0;
         const totalPay = sr ? Number(sr.totalPay) : Number(r.netBasic);
         return `
@@ -1174,11 +1217,24 @@ export default function PayrollReport() {
               <td>${fmt(net)}</td>
             </tr>
           </table>`;
-        const slipRow = { ...r, jobTitle: r.type === "doctor" ? "طبيب" : "فني" };
-        return buildSlip(slipRow, `مرتب الشفتات — يوم 1 — ${MONTHS[month - 1]} ${year}`, table, net, section);
+        const slipRow = {
+          ...r,
+          jobTitle: r.type === "doctor" ? "طبيب" : "فني",
+        };
+        return buildSlip(
+          slipRow,
+          `مرتب الشفتات — يوم 1 — ${MONTHS[month - 1]} ${year}`,
+          table,
+          net,
+          section,
+        );
       })
       .join("");
-    openPrint(html, `قسائم الشفتات يوم 1 — ${MONTHS[month - 1]} ${year}`, SLIPS_CSS);
+    openPrint(
+      html,
+      `قسائم الشفتات يوم 1 — ${MONTHS[month - 1]} ${year}`,
+      SLIPS_CSS,
+    );
   }
 
   function printShiftDay10Slips() {
@@ -1191,7 +1247,9 @@ export default function PayrollReport() {
         const examRaw = sr ? Number(sr.examCommissionRaw ?? exam) : 0;
         const penta = sr ? Number(sr.pentacamCommission) : 0;
         const pentaRaw = sr ? Number(sr.pentacamCommissionRaw ?? penta) : 0;
-        const { cola, travel } = sr ? getAllowanceValues(sr) : { cola: 0, travel: 0 };
+        const { cola, travel } = sr
+          ? getAllowanceValues(sr)
+          : { cola: 0, travel: 0 };
         const ot = sr ? Number(sr.overtimePay ?? 0) : 0;
         const net = attend + exam + penta + cola + travel + ot;
         const table = `
@@ -1221,11 +1279,24 @@ export default function PayrollReport() {
               <td>${fmt(net)}</td>
             </tr>
           </table>`;
-        const slipRow = { ...r, jobTitle: r.type === "doctor" ? "طبيب" : "فني" };
-        return buildSlip(slipRow, `نسب الشفتات — ${MONTHS[month - 1]} ${year}`, table, net, section);
+        const slipRow = {
+          ...r,
+          jobTitle: r.type === "doctor" ? "طبيب" : "فني",
+        };
+        return buildSlip(
+          slipRow,
+          `نسب الشفتات — ${MONTHS[month - 1]} ${year}`,
+          table,
+          net,
+          section,
+        );
       })
       .join("");
-    openPrint(html, `قسائم الشفتات يوم 10 — ${MONTHS[month - 1]} ${year}`, SLIPS_CSS);
+    openPrint(
+      html,
+      `قسائم الشفتات يوم 10 — ${MONTHS[month - 1]} ${year}`,
+      SLIPS_CSS,
+    );
   }
 
   function printBasicSheet() {
@@ -1237,21 +1308,25 @@ export default function PayrollReport() {
       (s: number, r: any) => s + Number(r.basicSalary),
       0,
     );
-    const tAbsent = nonShift.reduce(
-      (s: number, r: any) => s + Number(r.absentDeduction),
-      0,
-    );
-    const tLate = nonShift.reduce(
-      (s: number, r: any) => s + Number(r.lateDeduction ?? 0),
-      0,
-    );
-    const tEarly = nonShift.reduce(
-      (s: number, r: any) => s + Number(r.earlyLeaveDeduction ?? 0),
-      0,
-    );
-    const tPenalty = nonShift.reduce(
-      (s: number, r: any) => s + Number(r.penaltyDeduction),
-      0,
+    const deductionTotals = nonShift.reduce(
+      (totals, row: any) => {
+        const deductions = getDeductionBreakdown(row);
+        totals.late += deductions.late;
+        totals.absent += deductions.absent;
+        totals.penalty += deductions.penalty;
+        totals.missingCheckout += deductions.missingCheckout;
+        totals.advances += deductions.advances;
+        totals.insurance += deductions.insurance;
+        return totals;
+      },
+      {
+        late: 0,
+        absent: 0,
+        penalty: 0,
+        missingCheckout: 0,
+        advances: 0,
+        insurance: 0,
+      },
     );
     const tDed = nonShift.reduce(
       (s: number, r: any) => s + Number(r.totalDeductions),
@@ -1262,35 +1337,45 @@ export default function PayrollReport() {
       0,
     );
     const bodyRows = nonShift
-      .map(
-        (r: any) => `
+      .map((r: any) => {
+        const deductions = getDeductionBreakdown(r);
+        return `
       <tr>
         <td class="emp-col">${escapeHtml(r.fullName ?? r.empCd)}</td>
         <td>${fmt(r.basicSalary)}</td>
-        <td>${fmt(r.absentDeduction)}</td>
-        <td>${fmt(r.lateDeduction ?? 0)}</td>
-        <td>${fmt(r.earlyLeaveDeduction ?? 0)}</td>
-        <td>${fmt(r.penaltyDeduction)}</td>
-        <td>${fmt(r.totalDeductions)}</td>
+        <td>${fmt(deductions.late)}</td>
+        <td>${fmt(deductions.absent)}</td>
+        <td>${fmt(deductions.penalty)}</td>
+        <td>${fmt(deductions.missingCheckout)}</td>
+        <td>${fmt(deductions.advances)}</td>
+        <td>${fmt(deductions.insurance)}</td>
+        <td>${fmt(deductions.total)}</td>
         <td class="money-strong">${fmt(r.netBasic)}</td>
         <td class="sig-col"></td>
-      </tr>`,
-      )
+      </tr>`;
+      })
       .join("");
     const html = `
       ${renderSheetHeader("كشف الرواتب الأساسية", section)}
       <table>
         <thead><tr>
-          <th>الاسم</th><th>الأساسي</th><th>خصم غياب</th><th>خصم تأخير</th>
-          <th>خصم مبكر</th><th>جزاءات</th><th>إجمالي الخصم</th><th>صافي الأساسي</th>
+          <th>الاسم</th><th>الأساسي</th><th>تأخير</th><th>غياب</th>
+          <th>جزاء</th><th>بصمة واحدة</th><th>سلف</th><th>تأمين</th>
+          <th>إجمالي الخصومات</th><th>صافي الأساسي</th>
           <th class="sig-col">التوقيع</th>
         </tr></thead>
         <tbody>
           ${bodyRows}
           <tr class="total-row">
             <td class="emp-col">الإجمالي</td>
-            <td>${fmt(tBasic)}</td><td>${fmt(tAbsent)}</td><td>${fmt(tLate)}</td>
-            <td>${fmt(tEarly)}</td><td>${fmt(tPenalty)}</td><td>${fmt(tDed)}</td>
+            <td>${fmt(tBasic)}</td>
+            <td>${fmt(deductionTotals.late)}</td>
+            <td>${fmt(deductionTotals.absent)}</td>
+            <td>${fmt(deductionTotals.penalty)}</td>
+            <td>${fmt(deductionTotals.missingCheckout)}</td>
+            <td>${fmt(deductionTotals.advances)}</td>
+            <td>${fmt(deductionTotals.insurance)}</td>
+            <td>${fmt(tDed)}</td>
             <td class="money-strong">${fmt(tNet)}</td><td></td>
           </tr>
         </tbody>
@@ -1345,7 +1430,8 @@ export default function PayrollReport() {
       0,
     );
     const tExamRaw = nonShift.reduce(
-      (s: number, r: any) => s + Number(r.examCommissionRaw ?? r.examCommission),
+      (s: number, r: any) =>
+        s + Number(r.examCommissionRaw ?? r.examCommission),
       0,
     );
     const tPentaRaw = nonShift.reduce(
@@ -1700,13 +1786,7 @@ export default function PayrollReport() {
           Number(b.receptionAllowance ?? 0);
         const raise = Number(b.yearlyRaise ?? 0);
         const grossBasic = basicAmt + social + cola + badlat + raise;
-        const absent = Number(r.absentDeduction);
-        const penalty = Number(r.penaltyDeduction);
-        const advances = Number(r.advancesDeduction ?? 0);
-        const insurance = Number(r.insuranceDeduction ?? 0);
-        const other =
-          Number(r.lateDeduction ?? 0) + Number(r.earlyLeaveDeduction ?? 0);
-        const totalDed = Number(r.totalDeductions);
+        const deductions = getDeductionBreakdown(r);
         const table = `
         <table class="main">
           <tr>
@@ -1733,19 +1813,22 @@ export default function PayrollReport() {
             <td>${fmt(grossBasic)}</td>
           </tr>
           <tr>
-            <th>تامينت اجتماعية</th>
-            <th>سلف عاملين</th>
-            <th>أرصدة مدينة</th>
+            <th>تأخير</th>
             <th>غياب</th>
-            <th>جزاءات</th>
-            <th>أخرى</th>
-            <th>فرق تقييم</th>
-            <th colspan="2">أجمال الاستقطاعات</th>
+            <th>جزاء</th>
+            <th>بصمة واحدة</th>
+            <th>سلف</th>
+            <th>تأمين</th>
+            <th colspan="3">إجمالي الخصومات</th>
           </tr>
           <tr>
-            <td>${fmt(insurance)}</td><td>${fmt(advances)}</td><td>0.00</td>
-            <td>${fmt(absent)}</td><td>${fmt(penalty)}</td><td>${fmt(other)}</td><td>0.00</td>
-            <td colspan="2">${fmt(totalDed)}</td>
+            <td>${fmt(deductions.late)}</td>
+            <td>${fmt(deductions.absent)}</td>
+            <td>${fmt(deductions.penalty)}</td>
+            <td>${fmt(deductions.missingCheckout)}</td>
+            <td>${fmt(deductions.advances)}</td>
+            <td>${fmt(deductions.insurance)}</td>
+            <td colspan="3">${fmt(deductions.total)}</td>
           </tr>
         </table>`;
         return buildSlip(r, `مرتب ${MONTHS[month - 1]} ${year}`, table, net);
@@ -1804,219 +1887,250 @@ export default function PayrollReport() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            الرواتب
-          </p>
-          <h2 className="text-2xl font-bold text-foreground">كشف الرواتب</h2>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex rounded-lg border border-border overflow-hidden text-sm w-full sm:w-auto">
-            {SECTIONS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setSection(s)}
-                className={`flex-1 sm:flex-none px-4 py-2 transition-colors ${section === s ? "bg-primary text-primary-foreground font-semibold" : "bg-background text-muted-foreground hover:bg-muted"}`}
-              >
-                {s}
-              </button>
-            ))}
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              الرواتب
+            </p>
+            <h2 className="text-2xl font-bold text-foreground">كشف الرواتب</h2>
           </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <DateInput
-              value={fromDate}
-              onChange={(e) => handleFromDateChange(e.target.value)}
-              className="rounded-md border border-border bg-background px-3 py-2 text-sm flex-1 sm:flex-initial"
-            />
-            <span className="text-sm text-muted-foreground">—</span>
-            <DateInput
-              value={toDate}
-              onChange={(e) => handleToDateChange(e.target.value)}
-              className="rounded-md border border-border bg-background px-3 py-2 text-sm flex-1 sm:flex-initial"
-            />
+          <div dir="rtl" className="flex flex-1 justify-center">
+            <div className="flex flex-col items-center text-center">
+              <p className="w-full text-center text-lg font-bold tabular-nums">
+                {year.toLocaleString("ar-EG", { useGrouping: false })}
+              </p>
+              <p className="flex flex-row items-center gap-1 text-xs text-muted-foreground">
+                <span>من</span>
+                <bdi dir="ltr">{compactPeriodFrom}</bdi>
+                <span>-</span>
+                <bdi dir="ltr">{compactPeriodTo}</bdi>
+              </p>
+            </div>
           </div>
-          <Button
-            onClick={() => computeMut.mutate({ year, month, section })}
-            disabled={computeMut.isPending}
-            className="gap-2 w-full sm:w-auto justify-center"
-          >
-            <RefreshCw
-              size={15}
-              className={computeMut.isPending ? "animate-spin" : ""}
-            />
-            احتساب
-          </Button>
-          {rows.length > 0 && (
-            <>
-              {/* Desktop Print Actions */}
-              <div className="hidden lg:flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={printSheet}
-                  className="gap-2"
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex rounded-lg border border-border overflow-hidden text-sm w-full sm:w-auto">
+              {SECTIONS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setSection(s)}
+                  className={`flex-1 sm:flex-none px-4 py-2 transition-colors ${section === s ? "bg-primary text-primary-foreground font-semibold" : "bg-background text-muted-foreground hover:bg-muted"}`}
                 >
-                  <Printer size={15} /> كامل
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={printDay1Slips}
-                  className="gap-2"
-                >
-                  <Printer size={15} /> يوم 1
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={printDay10Slips}
-                  className="gap-2"
-                >
-                  <Printer size={15} /> يوم 10
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="gap-2">
-                      <Printer size={15} /> كشوف
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem
-                      onClick={printPenaltiesSheet}
-                      className="gap-2 justify-start cursor-pointer"
-                    >
-                      <Printer size={14} /> جزاءات
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={printAdvancesSheet}
-                      className="gap-2 justify-start cursor-pointer"
-                    >
-                      <Printer size={14} /> سلف
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={printLateSheet}
-                      className="gap-2 justify-start cursor-pointer"
-                    >
-                      <Printer size={14} /> تأخيرات
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={printInsuranceSheet}
-                      className="gap-2 justify-start cursor-pointer"
-                    >
-                      <Printer size={14} /> تأمينات
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-
-              {/* Mobile Print Actions Dropdown */}
-              <div className="lg:hidden w-full sm:w-auto">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="gap-2 w-full justify-center"
-                    >
-                      <Printer size={15} /> طباعة التقارير
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem
-                      onClick={printSheet}
-                      className="gap-2 justify-start cursor-pointer"
-                    >
-                      <Printer size={14} /> كامل
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={printDay1Slips}
-                      className="gap-2 justify-start cursor-pointer"
-                    >
-                      <Printer size={14} /> يوم 1
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={printDay10Slips}
-                      className="gap-2 justify-start cursor-pointer"
-                    >
-                      <Printer size={14} /> يوم 10
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={printPenaltiesSheet}
-                      className="gap-2 justify-start cursor-pointer"
-                    >
-                      <Printer size={14} /> جزاءات
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={printAdvancesSheet}
-                      className="gap-2 justify-start cursor-pointer"
-                    >
-                      <Printer size={14} /> سلف
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={printLateSheet}
-                      className="gap-2 justify-start cursor-pointer"
-                    >
-                      <Printer size={14} /> تأخيرات
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={printInsuranceSheet}
-                      className="gap-2 justify-start cursor-pointer"
-                    >
-                      <Printer size={14} /> تأمينات
-                    </DropdownMenuItem>
-                    {section === "مركز" && enhancedShiftRows.length > 0 && (
-                      <>
-                        <DropdownMenuItem
-                          onClick={printShiftsSheet}
-                          className="gap-2 justify-start cursor-pointer"
-                        >
-                          <Printer size={14} /> شفتات — كشف الشهر
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={printShiftDay1Slips}
-                          className="gap-2 justify-start cursor-pointer"
-                        >
-                          <Printer size={14} /> شفتات — يوم 1
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={printShiftDay10Slips}
-                          className="gap-2 justify-start cursor-pointer"
-                        >
-                          <Printer size={14} /> شفتات — يوم 10
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </>
-          )}
-          {rows.length > 0 && !isFinalized && (
+                  {s}
+                </button>
+              ))}
+            </div>
             <Button
-              variant="outline"
-              onClick={() => {
-                if (confirm("اعتماد كشف الرواتب كنهائي؟"))
-                  finalizeMut.mutate({ year, month });
-              }}
-              disabled={finalizeMut.isPending}
+              onClick={() => computeMut.mutate({ year, month, section })}
+              disabled={computeMut.isPending}
               className="gap-2 w-full sm:w-auto justify-center"
             >
-              <CheckCircle size={15} /> اعتماد
+              <RefreshCw
+                size={15}
+                className={computeMut.isPending ? "animate-spin" : ""}
+              />
+              احتساب
             </Button>
-          )}
+            {rows.length > 0 && (
+              <>
+                {/* Desktop Print Actions */}
+                <div className="hidden lg:flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={printSheet}
+                    className="gap-2"
+                  >
+                    <Printer size={15} /> كامل
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={printDay1Slips}
+                    className="gap-2"
+                  >
+                    <Printer size={15} /> يوم 1
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={printDay10Slips}
+                    className="gap-2"
+                  >
+                    <Printer size={15} /> يوم 10
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="gap-2">
+                        <Printer size={15} /> كشوف
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem
+                        onClick={printPenaltiesSheet}
+                        className="gap-2 justify-start cursor-pointer"
+                      >
+                        <Printer size={14} /> جزاءات
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={printAdvancesSheet}
+                        className="gap-2 justify-start cursor-pointer"
+                      >
+                        <Printer size={14} /> سلف
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={printLateSheet}
+                        className="gap-2 justify-start cursor-pointer"
+                      >
+                        <Printer size={14} /> تأخيرات
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={printInsuranceSheet}
+                        className="gap-2 justify-start cursor-pointer"
+                      >
+                        <Printer size={14} /> تأمينات
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                {/* Mobile Print Actions Dropdown */}
+                <div className="lg:hidden w-full sm:w-auto">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="gap-2 w-full justify-center"
+                      >
+                        <Printer size={15} /> طباعة التقارير
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem
+                        onClick={printSheet}
+                        className="gap-2 justify-start cursor-pointer"
+                      >
+                        <Printer size={14} /> كامل
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={printDay1Slips}
+                        className="gap-2 justify-start cursor-pointer"
+                      >
+                        <Printer size={14} /> يوم 1
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={printDay10Slips}
+                        className="gap-2 justify-start cursor-pointer"
+                      >
+                        <Printer size={14} /> يوم 10
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={printPenaltiesSheet}
+                        className="gap-2 justify-start cursor-pointer"
+                      >
+                        <Printer size={14} /> جزاءات
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={printAdvancesSheet}
+                        className="gap-2 justify-start cursor-pointer"
+                      >
+                        <Printer size={14} /> سلف
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={printLateSheet}
+                        className="gap-2 justify-start cursor-pointer"
+                      >
+                        <Printer size={14} /> تأخيرات
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={printInsuranceSheet}
+                        className="gap-2 justify-start cursor-pointer"
+                      >
+                        <Printer size={14} /> تأمينات
+                      </DropdownMenuItem>
+                      {section === "مركز" && enhancedShiftRows.length > 0 && (
+                        <>
+                          <DropdownMenuItem
+                            onClick={printShiftsSheet}
+                            className="gap-2 justify-start cursor-pointer"
+                          >
+                            <Printer size={14} /> شفتات — كشف الشهر
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={printShiftDay1Slips}
+                            className="gap-2 justify-start cursor-pointer"
+                          >
+                            <Printer size={14} /> شفتات — يوم 1
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={printShiftDay10Slips}
+                            className="gap-2 justify-start cursor-pointer"
+                          >
+                            <Printer size={14} /> شفتات — يوم 10
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </>
+            )}
+            {rows.length > 0 && !isFinalized && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (confirm("اعتماد كشف الرواتب كنهائي؟"))
+                    finalizeMut.mutate({ year, month });
+                }}
+                disabled={finalizeMut.isPending}
+                className="gap-2 w-full sm:w-auto justify-center"
+              >
+                <CheckCircle size={15} /> اعتماد
+              </Button>
+            )}
+          </div>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-3">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => selectPayrollMonth(year - 1, month)}
+              className="min-h-10 rounded-md border border-border px-3 text-xs font-bold hover:bg-muted"
+              aria-label="السنة السابقة"
+            >
+              ‹ السنة السابقة
+            </button>
+            <p className="text-sm font-semibold text-muted-foreground">
+              اختر الشهر
+            </p>
+            <button
+              type="button"
+              onClick={() => selectPayrollMonth(year + 1, month)}
+              className="min-h-10 rounded-md border border-border px-3 text-xs font-bold hover:bg-muted"
+              aria-label="السنة التالية"
+            >
+              السنة التالية ›
+            </button>
+          </div>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-12">
+            {MONTHS.map((monthName, monthIndex) => {
+              const monthNumber = monthIndex + 1;
+              return (
+                <button
+                  key={monthName}
+                  type="button"
+                  onClick={() => selectPayrollMonth(year, monthNumber)}
+                  className={`min-h-10 rounded-md border px-2 text-xs font-semibold transition-colors ${
+                    month === monthNumber
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background hover:bg-muted"
+                  }`}
+                >
+                  {monthNumber.toLocaleString("ar-EG")} - {monthName}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
-
-      {rows.length > 0 && (
-        <div className="relative w-full max-w-md">
-          <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="البحث باسم الموظف..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full rounded-md border border-border bg-background py-2 pr-9 pl-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
-      )}
 
       {rows.length > 0 &&
         (() => {
@@ -2065,38 +2179,52 @@ export default function PayrollReport() {
         })()}
 
       {/* ── Tabs Navigation ── */}
-      {section === "مركز" && (
-        <div className="flex gap-2 border-b border-border">
-          <button
-            onClick={() => setActiveTab("salaries")}
-            className={`px-4 py-3 font-medium text-sm transition-colors ${
-              activeTab === "salaries"
-                ? "border-b-2 border-primary text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            الرواتب
-          </button>
-          <button
-            onClick={() => setActiveTab("shifts")}
-            className={`px-4 py-3 font-medium text-sm transition-colors ${
-              activeTab === "shifts"
-                ? "border-b-2 border-primary text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            الشفتات
-          </button>
-          <button
-            onClick={() => setActiveTab("supervision")}
-            className={`px-4 py-3 font-medium text-sm transition-colors ${
-              activeTab === "supervision"
-                ? "border-b-2 border-primary text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            مكافأة الإشراف
-          </button>
+      {rows.length > 0 && (
+        <div className="flex flex-col gap-2 border-b border-border sm:flex-row sm:items-end sm:justify-between">
+          {section === "مركز" && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setActiveTab("salaries")}
+                className={`px-4 py-3 font-medium text-sm transition-colors ${
+                  activeTab === "salaries"
+                    ? "border-b-2 border-primary text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                الرواتب
+              </button>
+              <button
+                onClick={() => setActiveTab("shifts")}
+                className={`px-4 py-3 font-medium text-sm transition-colors ${
+                  activeTab === "shifts"
+                    ? "border-b-2 border-primary text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                الشفتات
+              </button>
+              <button
+                onClick={() => setActiveTab("supervision")}
+                className={`px-4 py-3 font-medium text-sm transition-colors ${
+                  activeTab === "supervision"
+                    ? "border-b-2 border-primary text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                مكافأة الإشراف
+              </button>
+            </div>
+          )}
+          <div className="relative mb-2 w-full sm:max-w-sm">
+            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="البحث باسم الموظف..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="min-h-10 w-full rounded-md border border-border bg-background pr-9 pl-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
         </div>
       )}
 
@@ -2155,19 +2283,25 @@ export default function PayrollReport() {
                         أيام عمل
                       </th>
                       <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                        تأخير
+                      </th>
+                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
                         غياب
-                      </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
-                        تأخير (د)
-                      </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
-                        مبكر (د)
                       </th>
                       <th className="px-3 py-3 text-center font-medium text-muted-foreground">
                         جزاء
                       </th>
                       <th className="px-3 py-3 text-center font-medium text-muted-foreground">
-                        إجمالي الخصم
+                        بصمة واحدة
+                      </th>
+                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                        سلف
+                      </th>
+                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                        تأمين
+                      </th>
+                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                        إجمالي الخصومات
                       </th>
                       <th className="px-3 py-3 text-center font-medium text-muted-foreground">
                         إجازة
@@ -2181,53 +2315,64 @@ export default function PayrollReport() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredRegularRows.map((r: any) => (
-                      <tr
-                        key={r.empCd}
-                        className="border-b border-border/50 hover:bg-muted/20 transition-colors"
-                      >
-                        <td className="px-3 py-3 text-center">
-                          <div className="font-medium">
-                            {r.fullName ?? r.empCd}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {r.salaryType ?? r.department ?? ""}
-                          </div>
-                        </td>
-                        <td className="px-3 py-3 text-center">
-                          {fmt(r.basicSalary)}
-                        </td>
-                        <td className="px-3 py-3 text-center">
-                          {r.workingDays}
-                        </td>
-                        <td className="px-3 py-3 text-center text-destructive">
-                          {r.absentDays}
-                        </td>
-                        <td className="px-3 py-3 text-center text-warning">
-                          {r.lateMinutes}
-                        </td>
-                        <td className="px-3 py-3 text-center text-warning">
-                          {r.earlyLeaveMinutes ?? 0}
-                        </td>
-                        <td className="px-3 py-3 text-center text-destructive">
-                          {fmt(r.penaltyDeduction)}
-                        </td>
-                        <td className="px-3 py-3 text-center font-medium text-destructive">
-                          {fmt(r.totalDeductions)}
-                        </td>
-                        <td className="px-3 py-3 text-center">{r.leaveDays}</td>
-                        <td className="px-3 py-3 text-center">
-                          {pct(r.leaveMultiplier)}
-                        </td>
-                        <td className="px-3 py-3 text-center font-bold text-primary">
-                          {fmt(r.netBasic)}
-                        </td>
-                      </tr>
-                    ))}
+                    {filteredRegularRows.map((r: any) => {
+                      const deductions = getDeductionBreakdown(r);
+                      return (
+                        <tr
+                          key={r.empCd}
+                          className="border-b border-border/50 hover:bg-muted/20 transition-colors"
+                        >
+                          <td className="px-3 py-3 text-center">
+                            <div className="font-medium">
+                              {r.fullName ?? r.empCd}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {r.salaryType ?? r.department ?? ""}
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            {fmt(r.basicSalary)}
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            {r.workingDays}
+                          </td>
+                          <td className="px-3 py-3 text-center text-warning">
+                            {fmt(deductions.late)}
+                          </td>
+                          <td className="px-3 py-3 text-center text-destructive">
+                            {fmt(deductions.absent)}
+                          </td>
+                          <td className="px-3 py-3 text-center text-destructive">
+                            {fmt(deductions.penalty)}
+                          </td>
+                          <td className="px-3 py-3 text-center text-destructive">
+                            {fmt(deductions.missingCheckout)}
+                          </td>
+                          <td className="px-3 py-3 text-center text-destructive">
+                            {fmt(deductions.advances)}
+                          </td>
+                          <td className="px-3 py-3 text-center text-destructive">
+                            {fmt(deductions.insurance)}
+                          </td>
+                          <td className="px-3 py-3 text-center font-medium text-destructive">
+                            {fmt(deductions.total)}
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            {r.leaveDays}
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            {pct(r.leaveMultiplier)}
+                          </td>
+                          <td className="px-3 py-3 text-center font-bold text-primary">
+                            {fmt(r.netBasic)}
+                          </td>
+                        </tr>
+                      );
+                    })}
                     {filteredRegularRows.length === 0 && (
                       <tr>
                         <td
-                          colSpan={11}
+                          colSpan={13}
                           className="px-4 py-10 text-center text-muted-foreground"
                         >
                           لا توجد رواتب تطابق البحث
@@ -2238,8 +2383,63 @@ export default function PayrollReport() {
                   {filteredRegularRows.length > 0 && (
                     <tfoot>
                       <tr className="border-t border-border bg-muted/30 text-xs font-semibold">
-                        <td className="px-3 py-2" colSpan={7}>
+                        <td className="px-3 py-2" colSpan={3}>
                           الإجمالي
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {fmt(
+                            filteredRegularRows.reduce(
+                              (sum: number, row: any) =>
+                                sum + getDeductionBreakdown(row).late,
+                              0,
+                            ),
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {fmt(
+                            filteredRegularRows.reduce(
+                              (sum: number, row: any) =>
+                                sum + getDeductionBreakdown(row).absent,
+                              0,
+                            ),
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {fmt(
+                            filteredRegularRows.reduce(
+                              (sum: number, row: any) =>
+                                sum + getDeductionBreakdown(row).penalty,
+                              0,
+                            ),
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {fmt(
+                            filteredRegularRows.reduce(
+                              (sum: number, row: any) =>
+                                sum +
+                                getDeductionBreakdown(row).missingCheckout,
+                              0,
+                            ),
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {fmt(
+                            filteredRegularRows.reduce(
+                              (sum: number, row: any) =>
+                                sum + getDeductionBreakdown(row).advances,
+                              0,
+                            ),
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {fmt(
+                            filteredRegularRows.reduce(
+                              (sum: number, row: any) =>
+                                sum + getDeductionBreakdown(row).insurance,
+                              0,
+                            ),
+                          )}
                         </td>
                         <td className="px-3 py-2 text-center">
                           {fmt(
@@ -2269,6 +2469,7 @@ export default function PayrollReport() {
               <div className="block lg:hidden divide-y divide-border/60">
                 {filteredRegularRows.map((r: any) => {
                   const isExpanded = !!expandedCards[`salary-${r.empCd}`];
+                  const deductions = getDeductionBreakdown(r);
                   return (
                     <div
                       key={r.empCd}
@@ -2325,34 +2526,44 @@ export default function PayrollReport() {
                           </div>
                           <div className="flex justify-between border-b border-border/10 pb-1">
                             <span className="text-muted-foreground">
-                              الغياب (أيام):
-                            </span>
-                            <span className="font-medium text-destructive tabular-nums">
-                              {r.absentDays}
-                            </span>
-                          </div>
-                          <div className="flex justify-between border-b border-border/10 pb-1">
-                            <span className="text-muted-foreground">
-                              التأخير (دقائق):
+                              تأخير:
                             </span>
                             <span className="font-medium text-warning tabular-nums">
-                              {r.lateMinutes}
+                              {fmt(deductions.late)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between border-b border-border/10 pb-1">
+                            <span className="text-muted-foreground">غياب:</span>
+                            <span className="font-medium text-destructive tabular-nums">
+                              {fmt(deductions.absent)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between border-b border-border/10 pb-1">
+                            <span className="text-muted-foreground">جزاء:</span>
+                            <span className="font-medium text-destructive tabular-nums">
+                              {fmt(deductions.penalty)}
                             </span>
                           </div>
                           <div className="flex justify-between border-b border-border/10 pb-1">
                             <span className="text-muted-foreground">
-                              خروج مبكر (دقائق):
-                            </span>
-                            <span className="font-medium text-warning tabular-nums">
-                              {r.earlyLeaveMinutes ?? 0}
-                            </span>
-                          </div>
-                          <div className="flex justify-between border-b border-border/10 pb-1">
-                            <span className="text-muted-foreground">
-                              الجزاءات:
+                              بصمة واحدة:
                             </span>
                             <span className="font-medium text-destructive tabular-nums">
-                              {fmt(r.penaltyDeduction)}
+                              {fmt(deductions.missingCheckout)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between border-b border-border/10 pb-1">
+                            <span className="text-muted-foreground">سلف:</span>
+                            <span className="font-medium text-destructive tabular-nums">
+                              {fmt(deductions.advances)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between border-b border-border/10 pb-1">
+                            <span className="text-muted-foreground">
+                              تأمين:
+                            </span>
+                            <span className="font-medium text-destructive tabular-nums">
+                              {fmt(deductions.insurance)}
                             </span>
                           </div>
                           <div className="flex justify-between border-b border-border/10 pb-1">
@@ -2360,7 +2571,7 @@ export default function PayrollReport() {
                               إجمالي الخصم:
                             </span>
                             <span className="font-bold text-destructive tabular-nums">
-                              {fmt(r.totalDeductions)}
+                              {fmt(deductions.total)}
                             </span>
                           </div>
                           <div className="flex justify-between border-b border-border/10 pb-1">
@@ -2801,36 +3012,6 @@ export default function PayrollReport() {
         activeTab === "shifts" &&
         enhancedShiftRows.length > 0 &&
         (() => {
-          const EXAM_PRICE = 50;
-          const EXAM_EMP_PCT = 0.4;
-          const TIERS = [
-            { deduction: 123.75, empPct: 0.455 },
-            { deduction: 110, empPct: 0.455 },
-            { deduction: 85, empPct: 0.47 },
-            { deduction: 60, empPct: 0.5 },
-          ];
-
-          const pool = sectionPool;
-          const examCount = Number(pool?.examCount ?? 0);
-          const examStaffPool =
-            Math.round(examCount * EXAM_PRICE * EXAM_EMP_PCT * 100) / 100;
-          const pentacamStaff =
-            Math.round(
-              (Number(pool?.cases450 ?? 0) *
-                TIERS[0].deduction *
-                TIERS[0].empPct +
-                Number(pool?.cases400 ?? 0) *
-                  TIERS[1].deduction *
-                  TIERS[1].empPct +
-                Number(pool?.cases350 ?? 0) *
-                  TIERS[2].deduction *
-                  TIERS[2].empPct +
-                Number(pool?.cases250 ?? 0) *
-                  TIERS[3].deduction *
-                  TIERS[3].empPct) *
-                100,
-            ) / 100;
-
           const totalShiftPay = enhancedShiftRows
             .filter((r: any) => r.type === "doctor")
             .reduce((s: number, r: any) => s + Number(r.netBasic), 0);
@@ -2838,11 +3019,14 @@ export default function PayrollReport() {
           const commRows = enhancedShiftRows
             .filter((r: any) => r.type === "doctor")
             .map((r: any) => {
+              const payrollRow = shiftRows.find(
+                (row: any) => row.empCd === `shift_${r.id}`,
+              );
               const base = Number(r.netBasic);
               const share = totalShiftPay > 0 ? base / totalShiftPay : 0;
-              const attend = Math.round(base * 0.25 * 100) / 100;
-              const examComm = Math.round(share * examStaffPool * 100) / 100;
-              const pentComm = Math.round(share * pentacamStaff * 100) / 100;
+              const attend = Number(payrollRow?.attendanceCommission ?? 0);
+              const examComm = Number(payrollRow?.examCommission ?? 0);
+              const pentComm = Number(payrollRow?.pentacamCommission ?? 0);
               return {
                 ...r,
                 base,
@@ -2853,6 +3037,14 @@ export default function PayrollReport() {
                 total: attend + examComm + pentComm,
               };
             });
+          const examStaffPool = commRows.reduce(
+            (sum: number, row: any) => sum + row.examComm,
+            0,
+          );
+          const pentacamStaff = commRows.reduce(
+            (sum: number, row: any) => sum + row.pentComm,
+            0,
+          );
 
           const filteredCommRows = commRows.filter(
             (r: any) =>
@@ -3164,45 +3356,84 @@ export default function PayrollReport() {
                 <table dir="rtl" className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border bg-muted/30 text-xs">
-                      <th rowSpan={2} className="px-3 py-3 text-center font-medium text-muted-foreground align-middle">
+                      <th
+                        rowSpan={2}
+                        className="px-3 py-3 text-center font-medium text-muted-foreground align-middle"
+                      >
                         الموظف
                       </th>
-                      <th colSpan={2} className="px-3 py-2 text-center font-medium text-muted-foreground">
+                      <th
+                        colSpan={2}
+                        className="px-3 py-2 text-center font-medium text-muted-foreground"
+                      >
                         حضور
                       </th>
-                      <th colSpan={2} className="px-3 py-2 text-center font-medium text-muted-foreground">
+                      <th
+                        colSpan={2}
+                        className="px-3 py-2 text-center font-medium text-muted-foreground"
+                      >
                         فحص
                       </th>
                       {section !== "عيادة" && (
-                        <th colSpan={2} className="px-3 py-2 text-center font-medium text-muted-foreground">
+                        <th
+                          colSpan={2}
+                          className="px-3 py-2 text-center font-medium text-muted-foreground"
+                        >
                           بنتاكام
                         </th>
                       )}
-                      <th rowSpan={2} className="px-3 py-3 text-center font-medium text-muted-foreground align-middle">
+                      <th
+                        rowSpan={2}
+                        className="px-3 py-3 text-center font-medium text-muted-foreground align-middle"
+                      >
                         غلاء معيشه
                       </th>
-                      <th rowSpan={2} className="px-3 py-3 text-center font-medium text-muted-foreground align-middle">
+                      <th
+                        rowSpan={2}
+                        className="px-3 py-3 text-center font-medium text-muted-foreground align-middle"
+                      >
                         بدل مواصلات
                       </th>
-                      <th rowSpan={2} className="px-3 py-3 text-center font-medium text-muted-foreground align-middle">
+                      <th
+                        rowSpan={2}
+                        className="px-3 py-3 text-center font-medium text-muted-foreground align-middle"
+                      >
                         إضافي (د)
                       </th>
-                      <th rowSpan={2} className="px-3 py-3 text-center font-medium text-muted-foreground align-middle">
+                      <th
+                        rowSpan={2}
+                        className="px-3 py-3 text-center font-medium text-muted-foreground align-middle"
+                      >
                         إضافي (ج)
                       </th>
-                      <th rowSpan={2} className="px-3 py-3 text-center font-medium text-muted-foreground font-bold align-middle">
+                      <th
+                        rowSpan={2}
+                        className="px-3 py-3 text-center font-medium text-muted-foreground font-bold align-middle"
+                      >
                         إجمالي العمولات
                       </th>
                     </tr>
                     <tr className="border-b border-border bg-muted/30 text-xs">
-                      <th className="px-2 py-1.5 text-center font-medium text-muted-foreground">النسبة</th>
-                      <th className="px-2 py-1.5 text-center font-medium text-muted-foreground">المستحق</th>
-                      <th className="px-2 py-1.5 text-center font-medium text-muted-foreground">النسبة</th>
-                      <th className="px-2 py-1.5 text-center font-medium text-muted-foreground">المستحق</th>
+                      <th className="px-2 py-1.5 text-center font-medium text-muted-foreground">
+                        النسبة
+                      </th>
+                      <th className="px-2 py-1.5 text-center font-medium text-muted-foreground">
+                        المستحق
+                      </th>
+                      <th className="px-2 py-1.5 text-center font-medium text-muted-foreground">
+                        النسبة
+                      </th>
+                      <th className="px-2 py-1.5 text-center font-medium text-muted-foreground">
+                        المستحق
+                      </th>
                       {section !== "عيادة" && (
                         <>
-                          <th className="px-2 py-1.5 text-center font-medium text-muted-foreground">النسبة</th>
-                          <th className="px-2 py-1.5 text-center font-medium text-muted-foreground">المستحق</th>
+                          <th className="px-2 py-1.5 text-center font-medium text-muted-foreground">
+                            النسبة
+                          </th>
+                          <th className="px-2 py-1.5 text-center font-medium text-muted-foreground">
+                            المستحق
+                          </th>
                         </>
                       )}
                     </tr>
@@ -3224,7 +3455,10 @@ export default function PayrollReport() {
                             </div>
                           </td>
                           <td className="px-3 py-3 text-center text-muted-foreground">
-                            {fmt(r.attendanceCommissionRaw ?? r.attendanceCommission)}
+                            {fmt(
+                              r.attendanceCommissionRaw ??
+                                r.attendanceCommission,
+                            )}
                           </td>
                           <td className="px-3 py-3 text-center text-success">
                             {fmt(r.attendanceCommission)}
@@ -3238,7 +3472,10 @@ export default function PayrollReport() {
                           {section !== "عيادة" && (
                             <>
                               <td className="px-3 py-3 text-center text-muted-foreground">
-                                {fmt(r.pentacamCommissionRaw ?? r.pentacamCommission)}
+                                {fmt(
+                                  r.pentacamCommissionRaw ??
+                                    r.pentacamCommission,
+                                )}
                               </td>
                               <td className="px-3 py-3 text-center text-success">
                                 {fmt(r.pentacamCommission)}
@@ -3348,6 +3585,31 @@ export default function PayrollReport() {
                         <td className="px-3 py-2 text-center">
                           {fmt(
                             filteredRegularRows.reduce(
+                              (sum: number, row: any) =>
+                                sum +
+                                Number(
+                                  row.attendanceCommissionRaw ??
+                                    row.attendanceCommission,
+                                ),
+                              0,
+                            ) +
+                              (section === "مركز"
+                                ? filteredTechRows.reduce(
+                                    (sum: number, tech: any) =>
+                                      sum +
+                                      Number(
+                                        tech.attendanceCommissionRaw ??
+                                          tech.attendanceCommission ??
+                                          0,
+                                      ),
+                                    0,
+                                  )
+                                : 0),
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {fmt(
+                            filteredRegularRows.reduce(
                               (s: number, r: any) =>
                                 s + Number(r.attendanceCommission),
                               0,
@@ -3355,7 +3617,32 @@ export default function PayrollReport() {
                               (section === "مركز"
                                 ? filteredTechRows.reduce(
                                     (s: number, tech: any) =>
-                                      s + Number(tech.attendanceCommission ?? 0),
+                                      s +
+                                      Number(tech.attendanceCommission ?? 0),
+                                    0,
+                                  )
+                                : 0),
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {fmt(
+                            filteredRegularRows.reduce(
+                              (sum: number, row: any) =>
+                                sum +
+                                Number(
+                                  row.examCommissionRaw ?? row.examCommission,
+                                ),
+                              0,
+                            ) +
+                              (section === "مركز"
+                                ? filteredTechRows.reduce(
+                                    (sum: number, tech: any) =>
+                                      sum +
+                                      Number(
+                                        tech.examCommissionRaw ??
+                                          tech.examCommission ??
+                                          0,
+                                      ),
                                     0,
                                   )
                                 : 0),
@@ -3377,22 +3664,48 @@ export default function PayrollReport() {
                                 : 0),
                           )}
                         </td>
-                        <td className="px-3 py-2 text-center">
-                          {fmt(
-                            filteredRegularRows.reduce(
-                              (s: number, r: any) =>
-                                s + Number(r.pentacamCommission),
-                              0,
-                            ) +
-                              (section === "مركز"
-                                ? filteredTechRows.reduce(
-                                    (s: number, tech: any) =>
-                                      s + Number(tech.pentacamCommission ?? 0),
+                        {section !== "عيادة" && (
+                          <>
+                            <td className="px-3 py-2 text-center">
+                              {fmt(
+                                filteredRegularRows.reduce(
+                                  (sum: number, row: any) =>
+                                    sum +
+                                    Number(
+                                      row.pentacamCommissionRaw ??
+                                        row.pentacamCommission,
+                                    ),
+                                  0,
+                                ) +
+                                  filteredTechRows.reduce(
+                                    (sum: number, tech: any) =>
+                                      sum +
+                                      Number(
+                                        tech.pentacamCommissionRaw ??
+                                          tech.pentacamCommission ??
+                                          0,
+                                      ),
                                     0,
-                                  )
-                                : 0),
-                          )}
-                        </td>
+                                  ),
+                              )}
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              {fmt(
+                                filteredRegularRows.reduce(
+                                  (sum: number, row: any) =>
+                                    sum + Number(row.pentacamCommission),
+                                  0,
+                                ) +
+                                  filteredTechRows.reduce(
+                                    (sum: number, tech: any) =>
+                                      sum +
+                                      Number(tech.pentacamCommission ?? 0),
+                                    0,
+                                  ),
+                              )}
+                            </td>
+                          </>
+                        )}
                         <td className="px-3 py-2 text-center">
                           {fmt(
                             filteredRegularRows.reduce(
@@ -3460,9 +3773,15 @@ export default function PayrollReport() {
                               (section === "مركز"
                                 ? filteredTechRows.reduce(
                                     (s: number, tech: any) => {
-                                      const tAttend2 = Number(tech.attendanceCommission ?? 0);
-                                      const tExam2 = Number(tech.examCommission ?? 0);
-                                      const tPent2 = Number(tech.pentacamCommission ?? 0);
+                                      const tAttend2 = Number(
+                                        tech.attendanceCommission ?? 0,
+                                      );
+                                      const tExam2 = Number(
+                                        tech.examCommission ?? 0,
+                                      );
+                                      const tPent2 = Number(
+                                        tech.pentacamCommission ?? 0,
+                                      );
                                       const techAllowances =
                                         getAllowanceValues(tech);
                                       const tCola2 = techAllowances.cola;
@@ -3541,9 +3860,16 @@ export default function PayrollReport() {
                               عمولة الحضور (نسبة/مستحق):
                             </span>
                             <span className="font-medium tabular-nums">
-                              <span className="text-muted-foreground">{fmt(r.attendanceCommissionRaw ?? r.attendanceCommission)}</span>
+                              <span className="text-muted-foreground">
+                                {fmt(
+                                  r.attendanceCommissionRaw ??
+                                    r.attendanceCommission,
+                                )}
+                              </span>
                               {" / "}
-                              <span className="text-success">{fmt(r.attendanceCommission)}</span>
+                              <span className="text-success">
+                                {fmt(r.attendanceCommission)}
+                              </span>
                             </span>
                           </div>
                           <div className="flex justify-between border-b border-border/10 pb-1">
@@ -3551,9 +3877,13 @@ export default function PayrollReport() {
                               عمولة الفحص (نسبة/مستحق):
                             </span>
                             <span className="font-medium tabular-nums">
-                              <span className="text-muted-foreground">{fmt(r.examCommissionRaw ?? r.examCommission)}</span>
+                              <span className="text-muted-foreground">
+                                {fmt(r.examCommissionRaw ?? r.examCommission)}
+                              </span>
                               {" / "}
-                              <span className="text-success">{fmt(r.examCommission)}</span>
+                              <span className="text-success">
+                                {fmt(r.examCommission)}
+                              </span>
                             </span>
                           </div>
                           <div className="flex justify-between border-b border-border/10 pb-1">
@@ -3561,9 +3891,16 @@ export default function PayrollReport() {
                               عمولة بنتاكام (نسبة/مستحق):
                             </span>
                             <span className="font-medium tabular-nums">
-                              <span className="text-muted-foreground">{fmt(r.pentacamCommissionRaw ?? r.pentacamCommission)}</span>
+                              <span className="text-muted-foreground">
+                                {fmt(
+                                  r.pentacamCommissionRaw ??
+                                    r.pentacamCommission,
+                                )}
+                              </span>
                               {" / "}
-                              <span className="text-success">{fmt(r.pentacamCommission)}</span>
+                              <span className="text-success">
+                                {fmt(r.pentacamCommission)}
+                              </span>
                             </span>
                           </div>
                           <div className="flex justify-between border-b border-border/10 pb-1">
@@ -3852,9 +4189,15 @@ export default function PayrollReport() {
                             (section === "مركز"
                               ? filteredTechRows.reduce(
                                   (s: number, tech: any) => {
-                                    const tAttend2 = Number(tech.attendanceCommission ?? 0);
-                                    const tExam2 = Number(tech.examCommission ?? 0);
-                                    const tPent2 = Number(tech.pentacamCommission ?? 0);
+                                    const tAttend2 = Number(
+                                      tech.attendanceCommission ?? 0,
+                                    );
+                                    const tExam2 = Number(
+                                      tech.examCommission ?? 0,
+                                    );
+                                    const tPent2 = Number(
+                                      tech.pentacamCommission ?? 0,
+                                    );
                                     const techAllowances =
                                       getAllowanceValues(tech);
                                     const tCola2 = techAllowances.cola;

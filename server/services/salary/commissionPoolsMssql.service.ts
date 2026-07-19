@@ -39,6 +39,12 @@ const XRAY_REMAINING_PRICE_FALLBACK = 350;
 const XRAY_1502_PRICE_FALLBACK = 200;
 const XRAY_1502_DEDUCTION = 55; // 55/200 = 27.5% at baseline price — price changes now flow through automatically
 
+type ManualPoolField = "examPool" | "pentacamPool" | "pentacamDrPool";
+
+function manualPoolKey(year: number, month: number, field: ManualPoolField): string {
+  return `commission_manual_${year}_${String(month).padStart(2, "0")}_${field}`;
+}
+
 /** Manual override (salary_config) wins if set; else the hardcoded fallback. */
 async function resolveFixedPrice(configKey: string, fallback: number): Promise<number> {
   const db = await getDb();
@@ -149,6 +155,59 @@ export interface MarkazAutoPools {
   };
 }
 
+export interface MarkazEffectivePools extends MarkazAutoPools {
+  source: "automatic" | "manual";
+  automatic: Pick<MarkazAutoPools, "examPool" | "pentacamPool" | "pentacamDrPool">;
+  manualOverrides: Record<ManualPoolField, number | null>;
+}
+
+export async function getMarkazManualPoolOverrides(
+  year: number,
+  month: number,
+): Promise<Record<ManualPoolField, number | null>> {
+  const db = await getDb();
+  const empty = { examPool: null, pentacamPool: null, pentacamDrPool: null };
+  if (!db) return empty;
+  const fields: ManualPoolField[] = ["examPool", "pentacamPool", "pentacamDrPool"];
+  const keys = fields.map((field) => manualPoolKey(year, month, field));
+  const rows = await db
+    .select()
+    .from(salaryConfig)
+    .where(or(...keys.map((key) => eq(salaryConfig.key, key))));
+  const values = new Map(
+    rows.map((row: { key: string; value: string }) => [row.key, Number(row.value)]),
+  );
+  return Object.fromEntries(
+    fields.map((field) => {
+      const value = values.get(manualPoolKey(year, month, field));
+      return [field, Number.isFinite(value) ? value : null];
+    }),
+  ) as Record<ManualPoolField, number | null>;
+}
+
+export async function setMarkazManualPoolOverrides(
+  year: number,
+  month: number,
+  values: Record<ManualPoolField, number | null>,
+): Promise<{ success: true }> {
+  const db = await getDb();
+  if (!db) throw new Error("DB unavailable");
+  for (const field of Object.keys(values) as ManualPoolField[]) {
+    const key = manualPoolKey(year, month, field);
+    const value = values[field];
+    if (value === null) {
+      await db.delete(salaryConfig).where(eq(salaryConfig.key, key));
+      continue;
+    }
+    const normalized = String(round2(value));
+    await db
+      .insert(salaryConfig)
+      .values({ key, value: normalized })
+      .onDuplicateKeyUpdate({ set: { value: normalized } });
+  }
+  return { success: true };
+}
+
 export async function computeMarkazAutoPools(
   year: number,
   month: number,
@@ -256,5 +315,32 @@ export async function computeMarkazAutoPools(
       xrayRemainingPrice,
       xrayRemainingPool,
     },
+  };
+}
+
+export async function computeMarkazEffectivePools(
+  year: number,
+  month: number,
+): Promise<MarkazEffectivePools> {
+  const [automaticPools, manualOverrides] = await Promise.all([
+    computeMarkazAutoPools(year, month),
+    getMarkazManualPoolOverrides(year, month),
+  ]);
+  const automatic = {
+    examPool: automaticPools.examPool,
+    pentacamPool: automaticPools.pentacamPool,
+    pentacamDrPool: automaticPools.pentacamDrPool,
+  };
+  const source = Object.values(manualOverrides).some((value) => value !== null)
+    ? "manual"
+    : "automatic";
+  return {
+    ...automaticPools,
+    examPool: manualOverrides.examPool ?? automatic.examPool,
+    pentacamPool: manualOverrides.pentacamPool ?? automatic.pentacamPool,
+    pentacamDrPool: manualOverrides.pentacamDrPool ?? automatic.pentacamDrPool,
+    source,
+    automatic,
+    manualOverrides,
   };
 }

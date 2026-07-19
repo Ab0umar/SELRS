@@ -50,6 +50,7 @@ export function AddPortalBookingDialog({
   } | null>(null);
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
   const [branch, setBranch] = useState<Branch | null>(null);
   const [bookingType, setBookingType] = useState<BookingType>("consultant");
   const [requestedDate, setRequestedDate] = useState("");
@@ -103,6 +104,7 @@ export function AddPortalBookingDialog({
     setSelectedPatient(null);
     setGuestName("");
     setGuestPhone("");
+    setGuestEmail("");
     setBranch(null);
     setRequestedDate("");
     setConfirmedDate("");
@@ -291,9 +293,9 @@ export function AddPortalBookingDialog({
                 )}
               </div>
 
-              {/* Phone + Date on same row for new patient */}
+              {/* Contact details and date for a new patient */}
               {patientType !== "existing" ? (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium text-muted-foreground block text-right">
                       الموبايل
@@ -303,6 +305,19 @@ export function AddPortalBookingDialog({
                       onChange={(e) => setGuestPhone(e.target.value)}
                       placeholder="01xxxxxxxxx"
                       className="h-10 rounded-xl text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground block text-right">
+                      البريد الإلكتروني
+                    </label>
+                    <Input
+                      type="email"
+                      value={guestEmail}
+                      onChange={(e) => setGuestEmail(e.target.value)}
+                      placeholder="name@example.com"
+                      className="h-10 rounded-xl text-sm"
+                      dir="ltr"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -394,6 +409,7 @@ export function AddPortalBookingDialog({
                 createNew.mutate({
                   guestName: guestName.trim(),
                   guestPhone: guestPhone.trim(),
+                  guestEmail: guestEmail.trim() || undefined,
                   bookingType,
                   branch: branch ?? undefined,
                   requestedDate,

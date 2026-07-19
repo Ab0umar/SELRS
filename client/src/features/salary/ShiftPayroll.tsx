@@ -107,8 +107,8 @@ const MONTHS_AR = [
 
 function fmt(n: number) {
   return Number(n).toLocaleString("en-EG", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   });
 }
 

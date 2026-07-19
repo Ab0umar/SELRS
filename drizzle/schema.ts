@@ -62,6 +62,7 @@ export const patients = mysqlTable("patients", {
   nationalId: varchar("nationalId", { length: 20 }), // ط§ظ„ط±ظ‚ظ… ط§ظ„ظ‚ظˆظ…ظٹ
   phone: varchar("phone", { length: 20 }), // ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ
   alternatePhone: varchar("alternatePhone", { length: 20 }), // ط±ظ‚ظ… ظ‡ط§طھظپ ط¨ط¯ظٹظ„
+  email: varchar("email", { length: 320 }),
   address: text("address"), // ط§ظ„ط¹ظ†ظˆط§ظ†
   occupation: varchar("occupation", { length: 255 }), // ط§ظ„ظˆط¸ظٹظپط©
   referralSource: varchar("referralSource", { length: 255 }), // ظƒظٹظپظٹط© ط§ظ„ظ…ط¹ط±ظپط©
@@ -201,7 +202,9 @@ export const attendanceShifts = mysqlTable(
     flexOutTo: varchar("flex_out_to", { length: 8 }), // latest check-out HH:mm
     active: boolean("active").default(true).notNull(),
     shiftSize: varchar("shift_size", { length: 8 }).default("auto").notNull(), // 'big' | 'small' | 'auto'
-    autoSmallThresholdMin: int("auto_small_threshold_min").default(270).notNull(), // minutes; shifts shorter than this are 'small' when shiftSize='auto'
+    autoSmallThresholdMin: int("auto_small_threshold_min")
+      .default(270)
+      .notNull(), // minutes; shifts shorter than this are 'small' when shiftSize='auto'
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
@@ -593,28 +596,25 @@ export type InsertPostOpOffdaysCertificate =
 /**
  * Medical Condition Reports table - تقارير الحالة الطبية (مضاعفات/متابعة)
  */
-export const medicalConditionReports = mysqlTable(
-  "medicalConditionReports",
-  {
-    id: int("id").autoincrement().primaryKey(),
-    patientId: int("patientId").notNull(),
-    reportDate: date("reportDate"),
-    operationType: varchar("operationType", { length: 100 }),
-    operationDate: date("operationDate"),
-    condition: text("condition"),
-    includeCurrentStatus: boolean("includeCurrentStatus").default(true),
-    vaOD: varchar("vaOD", { length: 32 }),
-    vaOS: varchar("vaOS", { length: 32 }),
-    complications: text("complications"),
-    followUpPlan: text("followUpPlan"),
-    doctorName: varchar("doctorName", { length: 255 }),
-    patientNameOverride: varchar("patientNameOverride", { length: 255 }),
-    patientCodeOverride: varchar("patientCodeOverride", { length: 64 }),
-    patientDobOverride: date("patientDobOverride"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-  },
-);
+export const medicalConditionReports = mysqlTable("medicalConditionReports", {
+  id: int("id").autoincrement().primaryKey(),
+  patientId: int("patientId").notNull(),
+  reportDate: date("reportDate"),
+  operationType: varchar("operationType", { length: 100 }),
+  operationDate: date("operationDate"),
+  condition: text("condition"),
+  includeCurrentStatus: boolean("includeCurrentStatus").default(true),
+  vaOD: varchar("vaOD", { length: 32 }),
+  vaOS: varchar("vaOS", { length: 32 }),
+  complications: text("complications"),
+  followUpPlan: text("followUpPlan"),
+  doctorName: varchar("doctorName", { length: 255 }),
+  patientNameOverride: varchar("patientNameOverride", { length: 255 }),
+  patientCodeOverride: varchar("patientCodeOverride", { length: 64 }),
+  patientDobOverride: date("patientDobOverride"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
 
 export type MedicalConditionReport =
   typeof medicalConditionReports.$inferSelect;
@@ -1521,6 +1521,7 @@ export const attendanceEmployees = mysqlTable(
     commExam: boolean("comm_exam").default(true).notNull(),
     commPentacam: boolean("comm_pentacam").default(true).notNull(),
     commDay10: boolean("comm_day10").default(true).notNull(),
+    commOvertime: boolean("comm_overtime").default(true).notNull(),
     sourceHash: varchar("source_hash", { length: 40 }),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -1846,7 +1847,9 @@ export const attendanceDeviceSettings = mysqlTable(
     zk40Ip: varchar("zk40_ip", { length: 255 }),
     zk40Port: int("zk40_port").default(4370),
     zk40Enabled: boolean("zk40_enabled").default(false).notNull(),
-    zk40Protocol: mysqlEnum("zk40_protocol", ["adms", "tcp"]).default("adms").notNull(),
+    zk40Protocol: mysqlEnum("zk40_protocol", ["adms", "tcp"])
+      .default("adms")
+      .notNull(),
     fkProtocol: int("fk_protocol").default(0).notNull(),
     commPassword: int("comm_password").default(0).notNull(),
     admsEnabled: boolean("adms_enabled").default(true).notNull(),
@@ -2155,12 +2158,19 @@ export const salarySupervisionBonus = mysqlTable(
     year: int("year").notNull(),
     month: int("month").notNull(),
     section: varchar("section", { length: 32 }).default("مركز").notNull(),
-    amount: decimal("amount", { precision: 12, scale: 2 }).notNull().default("0"),
+    amount: decimal("amount", { precision: 12, scale: 2 })
+      .notNull()
+      .default("0"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
   },
   (table) => ({
-    uqSupervisionBonus: uniqueIndex("uq_supervision_bonus").on(table.empCd, table.year, table.month, table.section),
+    uqSupervisionBonus: uniqueIndex("uq_supervision_bonus").on(
+      table.empCd,
+      table.year,
+      table.month,
+      table.section,
+    ),
   }),
 );
 
@@ -2439,7 +2449,10 @@ export const bookingScheduleConfig = mysqlTable(
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
   (table) => ({
-    typeBranchIdx: uniqueIndex("idx_booking_schedule_type_branch").on(table.bookingType, table.branch),
+    typeBranchIdx: uniqueIndex("idx_booking_schedule_type_branch").on(
+      table.bookingType,
+      table.branch,
+    ),
   }),
 );
 
@@ -2470,6 +2483,7 @@ export const patientPortalBookings = mysqlTable(
     patientId: int("patientId"),
     guestName: varchar("guestName", { length: 100 }),
     guestPhone: varchar("guestPhone", { length: 20 }),
+    guestEmail: varchar("guestEmail", { length: 320 }),
     bookingType: mysqlEnum("bookingType", [
       "consultant",
       "specialist",

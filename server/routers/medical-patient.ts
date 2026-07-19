@@ -100,6 +100,7 @@ export const medicalPatientRoutes = {
         nationalId: z.string().optional(),
         phone: z.string(),
         alternatePhone: z.string().optional(),
+        email: z.string().trim().email().max(320).optional(),
         address: z.string().optional(),
         occupation: z.string().optional(),
         referralSource: z.string().optional(),
@@ -766,6 +767,7 @@ export const medicalPatientRoutes = {
         age: z.number().optional(),
         phone: z.string().optional(),
         alternatePhone: z.string().optional(),
+        email: z.string().trim().email().max(320).optional(),
         address: z.string().optional(),
         occupation: z.string().optional(),
         gender: z.enum(["male", "female"]).optional(),
@@ -893,16 +895,20 @@ export const medicalPatientRoutes = {
         const { patientId } = await createOrSyncPatientFromMssql(patientCode, input.serviceType, input.visitDate);
         _mark("createOrSyncPatientFromMssql done");
 
-        // alternatePhone has no MSSQL column mapping — store it locally only,
-        // after the MSSQL sync above so it isn't overwritten by that sync.
-        if (patientId && String(input.alternatePhone ?? "").trim()) {
+        // These fields have no MSSQL mapping, so preserve them after the sync.
+        const localPatientContact: Record<string, string> = {};
+        if (String(input.alternatePhone ?? "").trim()) {
+          localPatientContact.alternatePhone = String(input.alternatePhone).trim();
+        }
+        if (String(input.email ?? "").trim()) {
+          localPatientContact.email = String(input.email).trim();
+        }
+        if (patientId && Object.keys(localPatientContact).length > 0) {
           await db
-            .updatePatient(patientId, {
-              alternatePhone: String(input.alternatePhone).trim(),
-            })
+            .updatePatient(patientId, localPatientContact)
             .catch((err) =>
               console.warn(
-                "[createPatientFromExamination] alternatePhone update failed:",
+                "[createPatientFromExamination] local contact update failed:",
                 err,
               ),
             );

@@ -52,6 +52,9 @@ const envSchema = z.object({
   FB_APP_SECRET: z.string().optional().default(""),
   FB_REDIRECT_URI: z.string().optional().default(""),
   FB_APP_ORIGIN: z.string().optional().default(""),
+  ZOHO_SMTP_USERNAME: z.string().optional().default(""),
+  ZOHO_SMTP_APP_PASSWORD: z.string().optional().default(""),
+  BOOKING_EMAIL_FROM: z.string().optional().default("noreply@selrs.cc"),
 });
 
 const parsed = envSchema.parse(process.env);
@@ -108,4 +111,7 @@ export const ENV = {
   fbAppSecret: parsed.FB_APP_SECRET,
   fbRedirectUri: parsed.FB_REDIRECT_URI,
   fbAppOrigin: parsed.FB_APP_ORIGIN,
+  zohoSmtpUsername: parsed.ZOHO_SMTP_USERNAME,
+  zohoSmtpAppPassword: parsed.ZOHO_SMTP_APP_PASSWORD,
+  bookingEmailFrom: parsed.BOOKING_EMAIL_FROM,
 };

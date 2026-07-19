@@ -27,6 +27,7 @@ import { ENV } from "../_core/env";
 import { pushAppNotification, getAppNotificationSettings, DEFAULT_APP_NOTIFICATION_SETTINGS } from "../_core/appNotifications";
 import { sendWebPushToSubscription } from "../_core/webPush";
 import { broadcastBookingUpdate } from "../_core/ws";
+import { sendBookingStatusEmail } from "../services/bookingEmail.service";
 
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
@@ -391,6 +392,7 @@ export const patientPortalRouter = router({
       z.object({
         guestName: z.string().min(2).max(100),
         guestPhone: z.string().min(8).max(20),
+        guestEmail: z.string().trim().email().max(320).optional(),
         bookingType: z.enum([
           "consultant",
           "specialist",
@@ -414,6 +416,7 @@ export const patientPortalRouter = router({
       await db.insert(patientPortalBookings).values({
         guestName: input.guestName,
         guestPhone: normalizePhone(input.guestPhone),
+        guestEmail: input.guestEmail || undefined,
         bookingType: input.bookingType,
         branch: input.branch ?? null,
         requestedDate: new Date(input.requestedDate),
@@ -537,6 +540,7 @@ export const patientPortalRouter = router({
           patientName: patients.fullName,
           patientCode: patients.patientCode,
           patientPhone: patients.phone,
+          patientEmail: patients.email,
         })
         .from(patientPortalBookings)
         .leftJoin(patients, eq(patientPortalBookings.patientId, patients.id))
@@ -551,6 +555,7 @@ export const patientPortalRouter = router({
         patientName: r.patientName ?? r.booking.guestName ?? null,
         patientCode: r.patientCode ?? null,
         patientPhone: r.patientPhone ?? r.booking.guestPhone ?? null,
+        patientEmail: r.patientEmail ?? r.booking.guestEmail ?? null,
         isGuest: r.booking.patientId === null,
       }));
     }),
@@ -600,8 +605,15 @@ export const patientPortalRouter = router({
         staffNotes: input.staffNotes ?? undefined,
       });
 
-      const [staffPat] = await db.select({ fullName: patients.fullName, phone: patients.phone })
-        .from(patients).where(eq(patients.id, input.patientId)).limit(1);
+      const [staffPat] = await db
+        .select({
+          fullName: patients.fullName,
+          phone: patients.phone,
+          email: patients.email,
+        })
+        .from(patients)
+        .where(eq(patients.id, input.patientId))
+        .limit(1);
       await db.insert(visitScheduleRequests).values({
         fullName: staffPat?.fullName ?? "مريض",
         phone: staffPat?.phone ?? null,
@@ -610,6 +622,23 @@ export const patientPortalRouter = router({
         patientType: "existing",
         branch: input.branch ?? null,
       } as any);
+
+      if (input.status === "confirmed") {
+        void sendBookingStatusEmail({
+          recipientEmail: staffPat?.email,
+          patientName: staffPat?.fullName,
+          bookingTypeLabel:
+            BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType,
+          bookingDate: input.confirmedDate ?? input.requestedDate,
+          branch: input.branch,
+          status: "confirmed",
+        }).catch((error) =>
+          console.error(
+            "[booking-email] Failed to send staff booking confirmation",
+            error,
+          ),
+        );
+      }
 
       broadcastBookingUpdate();
 
@@ -621,6 +650,7 @@ export const patientPortalRouter = router({
       z.object({
         guestName: z.string().min(1).max(255),
         guestPhone: z.string().max(32).optional(),
+        guestEmail: z.string().trim().email().max(320).optional(),
         bookingType: z.enum([
           "consultant",
           "specialist",
@@ -641,6 +671,7 @@ export const patientPortalRouter = router({
       await db.insert(patientPortalBookings).values({
         guestName: input.guestName,
         guestPhone: input.guestPhone ?? undefined,
+        guestEmail: input.guestEmail || undefined,
         bookingType: input.bookingType,
         branch: input.branch ?? null,
         requestedDate: new Date(input.requestedDate),
@@ -656,6 +687,17 @@ export const patientPortalRouter = router({
         patientType: "guest",
         branch: input.branch ?? null,
       } as any);
+
+      void sendBookingStatusEmail({
+        recipientEmail: input.guestEmail,
+        patientName: input.guestName,
+        bookingTypeLabel: BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType,
+        bookingDate: input.requestedDate,
+        branch: input.branch,
+        status: "confirmed",
+      }).catch((error) =>
+        console.error("[booking-email] Failed to send guest booking confirmation", error),
+      );
 
       broadcastBookingUpdate();
       return { ok: true };
@@ -711,6 +753,27 @@ export const patientPortalRouter = router({
           message: "DB unavailable",
         });
 
+      const [booking] = await db
+        .select({
+          status: patientPortalBookings.status,
+          patientId: patientPortalBookings.patientId,
+          bookingType: patientPortalBookings.bookingType,
+          requestedDate: patientPortalBookings.requestedDate,
+          confirmedDate: patientPortalBookings.confirmedDate,
+          branch: patientPortalBookings.branch,
+          guestName: patientPortalBookings.guestName,
+          guestEmail: patientPortalBookings.guestEmail,
+          patientName: patients.fullName,
+          patientEmail: patients.email,
+        })
+        .from(patientPortalBookings)
+        .leftJoin(patients, eq(patientPortalBookings.patientId, patients.id))
+        .where(eq(patientPortalBookings.id, input.id))
+        .limit(1);
+      if (!booking) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Booking not found" });
+      }
+
       await db
         .update(patientPortalBookings)
         .set({
@@ -722,18 +785,20 @@ export const patientPortalRouter = router({
         })
         .where(eq(patientPortalBookings.id, input.id));
 
-      // Notify patient if status changed to confirmed or cancelled
-      if (input.status === "confirmed" || input.status === "cancelled") {
-        const [booking] = await db
-          .select({
-            patientId: patientPortalBookings.patientId,
-            bookingType: patientPortalBookings.bookingType,
-          })
-          .from(patientPortalBookings)
-          .where(eq(patientPortalBookings.id, input.id))
-          .limit(1);
+      const statusChanged = booking.status !== input.status;
+      if (statusChanged && (input.status === "confirmed" || input.status === "cancelled")) {
+        void sendBookingStatusEmail({
+          recipientEmail: booking.patientEmail ?? booking.guestEmail,
+          patientName: booking.patientName ?? booking.guestName,
+          bookingTypeLabel: BOOKING_TYPE_LABELS[booking.bookingType] ?? booking.bookingType,
+          bookingDate: input.confirmedDate ?? booking.confirmedDate ?? booking.requestedDate,
+          branch: booking.branch,
+          status: input.status,
+        }).catch((error) =>
+          console.error("[booking-email] Failed to send booking status update", error),
+        );
 
-        if (booking?.patientId) {
+        if (booking.patientId) {
           const sessions = await db
             .select({
               pushSubscription: patientPortalSessions.pushSubscription,

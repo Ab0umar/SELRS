@@ -130,6 +130,46 @@ export default function CommissionPools() {
     { enabled: isMarkaz },
   );
   const autoPools = autoPoolsQ.data;
+  const [manualEditing, setManualEditing] = useState(false);
+  const [manualExamPool, setManualExamPool] = useState("");
+  const [manualPentacamDrPool, setManualPentacamDrPool] = useState("");
+  const [manualPentacamPool, setManualPentacamPool] = useState("");
+
+  useEffect(() => {
+    if (!autoPools || manualEditing) return;
+    setManualExamPool(String(autoPools.examPool ?? 0));
+    setManualPentacamDrPool(String(autoPools.pentacamDrPool ?? 0));
+    setManualPentacamPool(String(autoPools.pentacamPool ?? 0));
+  }, [autoPools, manualEditing]);
+
+  const manualPoolsMut = (trpc as any).salary.setMarkazManualCommissionPools.useMutation({
+    onSuccess: () => {
+      autoPoolsQ.refetch();
+      setManualEditing(false);
+      toast.success("تم تحديث مبالغ التوزيع وربطها بالرواتب");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const saveManualPools = () => {
+    manualPoolsMut.mutate({
+      year,
+      month,
+      examPool: Number(manualExamPool) || 0,
+      pentacamDrPool: Number(manualPentacamDrPool) || 0,
+      pentacamPool: Number(manualPentacamPool) || 0,
+    });
+  };
+
+  const restoreAutomaticPools = () => {
+    manualPoolsMut.mutate({
+      year,
+      month,
+      examPool: null,
+      pentacamDrPool: null,
+      pentacamPool: null,
+    });
+  };
 
   const priceOverridesQ = (trpc as any).salary.getPriceOverrides.useQuery(
     undefined,
@@ -496,6 +536,115 @@ export default function CommissionPools() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSave} className="space-y-6">
+            {isMarkaz && autoPools && (
+              <section className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className="text-base font-semibold">مصدر مبالغ التوزيع</h3>
+                    <p className="text-xs text-muted-foreground">
+                      {autoPools.source === "manual"
+                        ? "يتم استخدام المبالغ اليدوية في النِّسب والرواتب لهذا الشهر."
+                        : "يتم احتساب المبالغ تلقائيًا من الإيراد."}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {!manualEditing && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setManualEditing(true)}
+                      >
+                        <Pencil className="ml-2 h-4 w-4" />
+                        تعديل يدوي
+                      </Button>
+                    )}
+                    {autoPools.source === "manual" && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        disabled={manualPoolsMut.isPending}
+                        onClick={restoreAutomaticPools}
+                      >
+                        استعادة الحساب التلقائي
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {[
+                    {
+                      label: "إجمالي الكشف",
+                      value: manualExamPool,
+                      setValue: setManualExamPool,
+                      automatic: autoPools.automatic?.examPool,
+                    },
+                    {
+                      label: "بنتاكام الأطباء",
+                      value: manualPentacamDrPool,
+                      setValue: setManualPentacamDrPool,
+                      automatic: autoPools.automatic?.pentacamDrPool,
+                    },
+                    {
+                      label: "بنتاكام الموظفين والفنيين",
+                      value: manualPentacamPool,
+                      setValue: setManualPentacamPool,
+                      automatic: autoPools.automatic?.pentacamPool,
+                    },
+                  ].map((item) => (
+                    <label key={item.label} className="space-y-1">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {item.label}
+                      </span>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={item.value}
+                          disabled={!manualEditing}
+                          onChange={(e) => item.setValue(e.target.value)}
+                          className="h-11 w-full rounded-md border border-border bg-background px-3 pl-8 text-center text-base font-semibold disabled:cursor-default disabled:opacity-100"
+                        />
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                          ج
+                        </span>
+                      </div>
+                      {autoPools.source === "manual" && (
+                        <span className="block text-[11px] text-muted-foreground">
+                          التلقائي: {Number(item.automatic ?? 0).toLocaleString("ar-EG")} ج
+                        </span>
+                      )}
+                    </label>
+                  ))}
+                </div>
+
+                {manualEditing && (
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        setManualEditing(false);
+                        setManualExamPool(String(autoPools.examPool ?? 0));
+                        setManualPentacamDrPool(String(autoPools.pentacamDrPool ?? 0));
+                        setManualPentacamPool(String(autoPools.pentacamPool ?? 0));
+                      }}
+                    >
+                      إلغاء
+                    </Button>
+                    <Button
+                      type="button"
+                      disabled={manualPoolsMut.isPending}
+                      onClick={saveManualPools}
+                    >
+                      حفظ وتطبيق على الرواتب
+                    </Button>
+                  </div>
+                )}
+              </section>
+            )}
+
             {isMarkaz ? (
               <>
                 {/* Exams Section — auto-computed from MSSQL service revenue */}

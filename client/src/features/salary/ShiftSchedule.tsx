@@ -185,9 +185,9 @@ const PRINT_CSS = `
   .sheet { display: grid; gap: 4mm; }
   .print-header {
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    grid-template-columns: minmax(48mm, 1fr) minmax(72mm, auto) minmax(58mm, 1fr);
     align-items: center;
-    gap: 8mm;
+    gap: 4mm;
     border: 1px solid oklch(84% 0.028 245);
     border-radius: 5mm;
     padding: 3mm 4mm;
@@ -204,7 +204,18 @@ const PRINT_CSS = `
   .brand-subtitle { margin-top: 1mm; color: oklch(47% 0.026 245); font-size: 7px; font-weight: 600; }
   .title-block { text-align: center; }
   h1 { margin: 0; font-size: 18px; font-weight: 850; letter-spacing: -0.01em; color: oklch(30% 0.115 255); }
-  .date-range { margin-top: 1.5mm; color: oklch(46% 0.028 245); font-size: 8px; font-weight: 700; }
+  .date-range {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2mm;
+    margin-top: 1.5mm;
+    color: oklch(46% 0.028 245);
+    font-size: 8px;
+    font-weight: 700;
+    direction: rtl;
+    white-space: nowrap;
+  }
   .summary-strip { display: flex; justify-content: flex-end; gap: 2mm; flex-wrap: wrap; }
   .summary-pill {
     min-width: 18mm; border: 1px solid oklch(88% 0.02 245); border-radius: 999px;
@@ -274,7 +285,10 @@ function arabicDigits(value: number | string) {
 }
 
 function compactStaffName(staff: any) {
-  const shortName = String(staff.name ?? "")
+  const normalizedName = String(staff.name ?? "")
+    .trim()
+    .replace(/^(?:دكتور|د\.?)\s*/u, "");
+  const shortName = normalizedName
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
@@ -301,6 +315,7 @@ export default function ShiftSchedule() {
   const [holidayForm, setHolidayForm] = useState<HolidayForm>(EMPTY_HOLIDAY);
   const [staffFilter, setStaffFilter] = useState<StaffFilter>("all");
   const [selectedMobileDate, setSelectedMobileDate] = useState(todayStr);
+  const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
 
   const schedQ = isManager
     ? (trpc as any).salary.getShiftSchedule.useQuery({ year, month, fromDate, toDate })
@@ -675,7 +690,11 @@ export default function ShiftSchedule() {
           </div>
           <div class="title-block">
             <h1>روستر شهر ${escapeHtml(fromDate.slice(0, 7))}</h1>
-            <div class="date-range">من ${escapeHtml(fmtDate(fromDate))} إلى ${escapeHtml(fmtDate(toDate))} · طبع في ${escapeHtml(printDate)}</div>
+            <div class="date-range">
+              <span>من ${escapeHtml(fmtDate(fromDate))}</span>
+              <span>إلى ${escapeHtml(fmtDate(toDate))}</span>
+              <span>طبع في ${escapeHtml(printDate)}</span>
+            </div>
           </div>
           <div class="summary-strip" aria-label="ملخص الروستر">
             <div class="summary-pill">${arabicDigits(displayStaff.length)}<span>فريق</span></div>
@@ -727,8 +746,39 @@ export default function ShiftSchedule() {
 
   return (
     <div dir="rtl" className="min-h-full bg-background text-foreground">
+      <style>{`
+        @media (hover: hover) and (pointer: fine) {
+          .roster-add-shift,
+          .roster-delete-shift {
+            opacity: 0;
+            pointer-events: none;
+          }
+          .roster-day-card:hover .roster-add-shift,
+          .roster-day-card:focus-within .roster-add-shift,
+          .roster-shift-pill:hover .roster-delete-shift,
+          .roster-shift-pill:focus-within .roster-delete-shift {
+            opacity: 1;
+            pointer-events: auto;
+          }
+        }
+        @media (min-width: 1280px) {
+          .roster-desktop-layout {
+            grid-template-areas: "sidebar calendar";
+            grid-template-columns: 300px minmax(0, 1fr);
+          }
+          .roster-desktop-layout.roster-sidebar-closed {
+            grid-template-columns: 52px minmax(0, 1fr);
+          }
+          .roster-calendar-panel {
+            grid-area: calendar;
+          }
+          .roster-side-panel {
+            grid-area: sidebar;
+          }
+        }
+      `}</style>
       <div className="space-y-4 px-4 pb-24 pt-3 md:hidden">
-        <header className="sticky top-0 z-20 -mx-4 border-b border-border/70 bg-background/95 px-4 py-3 backdrop-blur">
+        <header className="sticky top-0 z-20 -mx-4 border-b border-border/70 bg-background/95 px-4 py-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -755,7 +805,7 @@ export default function ShiftSchedule() {
           </div>
         </header>
 
-        <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
+        <section className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-center justify-between gap-3">
             <Button
               size="icon"
@@ -810,7 +860,7 @@ export default function ShiftSchedule() {
           ))}
         </div>
 
-        <section className="rounded-xl border border-border bg-card p-3 shadow-sm">
+        <section className="rounded-xl border border-border bg-card p-3">
           <div className="grid grid-cols-7 text-center">
             {["أحد", "اثنين", "ثلاثاء", "أربعاء", "خميس", "جمعة", "سبت"].map(
               (dayName) => (
@@ -947,7 +997,7 @@ export default function ShiftSchedule() {
                 return (
                   <div
                     key={entry.id}
-                    className={`flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 shadow-sm ${
+                    className={`flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 ${
                       entry.present ? "" : "opacity-70"
                     }`}
                   >
@@ -1060,7 +1110,7 @@ export default function ShiftSchedule() {
         )}
 
         {isManager && showAdd && (
-          <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
+          <section className="rounded-xl border border-border bg-card p-4">
             <h3 className="text-sm font-black text-foreground">إضافة ورديات</h3>
             <div className="mt-3 space-y-3">
               <select
@@ -1151,7 +1201,7 @@ export default function ShiftSchedule() {
         )}
 
         {isManager && showHolidayAdd && (
-          <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
+          <section className="rounded-xl border border-border bg-card p-4">
             <h3 className="text-sm font-black text-foreground">
               العطلات الرسمية
             </h3>
@@ -1217,8 +1267,8 @@ export default function ShiftSchedule() {
         )}
       </div>
 
-      <div className="mx-auto hidden w-full max-w-none flex-col gap-5 px-3 py-4 sm:px-5 md:flex lg:px-6">
-        <header className="flex flex-col gap-4 rounded-2xl border border-border/80 bg-background px-4 py-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+      <div className="mx-auto hidden w-full max-w-none flex-col gap-4 px-4 py-4 md:flex lg:px-6">
+        <header className="flex flex-col gap-4 rounded-xl border border-border bg-card px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 bg-primary/5 px-3 py-1 text-xs font-bold text-primary">
@@ -1239,7 +1289,7 @@ export default function ShiftSchedule() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="inline-flex rounded-xl bg-muted p-1">
               {(
                 [
@@ -1263,20 +1313,27 @@ export default function ShiftSchedule() {
               ))}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <DateInput
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-                className="h-10 w-32 rounded-xl border border-border bg-background px-2 text-center text-xs font-bold text-foreground"
-              />
-              <span className="text-xs font-bold text-muted-foreground">
-                إلى
-              </span>
-              <DateInput
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-                className="h-10 w-32 rounded-xl border border-border bg-background px-2 text-center text-xs font-bold text-foreground"
-              />
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="grid gap-1 text-xs font-bold text-muted-foreground">
+                <span>من</span>
+                <DateInput
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="h-10 w-40 shrink-0 rounded-xl border border-border bg-background px-1 text-center text-xs font-bold text-foreground"
+                  inputClassName="w-[118px] min-w-0 px-2 text-center"
+                  aria-label="تاريخ بداية الروستر"
+                />
+              </label>
+              <label className="grid gap-1 text-xs font-bold text-muted-foreground">
+                <span>إلى</span>
+                <DateInput
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="h-10 w-40 shrink-0 rounded-xl border border-border bg-background px-1 text-center text-xs font-bold text-foreground"
+                  inputClassName="w-[118px] min-w-0 px-2 text-center"
+                  aria-label="تاريخ نهاية الروستر"
+                />
+              </label>
               <Button
                 size="sm"
                 variant="outline"
@@ -1301,13 +1358,17 @@ export default function ShiftSchedule() {
           </div>
         )}
 
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <section className="min-w-0 overflow-hidden rounded-2xl border border-border/80 bg-background shadow-sm">
-            <div className="grid grid-cols-6 border-b border-border bg-muted/50">
+        <div
+          className={`roster-desktop-layout grid gap-4 ${
+            isSidePanelOpen ? "" : "roster-sidebar-closed"
+          }`}
+        >
+          <section className="roster-calendar-panel min-w-0 overflow-hidden rounded-xl border border-border bg-card">
+            <div className="grid grid-cols-6 border-b border-border bg-primary/5">
               {DAYS_AR_CALENDAR.map((dayName) => (
                 <div
                   key={dayName}
-                  className="px-2 py-3 text-center text-xs font-black text-muted-foreground"
+                  className="px-2 py-3 text-center text-xs font-black text-primary"
                 >
                   {dayName}
                 </div>
@@ -1339,7 +1400,7 @@ export default function ShiftSchedule() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-px bg-border p-px md:grid-cols-3 xl:grid-cols-6">
+                <div className="grid grid-cols-2 gap-px bg-border md:grid-cols-3 xl:grid-cols-6">
                   {Array.from({ length: prefixEmpty }).map((_, idx) => (
                     <div
                       key={`empty-${idx}`}
@@ -1364,45 +1425,43 @@ export default function ShiftSchedule() {
                       string,
                       Array<{ staff: any; entry: any }>
                     >();
-                    for (const item of dayEntries) {
-                      const key = item.entry.shiftName as string;
-                      if (!entriesByShift.has(key)) entriesByShift.set(key, []);
-                      entriesByShift.get(key)!.push(item);
+                    for (const rosterEntry of dayEntries) {
+                      const shiftName = rosterEntry.entry.shiftName as string;
+                      if (!entriesByShift.has(shiftName)) {
+                        entriesByShift.set(shiftName, []);
+                      }
+                      entriesByShift.get(shiftName)!.push(rosterEntry);
                     }
                     const shiftGroups = Array.from(entriesByShift.entries()).map(
                       ([shiftName, entries]) => {
                         const meta = SHIFT_META[shiftName as ShiftName];
-                        const label =
-                          shiftOptions.find((o) => o.name === shiftName)?.label ??
-                          meta?.label ??
-                          shiftName;
-                        return { shiftName, label, entries, meta };
+                        return {
+                          shiftName,
+                          label: meta?.short ?? shiftName,
+                          entries,
+                          meta,
+                        };
                       },
                     );
 
                     return (
                       <div
                         key={ds}
-                        className={`group/day flex min-h-[150px] flex-col bg-background p-3 transition-colors hover:bg-muted/30 ${
-                          isToday ? "ring-2 ring-inset ring-primary" : ""
+                        className={`roster-day-card flex min-h-[156px] flex-col bg-card p-3 transition-colors hover:bg-primary/[0.03] ${
+                          isToday ? "bg-primary/5 ring-2 ring-inset ring-primary" : ""
                         } ${holiday ? "bg-warning/10" : ""}`}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <div className="flex items-baseline gap-1">
-                              <span
-                                className={`text-lg font-black ${
-                                  isToday ? "text-primary" : "text-foreground"
-                                }`}
-                              >
-                                {arabicDigits(dateObj.getDate())}
-                              </span>
-                              <span className="text-[11px] font-bold text-muted-foreground">
-                                {MONTHS_AR[dateObj.getMonth()]}
-                              </span>
-                            </div>
-                            <span className="text-[10px] font-semibold text-muted-foreground">
-                              {arabicDigits(ds)}
+                          <div className="flex items-baseline gap-1">
+                            <span
+                              className={`text-lg font-black ${
+                                isToday ? "text-primary" : "text-foreground"
+                              }`}
+                            >
+                              {arabicDigits(dateObj.getDate())}
+                            </span>
+                            <span className="text-[11px] font-bold text-muted-foreground">
+                              {MONTHS_AR[dateObj.getMonth()]}
                             </span>
                           </div>
                           {holiday ? (
@@ -1425,7 +1484,8 @@ export default function ShiftSchedule() {
                             gridTemplateColumns: `repeat(${Math.max(shiftGroups.length, 1)}, minmax(0, 1fr))`,
                           }}
                         >
-                          {shiftGroups.map(({ shiftName, label, entries, meta }) => {
+                          {shiftGroups.map(
+                            ({ shiftName, label, entries, meta }) => {
                             return (
                               <div
                                 key={shiftName}
@@ -1442,7 +1502,7 @@ export default function ShiftSchedule() {
                                     return (
                                       <div
                                         key={entry.id}
-                                        className="group/pill relative"
+                                        className="roster-shift-pill relative"
                                       >
                                         <button
                                           type="button"
@@ -1464,11 +1524,12 @@ export default function ShiftSchedule() {
                                             toggleMut.isPending ||
                                             toggleMyMut.isPending
                                           }
-                                          className={`block max-w-full truncate rounded-full px-2 py-1 text-[10px] font-bold transition-colors ${
+                                          className={`block w-full whitespace-normal break-words rounded-lg px-1.5 py-1 text-center text-[10px] font-bold leading-tight transition-colors ${
                                             isMyRow
                                               ? "bg-primary text-primary-foreground"
                                               : entry.present
-                                                ? (meta?.tone ?? "bg-secondary/10 text-secondary ring-1 ring-inset ring-secondary/20 hover:bg-secondary/15")
+                                                ? (meta?.tone ??
+                                                  SHIFT_META.Morning.tone)
                                                 : "border border-border bg-muted text-muted-foreground line-through"
                                           } ${canEdit ? "cursor-pointer" : "cursor-default"}`}
                                           title={compactStaffName(staff)}
@@ -1484,7 +1545,7 @@ export default function ShiftSchedule() {
                                               })
                                             }
                                             disabled={deleteEntryMut.isPending}
-                                            className="absolute -left-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground shadow group-hover/pill:flex"
+                                            className="roster-delete-shift absolute -left-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[11px] font-bold text-destructive-foreground shadow-sm transition-opacity"
                                             title="حذف"
                                           >
                                             ×
@@ -1501,7 +1562,8 @@ export default function ShiftSchedule() {
                                 </div>
                               </div>
                             );
-                          })}
+                          },
+                          )}
                         </div>
 
                         {isManager && (
@@ -1518,7 +1580,7 @@ export default function ShiftSchedule() {
                                 `تم تحديد تاريخ ${ds} في لوحة الإضافة`,
                               );
                             }}
-                            className="mt-3 rounded-lg border border-dashed border-border bg-muted/35 px-2 py-1.5 text-[10px] font-bold text-muted-foreground opacity-100 transition-colors hover:border-primary/35 hover:bg-primary/5 hover:text-primary xl:opacity-0 xl:group-hover/day:opacity-100"
+                            className="roster-add-shift mt-3 rounded-lg border border-dashed border-primary/25 bg-primary/5 px-2 py-1.5 text-[10px] font-bold text-primary transition-[opacity,background-color,border-color] hover:border-primary/45 hover:bg-primary/10"
                           >
                             إضافة وردية
                           </button>
@@ -1531,8 +1593,26 @@ export default function ShiftSchedule() {
             )}
           </section>
 
-          <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start">
-            <div className="rounded-2xl border border-border/80 bg-background p-4 shadow-sm">
+          <aside className="roster-side-panel grid gap-3 md:grid-cols-2 xl:sticky xl:top-4 xl:grid-cols-1 xl:self-start">
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              onClick={() => setIsSidePanelOpen((open) => !open)}
+              className="h-11 w-full rounded-xl border-primary/20 text-primary"
+              title={isSidePanelOpen ? "إغلاق القائمة الجانبية" : "فتح القائمة الجانبية"}
+              aria-label={isSidePanelOpen ? "إغلاق القائمة الجانبية" : "فتح القائمة الجانبية"}
+              aria-expanded={isSidePanelOpen}
+            >
+              {isSidePanelOpen ? (
+                <ChevronRight className="h-5 w-5" />
+              ) : (
+                <ChevronLeft className="h-5 w-5" />
+              )}
+            </Button>
+            {isSidePanelOpen && (
+              <>
+            <div className="rounded-xl border border-border bg-card p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-base font-black text-primary">
@@ -1544,36 +1624,36 @@ export default function ShiftSchedule() {
                 </div>
                 <ShieldCheck className="h-8 w-8 text-primary/70" />
               </div>
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <div className="rounded-xl border border-border bg-muted/35 p-3">
-                  <span className="text-[11px] font-bold text-muted-foreground">
+              <div className="mt-4 divide-y divide-border border-y border-border">
+                <div className="flex items-center justify-between py-2.5">
+                  <span className="text-xs font-bold text-muted-foreground">
                     المجدولون
                   </span>
-                  <strong className="mt-1 block text-2xl font-black text-foreground">
+                  <strong className="text-lg font-black text-foreground">
                     {arabicDigits(scheduledStaff)}
                   </strong>
                 </div>
-                <div className="rounded-xl border border-border bg-muted/35 p-3">
-                  <span className="text-[11px] font-bold text-muted-foreground">
+                <div className="flex items-center justify-between py-2.5">
+                  <span className="text-xs font-bold text-muted-foreground">
                     المؤكدة
                   </span>
-                  <strong className="mt-1 block text-2xl font-black text-success-text">
+                  <strong className="text-lg font-black text-success-text">
                     {arabicDigits(totalPresent)}
                   </strong>
                 </div>
-                <div className="rounded-xl border border-border bg-muted/35 p-3">
-                  <span className="text-[11px] font-bold text-muted-foreground">
+                <div className="flex items-center justify-between py-2.5">
+                  <span className="text-xs font-bold text-muted-foreground">
                     غير مؤكدة
                   </span>
-                  <strong className="mt-1 block text-2xl font-black text-destructive-text">
+                  <strong className="text-lg font-black text-destructive-text">
                     {arabicDigits(totalAbsent)}
                   </strong>
                 </div>
-                <div className="rounded-xl border border-border bg-muted/35 p-3">
-                  <span className="text-[11px] font-bold text-muted-foreground">
+                <div className="flex items-center justify-between py-2.5">
+                  <span className="text-xs font-bold text-muted-foreground">
                     العطلات
                   </span>
-                  <strong className="mt-1 block text-2xl font-black text-warning">
+                  <strong className="text-lg font-black text-warning">
                     {arabicDigits(holidays.length)}
                   </strong>
                 </div>
@@ -1583,7 +1663,7 @@ export default function ShiftSchedule() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-border/80 bg-background p-4 shadow-sm">
+            <div className="rounded-xl border border-border bg-card p-4">
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="text-sm font-black text-foreground">
                   ورديات اليوم
@@ -1622,7 +1702,7 @@ export default function ShiftSchedule() {
 
             {isManager ? (
               <div className="space-y-4">
-                <div className="rounded-2xl border border-border/80 bg-background p-4 shadow-sm">
+                <div className="rounded-xl border border-border bg-card p-4">
                   <h3 className="text-sm font-black text-foreground">
                     إجراءات الروستر
                   </h3>
@@ -1674,7 +1754,7 @@ export default function ShiftSchedule() {
                 </div>
 
                 {showAdd && (
-                  <div className="rounded-2xl border border-border/80 bg-background p-4 shadow-sm">
+                  <div className="rounded-xl border border-border bg-card p-4">
                     <h3 className="text-sm font-black text-foreground">
                       إضافة ورديات
                     </h3>
@@ -1772,7 +1852,7 @@ export default function ShiftSchedule() {
                 )}
 
                 {showHolidayAdd && (
-                  <div className="rounded-2xl border border-border/80 bg-background p-4 shadow-sm">
+                  <div className="rounded-xl border border-border bg-card p-4">
                     <h3 className="text-sm font-black text-foreground">
                       العطلات الرسمية - {fromDate.slice(0, 7)}
                     </h3>
@@ -1852,7 +1932,7 @@ export default function ShiftSchedule() {
                 )}
               </div>
             ) : (
-              <div className="rounded-2xl border border-border/80 bg-background p-4 shadow-sm">
+              <div className="rounded-xl border border-border bg-card p-4">
                 <h3 className="text-sm font-black text-foreground">
                   ماذا تستطيع هنا
                 </h3>
@@ -1871,7 +1951,7 @@ export default function ShiftSchedule() {
               </div>
             )}
 
-            <div className="rounded-2xl border border-border/80 bg-background p-4 shadow-sm">
+            <div className="rounded-xl border border-border bg-card p-4">
               <h3 className="text-sm font-black text-foreground">
                 أقرب ورديات
               </h3>
@@ -1909,6 +1989,8 @@ export default function ShiftSchedule() {
                 </p>
               )}
             </div>
+              </>
+            )}
           </aside>
         </div>
       </div>

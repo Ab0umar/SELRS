@@ -198,6 +198,25 @@ export default function ExaminationPatientInfoTab({
                     dir="ltr"
                   />
                 </div>
+                <div className="order-7 min-w-0 sm:col-span-3 xl:col-span-1">
+                  <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                    البريد الإلكتروني
+                  </Label>
+                  <Input
+                    type="email"
+                    value={patientDetails.email}
+                    onChange={(e) =>
+                      setPatientDetails((prev) => ({
+                        ...prev,
+                        email: e.target.value,
+                      }))
+                    }
+                    readOnly={!canEditPatientData}
+                    className="text-sm border h-9 px-3 bg-background"
+                    placeholder="name@example.com"
+                    dir="ltr"
+                  />
+                </div>
                 <div className="contents">
                   <div className="order-3 min-w-0 sm:col-span-3 xl:col-span-1">
                     <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">

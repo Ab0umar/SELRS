@@ -17,10 +17,68 @@ import {
   salaryMissingCheckoutExclude,
 } from "../../../drizzle/schema";
 import { eq, and, gte, lte, isNull, or, inArray } from "drizzle-orm";
-import { computeMarkazAutoPools } from "./commissionPoolsMssql.service";
+import { computeMarkazEffectivePools } from "./commissionPoolsMssql.service";
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+function roundPayrollMoney(row: PayrollRow): PayrollRow {
+  const basicSalary = Math.round(row.basicSalary);
+  const absentDeduction = Math.round(row.absentDeduction);
+  const lateDeduction = Math.round(row.lateDeduction);
+  const earlyLeaveDeduction = Math.round(row.earlyLeaveDeduction);
+  const penaltyDeduction = Math.round(row.penaltyDeduction);
+  const advancesDeduction = Math.round(row.advancesDeduction);
+  const insuranceDeduction = Math.round(row.insuranceDeduction);
+  const totalDeductions =
+    absentDeduction +
+    lateDeduction +
+    earlyLeaveDeduction +
+    penaltyDeduction +
+    advancesDeduction +
+    insuranceDeduction;
+  const netBasic = Math.max(0, basicSalary - totalDeductions);
+  const attendanceCommissionRaw = Math.round(row.attendanceCommissionRaw);
+  const attendanceCommission = Math.round(row.attendanceCommission);
+  const examCommissionRaw = Math.round(row.examCommissionRaw);
+  const examCommission = Math.round(row.examCommission);
+  const pentacamCommissionRaw = Math.round(row.pentacamCommissionRaw);
+  const pentacamCommission = Math.round(row.pentacamCommission);
+  const costOfLivingAllowance = Math.round(row.costOfLivingAllowance);
+  const transportAllowance = Math.round(row.transportAllowance);
+  const overtimePay = Math.round(row.overtimePay);
+  const totalCommission =
+    attendanceCommission +
+    examCommission +
+    pentacamCommission +
+    costOfLivingAllowance +
+    transportAllowance;
+
+  return {
+    ...row,
+    basicSalary,
+    absentDeduction,
+    lateDeduction,
+    earlyLeaveDeduction,
+    penaltyDeduction,
+    advancesDeduction,
+    insuranceDeduction,
+    totalDeductions,
+    deductionPct: basicSalary > 0 ? totalDeductions / basicSalary : 0,
+    netBasic,
+    attendanceCommissionRaw,
+    attendanceCommission,
+    examCommissionRaw,
+    examCommission,
+    pentacamCommissionRaw,
+    pentacamCommission,
+    costOfLivingAllowance,
+    transportAllowance,
+    totalCommission,
+    overtimePay,
+    totalPay: netBasic + totalCommission + overtimePay,
+  };
 }
 
 export const PENTACAM_TIERS = [
@@ -89,7 +147,9 @@ async function loadAttendanceRates(
     .select()
     .from(salaryConfig)
     .where(inArray(salaryConfig.key, keys));
-  const map = Object.fromEntries(rows.map((r: any) => [r.key, parseFloat(r.value)]));
+  const map = Object.fromEntries(
+    rows.map((r: any) => [r.key, parseFloat(r.value)]),
+  );
   return {
     r3: map["attendance_rate_3"] ?? 0.25,
     r5: map["attendance_rate_5"] ?? 0.15,
@@ -116,17 +176,39 @@ const DEFAULT_LATE_TIERS: LateTier[] = [
 async function loadLateTiers(
   db: Awaited<ReturnType<typeof getDb>>,
 ): Promise<LateTier[]> {
-  const rows = await db!.select().from(salaryConfig).where(eq(salaryConfig.key, "salary_late_tiers"));
+  const rows = await db!
+    .select()
+    .from(salaryConfig)
+    .where(eq(salaryConfig.key, "salary_late_tiers"));
   if (rows.length && rows[0].value) {
-    try { return JSON.parse(rows[0].value as string) as LateTier[]; } catch {}
+    try {
+      return JSON.parse(rows[0].value as string) as LateTier[];
+    } catch {}
   }
   return DEFAULT_LATE_TIERS;
 }
 
-function calcLateDayTier(lateMinutes: number, dailyRate: number, minuteRate: number, tiers: LateTier[]): number {
+async function loadDeductionsEnabled(
+  db: Awaited<ReturnType<typeof getDb>>,
+): Promise<boolean> {
+  const rows = await db!
+    .select({ value: salaryConfig.value })
+    .from(salaryConfig)
+    .where(eq(salaryConfig.key, "salary_deductions_enabled"))
+    .limit(1);
+  return rows[0]?.value !== "false";
+}
+
+function calcLateDayTier(
+  lateMinutes: number,
+  dailyRate: number,
+  minuteRate: number,
+  tiers: LateTier[],
+): number {
   if (lateMinutes <= 0) return 0;
   const tier = tiers.find(
-    (t) => lateMinutes >= t.minMin && (t.maxMin === null || lateMinutes <= t.maxMin),
+    (t) =>
+      lateMinutes >= t.minMin && (t.maxMin === null || lateMinutes <= t.maxMin),
   );
   if (!tier) return round2(lateMinutes * minuteRate);
   if (tier.type === "linear") return round2(lateMinutes * minuteRate);
@@ -215,6 +297,7 @@ export class PayrollComputeService {
 
     const acRates = await loadAttendanceRates(db);
     const lateTiers = await loadLateTiers(db);
+    const deductionsEnabled = await loadDeductionsEnabled(db);
 
     const [
       poolRows,
@@ -305,8 +388,8 @@ export class PayrollComputeService {
             .from(shiftAttendance)
             .where(
               and(
-                eq(shiftAttendance.year, year),
-                eq(shiftAttendance.month, month),
+                gte(shiftAttendance.workDate, firstDay as any),
+                lte(shiftAttendance.workDate, lastDay as any),
               ),
             )
         : Promise.resolve([]),
@@ -317,14 +400,21 @@ export class PayrollComputeService {
           and(eq(salaryHolidays.year, year), eq(salaryHolidays.month, month)),
         ),
       db.select().from(attendanceShifts),
-      db.select().from(salaryMissingCheckoutExclude).where(
-        and(
-          gte(salaryMissingCheckoutExclude.workDate, firstDay as any),
-          lte(salaryMissingCheckoutExclude.workDate, lastDay as any),
-        ),
-      ),
       db
-        .select({ empCd: attendanceLeaves.empCd, dateFrom: attendanceLeaves.dateFrom, dateTo: attendanceLeaves.dateTo })
+        .select()
+        .from(salaryMissingCheckoutExclude)
+        .where(
+          and(
+            gte(salaryMissingCheckoutExclude.workDate, firstDay as any),
+            lte(salaryMissingCheckoutExclude.workDate, lastDay as any),
+          ),
+        ),
+      db
+        .select({
+          empCd: attendanceLeaves.empCd,
+          dateFrom: attendanceLeaves.dateFrom,
+          dateTo: attendanceLeaves.dateTo,
+        })
         .from(attendanceLeaves)
         .where(
           and(
@@ -351,9 +441,10 @@ export class PayrollComputeService {
     const mcExcludeSet = new Set<string>(
       (mcExcludeRows as any[]).map((r) => {
         const d = r.workDate as any;
-        const ds = d instanceof Date
-          ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-          : String(d).slice(0, 10);
+        const ds =
+          d instanceof Date
+            ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+            : String(d).slice(0, 10);
         return `${r.empCd}|${ds}`;
       }),
     );
@@ -361,13 +452,22 @@ export class PayrollComputeService {
     // Set of "empCd|YYYY-MM-DD" for approved sick leave days within this month
     const sickDatesSet = new Set<string>();
     for (const sl of sickLeaveRows as any[]) {
-      const from = String(sl.dateFrom instanceof Date ? sl.dateFrom.toISOString().slice(0, 10) : sl.dateFrom).slice(0, 10);
-      const to = String(sl.dateTo instanceof Date ? sl.dateTo.toISOString().slice(0, 10) : sl.dateTo).slice(0, 10);
+      const from = String(
+        sl.dateFrom instanceof Date
+          ? sl.dateFrom.toISOString().slice(0, 10)
+          : sl.dateFrom,
+      ).slice(0, 10);
+      const to = String(
+        sl.dateTo instanceof Date
+          ? sl.dateTo.toISOString().slice(0, 10)
+          : sl.dateTo,
+      ).slice(0, 10);
       const cur = new Date(from + "T00:00:00");
       const end = new Date(to + "T00:00:00");
       while (cur <= end) {
         const ds = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, "0")}-${String(cur.getDate()).padStart(2, "0")}`;
-        if (ds >= firstDay && ds <= lastDay) sickDatesSet.add(`${sl.empCd}|${ds}`);
+        if (ds >= firstDay && ds <= lastDay)
+          sickDatesSet.add(`${sl.empCd}|${ds}`);
         cur.setDate(cur.getDate() + 1);
       }
     }
@@ -377,7 +477,8 @@ export class PayrollComputeService {
       (ds) => new Date(ds + "T00:00:00").getDay() !== 5,
     ).length;
 
-    const pool = poolRows.find((p: any) => p.section === section) ?? poolRows[0];
+    const pool =
+      poolRows.find((p: any) => p.section === section) ?? poolRows[0];
     const allowancePool =
       poolRows.find(
         (p: any) =>
@@ -385,7 +486,7 @@ export class PayrollComputeService {
           Number((p as any).transportAllowanceAmount ?? 0) > 0,
       ) ?? pool;
     const markazAutoPools = isMarkaz
-      ? await computeMarkazAutoPools(year, month)
+      ? await computeMarkazEffectivePools(year, month)
       : null;
     const examPool = markazAutoPools
       ? markazAutoPools.examPool
@@ -453,6 +554,7 @@ export class PayrollComputeService {
         commExam: boolean;
         commPentacam: boolean;
         commDay10: boolean;
+        commOvertime: boolean;
       }
     >();
     for (const emp of employees) {
@@ -461,8 +563,35 @@ export class PayrollComputeService {
         commExam: emp.commExam !== false,
         commPentacam: emp.commPentacam !== false,
         commDay10: emp.commDay10 !== false,
+        commOvertime: emp.commOvertime !== false,
       });
     }
+    const employeeSettingsMap = new Map<string, any>(
+      employees.map((emp: any) => [String(emp.empCd), emp]),
+    );
+    const getShiftEmployeeSettings = (staff: any) => {
+      const employee = staff.empCd
+        ? employeeSettingsMap.get(String(staff.empCd))
+        : null;
+      const flags = employee
+        ? commFlagsMap.get(String(employee.empCd))
+        : undefined;
+      return {
+        attendanceRate:
+          employee?.attendanceCommissionRate != null
+            ? Number(employee.attendanceCommissionRate)
+            : 0.25,
+        commissionMultiplier:
+          employee?.attendanceLeaveMultiplier != null
+            ? Number(employee.attendanceLeaveMultiplier)
+            : 1,
+        commAttendance: flags?.commAttendance ?? true,
+        commExam: flags?.commExam ?? true,
+        commPentacam: flags?.commPentacam ?? true,
+        commDay10: employee ? (flags?.commDay10 ?? true) : false,
+        commOvertime: employee ? (flags?.commOvertime ?? true) : false,
+      };
+    };
 
     const sumAllBasics = Array.from(empBasicMap.values()).reduce(
       (s, b) => s + b,
@@ -477,13 +606,28 @@ export class PayrollComputeService {
       if (!basic) continue;
       const report = monthlyReports.find((r: any) => r.empCd === emp.empCd);
       const empDailyRows = dailyRows.filter((d: any) => d.empCd === emp.empCd);
-      const wDays = empDailyRows.filter((d: any) => d.status !== "holiday").length;
-      let rawAbsent = 0, lateMins = 0, earlyMins = 0, missingCoDays = 0;
+      const wDays = empDailyRows.filter(
+        (d: any) => d.status !== "holiday",
+      ).length;
+      let rawAbsent = 0,
+        lateMins = 0,
+        earlyMins = 0,
+        missingCoDays = 0;
       if (fromDate || toDate) {
-        rawAbsent = empDailyRows.filter((d: any) => d.status === "absent").length;
-        missingCoDays = empDailyRows.filter((d: any) => d.status === "missing_checkout").length;
-        lateMins = empDailyRows.reduce((s: any, d: any) => s + (d.lateMinutes ?? 0), 0);
-        earlyMins = empDailyRows.reduce((s: any, d: any) => s + (d.earlyLeaveMin ?? 0), 0);
+        rawAbsent = empDailyRows.filter(
+          (d: any) => d.status === "absent",
+        ).length;
+        missingCoDays = empDailyRows.filter(
+          (d: any) => d.status === "missing_checkout",
+        ).length;
+        lateMins = empDailyRows.reduce(
+          (s: any, d: any) => s + (d.lateMinutes ?? 0),
+          0,
+        );
+        earlyMins = empDailyRows.reduce(
+          (s: any, d: any) => s + (d.earlyLeaveMin ?? 0),
+          0,
+        );
       } else {
         rawAbsent = Number(report?.absentDays ?? 0);
         lateMins = Number(report?.totalLateMins ?? 0);
@@ -492,14 +636,20 @@ export class PayrollComputeService {
       const absentD = Math.max(0, rawAbsent - holidayWorkingDaysCount);
       const dayRate = wDays > 0 ? basic / wDays : 0;
       const minRate = dayRate / 360;
-      const deductions = round2(
-        absentD * dayRate +
-        missingCoDays * dayRate * 0.25 +
-        lateMins * minRate +
-        earlyMins * minRate +
-        penalties.filter((p: any) => p.empCd === emp.empCd).reduce((s: any, p: any) => s + Number(p.amount), 0) +
-        advances.filter((a: any) => a.empCd === emp.empCd).reduce((s: any, a: any) => s + Number(a.amount), 0),
-      );
+      const deductions = deductionsEnabled
+        ? round2(
+            absentD * dayRate +
+              missingCoDays * dayRate * 0.25 +
+              lateMins * minRate +
+              earlyMins * minRate +
+              penalties
+                .filter((p: any) => p.empCd === emp.empCd)
+                .reduce((s: any, p: any) => s + Number(p.amount), 0) +
+              advances
+                .filter((a: any) => a.empCd === emp.empCd)
+                .reduce((s: any, a: any) => s + Number(a.amount), 0),
+          )
+        : 0;
       netForRatioMap.set(emp.empCd, round2(Math.max(0, basic - deductions)));
     }
 
@@ -517,31 +667,6 @@ export class PayrollComputeService {
       ? (await db.select().from(shiftStaff)).filter((ss: any) => ss.active)
       : [];
     const shiftAttRows = activeShiftStaff.length > 0 ? shiftAttendanceRows : [];
-
-    // Build map of punch dates for shift staff linked to employees
-    const linkedEmpCds = activeShiftStaff
-      .filter((ss: any) => ss.empCd)
-      .map((ss: any) => ss.empCd!);
-    const punchDatesMap = new Map<string, Set<string>>();
-    if (linkedEmpCds.length > 0) {
-      for (const row of dailyRows) {
-        if (!linkedEmpCds.includes(row.empCd)) continue;
-        if (
-          row.status !== "present" &&
-          row.status !== "partial" &&
-          row.status !== "missing_checkout"
-        )
-          continue;
-        if (!punchDatesMap.has(row.empCd))
-          punchDatesMap.set(row.empCd, new Set());
-        const d = row.workDate as any;
-        const ds =
-          d instanceof Date
-            ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-            : String(d).slice(0, 10);
-        punchDatesMap.get(row.empCd)!.add(ds);
-      }
-    }
 
     function fmtDate(d: any): string {
       return d instanceof Date
@@ -571,6 +696,7 @@ export class PayrollComputeService {
       scheduled: number;
       attended: number;
       commMult: number;
+      grossPay: number;
       shiftPay: number;
       deductionPct: number;
       netPay: number;
@@ -584,16 +710,10 @@ export class PayrollComputeService {
       });
       const scheduled = rows.length;
 
-      // Count attended by checking punch data (for linked employees) or shift_attendance.present field
-      let attended = 0;
-      if (ss.empCd) {
-        const punchDates = punchDatesMap.get(ss.empCd);
-        attended = rows.filter((a: any) =>
-          punchDates?.has(fmtDate(a.workDate)),
-        ).length;
-      } else {
-        attended = rows.filter((a: any) => a.present).length;
-      }
+      // A punch is day-level data and cannot identify a specific shift when
+      // more than one exists on the same date. The roster attendance flag is
+      // therefore authoritative for shift counts.
+      const attended = rows.filter((a: any) => a.present).length;
 
       const rateBig = Number(ss.ratePerShift);
       const rateSmall = Number(ss.rateSmallShift ?? 0) || rateBig;
@@ -606,9 +726,17 @@ export class PayrollComputeService {
         let hasData = false;
 
         if (fromDate || toDate) {
-          const empDailyRows = dailyRows.filter((d: any) => d.empCd === ss.empCd);
-          lateMinutes = empDailyRows.reduce((s: any, d: any) => s + (d.lateMinutes ?? 0), 0);
-          earlyLeaveMinutes = empDailyRows.reduce((s: any, d: any) => s + (d.earlyLeaveMin ?? 0), 0);
+          const empDailyRows = dailyRows.filter(
+            (d: any) => d.empCd === ss.empCd,
+          );
+          lateMinutes = empDailyRows.reduce(
+            (s: any, d: any) => s + (d.lateMinutes ?? 0),
+            0,
+          );
+          earlyLeaveMinutes = empDailyRows.reduce(
+            (s: any, d: any) => s + (d.earlyLeaveMin ?? 0),
+            0,
+          );
           hasData = true;
         } else {
           const report = monthlyReports.find((r: any) => r.empCd === ss.empCd);
@@ -627,37 +755,50 @@ export class PayrollComputeService {
             const totalDeduction = round2(
               (lateMinutes + earlyLeaveMinutes) * minuteRate,
             );
-            deductionPct = Math.min(1, totalDeduction / basic);
+            deductionPct = deductionsEnabled
+              ? Math.min(1, totalDeduction / basic)
+              : 0;
           }
         }
       }
 
       // Calculate pay per shift type (big vs small) like the shift preview does
-      const byShift: Record<string, { scheduled: number; attended: number; rate: number }> = {};
+      const byShift: Record<
+        string,
+        { scheduled: number; attended: number; rate: number }
+      > = {};
       for (const a of rows) {
-        const isPresent = ss.empCd
-          ? punchDatesMap.get(ss.empCd)?.has(fmtDate(a.workDate)) ?? false
-          : a.present;
+        const isPresent = Boolean(a.present);
         const size: "big" | "small" = shiftSizeMap.get(a.shiftName) ?? "big";
         const r = size === "small" ? rateSmall : rateBig;
-        if (!byShift[a.shiftName]) byShift[a.shiftName] = { scheduled: 0, attended: 0, rate: r };
+        if (!byShift[a.shiftName])
+          byShift[a.shiftName] = { scheduled: 0, attended: 0, rate: r };
         byShift[a.shiftName].scheduled++;
         if (isPresent) byShift[a.shiftName].attended++;
       }
 
-      const basicSalary = round2(Object.values(byShift).reduce((s, b) => s + b.scheduled * b.rate, 0));
-      const absentDeduction = round2(
-        Object.values(byShift).reduce((s, b) => s + Math.max(0, b.scheduled - b.attended) * b.rate, 0),
+      const basicSalary = round2(
+        Object.values(byShift).reduce((s, b) => s + b.scheduled * b.rate, 0),
       );
+      const absentDeduction = deductionsEnabled
+        ? round2(
+            Object.values(byShift).reduce(
+              (s, b) => s + Math.max(0, b.scheduled - b.attended) * b.rate,
+              0,
+            ),
+          )
+        : 0;
       const punchDeduction = round2(basicSalary * deductionPct);
       const netPay = round2(basicSalary - absentDeduction - punchDeduction);
 
-      const commMult =
-        (scheduled > 0 ? attended / scheduled : 1) * (1 - deductionPct);
+      const commMult = deductionsEnabled
+        ? (scheduled > 0 ? attended / scheduled : 1) * (1 - deductionPct)
+        : 1;
       shiftStatsMap.set(ss.id, {
         scheduled,
         attended,
         commMult,
+        grossPay: basicSalary,
         shiftPay: round2(
           Object.values(byShift).reduce((s, b) => s + b.attended * b.rate, 0),
         ),
@@ -670,15 +811,19 @@ export class PayrollComputeService {
     const doctors = activeShiftStaff.filter((ss: any) => ss.type === "doctor");
     const techs = activeShiftStaff.filter((ss: any) => ss.type === "tech");
     // Use each tech's net pay (after deductions) for pool calculations
-    const sumTechShiftPay = techs.reduce(
-      (s: any, ss: any) => s + (shiftStatsMap.get(ss.id)?.netPay ?? 0),
-      0,
-    );
+    const sumTechShiftPay = techs
+      .filter((ss: any) => getShiftEmployeeSettings(ss).commPentacam)
+      .reduce(
+        (s: any, ss: any) => s + (shiftStatsMap.get(ss.id)?.netPay ?? 0),
+        0,
+      );
     // Denominators: employee nets (excl. insurance deduction) + tech net pay
     const totalSumForPentacam = sumNetsForPenta + sumTechShiftPay;
     // Only count techs who have at least one scheduled shift this month
     const activeTechsThisMonth = techs.filter(
-      (ss: any) => (shiftStatsMap.get(ss.id)?.scheduled ?? 0) > 0,
+      (ss: any) =>
+        getShiftEmployeeSettings(ss).commExam &&
+        (shiftStatsMap.get(ss.id)?.scheduled ?? 0) > 0,
     );
     const totalCountForExam = activeExamCount + activeTechsThisMonth.length;
     // مركز: 60% of examPool to doctors (by salary), 40% to emps+techs (equally)
@@ -731,27 +876,55 @@ export class PayrollComputeService {
 
       let missingCheckoutDays = 0;
       if (fromDate || toDate) {
-        const empDailyRows = dailyRows.filter((d: any) => d.empCd === emp.empCd);
-        rawAbsentDays = empDailyRows.filter((d: any) => d.status === "absent").length;
+        const empDailyRows = dailyRows.filter(
+          (d: any) => d.empCd === emp.empCd,
+        );
+        rawAbsentDays = empDailyRows.filter(
+          (d: any) => d.status === "absent",
+        ).length;
         missingCheckoutDays = empDailyRows.filter((d: any) => {
           if (d.status !== "missing_checkout") return false;
-          const ds = d.workDate instanceof Date
-            ? `${d.workDate.getFullYear()}-${String(d.workDate.getMonth() + 1).padStart(2, "0")}-${String(d.workDate.getDate()).padStart(2, "0")}`
-            : String(d.workDate).slice(0, 10);
+          const ds =
+            d.workDate instanceof Date
+              ? `${d.workDate.getFullYear()}-${String(d.workDate.getMonth() + 1).padStart(2, "0")}-${String(d.workDate.getDate()).padStart(2, "0")}`
+              : String(d.workDate).slice(0, 10);
           return !mcExcludeSet.has(`${emp.empCd}|${ds}`);
         }).length;
-        lateMinutes = empDailyRows.reduce((s: any, d: any) => s + (d.lateMinutes ?? 0), 0);
-        earlyLeaveMinutes = empDailyRows.reduce((s: any, d: any) => s + (d.earlyLeaveMin ?? 0), 0);
-        overtimeMinutes = empDailyRows.reduce((s: any, d: any) => s + (d.overtimeMinutes ?? 0), 0);
-        leaveDays = empDailyRows.filter((d: any) => d.status === "leave" && !d.leaveNotAffectCommission && !sickDatesSet.has(`${emp.empCd}|${String(d.workDate instanceof Date ? d.workDate.toISOString().slice(0,10) : d.workDate).slice(0,10)}`)).length;
+        lateMinutes = empDailyRows.reduce(
+          (s: any, d: any) => s + (d.lateMinutes ?? 0),
+          0,
+        );
+        earlyLeaveMinutes = empDailyRows.reduce(
+          (s: any, d: any) => s + (d.earlyLeaveMin ?? 0),
+          0,
+        );
+        overtimeMinutes = empDailyRows.reduce(
+          (s: any, d: any) => s + (d.overtimeMinutes ?? 0),
+          0,
+        );
+        leaveDays = empDailyRows.filter(
+          (d: any) =>
+            d.status === "leave" &&
+            !d.leaveNotAffectCommission &&
+            !sickDatesSet.has(
+              `${emp.empCd}|${String(d.workDate instanceof Date ? d.workDate.toISOString().slice(0, 10) : d.workDate).slice(0, 10)}`,
+            ),
+        ).length;
       } else {
         rawAbsentDays = report?.absentDays ?? 0;
         lateMinutes = report?.totalLateMins ?? 0;
         earlyLeaveMinutes = report?.totalEarlyLeaveMins ?? 0;
         overtimeMinutes = report?.totalOTMins ?? 0;
         // Exclude sick leave and no-commission-impact leave from leaveDays using dailyRows (always loaded)
-        const empDailyRowsForLeave = dailyRows.filter((d: any) => d.empCd === emp.empCd);
-        leaveDays = empDailyRowsForLeave.filter((d: any) => d.status === "leave" && d.leaveType !== "sick" && !d.leaveNotAffectCommission).length;
+        const empDailyRowsForLeave = dailyRows.filter(
+          (d: any) => d.empCd === emp.empCd,
+        );
+        leaveDays = empDailyRowsForLeave.filter(
+          (d: any) =>
+            d.status === "leave" &&
+            d.leaveType !== "sick" &&
+            !d.leaveNotAffectCommission,
+        ).length;
       }
       const absentDays = Math.max(0, rawAbsentDays - holidayWorkingDaysCount);
 
@@ -759,33 +932,49 @@ export class PayrollComputeService {
       const minuteRate = dailyRate / 360; // 6h × 60min
 
       const overtimeRate = minuteRate * 2; // ساعة الإضافي = ضعف المعدل العادي
-      const absentDeduction = round2(absentDays * dailyRate);
-      const missingCheckoutDeduction = round2(missingCheckoutDays * dailyRate * 0.25);
+      const absentDeduction = deductionsEnabled
+        ? round2(absentDays * dailyRate)
+        : 0;
+      const missingCheckoutDeduction = deductionsEnabled
+        ? round2(missingCheckoutDays * dailyRate * 0.25)
+        : 0;
 
       // Per-day late tier deduction — always use daily rows for tier classification
-      const empDailyRowsForLate = dailyRows.filter((d: any) => d.empCd === emp.empCd);
-      const lateDeduction = round2(
-        empDailyRowsForLate.reduce((sum: number, d: any) => {
-          const mins = d.lateMinutes ?? 0;
-          return sum + calcLateDayTier(mins, dailyRate, minuteRate, lateTiers);
-        }, 0),
+      const empDailyRowsForLate = dailyRows.filter(
+        (d: any) => d.empCd === emp.empCd,
       );
+      const lateDeduction = deductionsEnabled
+        ? round2(
+            empDailyRowsForLate.reduce((sum: number, d: any) => {
+              const mins = d.lateMinutes ?? 0;
+              return (
+                sum + calcLateDayTier(mins, dailyRate, minuteRate, lateTiers)
+              );
+            }, 0),
+          )
+        : 0;
 
-      const earlyLeaveDeduction = round2(earlyLeaveMinutes * minuteRate);
-      const overtimePay = round2(overtimeMinutes * overtimeRate);
-      const penaltyDeduction = round2(
-        penalties
-          .filter((p: any) => p.empCd === emp.empCd)
-          .reduce((s: any, p: any) => {
-            if (p.penaltyDays) return s + Number(p.penaltyDays) * dailyRate;
-            return s + Number(p.amount);
-          }, 0),
-      );
-      const advancesDeduction = round2(
-        advances
-          .filter((a: any) => a.empCd === emp.empCd)
-          .reduce((s: any, a: any) => s + Number(a.amount), 0),
-      );
+      const earlyLeaveDeduction = deductionsEnabled
+        ? round2(earlyLeaveMinutes * minuteRate)
+        : 0;
+      const overtimePayRaw = round2(overtimeMinutes * overtimeRate);
+      const penaltyDeduction = deductionsEnabled
+        ? round2(
+            penalties
+              .filter((p: any) => p.empCd === emp.empCd)
+              .reduce((s: any, p: any) => {
+                if (p.penaltyDays) return s + Number(p.penaltyDays) * dailyRate;
+                return s + Number(p.amount);
+              }, 0),
+          )
+        : 0;
+      const advancesDeduction = deductionsEnabled
+        ? round2(
+            advances
+              .filter((a: any) => a.empCd === emp.empCd)
+              .reduce((s: any, a: any) => s + Number(a.amount), 0),
+          )
+        : 0;
       const basicRow = basics
         .filter((b: any) => b.empCd === emp.empCd)
         .sort((a: any, b: any) =>
@@ -810,13 +999,23 @@ export class PayrollComputeService {
         emp.attendanceLeaveMultiplier != null
           ? Number(emp.attendanceLeaveMultiplier)
           : null;
-      const lm = customLm !== null ? customLm : leaveMultiplier(leaveDays);
+      const lm =
+        customLm !== null
+          ? customLm
+          : deductionsEnabled
+            ? leaveMultiplier(leaveDays)
+            : 1;
       // Only insurance is excluded from the commission deduction basis
       const deductionsForComm = round2(
-        absentDeduction + missingCheckoutDeduction + lateDeduction +
-        earlyLeaveDeduction + penaltyDeduction + advancesDeduction,
+        absentDeduction +
+          missingCheckoutDeduction +
+          lateDeduction +
+          earlyLeaveDeduction +
+          penaltyDeduction +
+          advancesDeduction,
       );
-      const deductionPctForComm = basic > 0 ? Math.min(1, deductionsForComm / basic) : 0;
+      const deductionPctForComm =
+        basic > 0 ? Math.min(1, deductionsForComm / basic) : 0;
       const commMult = lm * (1 - deductionPctForComm);
       const empRate =
         emp.attendanceCommissionRate != null
@@ -825,14 +1024,18 @@ export class PayrollComputeService {
       const acRate =
         empRate !== null
           ? empRate
-          : attendanceCommissionRate(leaveDays, acRates);
+          : deductionsEnabled
+            ? attendanceCommissionRate(leaveDays, acRates)
+            : acRates.r3;
 
       const flags = commFlagsMap.get(emp.empCd) ?? {
         commAttendance: true,
         commExam: true,
         commPentacam: true,
         commDay10: true,
+        commOvertime: true,
       };
+      const overtimePay = flags.commOvertime ? overtimePayRaw : 0;
 
       const attendanceCommissionRaw = flags.commAttendance
         ? round2(acRate * basic)
@@ -931,35 +1134,59 @@ export class PayrollComputeService {
         scheduled: 0,
         attended: 0,
         commMult: 1,
+        grossPay: 0,
         shiftPay: 0,
         deductionPct: 0,
         netPay: 0,
       };
-      const { scheduled, attended, commMult, shiftPay, deductionPct, netPay } =
-        stats;
+      const { scheduled, attended, grossPay, deductionPct, netPay } = stats;
 
-      const rate = Number(ss.ratePerShift);
-      const basicSalary = round2(scheduled * rate);
       const absent = scheduled - attended;
-      const absentDeduction = round2(absent * rate);
+      const basicSalary = grossPay;
       const punchDeduction = round2(basicSalary * deductionPct);
+      const absentDeduction = round2(
+        Math.max(0, basicSalary - netPay - punchDeduction),
+      );
       const totalDeductions = round2(absentDeduction + punchDeduction);
       const netBasic = netPay;
+      const settings = getShiftEmployeeSettings(ss);
 
-      const attendanceCommission = round2(0.25 * netBasic);
-      const examCommission =
-        scheduled > 0 && totalCountForExam > 0 && netBasic > 0
-          ? round2(examPoolEmpsTechs / totalCountForExam)
-          : 0;
-      const pentacamCommission = round2(
-        totalSumForPentacam > 0
-          ? (netBasic / totalSumForPentacam) * pentacamPool
-          : 0,
+      const attendanceCommissionRaw = settings.commAttendance
+        ? round2(settings.attendanceRate * netBasic)
+        : 0;
+      const attendanceCommission = round2(
+        attendanceCommissionRaw * settings.commissionMultiplier,
       );
+      const examCommission =
+        settings.commExam &&
+        scheduled > 0 &&
+        totalCountForExam > 0 &&
+        netBasic > 0
+          ? round2(
+              (examPoolEmpsTechs / totalCountForExam) *
+                settings.commissionMultiplier,
+            )
+          : 0;
+      const pentacamCommission =
+        settings.commPentacam && totalSumForPentacam > 0
+          ? round2(
+              (netBasic / totalSumForPentacam) *
+                pentacamPool *
+                settings.commissionMultiplier,
+            )
+          : 0;
+      const costOfLivingAllowancePay =
+        settings.commDay10 && netBasic > 0 ? round2(costOfLivingAllowance) : 0;
+      const transportAllowancePay =
+        settings.commDay10 && netBasic > 0 ? round2(transportAllowance) : 0;
       usedExam = round2(usedExam + examCommission);
       usedPenta = round2(usedPenta + pentacamCommission);
       const totalCommission = round2(
-        attendanceCommission + examCommission + pentacamCommission,
+        attendanceCommission +
+          examCommission +
+          pentacamCommission +
+          costOfLivingAllowancePay +
+          transportAllowancePay,
       );
       const totalPay = round2(netBasic + totalCommission);
 
@@ -983,16 +1210,16 @@ export class PayrollComputeService {
         insuranceDeduction: 0,
         totalDeductions,
         deductionPct,
-        leaveMultiplier: 1,
+        leaveMultiplier: settings.commissionMultiplier,
         netBasic,
         attendanceCommission,
-        attendanceCommissionRaw: attendanceCommission,
+        attendanceCommissionRaw,
         examCommission,
         examCommissionRaw: examCommission,
         pentacamCommission,
         pentacamCommissionRaw: pentacamCommission,
-        costOfLivingAllowance: 0,
-        transportAllowance: 0,
+        costOfLivingAllowance: costOfLivingAllowancePay,
+        transportAllowance: transportAllowancePay,
         totalCommission,
         overtimePay: 0,
         totalPay,
@@ -1000,43 +1227,72 @@ export class PayrollComputeService {
     }
 
     // Doctors: each commission by salary proportion within doctors only
-    const sumDoctorBasics = doctors.reduce(
-      (s: any, ss: any) => s + (shiftStatsMap.get(ss.id)?.netPay ?? 0),
-      0,
-    );
+    const sumDoctorExamBasics = doctors
+      .filter((ss: any) => getShiftEmployeeSettings(ss).commExam)
+      .reduce(
+        (s: any, ss: any) => s + (shiftStatsMap.get(ss.id)?.netPay ?? 0),
+        0,
+      );
+    const sumDoctorPentacamBasics = doctors
+      .filter((ss: any) => getShiftEmployeeSettings(ss).commPentacam)
+      .reduce(
+        (s: any, ss: any) => s + (shiftStatsMap.get(ss.id)?.netPay ?? 0),
+        0,
+      );
     for (const ss of doctors) {
       const stats = shiftStatsMap.get(ss.id) ?? {
         scheduled: 0,
         attended: 0,
         commMult: 1,
+        grossPay: 0,
         shiftPay: 0,
         deductionPct: 0,
         netPay: 0,
       };
-      const { scheduled, attended, commMult, shiftPay, deductionPct, netPay } =
-        stats;
+      const { scheduled, attended, grossPay, deductionPct, netPay } = stats;
 
-      const rate = Number(ss.ratePerShift);
-      const basicSalary = round2(scheduled * rate);
       const absent = scheduled - attended;
-      const absentDeduction = round2(absent * rate);
+      const basicSalary = grossPay;
       const punchDeduction = round2(basicSalary * deductionPct);
+      const absentDeduction = round2(
+        Math.max(0, basicSalary - netPay - punchDeduction),
+      );
       const totalDeductions = round2(absentDeduction + punchDeduction);
       const netBasic = netPay;
+      const settings = getShiftEmployeeSettings(ss);
 
-      const attendanceCommission = round2(0.25 * netBasic);
-      const examCommission = round2(
-        sumDoctorBasics > 0
-          ? (netBasic / sumDoctorBasics) * examPoolDrs
-          : 0,
+      const attendanceCommissionRaw = settings.commAttendance
+        ? round2(settings.attendanceRate * netBasic)
+        : 0;
+      const attendanceCommission = round2(
+        attendanceCommissionRaw * settings.commissionMultiplier,
       );
-      const pentacamCommission = round2(
-        sumDoctorBasics > 0
-          ? (netBasic / sumDoctorBasics) * pentacamDrPool
-          : 0,
-      );
+      const examCommission =
+        settings.commExam && sumDoctorExamBasics > 0
+          ? round2(
+              (netBasic / sumDoctorExamBasics) *
+                examPoolDrs *
+                settings.commissionMultiplier,
+            )
+          : 0;
+      const pentacamCommission =
+        settings.commPentacam && sumDoctorPentacamBasics > 0
+          ? round2(
+              (netBasic / sumDoctorPentacamBasics) *
+                pentacamDrPool *
+                settings.commissionMultiplier,
+            )
+          : 0;
+      const costOfLivingAllowancePay =
+        settings.commDay10 && netBasic > 0 ? round2(costOfLivingAllowance) : 0;
+      const transportAllowancePay =
+        settings.commDay10 && netBasic > 0 ? round2(transportAllowance) : 0;
       const totalCommission = round2(
-        attendanceCommission + examCommission + pentacamCommission,
+        attendanceCommission +
+          examCommission +
+          pentacamCommission +
+          costOfLivingAllowancePay +
+          transportAllowancePay,
       );
       const totalPay = round2(netBasic + totalCommission);
 
@@ -1060,23 +1316,23 @@ export class PayrollComputeService {
         insuranceDeduction: 0,
         totalDeductions,
         deductionPct,
-        leaveMultiplier: 1,
+        leaveMultiplier: settings.commissionMultiplier,
         netBasic,
         attendanceCommission,
-        attendanceCommissionRaw: attendanceCommission,
+        attendanceCommissionRaw,
         examCommission,
         examCommissionRaw: examCommission,
         pentacamCommission,
         pentacamCommissionRaw: pentacamCommission,
-        costOfLivingAllowance: 0,
-        transportAllowance: 0,
+        costOfLivingAllowance: costOfLivingAllowancePay,
+        transportAllowance: transportAllowancePay,
         totalCommission,
         overtimePay: 0,
         totalPay,
       });
     }
 
-    return results;
+    return results.map(roundPayrollMoney);
   }
 
   static async savePayroll(rows: PayrollRow[]): Promise<number> {
