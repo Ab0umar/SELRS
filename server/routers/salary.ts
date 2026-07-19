@@ -471,6 +471,9 @@ export const salaryRouter = router({
         xray1600: z.number().min(0).nullable().optional(),
         xrayRemaining: z.number().min(0).nullable().optional(),
         xray1502: z.number().min(0).nullable().optional(),
+        calculationMode: z
+          .enum(["legacy", "fixed_percentage"])
+          .optional(),
       }),
     )
     .mutation(async ({ input }) => {

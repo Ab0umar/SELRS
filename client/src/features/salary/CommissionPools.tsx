@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -193,7 +194,7 @@ export default function CommissionPools() {
     onSuccess: () => {
       priceOverridesQ.refetch();
       autoPoolsQ.refetch();
-      toast.success("تم حفظ السعر");
+      toast.success("تم حفظ إعدادات حساب النسب");
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -208,6 +209,13 @@ export default function CommissionPools() {
       xray1600: xray1600PriceInput === "" ? null : Number(xray1600PriceInput),
       xrayRemaining: xrayRemainingPriceInput === "" ? null : Number(xrayRemainingPriceInput),
       xray1502: xray1502PriceInput === "" ? null : Number(xray1502PriceInput),
+    });
+  };
+  const fixedPercentageMode =
+    priceOverridesQ.data?.calculationMode === "fixed_percentage";
+  const setCalculationMode = (enabled: boolean) => {
+    setPriceOverridesMut.mutate({
+      calculationMode: enabled ? "fixed_percentage" : "legacy",
     });
   };
 
@@ -647,6 +655,39 @@ export default function CommissionPools() {
 
             {isMarkaz ? (
               <>
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold text-foreground">
+                        تثبيت نسب الخدمات مع تغيّر الأسعار
+                      </div>
+                      <div className="mt-1 text-xs leading-5 text-muted-foreground">
+                        {fixedPercentageMode
+                          ? "مفعّل: تُحسب النسب مباشرة من إجمالي التحصيل بعد الخصم بالنسب القديمة الثابتة."
+                          : "غير مفعّل: الحساب الحالي يقسم الإيراد على سعر الأساس ثم يضربه في المبلغ الثابت."}
+                      </div>
+                    </div>
+                    <Switch
+                      checked={fixedPercentageMode}
+                      disabled={
+                        priceOverridesQ.isLoading ||
+                        setPriceOverridesMut.isPending
+                      }
+                      onCheckedChange={setCalculationMode}
+                      aria-label="تثبيت نسب خدمات المركز"
+                    />
+                  </div>
+                  {fixedPercentageMode && (
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] font-semibold text-primary sm:grid-cols-5">
+                      <span>أخصائي 23.26%</span>
+                      <span>استشاري 10.75%</span>
+                      <span>1600: 23.91%</span>
+                      <span>1502: 27.50%</span>
+                      <span>المجمعة 24.29%</span>
+                    </div>
+                  )}
+                </div>
+
                 {/* Exams Section — auto-computed from MSSQL service revenue */}
                 <div className="space-y-3">
                   <h3 className="font-semibold text-base">الكشوفات (محسوبة تلقائيًا من الإيراد)</h3>

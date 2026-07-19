@@ -34,10 +34,22 @@ const EXAM_PRICE_CONSULTANT_CONFIG_KEY = "exam_price_consultant";
 const XRAY_PRICE_1600_CONFIG_KEY = "xray_price_1600";
 const XRAY_PRICE_REMAINING_CONFIG_KEY = "xray_price_remaining";
 const XRAY_PRICE_1502_CONFIG_KEY = "xray_price_1502";
+const COMMISSION_CALCULATION_MODE_CONFIG_KEY =
+  "commission_calculation_mode_markaz";
 const XRAY_1600_PRICE_FALLBACK = 460;
 const XRAY_REMAINING_PRICE_FALLBACK = 350;
 const XRAY_1502_PRICE_FALLBACK = 200;
 const XRAY_1502_DEDUCTION = 55; // 55/200 = 27.5% at baseline price — price changes now flow through automatically
+
+export type CommissionCalculationMode = "legacy" | "fixed_percentage";
+
+const FIXED_COMMISSION_RATES = {
+  examSpecialist: EXAM_COMMISSION_PER_UNIT / EXAM_SPECIALIST_PRICE_FALLBACK,
+  examConsultant: EXAM_COMMISSION_PER_UNIT / EXAM_CONSULTANT_PRICE_FALLBACK,
+  xray1600: 110 / XRAY_1600_PRICE_FALLBACK,
+  xray1502: XRAY_1502_DEDUCTION / XRAY_1502_PRICE_FALLBACK,
+  xrayRemaining: 85 / XRAY_REMAINING_PRICE_FALLBACK,
+} as const;
 
 type ManualPoolField = "examPool" | "pentacamPool" | "pentacamDrPool";
 
@@ -68,7 +80,9 @@ const PRICE_OVERRIDE_KEYS = {
 } as const;
 
 export async function getPriceOverrides(): Promise<
-  Record<keyof typeof PRICE_OVERRIDE_KEYS, string | null>
+  Record<keyof typeof PRICE_OVERRIDE_KEYS, string | null> & {
+    calculationMode: CommissionCalculationMode;
+  }
 > {
   const db = await getDb();
   const empty = {
@@ -77,9 +91,13 @@ export async function getPriceOverrides(): Promise<
     xray1600: null,
     xrayRemaining: null,
     xray1502: null,
+    calculationMode: "legacy" as CommissionCalculationMode,
   };
   if (!db) return empty;
-  const keys = Object.values(PRICE_OVERRIDE_KEYS);
+  const keys = [
+    ...Object.values(PRICE_OVERRIDE_KEYS),
+    COMMISSION_CALCULATION_MODE_CONFIG_KEY,
+  ];
   const rows = await db
     .select()
     .from(salaryConfig)
@@ -91,11 +109,17 @@ export async function getPriceOverrides(): Promise<
     xray1600: map[XRAY_PRICE_1600_CONFIG_KEY] ?? null,
     xrayRemaining: map[XRAY_PRICE_REMAINING_CONFIG_KEY] ?? null,
     xray1502: map[XRAY_PRICE_1502_CONFIG_KEY] ?? null,
+    calculationMode:
+      map[COMMISSION_CALCULATION_MODE_CONFIG_KEY] === "fixed_percentage"
+        ? "fixed_percentage"
+        : "legacy",
   };
 }
 
 export async function setPriceOverrides(
-  input: Partial<Record<keyof typeof PRICE_OVERRIDE_KEYS, number | null>>,
+  input: Partial<Record<keyof typeof PRICE_OVERRIDE_KEYS, number | null>> & {
+    calculationMode?: CommissionCalculationMode;
+  },
 ): Promise<{ success: true }> {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
@@ -111,6 +135,15 @@ export async function setPriceOverrides(
       .insert(salaryConfig)
       .values(e as any)
       .onDuplicateKeyUpdate({ set: { value: e.value as any } });
+  }
+  if (input.calculationMode !== undefined) {
+    await db
+      .insert(salaryConfig)
+      .values({
+        key: COMMISSION_CALCULATION_MODE_CONFIG_KEY,
+        value: input.calculationMode,
+      })
+      .onDuplicateKeyUpdate({ set: { value: input.calculationMode } });
   }
   return { success: true };
 }
@@ -275,17 +308,37 @@ export async function computeMarkazAutoPools(
     resolveFixedPrice(XRAY_PRICE_REMAINING_CONFIG_KEY, XRAY_REMAINING_PRICE_FALLBACK),
     resolveFixedPrice(XRAY_PRICE_1502_CONFIG_KEY, XRAY_1502_PRICE_FALLBACK),
   ]);
+  const calculationMode = (await getPriceOverrides()).calculationMode;
+  const useFixedPercentage = calculationMode === "fixed_percentage";
 
   const examSpecialistPool = round2(
-    (examSpecialistRevenue / examSpecialistPrice) * EXAM_COMMISSION_PER_UNIT,
+    useFixedPercentage
+      ? examSpecialistRevenue * FIXED_COMMISSION_RATES.examSpecialist
+      : (examSpecialistRevenue / examSpecialistPrice) *
+          EXAM_COMMISSION_PER_UNIT,
   );
   const examConsultantPool = round2(
-    (examConsultantRevenue / examConsultantPrice) * EXAM_COMMISSION_PER_UNIT,
+    useFixedPercentage
+      ? examConsultantRevenue * FIXED_COMMISSION_RATES.examConsultant
+      : (examConsultantRevenue / examConsultantPrice) *
+          EXAM_COMMISSION_PER_UNIT,
   );
   const examPool = round2(examSpecialistPool + examConsultantPool);
-  const xray1600Pool = round2((xray1600Revenue / xray1600Price) * 110);
-  const xray1502Pool = round2((xray1502Revenue / xray1502Price) * XRAY_1502_DEDUCTION);
-  const xrayRemainingPool = round2((xrayRemainingRevenue / xrayRemainingPrice) * 85);
+  const xray1600Pool = round2(
+    useFixedPercentage
+      ? xray1600Revenue * FIXED_COMMISSION_RATES.xray1600
+      : (xray1600Revenue / xray1600Price) * 110,
+  );
+  const xray1502Pool = round2(
+    useFixedPercentage
+      ? xray1502Revenue * FIXED_COMMISSION_RATES.xray1502
+      : (xray1502Revenue / xray1502Price) * XRAY_1502_DEDUCTION,
+  );
+  const xrayRemainingPool = round2(
+    useFixedPercentage
+      ? xrayRemainingRevenue * FIXED_COMMISSION_RATES.xrayRemaining
+      : (xrayRemainingRevenue / xrayRemainingPrice) * 85,
+  );
 
   const pentacamPool = round2(
     xray1600Pool * 0.455 + xray1502Pool * 0.455 + xrayRemainingPool * 0.47,
