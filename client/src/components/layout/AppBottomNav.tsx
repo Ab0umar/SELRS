@@ -115,10 +115,39 @@ export function AppBottomNav({
     loadKeys(storageKey, defaultKeys as unknown as string[]),
   );
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [navHidden, setNavHidden] = useState(false);
 
   useEffect(() => {
     saveKeys(storageKey, enabledKeys);
   }, [storageKey, enabledKeys]);
+
+  useEffect(() => {
+    const scrollContainer = document.querySelector<HTMLElement>(
+      "[data-app-scroll-container]",
+    );
+    if (!scrollContainer) return;
+
+    let lastScrollTop = scrollContainer.scrollTop;
+    const handleScroll = () => {
+      const nextScrollTop = scrollContainer.scrollTop;
+      const delta = nextScrollTop - lastScrollTop;
+
+      if (nextScrollTop <= 12 || delta < -4) {
+        setNavHidden(false);
+      } else if (delta > 4 && nextScrollTop > 48) {
+        setNavHidden(true);
+      }
+
+      lastScrollTop = nextScrollTop;
+    };
+
+    scrollContainer.addEventListener("scroll", handleScroll, { passive: true });
+    return () => scrollContainer.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    setNavHidden(false);
+  }, [location]);
 
   const toggleKey = useCallback((key: string) => {
     setEnabledKeys((prev) =>
@@ -142,8 +171,16 @@ export function AppBottomNav({
       <nav
         aria-label="التنقل الرئيسي"
         dir="rtl"
-        className="md:hidden shrink-0 border-t border-border bg-background print:hidden"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        className={cn(
+          "md:hidden shrink-0 overflow-hidden bg-background transition-[max-height,transform,padding,border-color] duration-200 ease-out print:hidden",
+          navHidden && !sheetOpen
+            ? "pointer-events-none max-h-0 translate-y-full border-transparent"
+            : "max-h-24 translate-y-0 border-t border-border",
+        )}
+        style={{
+          paddingBottom:
+            navHidden && !sheetOpen ? "0px" : "env(safe-area-inset-bottom)",
+        }}
       >
         <div className="flex h-14 items-stretch overflow-x-auto">
           {visibleTabs.map((tab) => {

@@ -107,45 +107,45 @@
 }
 
 .dark {
-  --primary: #003d82;
-  --primary-foreground: #ffffff;
-  --sidebar-primary: #003d82;
-  --sidebar-primary-foreground: #ffffff;
+  --primary: #2f81c7;
+  --primary-foreground: #f5f8fa;
+  --sidebar-primary: #2f81c7;
+  --sidebar-primary-foreground: #f5f8fa;
   --accent: #ff9500;
-  --accent-foreground: #0d1117;
-  --background: #0d1117;
-  --foreground: #e6edf3;
-  --card: #161b22;
-  --card-foreground: #e6edf3;
-  --popover: #161b22;
-  --popover-foreground: #e6edf3;
+  --accent-foreground: #0b141a;
+  --background: #0b141a;
+  --foreground: #e9edef;
+  --card: #111b21;
+  --card-foreground: #e9edef;
+  --popover: #202c33;
+  --popover-foreground: #e9edef;
   --secondary: #ff9500;
-  --secondary-foreground: #0d1117;
-  --muted: #21262d;
-  --muted-foreground: #8b949e;
+  --secondary-foreground: #0b141a;
+  --muted: #202c33;
+  --muted-foreground: #8696a0;
   --destructive: #f87171;
-  --destructive-foreground: #0d1117;
+  --destructive-foreground: #0b141a;
   --success: #34d399;
-  --success-foreground: #0d1117;
+  --success-foreground: #0b141a;
   --info: #60a5fa;
-  --info-foreground: #0d1117;
+  --info-foreground: #0b141a;
   --warning: #fcd34d;
-  --warning-foreground: #0d1117;
+  --warning-foreground: #0b141a;
   --error: #f87171;
-  --error-foreground: #0d1117;
-  --border: #30363d;
-  --input: #21262d;
+  --error-foreground: #0b141a;
+  --border: #2a3942;
+  --input: #2a3942;
   --ring: #ff9500;
   --chart-1: #4d8ecc;
   --chart-2: #6ba3d6;
   --chart-3: #ff9500;
   --chart-4: #ffb84d;
   --chart-5: #ffd699;
-  --sidebar: #010409;
-  --sidebar-foreground: #e6edf3;
+  --sidebar: #111b21;
+  --sidebar-foreground: #e9edef;
   --sidebar-accent: #ff9500;
-  --sidebar-accent-foreground: #0d1117;
-  --sidebar-border: #30363d;
+  --sidebar-accent-foreground: #0b141a;
+  --sidebar-border: #2a3942;
   --sidebar-ring: #ff9500;
   --destructive-text: #fca5a5;
   --success-text: #6ee7b7;
@@ -200,71 +200,71 @@
 
 @layer utilities {
   .dark [data-slot="card"] {
-    background-color: #161b22 !important;
-    color: #e6edf3 !important;
-    border-color: #30363d !important;
+    background-color: #111b21 !important;
+    color: #e9edef !important;
+    border-color: #2a3942 !important;
   }
 
   .dark [data-slot="tabs-list"] {
-    background-color: #21262d !important;
-    color: rgba(230, 237, 243, 0.72) !important;
-    border-color: #2b3138 !important;
+    background-color: #202c33 !important;
+    color: #8696a0 !important;
+    border-color: #2a3942 !important;
   }
 
   .dark [data-slot="tabs-trigger"] {
-    color: rgba(230, 237, 243, 0.72) !important;
+    color: #8696a0 !important;
   }
 
   .dark [data-slot="tabs-trigger"][data-state="active"] {
-    background-color: #161b22 !important;
-    color: #e6edf3 !important;
-    border-color: #30363d !important;
-    box-shadow: 0 2px 8px rgba(1, 4, 9, 0.32) !important;
+    background-color: #111b21 !important;
+    color: #e9edef !important;
+    border-color: #2a3942 !important;
+    box-shadow: 0 2px 8px rgba(5, 10, 14, 0.3) !important;
   }
 
   .dark [class~="bg-white"] {
-    background-color: #161b22 !important;
+    background-color: #111b21 !important;
   }
 
   .dark [class*="bg-white/"] {
-    background-color: #161b22 !important;
+    background-color: #111b21 !important;
   }
 
   .dark [class*="bg-slate-50"],
   .dark [class*="bg-slate-100"],
   .dark [class*="bg-slate-200"] {
-    background-color: #1d2228 !important;
+    background-color: #202c33 !important;
   }
 
   .dark [class*="bg-card"] {
-    background-color: #161b22 !important;
+    background-color: #111b21 !important;
   }
 
   .dark [class*="bg-muted"] {
-    background-color: #21262d !important;
+    background-color: #202c33 !important;
   }
 
   .dark [class*="border-slate-100"],
   .dark [class*="border-slate-200"],
   .dark [class*="border-slate-300"],
   .dark [class*="border-white/80"] {
-    border-color: #30363d !important;
+    border-color: #2a3942 !important;
   }
 
   .dark [class*="text-slate-950"],
   .dark [class*="text-slate-900"] {
-    color: #e6edf3 !important;
+    color: #e9edef !important;
   }
 
   .dark [class*="text-slate-800"],
   .dark [class*="text-slate-700"],
   .dark [class*="text-slate-600"],
   .dark [class*="text-slate-500"] {
-    color: rgba(230, 237, 243, 0.78) !important;
+    color: #aebac1 !important;
   }
 
   .dark [class*="text-muted-foreground"] {
-    color: #8b949e !important;
+    color: #8696a0 !important;
   }
 
   .dark [class*="bg-[radial-gradient"],
@@ -284,13 +284,68 @@
   }
 
   .dark .selrs-page-bg {
-    background-color: #0d1117 !important;
+    background-color: #0b141a !important;
     background-image: none !important;
     background-attachment: scroll !important;
+  }
+
+  .dark [class*="bg-[#F4F8FB]"],
+  .dark [class*="bg-[#f4f8fb]"] {
+    background-color: #0b141a !important;
+  }
+
+  .dark [class*="bg-[#f8fbff]"],
+  .dark [class*="bg-[#F8FBFF]"],
+  .dark [class*="bg-[#f7fbfe]"] {
+    background-color: #111b21 !important;
+  }
+
+  .dark [class*="border-[#dbe7f4]"],
+  .dark [class*="border-[#e2edf7]"],
+  .dark [class*="border-[#d7e2ee]"] {
+    border-color: #2a3942 !important;
   }
 }
 
 @media (max-width: 640px) {
+  #root,
+  #root > *,
+  .selrs-app-content,
+  .patient-portal-frame,
+  .patient-portal-main,
+  .patient-guest-content {
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+  }
+
+  .selrs-app-content > *,
+  .patient-portal-main > * {
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+    padding-inline: 0 !important;
+  }
+
+  .selrs-app-content > [class*="max-w"],
+  .selrs-app-content > [class*="container"],
+  .selrs-app-content > * > :where(
+      main,
+      section,
+      [role="main"],
+      .page-layout,
+      [class*="mx-auto"][class*="max-w"]
+    ) {
+    width: 100% !important;
+    max-width: none !important;
+    margin-inline: 0 !important;
+  }
+
+  .patient-portal-frame,
+  .patient-guest-content {
+    padding-inline: 0.25rem;
+  }
+
   html {
     font-size: 14px;
   }
@@ -1662,6 +1717,73 @@ select {
   .salary-table-redesign td :where(button, [role="button"]),
   .salary-table-redesign th :where(button, [role="button"]) {
     min-height: 30px;
+  }
+}
+
+/* Native dark mode: consistent WhatsApp-style surfaces across every mobile page. */
+@media screen and (max-width: 640px) {
+  .dark :where(
+      .sheet-section-card,
+      .sheet-collapsible,
+      .sheet-collapsible > summary,
+      .salary-table-redesign :where(.overflow-x-auto, .overflow-auto):has(> table)
+    ) {
+    border-color: #2a3942 !important;
+    background: #111b21 !important;
+    color: #e9edef !important;
+  }
+
+  .dark :where(
+      .sheet-layout,
+      .sheet-layout table,
+      .sheet-layout table tbody,
+      .sheet-layout table tr,
+      .salary-table-redesign table,
+      .salary-table-redesign tbody,
+      .salary-table-redesign tbody tr
+    ) {
+    color: #e9edef !important;
+    background-color: #111b21 !important;
+    border-color: #2a3942 !important;
+  }
+
+  .dark :where(.sheet-layout table th, .salary-table-redesign thead th) {
+    color: #e9edef !important;
+    background: #202c33 !important;
+    border-color: #2a3942 !important;
+  }
+
+  .dark :where(.sheet-layout table td, .salary-table-redesign tbody td) {
+    color: #e9edef !important;
+    background: #111b21 !important;
+    border-color: #2a3942 !important;
+  }
+
+  .dark :where(
+      .sheet-layout input,
+      .sheet-layout textarea,
+      .sheet-layout select,
+      .auto-air-grid input,
+      .examination-plain-grid input,
+      .salary-table-redesign input,
+      .salary-table-redesign select
+    ) {
+    color: #e9edef !important;
+    background: #202c33 !important;
+    border-color: #2a3942 !important;
+  }
+
+  .dark :where(
+      .sheet-layout input,
+      .sheet-layout textarea,
+      .salary-table-redesign input
+    )::placeholder {
+    color: #8696a0 !important;
+  }
+
+  .dark .sheet-mobile-actions {
+    border-color: #2a3942 !important;
+    background: rgba(17, 27, 33, 0.97) !important;
   }
 }
 }

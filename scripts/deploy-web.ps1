@@ -16,6 +16,9 @@ function Write-Step {
 Push-Location $repoRoot
 try {
     if (-not $SkipBuild) {
+        Write-Step "Installing dependencies"
+        pnpm install --frozen-lockfile
+
         Write-Step "Building web app"
         pnpm build
        }

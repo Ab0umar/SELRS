@@ -1786,3 +1786,45 @@ select {
     min-height: 30px;
   }
 }
+
+/* Mobile browser/app-shell layout parity with the native application. */
+@media screen and (max-width: 640px) {
+  #root,
+  #root > *,
+  .selrs-app-content,
+  .patient-portal-frame,
+  .patient-portal-main,
+  .patient-guest-content {
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+  }
+
+  .selrs-app-content > *,
+  .patient-portal-main > * {
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+    padding-inline: 0 !important;
+  }
+
+  .selrs-app-content > [class*="max-w"],
+  .selrs-app-content > [class*="container"],
+  .selrs-app-content > * > :where(
+      main,
+      section,
+      [role="main"],
+      .page-layout,
+      [class*="mx-auto"][class*="max-w"]
+    ) {
+    width: 100% !important;
+    max-width: none !important;
+    margin-inline: 0 !important;
+  }
+
+  .patient-portal-frame,
+  .patient-guest-content {
+    padding-inline: 0.25rem;
+  }
+
+}

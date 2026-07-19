@@ -175,7 +175,7 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
       </header>
 
       {/* Main layout frame */}
-      <div className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 md:py-8 flex flex-col gap-6">
+      <div className="patient-portal-frame flex-1 max-w-7xl w-full mx-auto px-4 py-6 md:py-8 flex flex-col gap-6">
         {/* Desktop sub-navigation tabs */}
         <nav className="hidden md:flex flex-wrap items-center gap-1.5 border-b border-[#dbe7f4] pb-4">
           {NAV.map((item) => {
@@ -326,7 +326,9 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
         )}
 
         {/* Viewport content area */}
-        <main className="flex-1 pb-20 md:pb-6">{children}</main>
+        <main className="patient-portal-main flex-1 pb-20 md:pb-6">
+          {children}
+        </main>
       </div>
 
       {/* Mobile Fixed Bottom Navigation bar */}

@@ -29,6 +29,9 @@ param(
       Write-Step "Status"
       git status
 
+      Write-Step "Install dependencies"
+      pnpm install --frozen-lockfile
+
       Write-Step "Rebuild & Restart"
       pnpm build && nssm restart srv100
 

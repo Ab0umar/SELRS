@@ -261,7 +261,7 @@ export default function PatientGuestBook() {
 
       {/* Main layout container */}
       <div className="flex-grow flex flex-col items-center">
-        <div className="w-full max-w-xl px-4 py-6 md:py-8 space-y-5 flex flex-col items-stretch">
+        <div className="patient-guest-content w-full max-w-xl px-4 py-6 md:py-8 space-y-5 flex flex-col items-stretch">
           {/* Progress Stepper */}
           <div className="space-y-2 bg-white border border-[#dbe7f4] rounded-2xl p-4 shadow-xs">
             <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">

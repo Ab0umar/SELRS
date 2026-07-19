@@ -28,6 +28,7 @@ import { pushAppNotification, getAppNotificationSettings, DEFAULT_APP_NOTIFICATI
 import { sendWebPushToSubscription } from "../_core/webPush";
 import { broadcastBookingUpdate } from "../_core/ws";
 import { sendBookingStatusEmail } from "../services/bookingEmail.service";
+import { sendBookingStatusWhatsApp } from "../services/bookingWhatsApp.service";
 
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
@@ -638,6 +639,20 @@ export const patientPortalRouter = router({
             error,
           ),
         );
+        void sendBookingStatusWhatsApp({
+          recipientPhone: staffPat?.phone,
+          patientName: staffPat?.fullName,
+          bookingTypeLabel:
+            BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType,
+          bookingDate: input.confirmedDate ?? input.requestedDate,
+          branch: input.branch,
+          status: "confirmed",
+        }).catch((error) =>
+          console.error(
+            "[booking-whatsapp] Failed to send staff booking confirmation",
+            error,
+          ),
+        );
       }
 
       broadcastBookingUpdate();
@@ -697,6 +712,20 @@ export const patientPortalRouter = router({
         status: "confirmed",
       }).catch((error) =>
         console.error("[booking-email] Failed to send guest booking confirmation", error),
+      );
+      void sendBookingStatusWhatsApp({
+        recipientPhone: input.guestPhone,
+        patientName: input.guestName,
+        bookingTypeLabel:
+          BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType,
+        bookingDate: input.requestedDate,
+        branch: input.branch,
+        status: "confirmed",
+      }).catch((error) =>
+        console.error(
+          "[booking-whatsapp] Failed to send guest booking confirmation",
+          error,
+        ),
       );
 
       broadcastBookingUpdate();
@@ -762,8 +791,10 @@ export const patientPortalRouter = router({
           confirmedDate: patientPortalBookings.confirmedDate,
           branch: patientPortalBookings.branch,
           guestName: patientPortalBookings.guestName,
+          guestPhone: patientPortalBookings.guestPhone,
           guestEmail: patientPortalBookings.guestEmail,
           patientName: patients.fullName,
+          patientPhone: patients.phone,
           patientEmail: patients.email,
         })
         .from(patientPortalBookings)
@@ -796,6 +827,23 @@ export const patientPortalRouter = router({
           status: input.status,
         }).catch((error) =>
           console.error("[booking-email] Failed to send booking status update", error),
+        );
+        void sendBookingStatusWhatsApp({
+          recipientPhone: booking.patientPhone ?? booking.guestPhone,
+          patientName: booking.patientName ?? booking.guestName,
+          bookingTypeLabel:
+            BOOKING_TYPE_LABELS[booking.bookingType] ?? booking.bookingType,
+          bookingDate:
+            input.confirmedDate ??
+            booking.confirmedDate ??
+            booking.requestedDate,
+          branch: booking.branch,
+          status: input.status,
+        }).catch((error) =>
+          console.error(
+            "[booking-whatsapp] Failed to send booking status update",
+            error,
+          ),
         );
 
         if (booking.patientId) {

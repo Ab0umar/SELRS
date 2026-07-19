@@ -22,7 +22,7 @@ const PUSH_DEVICE_ID_KEY = "selrs_push_device_id_v1";
 const PUSH_TOKEN_KEY = "selrs_push_token_v1";
 const PUSH_REGISTRATION_STATE_KEY = "selrs_push_registration_state_v1";
 const NATIVE_THEME_COLORS = {
-  dark: "#0d1117",
+  dark: "#0b141a",
   light: "#FBFDFF",
 } as const;
 

@@ -55,6 +55,12 @@ const envSchema = z.object({
   ZOHO_SMTP_USERNAME: z.string().optional().default(""),
   ZOHO_SMTP_APP_PASSWORD: z.string().optional().default(""),
   BOOKING_EMAIL_FROM: z.string().optional().default("noreply@selrs.cc"),
+  WHATSAPP_ACCESS_TOKEN: z.string().optional().default(""),
+  WHATSAPP_PHONE_NUMBER_ID: z.string().optional().default(""),
+  WHATSAPP_API_VERSION: z.string().optional().default("v25.0"),
+  WHATSAPP_CONFIRMATION_TEMPLATE: z.string().optional().default(""),
+  WHATSAPP_CANCELLATION_TEMPLATE: z.string().optional().default(""),
+  WHATSAPP_TEMPLATE_LANGUAGE: z.string().optional().default("ar"),
 });
 
 const parsed = envSchema.parse(process.env);
@@ -114,4 +120,10 @@ export const ENV = {
   zohoSmtpUsername: parsed.ZOHO_SMTP_USERNAME,
   zohoSmtpAppPassword: parsed.ZOHO_SMTP_APP_PASSWORD,
   bookingEmailFrom: parsed.BOOKING_EMAIL_FROM,
+  whatsappAccessToken: parsed.WHATSAPP_ACCESS_TOKEN,
+  whatsappPhoneNumberId: parsed.WHATSAPP_PHONE_NUMBER_ID,
+  whatsappApiVersion: parsed.WHATSAPP_API_VERSION,
+  whatsappConfirmationTemplate: parsed.WHATSAPP_CONFIRMATION_TEMPLATE,
+  whatsappCancellationTemplate: parsed.WHATSAPP_CANCELLATION_TEMPLATE,
+  whatsappTemplateLanguage: parsed.WHATSAPP_TEMPLATE_LANGUAGE,
 };
