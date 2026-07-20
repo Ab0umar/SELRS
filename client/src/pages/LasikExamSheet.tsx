@@ -30,6 +30,7 @@ import { usePrintMode } from "@/hooks/usePrintMode";
 import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 import { printOrExportPdf } from "@/lib/nativePdf";
 import { DateInput } from "@/components/ui/date-input";
+import { OP_TYPE_OPTIONS } from "@shared/opTypes";
 import FollowupTablesBody from "@/components/sheets/FollowupTablesBody";
 import SheetPrintHeader from "@/components/sheets/SheetPrintHeader";
 import SheetWatermark from "@/components/sheets/SheetWatermark";
@@ -847,11 +848,15 @@ export default function LasikExamSheet() {
                   onChange={(e) => setOperationType(e.target.value)}
                 >
                   <option value="">اختر</option>
-                  <option value="ليزك">ليزك</option>
-                  <option value="فيمتو ليزك">فيمتو ليزك</option>
-                  <option value="PRK">PRK</option>
-                  <option value="فيمتو سمايل">سمايل</option>
-                  <option value="ICL">ICL</option>
+                  {OP_TYPE_OPTIONS.filter((option) =>
+                    ["PRK", "Lasik", "FL", "FS", "IOL", "ICL"].includes(
+                      option.value,
+                    ),
+                  ).map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             ) : undefined

@@ -40,6 +40,7 @@ import {
   patientServiceEntries,
 } from "../../drizzle/schema";
 import { mssqlQuery } from "../services/accounting/mssqlAccounting";
+import { sendOperationListWhatsApp } from "../services/operationWhatsApp.service";
 import { broadcastSheetUpdate } from "../_core/ws";
 import { assertReadyTemplateImportPermission } from "./_medical/service-helpers";
 import { getBuildInfo } from "../_core/buildInfo";
@@ -1213,7 +1214,38 @@ export const medicalOpsRoutes = {
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      await db.saveOperationList({
+      const previousList =
+        input.doctorTab === "saadany"
+          ? input.listId
+            ? await db.getOperationListById(input.listId)
+            : await db.getOperationList(
+                input.doctorTab,
+                input.listDate,
+                input.operationType ?? null,
+              )
+          : { items: [] as any[] };
+      const previousCodes = new Set(
+        previousList.items
+          .map((item: any) => String(item.code ?? "").trim().toLowerCase())
+          .filter(Boolean),
+      );
+      const previousPhones = new Set(
+        previousList.items
+          .map((item: any) => String(item.phone ?? "").replace(/\D/g, ""))
+          .filter(Boolean),
+      );
+      const newSaadanyItems =
+        input.doctorTab === "saadany"
+          ? input.items.filter((item) => {
+              const code = String(item.code ?? "").trim().toLowerCase();
+              const phone = String(item.phone ?? "").replace(/\D/g, "");
+              if (code && previousCodes.has(code)) return false;
+              if (phone && previousPhones.has(phone)) return false;
+              return true;
+            })
+          : [];
+
+      const savedList = await db.saveOperationList({
         listId: input.listId ?? null,
         doctorTab: input.doctorTab,
         listDate: input.listDate,
@@ -1289,7 +1321,36 @@ export const medicalOpsRoutes = {
         });
       }
 
-      return { success: true };
+      if (newSaadanyItems.length > 0) {
+        void Promise.allSettled(
+          newSaadanyItems.map((item) =>
+            sendOperationListWhatsApp({
+              recipientPhone: item.phone,
+              patientName: item.name,
+              operationName:
+                item.operation || input.operationType || "عملية عيون",
+              operationDate: input.listDate,
+              operationTime: input.listTime,
+              doctorName: input.doctorName || "د. محمد السعدني",
+              hospitalName: item.hospital,
+            }),
+          ),
+        ).then((operationMessages) => {
+          operationMessages.forEach((result, index) => {
+            if (result.status === "rejected") {
+              console.error(
+                `[operation-whatsapp] Failed to send operation confirmation for list ${savedList.id}, patient ${newSaadanyItems[index]?.name}`,
+                result.reason,
+              );
+            }
+          });
+        });
+      }
+
+      return {
+        success: true,
+        whatsappQueued: newSaadanyItems.length,
+      };
     }),
 
   getOperationListsHistory: protectedProcedure.query(async () => {

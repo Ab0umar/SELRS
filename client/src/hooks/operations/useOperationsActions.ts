@@ -7,6 +7,7 @@ import { captureElementAsJpg } from "@/lib/nativePdf";
 import {
   TAB_CONFIG,
   getPricingDefaults,
+  isLensOperationType,
   normalizeDoctorName,
   normalizeTabKey,
   operationTypeLabel,
@@ -190,8 +191,10 @@ export function useOperationsActions(operations: OperationsState) {
     const hindiDate = toHindi(operations.exportDateLabel.replace(/-/g, "/"));
     const hindiTime = toHindi(operations.exportTimeLabel);
     const hasCataract =
-      operations.operationType === "Cataract" ||
-      operations.currentList.some((row) => row.operation === "Cataract");
+      isLensOperationType(operations.operationType) ||
+      operations.currentList.some((row) =>
+        isLensOperationType(row.operation ?? ""),
+      );
     const colSpan = hasCataract ? 10 : 9;
     const cols = [
       { key: "#", w: "4%" },

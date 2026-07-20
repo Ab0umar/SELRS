@@ -60,6 +60,7 @@ const envSchema = z.object({
   WHATSAPP_API_VERSION: z.string().optional().default("v25.0"),
   WHATSAPP_CONFIRMATION_TEMPLATE: z.string().optional().default(""),
   WHATSAPP_CANCELLATION_TEMPLATE: z.string().optional().default(""),
+  WHATSAPP_OPERATION_TEMPLATE: z.string().optional().default(""),
   WHATSAPP_TEMPLATE_LANGUAGE: z.string().optional().default("ar"),
 });
 
@@ -125,5 +126,6 @@ export const ENV = {
   whatsappApiVersion: parsed.WHATSAPP_API_VERSION,
   whatsappConfirmationTemplate: parsed.WHATSAPP_CONFIRMATION_TEMPLATE,
   whatsappCancellationTemplate: parsed.WHATSAPP_CANCELLATION_TEMPLATE,
+  whatsappOperationTemplate: parsed.WHATSAPP_OPERATION_TEMPLATE,
   whatsappTemplateLanguage: parsed.WHATSAPP_TEMPLATE_LANGUAGE,
 };

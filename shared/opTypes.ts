@@ -12,7 +12,22 @@ export const OP_TYPES = [
 
 export type OpType = (typeof OP_TYPES)[number];
 
-export const OP_TYPE_OPTIONS = OP_TYPES.map((v) => ({ value: v, label: v }));
+export const OP_TYPE_LABELS_AR: Record<OpType, string> = {
+  PRK: "تصحيح إبصار بالليزر (PRK)",
+  Lasik: "تصحيح إبصار بالليزر (LASIK)",
+  FL: "تصحيح إبصار بالليزر (Femto LASIK)",
+  FS: "تصحيح إبصار بالليزر (Femto SMILE)",
+  IOL: "زراعة عدسات (IOL)",
+  ICL: "زراعة عدسات (ICL)",
+  Cataract: "مياه بيضاء وزراعة عدسة (Cataract)",
+  Squint: "عملية حول",
+  Others: "عمليات أخرى",
+};
+
+export const OP_TYPE_OPTIONS = OP_TYPES.map((value) => ({
+  value,
+  label: OP_TYPE_LABELS_AR[value],
+}));
 
 // Fixed tabs (PRK/Lasik/FL/FS/IOL/ICL/Cataract/Squint/Others) don't match the
 // raw free-text values already stored in patientOperations (e.g. the Lasik
@@ -36,4 +51,16 @@ export function resolveCanonicalOpType(raw: string): OpType {
     if (aliases.includes(normalized)) return canonical as OpType;
   }
   return "Others";
+}
+
+export function operationTypeLabelAr(raw: string): string {
+  const canonical = resolveCanonicalOpType(raw);
+  return canonical === "Others"
+    ? String(raw ?? "").trim() || OP_TYPE_LABELS_AR.Others
+    : OP_TYPE_LABELS_AR[canonical];
+}
+
+export function isLensOperationType(raw: string): boolean {
+  const canonical = resolveCanonicalOpType(raw);
+  return canonical === "Cataract" || canonical === "IOL" || canonical === "ICL";
 }

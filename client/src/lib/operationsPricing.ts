@@ -1,3 +1,8 @@
+import {
+  isLensOperationType,
+  operationTypeLabelAr,
+} from "@shared/opTypes";
+
 export const TAB_SAADANY = "saadany";
 export const TAB_SAWAF = "sawaf";
 export const TAB_OTHERS = "others";
@@ -16,8 +21,10 @@ export const normalizeTabKey = (value: unknown): string => {
 };
 
 export const OPERATION_LABELS: Record<string, string> = {
-  PRK: "PRK",
-  Lasik: "Lasik",
+  PRK: "تصحيح إبصار بالليزر (PRK)",
+  Lasik: "تصحيح إبصار بالليزر (LASIK)",
+  FL: "تصحيح إبصار بالليزر (Femto LASIK)",
+  FS: "تصحيح إبصار بالليزر (Femto SMILE)",
   "Lasik Moria": "Moria",
   "Lasik Moria N": "Moria N",
   "Lasik Moria D": "Moria D",
@@ -26,10 +33,10 @@ export const OPERATION_LABELS: Record<string, string> = {
   "Lasik Metal": "Metal",
   "Lasik Metal N": "Metal N",
   "Lasik Metal D": "Metal D",
-  Femto: "Femto",
-  IOL: "IOL",
-  ICL: "ICL",
-  Cataract: "Cataract",
+  Femto: "تصحيح إبصار بالليزر (Femto)",
+  IOL: "زراعة عدسات (IOL)",
+  ICL: "زراعة عدسات (ICL)",
+  Cataract: "مياه بيضاء وزراعة عدسة (Cataract)",
   Yag: "Yag",
   Other: "Others",
 };
@@ -177,7 +184,10 @@ export const includesAny = (text: string, words: string[]) =>
 export const detectOperationKey = (operation: unknown): OpKey => {
   const text = normalizeText(operation);
   if (includesAny(text, ["prk"])) return "prk";
-  if (includesAny(text, ["femto", "فيمتو"])) return "femto";
+  if (
+    includesAny(text, ["femto", "فيمتو", "fl", "fs", "smile", "سمايل"])
+  )
+    return "femto";
   if (includesAny(text, ["metal", "ميتال"])) return "lasik_metal";
   if (includesAny(text, ["moria", "موريا"])) return "lasik_moria";
   if (includesAny(text, ["lasik", "ليزك"])) return "lasik";
@@ -290,8 +300,10 @@ export const getPricingDefaults = (
 export const operationTypeLabel = (value: unknown) => {
   const key = String(value ?? "").trim();
   if (!key) return "أخرى";
-  return OPERATION_LABELS[key] ?? key;
+  return OPERATION_LABELS[key] ?? operationTypeLabelAr(key);
 };
+
+export { isLensOperationType };
 
 export const normalizeDoctorName = (value: unknown) => {
   const raw = String(value ?? "").trim();

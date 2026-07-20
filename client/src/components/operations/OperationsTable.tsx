@@ -1,7 +1,10 @@
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { operationTypeLabel } from "@/lib/operationsPricing";
+import {
+  isLensOperationType,
+  operationTypeLabel,
+} from "@/lib/operationsPricing";
 import { type ListData } from "@/hooks/operations/operationsShared";
 
 const tableInputClass = "h-11 w-full text-center text-sm md:h-9 md:text-xs";
@@ -32,8 +35,8 @@ export function OperationsTable({
   operationType,
 }: OperationsTableProps) {
   const hasCataract =
-    operationType === "Cataract" ||
-    currentList.some((row) => row.operation === "Cataract");
+    isLensOperationType(operationType) ||
+    currentList.some((row) => isLensOperationType(row.operation ?? ""));
   const rowLabel = (appointment: ListData, index: number, field: string) =>
     `${field} للحالة ${index + 1}${appointment.name ? `، ${appointment.name}` : ""}`;
 

@@ -50,9 +50,11 @@ const HISTORY_GROUPS_SAADANY = [
       "Lasik Metal N",
       "Lasik Metal D",
       "Femto",
+      "FL",
+      "FS",
     ],
   },
-  { key: "مياه بيضاء", match: ["Cataract", "IOL"] },
+  { key: "مياه بيضاء وزراعة عدسات", match: ["Cataract", "IOL", "ICL"] },
   { key: "أخرى", match: [] as string[], catchAll: true },
 ] as const;
 

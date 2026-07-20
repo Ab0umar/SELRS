@@ -22,6 +22,7 @@ import { DateInput } from "@/components/ui/date-input";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { Save } from "lucide-react";
+import { OP_TYPE_OPTIONS } from "@shared/opTypes";
 
 const rowClass = "grid grid-cols-[80px_1fr_1fr] items-center gap-2";
 const sectionDivider =
@@ -29,16 +30,6 @@ const sectionDivider =
 const fieldClass = "h-10 w-full text-sm text-center";
 const labelClass = "text-sm font-semibold";
 const subLabelClass = "text-xs text-muted-foreground pl-2";
-
-const OP_TYPE_OPTIONS = [
-  { value: "PRK", label: "PRK" },
-  { value: "LASIK", label: "LASIK" },
-  { value: "Femto", label: "Femto" },
-  { value: "Cataract", label: "Cataract" },
-  { value: "ICL", label: "ICL" },
-  { value: "IOL", label: "IOL" },
-  { value: "other", label: "Other" },
-];
 
 type EyeData = {
   s: string; c: string; axis: string;
