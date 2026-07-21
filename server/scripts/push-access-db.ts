@@ -84,7 +84,6 @@ const TABLES: TableMap[] = [
       { mysql: "name", access: "الاسم", type: "str" },
       { mysql: "amount", access: "المبلغ", type: "num" },
       { mysql: "repayment", access: "سداد", type: "num" },
-      { mysql: "remaining", access: "المتبقي", type: "num" },
       { mysql: "notes", access: "ملاحظات", type: "str" },
     ],
   },

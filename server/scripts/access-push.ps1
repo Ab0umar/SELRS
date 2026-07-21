@@ -16,8 +16,11 @@ param(
   [Parameter(Mandatory)][string]$TableName
 )
 
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$OutputEncoding = [System.Text.Encoding]::UTF8
+$utf8 = New-Object System.Text.UTF8Encoding($false)
+[Console]::InputEncoding = $utf8
+[Console]::OutputEncoding = $utf8
+$InputEncoding = $utf8
+$OutputEncoding = $utf8
 
 $raw = [Console]::In.ReadToEnd()
 if (-not $raw) { "[]"; exit 0 }
