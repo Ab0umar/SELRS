@@ -1,4 +1,4 @@
-﻿import {
+import {
   eq,
   and,
   like,
@@ -3828,6 +3828,13 @@ export async function saveAutorefractometryData(dataInput: any) {
   else if (dataInput.os?.airPuff2) dbRecord.iopOS = dataInput.os.airPuff2;
   else if (dataInput.os?.airPuff3) dbRecord.iopOS = dataInput.os.airPuff3;
 
+  const hasClinicalValues = Object.keys(dbRecord).some(
+    (key) => key !== "examinationId" && key !== "patientId",
+  );
+  if (!hasClinicalValues) {
+    return existing[0] ?? null;
+  }
+
   if (existing.length > 0) {
     await db
       .update(autorefractometryData)
@@ -7634,6 +7641,7 @@ async function getQueueServiceCodeSets(): Promise<{
 export async function resolveInitialQueueStatus(
   serviceCodes: Array<string | null | undefined>,
   dateIso: string,
+  visitType?: string,
 ): Promise<{
   queueStatus: "clinic1" | "clinic2" | "pentacam" | "treated";
   timestampField: "movedToClinicAt" | "movedToPentacamAt" | "treatedAt";
@@ -7642,7 +7650,12 @@ export async function resolveInitialQueueStatus(
     serviceCodes.map((c) => String(c ?? "").trim()).filter(Boolean),
   );
   const { clinic, pentacam } = await getQueueServiceCodeSets();
-  const hasClinicCode = [...codes].some((c) => clinic.has(c));
+  const hasClinicCode =
+    visitType === "consultation" ||
+    visitType === "examination" ||
+    visitType === "followup" ||
+    visitType === "operation" ||
+    [...codes].some((c) => clinic.has(c));
   const hasPentacamCode = [...codes].some((c) => pentacam.has(c));
 
   if (hasClinicCode) {
@@ -7709,7 +7722,10 @@ export async function autoAdvanceQueuePatients(dateIso: string) {
   for (const row of checkedInRows) {
     const codes = servicesByPatient.get(row.patientId) ?? new Set<string>();
     const hasClinicCode =
+      row.visitType === "consultation" ||
+      row.visitType === "examination" ||
       row.visitType === "followup" ||
+      row.visitType === "operation" ||
       [...codes].some((c) => clinicCodes.has(c));
     const hasPentacamCode = [...codes].some((c) => pentacamCodes.has(c));
 
@@ -7905,7 +7921,10 @@ export async function cascadeQueueStatus(dateIso: string) {
     const { clinic: clinicCodes2, pentacam: pentacamCodes2 } =
       await getQueueServiceCodeSets();
     const hasClinicCode =
+      nextVisit.visitType === "consultation" ||
+      nextVisit.visitType === "examination" ||
       nextVisit.visitType === "followup" ||
+      nextVisit.visitType === "operation" ||
       [...codes].some((c) => clinicCodes2.has(c));
     const hasPentacamCode = [...codes].some((c) => pentacamCodes2.has(c));
 

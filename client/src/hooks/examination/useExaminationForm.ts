@@ -1467,6 +1467,24 @@ export function useExaminationForm(
       if (examData.autorefraction?.os) {
         payload["autoref-os"] = examData.autorefraction.os;
       }
+      const firstIopValue = (...values: unknown[]) =>
+        values
+          .map((value) => String(value ?? "").trim())
+          .find((value) => value && value !== "---") ?? "";
+      const iopOD = firstIopValue(
+        examData.autorefraction.od.iop,
+        examData.autorefraction.od.airPuff1,
+        examData.autorefraction.od.airPuff2,
+        examData.autorefraction.od.airPuff3,
+      );
+      const iopOS = firstIopValue(
+        examData.autorefraction.os.iop,
+        examData.autorefraction.os.airPuff1,
+        examData.autorefraction.os.airPuff2,
+        examData.autorefraction.os.airPuff3,
+      );
+      if (iopOD) payload["iopOD"] = iopOD;
+      if (iopOS) payload["iopOS"] = iopOS;
       if (examData.glasses?.od || examData.glasses?.os) {
         payload["glasses"] = examData.glasses;
       }

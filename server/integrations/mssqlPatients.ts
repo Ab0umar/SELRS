@@ -2326,6 +2326,7 @@ export async function createOrSyncPatientFromMssql(
     const routed = await db.resolveInitialQueueStatus(
       (serviceEntries as any[]).map((e) => e?.serviceCode),
       todayIso,
+      "consultation",
     );
     await db
       .createVisit({
@@ -6091,6 +6092,7 @@ export async function syncPatientsFromMssql(
                 const routed = await db.resolveInitialQueueStatus(
                   [payload.serviceCode],
                   visitDateIso,
+                  "consultation",
                 );
                 await db
                   .createVisit({

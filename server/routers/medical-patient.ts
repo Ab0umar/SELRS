@@ -376,6 +376,7 @@ export const medicalPatientRoutes = {
             const routed = await db.resolveInitialQueueStatus(
               [patientInput.serviceCode, (existingByIdentity as any)?.serviceCode],
               todayIso,
+              "consultation",
             );
             await db
               .createVisit({
@@ -457,6 +458,7 @@ export const medicalPatientRoutes = {
           const routed = await db.resolveInitialQueueStatus(
             [patientInput.serviceCode, (created as any)?.serviceCode],
             todayIso,
+            "consultation",
           );
           await db
             .createVisit({
