@@ -71,4 +71,4 @@ foreach ($r in $rows) {
 }
 
 $conn.Close()
-,$results | ConvertTo-Json -Depth 6 -Compress
+ConvertTo-Json -InputObject @($results) -Depth 6 -Compress

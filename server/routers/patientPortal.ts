@@ -611,6 +611,7 @@ export const patientPortalRouter = router({
           fullName: patients.fullName,
           phone: patients.phone,
           email: patients.email,
+          serviceType: patients.serviceType,
         })
         .from(patients)
         .where(eq(patients.id, input.patientId))
@@ -647,6 +648,8 @@ export const patientPortalRouter = router({
           bookingDate: input.confirmedDate ?? input.requestedDate,
           branch: input.branch,
           status: "confirmed",
+          bookingType: input.bookingType,
+          patientServiceType: staffPat?.serviceType,
         }).catch((error) =>
           console.error(
             "[booking-whatsapp] Failed to send staff booking confirmation",
@@ -721,6 +724,7 @@ export const patientPortalRouter = router({
         bookingDate: input.requestedDate,
         branch: input.branch,
         status: "confirmed",
+        bookingType: input.bookingType,
       }).catch((error) =>
         console.error(
           "[booking-whatsapp] Failed to send guest booking confirmation",
@@ -796,6 +800,7 @@ export const patientPortalRouter = router({
           patientName: patients.fullName,
           patientPhone: patients.phone,
           patientEmail: patients.email,
+          patientServiceType: patients.serviceType,
         })
         .from(patientPortalBookings)
         .leftJoin(patients, eq(patientPortalBookings.patientId, patients.id))
@@ -839,6 +844,8 @@ export const patientPortalRouter = router({
             booking.requestedDate,
           branch: booking.branch,
           status: input.status,
+          bookingType: booking.bookingType,
+          patientServiceType: booking.patientServiceType,
         }).catch((error) =>
           console.error(
             "[booking-whatsapp] Failed to send booking status update",

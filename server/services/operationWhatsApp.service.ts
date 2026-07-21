@@ -9,6 +9,7 @@ export type OperationWhatsAppRequest = {
   operationTime: string | null | undefined;
   doctorName: string | null | undefined;
   hospitalName: string | null | undefined;
+  status?: "confirmed" | "cancelled";
 };
 
 type WhatsAppTemplateParameter = {
@@ -24,7 +25,10 @@ function internationalEgyptianPhone(rawPhone: string): string | null {
   return null;
 }
 
-function operationDateTime(request: OperationWhatsAppRequest): string {
+function operationDate(
+  request: OperationWhatsAppRequest,
+  includeTime = false,
+): string {
   const dateInput =
     typeof request.operationDate === "string"
       ? `${request.operationDate.slice(0, 10)}T${request.operationTime || "00:00"}:00`
@@ -36,15 +40,57 @@ function operationDateTime(request: OperationWhatsAppRequest): string {
 
   return new Intl.DateTimeFormat("ar-EG", {
     dateStyle: "full",
-    ...(request.operationTime ? { timeStyle: "short" as const } : {}),
+    ...(includeTime && request.operationTime
+      ? { timeStyle: "short" as const }
+      : {}),
     timeZone: "Africa/Cairo",
   }).format(date);
+}
+
+function operationTime(operationTime: string | null | undefined): string {
+  const match = String(operationTime ?? "").match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return String(operationTime ?? "").trim() || "حسب الموعد المحدد";
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const period = hours >= 12 ? "م" : "ص";
+  const twelveHour = hours % 12 || 12;
+  return minutes
+    ? `${twelveHour}:${String(minutes).padStart(2, "0")} ${period}`
+    : `${twelveHour} ${period}`;
 }
 
 function cleanDoctorName(doctorName: string | null | undefined): string {
   const name = String(doctorName ?? "").trim();
   if (!name) return "محمد السعدني";
   return name.replace(/^د[./]?\s*/u, "").trim() || "محمد السعدني";
+}
+
+function operationMapLocation(request: OperationWhatsAppRequest): string {
+  const operation = String(request.operationName ?? "").toLowerCase();
+  const hospital = String(request.hospitalName ?? "").toLowerCase();
+  const isFemto =
+    operation === "fl" ||
+    operation === "fs" ||
+    operation.includes("femto") ||
+    operation.includes("فيمتو");
+
+  if (isFemto) {
+    return (
+      ENV.whatsappEliteMapUrl ||
+      "https://maps.app.goo.gl/B9a7AMnDtD8jbgf8A"
+    );
+  }
+  if (hospital.includes("الأمل") || hospital.includes("الامل")) {
+    return (
+      ENV.whatsappAlamalMapUrl ||
+      "https://maps.app.goo.gl/ucztDFBrZfxcF2dm8"
+    );
+  }
+  return (
+    ENV.whatsappOperationMapUrl ||
+    "https://maps.app.goo.gl/arKPUnj2nXTttRew5"
+  );
 }
 
 function templateParameters(
@@ -66,12 +112,37 @@ function templateParameters(
       {
         type: "text",
         parameter_name: "booking_date",
-        text: operationDateTime(request),
+        text: operationDate(request, true),
       },
       {
         type: "text",
         parameter_name: "branch_name",
         text: request.hospitalName?.trim() || "مركز عيون الشروق",
+      },
+    ];
+  }
+
+  if (request.status === "cancelled") {
+    return [
+      {
+        type: "text",
+        parameter_name: "patient_name",
+        text: request.patientName?.trim() || "المريض",
+      },
+      {
+        type: "text",
+        parameter_name: "operation_name",
+        text: operationTypeLabelAr(request.operationName?.trim() || "العملية"),
+      },
+      {
+        type: "text",
+        parameter_name: "operation_date",
+        text: operationDate(request),
+      },
+      {
+        type: "text",
+        parameter_name: "doctor_name",
+        text: cleanDoctorName(request.doctorName),
       },
     ];
   }
@@ -90,7 +161,12 @@ function templateParameters(
     {
       type: "text",
       parameter_name: "operation_date",
-      text: operationDateTime(request),
+      text: operationDate(request),
+    },
+    {
+      type: "text",
+      parameter_name: "operation_time",
+      text: operationTime(request.operationTime),
     },
     {
       type: "text",
@@ -102,16 +178,25 @@ function templateParameters(
       parameter_name: "hospital_name",
       text: request.hospitalName?.trim() || "مركز عيون الشروق",
     },
+    {
+      type: "text",
+      parameter_name: "branch_location",
+      text: operationMapLocation(request),
+    },
   ];
 }
 
 export async function sendOperationListWhatsApp(
   request: OperationWhatsAppRequest,
 ): Promise<void> {
+  const templateName =
+    request.status === "cancelled"
+      ? ENV.whatsappOperationCancellationTemplate
+      : ENV.whatsappOperationTemplate;
   if (
     !ENV.whatsappAccessToken ||
     !ENV.whatsappPhoneNumberId ||
-    !ENV.whatsappOperationTemplate
+    !templateName
   ) {
     console.warn(
       "[operation-whatsapp] Cloud API is not configured; operation message was not sent",
@@ -142,14 +227,14 @@ export async function sendOperationListWhatsApp(
         to: recipientPhone,
         type: "template",
         template: {
-          name: ENV.whatsappOperationTemplate,
+          name: templateName,
           language: { code: ENV.whatsappTemplateLanguage },
           components: [
             {
               type: "body",
               parameters: templateParameters(
                 request,
-                ENV.whatsappOperationTemplate,
+                templateName,
               ),
             },
           ],
@@ -161,7 +246,7 @@ export async function sendOperationListWhatsApp(
   if (!response.ok) {
     const responseBody = await response.text();
     throw new Error(
-      `WhatsApp Cloud API template "${ENV.whatsappOperationTemplate}" returned ${response.status}: ${responseBody}`,
+      `WhatsApp Cloud API template "${templateName}" returned ${response.status}: ${responseBody}`,
     );
   }
 

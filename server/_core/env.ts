@@ -61,7 +61,13 @@ const envSchema = z.object({
   WHATSAPP_CONFIRMATION_TEMPLATE: z.string().optional().default(""),
   WHATSAPP_CANCELLATION_TEMPLATE: z.string().optional().default(""),
   WHATSAPP_OPERATION_TEMPLATE: z.string().optional().default(""),
+  WHATSAPP_OPERATION_CANCELLATION_TEMPLATE: z.string().optional().default(""),
   WHATSAPP_TEMPLATE_LANGUAGE: z.string().optional().default("ar"),
+  WHATSAPP_TANTA_MAP_URL: z.string().optional().default(""),
+  WHATSAPP_KFS_MAP_URL: z.string().optional().default(""),
+  WHATSAPP_OPERATION_MAP_URL: z.string().optional().default(""),
+  WHATSAPP_ALAMAL_MAP_URL: z.string().optional().default(""),
+  WHATSAPP_ELITE_MAP_URL: z.string().optional().default(""),
 });
 
 const parsed = envSchema.parse(process.env);
@@ -127,5 +133,12 @@ export const ENV = {
   whatsappConfirmationTemplate: parsed.WHATSAPP_CONFIRMATION_TEMPLATE,
   whatsappCancellationTemplate: parsed.WHATSAPP_CANCELLATION_TEMPLATE,
   whatsappOperationTemplate: parsed.WHATSAPP_OPERATION_TEMPLATE,
+  whatsappOperationCancellationTemplate:
+    parsed.WHATSAPP_OPERATION_CANCELLATION_TEMPLATE,
   whatsappTemplateLanguage: parsed.WHATSAPP_TEMPLATE_LANGUAGE,
+  whatsappTantaMapUrl: parsed.WHATSAPP_TANTA_MAP_URL,
+  whatsappKfsMapUrl: parsed.WHATSAPP_KFS_MAP_URL,
+  whatsappOperationMapUrl: parsed.WHATSAPP_OPERATION_MAP_URL,
+  whatsappAlamalMapUrl: parsed.WHATSAPP_ALAMAL_MAP_URL,
+  whatsappEliteMapUrl: parsed.WHATSAPP_ELITE_MAP_URL,
 };

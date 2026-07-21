@@ -168,7 +168,22 @@ function pushTable(dbPath: string, accessTable: string, rows: any[]): PushResult
   const out = (proc.stdout || "").trim();
   if (!out) return [];
   const parsed = JSON.parse(out);
-  return Array.isArray(parsed) ? parsed : [parsed];
+  const flatResults = (Array.isArray(parsed) ? parsed : [parsed]).flat(
+    Number.POSITIVE_INFINITY,
+  );
+  return flatResults.map((result, index) => {
+    if (
+      !result ||
+      typeof result !== "object" ||
+      !("webId" in result) ||
+      !("ok" in result)
+    ) {
+      throw new Error(
+        `access-push.ps1 (${accessTable}) returned an invalid result at index ${index}: ${JSON.stringify(result)}`,
+      );
+    }
+    return result as PushResult;
+  });
 }
 
 function cleanDate(v: any): string | null {
