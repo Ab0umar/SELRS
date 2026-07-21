@@ -146,7 +146,19 @@ export default function WritePrescription({
     },
   );
   const { mutate: savePatientPageState } =
-    trpc.medical.savePatientPageState.useMutation();
+    trpc.medical.savePatientPageState.useMutation({
+      onSuccess: () => {
+        const key = patientId
+          ? `selrs:patient-draft:${draftScope}:${patientId}`
+          : `selrs:patient-draft:${draftScope}:temp`;
+        try {
+          window.localStorage.removeItem(key);
+          window.sessionStorage.removeItem(key);
+        } catch (e) {
+          // Ignore storage failures.
+        }
+      },
+    });
   const templateOverridesQuery =
     trpc.medical.getReadyTemplateOverrides.useQuery(
       { scope: "prescription" },
@@ -361,7 +373,7 @@ export default function WritePrescription({
   }, [patientStateQuery.data, editingForbidden, patientId]);
 
   useEffect(() => {
-    if (editingForbidden) return;
+    if (editingForbidden || printMode.printView) return;
     const patientKey = patientId
       ? `selrs:patient-draft:${draftScope}:${patientId}`
       : null;
@@ -414,7 +426,7 @@ export default function WritePrescription({
     } catch {
       // Ignore invalid local draft.
     }
-  }, [patientId, editingForbidden, patientStateQuery.data, draftScope]);
+  }, [patientId, editingForbidden, patientStateQuery.data, draftScope, printMode.printView]);
 
   useEffect(() => {
     if (!patientId || editingForbidden) return;

@@ -114,7 +114,19 @@ export default function RequestTests({
     },
   );
   const savePatientStateMutation =
-    trpc.medical.savePatientPageState.useMutation();
+    trpc.medical.savePatientPageState.useMutation({
+      onSuccess: () => {
+        const key = patientId
+          ? `selrs:patient-draft:${draftScope}:${patientId}`
+          : `selrs:patient-draft:${draftScope}:temp`;
+        try {
+          window.localStorage.removeItem(key);
+          window.sessionStorage.removeItem(key);
+        } catch (e) {
+          // Ignore storage failures.
+        }
+      },
+    });
   const templateOverridesQuery = trpc.medical.getReadyTemplateOverrides.useQuery(
     { scope: "tests" },
     { refetchOnWindowFocus: false },
@@ -314,6 +326,7 @@ export default function RequestTests({
   }, [patientStateQuery.data, patientId]);
 
   useEffect(() => {
+    if (editingForbidden || printMode.printView) return;
     const patientKey = patientId
       ? `selrs:patient-draft:${draftScope}:${patientId}`
       : null;
@@ -362,7 +375,7 @@ export default function RequestTests({
     } catch {
       // Ignore invalid local draft.
     }
-  }, [patientId, patientStateQuery.data, draftScope]);
+  }, [patientId, patientStateQuery.data, draftScope, editingForbidden, printMode.printView]);
 
   useEffect(() => {
     if (!patientId || editingForbidden) return;

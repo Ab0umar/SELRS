@@ -413,7 +413,7 @@ function GridPatientCard({
               onClick={(e) => {
                 e.stopPropagation();
                 const path = patientNavPathForPageKey("write-prescription", patient.id);
-                if (path) window.open(`${path}?print=1`, "_blank");
+                if (path) window.open(buildPrintUrl(path), "_blank");
               }}
             >
               <Pill className="h-3.5 w-3.5" aria-hidden />
@@ -426,7 +426,7 @@ function GridPatientCard({
               onClick={(e) => {
                 e.stopPropagation();
                 const path = patientNavPathForPageKey("request-tests", patient.id);
-                if (path) window.open(`${path}?print=1`, "_blank");
+                if (path) window.open(buildPrintUrl(path), "_blank");
               }}
             >
               <FlaskConical className="h-3.5 w-3.5" aria-hidden />

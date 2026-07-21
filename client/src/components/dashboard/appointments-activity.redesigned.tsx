@@ -39,6 +39,7 @@ import { TodayPatientShortcutsDialog } from "@/components/today/TodayPatientShor
 import { FollowupFormDialog } from "@/components/today/FollowupFormDialog";
 import { getLocalDateIso } from "@/hooks/operations/operationsShared";
 import { DateInput } from "@/components/ui/date-input";
+import { buildPrintUrl } from "@/lib/print";
 
 type MainTab = "patients" | "operations" | "bookings";
 type QueueFilter = "all" | QueueStatus | "bookings";
@@ -728,7 +729,7 @@ function BookingCard({ booking }: { booking: any }) {
               <button
                 type="button"
                 title="طباعة روشتة"
-                onClick={() => window.open(`/prescription/${booking.patientId}?print=1`, "_blank")}
+                onClick={() => window.open(buildPrintUrl(`/prescription/${booking.patientId}`), "_blank")}
                 className="text-muted-foreground hover:text-error transition-colors"
                 aria-label="طباعة روشتة"
               >
@@ -737,7 +738,7 @@ function BookingCard({ booking }: { booking: any }) {
               <button
                 type="button"
                 title="طباعة طلب تحاليل"
-                onClick={() => window.open(`/request-tests/${booking.patientId}?print=1`, "_blank")}
+                onClick={() => window.open(buildPrintUrl(`/request-tests/${booking.patientId}`), "_blank")}
                 className="text-muted-foreground hover:text-error transition-colors"
                 aria-label="طباعة طلب تحاليل"
               >
@@ -1037,7 +1038,7 @@ function QueuePatientCard({
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-500 hover:text-error"
               onClick={(e) => {
                 e.stopPropagation();
-                window.open(`/prescription/${patient.id}?print=1`, "_blank");
+                window.open(buildPrintUrl(`/prescription/${patient.id}`), "_blank");
               }}
             >
               <Pill className="h-4 w-4" aria-hidden />
@@ -1049,7 +1050,7 @@ function QueuePatientCard({
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-500 hover:text-error"
               onClick={(e) => {
                 e.stopPropagation();
-                window.open(`/request-tests/${patient.id}?print=1`, "_blank");
+                window.open(buildPrintUrl(`/request-tests/${patient.id}`), "_blank");
               }}
             >
               <FlaskConical className="h-4 w-4" aria-hidden />

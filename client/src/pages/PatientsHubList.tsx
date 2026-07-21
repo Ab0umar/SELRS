@@ -34,6 +34,7 @@ import {
 } from "@/hooks/admin-patients/adminPatientsShared";
 import { usePermissions } from "@/hooks/usePermissions";
 import { DateInput } from "@/components/ui/date-input";
+import { buildPrintUrl } from "@/lib/print";
 
 type SheetFilter =
   | "all"
@@ -122,7 +123,7 @@ function printPatient(patient: PatientRow) {
     ) || "consultant",
   );
   const path = patientSheetPathByServiceType(serviceType, patient.id);
-  window.open(`${path}?print=1`, "_blank");
+  window.open(buildPrintUrl(path), "_blank");
 }
 
 /* ────────────────────── mobile card ─────────────────── */

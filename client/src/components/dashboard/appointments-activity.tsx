@@ -773,7 +773,7 @@ function BookingCard({ booking }: { booking: any }) {
                 title="طباعة روشتة"
                 onClick={() =>
                   window.open(
-                    `/prescription/${booking.patientId}?print=1`,
+                    buildPrintUrl(`/prescription/${booking.patientId}`),
                     "_blank",
                   )
                 }
@@ -787,7 +787,7 @@ function BookingCard({ booking }: { booking: any }) {
                 title="طباعة طلب تحاليل"
                 onClick={() =>
                   window.open(
-                    `/request-tests/${booking.patientId}?print=1`,
+                    buildPrintUrl(`/request-tests/${booking.patientId}`),
                     "_blank",
                   )
                 }
@@ -1040,7 +1040,7 @@ function QueuePatientCard({
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
             onClick={(e) => {
               e.stopPropagation();
-              window.open(`/prescription/${patient.id}?print=1`, "_blank");
+              window.open(buildPrintUrl(`/prescription/${patient.id}`), "_blank");
             }}
           >
             <Pill className="h-4 w-4" aria-hidden />
@@ -1052,7 +1052,7 @@ function QueuePatientCard({
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
             onClick={(e) => {
               e.stopPropagation();
-              window.open(`/request-tests/${patient.id}?print=1`, "_blank");
+              window.open(buildPrintUrl(`/request-tests/${patient.id}`), "_blank");
             }}
           >
             <FlaskConical className="h-4 w-4" aria-hidden />
