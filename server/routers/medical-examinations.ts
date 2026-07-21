@@ -1242,18 +1242,36 @@ export const medicalExaminationsRoutes = {
         typeof input.data["autorefraction"] === "object"
           ? (input.data["autorefraction"] as Record<string, any>)
           : null;
-      const autorefractionOd =
+      const flatAutorefractionOd: Record<string, any> = {
+        s: input.data["sphereOD"],
+        c: input.data["cylinderOD"],
+        axis: input.data["axisOD"],
+        ucva: input.data["ucvaOD"],
+        bcva: input.data["bcvaOD"],
+        iop: input.data["iopOD"] ?? input.data["airPuffOD"],
+      };
+      const flatAutorefractionOs: Record<string, any> = {
+        s: input.data["sphereOS"],
+        c: input.data["cylinderOS"],
+        axis: input.data["axisOS"],
+        ucva: input.data["ucvaOS"],
+        bcva: input.data["bcvaOS"],
+        iop: input.data["iopOS"] ?? input.data["airPuffOS"],
+      };
+      const autorefractionOd: Record<string, any> =
         (input.data["autoref-od"] as Record<string, any> | undefined) ??
         ((input.data["autoref"] as any)?.od as
           | Record<string, any>
           | undefined) ??
-        (autorefractionPayload?.od as Record<string, any> | undefined);
-      const autorefractionOs =
+        (autorefractionPayload?.od as Record<string, any> | undefined) ??
+        flatAutorefractionOd;
+      const autorefractionOs: Record<string, any> =
         (input.data["autoref-os"] as Record<string, any> | undefined) ??
         ((input.data["autoref"] as any)?.os as
           | Record<string, any>
           | undefined) ??
-        (autorefractionPayload?.os as Record<string, any> | undefined);
+        (autorefractionPayload?.os as Record<string, any> | undefined) ??
+        flatAutorefractionOs;
 
       const sphereOD = pickNonEmptyString(
         autorefractionOd?.s,
