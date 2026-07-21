@@ -16,6 +16,8 @@ import crypto from "crypto";
 import { getDb } from "../db";
 import { attendancePunches, attendanceEmployees } from "../../drizzle/schema";
 import { sql, eq } from "drizzle-orm";
+import { broadcastPunch } from "./ws";
+import { DailyMaterializer } from "../services/attendance/dailyMaterializer";
 
 // ---------------------------------------------------------------------------
 // Command queue — populated by pushEmployeesToAdms(), drained by /getrequest
@@ -329,6 +331,31 @@ export function registerZKTecoAdms(app: Express): void {
       console.log(
         `[ADMS] SN=${sn} pushed ${punches.length} punches → inserted to MySQL`,
       );
+
+      // Live-broadcast to LiveBoard subscribers, same as the FK/TCP punch path
+      // (punchReception.service.ts) — without this, ZK/ADMS punches only ever
+      // show up after a page refresh, never on the live feed.
+      for (const p of punches) {
+        broadcastPunch(p.empCd, p.direction, p.punchAt, sn);
+      }
+
+      // Recompute daily records immediately so dashboard cards update, same
+      // as the FK/TCP punch path.
+      const punchDays = new Set(
+        punches.map((p) => {
+          const d = new Date(p.punchAt);
+          d.setHours(0, 0, 0, 0);
+          return d.getTime();
+        }),
+      );
+      for (const dayMs of punchDays) {
+        const dayStart = new Date(dayMs);
+        const dayEnd = new Date(dayMs);
+        dayEnd.setDate(dayEnd.getDate() + 1);
+        DailyMaterializer.recomputeRange(dayStart, dayEnd).catch((err) => {
+          console.error("[ADMS] Failed to recompute daily for", dayStart, err);
+        });
+      }
 
       res.set("Content-Type", "text/plain");
       res.send(`OK: ${punches.length}`);
