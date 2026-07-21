@@ -100,35 +100,71 @@ export default function ProtectedRoute({
       );
       if (matchKf) return true;
     }
-    /** كتالوج الفحوصات و TXhub يُقيّدان بنفس مستوى صلاحيات الاختبارات أو الأدوية */
-    if (
-      cleanPath === ROUTES.examCatalog ||
-      cleanPath.startsWith(`${ROUTES.examCatalog}/`) ||
+    /** مركز الخدمات ومكوناته (الأدوية، كتالوج الفحوصات، TXhub، السجل) */
+    const isServicesHubPath =
+      cleanPath === "/services-hub" || cleanPath.startsWith("/services-hub/");
+    const isMedicationsPath =
+      cleanPath === ROUTES.medications || cleanPath.startsWith(`${ROUTES.medications}/`);
+    const isExamCatalogPath =
+      cleanPath === ROUTES.examCatalog || cleanPath.startsWith(`${ROUTES.examCatalog}/`);
+    const isTxHubPath =
       cleanPath === ROUTES.txhub ||
-      cleanPath.startsWith(`${ROUTES.txhub}/`)
-    ) {
-      const matchTests = allowedPaths.some(
-        (p) => p === ROUTES.tests || (p !== ROUTES.home && p.startsWith(ROUTES.tests)),
-      );
-      const matchMeds = allowedPaths.some(
-        (p) =>
-          p === ROUTES.medications ||
-          (p !== ROUTES.home && p.startsWith(ROUTES.medications)),
-      );
-      const matchExamCatalog =
-        allowedPaths.includes(ROUTES.examCatalog) ||
-        allowedPaths.some((p) => p.startsWith(`${ROUTES.examCatalog}:`));
-      const matchTx =
-        allowedPaths.includes(ROUTES.txhub) ||
-        allowedPaths.some((p) => p.startsWith(ROUTES.txhub));
-      const allowExamPath =
-        cleanPath === ROUTES.examCatalog ||
-        cleanPath.startsWith(`${ROUTES.examCatalog}/`);
-      const allowTxPath =
-        cleanPath === ROUTES.txhub || cleanPath.startsWith(`${ROUTES.txhub}/`);
-      if (allowExamPath && (matchTests || matchMeds || matchExamCatalog))
-        return true;
-      if (allowTxPath && (matchTests || matchMeds || matchTx)) return true;
+      cleanPath.startsWith(`${ROUTES.txhub}/`) ||
+      cleanPath === ROUTES.txhubRoute ||
+      cleanPath.startsWith(`${ROUTES.txhubRoute}/`);
+    const isMedicationsTestsPath =
+      cleanPath === ROUTES.medicationsTests || cleanPath === ROUTES.tests;
+
+    const matchServicesHub =
+      allowedPaths.includes("/services-hub") ||
+      allowedPaths.some((p) => p.startsWith("/services-hub"));
+    const matchMeds = allowedPaths.some(
+      (p) =>
+        p === ROUTES.medications ||
+        (p !== ROUTES.home && p.startsWith(ROUTES.medications)),
+    );
+    const matchExamCatalog =
+      allowedPaths.includes(ROUTES.examCatalog) ||
+      allowedPaths.some((p) => p.startsWith(`${ROUTES.examCatalog}`));
+    const matchTx =
+      allowedPaths.includes(ROUTES.txhub) ||
+      allowedPaths.includes(ROUTES.txhubRoute) ||
+      allowedPaths.includes("/txhub") ||
+      allowedPaths.includes("/treatment") ||
+      allowedPaths.some((p) => p.startsWith("/txhub") || p.startsWith("/treatment"));
+    const matchTests = allowedPaths.some(
+      (p) => p === ROUTES.tests || (p !== ROUTES.home && p.startsWith(ROUTES.tests)),
+    );
+    const matchRegistry = allowedPaths.some(
+      (p) => p === "/medications/registry" || p.startsWith("/medications/registry"),
+    );
+
+    const hasAnyServiceHubPermission =
+      matchServicesHub ||
+      matchMeds ||
+      matchExamCatalog ||
+      matchTx ||
+      matchTests ||
+      matchRegistry;
+
+    if (isServicesHubPath) {
+      if (hasAnyServiceHubPermission) return true;
+    }
+    if (isMedicationsPath) {
+      if (cleanPath.startsWith("/medications/registry")) {
+        if (matchServicesHub || matchRegistry || matchMeds) return true;
+      } else {
+        if (matchServicesHub || matchMeds) return true;
+      }
+    }
+    if (isExamCatalogPath) {
+      if (matchServicesHub || matchExamCatalog || matchTests || matchMeds) return true;
+    }
+    if (isTxHubPath) {
+      if (matchServicesHub || matchTx || matchTests || matchMeds) return true;
+    }
+    if (isMedicationsTestsPath) {
+      if (hasAnyServiceHubPermission) return true;
     }
     if (
       cleanPath === ROUTES.patientFile ||

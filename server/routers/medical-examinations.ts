@@ -1939,12 +1939,19 @@ export const medicalExaminationsRoutes = {
       const examinationId: number =
         (examResult as any)?.insertId || (examResult as any)?.id;
 
-      // Save autoref only when at least one eye has real data
-      if (_hasObjData(input.autoref?.od) || _hasObjData(input.autoref?.os)) {
+      // Autoref and IOP share autorefractometryData. Create the dedicated row
+      // even when this visit contains IOP only (without refraction values).
+      if (
+        _hasObjData(input.autoref?.od) ||
+        _hasObjData(input.autoref?.os) ||
+        _hasVal(input.iop?.od) ||
+        _hasVal(input.iop?.os)
+      ) {
         await db.saveAutorefractometryData({
           examinationId,
           patientId: input.patientId,
           ...input.autoref,
+          iop: input.iop,
         });
       }
 

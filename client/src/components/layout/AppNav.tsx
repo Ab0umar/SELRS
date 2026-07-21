@@ -345,7 +345,7 @@ const FULL_ATTENDANCE_ROLES = ["manager", "reception", "accountant", "nurse"];
 
 /** نفس هيكل الإدمن بدون «مركز الإدارة»، مع إضافة «حضوري» للجميع */
 export const staffNavGroups: NavGroup[] = [
-  ...adminNavGroups.slice(0, -1).map((g) =>
+  ...adminNavGroups.map((g) =>
     g === attendanceNavGroup
       ? {
           ...attendanceNavGroup,

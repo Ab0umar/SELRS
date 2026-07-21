@@ -35,6 +35,63 @@ export function pathGrantedByRoots(
 ): boolean {
   if (ALWAYS_GRANTED.has(cleanPath)) return true;
   if (!allowedRoots.length) return false;
+
+  const matchServicesHub =
+    allowedRoots.includes("/services-hub") ||
+    allowedRoots.some((p) => p.startsWith("/services-hub"));
+  const matchMeds = allowedRoots.some(
+    (p) => p === "/medications" || p.startsWith("/medications/"),
+  );
+  const matchExamCatalog =
+    allowedRoots.includes("/examinations/catalog") ||
+    allowedRoots.some((p) => p.startsWith("/examinations/catalog"));
+  const matchTx =
+    allowedRoots.includes("/txhub") ||
+    allowedRoots.includes("/treatment") ||
+    allowedRoots.some((p) => p.startsWith("/txhub") || p.startsWith("/treatment"));
+  const matchTests = allowedRoots.some(
+    (p) => p === "/tests" || p.startsWith("/tests/"),
+  );
+  const matchRegistry = allowedRoots.some(
+    (p) => p === "/medications/registry" || p.startsWith("/medications/registry"),
+  );
+
+  const hasAnyServiceHubPermission =
+    matchServicesHub ||
+    matchMeds ||
+    matchExamCatalog ||
+    matchTx ||
+    matchTests ||
+    matchRegistry;
+
+  if (cleanPath === "/services-hub" || cleanPath.startsWith("/services-hub/")) {
+    if (hasAnyServiceHubPermission) return true;
+  }
+  if (cleanPath === "/medications" || cleanPath.startsWith("/medications/")) {
+    if (cleanPath.startsWith("/medications/registry")) {
+      if (matchServicesHub || matchRegistry || matchMeds) return true;
+    } else {
+      if (matchServicesHub || matchMeds) return true;
+    }
+  }
+  if (
+    cleanPath === "/examinations/catalog" ||
+    cleanPath.startsWith("/examinations/catalog/")
+  ) {
+    if (matchServicesHub || matchExamCatalog || matchTests || matchMeds) return true;
+  }
+  if (
+    cleanPath === "/txhub" ||
+    cleanPath.startsWith("/txhub/") ||
+    cleanPath === "/treatment" ||
+    cleanPath.startsWith("/treatment/")
+  ) {
+    if (matchServicesHub || matchTx || matchTests || matchMeds) return true;
+  }
+  if (cleanPath === "/medications-tests" || cleanPath === "/tests") {
+    if (hasAnyServiceHubPermission) return true;
+  }
+
   return allowedRoots.some((permission) => {
     if (!permission) return false;
     if (permission === cleanPath) return true;
