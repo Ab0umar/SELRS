@@ -80,12 +80,19 @@ export default function LiveBoard() {
       wsRef.current = ws;
 
       return () => {
-        if (wsRef.current) {
-          wsRef.current.send(
+        const currentWs = wsRef.current;
+        if (currentWs?.readyState === WebSocket.OPEN) {
+          currentWs.send(
             JSON.stringify({ type: "unsubscribe-attendance" }),
           );
-          wsRef.current.close();
         }
+        if (
+          currentWs?.readyState === WebSocket.OPEN ||
+          currentWs?.readyState === WebSocket.CONNECTING
+        ) {
+          currentWs.close();
+        }
+        if (wsRef.current === currentWs) wsRef.current = null;
       };
     } catch (err) {
       console.error("Failed to create WebSocket:", err);

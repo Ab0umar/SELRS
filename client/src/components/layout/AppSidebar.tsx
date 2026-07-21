@@ -115,7 +115,16 @@ export function AppSidebar({
         }
 
         const items = item.items.filter((leaf) => leafVisible(leaf));
-        return items.length > 0 ? { ...item, items } : null;
+        const groupPathAllowed =
+          Boolean(item.groupPath) &&
+          permissionsQuery.isSuccess &&
+          pathGrantedByRoots(
+            normalizeNavPath(String(item.groupPath).split("?")[0]),
+            allowedRoots,
+          );
+        return items.length > 0 || groupPathAllowed
+          ? { ...item, items }
+          : null;
       })
       .filter((item): item is NavGroup => Boolean(item));
   }, [allowedRoots, isAdmin, permissionsQuery.isSuccess, userRole]);
