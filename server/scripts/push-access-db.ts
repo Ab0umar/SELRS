@@ -218,11 +218,22 @@ async function pushOne(db: any, t: TableMap, dbPath: string): Promise<{ pushed: 
   const failures: string[] = [];
   for (const rr of results) {
     if (rr.ok && rr.accessId) {
-      await db.execute(
-        sql.raw(
-          `UPDATE ${t.mysqlTable} SET accessId = ${rr.accessId}, syncedAt = NOW() WHERE id = ${rr.webId} AND accessId IS NULL`,
-        ),
-      );
+      // The Access→web watcher may import the newly inserted Access row before
+      // this script can attach its ID to the original web row. Merge that
+      // short-lived mirror row inside one transaction so the unique accessId
+      // constraint cannot turn a successful Access insert into a retry loop.
+      await db.transaction(async (tx: any) => {
+        await tx.execute(
+          sql.raw(
+            `DELETE FROM ${t.mysqlTable} WHERE accessId = ${rr.accessId} AND id <> ${rr.webId}`,
+          ),
+        );
+        await tx.execute(
+          sql.raw(
+            `UPDATE ${t.mysqlTable} SET accessId = ${rr.accessId}, syncedAt = NOW() WHERE id = ${rr.webId} AND accessId IS NULL`,
+          ),
+        );
+      });
       pushed++;
     } else {
       failures.push(`${t.mysqlTable} webId=${rr.webId}: ${rr.error ?? "unknown"}`);
