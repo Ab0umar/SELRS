@@ -1312,26 +1312,61 @@ export default function RequestTests({
           <div className="request-tests-print-content request-tests-paper space-y-5">
             <div className="request-tests-paper-header">
               <div
-                className="flex flex-wrap items-center justify-between gap-3 text-sm"
+                className="request-patient-grid flex flex-wrap items-center justify-between gap-3 text-sm"
                 dir="rtl"
               >
-                <span className="inline-flex min-w-[12rem] items-center gap-1" dir="rtl">
-                  <span className="font-bold text-[#1e3a66]">الاسم</span>
-                  <span className="font-semibold">{patientName || "غير محدد"}</span>
-                </span>
-                <span className="inline-flex items-center gap-1" dir="rtl">
-                  <span className="font-bold text-[#1e3a66]">التاريخ</span>
-                  <span className="font-semibold" dir="ltr">
-                    {formatDateLabel(requestDate)}
+                <span
+                  className="request-patient-field request-patient-name inline-flex min-w-[12rem] items-center gap-1"
+                  dir="rtl"
+                >
+                  <span className="request-patient-label font-bold text-[#1e3a66]">
+                    Name:
+                  </span>
+                  <span className="request-patient-value font-semibold">
+                    {patientName || "غير محدد"}
                   </span>
                 </span>
-                <span className="inline-flex items-center gap-1" dir="rtl">
-                  <span className="font-bold text-[#1e3a66]">الكود</span>
-                  <span className="font-semibold" dir="ltr">
+                <span
+                  className="request-patient-field inline-flex items-center gap-1"
+                  dir="ltr"
+                >
+                  <span className="request-patient-label font-bold text-[#1e3a66]">
+                    ID:
+                  </span>
+                  <span className="request-patient-value font-semibold">
                     {patientCode ||
                       (patientId != null ? String(patientId) : "")}
                   </span>
                 </span>
+                {requestDate ? (
+                  <span
+                    className="request-patient-field inline-flex items-center gap-1"
+                    dir="ltr"
+                  >
+                    <span className="request-patient-label font-bold text-[#1e3a66]">
+                      Date:
+                    </span>
+                    <span
+                      className="request-patient-value font-semibold"
+                      dir="ltr"
+                    >
+                      {formatDateLabel(requestDate)}
+                    </span>
+                  </span>
+                ) : null}
+                <span
+                  className="request-patient-field inline-flex items-center gap-1"
+                  dir="ltr"
+                >
+                  <span className="request-patient-label font-bold text-[#1e3a66]">
+                    Age:
+                  </span>
+                  <span className="request-patient-value font-semibold">
+                    {patientAge ? `${patientAge} years` : ""}
+                  </span>
+                </span>
+                <span className="request-patient-field" />
+                <span className="request-patient-field" />
               </div>
             </div>
 
@@ -1471,19 +1506,26 @@ export default function RequestTests({
               print-color-adjust: exact;
             }
             .request-tests-root main,
+            .request-tests-root .request-tests-print-content,
             .request-tests-root [data-slot="card"],
             .request-tests-root .card {
               background: #fff !important;
             }
             @page {
               size: A5;
-              margin: 9mm 9mm 8mm;
+              margin: 0;
             }
-          .request-tests-print-content {
-            margin-top: 25mm !important;
-          }
           .request-tests-root {
             min-height: auto !important;
+          }
+          .request-tests-root,
+          .request-tests-root body {
+            width: auto !important;
+          }
+          .request-tests-root .request-tests-print-content {
+            margin: 35mm auto 0 !important;
+            width: 132mm !important;
+            max-width: 132mm !important;
           }
           .request-tests-root main,
           .request-tests-root .request-tests-print-content {
@@ -1498,15 +1540,43 @@ export default function RequestTests({
             box-shadow: none !important;
           }
           .request-tests-root .request-tests-paper-header {
-            border: 0 !important;
-            border-bottom: 1px solid #000 !important;
+            border: 1px solid #e5e5e5 !important;
             border-radius: 0 !important;
-            padding: 0 0 3mm !important;
+            padding: 2.4mm 2.8mm !important;
+          }
+          .request-tests-root .request-patient-grid {
+            display: grid !important;
+            grid-template-columns: 1.4fr 0.72fr 1fr !important;
+            gap: 2mm 5mm !important;
+            align-items: center !important;
+            direction: ltr !important;
+            font-size: 9.5pt !important;
+            line-height: 1.25 !important;
+          }
+          .request-tests-root .request-patient-field {
+            display: inline-flex !important;
+            min-width: 0 !important;
+            gap: 1.5mm !important;
+            align-items: baseline !important;
+            justify-content: flex-start !important;
+            white-space: nowrap !important;
+          }
+          .request-tests-root .request-patient-name {
+            direction: ltr !important;
+          }
+          .request-tests-root .request-patient-label,
+          .request-tests-root .request-patient-value {
+            font-size: inherit !important;
+            line-height: inherit !important;
+          }
+          .request-tests-root .request-patient-value {
+            font-weight: 700 !important;
           }
           .request-tests-root .request-tests-print-list {
-            border: 0 !important;
-            border-radius: 0 !important;
-            margin-top: 5mm !important;
+            margin-top: 3mm !important;
+            border: 1px solid #e5e5e5 !important;
+            font-size: 10pt !important;
+            line-height: 1.3 !important;
           }
           .request-tests-root .request-tests-print-list > div {
             padding: 0 !important;
@@ -1514,17 +1584,22 @@ export default function RequestTests({
           .request-tests-root .request-test-item {
             break-inside: avoid;
             page-break-inside: avoid;
-            padding: 2.5mm 0 !important;
+            padding: 2.5mm 3.5mm !important;
+            border-bottom: 1px solid #e5e5e5 !important;
+          }
+          .request-tests-root .request-test-item:last-child {
+            border-bottom: 0 !important;
           }
           .request-tests-root .request-test-item p {
-            font-size: 13pt !important;
-            line-height: 1.4 !important;
+            font-size: 9.8pt !important;
+            line-height: 1.25 !important;
+            font-weight: 800 !important;
           }
           .request-tests-root .request-tests-general-note {
-            border: 1px solid #000 !important;
+            border: 1px solid #e5e5e5 !important;
             border-radius: 0 !important;
-            margin-top: 6mm !important;
-            padding: 3mm !important;
+            margin-top: 3mm !important;
+            padding: 2.4mm 2.8mm !important;
             break-inside: avoid;
             page-break-inside: avoid;
           }
