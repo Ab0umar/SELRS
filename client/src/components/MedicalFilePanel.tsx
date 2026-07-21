@@ -503,8 +503,8 @@ export default function MedicalFilePanel({
           measurements: {
             autoref: { od: autorefOD, os: autorefOS },
             iop: {
-              od: selectedExamination.iopOD || "",
-              os: selectedExamination.iopOS || "",
+              od: autorefRecord?.iopOD ?? selectedExamination.iopOD ?? "",
+              os: autorefRecord?.iopOS ?? selectedExamination.iopOS ?? "",
             },
             after: { od: afterOD, os: afterOS },
           },
@@ -853,7 +853,8 @@ export default function MedicalFilePanel({
 
   // Mutation for updating examination
   const updateExaminationMutation = trpc.medical.updateExamination.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
+      await autorefQuery.refetch();
       toast.success("تم حفظ البيانات بنجاح");
       setIsSaving(false);
       if (!embedded) {
