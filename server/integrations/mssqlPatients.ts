@@ -2349,6 +2349,77 @@ export async function createOrSyncPatientFromMssql(
   return { patientId, created };
 }
 
+async function overwriteMssqlPatientDemographics(
+  pool: any,
+  targetTable: string,
+  targetCols: Set<string>,
+  input: MssqlPatientInsertInput,
+  values: {
+    patientCode: string;
+    fullName: string;
+    nam1: string;
+    nam2: string;
+    nam3: string;
+    phone: string;
+    address: string;
+    ageValue: number | null;
+    gender: number | null;
+    dobLiteral: string | null;
+    ageMonths: number | null;
+    ageDays: number | null;
+  },
+): Promise<void> {
+  const req = pool.request();
+  req.input("PAT_CD", values.patientCode);
+  req.input("NAM", values.fullName);
+  req.input("NAM1", values.nam1 || null);
+  req.input("NAM2", values.nam2 || null);
+  req.input("NAM3", values.nam3 || null);
+
+  const assignments = [
+    "NAM = @NAM",
+    "NAM1 = @NAM1",
+    "NAM2 = @NAM2",
+    "NAM3 = @NAM3",
+  ];
+
+  // Only overwrite optional columns when that field was actually submitted.
+  // Extra-service inserts intentionally omit them and must not clear the
+  // demographics written by the primary registration request.
+  if (input.phone !== undefined) {
+    req.input("TEL1", values.phone || null);
+    assignments.push("TEL1 = @TEL1");
+  }
+  if (input.address !== undefined) {
+    req.input("ADDRS", values.address || null);
+    assignments.push("ADDRS = @ADDRS");
+  }
+  if (input.age !== undefined) {
+    req.input("AGE", values.ageValue);
+    assignments.push("AGE = @AGE");
+  }
+  if (input.gender !== undefined) {
+    req.input("GNDR", values.gender);
+    assignments.push("GNDR = @GNDR");
+  }
+  if (input.dateOfBirth !== undefined) {
+    req.input("BDT", values.dobLiteral);
+    assignments.push("BDT = @BDT");
+    if (targetCols.has("AGE_MONTHS")) {
+      req.input("AGE_MONTHS", values.ageMonths);
+      assignments.push("AGE_MONTHS = @AGE_MONTHS");
+    }
+    if (targetCols.has("AGE_DAYS")) {
+      req.input("AGE_DAYS", values.ageDays);
+      assignments.push("AGE_DAYS = @AGE_DAYS");
+    }
+  }
+
+  await req.query(
+    `UPDATE ${targetTable} SET ${assignments.join(", ")} WHERE PAT_CD = @PAT_CD`,
+  );
+}
+
 export async function insertPatientToMssql(
   input: MssqlPatientInsertInput,
 ): Promise<{
@@ -2504,6 +2575,28 @@ export async function insertPatientToMssql(
     const hasPrcDgr = targetCols.has("PRC_DGR");
     const hasCaAcc = targetCols.has("CA_ACC");
     const hasCaVl = targetCols.has("CA_VL");
+
+    await overwriteMssqlPatientDemographics(
+      pool,
+      targetTable,
+      targetCols,
+      input,
+      {
+        patientCode,
+        fullName,
+        nam1,
+        nam2,
+        nam3,
+        phone,
+        address,
+        ageValue,
+        gender,
+        dobLiteral,
+        ageMonths,
+        ageDays,
+      },
+    );
+    _mark("overwrite patient demographics done");
 
     const insertColumns = [
       "PAT_CD",
@@ -3136,8 +3229,26 @@ export async function upsertPatientToMssql(
       Array.isArray(existsResult?.recordset) &&
       existsResult.recordset.length > 0;
     if (exists) {
-      // Patient code already exists - do NOT update patient details
-      // Only services and their dates can be updated via separate service mutation
+      await overwriteMssqlPatientDemographics(
+        pool,
+        targetTable,
+        targetCols,
+        input,
+        {
+          patientCode,
+          fullName,
+          nam1,
+          nam2,
+          nam3,
+          phone,
+          address,
+          ageValue,
+          gender,
+          dobLiteral,
+          ageMonths,
+          ageDays,
+        },
+      );
     } else {
       const insertCols = [
         "PAT_CD",
