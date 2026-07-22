@@ -154,7 +154,11 @@ export default function WritePrescription({
   const patientStateQuery = trpc.medical.getPatientPageState.useQuery(
     { patientId: patientId ?? 0, page: "prescription" },
     {
-      enabled: Boolean(patientId) && !editingForbidden && !isKfRoute,
+      enabled:
+        Boolean(patientId) &&
+        !initialPatientId &&
+        !editingForbidden &&
+        !isKfRoute,
       refetchOnWindowFocus: false,
     },
   );
@@ -385,8 +389,6 @@ export default function WritePrescription({
     hydratedPatientStateRef.current = patientId;
   }, [patientStateQuery.data, editingForbidden, patientId]);
 
-
-
   useEffect(() => {
     if (!patientId || editingForbidden) return;
     if (isKfRoute) return;
@@ -614,7 +616,7 @@ export default function WritePrescription({
     { enabled: Boolean(patientId) && !isKfRoute, refetchOnWindowFocus: false },
   );
   useEffect(() => {
-    if (!editingForbidden) return;
+    if (!editingForbidden && !initialPatientId) return;
     const history = (historyQuery.data ?? []) as any[];
     if (!history.length) {
       setPrescriptionItems([]);
@@ -635,7 +637,7 @@ export default function WritePrescription({
       const dateValue = toDateInputValue(latest.prescriptionDate);
       if (dateValue) setPrescriptionDate(dateValue);
     }
-  }, [historyQuery.data, editingForbidden]);
+  }, [historyQuery.data, editingForbidden, initialPatientId]);
 
   const handleRemoveItem = (id: string) => {
     if (editingForbidden) return;
@@ -1312,7 +1314,9 @@ export default function WritePrescription({
                         className="text-xs text-[#1e3a66] hover:bg-slate-100 h-8"
                         onClick={() => setShowTemplateManagement((p) => !p)}
                       >
-                        {showTemplateManagement ? "إخفاء الإدارة" : "إدارة الروشتات"}
+                        {showTemplateManagement
+                          ? "إخفاء الإدارة"
+                          : "إدارة الروشتات"}
                       </Button>
                       {canImportReadyTemplates && showTemplateManagement ? (
                         <div className="flex items-center gap-2">
@@ -1359,7 +1363,10 @@ export default function WritePrescription({
                               <ChevronDown className="h-3.5 w-3.5 opacity-70" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" className="max-h-[300px] overflow-y-auto min-w-[160px]">
+                          <DropdownMenuContent
+                            align="start"
+                            className="max-h-[300px] overflow-y-auto min-w-[160px]"
+                          >
                             {templatesInTab.length === 0 ? (
                               <div className="text-center text-xs text-muted-foreground p-2">
                                 لا توجد روشتات
@@ -1369,9 +1376,14 @@ export default function WritePrescription({
                                 <DropdownMenuItem
                                   key={template.id}
                                   className="text-right text-xs cursor-pointer hover:bg-[#eef5ff] pr-4 py-2"
-                                  onClick={() => handleApplyReadyPrescription(template.id)}
+                                  onClick={() =>
+                                    handleApplyReadyPrescription(template.id)
+                                  }
                                 >
-                                  {getTemplateDisplayName(template.id, template.name)}
+                                  {getTemplateDisplayName(
+                                    template.id,
+                                    template.name,
+                                  )}
                                 </DropdownMenuItem>
                               ))
                             )}
@@ -1438,14 +1450,18 @@ export default function WritePrescription({
                               if (Boolean(checked)) {
                                 setSelectedTemplateIds((prev) =>
                                   Array.from(
-                                    new Set([...prev, ...filteredReadyTemplateIds]),
+                                    new Set([
+                                      ...prev,
+                                      ...filteredReadyTemplateIds,
+                                    ]),
                                   ),
                                 );
-                                  return;
+                                return;
                               }
                               setSelectedTemplateIds((prev) =>
                                 prev.filter(
-                                  (id) => !filteredReadyTemplateIds.includes(id),
+                                  (id) =>
+                                    !filteredReadyTemplateIds.includes(id),
                                 ),
                               );
                             }}
@@ -1579,7 +1595,10 @@ export default function WritePrescription({
                     <span className="prescription-patient-label font-bold text-[#1e3a66]">
                       الكود:
                     </span>
-                    <span className="prescription-patient-value font-semibold" dir="ltr">
+                    <span
+                      className="prescription-patient-value font-semibold"
+                      dir="ltr"
+                    >
                       {patientCode ||
                         (patientId != null ? String(patientId) : "")}
                     </span>
@@ -1875,9 +1894,9 @@ export default function WritePrescription({
                     حفظ الروشتة
                   </Button>
                 )}
-                <Button 
-                  variant="outline" 
-                  onClick={handlePrint} 
+                <Button
+                  variant="outline"
+                  onClick={handlePrint}
                   type="button"
                   className="border-slate-300 text-slate-700 hover:bg-slate-50 font-semibold h-9 px-4 rounded-xl"
                 >
