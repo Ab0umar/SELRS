@@ -2609,6 +2609,36 @@ export const marketingLogs = mysqlTable(
 export type MarketingLog = typeof marketingLogs.$inferSelect;
 export type InsertMarketingLog = typeof marketingLogs.$inferInsert;
 
+/**
+ * Inbound WhatsApp Cloud API messages — raw payloads received via the
+ * /webhook/whatsapp endpoint (server/_core/whatsappWebhook.ts).
+ */
+export const whatsappInboundMessages = mysqlTable(
+  "whatsapp_inbound_messages",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    waMessageId: varchar("wa_message_id", { length: 128 }),
+    fromPhone: varchar("from_phone", { length: 32 }),
+    messageType: varchar("message_type", { length: 32 }),
+    body: text("body"),
+    rawPayload: text("raw_payload"),
+    receivedAt: timestamp("received_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    waMessageIdIdx: uniqueIndex("uq_whatsapp_inbound_wa_message_id").on(
+      table.waMessageId,
+    ),
+    fromPhoneIdx: index("idx_whatsapp_inbound_from_phone").on(
+      table.fromPhone,
+    ),
+  }),
+);
+
+export type WhatsappInboundMessage =
+  typeof whatsappInboundMessages.$inferSelect;
+export type InsertWhatsappInboundMessage =
+  typeof whatsappInboundMessages.$inferInsert;
+
 export const marketingReferenceDesigns = mysqlTable(
   "marketing_reference_designs",
   {

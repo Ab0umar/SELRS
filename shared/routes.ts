@@ -105,6 +105,7 @@ export const ROUTES = {
   adminPatients: "/admin-patients",
   adminLegacyPatients: "/admin/legacy-patients",
   opHistory: "/admin/op-history",
+  whatsappInbox: "/admin/whatsapp-inbox",
   adminApiTools: "/admin/api-tools",
   adminCardVisibility: "/admin/card-visibility",
   adminDataSourceAudit: "/admin/data-source-audit",

@@ -405,6 +405,11 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   { id: "/admin/patients", label: "مرضى الإدارة", group: "مركز الإدارة" },
   { id: "/admin/legacy-patients", label: "سجل المرضى", group: "مركز الإدارة" },
   { id: "/admin/op-history", label: "سجل العمليات", group: "مركز الإدارة" },
+  {
+    id: "/admin/whatsapp-inbox",
+    label: "رسائل واتساب الواردة",
+    group: "مركز الإدارة",
+  },
   { id: "/admin/forms", label: "النماذج الإدارية", group: "مركز الإدارة" },
   { id: "/admin/settings", label: "إعدادات النظام", group: "مركز الإدارة" },
   {

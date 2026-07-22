@@ -32,6 +32,7 @@ export default function LiveBoard() {
   const [punches, setPunches] = useState<LivePunch[]>([]);
   const [isMonitoring, setIsMonitoring] = useState(true);
   const admsStatus = tRPC.attendance.admsStatus.useQuery(undefined, { refetchInterval: 15000 });
+  const fkStatus = tRPC.attendance.fkStatus.useQuery(undefined, { refetchInterval: 15000 });
   const wsRef = useRef<WebSocket | null>(null);
   const [wsConnected, setWsConnected] = useState(false);
 
@@ -139,12 +140,12 @@ export default function LiveBoard() {
         {/* Left Column: Live status indicators (col-span-5) */}
         <div className="md:col-span-5 space-y-6">
           
-          {/* Bento Box 1: WebSocket Gate State (Mint Theme) */}
+          {/* Bento Box 1: FK live channel (Mint Theme) */}
           <div className="p-6 bg-[#ECFDF5] border border-emerald-150 rounded-3xl flex flex-col justify-between hover:scale-[1.01] transition-transform duration-200">
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-[10px] text-emerald-800 font-bold uppercase tracking-wider block">قناة البث المباشر</span>
-                
+                <span className="text-[10px] text-emerald-800 font-bold uppercase tracking-wider block">قناة البث المباشر — FK</span>
+
                 {wsConnected ? (
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-600/10 text-emerald-700 border border-emerald-250">
                     نشط الآن
@@ -162,8 +163,23 @@ export default function LiveBoard() {
                   <Wifi className="w-5 h-5 text-emerald-700" />
                 </div>
                 <div>
-                  <span className="text-xs font-bold text-emerald-950 block">حالة خوادم ADMS</span>
-                  <span className="text-[10px] text-emerald-700/80 block mt-0.5">تلقي الحركات الفوري من بوابات الحضور</span>
+                  <span className="text-xs font-bold text-emerald-950 block">حالة بوابة FK (EF10-K)</span>
+                  <span className="text-[10px] text-emerald-700/80 block mt-0.5">تلقي الحركات الفوري من بوابة FK</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="p-3 bg-white border border-emerald-100 rounded-xl">
+                  <span className="text-[9px] text-slate-400 block font-bold">إجمالي الحركات</span>
+                  <span className="font-mono font-bold text-emerald-950 text-[11px] block mt-0.5">
+                    {fkStatus.data?.punchCount ?? 0} بصمة
+                  </span>
+                </div>
+                <div className="p-3 bg-white border border-emerald-100 rounded-xl">
+                  <span className="text-[9px] text-slate-400 block font-bold">آخر وقت بث</span>
+                  <span className="font-mono font-bold text-emerald-950 text-[11px] block mt-0.5">
+                    {fkStatus.data?.lastPunch ? new Date(fkStatus.data.lastPunch).toLocaleTimeString("ar-EG") : "—"}
+                  </span>
                 </div>
               </div>
 
@@ -190,22 +206,45 @@ export default function LiveBoard() {
             </div>
           </div>
 
-          {/* Bento Box 2: Roster Live summary (Sky Theme) */}
+          {/* Bento Box 2: ZK/ADMS live channel (Sky Theme) */}
           <div className="p-6 bg-[#F0F9FF] border border-sky-150 rounded-3xl flex flex-col justify-between hover:scale-[1.01] transition-transform duration-200">
             <div className="space-y-4">
-              <span className="text-[10px] text-sky-850 font-bold uppercase tracking-wider block">إحصائيات البوابة النشطة</span>
-              
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-sky-850 font-bold uppercase tracking-wider block">قناة البث المباشر — ZK / ADMS</span>
+
+                {wsConnected ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-sky-600/10 text-sky-700 border border-sky-250">
+                    نشط الآن
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-rose-600/10 text-rose-700 border border-rose-250">
+                    غير متصل
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-4 py-2">
+                <div className="w-12 h-12 rounded-full bg-sky-500/10 border border-sky-500/20 flex items-center justify-center relative shrink-0">
+                  <span className={`absolute w-10 h-10 rounded-full border border-sky-500/20 ${wsConnected ? "animate-ping" : ""}`}></span>
+                  <Wifi className="w-5 h-5 text-sky-700" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-sky-950 block">حالة خوادم ADMS (K40 Pro)</span>
+                  <span className="text-[10px] text-sky-700/80 block mt-0.5">تلقي الحركات الفوري من بوابة ZK</span>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div className="p-3 bg-white border border-sky-100 rounded-xl">
                   <span className="text-[9px] text-slate-400 block font-bold">إجمالي الحركات</span>
                   <span className="font-mono font-bold text-sky-950 text-[11px] block mt-0.5">
-                    {deviceStatus?.punchCount ?? 0} بصمة
+                    {admsStatus.data?.punchCount ?? 0} بصمة
                   </span>
                 </div>
                 <div className="p-3 bg-white border border-sky-100 rounded-xl">
                   <span className="text-[9px] text-slate-400 block font-bold">آخر وقت بث</span>
                   <span className="font-mono font-bold text-sky-950 text-[11px] block mt-0.5">
-                    {deviceStatus?.lastPunch ? new Date(deviceStatus.lastPunch).toLocaleTimeString("ar-EG") : "—"}
+                    {admsStatus.data?.lastPunch ? new Date(admsStatus.data.lastPunch).toLocaleTimeString("ar-EG") : "—"}
                   </span>
                 </div>
               </div>

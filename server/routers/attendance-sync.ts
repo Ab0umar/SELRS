@@ -198,6 +198,34 @@ export const attendanceSyncRoutes = {
     };
   }),
 
+  // Mirrors admsStatus but scoped to FK devices (deviceId prefixed "fk_"),
+  // so the live board can show FK and ZK/ADMS as two independent channels
+  // instead of one card that silently only ever reflected FK's numbers.
+  fkStatus: makeAttProcedure("/attendance/admin/device").query(async () => {
+    const db = await getDb();
+    if (!db) return { lastPunch: null, punchCount: 0, lastDeviceId: null, recentPunches: [] };
+    const fkFilter = and(
+      eq(attendancePunches.source, "tcp"),
+      sql`${attendancePunches.deviceId} LIKE 'fk_%'`,
+    );
+    const [row] = await db
+      .select({ lastPunch: max(attendancePunches.punchAt), total: count() })
+      .from(attendancePunches)
+      .where(fkFilter);
+    const recent = await db
+      .select({ empCd: attendancePunches.empCd, punchAt: attendancePunches.punchAt, direction: attendancePunches.direction, deviceId: attendancePunches.deviceId })
+      .from(attendancePunches)
+      .where(fkFilter)
+      .orderBy(desc(attendancePunches.punchAt))
+      .limit(10);
+    return {
+      lastPunch: row?.lastPunch ?? null,
+      punchCount: row?.total ?? 0,
+      lastDeviceId: recent[0]?.deviceId ?? null,
+      recentPunches: recent,
+    };
+  }),
+
   connectDevice: makeAttWriteProcedure("/attendance/admin/device").mutation(async () => {
     const connected = await DeviceSettingsService.connectDevice();
     AuditLogService.log({

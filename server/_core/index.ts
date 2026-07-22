@@ -20,6 +20,7 @@ import { promisify } from "node:util";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerAuthRoutes } from "./auth";
 import { registerZKTecoAdms } from "./zktecoAdms";
+import { registerWhatsAppWebhook } from "./whatsappWebhook";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -1406,6 +1407,8 @@ async function startServer() {
   registerWsServer(server);
   // ZKTeco ADMS push endpoint — must be before global body parsers so express.text() can read the raw body
   registerZKTecoAdms(app);
+  // WhatsApp Cloud API webhook — must be before global body parsers so it can capture the raw body for signature verification
+  registerWhatsAppWebhook(app);
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));

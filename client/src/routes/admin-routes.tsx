@@ -31,6 +31,9 @@ const AdminLegacyPatients = lazy(
   () => import("../features/admin/AdminLegacyPatients"),
 );
 const OpHistory = lazy(() => import("../features/admin/OpHistory"));
+const AdminWhatsAppInbox = lazy(
+  () => import("../features/admin/AdminWhatsAppInbox"),
+);
 const AdminCardVisibility = lazy(
   () => import("../features/admin/AdminCardVisibility"),
 );
@@ -170,6 +173,14 @@ export const AdminRoutes = (
       component={() => (
         <ProtectedRoute requiredRoles={["admin"]}>
           <OpHistory />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
+      path={ROUTES.whatsappInbox}
+      component={() => (
+        <ProtectedRoute requiredRoles={["admin"]}>
+          <AdminWhatsAppInbox />
         </ProtectedRoute>
       )}
     />

@@ -24,6 +24,7 @@ import {
   Home,
   Hospital,
   LayoutDashboard,
+  MessageCircle,
   Network,
   Pill,
   ReceiptText,
@@ -193,6 +194,12 @@ export const adminNavGroups: NavGroup[] = [
     icon: ScrollText,
     label: "سجل العمليات",
     path: "/admin/op-history",
+    isMain: true,
+  },
+  {
+    icon: MessageCircle,
+    label: "رسائل واتساب الواردة",
+    path: "/admin/whatsapp-inbox",
     isMain: true,
   },
   {

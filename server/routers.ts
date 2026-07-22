@@ -19,6 +19,7 @@ import { marketingRouter } from "./routers/marketing";
 import { kfRouter } from "./routers/kf";
 import { legacyPatientsRouter } from "./routers/legacyPatients";
 import { opHistoryRouter } from "./routers/opHistory";
+import { whatsappInboxRouter } from "./routers/whatsappInbox";
 import * as db from "./db";
 import {
   authService,
@@ -205,6 +206,7 @@ export const appRouter = router({
   kf: kfRouter,
   legacyPatients: legacyPatientsRouter,
   opHistory: opHistoryRouter,
+  whatsappInbox: whatsappInboxRouter,
 });
 
 export type AppRouter = typeof appRouter;

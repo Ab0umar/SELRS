@@ -68,6 +68,8 @@ const envSchema = z.object({
   WHATSAPP_OPERATION_MAP_URL: z.string().optional().default(""),
   WHATSAPP_ALAMAL_MAP_URL: z.string().optional().default(""),
   WHATSAPP_ELITE_MAP_URL: z.string().optional().default(""),
+  WHATSAPP_WEBHOOK_VERIFY_TOKEN: z.string().optional().default(""),
+  WHATSAPP_APP_SECRET: z.string().optional().default(""),
 });
 
 const parsed = envSchema.parse(process.env);
@@ -141,4 +143,6 @@ export const ENV = {
   whatsappOperationMapUrl: parsed.WHATSAPP_OPERATION_MAP_URL,
   whatsappAlamalMapUrl: parsed.WHATSAPP_ALAMAL_MAP_URL,
   whatsappEliteMapUrl: parsed.WHATSAPP_ELITE_MAP_URL,
+  whatsappWebhookVerifyToken: parsed.WHATSAPP_WEBHOOK_VERIFY_TOKEN,
+  whatsappAppSecret: parsed.WHATSAPP_APP_SECRET,
 };
