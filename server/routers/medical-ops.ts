@@ -1234,21 +1234,6 @@ export const medicalOpsRoutes = {
           .map((item: any) => String(item.phone ?? "").replace(/\D/g, ""))
           .filter(Boolean),
       );
-      const currentCodes = new Set(
-        input.items
-          .map((item) => String(item.code ?? "").trim().toLowerCase())
-          .filter(Boolean),
-      );
-      const currentPhones = new Set(
-        input.items
-          .map((item) => String(item.phone ?? "").replace(/\D/g, ""))
-          .filter(Boolean),
-      );
-      const currentNames = new Set(
-        input.items
-          .map((item) => String(item.name ?? "").trim().toLowerCase())
-          .filter(Boolean),
-      );
       const newSaadanyItems =
         input.doctorTab === "saadany"
           ? input.items.filter((item) => {
@@ -1259,19 +1244,6 @@ export const medicalOpsRoutes = {
               return true;
             })
           : [];
-      const removedSaadanyItems =
-        input.doctorTab === "saadany"
-          ? previousList.items.filter((item: any) => {
-              const code = String(item.code ?? "").trim().toLowerCase();
-              const phone = String(item.phone ?? "").replace(/\D/g, "");
-              const name = String(item.name ?? "").trim().toLowerCase();
-              if (code && currentCodes.has(code)) return false;
-              if (phone && currentPhones.has(phone)) return false;
-              if (name && currentNames.has(name)) return false;
-              return true;
-            })
-          : [];
-
       const savedList = await db.saveOperationList({
         listId: input.listId ?? null,
         doctorTab: input.doctorTab,
@@ -1375,46 +1347,53 @@ export const medicalOpsRoutes = {
         });
       }
 
-      if (removedSaadanyItems.length > 0) {
-        void Promise.allSettled(
-          removedSaadanyItems.map((item: any) =>
-            sendOperationListWhatsApp({
-              recipientPhone: item.phone,
-              patientName: item.name,
-              operationName:
-                item.operation ||
-                (previousList as any).operationType ||
-                input.operationType ||
-                "عملية عيون",
-              operationDate:
-                (previousList as any).listDate || input.listDate,
-              operationTime:
-                (previousList as any).listTime || input.listTime,
-              doctorName:
-                (previousList as any).doctorName ||
-                input.doctorName ||
-                "د. محمد السعدني",
-              hospitalName: item.hospital,
-              status: "cancelled",
-            }),
-          ),
-        ).then((operationMessages) => {
-          operationMessages.forEach((result, index) => {
-            if (result.status === "rejected") {
-              console.error(
-                `[operation-whatsapp] Failed to send operation cancellation for list ${savedList.id}, patient ${removedSaadanyItems[index]?.name}`,
-                result.reason,
-              );
-            }
-          });
-        });
-      }
-
       return {
         success: true,
         whatsappQueued: newSaadanyItems.length,
-        whatsappCancellationsQueued: removedSaadanyItems.length,
+        whatsappCancellationsQueued: 0,
       };
+    }),
+
+  cancelOperationWhatsApp: protectedProcedure
+    .input(
+      z.object({
+        doctorTab: z.string(),
+        patientName: z.string().min(1),
+        recipientPhone: z.string().min(1),
+        operationName: z.string().optional().nullable(),
+        operationDate: z.string().min(1),
+        operationTime: z.string().optional().nullable(),
+        doctorName: z.string().optional().nullable(),
+        hospitalName: z.string().optional().nullable(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      if (input.doctorTab !== "saadany") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "رسائل إلغاء العمليات متاحة لقائمة د. السعدني فقط",
+        });
+      }
+
+      await sendOperationListWhatsApp({
+        recipientPhone: input.recipientPhone,
+        patientName: input.patientName,
+        operationName: input.operationName || "عملية عيون",
+        operationDate: input.operationDate,
+        operationTime: input.operationTime,
+        doctorName: input.doctorName || "د. محمد السعدني",
+        hospitalName: input.hospitalName,
+        status: "cancelled",
+      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        "CANCEL_OPERATION_WHATSAPP",
+        "operationListItem",
+        0,
+        { message: `Sent operation cancellation to ${input.patientName}` },
+      );
+
+      return { success: true };
     }),
 
   getOperationListsHistory: protectedProcedure.query(async () => {

@@ -8,11 +8,19 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectGroup,
+  SelectLabel,
 } from "@/components/ui/select";
 import {
   ClipboardList,
@@ -23,6 +31,13 @@ import {
   UserRound,
   Upload,
   Pencil,
+  ChevronDown,
+  FlaskConical,
+  Activity,
+  Sparkles,
+  CheckCircle2,
+  ScanEye,
+  Layers,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn, formatDateLabel, getTrpcErrorMessage } from "@/lib/utils";
@@ -325,57 +340,7 @@ export default function RequestTests({
     hydratedPatientStateRef.current = patientId;
   }, [patientStateQuery.data, patientId]);
 
-  useEffect(() => {
-    if (editingForbidden || printMode.printView) return;
-    const patientKey = patientId
-      ? `selrs:patient-draft:${draftScope}:${patientId}`
-      : null;
-    const tempKey = `selrs:patient-draft:${draftScope}:temp`;
-    const keysToCheck = patientKey ? [patientKey, tempKey] : [tempKey];
-    try {
-      const raw = readDraft(keysToCheck);
-      if (raw) {
-        const key =
-          keysToCheck.find((k) => raw && readDraft([k]) === raw) ??
-          keysToCheck[0];
-        const parsed = JSON.parse(raw) as {
-          updatedAt?: string;
-          data?: any;
-        } | null;
-        if (!parsed?.data) return;
-        const draftUpdatedAt = Date.parse(parsed.updatedAt ?? "");
-        const serverUpdatedAt = Date.parse(
-          (patientStateQuery.data as any)?.updatedAt ?? "",
-        );
-        if (!Number.isFinite(draftUpdatedAt)) return;
-        if (
-          Number.isFinite(serverUpdatedAt) &&
-          draftUpdatedAt <= serverUpdatedAt
-        )
-          return;
-        const signature = `${key}:${parsed.updatedAt ?? ""}`;
-        if (lastAppliedDraftRef.current === signature) return;
-        lastAppliedDraftRef.current = signature;
-        if (parsed.data.requestDate) setRequestDate(parsed.data.requestDate);
-        if (parsed.data.generalNotes !== undefined)
-          setGeneralNotes(parsed.data.generalNotes ?? "");
-        if (Array.isArray(parsed.data.selectedTests))
-          setSelectedTests(parsed.data.selectedTests);
-        if (patientKey && key === tempKey) {
-          writeDraft(patientKey, parsed as any);
-          try {
-            window.localStorage.removeItem(tempKey);
-            window.sessionStorage.removeItem(tempKey);
-          } catch {
-            // Ignore storage failures.
-          }
-        }
-        toast.info("تم استرجاع مسودة محفوظة تلقائياً");
-      }
-    } catch {
-      // Ignore invalid local draft.
-    }
-  }, [patientId, patientStateQuery.data, draftScope, editingForbidden, printMode.printView]);
+
 
   useEffect(() => {
     if (!patientId || editingForbidden) return;
@@ -503,6 +468,7 @@ export default function RequestTests({
   });
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
   const [moveReadyTabTarget, setMoveReadyTabTarget] = useState("مياه بيضاء");
+  const [showTemplateManagement, setShowTemplateManagement] = useState(false);
 
   const normalizeTemplateId = (value: string) =>
     value
@@ -961,20 +927,12 @@ export default function RequestTests({
       dir="rtl"
       style={{ direction: "rtl" }}
     >
-      {printMode.printView ? null : hidePageChrome ? null : (
-        <div className="print:hidden">
-          <PageHeader backTo="/patients" />
-        </div>
-      )}
-
       <main
         data-mobile-pdf-root
         className={cn(
-          "mx-auto print:p-0",
-          hidePageChrome
-            ? "max-w-none px-2 pb-4 pt-1"
-            : "max-w-[1360px]",
-          printMode.printView ? "px-3 py-3" : hidePageChrome ? "" : "px-4 py-8",
+          "w-full max-w-none print:p-0",
+          hidePageChrome ? "px-2 pb-4 pt-1" : "px-4 pb-8 pt-3 md:px-6",
+          printMode.printView ? "px-3 py-3" : "",
         )}
       >
         {printMode.printView ? (
@@ -986,10 +944,10 @@ export default function RequestTests({
         ) : null}
         <div
           className={cn(
-            "mx-auto grid gap-5",
+            "w-full grid gap-5",
             editingForbidden
-              ? "max-w-4xl"
-              : "max-w-[1360px] xl:grid-cols-[360px_minmax(0,1fr)]",
+              ? "w-full"
+              : "w-full xl:grid-cols-[360px_minmax(0,1fr)]",
           )}
         >
           {/* Patient Selection (Hidden when embedded or printing) */}
@@ -1102,188 +1060,245 @@ export default function RequestTests({
                       <ClipboardList className="h-4 w-4" />
                       فحوصات جاهزة
                     </CardTitle>
-                    {canImportReadyTemplates ? (
-                      <div className="flex items-center gap-2">
-                        <input
-                          ref={importInputRef}
-                          id={importInputId}
-                          type="file"
-                          accept=".xlsx,.xls"
-                          className="sr-only"
-                          onChange={(e) => void handleImportReadyTests(e)}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={startFilePick}
-                        >
-                          <Upload className="h-4 w-4 ml-1" />
-                          استيراد Excel
-                        </Button>
-                      </div>
-                    ) : null}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs text-[#1e3a66] hover:bg-slate-100 h-8"
+                        onClick={() => setShowTemplateManagement((p) => !p)}
+                      >
+                        {showTemplateManagement ? "إخفاء الإدارة" : "إدارة الفحوصات"}
+                      </Button>
+                      {canImportReadyTemplates && showTemplateManagement ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            ref={importInputRef}
+                            id={importInputId}
+                            type="file"
+                            accept=".xlsx,.xls"
+                            className="sr-only"
+                            onChange={(e) => void handleImportReadyTests(e)}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={startFilePick}
+                          >
+                            <Upload className="h-4 w-4 ml-1" />
+                            استيراد Excel
+                          </Button>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3 p-4">
-                  {canImportReadyTemplates ? (
+                  <div className="flex flex-wrap gap-2 items-center">
+                    {READY_TABS.map((tab) => {
+                      const templatesInTab = readyTemplates.filter(
+                        (t) => getTemplateCategory(t.id, t.name) === tab,
+                      );
+                      return (
+                        <DropdownMenu key={tab}>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="bg-[#f0f4fa] text-[#1e3a66] hover:bg-[#e0eaf7] border-[#d9e2ef] font-semibold text-xs h-8 px-3 rounded-md flex items-center gap-1"
+                            >
+                              <span>{tab}</span>
+                              <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="max-h-[300px] overflow-y-auto min-w-[160px]">
+                            {templatesInTab.length === 0 ? (
+                              <div className="text-center text-xs text-muted-foreground p-2">
+                                لا توجد قوالب
+                              </div>
+                            ) : (
+                              templatesInTab.map((template) => (
+                                <DropdownMenuItem
+                                  key={template.id}
+                                  className="text-right text-xs cursor-pointer hover:bg-[#eef5ff] pr-4 py-2"
+                                  onClick={() => handleApplyReadyTestTemplate(template.id)}
+                                >
+                                  {getTemplateDisplayName(template.id, template.name)}
+                                </DropdownMenuItem>
+                              ))
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      );
+                    })}
+                  </div>
+
+                  {showTemplateManagement && (
                     <>
-                      <div className="text-xs text-muted-foreground">
-                        استيراد مباشر من مسار السيرفر
-                      </div>
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                        <Input
-                          value={importPath}
-                          onChange={(e) => setImportPath(e.target.value)}
-                          placeholder="E:\\path\\to\\file.xlsx"
-                          className="text-left"
-                          dir="ltr"
-                        />
+                      {canImportReadyTemplates ? (
+                        <>
+                          <div className="text-xs text-muted-foreground">
+                            استيراد مباشر من مسار السيرفر
+                          </div>
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <Input
+                              value={importPath}
+                              onChange={(e) => setImportPath(e.target.value)}
+                              placeholder="E:\\path\\to\\file.xlsx"
+                              className="text-left"
+                              dir="ltr"
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={handleImportFromPath}
+                            >
+                              استيراد من المسار
+                            </Button>
+                          </div>
+                          {importStatus ? (
+                            <div className="text-xs text-muted-foreground">
+                              {importStatus}
+                            </div>
+                          ) : null}
+                        </>
+                      ) : null}
+                      <Tabs
+                        value={readyTab}
+                        onValueChange={setReadyTab}
+                        persistKey={READY_TABS_PERSIST_KEY}
+                        dir="rtl"
+                      >
+                        <TabsList className="w-full justify-start gap-1 overflow-x-auto flex-nowrap bg-[#f3f6fb] p-1">
+                          {READY_TABS.map((tab) => (
+                            <TabsTrigger
+                              key={tab}
+                              value={tab}
+                              className="whitespace-nowrap rounded-md px-3 text-xs data-[state=active]:bg-white data-[state=active]:text-[#1e3a66] data-[state=active]:shadow-sm"
+                            >
+                              {tab}
+                            </TabsTrigger>
+                          ))}
+                        </TabsList>
+                      </Tabs>
+                      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-2">
+                        <label className="flex items-center gap-2 text-sm">
+                          <Checkbox
+                            checked={allFilteredReadyTemplatesSelected}
+                            onCheckedChange={(checked) => {
+                              if (Boolean(checked)) {
+                                setSelectedTemplateIds((prev) =>
+                                  Array.from(
+                                    new Set([...prev, ...filteredReadyTemplateIds]),
+                                  ),
+                                );
+                                return;
+                              }
+                              setSelectedTemplateIds((prev) =>
+                                prev.filter(
+                                  (id) => !filteredReadyTemplateIds.includes(id),
+                                ),
+                              );
+                            }}
+                          />
+                          تحديد الكل
+                        </label>
+                        <Select
+                          value={moveReadyTabTarget}
+                          onValueChange={setMoveReadyTabTarget}
+                        >
+                          <SelectTrigger className="w-[220px]">
+                            <SelectValue placeholder="نقل إلى تاب" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {READY_TABS.map((tab) => (
+                              <SelectItem key={`move-${tab}`} value={tab}>
+                                {tab}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <Button
                           type="button"
-                          variant="secondary"
-                          size="sm"
-                          onClick={handleImportFromPath}
+                          variant="outline"
+                          onClick={() => void handleMoveSelectedTemplates()}
+                          disabled={selectedTemplateIds.length === 0}
                         >
-                          استيراد من المسار
+                          نقل المحدد
                         </Button>
                       </div>
-                      {importStatus ? (
-                        <div className="text-xs text-muted-foreground">
-                          {importStatus}
-                        </div>
-                      ) : null}
                     </>
-                  ) : null}
-                  <Tabs
-                    value={readyTab}
-                    onValueChange={setReadyTab}
-                    persistKey={READY_TABS_PERSIST_KEY}
-                    dir="rtl"
-                  >
-                    <TabsList className="w-full justify-start gap-1 overflow-x-auto flex-nowrap bg-[#f3f6fb] p-1">
-                      {READY_TABS.map((tab) => (
-                        <TabsTrigger
-                          key={tab}
-                          value={tab}
-                          className="whitespace-nowrap rounded-md px-3 text-xs data-[state=active]:bg-white data-[state=active]:text-[#1e3a66] data-[state=active]:shadow-sm"
-                        >
-                          {tab}
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
-                  </Tabs>
-                  <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-2">
-                    <label className="flex items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={allFilteredReadyTemplatesSelected}
-                        onCheckedChange={(checked) => {
-                          if (Boolean(checked)) {
+                  )}
+                </CardContent>
+                {showTemplateManagement && (
+                  <CardContent className="grid max-h-[34vh] grid-cols-1 gap-2 overflow-y-auto border-t border-[#eef2f7] p-3 sm:grid-cols-2">
+                    {filteredReadyTemplates.map((template) => (
+                      <div
+                        key={template.id}
+                        className="flex items-center gap-1 rounded-lg border border-[#e2e8f0] bg-white p-1"
+                      >
+                        <Checkbox
+                          checked={selectedTemplateIds.includes(template.id)}
+                          onCheckedChange={(checked) =>
                             setSelectedTemplateIds((prev) =>
-                              Array.from(
-                                new Set([...prev, ...filteredReadyTemplateIds]),
-                              ),
-                            );
-                            return;
+                              Boolean(checked)
+                                ? Array.from(new Set([...prev, template.id]))
+                                : prev.filter((id) => id !== template.id),
+                            )
                           }
-                          setSelectedTemplateIds((prev) =>
-                            prev.filter(
-                              (id) => !filteredReadyTemplateIds.includes(id),
-                            ),
-                          );
-                        }}
-                      />
-                      تحديد الكل
-                    </label>
-                    <Select
-                      value={moveReadyTabTarget}
-                      onValueChange={setMoveReadyTabTarget}
-                    >
-                      <SelectTrigger className="w-[220px]">
-                        <SelectValue placeholder="نقل إلى تاب" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {READY_TABS.map((tab) => (
-                          <SelectItem key={`move-${tab}`} value={tab}>
-                            {tab}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => void handleMoveSelectedTemplates()}
-                      disabled={selectedTemplateIds.length === 0}
-                    >
-                      نقل المحدد
-                    </Button>
-                  </div>
-                </CardContent>
-                <CardContent className="grid max-h-[34vh] grid-cols-1 gap-2 overflow-y-auto border-t border-[#eef2f7] p-3 sm:grid-cols-2">
-                  {filteredReadyTemplates.map((template) => (
-                    <div
-                      key={template.id}
-                      className="flex items-center gap-1 rounded-lg border border-[#e2e8f0] bg-white p-1"
-                    >
-                      <Checkbox
-                        checked={selectedTemplateIds.includes(template.id)}
-                        onCheckedChange={(checked) =>
-                          setSelectedTemplateIds((prev) =>
-                            Boolean(checked)
-                              ? Array.from(new Set([...prev, template.id]))
-                              : prev.filter((id) => id !== template.id),
-                          )
-                        }
-                      />
-                      <Button
-                        variant="outline"
-                        type="button"
-                        className="h-8 flex-1 justify-start border-0 bg-transparent px-2 text-xs shadow-none hover:bg-[#eef5ff]"
-                        onClick={() => handleApplyReadyTestTemplate(template.id)}
-                      >
-                        {getTemplateDisplayName(template.id, template.name)}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        type="button"
-                        onClick={() => handleSaveTemplateContent(template.id)}
-                        title="حفظ محتوى القالب"
-                        aria-label="حفظ محتوى القالب"
-                      >
-                        <Save className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        type="button"
-                        onClick={() =>
-                          handleRenameTemplate(template.id, template.name)
-                        }
-                        title="إعادة تسمية"
-                        aria-label="إعادة تسمية القالب"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        type="button"
-                        onClick={() => handleDeleteTemplateOverride(template.id)}
-                        title="حذف القالب"
-                        aria-label="حذف القالب"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  {filteredReadyTemplates.length === 0 ? (
-                    <div className="col-span-full text-center text-xs text-muted-foreground py-6">
-                      لا توجد فحوصات جاهزة في هذا التاب
-                    </div>
-                  ) : null}
-                </CardContent>
+                        />
+                        <Button
+                          variant="outline"
+                          type="button"
+                          className="h-8 flex-1 justify-start border-0 bg-transparent px-2 text-xs shadow-none hover:bg-[#eef5ff]"
+                          onClick={() => handleApplyReadyTestTemplate(template.id)}
+                        >
+                          {getTemplateDisplayName(template.id, template.name)}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          type="button"
+                          onClick={() => handleSaveTemplateContent(template.id)}
+                          title="حفظ محتوى القالب"
+                          aria-label="حفظ محتوى القالب"
+                        >
+                          <Save className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          type="button"
+                          onClick={() =>
+                            handleRenameTemplate(template.id, template.name)
+                          }
+                          title="إعادة تسمية"
+                          aria-label="إعادة تسمية القالب"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          type="button"
+                          onClick={() => handleDeleteTemplateOverride(template.id)}
+                          title="حذف القالب"
+                          aria-label="حذف القالب"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    {filteredReadyTemplates.length === 0 ? (
+                      <div className="col-span-full text-center text-xs text-muted-foreground py-6">
+                        لا توجد فحوصات جاهزة في هذا التاب
+                      </div>
+                    ) : null}
+                  </CardContent>
+                )}
               </Card>
             )}
 
@@ -1316,11 +1331,11 @@ export default function RequestTests({
                 dir="rtl"
               >
                 <span
-                  className="request-patient-field request-patient-name inline-flex min-w-[12rem] items-center gap-1"
+                  className="request-patient-field inline-flex min-w-[12rem] items-center gap-1"
                   dir="rtl"
                 >
                   <span className="request-patient-label font-bold text-[#1e3a66]">
-                    Name:
+                    الاسم:
                   </span>
                   <span className="request-patient-value font-semibold">
                     {patientName || "غير محدد"}
@@ -1328,12 +1343,12 @@ export default function RequestTests({
                 </span>
                 <span
                   className="request-patient-field inline-flex items-center gap-1"
-                  dir="ltr"
+                  dir="rtl"
                 >
                   <span className="request-patient-label font-bold text-[#1e3a66]">
-                    ID:
+                    الكود:
                   </span>
-                  <span className="request-patient-value font-semibold">
+                  <span className="request-patient-value font-semibold" dir="ltr">
                     {patientCode ||
                       (patientId != null ? String(patientId) : "")}
                   </span>
@@ -1341,10 +1356,10 @@ export default function RequestTests({
                 {requestDate ? (
                   <span
                     className="request-patient-field inline-flex items-center gap-1"
-                    dir="ltr"
+                    dir="rtl"
                   >
                     <span className="request-patient-label font-bold text-[#1e3a66]">
-                      Date:
+                      التاريخ:
                     </span>
                     <span
                       className="request-patient-value font-semibold"
@@ -1356,13 +1371,13 @@ export default function RequestTests({
                 ) : null}
                 <span
                   className="request-patient-field inline-flex items-center gap-1"
-                  dir="ltr"
+                  dir="rtl"
                 >
                   <span className="request-patient-label font-bold text-[#1e3a66]">
-                    Age:
+                    السن:
                   </span>
                   <span className="request-patient-value font-semibold">
-                    {patientAge ? `${patientAge} years` : ""}
+                    {patientAge ? `${patientAge} سنة` : ""}
                   </span>
                 </span>
                 <span className="request-patient-field" />
@@ -1443,47 +1458,58 @@ export default function RequestTests({
             ) : null}
           </div>
           <div
-            className={`print:hidden sticky bottom-3 z-10 flex justify-end gap-2 rounded-xl border border-[#d9e2ef] bg-white/95 p-3 shadow-sm xl:col-start-2 ${printMode.printView ? "hidden" : ""}`}
+            className={`print:hidden sticky bottom-4 z-10 flex items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white/90 p-3.5 shadow-lg backdrop-blur-md transition-all xl:col-start-2 ${printMode.printView ? "hidden" : ""}`}
           >
-            {!editingForbidden ? (
-              <Button
-                className="bg-[#ff6b35] text-white hover:bg-[#e85f2f]"
-                onClick={handleSaveRequest}
-                disabled={createRequestMutation.isPending}
+            <div className="flex items-center gap-2 text-xs text-slate-500 font-medium px-2">
+              <FileText className="h-4 w-4 text-[#2563eb]" />
+              <span>طلب الفحوصات والتحاليل</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {!editingForbidden ? (
+                <Button
+                  className="bg-[#2563eb] text-white hover:bg-[#1d4ed8] font-bold shadow-sm h-9 px-5 rounded-xl"
+                  onClick={handleSaveRequest}
+                  disabled={createRequestMutation.isPending}
+                  type="button"
+                >
+                  <Save className="h-4 w-4 ml-1.5" />
+                  حفظ الطلب
+                </Button>
+              ) : patientHubReadOnly ? (
+                <span className="self-center text-xs text-muted-foreground">
+                  {patientHubViewOnlyHint}
+                </span>
+              ) : null}
+              <Button 
+                variant="outline" 
+                onClick={handlePrint} 
                 type="button"
+                className="border-slate-300 text-slate-700 hover:bg-slate-50 font-semibold h-9 px-4 rounded-xl"
               >
-                <Save className="h-4 w-4 ml-2" />
-                حفظ الطلب
+                <Printer className="h-4 w-4 ml-1.5 text-slate-600" />
+                طباعة
               </Button>
-            ) : patientHubReadOnly ? (
-              <span className="self-center text-xs text-muted-foreground">
-                {patientHubViewOnlyHint}
-              </span>
-            ) : null}
-            <Button variant="outline" onClick={handlePrint} type="button">
-              <Printer className="h-4 w-4 ml-2" />
-              طباعة
-            </Button>
+            </div>
           </div>
         </div>
       </main>
       <style>{`
           .request-tests-paper {
             min-height: 620px;
-            border: 1px solid #d9e2ef;
-            border-radius: 14px;
-            background: #fbfcfe;
-            padding: 22px;
-            box-shadow: 0 12px 30px rgba(37, 99, 235, 0.06);
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            background: #ffffff;
+            padding: 24px;
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
           }
           .request-tests-paper-header {
-            border: 1px solid #dbe4f0;
+            border: 1px solid #e2e8f0;
             border-radius: 12px;
-            background: #ffffff;
-            padding: 12px 14px;
+            background: #f8fafc;
+            padding: 14px 16px;
           }
           .request-test-item {
-            transition: background-color 150ms ease-out;
+            transition: all 150ms ease-out;
           }
           .request-test-item:focus-within {
             background: #f8fbff;
@@ -1549,7 +1575,7 @@ export default function RequestTests({
             grid-template-columns: 1.4fr 0.72fr 1fr !important;
             gap: 2mm 5mm !important;
             align-items: center !important;
-            direction: ltr !important;
+            direction: rtl !important;
             font-size: 9.5pt !important;
             line-height: 1.25 !important;
           }
@@ -1562,7 +1588,7 @@ export default function RequestTests({
             white-space: nowrap !important;
           }
           .request-tests-root .request-patient-name {
-            direction: ltr !important;
+            direction: rtl !important;
           }
           .request-tests-root .request-patient-label,
           .request-tests-root .request-patient-value {

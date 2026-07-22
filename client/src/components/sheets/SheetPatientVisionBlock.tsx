@@ -19,6 +19,8 @@ export default function SheetPatientVisionBlock({
   onAddressChange,
   phone,
   onPhoneChange,
+  alternatePhone,
+  onAlternatePhoneChange,
   patientCode,
   onPatientCodeChange,
   examinationDate,
@@ -57,6 +59,8 @@ export default function SheetPatientVisionBlock({
   onAddressChange: (v: string) => void;
   phone: string;
   onPhoneChange: (v: string) => void;
+  alternatePhone: string;
+  onAlternatePhoneChange: (v: string) => void;
   patientCode: string;
   onPatientCodeChange: (v: string) => void;
   examinationDate: string;
@@ -156,6 +160,15 @@ export default function SheetPatientVisionBlock({
               dir="rtl"
               value={phone}
               onChange={onText(onPhoneChange)}
+            />
+          </label>
+          <label className="inline-flex items-center gap-1 whitespace-nowrap min-w-0 shrink">
+            <span className="text-[#434654] shrink-0">موبايل 2:</span>
+            <input
+              className="w-16 min-w-0 font-normal text-xs bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right"
+              dir="rtl"
+              value={alternatePhone}
+              onChange={onText(onAlternatePhoneChange)}
             />
           </label>
           <label className="inline-flex items-center gap-1 whitespace-nowrap min-w-0 shrink">

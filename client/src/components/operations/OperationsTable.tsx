@@ -1,4 +1,4 @@
-import { Trash2 } from "lucide-react";
+import { Ban, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,11 +13,14 @@ const tableSelectClass =
 
 type OperationsTableProps = {
   canManageList: boolean;
+  canCancelOperations: boolean;
   currentList: ListData[];
   exportDateLabel: string;
   exportDoctorLabel: string;
   exportTimeLabel: string;
   onDeleteRow: (id: number) => void;
+  onCancelOperation: (appointment: ListData) => void;
+  isCancellingOperation: boolean;
   onUpdateRow: (id: number, field: keyof ListData | string, value: any) => void;
   operationOptions: string[];
   operationType: string;
@@ -25,11 +28,14 @@ type OperationsTableProps = {
 
 export function OperationsTable({
   canManageList,
+  canCancelOperations,
   currentList,
   exportDateLabel,
   exportDoctorLabel,
   exportTimeLabel,
   onDeleteRow,
+  onCancelOperation,
+  isCancellingOperation,
   onUpdateRow,
   operationOptions,
   operationType,
@@ -64,16 +70,31 @@ export function OperationsTable({
                     {appointment.name || "بدون اسم"}
                   </div>
                 </div>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="h-11 w-11 px-0"
-                  onClick={() => onDeleteRow(appointment.id)}
-                  disabled={!canManageList}
-                  aria-label={rowLabel(appointment, index, "حذف")}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  {canCancelOperations && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-11 gap-1 px-3 text-destructive"
+                      onClick={() => onCancelOperation(appointment)}
+                      disabled={!canManageList || isCancellingOperation}
+                      aria-label={rowLabel(appointment, index, "إلغاء العملية")}
+                    >
+                      <Ban className="h-4 w-4" />
+                      إلغاء العملية
+                    </Button>
+                  )}
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="h-11 w-11 px-0"
+                    onClick={() => onDeleteRow(appointment.id)}
+                    disabled={!canManageList}
+                    aria-label={rowLabel(appointment, index, "حذف")}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 gap-2">
@@ -271,7 +292,7 @@ export function OperationsTable({
                   ملاحظات
                 </th>
                 <th className="w-12 border border-border p-1 text-center font-bold">
-                  حذف
+                  إجراءات
                 </th>
               </tr>
             </thead>
@@ -438,16 +459,32 @@ export function OperationsTable({
                     />
                   </td>
                   <td className="w-12 border border-border p-1 text-center">
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="h-9 w-9 px-0"
-                      onClick={() => onDeleteRow(appointment.id)}
-                      disabled={!canManageList}
-                      aria-label={rowLabel(appointment, index, "حذف")}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center justify-center gap-1">
+                      {canCancelOperations && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-9 w-9 px-0 text-destructive"
+                          onClick={() => onCancelOperation(appointment)}
+                          disabled={!canManageList || isCancellingOperation}
+                          aria-label={rowLabel(appointment, index, "إلغاء العملية")}
+                          title="إلغاء العملية وإرسال واتساب"
+                        >
+                          <Ban className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="h-9 w-9 px-0"
+                        onClick={() => onDeleteRow(appointment.id)}
+                        disabled={!canManageList}
+                        aria-label={rowLabel(appointment, index, "حذف")}
+                        title="حذف الصف فقط"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}

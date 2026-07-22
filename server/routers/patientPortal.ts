@@ -10,6 +10,7 @@ import {
 import {
   getDb,
   getGlassesRecordsByPatient,
+  getMedicalHistoryByPatient,
   getPrescriptionsWithItemsByPatient,
 } from "../db";
 import {
@@ -24,7 +25,11 @@ import {
 import { eq, and, desc, ne, sql, lte, gte, count, type SQL } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import { ENV } from "../_core/env";
-import { pushAppNotification, getAppNotificationSettings, DEFAULT_APP_NOTIFICATION_SETTINGS } from "../_core/appNotifications";
+import {
+  pushAppNotification,
+  getAppNotificationSettings,
+  DEFAULT_APP_NOTIFICATION_SETTINGS,
+} from "../_core/appNotifications";
 import { sendWebPushToSubscription } from "../_core/webPush";
 import { broadcastBookingUpdate } from "../_core/ws";
 import { sendBookingStatusEmail } from "../services/bookingEmail.service";
@@ -185,7 +190,15 @@ export const patientPortalRouter = router({
       .from(visits)
       .where(eq(visits.patientId, ctx.patientSession.patientId));
 
-    return { ...patient, visitCount: visitCount ?? 0 };
+    const medicalHistoryChecklist = await getMedicalHistoryByPatient(
+      ctx.patientSession.patientId,
+    );
+
+    return {
+      ...patient,
+      visitCount: visitCount ?? 0,
+      medicalHistoryChecklist: medicalHistoryChecklist[0] ?? null,
+    };
   }),
 
   getMyScans: patientPortalProcedure.query(async ({ ctx }) => {
@@ -365,25 +378,31 @@ export const patientPortalRouter = router({
         status: "pending",
       });
 
-
       broadcastBookingUpdate();
 
       const typeLabel =
         BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType;
-      getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS).then((ns) => {
-        if (!ns.bookings.enabled) return;
-        const targetUserIds = ns.bookings.userIds.length > 0 ? ns.bookings.userIds : null;
-        pushAppNotification({
-          title: "طلب حجز جديد",
-          message: `${typeLabel} — ${input.requestedDate}`,
-          kind: "info",
-          targetRoles: targetUserIds ? null : ["admin", "reception"],
-          targetUserIds,
-          source: "booking",
-          entityType: "booking",
-          channels: { inApp: ns.bookings.inApp, push: ns.bookings.push, local: ns.bookings.local },
-        }).catch(() => {});
-      });
+      getAppNotificationSettings()
+        .catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS)
+        .then((ns) => {
+          if (!ns.bookings.enabled) return;
+          const targetUserIds =
+            ns.bookings.userIds.length > 0 ? ns.bookings.userIds : null;
+          pushAppNotification({
+            title: "طلب حجز جديد",
+            message: `${typeLabel} — ${input.requestedDate}`,
+            kind: "info",
+            targetRoles: targetUserIds ? null : ["admin", "reception"],
+            targetUserIds,
+            source: "booking",
+            entityType: "booking",
+            channels: {
+              inApp: ns.bookings.inApp,
+              push: ns.bookings.push,
+              local: ns.bookings.local,
+            },
+          }).catch(() => {});
+        });
 
       return { ok: true };
     }),
@@ -429,20 +448,27 @@ export const patientPortalRouter = router({
 
       const typeLabel2 =
         BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType;
-      getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS).then((ns) => {
-        if (!ns.bookings.enabled) return;
-        const targetUserIds = ns.bookings.userIds.length > 0 ? ns.bookings.userIds : null;
-        pushAppNotification({
-          title: "طلب حجز جديد (زائر)",
-          message: `${input.guestName} — ${typeLabel2} — ${input.requestedDate}`,
-          kind: "info",
-          targetRoles: targetUserIds ? null : ["admin", "reception"],
-          targetUserIds,
-          source: "booking",
-          entityType: "booking",
-          channels: { inApp: ns.bookings.inApp, push: ns.bookings.push, local: ns.bookings.local },
-        }).catch(() => {});
-      });
+      getAppNotificationSettings()
+        .catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS)
+        .then((ns) => {
+          if (!ns.bookings.enabled) return;
+          const targetUserIds =
+            ns.bookings.userIds.length > 0 ? ns.bookings.userIds : null;
+          pushAppNotification({
+            title: "طلب حجز جديد (زائر)",
+            message: `${input.guestName} — ${typeLabel2} — ${input.requestedDate}`,
+            kind: "info",
+            targetRoles: targetUserIds ? null : ["admin", "reception"],
+            targetUserIds,
+            source: "booking",
+            entityType: "booking",
+            channels: {
+              inApp: ns.bookings.inApp,
+              push: ns.bookings.push,
+              local: ns.bookings.local,
+            },
+          }).catch(() => {});
+        });
 
       return { ok: true };
     }),
@@ -684,7 +710,10 @@ export const patientPortalRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db)
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "DB unavailable",
+        });
 
       await db.insert(patientPortalBookings).values({
         guestName: input.guestName,
@@ -709,12 +738,16 @@ export const patientPortalRouter = router({
       void sendBookingStatusEmail({
         recipientEmail: input.guestEmail,
         patientName: input.guestName,
-        bookingTypeLabel: BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType,
+        bookingTypeLabel:
+          BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType,
         bookingDate: input.requestedDate,
         branch: input.branch,
         status: "confirmed",
       }).catch((error) =>
-        console.error("[booking-email] Failed to send guest booking confirmation", error),
+        console.error(
+          "[booking-email] Failed to send guest booking confirmation",
+          error,
+        ),
       );
       void sendBookingStatusWhatsApp({
         recipientPhone: input.guestPhone,
@@ -807,7 +840,10 @@ export const patientPortalRouter = router({
         .where(eq(patientPortalBookings.id, input.id))
         .limit(1);
       if (!booking) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Booking not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Booking not found",
+        });
       }
 
       await db
@@ -822,16 +858,26 @@ export const patientPortalRouter = router({
         .where(eq(patientPortalBookings.id, input.id));
 
       const statusChanged = booking.status !== input.status;
-      if (statusChanged && (input.status === "confirmed" || input.status === "cancelled")) {
+      if (
+        statusChanged &&
+        (input.status === "confirmed" || input.status === "cancelled")
+      ) {
         void sendBookingStatusEmail({
           recipientEmail: booking.patientEmail ?? booking.guestEmail,
           patientName: booking.patientName ?? booking.guestName,
-          bookingTypeLabel: BOOKING_TYPE_LABELS[booking.bookingType] ?? booking.bookingType,
-          bookingDate: input.confirmedDate ?? booking.confirmedDate ?? booking.requestedDate,
+          bookingTypeLabel:
+            BOOKING_TYPE_LABELS[booking.bookingType] ?? booking.bookingType,
+          bookingDate:
+            input.confirmedDate ??
+            booking.confirmedDate ??
+            booking.requestedDate,
           branch: booking.branch,
           status: input.status,
         }).catch((error) =>
-          console.error("[booking-email] Failed to send booking status update", error),
+          console.error(
+            "[booking-email] Failed to send booking status update",
+            error,
+          ),
         );
         void sendBookingStatusWhatsApp({
           recipientPhone: booking.patientPhone ?? booking.guestPhone,
@@ -904,35 +950,37 @@ export const patientPortalRouter = router({
   getSchedule: protectedProcedure
     .input(z.object({ branch: z.string().optional() }).optional())
     .query(async ({ input }) => {
-    const db = await getDb();
-    if (!db)
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "DB unavailable",
-      });
+      const db = await getDb();
+      if (!db)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "DB unavailable",
+        });
 
-    const branchFilter = input?.branch ?? "";
-    const rows = await db.select().from(bookingScheduleConfig)
-      .where(eq(bookingScheduleConfig.branch, branchFilter));
-    const types = [
-      "consultant",
-      "specialist",
-      "lasik",
-      "external",
-      "followup",
-    ] as const;
-    return types.map((t) => {
-      const found = rows.find((r: any) => r.bookingType === t);
-      return {
-        bookingType: t,
-        label: BOOKING_TYPE_LABELS[t],
-        weekdayMask: found?.weekdayMask ?? 127,
-        isActive: found?.isActive ?? true,
-        id: found?.id ?? null,
-        branch: branchFilter,
-      };
-    });
-  }),
+      const branchFilter = input?.branch ?? "";
+      const rows = await db
+        .select()
+        .from(bookingScheduleConfig)
+        .where(eq(bookingScheduleConfig.branch, branchFilter));
+      const types = [
+        "consultant",
+        "specialist",
+        "lasik",
+        "external",
+        "followup",
+      ] as const;
+      return types.map((t) => {
+        const found = rows.find((r: any) => r.bookingType === t);
+        return {
+          bookingType: t,
+          label: BOOKING_TYPE_LABELS[t],
+          weekdayMask: found?.weekdayMask ?? 127,
+          isActive: found?.isActive ?? true,
+          id: found?.id ?? null,
+          branch: branchFilter,
+        };
+      });
+    }),
 
   // ── Closure periods ───────────────────────────────────────────────────────
 

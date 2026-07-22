@@ -13,7 +13,10 @@ import {
   DEFAULT_APP_NOTIFICATION_SETTINGS,
 } from "../_core/appNotifications";
 import * as db from "../db";
-import { upsertPatientToMssql, createOrSyncPatientFromMssql } from "../integrations/mssqlPatients";
+import {
+  upsertPatientToMssql,
+  createOrSyncPatientFromMssql,
+} from "../integrations/mssqlPatients";
 import { isExternalServiceType } from "../../shared/serviceType";
 import {
   patientServiceEntries,
@@ -73,7 +76,10 @@ async function autoLinkAndNotifyDoctors(
       });
     }
   } catch (err) {
-    console.warn("[doctor-autolink] Failed:", String((err as any)?.message ?? err));
+    console.warn(
+      "[doctor-autolink] Failed:",
+      String((err as any)?.message ?? err),
+    );
   }
 }
 
@@ -171,7 +177,9 @@ export const medicalPatientRoutes = {
         }
 
         const existingByIdentity = hasExplicitPatientCode
-          ? await db.getPatientByCode(String(patientInput.patientCode ?? "").trim())
+          ? await db.getPatientByCode(
+              String(patientInput.patientCode ?? "").trim(),
+            )
           : (duplicateByPhoneDob ??
             (await findExistingPatientByNameOrPhone(
               patientInput.fullName,
@@ -242,7 +250,9 @@ export const medicalPatientRoutes = {
               fullName: existingFullNameForPush,
               phone:
                 String(
-                  (existingByIdentity as any)?.phone ?? patientInput.phone ?? "",
+                  (existingByIdentity as any)?.phone ??
+                    patientInput.phone ??
+                    "",
                 ).trim() || null,
               address:
                 String(
@@ -256,7 +266,8 @@ export const medicalPatientRoutes = {
                   ? Number(patientInput.age)
                   : null,
               gender:
-                String((existingByIdentity as any)?.gender ?? "").trim() || null,
+                String((existingByIdentity as any)?.gender ?? "").trim() ||
+                null,
               dateOfBirth:
                 (existingByIdentity as any)?.dateOfBirth ??
                 patientInput.dateOfBirth ??
@@ -312,9 +323,10 @@ export const medicalPatientRoutes = {
                 },
               )
               .catch(() => null);
-            const notificationSettings = await getAppNotificationSettings().catch(
-              () => DEFAULT_APP_NOTIFICATION_SETTINGS,
-            );
+            const notificationSettings =
+              await getAppNotificationSettings().catch(
+                () => DEFAULT_APP_NOTIFICATION_SETTINGS,
+              );
             if (notificationSettings.patients.enabled) {
               const notifTitle = resolvePatientNotifTitle(
                 [patientInput.serviceCode].filter(Boolean) as string[],
@@ -356,9 +368,15 @@ export const medicalPatientRoutes = {
           // Auto-link to external doctor portal and notify
           if (existingCode && doctorCode) {
             const existingName = String(
-              (existingByIdentity as any)?.fullName ?? patientInput.fullName ?? "",
+              (existingByIdentity as any)?.fullName ??
+                patientInput.fullName ??
+                "",
             ).trim();
-            void autoLinkAndNotifyDoctors(existingCode, existingName, doctorCode);
+            void autoLinkAndNotifyDoctors(
+              existingCode,
+              existingName,
+              doctorCode,
+            );
           }
 
           // Always create a fresh visit for today so the patient appears in
@@ -367,14 +385,17 @@ export const medicalPatientRoutes = {
           // duplicate visits are harmless for display.
           if (existingId > 0) {
             const branchRaw = String(
-              (existingByIdentity as any)?.branch ??
-                patientInput.branch ??
-                "",
-            ).trim().toLowerCase();
+              (existingByIdentity as any)?.branch ?? patientInput.branch ?? "",
+            )
+              .trim()
+              .toLowerCase();
             const branch = branchRaw === "surgery" ? "surgery" : "examinations";
             const todayIso = new Date().toISOString().split("T")[0];
             const routed = await db.resolveInitialQueueStatus(
-              [patientInput.serviceCode, (existingByIdentity as any)?.serviceCode],
+              [
+                patientInput.serviceCode,
+                (existingByIdentity as any)?.serviceCode,
+              ],
               todayIso,
               "consultation",
             );
@@ -389,7 +410,11 @@ export const medicalPatientRoutes = {
                 [routed.timestampField]: new Date(),
               } as any)
               .catch((err) => {
-                console.error("[createPatient] createVisit failed for existing patient", existingId, err);
+                console.error(
+                  "[createPatient] createVisit failed for existing patient",
+                  existingId,
+                  err,
+                );
               });
           }
           _mark("existing-patient createVisit done, returning");
@@ -478,10 +503,12 @@ export const medicalPatientRoutes = {
         // logged/notified once it settles.
         if (created?.patientCode && created?.fullName) {
           void (async () => {
-            let doctorCode = String(patientInput.doctorCode ?? "").trim() || null;
+            let doctorCode =
+              String(patientInput.doctorCode ?? "").trim() || null;
             if (!doctorCode) {
               doctorCode =
-                (await resolveDoctorCodeById((created as any).doctorId)) ?? null;
+                (await resolveDoctorCodeById((created as any).doctorId)) ??
+                null;
             }
             if (!doctorCode) {
               doctorCode =
@@ -595,15 +622,18 @@ export const medicalPatientRoutes = {
         // latency to the response for no benefit.
         if (created?.patientCode && created?.fullName) {
           void (async () => {
-            let resolvedCode = String(patientInput.doctorCode ?? "").trim() || null;
+            let resolvedCode =
+              String(patientInput.doctorCode ?? "").trim() || null;
             if (!resolvedCode) {
               resolvedCode =
-                (await resolveDoctorCodeById((created as any).doctorId)) ?? null;
+                (await resolveDoctorCodeById((created as any).doctorId)) ??
+                null;
             }
             if (!resolvedCode) {
               resolvedCode =
-                (await resolveDoctorCodeByName(patientInput.doctorName ?? null)) ??
-                null;
+                (await resolveDoctorCodeByName(
+                  patientInput.doctorName ?? null,
+                )) ?? null;
             }
             if (resolvedCode) {
               await autoLinkAndNotifyDoctors(
@@ -796,12 +826,30 @@ export const medicalPatientRoutes = {
           .optional(),
         visitDate: z.string().optional(), // client local date yyyy-MM-dd
         shiftNumber: z.union([z.literal(1), z.literal(2)]).optional(),
+        medicalHistory: z
+          .object({
+            diabetes: z.boolean().optional(),
+            hypertension: z.boolean().optional(),
+            heartDisease: z.boolean().optional(),
+            asthma: z.boolean().optional(),
+            allergies: z.boolean().optional(),
+            thyroid: z.boolean().optional(),
+            autoimmune: z.boolean().optional(),
+            familyKeratoconus: z.boolean().optional(),
+            glaucoma: z.boolean().optional(),
+            previousSurgeries: z.string().nullable().optional(),
+            medications: z.string().nullable().optional(),
+            familyHistory: z.string().nullable().optional(),
+          })
+          .optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
       const _t0 = Date.now();
       const _mark = (label: string) =>
-        console.log(`[createPatientFromExamination][timing] ${label}: +${Date.now() - _t0}ms`);
+        console.log(
+          `[createPatientFromExamination][timing] ${label}: +${Date.now() - _t0}ms`,
+        );
       try {
         // ── Step 1: resolve patientCode ────────────────────────────────────
         let patientCode = String(input.patientCode ?? "").trim();
@@ -824,7 +872,8 @@ export const medicalPatientRoutes = {
           doctorCode = (await resolveDoctorCodeById(input.doctorId)) ?? null;
         }
         if (!doctorCode && input.doctorName) {
-          doctorCode = (await resolveDoctorCodeByName(input.doctorName)) ?? null;
+          doctorCode =
+            (await resolveDoctorCodeByName(input.doctorName)) ?? null;
         }
         _mark("doctorCode resolved");
 
@@ -832,13 +881,25 @@ export const medicalPatientRoutes = {
           input.services && input.services.length > 0
             ? input.services
             : input.serviceCode
-              ? [{ code: input.serviceCode, qty: input.serviceQty ?? 1, price: input.servicePrice ?? 0, discount: input.discountValue ?? 0 }]
+              ? [
+                  {
+                    code: input.serviceCode,
+                    qty: input.serviceQty ?? 1,
+                    price: input.servicePrice ?? 0,
+                    discount: input.discountValue ?? 0,
+                  },
+                ]
               : [];
 
         // ── Step 3: push to MSSQL (new receipt) ───────────────────────────
-        const pricingPayload = processServices.length > 0
-          ? registrationPricingPayload({ servicePrice: processServices[0].price, serviceQty: Number(processServices[0].qty) || 1, discountValue: processServices[0].discount })
-          : {};
+        const pricingPayload =
+          processServices.length > 0
+            ? registrationPricingPayload({
+                servicePrice: processServices[0].price,
+                serviceQty: Number(processServices[0].qty) || 1,
+                discountValue: processServices[0].discount,
+              })
+            : {};
 
         // Collected here instead of only console.warn'd — a silently
         // swallowed MSSQL push failure is exactly what left PAPAT_SRV empty
@@ -858,12 +919,18 @@ export const medicalPatientRoutes = {
           serviceType: input.serviceType || "consultant",
           locationType: input.locationType || "center",
           doctorCode: doctorCode || null,
-          enteredBy: String((ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "").trim() || null,
+          enteredBy:
+            String(
+              (ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "",
+            ).trim() || null,
           serviceCode: processServices[0]?.code || null,
           shiftNumber: input.shiftNumber ?? null,
           ...pricingPayload,
         }).catch((err) => {
-          console.warn("[createPatientFromExamination] MSSQL push failed:", err);
+          console.warn(
+            "[createPatientFromExamination] MSSQL push failed:",
+            err,
+          );
           mssqlWarnings.push(
             `فشل إنشاء الإيصال في MSSQL: ${err instanceof Error ? err.message : String(err)}`,
           );
@@ -883,24 +950,44 @@ export const medicalPatientRoutes = {
         // row had committed, leaving the receipt total short.
         for (let i = 1; i < processServices.length; i++) {
           const srv = processServices[i];
-          const p = registrationPricingPayload({ servicePrice: srv.price, serviceQty: Number(srv.qty) || 1, discountValue: srv.discount });
-          await pushNewPatientToMssql({ patientCode, fullName: input.fullName, branch: "examinations", serviceCode: srv.code, doctorCode: doctorCode || null, shiftNumber: input.shiftNumber ?? null, ...p })
-            .catch((err) => {
-              console.warn("[createPatientFromExamination] extra service push failed:", err);
-              mssqlWarnings.push(
-                `فشلت إضافة الخدمة ${srv.code}: ${err instanceof Error ? err.message : String(err)}`,
-              );
-            });
+          const p = registrationPricingPayload({
+            servicePrice: srv.price,
+            serviceQty: Number(srv.qty) || 1,
+            discountValue: srv.discount,
+          });
+          await pushNewPatientToMssql({
+            patientCode,
+            fullName: input.fullName,
+            branch: "examinations",
+            serviceCode: srv.code,
+            doctorCode: doctorCode || null,
+            shiftNumber: input.shiftNumber ?? null,
+            ...p,
+          }).catch((err) => {
+            console.warn(
+              "[createPatientFromExamination] extra service push failed:",
+              err,
+            );
+            mssqlWarnings.push(
+              `فشلت إضافة الخدمة ${srv.code}: ${err instanceof Error ? err.message : String(err)}`,
+            );
+          });
         }
 
         // ── Step 4: sync MSSQL → MySQL (create/update patient + today visit) ─
-        const { patientId } = await createOrSyncPatientFromMssql(patientCode, input.serviceType, input.visitDate);
+        const { patientId } = await createOrSyncPatientFromMssql(
+          patientCode,
+          input.serviceType,
+          input.visitDate,
+        );
         _mark("createOrSyncPatientFromMssql done");
 
         // These fields have no MSSQL mapping, so preserve them after the sync.
         const localPatientContact: Record<string, string> = {};
         if (String(input.alternatePhone ?? "").trim()) {
-          localPatientContact.alternatePhone = String(input.alternatePhone).trim();
+          localPatientContact.alternatePhone = String(
+            input.alternatePhone,
+          ).trim();
         }
         if (String(input.email ?? "").trim()) {
           localPatientContact.email = String(input.email).trim();
@@ -916,19 +1003,38 @@ export const medicalPatientRoutes = {
             );
         }
 
+        if (patientId && input.medicalHistory) {
+          await db.upsertMedicalHistory({
+            patientId,
+            ...input.medicalHistory,
+          });
+        }
+
         // ── Step 5: notify ─────────────────────────────────────────────────
-        const notifSettings = await getAppNotificationSettings().catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS);
+        const notifSettings = await getAppNotificationSettings().catch(
+          () => DEFAULT_APP_NOTIFICATION_SETTINGS,
+        );
         if (notifSettings.patients.enabled) {
           await pushAppNotification({
-            title: resolvePatientNotifTitle(processServices.map(s => s.code)),
+            title: resolvePatientNotifTitle(processServices.map((s) => s.code)),
             message: input.fullName,
             kind: "success",
             source: "manual_patient_create",
             entityType: "patient",
             entityId: patientId,
-            meta: { patientCode, fullName: input.fullName, createdBy: String((ctx.user as any)?.name ?? "").trim() || null },
-            channels: { inApp: notifSettings.patients.inApp, push: notifSettings.patients.push, local: notifSettings.patients.local },
-          }).catch((e) => console.warn("[createPatientFromExamination] notif failed:", e));
+            meta: {
+              patientCode,
+              fullName: input.fullName,
+              createdBy: String((ctx.user as any)?.name ?? "").trim() || null,
+            },
+            channels: {
+              inApp: notifSettings.patients.inApp,
+              push: notifSettings.patients.push,
+              local: notifSettings.patients.local,
+            },
+          }).catch((e) =>
+            console.warn("[createPatientFromExamination] notif failed:", e),
+          );
         }
         _mark("notification done, returning");
 
@@ -941,7 +1047,10 @@ export const medicalPatientRoutes = {
         };
       } catch (error: any) {
         console.error("[medical:createPatientFromExamination]", error);
-        throw new TRPCError({ code: error.code || "INTERNAL_SERVER_ERROR", message: error.message || "Failed to create patient" });
+        throw new TRPCError({
+          code: error.code || "INTERNAL_SERVER_ERROR",
+          message: error.message || "Failed to create patient",
+        });
       }
     }),
   getPatientServiceEntries: protectedProcedure
@@ -1046,7 +1155,14 @@ export const medicalPatientRoutes = {
     .input(
       z.object({
         patientId: z.number(),
-        queueStatus: z.enum(["checkedIn", "next", "clinic1", "clinic2", "pentacam", "treated"]),
+        queueStatus: z.enum([
+          "checkedIn",
+          "next",
+          "clinic1",
+          "clinic2",
+          "pentacam",
+          "treated",
+        ]),
       }),
     )
     .mutation(async ({ input }) => {
@@ -1226,9 +1342,7 @@ export const medicalPatientRoutes = {
             }
           }
         }
-        if (
-          Object.prototype.hasOwnProperty.call(nextUpdates, "serviceType")
-        ) {
+        if (Object.prototype.hasOwnProperty.call(nextUpdates, "serviceType")) {
           nextUpdates.locationType = isExternalServiceType(
             nextUpdates.serviceType,
           )

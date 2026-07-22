@@ -378,11 +378,14 @@ export default function Operations() {
           <section className={cn("print:border-0 print:bg-transparent", viewTab !== "list" && "hidden print:block")}>
             <div className="py-3">
               <OperationsTable
+                canCancelOperations={operations.activeTab === "saadany"}
                 canManageList={operations.canManageList}
                 currentList={visibleRows}
                 exportDateLabel={operations.exportDateLabel}
                 exportDoctorLabel={operations.exportDoctorLabel}
                 exportTimeLabel={operations.exportTimeLabel}
+                isCancellingOperation={actions.cancelOperationMutation.isPending}
+                onCancelOperation={actions.handleCancelOperation}
                 onDeleteRow={actions.handleDeleteRow}
                 onUpdateRow={actions.handleUpdateRow}
                 operationOptions={operations.operationOptions}

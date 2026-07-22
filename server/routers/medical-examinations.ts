@@ -395,6 +395,18 @@ export const medicalExaminationsRoutes = {
       return { success: true };
     }),
 
+  updateVisitChiefComplaint: medicalStaffProcedure
+    .input(
+      z.object({
+        visitId: z.number(),
+        chiefComplaint: z.string(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      await db.updateVisit(input.visitId, { chiefComplaint: input.chiefComplaint });
+      return { success: true };
+    }),
+
   updateVisitExamData: protectedProcedure
     .input(
       z.object({

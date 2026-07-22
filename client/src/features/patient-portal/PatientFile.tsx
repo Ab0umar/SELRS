@@ -66,6 +66,30 @@ function DetailItem({
 export default function PatientFile() {
   const { data, isLoading, error, refetch } =
     trpc.patientPortal.getMyProfile.useQuery();
+  const structuredHistory = (data as any)?.medicalHistoryChecklist;
+  const structuredHistoryLabels = structuredHistory
+    ? [
+        structuredHistory.diabetes && "السكري",
+        structuredHistory.hypertension && "ضغط الدم",
+        structuredHistory.heartDisease && "أمراض القلب",
+        structuredHistory.asthma && "الربو",
+        structuredHistory.thyroid && "الغدة الدرقية",
+        structuredHistory.autoimmune && "أمراض مناعية",
+        structuredHistory.glaucoma && "المياه الزرقاء",
+        structuredHistory.familyKeratoconus && "قرنية مخروطية بالعائلة",
+        structuredHistory.previousSurgeries &&
+          `عمليات سابقة: ${structuredHistory.previousSurgeries}`,
+        structuredHistory.medications &&
+          `أدوية حالية: ${structuredHistory.medications}`,
+        structuredHistory.familyHistory &&
+          `تاريخ عائلي: ${structuredHistory.familyHistory}`,
+      ].filter(Boolean)
+    : [];
+  const displayedMedicalHistory =
+    structuredHistoryLabels.join("، ") || data?.medicalHistory || "";
+  const displayedAllergies = structuredHistory?.allergies
+    ? "توجد حساسية عامة مسجلة"
+    : data?.allergies || "";
 
   return (
     <PatientLayout>
@@ -306,7 +330,7 @@ export default function PatientFile() {
                       <span>الأمراض السابقة</span>
                     </div>
                     <p className="text-xs leading-6 text-muted-foreground whitespace-pre-wrap">
-                      {data.medicalHistory || "لا توجد أمراض مسجلة"}
+                      {displayedMedicalHistory || "لا توجد أمراض مسجلة"}
                     </p>
                   </div>
 
@@ -316,7 +340,7 @@ export default function PatientFile() {
                       <span>حالات الحساسية</span>
                     </div>
                     <p className="text-xs leading-6 text-muted-foreground whitespace-pre-wrap">
-                      {data.allergies || "لا توجد حساسية مسجلة"}
+                      {displayedAllergies || "لا توجد حساسية مسجلة"}
                     </p>
                   </div>
                 </div>

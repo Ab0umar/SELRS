@@ -453,117 +453,119 @@ export default function PatientHubShell() {
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-background" dir="rtl">
       {/* Combined header: no patient → back + title; patient selected → back + identity + visit */}
-      <header className="z-20 shrink-0 border-b border-border/60 bg-background/95 backdrop-blur-sm print:border-b-0 print:bg-background">
-        <div className="mx-auto flex max-w-[1600px] items-center gap-3 px-3 py-2.5 sm:px-5">
-          <button
-            type="button"
-            onClick={() => goBack()}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted text-muted-foreground"
-            aria-label="رجوع"
-          >
-            <ArrowRight className="h-4 w-4" />
-          </button>
+      {!pathOnly.startsWith("/patient-hub/brief/") && (
+        <header className="z-20 shrink-0 border-b border-border/60 bg-background/95 backdrop-blur-sm print:border-b-0 print:bg-background">
+          <div className="mx-auto flex max-w-[1600px] items-center gap-3 px-3 py-2.5 sm:px-5">
+            <button
+              type="button"
+              onClick={() => goBack()}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted text-muted-foreground"
+              aria-label="رجوع"
+            >
+              <ArrowRight className="h-4 w-4" />
+            </button>
 
-          {patientId ? (
-            <>
-              <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <span className="truncate font-semibold leading-tight text-foreground">
-                  {patientQuery.data?.fullName ?? "جاري التحميل..."}
-                </span>
-                {age != null && (
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {age} سنة
+            {patientId ? (
+              <>
+                <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                  <span className="truncate font-semibold leading-tight text-foreground">
+                    {patientQuery.data?.fullName ?? "جاري التحميل..."}
                   </span>
-                )}
-                <span
-                  dir="ltr"
-                  className="shrink-0 font-mono text-xs text-muted-foreground"
-                >
-                  #{patientId}
-                </span>
-              </div>
-
-              <div className="flex shrink-0 items-center gap-1.5">
-                {visitsQuery.isLoading ? (
-                  <div
-                    className="h-7 w-28 animate-pulse rounded-md bg-muted"
-                    aria-hidden
-                  />
-                ) : visits.length === 0 ? (
-                  <span className="text-xs text-muted-foreground">
-                    لا توجد زيارات
-                  </span>
-                ) : (
-                  <div className="flex items-center gap-0.5" dir="ltr">
-                    <button
-                      type="button"
-                      disabled={currentVisitIdx >= visits.length - 1}
-                      onClick={() => {
-                        const v = visits[currentVisitIdx + 1];
-                        if (v) applyVisitSelection(visitDateKey(v), v.id);
-                      }}
-                      className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted text-muted-foreground disabled:pointer-events-none disabled:opacity-30"
-                      aria-label="زيارة أقدم"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </button>
-                    <div className="min-w-0 px-1 text-center" dir="rtl">
-                      <p className="whitespace-nowrap text-sm font-medium leading-none text-foreground">
-                        {formatVisitDisplay(
-                          visits[
-                            currentVisitIdx >= 0 ? currentVisitIdx : 0
-                          ] as {
-                            id: number;
-                            visitDate?: unknown;
-                            visitType?: string | null;
-                          },
-                        )}
-                      </p>
-                      {visits.length > 1 && (
-                        <p
-                          className="mt-0.5 text-[10px] leading-none text-muted-foreground"
-                          dir="ltr"
-                        >
-                          {(currentVisitIdx >= 0 ? currentVisitIdx : 0) + 1} /{" "}
-                          {visits.length}
-                        </p>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      disabled={currentVisitIdx <= 0}
-                      onClick={() => {
-                        const v = visits[currentVisitIdx - 1];
-                        if (v) applyVisitSelection(visitDateKey(v), v.id);
-                      }}
-                      className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted text-muted-foreground disabled:pointer-events-none disabled:opacity-30"
-                      aria-label="زيارة أحدث"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
-                  </div>
-                )}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="shrink-0 gap-1 text-xs text-muted-foreground hover:text-foreground"
-                  asChild
-                >
-                  <Link
-                    href={`/patient-hub?visitDate=${encodeURIComponent(visitDate)}`}
+                  {age != null && (
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {age} سنة
+                    </span>
+                  )}
+                  <span
+                    dir="ltr"
+                    className="shrink-0 font-mono text-xs text-muted-foreground"
                   >
-                    <Search className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">تغيير</span>
-                  </Link>
-                </Button>
-              </div>
-            </>
-          ) : (
-            <h1 className="font-semibold text-foreground">مركز المريض</h1>
-          )}
-        </div>
-      </header>
+                    #{patientId}
+                  </span>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-1.5">
+                  {visitsQuery.isLoading ? (
+                    <div
+                      className="h-7 w-28 animate-pulse rounded-md bg-muted"
+                      aria-hidden
+                    />
+                  ) : visits.length === 0 ? (
+                    <span className="text-xs text-muted-foreground">
+                      لا توجد زيارات
+                    </span>
+                  ) : (
+                    <div className="flex items-center gap-0.5" dir="ltr">
+                      <button
+                        type="button"
+                        disabled={currentVisitIdx >= visits.length - 1}
+                        onClick={() => {
+                          const v = visits[currentVisitIdx + 1];
+                          if (v) applyVisitSelection(visitDateKey(v), v.id);
+                        }}
+                        className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted text-muted-foreground disabled:pointer-events-none disabled:opacity-30"
+                        aria-label="زيارة أقدم"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      <div className="min-w-0 px-1 text-center" dir="rtl">
+                        <p className="whitespace-nowrap text-sm font-medium leading-none text-foreground">
+                          {formatVisitDisplay(
+                            visits[
+                              currentVisitIdx >= 0 ? currentVisitIdx : 0
+                            ] as {
+                              id: number;
+                              visitDate?: unknown;
+                              visitType?: string | null;
+                            },
+                          )}
+                        </p>
+                        {visits.length > 1 && (
+                          <p
+                            className="mt-0.5 text-[10px] leading-none text-muted-foreground"
+                            dir="ltr"
+                          >
+                            {(currentVisitIdx >= 0 ? currentVisitIdx : 0) + 1} /{" "}
+                            {visits.length}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        disabled={currentVisitIdx <= 0}
+                        onClick={() => {
+                          const v = visits[currentVisitIdx - 1];
+                          if (v) applyVisitSelection(visitDateKey(v), v.id);
+                        }}
+                        className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted text-muted-foreground disabled:pointer-events-none disabled:opacity-30"
+                        aria-label="زيارة أحدث"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0 gap-1 text-xs text-muted-foreground hover:text-foreground"
+                    asChild
+                  >
+                    <Link
+                      href={`/patient-hub?visitDate=${encodeURIComponent(visitDate)}`}
+                    >
+                      <Search className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">تغيير</span>
+                    </Link>
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <h1 className="font-semibold text-foreground">مركز المريض</h1>
+            )}
+          </div>
+        </header>
+      )}
 
       {/* Horizontal tabs — desktop only, patient-specific sections */}
       {patientId ? (

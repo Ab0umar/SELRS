@@ -5209,6 +5209,47 @@ export async function createMedicalHistory(historyData: any) {
   return result;
 }
 
+export async function upsertMedicalHistory(historyData: {
+  patientId: number;
+  diabetes?: boolean;
+  hypertension?: boolean;
+  heartDisease?: boolean;
+  asthma?: boolean;
+  allergies?: boolean;
+  thyroid?: boolean;
+  autoimmune?: boolean;
+  familyKeratoconus?: boolean;
+  glaucoma?: boolean;
+  previousSurgeries?: string | null;
+  medications?: string | null;
+  familyHistory?: string | null;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const existing = await db
+    .select()
+    .from(medicalHistoryChecklist)
+    .where(eq(medicalHistoryChecklist.patientId, historyData.patientId))
+    .limit(1);
+
+  if (existing.length > 0) {
+    await db
+      .update(medicalHistoryChecklist)
+      .set({
+        ...historyData,
+        updatedAt: new Date(),
+      })
+      .where(eq(medicalHistoryChecklist.id, existing[0].id));
+    return { success: true, id: existing[0].id };
+  } else {
+    const [result] = await db
+      .insert(medicalHistoryChecklist)
+      .values(historyData as any);
+    return { success: true, id: (result as any).insertId };
+  }
+}
+
 export async function getMedicalHistoryByPatient(patientId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -6933,7 +6974,13 @@ export async function upsertPatientOperation(input: {
   patientId: number;
   operationType: string;
   operationDate?: string | Date | null;
-  source: "sheet" | "surgery" | "followup" | "service_code" | "manual";
+  source:
+    | "sheet"
+    | "surgery"
+    | "followup"
+    | "service_code"
+    | "operation_list"
+    | "manual";
   sourceRef: string;
   doctorCode?: string | null;
   eye?: string | null;
@@ -6990,6 +7037,138 @@ function deriveOperationEye(
   if (eyes.right) return "OD";
   if (eyes.left) return "OS";
   return null;
+}
+
+function normalizeOperationListPhone(value: unknown): string {
+  const digits = String(value ?? "").replace(/\D+/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("0020")) return digits.slice(4);
+  if (digits.startsWith("20") && digits.length >= 12) return digits.slice(2);
+  return digits.startsWith("0") ? digits.slice(1) : digits;
+}
+
+async function resolveOperationListPatient(item: {
+  code?: string | null;
+  name?: string | null;
+  phone?: string | null;
+}) {
+  const code = String(item.code ?? "").trim();
+  if (code) {
+    const byCode = await getPatientByCode(code);
+    if (byCode) return byCode;
+  }
+
+  const name = String(item.name ?? "")
+    .trim()
+    .toLowerCase();
+  const phone = normalizeOperationListPhone(item.phone);
+  const candidates = new Map<number, any>();
+  const collect = (rows: any[]) => {
+    for (const row of rows ?? []) {
+      if (Number(row?.id) > 0) candidates.set(Number(row.id), row);
+    }
+  };
+  if (phone) collect(await searchPatients(String(item.phone ?? "")));
+  if (name) collect(await searchPatients(String(item.name ?? "")));
+
+  return (
+    Array.from(candidates.values()).find((candidate: any) => {
+      const candidateName = String(candidate?.fullName ?? "")
+        .trim()
+        .toLowerCase();
+      const candidatePhone = normalizeOperationListPhone(candidate?.phone);
+      const candidateAltPhone = normalizeOperationListPhone(
+        candidate?.alternatePhone,
+      );
+      return (
+        (phone && (candidatePhone === phone || candidateAltPhone === phone)) ||
+        (name && candidateName === name)
+      );
+    }) ?? null
+  );
+}
+
+async function syncOperationsFromOperationLists(): Promise<{
+  processed: number;
+  upserted: number;
+  skipped: number;
+}> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // OP History only consumes Dr. El-Saadany's saved lists. These rows are a
+  // derived projection, so rebuild them on every sync to remove deleted list
+  // items and records previously imported from other doctor tabs.
+  await db
+    .delete(patientOperations)
+    .where(eq(patientOperations.source, "operation_list"));
+  const rows = await db
+    .select({
+      itemId: operationListItems.id,
+      listId: operationLists.id,
+      listDate: operationLists.listDate,
+      listOperationType: operationLists.operationType,
+      listDoctorName: operationLists.doctorName,
+      name: operationListItems.name,
+      phone: operationListItems.phone,
+      code: operationListItems.code,
+      doctor: operationListItems.doctor,
+      operation: operationListItems.operation,
+      eye: operationListItems.eye,
+      hospital: operationListItems.hospital,
+      notes: operationListItems.notes,
+    })
+    .from(operationListItems)
+    .innerJoin(operationLists, eq(operationListItems.listId, operationLists.id))
+    .where(eq(operationLists.doctorTab, "saadany"));
+
+  let processed = 0;
+  let upserted = 0;
+  let skipped = 0;
+  for (const row of rows) {
+    processed++;
+    const patient = await resolveOperationListPatient(row);
+    const patientId = Number((patient as any)?.id ?? 0);
+    if (!patientId) {
+      skipped++;
+      continue;
+    }
+    const operationType =
+      String(row.operation ?? "").trim() ||
+      String(row.listOperationType ?? "").trim() ||
+      "Others";
+    const identity =
+      String(row.code ?? "")
+        .trim()
+        .toLowerCase() ||
+      normalizeOperationListPhone(row.phone) ||
+      createHash("sha1")
+        .update(
+          String(row.name ?? "")
+            .trim()
+            .toLowerCase(),
+        )
+        .digest("hex")
+        .slice(0, 16) ||
+      String(row.itemId);
+    const noteParts = [row.hospital, row.notes]
+      .map((value) => String(value ?? "").trim())
+      .filter(Boolean);
+    await upsertPatientOperation({
+      patientId,
+      operationType,
+      operationDate: row.listDate ?? null,
+      source: "operation_list",
+      sourceRef: `operation_list:${row.listId}:${identity}`,
+      doctorCode:
+        String(row.doctor ?? "").trim() ||
+        String(row.listDoctorName ?? "").trim() ||
+        null,
+      eye: String(row.eye ?? "").trim() || null,
+      notes: noteParts.join(" — ") || null,
+    });
+    upserted++;
+  }
+  return { processed, upserted, skipped };
 }
 
 async function syncOperationsFromSheets(): Promise<{
@@ -7246,18 +7425,25 @@ async function syncOperationsFromServiceCodes(): Promise<{
 }
 
 export async function syncPatientOperationsFromSources() {
-  const [sheetsResult, surgeriesResult, followupsResult, serviceCodeResult] =
-    await Promise.all([
-      syncOperationsFromSheets(),
-      syncOperationsFromSurgeries(),
-      syncOperationsFromFollowups(),
-      syncOperationsFromServiceCodes(),
-    ]);
+  const [
+    sheetsResult,
+    surgeriesResult,
+    followupsResult,
+    serviceCodeResult,
+    operationListsResult,
+  ] = await Promise.all([
+    syncOperationsFromSheets(),
+    syncOperationsFromSurgeries(),
+    syncOperationsFromFollowups(),
+    syncOperationsFromServiceCodes(),
+    syncOperationsFromOperationLists(),
+  ]);
   return {
     sheets: sheetsResult,
     surgeries: surgeriesResult,
     followups: followupsResult,
     serviceCodes: serviceCodeResult,
+    operationLists: operationListsResult,
   };
 }
 
@@ -7266,24 +7452,41 @@ export async function getPatientOperationTypeCounts() {
   if (!db) throw new Error("Database not available");
   const raw = await db
     .select({
+      patientId: patientOperations.patientId,
       operationType: patientOperations.operationType,
-      count: sql<number>`COUNT(*)`.as("count"),
+      operationDate: patientOperations.operationDate,
     })
     .from(patientOperations)
-    .groupBy(patientOperations.operationType);
+    .innerJoin(patients, eq(patientOperations.patientId, patients.id));
 
-  const buckets = new Map<string, number>(OP_TYPES.map((t) => [t, 0]));
+  const buckets = new Map<string, Set<string>>(
+    OP_TYPES.map((type) => [type, new Set<string>()]),
+  );
   for (const row of raw) {
     const canonical = resolveCanonicalOpType(row.operationType);
-    buckets.set(canonical, (buckets.get(canonical) ?? 0) + Number(row.count));
+    const operationDate = row.operationDate
+      ? row.operationDate instanceof Date
+        ? row.operationDate.toISOString().slice(0, 10)
+        : String(row.operationDate).slice(0, 10)
+      : "";
+    buckets.get(canonical)?.add(`${Number(row.patientId)}:${operationDate}`);
   }
   // Fixed tab order (PRK/Lasik/FL/FS/IOL/ICL/Cataract/Squint/Others), not
   // resorted by count — these are stable tabs, not a leaderboard.
   return OP_TYPES.map((t) => ({
     operationType: t,
-    count: buckets.get(t) ?? 0,
+    count: buckets.get(t)?.size ?? 0,
   }));
 }
+
+const OP_HISTORY_SOURCE_PRIORITY: Record<string, number> = {
+  operation_list: 0,
+  manual: 1,
+  surgery: 2,
+  followup: 3,
+  sheet: 4,
+  service_code: 5,
+};
 
 async function rawOperationTypesForCanonical(
   canonical: string,
@@ -7338,11 +7541,27 @@ export async function getPatientOperationsByType(input: {
     .from(patientOperations)
     .innerJoin(patients, eq(patientOperations.patientId, patients.id))
     .where(whereClause)
-    .orderBy(desc(patientOperations.operationDate))
-    .limit(input.pageSize)
-    .offset(offset);
+    .orderBy(desc(patientOperations.operationDate));
 
-  return rows;
+  const uniqueRows = new Map<string, (typeof rows)[number]>();
+  for (const row of rows) {
+    const operationDate = row.operationDate
+      ? row.operationDate instanceof Date
+        ? row.operationDate.toISOString().slice(0, 10)
+        : String(row.operationDate).slice(0, 10)
+      : "";
+    const key = `${Number(row.patientId)}:${operationDate}`;
+    const existing = uniqueRows.get(key);
+    if (
+      !existing ||
+      (OP_HISTORY_SOURCE_PRIORITY[row.source] ?? 99) <
+        (OP_HISTORY_SOURCE_PRIORITY[existing.source] ?? 99)
+    ) {
+      uniqueRows.set(key, row);
+    }
+  }
+
+  return Array.from(uniqueRows.values()).slice(offset, offset + input.pageSize);
 }
 
 export async function getPatientServiceEntriesByPatients(patientIds: number[]) {

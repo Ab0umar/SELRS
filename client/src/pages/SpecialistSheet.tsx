@@ -24,10 +24,7 @@ import { printOrExportPdf } from "@/lib/nativePdf";
 import SheetPatientVisionBlock from "@/components/sheets/SheetPatientVisionBlock";
 import SheetPrintHeader from "@/components/sheets/SheetPrintHeader";
 import SheetWatermark from "@/components/sheets/SheetWatermark";
-import {
-  formatSheetDate,
-  getPatientSheetDateOfBirth,
-} from "@/lib/sheetDates";
+import { formatSheetDate, getPatientSheetDateOfBirth } from "@/lib/sheetDates";
 
 export default function SpecialistSheet() {
   const { user, isAuthenticated } = useAuth();
@@ -43,6 +40,7 @@ export default function SpecialistSheet() {
     age: "",
     address: "",
     phone: "",
+    alternatePhone: "",
     patientCode: "",
     job: "",
     examinationDate: new Date().toISOString().split("T")[0],
@@ -203,6 +201,7 @@ export default function SpecialistSheet() {
     fullName: string;
     patientCode?: string | null;
     phone?: string | null;
+    alternatePhone?: string | null;
     age?: number | null;
     dateOfBirth?: string | Date | null;
     date_of_birth?: string | Date | null;
@@ -217,6 +216,7 @@ export default function SpecialistSheet() {
       ...prev,
       patientName: patient.fullName ?? "",
       phone: patient.phone ?? "",
+      alternatePhone: patient.alternatePhone ?? "",
       age: patient.age != null ? String(patient.age) : "",
       dateOfBirth: getPatientSheetDateOfBirth(patient),
       address: patient.address ?? "",
@@ -235,6 +235,7 @@ export default function SpecialistSheet() {
       ...prev,
       patientName: patient.fullName ?? "",
       phone: patient.phone ?? "",
+      alternatePhone: patient.alternatePhone ?? "",
       age: patient.age != null ? String(patient.age) : "",
       dateOfBirth: getPatientSheetDateOfBirth(patient),
       address: patient.address ?? "",
@@ -254,6 +255,8 @@ export default function SpecialistSheet() {
           // keep patient info from DB if present
           patientName: prev.patientName || parsed.formData.patientName,
           phone: prev.phone || parsed.formData.phone,
+          alternatePhone:
+            prev.alternatePhone || parsed.formData.alternatePhone || "",
           age: prev.age || parsed.formData.age,
           dateOfBirth:
             prev.dateOfBirth || formatSheetDate(parsed.formData.dateOfBirth),
@@ -442,7 +445,6 @@ export default function SpecialistSheet() {
     }
   };
 
-
   const handlePrint = () => {
     void printOrExportPdf(
       `${String(formData.patientName || formData.patientCode || initialPatientId || "specialist-sheet").trim()}.pdf`,
@@ -627,7 +629,12 @@ export default function SpecialistSheet() {
         style={{ fontFamily: "Inter, sans-serif" }}
       >
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" type="button" onClick={() => goBack()}>
+          <Button
+            variant="ghost"
+            size="sm"
+            type="button"
+            onClick={() => goBack()}
+          >
             رجوع
           </Button>
         </div>
@@ -663,7 +670,11 @@ export default function SpecialistSheet() {
 
       {/* Main Content */}
       <div className="py-8 print:py-0 print-page-center-a5">
-        <div data-mobile-pdf-root className={`specialist-sheet relative overflow-hidden bg-white text-[#191c1e] font-sans p-8 border border-[#c3c6d6] shadow-sm flex flex-col gap-5 w-[210mm] max-w-full mx-auto ${printMode.printView ? "hidden print:flex" : ""}`} dir="ltr">
+        <div
+          data-mobile-pdf-root
+          className={`specialist-sheet relative overflow-hidden bg-white text-[#191c1e] font-sans p-8 border border-[#c3c6d6] shadow-sm flex flex-col gap-5 w-[210mm] max-w-full mx-auto ${printMode.printView ? "hidden print:flex" : ""}`}
+          dir="ltr"
+        >
           <SheetWatermark />
           <SheetPrintHeader
             sheetType="مقاس نظاره / اشعه خارجي"
@@ -693,7 +704,9 @@ export default function SpecialistSheet() {
 
           <SheetPatientVisionBlock
             patientName={formData.patientName}
-            onPatientNameChange={(v) => setFormData((p) => ({ ...p, patientName: v }))}
+            onPatientNameChange={(v) =>
+              setFormData((p) => ({ ...p, patientName: v }))
+            }
             age={formData.age}
             onAgeChange={(v) => setFormData((p) => ({ ...p, age: v }))}
             dateOfBirth={formData.dateOfBirth}
@@ -701,14 +714,24 @@ export default function SpecialistSheet() {
             onAddressChange={(v) => setFormData((p) => ({ ...p, address: v }))}
             phone={formData.phone}
             onPhoneChange={(v) => setFormData((p) => ({ ...p, phone: v }))}
+            alternatePhone={formData.alternatePhone}
+            onAlternatePhoneChange={(v) =>
+              setFormData((p) => ({ ...p, alternatePhone: v }))
+            }
             patientCode={formData.patientCode}
-            onPatientCodeChange={(v) => setFormData((p) => ({ ...p, patientCode: v }))}
+            onPatientCodeChange={(v) =>
+              setFormData((p) => ({ ...p, patientCode: v }))
+            }
             examinationDate={formData.examinationDate}
-            onExaminationDateChange={(v) => setFormData((p) => ({ ...p, examinationDate: v }))}
+            onExaminationDateChange={(v) =>
+              setFormData((p) => ({ ...p, examinationDate: v }))
+            }
             job={formData.job}
             onJobChange={(v) => setFormData((p) => ({ ...p, job: v }))}
             doctorName={signatures.doctor}
-            onDoctorNameChange={(v) => setSignatures((p) => ({ ...p, doctor: v }))}
+            onDoctorNameChange={(v) =>
+              setSignatures((p) => ({ ...p, doctor: v }))
+            }
             ucvaOD={formData.ucvaOD}
             onUcvaODChange={(v) => setFormData((p) => ({ ...p, ucvaOD: v }))}
             ucvaOS={formData.ucvaOS}
@@ -722,9 +745,13 @@ export default function SpecialistSheet() {
             iopOS={formData.iopOS}
             onIopOSChange={(v) => setFormData((p) => ({ ...p, iopOS: v }))}
             refractionOD={formData.refractionOD}
-            onRefractionODChange={(v) => setFormData((p) => ({ ...p, refractionOD: v }))}
+            onRefractionODChange={(v) =>
+              setFormData((p) => ({ ...p, refractionOD: v }))
+            }
             refractionOS={formData.refractionOS}
-            onRefractionOSChange={(v) => setFormData((p) => ({ ...p, refractionOS: v }))}
+            onRefractionOSChange={(v) =>
+              setFormData((p) => ({ ...p, refractionOS: v }))
+            }
             readingValue={readingValue}
             onReadingValueChange={setReadingValue}
             compactEyeTable
@@ -735,17 +762,23 @@ export default function SpecialistSheet() {
             <div className="print-specialist-footer-grid grid grid-cols-1 lg:grid-cols-12 gap-8">
               <div className="lg:col-span-8 space-y-4">
                 <div>
-                  <label className="font-bold text-[#003d9b] text-sm">Comments / ملاحظات:</label>
+                  <label className="font-bold text-[#003d9b] text-sm">
+                    Comments / ملاحظات:
+                  </label>
                   <div className="border-b border-solid border-[#c3c6d6] h-8" />
                   <div className="border-b border-solid border-[#c3c6d6] h-8" />
                 </div>
                 <div>
-                  <label className="font-bold text-[#003d9b] text-sm">Final Decision / القرار النهائي:</label>
+                  <label className="font-bold text-[#003d9b] text-sm">
+                    Final Decision / القرار النهائي:
+                  </label>
                   <div className="border-b border-solid border-[#c3c6d6] h-8" />
                 </div>
               </div>
               <div className="lg:col-span-4 border-2 border-[#003d9b] rounded-xl p-4 bg-[#003d9b]/5">
-                <div className="text-center font-bold text-[#003d9b] uppercase text-xs border-b border-[#003d9b]/20 pb-2 mb-3">Office Notes</div>
+                <div className="text-center font-bold text-[#003d9b] uppercase text-xs border-b border-[#003d9b]/20 pb-2 mb-3">
+                  Office Notes
+                </div>
                 <div className="border-b border-solid border-[#003d9b]/40 h-6 mb-2" />
                 <div className="border-b border-solid border-[#003d9b]/40 h-6 mb-2" />
                 <div className="border-b border-solid border-[#003d9b]/40 h-6" />
@@ -759,9 +792,19 @@ export default function SpecialistSheet() {
                 ["الاستقبال / Reception", signatures.reception],
               ].map(([label, val], i) => (
                 <div key={i} className="flex flex-col gap-2">
-                  <span className={`text-[11px] font-bold uppercase ${i === 1 ? "text-[#003d9b]" : "text-[#434654]"}`}>{label}</span>
-                  <div className={`border-b-2 h-9 flex items-end justify-center ${i === 1 ? "border-[#003d9b]" : "border-[#191c1e]"}`}>
-                    <span className={`text-xs italic ${i === 1 ? "text-[#003d9b] font-bold" : "text-[#737685]"}`}>{val || ""}</span>
+                  <span
+                    className={`text-[11px] font-bold uppercase ${i === 1 ? "text-[#003d9b]" : "text-[#434654]"}`}
+                  >
+                    {label}
+                  </span>
+                  <div
+                    className={`border-b-2 h-9 flex items-end justify-center ${i === 1 ? "border-[#003d9b]" : "border-[#191c1e]"}`}
+                  >
+                    <span
+                      className={`text-xs italic ${i === 1 ? "text-[#003d9b] font-bold" : "text-[#737685]"}`}
+                    >
+                      {val || ""}
+                    </span>
                   </div>
                 </div>
               ))}

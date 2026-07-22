@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/useAuth";
 import { DiagnosisImagesPanel } from "./patient-details/DiagnosisImagesPanel";
+import { MedicalHistoryTab } from "./patient-details/MedicalHistoryTab";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
@@ -15,7 +16,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { Eye, Search, Save, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import { Eye, Search, Save, Trash2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import RefractionValueSelect from "./RefractionValueSelect";
 import {
@@ -55,6 +62,15 @@ const READY_TABS = [
   "أخرى 2",
   "أخرى 3",
 ];
+
+const TEST_READY_TABS = ["مياه بيضاء", "ليزك", "زراعة عدسات", "اخري"];
+
+const getTestTemplateCategory = (name: string) => {
+  for (const tab of TEST_READY_TABS) {
+    if (name.includes(tab)) return tab;
+  }
+  return "اخري";
+};
 const MEDICAL_TABS = ["data", "plan", "images"];
 const MEASUREMENT_VIEWS = [
   { value: "all", label: "الكل" },
@@ -85,9 +101,25 @@ function stripDash(obj: any): any {
   if (typeof obj === "string") return obj === "---" ? "" : obj;
   if (Array.isArray(obj)) return obj.map(stripDash);
   if (obj && typeof obj === "object")
-    return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, stripDash(v)]));
+    return Object.fromEntries(
+      Object.entries(obj).map(([k, v]) => [k, stripDash(v)]),
+    );
   return obj;
 }
+
+const stripTemplateCategory = (value: string) =>
+  String(value ?? "")
+    .replace(/^\[(.+?)\]\s*/, "")
+    .trim();
+
+const getTemplateDisplayName = (
+  templateId: string,
+  fallbackName: string,
+  templateOverrides: any,
+) => {
+  const raw = templateOverrides?.[templateId]?.name || fallbackName;
+  return stripTemplateCategory(raw);
+};
 
 export default function MedicalFilePanel({
   patientId,
@@ -170,6 +202,18 @@ export default function MedicalFilePanel({
     diseases: [],
     recommendations: "",
   });
+  const [treatmentDetailsByMedicationId, setTreatmentDetailsByMedicationId] =
+    useState<
+      Record<
+        number,
+        {
+          dosage: string;
+          frequency: string;
+          duration: string;
+          instructions: string;
+        }
+      >
+    >({});
 
   const [examinationDate, setExaminationDate] = useState(
     new Date().toISOString().split("T")[0],
@@ -490,6 +534,26 @@ export default function MedicalFilePanel({
             ? presc.items.map((item: any) => item.medicationId || item.id)
             : [],
       );
+      const prescriptionDetails = Object.fromEntries(
+        (visitPrescriptionsQuery.data ?? []).flatMap((presc: any) =>
+          Array.isArray(presc.items)
+            ? presc.items
+                .filter((item: any) => Number(item.medicationId || item.id) > 0)
+                .map((item: any) => [
+                  Number(item.medicationId || item.id),
+                  {
+                    dosage: String(item.dosage ?? ""),
+                    frequency: String(item.frequency ?? ""),
+                    duration: String(item.duration ?? ""),
+                    instructions: String(item.instructions ?? ""),
+                  },
+                ])
+            : [],
+        ),
+      );
+      if (Object.keys(prescriptionDetails).length > 0) {
+        setTreatmentDetailsByMedicationId(prescriptionDetails);
+      }
 
       setFormData((prev: any) => {
         // Only override tests/treatment if we actually loaded data from the visit
@@ -534,6 +598,14 @@ export default function MedicalFilePanel({
                 },
               }
             : prev.pentacam,
+          medicalHistory:
+            (selectedExamination as any)?.chiefComplaint ||
+            (selectedExamination as any)?.symptoms ||
+            (visitsQuery.data as any[])?.find(
+              (v: any) => v.id === selectedExamination.visitId,
+            )?.chiefComplaint ||
+            doctorReport?.clinicalOpinion ||
+            "",
           diagnosis: doctorReport?.diagnosis || "",
           recommendations:
             doctorReport?.clinicalOpinion ||
@@ -741,6 +813,7 @@ export default function MedicalFilePanel({
                   return {
                     medicationId: medId,
                     medicationName: medication?.name || `Med ${medId}`,
+                    ...(treatmentDetailsByMedicationId[medId] ?? {}),
                   };
                 });
                 createPrescriptionWithItemsMutation.mutate({
@@ -808,6 +881,15 @@ export default function MedicalFilePanel({
     console.log("Prescription templates data:", prescriptionsQuery.data);
 
     const allMedIds = new Set<number>();
+    const templateDetails: Record<
+      number,
+      {
+        dosage: string;
+        frequency: string;
+        duration: string;
+        instructions: string;
+      }
+    > = {};
     selectedPrescriptionIds.forEach((templateId: string) => {
       const template = prescriptionsQuery.data[templateId];
       console.log(`Found template ${templateId}:`, template);
@@ -828,6 +910,12 @@ export default function MedicalFilePanel({
             const medId = medication?.id;
             if (medId !== undefined && medId !== null) {
               allMedIds.add(medId);
+              templateDetails[medId] = {
+                dosage: String(item.dosage ?? ""),
+                frequency: String(item.frequency ?? ""),
+                duration: String(item.duration ?? ""),
+                instructions: String(item.instructions ?? ""),
+              };
               console.log(`Found medication "${medName}" with ID: ${medId}`);
             } else {
               console.log(`Could not find medication ID for: "${medName}"`);
@@ -840,6 +928,10 @@ export default function MedicalFilePanel({
     console.log("Total medication IDs to add:", Array.from(allMedIds));
 
     if (allMedIds.size > 0) {
+      setTreatmentDetailsByMedicationId((previous) => ({
+        ...previous,
+        ...templateDetails,
+      }));
       setFormData((prev: any) => ({
         ...prev,
         treatment: Array.from(
@@ -849,7 +941,12 @@ export default function MedicalFilePanel({
       toast.success(`تم إضافة ${allMedIds.size} دواء من القوالب`);
       setSelectedPrescriptionIds([]);
     }
-  }, [selectedPrescriptionIds, prescriptionsQuery.data]);
+  }, [selectedPrescriptionIds, prescriptionsQuery.data, medicationsQuery.data]);
+
+  const updateVisitChiefComplaintMutation =
+    trpc.medical.updateVisitChiefComplaint.useMutation();
+  const upsertMedicalHistoryMutation =
+    trpc.medical.upsertMedicalHistory.useMutation();
 
   // Mutation for updating examination
   const updateExaminationMutation = trpc.medical.updateExamination.useMutation({
@@ -1007,6 +1104,7 @@ export default function MedicalFilePanel({
             return {
               medicationId: medId,
               medicationName: medication?.name || `Med ${medId}`,
+              ...(treatmentDetailsByMedicationId[medId] ?? {}),
             };
           });
           createPrescriptionWithItemsMutation.mutate({
@@ -1108,8 +1206,7 @@ export default function MedicalFilePanel({
       return;
     }
     // Build glasses data from refraction table (used for both first visit and no exam selected cases)
-    const refVal = (v: string | undefined) =>
-      !v || v === "---" ? "" : v;
+    const refVal = (v: string | undefined) => (!v || v === "---" ? "" : v);
     const glassesData = {
       od: {
         s: refVal(refractionTableData.od?.s),
@@ -1172,10 +1269,8 @@ export default function MedicalFilePanel({
     setIsSaving(true);
 
     // Flatten the nested formData structure to database column names
-    const fv = (v: string | undefined | null) =>
-      !v || v === "---" ? null : v;
-    const fvs = (v: string | undefined | null) =>
-      !v || v === "---" ? "" : v;
+    const fv = (v: string | undefined | null) => (!v || v === "---" ? null : v);
+    const fvs = (v: string | undefined | null) => (!v || v === "---" ? "" : v);
     const flattenedUpdates: any = {
       sphereOD: fv(formData.measurements?.autoref?.od?.s),
       sphereOS: fv(formData.measurements?.autoref?.os?.s),
@@ -1232,9 +1327,19 @@ export default function MedicalFilePanel({
             od: stripDash(formData.measurements?.after?.od),
             os: stripDash(formData.measurements?.after?.os),
           });
+          const visitId = selectedExam?.visitId;
+          if (visitId && formData.medicalHistory) {
+            updateVisitChiefComplaintMutation.mutate({
+              visitId,
+              chiefComplaint: formData.medicalHistory,
+            });
+            upsertMedicalHistoryMutation.mutate({
+              patientId,
+              medications: formData.medicalHistory,
+            });
+          }
           console.log("Exam saved, now saving doctor report");
           const doctorReport = (doctorReportQuery.data as any)?.[0];
-          const visitId = selectedExam?.visitId;
 
           if (doctorReport?.id) {
             // Update existing report
@@ -1271,6 +1376,7 @@ export default function MedicalFilePanel({
                         return {
                           medicationId: medId,
                           medicationName: medication?.name || `Med ${medId}`,
+                          ...(treatmentDetailsByMedicationId[medId] ?? {}),
                         };
                       },
                     );
@@ -1385,6 +1491,7 @@ export default function MedicalFilePanel({
                 return {
                   medicationId: medId,
                   medicationName: medication?.name || `Med ${medId}`,
+                  ...(treatmentDetailsByMedicationId[medId] ?? {}),
                 };
               });
 
@@ -1569,6 +1676,19 @@ export default function MedicalFilePanel({
           dir="rtl"
         >
           <div className={activeMedicalTab !== "data" ? "hidden" : undefined}>
+            {/* التاريخ المرضي العام */}
+            <div className="mb-4">
+              <MedicalHistoryTab
+                patientId={patientId}
+                symptoms={[]}
+                onRefresh={() => {
+                  queryClient.invalidateQueries({
+                    queryKey: [["medical", "getMedicalHistoryByPatient"]],
+                  });
+                }}
+              />
+            </div>
+
             {examinations && examinations.length > 1 && (
               <div className="flex items-center gap-2 text-xs">
                 <span className="text-muted-foreground">تاريخ الزيارة</span>
@@ -2279,24 +2399,52 @@ export default function MedicalFilePanel({
                   >
                     <thead className="bg-muted/50">
                       <tr>
-                        <th className="border px-2 py-1.5 font-semibold text-[10px]">Eye</th>
-                        <th className="border px-2 py-1.5 font-semibold text-[10px]" colSpan={3}>OD</th>
-                        <th className="border px-2 py-1.5 font-semibold text-[10px]" colSpan={4}>OS</th>
+                        <th className="border px-2 py-1.5 font-semibold text-[10px]">
+                          Eye
+                        </th>
+                        <th
+                          className="border px-2 py-1.5 font-semibold text-[10px]"
+                          colSpan={3}
+                        >
+                          OD
+                        </th>
+                        <th
+                          className="border px-2 py-1.5 font-semibold text-[10px]"
+                          colSpan={4}
+                        >
+                          OS
+                        </th>
                       </tr>
                       <tr>
                         <th className="border px-2 py-1.5 text-[10px]"></th>
-                        <th className="border px-2 py-1.5 font-semibold text-[10px]">S</th>
-                        <th className="border px-2 py-1.5 font-semibold text-[10px]">C</th>
-                        <th className="border px-2 py-1.5 font-semibold text-[10px]">Ax</th>
-                        <th className="border px-2 py-1.5 font-semibold text-[10px]">S</th>
-                        <th className="border px-2 py-1.5 font-semibold text-[10px]">C</th>
-                        <th className="border px-2 py-1.5 font-semibold text-[10px]">Ax</th>
-                        <th className="border px-2 py-1.5 font-semibold text-[10px]">PD</th>
+                        <th className="border px-2 py-1.5 font-semibold text-[10px]">
+                          S
+                        </th>
+                        <th className="border px-2 py-1.5 font-semibold text-[10px]">
+                          C
+                        </th>
+                        <th className="border px-2 py-1.5 font-semibold text-[10px]">
+                          Ax
+                        </th>
+                        <th className="border px-2 py-1.5 font-semibold text-[10px]">
+                          S
+                        </th>
+                        <th className="border px-2 py-1.5 font-semibold text-[10px]">
+                          C
+                        </th>
+                        <th className="border px-2 py-1.5 font-semibold text-[10px]">
+                          Ax
+                        </th>
+                        <th className="border px-2 py-1.5 font-semibold text-[10px]">
+                          PD
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr className="hover:bg-muted/20">
-                        <td className="border px-2 py-1.5 font-bold text-[10px]">Dis.</td>
+                        <td className="border px-2 py-1.5 font-bold text-[10px]">
+                          Dis.
+                        </td>
                         <td className="border px-1 py-1">
                           <RefractionValueSelect
                             value={refractionTableData.od.s}
@@ -2387,7 +2535,9 @@ export default function MedicalFilePanel({
                         </td>
                       </tr>
                       <tr className="hover:bg-muted/20">
-                        <td className="border px-2 py-1.5 font-bold text-[10px]">Reading</td>
+                        <td className="border px-2 py-1.5 font-bold text-[10px]">
+                          Reading
+                        </td>
                         <td className="border px-1 py-1" colSpan={7}>
                           <RefractionValueSelect
                             value={refractionTableData.od.add}
@@ -3289,21 +3439,53 @@ export default function MedicalFilePanel({
                       <span className="text-[10px] text-muted-foreground">
                         قوالب:
                       </span>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {Object.entries(testRequestsQuery.data).map(
-                          ([templateId, template]: [string, any]) => (
-                            <button
-                              key={templateId}
-                              type="button"
-                              className="rounded-md border px-2 py-0.5 text-[10px] hover:bg-muted/60 transition-colors"
-                              onClick={() =>
-                                setSelectedTestRequestId(templateId)
-                              }
-                            >
-                              {template.name || templateId}
-                            </button>
-                          ),
-                        )}
+                      <div className="flex flex-wrap gap-1.5 items-center">
+                        {TEST_READY_TABS.map((tab) => {
+                          const templatesInTab = Object.entries(
+                            testRequestsQuery.data || {},
+                          ).filter(
+                            ([templateId, template]: [string, any]) =>
+                              getTestTemplateCategory(
+                                template.name || templateId,
+                              ) === tab,
+                          );
+                          if (templatesInTab.length === 0) return null;
+                          return (
+                            <DropdownMenu key={tab}>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  type="button"
+                                  className="rounded-md border border-input bg-transparent px-2.5 py-1 text-[10px] hover:bg-muted/60 transition-colors flex items-center gap-1 font-medium text-[#1e3a66]"
+                                >
+                                  <span>{tab}</span>
+                                  <ChevronDown className="h-3 w-3 opacity-70" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                align="start"
+                                className="max-h-[300px] overflow-y-auto min-w-[160px]"
+                              >
+                                {templatesInTab.map(
+                                  ([templateId, template]: [string, any]) => (
+                                    <DropdownMenuItem
+                                      key={templateId}
+                                      className="text-right text-xs cursor-pointer hover:bg-muted/50 pr-4 py-2"
+                                      onClick={() => {
+                                        setSelectedTestRequestId(templateId);
+                                      }}
+                                    >
+                                      {getTemplateDisplayName(
+                                        templateId,
+                                        template.name || templateId,
+                                        testRequestsQuery.data,
+                                      )}
+                                    </DropdownMenuItem>
+                                  ),
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -3378,12 +3560,30 @@ export default function MedicalFilePanel({
                       const medication = medicationsQuery.data?.find(
                         (m: any) => m.id === medId,
                       );
+                      const details = treatmentDetailsByMedicationId[medId];
+                      const detailsText = [
+                        details?.dosage,
+                        details?.frequency,
+                        details?.duration,
+                        details?.instructions,
+                      ]
+                        .filter(Boolean)
+                        .join(" • ");
                       return (
                         <span
                           key={medId}
-                          className="inline-flex items-center gap-1 rounded-md bg-primary/8 px-2 py-0.5 text-[10px]"
+                          className="inline-flex max-w-full items-start gap-1 rounded-md bg-primary/8 px-2 py-1 text-[10px]"
                         >
-                          {medication?.name || `Med ${medId}`}
+                          <span className="min-w-0">
+                            <span className="block font-medium">
+                              {medication?.name || `Med ${medId}`}
+                            </span>
+                            {detailsText && (
+                              <span className="mt-0.5 block whitespace-pre-wrap text-muted-foreground">
+                                {detailsText}
+                              </span>
+                            )}
+                          </span>
                           <button
                             type="button"
                             onClick={() => toggleCheckbox("treatment", medId)}
@@ -3402,21 +3602,55 @@ export default function MedicalFilePanel({
                       <span className="text-[10px] text-muted-foreground">
                         وصفات جاهزة:
                       </span>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {Object.entries(prescriptionsQuery.data).map(
-                          ([templateId, template]: [string, any]) => (
-                            <button
-                              key={templateId}
-                              type="button"
-                              className="rounded-md border px-2 py-0.5 text-[10px] hover:bg-muted/60 transition-colors"
-                              onClick={() => {
-                                setSelectedPrescriptionIds([templateId]);
-                              }}
-                            >
-                              {template.name || templateId}
-                            </button>
-                          ),
-                        )}
+                      <div className="flex flex-wrap gap-1.5 items-center">
+                        {READY_TABS.map((tab) => {
+                          const templatesInTab = Object.entries(
+                            prescriptionsQuery.data || {},
+                          ).filter(
+                            ([templateId, template]: [string, any]) =>
+                              getTemplateCategory(
+                                template.name || templateId,
+                              ) === tab,
+                          );
+                          if (templatesInTab.length === 0) return null;
+                          return (
+                            <DropdownMenu key={tab}>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  type="button"
+                                  className="rounded-md border border-input bg-transparent px-2.5 py-1 text-[10px] hover:bg-muted/60 transition-colors flex items-center gap-1 font-medium text-[#1e3a66]"
+                                >
+                                  <span>{tab}</span>
+                                  <ChevronDown className="h-3 w-3 opacity-70" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                align="start"
+                                className="max-h-[300px] overflow-y-auto min-w-[160px]"
+                              >
+                                {templatesInTab.map(
+                                  ([templateId, template]: [string, any]) => (
+                                    <DropdownMenuItem
+                                      key={templateId}
+                                      className="text-right text-xs cursor-pointer hover:bg-muted/50 pr-4 py-2"
+                                      onClick={() => {
+                                        setSelectedPrescriptionIds([
+                                          templateId,
+                                        ]);
+                                      }}
+                                    >
+                                      {getTemplateDisplayName(
+                                        templateId,
+                                        template.name || templateId,
+                                        prescriptionsQuery.data,
+                                      )}
+                                    </DropdownMenuItem>
+                                  ),
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -3425,10 +3659,7 @@ export default function MedicalFilePanel({
           )}
 
           {activeMedicalTab === "images" && (
-            <DiagnosisImagesPanel
-              patientId={patientId}
-              readOnly={hubRo}
-            />
+            <DiagnosisImagesPanel patientId={patientId} readOnly={hubRo} />
           )}
         </div>
 

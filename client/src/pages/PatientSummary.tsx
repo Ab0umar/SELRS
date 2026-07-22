@@ -76,12 +76,249 @@ function formatDisplayValue(value: unknown): string {
 
 type TocSection = { id: string; label: string };
 
+type RefractionEyeValues = {
+  s?: unknown;
+  c?: unknown;
+  axis?: unknown;
+  ucva?: unknown;
+  bcva?: unknown;
+  iop?: unknown;
+  pd?: unknown;
+  add?: unknown;
+};
+
+function RefractionReportTable({
+  title,
+  visitDate,
+  od,
+  os,
+  showReading = false,
+  metrics = [],
+  showIpd = false,
+}: {
+  title: string;
+  visitDate: string;
+  od: RefractionEyeValues;
+  os: RefractionEyeValues;
+  showReading?: boolean;
+  metrics?: Array<"ucva" | "bcva" | "iop">;
+  showIpd?: boolean;
+}) {
+  const shown = (value: unknown, fallback = "—") => {
+    const text = String(value ?? "").trim();
+    return text && text !== "-" ? text : fallback;
+  };
+
+  return (
+    <div className="patient-summary-refraction-block break-inside-avoid-page">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <span className="text-xs font-semibold text-slate-500" dir="rtl">
+          {visitDate}
+        </span>
+        {metrics.length > 0 && (
+          <div
+            className="flex flex-1 items-center justify-center gap-5 border-b border-[#b8c7dc] pb-1 text-center text-[11px] font-bold uppercase tracking-wide text-[#003d9b]"
+            dir="ltr"
+          >
+            {metrics.includes("ucva") && (
+              <span>
+                UCVA {shown(od.ucva, ".........")} /{" "}
+                {shown(os.ucva, ".........")}
+              </span>
+            )}
+            {metrics.includes("bcva") && (
+              <span>
+                BCVA {shown(od.bcva, ".........")} /{" "}
+                {shown(os.bcva, ".........")}
+              </span>
+            )}
+            {metrics.includes("iop") && (
+              <span>
+                IOP {shown(od.iop, ".........")} / {shown(os.iop, ".........")}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div
+        className="overflow-hidden rounded border border-[#c3c6d6]"
+        dir="ltr"
+      >
+        <table className="w-full table-fixed border-collapse text-center text-[11px]">
+          <thead>
+            <tr className="border-b border-[#b8c7dc] bg-[#eaf1fa] text-[#003d9b]">
+              <th className="w-[18%] border-e border-[#c3c6d6] px-3 py-2">
+                {title}
+              </th>
+              <th
+                colSpan={3}
+                className="border-e border-[#c3c6d6] px-3 py-2 text-center"
+              >
+                OD
+              </th>
+              <th
+                colSpan={3}
+                className="border-e border-[#c3c6d6] px-3 py-2 text-center"
+              >
+                OS
+              </th>
+              {showIpd && <th className="w-[12%] px-3 py-2" />}
+            </tr>
+            <tr className="border-b border-[#b8c7dc] bg-[#eaf1fa] text-[#003d9b]">
+              <th className="border-e border-[#c3c6d6] px-3 py-2">Distance</th>
+              {["S", "C", "A", "S", "C", "A"].map((label, index) => (
+                <th
+                  key={`${label}-${index}`}
+                  className="border-e border-[#c3c6d6] px-3 py-2"
+                >
+                  {label}
+                </th>
+              ))}
+              {showIpd && <th className="px-3 py-2">IPD</th>}
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="bg-[#003d9b]/[0.04]">
+              <td className="border-e border-[#c3c6d6] px-3 py-2">&nbsp;</td>
+              {[od.s, od.c, od.axis, os.s, os.c, os.axis].map(
+                (value, index) => (
+                  <td
+                    key={index}
+                    className="border-e border-[#c3c6d6] px-3 py-2 font-mono"
+                  >
+                    {shown(value)}
+                  </td>
+                ),
+              )}
+              {showIpd && (
+                <td className="px-3 py-2 font-mono">
+                  {[od.pd, os.pd]
+                    .map((value) => shown(value, ""))
+                    .filter(Boolean)
+                    .join(" / ") || "—"}
+                </td>
+              )}
+            </tr>
+            {showReading && (
+              <tr className="border-t border-[#c3c6d6]">
+                <td className="border-e border-[#c3c6d6] px-3 py-3 font-bold text-[#003d9b]">
+                  Reading
+                </td>
+                <td colSpan={showIpd ? 7 : 6} className="px-4 py-3">
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="font-bold">Add +</span>
+                    <span className="min-w-24 text-center font-bold">
+                      {[od.add, os.add]
+                        .map((value) => shown(value, ""))
+                        .filter(Boolean)
+                        .join(" / ") || " "}
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function PentacamReportTable({
+  visitDate,
+  od,
+  os,
+}: {
+  visitDate: string;
+  od?: Record<string, unknown>;
+  os?: Record<string, unknown>;
+}) {
+  const shown = (value: unknown) => {
+    const text = String(value ?? "").trim();
+    return text && text !== "-" ? text : "—";
+  };
+  const metrics = [
+    ["K1", "k1"],
+    ["K2", "k2"],
+    ["AX", "axis"],
+    ["Thin", "thinnest"],
+    ["Apex", "apex"],
+    ["Residual", "residual"],
+    ["TTT", "ttt"],
+    ["Ablation", "ablation"],
+  ] as const;
+
+  return (
+    <div className="patient-summary-refraction-block break-inside-avoid-page">
+      <p className="mb-2 text-xs font-semibold text-slate-500" dir="rtl">
+        {visitDate}
+      </p>
+      <div
+        className="overflow-x-auto rounded border border-[#c3c6d6]"
+        dir="ltr"
+      >
+        <table className="w-full min-w-[850px] table-fixed border-collapse text-center text-[10px] print:min-w-0 print:text-[7px]">
+          <thead>
+            <tr className="border-b border-[#b8c7dc] bg-[#eaf1fa] text-[#003d9b]">
+              <th className="w-[11%] border-e border-[#b8c7dc] px-2 py-2">
+                Pentacam
+              </th>
+              <th colSpan={8} className="border-e border-[#b8c7dc] px-2 py-2">
+                OD
+              </th>
+              <th colSpan={8} className="px-2 py-2">
+                OS
+              </th>
+            </tr>
+            <tr className="border-b border-[#b8c7dc] bg-[#eaf1fa] text-[#003d9b]">
+              <th
+                className="border-e border-[#b8c7dc] px-2 py-2"
+                aria-label="Pentacam values"
+              />
+              {[...metrics, ...metrics].map(([label, key], index) => (
+                <th
+                  key={`${key}-${index}`}
+                  className="border-e border-[#b8c7dc] px-1 py-2 last:border-e-0"
+                >
+                  {label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="bg-[#003d9b]/[0.04]">
+              <td className="border-e border-[#c3c6d6] px-2 py-2">&nbsp;</td>
+              {metrics.map(([, key]) => (
+                <td
+                  key={`od-${key}`}
+                  className="border-e border-[#c3c6d6] px-1 py-2 font-mono"
+                >
+                  {shown(od?.[key])}
+                </td>
+              ))}
+              {metrics.map(([, key], index) => (
+                <td
+                  key={`os-${key}`}
+                  className={`px-1 py-2 font-mono ${index < metrics.length - 1 ? "border-e border-[#c3c6d6]" : ""}`}
+                >
+                  {shown(os?.[key])}
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function SectionHeading({ id, label }: { id: string; label: string }) {
   return (
-    <div className="mb-4 flex items-center gap-3 border-b border-border pb-2">
+    <div className="mb-4 flex items-center gap-3 border-b border-[#b8c7dc] pb-2">
       <h2
         id={`sum-${id}`}
-        className="scroll-mt-20 shrink-0 text-base font-bold text-foreground"
+        className="scroll-mt-20 shrink-0 text-base font-bold text-[#003d9b]"
       >
         {label}
       </h2>
@@ -98,31 +335,28 @@ function DataTable({
 }) {
   return (
     <div
-      className="overflow-x-auto rounded-lg border border-border/60"
-      style={{ direction: "ltr" }}
+      className="patient-summary-data-table overflow-x-auto rounded-xl border border-slate-200/90 shadow-2xs bg-white my-1"
+      dir="ltr"
     >
-      <table
-        className="w-full border-collapse text-center text-sm"
-        style={{ direction: "ltr" }}
-      >
+      <table className="w-full border-collapse text-center text-xs" dir="ltr">
         <thead>
-          <tr className="bg-muted/50">
-            {headers.map((h) => (
+          <tr className="border-b border-[#b8c7dc] bg-[#eaf1fa] font-bold text-[#003d9b]">
+            {headers.map((h, idx) => (
               <th
-                key={h}
-                className="border-b border-border/60 px-3 py-2 text-xs font-semibold text-muted-foreground"
+                key={`${h}-${idx}`}
+                className="border-x border-[#b8c7dc] px-3 py-2.5 text-center text-[11px] font-bold tracking-wide first:border-l-0 last:border-r-0 whitespace-nowrap"
               >
                 {h}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-slate-100">
           {rows.length === 0 ? (
             <tr>
               <td
                 colSpan={headers.length}
-                className="px-3 py-6 text-center text-sm text-muted-foreground"
+                className="px-3 py-6 text-center text-xs text-slate-400 font-medium italic"
               >
                 لا توجد بيانات محفوظة في الجدول
               </td>
@@ -131,17 +365,32 @@ function DataTable({
             rows.map((row, i) => (
               <tr
                 key={i}
-                className="border-b border-border/40 last:border-0 hover:bg-muted/20"
+                className="hover:bg-blue-50/40 transition-colors odd:bg-white even:bg-slate-50/50"
               >
-                {row.map((cell, j) => (
-                  <td
-                    key={j}
-                    className="px-3 py-2 font-mono text-xs text-foreground"
-                    dir="auto"
-                  >
-                    {formatDisplayValue(cell)}
-                  </td>
-                ))}
+                {row.map((cell, j) => {
+                  const val = formatDisplayValue(cell);
+                  const isEyeOD = val === "OD";
+                  const isEyeOS = val === "OS";
+                  return (
+                    <td
+                      key={j}
+                      className="px-3 py-2 font-mono text-xs text-slate-700 text-center whitespace-nowrap align-middle border-x border-slate-100 first:border-l-0 last:border-r-0"
+                      dir="ltr"
+                    >
+                      {isEyeOD ? (
+                        <span className="inline-block rounded bg-blue-100 text-blue-800 font-bold px-2 py-0.5 text-[10px]">
+                          OD
+                        </span>
+                      ) : isEyeOS ? (
+                        <span className="inline-block rounded bg-blue-100 text-blue-800 font-bold px-2 py-0.5 text-[10px]">
+                          OS
+                        </span>
+                      ) : (
+                        val || "—"
+                      )}
+                    </td>
+                  );
+                })}
               </tr>
             ))
           )}
@@ -464,10 +713,15 @@ export default function PatientSummary() {
         odS: od?.s || "-",
         odC: od?.c || "-",
         odAx: od?.axis || "-",
+        odBcva: od?.bcva || "-",
+        odPd: od?.pd || "-",
+        odAdd: od?.add || "-",
         osS: os?.s || "-",
         osC: os?.c || "-",
         osAx: os?.axis || "-",
+        osBcva: os?.bcva || "-",
         osPd: os?.pd || "-",
+        osAdd: os?.add || "-",
         add: od?.add || os?.add || "-",
       });
     }
@@ -528,6 +782,7 @@ export default function PatientSummary() {
       const odData = {
         k1: source?.k1OD ?? source?.keratometryOD,
         k2: source?.k2OD,
+        axis: source?.axisOD,
         thinnest: source?.thinnestPointOD ?? source?.pachymetryOD,
         apex: source?.apexOD,
         residual: source?.residualOD,
@@ -538,6 +793,7 @@ export default function PatientSummary() {
         [
           odData.k1,
           odData.k2,
+          odData.axis,
           odData.thinnest,
           odData.apex,
           odData.residual,
@@ -556,6 +812,7 @@ export default function PatientSummary() {
       const osData = {
         k1: source?.k1OS ?? source?.keratometryOS,
         k2: source?.k2OS,
+        axis: source?.axisOS,
         thinnest: source?.thinnestPointOS ?? source?.pachymetryOS,
         apex: source?.apexOS,
         residual: source?.residualOS,
@@ -566,6 +823,7 @@ export default function PatientSummary() {
         [
           osData.k1,
           osData.k2,
+          osData.axis,
           osData.thinnest,
           osData.apex,
           osData.residual,
@@ -586,6 +844,24 @@ export default function PatientSummary() {
     return rows;
   }, [pentacamMeasurements]);
 
+  const pentacamByVisit = useMemo(() => {
+    type PentacamVisitGroup = {
+      visitDate: string;
+      od?: Record<string, unknown>;
+      os?: Record<string, unknown>;
+    };
+    const grouped = new Map<string, PentacamVisitGroup>();
+    for (const row of pentacamRows) {
+      const entry: PentacamVisitGroup = grouped.get(row.visit) ?? {
+        visitDate: row.visit,
+      };
+      if (row.eye === "OD") entry.od = row;
+      if (row.eye === "OS") entry.os = row;
+      grouped.set(row.visit, entry);
+    }
+    return Array.from(grouped.values());
+  }, [pentacamRows]);
+
   const patientName = firstNonEmpty(patient?.fullName, "—");
 
   const medicalHistoryRows = useMemo(() => {
@@ -599,6 +875,10 @@ export default function PatientSummary() {
       row.heartDisease ? "نعم" : "لا",
       row.asthma ? "نعم" : "لا",
       row.allergies ? "نعم" : "لا",
+      row.thyroid ? "نعم" : "لا",
+      row.autoimmune ? "نعم" : "لا",
+      row.glaucoma ? "نعم" : "لا",
+      row.familyKeratoconus ? "نعم" : "لا",
       row.previousSurgeries || "—",
       row.medications || "—",
       row.familyHistory || "—",
@@ -606,6 +886,35 @@ export default function PatientSummary() {
   }, [medicalHistoryQuery.data]);
 
   const symptomRows = useMemo(() => {
+    const rowsMap = new Map<string, Set<string>>();
+
+    // 1. From visits (chiefComplaint)
+    if (Array.isArray(visitsQuery.data)) {
+      for (const v of visitsQuery.data as any[]) {
+        const text = String(v.chiefComplaint || v.notes || "").trim();
+        if (text) {
+          const dateKey = formatDate(v.visitDate || v.createdAt);
+          if (!rowsMap.has(dateKey)) rowsMap.set(dateKey, new Set());
+          rowsMap.get(dateKey)!.add(text);
+        }
+      }
+    }
+
+    // 2. From examinations (chiefComplaint / symptoms)
+    if (Array.isArray(examinations)) {
+      for (const exam of examinations as any[]) {
+        const text = String(
+          exam.chiefComplaint || exam.symptoms || exam.notes || "",
+        ).trim();
+        if (text) {
+          const dateKey = formatDate(exam.visitDate || exam.createdAt);
+          if (!rowsMap.has(dateKey)) rowsMap.set(dateKey, new Set());
+          rowsMap.get(dateKey)!.add(text);
+        }
+      }
+    }
+
+    // 3. From examinationChecklists (checklist fields)
     const labels: Array<[string, string]> = [
       ["generalDiseases", "أمراض عامة"],
       ["pregnancyOrLactation", "حمل أو رضاعة"],
@@ -622,18 +931,28 @@ export default function PatientSummary() {
       ["symptomsWorseWithAirOrAC", "تزداد مع الهواء أو التكييف"],
       ["glaucomaTreatment", "علاج الجلوكوما"],
     ];
-    const rows = Array.isArray(examinationChecklistsQuery.data)
-      ? (examinationChecklistsQuery.data as any[])
-      : [];
-    const checklistRows = rows.map((row) => [
-      formatDate(row.visitDate ?? row.updatedAt ?? row.createdAt),
-      labels
-        .filter(([key]) => Boolean(row[key]))
-        .map(([, label]) => label)
-        .join("، ") || "—",
-    ]);
-    return checklistRows;
-  }, [examinationChecklistsQuery.data]);
+    if (Array.isArray(examinationChecklistsQuery.data)) {
+      for (const row of examinationChecklistsQuery.data as any[]) {
+        const dateKey = formatDate(
+          row.visitDate ?? row.updatedAt ?? row.createdAt,
+        );
+        const text = labels
+          .filter(([key]) => Boolean(row[key]))
+          .map(([, label]) => label)
+          .join("، ");
+        if (text) {
+          if (!rowsMap.has(dateKey)) rowsMap.set(dateKey, new Set());
+          rowsMap.get(dateKey)!.add(text);
+        }
+      }
+    }
+
+    const result: (string | number)[][] = [];
+    rowsMap.forEach((symptomsSet, dateKey) => {
+      result.push([dateKey, Array.from(symptomsSet).join(" • ")]);
+    });
+    return result;
+  }, [visitsQuery.data, examinations, examinationChecklistsQuery.data]);
 
   const diagnosticTestRows = useMemo(() => {
     const requests = Array.isArray(testRequestsQuery?.data)
@@ -672,50 +991,46 @@ export default function PatientSummary() {
     () =>
       [
         { id: "basic", label: "البيانات الأساسية", show: true },
-        { id: "symptoms", label: "Symptoms", show: true },
-        { id: "history", label: "Medical History", show: true },
+        {
+          id: "symptoms",
+          label: "الأعراض (Symptoms)",
+          show: symptomRows.length > 0,
+        },
+        {
+          id: "history",
+          label: "التاريخ المرضي (Medical History)",
+          show: hasHistory,
+        },
         {
           id: "examinations",
-          label: "Autoref / IOP",
-          show: true,
+          label: "القياسات (Autoref / IOP)",
+          show: examinationData.length > 0,
         },
-        { id: "after", label: "After", show: true },
+        {
+          id: "after",
+          label: "القياسات البعدية (After Refraction)",
+          show: afterData.length > 0,
+        },
         {
           id: "glasses",
-          label: "Clinical Refraction",
-          show: true,
-        },
-        {
-          id: "trends",
-          label: "Technical Trends",
-          show: true,
+          label: "مقاس النظارة (Clinical Refraction)",
+          show: glassesRows.length > 0,
         },
         {
           id: "pentacam",
-          label: "Pentacam HR Analysis",
-          show: true,
-        },
-        {
-          id: "topography",
-          label: "Corneal Topography",
-          show: true,
-        },
-        {
-          id: "imaging",
-          label: "Diagnostic Imaging",
-          show: true,
+          label: "البنتاكام والقرنية (Pentacam & Topography)",
+          show: pentacamRows.length > 0,
         },
         {
           id: "tests",
-          label: "Diagnostic Tests",
-          show: true,
+          label: "الفحوصات والأشعة (Diagnostic Tests)",
+          show: diagnosticTestRows.length > 0,
         },
         {
           id: "prescriptions",
-          label: "Treatment Plan",
-          show: true,
+          label: "الخطة العلاجية (Treatment Plan)",
+          show: hasPrescriptions,
         },
-        { id: "visits", label: "الزيارات", show: true },
       ].filter((s) => s.show),
     [
       hasHistory,
@@ -723,17 +1038,115 @@ export default function PatientSummary() {
       examinationData.length,
       afterData.length,
       glassesRows.length,
-      technicalTrendRows.length,
       pentacamRows.length,
-      pentacamFilesQuery.data,
       diagnosticTestRows.length,
       hasPrescriptions,
     ],
   );
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-muted/10" dir="rtl">
-      <header className="z-20 shrink-0 border-b border-border bg-background print:border-b-2">
+    <div
+      className="patient-summary-page flex h-full min-h-0 flex-col bg-muted/10"
+      dir="rtl"
+    >
+      <style>{`
+        @page {
+          size: A4 portrait;
+          margin: 18mm 12mm 14mm;
+        }
+
+        @media print {
+          html, body, #root {
+            height: auto !important;
+            min-height: 0 !important;
+            overflow: visible !important;
+            background: #fff !important;
+          }
+
+          .patient-summary-page {
+            display: block !important;
+            height: auto !important;
+            min-height: 0 !important;
+            overflow: visible !important;
+            background: #fff !important;
+          }
+
+          .patient-summary-screen-header {
+            display: none !important;
+          }
+
+          .patient-summary-page main,
+          .patient-summary-page > div {
+            height: auto !important;
+            min-height: 0 !important;
+            overflow: visible !important;
+          }
+
+          .patient-summary-print-root {
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: 0 !important;
+            box-shadow: none !important;
+            background: #fff !important;
+            font-size: 10pt !important;
+          }
+
+          .patient-summary-print-root section {
+            scroll-margin: 0 !important;
+          }
+
+          .patient-summary-print-root h2 {
+            font-size: 11pt !important;
+          }
+
+          .patient-summary-data-table {
+            overflow: visible !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            break-inside: avoid-page;
+          }
+
+          .patient-summary-data-table table {
+            width: 100% !important;
+            table-layout: auto !important;
+            font-size: 8pt !important;
+          }
+
+          .patient-summary-data-table th,
+          .patient-summary-data-table td {
+            padding: 1.5mm 1mm !important;
+            border: 1px solid #cbd5e1 !important;
+            white-space: normal !important;
+          }
+
+          .patient-summary-print-root button,
+          .patient-summary-print-root [role="button"] {
+            display: none !important;
+          }
+
+          .patient-summary-print-root img {
+            max-width: 100% !important;
+            max-height: 78mm !important;
+            object-fit: contain !important;
+          }
+
+          .patient-summary-print-root input,
+          .patient-summary-print-root textarea,
+          .patient-summary-print-root select {
+            border: 0 !important;
+            box-shadow: none !important;
+            background: transparent !important;
+          }
+
+          .patient-summary-print-root * {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+        }
+      `}</style>
+      <header className="patient-summary-screen-header z-20 shrink-0 border-b border-border bg-background">
         <div className="flex flex-col gap-3 px-4 py-3 lg:flex-row lg:items-center">
           <Button
             variant="outline"
@@ -820,7 +1233,21 @@ export default function PatientSummary() {
         </aside>
 
         <main ref={contentRef} className="flex-1 overflow-y-auto">
-          <article className="mx-auto w-full max-w-5xl space-y-8 bg-background px-4 py-6 pb-16 sm:px-6 lg:my-5 lg:border lg:border-border lg:px-8 print:my-0 print:max-w-none print:space-y-6 print:border-0 print:px-6 print:py-4">
+          <article className="patient-summary-print-root mx-auto w-full max-w-5xl space-y-8 bg-background px-4 py-6 pb-16 sm:px-6 lg:my-5 lg:border lg:border-border lg:px-8 print:space-y-5">
+            <div className="hidden border-b-2 border-[#003d9b] pb-3 print:flex print:items-end print:justify-between">
+              <div>
+                <h1 className="text-xl font-black text-[#002f6c]">
+                  التقرير الملخص | Patient Summary
+                </h1>
+                <p className="mt-1 text-xs text-slate-500">
+                  سجل الزيارات والقياسات الطبية
+                </p>
+              </div>
+              <div className="text-left text-xs text-slate-600" dir="rtl">
+                <p className="font-bold text-[#002f6c]">{patientName}</p>
+                <p dir="ltr">{patient?.patientCode ?? "—"}</p>
+              </div>
+            </div>
             {/* البيانات الأساسية */}
             <section id="sum-basic" className="scroll-mt-4">
               <SectionHeading id="basic" label="البيانات الأساسية" />
@@ -833,6 +1260,11 @@ export default function PatientSummary() {
                     mono: true,
                   },
                   { label: "الهاتف", value: patient?.phone ?? "—", mono: true },
+                  {
+                    label: "موبايل 2",
+                    value: patient?.alternatePhone ?? "—",
+                    mono: true,
+                  },
                   { label: "العنوان", value: patient?.address ?? "—" },
                   {
                     label: "تاريخ الميلاد",
@@ -869,9 +1301,12 @@ export default function PatientSummary() {
             }
 
             {/* التاريخ المرضي */}
-            {
-              <section id="sum-history" className="scroll-mt-4">
-                <SectionHeading id="history" label="Medical History" />
+            <section id="sum-history" className="scroll-mt-4">
+              <SectionHeading
+                id="history"
+                label="التاريخ المرضي (Medical History)"
+              />
+              {medicalHistoryRows.length > 0 && (
                 <DataTable
                   headers={[
                     "التاريخ",
@@ -880,51 +1315,54 @@ export default function PatientSummary() {
                     "قلب",
                     "ربو",
                     "حساسية",
+                    "غدة",
+                    "مناعة",
+                    "ماء زرقاء",
+                    "قرنية مخروطية",
                     "عمليات سابقة",
                     "أدوية",
                     "تاريخ عائلي",
                   ]}
                   rows={medicalHistoryRows}
                 />
-              </section>
-            }
+              )}
+            </section>
 
             {/* القياسات */}
             {
               <section id="sum-examinations" className="scroll-mt-4">
                 <SectionHeading id="examinations" label="Autoref / IOP" />
-                <DataTable
-                  headers={[
-                    "التاريخ",
-                    "العين",
-                    "UCVA",
-                    "BCVA",
-                    "S",
-                    "C",
-                    "Axis",
-                    "IOP",
-                  ]}
-                  rows={examinationData.map((r) => [
-                    r.visitDate,
-                    r.eye,
-                    r.ucva,
-                    r.bcva,
-                    r.s,
-                    r.c,
-                    r.axis,
-                    r.iop,
-                  ])}
-                />
+                <div className="space-y-5">
+                  {parsedExamSources.map((source, index) => (
+                    <RefractionReportTable
+                      key={`autoref-${formatDate(source.visitDate)}-${index}`}
+                      title="Autoref"
+                      visitDate={formatDate(source.visitDate)}
+                      od={source.autorefraction?.od ?? {}}
+                      os={source.autorefraction?.os ?? {}}
+                      metrics={["ucva", "iop"]}
+                    />
+                  ))}
+                </div>
               </section>
             }
 
             {
               <section id="sum-after" className="scroll-mt-4">
                 <SectionHeading id="after" label="After" />
-                <DataTable
-                  headers={["التاريخ", "العين", "S", "C", "Axis"]}
-                  rows={afterData}
-                />
+                <div className="space-y-5">
+                  {parsedExamSources
+                    .filter((source) => source.after?.od || source.after?.os)
+                    .map((source, index) => (
+                      <RefractionReportTable
+                        key={`after-${formatDate(source.visitDate)}-${index}`}
+                        title="After"
+                        visitDate={formatDate(source.visitDate)}
+                        od={source.after?.od ?? {}}
+                        os={source.after?.os ?? {}}
+                      />
+                    ))}
+                </div>
               </section>
             }
 
@@ -932,131 +1370,56 @@ export default function PatientSummary() {
             {
               <section id="sum-glasses" className="scroll-mt-4">
                 <SectionHeading id="glasses" label="Clinical Refraction" />
-                <DataTable
-                  headers={[
-                    "التاريخ",
-                    "OD S",
-                    "OD C",
-                    "OD Ax",
-                    "OS S",
-                    "OS C",
-                    "OS Ax",
-                    "OS PD",
-                    "Add",
-                  ]}
-                  rows={glassesRows.map((r) => [
-                    r.visit,
-                    r.odS,
-                    r.odC,
-                    r.odAx,
-                    r.osS,
-                    r.osC,
-                    r.osAx,
-                    r.osPd,
-                    r.add,
-                  ])}
-                />
-              </section>
-            }
-
-            {
-              <section id="sum-trends" className="scroll-mt-4">
-                <SectionHeading
-                  id="trends"
-                  label="Technical Trends: Refraction and IOP"
-                />
-                <DataTable
-                  headers={[
-                    "التاريخ",
-                    "المصدر",
-                    "العين",
-                    "S",
-                    "C",
-                    "Axis",
-                    "PD",
-                    "Add",
-                    "IOP",
-                  ]}
-                  rows={technicalTrendRows}
-                />
-              </section>
-            }
-
-            {/* بنتاكام */}
-            {
-              <section id="sum-pentacam" className="scroll-mt-4">
-                <SectionHeading id="pentacam" label="Pentacam HR Analysis" />
-                <DataTable
-                  headers={[
-                    "التاريخ",
-                    "العين",
-                    "Thinnest",
-                    "Apex",
-                    "Residual",
-                    "TTT",
-                    "Ablation",
-                  ]}
-                  rows={pentacamRows.map((r) => [
-                    r.visit,
-                    r.eye,
-                    r.thinnest,
-                    r.apex,
-                    r.residual,
-                    r.ttt,
-                    r.ablation,
-                  ])}
-                />
-              </section>
-            }
-
-            {
-              <section id="sum-topography" className="scroll-mt-4">
-                <SectionHeading id="topography" label="Corneal Topography" />
-                <DataTable
-                  headers={["التاريخ", "العين", "K1", "K2", "Thinnest"]}
-                  rows={pentacamRows.map((row) => [
-                    row.visit,
-                    row.eye,
-                    row.k1,
-                    row.k2,
-                    row.thinnest,
-                  ])}
-                />
-              </section>
-            }
-
-            {
-              <section id="sum-imaging" className="scroll-mt-4">
-                <SectionHeading id="imaging" label="Diagnostic Imaging" />
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-2">
-                  {(pentacamFilesQuery.data ?? []).length === 0 ? (
-                    <p className="col-span-full py-6 text-center text-sm text-muted-foreground">
-                      لا توجد صور محفوظة في srv100_uploads
-                    </p>
-                  ) : (
-                    (pentacamFilesQuery.data ?? []).map((file: any) => (
-                      <figure
-                        key={file.id}
-                        className="overflow-hidden rounded-lg border border-border"
-                      >
-                        <img
-                          src={file.storageUrl}
-                          alt={file.sourceFileName || "Diagnostic Imaging"}
-                          className="aspect-[4/3] w-full object-contain"
-                          loading="lazy"
-                        />
-                        <figcaption
-                          className="px-3 py-2 text-xs text-muted-foreground"
-                          dir="auto"
-                        >
-                          {file.sourceFileName || "Diagnostic Imaging"}
-                        </figcaption>
-                      </figure>
-                    ))
-                  )}
+                <div className="space-y-5">
+                  {glassesRows.map((row, index) => (
+                    <RefractionReportTable
+                      key={`glasses-${row.visit}-${index}`}
+                      title="Refraction"
+                      visitDate={row.visit}
+                      od={{
+                        s: row.odS,
+                        c: row.odC,
+                        axis: row.odAx,
+                        bcva: row.odBcva,
+                        pd: row.odPd,
+                        add: row.odAdd,
+                      }}
+                      os={{
+                        s: row.osS,
+                        c: row.osC,
+                        axis: row.osAx,
+                        bcva: row.osBcva,
+                        pd: row.osPd,
+                        add: row.osAdd,
+                      }}
+                      showReading
+                      metrics={["bcva"]}
+                      showIpd
+                    />
+                  ))}
                 </div>
               </section>
             }
+
+            {/* بنتاكام وتضاريس القرنية (دمج الجدولين المكررين) */}
+            {pentacamRows.length > 0 && (
+              <section id="sum-pentacam" className="scroll-mt-4">
+                <SectionHeading
+                  id="pentacam"
+                  label="البنتاكام وتضاريس القرنية (Pentacam & Corneal Topography)"
+                />
+                <div className="space-y-5">
+                  {pentacamByVisit.map((entry, index) => (
+                    <PentacamReportTable
+                      key={`pentacam-${entry.visitDate}-${index}`}
+                      visitDate={entry.visitDate}
+                      od={entry.od}
+                      os={entry.os}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
 
             {/* الأشعات والتحاليل */}
             {
@@ -1088,94 +1451,6 @@ export default function PatientSummary() {
                 )}
               </section>
             }
-
-            {/* الزيارات */}
-            <section id="sum-visits" className="scroll-mt-4">
-              <SectionHeading id="visits" label="الزيارات" />
-              {visitsQuery.isLoading ? (
-                <div className="space-y-2">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="h-10 animate-pulse rounded-lg bg-muted"
-                    />
-                  ))}
-                </div>
-              ) : visitsQuery.isError ? (
-                <p className="text-sm text-destructive">
-                  خطأ في تحميل الزيارات
-                </p>
-              ) : (visitsQuery.data ?? []).length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  لا توجد زيارات مسجّلة
-                </p>
-              ) : (
-                (() => {
-                  const visitsByDate = new Map<string, any[]>();
-                  const sorted = [...(visitsQuery.data ?? [])].sort(
-                    (a, b) =>
-                      new Date(b.visitDate).getTime() -
-                      new Date(a.visitDate).getTime(),
-                  );
-                  sorted.forEach((visit) => {
-                    const key = formatDate(visit.visitDate);
-                    if (!visitsByDate.has(key)) visitsByDate.set(key, []);
-                    visitsByDate.get(key)!.push(visit);
-                  });
-                  return (
-                    <div className="space-y-4">
-                      {Array.from(visitsByDate.entries()).map(
-                        ([date, visits]) => (
-                          <div key={date}>
-                            <div className="mb-2 flex items-center gap-2">
-                              <span
-                                className="rounded bg-muted text-muted-foreground"
-                                dir="auto"
-                              >
-                                {date}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                ({visits.length})
-                              </span>
-                            </div>
-                            <ul className="space-y-1.5">
-                              {visits.map((visit) => (
-                                <li
-                                  key={visit.id}
-                                  className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/20 px-4 py-2.5 text-sm"
-                                >
-                                  <span
-                                    className="font-medium text-foreground"
-                                    dir="auto"
-                                  >
-                                    {formatDisplayValue(
-                                      visit.visitType || "زيارة",
-                                    )}
-                                  </span>
-                                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                    <span dir="auto">
-                                      {new Date(
-                                        visit.visitDate,
-                                      ).toLocaleTimeString("ar-EG", {
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                      })}
-                                    </span>
-                                    <span dir="ltr" className="font-mono">
-                                      #{visit.id}
-                                    </span>
-                                  </div>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ),
-                      )}
-                    </div>
-                  );
-                })()
-              )}
-            </section>
           </article>
         </main>
       </div>

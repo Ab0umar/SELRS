@@ -48,6 +48,15 @@ export function useOperationsActions(operations: OperationsState) {
       },
     });
   const saveUserStateMutation = trpc.medical.saveUserPageState.useMutation();
+  const cancelOperationMutation =
+    trpc.medical.cancelOperationWhatsApp.useMutation({
+      onSuccess: () => {
+        toast.success("تم إرسال رسالة إلغاء العملية");
+      },
+      onError: (error) => {
+        toast.error(getTrpcErrorMessage(error, "تعذر إرسال رسالة الإلغاء"));
+      },
+    });
 
   const lastSavedRef = useRef("");
   const lastSaveAttemptRef = useRef<{ snapshot: string; at: number }>({
@@ -504,6 +513,39 @@ export function useOperationsActions(operations: OperationsState) {
     toast.success("تم حذف الصف من القائمة");
   };
 
+  const handleCancelOperation = (appointment: ListData) => {
+    if (!operations.canManageList) return;
+    if (operations.activeTab !== "saadany") {
+      toast.error("إلغاء العملية عبر واتساب متاح لقائمة د. السعدني فقط");
+      return;
+    }
+    if (!appointment.phone.trim()) {
+      toast.error("لا يوجد رقم هاتف للمريض");
+      return;
+    }
+    if (
+      !window.confirm(
+        `إرسال رسالة إلغاء العملية للمريض ${appointment.name}؟\nلن يتم حذف المريض من القائمة.`,
+      )
+    ) {
+      return;
+    }
+    cancelOperationMutation.mutate({
+      doctorTab: operations.activeTab,
+      patientName: appointment.name,
+      recipientPhone: appointment.phone,
+      operationName:
+        appointment.operation ||
+        operations.operationType ||
+        operations.operationTypeOther ||
+        "عملية عيون",
+      operationDate: operations.listDate,
+      operationTime: operations.listTime || null,
+      doctorName: appointment.doctor || operations.doctorName,
+      hospitalName: appointment.hospital || null,
+    });
+  };
+
   const handleUpdateRow = (
     id: number,
     field: keyof ListData | string,
@@ -868,10 +910,12 @@ export function useOperationsActions(operations: OperationsState) {
   return {
     buildAccountsPrintContent,
     buildOperationsPrintContent,
+    cancelOperationMutation,
     deleteListByIdMutation,
     handleAccountsAdjustmentInputBlur,
     handleAccountsAdjustmentInputChange,
     handleAddPatientRow,
+    handleCancelOperation,
     handleDeleteRow,
     handleDeleteSavedSummary,
     handleEditSavedSummary,

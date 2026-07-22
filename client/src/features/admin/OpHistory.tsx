@@ -43,6 +43,7 @@ const SOURCE_LABEL: Record<string, string> = {
   surgery: "جراحة",
   followup: "متابعة",
   service_code: "كود خدمة",
+  operation_list: "قائمة العمليات",
   manual: "يدوي",
 };
 
@@ -61,7 +62,8 @@ export default function OpHistory() {
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(25);
+  const [pageSize, setPageSize] =
+    useState<(typeof PAGE_SIZE_OPTIONS)[number]>(25);
   const [addOpen, setAddOpen] = useState(false);
   const [mappingOpen, setMappingOpen] = useState(false);
 
@@ -93,9 +95,14 @@ export default function OpHistory() {
   const syncMutation = trpc.opHistory.sync.useMutation({
     onSuccess: (data) => {
       const total =
-        data.sheets.upserted + data.surgeries.upserted + data.followups.upserted;
+        data.sheets.upserted +
+        data.surgeries.upserted +
+        data.followups.upserted +
+        data.serviceCodes.upserted +
+        data.operationLists.upserted;
+      const operationListsSkipped = data.operationLists.skipped;
       toast.success(
-        `تمت المزامنة: ${total} سجل (شيتات ${data.sheets.upserted}، جراحات ${data.surgeries.upserted}، متابعات ${data.followups.upserted})`,
+        `تمت المزامنة: ${total} سجل (قوائم العمليات ${data.operationLists.upserted}، MSSQL والمصادر الأخرى ${total - data.operationLists.upserted}${operationListsSkipped ? `، بدون مريض مطابق ${operationListsSkipped}` : ""})`,
       );
       utils.opHistory.getTypeCounts.invalidate();
       utils.opHistory.listByType.invalidate();
@@ -130,7 +137,8 @@ export default function OpHistory() {
             <div>
               <h1 className="text-lg font-semibold">سجل العمليات</h1>
               <p className="text-sm text-muted-foreground">
-                ملخص المرضى حسب نوع العملية — قد تظهر سجلات متكررة من أكثر من مصدر
+                ملخص المرضى حسب نوع العملية — قد تظهر سجلات متكررة من أكثر من
+                مصدر
               </p>
             </div>
           </div>
@@ -181,7 +189,8 @@ export default function OpHistory() {
                     : "bg-background hover:bg-accent"
                 }`}
               >
-                {c.operationType} <span className="opacity-70">({c.count})</span>
+                {c.operationType}{" "}
+                <span className="opacity-70">({c.count})</span>
               </button>
             ))
           )}
@@ -208,7 +217,10 @@ export default function OpHistory() {
                 بحث
               </button>
             </form>
-            <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
+            <Select
+              value={String(pageSize)}
+              onValueChange={handlePageSizeChange}
+            >
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="عدد النتائج" />
               </SelectTrigger>
@@ -248,11 +260,21 @@ export default function OpHistory() {
                 <TableBody>
                   {rows.map((row: any) => (
                     <TableRow key={row.id}>
-                      <TableCell className="font-mono truncate">{row.patientCode}</TableCell>
-                      <TableCell className="truncate">{row.patientFullName}</TableCell>
-                      <TableCell className="truncate">{formatDate(row.operationDate)}</TableCell>
-                      <TableCell className="truncate">{row.eye || "—"}</TableCell>
-                      <TableCell className="truncate">{row.doctorName || row.doctorCode || "—"}</TableCell>
+                      <TableCell className="font-mono truncate">
+                        {row.patientCode}
+                      </TableCell>
+                      <TableCell className="truncate">
+                        {row.patientFullName}
+                      </TableCell>
+                      <TableCell className="truncate">
+                        {formatDate(row.operationDate)}
+                      </TableCell>
+                      <TableCell className="truncate">
+                        {row.eye || "—"}
+                      </TableCell>
+                      <TableCell className="truncate">
+                        {row.doctorName || row.doctorCode || "—"}
+                      </TableCell>
                       <TableCell className="truncate">
                         <Badge variant="secondary">
                           {SOURCE_LABEL[row.source] ?? row.source}
@@ -266,7 +288,9 @@ export default function OpHistory() {
                           variant="ghost"
                           size="sm"
                           type="button"
-                          onClick={() => setLocation(`/patient-file/${row.patientId}`)}
+                          onClick={() =>
+                            setLocation(`/patient-file/${row.patientId}`)
+                          }
                         >
                           ملف المريض
                         </Button>
@@ -306,7 +330,10 @@ export default function OpHistory() {
           utils.opHistory.listByType.invalidate();
         }}
       />
-      <ServiceCodeMappingDialog open={mappingOpen} onOpenChange={setMappingOpen} />
+      <ServiceCodeMappingDialog
+        open={mappingOpen}
+        onOpenChange={setMappingOpen}
+      />
     </div>
   );
 }
@@ -323,12 +350,18 @@ function ServiceCodeMappingDialog({
   const [customCode, setCustomCode] = useState("");
   const [targetType, setTargetType] = useState("");
 
-  const mappingsQuery = trpc.opHistory.getServiceCodeMappings.useQuery(undefined, {
-    enabled: open,
-  });
-  const unmappedQuery = trpc.opHistory.listUnmappedServiceCodes.useQuery(undefined, {
-    enabled: open,
-  });
+  const mappingsQuery = trpc.opHistory.getServiceCodeMappings.useQuery(
+    undefined,
+    {
+      enabled: open,
+    },
+  );
+  const unmappedQuery = trpc.opHistory.listUnmappedServiceCodes.useQuery(
+    undefined,
+    {
+      enabled: open,
+    },
+  );
 
   const assignMutation = trpc.opHistory.upsertServiceCodeMapping.useMutation({
     onSuccess: (data) => {
@@ -391,7 +424,9 @@ function ServiceCodeMappingDialog({
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium">أكواد غير مربوطة (اختر واحد أو أكثر)</label>
+            <label className="text-sm font-medium">
+              أكواد غير مربوطة (اختر واحد أو أكثر)
+            </label>
             <div className="mt-2 max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
               {unmapped.length === 0 ? (
                 <span className="text-sm text-muted-foreground">
@@ -444,14 +479,25 @@ function ServiceCodeMappingDialog({
 
           {mappings.length > 0 && (
             <div>
-              <label className="text-sm font-medium">الأكواد المربوطة حاليًا</label>
+              <label className="text-sm font-medium">
+                الأكواد المربوطة حاليًا
+              </label>
               <div className="mt-2 max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
-                {mappings.map((m: { id: number; serviceCode: string; operationType: string }) => (
-                  <div key={m.id} className="flex items-center justify-between text-sm">
-                    <span>{m.serviceCode}</span>
-                    <Badge variant="secondary">{m.operationType}</Badge>
-                  </div>
-                ))}
+                {mappings.map(
+                  (m: {
+                    id: number;
+                    serviceCode: string;
+                    operationType: string;
+                  }) => (
+                    <div
+                      key={m.id}
+                      className="flex items-center justify-between text-sm"
+                    >
+                      <span>{m.serviceCode}</span>
+                      <Badge variant="secondary">{m.operationType}</Badge>
+                    </div>
+                  ),
+                )}
               </div>
             </div>
           )}
@@ -543,11 +589,17 @@ function AddOperationDialog({
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">تاريخ العملية</label>
-            <DateInput value={opDate} onChange={(e) => setOpDate(e.target.value)} />
+            <DateInput
+              value={opDate}
+              onChange={(e) => setOpDate(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">ملاحظات</label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
           </div>
           <DialogFooter>
             <Button type="submit" disabled={addMutation.isPending}>

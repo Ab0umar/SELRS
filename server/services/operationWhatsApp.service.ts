@@ -66,6 +66,30 @@ function cleanDoctorName(doctorName: string | null | undefined): string {
   return name.replace(/^د[./]?\s*/u, "").trim() || "محمد السعدني";
 }
 
+function operationBranchName(request: OperationWhatsAppRequest): string {
+  const operation = String(request.operationName ?? "").toLowerCase();
+  const isFemto =
+    operation === "fl" ||
+    operation === "fs" ||
+    operation.includes("femto") ||
+    operation.includes("فيمتو");
+  if (isFemto) return "مركز النخبة - ش الوفاء - الاستاد";
+
+  const isLaserVisionCorrection =
+    operation === "prk" ||
+    operation === "lasik" ||
+    operation.includes("prk") ||
+    operation.includes("lasik") ||
+    operation.includes("ليزر") ||
+    operation.includes("تصحيح ابصار") ||
+    operation.includes("تصحيح إبصار");
+  if (isLaserVisionCorrection) {
+    return "طنطا - مستشفى الشروق - الدور الثاني";
+  }
+
+  return request.hospitalName?.trim() || "مركز عيون الشروق";
+}
+
 function operationMapLocation(request: OperationWhatsAppRequest): string {
   const operation = String(request.operationName ?? "").toLowerCase();
   const hospital = String(request.hospitalName ?? "").toLowerCase();
@@ -117,7 +141,7 @@ function templateParameters(
       {
         type: "text",
         parameter_name: "branch_name",
-        text: request.hospitalName?.trim() || "مركز عيون الشروق",
+        text: operationBranchName(request),
       },
     ];
   }
@@ -173,11 +197,11 @@ function templateParameters(
       parameter_name: "doctor_name",
       text: cleanDoctorName(request.doctorName),
     },
-    {
-      type: "text",
-      parameter_name: "hospital_name",
-      text: request.hospitalName?.trim() || "مركز عيون الشروق",
-    },
+      {
+        type: "text",
+        parameter_name: "hospital_name",
+        text: operationBranchName(request),
+      },
     {
       type: "text",
       parameter_name: "branch_location",

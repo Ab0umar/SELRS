@@ -6,6 +6,10 @@ import { getTrpcErrorMessage, localISODate } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { deletePatientCachePages } from "@/lib/patientCacheCleanup";
 import type { User } from "@shared/types";
+import {
+  EMPTY_MEDICAL_HISTORY,
+  type MedicalHistoryDraft,
+} from "@/components/patient-details/MedicalHistoryTab";
 
 interface DoctorOption {
   id: string;
@@ -80,9 +84,7 @@ export function useExaminationForm(
   const [, routeParams] = useRoute("/examination/:id");
   const formRef = useRef<HTMLFormElement | null>(null);
   const [loading, setLoading] = useState(false);
-  const [visitDate, setVisitDate] = useState(
-    () => localISODate(),
-  );
+  const [visitDate, setVisitDate] = useState(() => localISODate());
   const [receptionSignature, setReceptionSignature] = useState("");
   const [nurseSignature, setNurseSignature] = useState("");
   const [technicianSignature, setTechnicianSignature] = useState("");
@@ -122,6 +124,8 @@ export function useExaminationForm(
     symptomsWorseWithAirOrAC: false,
     glaucomaTreatment: false,
   });
+  const [patientMedicalHistory, setPatientMedicalHistory] =
+    useState<MedicalHistoryDraft>({ ...EMPTY_MEDICAL_HISTORY });
 
   const nextPatientCodeQuery = trpc.medical.getNextMssqlPatientCode.useQuery(
     undefined,
@@ -782,7 +786,8 @@ export function useExaminationForm(
       alternatePhone: (data as any).alternatePhone ?? "",
       email: (data as any).email ?? "",
       job: data.occupation ?? "",
-      gender: (data.gender === "male" || data.gender === "female") ? data.gender : "",
+      gender:
+        data.gender === "male" || data.gender === "female" ? data.gender : "",
     });
     if (data.locationType) {
       setLocationType(data.locationType === "external" ? "external" : "center");
@@ -848,7 +853,8 @@ export function useExaminationForm(
       const data = JSON.parse(raw);
       if (data.sheetSelection) setSheetSelection(data.sheetSelection);
       // Only restore visitDate if it's today or future — never a past date
-      if (data.visitDate && data.visitDate >= localISODate()) setVisitDate(data.visitDate);
+      if (data.visitDate && data.visitDate >= localISODate())
+        setVisitDate(data.visitDate);
       if (typeof data.isFollowup === "boolean") {
         setIsFollowup(data.isFollowup);
       }
@@ -868,7 +874,8 @@ export function useExaminationForm(
     if (!data) return;
     if (hydratedPatientStateRef.current === patientInfo.id) return;
     if (data.sheetSelection) setSheetSelection(data.sheetSelection);
-    if (data.visitDate && data.visitDate >= localISODate()) setVisitDate(data.visitDate);
+    if (data.visitDate && data.visitDate >= localISODate())
+      setVisitDate(data.visitDate);
     if (typeof data.isFollowup === "boolean") {
       setIsFollowup(data.isFollowup);
     }
@@ -877,9 +884,7 @@ export function useExaminationForm(
 
   useEffect(() => {
     const row = examinationChecklistQuery.data as
-      | Record<string, unknown>
-      | null
-      | undefined;
+      Record<string, unknown> | null | undefined;
     if (row) {
       setMedicalChecklist((prev) => ({
         ...prev,
@@ -1006,7 +1011,9 @@ export function useExaminationForm(
           if (typeof obj === "string") return obj === "---" ? "" : obj;
           if (Array.isArray(obj)) return obj.map(stripDash);
           if (obj && typeof obj === "object")
-            return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, stripDash(v)]));
+            return Object.fromEntries(
+              Object.entries(obj).map(([k, v]) => [k, stripDash(v)]),
+            );
           return obj;
         };
 
@@ -1164,7 +1171,9 @@ export function useExaminationForm(
       if (typeof obj === "string") return obj === "---" ? "" : obj;
       if (Array.isArray(obj)) return obj.map(stripDash);
       if (obj && typeof obj === "object")
-        return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, stripDash(v)]));
+        return Object.fromEntries(
+          Object.entries(obj).map(([k, v]) => [k, stripDash(v)]),
+        );
       return obj;
     };
 
@@ -1329,13 +1338,15 @@ export function useExaminationForm(
           email: patientDetails.email || undefined,
           address: patientDetails.address || undefined,
           occupation: patientDetails.job || undefined,
-          gender: (patientDetails.gender || undefined) as "male" | "female" | undefined,
+          gender: (patientDetails.gender || undefined) as
+            "male" | "female" | undefined,
           serviceType: (sheetSelection as any) || "consultant",
           locationType,
           visitDate: localISODate(),
           ...(doctorCode ? { doctorCode } : {}),
           ...(validServices.length > 0 ? { services: validServices } : {}),
           ...(shiftNumber ? { shiftNumber } : {}),
+          medicalHistory: patientMedicalHistory,
         });
         effectivePatientId = created.id ?? 0;
         setPatientInfo((prev) => ({
@@ -1345,13 +1356,11 @@ export function useExaminationForm(
         }));
         utils.medical.getNextMssqlPatientCode.invalidate();
         const newPatientMssqlWarnings = (created as any)?.mssqlWarnings as
-          | string[]
-          | undefined;
+          string[] | undefined;
         if (newPatientMssqlWarnings && newPatientMssqlWarnings.length > 0) {
-          toast.error(
-            `مشاكل في MSSQL: ${newPatientMssqlWarnings.join("، ")}`,
-            { duration: 15000 },
-          );
+          toast.error(`مشاكل في MSSQL: ${newPatientMssqlWarnings.join("، ")}`, {
+            duration: 15000,
+          });
         }
       } else {
         // Existing patient — push to MSSQL (new receipt) + create today's visit
@@ -1367,9 +1376,13 @@ export function useExaminationForm(
             locationType,
             visitDate: localISODate(),
             ...(shiftNumber ? { shiftNumber } : {}),
+            medicalHistory: patientMedicalHistory,
           })
           .catch((err) => {
-            console.warn("[ExaminationForm] existing patient MSSQL push failed:", err);
+            console.warn(
+              "[ExaminationForm] existing patient MSSQL push failed:",
+              err,
+            );
             receiptPushFailed = true;
             toast.error(
               `فشل إنشاء الإيصال في MSSQL: ${getTrpcErrorMessage(err, "خطأ غير معروف")}`,
@@ -1403,8 +1416,10 @@ export function useExaminationForm(
                   String(
                     (selectedDoctorEntry as any)?.name ?? doctorName ?? "",
                   ).trim() || undefined,
-                servicePrice: Number(srv.price) > 0 ? Number(srv.price) : undefined,
-                discountValue: Number(srv.discount) > 0 ? Number(srv.discount) : undefined,
+                servicePrice:
+                  Number(srv.price) > 0 ? Number(srv.price) : undefined,
+                discountValue:
+                  Number(srv.discount) > 0 ? Number(srv.discount) : undefined,
               });
             } catch (err) {
               console.warn(`Failed to link service ${srv.code}:`, err);
@@ -1577,6 +1592,7 @@ export function useExaminationForm(
           symptomsWorseWithAirOrAC: false,
           glaucomaTreatment: false,
         });
+        setPatientMedicalHistory({ ...EMPTY_MEDICAL_HISTORY });
       } else if (sheetSelection) {
         const target = isFollowup ? "consultant" : sheetSelection;
         const suffix = isFollowup ? "?tab=followup" : "";
@@ -1627,6 +1643,8 @@ export function useExaminationForm(
     setLocationType,
     medicalChecklist,
     setMedicalChecklist,
+    patientMedicalHistory,
+    setPatientMedicalHistory,
     examData,
     setExamData,
     refractionTableData,

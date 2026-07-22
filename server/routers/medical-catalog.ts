@@ -506,6 +506,28 @@ export const medicalCatalogRoutes = {
       return await db.getMedicalHistoryByPatient(input.patientId);
     }),
 
+  upsertMedicalHistory: medicalStaffProcedure
+    .input(
+      z.object({
+        patientId: z.number().int().positive(),
+        diabetes: z.boolean().optional(),
+        hypertension: z.boolean().optional(),
+        heartDisease: z.boolean().optional(),
+        asthma: z.boolean().optional(),
+        allergies: z.boolean().optional(),
+        thyroid: z.boolean().optional(),
+        autoimmune: z.boolean().optional(),
+        familyKeratoconus: z.boolean().optional(),
+        glaucoma: z.boolean().optional(),
+        previousSurgeries: z.string().nullable().optional(),
+        medications: z.string().nullable().optional(),
+        familyHistory: z.string().nullable().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      return await db.upsertMedicalHistory(input);
+    }),
+
   getTestRequestsByVisit: protectedProcedure
     .input(z.object({ visitId: z.number() }))
     .query(async ({ input }) => {

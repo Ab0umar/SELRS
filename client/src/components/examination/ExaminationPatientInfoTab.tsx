@@ -18,6 +18,7 @@ import { cn, localISODate } from "@/lib/utils";
 import { Trash2 } from "lucide-react";
 import type { UseExaminationFormResult } from "@/hooks/examination/useExaminationForm";
 import { DateInput } from "@/components/ui/date-input";
+import { MedicalHistoryTab } from "@/components/patient-details/MedicalHistoryTab";
 
 interface ExaminationPatientInfoTabProps {
   form: UseExaminationFormResult;
@@ -47,6 +48,7 @@ export default function ExaminationPatientInfoTab({
     setReceptionSignature,
     medicalChecklist,
     setMedicalChecklist,
+    setPatientMedicalHistory,
     visitDate,
     setVisitDate,
     doctorsCatalogQuery,
@@ -141,125 +143,33 @@ export default function ExaminationPatientInfoTab({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 items-start">
-            {/* Right Column: Patient Information (Now first in RTL) */}
-            <div className="space-y-4 order-1">
-              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-12 sm:gap-3 xl:grid-cols-[minmax(10rem,1.6fr)_minmax(9.5rem,1.2fr)_4.5rem_7rem_8.5rem_8.5rem_7rem_minmax(10rem,1.4fr)]">
-                <div className="order-1 min-w-0 sm:col-span-6 xl:col-span-1">
-                  <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
-                    الاسم بالكامل
-                  </Label>
-                  <Input
-                    value={patientInfo.name}
-                    onChange={(e) =>
-                      setPatientInfo((prev) => ({
-                        ...prev,
-                        name: e.target.value,
-                      }))
-                    }
-                    readOnly={!canEditPatientData}
-                    className="text-sm border h-9 px-3 font-medium bg-background"
-                    placeholder="اسم المريض..."
-                  />
-                </div>
-                <div className="order-5 min-w-0 sm:col-span-2 xl:col-span-1">
-                  <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
-                    رقم الموبايل
-                  </Label>
-                  <Input
-                    value={patientDetails.phone}
-                    onChange={(e) =>
-                      setPatientDetails((prev) => ({
-                        ...prev,
-                        phone: digitsOnly(e.target.value),
-                      }))
-                    }
-                    readOnly={!canEditPatientData}
-                    className="text-sm border h-9 px-3 tracking-widest bg-background"
-                    placeholder="01xxxxxxxxx"
-                    dir="ltr"
-                  />
-                </div>
-                <div className="order-6 min-w-0 sm:col-span-2 xl:col-span-1">
-                  <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
-                    رقم موبايل بديل
-                  </Label>
-                  <Input
-                    value={patientDetails.alternatePhone}
-                    onChange={(e) =>
-                      setPatientDetails((prev) => ({
-                        ...prev,
-                        alternatePhone: digitsOnly(e.target.value),
-                      }))
-                    }
-                    readOnly={!canEditPatientData}
-                    className="text-sm border h-9 px-3 tracking-widest bg-background"
-                    placeholder="01xxxxxxxxx (اختياري)"
-                    dir="ltr"
-                  />
-                </div>
-                <div className="order-7 min-w-0 sm:col-span-3 xl:col-span-1">
-                  <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
-                    البريد الإلكتروني
-                  </Label>
-                  <Input
-                    type="email"
-                    value={patientDetails.email}
-                    onChange={(e) =>
-                      setPatientDetails((prev) => ({
-                        ...prev,
-                        email: e.target.value,
-                      }))
-                    }
-                    readOnly={!canEditPatientData}
-                    className="text-sm border h-9 px-3 bg-background"
-                    placeholder="name@example.com"
-                    dir="ltr"
-                  />
-                </div>
-                <div className="contents">
-                  <div className="order-3 min-w-0 sm:col-span-3 xl:col-span-1">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+            {/* Column 1: Patient Information */}
+            <div className="space-y-4 border border-slate-200/80 rounded-2xl p-4 bg-white shadow-xs">
+              <h3 className="font-bold text-slate-800 text-sm border-b border-slate-100 pb-2">
+                👤 البيانات الشخصية للمريض:
+              </h3>
+              <div className="space-y-3">
+                {/* Row 1: الاسم - تاريخ الميلاد - السن */}
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+                  <div className="sm:col-span-6">
                     <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
-                      السن
+                      الاسم بالكامل
                     </Label>
                     <Input
-                      value={patientDetails.age}
+                      value={patientInfo.name}
                       onChange={(e) =>
-                        setPatientDetails((prev) => ({
+                        setPatientInfo((prev) => ({
                           ...prev,
-                          age: digitsOnly(e.target.value),
+                          name: e.target.value,
                         }))
                       }
                       readOnly={!canEditPatientData}
-                      className="text-sm border h-9 px-2 text-center font-bold bg-background"
+                      className="text-xs border h-8 px-2.5 font-medium bg-background rounded-lg"
+                      placeholder="اسم المريض..."
                     />
                   </div>
-                </div>
-                <div className="order-4 min-w-0 sm:col-span-2 xl:col-span-1">
-                  <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
-                    الجنس
-                  </Label>
-                  <Select
-                    value={patientDetails.gender || ""}
-                    onValueChange={(gender) =>
-                      setPatientDetails((prev) => ({
-                        ...prev,
-                        gender: gender as "male" | "female",
-                      }))
-                    }
-                    disabled={!canEditPatientData}
-                  >
-                    <SelectTrigger className="h-9 bg-background text-xs">
-                      <SelectValue placeholder="اختر الجنس" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">ذكر</SelectItem>
-                      <SelectItem value="female">أنثى</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="contents">
-                  <div className="order-2 flex min-w-0 flex-col sm:col-span-3 xl:col-span-1">
+                  <div className="sm:col-span-4">
                     <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                       تاريخ الميلاد
                     </Label>
@@ -279,10 +189,87 @@ export default function ExaminationPatientInfoTab({
                         }))
                       }
                       readOnly={!canEditPatientData}
-                      className="text-sm border h-9 px-2 bg-background"
+                      className="text-xs border h-8 px-2 bg-background rounded-lg"
                     />
                   </div>
-                  <div className="order-7 min-w-0 sm:col-span-2 xl:col-span-1">
+                  <div className="sm:col-span-2">
+                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                      السن
+                    </Label>
+                    <Input
+                      value={patientDetails.age}
+                      onChange={(e) =>
+                        setPatientDetails((prev) => ({
+                          ...prev,
+                          age: digitsOnly(e.target.value),
+                        }))
+                      }
+                      readOnly={!canEditPatientData}
+                      className="text-xs border h-8 px-2 text-center font-bold bg-background rounded-lg"
+                    />
+                  </div>
+                </div>
+
+                {/* Row 2: رقم الموبايل - رقم موبايل 2 */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                      رقم الموبايل
+                    </Label>
+                    <Input
+                      value={patientDetails.phone}
+                      onChange={(e) =>
+                        setPatientDetails((prev) => ({
+                          ...prev,
+                          phone: digitsOnly(e.target.value),
+                        }))
+                      }
+                      readOnly={!canEditPatientData}
+                      className="text-xs border h-8 px-2.5 tracking-wider bg-background rounded-lg"
+                      placeholder="01xxxxxxxxx"
+                      dir="ltr"
+                    />
+                  </div>
+                  <div>
+                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                      رقم موبايل بديل
+                    </Label>
+                    <Input
+                      value={patientDetails.alternatePhone}
+                      onChange={(e) =>
+                        setPatientDetails((prev) => ({
+                          ...prev,
+                          alternatePhone: digitsOnly(e.target.value),
+                        }))
+                      }
+                      readOnly={!canEditPatientData}
+                      className="text-xs border h-8 px-2.5 tracking-wider bg-background rounded-lg"
+                      placeholder="01xxxxxxxxx (اختياري)"
+                      dir="ltr"
+                    />
+                  </div>
+                </div>
+
+                {/* Row 3: العنوان - الوظيفة - الجنس */}
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+                  <div className="sm:col-span-5">
+                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                      العنوان
+                    </Label>
+                    <Input
+                      value={patientDetails.address}
+                      onChange={(e) =>
+                        setPatientDetails((prev) => ({
+                          ...prev,
+                          address: e.target.value,
+                        }))
+                      }
+                      readOnly={!canEditPatientData}
+                      className="text-xs border h-8 px-2.5 bg-background rounded-lg"
+                      placeholder="العنوان..."
+                    />
+                  </div>
+                  <div className="sm:col-span-4">
                     <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                       الوظيفة
                     </Label>
@@ -295,221 +282,238 @@ export default function ExaminationPatientInfoTab({
                         }))
                       }
                       readOnly={!canEditPatientData}
-                      className="text-sm border h-9 px-3 bg-background"
+                      className="text-xs border h-8 px-2.5 bg-background rounded-lg"
+                      placeholder="الوظيفة..."
                     />
                   </div>
-                </div>
-                <div className="order-8 min-w-0 sm:col-span-4 xl:col-span-1">
-                  <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
-                    العنوان
-                  </Label>
-                  <Input
-                    value={patientDetails.address}
-                    onChange={(e) =>
-                      setPatientDetails((prev) => ({
-                        ...prev,
-                        address: e.target.value,
-                      }))
-                    }
-                    readOnly={!canEditPatientData}
-                    className="text-sm border h-9 px-3 bg-background"
-                  />
+                  <div className="sm:col-span-3">
+                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                      الجنس
+                    </Label>
+                    <Select
+                      value={patientDetails.gender || ""}
+                      onValueChange={(gender) =>
+                        setPatientDetails((prev) => ({
+                          ...prev,
+                          gender: gender as "male" | "female",
+                        }))
+                      }
+                      disabled={!canEditPatientData}
+                    >
+                      <SelectTrigger className="h-8 bg-background text-xs rounded-lg">
+                        <SelectValue placeholder="اختر الجنس" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">ذكر</SelectItem>
+                        <SelectItem value="female">أنثى</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Left Column: Visit Assignment & Financials (Now second in RTL) */}
-            <div className="bg-primary/40 p-4 rounded-xl border border-primary/20 space-y-3 order-2 h-full flex flex-col">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_10rem]">
-                <div className="space-y-1">
-                  <Label className="font-bold text-[11px] text-primary">
-                    الطبيب المعالج
-                  </Label>
-                  <SearchableCombobox
-                    value={doctorName || ""}
-                    onChange={(value) =>
-                      setDoctorName(value === "none" ? "" : value)
-                    }
-                    options={doctorOptions}
-                    placeholder="ابحث باسم الطبيب أو الكود"
-                    searchPlaceholder="ابحث بالاسم أو الكود..."
-                    className="h-9 bg-background border-ring/30 text-xs"
-                  />
-                </div>
+            {/* Column 2: Medical History */}
+            <div>
+              <MedicalHistoryTab
+                patientId={patientInfo.id ? Number(patientInfo.id) : undefined}
+                symptoms={[]}
+                onChange={setPatientMedicalHistory}
+              />
+            </div>
+          </div>
 
-                <div className="space-y-1">
-                  <Label className="font-bold text-[11px] text-primary">
-                    الوردية
-                  </Label>
-                  <Select
-                    value={shiftNumber ? String(shiftNumber) : ""}
-                    onValueChange={(v) =>
-                      setShiftNumber(v ? (Number(v) as 1 | 2) : undefined)
-                    }
-                  >
-                    <SelectTrigger className="h-9 bg-background border-ring/30 text-xs">
-                      <SelectValue placeholder="اختر الوردية" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1" className="text-xs">
-                        الوردية الأولى
-                      </SelectItem>
-                      <SelectItem value="2" className="text-xs">
-                        الوردية الثانية
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+          {/* Left Column: Visit Assignment & Financials (Now second in RTL) */}
+          <div className="bg-primary/40 p-4 rounded-xl border border-primary/20 space-y-3 order-2 h-full flex flex-col">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_10rem]">
+              <div className="space-y-1">
+                <Label className="font-bold text-[11px] text-primary">
+                  الطبيب المعالج
+                </Label>
+                <SearchableCombobox
+                  value={doctorName || ""}
+                  onChange={(value) =>
+                    setDoctorName(value === "none" ? "" : value)
+                  }
+                  options={doctorOptions}
+                  placeholder="ابحث باسم الطبيب أو الكود"
+                  searchPlaceholder="ابحث بالاسم أو الكود..."
+                  className="h-9 bg-background border-ring/30 text-xs"
+                />
               </div>
 
-              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                <div className="flex items-center justify-between sticky top-0 bg-primary/40 z-10 py-1">
-                  <Label className="font-bold text-[11px] text-primary">
-                    الخدمات المطلوبة
-                  </Label>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 text-[10px] text-card-foreground hover:text-primary hover:bg-primary/50"
-                    onClick={addService}
-                  >
-                    + إضافة خدمة
-                  </Button>
-                </div>
+              <div className="space-y-1">
+                <Label className="font-bold text-[11px] text-primary">
+                  الوردية
+                </Label>
+                <Select
+                  value={shiftNumber ? String(shiftNumber) : ""}
+                  onValueChange={(v) =>
+                    setShiftNumber(v ? (Number(v) as 1 | 2) : undefined)
+                  }
+                >
+                  <SelectTrigger className="h-9 bg-background border-ring/30 text-xs">
+                    <SelectValue placeholder="اختر الوردية" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1" className="text-xs">
+                      الوردية الأولى
+                    </SelectItem>
+                    <SelectItem value="2" className="text-xs">
+                      الوردية الثانية
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
-                <div className="space-y-2">
-                  {services.map((srv, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-background p-2 rounded-lg border border-primary/20 shadow-sm space-y-1.5 relative group"
-                    >
-                      <div className="flex items-start gap-2">
-                        <div className="flex-1 min-w-0">
-                          <SearchableCombobox
-                            value={srv.code || ""}
-                            onChange={(value) => {
-                              if (value && value !== "none") {
-                                const svc = sortedServices.find(
-                                  (s) => s.code === value,
-                                );
-                                if (svc) {
-                                  updateService(idx, {
-                                    code: value,
-                                    price: Number(svc.price || 0),
-                                    discount: 0,
-                                    qty: "1",
-                                  });
-                                }
-                              } else {
+            <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+              <div className="flex items-center justify-between sticky top-0 bg-primary/40 z-10 py-1">
+                <Label className="font-bold text-[11px] text-primary">
+                  الخدمات المطلوبة
+                </Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-[10px] text-card-foreground hover:text-primary hover:bg-primary/50"
+                  onClick={addService}
+                >
+                  + إضافة خدمة
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                {services.map((srv, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-background p-2 rounded-lg border border-primary/20 shadow-sm space-y-1.5 relative group"
+                  >
+                    <div className="flex items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <SearchableCombobox
+                          value={srv.code || ""}
+                          onChange={(value) => {
+                            if (value && value !== "none") {
+                              const svc = sortedServices.find(
+                                (s) => s.code === value,
+                              );
+                              if (svc) {
                                 updateService(idx, {
-                                  code: "",
-                                  price: 0,
+                                  code: value,
+                                  price: Number(svc.price || 0),
                                   discount: 0,
-                                  qty: "",
+                                  qty: "1",
                                 });
                               }
-                            }}
-                            options={serviceOptions}
-                            className="h-8 text-xs"
-                          />
-                        </div>
-                        {services.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive/60 hover:text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground shrink-0"
-                            aria-label="حذف الخدمة"
-                            onClick={() => removeService(idx)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-2">
-                        <div>
-                          <Label className="text-[9px] mb-0.5 block text-muted-foreground">
-                            الكمية
-                          </Label>
-                          <Input
-                            type="number"
-                            value={srv.qty || "1"}
-                            onChange={(e) =>
-                              updateService(idx, { qty: e.target.value })
-                            }
-                            className="h-7 border-primary/20 text-center font-bold text-[11px]"
-                            min="1"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-[9px] mb-0.5 block text-muted-foreground">
-                            السعر
-                          </Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={srv.price}
-                            onChange={(e) =>
+                            } else {
                               updateService(idx, {
-                                price: Math.max(0, Number(e.target.value) || 0),
-                              })
-                            }
-                            className="h-7 border-primary/20 text-center font-bold text-[11px]"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-[9px] mb-0.5 block text-muted-foreground">
-                            الخصم
-                          </Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={srv.discount}
-                            onChange={(e) => {
-                              const value = Math.max(
-                                0,
-                                Number(e.target.value) || 0,
-                              );
-                              const total = srv.price * (Number(srv.qty) || 1);
-                              updateService(idx, {
-                                discount: Math.min(value, total),
+                                code: "",
+                                price: 0,
+                                discount: 0,
+                                qty: "",
                               });
-                            }}
-                            className="h-7 border-primary/20 text-center font-bold text-[11px] text-destructive"
-                          />
-                        </div>
+                            }
+                          }}
+                          options={serviceOptions}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      {services.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive/60 hover:text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground shrink-0"
+                          aria-label="حذف الخدمة"
+                          onClick={() => removeService(idx)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <Label className="text-[9px] mb-0.5 block text-muted-foreground">
+                          الكمية
+                        </Label>
+                        <Input
+                          type="number"
+                          value={srv.qty || "1"}
+                          onChange={(e) =>
+                            updateService(idx, { qty: e.target.value })
+                          }
+                          className="h-7 border-primary/20 text-center font-bold text-[11px]"
+                          min="1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[9px] mb-0.5 block text-muted-foreground">
+                          السعر
+                        </Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={srv.price}
+                          onChange={(e) =>
+                            updateService(idx, {
+                              price: Math.max(0, Number(e.target.value) || 0),
+                            })
+                          }
+                          className="h-7 border-primary/20 text-center font-bold text-[11px]"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[9px] mb-0.5 block text-muted-foreground">
+                          الخصم
+                        </Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={srv.discount}
+                          onChange={(e) => {
+                            const value = Math.max(
+                              0,
+                              Number(e.target.value) || 0,
+                            );
+                            const total = srv.price * (Number(srv.qty) || 1);
+                            updateService(idx, {
+                              discount: Math.min(value, total),
+                            });
+                          }}
+                          className="h-7 border-primary/20 text-center font-bold text-[11px] text-destructive"
+                        />
                       </div>
                     </div>
-                  ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-auto pt-3 border-t border-primary/20 flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="font-bold text-[11px] text-foreground block">
+                  المطلوب تحصيله
+                </Label>
+                <div className="text-2xl font-black text-success tabular-nums">
+                  <span className="text-[10px] font-normal opacity-60 ml-1">
+                    EGP
+                  </span>
+                  {patientShare.toFixed(2)}
                 </div>
               </div>
-
-              <div className="mt-auto pt-3 border-t border-primary/20 flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="font-bold text-[11px] text-foreground block">
-                    المطلوب تحصيله
-                  </Label>
-                  <div className="text-2xl font-black text-success tabular-nums">
-                    <span className="text-[10px] font-normal opacity-60 ml-1">
-                      EGP
-                    </span>
-                    {patientShare.toFixed(2)}
-                  </div>
-                </div>
-                <div className="text-left space-y-1">
-                  <Label className="font-bold text-[10px] text-muted-foreground block">
-                    توقيع الاستقبال
-                  </Label>
-                  <Input
-                    value={receptionSignature}
-                    onChange={(e) => setReceptionSignature(e.target.value)}
-                    className="text-xs border-0 border-b border-muted rounded-none h-7 p-0 bg-transparent text-left w-32 focus-visible:ring-0"
-                    placeholder="..."
-                  />
-                </div>
+              <div className="text-left space-y-1">
+                <Label className="font-bold text-[10px] text-muted-foreground block">
+                  توقيع الاستقبال
+                </Label>
+                <Input
+                  value={receptionSignature}
+                  onChange={(e) => setReceptionSignature(e.target.value)}
+                  className="text-xs border-0 border-b border-muted rounded-none h-7 p-0 bg-transparent text-left w-32 focus-visible:ring-0"
+                  placeholder="..."
+                />
               </div>
             </div>
           </div>

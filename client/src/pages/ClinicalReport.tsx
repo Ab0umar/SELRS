@@ -138,6 +138,10 @@ export default function ClinicalReport() {
       medicalHistory?.hypertension && "ضغط الدم",
       medicalHistory?.heartDisease && "أمراض القلب",
       medicalHistory?.asthma && "الربو",
+      medicalHistory?.thyroid && "الغدة الدرقية",
+      medicalHistory?.autoimmune && "أمراض مناعية",
+      medicalHistory?.glaucoma && "جلوكوما (ماء زرقاء)",
+      medicalHistory?.familyKeratoconus && "قرنية مخروطية بالعائلة",
       medicalHistory?.previousSurgeries &&
         `عمليات سابقة: ${medicalHistory.previousSurgeries}`,
       medicalHistory?.familyHistory &&

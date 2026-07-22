@@ -34,6 +34,7 @@ import { OP_TYPE_OPTIONS } from "@shared/opTypes";
 import FollowupTablesBody from "@/components/sheets/FollowupTablesBody";
 import SheetPrintHeader from "@/components/sheets/SheetPrintHeader";
 import SheetWatermark from "@/components/sheets/SheetWatermark";
+import { MedicalHistoryTab } from "@/components/patient-details/MedicalHistoryTab";
 import {
   displaySheetDate,
   formatSheetDate,
@@ -103,6 +104,7 @@ export default function LasikExamSheet() {
     age: "",
     address: "",
     phone: "",
+    alternatePhone: "",
     patientCode: "",
     job: "",
     examinationDate: new Date().toISOString().split("T")[0],
@@ -292,6 +294,47 @@ export default function LasikExamSheet() {
     { patientId: initialPatientId ?? 0 },
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
+  const medicalHistoryQuery = trpc.medical.getMedicalHistoryByPatient.useQuery(
+    { patientId: initialPatientId ?? 0 },
+    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
+  );
+  const upsertMedicalHistoryMutation =
+    trpc.medical.upsertMedicalHistory.useMutation();
+
+  useEffect(() => {
+    if (medicalHistoryQuery.data && medicalHistoryQuery.data.length > 0) {
+      const rec = medicalHistoryQuery.data[0];
+      setMedicalHistory({
+        "سكر؟": Boolean(rec.diabetes) ? "yes" : "no",
+        "ضغط؟": Boolean(rec.hypertension) ? "yes" : "no",
+        "الغدة الدرقية؟": Boolean(rec.thyroid) ? "yes" : "no",
+        "أمراض مناعة؟": Boolean(rec.autoimmune) ? "yes" : "no",
+        "ماء زرقاء؟": Boolean(rec.glaucoma) ? "yes" : "no",
+        "قرنية مخروطية بالعائلة؟": Boolean(rec.familyKeratoconus)
+          ? "yes"
+          : "no",
+      });
+      if (rec.previousSurgeries || rec.medications || rec.familyHistory) {
+        const extraParts = [
+          rec.previousSurgeries && `عمليات سابقة: ${rec.previousSurgeries}`,
+          rec.medications && `أدوية: ${rec.medications}`,
+          rec.familyHistory && `تاريخ عائلي: ${rec.familyHistory}`,
+        ]
+          .filter(Boolean)
+          .join(" | ");
+        if (extraParts) setMedicalHistoryOther(extraParts);
+      }
+    } else {
+      setMedicalHistory({
+        "سكر؟": "no",
+        "ضغط؟": "no",
+        "الغدة الدرقية؟": "no",
+        "أمراض مناعة؟": "no",
+        "ماء زرقاء؟": "no",
+        "قرنية مخروطية بالعائلة؟": "no",
+      });
+    }
+  }, [medicalHistoryQuery.data]);
   useEffect(() => {
     if (!initialPatientId) return;
     const socket = connectSheetUpdates({
@@ -344,6 +387,7 @@ export default function LasikExamSheet() {
     fullName: string;
     patientCode?: string | null;
     phone?: string | null;
+    alternatePhone?: string | null;
     age?: number | null;
     dateOfBirth?: string | Date | null;
     date_of_birth?: string | Date | null;
@@ -358,6 +402,7 @@ export default function LasikExamSheet() {
       ...prev,
       patientName: patient.fullName ?? "",
       phone: patient.phone ?? "",
+      alternatePhone: patient.alternatePhone ?? "",
       age: patient.age != null ? String(patient.age) : "",
       dateOfBirth: getPatientSheetDateOfBirth(patient),
       address: patient.address ?? "",
@@ -379,6 +424,7 @@ export default function LasikExamSheet() {
       ...prev,
       patientName: patient.fullName ?? "",
       phone: patient.phone ?? "",
+      alternatePhone: patient.alternatePhone ?? "",
       age: patient.age != null ? String(patient.age) : "",
       dateOfBirth: getPatientSheetDateOfBirth(patient),
       address: patient.address ?? "",
@@ -397,6 +443,8 @@ export default function LasikExamSheet() {
           ...parsed.formData,
           patientName: prev.patientName || parsed.formData.patientName,
           phone: prev.phone || parsed.formData.phone,
+          alternatePhone:
+            prev.alternatePhone || parsed.formData.alternatePhone || "",
           age: prev.age || parsed.formData.age,
           dateOfBirth:
             prev.dateOfBirth || formatSheetDate(parsed.formData.dateOfBirth),
@@ -439,7 +487,7 @@ export default function LasikExamSheet() {
         setConsultantExam((prev) => ({ ...prev, ...parsed.consultantExam }));
       }
       if (parsed.medicalHistory) {
-        setMedicalHistory(parsed.medicalHistory);
+        setMedicalHistory((prev) => ({ ...parsed.medicalHistory, ...prev }));
       }
       if (parsed.medicalHistoryOther) {
         setMedicalHistoryOther(parsed.medicalHistoryOther);
@@ -753,6 +801,15 @@ export default function LasikExamSheet() {
           },
         }),
       });
+      await upsertMedicalHistoryMutation.mutateAsync({
+        patientId: initialPatientId,
+        diabetes: medicalHistory["سكر؟"] === "yes",
+        hypertension: medicalHistory["ضغط؟"] === "yes",
+        thyroid: medicalHistory["الغدة الدرقية؟"] === "yes",
+        autoimmune: medicalHistory["أمراض مناعة؟"] === "yes",
+        glaucoma: medicalHistory["ماء زرقاء؟"] === "yes",
+        familyKeratoconus: medicalHistory["قرنية مخروطية بالعائلة؟"] === "yes",
+      });
       await saveRefractionMutation.mutateAsync({
         patientId: initialPatientId,
         glassesData: {
@@ -843,7 +900,7 @@ export default function LasikExamSheet() {
               >
                 <span className="font-bold text-[#434654]">نوع العملية</span>
                 <select
-                  className="w-24 text-xs rounded border-[#c3c6d6] bg-white py-1"
+                  className="w-24 text-xs rounded border-[#c3c6d6] bg-white py-1 print:hidden"
                   value={operationType}
                   onChange={(e) => setOperationType(e.target.value)}
                 >
@@ -858,6 +915,10 @@ export default function LasikExamSheet() {
                     </option>
                   ))}
                 </select>
+                <span
+                  className="hidden h-6 w-24 border-b border-[#737685] print:block"
+                  aria-hidden="true"
+                />
               </div>
             ) : undefined
           }
@@ -869,9 +930,13 @@ export default function LasikExamSheet() {
               >
                 <span className="font-bold text-[#434654]">تاريخ العملية</span>
                 <DateInput
-                  className="h-6 w-24 font-normal text-xs bg-transparent border-0 border-b border-[#c3c6d6] rounded-none px-1 text-center"
+                  className="h-6 w-24 font-normal text-xs bg-transparent border-0 border-b border-[#c3c6d6] rounded-none px-1 text-center print:hidden"
                   value={operationDateRight}
                   onChange={(e) => setOperationDateRight(e.target.value)}
+                />
+                <span
+                  className="hidden h-6 w-24 border-b border-[#737685] print:block"
+                  aria-hidden="true"
                 />
               </div>
             ) : undefined
@@ -947,6 +1012,21 @@ export default function LasikExamSheet() {
                 value={formData.phone}
                 onChange={(e) =>
                   setFormData((p) => ({ ...p, phone: e.target.value }))
+                }
+              />
+            </label>
+            <label className="inline-flex items-center gap-1 whitespace-nowrap min-w-0 shrink">
+              <span className="text-[#434654] shrink-0">موبايل 2:</span>
+              <input
+                size={(formData.alternatePhone || "").length || 8}
+                className="min-w-0 font-normal text-xs bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right"
+                dir="rtl"
+                value={formData.alternatePhone}
+                onChange={(e) =>
+                  setFormData((p) => ({
+                    ...p,
+                    alternatePhone: e.target.value,
+                  }))
                 }
               />
             </label>
@@ -1078,12 +1158,34 @@ export default function LasikExamSheet() {
                                 type="checkbox"
                                 className="w-4 h-4 rounded text-[#003d9b]"
                                 checked={medicalHistory[q] === "no"}
-                                onChange={(e) =>
-                                  setMedicalHistory((p) => ({
-                                    ...p,
-                                    [q]: e.target.checked ? "no" : "",
-                                  }))
-                                }
+                                onChange={(e) => {
+                                  const val: "no" | "yes" | "" = e.target
+                                    .checked
+                                    ? "no"
+                                    : "";
+                                  setMedicalHistory((p) => {
+                                    const next: Record<
+                                      string,
+                                      "no" | "yes" | ""
+                                    > = { ...p, [q]: val };
+                                    if (initialPatientId) {
+                                      upsertMedicalHistoryMutation.mutate({
+                                        patientId: initialPatientId,
+                                        diabetes: next["سكر؟"] === "yes",
+                                        hypertension: next["ضغط؟"] === "yes",
+                                        thyroid:
+                                          next["الغدة الدرقية؟"] === "yes",
+                                        autoimmune:
+                                          next["أمراض مناعة؟"] === "yes",
+                                        glaucoma: next["ماء زرقاء؟"] === "yes",
+                                        familyKeratoconus:
+                                          next["قرنية مخروطية بالعائلة؟"] ===
+                                          "yes",
+                                      });
+                                    }
+                                    return next;
+                                  });
+                                }}
                               />
                             </td>
                             <td className="text-center border border-[#c3c6d6]">
@@ -1091,12 +1193,34 @@ export default function LasikExamSheet() {
                                 type="checkbox"
                                 className="w-4 h-4 rounded text-[#003d9b]"
                                 checked={medicalHistory[q] === "yes"}
-                                onChange={(e) =>
-                                  setMedicalHistory((p) => ({
-                                    ...p,
-                                    [q]: e.target.checked ? "yes" : "",
-                                  }))
-                                }
+                                onChange={(e) => {
+                                  const val: "no" | "yes" | "" = e.target
+                                    .checked
+                                    ? "yes"
+                                    : "";
+                                  setMedicalHistory((p) => {
+                                    const next: Record<
+                                      string,
+                                      "no" | "yes" | ""
+                                    > = { ...p, [q]: val };
+                                    if (initialPatientId) {
+                                      upsertMedicalHistoryMutation.mutate({
+                                        patientId: initialPatientId,
+                                        diabetes: next["سكر؟"] === "yes",
+                                        hypertension: next["ضغط؟"] === "yes",
+                                        thyroid:
+                                          next["الغدة الدرقية؟"] === "yes",
+                                        autoimmune:
+                                          next["أمراض مناعة؟"] === "yes",
+                                        glaucoma: next["ماء زرقاء؟"] === "yes",
+                                        familyKeratoconus:
+                                          next["قرنية مخروطية بالعائلة؟"] ===
+                                          "yes",
+                                      });
+                                    }
+                                    return next;
+                                  });
+                                }}
                               />
                             </td>
                             <td className="p-1.5 border border-[#c3c6d6] text-right">

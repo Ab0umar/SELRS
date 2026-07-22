@@ -183,6 +183,13 @@
       "when": 1781068188995,
       "tag": "0037_parallel_warbound",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "5",
+      "when": 1784686510378,
+      "tag": "0038_sour_sebastian_shaw",
+      "breakpoints": true
     }
   ]
 }

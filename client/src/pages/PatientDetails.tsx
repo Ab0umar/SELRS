@@ -290,8 +290,10 @@ export default function PatientDetails() {
           <PullToRefresh onRefresh={pd.onRefresh} className="min-h-full">
             <div className="space-y-5 p-4">
               <MedicalHistoryTab
+                patientId={pd.patient?.id}
                 history={pd.overviewData.history}
                 symptoms={pd.overviewData.symptoms}
+                onRefresh={pd.onRefresh}
               />
 
               {pd.activeTab === "examinations" && (

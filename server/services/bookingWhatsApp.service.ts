@@ -43,9 +43,9 @@ function formattedBookingDate(bookingDate: Date | string): string {
 }
 
 function bookingBranch(branch: string | null | undefined): string {
-  if (branch === "tanta") return "فرع طنطا";
+  if (branch === "tanta") return "طنطا - 13 ش بطرس";
   if (branch === "kfs") return "فرع كفر الشيخ";
-  return "مركز عيون الشروق";
+  return "طنطا - 13 ش بطرس";
 }
 
 function bookingDoctor(request: BookingWhatsAppRequest): string {

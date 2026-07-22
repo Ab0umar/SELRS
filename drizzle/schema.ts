@@ -819,6 +819,7 @@ export const patientOperations = mysqlTable(
       "surgery",
       "followup",
       "service_code",
+      "operation_list",
       "manual",
     ])
       .default("manual")
@@ -931,6 +932,10 @@ export const medicalHistoryChecklist = mysqlTable("medicalHistoryChecklist", {
   heartDisease: boolean("heartDisease").default(false),
   asthma: boolean("asthma").default(false),
   allergies: boolean("allergies").default(false),
+  thyroid: boolean("thyroid").default(false),
+  autoimmune: boolean("autoimmune").default(false),
+  familyKeratoconus: boolean("familyKeratoconus").default(false),
+  glaucoma: boolean("glaucoma").default(false),
   previousSurgeries: text("previousSurgeries"),
   medications: text("medications"),
   familyHistory: text("familyHistory"),
