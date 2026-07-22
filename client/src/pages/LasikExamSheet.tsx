@@ -30,7 +30,6 @@ import { usePrintMode } from "@/hooks/usePrintMode";
 import PrintPreviewBanner from "@/components/PrintPreviewBanner";
 import { printOrExportPdf } from "@/lib/nativePdf";
 import { DateInput } from "@/components/ui/date-input";
-import { OP_TYPE_OPTIONS } from "@shared/opTypes";
 import FollowupTablesBody from "@/components/sheets/FollowupTablesBody";
 import SheetPrintHeader from "@/components/sheets/SheetPrintHeader";
 import SheetWatermark from "@/components/sheets/SheetWatermark";
@@ -886,58 +885,61 @@ export default function LasikExamSheet() {
 
     return (
       <div
-        className={`lasik-sheet ${currentSheetType !== "consultant" ? "lasik-sheet-one-page" : ""} relative overflow-hidden bg-white text-[#191c1e] font-sans p-8 print:p-[10mm] print:border-0 print:shadow-none border border-[#c3c6d6] shadow-sm flex flex-col gap-5 w-[210mm] max-w-full mx-auto`}
+        className="lasik-sheet relative overflow-hidden bg-white text-[#191c1e] font-sans p-8 print:p-[10mm] print:border-0 print:shadow-none border border-[#c3c6d6] shadow-sm flex flex-col gap-5 w-[210mm] max-w-full mx-auto"
         dir="ltr"
       >
         <SheetWatermark />
         <SheetPrintHeader
           sheetType={sheetTypeLabel}
-          logoLeftContent={
+          sheetTypeContent={
             currentSheetType !== "consultant" ? (
-              <div
-                className="inline-flex flex-col items-center gap-0.5 text-xs"
-                dir="rtl"
-              >
-                <span className="font-bold text-[#434654]">نوع العملية</span>
-                <select
-                  className="w-24 text-xs rounded border-[#c3c6d6] bg-white py-1 print:hidden"
-                  value={operationType}
-                  onChange={(e) => setOperationType(e.target.value)}
+              <div className="flex flex-col gap-1.5">
+                <div
+                  className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] font-bold"
+                  dir="ltr"
                 >
-                  <option value="">اختر</option>
-                  {OP_TYPE_OPTIONS.filter((option) =>
-                    ["PRK", "Lasik", "FL", "FS", "IOL", "ICL"].includes(
-                      option.value,
-                    ),
-                  ).map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
+                  {[
+                    ["PRK", "PRK"],
+                    ["LASIK", "LASIK"],
+                    ["F.S", "FS"],
+                    ["F.L", "FL"],
+                    ["IOL", "IOL"],
+                    ["ICL", "ICL"],
+                  ].map(([label, value]) => (
+                    <label
+                      key={value}
+                      className="inline-flex items-center gap-1"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={operationType === value}
+                        onChange={() =>
+                          setOperationType(operationType === value ? "" : value)
+                        }
+                      />
+                      <span>{label}</span>
+                    </label>
                   ))}
-                </select>
-                <span
-                  className="hidden h-6 w-24 border-b border-[#737685] print:block"
-                  aria-hidden="true"
-                />
-              </div>
-            ) : undefined
-          }
-          logoRightContent={
-            currentSheetType !== "consultant" ? (
-              <div
-                className="inline-flex flex-col items-center gap-0.5 text-xs"
-                dir="rtl"
-              >
-                <span className="font-bold text-[#434654]">تاريخ العملية</span>
-                <DateInput
-                  className="h-6 w-24 font-normal text-xs bg-transparent border-0 border-b border-[#c3c6d6] rounded-none px-1 text-center print:hidden"
-                  value={operationDateRight}
-                  onChange={(e) => setOperationDateRight(e.target.value)}
-                />
-                <span
-                  className="hidden h-6 w-24 border-b border-[#737685] print:block"
-                  aria-hidden="true"
-                />
+                </div>
+                <div
+                  className="flex translate-x-2 items-center gap-1 whitespace-nowrap text-[10px]"
+                  dir="rtl"
+                >
+                  <span className="font-bold text-[#434654]">
+                    تاريخ العملية
+                  </span>
+                  <DateInput
+                    className="h-5 w-20 rounded-none border-0 border-b border-[#c3c6d6] bg-transparent px-1 text-center text-[10px] font-normal print:hidden"
+                    value={operationDateRight}
+                    onChange={(event) =>
+                      setOperationDateRight(event.target.value)
+                    }
+                  />
+                  <span
+                    className="hidden h-5 w-20 border-b border-[#737685] print:block"
+                    aria-hidden="true"
+                  />
+                </div>
               </div>
             ) : undefined
           }
@@ -1280,84 +1282,137 @@ export default function LasikExamSheet() {
           ) : null}
 
           {/* Visual Acuity */}
-          <div
-            className="print-lasik-visual-grid flex h-full w-full sm:w-[calc(25%-0.375rem)] shrink-0 flex-col gap-2"
-            dir="ltr"
-          >
-            <table className="w-full flex-1 text-center border-collapse">
-              <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
-                <tr>
-                  <th className={ctd}>IOP</th>
-                  <th className={`${ctd} text-[#003d9b]`}>OD</th>
-                  <th className={`${ctd} text-[#526069]`}>OS</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className={`${ctd} bg-[#f3f4f6] text-[#434654]`}>mmHg</td>
-                  <td className={ctd}>
-                    <input
-                      className={`${inp} ${!Number.isNaN(odIopNum) && odIopNum > 21 ? "text-red-600" : ""}`}
-                      value={examData.autorefraction.od.iop}
-                      onChange={mkAutoPatch("od", "iop")}
-                    />
-                  </td>
-                  <td className={ctd}>
-                    <input
-                      className={`${inp} ${!Number.isNaN(osIopNum) && osIopNum > 21 ? "text-red-600" : ""}`}
-                      value={examData.autorefraction.os.iop}
-                      onChange={mkAutoPatch("os", "iop")}
-                    />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <table className="w-full flex-1 text-center border-collapse">
-              <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
-                <tr>
-                  <th className={ctd}>Eye</th>
-                  <th className={ctd}>UCVA</th>
-                  <th className={ctd}>BCVA</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className={`${ctd} text-[#003d9b] bg-[#003d9b]/5`}>OD</td>
-                  <td className={ctd}>
-                    <input
-                      className={inp}
-                      value={examData.autorefraction.od.ucva}
-                      onChange={mkAutoPatch("od", "ucva")}
-                    />
-                  </td>
-                  <td className={ctd}>
-                    <input
-                      className={inp}
-                      value={examData.autorefraction.od.bcva}
-                      onChange={mkAutoPatch("od", "bcva")}
-                    />
-                  </td>
-                </tr>
-                <tr>
-                  <td className={`${ctd} text-[#526069] bg-[#f3f4f6]`}>OS</td>
-                  <td className={ctd}>
-                    <input
-                      className={inp}
-                      value={examData.autorefraction.os.ucva}
-                      onChange={mkAutoPatch("os", "ucva")}
-                    />
-                  </td>
-                  <td className={ctd}>
-                    <input
-                      className={inp}
-                      value={examData.autorefraction.os.bcva}
-                      onChange={mkAutoPatch("os", "bcva")}
-                    />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          {currentSheetType === "external" ? (
+            <div
+              className="print-external-vision-grid grid w-full grid-cols-3 gap-2"
+              dir="ltr"
+            >
+              {(
+                [
+                  { key: "iop", label: "IOP", unit: "mmHg" },
+                  { key: "ucva", label: "UCVA", unit: "Eye" },
+                  { key: "bcva", label: "BCVA", unit: "Eye" },
+                ] as const
+              ).map((metric) => (
+                <table
+                  key={metric.key}
+                  className="w-full text-center border-collapse"
+                >
+                  <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
+                    <tr>
+                      <th className={ctd}>{metric.label}</th>
+                      <th className={`${ctd} text-[#003d9b]`}>OD</th>
+                      <th className={`${ctd} text-[#526069]`}>OS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className={`${ctd} bg-[#f3f4f6] text-[#434654]`}>
+                        {metric.unit}
+                      </td>
+                      <td className={ctd}>
+                        <input
+                          className={`${inp} ${metric.key === "iop" && !Number.isNaN(odIopNum) && odIopNum > 21 ? "text-red-600" : ""}`}
+                          value={examData.autorefraction.od[metric.key]}
+                          onChange={mkAutoPatch("od", metric.key)}
+                        />
+                      </td>
+                      <td className={ctd}>
+                        <input
+                          className={`${inp} ${metric.key === "iop" && !Number.isNaN(osIopNum) && osIopNum > 21 ? "text-red-600" : ""}`}
+                          value={examData.autorefraction.os[metric.key]}
+                          onChange={mkAutoPatch("os", metric.key)}
+                        />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              ))}
+            </div>
+          ) : (
+            <div
+              className="print-lasik-visual-grid flex h-full w-full sm:w-[calc(25%-0.375rem)] shrink-0 flex-col gap-2"
+              dir="ltr"
+            >
+              <table className="w-full flex-1 text-center border-collapse">
+                <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
+                  <tr>
+                    <th className={ctd}>IOP</th>
+                    <th className={`${ctd} text-[#003d9b]`}>OD</th>
+                    <th className={`${ctd} text-[#526069]`}>OS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className={`${ctd} bg-[#f3f4f6] text-[#434654]`}>
+                      mmHg
+                    </td>
+                    <td className={ctd}>
+                      <input
+                        className={`${inp} ${!Number.isNaN(odIopNum) && odIopNum > 21 ? "text-red-600" : ""}`}
+                        value={examData.autorefraction.od.iop}
+                        onChange={mkAutoPatch("od", "iop")}
+                      />
+                    </td>
+                    <td className={ctd}>
+                      <input
+                        className={`${inp} ${!Number.isNaN(osIopNum) && osIopNum > 21 ? "text-red-600" : ""}`}
+                        value={examData.autorefraction.os.iop}
+                        onChange={mkAutoPatch("os", "iop")}
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <table className="w-full flex-1 text-center border-collapse">
+                <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
+                  <tr>
+                    <th className={ctd}>Eye</th>
+                    <th className={ctd}>UCVA</th>
+                    <th className={ctd}>BCVA</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className={`${ctd} text-[#003d9b] bg-[#003d9b]/5`}>
+                      OD
+                    </td>
+                    <td className={ctd}>
+                      <input
+                        className={inp}
+                        value={examData.autorefraction.od.ucva}
+                        onChange={mkAutoPatch("od", "ucva")}
+                      />
+                    </td>
+                    <td className={ctd}>
+                      <input
+                        className={inp}
+                        value={examData.autorefraction.od.bcva}
+                        onChange={mkAutoPatch("od", "bcva")}
+                      />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className={`${ctd} text-[#526069] bg-[#f3f4f6]`}>OS</td>
+                    <td className={ctd}>
+                      <input
+                        className={inp}
+                        value={examData.autorefraction.os.ucva}
+                        onChange={mkAutoPatch("os", "ucva")}
+                      />
+                    </td>
+                    <td className={ctd}>
+                      <input
+                        className={inp}
+                        value={examData.autorefraction.os.bcva}
+                        onChange={mkAutoPatch("os", "bcva")}
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
 
         {/* Detailed Refraction */}
@@ -1932,7 +1987,9 @@ export default function LasikExamSheet() {
         ) : null}
 
         {/* Notes + signatures */}
-        <footer className="pt-6 border-t-2 border-[#003d9b] space-y-6">
+        <footer
+          className={`pt-6 border-t-2 border-[#003d9b] space-y-6 ${currentSheetType !== "consultant" ? "print-lasik-compact-footer" : ""}`}
+        >
           <div className="print-lasik-footer-grid grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 space-y-4">
               <div>
@@ -2045,7 +2102,26 @@ export default function LasikExamSheet() {
         }
         @media print {
           .print-page-break { page-break-before: always !important; break-before: page !important; }
-          .print-page-center-a4 { width: 210mm !important; margin: 0 auto !important; }
+          .print-page-center-a4 {
+            width: 210mm !important;
+            /* The shared print stylesheet reserves 5mm on each edge, so the
+               printable A4 height is 287mm. Keep this box slightly inside it
+               or Chromium moves the entire sheet to a new page. */
+            height: 285mm !important;
+            margin: 0 auto !important;
+            position: relative !important;
+            overflow: hidden !important;
+            page-break-before: auto !important;
+            break-before: auto !important;
+            page-break-after: auto !important;
+            break-after: auto !important;
+          }
+          .print-page-center-a4 > .lasik-sheet {
+            position: absolute !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+          }
           @page { size: A4 portrait; margin: 0; }
           html, body {
             width: 100% !important;
@@ -2271,85 +2347,38 @@ export default function LasikExamSheet() {
           }
           .print-lasik-footer-grid { display: grid !important; grid-template-columns: minmax(0, 8fr) minmax(0, 4fr) !important; }
           .print-lasik-signatures { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
-
-          /* Keep LASIK and external sheets at the same readable scale as the
-             consultant sheet. Save vertical space through spacing only. */
-          .print-page-center-a4:has(.lasik-sheet-one-page) {
-            width: 210mm !important;
-            height: 297mm !important;
-            overflow: visible !important;
-          }
-          .lasik-sheet-one-page {
-            width: 210mm !important;
-            max-width: 210mm !important;
-            zoom: 1 !important;
-            padding: 3mm !important;
-            padding-top: 0 !important;
-            gap: 2px !important;
-            page-break-inside: avoid !important;
-            break-inside: avoid-page !important;
-            page-break-after: avoid !important;
-          }
-          .lasik-sheet-one-page .sheet-print-header {
-            padding-bottom: 0.5mm !important;
-            margin-bottom: 0.5mm !important;
-          }
-          .lasik-sheet-one-page section,
-          .lasik-sheet-one-page footer {
-            margin-top: 0 !important;
-            margin-bottom: 0 !important;
-          }
-          .lasik-sheet-one-page .gap-8,
-          .lasik-sheet-one-page .gap-6,
-          .lasik-sheet-one-page .gap-5,
-          .lasik-sheet-one-page .gap-4,
-          .lasik-sheet-one-page .gap-3,
-          .lasik-sheet-one-page .gap-2 {
-            gap: 3px !important;
-          }
-          .lasik-sheet-one-page .p-4 {
-            padding: 4px !important;
-          }
-          .lasik-sheet-one-page .pt-6,
-          .lasik-sheet-one-page .pt-4,
-          .lasik-sheet-one-page .pt-3,
-          .lasik-sheet-one-page .pt-2 {
+          .print-lasik-compact-footer {
             padding-top: 3px !important;
           }
-          .lasik-sheet-one-page .pb-4,
-          .lasik-sheet-one-page .pb-3,
-          .lasik-sheet-one-page .pb-2 {
-            padding-bottom: 3px !important;
+          .print-lasik-compact-footer > :not([hidden]) ~ :not([hidden]) {
+            margin-top: 3px !important;
           }
-          .lasik-sheet-one-page .mt-4,
-          .lasik-sheet-one-page .mt-3,
-          .lasik-sheet-one-page .mt-2,
-          .lasik-sheet-one-page .mb-4,
-          .lasik-sheet-one-page .mb-3,
-          .lasik-sheet-one-page .mb-2 {
-            margin-top: 2px !important;
+          .print-lasik-compact-footer .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+            margin-top: 3px !important;
+          }
+          .print-lasik-compact-footer textarea {
+            min-height: 32px !important;
+            height: 32px !important;
+          }
+          .print-lasik-compact-footer .print-lasik-footer-grid > div:last-child {
+            padding: 5px !important;
+          }
+          .print-lasik-compact-footer .print-lasik-footer-grid > div:last-child > div {
+            margin-bottom: 3px !important;
+            padding-bottom: 2px !important;
+          }
+          .print-lasik-compact-footer .print-lasik-footer-grid > div:last-child .h-6 {
+            height: 14px !important;
             margin-bottom: 2px !important;
           }
-          .lasik-sheet-one-page th,
-          .lasik-sheet-one-page td {
-            padding-top: 1px !important;
-            padding-bottom: 1px !important;
-            line-height: 1.05 !important;
+          .print-lasik-compact-footer .print-lasik-signatures {
+            padding-top: 3px !important;
+            gap: 12px !important;
           }
-          .lasik-sheet-one-page input,
-          .lasik-sheet-one-page select,
-          .lasik-sheet-one-page textarea {
-            padding-top: 0 !important;
-            padding-bottom: 0 !important;
-            line-height: 1.05 !important;
+          .print-lasik-compact-footer .print-lasik-signatures .h-9 {
+            height: 22px !important;
           }
-          .lasik-sheet-one-page .h-9,
-          .lasik-sheet-one-page .h-8 {
-            height: 20px !important;
-          }
-          .lasik-sheet-one-page .h-6 {
-            height: 14px !important;
-          }
+
         }
       `}</style>
       <header

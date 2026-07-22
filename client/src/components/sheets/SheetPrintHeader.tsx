@@ -9,6 +9,8 @@ type SheetPrintHeaderProps = {
   logoLeftContent?: ReactNode;
   /** Rendered immediately right of the logo (visual right, header is dir="ltr"). */
   logoRightContent?: ReactNode;
+  /** Optional content rendered below the clinic name/tagline. */
+  brandExtraContent?: ReactNode;
 };
 
 export default function SheetPrintHeader({
@@ -16,6 +18,7 @@ export default function SheetPrintHeader({
   sheetTypeContent,
   logoLeftContent,
   logoRightContent,
+  brandExtraContent,
 }: SheetPrintHeaderProps) {
   return (
     <header
@@ -38,13 +41,17 @@ export default function SheetPrintHeader({
         {logoRightContent}
       </div>
 
-      <div className="sheet-print-brand justify-self-end text-right leading-tight" dir="rtl">
-        <div className="sheet-print-clinic-name text-2xl font-bold text-[#003d9b]">
+      <div
+        className="sheet-print-brand justify-self-end text-right leading-tight"
+        dir="rtl"
+      >
+        <div className="sheet-print-clinic-name whitespace-nowrap text-2xl font-bold text-[#003d9b]">
           مركز عيون الشروق
         </div>
         <div className="sheet-print-clinic-tagline mt-1 text-sm font-normal text-[#434654]">
           لليزك و تصحيح الابصار
         </div>
+        {brandExtraContent}
       </div>
     </header>
   );

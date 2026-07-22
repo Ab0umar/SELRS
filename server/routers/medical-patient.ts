@@ -982,25 +982,21 @@ export const medicalPatientRoutes = {
         );
         _mark("createOrSyncPatientFromMssql done");
 
-        // These fields have no MSSQL mapping, so preserve them after the sync.
-        const localPatientContact: Record<string, string> = {};
-        if (String(input.alternatePhone ?? "").trim()) {
-          localPatientContact.alternatePhone = String(
-            input.alternatePhone,
-          ).trim();
-        }
-        if (String(input.email ?? "").trim()) {
-          localPatientContact.email = String(input.email).trim();
-        }
-        if (patientId && Object.keys(localPatientContact).length > 0) {
-          await db
-            .updatePatient(patientId, localPatientContact)
-            .catch((err) =>
-              console.warn(
-                "[createPatientFromExamination] local contact update failed:",
-                err,
-              ),
-            );
+        // Registration is also the patient-demographics editor. Re-apply the
+        // submitted values after MSSQL -> MySQL sync so edits overwrite the
+        // old patient record without changing visit/service/doctor data.
+        if (patientId) {
+          await db.updatePatient(patientId, {
+            fullName: input.fullName.trim(),
+            dateOfBirth: input.dateOfBirth?.trim() || null,
+            age: input.age ?? null,
+            gender: input.gender ?? null,
+            phone: input.phone?.trim() || null,
+            alternatePhone: input.alternatePhone?.trim() || null,
+            email: input.email?.trim() || null,
+            address: input.address?.trim() || null,
+            occupation: input.occupation?.trim() || null,
+          });
         }
 
         if (patientId && input.medicalHistory) {

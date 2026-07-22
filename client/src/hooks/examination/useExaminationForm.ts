@@ -1369,9 +1369,15 @@ export function useExaminationForm(
           .mutateAsync({
             patientCode: patientInfo.code || undefined,
             fullName: patientInfo.name.trim(),
+            dateOfBirth: patientDetails.dateOfBirth || undefined,
+            age: patientDetails.age ? Number(patientDetails.age) : undefined,
             phone: patientDetails.phone || undefined,
             alternatePhone: patientDetails.alternatePhone || undefined,
             email: patientDetails.email || undefined,
+            address: patientDetails.address || undefined,
+            occupation: patientDetails.job || undefined,
+            gender: (patientDetails.gender || undefined) as
+              "male" | "female" | undefined,
             serviceType: (sheetSelection as any) || "consultant",
             locationType,
             visitDate: localISODate(),
