@@ -1107,7 +1107,7 @@ export default function MedicalFilePanel({
               ...(treatmentDetailsByMedicationId[medId] ?? {}),
             };
           });
-          createPrescriptionWithItemsMutation.mutate({
+          await createPrescriptionWithItemsMutation.mutateAsync({
             patientId: patientId,
             visitId: visitId,
             notes: "Prescribed from medical file panel",
@@ -1320,7 +1320,7 @@ export default function MedicalFilePanel({
         updates: flattenedUpdates,
       },
       {
-        onSuccess: () => {
+        onSuccess: async () => {
           saveAfterRefractionMutation.mutate({
             examinationId: examIdToSave,
             patientId,
@@ -1362,31 +1362,6 @@ export default function MedicalFilePanel({
               {
                 onSuccess: () => {
                   console.log("Doctor report updated");
-                  // Also save to prescriptions table if treatment items exist
-                  const visitId = selectedExam?.visitId;
-                  const treatmentIds = (formData.treatment || []).filter(
-                    (id: any) => id !== undefined && id !== null,
-                  );
-                  if (visitId && treatmentIds.length > 0) {
-                    const prescriptionItems = treatmentIds.map(
-                      (medId: number) => {
-                        const medication = medicationsQuery.data?.find(
-                          (m: any) => m.id === medId,
-                        );
-                        return {
-                          medicationId: medId,
-                          medicationName: medication?.name || `Med ${medId}`,
-                          ...(treatmentDetailsByMedicationId[medId] ?? {}),
-                        };
-                      },
-                    );
-                    createPrescriptionWithItemsMutation.mutate({
-                      patientId: patientId,
-                      visitId: visitId,
-                      notes: "Prescribed from medical file panel",
-                      items: prescriptionItems,
-                    });
-                  }
                   setIsSaving(false);
                 },
                 onError: (err: any) => {
@@ -1495,7 +1470,7 @@ export default function MedicalFilePanel({
                 };
               });
 
-              createPrescriptionWithItemsMutation.mutate({
+              await createPrescriptionWithItemsMutation.mutateAsync({
                 patientId: patientId,
                 visitId: visitId,
                 notes: "Prescribed from medical file panel",

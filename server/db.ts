@@ -4858,6 +4858,7 @@ export async function getPrescriptionsWithItemsByPatient(patientId: number) {
       prescriptionDate: prescriptions.prescriptionDate,
       notes: prescriptions.notes,
       itemId: prescriptionItems.id,
+      medicationId: prescriptionItems.medicationId,
       medicationName: medications.name,
       dosage: prescriptionItems.dosage,
       frequency: prescriptionItems.frequency,
@@ -4887,6 +4888,7 @@ export async function getPrescriptionsWithItemsByPatient(patientId: number) {
     if (row.itemId) {
       grouped[row.prescriptionId].items.push({
         id: row.itemId,
+        medicationId: row.medicationId,
         medicationName: row.medicationName ?? "",
         dosage: row.dosage ?? "",
         frequency: row.frequency ?? "",
