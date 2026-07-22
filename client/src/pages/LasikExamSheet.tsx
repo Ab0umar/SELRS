@@ -886,7 +886,7 @@ export default function LasikExamSheet() {
 
     return (
       <div
-        className="lasik-sheet relative overflow-hidden bg-white text-[#191c1e] font-sans p-8 print:p-[10mm] print:border-0 print:shadow-none border border-[#c3c6d6] shadow-sm flex flex-col gap-5 w-[210mm] max-w-full mx-auto"
+        className={`lasik-sheet ${currentSheetType !== "consultant" ? "lasik-sheet-one-page" : ""} relative overflow-hidden bg-white text-[#191c1e] font-sans p-8 print:p-[10mm] print:border-0 print:shadow-none border border-[#c3c6d6] shadow-sm flex flex-col gap-5 w-[210mm] max-w-full mx-auto`}
         dir="ltr"
       >
         <SheetWatermark />
@@ -2271,6 +2271,85 @@ export default function LasikExamSheet() {
           }
           .print-lasik-footer-grid { display: grid !important; grid-template-columns: minmax(0, 8fr) minmax(0, 4fr) !important; }
           .print-lasik-signatures { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+
+          /* Keep LASIK and external sheets at the same readable scale as the
+             consultant sheet. Save vertical space through spacing only. */
+          .print-page-center-a4:has(.lasik-sheet-one-page) {
+            width: 210mm !important;
+            height: 297mm !important;
+            overflow: visible !important;
+          }
+          .lasik-sheet-one-page {
+            width: 210mm !important;
+            max-width: 210mm !important;
+            zoom: 1 !important;
+            padding: 3mm !important;
+            padding-top: 0 !important;
+            gap: 2px !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid-page !important;
+            page-break-after: avoid !important;
+          }
+          .lasik-sheet-one-page .sheet-print-header {
+            padding-bottom: 0.5mm !important;
+            margin-bottom: 0.5mm !important;
+          }
+          .lasik-sheet-one-page section,
+          .lasik-sheet-one-page footer {
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+          }
+          .lasik-sheet-one-page .gap-8,
+          .lasik-sheet-one-page .gap-6,
+          .lasik-sheet-one-page .gap-5,
+          .lasik-sheet-one-page .gap-4,
+          .lasik-sheet-one-page .gap-3,
+          .lasik-sheet-one-page .gap-2 {
+            gap: 3px !important;
+          }
+          .lasik-sheet-one-page .p-4 {
+            padding: 4px !important;
+          }
+          .lasik-sheet-one-page .pt-6,
+          .lasik-sheet-one-page .pt-4,
+          .lasik-sheet-one-page .pt-3,
+          .lasik-sheet-one-page .pt-2 {
+            padding-top: 3px !important;
+          }
+          .lasik-sheet-one-page .pb-4,
+          .lasik-sheet-one-page .pb-3,
+          .lasik-sheet-one-page .pb-2 {
+            padding-bottom: 3px !important;
+          }
+          .lasik-sheet-one-page .mt-4,
+          .lasik-sheet-one-page .mt-3,
+          .lasik-sheet-one-page .mt-2,
+          .lasik-sheet-one-page .mb-4,
+          .lasik-sheet-one-page .mb-3,
+          .lasik-sheet-one-page .mb-2 {
+            margin-top: 2px !important;
+            margin-bottom: 2px !important;
+          }
+          .lasik-sheet-one-page th,
+          .lasik-sheet-one-page td {
+            padding-top: 1px !important;
+            padding-bottom: 1px !important;
+            line-height: 1.05 !important;
+          }
+          .lasik-sheet-one-page input,
+          .lasik-sheet-one-page select,
+          .lasik-sheet-one-page textarea {
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            line-height: 1.05 !important;
+          }
+          .lasik-sheet-one-page .h-9,
+          .lasik-sheet-one-page .h-8 {
+            height: 20px !important;
+          }
+          .lasik-sheet-one-page .h-6 {
+            height: 14px !important;
+          }
         }
       `}</style>
       <header
