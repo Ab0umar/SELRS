@@ -1785,5 +1785,77 @@ select {
     border-color: transparent !important;
     background: rgba(0, 0, 0, 0.97) !important;
   }
+
+  .dark :where(
+      .lasik-print-root,
+      .specialist-print-root,
+      .followup-print-root,
+      .referral-print-root,
+      .consultant-main-print-root,
+      .a4-page-card,
+      .medical-report-page,
+      .patient-summary-print-root,
+      .request-tests-print-content,
+      .prescription-print-content,
+      .refraction-print-card,
+      .specialist-sheet,
+      .mcr-paper,
+      .prepost-paper,
+      .offdays-paper,
+      .offdays-en-paper,
+      [data-accounting-print-root],
+      [data-print-prescription-content],
+      [data-mobile-pdf-root]
+    ),
+  .dark :where(
+      .lasik-print-root,
+      .specialist-print-root,
+      .followup-print-root,
+      .referral-print-root,
+      .consultant-main-print-root,
+      .a4-page-card,
+      .medical-report-page,
+      .patient-summary-print-root,
+      .request-tests-print-content,
+      .prescription-print-content,
+      .refraction-print-card,
+      .specialist-sheet,
+      .mcr-paper,
+      .prepost-paper,
+      .offdays-paper,
+      .offdays-en-paper,
+      [data-accounting-print-root],
+      [data-print-prescription-content],
+      [data-mobile-pdf-root]
+    )
+    :where(*) {
+    background-color: #ffffff !important;
+    color: #191c1e !important;
+  }
+
+  .dark :where(
+      .lasik-print-root,
+      .specialist-print-root,
+      .followup-print-root,
+      .referral-print-root,
+      .consultant-main-print-root,
+      .a4-page-card,
+      .medical-report-page,
+      .patient-summary-print-root,
+      .request-tests-print-content,
+      .prescription-print-content,
+      .refraction-print-card,
+      .specialist-sheet,
+      .mcr-paper,
+      .prepost-paper,
+      .offdays-paper,
+      .offdays-en-paper,
+      [data-accounting-print-root],
+      [data-print-prescription-content],
+      [data-mobile-pdf-root]
+    )
+    :where(.sheet-print-clinic-name, .sheet-print-type, [class*="text-[#003d9b]"]) {
+    color: #003d9b !important;
+  }
 }
 }
