@@ -72,7 +72,7 @@ function applyDocumentTheme(effective: EffectiveTheme) {
   root.classList.toggle("dark", isDark);
   root.style.colorScheme = effective;
   document.body?.classList.toggle("dark", isDark);
-  ensureThemeColorMeta().content = isDark ? "#0b141a" : "#FBFDFF";
+  ensureThemeColorMeta().content = isDark ? "#050505" : "#FBFDFF";
 }
 
 interface ThemeProviderProps {
