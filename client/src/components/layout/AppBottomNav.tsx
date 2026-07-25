@@ -330,16 +330,6 @@ export function AppBottomNav({
             </span>
           </button>
 
-          {/* Customize button */}
-          <button
-            type="button"
-            aria-label="تخصيص"
-            className="relative flex flex-col items-center justify-center gap-0.5 px-3 transition-colors text-muted-foreground/50 hover:text-muted-foreground shrink-0"
-            onClick={() => setSheetOpen(true)}
-          >
-            <Pencil className="size-4 shrink-0" strokeWidth={1.8} />
-            <span className="whitespace-nowrap text-[9px] leading-none font-medium">تخصيص</span>
-          </button>
         </div>
       </nav>
 
@@ -410,6 +400,20 @@ export function AppBottomNav({
                 </section>
               );
             })}
+            <div className="p-3">
+              <button
+                type="button"
+                className="flex min-h-11 w-full items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-start text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+                onClick={() => {
+                  setMoreSheetOpen(false);
+                  setOpenSections({});
+                  setSheetOpen(true);
+                }}
+              >
+                <Pencil className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                <span>تخصيص شريط التنقل</span>
+              </button>
+            </div>
           </div>
         </SheetContent>
       </Sheet>
