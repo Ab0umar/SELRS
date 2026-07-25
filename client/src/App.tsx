@@ -499,18 +499,53 @@ function App() {
     const originalPrint = window.print?.bind(window);
     if (!originalPrint) return;
 
+    const forceLightThemeForPrint = () => {
+      const root = document.documentElement;
+      const body = document.body;
+      const previousRootDark = root.classList.contains("dark");
+      const previousBodyDark = Boolean(body?.classList.contains("dark"));
+      const previousColorScheme = root.style.colorScheme;
+      const previousBodyColorScheme = body?.style.colorScheme ?? "";
+
+      root.classList.remove("dark");
+      root.style.colorScheme = "light";
+      body?.classList.remove("dark");
+      if (body) body.style.colorScheme = "light";
+
+      return () => {
+        root.classList.toggle("dark", previousRootDark);
+        root.style.colorScheme = previousColorScheme;
+        if (body) {
+          body.classList.toggle("dark", previousBodyDark);
+          body.style.colorScheme = previousBodyColorScheme;
+        }
+      };
+    };
+
+    const restorePrintThemeLater = (restore: () => void) => {
+      window.setTimeout(restore, 1500);
+    };
+
     window.print = () => {
+      const restoreTheme = forceLightThemeForPrint();
       if (canUseNativeAndroidPrint()) {
         void requestNativeAndroidPrint(document.title || "SELRS Print")
           .then((result) => {
-            if (result.started) return;
+            if (result.started) {
+              restorePrintThemeLater(restoreTheme);
+              return;
+            }
+            restoreTheme();
           })
           .catch((error: unknown) => {
+            restoreTheme();
             const message =
               error instanceof Error ? error.message : "Native print failed";
             toast.error(message);
             try {
+              const restoreFallbackTheme = forceLightThemeForPrint();
               originalPrint();
+              restorePrintThemeLater(restoreFallbackTheme);
             } catch {
               toast.error("Unable to open print dialog");
             }
@@ -520,7 +555,9 @@ function App() {
 
       try {
         originalPrint();
+        restorePrintThemeLater(restoreTheme);
       } catch {
+        restoreTheme();
         toast.error("Unable to open print dialog");
       }
     };

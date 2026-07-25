@@ -3,7 +3,6 @@ import { Share } from "@capacitor/share";
 import html2canvas from "html2canvas";
 import { Capacitor } from "@capacitor/core";
 import { PDFDocument } from "pdf-lib";
-import { toast } from "sonner";
 import { triggerBlobDownload } from "@/_core/utils/export";
 import {
   canUseNativeAndroidPrint,
@@ -11,6 +10,35 @@ import {
 } from "@/lib/nativePrint";
 
 const isNativeCapacitorPlatform = () => Capacitor.isNativePlatform();
+
+function forceLightThemeForPrint() {
+  if (typeof document === "undefined") return () => {};
+
+  const root = document.documentElement;
+  const body = document.body;
+  const previousRootDark = root.classList.contains("dark");
+  const previousBodyDark = Boolean(body?.classList.contains("dark"));
+  const previousColorScheme = root.style.colorScheme;
+  const previousBodyColorScheme = body?.style.colorScheme ?? "";
+
+  root.classList.remove("dark");
+  root.style.colorScheme = "light";
+  body?.classList.remove("dark");
+  if (body) body.style.colorScheme = "light";
+
+  return () => {
+    root.classList.toggle("dark", previousRootDark);
+    root.style.colorScheme = previousColorScheme;
+    if (body) {
+      body.classList.toggle("dark", previousBodyDark);
+      body.style.colorScheme = previousBodyColorScheme;
+    }
+  };
+}
+
+function restorePrintThemeLater(restore: () => void) {
+  window.setTimeout(restore, 1500);
+}
 
 /** Prefer PDF snapshot over browser print dialog on phones / narrow viewports. */
 export function preferPdfOverBrowserPrint(): boolean {
@@ -511,22 +539,14 @@ export async function printOrExportPdf(
   const selector = options?.selector ?? "[data-mobile-pdf-root]";
   const hasSpecificTarget = Boolean(options?.selector || options?.element);
 
-  // TEMP DIAGNOSTIC — remove once mobile print path is confirmed. Shows
-  // which of the three print strategies actually ran on the test device.
-  if (Capacitor.isNativePlatform()) {
-    toast.info(
-      `print debug: forceBrowserPrint=${String(Boolean(options?.forceBrowserPrint))} hasTarget=${String(hasSpecificTarget)} canNative=${String(canUseNativeAndroidPrint())} platform=${Capacitor.getPlatform()}`,
-    );
-  }
-
   if (!options?.forceBrowserPrint && preferPdfOverBrowserPrint()) {
+    const restoreTheme = forceLightThemeForPrint();
     const ok = await exportElementToPdf({
       fileName,
       selector,
       element: options?.element,
-    });
+    }).finally(restoreTheme);
     if (ok) {
-      if (Capacitor.isNativePlatform()) toast.info("print debug: took PDF export path");
       return true;
     }
   }
@@ -535,16 +555,19 @@ export async function printOrExportPdf(
   // target was provided — otherwise fall back to browser print which respects
   // the CSS @media print visibility hack on the target element.
   if (!hasSpecificTarget && canUseNativeAndroidPrint()) {
+    const restoreTheme = forceLightThemeForPrint();
     try {
-      if (Capacitor.isNativePlatform()) toast.info("print debug: took native Android print path");
       await requestNativeAndroidPrint(document.title || "SELRS Print");
+      restorePrintThemeLater(restoreTheme);
       return true;
     } catch {
+      restoreTheme();
       // Fall back to browser print for non-native environments or plugin failures.
     }
   }
 
-  if (Capacitor.isNativePlatform()) toast.info("print debug: took window.print() fallback path");
+  const restoreTheme = forceLightThemeForPrint();
   window.print();
+  restorePrintThemeLater(restoreTheme);
   return true;
 }
