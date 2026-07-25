@@ -131,8 +131,14 @@ export function AppBottomNav({
     const handleScroll = () => {
       const nextScrollTop = scrollContainer.scrollTop;
       const delta = nextScrollTop - lastScrollTop;
+      // Android's overscroll "bounce" jitters scrollTop by a pixel or two at
+      // the very bottom, flipping delta's sign every frame and rapidly
+      // toggling navHidden (visible as the nav bar shaking). Treat "at/near
+      // the bottom" as a stability zone, same as the existing top-of-scroll one.
+      const maxScrollTop = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+      const nearBottom = maxScrollTop - nextScrollTop <= 12;
 
-      if (nextScrollTop <= 12 || delta < -4) {
+      if (nextScrollTop <= 12 || nearBottom || delta < -4) {
         setNavHidden(false);
       } else if (delta > 4 && nextScrollTop > 48) {
         setNavHidden(true);

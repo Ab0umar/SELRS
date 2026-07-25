@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Capacitor } from "@capacitor/core";
-import { Browser } from "@capacitor/browser";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { toast } from "sonner";
@@ -15,6 +14,7 @@ import { shouldRegisterNativePush } from "@/lib/nativePushConfig";
 import { notifyNativeFeedItem } from "@/lib/nativeNotifications";
 import { useLocation } from "wouter";
 import { getApiUrl } from "@/const";
+import { downloadAndInstallApk } from "@/lib/nativeApkUpdater";
 
 const APP_NOTIFICATION_FEED_KEY = "app_notifications_feed_v1";
 const APP_NOTIFICATION_SETTINGS_KEY = "app_notification_settings_v1";
@@ -265,8 +265,20 @@ function NativeApkUpdateCheck({
           action: {
             label: "تنزيل",
             onClick: () => {
-              void Browser.open({
-                url: getApiUrl(`/updates/android/SELRS_${serverVersion}.apk`),
+              void downloadAndInstallApk(
+                getApiUrl(`/updates/android/SELRS_${serverVersion}.apk`),
+              ).then((status) => {
+                if (status === "downloading") {
+                  toast.success("جاري تنزيل التحديث...", {
+                    description: "سيبدأ التثبيت تلقائيًا عند اكتمال التنزيل",
+                  });
+                } else if (status === "needs_permission") {
+                  toast("يرجى السماح بتثبيت التطبيقات", {
+                    description:
+                      "فعّل خيار \"السماح من هذا المصدر\" ثم اضغط تنزيل مرة أخرى",
+                    duration: 10000,
+                  });
+                }
               });
             },
           },
@@ -634,4 +646,3 @@ export default function MobileAppEnhancements({
     </>
   );
 }
-
