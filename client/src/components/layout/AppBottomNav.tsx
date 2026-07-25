@@ -3,6 +3,7 @@ import {
   Archive,
   Banknote,
   CalendarDays,
+  ChevronDown,
   Clock,
   DollarSign,
   GripVertical,
@@ -21,7 +22,7 @@ import {
   normalizeNavPath,
   pathGrantedByRoots,
 } from "@/lib/nav-permission-utils";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Sheet,
   SheetContent,
@@ -29,6 +30,12 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
+import {
+  adminNavGroups,
+  staffNavGroups,
+  type NavGroupSection,
+  type NavLeaf,
+} from "./AppNav";
 
 // All possible tabs per role
 const ALL_ADMIN_TABS = [
@@ -85,7 +92,7 @@ function isTabActive(location: string, paths: readonly string[]): boolean {
 interface AppBottomNavProps {
   location: string;
   onNavigate: (path: string) => void;
-  onOpenMore: () => void;
+  onOpenMore?: () => void;
   moreOpen?: boolean;
   isAdmin?: boolean;
   userRole?: string;
@@ -115,6 +122,8 @@ export function AppBottomNav({
     loadKeys(storageKey, defaultKeys as unknown as string[]),
   );
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [moreSheetOpen, setMoreSheetOpen] = useState(false);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [navHidden, setNavHidden] = useState(false);
 
   useEffect(() => {
@@ -161,6 +170,18 @@ export function AppBottomNav({
     );
   }, []);
 
+  const leafVisible = useCallback(
+    (leaf: NavLeaf): boolean => {
+      const allowedRoles = leaf.roles?.map((role) => role.toLowerCase());
+      if (allowedRoles?.length && !allowedRoles.includes(userRole)) return false;
+      if (isAdmin) return true;
+      if (!permissionsLoaded) return false;
+      const cleanPath = normalizeNavPath(leaf.path.split("?")[0]);
+      return pathGrantedByRoots(cleanPath, allowedRoots as any);
+    },
+    [allowedRoots, isAdmin, permissionsLoaded, userRole],
+  );
+
   // Filter tabs: enabled + permission check for staff
   const visibleTabs = allTabs.filter((tab) => {
     if (!enabledKeys.includes(tab.key)) return false;
@@ -172,6 +193,48 @@ export function AppBottomNav({
     return pathGrantedByRoots(cleanPath, allowedRoots as any);
   });
 
+  const visibleTabPaths = useMemo(
+    () => new Set(visibleTabs.flatMap((tab) => tab.paths.map((path) => path.split("?")[0]))),
+    [visibleTabs],
+  );
+
+  const moreGroups = useMemo(() => {
+    const navGroups = isAdmin ? adminNavGroups : staffNavGroups;
+    const topLevelLeaves: NavLeaf[] = [];
+    const sections: NavGroupSection[] = [];
+
+    navGroups.forEach((item) => {
+      if ("items" in item) {
+        const items = item.items.filter(leafVisible);
+        if (items.length > 0) sections.push({ ...item, items });
+      } else if (leafVisible(item)) {
+        const basePath = item.path.split("?")[0];
+        if (!visibleTabPaths.has(basePath)) topLevelLeaves.push(item);
+      }
+    });
+
+    const pagesSection: NavGroupSection | null =
+      topLevelLeaves.length > 0
+        ? {
+            label: "الصفحات",
+            navKey: "mobile-pages",
+            items: topLevelLeaves,
+          }
+        : null;
+
+    return pagesSection ? [pagesSection, ...sections] : sections;
+  }, [isAdmin, leafVisible, visibleTabPaths]);
+
+  const handleMoreNavigate = (path: string) => {
+    setMoreSheetOpen(false);
+    setOpenSections({});
+    onNavigate(path);
+  };
+
+  const toggleSection = (key: string) => {
+    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
   return (
     <>
       <nav
@@ -179,13 +242,15 @@ export function AppBottomNav({
         dir="rtl"
         className={cn(
           "md:hidden shrink-0 overflow-hidden bg-background transition-[max-height,transform,padding,border-color] duration-200 ease-out print:hidden",
-          navHidden && !sheetOpen
+          navHidden && !sheetOpen && !moreSheetOpen
             ? "pointer-events-none max-h-0 translate-y-full border-transparent"
             : "max-h-24 translate-y-0 border-t border-border",
         )}
         style={{
           paddingBottom:
-            navHidden && !sheetOpen ? "0px" : "env(safe-area-inset-bottom)",
+            navHidden && !sheetOpen && !moreSheetOpen
+              ? "0px"
+              : "env(safe-area-inset-bottom)",
         }}
       >
         <div className="flex h-14 items-stretch overflow-x-auto">
@@ -223,12 +288,15 @@ export function AppBottomNav({
             aria-label="المزيد"
             className={cn(
               "relative flex flex-1 flex-col items-center justify-center gap-0.5 transition-colors shrink-0",
-              moreOpen ? "text-primary" : "text-muted-foreground/70 hover:text-muted-foreground",
+              moreSheetOpen || moreOpen ? "text-primary" : "text-muted-foreground/70 hover:text-muted-foreground",
             )}
-            onClick={onOpenMore}
+            onClick={() => {
+              setMoreSheetOpen(true);
+              onOpenMore?.();
+            }}
           >
-            <LayoutGrid className="size-5 shrink-0" strokeWidth={moreOpen ? 2.2 : 1.8} />
-            <span className={cn("whitespace-nowrap text-[10px] leading-none", moreOpen ? "font-semibold" : "font-medium")}>
+            <LayoutGrid className="size-5 shrink-0" strokeWidth={moreSheetOpen || moreOpen ? 2.2 : 1.8} />
+            <span className={cn("whitespace-nowrap text-[10px] leading-none", moreSheetOpen || moreOpen ? "font-semibold" : "font-medium")}>
               المزيد
             </span>
           </button>
@@ -245,6 +313,77 @@ export function AppBottomNav({
           </button>
         </div>
       </nav>
+
+      <Sheet
+        open={moreSheetOpen}
+        onOpenChange={(open) => {
+          setMoreSheetOpen(open);
+          if (!open) setOpenSections({});
+        }}
+      >
+        <SheetContent side="bottom" className="max-h-[82vh] overflow-y-auto rounded-t-xl p-0" dir="rtl">
+          <SheetHeader className="border-b border-border px-4 py-3">
+            <SheetTitle className="text-right text-base">المزيد</SheetTitle>
+          </SheetHeader>
+          <div className="divide-y divide-border/70 pb-[env(safe-area-inset-bottom)]">
+            {moreGroups.map((group, index) => {
+              const key = group.navKey ?? `${group.label}-${index}`;
+              const isSingle = group.items.length === 1;
+              const isOpen = openSections[key] ?? false;
+              return (
+                <section key={key}>
+                  <button
+                    type="button"
+                    className="flex min-h-12 w-full items-center justify-between gap-3 bg-muted/40 px-4 py-3 text-start text-sm font-semibold text-foreground"
+                    onClick={() => {
+                      if (isSingle) {
+                        handleMoreNavigate(group.items[0].path);
+                      } else {
+                        toggleSection(key);
+                      }
+                    }}
+                  >
+                    <span>{group.label}</span>
+                    {!isSingle && (
+                      <ChevronDown
+                        className={cn(
+                          "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200",
+                          isOpen && "rotate-180",
+                        )}
+                        aria-hidden
+                      />
+                    )}
+                  </button>
+                  {!isSingle && isOpen && (
+                    <div className="grid grid-cols-2 gap-2 p-3">
+                      {group.items.map((item) => {
+                        const Icon = item.icon;
+                        const active = isTabActive(location, [item.path]);
+                        return (
+                          <button
+                            key={item.path}
+                            type="button"
+                            className={cn(
+                              "flex min-h-11 items-center gap-2 rounded-lg border px-3 py-2 text-start text-xs font-medium transition-colors",
+                              active
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border bg-background text-foreground hover:bg-muted",
+                            )}
+                            onClick={() => handleMoreNavigate(item.path)}
+                          >
+                            <Icon className="h-4 w-4 shrink-0" aria-hidden />
+                            <span className="min-w-0 truncate">{item.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent side="bottom" className="max-h-[70vh] overflow-y-auto rounded-t-2xl" dir="rtl">

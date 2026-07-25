@@ -231,10 +231,6 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
         <AppBottomNav
           location={location}
           onNavigate={setLocation}
-          onOpenMore={() =>
-            window.dispatchEvent(new Event("selrs:open-command-palette"))
-          }
-          moreOpen={false}
           isAdmin={isAdmin}
           userRole={userRole}
           allowedRoots={allowedRoots}
