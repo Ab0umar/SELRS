@@ -18,7 +18,6 @@ import { cn, localISODate } from "@/lib/utils";
 import { Trash2 } from "lucide-react";
 import type { UseExaminationFormResult } from "@/hooks/examination/useExaminationForm";
 import { DateInput } from "@/components/ui/date-input";
-import { MedicalHistoryTab } from "@/components/patient-details/MedicalHistoryTab";
 
 interface ExaminationPatientInfoTabProps {
   form: UseExaminationFormResult;
@@ -48,7 +47,6 @@ export default function ExaminationPatientInfoTab({
     setReceptionSignature,
     medicalChecklist,
     setMedicalChecklist,
-    setPatientMedicalHistory,
     visitDate,
     setVisitDate,
     doctorsCatalogQuery,
@@ -311,15 +309,6 @@ export default function ExaminationPatientInfoTab({
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* Column 2: Medical History */}
-            <div>
-              <MedicalHistoryTab
-                patientId={patientInfo.id ? Number(patientInfo.id) : undefined}
-                symptoms={[]}
-                onChange={setPatientMedicalHistory}
-              />
             </div>
           </div>
 

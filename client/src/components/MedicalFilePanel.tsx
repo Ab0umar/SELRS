@@ -3,7 +3,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/useAuth";
 import { DiagnosisImagesPanel } from "./patient-details/DiagnosisImagesPanel";
-import { MedicalHistoryTab } from "./patient-details/MedicalHistoryTab";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
@@ -1651,19 +1650,6 @@ export default function MedicalFilePanel({
           dir="rtl"
         >
           <div className={activeMedicalTab !== "data" ? "hidden" : undefined}>
-            {/* التاريخ المرضي العام */}
-            <div className="mb-4">
-              <MedicalHistoryTab
-                patientId={patientId}
-                symptoms={[]}
-                onRefresh={() => {
-                  queryClient.invalidateQueries({
-                    queryKey: [["medical", "getMedicalHistoryByPatient"]],
-                  });
-                }}
-              />
-            </div>
-
             {examinations && examinations.length > 1 && (
               <div className="flex items-center gap-2 text-xs">
                 <span className="text-muted-foreground">تاريخ الزيارة</span>
