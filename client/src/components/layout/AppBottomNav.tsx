@@ -193,37 +193,66 @@ export function AppBottomNav({
     return pathGrantedByRoots(cleanPath, allowedRoots as any);
   });
 
-  const visibleTabPaths = useMemo(
-    () => new Set(visibleTabs.flatMap((tab) => tab.paths.map((path) => path.split("?")[0]))),
-    [visibleTabs],
-  );
-
   const moreGroups = useMemo(() => {
     const navGroups = isAdmin ? adminNavGroups : staffNavGroups;
-    const topLevelLeaves: NavLeaf[] = [];
-    const sections: NavGroupSection[] = [];
+    const sections = navGroups.filter(
+      (item): item is NavGroupSection => "items" in item,
+    );
+    const leafByPath = new Map(
+      sections.flatMap((section) =>
+        section.items.map((item) => [item.path, item] as const),
+      ),
+    );
+    const recordItems = [
+      ["/admin/legacy-patients", "المرضى"],
+      ["/followups", "المتابعات"],
+      ["/visits", "الزيارات"],
+      ["/admin/op-history", "العمليات"],
+      ["/sheets/autorefs/dashboard", "AutoRef"],
+      ["/sheets/refractions/dashboard", "Refractions"],
+      ["/sheets/pentacam/dashboard", "Pentacam"],
+      ["/medical-reports", "Medical Reports"],
+    ]
+      .map(([path, label]) => {
+        const leaf = leafByPath.get(path);
+        return leaf ? { ...leaf, label } : null;
+      })
+      .filter((leaf): leaf is NavLeaf => leaf != null && leafVisible(leaf));
 
-    navGroups.forEach((item) => {
-      if ("items" in item) {
-        const items = item.items.filter(leafVisible);
-        if (items.length > 0) sections.push({ ...item, items });
-      } else if (leafVisible(item)) {
-        const basePath = item.path.split("?")[0];
-        if (!visibleTabPaths.has(basePath)) topLevelLeaves.push(item);
-      }
-    });
+    const excludedSections = new Set([
+      "accounting",
+      "attendance",
+      "salary",
+      "clinics-file",
+      "clinics-measurements",
+      "clinics-prescriptions",
+      "clinics-tests",
+      "patients",
+    ]);
+    const movedPaths = new Set([
+      "/sheets/pentacam/dashboard",
+      "/medical-reports",
+    ]);
+    const remainingSections = sections
+      .filter((section) => !excludedSections.has(section.navKey ?? ""))
+      .map((section) => ({
+        ...section,
+        items: section.items.filter(
+          (leaf) => !movedPaths.has(leaf.path) && leafVisible(leaf),
+        ),
+      }))
+      .filter((section) => section.items.length > 0);
 
-    const pagesSection: NavGroupSection | null =
-      topLevelLeaves.length > 0
-        ? {
-            label: "الصفحات",
-            navKey: "mobile-pages",
-            items: topLevelLeaves,
-          }
-        : null;
-
-    return pagesSection ? [pagesSection, ...sections] : sections;
-  }, [isAdmin, leafVisible, visibleTabPaths]);
+    return [
+      {
+        label: "سجل",
+        navKey: "records",
+        groupPath: "/patients-hub",
+        items: recordItems,
+      },
+      ...remainingSections,
+    ].filter((section) => section.items.length > 0);
+  }, [isAdmin, leafVisible]);
 
   const handleMoreNavigate = (path: string) => {
     setMoreSheetOpen(false);
