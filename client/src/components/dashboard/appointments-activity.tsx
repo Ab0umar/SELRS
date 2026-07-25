@@ -592,14 +592,14 @@ export function AppointmentsSection({
                   لا توجد حجوزات لهذا اليوم
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {(scheduleRequestsQuery.data?.length ?? 0) > 0 && (
                     <div>
                       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         مواعيد الاستقبال (
                         {scheduleRequestsQuery.data?.length ?? 0})
                       </p>
-                      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                      <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
                         {(scheduleRequestsQuery.data ?? []).map((r: any) => (
                           <ScheduleRequestCard key={r.id} r={r} />
                         ))}
@@ -611,7 +611,7 @@ export function AppointmentsSection({
                       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         حجوزات البوابة ({bookingsForDate.length})
                       </p>
-                      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                      <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
                         {bookingsForDate.map((booking) => (
                           <BookingCard key={booking.id} booking={booking} />
                         ))}
@@ -700,10 +700,10 @@ function ScheduleRequestCard({ r }: { r: any }) {
     onError: () => toast.error("تعذر الحذف"),
   });
   return (
-    <div className="rounded-xl border border-border bg-card px-3 py-2.5 flex items-start justify-between gap-2">
-      <div className="min-w-0 space-y-0.5">
-        <p className="text-sm font-semibold truncate">{r.fullName}</p>
-        <p className="text-xs text-muted-foreground">
+    <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5">
+      <div className="min-w-0">
+        <p className="truncate text-xs font-semibold">{r.fullName}</p>
+        <p className="truncate text-[10px] text-muted-foreground">
           {serviceTypeLabels[r.service as string] ?? r.service}
           {r.phone ? ` · ${r.phone}` : ""}
         </p>
@@ -712,10 +712,10 @@ function ScheduleRequestCard({ r }: { r: any }) {
         type="button"
         disabled={remove.isPending}
         onClick={() => remove.mutate({ requestId: r.id })}
-        className="shrink-0 mt-0.5 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
         aria-label="حذف الموعد"
       >
-        <Trash2 className="h-3.5 w-3.5" />
+        <Trash2 className="h-3.5 w-3.5" aria-hidden />
       </button>
     </div>
   );
@@ -746,7 +746,7 @@ function BookingCard({ booking }: { booking: any }) {
         ? "كفر الشيخ"
         : null;
   return (
-    <div className={cn("rounded-lg border px-2.5 py-1.5 shadow-sm", stStyle)}>
+    <div className={cn("rounded-lg border px-2.5 py-1.5", stStyle)}>
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-semibold text-foreground">
@@ -757,7 +757,7 @@ function BookingCard({ booking }: { booking: any }) {
             {branchLabel ? ` · ${branchLabel}` : ""}
           </p>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-1 shrink-0">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
           <span
             className={cn(
               "rounded-full border px-1.5 py-0.5 text-[10px] font-medium",
@@ -777,10 +777,10 @@ function BookingCard({ booking }: { booking: any }) {
                     "_blank",
                   )
                 }
-                className="text-muted-foreground hover:text-error transition-colors"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 aria-label="طباعة روشتة"
               >
-                <Pill className="h-3 w-3" />
+                <Pill className="h-3.5 w-3.5" aria-hidden />
               </button>
               <button
                 type="button"
@@ -791,10 +791,10 @@ function BookingCard({ booking }: { booking: any }) {
                     "_blank",
                   )
                 }
-                className="text-muted-foreground hover:text-error transition-colors"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 aria-label="طباعة طلب تحاليل"
               >
-                <FlaskConical className="h-3 w-3" />
+                <FlaskConical className="h-3.5 w-3.5" aria-hidden />
               </button>
               <button
                 type="button"
@@ -805,10 +805,10 @@ function BookingCard({ booking }: { booking: any }) {
                     "_blank",
                   )
                 }
-                className="text-muted-foreground hover:text-error transition-colors"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 aria-label="طباعة مقاس النظارة"
               >
-                <Glasses className="h-3 w-3" />
+                <Glasses className="h-3.5 w-3.5" aria-hidden />
               </button>
             </>
           ) : null}
@@ -816,10 +816,10 @@ function BookingCard({ booking }: { booking: any }) {
             type="button"
             disabled={del.isPending}
             onClick={() => del.mutate({ id: booking.id })}
-            className="text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
             aria-label="حذف الحجز"
           >
-            <Trash2 className="h-3 w-3" />
+            <Trash2 className="h-3.5 w-3.5" aria-hidden />
           </button>
         </div>
       </div>
@@ -868,50 +868,56 @@ function QueuePatientCard({
       }}
       aria-label={`فتح اختصارات المريض ${patient.fullName ?? ""}`.trim()}
       className={cn(
-        "overflow-hidden rounded-xl border bg-card shadow-sm transition-[border-color,box-shadow,background-color] duration-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "overflow-hidden rounded-lg border bg-card transition-[border-color,box-shadow,background-color] duration-200 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         queueCardStyles[st],
         "cursor-pointer",
       )}
     >
       <PatientMedicalStatusStrip status={medicalStatus} />
-      <div className="p-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <p className="min-w-0 flex-1 truncate text-sm font-bold text-foreground">
-            {patient.fullName ?? "—"}
-          </p>
-          {(patient as { visitType?: string }).visitType === "followup" ? (
-            <Badge className="border-info/20 bg-info/15 text-[10px] text-info">
-              متابعة
-            </Badge>
-          ) : null}
-          {canDelete ? (
-            <button
-              type="button"
-              title="حذف المريض"
-              aria-label={`حذف ${patient.fullName ?? "المريض"}`}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-destructive hover:bg-destructive/10"
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                onRequestDelete?.();
-              }}
-            >
-              <Trash2 className="h-3.5 w-3.5" aria-hidden />
-            </button>
-          ) : null}
-        </div>
+      <div className="p-2">
+        <div className="flex min-w-0 items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <p className="min-w-0 flex-1 truncate text-xs font-bold text-foreground">
+                {patient.fullName ?? "—"}
+              </p>
+              {(patient as { visitType?: string }).visitType === "followup" ? (
+                <Badge className="h-5 border-info/20 bg-info/15 px-1.5 text-[10px] text-info">
+                  متابعة
+                </Badge>
+              ) : null}
+            </div>
+            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-[10px] leading-4 text-muted-foreground">
+              <Badge
+                className={cn("h-5 px-1.5 text-[10px]", queueStatusStyles[st])}
+              >
+                {queueStatusLabelsAr[st] ?? st}
+              </Badge>
+              <span className="min-w-0 max-w-full truncate">
+                الطبيب: {doctorText}
+              </span>
+              <Badge
+                variant="outline"
+                className={cn(
+                  "h-5 max-w-full truncate px-1.5 text-[10px]",
+                  serviceTypeStyles[patient.serviceType ?? ""],
+                )}
+              >
+                {serviceTypeText}
+              </Badge>
+              <span className="shrink-0 text-foreground tabular-nums">
+                {timeText}
+              </span>
+            </div>
+          </div>
 
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <Badge className={cn("text-xs", queueStatusStyles[st])}>
-            {queueStatusLabelsAr[st] ?? st}
-          </Badge>
           {canMarkTreated ? (
             <Button
               type="button"
               variant="outline"
               size="sm"
               disabled={markingThis}
-              className="h-8 gap-1 border-success/35 px-2 text-xs text-success hover:bg-success/10"
+              className="h-7 shrink-0 gap-1 border-success/35 px-2 text-[11px] text-success hover:bg-success/10"
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
@@ -922,44 +928,21 @@ function QueuePatientCard({
               معالج
             </Button>
           ) : (
-            <CheckCircle2 className="h-4 w-4 text-success" aria-hidden />
+            <CheckCircle2
+              className="mt-1 h-4 w-4 shrink-0 text-success"
+              aria-hidden
+            />
           )}
         </div>
 
-        <div className="mt-2 border-t border-border/50 pt-2 text-sm">
-          <div className="flex items-center gap-2">
-            <span className="shrink-0 text-muted-foreground">الطبيب</span>
-            <span className="min-w-0 flex-1 truncate text-foreground">
-              {doctorText}
-            </span>
-          </div>
-          <div className="mt-1.5 flex items-center justify-between gap-2">
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="shrink-0 text-muted-foreground">الخدمة</span>
-              <Badge
-                variant="outline"
-                className={cn(
-                  "max-w-full truncate text-xs",
-                  serviceTypeStyles[patient.serviceType ?? ""],
-                )}
-              >
-                {serviceTypeText}
-              </Badge>
-            </div>
-            <span className="shrink-0 text-foreground tabular-nums">
-              {timeText}
-            </span>
-          </div>
-        </div>
-
-        <div className="mt-2 flex items-center justify-center gap-2 border-t border-border/50 pt-2">
+        <div className="mt-1.5 flex items-center justify-center gap-1.5">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
                 title="طباعة الشيتات والتقارير"
                 aria-label="طباعة الشيتات والتقارير"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
                 onClick={(e) => {
                   e.stopPropagation();
                   e.preventDefault();
@@ -1026,7 +1009,10 @@ function QueuePatientCard({
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();
-                  window.open(`/medical-condition-report/${patient.id}`, "_blank");
+                  window.open(
+                    `/medical-condition-report/${patient.id}`,
+                    "_blank",
+                  );
                 }}
               >
                 تقرير حالة طبية
@@ -1037,10 +1023,13 @@ function QueuePatientCard({
             type="button"
             title="طباعة روشتة"
             aria-label="طباعة روشتة"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
             onClick={(e) => {
               e.stopPropagation();
-              window.open(buildPrintUrl(`/prescription/${patient.id}`), "_blank");
+              window.open(
+                buildPrintUrl(`/prescription/${patient.id}`),
+                "_blank",
+              );
             }}
           >
             <Pill className="h-4 w-4" aria-hidden />
@@ -1049,10 +1038,13 @@ function QueuePatientCard({
             type="button"
             title="طباعة طلب تحاليل"
             aria-label="طباعة طلب تحاليل"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
             onClick={(e) => {
               e.stopPropagation();
-              window.open(buildPrintUrl(`/request-tests/${patient.id}`), "_blank");
+              window.open(
+                buildPrintUrl(`/request-tests/${patient.id}`),
+                "_blank",
+              );
             }}
           >
             <FlaskConical className="h-4 w-4" aria-hidden />
@@ -1061,7 +1053,7 @@ function QueuePatientCard({
             type="button"
             title="طباعة مقاس النظارة"
             aria-label="طباعة مقاس النظارة"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
             onClick={(e) => {
               e.stopPropagation();
               window.open(buildPrintUrl(`/refraction/${patient.id}`), "_blank");
@@ -1069,6 +1061,21 @@ function QueuePatientCard({
           >
             <Glasses className="h-4 w-4" aria-hidden />
           </button>
+          {canDelete ? (
+            <button
+              type="button"
+              title="حذف المريض"
+              aria-label={`حذف ${patient.fullName ?? "المريض"}`}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-destructive hover:bg-destructive/10"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onRequestDelete?.();
+              }}
+            >
+              <Trash2 className="h-3.5 w-3.5" aria-hidden />
+            </button>
+          ) : null}
         </div>
       </div>
     </div>
