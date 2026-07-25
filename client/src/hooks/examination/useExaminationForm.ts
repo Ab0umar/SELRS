@@ -6,6 +6,10 @@ import { getTrpcErrorMessage, localISODate } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { deletePatientCachePages } from "@/lib/patientCacheCleanup";
 import type { User } from "@shared/types";
+import {
+  EMPTY_MEDICAL_HISTORY,
+  type MedicalHistoryDraft,
+} from "@/components/patient-details/MedicalHistoryTab";
 
 interface DoctorOption {
   id: string;
@@ -120,6 +124,9 @@ export function useExaminationForm(
     symptomsWorseWithAirOrAC: false,
     glaucomaTreatment: false,
   });
+  const [patientMedicalHistory, setPatientMedicalHistory] =
+    useState<MedicalHistoryDraft>({ ...EMPTY_MEDICAL_HISTORY });
+
   const nextPatientCodeQuery = trpc.medical.getNextMssqlPatientCode.useQuery(
     undefined,
     { refetchOnWindowFocus: false },
@@ -1339,6 +1346,7 @@ export function useExaminationForm(
           ...(doctorCode ? { doctorCode } : {}),
           ...(validServices.length > 0 ? { services: validServices } : {}),
           ...(shiftNumber ? { shiftNumber } : {}),
+          medicalHistory: patientMedicalHistory,
         });
         effectivePatientId = created.id ?? 0;
         setPatientInfo((prev) => ({
@@ -1374,6 +1382,7 @@ export function useExaminationForm(
             locationType,
             visitDate: localISODate(),
             ...(shiftNumber ? { shiftNumber } : {}),
+            medicalHistory: patientMedicalHistory,
           })
           .catch((err) => {
             console.warn(
@@ -1589,6 +1598,7 @@ export function useExaminationForm(
           symptomsWorseWithAirOrAC: false,
           glaucomaTreatment: false,
         });
+        setPatientMedicalHistory({ ...EMPTY_MEDICAL_HISTORY });
       } else if (sheetSelection) {
         const target = isFollowup ? "consultant" : sheetSelection;
         const suffix = isFollowup ? "?tab=followup" : "";
@@ -1639,6 +1649,8 @@ export function useExaminationForm(
     setLocationType,
     medicalChecklist,
     setMedicalChecklist,
+    patientMedicalHistory,
+    setPatientMedicalHistory,
     examData,
     setExamData,
     refractionTableData,

@@ -26,7 +26,7 @@ export function ExaminationPatientQuickDialogContent({
       className="space-y-0"
     >
       <Tabs value="patient-info" onValueChange={() => {}} className="w-full">
-        <ExaminationPatientInfoTab form={form} />
+        <ExaminationPatientInfoTab form={form} showMedicalHistory />
       </Tabs>
       <div className="flex flex-wrap gap-3 justify-end border-t border-border/60 pt-4 px-6 pb-6">
         <Button type="button" variant="outline" onClick={form.handleCancel}>

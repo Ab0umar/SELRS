@@ -18,13 +18,16 @@ import { cn, localISODate } from "@/lib/utils";
 import { Trash2 } from "lucide-react";
 import type { UseExaminationFormResult } from "@/hooks/examination/useExaminationForm";
 import { DateInput } from "@/components/ui/date-input";
+import { MedicalHistoryTab } from "@/components/patient-details/MedicalHistoryTab";
 
 interface ExaminationPatientInfoTabProps {
   form: UseExaminationFormResult;
+  showMedicalHistory?: boolean;
 }
 
 export default function ExaminationPatientInfoTab({
   form,
+  showMedicalHistory = false,
 }: ExaminationPatientInfoTabProps) {
   const {
     handleSelectPatient,
@@ -47,6 +50,7 @@ export default function ExaminationPatientInfoTab({
     setReceptionSignature,
     medicalChecklist,
     setMedicalChecklist,
+    setPatientMedicalHistory,
     visitDate,
     setVisitDate,
     doctorsCatalogQuery,
@@ -311,6 +315,16 @@ export default function ExaminationPatientInfoTab({
               </div>
             </div>
           </div>
+
+          {showMedicalHistory ? (
+            <div>
+              <MedicalHistoryTab
+                patientId={patientInfo.id ? Number(patientInfo.id) : undefined}
+                symptoms={[]}
+                onChange={setPatientMedicalHistory}
+              />
+            </div>
+          ) : null}
 
           {/* Left Column: Visit Assignment & Financials (Now second in RTL) */}
           <div className="bg-primary/40 p-4 rounded-xl border border-primary/20 space-y-3 order-2 h-full flex flex-col">
