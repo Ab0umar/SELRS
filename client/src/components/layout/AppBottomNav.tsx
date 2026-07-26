@@ -41,6 +41,7 @@ import {
 const ALL_ADMIN_TABS = [
   { key: "dashboard", label: "لوحة التحكم", icon: LayoutDashboard, paths: ["/dashboard"] },
   { key: "patients",  label: "مركز المريض", icon: Network,          paths: ["/patient-hub", "/patients-hub", "/patients", "/followups", "/visits"] },
+  { key: "operations", label: "العمليات",    icon: Syringe,          paths: ["/operations"] },
   { key: "accounting",label: "الحسابات",    icon: Banknote,         paths: ["/accounting"] },
   { key: "salary",    label: "المرتبات",    icon: DollarSign,       paths: ["/salary"] },
   { key: "attendance",label: "الحضور",      icon: Activity,         paths: ["/attendance"] },
@@ -62,7 +63,7 @@ const ALL_STAFF_TABS = [
 type AdminKey = (typeof ALL_ADMIN_TABS)[number]["key"];
 type StaffKey = (typeof ALL_STAFF_TABS)[number]["key"];
 
-const DEFAULT_ADMIN_KEYS: AdminKey[] = ["dashboard", "patients", "accounting", "salary", "attendance", "kf", "admin"];
+const DEFAULT_ADMIN_KEYS: AdminKey[] = ["dashboard", "patients", "operations", "accounting", "salary", "attendance", "kf", "admin"];
 const DEFAULT_STAFF_KEYS: StaffKey[] = ["today", "patients", "operations", "accounting", "kf"];
 const DEFAULT_STAFF_KEYS_DR: StaffKey[] = [...DEFAULT_STAFF_KEYS, "roster"];
 
