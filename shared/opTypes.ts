@@ -37,7 +37,7 @@ export const OP_TYPE_OPTIONS = OP_TYPES.map((value) => ({
 export const OP_TYPE_ALIASES: Record<Exclude<OpType, "Others">, string[]> = {
   PRK: ["prk"],
   Lasik: ["lasik", "ليزك"],
-  FL: ["fl", "femto lasik", "فيمتو ليزك", "femto"],
+  FL: ["fl", "femto lasik", "فيمتو ليزك"],
   FS: ["fs", "femto smile", "فيمتو سمايل", "smile", "سمايل"],
   IOL: ["iol"],
   ICL: ["icl"],

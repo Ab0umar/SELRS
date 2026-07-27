@@ -34,7 +34,6 @@ export const OPERATION_LABELS: Record<string, string> = {
   "Lasik Metal": "Metal",
   "Lasik Metal N": "Metal N",
   "Lasik Metal D": "Metal D",
-  Femto: "Femto",
   IOL: "IOL",
   ICL: "ICL",
   Cataract: "Cataract",
@@ -301,7 +300,8 @@ export const getPricingDefaults = (
 export const operationTypeLabel = (value: unknown) => {
   const key = String(value ?? "").trim();
   if (!key) return "أخرى";
-  const canonical = resolveCanonicalOpType(key);
+  const canonical =
+    key.toLowerCase() === "femto" ? "FL" : resolveCanonicalOpType(key);
   return (
     OPERATION_LABELS[key] ??
     OPERATION_LABELS[canonical] ??

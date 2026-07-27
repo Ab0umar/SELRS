@@ -239,7 +239,6 @@ export function useOperations() {
       "Lasik Moria 130",
       "Lasik Moria 90",
       "Lasik Metal",
-      "Femto",
       "Yag",
       "Other",
     ];
