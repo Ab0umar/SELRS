@@ -15,6 +15,7 @@ import { PAGE_PERMISSION_DEFINITIONS } from "@/lib/page-permissions";
 const DEFINED_PERMISSION_PATHS = new Set(
   PAGE_PERMISSION_DEFINITIONS.map((p) => p.id).filter((id) => id.startsWith("/")),
 );
+const PERMISSIONS_CACHE_KEY = "selrs:my-permissions-cache";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -35,6 +36,26 @@ function normalizePath(path: string): string {
   return noHashOrQuery;
 }
 
+function readCachedPermissions(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = sessionStorage.getItem(PERMISSIONS_CACHE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((entry): entry is string => typeof entry === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function cachePermissions(permissions: string[]) {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(PERMISSIONS_CACHE_KEY, JSON.stringify(permissions));
+  } catch {}
+}
+
 export default function ProtectedRoute({
   children,
   requiredRoles,
@@ -52,15 +73,31 @@ export default function ProtectedRoute({
   const permissionsQuery = trpc.medical.getMyPermissions.useQuery(undefined, {
     enabled: Boolean(user) && userRole !== "admin",
     refetchOnWindowFocus: false,
+    retry: 2,
+    staleTime: 5 * 60 * 1000,
   });
+  const cachedPermissionsRef = useRef<string[]>(readCachedPermissions());
+
+  useEffect(() => {
+    if (permissionsQuery.isSuccess) {
+      const permissions = ((permissionsQuery.data ?? []) as string[]).filter(
+        (entry): entry is string => typeof entry === "string",
+      );
+      cachedPermissionsRef.current = permissions;
+      cachePermissions(permissions);
+    }
+  }, [permissionsQuery.data, permissionsQuery.isSuccess]);
 
   const allowedPaths = useMemo(() => {
-    const raw = (permissionsQuery.data ?? []) as string[];
+    const raw =
+      permissionsQuery.isError && cachedPermissionsRef.current.length > 0
+        ? cachedPermissionsRef.current
+        : ((permissionsQuery.data ?? []) as string[]);
     const normalized = raw
       .map((entry) => normalizePath(entry.replace(/:r[w]?$/, "")))
       .filter((entry) => entry.length > 0);
     return Array.from(new Set(normalized));
-  }, [permissionsQuery.data]);
+  }, [permissionsQuery.data, permissionsQuery.isError]);
 
   const cleanPath = useMemo(() => {
     return normalizePath(location || ROUTES.home);
@@ -325,7 +362,11 @@ export default function ProtectedRoute({
     return null;
   }
 
-  if (userRole !== "admin" && permissionsQuery.isError) {
+  if (
+    userRole !== "admin" &&
+    permissionsQuery.isError &&
+    cachedPermissionsRef.current.length === 0
+  ) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30 p-4">
         <div className="w-full max-w-md rounded-2xl border bg-background p-6 text-center shadow-sm">
