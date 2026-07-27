@@ -1,6 +1,7 @@
 import {
   isLensOperationType,
   operationTypeLabelAr,
+  resolveCanonicalOpType,
 } from "@shared/opTypes";
 
 export const TAB_SAADANY = "saadany";
@@ -21,10 +22,10 @@ export const normalizeTabKey = (value: unknown): string => {
 };
 
 export const OPERATION_LABELS: Record<string, string> = {
-  PRK: "تصحيح إبصار بالليزر (PRK)",
-  Lasik: "تصحيح إبصار بالليزر (LASIK)",
-  FL: "تصحيح إبصار بالليزر (Femto LASIK)",
-  FS: "تصحيح إبصار بالليزر (Femto SMILE)",
+  PRK: "PRK",
+  Lasik: "LASIK",
+  FL: "F.L",
+  FS: "F.S",
   "Lasik Moria": "Moria",
   "Lasik Moria N": "Moria N",
   "Lasik Moria D": "Moria D",
@@ -33,10 +34,10 @@ export const OPERATION_LABELS: Record<string, string> = {
   "Lasik Metal": "Metal",
   "Lasik Metal N": "Metal N",
   "Lasik Metal D": "Metal D",
-  Femto: "تصحيح إبصار بالليزر (Femto)",
-  IOL: "زراعة عدسات (IOL)",
-  ICL: "زراعة عدسات (ICL)",
-  Cataract: "مياه بيضاء وزراعة عدسة (Cataract)",
+  Femto: "Femto",
+  IOL: "IOL",
+  ICL: "ICL",
+  Cataract: "Cataract",
   Yag: "Yag",
   Other: "Others",
 };
@@ -300,7 +301,12 @@ export const getPricingDefaults = (
 export const operationTypeLabel = (value: unknown) => {
   const key = String(value ?? "").trim();
   if (!key) return "أخرى";
-  return OPERATION_LABELS[key] ?? operationTypeLabelAr(key);
+  const canonical = resolveCanonicalOpType(key);
+  return (
+    OPERATION_LABELS[key] ??
+    OPERATION_LABELS[canonical] ??
+    operationTypeLabelAr(key)
+  );
 };
 
 export { isLensOperationType };
