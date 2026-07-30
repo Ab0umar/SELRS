@@ -19,6 +19,7 @@ import {
   UCVA_BCVA_OPTIONS,
 } from "@/lib/refractionOptions";
 import { DateInput } from "@/components/ui/date-input";
+import { DiagnosisImagesPanel } from "@/components/patient-details/DiagnosisImagesPanel";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { Save } from "lucide-react";
@@ -246,6 +247,12 @@ export function FollowupFormDialog({
             />
           </div>
 
+          {patientId ? (
+            <div className="space-y-2 rounded-lg border border-border p-3" dir="rtl">
+              <Label className="text-sm font-semibold">صور المتابعة</Label>
+              <DiagnosisImagesPanel patientId={patientId} />
+            </div>
+          ) : null}
           <Button
             className="w-full gap-2"
             onClick={handleSave}

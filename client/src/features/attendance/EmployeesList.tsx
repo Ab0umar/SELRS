@@ -495,10 +495,16 @@ export default function EmployeesList() {
   }
 
   const centerEmployees = allEmployees.filter(
-    (e: any) => e.department === "مركز" || e.department === "center",
+    (e: any) =>
+      e.department === "مركز" ||
+      e.department === "center" ||
+      e.department === "المركز والعيادة",
   );
   const clinicEmployees = allEmployees.filter(
-    (e: any) => e.department === "عيادة" || e.department === "clinic",
+    (e: any) =>
+      e.department === "عيادة" ||
+      e.department === "clinic" ||
+      e.department === "المركز والعيادة",
   );
   const displayEmployees =
     activeTab === "center" ? centerEmployees : clinicEmployees;
@@ -562,7 +568,10 @@ export default function EmployeesList() {
               const isEditing = editingCd === emp.empCd;
               const showPanel = panelCd === emp.empCd;
               const showSwap = swapCd === emp.empCd;
-              const isClinic = emp.department === "عيادة";
+              const isClinic =
+                emp.department === "عيادة" ||
+                emp.department === "clinic" ||
+                emp.department === "المركز والعيادة";
               const empAssignments = assignmentsMap.get(emp.empCd) ?? [];
               const assignment = empAssignments[0] ?? null;
               const combinedMask = empAssignments.reduce(
@@ -616,6 +625,9 @@ export default function EmployeesList() {
                           <option value="">—</option>
                           <option value="مركز">مركز</option>
                           <option value="عيادة">عيادة</option>
+                          <option value="المركز والعيادة">
+                            المركز والعيادة
+                          </option>
                         </select>
                       ) : (
                         <span className="text-muted-foreground text-sm">

@@ -1395,10 +1395,9 @@ export async function updatePatient(patientId: number, updates: any) {
 }
 
 export async function deletePatient(patientId: number) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  await db.delete(patients).where(eq(patients.id, patientId));
+  throw new Error(
+    `Direct deletion of patient ${patientId} is disabled because it can orphan visits and medical records. Use MSSQL synchronization or the explicit delete-all-data workflow instead.`,
+  );
 }
 
 /**
@@ -1629,64 +1628,109 @@ export async function deleteExaminationDirect(examinationId: number) {
   await db.delete(examinations).where(eq(examinations.id, examinationId));
 }
 
-// Fix orphaned examinations by linking them to visits
+// Restore missing visit parents without changing valid historical visit links.
 export async function fixOrphanedExaminations() {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // Find all examinations with invalid visitIds (0 or null)
   const orphanedExams = await db
-    .select()
+    .select({ examination: examinations })
     .from(examinations)
+    .leftJoin(visits, eq(examinations.visitId, visits.id))
     .where(
-      or(eq(examinations.visitId, 0), eq(examinations.visitId, null as any)),
+      or(
+        eq(examinations.visitId, 0),
+        isNull(examinations.visitId),
+        isNull(visits.id),
+      ),
     );
 
   let fixedCount = 0;
+  let recreatedVisits = 0;
+  let relinkedExaminations = 0;
+  let skippedMissingPatients = 0;
+  const restoredVisitIds = new Set<number>();
 
-  for (const exam of orphanedExams) {
-    // Find visits for this patient, sorted by visitDate
-    const patientVisits = await db
-      .select()
+  for (const { examination: exam } of orphanedExams) {
+    const patient = await db
+      .select({ id: patients.id })
+      .from(patients)
+      .where(eq(patients.id, exam.patientId))
+      .limit(1);
+
+    if (!patient[0]) {
+      skippedMissingPatients++;
+      continue;
+    }
+
+    const missingVisitId = Number(exam.visitId ?? 0);
+
+    if (missingVisitId > 0) {
+      if (!restoredVisitIds.has(missingVisitId)) {
+        const existingVisit = await db
+          .select({ id: visits.id })
+          .from(visits)
+          .where(eq(visits.id, missingVisitId))
+          .limit(1);
+
+        if (!existingVisit[0]) {
+          await db.insert(visits).values({
+            id: missingVisitId,
+            patientId: exam.patientId,
+            visitDate: exam.createdAt,
+            visitType: "examination",
+            branch: "examinations",
+          });
+          recreatedVisits++;
+        }
+
+        restoredVisitIds.add(missingVisitId);
+      }
+
+      fixedCount++;
+      continue;
+    }
+
+    const nearestVisit = await db
+      .select({ id: visits.id })
       .from(visits)
       .where(eq(visits.patientId, exam.patientId))
-      .orderBy(desc(visits.visitDate));
+      .orderBy(
+        sql`ABS(TIMESTAMPDIFF(SECOND, ${visits.visitDate}, ${exam.createdAt}))`,
+      )
+      .limit(1);
 
-    let linkedVisitId: number | null = null;
+    let linkedVisitId = nearestVisit[0]?.id;
 
-    if (patientVisits.length === 0) {
-      // Create a new visit for this examination
+    if (!linkedVisitId) {
       const newVisitResult = await db.insert(visits).values({
         patientId: exam.patientId,
         visitDate: exam.createdAt,
         visitType: "examination",
         branch: "examinations",
       });
-
-      if (newVisitResult[0]) {
-        linkedVisitId =
-          (newVisitResult[0] as any).insertId ??
-          (newVisitResult[0] as any).id ??
-          newVisitResult[0];
-      }
-    } else {
-      // Link to the most recent visit for this patient
-      linkedVisitId = patientVisits[0].id;
+      linkedVisitId = Number((newVisitResult as any)?.[0]?.insertId ?? 0);
+      if (linkedVisitId) recreatedVisits++;
     }
 
-    // Update the examination with the valid visitId
     if (linkedVisitId) {
       await db
         .update(examinations)
         .set({ visitId: linkedVisitId })
         .where(eq(examinations.id, exam.id));
       fixedCount++;
+      relinkedExaminations++;
     }
   }
 
-  return { fixed: fixedCount, total: orphanedExams.length };
+  return {
+    fixed: fixedCount,
+    total: orphanedExams.length,
+    recreatedVisits,
+    relinkedExaminations,
+    skippedMissingPatients,
+  };
 }
-
 // COMPREHENSIVE AUTO-FIX: Run all fixes in sequence
 export async function autoFixAllDataIssues() {
   const db = await getDb();

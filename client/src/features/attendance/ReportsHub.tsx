@@ -21,8 +21,8 @@ const TABS = [
   {
     key: "monthly",
     label: "التحليل التفصيلي",
-    subLabel: "Monthly Analytics",
-    description: "تقارير الحضور الشهرية والتحليل الكامل لساعات التأخير",
+    subLabel: "Period Analytics",
+    description: "تقارير الحضور حسب الفترة المختارة والتحليل الكامل لساعات التأخير",
     icon: BarChart3,
     themeCls: "bg-indigo-50/60 border-indigo-100 hover:border-indigo-300 text-indigo-900",
     activeCls: "ring-2 ring-indigo-500 bg-indigo-100/70 border-indigo-300",

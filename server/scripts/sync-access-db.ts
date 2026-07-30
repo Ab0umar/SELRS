@@ -436,7 +436,13 @@ async function batchUpsertSimple(db: any, tableName: string, rows: any[]) {
       const id = Number(r["ID"] ?? r["id"]);
       const txDate = toDate(r["التاريخ"]);
       if (!id || !txDate) return null;
-      return `(${id}, '${txDate}', ${sqlVal(toDecimal(r["الاجمالي"]))}, ${sqlVal(toDecimal(r["الرصيد"]))}, ${sqlVal(toDecimal(r["معاه"]))}, ${sqlVal(toDecimal(r["منه"]))}, ${sqlVal(String(r["ملاحظات"] ?? "").slice(0, 500) || null)})`;
+      const inAmount = toDecimal(
+        tableName === "accInstapay" ? r["منه"] : r["معاه"],
+      );
+      const outAmount = toDecimal(
+        tableName === "accInstapay" ? r["معاه"] : r["منه"],
+      );
+      return `(${id}, '${txDate}', ${sqlVal(toDecimal(r["الاجمالي"]))}, ${sqlVal(toDecimal(r["الرصيد"]))}, ${sqlVal(inAmount)}, ${sqlVal(outAmount)}, ${sqlVal(String(r["ملاحظات"] ?? "").slice(0, 500) || null)})`;
     })
     .filter(Boolean);
   if (!vals.length) return;

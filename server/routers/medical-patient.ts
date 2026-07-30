@@ -16,6 +16,7 @@ import * as db from "../db";
 import {
   upsertPatientToMssql,
   createOrSyncPatientFromMssql,
+  syncSinglePatientFromMssql,
 } from "../integrations/mssqlPatients";
 import { isExternalServiceType } from "../../shared/serviceType";
 import {
@@ -936,6 +937,15 @@ export const medicalPatientRoutes = {
           );
           return null;
         });
+        if (!pushResult?.inserted) {
+          throw new TRPCError({
+            code: "BAD_GATEWAY",
+            message:
+              pushResult?.note ||
+              mssqlWarnings[0] ||
+              "فشل حفظ بيانات المريض في MSSQL",
+          });
+        }
         if (pushResult?.serviceInsertWarning) {
           mssqlWarnings.push(pushResult.serviceInsertWarning);
         }
@@ -955,7 +965,7 @@ export const medicalPatientRoutes = {
             serviceQty: Number(srv.qty) || 1,
             discountValue: srv.discount,
           });
-          await pushNewPatientToMssql({
+          const extraPushResult = await pushNewPatientToMssql({
             patientCode,
             fullName: input.fullName,
             branch: "examinations",
@@ -971,7 +981,16 @@ export const medicalPatientRoutes = {
             mssqlWarnings.push(
               `فشلت إضافة الخدمة ${srv.code}: ${err instanceof Error ? err.message : String(err)}`,
             );
+            return null;
           });
+          if (extraPushResult && !extraPushResult.inserted) {
+            mssqlWarnings.push(
+              extraPushResult.note || `فشلت إضافة الخدمة ${srv.code} في MSSQL`,
+            );
+          }
+          if (extraPushResult?.serviceInsertWarning) {
+            mssqlWarnings.push(extraPushResult.serviceInsertWarning);
+          }
         }
 
         // ── Step 4: sync MSSQL → MySQL (create/update patient + today visit) ─
@@ -982,19 +1001,11 @@ export const medicalPatientRoutes = {
         );
         _mark("createOrSyncPatientFromMssql done");
 
-        // Registration is also the patient-demographics editor. Re-apply the
-        // submitted values after MSSQL -> MySQL sync so edits overwrite the
-        // old patient record without changing visit/service/doctor data.
+        // These fields have no MSSQL destination and remain application-only.
         if (patientId) {
           await db.updatePatient(patientId, {
-            fullName: input.fullName.trim(),
-            dateOfBirth: input.dateOfBirth?.trim() || null,
-            age: input.age ?? null,
-            gender: input.gender ?? null,
-            phone: input.phone?.trim() || null,
             alternatePhone: input.alternatePhone?.trim() || null,
             email: input.email?.trim() || null,
-            address: input.address?.trim() || null,
             occupation: input.occupation?.trim() || null,
           });
         }
@@ -1319,6 +1330,12 @@ export const medicalPatientRoutes = {
       try {
         const nextUpdates = { ...input.updates } as Record<string, any>;
         const beforePatient = await db.getPatientById(input.patientId);
+        if (!beforePatient) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Patient not found",
+          });
+        }
         if (Object.prototype.hasOwnProperty.call(nextUpdates, "dateOfBirth")) {
           const rawDob = nextUpdates.dateOfBirth;
           if (rawDob == null || String(rawDob).trim() === "") {
@@ -1345,38 +1362,84 @@ export const medicalPatientRoutes = {
             ? "external"
             : "center";
         }
-        await db.updatePatient(input.patientId, nextUpdates);
-        const updated = await db.getPatientById(input.patientId);
+        const authoritativeFields = new Set([
+          "fullName",
+          "phone",
+          "address",
+          "age",
+          "gender",
+          "dateOfBirth",
+          "branch",
+          "locationType",
+        ]);
+        const changesAuthoritativeData = Object.keys(nextUpdates).some((key) =>
+          authoritativeFields.has(key),
+        );
 
-        // Push patient details only to MSSQL (no service linking from update flow).
-        if (
-          updated?.patientCode &&
-          updated?.fullName &&
-          (await canPushToMssql(ctx.user))
-        ) {
-          await upsertPatientToMssql({
-            patientCode: String(updated.patientCode),
-            fullName: String(updated.fullName),
-            phone: String((updated as any).phone ?? "").trim() || null,
-            address: String((updated as any).address ?? "").trim() || null,
-            age: Number.isFinite(Number((updated as any).age))
-              ? Number((updated as any).age)
+        if (changesAuthoritativeData) {
+          const patientCode = String(
+            (beforePatient as any).patientCode ?? "",
+          ).trim();
+          if (!patientCode) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Patient has no MSSQL patient code",
+            });
+          }
+          if (!(await canPushToMssql(ctx.user))) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "You do not have permission to update MSSQL patients",
+            });
+          }
+
+          const proposed = {
+            ...(beforePatient as Record<string, any>),
+            ...nextUpdates,
+          };
+          const pushResult = await upsertPatientToMssql({
+            patientCode,
+            fullName: String(proposed.fullName ?? "").trim(),
+            phone: String(proposed.phone ?? "").trim() || null,
+            address: String(proposed.address ?? "").trim() || null,
+            age: Number.isFinite(Number(proposed.age))
+              ? Number(proposed.age)
               : null,
-            gender: String((updated as any).gender ?? "").trim() || null,
-            dateOfBirth: (updated as any).dateOfBirth ?? null,
-            branch: String((updated as any).branch ?? "").trim() || null,
-            locationType:
-              String((updated as any).locationType ?? "").trim() || null,
+            gender: String(proposed.gender ?? "").trim() || null,
+            dateOfBirth: proposed.dateOfBirth ?? null,
+            branch: String(proposed.branch ?? "").trim() || null,
+            locationType: String(proposed.locationType ?? "").trim() || null,
             enteredBy:
               String(
                 (ctx.user as any)?.name ?? (ctx.user as any)?.username ?? "",
               ).trim() || null,
-          }).catch((error) => {
-            console.warn("[mssql-push] updatePatient upsert failed", {
-              patientCode: String(updated.patientCode),
-              message: String((error as any)?.message ?? error ?? "unknown"),
-            });
           });
+
+          if (!pushResult.upserted) {
+            throw new TRPCError({
+              code: "BAD_GATEWAY",
+              message: pushResult.note || "Failed to update patient in MSSQL",
+            });
+          }
+
+          const syncResult = await syncSinglePatientFromMssql(patientCode);
+          if (!syncResult.synced) {
+            throw new TRPCError({
+              code: "BAD_GATEWAY",
+              message:
+                syncResult.message ||
+                "MSSQL was updated but MySQL synchronization failed",
+            });
+          }
+        }
+
+        const localUpdates = Object.fromEntries(
+          Object.entries(nextUpdates).filter(
+            ([key]) => !authoritativeFields.has(key) && key !== "patientCode",
+          ),
+        );
+        if (Object.keys(localUpdates).length > 0) {
+          await db.updatePatient(input.patientId, localUpdates);
         }
 
         await db.logAuditEvent(
@@ -1389,6 +1452,7 @@ export const medicalPatientRoutes = {
 
         return { success: true };
       } catch (error) {
+        if (error instanceof TRPCError) throw error;
         throw new Error(`Failed to update patient: ${error}`);
       }
     }),

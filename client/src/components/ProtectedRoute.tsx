@@ -36,11 +36,12 @@ function normalizePath(path: string): string {
   return noHashOrQuery;
 }
 
-function readCachedPermissions(): string[] {
-  if (typeof window === "undefined") return [];
+function readCachedPermissions(cacheKey: string): string[] | null {
+  if (typeof window === "undefined") return null;
   try {
-    const raw = sessionStorage.getItem(PERMISSIONS_CACHE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
+    const raw = localStorage.getItem(cacheKey);
+    if (raw === null) return null;
+    const parsed = JSON.parse(raw);
     return Array.isArray(parsed)
       ? parsed.filter((entry): entry is string => typeof entry === "string")
       : [];
@@ -49,10 +50,10 @@ function readCachedPermissions(): string[] {
   }
 }
 
-function cachePermissions(permissions: string[]) {
+function cachePermissions(cacheKey: string, permissions: string[]) {
   if (typeof window === "undefined") return;
   try {
-    sessionStorage.setItem(PERMISSIONS_CACHE_KEY, JSON.stringify(permissions));
+    localStorage.setItem(cacheKey, JSON.stringify(permissions));
   } catch {}
 }
 
@@ -63,6 +64,9 @@ export default function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
   const userRole = String(user?.role ?? "").toLowerCase();
+  const permissionsCacheKey = `${PERMISSIONS_CACHE_KEY}:${String(
+    user?.id ?? user?.username ?? userRole,
+  )}`;
   const mustChangePassword = Boolean(
     (user as (User & { mustChangePassword?: boolean }) | null)
       ?.mustChangePassword,
@@ -76,7 +80,13 @@ export default function ProtectedRoute({
     retry: 2,
     staleTime: 5 * 60 * 1000,
   });
-  const cachedPermissionsRef = useRef<string[]>(readCachedPermissions());
+  const cachedPermissionsRef = useRef<string[] | null>(
+    readCachedPermissions(permissionsCacheKey),
+  );
+
+  useEffect(() => {
+    cachedPermissionsRef.current = readCachedPermissions(permissionsCacheKey);
+  }, [permissionsCacheKey]);
 
   useEffect(() => {
     if (permissionsQuery.isSuccess) {
@@ -84,13 +94,17 @@ export default function ProtectedRoute({
         (entry): entry is string => typeof entry === "string",
       );
       cachedPermissionsRef.current = permissions;
-      cachePermissions(permissions);
+      cachePermissions(permissionsCacheKey, permissions);
     }
-  }, [permissionsQuery.data, permissionsQuery.isSuccess]);
+  }, [
+    permissionsCacheKey,
+    permissionsQuery.data,
+    permissionsQuery.isSuccess,
+  ]);
 
   const allowedPaths = useMemo(() => {
     const raw =
-      permissionsQuery.isError && cachedPermissionsRef.current.length > 0
+      permissionsQuery.isError && cachedPermissionsRef.current !== null
         ? cachedPermissionsRef.current
         : ((permissionsQuery.data ?? []) as string[]);
     const normalized = raw
@@ -365,7 +379,7 @@ export default function ProtectedRoute({
   if (
     userRole !== "admin" &&
     permissionsQuery.isError &&
-    cachedPermissionsRef.current.length === 0
+    cachedPermissionsRef.current === null
   ) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30 p-4">

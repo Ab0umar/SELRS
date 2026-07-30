@@ -64,8 +64,21 @@ export default function AdminMigrations() {
 
   const fixOrphanedExaminationsMutation =
     trpc.medical.fixOrphanedExaminations.useMutation({
-      onSuccess: (result: { fixed: number; total: number }) => {
-        toast.success(`تم إصلاح ${result.fixed} فحص من أصل ${result.total}`);
+      onSuccess: (result: {
+        fixed: number;
+        total: number;
+        recreatedVisits: number;
+        relinkedExaminations: number;
+        skippedMissingPatients: number;
+      }) => {
+        toast.success(
+          `تم إصلاح ${result.fixed} من أصل ${result.total}، واستعادة ${result.recreatedVisits} زيارة`,
+        );
+        if (result.skippedMissingPatients > 0) {
+          toast.warning(
+            `تعذر إصلاح ${result.skippedMissingPatients} سجل لعدم وجود المريض`,
+          );
+        }
       },
       onError: (error: unknown) => {
         toast.error(getTrpcErrorMessage(error, "تعذر إصلاح الفحوصات الأيتام"));
@@ -355,8 +368,8 @@ export default function AdminMigrations() {
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-[11px] text-warning leading-relaxed">
-              تحديث الفحوصات التي تفتقر لمعرف زيارة صحيح (visitId=0) وربطها
-              بالسجلات التاريخية.
+              استعادة الزيارات المحذوفة بمعرفاتها الأصلية، وربط الفحوصات التي
+              لا تحمل معرف زيارة بأقرب زيارة زمنياً.
             </p>
             {confirmFixOrphans ? (
               <div className="flex items-center gap-1">
@@ -389,7 +402,7 @@ export default function AdminMigrations() {
               >
                 {fixOrphanedExaminationsMutation.isPending
                   ? "جاري المعالجة…"
-                  : "إصلاح الفحوصات الأيتام"}
+                  : "إصلاح الزيارات والفحوصات الأيتام"}
               </Button>
             )}
           </CardContent>

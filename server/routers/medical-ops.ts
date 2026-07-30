@@ -152,7 +152,7 @@ export const medicalOpsRoutes = {
         "examination",
         0,
         {
-          message: `Fixed ${result.fixed} orphaned examinations out of ${result.total}`,
+          message: `Fixed ${result.fixed} orphaned examinations out of ${result.total}; recreated visits=${result.recreatedVisits}, relinked examinations=${result.relinkedExaminations}, skipped missing patients=${result.skippedMissingPatients}`,
         },
       );
       return { success: true, ...result };

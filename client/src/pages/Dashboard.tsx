@@ -1417,7 +1417,7 @@ export default function Dashboard() {
         </div>
 
         {/* ── 2. Two-Column Floating Console Layout ── */}
-        <div className="flex flex-col lg:flex-row gap-6 items-start">
+        <div className="flex flex-col xl:flex-row gap-6 items-start">
           {!sidebarOpen && (
             <Button
               variant="ghost"

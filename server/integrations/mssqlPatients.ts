@@ -2122,7 +2122,7 @@ export async function syncSinglePatientFromMssql(
   try {
     await pool.connect();
     const query = `
-      SELECT
+      SELECT TOP 1
         PAT_CD AS patientCode,
         NAM AS fullName,
         TEL1 AS phone,
@@ -2145,7 +2145,6 @@ export async function syncSinglePatientFromMssql(
         CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC,
         CASE WHEN ISDATE(TR_DT) = 1 THEN CONVERT(datetime, TR_DT) END DESC,
         CASE WHEN ISDATE(VST_DT) = 1 THEN CONVERT(datetime, VST_DT) END DESC
-      LIMIT 1
     `;
 
     const req = pool.request();
@@ -2162,25 +2161,37 @@ export async function syncSinglePatientFromMssql(
       return { synced: false, message: "Patient not found in MySQL" };
     }
 
-    // Build update object - always sync critical fields from MSSQL
-    const updates: Record<string, any> = {};
-
-    // Fields that should always be updated from MSSQL if they have values
-    const alwaysSyncFields = [
-      "phone",
-      "address",
-      "age",
-      "gender",
-      "dateOfBirth",
-      "branch",
-      "lastVisit",
-      "receptionSignature",
-    ];
-    for (const field of alwaysSyncFields) {
-      const mssqlValue = mssqlData[field];
-      if (!isBlank(mssqlValue)) {
-        updates[field] = mssqlValue;
-      }
+    const genderRaw = String(mssqlData.gender ?? "")
+      .trim()
+      .toUpperCase();
+    const gender =
+      genderRaw === "1" || genderRaw === "M" || genderRaw === "MALE"
+        ? "male"
+        : genderRaw === "2" || genderRaw === "F" || genderRaw === "FEMALE"
+          ? "female"
+          : null;
+    const dobRaw = String(mssqlData.dateOfBirth ?? "").trim();
+    const dateOfBirth = /^\d{4}-\d{2}-\d{2}$/.test(dobRaw) ? dobRaw : null;
+    const ageRaw = Number(mssqlData.age);
+    const updates: Record<string, any> = {
+      fullName: String(mssqlData.fullName ?? "").trim() || patientCode,
+      phone: String(mssqlData.phone ?? "").trim() || null,
+      address: String(mssqlData.address ?? "").trim() || null,
+      age: Number.isFinite(ageRaw) && ageRaw > 0 ? Math.trunc(ageRaw) : null,
+      gender,
+      dateOfBirth,
+      branch:
+        String(mssqlData.branch ?? "")
+          .trim()
+          .toLowerCase() === "surgery"
+          ? "surgery"
+          : "examinations",
+      locationType: Number(mssqlData.idno) === 2 ? "external" : "center",
+      receptionSignature:
+        String(mssqlData.receptionSignature ?? "").trim() || null,
+    };
+    if (!isBlank(mssqlData.lastVisit)) {
+      updates.lastVisit = mssqlData.lastVisit;
     }
 
     if (Object.keys(updates).length > 0) {
@@ -2275,9 +2286,13 @@ export async function createOrSyncPatientFromMssql(
     .trim()
     .toUpperCase();
   const mssqlGender: "male" | "female" | null =
-    mssqlGenderRaw === "M" || mssqlGenderRaw === "MALE"
+    mssqlGenderRaw === "1" ||
+    mssqlGenderRaw === "M" ||
+    mssqlGenderRaw === "MALE"
       ? "male"
-      : mssqlGenderRaw === "F" || mssqlGenderRaw === "FEMALE"
+      : mssqlGenderRaw === "2" ||
+          mssqlGenderRaw === "F" ||
+          mssqlGenderRaw === "FEMALE"
         ? "female"
         : null;
   const mssqlDob = String(mssqlRow?.dateOfBirth ?? "").trim();
@@ -2307,11 +2322,23 @@ export async function createOrSyncPatientFromMssql(
     created = true;
   } else {
     patientId = Number((existing as any).id);
-    const patch: Record<string, any> = { lastVisit: today };
-    if (!(existing as any).dateOfBirth && dateOfBirth)
-      patch.dateOfBirth = dateOfBirth;
-    if (!(existing as any).gender && mssqlGender) patch.gender = mssqlGender;
-    await db.updatePatient(patientId, patch).catch(() => null);
+    const mssqlAge = Number(mssqlRow?.age);
+    const patch: Record<string, any> = {
+      fullName:
+        String(mssqlRow?.fullName ?? "").trim() ||
+        String((existing as any).fullName ?? "").trim() ||
+        patientCode,
+      phone: String(mssqlRow?.phone ?? "").trim() || null,
+      address: String(mssqlRow?.address ?? "").trim() || null,
+      age:
+        Number.isFinite(mssqlAge) && mssqlAge > 0 ? Math.trunc(mssqlAge) : null,
+      gender: mssqlGender,
+      dateOfBirth,
+      branch,
+      locationType,
+      lastVisit: today,
+    };
+    await db.updatePatient(patientId, patch);
   }
 
   // Create a visit for today, routed immediately by service code, only if one
@@ -2418,6 +2445,25 @@ async function overwriteMssqlPatientDemographics(
   await req.query(
     `UPDATE ${targetTable} SET ${assignments.join(", ")} WHERE PAT_CD = @PAT_CD`,
   );
+
+  // Service rows also carry a denormalized patient name. Keep them aligned so
+  // MSSQL reports and the periodic MySQL sync cannot resurrect an old name.
+  const serviceTable = "op2026.dbo.PAPAT_SRV";
+  const serviceCols = await getTableColumns(pool, serviceTable).catch(
+    () => new Set<string>(),
+  );
+  const serviceNameAssignments: string[] = [];
+  const serviceReq = pool.request();
+  serviceReq.input("PAT_CD", values.patientCode);
+  serviceReq.input("PATIENT_NAME", values.fullName);
+  if (serviceCols.has("PAT_NM_AR")) {
+    serviceNameAssignments.push("PAT_NM_AR = @PATIENT_NAME");
+  }
+  if (serviceNameAssignments.length > 0) {
+    await serviceReq.query(
+      `UPDATE ${serviceTable} SET ${serviceNameAssignments.join(", ")} WHERE PAT_CD = @PAT_CD`,
+    );
+  }
 }
 
 export async function insertPatientToMssql(
@@ -5271,9 +5317,9 @@ function getSyncQuery(
     SELECT TOP (${limit})
       PAT_CD AS patientCode,
       COALESCE(
+        NULLIF(CONVERT(nvarchar(255), l.NAM), ''),
         NULLIF(CONVERT(nvarchar(255), srv.PAT_NM_AR), ''),
-        NULLIF(CONVERT(nvarchar(255), srv.PAT_NM_EN), ''),
-        NULLIF(CONVERT(nvarchar(255), l.NAM), '')
+        NULLIF(CONVERT(nvarchar(255), srv.PAT_NM_EN), '')
       ) AS fullName,
       NAM1,
       NAM2,
@@ -5993,6 +6039,28 @@ export async function syncPatientsFromMssql(
               String(existingExamStateData?.manualEditedAt ?? "").trim(),
             );
           }
+          // MSSQL owns patient demographics. Manual examination locks protect
+          // clinical routing/state only and must never leave demographics stale.
+          if (!dryRun && updateExisting && targetPatientId > 0) {
+            const demographicUpdates: Record<string, any> = {};
+            const syncDemographic = (key: string) => {
+              if (!Object.prototype.hasOwnProperty.call(payload, key)) return;
+              if (isBlank(payload[key])) return;
+              demographicUpdates[key] = payload[key];
+            };
+            syncDemographic("fullName");
+            syncDemographic("phone");
+            syncDemographic("address");
+            syncDemographic("dateOfBirth");
+            syncDemographic("age");
+            syncDemographic("gender");
+            if (Object.keys(demographicUpdates).length > 0) {
+              await db.updatePatient(
+                Number(existing.id),
+                demographicUpdates,
+              );
+            }
+          }
           // Always sync doctor and service codes regardless of updateExisting flag
           // Sync raw codes only — display layer resolves names/types from local tables
           if (!dryRun && targetPatientId > 0 && !manualLockEnabled) {
@@ -6104,12 +6172,6 @@ export async function syncPatientsFromMssql(
               const syncAlways = (key: string) => {
                 if (!isBlank(payload[key])) nextUpdates[key] = payload[key];
               };
-              // Sync critical patient info fields always from MSSQL
-              syncAlways("phone");
-              syncAlways("address");
-              syncAlways("dateOfBirth");
-              syncAlways("age");
-              syncAlways("gender");
               syncAlways("doctorCode");
               syncAlways("doctorId");
               syncAlways("serviceCode");
@@ -6117,7 +6179,6 @@ export async function syncPatientsFromMssql(
               copyIfMissing("serviceType");
               copyIfMissing("locationType");
               // Only backfill these fields if empty
-              copyIfMissing("fullName");
               copyIfMissing("alternatePhone");
               copyIfMissing("occupation");
               copyIfMissing("nationalId");

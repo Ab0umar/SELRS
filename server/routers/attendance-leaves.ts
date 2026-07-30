@@ -424,7 +424,12 @@ export const attendanceLeavesRoutes = {
       const year = input.year ?? new Date().getFullYear();
       const balanceConditions: any[] = [eq(attendanceLeaveBalances.year, year)];
       if (input.department) {
-        balanceConditions.push(eq(attendanceEmployees.department, input.department));
+        balanceConditions.push(
+          or(
+            eq(attendanceEmployees.department, input.department),
+            eq(attendanceEmployees.department, "المركز والعيادة"),
+          ),
+        );
       }
       const balances = await db
         .select({
@@ -750,7 +755,12 @@ export const attendanceLeavesRoutes = {
         eq(attendancePermissions.approved, true),
       ];
       if (input.department) {
-        conditions.push(eq(attendanceEmployees.department, input.department));
+        conditions.push(
+          or(
+            eq(attendanceEmployees.department, input.department),
+            eq(attendanceEmployees.department, "المركز والعيادة"),
+          ),
+        );
       }
       const perms = await db
         .select({

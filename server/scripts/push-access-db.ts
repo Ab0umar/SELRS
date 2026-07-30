@@ -102,8 +102,10 @@ const TABLES: TableMap[] = [
     accessTable: "انستا",
     cols: [
       { mysql: "txDate", access: "التاريخ", type: "date" },
-      { mysql: "inAmount", access: "معاه", type: "num" },
-      { mysql: "outAmount", access: "منه", type: "num" },
+      // InstaPay Access columns are inverted compared with accHome:
+      // "منه" is income, "معاه" is expense.
+      { mysql: "inAmount", access: "منه", type: "num" },
+      { mysql: "outAmount", access: "معاه", type: "num" },
       { mysql: "notes", access: "ملاحظات", type: "str" },
     ],
   },

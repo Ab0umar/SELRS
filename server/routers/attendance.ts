@@ -188,7 +188,12 @@ export const attendanceRouter = router({
       }
 
       if (input.department) {
-        conditions.push(eq(attendanceEmployees.department, input.department));
+        conditions.push(
+          or(
+            eq(attendanceEmployees.department, input.department),
+            eq(attendanceEmployees.department, "المركز والعيادة"),
+          ),
+        );
       }
 
       const where = conditions.length > 0 ? and(...conditions) : undefined;
@@ -275,7 +280,12 @@ export const attendanceRouter = router({
 
       const conditions: any[] = [eq(attendanceDaily.workDate, input.date as any)];
       if (input.department) {
-        conditions.push(eq(attendanceEmployees.department, input.department));
+        conditions.push(
+          or(
+            eq(attendanceEmployees.department, input.department),
+            eq(attendanceEmployees.department, "المركز والعيادة"),
+          ),
+        );
       }
 
       const daily = await db
@@ -318,6 +328,7 @@ export const attendanceRouter = router({
         computedAt: d.computedAt.toISOString(),
       }));
     }),
+
   dailyByEmployee: makeAttProcedure("/attendance/employees")
     .input(
       z.object({

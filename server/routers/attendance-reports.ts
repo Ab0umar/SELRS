@@ -143,7 +143,12 @@ export const attendanceReportsRoutes = {
         lte(attendanceDaily.workDate, input.to as any),
       ];
       if (input.department) {
-        conditions.push(eq(attendanceEmployees.department, input.department));
+        conditions.push(
+          or(
+            eq(attendanceEmployees.department, input.department),
+            eq(attendanceEmployees.department, "المركز والعيادة"),
+          ),
+        );
       }
       const daily = await db
         .select({

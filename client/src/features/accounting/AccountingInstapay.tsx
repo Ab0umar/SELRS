@@ -141,7 +141,7 @@ export default function AccountingInstapay() {
     <AccountingPage
       eyebrow="Instapay"
       title="حركات انستاباي"
-      description="متابعة وارد وصادر انستاباي مع رصيد مستقل وسجل حركات واضح."
+      description="متابعة إيرادات ومصروفات انستاباي مع رصيد مستقل وسجل حركات واضح."
     >
       <div className="space-y-4 lg:space-y-5" dir="rtl">
         <section className="overflow-hidden rounded-[24px] border border-border bg-background">
@@ -151,13 +151,13 @@ export default function AccountingInstapay() {
               {(
                 [
                   {
-                    label: "معاه (وارد)",
+                    label: "منه (إيراد)",
                     val: instapay?.totalIn,
                     cls: "text-success",
                     icon: TrendingUp,
                   },
                   {
-                    label: "منه (صادر)",
+                    label: "معاه (مصروف)",
                     val: instapay?.totalOut,
                     cls: "text-destructive",
                     icon: TrendingDown,
@@ -240,7 +240,7 @@ export default function AccountingInstapay() {
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label htmlFor="instapay-in" className="text-xs text-success">
-                    معاه (وارد)
+                    منه (إيراد)
                   </label>
                   <input
                     id="instapay-in"
@@ -257,7 +257,7 @@ export default function AccountingInstapay() {
                     htmlFor="instapay-out"
                     className="text-xs text-destructive"
                   >
-                    منه (صادر)
+                    معاه (مصروف)
                   </label>
                   <input
                     id="instapay-out"
@@ -449,7 +449,7 @@ export default function AccountingInstapay() {
 
                 <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                   <div className="rounded-xl bg-success/10 px-3 py-2">
-                    <div className="text-[10px] text-success">معاه</div>
+                    <div className="text-[10px] text-success">منه</div>
                     <div
                       className={cn(
                         "mt-1 font-semibold tabular-nums",
@@ -460,7 +460,7 @@ export default function AccountingInstapay() {
                     </div>
                   </div>
                   <div className="rounded-xl bg-destructive/10 px-3 py-2">
-                    <div className="text-[10px] text-destructive">منه</div>
+                    <div className="text-[10px] text-destructive">معاه</div>
                     <div
                       className={cn(
                         "mt-1 font-semibold tabular-nums",
@@ -528,13 +528,13 @@ export default function AccountingInstapay() {
                     scope="col"
                     className="w-[18%] px-2 py-2 text-left font-medium tabular-nums text-success sm:px-4 sm:py-2.5"
                   >
-                    معاه
+                    منه
                   </th>
                   <th
                     scope="col"
                     className="w-[18%] px-2 py-2 text-left font-medium tabular-nums text-destructive sm:px-4 sm:py-2.5"
                   >
-                    منه
+                    معاه
                   </th>
                   <th
                     scope="col"

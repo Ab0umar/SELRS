@@ -14,6 +14,7 @@ vi.mock("../integrations/mssqlPatients", async (importOriginal) => {
     ...actual,
     insertPatientToMssql: vi.fn(),
     upsertPatientToMssql: vi.fn(),
+    syncSinglePatientFromMssql: vi.fn(),
   };
 });
 
@@ -62,6 +63,9 @@ describe.sequential("MSSQL push wiring", () => {
     });
     vi.mocked(mssqlPatients.upsertPatientToMssql).mockResolvedValue({
       upserted: true,
+    });
+    vi.mocked(mssqlPatients.syncSinglePatientFromMssql).mockResolvedValue({
+      synced: true,
     });
     await resetTables();
     await db.setUserPermissions(123, ["/quick-entry", "/ops/mssql-add"]);
@@ -179,6 +183,25 @@ describe.sequential("MSSQL push wiring", () => {
     ).toBe(result.patientCode);
   });
 
+  it("createPatientFromExamination rejects a reported MSSQL failure", async () => {
+    vi.mocked(mssqlPatients.insertPatientToMssql).mockResolvedValueOnce({
+      inserted: false,
+      note: "MSSQL rejected the write",
+    });
+    const caller = appRouter.createCaller(makeCallerAs("reception"));
+
+    await expect(
+      caller.medical.createPatientFromExamination({
+        fullName: "Rejected Exam Patient",
+        phone: "01080000015",
+        serviceType: "consultant",
+        locationType: "center",
+      }),
+    ).rejects.toThrow("MSSQL rejected the write");
+
+    expect(await db.getPatientByCode("0001")).toBeFalsy();
+  });
+
   it("createPatientFromExamination new patient with two services pushes twice", async () => {
     const caller = appRouter.createCaller(makeCallerAs("reception"));
 
@@ -249,9 +272,12 @@ describe.sequential("MSSQL push wiring", () => {
       vi.mocked(mssqlPatients.upsertPatientToMssql).mock.calls[0]?.[0]
         ?.fullName,
     ).toBe("Updated Name");
+    expect(mssqlPatients.syncSinglePatientFromMssql).toHaveBeenCalledWith(
+      "PUSH-UPD-001",
+    );
   });
 
-  it("updatePatient swallows MSSQL upsert failure", async () => {
+  it("updatePatient rejects MSSQL failure without changing MySQL", async () => {
     vi.mocked(mssqlPatients.upsertPatientToMssql).mockRejectedValueOnce(
       new Error("MSSQL down"),
     );
@@ -262,12 +288,15 @@ describe.sequential("MSSQL push wiring", () => {
     });
     const caller = appRouter.createCaller(makeCallerAs("reception"));
 
-    const result = await caller.medical.updatePatient({
-      patientId: Number(created?.id ?? 0),
-      updates: { fullName: "Updated Name Again" },
-    });
+    await expect(
+      caller.medical.updatePatient({
+        patientId: Number(created?.id ?? 0),
+        updates: { fullName: "Updated Name Again" },
+      }),
+    ).rejects.toThrow("MSSQL down");
 
-    expect(result.success).toBe(true);
+    const unchanged = await db.getPatientById(Number(created?.id ?? 0));
+    expect(unchanged?.fullName).toBe("Update Push Patient Two");
   });
 
   it("createPatient forwards serviceCode to MSSQL push", async () => {

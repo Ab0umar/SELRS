@@ -29,9 +29,13 @@ export default function Reports({ department }: { department?: string }) {
   const [activeTab, setActiveTab] = useState<ReportTab>("summary");
   const [balanceYear, setBalanceYear] = useState(new Date().getFullYear());
 
-  const selectedDate = new Date(dates.from);
-  const year = selectedDate.getFullYear();
-  const month = selectedDate.getMonth() + 1;
+  const selectedDays = (() => {
+    const from = new Date(`${dates.from}T00:00:00`);
+    const to = new Date(`${dates.to}T00:00:00`);
+    if (Number.isNaN(from.valueOf()) || Number.isNaN(to.valueOf()) || to < from)
+      return 0;
+    return Math.floor((to.valueOf() - from.valueOf()) / 86_400_000) + 1;
+  })();
 
   const rangeQuery = trpc.attendance.rangeReport.useQuery({
     from: dates.from,
@@ -109,21 +113,20 @@ export default function Reports({ department }: { department?: string }) {
     win.print();
   };
 
-  const data: any[] = rangeQuery.data ?? [];
   const perms: any[] = (permQuery.data as any[]) ?? [];
   const balances: any[] = (balanceQuery.data as any[]) ?? [];
+  const data: any[] = rangeQuery.data ?? [];
 
-  // Build a permission lookup: empCd → { totalInMins, totalOutMins }
   const permByEmp = new Map<string, { inMins: number; outMins: number }>();
-  for (const p of perms) {
-    permByEmp.set(p.empCd, {
-      inMins: p.totalInMins ?? 0,
-      outMins: p.totalOutMins ?? 0,
+  for (const permission of perms) {
+    permByEmp.set(permission.empCd, {
+      inMins: permission.totalInMins ?? 0,
+      outMins: permission.totalOutMins ?? 0,
     });
   }
 
   const summaryData = data.map((r: any) => {
-    const perm = permByEmp.get(r.empCd);
+    const permission = permByEmp.get(r.empCd);
     return {
       كود: r.empCd,
       الاسم: r.empName ?? "-",
@@ -134,13 +137,13 @@ export default function Reports({ department }: { department?: string }) {
       "تأخير (د)": r.totalLateMins,
       "مبكر (د)": r.totalEarlyMins,
       "إضافي (د)": r.totalOTMins,
-      "إذن دخول (د)": perm?.inMins ?? 0,
-      "إذن خروج (د)": perm?.outMins ?? 0,
+      "إذن دخول (د)": permission?.inMins ?? 0,
+      "إذن خروج (د)": permission?.outMins ?? 0,
     };
   });
 
   const monthlyData = data.map((r: any) => {
-    const perm = permByEmp.get(r.empCd);
+    const permission = permByEmp.get(r.empCd);
     return {
       كود: r.empCd,
       الاسم: r.empName ?? "-",
@@ -150,8 +153,8 @@ export default function Reports({ department }: { department?: string }) {
       "تأخير (د)": r.totalLateMins,
       "مبكر (د)": r.totalEarlyMins,
       "إضافي (د)": r.totalOTMins,
-      "إذن دخول (د)": perm?.inMins ?? 0,
-      "إذن خروج (د)": perm?.outMins ?? 0,
+      "إذن دخول (د)": permission?.inMins ?? 0,
+      "إذن خروج (د)": permission?.outMins ?? 0,
     };
   });
 
@@ -242,7 +245,7 @@ export default function Reports({ department }: { department?: string }) {
   };
 
   const tabs: { key: ReportTab; label: string }[] = [
-    { key: "monthly", label: "التقرير الشهري" },
+    { key: "monthly", label: "تقرير الفترة" },
     { key: "summary", label: "الملخص" },
     { key: "late", label: "التأخير" },
     { key: "absent", label: "الغياب" },
@@ -275,16 +278,15 @@ export default function Reports({ department }: { department?: string }) {
   const isLoading =
     activeTab === "leaves"
       ? balanceQuery.isLoading
-      : rangeQuery.isLoading ||
-        (activeTab === "permissions" || activeTab === "monthly"
-          ? permQuery.isLoading
-          : false);
+      : activeTab === "permissions"
+        ? permQuery.isLoading
+        : rangeQuery.isLoading;
 
   const activeLabel = tabs.find((t) => t.key === activeTab)?.label ?? "";
   const summaryCards = [
     {
       label: "أيام الحضور",
-      value: summaryData.reduce((sum, row) => sum + Number(row.أيام ?? 0), 0),
+      value: summaryData.reduce((sum, row) => sum + Number(row.حاضر ?? 0), 0),
       tone: "primary",
     },
     {
@@ -405,8 +407,8 @@ export default function Reports({ department }: { department?: string }) {
             )}
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            الشهر المحدد للأذونات والتقرير الشهري: {year}/
-            {String(month).padStart(2, "0")}
+            الفترة المختارة: من {dates.from} إلى {dates.to}
+            {selectedDays > 0 ? ` (${selectedDays} يوم)` : ""}
           </p>
         </CardContent>
       </Card>

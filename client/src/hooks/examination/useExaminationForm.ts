@@ -43,6 +43,24 @@ const normalizeMappingCode = (value: unknown): string => {
   return compact;
 };
 
+const formatDateForInput = (dateInput: unknown): string => {
+  try {
+    if (!dateInput) return "";
+    if (dateInput instanceof Date) {
+      const yyyy = dateInput.getUTCFullYear();
+      const mm = String(dateInput.getUTCMonth() + 1).padStart(2, "0");
+      const dd = String(dateInput.getUTCDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+    const match = String(dateInput)
+      .trim()
+      .match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return match ? `${match[1]}-${match[2]}-${match[3]}` : "";
+  } catch {
+    return "";
+  }
+};
+
 export const normalizeDoctorTypeToSheet = (
   value: unknown,
 ): "consultant" | "specialist" | "external" | "" => {
@@ -150,6 +168,19 @@ export function useExaminationForm(
     { patientId: patientInfo.id ?? 0 },
     { enabled: Boolean(patientInfo.id), refetchOnWindowFocus: false },
   );
+  const visitsQuery = trpc.medical.getVisitsByPatient.useQuery(
+    { patientId: patientInfo.id ?? 0 },
+    { enabled: Boolean(patientInfo.id), refetchOnWindowFocus: false },
+  );
+  const registrationVisitDate = useMemo(() => {
+    const visits = Array.isArray(visitsQuery.data)
+      ? (visitsQuery.data as Array<{ visitDate?: unknown }>)
+      : [];
+    return visits
+      .map((visit) => formatDateForInput(visit.visitDate))
+      .filter(Boolean)
+      .sort()[0] ?? "";
+  }, [visitsQuery.data]);
   const latestExaminationId = useMemo(() => {
     const rows = Array.isArray(examinationsQuery.data)
       ? (examinationsQuery.data as Array<{ id?: number }>)
@@ -364,8 +395,6 @@ export function useExaminationForm(
   });
 
   const saveExamMutation = trpc.medical.saveExaminationForm.useMutation();
-  const linkPatientServiceToMssqlMutation =
-    trpc.medical.linkPatientServiceToMssql.useMutation();
   const linkMultipleServicesToMssqlMutation =
     trpc.medical.linkMultipleServicesToMssql.useMutation();
   const createPatientFromExamMutation =
@@ -756,27 +785,6 @@ export function useExaminationForm(
       code: data.patientCode ?? prev.code,
     }));
 
-    const formatDateForInput = (dateInput: any): string => {
-      try {
-        if (!dateInput) return "";
-        if (dateInput instanceof Date) {
-          const yyyy = dateInput.getUTCFullYear();
-          const mm = String(dateInput.getUTCMonth() + 1).padStart(2, "0");
-          const dd = String(dateInput.getUTCDate()).padStart(2, "0");
-          return `${yyyy}-${mm}-${dd}`;
-        }
-        const str = String(dateInput).trim();
-        const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
-        if (isoMatch) {
-          const [, yyyy, mm, dd] = isoMatch;
-          return `${yyyy}-${mm}-${dd}`;
-        }
-        return "";
-      } catch {
-        return "";
-      }
-    };
-
     const formattedDOB = formatDateForInput(data.dateOfBirth);
     setPatientDetails({
       dateOfBirth: formattedDOB,
@@ -792,8 +800,15 @@ export function useExaminationForm(
     if (data.locationType) {
       setLocationType(data.locationType === "external" ? "external" : "center");
     }
-    setVisitDate(localISODate());
   }, [patientQuery.data]);
+
+  const initializedVisitDatePatientRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!patientInfo.id || !registrationVisitDate) return;
+    if (initializedVisitDatePatientRef.current === patientInfo.id) return;
+    setVisitDate(registrationVisitDate);
+    initializedVisitDatePatientRef.current = patientInfo.id;
+  }, [registrationVisitDate, patientInfo.id]);
 
   // DOB -> age sync
   useEffect(() => {
@@ -852,8 +867,7 @@ export function useExaminationForm(
     try {
       const data = JSON.parse(raw);
       if (data.sheetSelection) setSheetSelection(data.sheetSelection);
-      // Only restore visitDate if it's today or future — never a past date
-      if (data.visitDate && data.visitDate >= localISODate())
+      if (!registrationVisitDate && data.visitDate)
         setVisitDate(data.visitDate);
       if (typeof data.isFollowup === "boolean") {
         setIsFollowup(data.isFollowup);
@@ -861,7 +875,7 @@ export function useExaminationForm(
     } catch {
       // ignore bad cache
     }
-  }, [patientInfo.id]);
+  }, [patientInfo.id, registrationVisitDate]);
 
   // Reset hydration flag on patient change
   useEffect(() => {
@@ -874,13 +888,13 @@ export function useExaminationForm(
     if (!data) return;
     if (hydratedPatientStateRef.current === patientInfo.id) return;
     if (data.sheetSelection) setSheetSelection(data.sheetSelection);
-    if (data.visitDate && data.visitDate >= localISODate())
+    if (!registrationVisitDate && data.visitDate)
       setVisitDate(data.visitDate);
     if (typeof data.isFollowup === "boolean") {
       setIsFollowup(data.isFollowup);
     }
     hydratedPatientStateRef.current = patientInfo.id;
-  }, [patientStateQuery.data, patientInfo.id]);
+  }, [patientStateQuery.data, patientInfo.id, registrationVisitDate]);
 
   useEffect(() => {
     const row = examinationChecklistQuery.data as
@@ -1303,6 +1317,19 @@ export function useExaminationForm(
     setLoading(true);
     try {
       let effectivePatientId = patientInfo.id;
+      const editingExistingPatient = Boolean(effectivePatientId);
+      const doctorCode = selectedDoctorEntry
+        ? String((selectedDoctorEntry as any)?.code ?? "").trim()
+        : "";
+      const validServices = services
+        .filter((s) => s.code.trim())
+        .map((s) => ({
+          code: s.code.trim(),
+          qty: Number(s.qty) || 1,
+          price: s.price ?? 0,
+          discount: s.discount ?? 0,
+        }));
+
       if (!effectivePatientId) {
         if (!canEditPatientData) {
           toast.error("Please search and select an existing patient.");
@@ -1312,21 +1339,9 @@ export function useExaminationForm(
           toast.error("يرجى إدخال اسم المريض");
           return;
         }
-        const doctorCode = selectedDoctorEntry
-          ? String((selectedDoctorEntry as any)?.code ?? "").trim()
-          : "";
         console.log(
           `[ExaminationForm] Creating patient with doctor code: "${doctorCode}"`,
         );
-
-        const validServices = services
-          .filter((s) => s.code.trim())
-          .map((s) => ({
-            code: s.code.trim(),
-            qty: Number(s.qty) || 1,
-            price: s.price ?? 0,
-            discount: s.discount ?? 0,
-          }));
 
         const created = await createPatientFromExamMutation.mutateAsync({
           patientCode: patientInfo.code || undefined,
@@ -1363,89 +1378,35 @@ export function useExaminationForm(
           });
         }
       } else {
-        // Existing patient — push to MSSQL (new receipt) + create today's visit
-        let receiptPushFailed = false;
-        await createPatientFromExamMutation
-          .mutateAsync({
-            patientCode: patientInfo.code || undefined,
-            fullName: patientInfo.name.trim(),
-            dateOfBirth: patientDetails.dateOfBirth || undefined,
-            age: patientDetails.age ? Number(patientDetails.age) : undefined,
-            phone: patientDetails.phone || undefined,
-            alternatePhone: patientDetails.alternatePhone || undefined,
-            email: patientDetails.email || undefined,
-            address: patientDetails.address || undefined,
-            occupation: patientDetails.job || undefined,
-            gender: (patientDetails.gender || undefined) as
-              "male" | "female" | undefined,
-            serviceType: (sheetSelection as any) || "consultant",
-            locationType,
-            visitDate: localISODate(),
-            ...(shiftNumber ? { shiftNumber } : {}),
-            medicalHistory: patientMedicalHistory,
-          })
-          .catch((err) => {
-            console.warn(
-              "[ExaminationForm] existing patient MSSQL push failed:",
-              err,
-            );
-            receiptPushFailed = true;
-            toast.error(
-              `فشل إنشاء الإيصال في MSSQL: ${getTrpcErrorMessage(err, "خطأ غير معروف")}`,
-              { duration: 15000 },
-            );
-          });
-
-        // Link additional services — skipped entirely if the receipt itself
-        // failed to create above: attaching services would either fail too
-        // or silently attach to a stale prior receipt instead of a new one.
-        const failedServiceLinks: { code: string; message: string }[] = [];
-        const servicesToLink = receiptPushFailed ? [] : services;
-        if (receiptPushFailed && services.some((s) => s.code.trim())) {
+        // Existing patient: preserve the visit date of the examination being edited.
+        const updated = await createPatientFromExamMutation.mutateAsync({
+          patientCode: patientInfo.code || undefined,
+          fullName: patientInfo.name.trim(),
+          dateOfBirth: patientDetails.dateOfBirth || undefined,
+          age: patientDetails.age ? Number(patientDetails.age) : undefined,
+          phone: patientDetails.phone || undefined,
+          alternatePhone: patientDetails.alternatePhone || undefined,
+          email: patientDetails.email || undefined,
+          address: patientDetails.address || undefined,
+          occupation: patientDetails.job || undefined,
+          gender: (patientDetails.gender || undefined) as
+            "male" | "female" | undefined,
+          serviceType: (sheetSelection as any) || "consultant",
+          locationType,
+          visitDate: registrationVisitDate || visitDate || localISODate(),
+          ...(doctorCode ? { doctorCode } : {}),
+          ...(validServices.length > 0 ? { services: validServices } : {}),
+          ...(shiftNumber ? { shiftNumber } : {}),
+          medicalHistory: patientMedicalHistory,
+        });
+        const existingPatientMssqlWarnings = (updated as any)?.mssqlWarnings as
+          string[] | undefined;
+        if (
+          existingPatientMssqlWarnings &&
+          existingPatientMssqlWarnings.length > 0
+        ) {
           toast.error(
-            "لم تتم إضافة الخدمات لأن إنشاء الإيصال فشل — أعد المحاولة",
-            { duration: 15000 },
-          );
-        }
-        for (const srv of servicesToLink) {
-          if (srv.code.trim()) {
-            try {
-              const doctorCode = selectedDoctorEntry
-                ? String((selectedDoctorEntry as any)?.code ?? "").trim()
-                : "";
-              await linkPatientServiceToMssqlMutation.mutateAsync({
-                patientId: effectivePatientId,
-                serviceCode: srv.code,
-                quantity: Number(srv.qty) || 1,
-                doctorCode: doctorCode || undefined,
-                doctorName:
-                  String(
-                    (selectedDoctorEntry as any)?.name ?? doctorName ?? "",
-                  ).trim() || undefined,
-                servicePrice:
-                  Number(srv.price) > 0 ? Number(srv.price) : undefined,
-                discountValue:
-                  Number(srv.discount) > 0 ? Number(srv.discount) : undefined,
-              });
-            } catch (err) {
-              console.warn(`Failed to link service ${srv.code}:`, err);
-              failedServiceLinks.push({
-                code: srv.code,
-                message: getTrpcErrorMessage(err, "خطأ غير معروف"),
-              });
-            }
-          }
-        }
-        // This used to fail silently (console.warn only) — the exam save
-        // would report success even when every service failed to reach
-        // MSSQL, leaving PAPAT_SRV with no row and no visible sign anything
-        // was wrong. Surface it so staff know to retry/report it.
-        if (failedServiceLinks.length > 0) {
-          toast.error(
-            `فشلت إضافة ${failedServiceLinks.length === 1 ? "خدمة" : "بعض الخدمات"} في MSSQL: ` +
-              failedServiceLinks
-                .map((f) => `${f.code} (${f.message})`)
-                .join("، "),
+            `مشاكل في MSSQL: ${existingPatientMssqlWarnings.join("، ")}`,
             { duration: 15000 },
           );
         }
@@ -1527,7 +1488,9 @@ export function useExaminationForm(
 
       const savedExam = await saveExamMutation.mutateAsync({
         patientId: effectivePatientId,
-        visitDate: visitDate || localISODate(),
+        visitDate: editingExistingPatient
+          ? registrationVisitDate || visitDate || localISODate()
+          : visitDate || localISODate(),
         visitType: isFollowup ? "followup" : "examination",
         data: payload,
       });
