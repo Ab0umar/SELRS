@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const dir = 'D:/C/SRV100_Acc/client/src/features/kf';
+const dir = path.resolve(__dirname, '../client/src/features/kf');
 const files = fs.readdirSync(dir).filter(f => f.endsWith('.tsx') && f !== 'KfShell.tsx');
 
 files.forEach(file => {

@@ -119,7 +119,7 @@ FLUSH PRIVILEGES;
 
 ```bash
 # From project directory
-cd D:\C\SRV100_Acc
+cd E:\selrs.cc
 
 # Run migrations (if using migration system)
 npx drizzle-kit migrate

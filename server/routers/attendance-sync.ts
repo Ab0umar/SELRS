@@ -553,7 +553,8 @@ export const attendanceSyncRoutes = {
       const port = input.port || settings.port || 5005;
 
       const pullerPath =
-        process.env.FK_USER_PULLER_PATH ?? "D:\\Programs\\fp\\FKUserPuller.exe";
+        process.env.FK_USER_PULLER_PATH ??
+        "E:\\selrs.cc\\scripts\\FKUserPuller.exe";
       const tempFile = path.join(os.tmpdir(), `fk_users_${Date.now()}.csv`);
 
       try {

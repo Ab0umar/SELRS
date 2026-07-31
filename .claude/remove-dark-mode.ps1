@@ -1,7 +1,7 @@
 # Remove all dark: classes - design explicitly mandates light-only theme
 # DESIGN.md: "Light theme always." Clinic staff work in bright offices, OR needs light for visibility
 
-$srcDir = "D:\C\SRV100_Acc\client\src"
+$srcDir = Join-Path (Split-Path -Parent $PSScriptRoot) "client\src"
 $files = Get-ChildItem -Path $srcDir -Recurse -Filter "*.tsx" -File
 
 $totalReplacements = 0

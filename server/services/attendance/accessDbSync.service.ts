@@ -26,7 +26,7 @@ export class AccessDbSyncService {
 
   constructor(accessDbPath?: string) {
     // Default to known Taratus location
-    this.accessDbPath = accessDbPath || "D:\\Taurus V3.0\\Taurus.mdb";
+    this.accessDbPath = accessDbPath || "E:\\Taurus V3.0\\Taurus.mdb";
   }
 
   /**

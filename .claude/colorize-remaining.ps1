@@ -1,7 +1,7 @@
 # Colorize remaining 54 hardcoded Tailwind colors to design tokens
 # Pattern: replace hardcoded Tailwind colors with semantic tokens
 
-$srcDir = "D:\C\SRV100_Acc\client\src"
+$srcDir = Join-Path (Split-Path -Parent $PSScriptRoot) "client\src"
 $files = Get-ChildItem -Path $srcDir -Recurse -Filter "*.tsx" -File
 
 $totalReplacements = 0

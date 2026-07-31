@@ -3,7 +3,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-Set-Location "D:\c\srv100_acc\desktop-electron"
+Set-Location $PSScriptRoot
 
 $env:SELRS_DESKTOP_URL = $Url
 
@@ -13,4 +13,4 @@ if (!(Test-Path ".\node_modules")) {
 
 pnpm run dist
 
-Write-Host "Installer created in D:\c\srv100_acc\desktop-electron" -ForegroundColor Green
+Write-Host "Installer created in $PSScriptRoot" -ForegroundColor Green

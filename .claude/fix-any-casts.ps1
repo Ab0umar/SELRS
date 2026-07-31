@@ -2,7 +2,7 @@
 # Pattern: (as any)?. → direct property access (relies on user being properly typed)
 # This is safe because the useAuth hook ensures user is either null or a proper User object
 
-$srcDir = "D:\C\SRV100_Acc\client\src"
+$srcDir = Join-Path (Split-Path -Parent $PSScriptRoot) "client\src"
 $files = Get-ChildItem -Path $srcDir -Recurse -Filter "*.ts*" -File
 
 $totalReplacements = 0

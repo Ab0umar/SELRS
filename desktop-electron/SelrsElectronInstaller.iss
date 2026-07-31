@@ -2,9 +2,9 @@
 #define AppVersion "1.0.50"
 #define AppPublisher "SELRS"
 #define AppExeName "SELRS.exe"
-#define BuildDir "D:\c\srv100_acc\desktop-electron\dist\win-unpacked"
-#define OutputDir "D:\c\srv100_acc\desktop-electron\dist"
-#define AppIcon "D:\c\srv100_acc\desktop-electron\assets\app.ico"
+#define BuildDir "E:\selrs.cc\desktop-electron\dist\win-unpacked"
+#define OutputDir "E:\selrs.cc\desktop-electron\dist"
+#define AppIcon "E:\selrs.cc\desktop-electron\assets\app.ico"
 
 [Setup]
 AppId={{E9A3061F-A9E9-4D08-9D1D-36D6625D0C9A}

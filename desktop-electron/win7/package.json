@@ -15,7 +15,7 @@
                   "appId":  "cc.selrs.electron.win7",
                   "productName":  "SELRS",
                   "directories":  {
-                                      "output":  "D:\\c\\srv100_acc\\desktop-electron"
+                                      "output":  "E:\\selrs.cc\\desktop-electron"
                                   },
                   "files":  [
                                 "main.js",

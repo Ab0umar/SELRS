@@ -1,5 +1,5 @@
 param(
-      [string]$ServiceName = "SRV100_Acc",
+      [string]$ServiceName = "SRV100",
       [switch]$SkipBuild
   )
 

@@ -4,7 +4,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$root = "D:\c\srv100_acc"
+$root = Split-Path -Parent $PSScriptRoot
 
 # ── 1. Build frontend ─────────────────────────────────────────────────────────
 if (-not $SkipFrontendBuild) {

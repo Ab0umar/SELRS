@@ -12,7 +12,7 @@ module.exports = {
     },
     {
       name: "SELRS.cc",
-      cwd: "E:\\SELRS.cc\\MySQL",
+      cwd: "E:\\selrs.cc",
       script: "cmd.exe",
       args: "/c pnpm start",
       interpreter: "none",

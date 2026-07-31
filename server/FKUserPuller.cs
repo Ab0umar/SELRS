@@ -45,11 +45,11 @@ internal sealed class Program
         // try common MDB locations if not specified
         string mdbArg   = GetArg(args, "--mdb",  "");
         string[] mdbCandidates = string.IsNullOrEmpty(mdbArg)
-            ? new[] { @"D:\Programs\fp\Taurus.mdb", @"C:\Programs\fp\Taurus.mdb", @"E:\Programs\fp\Taurus.mdb" }
+            ? new[] { @"E:\Taurus V3.0\Taurus.mdb", @"D:\Programs\fp\Taurus.mdb", @"C:\Programs\fp\Taurus.mdb", @"E:\Programs\fp\Taurus.mdb" }
             : new[] { mdbArg };
         string mdbPath = "";
         foreach (var c in mdbCandidates) { if (File.Exists(c)) { mdbPath = c; break; } }
-        string outPath  = GetArg(args, "--out",  @"D:\users.csv");
+        string outPath  = GetArg(args, "--out", Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "users.csv"));
 
         var dir = Path.GetDirectoryName(Path.GetFullPath(outPath));
         if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);

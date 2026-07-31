@@ -1,7 +1,7 @@
 # Auto-sync version from root package.json to desktop-electron package.json
 param(
-  [string]$RootPackageJsonPath = "D:\c\srv100_acc\package.json",
-  [string]$DesktopPackageJsonPath = "D:\c\srv100_acc\desktop-electron\package.json"
+  [string]$RootPackageJsonPath = (Join-Path (Split-Path -Parent $PSScriptRoot) "package.json"),
+  [string]$DesktopPackageJsonPath = (Join-Path $PSScriptRoot "package.json")
 )
 
 $ErrorActionPreference = "Stop"

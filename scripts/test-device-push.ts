@@ -102,7 +102,7 @@ async function main() {
         `3. If still no data, run PowerShell listener for comparison:`,
       );
       console.log(
-        `   powershell -File "D:\\Taurus V3.0\\listen_device_push.ps1" -Port 7005\n`,
+        `   powershell -File "E:\\Taurus V3.0\\listen_device_push.ps1" -Port 7005\n`,
       );
     } else {
       console.log(`✓ Test successful!`);

@@ -32,7 +32,7 @@ finally {
 $packageJsonPath = Join-Path $desktopElectronDir "package.json"
 $packageJson = Get-Content -Raw $packageJsonPath | ConvertFrom-Json
 $version = $packageJson.version
-$outputPath = "D:\c\srv100_acc\desktop-electron\SELRS-Electron-Setup-$version.exe"
+$outputPath = Join-Path $desktopElectronDir "SELRS-Electron-Setup-$version.exe"
 Write-Host ""
 Write-Host "=============================================" -ForegroundColor Green
 Write-Host "[OK] Build Complete!" -ForegroundColor Green

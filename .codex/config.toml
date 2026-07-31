@@ -68,13 +68,13 @@ trust_level = "trusted"
 [projects.'d:\codex.selrs.cc']
 trust_level = "trusted"
 
-[projects.'d:\srv100']
+[projects.'e:\selrs.cc']
 trust_level = "trusted"
 
-[projects.'d:\c\srv100']
+[projects.'e:\selrs.cc']
 trust_level = "trusted"
 
-[projects.'d:\c\srv100_acc']
+[projects.'e:\selrs.cc']
 trust_level = "trusted"
 
 [projects.'c:\']
@@ -131,7 +131,7 @@ enabled = true
 memories = true
 
 [[skills.config]]
-path = 'D:\selrs.cc\.agents\skills\speckit-taskstoissues\SKILL.md'
+path = 'E:\selrs.cc\.agents\skills\speckit-taskstoissues\SKILL.md'
 enabled = false
 
 [mcp_servers.socraticode]

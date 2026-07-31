@@ -1,7 +1,7 @@
 param(
-  [string]$NssmPath = "C:\Users\A\AppData\Local\Microsoft\WinGet\Links\nssm.exe",
-  [string]$WebPnpm = "C:\Users\A\AppData\Roaming\npm\pnpm.cmd",
-  [string]$WebDir = "D:\SRV100_Acc"
+  [string]$NssmPath = "C:\ProgramData\chocolatey\bin\nssm.exe",
+  [string]$WebPnpm = "C:\Users\SELRS\AppData\Local\pnpm\bin\pnpm.CMD",
+  [string]$WebDir = (Split-Path -Parent $PSScriptRoot)
   )
 
 $ErrorActionPreference = "Stop"

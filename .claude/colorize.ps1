@@ -38,7 +38,7 @@ $patterns = @(
   @{ old = 'border-zinc-200'; new = 'border-border' }
 )
 
-$srcDir = "D:\C\SRV100_Acc\client\src"
+$srcDir = Join-Path (Split-Path -Parent $PSScriptRoot) "client\src"
 $files = Get-ChildItem -Path $srcDir -Recurse -Filter "*.tsx" -File
 
 $totalReplacements = 0

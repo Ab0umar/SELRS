@@ -1,4 +1,4 @@
-param([string]$DbPath = "C:\Users\drels\OneDrive\SELRS\الخزنه.accdb")
+param([string]$DbPath = "C:\Users\SELRS\OneDrive\Documents\SELRS\الخزنه.accdb")
 
 $cs = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=$DbPath;Persist Security Info=False;"
 
