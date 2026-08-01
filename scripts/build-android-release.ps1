@@ -14,8 +14,9 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $packageJsonPath = Join-Path $repoRoot "package.json"
 $androidDir = Join-Path $repoRoot "android"
 
-# المسار الافتراضي للنسخ (OneDrive)
-$defaultDestination = "C:\Users\drels\OneDrive\SELRS.cc"
+# المسار الافتراضي للنسخ داخل OneDrive الخاص بالمستخدم الحالي
+$localOneDrive = if ($env:OneDrive) { $env:OneDrive } else { Join-Path $env:USERPROFILE "OneDrive" }
+$defaultDestination = Join-Path $localOneDrive "SELRS.cc"
 $resolvedDestDir = if ($ApkOutputDir) { $ApkOutputDir } else { $defaultDestination }
 
 $maxAndroidVersionCode = 2100000000

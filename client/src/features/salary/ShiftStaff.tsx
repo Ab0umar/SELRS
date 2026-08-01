@@ -1,7 +1,16 @@
 ﻿import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Check, X, RefreshCw, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Check,
+  X,
+  RefreshCw,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { toast } from "sonner";
 
 const TYPE_LABEL: Record<string, string> = { doctor: "طبيب", tech: "فني" };
@@ -22,6 +31,7 @@ interface StaffForm {
   type: "doctor" | "tech";
   ratePerShift: string;
   rateSmallShift: string;
+  mainShiftHours: string;
   active: boolean;
   empCd: string;
   userId: number | null;
@@ -31,6 +41,7 @@ const EMPTY: StaffForm = {
   type: "doctor",
   ratePerShift: "",
   rateSmallShift: "",
+  mainShiftHours: "6",
   active: true,
   empCd: "",
   userId: null,
@@ -124,7 +135,9 @@ function CycleEditor({
             const isFri = dow === 5;
             const shifts = dayShifts.get(dow) ?? new Set<string>();
             const hasAny = shifts.size > 0;
-            const availableToAdd = shiftDefs.filter((sd) => !shifts.has(sd.name));
+            const availableToAdd = shiftDefs.filter(
+              (sd) => !shifts.has(sd.name),
+            );
 
             function removeShift(shiftName: string) {
               setDayShifts((prev) => {
@@ -159,7 +172,9 @@ function CycleEditor({
                       : "border-border bg-background"
                 }`}
               >
-                <span className="text-center text-[11px] font-bold">{name}</span>
+                <span className="text-center text-[11px] font-bold">
+                  {name}
+                </span>
                 {!isFri && (
                   <>
                     <div className="flex flex-1 flex-col gap-1 overflow-y-auto">
@@ -209,7 +224,8 @@ function CycleEditor({
       </div>
 
       <p className="text-[10px] text-muted-foreground/80">
-        اختياري — اتركه فارغًا إذا يتم إضافة الطبيب في الروستر وإدخال المرتب يدويًا في الشفتات.
+        اختياري — اتركه فارغًا إذا يتم إضافة الطبيب في الروستر وإدخال المرتب
+        يدويًا في الشفتات.
       </p>
 
       <div className="flex gap-2 pt-1">
@@ -219,7 +235,11 @@ function CycleEditor({
           disabled={saveMut.isPending}
           className="flex-1 rounded-lg border border-primary bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
         >
-          {saveMut.isPending ? "جاري الحفظ…" : totalAssignments === 0 ? "حفظ (بدون جدول)" : "حفظ"}
+          {saveMut.isPending
+            ? "جاري الحفظ…"
+            : totalAssignments === 0
+              ? "حفظ (بدون جدول)"
+              : "حفظ"}
         </button>
       </div>
 
@@ -244,13 +264,15 @@ function CycleEditor({
             onChange={(e) => setResetYear(Number(e.target.value))}
             className="rounded border border-input bg-background px-1.5 py-1 text-[10px]"
           >
-            {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map(
-              (y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ),
-            )}
+            {[
+              now.getFullYear() - 1,
+              now.getFullYear(),
+              now.getFullYear() + 1,
+            ].map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
           </select>
           <button
             type="button"
@@ -270,7 +292,9 @@ function CycleEditor({
             }}
             className="rounded border border-destructive bg-background px-2 py-1 text-[10px] font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
           >
-            {clearGeneratedMut.isPending ? "جاري المسح…" : "مسح الشفتات المولّدة"}
+            {clearGeneratedMut.isPending
+              ? "جاري المسح…"
+              : "مسح الشفتات المولّدة"}
           </button>
         </div>
       </div>
@@ -337,6 +361,9 @@ export default function ShiftStaff() {
       type: addForm.type,
       ratePerShift: rate,
       rateSmallShift: parseFloat(addForm.rateSmallShift) || 0,
+      mainShiftMinutes: Math.round(
+        (parseFloat(addForm.mainShiftHours) || 6) * 60,
+      ),
       empCd: addForm.empCd || undefined,
     });
   }
@@ -349,6 +376,7 @@ export default function ShiftStaff() {
       type: s.type,
       ratePerShift: String(s.ratePerShift),
       rateSmallShift: String(s.rateSmallShift ?? ""),
+      mainShiftHours: String(Number(s.mainShiftMinutes ?? 360) / 60),
       active: s.active,
       empCd: s.empCd ?? "",
       userId: s.userId ?? null,
@@ -367,6 +395,9 @@ export default function ShiftStaff() {
       type: editForm.type,
       ratePerShift: rate,
       rateSmallShift: parseFloat(editForm.rateSmallShift) || 0,
+      mainShiftMinutes: Math.round(
+        (parseFloat(editForm.mainShiftHours) || 6) * 60,
+      ),
       active: editForm.active,
       empCd: editForm.empCd || undefined,
       userId: editForm.userId,
@@ -608,20 +639,31 @@ export default function ShiftStaff() {
 
     if (isEditing) {
       return (
-        <div key={s.id} className="p-4 bg-card hover:bg-muted/20 transition-colors space-y-3">
+        <div
+          key={s.id}
+          className="p-4 bg-card hover:bg-muted/20 transition-colors space-y-3"
+        >
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-foreground">الاسم</label>
+            <label className="block text-xs font-bold text-foreground">
+              الاسم
+            </label>
             <input
               value={editForm.name}
-              onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+              onChange={(e) =>
+                setEditForm({ ...editForm, name: e.target.value })
+              }
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none"
             />
           </div>
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-foreground">النوع</label>
+            <label className="block text-xs font-bold text-foreground">
+              النوع
+            </label>
             <select
               value={editForm.type}
-              onChange={(e) => setEditForm({ ...editForm, type: e.target.value as any })}
+              onChange={(e) =>
+                setEditForm({ ...editForm, type: e.target.value as any })
+              }
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none"
             >
               <option value="doctor">طبيب</option>
@@ -629,32 +671,44 @@ export default function ShiftStaff() {
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-foreground">شفت كبير (ج.م)</label>
+            <label className="block text-xs font-bold text-foreground">
+              شفت كبير (ج.م)
+            </label>
             <input
               type="number"
               min={0}
               step="0.01"
               value={editForm.ratePerShift}
-              onChange={(e) => setEditForm({ ...editForm, ratePerShift: e.target.value })}
+              onChange={(e) =>
+                setEditForm({ ...editForm, ratePerShift: e.target.value })
+              }
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none"
             />
           </div>
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-foreground">شفت صغير (ج.م)</label>
+            <label className="block text-xs font-bold text-foreground">
+              شفت صغير (ج.م)
+            </label>
             <input
               type="number"
               min={0}
               step="0.01"
               value={editForm.rateSmallShift}
-              onChange={(e) => setEditForm({ ...editForm, rateSmallShift: e.target.value })}
+              onChange={(e) =>
+                setEditForm({ ...editForm, rateSmallShift: e.target.value })
+              }
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none"
             />
           </div>
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-foreground">ربط الحضور</label>
+            <label className="block text-xs font-bold text-foreground">
+              ربط الحضور
+            </label>
             <select
               value={editForm.empCd}
-              onChange={(e) => setEditForm({ ...editForm, empCd: e.target.value })}
+              onChange={(e) =>
+                setEditForm({ ...editForm, empCd: e.target.value })
+              }
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none"
             >
               <option value="">Manual</option>
@@ -666,7 +720,9 @@ export default function ShiftStaff() {
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-foreground">حساب المستخدم</label>
+            <label className="block text-xs font-bold text-foreground">
+              حساب المستخدم
+            </label>
             <select
               value={editForm.userId ?? ""}
               onChange={(e) =>
@@ -690,10 +746,15 @@ export default function ShiftStaff() {
               type="checkbox"
               id={`edit-active-${s.id}`}
               checked={editForm.active}
-              onChange={(e) => setEditForm({ ...editForm, active: e.target.checked })}
+              onChange={(e) =>
+                setEditForm({ ...editForm, active: e.target.checked })
+              }
               className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
             />
-            <label htmlFor={`edit-active-${s.id}`} className="text-xs font-bold text-foreground">
+            <label
+              htmlFor={`edit-active-${s.id}`}
+              className="text-xs font-bold text-foreground"
+            >
               نشط ومتاح في الشفتات
             </label>
           </div>
@@ -723,24 +784,30 @@ export default function ShiftStaff() {
     }
 
     return (
-      <div key={s.id} className={`p-4 bg-card hover:bg-muted/20 transition-colors ${!s.active ? "opacity-50" : ""}`}>
+      <div
+        key={s.id}
+        className={`p-4 bg-card hover:bg-muted/20 transition-colors ${!s.active ? "opacity-50" : ""}`}
+      >
         <div
           className="flex items-center justify-between cursor-pointer"
           onClick={() => toggleRow(s.id)}
         >
           <div className="space-y-1">
-            <div className="font-bold text-sm text-foreground">
-              {s.name}
-            </div>
+            <div className="font-bold text-sm text-foreground">{s.name}</div>
             <div className="text-xs text-muted-foreground">
               النوع: {TYPE_LABEL[s.type]}
             </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="text-left">
-              <div className="text-[10px] font-bold text-muted-foreground uppercase">قيمة الشفت</div>
+              <div className="text-[10px] font-bold text-muted-foreground uppercase">
+                قيمة الشفت
+              </div>
               <div className="text-sm font-semibold text-foreground tabular-nums">
-                {Number(s.ratePerShift).toLocaleString("en-EG", { minimumFractionDigits: 2 })} EGP
+                {Number(s.ratePerShift).toLocaleString("en-EG", {
+                  minimumFractionDigits: 2,
+                })}{" "}
+                EGP
               </div>
             </div>
             {isExpanded ? (
@@ -758,9 +825,12 @@ export default function ShiftStaff() {
                 <span className="text-muted-foreground">ربط الحضور:</span>
                 <span className="font-semibold text-foreground">
                   {s.empCd ? (
-                    (employees.find((e: any) => e.empCd === s.empCd)?.fullName ?? s.empCd)
+                    (employees.find((e: any) => e.empCd === s.empCd)
+                      ?.fullName ?? s.empCd)
                   ) : (
-                    <span className="text-xs italic text-muted-foreground/50">Manual</span>
+                    <span className="text-xs italic text-muted-foreground/50">
+                      Manual
+                    </span>
                   )}
                 </span>
               </div>
@@ -768,9 +838,12 @@ export default function ShiftStaff() {
                 <span className="text-muted-foreground">حساب المستخدم:</span>
                 <span className="font-semibold text-foreground">
                   {s.userId ? (
-                    (usersList.find((u: any) => u.id === s.userId)?.name ?? `#${s.userId}`)
+                    (usersList.find((u: any) => u.id === s.userId)?.name ??
+                    `#${s.userId}`)
                   ) : (
-                    <span className="text-xs italic text-muted-foreground/50">—</span>
+                    <span className="text-xs italic text-muted-foreground/50">
+                      —
+                    </span>
                   )}
                 </span>
               </div>
@@ -840,7 +913,7 @@ export default function ShiftStaff() {
     return (
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-muted-foreground">{title}</h3>
-        
+
         {/* Desktop Table View */}
         <div className="hidden lg:block rounded-md border overflow-hidden">
           <table className="w-full text-sm" dir="rtl">
@@ -919,6 +992,20 @@ export default function ShiftStaff() {
                 ج.م
               </span>
             </div>
+            <label className="space-y-1 text-xs font-medium text-muted-foreground">
+              <span>مدة الشفت الأساسي بالساعات</span>
+              <input
+                type="number"
+                min={0.25}
+                max={24}
+                step={0.25}
+                value={addForm.mainShiftHours}
+                onChange={(e) =>
+                  setAddForm((f) => ({ ...f, mainShiftHours: e.target.value }))
+                }
+                className="w-36 rounded border border-input bg-background px-3 py-1.5 text-sm text-foreground"
+              />
+            </label>
             <div className="relative">
               <input
                 type="number"

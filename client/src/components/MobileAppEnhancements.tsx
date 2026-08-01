@@ -267,19 +267,26 @@ function NativeApkUpdateCheck({
             onClick: () => {
               void downloadAndInstallApk(
                 getApiUrl(`/updates/android/SELRS_${serverVersion}.apk`),
-              ).then((status) => {
-                if (status === "downloading") {
-                  toast.success("جاري تنزيل التحديث...", {
-                    description: "سيبدأ التثبيت تلقائيًا عند اكتمال التنزيل",
+              )
+                .then((status) => {
+                  if (status === "downloading") {
+                    toast.success("جاري تنزيل التحديث...", {
+                      description: "سيبدأ التثبيت تلقائيًا عند اكتمال التنزيل",
+                    });
+                  } else if (status === "needs_permission") {
+                    toast("يرجى السماح بتثبيت التطبيقات", {
+                      description:
+                        "فعّل خيار \"السماح من هذا المصدر\" ثم اضغط تنزيل مرة أخرى",
+                      duration: 10000,
+                    });
+                  }
+                })
+                .catch((error: unknown) => {
+                  console.error("Android APK update failed", error);
+                  toast.error("تعذر تنزيل تحديث التطبيق", {
+                    description: "تحقق من الاتصال ثم حاول مرة أخرى",
                   });
-                } else if (status === "needs_permission") {
-                  toast("يرجى السماح بتثبيت التطبيقات", {
-                    description:
-                      "فعّل خيار \"السماح من هذا المصدر\" ثم اضغط تنزيل مرة أخرى",
-                    duration: 10000,
-                  });
-                }
-              });
+                });
             },
           },
         });

@@ -1876,6 +1876,7 @@ export const salaryBasics = mysqlTable(
   {
     id: int("id").autoincrement().primaryKey(),
     empCd: varchar("emp_cd", { length: 32 }).notNull(),
+    section: varchar("section", { length: 32 }).default("مركز").notNull(),
     basicAmount: decimal("basic_amount", { precision: 12, scale: 2 }).notNull(),
     socialAllowance: decimal("social_allowance", { precision: 12, scale: 2 })
       .notNull()
@@ -1921,11 +1922,41 @@ export const salaryBasics = mysqlTable(
   },
   (table) => ({
     idxSalaryEmp: index("idx_salary_emp").on(table.empCd),
+    idxSalaryEmpSection: index("idx_salary_emp_section").on(
+      table.empCd,
+      table.section,
+    ),
   }),
 );
 
 export type SalaryBasic = typeof salaryBasics.$inferSelect;
 export type InsertSalaryBasic = typeof salaryBasics.$inferInsert;
+
+export const salaryEmployeeSectionSettings = mysqlTable(
+  "salary_employee_section_settings",
+  {
+    empCd: varchar("emp_cd", { length: 32 }).notNull(),
+    section: varchar("section", { length: 32 }).notNull(),
+    salaryType: varchar("salary_type", { length: 32 }),
+    attendanceCommissionRate: decimal("attendance_commission_rate", {
+      precision: 5,
+      scale: 4,
+    }),
+    attendanceLeaveMultiplier: decimal("attendance_leave_multiplier", {
+      precision: 5,
+      scale: 4,
+    }),
+    commAttendance: boolean("comm_attendance").default(true).notNull(),
+    commExam: boolean("comm_exam").default(true).notNull(),
+    commPentacam: boolean("comm_pentacam").default(true).notNull(),
+    commDay10: boolean("comm_day10").default(true).notNull(),
+    commOvertime: boolean("comm_overtime").default(true).notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.empCd, table.section] }),
+  }),
+);
 
 export const salaryPenalties = mysqlTable(
   "salary_penalties",
@@ -2265,6 +2296,7 @@ export const shiftStaff = mysqlTable("shift_staff", {
   rateSmallShift: decimal("rate_small_shift", { precision: 10, scale: 2 })
     .notNull()
     .default("0.00"),
+  mainShiftMinutes: int("main_shift_minutes").notNull().default(360),
   active: boolean("active").notNull().default(true),
   empCd: varchar("emp_cd", { length: 64 }),
   userId: int("user_id"),
@@ -2281,6 +2313,8 @@ export const shiftAttendance = mysqlTable(
     month: int("month").notNull(),
     workDate: date("work_date").notNull(),
     shiftName: varchar("shift_name", { length: 128 }).notNull(),
+    startTime: varchar("start_time", { length: 5 }),
+    endTime: varchar("end_time", { length: 5 }),
     present: boolean("present").notNull().default(true),
     notes: varchar("notes", { length: 255 }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -2628,9 +2662,7 @@ export const whatsappInboundMessages = mysqlTable(
     waMessageIdIdx: uniqueIndex("uq_whatsapp_inbound_wa_message_id").on(
       table.waMessageId,
     ),
-    fromPhoneIdx: index("idx_whatsapp_inbound_from_phone").on(
-      table.fromPhone,
-    ),
+    fromPhoneIdx: index("idx_whatsapp_inbound_from_phone").on(table.fromPhone),
   }),
 );
 

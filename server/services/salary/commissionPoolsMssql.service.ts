@@ -131,10 +131,14 @@ export async function setPriceOverrides(
     }
   }
   for (const e of entries) {
+    if (e.value === null) {
+      await db.delete(salaryConfig).where(eq(salaryConfig.key, e.key));
+      continue;
+    }
     await db
       .insert(salaryConfig)
-      .values(e as any)
-      .onDuplicateKeyUpdate({ set: { value: e.value as any } });
+      .values({ key: e.key, value: e.value })
+      .onDuplicateKeyUpdate({ set: { value: e.value } });
   }
   if (input.calculationMode !== undefined) {
     await db

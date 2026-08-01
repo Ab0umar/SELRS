@@ -84,9 +84,7 @@ function dateRange(from: string, to: string) {
   const end = new Date(`${to}T00:00:00`);
   const out: string[] = [];
   for (let d = start; d <= end; d.setDate(d.getDate() + 1)) {
-    out.push(
-      `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
-    );
+    out.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
   }
   return out;
 }
@@ -126,20 +124,22 @@ function toDateKey(v: unknown): string {
   return s.slice(0, 10);
 }
 
-type Period = "day" | "week" | "month";
+type Period = "day" | "week" | "weekly" | "month";
 type ShiftName = "Morning" | "Night";
 type StaffFilter = "all" | "doctor" | "tech";
 
 interface AddForm {
   staffId: string;
-  shiftName: string;
+  startTime: string;
+  endTime: string;
   period: Period;
   anchorDate: string;
 }
 
 const EMPTY_ADD: AddForm = {
   staffId: "",
-  shiftName: "",
+  startTime: "09:00",
+  endTime: "15:00",
   period: "day",
   anchorDate: "",
 };
@@ -296,6 +296,13 @@ function compactStaffName(staff: any) {
   return staff.type === "doctor" ? `د. ${shortName}` : shortName;
 }
 
+function shiftTimeLabel(entry: any): string {
+  if (entry.startTime && entry.endTime) {
+    return `${String(entry.startTime).slice(0, 5)} - ${String(entry.endTime).slice(0, 5)}`;
+  }
+  return SHIFT_META[entry.shiftName as ShiftName]?.label ?? entry.shiftName;
+}
+
 export default function ShiftSchedule() {
   const { user } = useAuth();
   const isManager = ["admin", "manager"].includes(user?.role ?? "");
@@ -318,14 +325,18 @@ export default function ShiftSchedule() {
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
 
   const schedQ = isManager
-    ? (trpc as any).salary.getShiftSchedule.useQuery({ year, month, fromDate, toDate })
-    : (trpc as any).salary.getShiftScheduleForStaff.useQuery({ year, month, fromDate, toDate });
-  const shiftDefsQ = (trpc as any).attendance.listShifts.useQuery();
-  const shiftOptions: { name: string; label: string }[] =
-    (shiftDefsQ.data ?? []).map((sd: any) => ({
-      name: sd.name,
-      label: SHIFT_META[sd.name as ShiftName]?.label ?? sd.name,
-    }));
+    ? (trpc as any).salary.getShiftSchedule.useQuery({
+        year,
+        month,
+        fromDate,
+        toDate,
+      })
+    : (trpc as any).salary.getShiftScheduleForStaff.useQuery({
+        year,
+        month,
+        fromDate,
+        toDate,
+      });
   const payrollQ = (trpc as any).salary.computeShiftPayroll.useQuery(
     { year, month, fromDate, toDate },
     { enabled: isManager },
@@ -340,6 +351,9 @@ export default function ShiftSchedule() {
 
   const staff: any[] = schedQ.data?.staff ?? [];
   const attendance: any[] = schedQ.data?.attendance ?? [];
+  const shiftOptions: { name: string; label: string }[] = Array.from(
+    new Set<string>(attendance.map((entry: any) => String(entry.shiftName))),
+  ).map((name) => ({ name, label: name }));
   const doctors = staff.filter((s: any) => s.type === "doctor");
   const techs = staff.filter((s: any) => s.type === "tech");
   const displayStaff = [...doctors, ...techs];
@@ -442,7 +456,9 @@ export default function ShiftSchedule() {
     attendMap.get(key)!.push(row);
   }
 
-  const allDates = (fromDate && toDate ? dateRange(fromDate, toDate) : monthDates(year, month)).filter((ds) => {
+  const allDates = (
+    fromDate && toDate ? dateRange(fromDate, toDate) : monthDates(year, month)
+  ).filter((ds) => {
     const dow = new Date(`${ds}T00:00:00`).getDay();
     if (dow === 5) return false;
     if (fromDate && ds < fromDate) return false;
@@ -523,27 +539,40 @@ export default function ShiftSchedule() {
   }
 
   function submitAdd() {
-    if (!addForm.staffId || !addForm.shiftName) {
-      toast.error("اختر الموظف والوردية");
+    if (!addForm.staffId || !addForm.startTime || !addForm.endTime) {
+      toast.error("اختر الموظف ووقت البداية والنهاية");
+      return;
+    }
+    if (addForm.endTime <= addForm.startTime) {
+      toast.error("وقت النهاية يجب أن يكون بعد وقت البداية");
       return;
     }
     if (addForm.period !== "month" && !addForm.anchorDate) {
       toast.error("اختر تاريخاً");
       return;
     }
+    const anchorWeekday = addForm.anchorDate
+      ? new Date(`${addForm.anchorDate}T00:00:00`).getDay()
+      : null;
     const dates =
       addForm.period === "day"
         ? [addForm.anchorDate]
         : addForm.period === "week"
           ? weekDates(addForm.anchorDate, year, month)
-          : monthDates(year, month);
+          : addForm.period === "weekly"
+            ? dateRange(fromDate, toDate).filter(
+                (date) =>
+                  new Date(`${date}T00:00:00`).getDay() === anchorWeekday,
+              )
+            : monthDates(year, month);
     if (dates.length === 0) {
       toast.error("لا يوجد أيام في هذه الفترة");
       return;
     }
     bulkMut.mutate({
       staffId: parseInt(addForm.staffId),
-      shiftName: addForm.shiftName,
+      startTime: addForm.startTime,
+      endTime: addForm.endTime,
       dates,
     });
   }
@@ -559,7 +588,8 @@ export default function ShiftSchedule() {
       const meta =
         SHIFT_META[entry.shiftName as ShiftName] ?? SHIFT_META.Morning;
       const absentClass = entry.present ? "" : " shift-absent";
-      const label = entry.present ? meta.short : `(${meta.short})`;
+      const timeLabel = shiftTimeLabel(entry);
+      const label = entry.present ? timeLabel : `(${timeLabel})`;
       return `<span class="${meta.printClass}${absentClass}">${escapeHtml(label)}</span>`;
     }
 
@@ -1016,7 +1046,7 @@ export default function ShiftSchedule() {
                         <span
                           className={`mt-1 inline-flex rounded-md px-2 py-0.5 text-[11px] font-black ${meta.tone}`}
                         >
-                          {meta.label}
+                          {shiftTimeLabel(entry)}
                         </span>
                       </div>
                     </div>
@@ -1127,25 +1157,36 @@ export default function ShiftSchedule() {
                   </option>
                 ))}
               </select>
-              <select
-                value={addForm.shiftName}
-                onChange={(e) =>
-                  setAddForm((f) => ({ ...f, shiftName: e.target.value }))
-                }
-                className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
-              >
-                <option value="">-- الوردية --</option>
-                {shiftOptions.map((opt) => (
-                  <option key={opt.name} value={opt.name}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="space-y-1 text-xs font-bold text-muted-foreground">
+                  <span>من</span>
+                  <input
+                    type="time"
+                    value={addForm.startTime}
+                    onChange={(e) =>
+                      setAddForm((f) => ({ ...f, startTime: e.target.value }))
+                    }
+                    className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                  />
+                </label>
+                <label className="space-y-1 text-xs font-bold text-muted-foreground">
+                  <span>إلى</span>
+                  <input
+                    type="time"
+                    value={addForm.endTime}
+                    onChange={(e) =>
+                      setAddForm((f) => ({ ...f, endTime: e.target.value }))
+                    }
+                    className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                  />
+                </label>
+              </div>
               <div className="flex overflow-hidden rounded-xl border border-border text-sm font-bold">
                 {(
                   [
                     ["day", "يوم"],
                     ["week", "أسبوع"],
+                    ["weekly", "كل أسبوع"],
                     ["month", "شهر"],
                   ] as [Period, string][]
                 ).map(([p, lbl]) => (
@@ -1432,23 +1473,25 @@ export default function ShiftSchedule() {
                       }
                       entriesByShift.get(shiftName)!.push(rosterEntry);
                     }
-                    const shiftGroups = Array.from(entriesByShift.entries()).map(
-                      ([shiftName, entries]) => {
-                        const meta = SHIFT_META[shiftName as ShiftName];
-                        return {
-                          shiftName,
-                          label: meta?.short ?? shiftName,
-                          entries,
-                          meta,
-                        };
-                      },
-                    );
+                    const shiftGroups = Array.from(
+                      entriesByShift.entries(),
+                    ).map(([shiftName, entries]) => {
+                      const meta = SHIFT_META[shiftName as ShiftName];
+                      return {
+                        shiftName,
+                        label: meta?.short ?? shiftName,
+                        entries,
+                        meta,
+                      };
+                    });
 
                     return (
                       <div
                         key={ds}
                         className={`roster-day-card flex min-h-[156px] flex-col bg-card p-3 transition-colors hover:bg-primary/[0.03] ${
-                          isToday ? "bg-primary/5 ring-2 ring-inset ring-primary" : ""
+                          isToday
+                            ? "bg-primary/5 ring-2 ring-inset ring-primary"
+                            : ""
                         } ${holiday ? "bg-warning/10" : ""}`}
                       >
                         <div className="flex items-start justify-between gap-2">
@@ -1486,104 +1529,191 @@ export default function ShiftSchedule() {
                         >
                           {shiftGroups.map(
                             ({ shiftName, label, entries, meta }) => {
-                            return (
-                              <div
-                                key={shiftName}
-                                className="min-w-0 space-y-1 border-r border-border/70 pr-2 first:border-r-0 first:pr-0"
-                              >
-                                <span className="block text-[10px] font-black text-muted-foreground">
-                                  {label}
-                                </span>
-                                <div className="space-y-1">
-                                  {entries.map(({ staff, entry }) => {
-                                    const isMyRow =
-                                      !isManager && myStaffId === staff.id;
-                                    const canEdit = isManager || isMyRow;
-                                    return (
-                                      <div
-                                        key={entry.id}
-                                        className="roster-shift-pill relative"
-                                      >
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            canEdit
-                                              ? isManager
-                                                ? toggleMut.mutate({
-                                                    id: entry.id,
-                                                    present: !entry.present,
-                                                  })
-                                                : toggleMyMut.mutate({
-                                                    id: entry.id,
-                                                    present: !entry.present,
-                                                  })
-                                              : undefined
-                                          }
-                                          disabled={
-                                            !canEdit ||
-                                            toggleMut.isPending ||
-                                            toggleMyMut.isPending
-                                          }
-                                          className={`block w-full whitespace-normal break-words rounded-lg px-1.5 py-1 text-center text-[10px] font-bold leading-tight transition-colors ${
-                                            isMyRow
-                                              ? "bg-primary text-primary-foreground"
-                                              : entry.present
-                                                ? (meta?.tone ??
-                                                  SHIFT_META.Morning.tone)
-                                                : "border border-border bg-muted text-muted-foreground line-through"
-                                          } ${canEdit ? "cursor-pointer" : "cursor-default"}`}
-                                          title={compactStaffName(staff)}
+                              return (
+                                <div
+                                  key={shiftName}
+                                  className="min-w-0 space-y-1 border-r border-border/70 pr-2 first:border-r-0 first:pr-0"
+                                >
+                                  <span className="block text-[10px] font-black text-muted-foreground">
+                                    {label}
+                                  </span>
+                                  <div className="space-y-1">
+                                    {entries.map(({ staff, entry }) => {
+                                      const isMyRow =
+                                        !isManager && myStaffId === staff.id;
+                                      const canEdit = isManager || isMyRow;
+                                      return (
+                                        <div
+                                          key={entry.id}
+                                          className="roster-shift-pill relative"
                                         >
-                                          {compactStaffName(staff)}
-                                        </button>
-                                        {isManager && (
                                           <button
                                             type="button"
                                             onClick={() =>
-                                              deleteEntryMut.mutate({
-                                                id: entry.id,
-                                              })
+                                              canEdit
+                                                ? isManager
+                                                  ? toggleMut.mutate({
+                                                      id: entry.id,
+                                                      present: !entry.present,
+                                                    })
+                                                  : toggleMyMut.mutate({
+                                                      id: entry.id,
+                                                      present: !entry.present,
+                                                    })
+                                                : undefined
                                             }
-                                            disabled={deleteEntryMut.isPending}
-                                            className="roster-delete-shift absolute -left-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[11px] font-bold text-destructive-foreground shadow-sm transition-opacity"
-                                            title="حذف"
+                                            disabled={
+                                              !canEdit ||
+                                              toggleMut.isPending ||
+                                              toggleMyMut.isPending
+                                            }
+                                            className={`block w-full whitespace-normal break-words rounded-lg px-1.5 py-1 text-center text-[10px] font-bold leading-tight transition-colors ${
+                                              isMyRow
+                                                ? "bg-primary text-primary-foreground"
+                                                : entry.present
+                                                  ? (meta?.tone ??
+                                                    SHIFT_META.Morning.tone)
+                                                  : "border border-border bg-muted text-muted-foreground line-through"
+                                            } ${canEdit ? "cursor-pointer" : "cursor-default"}`}
+                                            title={compactStaffName(staff)}
                                           >
-                                            ×
+                                            {compactStaffName(staff)}
                                           </button>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                  {entries.length === 0 && (
-                                    <span className="block rounded-full border border-dashed border-border px-2 py-1 text-center text-[10px] font-bold text-muted-foreground/60">
-                                      فارغ
-                                    </span>
-                                  )}
+                                          {isManager && (
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                deleteEntryMut.mutate({
+                                                  id: entry.id,
+                                                })
+                                              }
+                                              disabled={
+                                                deleteEntryMut.isPending
+                                              }
+                                              className="roster-delete-shift absolute -left-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[11px] font-bold text-destructive-foreground shadow-sm transition-opacity"
+                                              title="حذف"
+                                            >
+                                              ×
+                                            </button>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                    {entries.length === 0 && (
+                                      <span className="block rounded-full border border-dashed border-border px-2 py-1 text-center text-[10px] font-bold text-muted-foreground/60">
+                                        فارغ
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            );
-                          },
+                              );
+                            },
                           )}
                         </div>
 
                         {isManager && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setAddForm((prev) => ({
-                                ...prev,
-                                period: "day",
-                                anchorDate: ds,
-                              }));
-                              setShowAdd(true);
-                              toast.info(
-                                `تم تحديد تاريخ ${ds} في لوحة الإضافة`,
-                              );
-                            }}
-                            className="roster-add-shift mt-3 rounded-lg border border-dashed border-primary/25 bg-primary/5 px-2 py-1.5 text-[10px] font-bold text-primary transition-[opacity,background-color,border-color] hover:border-primary/45 hover:bg-primary/10"
-                          >
-                            إضافة وردية
-                          </button>
+                          <div className="mt-3">
+                            {showAdd && addForm.anchorDate === ds ? (
+                              <div className="space-y-2 rounded-lg border border-primary/20 bg-primary/5 p-2">
+                                <select
+                                  value={addForm.staffId}
+                                  onChange={(e) =>
+                                    setAddForm((form) => ({
+                                      ...form,
+                                      staffId: e.target.value,
+                                    }))
+                                  }
+                                  className="min-h-9 w-full rounded-md border border-border bg-background px-2 text-xs text-foreground"
+                                  aria-label="الطبيب أو الفني"
+                                >
+                                  <option value="">اختر الطبيب أو الفني</option>
+                                  {displayStaff.map((staff: any) => (
+                                    <option key={staff.id} value={staff.id}>
+                                      {staff.name}
+                                    </option>
+                                  ))}
+                                </select>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <input
+                                    type="time"
+                                    value={addForm.startTime}
+                                    onChange={(e) =>
+                                      setAddForm((form) => ({
+                                        ...form,
+                                        startTime: e.target.value,
+                                      }))
+                                    }
+                                    className="min-h-9 min-w-0 rounded-md border border-border bg-background px-1 text-xs text-foreground"
+                                    aria-label="من"
+                                  />
+                                  <input
+                                    type="time"
+                                    value={addForm.endTime}
+                                    onChange={(e) =>
+                                      setAddForm((form) => ({
+                                        ...form,
+                                        endTime: e.target.value,
+                                      }))
+                                    }
+                                    className="min-h-9 min-w-0 rounded-md border border-border bg-background px-1 text-xs text-foreground"
+                                    aria-label="إلى"
+                                  />
+                                </div>
+                                <label className="flex min-h-9 items-center gap-2 text-[11px] font-bold text-foreground">
+                                  <input
+                                    type="checkbox"
+                                    checked={addForm.period === "weekly"}
+                                    onChange={(e) =>
+                                      setAddForm((form) => ({
+                                        ...form,
+                                        period: e.target.checked
+                                          ? "weekly"
+                                          : "day",
+                                      }))
+                                    }
+                                    className="h-4 w-4 rounded border-border"
+                                  />
+                                  كل {DAYS_AR[dateObj.getDay()]}
+                                </label>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={submitAdd}
+                                    disabled={bulkMut.isPending}
+                                    className="h-9 rounded-md text-xs"
+                                  >
+                                    {bulkMut.isPending ? "..." : "إضافة"}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setShowAdd(false);
+                                      setAddForm(EMPTY_ADD);
+                                    }}
+                                    className="h-9 rounded-md text-xs"
+                                  >
+                                    إلغاء
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAddForm((prev) => ({
+                                    ...prev,
+                                    period: "day",
+                                    anchorDate: ds,
+                                  }));
+                                  setShowAdd(true);
+                                }}
+                                className="roster-add-shift w-full rounded-lg border border-dashed border-primary/25 bg-primary/5 px-2 py-1.5 text-[10px] font-bold text-primary transition-[opacity,background-color,border-color] hover:border-primary/45 hover:bg-primary/10"
+                              >
+                                إضافة وردية
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                     );
@@ -1600,8 +1730,16 @@ export default function ShiftSchedule() {
               variant="outline"
               onClick={() => setIsSidePanelOpen((open) => !open)}
               className="h-11 w-full rounded-xl border-primary/20 text-primary"
-              title={isSidePanelOpen ? "إغلاق القائمة الجانبية" : "فتح القائمة الجانبية"}
-              aria-label={isSidePanelOpen ? "إغلاق القائمة الجانبية" : "فتح القائمة الجانبية"}
+              title={
+                isSidePanelOpen
+                  ? "إغلاق القائمة الجانبية"
+                  : "فتح القائمة الجانبية"
+              }
+              aria-label={
+                isSidePanelOpen
+                  ? "إغلاق القائمة الجانبية"
+                  : "فتح القائمة الجانبية"
+              }
               aria-expanded={isSidePanelOpen}
             >
               {isSidePanelOpen ? (
@@ -1612,388 +1750,401 @@ export default function ShiftSchedule() {
             </Button>
             {isSidePanelOpen && (
               <>
-            <div className="rounded-xl border border-border bg-card p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-base font-black text-primary">
-                    ملخص الروستر
-                  </h2>
-                  <p className="mt-1 text-xs font-semibold text-muted-foreground">
-                    {visibleStaff.length} موظف في العرض الحالي
-                  </p>
-                </div>
-                <ShieldCheck className="h-8 w-8 text-primary/70" />
-              </div>
-              <div className="mt-4 divide-y divide-border border-y border-border">
-                <div className="flex items-center justify-between py-2.5">
-                  <span className="text-xs font-bold text-muted-foreground">
-                    المجدولون
-                  </span>
-                  <strong className="text-lg font-black text-foreground">
-                    {arabicDigits(scheduledStaff)}
-                  </strong>
-                </div>
-                <div className="flex items-center justify-between py-2.5">
-                  <span className="text-xs font-bold text-muted-foreground">
-                    المؤكدة
-                  </span>
-                  <strong className="text-lg font-black text-success-text">
-                    {arabicDigits(totalPresent)}
-                  </strong>
-                </div>
-                <div className="flex items-center justify-between py-2.5">
-                  <span className="text-xs font-bold text-muted-foreground">
-                    غير مؤكدة
-                  </span>
-                  <strong className="text-lg font-black text-destructive-text">
-                    {arabicDigits(totalAbsent)}
-                  </strong>
-                </div>
-                <div className="flex items-center justify-between py-2.5">
-                  <span className="text-xs font-bold text-muted-foreground">
-                    العطلات
-                  </span>
-                  <strong className="text-lg font-black text-warning">
-                    {arabicDigits(holidays.length)}
-                  </strong>
-                </div>
-              </div>
-              <div className="mt-3 rounded-xl bg-primary/5 px-3 py-3 text-xs font-bold text-primary">
-                {coveredDays} يوم فيه ورديات مغطاة من الفترة المحددة.
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-border bg-card p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-sm font-black text-foreground">
-                  ورديات اليوم
-                </h3>
-                <Clock3 className="h-4 w-4 text-muted-foreground" />
-              </div>
-              {todayEntries.length > 0 ? (
-                <div className="space-y-2">
-                  {todayEntries.map(({ staff, entry }) => {
-                    const meta =
-                      SHIFT_META[entry.shiftName as ShiftName] ??
-                      SHIFT_META.Morning;
-                    return (
-                      <div
-                        key={entry.id}
-                        className="flex items-center justify-between gap-2 rounded-xl border border-border px-3 py-2"
-                      >
-                        <span className="min-w-0 truncate text-xs font-bold text-foreground">
-                          {compactStaffName(staff)}
-                        </span>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-black ${meta.tone}`}
-                        >
-                          {meta.label}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-xs font-semibold text-muted-foreground">
-                  لا توجد ورديات ظاهرة لليوم.
-                </p>
-              )}
-            </div>
-
-            {isManager ? (
-              <div className="space-y-4">
                 <div className="rounded-xl border border-border bg-card p-4">
-                  <h3 className="text-sm font-black text-foreground">
-                    إجراءات الروستر
-                  </h3>
-                  <div className="mt-3 grid gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => generateMut.mutate({ year, month })}
-                      disabled={generateMut.isPending}
-                      className="justify-start gap-2 rounded-xl font-bold"
-                    >
-                      <RefreshCw
-                        size={14}
-                        className={generateMut.isPending ? "animate-spin" : ""}
-                      />
-                      توليد من الدورات
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setShowAdd((v) => !v)}
-                      className="justify-start gap-2 rounded-xl font-bold"
-                    >
-                      <Plus size={14} />
-                      إضافة ورديات
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setShowHolidayAdd((v) => !v)}
-                      className="justify-start gap-2 rounded-xl font-bold"
-                    >
-                      <Star size={14} />
-                      العطلات الرسمية
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleClearRoster}
-                      disabled={
-                        clearRosterMut.isPending || attendance.length === 0
-                      }
-                      className="justify-start gap-2 rounded-xl border-destructive/25 font-bold text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 size={14} />
-                      مسح الروستر
-                    </Button>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h2 className="text-base font-black text-primary">
+                        ملخص الروستر
+                      </h2>
+                      <p className="mt-1 text-xs font-semibold text-muted-foreground">
+                        {visibleStaff.length} موظف في العرض الحالي
+                      </p>
+                    </div>
+                    <ShieldCheck className="h-8 w-8 text-primary/70" />
+                  </div>
+                  <div className="mt-4 divide-y divide-border border-y border-border">
+                    <div className="flex items-center justify-between py-2.5">
+                      <span className="text-xs font-bold text-muted-foreground">
+                        المجدولون
+                      </span>
+                      <strong className="text-lg font-black text-foreground">
+                        {arabicDigits(scheduledStaff)}
+                      </strong>
+                    </div>
+                    <div className="flex items-center justify-between py-2.5">
+                      <span className="text-xs font-bold text-muted-foreground">
+                        المؤكدة
+                      </span>
+                      <strong className="text-lg font-black text-success-text">
+                        {arabicDigits(totalPresent)}
+                      </strong>
+                    </div>
+                    <div className="flex items-center justify-between py-2.5">
+                      <span className="text-xs font-bold text-muted-foreground">
+                        غير مؤكدة
+                      </span>
+                      <strong className="text-lg font-black text-destructive-text">
+                        {arabicDigits(totalAbsent)}
+                      </strong>
+                    </div>
+                    <div className="flex items-center justify-between py-2.5">
+                      <span className="text-xs font-bold text-muted-foreground">
+                        العطلات
+                      </span>
+                      <strong className="text-lg font-black text-warning">
+                        {arabicDigits(holidays.length)}
+                      </strong>
+                    </div>
+                  </div>
+                  <div className="mt-3 rounded-xl bg-primary/5 px-3 py-3 text-xs font-bold text-primary">
+                    {coveredDays} يوم فيه ورديات مغطاة من الفترة المحددة.
                   </div>
                 </div>
 
-                {showAdd && (
-                  <div className="rounded-xl border border-border bg-card p-4">
+                <div className="rounded-xl border border-border bg-card p-4">
+                  <div className="mb-3 flex items-center justify-between">
                     <h3 className="text-sm font-black text-foreground">
-                      إضافة ورديات
+                      ورديات اليوم
                     </h3>
-                    <div className="mt-3 space-y-3">
-                      <select
-                        value={addForm.staffId}
-                        onChange={(e) =>
-                          setAddForm((f) => ({ ...f, staffId: e.target.value }))
-                        }
-                        className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
-                      >
-                        <option value="">-- اختر الموظف --</option>
-                        {displayStaff.map((s: any) => (
-                          <option key={s.id} value={s.id}>
-                            {s.name} ({s.type === "doctor" ? "طبيب" : "فني"})
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        value={addForm.shiftName}
-                        onChange={(e) =>
-                          setAddForm((f) => ({
-                            ...f,
-                            shiftName: e.target.value,
-                          }))
-                        }
-                        className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
-                      >
-                        <option value="">-- الوردية --</option>
-                        {shiftOptions.map((opt) => (
-                          <option key={opt.name} value={opt.name}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="flex overflow-hidden rounded-xl border border-border text-sm font-bold">
-                        {(
-                          [
-                            ["day", "يوم"],
-                            ["week", "أسبوع"],
-                            ["month", "شهر"],
-                          ] as [Period, string][]
-                        ).map(([p, lbl]) => (
-                          <button
-                            key={p}
-                            type="button"
-                            onClick={() =>
-                              setAddForm((f) => ({ ...f, period: p }))
-                            }
-                            className={`flex-1 px-3 py-2 transition-colors ${
-                              addForm.period === p
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-background text-foreground hover:bg-muted"
-                            }`}
+                    <Clock3 className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  {todayEntries.length > 0 ? (
+                    <div className="space-y-2">
+                      {todayEntries.map(({ staff, entry }) => {
+                        const meta =
+                          SHIFT_META[entry.shiftName as ShiftName] ??
+                          SHIFT_META.Morning;
+                        return (
+                          <div
+                            key={entry.id}
+                            className="flex items-center justify-between gap-2 rounded-xl border border-border px-3 py-2"
                           >
-                            {lbl}
-                          </button>
-                        ))}
-                      </div>
-                      {addForm.period !== "month" && (
-                        <DateInput
-                          value={addForm.anchorDate}
-                          onChange={(e) =>
-                            setAddForm((f) => ({
-                              ...f,
-                              anchorDate: e.target.value,
-                            }))
-                          }
-                          className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
-                        />
-                      )}
-                      <div className="flex gap-2">
+                            <span className="min-w-0 truncate text-xs font-bold text-foreground">
+                              {compactStaffName(staff)}
+                            </span>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[10px] font-black ${meta.tone}`}
+                            >
+                              {shiftTimeLabel(entry)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-xs font-semibold text-muted-foreground">
+                      لا توجد ورديات ظاهرة لليوم.
+                    </p>
+                  )}
+                </div>
+
+                {isManager ? (
+                  <div className="space-y-4">
+                    <div className="rounded-xl border border-border bg-card p-4">
+                      <h3 className="text-sm font-black text-foreground">
+                        إجراءات الروستر
+                      </h3>
+                      <div className="mt-3 grid gap-2">
                         <Button
                           size="sm"
-                          onClick={submitAdd}
-                          disabled={bulkMut.isPending}
-                          className="flex-1 rounded-xl"
+                          variant="outline"
+                          onClick={() => generateMut.mutate({ year, month })}
+                          disabled={generateMut.isPending}
+                          className="justify-start gap-2 rounded-xl font-bold"
                         >
-                          {bulkMut.isPending ? "جاري الإضافة..." : "إضافة"}
+                          <RefreshCw
+                            size={14}
+                            className={
+                              generateMut.isPending ? "animate-spin" : ""
+                            }
+                          />
+                          توليد من الدورات
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => {
-                            setShowAdd(false);
-                            setAddForm(EMPTY_ADD);
-                          }}
-                          className="flex-1 rounded-xl"
+                          onClick={() => setShowHolidayAdd((v) => !v)}
+                          className="justify-start gap-2 rounded-xl font-bold"
                         >
-                          إلغاء
+                          <Star size={14} />
+                          العطلات الرسمية
                         </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {showHolidayAdd && (
-                  <div className="rounded-xl border border-border bg-card p-4">
-                    <h3 className="text-sm font-black text-foreground">
-                      العطلات الرسمية - {fromDate.slice(0, 7)}
-                    </h3>
-                    {holidays.length > 0 ? (
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {holidays.map((h: any) => (
-                          <span
-                            key={h.id}
-                            className="inline-flex items-center gap-1.5 rounded-full border border-warning/20 bg-warning/10 px-2.5 py-1 text-xs font-bold text-warning"
-                          >
-                            {arabicDigits(String(h.date).slice(0, 10))}
-                            {h.name && <span>· {h.name}</span>}
-                            <button
-                              type="button"
-                              onClick={() =>
-                                deleteHolidayMut.mutate({ id: h.id })
-                              }
-                              className="inline-flex items-center justify-center text-warning hover:text-destructive"
-                              title="حذف"
-                            >
-                              <X size={11} />
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="mt-3 text-xs font-semibold text-muted-foreground">
-                        لا توجد عطلات رسمية لهذا الشهر.
-                      </p>
-                    )}
-                    <div className="mt-3 border-t border-border pt-3">
-                      <div className="flex flex-col gap-3">
-                        <DateInput
-                          value={holidayForm.date}
-                          onChange={(e) =>
-                            setHolidayForm((f) => ({
-                              ...f,
-                              date: e.target.value,
-                            }))
-                          }
-                          className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
-                        />
-                        <input
-                          type="text"
-                          placeholder="الاسم (اختياري)"
-                          value={holidayForm.name}
-                          onChange={(e) =>
-                            setHolidayForm((f) => ({
-                              ...f,
-                              name: e.target.value,
-                            }))
-                          }
-                          className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
-                        />
                         <Button
                           size="sm"
-                          onClick={() => {
-                            if (!holidayForm.date) {
-                              toast.error("اختر تاريخاً");
-                              return;
-                            }
-                            addHolidayMut.mutate({
-                              date: holidayForm.date,
-                              name: holidayForm.name,
-                              year,
-                              month,
-                            });
-                          }}
-                          disabled={addHolidayMut.isPending}
-                          className="rounded-xl"
+                          variant="outline"
+                          onClick={handleClearRoster}
+                          disabled={
+                            clearRosterMut.isPending || attendance.length === 0
+                          }
+                          className="justify-start gap-2 rounded-xl border-destructive/25 font-bold text-destructive hover:bg-destructive/10"
                         >
-                          {addHolidayMut.isPending ? "جاري..." : "إضافة"}
+                          <Trash2 size={14} />
+                          مسح الروستر
                         </Button>
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="rounded-xl border border-border bg-card p-4">
-                <h3 className="text-sm font-black text-foreground">
-                  ماذا تستطيع هنا
-                </h3>
-                <ul className="mt-3 space-y-2 text-sm font-semibold text-muted-foreground">
-                  <li>قراءة شهر الروستر بالكامل.</li>
-                  <li>إضافة وردياتك فقط عندما تكون الخانة متاحة.</li>
-                  <li>
-                    الضغط على خانة موجودة لتبديل الحالة عندما يكون ذلك مسموحاً.
-                  </li>
-                </ul>
-                {myStaffId !== null && (
-                  <div className="mt-4 rounded-xl border border-primary/15 bg-primary/5 px-3 py-3 text-sm font-bold text-foreground">
-                    لديك {arabicDigits(myScheduledDays)} يوم مجدول هذا الشهر.
-                  </div>
-                )}
-              </div>
-            )}
 
-            <div className="rounded-xl border border-border bg-card p-4">
-              <h3 className="text-sm font-black text-foreground">
-                أقرب ورديات
-              </h3>
-              {nextEntries.length > 0 ? (
-                <div className="mt-3 space-y-2">
-                  {nextEntries.map(({ ds, staff, entry }) => {
-                    const meta =
-                      SHIFT_META[entry.shiftName as ShiftName] ??
-                      SHIFT_META.Morning;
-                    return (
-                      <div
-                        key={`${entry.id}-${ds}`}
-                        className="rounded-xl border border-border px-3 py-2"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="min-w-0 truncate text-xs font-bold text-foreground">
-                            {compactStaffName(staff)}
-                          </span>
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-black ${meta.tone}`}
+                    {showAdd && !addForm.anchorDate && (
+                      <div className="rounded-xl border border-border bg-card p-4">
+                        <h3 className="text-sm font-black text-foreground">
+                          إضافة ورديات
+                        </h3>
+                        <div className="mt-3 space-y-3">
+                          <select
+                            value={addForm.staffId}
+                            onChange={(e) =>
+                              setAddForm((f) => ({
+                                ...f,
+                                staffId: e.target.value,
+                              }))
+                            }
+                            className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
                           >
-                            {meta.label}
-                          </span>
+                            <option value="">-- اختر الموظف --</option>
+                            {displayStaff.map((s: any) => (
+                              <option key={s.id} value={s.id}>
+                                {s.name} ({s.type === "doctor" ? "طبيب" : "فني"}
+                                )
+                              </option>
+                            ))}
+                          </select>
+                          <div className="grid grid-cols-2 gap-3">
+                            <label className="space-y-1 text-xs font-bold text-muted-foreground">
+                              <span>من</span>
+                              <input
+                                type="time"
+                                value={addForm.startTime}
+                                onChange={(e) =>
+                                  setAddForm((f) => ({
+                                    ...f,
+                                    startTime: e.target.value,
+                                  }))
+                                }
+                                className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                              />
+                            </label>
+                            <label className="space-y-1 text-xs font-bold text-muted-foreground">
+                              <span>إلى</span>
+                              <input
+                                type="time"
+                                value={addForm.endTime}
+                                onChange={(e) =>
+                                  setAddForm((f) => ({
+                                    ...f,
+                                    endTime: e.target.value,
+                                  }))
+                                }
+                                className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                              />
+                            </label>
+                          </div>
+                          <div className="flex overflow-hidden rounded-xl border border-border text-sm font-bold">
+                            {(
+                              [
+                                ["day", "يوم"],
+                                ["week", "أسبوع"],
+                                ["weekly", "كل أسبوع"],
+                                ["month", "شهر"],
+                              ] as [Period, string][]
+                            ).map(([p, lbl]) => (
+                              <button
+                                key={p}
+                                type="button"
+                                onClick={() =>
+                                  setAddForm((f) => ({ ...f, period: p }))
+                                }
+                                className={`flex-1 px-3 py-2 transition-colors ${
+                                  addForm.period === p
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-background text-foreground hover:bg-muted"
+                                }`}
+                              >
+                                {lbl}
+                              </button>
+                            ))}
+                          </div>
+                          {addForm.period !== "month" && (
+                            <DateInput
+                              value={addForm.anchorDate}
+                              onChange={(e) =>
+                                setAddForm((f) => ({
+                                  ...f,
+                                  anchorDate: e.target.value,
+                                }))
+                              }
+                              className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                            />
+                          )}
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={submitAdd}
+                              disabled={bulkMut.isPending}
+                              className="flex-1 rounded-xl"
+                            >
+                              {bulkMut.isPending ? "جاري الإضافة..." : "إضافة"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setShowAdd(false);
+                                setAddForm(EMPTY_ADD);
+                              }}
+                              className="flex-1 rounded-xl"
+                            >
+                              إلغاء
+                            </Button>
+                          </div>
                         </div>
-                        <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
-                          {arabicDigits(ds)}
-                        </p>
                       </div>
-                    );
-                  })}
+                    )}
+
+                    {showHolidayAdd && (
+                      <div className="rounded-xl border border-border bg-card p-4">
+                        <h3 className="text-sm font-black text-foreground">
+                          العطلات الرسمية - {fromDate.slice(0, 7)}
+                        </h3>
+                        {holidays.length > 0 ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {holidays.map((h: any) => (
+                              <span
+                                key={h.id}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-warning/20 bg-warning/10 px-2.5 py-1 text-xs font-bold text-warning"
+                              >
+                                {arabicDigits(String(h.date).slice(0, 10))}
+                                {h.name && <span>· {h.name}</span>}
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    deleteHolidayMut.mutate({ id: h.id })
+                                  }
+                                  className="inline-flex items-center justify-center text-warning hover:text-destructive"
+                                  title="حذف"
+                                >
+                                  <X size={11} />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="mt-3 text-xs font-semibold text-muted-foreground">
+                            لا توجد عطلات رسمية لهذا الشهر.
+                          </p>
+                        )}
+                        <div className="mt-3 border-t border-border pt-3">
+                          <div className="flex flex-col gap-3">
+                            <DateInput
+                              value={holidayForm.date}
+                              onChange={(e) =>
+                                setHolidayForm((f) => ({
+                                  ...f,
+                                  date: e.target.value,
+                                }))
+                              }
+                              className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                            />
+                            <input
+                              type="text"
+                              placeholder="الاسم (اختياري)"
+                              value={holidayForm.name}
+                              onChange={(e) =>
+                                setHolidayForm((f) => ({
+                                  ...f,
+                                  name: e.target.value,
+                                }))
+                              }
+                              className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                            />
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                if (!holidayForm.date) {
+                                  toast.error("اختر تاريخاً");
+                                  return;
+                                }
+                                addHolidayMut.mutate({
+                                  date: holidayForm.date,
+                                  name: holidayForm.name,
+                                  year,
+                                  month,
+                                });
+                              }}
+                              disabled={addHolidayMut.isPending}
+                              className="rounded-xl"
+                            >
+                              {addHolidayMut.isPending ? "جاري..." : "إضافة"}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-border bg-card p-4">
+                    <h3 className="text-sm font-black text-foreground">
+                      ماذا تستطيع هنا
+                    </h3>
+                    <ul className="mt-3 space-y-2 text-sm font-semibold text-muted-foreground">
+                      <li>قراءة شهر الروستر بالكامل.</li>
+                      <li>إضافة وردياتك فقط عندما تكون الخانة متاحة.</li>
+                      <li>
+                        الضغط على خانة موجودة لتبديل الحالة عندما يكون ذلك
+                        مسموحاً.
+                      </li>
+                    </ul>
+                    {myStaffId !== null && (
+                      <div className="mt-4 rounded-xl border border-primary/15 bg-primary/5 px-3 py-3 text-sm font-bold text-foreground">
+                        لديك {arabicDigits(myScheduledDays)} يوم مجدول هذا
+                        الشهر.
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="rounded-xl border border-border bg-card p-4">
+                  <h3 className="text-sm font-black text-foreground">
+                    أقرب ورديات
+                  </h3>
+                  {nextEntries.length > 0 ? (
+                    <div className="mt-3 space-y-2">
+                      {nextEntries.map(({ ds, staff, entry }) => {
+                        const meta =
+                          SHIFT_META[entry.shiftName as ShiftName] ??
+                          SHIFT_META.Morning;
+                        return (
+                          <div
+                            key={`${entry.id}-${ds}`}
+                            className="rounded-xl border border-border px-3 py-2"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="min-w-0 truncate text-xs font-bold text-foreground">
+                                {compactStaffName(staff)}
+                              </span>
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-black ${meta.tone}`}
+                              >
+                                {shiftTimeLabel(entry)}
+                              </span>
+                            </div>
+                            <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+                              {arabicDigits(ds)}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="mt-3 rounded-xl border border-dashed border-border px-3 py-4 text-center text-xs font-semibold text-muted-foreground">
+                      لا توجد ورديات في العرض الحالي.
+                    </p>
+                  )}
                 </div>
-              ) : (
-                <p className="mt-3 rounded-xl border border-dashed border-border px-3 py-4 text-center text-xs font-semibold text-muted-foreground">
-                  لا توجد ورديات في العرض الحالي.
-                </p>
-              )}
-            </div>
               </>
             )}
           </aside>
         </div>
       </div>
     </div>
-    );
-  }
+  );
+}

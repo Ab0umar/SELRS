@@ -16,7 +16,6 @@ import {
   Archive,
   Search,
   ChevronLeft,
-  ChevronRight,
   AlertTriangle,
   Zap,
   Cpu,
@@ -1314,7 +1313,6 @@ export default function Dashboard() {
     const tab = new URLSearchParams(window.location.search).get("tab");
     return TABS.some((item) => item.id === tab) ? (tab as TabId) : "today";
   });
-  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const visibleTabs = useMemo(
     () => TABS.filter((t) => t.permPath === null || canAccess(t.permPath)),
@@ -1327,9 +1325,6 @@ export default function Dashboard() {
       setActiveTab(visibleTabs[0]?.id ?? "today");
     }
   }, [permsLoaded, visibleTabs, activeTab]);
-  const [mobileAsidePanel, setMobileAsidePanel] = useState<"workspaces" | null>(
-    "workspaces",
-  );
   const utils = trpc.useUtils();
   const now = useClock();
 
@@ -1416,108 +1411,10 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* ── 2. Two-Column Floating Console Layout ── */}
-        <div className="flex flex-col xl:flex-row gap-6 items-start">
-          {!sidebarOpen && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSidebarOpen(true)}
-              className="hidden xl:flex h-10 w-10 shrink-0 rounded-2xl border border-border/60 bg-card shadow-sm hover:bg-muted/50 cursor-pointer"
-              aria-label="فتح القائمة الجانبية"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-          )}
-          {/* Floating Sidebar */}
-          <aside
-            className={cn(
-              "shrink-0 bg-card border border-border/60 rounded-3xl p-4 transition-all duration-200 shadow-sm",
-              sidebarOpen
-                ? "hidden xl:flex xl:flex-col w-[260px] min-h-[400px]"
-                : "hidden",
-            )}
-          >
-            {/* Workspaces header */}
-            <div className="flex items-center justify-between mb-4 pb-2 border-b border-border/40">
-              <h2 className="text-xs font-black text-foreground">مساحات العمل</h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSidebarOpen(false)}
-                className="h-7 w-7 rounded-xl hover:bg-muted/50 cursor-pointer"
-                aria-label="إغلاق القائمة الجانبية"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <nav className="space-y-1.5" role="tablist" aria-label="أقسام لوحة التحكم">
-              {visibleTabs.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => selectTab(tab.id)}
-                    className={cn(
-                      "flex w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-xs font-bold transition-all duration-150",
-                      isActive
-                        ? "bg-slate-900 text-white shadow-md shadow-slate-900/10 dark:bg-primary dark:text-primary-foreground dark:shadow-primary/10"
-                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-                    )}
-                    aria-selected={isActive}
-                    role="tab"
-                  >
-                    <span
-                      className={cn(
-                        "flex h-7 w-7 shrink-0 items-center justify-center rounded-xl",
-                        isActive
-                          ? "bg-white/20"
-                          : tab.iconWrapCls,
-                      )}
-                    >
-                      <Icon className="h-3.5 w-3.5" aria-hidden />
-                    </span>
-                    <span className="flex-1 text-right truncate">{tab.label}</span>
-                    {badges[tab.id] && (
-                      <span className="shrink-0">{badges[tab.id]}</span>
-                    )}
-                  </button>
-                );
-              })}
-            </nav>
-
-            {/* Live indicators */}
-            <div className="mt-auto pt-4 border-t border-border/40 space-y-2">
-              <span className="text-[9px] font-black text-muted-foreground uppercase tracking-wider block">
-                مؤشرات فورية
-              </span>
-              <StatusPill
-                icon={Users}
-                label="مريض اليوم"
-                value={todayBadge.toLocaleString("ar-EG")}
-                cls="bg-primary/10 text-primary"
-              />
-              <StatusPill
-                icon={UserX}
-                label="غياب"
-                value={attBadge.toLocaleString("ar-EG")}
-                cls="bg-warning/15 text-warning"
-              />
-              <StatusPill
-                icon={Archive}
-                label="تنبيه مخزون"
-                value={stockBadge.toLocaleString("ar-EG")}
-                cls="bg-destructive/15 text-destructive"
-              />
-            </div>
-          </aside>
-
-          {/* Mobile tab bar */}
+        {/* Workspace navigation */}
+        <div className="flex flex-col gap-6">
           <div
-            className="flex items-center gap-2 overflow-x-auto scrollbar-none xl:hidden w-full bg-card border border-border/60 rounded-3xl p-3 shadow-sm"
+            className="flex w-full items-center gap-2 overflow-x-auto rounded-3xl border border-border/60 bg-card p-3 shadow-sm scrollbar-none"
             role="tablist"
             aria-label="أقسام لوحة التحكم"
           >
@@ -1530,7 +1427,7 @@ export default function Dashboard() {
                   type="button"
                   onClick={() => selectTab(tab.id)}
                   className={cn(
-                    "flex shrink-0 items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold transition-all",
+                    "flex shrink-0 items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold transition-all sm:px-4",
                     isActive
                       ? "bg-slate-900 text-white shadow-md dark:bg-primary dark:text-primary-foreground"
                       : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
@@ -1540,6 +1437,9 @@ export default function Dashboard() {
                 >
                   <Icon className="h-3.5 w-3.5" aria-hidden />
                   <span className="whitespace-nowrap">{tab.label}</span>
+                  {badges[tab.id] && (
+                    <span className="shrink-0">{badges[tab.id]}</span>
+                  )}
                 </button>
               );
             })}

@@ -1619,6 +1619,41 @@ select {
   }
 }
 
+/* Keep every data table inside narrow phone viewports. Desktop widths and
+   print layouts are intentionally unaffected. */
+@media screen and (max-width: 640px) {
+  :where([data-slot="table-container"], .overflow-x-auto, .overflow-auto):has(
+      > table
+    ) {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: clip !important;
+  }
+
+  table {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  table :is(th, td) {
+    min-width: 0 !important;
+    max-width: none !important;
+    padding-inline: 0.2rem !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    font-size: clamp(0.56rem, 2.25vw, 0.72rem) !important;
+    line-height: 1.25 !important;
+  }
+
+  table :is(input, select, textarea, button) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+}
+
 /* Unified mobile UI treatment for sheet pages */
 .sheet-mobile-actions {
   display: none;

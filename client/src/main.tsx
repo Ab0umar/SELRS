@@ -26,6 +26,8 @@ if (__FAST_BUILD__) {
   await import("./styles/web.css");
 }
 
+await import("./styles/responsive-tables.css");
+
 // Helps us distinguish "state wiped because of a real browser reload" vs "soft reset".
 // sessionStorage survives reloads for the same tab, but not a new tab/window.
 (() => {

@@ -1,7 +1,15 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, X, Search, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  X,
+  Search,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { toast } from "sonner";
 import { localISODate } from "@/lib/utils";
 import { DateInput } from "@/components/ui/date-input";
@@ -10,6 +18,7 @@ const today = localISODate();
 
 interface BasicForm {
   empCd: string;
+  section: "مركز" | "عيادة";
   basicAmount: string;
   socialAllowance: string;
   costOfLivingAllowance: string;
@@ -31,6 +40,7 @@ interface BasicForm {
 
 const BLANK: BasicForm = {
   empCd: "",
+  section: "مركز",
   basicAmount: "",
   socialAllowance: "0",
   costOfLivingAllowance: "0",
@@ -155,7 +165,9 @@ function SalaryTable({
             <table dir="rtl" className="w-full text-xs">
               <thead>
                 <tr className="border-b border-border bg-primary/8 text-foreground font-bold">
-                  <th className="px-4 py-3 text-right font-bold w-40">الموظف</th>
+                  <th className="px-4 py-3 text-right font-bold w-40">
+                    الموظف
+                  </th>
                   <th className="px-4 py-3 text-right font-bold">
                     الراتب الأساسي
                   </th>
@@ -167,7 +179,9 @@ function SalaryTable({
                   </th>
                   <th className="px-4 py-3 text-right font-bold">بدل انتقال</th>
                   <th className="px-4 py-3 text-right font-bold">طبيعة عمل</th>
-                  <th className="px-4 py-3 text-right font-bold">بدل استقبال</th>
+                  <th className="px-4 py-3 text-right font-bold">
+                    بدل استقبال
+                  </th>
                   <th className="px-4 py-3 text-right font-bold">
                     الزيادة السنوية
                   </th>
@@ -291,43 +305,57 @@ function SalaryTable({
                     <div className="mt-4 pt-4 border-t border-border/40 space-y-3 text-xs">
                       <div className="grid grid-cols-2 gap-y-2.5 gap-x-4">
                         <div className="flex justify-between border-b border-border/20 pb-1">
-                          <span className="text-muted-foreground">الأساسي:</span>
+                          <span className="text-muted-foreground">
+                            الأساسي:
+                          </span>
                           <span className="font-semibold tabular-nums">
                             {fmt(Number(item.basicAmount))} ج.م
                           </span>
                         </div>
                         <div className="flex justify-between border-b border-border/20 pb-1">
-                          <span className="text-muted-foreground">إعانة اجتماعية:</span>
+                          <span className="text-muted-foreground">
+                            إعانة اجتماعية:
+                          </span>
                           <span className="font-semibold tabular-nums">
                             {fmt(Number(item.socialAllowance ?? 0))} ج.م
                           </span>
                         </div>
                         <div className="flex justify-between border-b border-border/20 pb-1">
-                          <span className="text-muted-foreground">بدل غلاء معيشة:</span>
+                          <span className="text-muted-foreground">
+                            بدل غلاء معيشة:
+                          </span>
                           <span className="font-semibold tabular-nums">
                             {fmt(Number(item.costOfLivingAllowance ?? 0))} ج.م
                           </span>
                         </div>
                         <div className="flex justify-between border-b border-border/20 pb-1">
-                          <span className="text-muted-foreground">بدل انتقال:</span>
+                          <span className="text-muted-foreground">
+                            بدل انتقال:
+                          </span>
                           <span className="font-semibold tabular-nums">
                             {fmt(Number(item.transportAllowance ?? 0))} ج.م
                           </span>
                         </div>
                         <div className="flex justify-between border-b border-border/20 pb-1">
-                          <span className="text-muted-foreground">طبيعة عمل:</span>
+                          <span className="text-muted-foreground">
+                            طبيعة عمل:
+                          </span>
                           <span className="font-semibold tabular-nums">
                             {fmt(Number(item.workNatureAllowance ?? 0))} ج.م
                           </span>
                         </div>
                         <div className="flex justify-between border-b border-border/20 pb-1">
-                          <span className="text-muted-foreground">بدل استقبال:</span>
+                          <span className="text-muted-foreground">
+                            بدل استقبال:
+                          </span>
                           <span className="font-semibold tabular-nums">
                             {fmt(Number(item.receptionAllowance ?? 0))} ج.م
                           </span>
                         </div>
                         <div className="flex justify-between border-b border-border/20 pb-1 col-span-2">
-                          <span className="text-muted-foreground">الزيادة السنوية:</span>
+                          <span className="text-muted-foreground">
+                            الزيادة السنوية:
+                          </span>
                           <span className="font-semibold tabular-nums">
                             {fmt(Number(item.yearlyRaise ?? 0))} ج.م
                           </span>
@@ -555,7 +583,9 @@ function ShiftsTable({
                     <div className="mt-4 pt-4 border-t border-border/40 space-y-3 text-xs">
                       <div className="space-y-2">
                         <div className="flex justify-between border-b border-border/20 pb-1">
-                          <span className="text-muted-foreground">ربط الحضور:</span>
+                          <span className="text-muted-foreground">
+                            ربط الحضور:
+                          </span>
                           <span className="font-semibold">
                             {s.empCd ? (
                               getEmployeeName(s.empCd)
@@ -711,6 +741,7 @@ export default function SalaryBasics() {
         effectiveFrom: form.effectiveFrom,
         effectiveTo: form.effectiveTo || null,
         notes: form.notes,
+        section: form.section,
       };
       if (editingId) {
         updateMut.mutate({ id: editingId, ...payload });
@@ -753,6 +784,7 @@ export default function SalaryBasics() {
     setForm({
       ...BLANK,
       empCd: b.empCd,
+      section: b.section ?? "مركز",
       basicAmount: String(Number(b.basicAmount)),
       socialAllowance: String(Number(b.socialAllowance ?? 0)),
       costOfLivingAllowance: String(Number(b.costOfLivingAllowance ?? 0)),
@@ -806,21 +838,19 @@ export default function SalaryBasics() {
 
   // Center basic salaries & shifts
   const centerSalaries = filteredBasics.filter((b) => {
-    const dept = b.department?.toLowerCase().trim();
-    return dept === "مركز" || dept === "center";
+    return b.section === "مركز";
   });
 
   const centerShifts = filteredShifts.filter((s) => {
     if (!s.empCd) return true; // Default manual shifts to Center
     const emp = employees.find((e) => e.empCd === s.empCd);
     const dept = emp?.department?.toLowerCase().trim();
-    return dept === "مركز" || dept === "center";
+    return dept === "مركز" || dept === "center" || dept === "المركز والعيادة";
   });
 
   // Clinic basic salaries & shifts
   const clinicSalaries = filteredBasics.filter((b) => {
-    const dept = b.department?.toLowerCase().trim();
-    return dept === "عيادة" || dept === "clinic";
+    return b.section === "عيادة";
   });
 
   return (
@@ -996,6 +1026,26 @@ export default function SalaryBasics() {
                           </div>
                         </div>
                       )}
+
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-bold text-foreground">
+                          الفرع
+                        </label>
+                        <select
+                          value={form.section}
+                          onChange={(e) =>
+                            setForm({
+                              ...form,
+                              section: e.target.value as "مركز" | "عيادة",
+                            })
+                          }
+                          className={inputCls}
+                          required
+                        >
+                          <option value="مركز">المركز</option>
+                          <option value="عيادة">العيادة</option>
+                        </select>
+                      </div>
 
                       {/* Salary Components Section */}
                       <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-4">

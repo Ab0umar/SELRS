@@ -25,6 +25,7 @@ import {
   attendanceShifts,
   salarySupervisionBonus,
   salaryMissingCheckoutExclude,
+  salaryEmployeeSectionSettings,
 } from "../../drizzle/schema";
 import {
   eq,
@@ -114,6 +115,7 @@ export const salaryRouter = router({
       .select({
         id: salaryBasics.id,
         empCd: salaryBasics.empCd,
+        section: salaryBasics.section,
         basicAmount: salaryBasics.basicAmount,
         socialAllowance: salaryBasics.socialAllowance,
         costOfLivingAllowance: salaryBasics.costOfLivingAllowance,
@@ -141,6 +143,7 @@ export const salaryRouter = router({
     .input(
       allowanceInput.extend({
         empCd: z.string().min(1),
+        section: z.enum(["مركز", "عيادة"]),
         effectiveFrom: z.string(),
         effectiveTo: z.string().nullable().optional(),
         notes: z.string().optional(),
@@ -151,6 +154,7 @@ export const salaryRouter = router({
       if (!db) throw new Error("DB unavailable");
       const result = await db.insert(salaryBasics).values({
         empCd: input.empCd,
+        section: input.section,
         basicAmount: String(input.basicAmount) as any,
         socialAllowance: String(input.socialAllowance ?? 0) as any,
         costOfLivingAllowance: String(input.costOfLivingAllowance ?? 0) as any,
@@ -170,6 +174,7 @@ export const salaryRouter = router({
     .input(
       z.object({
         id: z.number().int(),
+        section: z.enum(["مركز", "عيادة"]).optional(),
         basicAmount: z.number().min(0).optional(),
         socialAllowance: z.number().min(0).optional(),
         costOfLivingAllowance: z.number().min(0).optional(),
@@ -187,6 +192,7 @@ export const salaryRouter = router({
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       const upd: any = {};
+      if (input.section !== undefined) upd.section = input.section;
       if (input.basicAmount !== undefined)
         upd.basicAmount = String(input.basicAmount);
       if (input.socialAllowance !== undefined)
@@ -471,9 +477,7 @@ export const salaryRouter = router({
         xray1600: z.number().min(0).nullable().optional(),
         xrayRemaining: z.number().min(0).nullable().optional(),
         xray1502: z.number().min(0).nullable().optional(),
-        calculationMode: z
-          .enum(["legacy", "fixed_percentage"])
-          .optional(),
+        calculationMode: z.enum(["legacy", "fixed_percentage"]).optional(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -1119,27 +1123,45 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  listEmployees: makeSalaryProcedure("/salary").query(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("DB unavailable");
-    return await db
-      .select({
-        empCd: attendanceEmployees.empCd,
-        fullName: attendanceEmployees.fullName,
-        department: attendanceEmployees.department,
-        salaryType: attendanceEmployees.salaryType,
-        attendanceCommissionRate: attendanceEmployees.attendanceCommissionRate,
-        attendanceLeaveMultiplier:
-          attendanceEmployees.attendanceLeaveMultiplier,
-        commAttendance: attendanceEmployees.commAttendance,
-        commExam: attendanceEmployees.commExam,
-        commPentacam: attendanceEmployees.commPentacam,
-        commDay10: attendanceEmployees.commDay10,
-        commOvertime: attendanceEmployees.commOvertime,
-      })
-      .from(attendanceEmployees)
-      .orderBy(attendanceEmployees.fullName);
-  }),
+  listEmployees: makeSalaryProcedure("/salary")
+    .input(
+      z.object({ section: z.enum(["مركز", "عيادة"]).optional() }).optional(),
+    )
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const employees = await db
+        .select({
+          empCd: attendanceEmployees.empCd,
+          fullName: attendanceEmployees.fullName,
+          department: attendanceEmployees.department,
+          salaryType: attendanceEmployees.salaryType,
+          attendanceCommissionRate:
+            attendanceEmployees.attendanceCommissionRate,
+          attendanceLeaveMultiplier:
+            attendanceEmployees.attendanceLeaveMultiplier,
+          commAttendance: attendanceEmployees.commAttendance,
+          commExam: attendanceEmployees.commExam,
+          commPentacam: attendanceEmployees.commPentacam,
+          commDay10: attendanceEmployees.commDay10,
+          commOvertime: attendanceEmployees.commOvertime,
+        })
+        .from(attendanceEmployees)
+        .orderBy(attendanceEmployees.fullName);
+      if (!input?.section) return employees;
+      const settings = await db
+        .select()
+        .from(salaryEmployeeSectionSettings)
+        .where(eq(salaryEmployeeSectionSettings.section, input.section));
+    const settingsByEmp = new Map(
+      settings.map((row: any) => [row.empCd, row]),
+    );
+    return employees.map((employee: any) => ({
+        ...employee,
+        ...(settingsByEmp.get(employee.empCd) ?? {}),
+        section: input.section,
+      }));
+    }),
 
   getAbsentDays: makeSalaryProcedure("/salary")
     .input(z.object({ from: z.string(), to: z.string() }))
@@ -1370,6 +1392,7 @@ export const salaryRouter = router({
     .input(
       z.object({
         empCd: z.string(),
+        section: z.enum(["مركز", "عيادة"]),
         commAttendance: z.boolean(),
         commExam: z.boolean(),
         commPentacam: z.boolean(),
@@ -1381,15 +1404,66 @@ export const salaryRouter = router({
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       await db
-        .update(attendanceEmployees)
-        .set({
+        .insert(salaryEmployeeSectionSettings)
+        .values({
+          empCd: input.empCd,
+          section: input.section,
           commAttendance: input.commAttendance,
           commExam: input.commExam,
           commPentacam: input.commPentacam,
           commDay10: input.commDay10,
           commOvertime: input.commOvertime,
         })
-        .where(eq(attendanceEmployees.empCd, input.empCd));
+        .onDuplicateKeyUpdate({
+          set: {
+            commAttendance: input.commAttendance,
+            commExam: input.commExam,
+            commPentacam: input.commPentacam,
+            commDay10: input.commDay10,
+            commOvertime: input.commOvertime,
+          },
+        });
+      return { success: true };
+    }),
+
+  setEmployeeSectionSettings: makeSalaryWriteProcedure("/salary/pools")
+    .input(
+      z.object({
+        empCd: z.string().min(1),
+        section: z.enum(["مركز", "عيادة"]),
+        salaryType: z
+          .enum(["استشاري", "أخصائي", "الاثنين"])
+          .nullable(),
+        attendanceCommissionRate: z.number().min(0).max(1).nullable(),
+        attendanceLeaveMultiplier: z.number().min(0).max(1).nullable(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const values = {
+        empCd: input.empCd,
+        section: input.section,
+        salaryType: input.salaryType,
+        attendanceCommissionRate:
+          input.attendanceCommissionRate === null
+            ? null
+            : String(input.attendanceCommissionRate),
+        attendanceLeaveMultiplier:
+          input.attendanceLeaveMultiplier === null
+            ? null
+            : String(input.attendanceLeaveMultiplier),
+      };
+      await db
+        .insert(salaryEmployeeSectionSettings)
+        .values(values)
+        .onDuplicateKeyUpdate({
+          set: {
+            salaryType: values.salaryType,
+            attendanceCommissionRate: values.attendanceCommissionRate,
+            attendanceLeaveMultiplier: values.attendanceLeaveMultiplier,
+          },
+        });
       return { success: true };
     }),
 
@@ -1397,6 +1471,7 @@ export const salaryRouter = router({
     .input(
       z.object({
         empCds: z.array(z.string().min(1)).min(1),
+        section: z.enum(["مركز", "عيادة"]),
         attendanceCommissionRate: z
           .number()
           .min(0)
@@ -1444,10 +1519,12 @@ export const salaryRouter = router({
       if (Object.keys(updates).length === 0) {
         throw new Error("اختر إعدادًا واحدًا على الأقل للتطبيق");
       }
-      await db
-        .update(attendanceEmployees)
-        .set(updates)
-        .where(inArray(attendanceEmployees.empCd, input.empCds));
+      for (const empCd of input.empCds) {
+        await db
+          .insert(salaryEmployeeSectionSettings)
+          .values({ empCd, section: input.section, ...updates } as any)
+          .onDuplicateKeyUpdate({ set: updates });
+      }
       return { success: true, updated: input.empCds.length };
     }),
 
@@ -1468,6 +1545,7 @@ export const salaryRouter = router({
         type: z.enum(["doctor", "tech"]),
         ratePerShift: z.number().min(0),
         rateSmallShift: z.number().min(0).default(0),
+        mainShiftMinutes: z.number().int().min(1).max(1440).default(360),
         empCd: z.string().optional(),
       }),
     )
@@ -1479,6 +1557,7 @@ export const salaryRouter = router({
         type: input.type,
         ratePerShift: String(input.ratePerShift) as any,
         rateSmallShift: String(input.rateSmallShift ?? 0) as any,
+        mainShiftMinutes: input.mainShiftMinutes,
         empCd: input.empCd ?? null,
       });
       return { id: (result as any).insertId };
@@ -1492,6 +1571,7 @@ export const salaryRouter = router({
         type: z.enum(["doctor", "tech"]),
         ratePerShift: z.number().min(0),
         rateSmallShift: z.number().min(0).default(0),
+        mainShiftMinutes: z.number().int().min(1).max(1440).default(360),
         active: z.boolean(),
         empCd: z.string().optional(),
         userId: z.number().int().nullable().optional(),
@@ -1507,6 +1587,7 @@ export const salaryRouter = router({
           type: input.type,
           ratePerShift: String(input.ratePerShift) as any,
           rateSmallShift: String(input.rateSmallShift ?? 0) as any,
+          mainShiftMinutes: input.mainShiftMinutes,
           active: input.active,
           empCd: input.empCd ?? null,
           userId: input.userId ?? null,
@@ -1604,7 +1685,8 @@ export const salaryRouter = router({
         year: z.number().int(),
         month: z.number().int(),
         workDate: z.string(),
-        shiftName: z.string().min(1),
+        startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+        endTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -1619,6 +1701,9 @@ export const salaryRouter = router({
       if (!rows[0])
         throw new Error("No shift staff record linked to your account");
       const staffId = rows[0].id;
+      if (input.endTime <= input.startTime)
+        throw new Error("Shift end time must be later than start time");
+      const shiftName = `${input.startTime}-${input.endTime}`;
       await db
         .insert(shiftAttendance)
         .values({
@@ -1626,7 +1711,9 @@ export const salaryRouter = router({
           year: input.year,
           month: input.month,
           workDate: input.workDate as any,
-          shiftName: input.shiftName,
+          shiftName,
+          startTime: input.startTime,
+          endTime: input.endTime,
           present: true,
         })
         .onDuplicateKeyUpdate({ set: { present: true } });
@@ -1700,13 +1787,17 @@ export const salaryRouter = router({
         year: z.number(),
         month: z.number(),
         workDate: z.string(),
-        shiftName: z.string().min(1),
+        startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+        endTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
         present: z.boolean().default(true),
       }),
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
+      if (input.endTime <= input.startTime)
+        throw new Error("Shift end time must be later than start time");
+      const shiftName = `${input.startTime}-${input.endTime}`;
       await db
         .insert(shiftAttendance)
         .values({
@@ -1714,7 +1805,9 @@ export const salaryRouter = router({
           year: input.year,
           month: input.month,
           workDate: input.workDate as any,
-          shiftName: input.shiftName,
+          shiftName,
+          startTime: input.startTime,
+          endTime: input.endTime,
           present: input.present,
         })
         .onDuplicateKeyUpdate({ set: { present: input.present } });
@@ -1725,13 +1818,17 @@ export const salaryRouter = router({
     .input(
       z.object({
         staffId: z.number(),
-        shiftName: z.string().min(1),
+        startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+        endTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
         dates: z.array(z.string()).min(1),
       }),
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
+      if (input.endTime <= input.startTime)
+        throw new Error("Shift end time must be later than start time");
+      const shiftName = `${input.startTime}-${input.endTime}`;
       let inserted = 0;
       for (const workDate of input.dates) {
         const d = new Date(workDate);
@@ -1744,7 +1841,9 @@ export const salaryRouter = router({
             year,
             month,
             workDate: workDate as any,
-            shiftName: input.shiftName,
+            shiftName,
+            startTime: input.startTime,
+            endTime: input.endTime,
             present: true,
           })
           .onDuplicateKeyUpdate({ set: { present: true } });
@@ -2024,11 +2123,14 @@ export const salaryRouter = router({
         const rows = attendance.filter((a: any) => a.staffId === s.id);
         const rateBig = Number(s.ratePerShift);
         const rateSmall = Number(s.rateSmallShift ?? 0) || rateBig;
+        const mainShiftMinutes = Number(s.mainShiftMinutes ?? 360) || 360;
         const byShift: Record<
           string,
           { scheduled: number; attended: number; rate: number }
         > = {};
         let attended = 0;
+        let scheduledMinutes = 0;
+        let attendedMinutes = 0;
         // Explicit big/small breakdown, sized per each shift's own definition (shiftSizeMap)
         let bigScheduled = 0,
           bigAttended = 0,
@@ -2042,7 +2144,23 @@ export const salaryRouter = router({
           const present = Boolean(a.present);
           if (present) attended++;
           const size: "big" | "small" = shiftSizeMap.get(a.shiftName) ?? "big";
-          const rate = size === "small" ? rateSmall : rateBig;
+          let durationMinutes = mainShiftMinutes;
+          if (a.startTime && a.endTime) {
+            const [startHour, startMinute] = String(a.startTime)
+              .split(":")
+              .map(Number);
+            const [endHour, endMinute] = String(a.endTime)
+              .split(":")
+              .map(Number);
+            durationMinutes =
+              endHour * 60 + endMinute - (startHour * 60 + startMinute);
+            if (durationMinutes <= 0) durationMinutes = mainShiftMinutes;
+          }
+          const rate =
+            Math.round(((rateBig * durationMinutes) / mainShiftMinutes) * 100) /
+            100;
+          scheduledMinutes += durationMinutes;
+          if (present) attendedMinutes += durationMinutes;
           if (!byShift[a.shiftName])
             byShift[a.shiftName] = { scheduled: 0, attended: 0, rate };
           byShift[a.shiftName].scheduled++;
@@ -2073,32 +2191,26 @@ export const salaryRouter = router({
         const smallAbsent = Math.max(0, smallScheduled - smallAttended);
         const bigTotal = Math.round(bigScheduled * rateBig * 100) / 100;
         const smallTotal = Math.round(smallScheduled * rateSmall * 100) / 100;
+        const scheduledHourlyPay =
+          Math.round((scheduledMinutes / mainShiftMinutes) * rateBig * 100) /
+          100;
+        const attendedHourlyPay =
+          Math.round((attendedMinutes / mainShiftMinutes) * rateBig * 100) /
+          100;
         const basicSalary = !deductionsEnabled
-          ? Math.round(
-              (bigScheduled * rateBig + smallScheduled * rateSmall) * 100,
-            ) / 100
+          ? scheduledHourlyPay
           : hasOverride
             ? Math.round(
                 (bigAttended * rateBig + smallAttended * rateSmall) * 100,
               ) / 100
-            : Math.round(
-                Object.values(byShift).reduce(
-                  (s, b) => s + b.scheduled * b.rate,
-                  0,
-                ) * 100,
-              ) / 100;
+            : scheduledHourlyPay;
         const absentDeduction = !deductionsEnabled
           ? 0
           : hasOverride
             ? Math.round(
                 (bigAbsent * rateBig + smallAbsent * rateSmall) * 100,
               ) / 100
-            : Math.round(
-                Object.entries(byShift).reduce((s, [, b]) => {
-                  const absentInShift = Math.max(0, b.scheduled - b.attended);
-                  return s + absentInShift * b.rate;
-                }, 0) * 100,
-              ) / 100;
+            : Math.round((scheduledHourlyPay - attendedHourlyPay) * 100) / 100;
         const punchDeductionPct =
           deductionsEnabled && s.empCd ? (deductionMap.get(s.empCd) ?? 0) : 0;
         const punchDeduction =
@@ -2115,6 +2227,9 @@ export const salaryRouter = router({
           empCd: s.empCd ?? null,
           ratePerShift: rateBig,
           rateSmallShift: rateSmall,
+          mainShiftMinutes,
+          scheduledMinutes,
+          attendedMinutes,
           scheduled,
           attended,
           absent,

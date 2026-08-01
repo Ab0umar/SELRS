@@ -189,12 +189,17 @@ function GlobalRates() {
 }
 
 function EmployeeSettingsGrid() {
-  const empsQ = (trpc as any).salary.listEmployees.useQuery();
-  const shiftStaffQ = (trpc as any).salary.listShiftStaff.useQuery();
-  const updateMut = (trpc as any).attendance.updateEmployee.useMutation({
-    onError: (err: any) =>
-      toast.error(err.message ?? "خطأ في حفظ إعدادات الموظف"),
+  const [sectionTab, setSectionTab] = useState<"مركز" | "عيادة">("مركز");
+  const empsQ = (trpc as any).salary.listEmployees.useQuery({
+    section: sectionTab,
   });
+  const shiftStaffQ = (trpc as any).salary.listShiftStaff.useQuery();
+  const updateMut = (trpc as any).salary.setEmployeeSectionSettings.useMutation(
+    {
+      onError: (err: any) =>
+        toast.error(err.message ?? "خطأ في حفظ إعدادات الموظف"),
+    },
+  );
   const flagsMut = (trpc as any).salary.setCommissionFlags.useMutation({
     onError: (err: any) =>
       toast.error(err.message ?? "خطأ في تعديل العمولات والبدلات"),
@@ -203,8 +208,8 @@ function EmployeeSettingsGrid() {
 
   const [rates, setRates] = useState<Record<string, string>>({});
   const [multipliers, setMultipliers] = useState<Record<string, string>>({});
+  const [salaryTypes, setSalaryTypes] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
-  const [sectionTab, setSectionTab] = useState<"مركز" | "عيادة">("مركز");
   const [centerTab, setCenterTab] = useState<"رواتب" | "شفتات">("رواتب");
   const [selectedEmpCds, setSelectedEmpCds] = useState<Set<string>>(new Set());
   const [bulkRateMode, setBulkRateMode] = useState<
@@ -229,8 +234,9 @@ function EmployeeSettingsGrid() {
       .map((staff: any) => String(staff.empCd)),
   );
   const scopedEmps = allEmps.filter((emp) => {
-    if (sectionTab === "عيادة") return emp.department === "عيادة";
-    if (emp.department !== "مركز") return false;
+    const isBoth = emp.department === "المركز والعيادة";
+    if (sectionTab === "عيادة") return emp.department === "عيادة" || isBoth;
+    if (emp.department !== "مركز" && !isBoth) return false;
     return centerTab === "شفتات"
       ? shiftEmpCds.has(emp.empCd)
       : !shiftEmpCds.has(emp.empCd);
@@ -264,7 +270,9 @@ function EmployeeSettingsGrid() {
     if (!empsQ.data) return;
     const initRates: Record<string, string> = {};
     const initMults: Record<string, string> = {};
+    const initSalaryTypes: Record<string, string> = {};
     for (const emp of empsQ.data) {
+      initSalaryTypes[emp.empCd] = emp.salaryType ?? "";
       initRates[emp.empCd] =
         emp.attendanceCommissionRate != null
           ? String(Math.round(Number(emp.attendanceCommissionRate) * 100))
@@ -276,6 +284,7 @@ function EmployeeSettingsGrid() {
     }
     setRates(initRates);
     setMultipliers(initMults);
+    setSalaryTypes(initSalaryTypes);
   }, [empsQ.data]);
 
   function saveEmpSettings(emp: any) {
@@ -296,12 +305,10 @@ function EmployeeSettingsGrid() {
     updateMut.mutate(
       {
         empCd: emp.empCd,
-        fullName: emp.fullName,
-        department: emp.department,
-        salaryType: emp.salaryType ?? undefined,
+        section: sectionTab,
+        salaryType: salaryTypes[emp.empCd] || null,
         attendanceCommissionRate: rate,
         attendanceLeaveMultiplier: multiplier,
-        active: emp.active ?? true,
       },
       {
         onSuccess: () => {
@@ -329,6 +336,7 @@ function EmployeeSettingsGrid() {
 
     flagsMut.mutate({
       empCd: emp.empCd,
+      section: sectionTab,
       commAttendance:
         key === "commAttendance" ? !attendanceEnabled : attendanceEnabled,
       commExam: key === "commExam" ? !examEnabled : examEnabled,
@@ -383,6 +391,7 @@ function EmployeeSettingsGrid() {
     }
     const input: Record<string, unknown> = {
       empCds: Array.from(selectedEmpCds),
+      section: sectionTab,
     };
     if (bulkRateMode !== "keep") {
       input.attendanceCommissionRate =
@@ -661,9 +670,22 @@ function EmployeeSettingsGrid() {
                       />
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground border">
-                        {emp.salaryType || "—"}
-                      </span>
+                      <select
+                        value={salaryTypes[emp.empCd] ?? ""}
+                        onChange={(event) =>
+                          setSalaryTypes((current) => ({
+                            ...current,
+                            [emp.empCd]: event.target.value,
+                          }))
+                        }
+                        aria-label={`نوع عمولة الكشف للموظف ${emp.fullName}`}
+                        className="h-8 w-24 rounded-md border border-input bg-background px-1 text-[10px] font-semibold outline-none focus:border-primary/50"
+                      >
+                        <option value="">بدون</option>
+                        <option value="استشاري">استشاري</option>
+                        <option value="أخصائي">أخصائي</option>
+                        <option value="الاثنين">الاثنين</option>
+                      </select>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3 justify-center">

@@ -15,6 +15,7 @@ import {
   shiftStaff,
   shiftAttendance,
   salaryMissingCheckoutExclude,
+  salaryEmployeeSectionSettings,
 } from "../../../drizzle/schema";
 import { eq, and, gte, lte, isNull, or, inArray } from "drizzle-orm";
 import { computeMarkazEffectivePools } from "./commissionPoolsMssql.service";
@@ -283,7 +284,7 @@ export class PayrollComputeService {
     const firstDay = fromDate || monthRange(year, month)[0];
     const lastDay = toDate || monthRange(year, month)[1];
 
-    const employees = filterEmpCd
+    const employeeRows = filterEmpCd
       ? await db
           .select()
           .from(attendanceEmployees)
@@ -291,9 +292,26 @@ export class PayrollComputeService {
       : await db
           .select()
           .from(attendanceEmployees)
-          .where(eq(attendanceEmployees.department, section));
+          .where(
+            or(
+              eq(attendanceEmployees.department, section),
+              eq(attendanceEmployees.department, "المركز والعيادة"),
+            ),
+          );
 
     const isMarkaz = section === "مركز";
+
+    const sectionSettings = await db
+      .select()
+      .from(salaryEmployeeSectionSettings)
+      .where(eq(salaryEmployeeSectionSettings.section, section));
+    const sectionSettingsByEmp = new Map(
+      sectionSettings.map((settings: any) => [settings.empCd, settings]),
+    );
+    const employees = employeeRows.map((employee: any) => ({
+      ...employee,
+      ...(sectionSettingsByEmp.get(employee.empCd) ?? {}),
+    }));
 
     const acRates = await loadAttendanceRates(db);
     const lateTiers = await loadLateTiers(db);
@@ -326,6 +344,7 @@ export class PayrollComputeService {
         .from(salaryBasics)
         .where(
           and(
+            eq(salaryBasics.section, section),
             lte(salaryBasics.effectiveFrom, lastDay as any),
             or(
               isNull(salaryBasics.effectiveTo),

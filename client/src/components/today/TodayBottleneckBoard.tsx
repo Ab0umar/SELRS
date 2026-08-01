@@ -398,13 +398,11 @@ function GridPatientCard({
     >
       <PatientMedicalStatusStrip status={medicalStatus} />
       <div className="px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
-        <div className="flex items-start justify-between gap-1.5">
-          <div className="min-w-0 flex-1">
-            <p className="line-clamp-2 text-xs font-semibold leading-snug text-foreground sm:text-sm">
-              {getPatientLabel(patient)}
-            </p>
-          </div>
-          <div className="flex shrink-0 items-center gap-1">
+        <p className="break-words text-sm font-semibold leading-snug text-foreground">
+          {getPatientLabel(patient)}
+        </p>
+        <div className="mt-2 flex flex-wrap items-start justify-between gap-2">
+          <div className="flex items-center gap-1">
             <button
               type="button"
               title="طباعة روشتة"
@@ -445,7 +443,7 @@ function GridPatientCard({
               <Glasses className="h-3.5 w-3.5" aria-hidden />
             </button>
           </div>
-          <div className="flex shrink-0 flex-col items-end gap-1">
+          <div className="flex flex-wrap items-center justify-end gap-1">
             {st === "treated" ? (
               <CheckCircle2 className="h-4 w-4 text-success" aria-hidden />
             ) : null}
@@ -1243,14 +1241,14 @@ export function TodayBottleneckBoard({
           {/* Grid */}
           <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
             {isLoading ? (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 xl:grid-cols-5">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 2xl:grid-cols-4">
                 {Array.from({ length: 8 }).map((_, i) => (
                   <Skeleton key={i} className="h-40 rounded-xl" />
                 ))}
               </div>
             ) : queueFilter === "bookings" ? (
               visitScheduleRequestsQuery.isLoading ? (
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 xl:grid-cols-5">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 2xl:grid-cols-4">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <Skeleton key={i} className="h-32 rounded-xl" />
                   ))}
@@ -1260,7 +1258,7 @@ export function TodayBottleneckBoard({
                   لا توجد حجوزات لهذا التاريخ
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 xl:grid-cols-5">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 2xl:grid-cols-4">
                   {(
                     (visitScheduleRequestsQuery.data ??
                       []) as VisitScheduleRequestRow[]
@@ -1290,7 +1288,7 @@ export function TodayBottleneckBoard({
                 لا يوجد مرضى في هذه الفئة
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 xl:grid-cols-5">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 2xl:grid-cols-4">
                 {filteredPatients.map((patient, idx) => (
                   <GridPatientCard
                     key={`${patient.id}-${patient.queueStatus}-${idx}`}

@@ -8,7 +8,15 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, Download, Filter, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Download,
+  Filter,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { toast } from "sonner";
 import { localISODate } from "@/lib/utils";
 
@@ -280,43 +288,57 @@ function SalaryTable({
                     <div className="mt-4 pt-4 border-t border-border/40 space-y-3 text-xs">
                       <div className="grid grid-cols-2 gap-y-2.5 gap-x-4">
                         <div className="flex justify-between border-b border-border/20 pb-1">
-                          <span className="text-muted-foreground">الأساسي:</span>
+                          <span className="text-muted-foreground">
+                            الأساسي:
+                          </span>
                           <span className="font-semibold tabular-nums">
                             {fmt(Number(item.basicAmount))} ج.م
                           </span>
                         </div>
                         <div className="flex justify-between border-b border-border/20 pb-1">
-                          <span className="text-muted-foreground">اعانة اجتماعية:</span>
+                          <span className="text-muted-foreground">
+                            اعانة اجتماعية:
+                          </span>
                           <span className="font-semibold tabular-nums">
                             {fmt(Number(item.socialAllowance ?? 0))} ج.م
                           </span>
                         </div>
                         <div className="flex justify-between border-b border-border/20 pb-1">
-                          <span className="text-muted-foreground">علاء معيشة:</span>
+                          <span className="text-muted-foreground">
+                            علاء معيشة:
+                          </span>
                           <span className="font-semibold tabular-nums">
                             {fmt(Number(item.costOfLivingAllowance ?? 0))} ج.م
                           </span>
                         </div>
                         <div className="flex justify-between border-b border-border/20 pb-1">
-                          <span className="text-muted-foreground">بدل انتقال:</span>
+                          <span className="text-muted-foreground">
+                            بدل انتقال:
+                          </span>
                           <span className="font-semibold tabular-nums">
                             {fmt(Number(item.transportAllowance ?? 0))} ج.م
                           </span>
                         </div>
                         <div className="flex justify-between border-b border-border/20 pb-1">
-                          <span className="text-muted-foreground">طبيعة عمل:</span>
+                          <span className="text-muted-foreground">
+                            طبيعة عمل:
+                          </span>
                           <span className="font-semibold tabular-nums">
                             {fmt(Number(item.workNatureAllowance ?? 0))} ج.م
                           </span>
                         </div>
                         <div className="flex justify-between border-b border-border/20 pb-1">
-                          <span className="text-muted-foreground">بدل استقبال:</span>
+                          <span className="text-muted-foreground">
+                            بدل استقبال:
+                          </span>
                           <span className="font-semibold tabular-nums">
                             {fmt(Number(item.receptionAllowance ?? 0))} ج.م
                           </span>
                         </div>
                         <div className="flex justify-between border-b border-border/20 pb-1 col-span-2">
-                          <span className="text-muted-foreground">الزيادة السنوية:</span>
+                          <span className="text-muted-foreground">
+                            الزيادة السنوية:
+                          </span>
                           <span className="font-semibold tabular-nums">
                             {fmt(Number(item.yearlyRaise ?? 0))} ج.م
                           </span>
@@ -516,7 +538,9 @@ function ShiftsTable({ title, data, employees, isLoading }: ShiftsTableProps) {
                     <div className="mt-4 pt-4 border-t border-border/40 space-y-3 text-xs">
                       <div className="space-y-2">
                         <div className="flex justify-between border-b border-border/20 pb-1">
-                          <span className="text-muted-foreground">ربط الحضور:</span>
+                          <span className="text-muted-foreground">
+                            ربط الحضور:
+                          </span>
                           <span className="font-semibold">
                             {s.empCd ? (
                               getEmployeeName(s.empCd)
@@ -572,15 +596,11 @@ export default function CurrentSalaryData() {
 
   // Separate data by location
   const centerSalaries = basics.filter((b) => {
-    const emp = employees.find((e) => e.empCd === b.empCd);
-    const dept = emp?.department?.toLowerCase().trim();
-    return dept === "مركز" || dept === "center";
+    return b.section === "مركز";
   });
 
   const clinicSalaries = basics.filter((b) => {
-    const emp = employees.find((e) => e.empCd === b.empCd);
-    const dept = emp?.department?.toLowerCase().trim();
-    return dept === "عيادة" || dept === "clinic";
+    return b.section === "عيادة";
   });
 
   // Filter shifts belonging to center (shifts only belong to Center)
@@ -588,7 +608,9 @@ export default function CurrentSalaryData() {
     if (!s.empCd) return true;
     const emp = employees.find((e) => e.empCd === s.empCd);
     const dept = emp?.department?.toLowerCase().trim();
-    return !emp || dept === "مركز" || dept === "center";
+    return (
+      !emp || dept === "مركز" || dept === "center" || dept === "المركز والعيادة"
+    );
   });
 
   const handleEdit = (item: any) => {
