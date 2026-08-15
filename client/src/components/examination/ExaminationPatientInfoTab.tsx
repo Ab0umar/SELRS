@@ -314,17 +314,19 @@ export default function ExaminationPatientInfoTab({
                 </div>
               </div>
             </div>
-          </div>
 
-          {showMedicalHistory ? (
-            <div>
-              <MedicalHistoryTab
-                patientId={patientInfo.id ? Number(patientInfo.id) : undefined}
-                symptoms={[]}
-                onChange={setPatientMedicalHistory}
-              />
-            </div>
-          ) : null}
+            {showMedicalHistory ? (
+              <div className="min-w-0">
+                <MedicalHistoryTab
+                  patientId={
+                    patientInfo.id ? Number(patientInfo.id) : undefined
+                  }
+                  symptoms={[]}
+                  onChange={setPatientMedicalHistory}
+                />
+              </div>
+            ) : null}
+          </div>
 
           {/* Left Column: Visit Assignment & Financials (Now second in RTL) */}
           <div className="bg-primary/40 p-4 rounded-xl border border-primary/20 space-y-3 order-2 h-full flex flex-col">

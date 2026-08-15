@@ -34,6 +34,7 @@ type SyncResult = {
 
 export type MssqlPatientInsertInput = {
   patientCode: string;
+  allocatePatientCode?: boolean;
   fullName: string;
   phone?: string | null;
   address?: string | null;
@@ -2472,14 +2473,16 @@ export async function insertPatientToMssql(
   inserted: boolean;
   note?: string;
   trNo?: number | null;
+  patientCode?: string;
+  allocationWaited?: boolean;
   /** Header insert succeeded, but the accompanying first-service insert
    * failed — patient/receipt exists in MSSQL but with no service row. */
   serviceInsertWarning?: string;
 }> {
   console.log(`[MSSQL Insert] Starting for patient: ${input.patientCode}`);
-  const patientCode = String(input.patientCode ?? "").trim();
+  let patientCode = String(input.patientCode ?? "").trim();
   const fullName = String(input.fullName ?? "").trim();
-  if (!patientCode || !fullName) {
+  if ((!patientCode && !input.allocatePatientCode) || !fullName) {
     return { inserted: false, note: "Missing patientCode/fullName" };
   }
 
@@ -2574,6 +2577,7 @@ export async function insertPatientToMssql(
     console.log(`[MSSQL Insert][timing] ${label}: +${Date.now() - _t0}ms`);
   let tx: any;
   let serviceInsertWarning: string | undefined;
+  let allocationWaited = false;
   try {
     console.log(`[MSSQL Insert] Connecting to ${targetTable}...`);
     await rawPool.connect();
@@ -2603,6 +2607,35 @@ export async function insertPatientToMssql(
     tx = new mssqlModule.Transaction(rawPool);
     await tx.begin();
     const pool = tx;
+
+    if (input.allocatePatientCode) {
+      const allocationRequest = pool.request();
+      allocationRequest.input("LOCK_TIMEOUT", 15000);
+      const allocationResult = await allocationRequest.query(`
+        DECLARE @lockResult int;
+        EXEC @lockResult = sp_getapplock
+          @Resource = 'selrs:patient-code-allocation',
+          @LockMode = 'Exclusive',
+          @LockOwner = 'Transaction',
+          @LockTimeout = @LOCK_TIMEOUT;
+        IF @lockResult < 0
+          THROW 50001, 'Unable to acquire patient code allocation lock', 1;
+
+        SELECT
+          @lockResult AS lockResult,
+          MAX(CAST(PAT_CD AS INT)) AS maxCode
+        FROM ${targetTable}
+        WHERE ISNUMERIC(PAT_CD) = 1;
+      `);
+      allocationWaited =
+        Number(allocationResult?.recordset?.[0]?.lockResult) === 1;
+      const maxCode = Number(allocationResult?.recordset?.[0]?.maxCode ?? 0);
+      patientCode = String(
+        (Number.isFinite(maxCode) ? maxCode : 0) + 1,
+      ).padStart(4, "0");
+      _mark(`patient code ${patientCode} allocated`);
+    }
+
     console.log(`[MSSQL Insert] Connected! Fetching table columns...`);
     const targetCols = await getTableColumns(pool, targetTable);
     _mark("getTableColumns(target) done");
@@ -3126,6 +3159,8 @@ export async function insertPatientToMssql(
     return {
       inserted: true,
       trNo: Number.isFinite(trNo) ? trNo : null,
+      patientCode,
+      allocationWaited,
       serviceInsertWarning,
     };
   } catch (err) {

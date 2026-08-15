@@ -24,7 +24,11 @@ interface ShiftForm {
   graceLateMin: number;
   graceEarlyMin: number;
   allowOT: boolean;
+  allowOTIn: boolean;
+  allowOTOut: boolean;
   otMinMinutes: number;
+  otMinInMinutes: number;
+  otMinOutMinutes: number;
   otMaxMinutes: number;
   breakMinutes: number;
   requirePunch: boolean;
@@ -44,7 +48,11 @@ const BLANK: ShiftForm = {
   graceLateMin: 15,
   graceEarlyMin: 15,
   allowOT: false,
+  allowOTIn: false,
+  allowOTOut: false,
   otMinMinutes: 0,
+  otMinInMinutes: 0,
+  otMinOutMinutes: 0,
   otMaxMinutes: 0,
   breakMinutes: 60,
   requirePunch: true,
@@ -111,7 +119,11 @@ export default function ShiftManagement() {
       graceLateMin: s.graceLateMin,
       graceEarlyMin: s.graceEarlyMin,
       allowOT: s.allowOT ?? false,
+      allowOTIn: s.allowOTIn ?? s.allowOT ?? false,
+      allowOTOut: s.allowOTOut ?? s.allowOT ?? false,
       otMinMinutes: s.otMinMinutes ?? 0,
+      otMinInMinutes: s.otMinInMinutes ?? s.otMinMinutes ?? 0,
+      otMinOutMinutes: s.otMinOutMinutes ?? s.otMinMinutes ?? 0,
       otMaxMinutes: s.otMaxMinutes ?? 0,
       breakMinutes: s.breakMinutes,
       requirePunch: s.requirePunch ?? true,
@@ -383,30 +395,51 @@ export default function ShiftManagement() {
 
                   {/* Overtime settings */}
                   <div className="p-3 bg-muted/20 border border-border/60 rounded-xl space-y-3">
+                    <div className="grid gap-2 sm:grid-cols-2">
                     <label className="flex items-center gap-2 cursor-pointer select-none">
                       <input
                         type="checkbox"
-                        checked={form.allowOT}
-                        onChange={(e) => setForm({ ...form, allowOT: e.target.checked })}
+                        checked={form.allowOTIn}
+                        onChange={(e) => setForm({ ...form, allowOTIn: e.target.checked, allowOT: e.target.checked || form.allowOTOut })}
                         className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
                       />
-                      <span className="text-xs font-bold text-foreground">احتساب الوقت الإضافي (Overtime)</span>
+                      <span className="text-xs font-bold text-foreground">احتساب إضافي الحضور</span>
                     </label>
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={form.allowOTOut}
+                        onChange={(e) => setForm({ ...form, allowOTOut: e.target.checked, allowOT: form.allowOTIn || e.target.checked })}
+                        className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
+                      />
+                      <span className="text-xs font-bold text-foreground">احتساب إضافي الانصراف</span>
+                    </label>
+                    </div>
 
-                    {form.allowOT && (
-                      <div className="grid grid-cols-2 gap-3 pt-2 animate-in fade-in duration-200">
+                    {(form.allowOTIn || form.allowOTOut) && (
+                      <div className="grid gap-3 pt-2 animate-in fade-in duration-200 sm:grid-cols-3">
                         <div className="space-y-1">
-                          <label className="block text-[10px] text-muted-foreground">الحد الأدنى للاحتساب</label>
+                          <label className="block text-[10px] text-muted-foreground">الحد الأدنى لإضافي الحضور</label>
                           <input
                             type="number"
-                            value={form.otMinMinutes}
+                            value={form.otMinInMinutes}
                             min={0}
-                            onChange={(e) => setForm({ ...form, otMinMinutes: parseInt(e.target.value) || 0 })}
+                            onChange={(e) => setForm({ ...form, otMinInMinutes: parseInt(e.target.value) || 0 })}
                             className={inputClass}
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="block text-[10px] text-muted-foreground">الحد الأقصى اليومي</label>
+                          <label className="block text-[10px] text-muted-foreground">الحد الأدنى لإضافي الانصراف</label>
+                          <input
+                            type="number"
+                            value={form.otMinOutMinutes}
+                            min={0}
+                            onChange={(e) => setForm({ ...form, otMinOutMinutes: parseInt(e.target.value) || 0 })}
+                            className={inputClass}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="block text-[10px] text-muted-foreground">الحد الأقصى لإجمالي الاثنين</label>
                           <input
                             type="number"
                             value={form.otMaxMinutes}
@@ -518,7 +551,9 @@ export default function ShiftManagement() {
                     <Sparkles className="h-3.5 w-3.5 shrink-0 text-muted-foreground/80" />
                     <span className="font-semibold text-foreground/80">الوقت الإضافي:</span>
                     <span className="font-bold text-foreground font-mono">
-                      {s.allowOT ? `مفعّل (حد: ${s.otMinMinutes}د - ${s.otMaxMinutes > 0 ? `${s.otMaxMinutes}د` : "بلا حد"})` : "معطل"}
+                      {s.allowOTIn || s.allowOTOut
+                        ? `${s.allowOTIn ? `حضور من ${s.otMinInMinutes}د` : ""}${s.allowOTIn && s.allowOTOut ? " + " : ""}${s.allowOTOut ? `انصراف من ${s.otMinOutMinutes}د` : ""} (الإجمالي: ${s.otMaxMinutes > 0 ? `${s.otMaxMinutes}د` : "بلا حد"})`
+                        : "معطل"}
                     </span>
                   </div>
 

@@ -76,14 +76,13 @@ export const doctorPortalRouter = router({
         });
       }
 
-      const secret = ENV.JWT_SECRET || "dev-only-change-me";
       const token = jwt.sign(
         {
           type: "externalDoctor",
           doctorId: doctor.id,
           username: doctor.username,
         },
-        secret,
+        ENV.JWT_SECRET,
         { expiresIn: DOCTOR_SESSION_TTL_S },
       );
 
@@ -193,7 +192,9 @@ export const doctorPortalRouter = router({
           ),
         );
 
-      const patientMap = new Map(patientRows.map((p: any) => [p.patientCode, p]));
+      const patientMap = new Map(
+        patientRows.map((p: any) => [p.patientCode, p]),
+      );
       for (const r of referrals) {
         const p = patientMap.get(r.patientCode) as any;
         result.push({

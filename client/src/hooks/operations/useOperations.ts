@@ -217,32 +217,22 @@ export function useOperations() {
   }, [activeTab]);
 
   const operationOptions = useMemo(() => {
-    if (activeTab === TAB_SAWAF || activeTab === TAB_OTHERS) {
-      return [
-        "PRK",
-        "Lasik",
-        "FL",
-        "FS",
-        "Lasik Moria 130",
-        "Lasik Moria 90",
-        "Lasik Metal",
-      ];
-    }
     return [
       "Cataract",
       "IOL",
       "ICL",
       "PRK",
-      "Lasik",
-      "FL",
-      "FS",
       "Lasik Moria 130",
       "Lasik Moria 90",
+      "FS",
+      "FL",
       "Lasik Metal",
       "Yag",
+      "Squint",
+      "Fundus",
       "Other",
     ];
-  }, [activeTab]);
+  }, []);
 
   useEffect(() => {
     if (operationType && !operationOptions.includes(operationType)) {
@@ -304,8 +294,14 @@ export function useOperations() {
       return { ...prev, [activeTab]: items };
     });
     if (data.operationType !== undefined && data.operationType !== null) {
-      setOperationType(String(data.operationType));
-      if (data.operationType !== "Other") setOperationTypeOther("");
+      const savedOperationType = String(data.operationType).trim();
+      if (operationOptions.includes(savedOperationType)) {
+        setOperationType(savedOperationType);
+        setOperationTypeOther("");
+      } else if (savedOperationType) {
+        setOperationType("Other");
+        setOperationTypeOther(savedOperationType);
+      }
     }
     if (data.doctorName !== undefined && data.doctorName !== null) {
       setDoctorName(normalizeDoctorName(String(data.doctorName)));
@@ -313,7 +309,7 @@ export function useOperations() {
     if (data.listTime !== undefined && data.listTime !== null) {
       setListTime(String(data.listTime));
     }
-  }, [listQuery.data, activeTab, pricingConfig]);
+  }, [listQuery.data, activeTab, operationOptions, pricingConfig]);
 
   const currentList = lists[activeTab] || [];
   const computeAccounting = (row: ListData) => {
@@ -381,7 +377,9 @@ export function useOperations() {
     TAB_CONFIG.find((tab) => tab.key === activeTab)?.label ||
     "-"
   ).trim();
-  const exportOperationLabel = operationTypeLabel(operationType || "Other");
+  const exportOperationLabel = operationTypeLabel(
+    operationType === "Other" ? operationTypeOther : operationType || "Other",
+  );
   const exportDateLabel = toDateInputValue(listDate) || "-";
   const exportTimeLabel = formatTime12h((listTime || "-").trim());
 

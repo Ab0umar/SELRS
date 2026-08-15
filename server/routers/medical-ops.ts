@@ -1226,7 +1226,11 @@ export const medicalOpsRoutes = {
           : { items: [] as any[] };
       const previousCodes = new Set(
         previousList.items
-          .map((item: any) => String(item.code ?? "").trim().toLowerCase())
+          .map((item: any) =>
+            String(item.code ?? "")
+              .trim()
+              .toLowerCase(),
+          )
           .filter(Boolean),
       );
       const previousPhones = new Set(
@@ -1237,7 +1241,9 @@ export const medicalOpsRoutes = {
       const newSaadanyItems =
         input.doctorTab === "saadany"
           ? input.items.filter((item) => {
-              const code = String(item.code ?? "").trim().toLowerCase();
+              const code = String(item.code ?? "")
+                .trim()
+                .toLowerCase();
               const phone = String(item.phone ?? "").replace(/\D/g, "");
               if (code && previousCodes.has(code)) return false;
               if (phone && previousPhones.has(phone)) return false;
@@ -1409,22 +1415,43 @@ export const medicalOpsRoutes = {
         db.getTodayOperationBookingsGrouped(date),
       ]);
 
-      const mappedBookings = bookings.map((b: any, i: any) => ({
-        id: -(i + 1), // unique negative id for UI keys
-        doctorName: b.doctorName,
-        operationType: b.operationType,
-        listTime: null,
-        isBooking: true, // mark for frontend differentiation if needed
-        items: [
-          {
-            id: -(i + 1),
-            name: `حجز مسبق (${b.totalCount} حالة)`,
-            doctor: b.doctorName,
-            operation: b.operationType,
-            casesCount: b.totalCount,
-          },
-        ],
-      }));
+      const normalizeListKeyPart = (value: unknown) =>
+        String(value ?? "")
+          .trim()
+          .toLowerCase()
+          .replace(/^(?:دكتور(?:ة)?|د\.?\s*\/?)\s*/u, "")
+          .replace(/\s+/g, " ");
+      const getListKey = (doctor: unknown, operationType: unknown) =>
+        `${normalizeListKeyPart(doctor)}|${normalizeListKeyPart(operationType)}`;
+      const manualListKeys = new Set(
+        manualLists.map((list: any) =>
+          getListKey(list.doctorName || list.doctorTab, list.operationType),
+        ),
+      );
+
+      const mappedBookings = bookings
+        .filter(
+          (booking: any) =>
+            !manualListKeys.has(
+              getListKey(booking.doctorName, booking.operationType),
+            ),
+        )
+        .map((b: any, i: number) => ({
+          id: -(i + 1), // unique negative id for UI keys
+          doctorName: b.doctorName,
+          operationType: b.operationType,
+          listTime: null,
+          isBooking: true, // mark for frontend differentiation if needed
+          items: [
+            {
+              id: -(i + 1),
+              name: `حجز مسبق (${b.totalCount} حالة)`,
+              doctor: b.doctorName,
+              operation: b.operationType,
+              casesCount: b.totalCount,
+            },
+          ],
+        }));
 
       return [...manualLists, ...mappedBookings];
     }),

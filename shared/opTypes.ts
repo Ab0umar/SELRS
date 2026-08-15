@@ -46,7 +46,9 @@ export const OP_TYPE_ALIASES: Record<Exclude<OpType, "Others">, string[]> = {
 };
 
 export function resolveCanonicalOpType(raw: string): OpType {
-  const normalized = String(raw ?? "").trim().toLowerCase();
+  const normalized = String(raw ?? "")
+    .trim()
+    .toLowerCase();
   for (const [canonical, aliases] of Object.entries(OP_TYPE_ALIASES)) {
     if (aliases.includes(normalized)) return canonical as OpType;
   }
@@ -54,6 +56,21 @@ export function resolveCanonicalOpType(raw: string): OpType {
 }
 
 export function operationTypeLabelAr(raw: string): string {
+  const normalized = String(raw ?? "")
+    .trim()
+    .toLowerCase();
+  const operationListLabels: Record<string, string> = {
+    "lasik moria 130": "SBK130",
+    "lasik moria 90": "SBK90",
+    "lasik metal": "SBK Metal",
+    fl: "F. L",
+    fs: "F. S",
+    yag: "YAG",
+    fundus: "Fundus",
+  };
+  if (operationListLabels[normalized]) {
+    return operationListLabels[normalized];
+  }
   const canonical = resolveCanonicalOpType(raw);
   return canonical === "Others"
     ? String(raw ?? "").trim() || OP_TYPE_LABELS_AR.Others

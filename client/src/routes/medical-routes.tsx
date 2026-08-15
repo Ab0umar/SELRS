@@ -11,9 +11,11 @@ const Visits = lazy(() => import("../pages/Visits"));
 const TodayPatients = lazy(() => import("../pages/TodayPatients"));
 const Operations = lazy(() => import("../pages/Operations"));
 const WorkflowHub = lazy(() => import("../pages/WorkflowHub"));
+const WorkflowPrototype = lazy(() => import("../pages/WorkflowPrototype"));
 const Patients = lazy(() => import("../pages/Patients"));
 const PatientDetails = lazy(() => import("../pages/PatientDetails"));
 const MedicalReports = lazy(() => import("../pages/MedicalReports"));
+const MedicalReference = lazy(() => import("../pages/MedicalReference"));
 const ClinicalPortal = lazy(() => import("../pages/ClinicalPortal"));
 const PatientSummary = lazy(() => import("../pages/PatientSummary"));
 const DoctorPatientView = lazy(() => import("../pages/DoctorPatientView"));
@@ -189,6 +191,14 @@ export const MedicalRoutes = (
       )}
     />
     <Route
+      path="/workflow-hub/prototype"
+      component={() => (
+        <ProtectedRoute>
+          <WorkflowPrototype />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
       path={ROUTES.patients}
       component={() => (
         <ProtectedRoute>
@@ -253,6 +263,14 @@ export const MedicalRoutes = (
       )}
     />
     <Route
+      path={ROUTES.medicalReference}
+      component={() => (
+        <ProtectedRoute>
+          <MedicalReference />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
       path={ROUTES.patientSummaryId}
       component={() => (
         <ProtectedRoute>
@@ -301,6 +319,14 @@ export const MedicalRoutes = (
       )}
     />
     <Route
+      path="/sheets/followup/consultant"
+      component={() => (
+        <ProtectedRoute>
+          <ConsultantFollowupPage />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
       path={ROUTES.sheetsSpecialistId}
       component={() => (
         <ProtectedRoute>
@@ -342,6 +368,14 @@ export const MedicalRoutes = (
     />
     <Route
       path={ROUTES.sheetsLasikIdFollowup}
+      component={() => (
+        <ProtectedRoute>
+          <LasikFollowupPage />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
+      path="/sheets/followup/lasik"
       component={() => (
         <ProtectedRoute>
           <LasikFollowupPage />

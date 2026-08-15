@@ -46,6 +46,10 @@ export default function ClinicalReport() {
   const [, plainParams] = useRoute("/clinical-report/:id");
   const initialPatientId =
     Number(params?.id ?? hubParams?.id ?? plainParams?.id ?? 0) || undefined;
+  const requestedVisitDate =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("visitDate") || ""
+      : "";
 
   const patientQuery = trpc.patient.getPatient.useQuery(
     initialPatientId ?? null,
@@ -162,9 +166,16 @@ export default function ClinicalReport() {
 
   useEffect(() => {
     if (!selectedVisitId && visits.length > 0) {
-      setSelectedVisitId(Number(visits[0].id));
+      const matchingVisit = requestedVisitDate
+        ? visits.find(
+            (visit) =>
+              String(visit.visitDate ?? "").split("T")[0] ===
+              requestedVisitDate,
+          )
+        : undefined;
+      setSelectedVisitId(Number((matchingVisit ?? visits[0]).id));
     }
-  }, [visits, selectedVisitId]);
+  }, [visits, selectedVisitId, requestedVisitDate]);
 
   const reports = (reportsQuery.data as any[] | undefined) ?? [];
   useEffect(() => {
@@ -336,7 +347,14 @@ export default function ClinicalReport() {
               </h1>
               <p className="text-xs text-[#434654]">
                 Generated:{" "}
-                {displaySheetDate(new Date().toISOString().split("T")[0])}
+                {displaySheetDate(
+                  requestedVisitDate ||
+                    String(
+                      visits.find(
+                        (visit) => Number(visit.id) === selectedVisitId,
+                      )?.visitDate ?? new Date().toISOString(),
+                    ).split("T")[0],
+                )}
               </p>
             </div>
           </div>

@@ -172,6 +172,16 @@ export function OperationDialog({
             </SelectContent>
           </Select>
         </div>
+        {operationType === "Other" && (
+          <Input
+            value={operationTypeOther}
+            onChange={(event) => onOperationTypeOtherChange(event.target.value)}
+            className="h-11 w-[180px] text-sm sm:h-8 sm:text-xs"
+            readOnly={!canManageList}
+            placeholder="اكتب اسم العملية"
+            aria-label="اسم العملية الأخرى"
+          />
+        )}
 
         {/* Spacer */}
         <div className="flex-1" />

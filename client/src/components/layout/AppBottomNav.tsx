@@ -39,36 +39,126 @@ import {
 
 // All possible tabs per role
 const ALL_ADMIN_TABS = [
-  { key: "dashboard", label: "لوحة التحكم", icon: LayoutDashboard, paths: ["/dashboard"] },
-  { key: "patients",  label: "مركز المريض", icon: Network,          paths: ["/patient-hub", "/patients-hub", "/patients", "/followups", "/visits"] },
-  { key: "operations", label: "العمليات",    icon: Syringe,          paths: ["/operations"] },
-  { key: "accounting",label: "الحسابات",    icon: Banknote,         paths: ["/accounting"] },
-  { key: "salary",    label: "المرتبات",    icon: DollarSign,       paths: ["/salary"] },
-  { key: "attendance",label: "الحضور",      icon: Activity,         paths: ["/attendance"] },
-  { key: "kf",        label: "كفرالشيخ",   icon: Hospital,         paths: ["/kf"] },
-  { key: "stockroom", label: "المخزن",      icon: Archive,          paths: ["/stockroom"] },
-  { key: "marketing", label: "التسويق",     icon: Megaphone,        paths: ["/marketing"] },
-  { key: "admin",     label: "الإدارة",     icon: Settings,         paths: ["/admin-hub"] },
+  {
+    key: "dashboard",
+    label: "لوحة التحكم",
+    icon: LayoutDashboard,
+    paths: ["/dashboard"],
+  },
+  {
+    key: "patients",
+    label: "مركز المريض",
+    icon: Network,
+    paths: [
+      "/patient-hub",
+      "/patients-hub",
+      "/patients",
+      "/followups",
+      "/visits",
+    ],
+  },
+  {
+    key: "operations",
+    label: "العمليات",
+    icon: Syringe,
+    paths: ["/operations"],
+  },
+  {
+    key: "accounting",
+    label: "الحسابات",
+    icon: Banknote,
+    paths: ["/accounting"],
+  },
+  { key: "salary", label: "المرتبات", icon: DollarSign, paths: ["/salary"] },
+  {
+    key: "attendance",
+    label: "الحضور",
+    icon: Activity,
+    paths: ["/attendance"],
+  },
+  { key: "kf", label: "كفرالشيخ", icon: Hospital, paths: ["/kf"] },
+  { key: "stockroom", label: "المخزن", icon: Archive, paths: ["/stockroom"] },
+  {
+    key: "marketing",
+    label: "التسويق",
+    icon: Megaphone,
+    paths: ["/marketing"],
+  },
+  { key: "admin", label: "الإدارة", icon: Settings, paths: ["/admin-hub"] },
 ] as const;
 
 const ALL_STAFF_TABS = [
-  { key: "today",      label: "اليوم",        icon: Clock,        paths: ["/today", "/today-patients", "/dashboard"] },
-  { key: "patients",   label: "مركز المريض",  icon: Users,        paths: ["/patient-hub", "/patients-hub", "/patients", "/followups", "/visits"] },
-  { key: "operations", label: "العمليات",     icon: Syringe,      paths: ["/operations"] },
-  { key: "accounting", label: "الحسابات",     icon: Banknote,     paths: ["/accounting"] },
-  { key: "kf",         label: "كفرالشيخ",    icon: Hospital,     paths: ["/kf"] },
-  { key: "roster",     label: "الروستر",      icon: CalendarDays, paths: ["/attendance/shift-schedule"] },
+  {
+    key: "today",
+    label: "اليوم",
+    icon: Clock,
+    paths: ["/today", "/today-patients", "/dashboard"],
+  },
+  {
+    key: "patients",
+    label: "مركز المريض",
+    icon: Users,
+    paths: [
+      "/patient-hub",
+      "/patients-hub",
+      "/patients",
+      "/followups",
+      "/visits",
+    ],
+  },
+  {
+    key: "operations",
+    label: "العمليات",
+    icon: Syringe,
+    paths: ["/operations"],
+  },
+  {
+    key: "accounting",
+    label: "الحسابات",
+    icon: Banknote,
+    paths: ["/accounting"],
+  },
+  { key: "kf", label: "كفرالشيخ", icon: Hospital, paths: ["/kf"] },
+  {
+    key: "roster",
+    label: "الروستر",
+    icon: CalendarDays,
+    paths: ["/attendance/shift-schedule"],
+  },
 ] as const;
 
 type AdminKey = (typeof ALL_ADMIN_TABS)[number]["key"];
 type StaffKey = (typeof ALL_STAFF_TABS)[number]["key"];
 
-const DEFAULT_ADMIN_KEYS: AdminKey[] = ["dashboard", "patients", "operations", "accounting", "salary", "attendance", "kf", "admin"];
-const DEFAULT_STAFF_KEYS: StaffKey[] = ["today", "patients", "operations", "accounting", "kf"];
+const DEFAULT_ADMIN_KEYS: AdminKey[] = [
+  "dashboard",
+  "patients",
+  "operations",
+  "accounting",
+  "salary",
+  "attendance",
+  "kf",
+  "admin",
+];
+const DEFAULT_STAFF_KEYS: StaffKey[] = [
+  "today",
+  "patients",
+  "operations",
+  "accounting",
+  "kf",
+];
 const DEFAULT_STAFF_KEYS_DR: StaffKey[] = [...DEFAULT_STAFF_KEYS, "roster"];
 
 const STORAGE_KEY_ADMIN = "selrs:bottom-nav-admin";
 const STORAGE_KEY_STAFF = "selrs:bottom-nav-staff";
+
+function getStorageKey(isAdmin: boolean, userRole: string): string {
+  if (isAdmin) return STORAGE_KEY_ADMIN;
+  if (["doctor", "technician", "manager"].includes(userRole)) {
+    return `${STORAGE_KEY_STAFF}-${userRole}`;
+  }
+  return STORAGE_KEY_STAFF;
+}
 
 function loadKeys<T extends string>(storageKey: string, defaults: T[]): T[] {
   try {
@@ -82,7 +172,9 @@ function loadKeys<T extends string>(storageKey: string, defaults: T[]): T[] {
 }
 
 function saveKeys(storageKey: string, keys: string[]) {
-  try { localStorage.setItem(storageKey, JSON.stringify(keys)); } catch {}
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(keys));
+  } catch {}
 }
 
 function isTabActive(location: string, paths: readonly string[]): boolean {
@@ -111,11 +203,12 @@ export function AppBottomNav({
   allowedRoots,
   permissionsLoaded = true,
 }: AppBottomNavProps) {
-  const storageKey = isAdmin ? STORAGE_KEY_ADMIN : STORAGE_KEY_STAFF;
+  const isRosterRole = ["doctor", "technician", "manager"].includes(userRole);
+  const storageKey = getStorageKey(isAdmin, userRole);
   const allTabs = isAdmin ? ALL_ADMIN_TABS : ALL_STAFF_TABS;
   const defaultKeys = isAdmin
     ? DEFAULT_ADMIN_KEYS
-    : ["doctor", "technician"].includes(userRole)
+    : isRosterRole
       ? DEFAULT_STAFF_KEYS_DR
       : DEFAULT_STAFF_KEYS;
 
@@ -145,7 +238,8 @@ export function AppBottomNav({
       // the very bottom, flipping delta's sign every frame and rapidly
       // toggling navHidden (visible as the nav bar shaking). Treat "at/near
       // the bottom" as a stability zone, same as the existing top-of-scroll one.
-      const maxScrollTop = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+      const maxScrollTop =
+        scrollContainer.scrollHeight - scrollContainer.clientHeight;
       const nearBottom = maxScrollTop - nextScrollTop <= 12;
 
       if (nextScrollTop <= 12 || nearBottom || delta < -4) {
@@ -174,7 +268,8 @@ export function AppBottomNav({
   const leafVisible = useCallback(
     (leaf: NavLeaf): boolean => {
       const allowedRoles = leaf.roles?.map((role) => role.toLowerCase());
-      if (allowedRoles?.length && !allowedRoles.includes(userRole)) return false;
+      if (allowedRoles?.length && !allowedRoles.includes(userRole))
+        return false;
       if (isAdmin) return true;
       if (!permissionsLoaded) return false;
       const cleanPath = normalizeNavPath(leaf.path.split("?")[0]);
@@ -185,10 +280,13 @@ export function AppBottomNav({
 
   // Filter tabs: enabled + permission check for staff
   const visibleTabs = allTabs.filter((tab) => {
-    if (!enabledKeys.includes(tab.key)) return false;
+    if (
+      !enabledKeys.includes(tab.key) &&
+      !(tab.key === "roster" && isRosterRole)
+    )
+      return false;
     if (isAdmin) return true;
-    if (tab.key === "roster" && !["doctor", "technician"].includes(userRole)) return false;
-    if (tab.key === "roster" && ["doctor", "technician"].includes(userRole)) return true;
+    if (tab.key === "roster") return isRosterRole;
     if (!permissionsLoaded) return false;
     const cleanPath = normalizeNavPath(tab.paths[0]?.split("?")[0] ?? "");
     return pathGrantedByRoots(cleanPath, allowedRoots as any);
@@ -302,10 +400,21 @@ export function AppBottomNav({
                 onClick={() => onNavigate(tab.paths[0])}
               >
                 {active && (
-                  <span className="absolute inset-x-3 top-0 h-0.5 rounded-b-full bg-primary" aria-hidden />
+                  <span
+                    className="absolute inset-x-3 top-0 h-0.5 rounded-b-full bg-primary"
+                    aria-hidden
+                  />
                 )}
-                <Icon className="size-5 shrink-0" strokeWidth={active ? 2.2 : 1.8} />
-                <span className={cn("whitespace-nowrap text-[10px] leading-none", active ? "font-semibold" : "font-medium")}>
+                <Icon
+                  className="size-5 shrink-0"
+                  strokeWidth={active ? 2.2 : 1.8}
+                />
+                <span
+                  className={cn(
+                    "whitespace-nowrap text-[10px] leading-none",
+                    active ? "font-semibold" : "font-medium",
+                  )}
+                >
                   {tab.label}
                 </span>
               </button>
@@ -318,19 +427,28 @@ export function AppBottomNav({
             aria-label="المزيد"
             className={cn(
               "relative flex flex-1 flex-col items-center justify-center gap-0.5 transition-colors shrink-0",
-              moreSheetOpen || moreOpen ? "text-primary" : "text-muted-foreground/70 hover:text-muted-foreground",
+              moreSheetOpen || moreOpen
+                ? "text-primary"
+                : "text-muted-foreground/70 hover:text-muted-foreground",
             )}
             onClick={() => {
               setMoreSheetOpen(true);
               onOpenMore?.();
             }}
           >
-            <LayoutGrid className="size-5 shrink-0" strokeWidth={moreSheetOpen || moreOpen ? 2.2 : 1.8} />
-            <span className={cn("whitespace-nowrap text-[10px] leading-none", moreSheetOpen || moreOpen ? "font-semibold" : "font-medium")}>
+            <LayoutGrid
+              className="size-5 shrink-0"
+              strokeWidth={moreSheetOpen || moreOpen ? 2.2 : 1.8}
+            />
+            <span
+              className={cn(
+                "whitespace-nowrap text-[10px] leading-none",
+                moreSheetOpen || moreOpen ? "font-semibold" : "font-medium",
+              )}
+            >
               المزيد
             </span>
           </button>
-
         </div>
       </nav>
 
@@ -341,7 +459,11 @@ export function AppBottomNav({
           if (!open) setOpenSections({});
         }}
       >
-        <SheetContent side="bottom" className="max-h-[82vh] overflow-y-auto rounded-t-xl p-0" dir="rtl">
+        <SheetContent
+          side="bottom"
+          className="max-h-[82vh] overflow-y-auto rounded-t-xl p-0"
+          dir="rtl"
+        >
           <SheetHeader className="border-b border-border px-4 py-3">
             <SheetTitle className="text-right text-base">المزيد</SheetTitle>
           </SheetHeader>
@@ -392,7 +514,9 @@ export function AppBottomNav({
                             onClick={() => handleMoreNavigate(item.path)}
                           >
                             <Icon className="h-4 w-4 shrink-0" aria-hidden />
-                            <span className="min-w-0 truncate">{item.label}</span>
+                            <span className="min-w-0 truncate">
+                              {item.label}
+                            </span>
                           </button>
                         );
                       })}
@@ -411,7 +535,10 @@ export function AppBottomNav({
                   setSheetOpen(true);
                 }}
               >
-                <Pencil className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                <Pencil
+                  className="h-4 w-4 shrink-0 text-muted-foreground"
+                  aria-hidden
+                />
                 <span>تخصيص شريط التنقل</span>
               </button>
             </div>
@@ -420,15 +547,22 @@ export function AppBottomNav({
       </Sheet>
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="bottom" className="max-h-[70vh] overflow-y-auto rounded-t-2xl" dir="rtl">
+        <SheetContent
+          side="bottom"
+          className="max-h-[70vh] overflow-y-auto rounded-t-2xl"
+          dir="rtl"
+        >
           <SheetHeader className="mb-4">
             <SheetTitle className="text-right">تخصيص شريط التنقل</SheetTitle>
           </SheetHeader>
-          <p className="text-xs text-muted-foreground mb-4">اختر الصفحات التي تظهر في شريط التنقل السفلي</p>
+          <p className="text-xs text-muted-foreground mb-4">
+            اختر الصفحات التي تظهر في شريط التنقل السفلي
+          </p>
           <div className="space-y-2">
             {allTabs.map((tab) => {
               const Icon = tab.icon;
-              const enabled = enabledKeys.includes(tab.key);
+              const rosterLocked = tab.key === "roster" && isRosterRole;
+              const enabled = rosterLocked || enabledKeys.includes(tab.key);
               return (
                 <div
                   key={tab.key}
@@ -440,7 +574,13 @@ export function AppBottomNav({
                   </div>
                   <Switch
                     checked={enabled}
+                    disabled={rosterLocked}
                     onCheckedChange={() => toggleKey(tab.key)}
+                    aria-label={
+                      rosterLocked
+                        ? "الروستر متاح دائما لهذا الحساب"
+                        : undefined
+                    }
                   />
                 </div>
               );

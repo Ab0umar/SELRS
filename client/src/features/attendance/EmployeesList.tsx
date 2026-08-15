@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { DateInput } from "@/components/ui/date-input";
+import { useIsMobile } from "@/hooks/useMobile";
 
 // weekdayMask: bit 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
 const DAYS_SH = ["ح", "ن", "ث", "ر", "خ", "ج", "س"];
@@ -414,6 +415,7 @@ function TempSwapPanel({
 
 // ── Main Component ───────────────────────────────────────────────────────────
 export default function EmployeesList() {
+  const isMobile = useIsMobile();
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<"center" | "clinic">("center");
   const [editingCd, setEditingCd] = useState<string | null>(null);
@@ -535,6 +537,279 @@ export default function EmployeesList() {
           لا توجد موظفين في هذا القسم
         </div>
       );
+
+    if (isMobile) {
+      return (
+        <div className="space-y-2" dir="rtl">
+          {employees.map((emp: any) => {
+            const isEditing = editingCd === emp.empCd;
+            const showPanel = panelCd === emp.empCd;
+            const showSwap = swapCd === emp.empCd;
+            const isClinic =
+              emp.department === "عيادة" ||
+              emp.department === "clinic" ||
+              emp.department === "المركز والعيادة";
+            const empAssignments = assignmentsMap.get(emp.empCd) ?? [];
+            const assignment = empAssignments[0] ?? null;
+            const combinedMask = empAssignments.reduce(
+              (m, a) => m | a.weekdayMask,
+              0,
+            );
+            const shiftNames = Array.from(
+              new Map(
+                empAssignments.map((a) => [a.shiftId, a.shiftName]),
+              ).values(),
+            );
+
+            return (
+              <div
+                key={emp.empCd}
+                className={`rounded-2xl border border-border bg-background p-3 shadow-sm ${isEditing ? "bg-primary/5" : showPanel ? "bg-muted/20" : ""}`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-mono text-xs text-muted-foreground">
+                      {emp.empCd}
+                    </div>
+                    {isEditing ? (
+                      <input
+                        value={editRow.fullName}
+                        onChange={(e) =>
+                          setEditRow({ ...editRow, fullName: e.target.value })
+                        }
+                        className="mt-1 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+                      />
+                    ) : (
+                      <Link href={`/attendance/employees/${emp.empCd}`}>
+                        <a className="font-semibold text-primary hover:underline">
+                          {emp.fullName}
+                        </a>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
+                  <div>
+                    <div className="text-muted-foreground">القسم</div>
+                    {isEditing ? (
+                      <select
+                        value={editRow.department}
+                        onChange={(e) =>
+                          setEditRow({ ...editRow, department: e.target.value })
+                        }
+                        className="mt-1 w-full rounded-md border border-border bg-background px-1 py-1 text-xs"
+                      >
+                        <option value="">—</option>
+                        <option value="مركز">مركز</option>
+                        <option value="عيادة">عيادة</option>
+                        <option value="المركز والعيادة">المركز والعيادة</option>
+                      </select>
+                    ) : (
+                      <div className="font-medium text-foreground">
+                        {emp.department || "—"}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">النوع</div>
+                    {isEditing && isClinic ? (
+                      <select
+                        value={editRow.salaryType}
+                        onChange={(e) =>
+                          setEditRow({ ...editRow, salaryType: e.target.value })
+                        }
+                        className="mt-1 w-full rounded-md border border-border bg-background px-1 py-1 text-xs"
+                      >
+                        <option value="">—</option>
+                        <option value="استشاري">استشاري</option>
+                        <option value="أخصائي">أخصائي</option>
+                        <option value="الاثنين">الاثنين</option>
+                      </select>
+                    ) : (
+                      <div className="font-medium text-foreground">
+                        {isClinic ? emp.salaryType || "—" : "—"}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">الوظيفة</div>
+                    {isEditing ? (
+                      <input
+                        value={editRow.jobTitle}
+                        onChange={(e) =>
+                          setEditRow({ ...editRow, jobTitle: e.target.value })
+                        }
+                        placeholder="طبيب، محاسب..."
+                        className="mt-1 w-full rounded-md border border-border bg-background px-1 py-1 text-xs"
+                      />
+                    ) : (
+                      <div className="font-medium text-foreground">
+                        {emp.jobTitle || "—"}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {shiftNames.length > 0 ? (
+                    shiftNames.map((name, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center rounded-full border border-border bg-muted/40 px-2 py-0.5 text-[11px] font-semibold text-foreground"
+                      >
+                        {name}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-[11px] italic text-destructive/60">
+                      غير معيّن
+                    </span>
+                  )}
+                  {combinedMask > 0 && (
+                    <span className="inline-flex items-center gap-0.5 rounded-full border border-border bg-muted/40 px-2.5 py-0.5 text-[11px] font-mono text-muted-foreground">
+                      {maskLabel(combinedMask)}
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-3 flex justify-end gap-1 border-t border-border/60 pt-2">
+                  {isEditing ? (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={updateMutation.isPending}
+                        onClick={() =>
+                          updateMutation.mutate({
+                            empCd: emp.empCd,
+                            fullName: editRow.fullName,
+                            department: editRow.department || undefined,
+                            salaryType: editRow.salaryType || undefined,
+                            jobTitle: editRow.jobTitle || undefined,
+                            attendanceCommissionRate:
+                              editRow.attendanceCommissionRate !== ""
+                                ? parseFloat(editRow.attendanceCommissionRate) /
+                                  100
+                                : null,
+                            active: editRow.active,
+                          })
+                        }
+                        className="h-10 w-10 p-0"
+                      >
+                        <Check size={16} className="text-success" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditingCd(null)}
+                        className="h-10 w-10 p-0"
+                      >
+                        <X size={16} className="text-muted-foreground" />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => startEdit(emp)}
+                        title="تعديل بيانات الموظف"
+                        className="h-10 w-10 p-0"
+                      >
+                        <Pencil size={15} className="text-primary" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setPanelCd(showPanel ? null : emp.empCd);
+                          setEditingCd(null);
+                          setSwapCd(null);
+                        }}
+                        title="توزيع الوردية وأيام الدوام"
+                        className={`h-10 w-10 p-0 ${showPanel ? "text-primary" : "text-muted-foreground"}`}
+                      >
+                        <Settings2 size={15} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSwapCd(showSwap ? null : emp.empCd);
+                          setEditingCd(null);
+                          setPanelCd(null);
+                        }}
+                        title="تبديل مؤقت للوردية"
+                        className={`h-10 w-10 p-0 ${showSwap ? "text-secondary" : "text-muted-foreground"}`}
+                      >
+                        <ArrowLeftRight size={15} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={deleteMutation.isPending}
+                        onClick={() => {
+                          if (confirm(`هل تريد حذف ${emp.fullName}؟`))
+                            deleteMutation.mutate({ empCd: emp.empCd });
+                        }}
+                        title="حذف الموظف"
+                        className="h-10 w-10 p-0"
+                      >
+                        <Trash2 size={15} className="text-destructive" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+
+                {showPanel && (
+                  <div className="mt-2 rounded-xl border border-primary/20 bg-primary/5 p-3">
+                    <table>
+                      <tbody>
+                        <AssignmentPanel
+                          key={`panel-${emp.empCd}`}
+                          empCd={emp.empCd}
+                          empName={emp.fullName}
+                          assignments={empAssignments}
+                          shifts={allShifts}
+                          onSaved={() => {
+                            assignmentsQuery.refetch();
+                            setPanelCd(null);
+                          }}
+                          onClose={() => setPanelCd(null)}
+                        />
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {showSwap && (
+                  <div className="mt-2 rounded-xl border border-secondary/20 bg-secondary/5 p-3">
+                    <table>
+                      <tbody>
+                        <TempSwapPanel
+                          key={`swap-${emp.empCd}`}
+                          empCd={emp.empCd}
+                          empName={emp.fullName}
+                          currentShiftName={assignment?.shiftName ?? null}
+                          assignment={assignment}
+                          shifts={allShifts}
+                          onSaved={() => {
+                            assignmentsQuery.refetch();
+                            setSwapCd(null);
+                          }}
+                          onClose={() => setSwapCd(null)}
+                        />
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
 
     return (
       <div className="overflow-x-auto" dir="rtl">

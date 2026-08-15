@@ -21,6 +21,10 @@ import { attendanceLeavesRoutes } from "./attendance-leaves";
 import { attendanceReportsRoutes } from "./attendance-reports";
 import { fmtDate } from "./_attendance/schedule-helpers";
 import {
+  getEntryPermissionRequestsEnabled,
+  setEntryPermissionRequestsEnabled,
+} from "../services/attendance/permissionSettings.service";
+import {
   pushAppNotification,
   getAppNotificationSettings,
   DEFAULT_APP_NOTIFICATION_SETTINGS,
@@ -29,6 +33,7 @@ import {
   attendanceSyncRuns,
   attendancePunches,
   attendanceDaily,
+  attendanceOvertimeDays,
   attendanceEmployees,
   attendanceLeaves,
   attendanceShifts,
@@ -299,7 +304,12 @@ export const attendanceRouter = router({
           workedMinutes: attendanceDaily.workedMinutes,
           lateMinutes: attendanceDaily.lateMinutes,
           earlyLeaveMin: attendanceDaily.earlyLeaveMin,
+          overtimeInMinutes: attendanceDaily.overtimeInMinutes,
+          overtimeOutMinutes: attendanceDaily.overtimeOutMinutes,
           overtimeMinutes: attendanceDaily.overtimeMinutes,
+          overtimeInEnabled: attendanceOvertimeDays.inEnabled,
+          overtimeOutEnabled: attendanceOvertimeDays.outEnabled,
+          extraDayEnabled: attendanceOvertimeDays.extraDayEnabled,
           status: attendanceDaily.status,
           insideNow: attendanceDaily.insideNow,
           computedAt: attendanceDaily.computedAt,
@@ -308,6 +318,13 @@ export const attendanceRouter = router({
         .leftJoin(
           attendanceEmployees,
           eq(attendanceDaily.empCd, attendanceEmployees.empCd),
+        )
+        .leftJoin(
+          attendanceOvertimeDays,
+          and(
+            eq(attendanceDaily.empCd, attendanceOvertimeDays.empCd),
+            eq(attendanceDaily.workDate, attendanceOvertimeDays.workDate),
+          ),
         )
         .where(and(...conditions))
         .orderBy(attendanceDaily.empCd);
@@ -322,11 +339,64 @@ export const attendanceRouter = router({
         workedMinutes: d.workedMinutes,
         lateMinutes: d.lateMinutes,
         earlyLeaveMin: d.earlyLeaveMin,
+        overtimeInMinutes: d.overtimeInMinutes,
+        overtimeOutMinutes: d.overtimeOutMinutes,
         overtimeMinutes: d.overtimeMinutes,
+        overtimeInEnabled:
+          d.overtimeInEnabled == null ? true : Boolean(d.overtimeInEnabled),
+        overtimeOutEnabled:
+          d.overtimeOutEnabled == null ? true : Boolean(d.overtimeOutEnabled),
+        extraDayEnabled:
+          d.extraDayEnabled == null ? true : Boolean(d.extraDayEnabled),
         status: d.status,
         insideNow: d.insideNow,
         computedAt: d.computedAt.toISOString(),
       }));
+    }),
+  setDailyOvertimeEnabled: makeAttWriteProcedure("/attendance")
+    .input(
+      z.object({
+        empCd: z.string().min(1),
+        workDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        type: z.enum(["in", "out", "day"]),
+        enabled: z.boolean(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const values = {
+        empCd: input.empCd,
+        workDate: input.workDate as any,
+        inEnabled: input.type === "in" ? input.enabled : true,
+        outEnabled: input.type === "out" ? input.enabled : true,
+        extraDayEnabled: input.type === "day" ? input.enabled : true,
+      };
+      if (input.type === "in") {
+        await db
+          .insert(attendanceOvertimeDays)
+          .values(values)
+          .onDuplicateKeyUpdate({
+            set: { inEnabled: input.enabled, updatedAt: new Date() },
+          });
+      } else if (input.type === "out") {
+        await db
+          .insert(attendanceOvertimeDays)
+          .values(values)
+          .onDuplicateKeyUpdate({
+            set: { outEnabled: input.enabled, updatedAt: new Date() },
+          });
+      } else {
+        await db
+          .insert(attendanceOvertimeDays)
+          .values(values)
+          .onDuplicateKeyUpdate({
+            set: { extraDayEnabled: input.enabled, updatedAt: new Date() },
+          });
+      }
+
+      return { success: true, type: input.type, enabled: input.enabled };
     }),
 
   dailyByEmployee: makeAttProcedure("/attendance/employees")
@@ -394,6 +464,15 @@ export const attendanceRouter = router({
       totalRecordsProcessed: stats.totalRowsInsertedLast24h,
     };
   }),
+  getEntryPermissionRequestsEnabled: protectedProcedure.query(async () => ({
+    enabled: await getEntryPermissionRequestsEnabled(),
+  })),
+  setEntryPermissionRequestsEnabled: makeAttWriteProcedure("/attendance")
+    .input(z.object({ enabled: z.boolean() }))
+    .mutation(async ({ input }) => {
+      await setEntryPermissionRequestsEnabled(input.enabled);
+      return { success: true, enabled: input.enabled };
+    }),
   myAttendanceProfile: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
@@ -584,7 +663,6 @@ export const attendanceRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-
       const mapping = await db
         .select()
         .from(employeeAttendanceMapping)
@@ -657,6 +735,9 @@ export const attendanceRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+      if (input.type === "in" && !(await getEntryPermissionRequestsEnabled())) {
+        throw new Error("طلب إذن الدخول غير متاح حاليًا");
+      }
 
       const mapping = await db
         .select()

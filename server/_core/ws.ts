@@ -9,15 +9,41 @@ import { ENV } from "./env";
 type WsClient = WebSocket & {
   subscriptions?: Set<number>;
   attendanceSubscribed?: boolean;
+  patientCreatePresence?: boolean;
+  staffUserId?: number;
   doctorPortalId?: number;
 };
 
 let wss: WebSocketServer | null = null;
 
+function broadcastPatientCreatePresence() {
+  if (!wss) return;
+  const activeUserIds = new Set<number>();
+  [...wss.clients].forEach((client) => {
+    const ws = client as WsClient;
+    if (
+      ws.readyState === WebSocket.OPEN &&
+      ws.patientCreatePresence &&
+      typeof ws.staffUserId === "number"
+    ) {
+      activeUserIds.add(ws.staffUserId);
+    }
+  });
+  const payload = JSON.stringify({
+    type: "patient-create-presence",
+    activeCount: activeUserIds.size,
+  });
+  wss.clients.forEach((client) => {
+    const ws = client as WsClient;
+    if (ws.readyState === WebSocket.OPEN && ws.subscriptions) {
+      ws.send(payload);
+    }
+  });
+}
+
 function verifyDoctorToken(token: string): number | null {
   try {
-    const secret = ENV.JWT_SECRET || "dev-only-change-me";
-    const payload = jwt.verify(token, secret) as any;
+    const payload = jwt.verify(token, ENV.JWT_SECRET) as any;
     if (payload?.type === "externalDoctor" && payload?.doctorId) {
       return Number(payload.doctorId);
     }
@@ -65,24 +91,38 @@ export function registerWsServer(server: Server) {
 
     socket.subscriptions = new Set<number>();
     socket.attendanceSubscribed = false;
+    socket.patientCreatePresence = false;
+    socket.staffUserId = session.userId;
 
     socket.on("message", (raw: RawData) => {
       try {
         const message = JSON.parse(raw.toString());
+        if (!message?.type) return;
         if (
-          message?.type === "subscribe" &&
+          message.type === "subscribe" &&
           typeof message.patientId === "number"
         ) {
           socket.subscriptions?.add(message.patientId);
-        } else if (message?.type === "subscribe-attendance") {
-          (socket as any).attendanceSubscribed = true;
-        } else if (message?.type === "unsubscribe-attendance") {
-          (socket as any).attendanceSubscribed = false;
+        } else if (message.type === "subscribe-attendance") {
+          socket.attendanceSubscribed = true;
+        } else if (message.type === "unsubscribe-attendance") {
+          socket.attendanceSubscribed = false;
+        } else if (message.type === "patient-create-presence") {
+          socket.patientCreatePresence = message.active === true;
+          broadcastPatientCreatePresence();
         }
-      } catch {
-        // ignore malformed messages
+      } catch (error) {
+        const detail =
+          error instanceof Error ? error.message : String(error ?? "unknown");
+        console.warn(`[WS] Malformed message: ${detail}`);
       }
     });
+    socket.on("close", () => {
+      if (!socket.patientCreatePresence) return;
+      socket.patientCreatePresence = false;
+      broadcastPatientCreatePresence();
+    });
+    socket.send(JSON.stringify({ type: "staff-ready" }));
   });
 }
 
@@ -168,7 +208,9 @@ export function broadcastAppNotification(notification: {
     ws.send(payload);
     sent++;
   });
-  console.log(`[WS] broadcastAppNotification: sent to ${sent}/${totalClients} clients — ${notification.title}`);
+  console.log(
+    `[WS] broadcastAppNotification: sent to ${sent}/${totalClients} clients — ${notification.title}`,
+  );
 }
 
 export function broadcastBookingUpdate() {

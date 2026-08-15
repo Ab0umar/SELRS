@@ -33,16 +33,26 @@ const labelClass = "text-sm font-semibold";
 const subLabelClass = "text-xs text-muted-foreground pl-2";
 
 type EyeData = {
-  s: string; c: string; axis: string;
-  ucva: string; bcva: string;
-  glassesS: string; glassesC: string; glassesAxis: string;
+  s: string;
+  c: string;
+  axis: string;
+  ucva: string;
+  bcva: string;
+  glassesS: string;
+  glassesC: string;
+  glassesAxis: string;
   iop: string;
 };
 
 const emptyEye = (): EyeData => ({
-  s: "---", c: "---", axis: "",
-  ucva: "", bcva: "",
-  glassesS: "---", glassesC: "---", glassesAxis: "",
+  s: "---",
+  c: "---",
+  axis: "",
+  ucva: "",
+  bcva: "",
+  glassesS: "---",
+  glassesC: "---",
+  glassesAxis: "",
   iop: "",
 });
 
@@ -59,7 +69,9 @@ export function FollowupFormDialog({
   patientName?: string | null;
   serviceType?: string | null;
 }) {
-  const [followupDate, setFollowupDate] = useState(new Date().toISOString().slice(0, 10));
+  const [followupDate, setFollowupDate] = useState(
+    new Date().toISOString().slice(0, 10),
+  );
   const [operationDate, setOperationDate] = useState("");
   const [operationType, setOperationType] = useState("");
   const [od, setOd] = useState<EyeData>(emptyEye());
@@ -92,39 +104,57 @@ export function FollowupFormDialog({
     if (!patientId) return;
     setSaving(true);
     try {
-      const sheetType =
-        (serviceType as "consultant" | "specialist" | "lasik" | "external") || "consultant";
+      const supportedSheetTypes = new Set([
+        "consultant",
+        "specialist",
+        "lasik",
+        "external",
+      ]);
+      const sheetType = supportedSheetTypes.has(String(serviceType))
+        ? (serviceType as "consultant" | "specialist" | "lasik" | "external")
+        : "consultant";
       await saveMutation.mutateAsync({
         patientId,
         sheetType,
-        followupItems: [{
-          tableIndex: 0,
-          followupDate,
-          operationDate: operationDate || undefined,
-          operationType: operationType || undefined,
-          vaOD: od.ucva,
-          vaOS: os.ucva,
-          refracOD: {
-            s: od.s, c: od.c, axis: od.axis, bcva: od.bcva,
-            glasses: { s: od.glassesS, c: od.glassesC, axis: od.glassesAxis },
+        appendMode: true,
+        followupItems: [
+          {
+            tableIndex: 0,
+            followupDate,
+            operationDate: operationDate || undefined,
+            operationType: operationType || undefined,
+            vaOD: od.ucva,
+            vaOS: os.ucva,
+            refracOD: {
+              s: od.s,
+              c: od.c,
+              axis: od.axis,
+              bcva: od.bcva,
+              glasses: { s: od.glassesS, c: od.glassesC, axis: od.glassesAxis },
+            },
+            refracOS: {
+              s: os.s,
+              c: os.c,
+              axis: os.axis,
+              bcva: os.bcva,
+              glasses: { s: os.glassesS, c: os.glassesC, axis: os.glassesAxis },
+            },
+            iopOD: od.iop,
+            iopOS: os.iop,
+            treatment: notes,
+            notes,
           },
-          refracOS: {
-            s: os.s, c: os.c, axis: os.axis, bcva: os.bcva,
-            glasses: { s: os.glassesS, c: os.glassesC, axis: os.glassesAxis },
-          },
-          iopOD: od.iop,
-          iopOS: os.iop,
-          treatment: notes,
-          notes,
-        }],
+        ],
       });
     } finally {
       setSaving(false);
     }
   };
 
-  const updOd = (f: keyof EyeData, v: string) => setOd((p) => ({ ...p, [f]: v }));
-  const updOs = (f: keyof EyeData, v: string) => setOs((p) => ({ ...p, [f]: v }));
+  const updOd = (f: keyof EyeData, v: string) =>
+    setOd((p) => ({ ...p, [f]: v }));
+  const updOs = (f: keyof EyeData, v: string) =>
+    setOs((p) => ({ ...p, [f]: v }));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -178,62 +208,152 @@ export function FollowupFormDialog({
           <div className="w-full space-y-2" dir="ltr">
             <div className={rowClass}>
               <div />
-              <div className="text-xs font-bold text-center text-muted-foreground">OD (Right)</div>
-              <div className="text-xs font-bold text-center text-muted-foreground">OS (Left)</div>
+              <div className="text-xs font-bold text-center text-muted-foreground">
+                OD (Right)
+              </div>
+              <div className="text-xs font-bold text-center text-muted-foreground">
+                OS (Left)
+              </div>
             </div>
 
             <div className={rowClass}>
               <div className={labelClass}>UCVA</div>
-              <RefractionValueSelect value={od.ucva} onChange={(v) => updOd("ucva", v)} options={UCVA_BCVA_OPTIONS} />
-              <RefractionValueSelect value={os.ucva} onChange={(v) => updOs("ucva", v)} options={UCVA_BCVA_OPTIONS} />
+              <RefractionValueSelect
+                value={od.ucva}
+                onChange={(v) => updOd("ucva", v)}
+                options={UCVA_BCVA_OPTIONS}
+              />
+              <RefractionValueSelect
+                value={os.ucva}
+                onChange={(v) => updOs("ucva", v)}
+                options={UCVA_BCVA_OPTIONS}
+              />
             </div>
 
             <div className={rowClass}>
               <div className={labelClass}>BCVA</div>
-              <RefractionValueSelect value={od.bcva} onChange={(v) => updOd("bcva", v)} options={UCVA_BCVA_OPTIONS} />
-              <RefractionValueSelect value={os.bcva} onChange={(v) => updOs("bcva", v)} options={UCVA_BCVA_OPTIONS} />
+              <RefractionValueSelect
+                value={od.bcva}
+                onChange={(v) => updOd("bcva", v)}
+                options={UCVA_BCVA_OPTIONS}
+              />
+              <RefractionValueSelect
+                value={os.bcva}
+                onChange={(v) => updOs("bcva", v)}
+                options={UCVA_BCVA_OPTIONS}
+              />
             </div>
 
             <div className={sectionDivider}>
               <div className={labelClass}>Autoref S</div>
-              <RefractionValueSelect value={od.s} onChange={(v) => updOd("s", v)} options={SPHERE_OPTIONS} allowEmpty={false} />
-              <RefractionValueSelect value={os.s} onChange={(v) => updOs("s", v)} options={SPHERE_OPTIONS} allowEmpty={false} />
+              <RefractionValueSelect
+                value={od.s}
+                onChange={(v) => updOd("s", v)}
+                options={SPHERE_OPTIONS}
+                allowEmpty={false}
+              />
+              <RefractionValueSelect
+                value={os.s}
+                onChange={(v) => updOs("s", v)}
+                options={SPHERE_OPTIONS}
+                allowEmpty={false}
+              />
             </div>
 
             <div className={rowClass}>
               <div className={subLabelClass}>C</div>
-              <RefractionValueSelect value={od.c} onChange={(v) => updOd("c", v)} options={CYLINDER_OPTIONS} allowEmpty={false} />
-              <RefractionValueSelect value={os.c} onChange={(v) => updOs("c", v)} options={CYLINDER_OPTIONS} allowEmpty={false} />
+              <RefractionValueSelect
+                value={od.c}
+                onChange={(v) => updOd("c", v)}
+                options={CYLINDER_OPTIONS}
+                allowEmpty={false}
+              />
+              <RefractionValueSelect
+                value={os.c}
+                onChange={(v) => updOs("c", v)}
+                options={CYLINDER_OPTIONS}
+                allowEmpty={false}
+              />
             </div>
 
             <div className={rowClass}>
               <div className={subLabelClass}>Axis</div>
-              <Input value={od.axis} onChange={(e) => updOd("axis", e.target.value)} className={fieldClass} placeholder="0-180" />
-              <Input value={os.axis} onChange={(e) => updOs("axis", e.target.value)} className={fieldClass} placeholder="0-180" />
+              <Input
+                value={od.axis}
+                onChange={(e) => updOd("axis", e.target.value)}
+                className={fieldClass}
+                placeholder="0-180"
+              />
+              <Input
+                value={os.axis}
+                onChange={(e) => updOs("axis", e.target.value)}
+                className={fieldClass}
+                placeholder="0-180"
+              />
             </div>
 
             <div className={sectionDivider}>
               <div className={labelClass}>Refraction S</div>
-              <RefractionValueSelect value={od.glassesS} onChange={(v) => updOd("glassesS", v)} options={SPHERE_OPTIONS} allowEmpty={false} />
-              <RefractionValueSelect value={os.glassesS} onChange={(v) => updOs("glassesS", v)} options={SPHERE_OPTIONS} allowEmpty={false} />
+              <RefractionValueSelect
+                value={od.glassesS}
+                onChange={(v) => updOd("glassesS", v)}
+                options={SPHERE_OPTIONS}
+                allowEmpty={false}
+              />
+              <RefractionValueSelect
+                value={os.glassesS}
+                onChange={(v) => updOs("glassesS", v)}
+                options={SPHERE_OPTIONS}
+                allowEmpty={false}
+              />
             </div>
 
             <div className={rowClass}>
               <div className={subLabelClass}>C</div>
-              <RefractionValueSelect value={od.glassesC} onChange={(v) => updOd("glassesC", v)} options={CYLINDER_OPTIONS} allowEmpty={false} />
-              <RefractionValueSelect value={os.glassesC} onChange={(v) => updOs("glassesC", v)} options={CYLINDER_OPTIONS} allowEmpty={false} />
+              <RefractionValueSelect
+                value={od.glassesC}
+                onChange={(v) => updOd("glassesC", v)}
+                options={CYLINDER_OPTIONS}
+                allowEmpty={false}
+              />
+              <RefractionValueSelect
+                value={os.glassesC}
+                onChange={(v) => updOs("glassesC", v)}
+                options={CYLINDER_OPTIONS}
+                allowEmpty={false}
+              />
             </div>
 
             <div className={rowClass}>
               <div className={subLabelClass}>Axis</div>
-              <Input value={od.glassesAxis} onChange={(e) => updOd("glassesAxis", e.target.value)} className={fieldClass} placeholder="0-180" />
-              <Input value={os.glassesAxis} onChange={(e) => updOs("glassesAxis", e.target.value)} className={fieldClass} placeholder="0-180" />
+              <Input
+                value={od.glassesAxis}
+                onChange={(e) => updOd("glassesAxis", e.target.value)}
+                className={fieldClass}
+                placeholder="0-180"
+              />
+              <Input
+                value={os.glassesAxis}
+                onChange={(e) => updOs("glassesAxis", e.target.value)}
+                className={fieldClass}
+                placeholder="0-180"
+              />
             </div>
 
             <div className={sectionDivider}>
               <div className={labelClass}>IOP</div>
-              <Input value={od.iop} onChange={(e) => updOd("iop", e.target.value)} className={fieldClass} placeholder="mmHg" />
-              <Input value={os.iop} onChange={(e) => updOs("iop", e.target.value)} className={fieldClass} placeholder="mmHg" />
+              <Input
+                value={od.iop}
+                onChange={(e) => updOd("iop", e.target.value)}
+                className={fieldClass}
+                placeholder="mmHg"
+              />
+              <Input
+                value={os.iop}
+                onChange={(e) => updOs("iop", e.target.value)}
+                className={fieldClass}
+                placeholder="mmHg"
+              />
             </div>
           </div>
 
@@ -248,7 +368,10 @@ export function FollowupFormDialog({
           </div>
 
           {patientId ? (
-            <div className="space-y-2 rounded-lg border border-border p-3" dir="rtl">
+            <div
+              className="space-y-2 rounded-lg border border-border p-3"
+              dir="rtl"
+            >
               <Label className="text-sm font-semibold">صور المتابعة</Label>
               <DiagnosisImagesPanel patientId={patientId} />
             </div>

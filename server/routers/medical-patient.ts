@@ -29,6 +29,7 @@ import { broadcastToDoctorPortal } from "../_core/ws";
 import {
   resolvePatientNotifTitle,
   resolveNotificationTargetRolesByUserRole,
+  findExistingPatientByNameAgeAndPhone,
   findExistingPatientByNameOrPhone,
   findExistingPatientByPhoneAndDob,
   resolveServiceCodeForType,
@@ -854,17 +855,20 @@ export const medicalPatientRoutes = {
       try {
         // ── Step 1: resolve patientCode ────────────────────────────────────
         let patientCode = String(input.patientCode ?? "").trim();
-        if (!patientCode) {
-          // Check by name/phone first to avoid creating a duplicate
-          const byIdentity = await findExistingPatientByNameOrPhone(
-            input.fullName,
-            input.phone ?? "",
-          );
-          patientCode = String((byIdentity as any)?.patientCode ?? "").trim();
+        const existingPatient = patientCode
+          ? await db.getPatientByCode(patientCode)
+          : await findExistingPatientByNameAgeAndPhone(
+              input.fullName,
+              input.age,
+              input.phone,
+            );
+        if (existingPatient) {
+          patientCode = String(
+            (existingPatient as any)?.patientCode ?? patientCode,
+          ).trim();
         }
-        if (!patientCode) {
-          patientCode = await db.getNextPatientCode();
-        }
+        const allocatePatientCode = !existingPatient;
+        if (allocatePatientCode) patientCode = "";
         _mark("patientCode resolved");
 
         // ── Step 2: resolve doctorCode ─────────────────────────────────────
@@ -910,6 +914,7 @@ export const medicalPatientRoutes = {
 
         const pushResult = await pushNewPatientToMssql({
           patientCode,
+          allocatePatientCode,
           fullName: input.fullName,
           phone: input.phone || null,
           address: input.address || null,
@@ -944,6 +949,13 @@ export const medicalPatientRoutes = {
               pushResult?.note ||
               mssqlWarnings[0] ||
               "فشل حفظ بيانات المريض في MSSQL",
+          });
+        }
+        patientCode = String(pushResult.patientCode ?? patientCode).trim();
+        if (!patientCode) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "MSSQL did not return an allocated patient code",
           });
         }
         if (pushResult?.serviceInsertWarning) {
@@ -1050,6 +1062,8 @@ export const medicalPatientRoutes = {
           patientCode,
           fullName: input.fullName,
           receiptNo: pushResult?.trNo ?? null,
+          concurrentPatientCreationDetected:
+            pushResult?.allocationWaited === true,
           mssqlWarnings,
         };
       } catch (error: any) {

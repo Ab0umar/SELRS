@@ -8,6 +8,7 @@ export type FollowupItem = {
   id: number | string;
   date: string;
   type: string;
+  treatment?: string;
   notes?: string;
   [key: string]: unknown;
 };
@@ -21,11 +22,32 @@ export type FollowupLabelsShape = {
   nextFollowupLabel?: string;
   vaLabel?: string;
   refractionLabel?: string;
+  flapLabel?: string;
+  edgesLabel?: string;
+  bedLabel?: string;
   iopLabel?: string;
   treatmentLabel?: string;
   receptionLabel?: string;
   nurseLabel?: string;
   doctorLabel?: string;
+};
+
+type Props<T extends FollowupItem> = {
+  titleEn: string;
+  titleAr: string;
+  patientName: string;
+  patientDOB: string;
+  operationType: string;
+  setOperationType: Dispatch<SetStateAction<string>>;
+  operationEyes: { right: boolean; left: boolean; [key: string]: unknown };
+  setOperationEyes: Dispatch<SetStateAction<any>>;
+  operationDateRight: string;
+  setOperationDateRight: Dispatch<SetStateAction<string>>;
+  followups: T[];
+  setFollowups: Dispatch<SetStateAction<T[]>>;
+  followupLabels: FollowupLabelsShape;
+  signatures: { doctor: string };
+  readOnly?: boolean;
 };
 
 export default function FollowupTablesBody<T extends FollowupItem>({
@@ -43,142 +65,130 @@ export default function FollowupTablesBody<T extends FollowupItem>({
   followupLabels,
   signatures,
   readOnly = false,
-}: {
-  titleEn: string;
-  titleAr: string;
-  patientName: string;
-  patientDOB: string;
-  operationType: string;
-  setOperationType: Dispatch<SetStateAction<string>>;
-  operationEyes: { right: boolean; left: boolean; [key: string]: unknown };
-  setOperationEyes: Dispatch<SetStateAction<any>>;
-  operationDateRight: string;
-  setOperationDateRight: Dispatch<SetStateAction<string>>;
-  followups: T[];
-  setFollowups: Dispatch<SetStateAction<T[]>>;
-  followupLabels: FollowupLabelsShape;
-  signatures: { doctor: string };
-  readOnly?: boolean;
-}) {
-  const sheetTypeLabel = titleAr.includes("الاستشاري")
-    ? "متابعة استشاري"
-    : titleAr.includes("الليزك")
-      ? "متابعة ليزك"
-      : titleAr;
+}: Props<T>) {
+  const sheetTypeLabel = "متابعة";
 
   const updateFollowup = (id: T["id"], patch: Partial<T>) => {
-    setFollowups((prev) =>
-      prev.map((item) =>
+    setFollowups((previous) =>
+      previous.map((item) =>
         item.id === id ? ({ ...item, ...patch } as T) : item,
       ),
     );
   };
 
-  const eyeFieldKey = (
-    eye: "OD" | "OS",
-    suffix: "Va" | "S" | "C" | "Axis" | "Iop",
-  ) => `${eye === "OD" ? "od" : "os"}${suffix}`;
-
-  const inputClass =
-    "h-full w-full border-0 bg-transparent px-1 text-center text-[11px] font-semibold text-[#191c1e] outline-none focus:bg-[#dae2ff]/25";
+  const field = (followup: T, key: string, label: string, className = "") => (
+    <input
+      aria-label={label}
+      value={(followup[key] as string) ?? ""}
+      onChange={(event) =>
+        updateFollowup(followup.id, {
+          [key]: event.target.value,
+        } as Partial<T>)
+      }
+      disabled={readOnly}
+      className={`h-full min-h-7 w-full border-0 bg-transparent px-1 text-center text-[12px] font-semibold text-[#172033] outline-none focus:bg-[#dbeafe]/50 disabled:opacity-100 ${className}`}
+    />
+  );
 
   return (
     <div
-      className="sheet-followup-body relative overflow-hidden border border-[#c3c6d6] bg-white p-6 shadow-sm"
-      dir="ltr"
+      className="sheet-followup-body relative overflow-hidden border border-[#d5dbe5] bg-white p-6 shadow-sm"
+      dir="rtl"
     >
+      <style>{`
+        .sheet-followup-body .followup-record-title,
+        .sheet-followup-body .followup-record-title input,
+        .sheet-followup-body .followup-record-title label,
+        .sheet-followup-body .followup-record-table th,
+        .sheet-followup-body .followup-record-table td,
+        .sheet-followup-body .followup-record-table input,
+        .sheet-followup-body .followup-record-section > div:last-child,
+        .sheet-followup-body .followup-record-section > div:last-child > div {
+          text-align: center !important;
+          vertical-align: middle !important;
+        }
+      `}</style>
       <SheetWatermark />
-      <div className="sheet-followup-content relative z-10 flex min-h-0 flex-col gap-4">
+      <div className="sheet-followup-content relative z-10 flex min-h-0 flex-col gap-3">
         <SheetPrintHeader sheetType={sheetTypeLabel} />
 
-        <section className="followup-record-head grid grid-cols-4 gap-0 border border-[#c3c6d6] bg-[#f8f9fb] text-[11px]">
-          <div className="border-l border-[#c3c6d6] px-3 py-2" dir="rtl">
-            <span className="block text-[9px] font-bold uppercase text-[#526069]">
-              الاسم / Patient
-            </span>
-            <span className="block truncate font-bold text-[#003d9b]">
-              {patientName}
-            </span>
-          </div>
-          <div className="border-l border-[#c3c6d6] px-3 py-2" dir="rtl">
-            <span className="block text-[9px] font-bold uppercase text-[#526069]">
-              تاريخ الميلاد / DOB
-            </span>
-            <span className="block font-bold text-[#191c1e]">{patientDOB}</span>
-          </div>
-          <div
-            className="col-span-2 grid grid-cols-[1fr_1.15fr_0.75fr_0.75fr] items-end gap-2 px-3 py-2"
-            dir="rtl"
-          >
-            <label className="min-w-0">
-              <span className="mb-1 block text-[10px] font-bold text-[#737685]">
+        <section className="followup-record-head overflow-hidden border border-[#b9c4d4] bg-white">
+          <div className="grid grid-cols-[1.25fr_0.75fr_1fr_1.2fr] divide-x divide-x-reverse divide-[#d5dbe5] text-[12px]">
+            <div className="px-3 py-2">
+              <span className="block text-[10px] font-bold text-[#667085]">
+                اسم المريض
+              </span>
+              <strong className="block truncate text-[18px] font-extrabold text-[#123b72]">
+                {patientName || "-"}
+              </strong>
+            </div>
+            <div className="px-3 py-2">
+              <span className="block text-[10px] font-bold text-[#667085]">
+                تاريخ الميلاد
+              </span>
+              <strong className="block text-[13px] text-[#172033]" dir="ltr">
+                {patientDOB || "-"}
+              </strong>
+            </div>
+            <label className="px-3 py-1.5">
+              <span className="block text-[10px] font-bold text-[#667085]">
                 {followupLabels.operationDateLabel ?? "تاريخ العملية"}
               </span>
               <DateInput
                 value={operationDateRight}
                 onChange={(event) => setOperationDateRight(event.target.value)}
-                className="h-8 border-[#c3c6d6] bg-white text-[12px]"
                 disabled={readOnly}
+                className="mt-1 h-8 w-full border-[#d5dbe5] text-[12px]"
+                inputClassName="min-w-0 w-full"
               />
             </label>
-            <label className="min-w-0">
-              <span className="mb-1 block text-[10px] font-bold text-[#737685]">
+            <label className="px-3 py-1.5">
+              <span className="block text-[10px] font-bold text-[#667085]">
                 {followupLabels.operationTypeLabel ?? "نوع العملية"}
               </span>
               <Input
                 value={operationType}
                 onChange={(event) => setOperationType(event.target.value)}
-                className="h-8 border-[#c3c6d6] bg-white text-center text-[12px] font-bold text-[#003d9b]"
                 disabled={readOnly}
+                className="mt-1 h-8 border-[#d5dbe5] text-center text-[12px] font-bold"
               />
             </label>
-            <button
-              type="button"
-              disabled={readOnly}
-              onClick={() =>
-                setOperationEyes((prev: typeof operationEyes) => ({
-                  ...prev,
-                  right: !prev.right,
-                }))
-              }
-              className={`h-8 border text-[11px] font-bold ${
-                operationEyes.right
-                  ? "border-[#003d9b] bg-[#dae2ff]/45 text-[#003d9b]"
-                  : "border-[#c3c6d6] bg-white text-[#526069]"
-              }`}
-            >
-              {followupLabels.rtLabel ?? "RT"} Power
-            </button>
-            <button
-              type="button"
-              disabled={readOnly}
-              onClick={() =>
-                setOperationEyes((prev: typeof operationEyes) => ({
-                  ...prev,
-                  left: !prev.left,
-                }))
-              }
-              className={`h-8 border text-[11px] font-bold ${
-                operationEyes.left
-                  ? "border-[#003d9b] bg-[#dae2ff]/45 text-[#003d9b]"
-                  : "border-[#c3c6d6] bg-white text-[#526069]"
-              }`}
-            >
-              {followupLabels.ltLabel ?? "LT"} Power
-            </button>
+          </div>
+          <div className="flex items-center justify-end gap-2 border-t border-[#d5dbe5] bg-[#f7f9fc] px-3 py-1.5 text-[11px] font-bold text-[#475467]">
+            <span>العين التي تم إجراء العملية بها</span>
+            {(["right", "left"] as const).map((eye) => {
+              const active = Boolean(operationEyes[eye]);
+              const label =
+                eye === "right"
+                  ? (followupLabels.rtLabel ?? "RT")
+                  : (followupLabels.ltLabel ?? "LT");
+              return (
+                <button
+                  key={eye}
+                  type="button"
+                  disabled={readOnly}
+                  onClick={() =>
+                    setOperationEyes((previous: typeof operationEyes) => ({
+                      ...previous,
+                      [eye]: !previous[eye],
+                    }))
+                  }
+                  className={`h-7 min-w-12 border px-2 text-[11px] font-bold ${active ? "border-[#1e5a96] bg-[#1e5a96] text-white" : "border-[#b9c4d4] bg-white text-[#475467]"}`}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
         </section>
 
-        <div className="followup-record-list flex flex-1 min-h-0 flex-col gap-3">
+        <div className="followup-record-list grid flex-1 grid-rows-4 gap-2.5">
           {followups.slice(0, 4).map((followup, index) => (
             <section
               key={followup.id}
-              className="followup-record-section overflow-hidden border border-[#c3c6d6] bg-white"
+              className="followup-record-section overflow-hidden border border-[#9eabbc] bg-white"
             >
-              <div
-                className="followup-record-title grid grid-cols-[auto_1fr] items-center gap-4 border-b border-[#c3c6d6] bg-[#edeef0] px-3 py-1.5"
-                dir="rtl"
-              >
+              <div className="followup-record-title grid grid-cols-[minmax(0,1fr)_210px_210px] items-center border-b border-[#9eabbc] bg-[#eef4fb]">
                 <Input
                   value={followup.type}
                   onChange={(event) =>
@@ -186,16 +196,12 @@ export default function FollowupTablesBody<T extends FollowupItem>({
                       type: event.target.value,
                     } as Partial<T>)
                   }
-                  className="h-7 w-56 border-0 bg-transparent text-right text-[14px] font-bold text-[#191c1e] focus:border-[#003d9b] focus:bg-white"
                   disabled={readOnly}
-                  dir="rtl"
+                  className="h-8 border-0 bg-transparent px-3 text-center text-[13px] font-bold text-[#123b72]"
                 />
-                <div
-                  className="flex items-center justify-self-start gap-4 text-[10px] font-bold text-[#526069]"
-                  dir="rtl"
-                >
-                  <span>
-                    {followupLabels.followupDateLabel ?? "تاريخ المتابعة"}:
+                <label className="grid h-8 min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center justify-center gap-2 overflow-hidden border-r border-[#c5cfdb] px-2 text-center text-[10px] font-bold text-[#475467]">
+                  <span className="followup-date-label whitespace-nowrap text-[9px] leading-none">
+                    {followupLabels.followupDateLabel ?? "تاريخ المتابعة"}
                   </span>
                   <DateInput
                     value={followup.date}
@@ -204,184 +210,154 @@ export default function FollowupTablesBody<T extends FollowupItem>({
                         date: event.target.value,
                       } as Partial<T>)
                     }
-                    className="h-7 w-28 border-[#c3c6d6] bg-white text-[11px]"
                     disabled={readOnly}
+                    className="h-6 min-w-0 w-full overflow-hidden border-0 bg-white px-1 text-[10px]"
+                    inputClassName="min-w-0 w-full px-1 text-[10px]"
                   />
-                  <span className="text-[#c3c6d6]">|</span>
-                  <span>{followupLabels.nextFollowupLabel ?? "القادمة"}:</span>
-                  <span className="inline-block min-w-20 border-b border-dotted border-[#737685]" />
+                </label>
+                <div className="flex h-8 min-w-0 items-center justify-center gap-2 overflow-hidden border-r border-[#c5cfdb] px-2 text-center text-[10px] font-bold text-[#475467]">
+                  <span className="whitespace-nowrap">
+                    {followupLabels.nextFollowupLabel ?? "المتابعة القادمة"}
+                  </span>
+                  <span className="h-4 flex-1 border-b border-dashed border-[#98a2b3]" />
                 </div>
               </div>
 
-              <div className="followup-clinical-grid flex min-h-0">
-                <table
-                  className="followup-record-table min-w-0 flex-1 border-collapse text-center"
-                  dir="ltr"
-                >
-                  <thead>
-                    <tr className="bg-[#eef2f8] text-[9px] font-bold uppercase tracking-[0.01em] text-[#003d9b]">
-                      <th className="w-[7%] border-r border-[#c3c6d6] px-1 py-1">
-                        Eye
-                      </th>
-                      <th className="w-[12%] border-r border-[#c3c6d6] px-1 py-1">
-                        {followupLabels.vaLabel ?? "V.A"}
-                      </th>
-                      <th className="w-[10%] border-r border-[#c3c6d6] px-1 py-1">
-                        S
-                      </th>
-                      <th className="w-[10%] border-r border-[#c3c6d6] px-1 py-1">
-                        C
-                      </th>
-                      <th className="w-[10%] border-r border-[#c3c6d6] px-1 py-1">
-                        Ax
-                      </th>
-                      <th className="w-[10%] border-r border-[#c3c6d6] px-1 py-1">
-                        {followupLabels.iopLabel ?? "I.O.P"}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(["OD", "OS"] as const).map((eye, eyeIndex) => (
-                      <tr
-                        key={eye}
-                        className={`${eyeIndex === 0 ? "border-b border-[#c3c6d6]" : ""}`}
-                      >
-                        <td
-                          className={`border-r border-[#c3c6d6] bg-[#f3f4f6] text-[12px] font-bold ${eye === "OD" ? "text-[#003d9b]" : "text-[#526069]"}`}
-                        >
-                          {eye}
-                        </td>
-                        <td className="border-r border-[#c3c6d6] p-0">
-                          <input
-                            aria-label={`${eye} visual acuity`}
-                            className={inputClass}
-                            value={(followup[eyeFieldKey(eye, "Va")] as string) ?? ""}
-                            onChange={(event) =>
-                              updateFollowup(followup.id, {
-                                [eyeFieldKey(eye, "Va")]: event.target.value,
-                              } as Partial<T>)
-                            }
-                            disabled={readOnly}
-                          />
-                        </td>
-                        <td className="border-r border-[#c3c6d6] p-0">
-                          <input
-                            aria-label={`${eye} sphere`}
-                            className={inputClass}
-                            value={(followup[eyeFieldKey(eye, "S")] as string) ?? ""}
-                            onChange={(event) =>
-                              updateFollowup(followup.id, {
-                                [eyeFieldKey(eye, "S")]: event.target.value,
-                              } as Partial<T>)
-                            }
-                            disabled={readOnly}
-                          />
-                        </td>
-                        <td className="border-r border-[#c3c6d6] p-0">
-                          <input
-                            aria-label={`${eye} cylinder`}
-                            className={inputClass}
-                            value={(followup[eyeFieldKey(eye, "C")] as string) ?? ""}
-                            onChange={(event) =>
-                              updateFollowup(followup.id, {
-                                [eyeFieldKey(eye, "C")]: event.target.value,
-                              } as Partial<T>)
-                            }
-                            disabled={readOnly}
-                          />
-                        </td>
-                        <td className="border-r border-[#c3c6d6] p-0">
-                          <input
-                            aria-label={`${eye} axis`}
-                            className={inputClass}
-                            value={(followup[eyeFieldKey(eye, "Axis")] as string) ?? ""}
-                            onChange={(event) =>
-                              updateFollowup(followup.id, {
-                                [eyeFieldKey(eye, "Axis")]: event.target.value,
-                              } as Partial<T>)
-                            }
-                            disabled={readOnly}
-                          />
-                        </td>
-                        <td className="border-r border-[#c3c6d6] p-0">
-                          <input
-                            aria-label={`${eye} IOP`}
-                            className={inputClass}
-                            value={(followup[eyeFieldKey(eye, "Iop")] as string) ?? ""}
-                            onChange={(event) =>
-                              updateFollowup(followup.id, {
-                                [eyeFieldKey(eye, "Iop")]: event.target.value,
-                              } as Partial<T>)
-                            }
-                            disabled={readOnly}
-                          />
-                        </td>
-                      </tr>
+              <table
+                className="followup-record-table w-full table-fixed border-collapse text-center"
+                dir="ltr"
+              >
+                <colgroup>
+                  <col className="w-[16%]" />
+                  <col className="w-[12%]" />
+                  <col />
+                  <col />
+                </colgroup>
+                <thead>
+                  <tr className="h-5 bg-[#f8fafc] text-[9px] font-bold text-[#344054]">
+                    <th className="border-r border-[#c5cfdb]" colSpan={2}>
+                      Clinical Item
+                    </th>
+                    <th className="border-r border-[#c5cfdb] text-[#174f87]">
+                      OD
+                    </th>
+                    <th className="border-r border-[#c5cfdb] text-[#174f87]">
+                      OS
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="h-6 border-t border-[#d5dbe5]">
+                    <th
+                      className="border-r border-[#c5cfdb] bg-[#f8fafc] text-[10px] font-bold"
+                      colSpan={2}
+                    >
+                      {followupLabels.vaLabel ?? "V.A"}
+                    </th>
+                    <td className="border-r border-[#c5cfdb]">
+                      {field(followup, "odVa", `OD VA visit ${index + 1}`)}
+                    </td>
+                    <td className="border-r border-[#c5cfdb]">
+                      {field(followup, "osVa", `OS VA visit ${index + 1}`)}
+                    </td>
+                  </tr>
+                  <tr className="followup-comment-row h-8 border-t border-[#d5dbe5]">
+                    <th
+                      className="border-r border-[#c5cfdb] bg-[#f8fafc] text-[10px] font-bold"
+                      colSpan={2}
+                    >
+                      {followupLabels.refractionLabel ?? "Refraction"}
+                    </th>
+                    {(["od", "os"] as const).map((eye) => (
+                      <td key={eye} className="border-r border-[#c5cfdb] p-0">
+                        <div className="grid h-full grid-cols-3 place-items-stretch divide-x divide-[#d5dbe5] text-center">
+                          {(["S", "C", "Axis"] as const).map((part) => (
+                            <label
+                              key={part}
+                              className="grid grid-rows-[12px_1fr] place-items-center text-center"
+                            >
+                              <span className="flex h-full w-full items-center justify-center bg-[#f8fafc] text-center text-[7px] font-bold text-[#667085]">
+                                {part === "Axis" ? "A" : part}
+                              </span>
+                              {field(
+                                followup,
+                                `${eye}${part}`,
+                                `${eye.toUpperCase()} ${part} visit ${index + 1}`,
+                              )}
+                            </label>
+                          ))}
+                        </div>
+                      </td>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="followup-section-bottom grid grid-cols-[1fr_48mm] border-t border-[#c3c6d6] bg-white">
-                <label className="grid grid-rows-[auto_1fr] border-r border-[#c3c6d6]">
-                  <span className="bg-[#f3f4f6] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.01em] text-[#526069]">
-                    Clinical Notes / Findings
+                  </tr>
+                  <tr className="h-6 border-t border-[#d5dbe5]">
+                    <th
+                      className="border-r border-[#c5cfdb] bg-[#f8fafc] text-[10px] font-bold"
+                      colSpan={2}
+                    >
+                      {followupLabels.iopLabel ?? "I.O.P"}
+                    </th>
+                    <td className="border-r border-[#c5cfdb]">
+                      {field(followup, "odIop", `OD IOP visit ${index + 1}`)}
+                    </td>
+                    <td className="border-r border-[#c5cfdb]">
+                      {field(followup, "osIop", `OS IOP visit ${index + 1}`)}
+                    </td>
+                  </tr>
+                  <tr className="h-8 border-t border-[#9eabbc]">
+                    <th
+                      className="border-r border-[#c5cfdb] bg-[#fff7ed] text-[10px] font-bold text-[#9a4a08]"
+                      colSpan={2}
+                    >
+                      {followupLabels.treatmentLabel ?? "Treatment"}
+                    </th>
+                    <td className="border-r border-[#c5cfdb]" colSpan={2}>
+                      {field(
+                        followup,
+                        "treatment",
+                        `Treatment visit ${index + 1}`,
+                        "px-2",
+                      )}
+                    </td>
+                  </tr>
+                  <tr className="h-8 border-t border-[#d5dbe5]">
+                    <th
+                      className="border-r border-[#c5cfdb] bg-[#f8fafc] text-[10px] font-bold"
+                      colSpan={2}
+                    >
+                      Comment
+                    </th>
+                    <td className="border-r border-[#c5cfdb]" colSpan={2}>
+                      {field(
+                        followup,
+                        "notes",
+                        `Comment visit ${index + 1}`,
+                        "px-2",
+                      )}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div className="grid h-6 grid-cols-3 border-t border-[#9eabbc] bg-[#fbfcfe] text-center text-[8px] font-bold text-[#475467]">
+                <div className="flex items-center justify-center gap-1 px-2">
+                  الاستقبال
+                  <span className="flex-1 border-b border-dotted border-[#98a2b3]" />
+                </div>
+                <div className="flex items-center justify-center gap-1 border-r border-[#d5dbe5] px-2">
+                  التمريض
+                  <span className="flex-1 border-b border-dotted border-[#98a2b3]" />
+                </div>
+                <div className="flex items-center justify-center gap-1 border-r border-[#d5dbe5] px-2">
+                  الطبيب
+                  <span className="min-w-0 flex-1 truncate text-center text-[#123b72]">
+                    {signatures.doctor}
                   </span>
-                  <textarea
-                    aria-label={`${followup.type} clinical notes`}
-                    className="min-h-0 w-full resize-none border-0 bg-transparent px-2 py-1 text-left text-[10px] outline-none focus:bg-[#dae2ff]/20"
-                    value={(followup.notes as string) ?? ""}
-                    onChange={(event) =>
-                      updateFollowup(followup.id, {
-                        notes: event.target.value,
-                      } as Partial<T>)
-                    }
-                    disabled={readOnly}
-                    dir="ltr"
-                  />
-                </label>
-                <div className="grid grid-rows-[auto_1fr] bg-[#f8f9fb]">
-                  <span className="bg-[#eef2f8] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.01em] text-[#003d9b]">
-                    {index < 3 ? "Compliance" : "Status"}
-                  </span>
-                  <div className="grid grid-cols-3 items-center gap-1 px-2 text-[8px] font-bold uppercase text-[#526069]">
-                    {(index < 3
-                      ? ["Antibiotic", "Steroid", "Lubricant"]
-                      : ["Stable Ref.", "PRN Lub.", "Routine"]
-                    ).map((label) => (
-                      <label key={label} className="flex items-center gap-1">
-                        <input
-                          type="checkbox"
-                          className="h-2.5 w-2.5 rounded-none border-[#737685] text-[#003d9b]"
-                          disabled={readOnly}
-                        />
-                        {label}
-                      </label>
-                    ))}
-                  </div>
                 </div>
               </div>
             </section>
           ))}
         </div>
-
-        <footer
-          className="followup-signature-row grid grid-cols-3 gap-6 border-t border-[#c3c6d6] pt-4 text-[11px] font-bold text-[#526069]"
-          dir="rtl"
-        >
-          <div className="text-right">
-            {followupLabels.doctorLabel ?? "توقيع الطبيب"}:{" "}
-            <span className="inline-block min-w-32 border-b border-dotted border-[#526069] text-center text-[#003d9b]">
-              {signatures.doctor}
-            </span>
-          </div>
-          <div className="text-center">
-            {followupLabels.nurseLabel ?? "التمريض"}:{" "}
-            <span className="inline-block min-w-32 border-b border-dotted border-[#526069]" />
-          </div>
-          <div className="text-left" dir="ltr">
-            STAMP:
-          </div>
-        </footer>
       </div>
     </div>
   );

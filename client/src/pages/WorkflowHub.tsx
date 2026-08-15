@@ -7,11 +7,13 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 import {
+  ArrowLeft,
   CalendarCheck,
   ClipboardCheck,
   Footprints,
   LayoutGrid,
   Syringe,
+  Workflow,
 } from "lucide-react";
 
 function parseRowDate(value: unknown): Date | null {
@@ -196,6 +198,26 @@ export default function WorkflowHub() {
           icon={<LayoutGrid className="h-6 w-6 text-primary" />}
           className="mb-6 sm:mb-8"
         />
+
+        <div className="mb-6 flex flex-col gap-4 border-y border-primary/15 bg-primary/5 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <Workflow className="h-5 w-5" />
+            </span>
+            <div>
+              <h2 className="text-sm font-bold text-foreground">مسار الزيارة الرقمي</h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">استقبال · تمريض · أخصائي · استشاري</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setLocation("/workflow-hub/prototype")}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            فتح النموذج التجريبي
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+        </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {cards.map((card) => {

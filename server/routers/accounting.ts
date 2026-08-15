@@ -15,6 +15,8 @@ import {
   dailyRevenueOutputSchema,
   dashboardSummaryInputSchema,
   extendedDashboardSummaryOutputSchema,
+  lasikCostSummaryInputSchema,
+  lasikCostSummaryOutputSchema,
   lasikReceiptsInputSchema,
   lasikReceiptsOutputSchema,
   lasikRevenueSummaryInputSchema,
@@ -47,6 +49,7 @@ import {
   getLasikRevenueSummary,
   getServiceRevenue,
 } from "../services/accounting/lasikRevenue.service";
+import { getLasikCostSummary } from "../services/accounting/lasikCost.service";
 import { getLasikReceipts } from "../services/accounting/lasikReceipts.service";
 import { getLasikServices } from "../services/accounting/lasikServices.service";
 import { getPatientLasikSummary } from "../services/accounting/lasikPatientAccounting.service";
@@ -137,6 +140,13 @@ export const accountingRouter = router({
       accountingQuery("lasikRevenueSummary", () =>
         getLasikRevenueSummary(input),
       ),
+    ),
+
+  lasikCostSummary: makeAccProcedure("/accounting/lasik-cost")
+    .input(lasikCostSummaryInputSchema)
+    .output(lasikCostSummaryOutputSchema)
+    .query(({ input }) =>
+      accountingQuery("lasikCostSummary", () => getLasikCostSummary(input)),
     ),
 
   patientLasikSummary: makeAccProcedure("/accounting")
@@ -354,9 +364,10 @@ export const accountingRouter = router({
         serviceDate,
       );
       const mssqlLinked = mssqlResult.inserted ? 1 : 0;
-      const receiptRef = mssqlResult.trNo != null
-        ? String(mssqlResult.trNo)
-        : `${serviceDate}:${Date.now()}`;
+      const receiptRef =
+        mssqlResult.trNo != null
+          ? String(mssqlResult.trNo)
+          : `${serviceDate}:${Date.now()}`;
 
       for (const [serviceCode, line] of serviceTotals) {
         const [serviceRes] = (await db.execute(
@@ -596,44 +607,46 @@ export const accountingRouter = router({
 
   // ── Advances (السلفه) ─────────────────────────────────────────────────────
 
-  accAdvancesSummary: makeAccProcedure("/accounting/advances").query(async () => {
-    const db = await getDb();
-    if (!db)
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "DB unavailable",
-      });
-    const [summaryRes, byEmployeeRes] = await Promise.all([
-      db.execute(
-        sql.raw(
-          `SELECT COALESCE(SUM(advance),0) AS totalAdvance, COALESCE(SUM(repayment),0) AS totalRepaid FROM accAdvances`,
+  accAdvancesSummary: makeAccProcedure("/accounting/advances").query(
+    async () => {
+      const db = await getDb();
+      if (!db)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "DB unavailable",
+        });
+      const [summaryRes, byEmployeeRes] = await Promise.all([
+        db.execute(
+          sql.raw(
+            `SELECT COALESCE(SUM(advance),0) AS totalAdvance, COALESCE(SUM(repayment),0) AS totalRepaid FROM accAdvances`,
+          ),
         ),
-      ),
-      db.execute(
-        sql.raw(
-          `SELECT COALESCE(notes,'غير محدد') AS employee,
+        db.execute(
+          sql.raw(
+            `SELECT COALESCE(notes,'غير محدد') AS employee,
              COALESCE(SUM(advance),0) AS totalAdvance,
              COALESCE(SUM(repayment),0) AS totalRepaid,
              COALESCE(SUM(advance),0) - COALESCE(SUM(repayment),0) AS remaining
            FROM accAdvances
            GROUP BY notes
            ORDER BY remaining DESC`,
+          ),
         ),
-      ),
-    ]);
-    const s = (summaryRes as any)[0]?.[0] ?? {};
-    const byEmployee = ((byEmployeeRes as any)[0] as any[]).map((r: any) => ({
-      employee: String(r.employee ?? "غير محدد"),
-      totalAdvance: Number(r.totalAdvance ?? 0),
-      totalRepaid: Number(r.totalRepaid ?? 0),
-      remaining: Number(r.remaining ?? 0),
-    }));
-    return {
-      totalAdvance: Number(s.totalAdvance ?? 0),
-      totalRepaid: Number(s.totalRepaid ?? 0),
-      byEmployee,
-    };
-  }),
+      ]);
+      const s = (summaryRes as any)[0]?.[0] ?? {};
+      const byEmployee = ((byEmployeeRes as any)[0] as any[]).map((r: any) => ({
+        employee: String(r.employee ?? "غير محدد"),
+        totalAdvance: Number(r.totalAdvance ?? 0),
+        totalRepaid: Number(r.totalRepaid ?? 0),
+        remaining: Number(r.remaining ?? 0),
+      }));
+      return {
+        totalAdvance: Number(s.totalAdvance ?? 0),
+        totalRepaid: Number(s.totalRepaid ?? 0),
+        byEmployee,
+      };
+    },
+  ),
 
   accAdvancesLedger: makeAccProcedure("/accounting/advances")
     .input(
@@ -851,24 +864,26 @@ export const accountingRouter = router({
 
   // ── Instapay (انستاباي) ───────────────────────────────────────────────────
 
-  accInstapaySummary: makeAccProcedure("/accounting/instapay").query(async () => {
-    const db = await getDb();
-    if (!db)
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "DB unavailable",
-      });
-    const res = await db.execute(
-      sql.raw(
-        `SELECT COALESCE(SUM(inAmount),0) AS totalIn, COALESCE(SUM(outAmount),0) AS totalOut FROM accInstapay`,
-      ),
-    );
-    const r = (res as any)[0]?.[0] ?? {};
-    return {
-      totalIn: Number(r.totalIn ?? 0),
-      totalOut: Number(r.totalOut ?? 0),
-    };
-  }),
+  accInstapaySummary: makeAccProcedure("/accounting/instapay").query(
+    async () => {
+      const db = await getDb();
+      if (!db)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "DB unavailable",
+        });
+      const res = await db.execute(
+        sql.raw(
+          `SELECT COALESCE(SUM(inAmount),0) AS totalIn, COALESCE(SUM(outAmount),0) AS totalOut FROM accInstapay`,
+        ),
+      );
+      const r = (res as any)[0]?.[0] ?? {};
+      return {
+        totalIn: Number(r.totalIn ?? 0),
+        totalOut: Number(r.totalOut ?? 0),
+      };
+    },
+  ),
 
   accInstapayLedger: makeAccProcedure("/accounting/instapay")
     .input(
@@ -1267,9 +1282,13 @@ export const accountingRouter = router({
           `INSERT INTO accAdvances (txDate, employee, advance, repayment, notes) VALUES (${sq(input.txDate)}, ${sq(input.employee)}, ${sq(input.advance || null)}, ${sq(input.repayment || null)}, ${sq(input.notes || null)})`,
         ),
       )) as any;
-      const newId: number = (res as any)?.[0]?.insertId ?? (res as any)?.insertId ?? res.insertId;
+      const newId: number =
+        (res as any)?.[0]?.insertId ?? (res as any)?.insertId ?? res.insertId;
       if (input.empCd != null && newId) {
-        await db.update(accAdvancesTable).set({ empCd: input.empCd }).where(eq(accAdvancesTable.id, newId));
+        await db
+          .update(accAdvancesTable)
+          .set({ empCd: input.empCd })
+          .where(eq(accAdvancesTable.id, newId));
       }
       return { id: newId };
     }),
@@ -1302,7 +1321,10 @@ export const accountingRouter = router({
           `UPDATE accAdvances SET txDate=${sq(input.txDate)}, employee=${sq(input.employee)}, advance=${sq(input.advance || null)}, repayment=${sq(input.repayment || null)}, notes=${sq(input.notes || null)} WHERE id=${input.id}`,
         ),
       );
-      await db.update(accAdvancesTable).set({ empCd: input.empCd ?? null }).where(eq(accAdvancesTable.id, input.id));
+      await db
+        .update(accAdvancesTable)
+        .set({ empCd: input.empCd ?? null })
+        .where(eq(accAdvancesTable.id, input.id));
       return { id: input.id };
     }),
 
@@ -1644,8 +1666,7 @@ export const accountingRouter = router({
       const log = [e.stdout, e.stderr].filter(Boolean).join("\n");
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message:
-          (log || e.message || "Sync failed").slice(0, 4000),
+        message: (log || e.message || "Sync failed").slice(0, 4000),
       });
     }
   }),

@@ -500,18 +500,22 @@ export const attendanceLeavesRoutes = {
         conditions.push(gte(attendancePermissions.date, input.from as any));
       if (input.to)
         conditions.push(lte(attendancePermissions.date, input.to as any));
-      return db
+      const permissions = await db
         .select()
         .from(attendancePermissions)
         .where(conditions.length ? and(...conditions) : undefined)
         .orderBy(desc(attendancePermissions.date));
+      return permissions.map((permission: any) => ({
+        ...permission,
+        date: fmtDate(permission.date),
+      }));
     }),
 
   createPermission: makeAttWriteProcedure("/attendance")
     .input(
       z.object({
         empCd: z.string(),
-        date: z.string(),
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         type: z.enum(["in", "out"]),
         durationMinutes: z.number().int().min(1).max(480),
         notAffectSalary: z.boolean().optional(),
@@ -563,7 +567,7 @@ export const attendanceLeavesRoutes = {
     .input(
       z.object({
         id: z.number().int(),
-        date: z.string(),
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         type: z.enum(["in", "out"]),
         durationMinutes: z.number().int().min(1).max(480),
         notAffectSalary: z.boolean().optional(),
@@ -585,7 +589,7 @@ export const attendanceLeavesRoutes = {
       await db
         .update(attendancePermissions)
         .set({
-          date: sql.raw(`'${input.date}'`) as any,
+          date: input.date as any,
           type: input.type,
           durationMinutes: input.durationMinutes,
           notAffectSalary: input.notAffectSalary ?? false,
@@ -595,7 +599,7 @@ export const attendanceLeavesRoutes = {
         .where(eq(attendancePermissions.id, input.id));
 
       // Recompute both old and new date
-      const oldDate = new Date(String(perm.date) + "T12:00:00");
+      const oldDate = new Date(fmtDate(perm.date) + "T12:00:00");
       const newDate = new Date(input.date + "T12:00:00");
       const datesToRecompute = [oldDate];
       if (oldDate.toDateString() !== newDate.toDateString()) datesToRecompute.push(newDate);

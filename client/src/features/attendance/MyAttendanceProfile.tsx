@@ -51,6 +51,11 @@ export default function MyAttendanceProfile() {
 
   const profileQuery = (trpc as any).attendance.myAttendanceProfile.useQuery();
   const data = profileQuery.data;
+  const entryPermissionSettingQuery = (
+    trpc as any
+  ).attendance.getEntryPermissionRequestsEnabled.useQuery();
+  const entryPermissionEnabled =
+    entryPermissionSettingQuery.data?.enabled !== false;
 
   const permMut = (trpc as any).attendance.myRequestPermission.useMutation({
     onSuccess: () => {
@@ -322,7 +327,9 @@ export default function MyAttendanceProfile() {
                   className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 outline-none focus:border-teal-500 focus:bg-white transition-all font-bold text-slate-700"
                 >
                   <option value="out">خروج مبكر</option>
-                  <option value="in">دخول متأخر</option>
+                  {entryPermissionEnabled && (
+                    <option value="in">دخول متأخر</option>
+                  )}
                 </select>
               </div>
 

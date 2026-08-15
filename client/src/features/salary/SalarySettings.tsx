@@ -342,7 +342,8 @@ function EmployeeSettingsGrid() {
       commExam: key === "commExam" ? !examEnabled : examEnabled,
       commPentacam: key === "commPentacam" ? !pentacamEnabled : pentacamEnabled,
       commDay10: key === "commDay10" ? !day10Enabled : day10Enabled,
-      commOvertime: key === "commOvertime" ? !overtimeEnabled : overtimeEnabled,
+      commOvertime:
+        key === "commOvertime" ? !overtimeEnabled : overtimeEnabled,
     });
   }
 
@@ -447,7 +448,7 @@ function EmployeeSettingsGrid() {
             </div>
             <CardDescription className="text-[11px]">
               تعديل نسب العمولات الخاصة ومعامل الحضور الإضافي وتفعيل عمولات
-              الحضور، الكشف، البنتاكام، بدلات يوم 10، والعمل الإضافي.
+              الحضور، الكشف، البنتاكام، وبدلات يوم 10.
             </CardDescription>
           </div>
         </div>
@@ -846,6 +847,7 @@ function EmployeeSettingsGrid() {
                             onClick={() => toggleFlag(emp, "commOvertime")}
                             className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors focus-visible:outline-none disabled:opacity-50 ${overtimeEnabled ? "bg-primary" : "bg-input"}`}
                             role="switch"
+                            aria-label={`تفعيل الإضافي للموظف ${emp.fullName}`}
                             aria-checked={overtimeEnabled}
                           >
                             <span
@@ -926,8 +928,17 @@ function LateTiersCard() {
       const t = { ...next[idx] };
       if (field === "maxMin") {
         t.maxMin = val === null || val === "" ? null : parseInt(val);
+        if (t.maxMin !== null && next[idx + 1]) {
+          next[idx + 1] = { ...next[idx + 1], minMin: t.maxMin + 1 };
+        }
       } else if (field === "minMin") {
         t.minMin = parseInt(val as string) || 0;
+        if (idx > 0) {
+          next[idx - 1] = {
+            ...next[idx - 1],
+            maxMin: Math.max(0, t.minMin - 1),
+          };
+        }
       } else if (field === "dayFraction") {
         t.dayFraction = parseFloat(val as string);
       }
@@ -951,7 +962,7 @@ function LateTiersCard() {
                 شرائح خصم التأخير (لكل يوم)
               </CardTitle>
               <CardDescription className="text-[11px]">
-                الشرائح محفوظة وتُطبّق تلقائيًا. افتحها فقط عند الحاجة للتعديل.
+                الشريحة الخطية تتصاعد داخل دورة المرتب: أول مرتين بالدقيقة، الثالثة والرابعة ربع يوم، والخامسة فأكثر نصف يوم.
               </CardDescription>
             </div>
           </div>

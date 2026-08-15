@@ -89,6 +89,16 @@ export default function RequestTests({
   const draftScope = isKfRoute ? "kf-request-tests" : "request-tests";
   const printMode = usePrintMode();
   const initialPatientId = mergedParams?.id ? Number(mergedParams.id) : 0;
+  const routeVisitDate =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("visitDate") || ""
+      : "";
+  const requestedVisitDate =
+    hubVisitDate && /^\d{4}-\d{2}-\d{2}$/.test(hubVisitDate)
+      ? hubVisitDate
+      : /^\d{4}-\d{2}-\d{2}$/.test(routeVisitDate)
+        ? routeVisitDate
+        : "";
 
   const isAdmin = user?.role === "admin";
   const isReadOnly = !isAdmin;
@@ -107,24 +117,28 @@ export default function RequestTests({
   const [patientAge, setPatientAge] = useState("");
   const [patientCode, setPatientCode] = useState("");
   const [requestDate, setRequestDate] = useState(
-    new Date().toISOString().split("T")[0],
+    requestedVisitDate || new Date().toISOString().split("T")[0],
   );
   const [locationTypeFilter, setLocationTypeFilter] = useState<
     "all" | "center" | "external"
   >("all");
 
   useEffect(() => {
-    if (hubVisitDate && /^\d{4}-\d{2}-\d{2}$/.test(hubVisitDate)) {
-      setRequestDate(hubVisitDate);
+    if (requestedVisitDate) {
+      setRequestDate(requestedVisitDate);
     }
-  }, [hubVisitDate]);
+  }, [requestedVisitDate]);
 
   const [selectedTests, setSelectedTests] = useState<TestItem[]>([]);
   const [generalNotes, setGeneralNotes] = useState("");
   const patientStateQuery = trpc.medical.getPatientPageState.useQuery(
     { patientId: patientId ?? 0, page: "request-tests" },
     {
-      enabled: Boolean(patientId) && !editingForbidden && !isKfRoute,
+      enabled:
+        Boolean(patientId) &&
+        !initialPatientId &&
+        !editingForbidden &&
+        !isKfRoute,
       refetchOnWindowFocus: false,
     },
   );
@@ -142,10 +156,11 @@ export default function RequestTests({
         }
       },
     });
-  const templateOverridesQuery = trpc.medical.getReadyTemplateOverrides.useQuery(
-    { scope: "tests" },
-    { refetchOnWindowFocus: false },
-  );
+  const templateOverridesQuery =
+    trpc.medical.getReadyTemplateOverrides.useQuery(
+      { scope: "tests" },
+      { refetchOnWindowFocus: false },
+    );
   const upsertTemplateOverrideMutation =
     trpc.medical.upsertReadyTemplateOverride.useMutation({
       onSuccess: async () => {
@@ -261,6 +276,10 @@ export default function RequestTests({
       refetchOnWindowFocus: false,
     },
   );
+  const requestsHistoryQuery = trpc.medical.getTestRequestsByPatient.useQuery(
+    { patientId: patientId ?? 0 },
+    { enabled: Boolean(patientId) && !isKfRoute, refetchOnWindowFocus: false },
+  );
 
   const createRequestMutation = trpc.medical.createTestRequest.useMutation({
     onSuccess: () => {
@@ -340,7 +359,42 @@ export default function RequestTests({
     hydratedPatientStateRef.current = patientId;
   }, [patientStateQuery.data, patientId]);
 
-
+  useEffect(() => {
+    if (!initialPatientId) return;
+    const history = (requestsHistoryQuery.data ?? []) as any[];
+    const toDateValue = (value: unknown) => {
+      const date = new Date(String(value ?? ""));
+      return Number.isNaN(date.valueOf())
+        ? ""
+        : date.toISOString().split("T")[0];
+    };
+    const request = requestedVisitDate
+      ? history.find(
+          (item) => toDateValue(item.requestDate) === requestedVisitDate,
+        )
+      : [...history].sort(
+          (left, right) =>
+            new Date(right.requestDate).getTime() -
+            new Date(left.requestDate).getTime(),
+        )[0];
+    if (!request) {
+      setSelectedTests([]);
+      setGeneralNotes("");
+      if (requestedVisitDate) setRequestDate(requestedVisitDate);
+      return;
+    }
+    setRequestDate(requestedVisitDate || toDateValue(request.requestDate));
+    setGeneralNotes(request.notes ?? "");
+    setSelectedTests(
+      (request.items ?? []).map((item: any) => ({
+        id: Number(item.testId),
+        name: item.testName ?? "",
+        category: "other",
+        selected: true,
+        notes: item.result ?? "",
+      })),
+    );
+  }, [initialPatientId, requestsHistoryQuery.data, requestedVisitDate]);
 
   useEffect(() => {
     if (!patientId || editingForbidden) return;
@@ -708,11 +762,17 @@ export default function RequestTests({
         const sheetNameRaw = String((row as any).__sheetName ?? "");
         const sheetIndexRaw = Number((row as any).__sheetIndex ?? -1);
         const testIdRaw = String(
-          getRowValue(lookup, "testId", "test_id", "test id", "كود الفحص") ?? "",
+          getRowValue(lookup, "testId", "test_id", "test id", "كود الفحص") ??
+            "",
         ).trim();
         const testNameRaw = String(
-          getRowValue(lookup, "testName", "test_name", "test name", "اسم الفحص") ??
-            "",
+          getRowValue(
+            lookup,
+            "testName",
+            "test_name",
+            "test name",
+            "اسم الفحص",
+          ) ?? "",
         ).trim();
         const notesRaw = String(
           getRowValue(lookup, "notes", "ملاحظات") ?? "",
@@ -786,7 +846,9 @@ export default function RequestTests({
     }
   };
 
-  const handleImportReadyTests = async (event: ChangeEvent<HTMLInputElement>) => {
+  const handleImportReadyTests = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.currentTarget.files?.[0];
     if (!file) return;
     await importFromFile(file);
@@ -1068,7 +1130,9 @@ export default function RequestTests({
                         className="text-xs text-[#1e3a66] hover:bg-slate-100 h-8"
                         onClick={() => setShowTemplateManagement((p) => !p)}
                       >
-                        {showTemplateManagement ? "إخفاء الإدارة" : "إدارة الفحوصات"}
+                        {showTemplateManagement
+                          ? "إخفاء الإدارة"
+                          : "إدارة الفحوصات"}
                       </Button>
                       {canImportReadyTemplates && showTemplateManagement ? (
                         <div className="flex items-center gap-2">
@@ -1113,7 +1177,10 @@ export default function RequestTests({
                               <ChevronDown className="h-3.5 w-3.5 opacity-70" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" className="max-h-[300px] overflow-y-auto min-w-[160px]">
+                          <DropdownMenuContent
+                            align="start"
+                            className="max-h-[300px] overflow-y-auto min-w-[160px]"
+                          >
                             {templatesInTab.length === 0 ? (
                               <div className="text-center text-xs text-muted-foreground p-2">
                                 لا توجد قوالب
@@ -1123,9 +1190,14 @@ export default function RequestTests({
                                 <DropdownMenuItem
                                   key={template.id}
                                   className="text-right text-xs cursor-pointer hover:bg-[#eef5ff] pr-4 py-2"
-                                  onClick={() => handleApplyReadyTestTemplate(template.id)}
+                                  onClick={() =>
+                                    handleApplyReadyTestTemplate(template.id)
+                                  }
                                 >
-                                  {getTemplateDisplayName(template.id, template.name)}
+                                  {getTemplateDisplayName(
+                                    template.id,
+                                    template.name,
+                                  )}
                                 </DropdownMenuItem>
                               ))
                             )}
@@ -1192,14 +1264,18 @@ export default function RequestTests({
                               if (Boolean(checked)) {
                                 setSelectedTemplateIds((prev) =>
                                   Array.from(
-                                    new Set([...prev, ...filteredReadyTemplateIds]),
+                                    new Set([
+                                      ...prev,
+                                      ...filteredReadyTemplateIds,
+                                    ]),
                                   ),
                                 );
                                 return;
                               }
                               setSelectedTemplateIds((prev) =>
                                 prev.filter(
-                                  (id) => !filteredReadyTemplateIds.includes(id),
+                                  (id) =>
+                                    !filteredReadyTemplateIds.includes(id),
                                 ),
                               );
                             }}
@@ -1254,7 +1330,9 @@ export default function RequestTests({
                           variant="outline"
                           type="button"
                           className="h-8 flex-1 justify-start border-0 bg-transparent px-2 text-xs shadow-none hover:bg-[#eef5ff]"
-                          onClick={() => handleApplyReadyTestTemplate(template.id)}
+                          onClick={() =>
+                            handleApplyReadyTestTemplate(template.id)
+                          }
                         >
                           {getTemplateDisplayName(template.id, template.name)}
                         </Button>
@@ -1284,7 +1362,9 @@ export default function RequestTests({
                           variant="ghost"
                           size="icon"
                           type="button"
-                          onClick={() => handleDeleteTemplateOverride(template.id)}
+                          onClick={() =>
+                            handleDeleteTemplateOverride(template.id)
+                          }
                           title="حذف القالب"
                           aria-label="حذف القالب"
                         >
@@ -1348,7 +1428,10 @@ export default function RequestTests({
                   <span className="request-patient-label font-bold text-[#1e3a66]">
                     الكود:
                   </span>
-                  <span className="request-patient-value font-semibold" dir="ltr">
+                  <span
+                    className="request-patient-value font-semibold"
+                    dir="ltr"
+                  >
                     {patientCode ||
                       (patientId != null ? String(patientId) : "")}
                   </span>
@@ -1391,7 +1474,10 @@ export default function RequestTests({
                   <ClipboardList className="h-4 w-4" />
                   الفحوصات المطلوبة
                 </span>
-                <span className="rounded-md bg-[#eef5ff] px-2 py-1 text-xs" dir="ltr">
+                <span
+                  className="rounded-md bg-[#eef5ff] px-2 py-1 text-xs"
+                  dir="ltr"
+                >
                   {selectedTests.length}
                 </span>
               </div>
@@ -1480,9 +1566,9 @@ export default function RequestTests({
                   {patientHubViewOnlyHint}
                 </span>
               ) : null}
-              <Button 
-                variant="outline" 
-                onClick={handlePrint} 
+              <Button
+                variant="outline"
+                onClick={handlePrint}
                 type="button"
                 className="border-slate-300 text-slate-700 hover:bg-slate-50 font-semibold h-9 px-4 rounded-xl"
               >

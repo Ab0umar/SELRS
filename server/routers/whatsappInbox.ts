@@ -3,13 +3,16 @@
  * server/_core/whatsappWebhook.ts (stored in whatsappInboundMessages).
  */
 import { z } from "zod";
-import { router, adminProcedure } from "../_core/procedures";
+import { makePageProcedure, router } from "../_core/procedures";
 import { getDb } from "../db";
 import { whatsappInboundMessages } from "../../drizzle/schema";
 import { desc } from "drizzle-orm";
+import { sendWhatsAppReply } from "../services/whatsappReply.service";
+
+const whatsappInboxProcedure = makePageProcedure("/admin/whatsapp-inbox");
 
 export const whatsappInboxRouter = router({
-  list: adminProcedure
+  list: whatsappInboxProcedure
     .input(
       z.object({
         page: z.number().int().min(1).default(1),
@@ -27,5 +30,16 @@ export const whatsappInboxRouter = router({
         .limit(input.pageSize)
         .offset(offset);
       return { rows, page: input.page, pageSize: input.pageSize };
+    }),
+  sendReply: whatsappInboxProcedure
+    .input(
+      z.object({
+        recipientPhone: z.string().trim().min(8).max(32),
+        message: z.string().trim().min(1).max(4096),
+        replyToMessageId: z.string().trim().max(128).nullish(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      return sendWhatsAppReply(input);
     }),
 });

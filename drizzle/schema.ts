@@ -190,7 +190,11 @@ export const attendanceShifts = mysqlTable(
     graceLateMin: int("grace_late_min").default(0).notNull(),
     graceEarlyMin: int("grace_early_min").default(0).notNull(),
     allowOT: boolean("allow_ot").default(false).notNull(),
+    allowOTIn: boolean("allow_ot_in").default(false).notNull(),
+    allowOTOut: boolean("allow_ot_out").default(false).notNull(),
     otMinMinutes: int("ot_min_minutes").default(0).notNull(), // minimum OT minutes before counting
+    otMinInMinutes: int("ot_min_in_minutes").default(0).notNull(),
+    otMinOutMinutes: int("ot_min_out_minutes").default(0).notNull(),
     otMaxMinutes: int("ot_max_minutes").default(0).notNull(), // max OT minutes per day (0 = unlimited)
     breakMinutes: int("break_minutes").default(0).notNull(),
     weekdayMask: int("weekday_mask").default(62).notNull(), // bits 0-6 Sun-Sat; 62=Mon-Fri
@@ -1738,6 +1742,8 @@ export const attendanceDaily = mysqlTable(
     workedMinutes: int("worked_minutes"),
     lateMinutes: int("late_minutes").default(0).notNull(),
     earlyLeaveMin: int("early_leave_min").default(0).notNull(),
+    overtimeInMinutes: int("overtime_in_minutes").default(0).notNull(),
+    overtimeOutMinutes: int("overtime_out_minutes").default(0).notNull(),
     overtimeMinutes: int("overtime_minutes").default(0).notNull(),
     status: mysqlEnum("status", [
       "present",
@@ -1763,6 +1769,31 @@ export const attendanceDaily = mysqlTable(
 
 export type AttendanceDaily = typeof attendanceDaily.$inferSelect;
 export type InsertAttendanceDaily = typeof attendanceDaily.$inferInsert;
+
+export const attendanceOvertimeDays = mysqlTable(
+  "attendance_overtime_days",
+  {
+    empCd: varchar("emp_cd", { length: 32 }).notNull(),
+    workDate: date("work_date").notNull(),
+    inEnabled: boolean("in_enabled").default(false).notNull(),
+    outEnabled: boolean("out_enabled").default(false).notNull(),
+    extraDayEnabled: boolean("extra_day_enabled").default(false).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    pkAttendanceOvertimeDay: primaryKey({
+      columns: [table.empCd, table.workDate],
+    }),
+    idxAttendanceOvertimeDate: index("idx_attendance_overtime_date").on(
+      table.workDate,
+    ),
+  }),
+);
+
+export type AttendanceOvertimeDay = typeof attendanceOvertimeDays.$inferSelect;
+export type InsertAttendanceOvertimeDay =
+  typeof attendanceOvertimeDays.$inferInsert;
 
 /**
  * Monthly Attendance Report

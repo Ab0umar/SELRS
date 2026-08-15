@@ -249,6 +249,57 @@ export type LasikRevenueSummaryOutput = z.infer<
   typeof lasikRevenueSummaryOutputSchema
 >;
 
+export const lasikCostPeriodSchema = z.enum([
+  "month",
+  "quarter",
+  "halfYear",
+  "year",
+  "custom",
+]);
+
+export const lasikCostSummaryInputSchema = z.object({
+  period: lasikCostPeriodSchema.default("month"),
+  fromDate: isoDateStringSchema,
+  toDate: isoDateStringSchema,
+});
+
+export const lasikCostSummaryOutputSchema = z.object({
+  period: lasikCostPeriodSchema,
+  fromDate: isoDateStringSchema,
+  toDate: isoDateStringSchema,
+  revenue: z.object({
+    totalGross: moneySchema,
+    totalDiscount: moneySchema,
+    netAfterDiscount: moneySchema,
+    totalPaid: moneySchema,
+    serviceRows: countSchema,
+    operationCount: countSchema,
+  }),
+  expenses: z.object({
+    cashbookExpense: moneySchema,
+    excludedExpense: moneySchema,
+    includedRows: countSchema,
+    excludedRows: countSchema,
+  }),
+  stock: z.object({
+    stockValue: moneySchema,
+    itemCount: countSchema,
+    unpricedItemCount: countSchema,
+  }),
+  cost: z.object({
+    totalCost: moneySchema,
+    costPerOperation: moneySchema,
+    profitOnPaid: moneySchema,
+    profitPerOperation: moneySchema,
+  }),
+});
+
+export type LasikCostPeriod = z.infer<typeof lasikCostPeriodSchema>;
+export type LasikCostSummaryInput = z.infer<typeof lasikCostSummaryInputSchema>;
+export type LasikCostSummaryOutput = z.infer<
+  typeof lasikCostSummaryOutputSchema
+>;
+
 export const patientLasikSummaryInputSchema = z.object({
   patientCode: accountingPatientCodeOptionalSchema,
   patientName: z.string().optional(),

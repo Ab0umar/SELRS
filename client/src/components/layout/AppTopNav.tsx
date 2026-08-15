@@ -24,11 +24,11 @@ import {
   ChevronDown,
   Clock,
   DollarSign,
+  Filter,
   History,
   Hospital,
   KeyRound,
   LayoutDashboard,
-  LayoutGrid,
   LogOut,
   Megaphone,
   Network,
@@ -165,13 +165,17 @@ export function AppTopNav({
   const leafVisible = useMemo(
     () =>
       (leaf: NavLeaf): boolean => {
+        const allowedRoles = leaf.roles?.map((role) => role.toLowerCase());
+        if (allowedRoles?.length && !allowedRoles.includes(userRole)) {
+          return false;
+        }
         if (isAdmin) return true;
         const cleanPath = normalizeNavPath(leaf.path.split("?")[0]);
         if (pathGrantedByRoots(cleanPath, [])) return true; // always-granted paths
         if (!permissionsQuery.isSuccess) return false;
         return pathGrantedByRoots(cleanPath, allowedRoots);
       },
-    [isAdmin, permissionsQuery.isSuccess, allowedRoots],
+    [isAdmin, permissionsQuery.isSuccess, allowedRoots, userRole],
   );
 
   const navGroups = isAdmin ? adminNavGroups : staffNavGroups;
@@ -259,6 +263,15 @@ export function AppTopNav({
         checkPath: "/attendance",
       },
       {
+        icon: CalendarDays,
+        label: "الروستر",
+        path: "/attendance/shift-schedule",
+        key: "roster",
+        paths: ["/attendance/shift-schedule"],
+        checkPath: "/attendance/shift-schedule",
+        roles: ["doctor", "technician", "manager"],
+      },
+      {
         icon: History,
         label: "سجل المرضى",
         path: "/admin/legacy-patients",
@@ -274,21 +287,6 @@ export function AppTopNav({
         paths: ["/admin/op-history"],
         checkPath: "/admin/op-history",
       },
-      {
-        icon: LayoutGrid,
-        label: "مركز الخدمات",
-        path: "/services-hub",
-        key: "services-hub",
-        paths: [
-          "/services-hub",
-          "/medications",
-          "/examinations/catalog",
-          "/txhub",
-          "/treatment",
-          "/medications/registry",
-        ],
-        checkPath: "/services-hub",
-      },
     ],
     [],
   );
@@ -298,10 +296,15 @@ export function AppTopNav({
     if (!permissionsQuery.isSuccess) return [];
     return allNavTabs.filter((tab) => {
       if (tab.key === "more") return true;
+      const allowedRoles = tab.roles?.map((role) => role.toLowerCase());
+      if (allowedRoles?.length && !allowedRoles.includes(userRole)) {
+        return false;
+      }
+      if (tab.key === "roster") return true;
       const cleanPath = normalizeNavPath(tab.checkPath?.split("?")[0] ?? "");
       return pathGrantedByRoots(cleanPath, allowedRoots);
     });
-  }, [isAdmin, allNavTabs, permissionsQuery.isSuccess, allowedRoots]);
+  }, [isAdmin, allNavTabs, permissionsQuery.isSuccess, allowedRoots, userRole]);
 
   const adminQuickTabs = useMemo(
     () => [
@@ -311,13 +314,12 @@ export function AppTopNav({
         path: "/dashboard?tab=admin",
       },
       { icon: Network, label: "مركز المريض", path: "/patient-hub" },
-      { icon: LayoutGrid, label: "مركز الخدمات", path: "/services-hub" },
       { icon: Banknote, label: "الحسابات", path: "/accounting" },
       { icon: DollarSign, label: "المرتبات", path: "/salary" },
       { icon: Activity, label: "الحضور", path: "/attendance" },
       { icon: Hospital, label: "كفرالشيخ", path: "/kf" },
       { icon: Archive, label: "المخزن", path: "/stockroom" },
-      { icon: Megaphone, label: "التسويق", path: "/marketing" },
+      { icon: Filter, label: "المرجع الطبي", path: "/medical-reference" },
       { icon: History, label: "سجل المرضى", path: "/admin/legacy-patients" },
       { icon: ScrollText, label: "سجل العمليات", path: "/admin/op-history" },
       { icon: Settings, label: "مركز الإدارة", path: "/admin-hub" },
@@ -364,6 +366,7 @@ export function AppTopNav({
       "clinics-prescriptions",
       "clinics-tests",
       "patients",
+      "services",
     ]);
     const movedPaths = new Set([
       "/sheets/pentacam/dashboard",
@@ -379,6 +382,18 @@ export function AppTopNav({
       }))
       .filter((section) => section.items.length > 0);
 
+    const marketingSection =
+      isAdmin
+        ? [
+            {
+              label: "التسويق",
+              navKey: "marketing",
+              groupPath: "/marketing",
+              items: [{ icon: Megaphone, label: "التسويق", path: "/marketing" }],
+            },
+          ]
+        : [];
+
     return [
       {
         label: "سجل",
@@ -386,9 +401,10 @@ export function AppTopNav({
         groupPath: "/patients-hub",
         items: recordItems,
       },
+      ...marketingSection,
       ...remainingSections,
     ].filter((section) => section.items.length > 0);
-  }, [navGroups, leafVisible]);
+  }, [isAdmin, navGroups, leafVisible]);
 
   const logoTarget = isAdmin ? "/dashboard?tab=admin" : "/today";
 
@@ -767,15 +783,6 @@ export function AppTopNav({
                 <CalendarCheck className="h-4 w-4" />
                 حضوري
               </DropdownMenuItem>
-              {!isAdmin && ["doctor", "technician"].includes(userRole) && (
-                <DropdownMenuItem
-                  className="cursor-pointer gap-2"
-                  onClick={() => onNavigate("/attendance/shift-schedule")}
-                >
-                  <CalendarDays className="h-4 w-4" />
-                  الروستر الشهري
-                </DropdownMenuItem>
-              )}
               {isAdmin && (
                 <DropdownMenuItem
                   className="cursor-pointer gap-2"

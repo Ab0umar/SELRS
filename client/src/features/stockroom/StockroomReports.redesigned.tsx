@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { FileText, Download, Filter, RefreshCw, Pencil, Trash2 } from "lucide-react";
+import {
+  FileText,
+  Download,
+  Filter,
+  RefreshCw,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -57,22 +64,24 @@ export default function StockroomReports() {
     employeeName: string;
   } | null>(null);
 
-  const updateTransactionMutation = trpc.stockroom.updateTransaction.useMutation({
-    onSuccess: () => {
-      toast.success("تم تعديل الحركة بنجاح");
-      setEditingTx(null);
-      reportsQuery.refetch();
-    },
-    onError: (error) => toast.error(error.message || "فشل تعديل الحركة"),
-  });
+  const updateTransactionMutation =
+    trpc.stockroom.updateTransaction.useMutation({
+      onSuccess: () => {
+        toast.success("تم تعديل الحركة بنجاح");
+        setEditingTx(null);
+        reportsQuery.refetch();
+      },
+      onError: (error) => toast.error(error.message || "فشل تعديل الحركة"),
+    });
 
-  const deleteTransactionMutation = trpc.stockroom.deleteTransaction.useMutation({
-    onSuccess: () => {
-      toast.success("تم حذف الحركة بنجاح");
-      reportsQuery.refetch();
-    },
-    onError: (error) => toast.error(error.message || "فشل حذف الحركة"),
-  });
+  const deleteTransactionMutation =
+    trpc.stockroom.deleteTransaction.useMutation({
+      onSuccess: () => {
+        toast.success("تم حذف الحركة بنجاح");
+        reportsQuery.refetch();
+      },
+      onError: (error) => toast.error(error.message || "فشل حذف الحركة"),
+    });
 
   const handleSaveEdit = () => {
     if (!editingTx) return;
@@ -139,7 +148,7 @@ export default function StockroomReports() {
               "px-4 py-1.5 text-xs font-black rounded-xl transition-all duration-150 cursor-pointer",
               activeTab === "summary"
                 ? "bg-background text-primary shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground",
             )}
             onClick={() => setActiveTab("summary")}
           >
@@ -151,7 +160,7 @@ export default function StockroomReports() {
               "px-4 py-1.5 text-xs font-black rounded-xl transition-all duration-150 cursor-pointer",
               activeTab === "additions"
                 ? "bg-background text-primary shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground",
             )}
             onClick={() => setActiveTab("additions")}
           >
@@ -163,7 +172,7 @@ export default function StockroomReports() {
               "px-4 py-1.5 text-xs font-black rounded-xl transition-all duration-150 cursor-pointer",
               activeTab === "dispense"
                 ? "bg-background text-primary shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground",
             )}
             onClick={() => setActiveTab("dispense")}
           >
@@ -332,8 +341,12 @@ export default function StockroomReports() {
                               size="sm"
                               className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
                               onClick={() => {
-                                if (confirm(`حذف حركة الإستلام رقم ${row.id}؟`)) {
-                                  deleteTransactionMutation.mutate({ id: row.id });
+                                if (
+                                  confirm(`حذف حركة الإستلام رقم ${row.id}؟`)
+                                ) {
+                                  deleteTransactionMutation.mutate({
+                                    id: row.id,
+                                  });
                                 }
                               }}
                               disabled={deleteTransactionMutation.isPending}
@@ -358,6 +371,7 @@ export default function StockroomReports() {
                   <TableHead className="text-right">التاريخ</TableHead>
                   <TableHead className="text-right">الصنف</TableHead>
                   <TableHead className="text-right">الكمية المنصرفة</TableHead>
+                  <TableHead className="text-right">جهة الصرف</TableHead>
                   <TableHead className="text-right">
                     المستلم (موظف/قسم)
                   </TableHead>
@@ -376,6 +390,9 @@ export default function StockroomReports() {
                           </TableCell>
                           <TableCell>
                             <Skeleton className="h-4 w-24" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-4 w-16" />
                           </TableCell>
                           <TableCell>
                             <Skeleton className="h-4 w-32" />
@@ -409,6 +426,9 @@ export default function StockroomReports() {
                           {"-"}
                           {row.quantity}
                         </TableCell>
+                        <TableCell className="font-semibold text-right">
+                          {row.destination || "-"}
+                        </TableCell>
                         <TableCell className="text-right">
                           {row.employeeName || "-"}
                         </TableCell>
@@ -439,7 +459,9 @@ export default function StockroomReports() {
                               className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
                               onClick={() => {
                                 if (confirm(`حذف حركة الصرف رقم ${row.id}؟`)) {
-                                  deleteTransactionMutation.mutate({ id: row.id });
+                                  deleteTransactionMutation.mutate({
+                                    id: row.id,
+                                  });
                                 }
                               }}
                               disabled={deleteTransactionMutation.isPending}
@@ -456,7 +478,10 @@ export default function StockroomReports() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={!!editingTx} onOpenChange={(open) => !open && setEditingTx(null)}>
+      <Dialog
+        open={!!editingTx}
+        onOpenChange={(open) => !open && setEditingTx(null)}
+      >
         <DialogContent dir="rtl">
           <DialogHeader>
             <DialogTitle>
@@ -492,7 +517,10 @@ export default function StockroomReports() {
                   <Input
                     value={editingTx.employeeName}
                     onChange={(e) =>
-                      setEditingTx({ ...editingTx, employeeName: e.target.value })
+                      setEditingTx({
+                        ...editingTx,
+                        employeeName: e.target.value,
+                      })
                     }
                   />
                 </div>

@@ -131,10 +131,9 @@ export const patientPortalRouter = router({
         });
       }
 
-      const secret = ENV.JWT_SECRET || "dev-only-change-me";
       const token = jwt.sign(
         { type: "patient", patientId: patient.id, phone },
-        secret,
+        ENV.JWT_SECRET,
         { expiresIn: Math.floor(SESSION_TTL_MS / 1000) },
       );
 
@@ -807,6 +806,7 @@ export const patientPortalRouter = router({
       z.object({
         id: z.number().int(),
         status: z.enum(["pending", "confirmed", "cancelled", "completed"]),
+        patientId: z.number().int().positive().optional(),
         staffNotes: z.string().max(1000).optional(),
         confirmedDate: z.string().optional(),
       }),
@@ -850,6 +850,7 @@ export const patientPortalRouter = router({
         .update(patientPortalBookings)
         .set({
           status: input.status,
+          patientId: input.patientId ?? undefined,
           staffNotes: input.staffNotes ?? undefined,
           confirmedDate: input.confirmedDate
             ? new Date(input.confirmedDate)

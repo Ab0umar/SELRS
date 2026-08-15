@@ -68,6 +68,11 @@ export const PAGE_PERMISSION_DEFINITIONS = [
     group: "الحسابات",
   },
   {
+    id: "/accounting/lasik-cost",
+    label: "تكلفة عملية الليزك",
+    group: "الحسابات",
+  },
+  {
     id: "/accounting/receipts/:secCd/:trTy/:trNo",
     label: "تفاصيل الإيصال",
     group: "الحسابات",

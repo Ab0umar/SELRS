@@ -236,15 +236,19 @@ export default function PayrollReport() {
     const bigAbsent = Math.max(0, bigScheduled - bigAttended);
     const smallAbsent = Math.max(0, smallScheduled - smallAttended);
 
-    const basicSalary = bigTotal + smallTotal;
-    const totalDeductions =
-      payrollRow?.totalDeductions != null
-        ? Number(payrollRow.totalDeductions)
-        : 0;
-    const netBasic =
-      payrollRow?.netBasic != null
-        ? Number(payrollRow.netBasic)
-        : basicSalary - totalDeductions;
+    // Use the same live hourly result shown by /salary/shift-payroll.
+    const basicSalary = Number(liveRow?.basicSalary ?? bigTotal + smallTotal);
+    const totalDeductions = Number(
+      liveRow
+        ? Number(liveRow.absentDeduction ?? 0) +
+            Number(liveRow.punchDeduction ?? 0)
+        : (payrollRow?.totalDeductions ?? 0),
+    );
+    const netBasic = Number(
+      liveRow?.totalPay ??
+        payrollRow?.netBasic ??
+        basicSalary - totalDeductions,
+    );
 
     return {
       id: staff.id,
@@ -260,6 +264,7 @@ export default function PayrollReport() {
       shiftNightAbsent: smallAbsent,
       shiftNightRate: rateSmall,
       shiftNightTotal: smallTotal,
+      hourlyBasicSalary: basicSalary,
       totalDeductions,
       leaveMultiplier:
         payrollRow?.leaveMultiplier != null
@@ -1183,6 +1188,78 @@ export default function PayrollReport() {
     openPrint(html, `كشف الشفتات — ${periodLabel}`, SHEET_CSS);
   }
 
+  function printShiftBasicsSheet() {
+    const today = new Date().toLocaleDateString("ar-EG");
+    const totalBig = enhancedShiftRows.reduce((sum, row) => sum + row.shiftDayTotal, 0);
+    const totalSmall = enhancedShiftRows.reduce((sum, row) => sum + row.shiftNightTotal, 0);
+    const totalDeductions = enhancedShiftRows.reduce((sum, row) => sum + Number(row.totalDeductions), 0);
+    const totalNet = enhancedShiftRows.reduce((sum, row) => sum + Number(row.netBasic), 0);
+    const bodyRows = enhancedShiftRows.map((row) => `
+      <tr>
+        <td class="emp-col">${escapeHtml(row.fullName)}</td>
+        <td>${escapeHtml(row.type === "doctor" ? "طبيب" : "فني")}</td>
+        <td>${row.shiftDayCount}</td><td>${fmt(row.shiftDayRate)}</td><td>${fmt(row.shiftDayTotal)}</td>
+        <td>${row.shiftNightCount}</td><td>${fmt(row.shiftNightRate)}</td><td>${fmt(row.shiftNightTotal)}</td>
+        <td>${fmt(row.totalDeductions)}</td><td>${pct(row.leaveMultiplier)}</td>
+        <td class="money-strong">${fmt(row.netBasic)}</td><td class="sig-col"></td>
+      </tr>`).join("");
+    const html = `
+      ${renderSheetHeader("كشف رواتب الشفتات", "مركز")}
+      <table><thead><tr>
+        <th>الاسم</th><th>النوع</th><th>عدد الكبير</th><th>سعر الكبير</th><th>إجمالي الكبير</th>
+        <th>عدد الصغير</th><th>سعر الصغير</th><th>إجمالي الصغير</th>
+        <th>الخصومات</th><th>المعامل</th><th>صافي الشفتات</th><th class="sig-col">التوقيع</th>
+      </tr></thead><tbody>${bodyRows}
+        <tr class="total-row"><td class="emp-col" colspan="4">الإجمالي</td><td>${fmt(totalBig)}</td><td colspan="2"></td><td>${fmt(totalSmall)}</td><td>${fmt(totalDeductions)}</td><td></td><td class="money-strong">${fmt(totalNet)}</td><td></td></tr>
+      </tbody></table>
+      <div class="footer"><div class="footer-block"><div class="footer-line"></div>المدير الإداري</div><div class="footer-block"><div class="footer-line"></div>الحسابات</div><div class="footer-block"><div class="footer-line"></div>شئون العاملين</div></div>
+      <div class="footer-meta"><span>صفحة 1 من 1</span><span>تاريخ الطباعة: ${escapeHtml(today)}</span></div>`;
+    openPrint(html, `كشف رواتب الشفتات — ${periodLabel}`, SHEET_CSS);
+  }
+
+  function getShiftCommissionSheetRows() {
+    const doctors = enhancedShiftRows.filter((row: any) => row.type === "doctor");
+    const totalShiftPay = doctors.reduce((sum: number, row: any) => sum + Number(row.netBasic), 0);
+    const payrollRows = doctors.map((row: any) => shiftRows.find((item: any) => item.empCd === `shift_${row.id}`)).filter(Boolean);
+    const examPool = payrollRows.reduce((sum: number, row: any) => sum + Number(row.examCommission ?? 0), 0);
+    const pentacamPool = payrollRows.reduce((sum: number, row: any) => sum + Number(row.pentacamCommission ?? 0), 0);
+    return doctors.map((row: any) => {
+      const payrollRow = shiftRows.find((item: any) => item.empCd === `shift_${row.id}`);
+      const base = Number(row.netBasic);
+      const share = totalShiftPay > 0 ? base / totalShiftPay : 0;
+      const previousBase = Number(payrollRow?.netBasic ?? 0);
+      const attendanceRaw = Number(payrollRow?.attendanceCommissionRaw ?? payrollRow?.attendanceCommission ?? 0);
+      const attendanceRate = previousBase > 0 ? attendanceRaw / previousBase : 0.25;
+      const attend = base * attendanceRate * Number(row.leaveMultiplier ?? 1);
+      const examComm = examPool * share;
+      const pentComm = pentacamPool * share;
+      return { ...row, base, share, attend, examComm, pentComm, total: attend + examComm + pentComm };
+    });
+  }
+
+  function printShiftCommissionsSheet() {
+    const today = new Date().toLocaleDateString("ar-EG");
+    const commissionRows = getShiftCommissionSheetRows();
+    const totals = commissionRows.reduce((acc, row) => ({
+      base: acc.base + row.base,
+      attend: acc.attend + row.attend,
+      exam: acc.exam + row.examComm,
+      pentacam: acc.pentacam + row.pentComm,
+      total: acc.total + row.total,
+    }), { base: 0, attend: 0, exam: 0, pentacam: 0, total: 0 });
+    const bodyRows = commissionRows.map((row) => `
+      <tr><td class="emp-col">${escapeHtml(row.fullName)}</td><td>${fmt(row.base)}</td><td>${pct(row.share)}</td>
+      <td>${fmt(row.attend)}</td><td>${fmt(row.examComm)}</td><td>${fmt(row.pentComm)}</td>
+      <td class="money-strong">${fmt(row.total)}</td><td class="sig-col"></td></tr>`).join("");
+    const html = `
+      ${renderSheetHeader("كشف عمولات الشفتات", "مركز")}
+      <table><thead><tr><th>الاسم</th><th>صافي الشفتات</th><th>نسبة التوزيع</th><th>الحضور</th><th>الفحص</th><th>البنتاكام</th><th>إجمالي العمولات</th><th class="sig-col">التوقيع</th></tr></thead>
+      <tbody>${bodyRows}<tr class="total-row"><td class="emp-col">الإجمالي</td><td>${fmt(totals.base)}</td><td></td><td>${fmt(totals.attend)}</td><td>${fmt(totals.exam)}</td><td>${fmt(totals.pentacam)}</td><td class="money-strong">${fmt(totals.total)}</td><td></td></tr></tbody></table>
+      <div class="footer"><div class="footer-block"><div class="footer-line"></div>المدير الإداري</div><div class="footer-block"><div class="footer-line"></div>الحسابات</div><div class="footer-block"><div class="footer-line"></div>شئون العاملين</div></div>
+      <div class="footer-meta"><span>صفحة 1 من 1</span><span>تاريخ الطباعة: ${escapeHtml(today)}</span></div>`;
+    openPrint(html, `كشف عمولات الشفتات — ${periodLabel}`, SHEET_CSS);
+  }
+
   function printShiftDay1Slips() {
     const html = enhancedShiftRows
       .map((r: any) => {
@@ -2049,22 +2126,28 @@ export default function PayrollReport() {
                       {section === "مركز" && enhancedShiftRows.length > 0 && (
                         <>
                           <DropdownMenuItem
-                            onClick={printShiftsSheet}
+                            onClick={printShiftBasicsSheet}
                             className="gap-2 justify-start cursor-pointer"
                           >
-                            <Printer size={14} /> شفتات — كشف الشهر
+                            <Printer size={14} /> كشف رواتب الشفتات
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={printShiftCommissionsSheet}
+                            className="gap-2 justify-start cursor-pointer"
+                          >
+                            <Printer size={14} /> كشف عمولات الشفتات
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={printShiftDay1Slips}
                             className="gap-2 justify-start cursor-pointer"
                           >
-                            <Printer size={14} /> شفتات — يوم 1
+                            <Printer size={14} /> إيصالات الشفتات — يوم 1
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={printShiftDay10Slips}
                             className="gap-2 justify-start cursor-pointer"
                           >
-                            <Printer size={14} /> شفتات — يوم 10
+                            <Printer size={14} /> إيصالات الشفتات — يوم 10
                           </DropdownMenuItem>
                         </>
                       )}
@@ -2658,10 +2741,10 @@ export default function PayrollReport() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={printShiftsSheet}
+                      onClick={printShiftBasicsSheet}
                       className="gap-1.5 h-8 text-xs"
                     >
-                      <Printer size={13} /> كشف الشهر
+                      <Printer size={13} /> طباعة كشف
                     </Button>
                     <Button
                       variant="outline"
@@ -3016,6 +3099,22 @@ export default function PayrollReport() {
             .filter((r: any) => r.type === "doctor")
             .reduce((s: number, r: any) => s + Number(r.netBasic), 0);
 
+          const doctorPayrollRows = enhancedShiftRows
+            .filter((r: any) => r.type === "doctor")
+            .map((r: any) =>
+              shiftRows.find((row: any) => row.empCd === `shift_${r.id}`),
+            )
+            .filter(Boolean);
+          const examPoolForShiftDoctors = doctorPayrollRows.reduce(
+            (sum: number, row: any) => sum + Number(row.examCommission ?? 0),
+            0,
+          );
+          const pentacamPoolForShiftDoctors = doctorPayrollRows.reduce(
+            (sum: number, row: any) =>
+              sum + Number(row.pentacamCommission ?? 0),
+            0,
+          );
+
           const commRows = enhancedShiftRows
             .filter((r: any) => r.type === "doctor")
             .map((r: any) => {
@@ -3024,9 +3123,18 @@ export default function PayrollReport() {
               );
               const base = Number(r.netBasic);
               const share = totalShiftPay > 0 ? base / totalShiftPay : 0;
-              const attend = Number(payrollRow?.attendanceCommission ?? 0);
-              const examComm = Number(payrollRow?.examCommission ?? 0);
-              const pentComm = Number(payrollRow?.pentacamCommission ?? 0);
+              const previousBase = Number(payrollRow?.netBasic ?? 0);
+              const previousAttendanceRaw = Number(
+                payrollRow?.attendanceCommissionRaw ??
+                  payrollRow?.attendanceCommission ??
+                  0,
+              );
+              const attendanceRate =
+                previousBase > 0 ? previousAttendanceRaw / previousBase : 0.25;
+              const multiplier = Number(r.leaveMultiplier ?? 1);
+              const attend = base * attendanceRate * multiplier;
+              const examComm = examPoolForShiftDoctors * share;
+              const pentComm = pentacamPoolForShiftDoctors * share;
               return {
                 ...r,
                 base,
@@ -3073,7 +3181,7 @@ export default function PayrollReport() {
             <section className="rounded-xl border border-border bg-background overflow-hidden">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3 bg-muted/10">
                 <h3 className="text-base font-semibold">عمولات الشفتات</h3>
-                <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                   <span>
                     إجمالي نسبة الفحص:{" "}
                     <strong className="text-foreground">
@@ -3086,6 +3194,14 @@ export default function PayrollReport() {
                       {fmt(pentacamStaff)} ج
                     </strong>
                   </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={printShiftCommissionsSheet}
+                    className="gap-1.5 h-8 text-xs"
+                  >
+                    <Printer size={13} /> طباعة كشف
+                  </Button>
                 </div>
               </div>
 

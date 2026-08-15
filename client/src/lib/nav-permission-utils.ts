@@ -26,7 +26,11 @@ export function permissionsToAllowedRoots(permissions: string[]): string[] {
 }
 
 // Paths accessible to all authenticated users regardless of role permissions
-const ALWAYS_GRANTED = new Set<string>([]);
+const ALWAYS_GRANTED = new Set<string>([
+  "/profile",
+  "/attendance/my",
+  "/attendance/shift-schedule",
+]);
 
 /** Same generic path matching as ProtectedRoute (excluding role-specific exceptions). */
 export function pathGrantedByRoots(

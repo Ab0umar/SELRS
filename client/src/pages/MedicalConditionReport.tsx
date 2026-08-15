@@ -36,6 +36,10 @@ export default function MedicalConditionReport() {
   const { isAuthenticated, user } = useAuth();
   const [, params] = useRoute("/medical-condition-report/:id");
   const initialPatientId = params?.id ? Number(params.id) : undefined;
+  const requestedVisitDate =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("visitDate") || ""
+      : "";
   const [patientId, setPatientId] = useState<number | undefined>(
     initialPatientId,
   );
@@ -104,8 +108,17 @@ export default function MedicalConditionReport() {
   }, [patient]);
 
   useEffect(() => {
-    const report = reports[0];
-    if (!report) return;
+    const report = requestedVisitDate
+      ? reports.find(
+          (item) =>
+            String(item.reportDate ?? "").split("T")[0] === requestedVisitDate,
+        )
+      : reports[0];
+    if (!report) {
+      setExistingReportId(undefined);
+      if (requestedVisitDate) setReportDate(requestedVisitDate);
+      return;
+    }
     setExistingReportId(Number(report.id));
     setReportDate(
       report.reportDate ? String(report.reportDate).split("T")[0] : "",
@@ -125,7 +138,7 @@ export default function MedicalConditionReport() {
     if (report.patientCodeOverride) setPatientCode(report.patientCodeOverride);
     if (report.patientDobOverride)
       setPatientDob(String(report.patientDobOverride).split("T")[0]);
-  }, [reports]);
+  }, [reports, requestedVisitDate]);
 
   const saveReportMutation =
     trpc.medical.saveMedicalConditionReport.useMutation();

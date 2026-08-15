@@ -32,6 +32,10 @@ export default function PostOpOffdays() {
   const { isAuthenticated, user } = useAuth();
   const [, params] = useRoute("/post-op-offdays/:id");
   const initialPatientId = params?.id ? Number(params.id) : undefined;
+  const requestedVisitDate =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("visitDate") || ""
+      : "";
   const [patientId, setPatientId] = useState<number | undefined>(
     initialPatientId,
   );
@@ -84,8 +88,16 @@ export default function PostOpOffdays() {
   }, [patient]);
 
   useEffect(() => {
-    const cert = certs[0];
-    if (!cert) return;
+    const cert = requestedVisitDate
+      ? certs.find(
+          (item) =>
+            String(item.createdAt ?? "").split("T")[0] === requestedVisitDate,
+        )
+      : certs[0];
+    if (!cert) {
+      setExistingCertId(undefined);
+      return;
+    }
     setExistingCertId(Number(cert.id));
     setOperationDate(
       cert.operationDate ? String(cert.operationDate).split("T")[0] : "",
@@ -101,7 +113,7 @@ export default function PostOpOffdays() {
     if (cert.patientCodeOverride) setPatientCode(cert.patientCodeOverride);
     if (cert.patientDobOverride)
       setPatientDob(String(cert.patientDobOverride).split("T")[0]);
-  }, [certs]);
+  }, [certs, requestedVisitDate]);
 
   const createCertMutation =
     trpc.medical.savePostOpOffdaysCertificate.useMutation();

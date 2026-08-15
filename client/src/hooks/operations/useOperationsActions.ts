@@ -456,12 +456,26 @@ export function useOperationsActions(operations: OperationsState) {
       toast.error("بيانات المريض غير مكتملة");
       return;
     }
-    const exists = operations.currentList.some(
-      (row) =>
-        row.patientId === patient.id ||
-        (!!patient.patientCode && row.code === patient.patientCode) ||
-        (!!patient.phone && row.phone === patient.phone),
-    );
+    const patientCode = String(patient.patientCode ?? "")
+      .trim()
+      .toLowerCase();
+    const patientPhone = String(patient.phone ?? "").replace(/\D/g, "");
+    const exists = operations.currentList.some((row) => {
+      const rowCode = String(row.code ?? "")
+        .trim()
+        .toLowerCase();
+      const rowPhone = String(row.phone ?? "").replace(/\D/g, "");
+
+      return (
+        (patient.id != null &&
+          row.patientId != null &&
+          row.patientId === patient.id) ||
+        (patientCode !== "" &&
+          patientCode !== "0000" &&
+          rowCode === patientCode) ||
+        (patientPhone !== "" && rowPhone === patientPhone)
+      );
+    });
     if (exists) {
       toast.error("هذه الحالة موجودة بالفعل في القائمة");
       return;
@@ -474,7 +488,7 @@ export function useOperationsActions(operations: OperationsState) {
       phone: patient.phone ?? "",
       doctor: operations.doctorName,
       operation:
-        operations.operationType === ""
+        operations.operationType === "Other"
           ? operations.operationTypeOther
           : operations.operationType,
       eye: "",
@@ -591,6 +605,14 @@ export function useOperationsActions(operations: OperationsState) {
       toast.error("القائمة فارغة. أضف حالة واحدة على الأقل قبل الحفظ");
       return;
     }
+    const selectedOperationType =
+      operations.operationType === "Other"
+        ? operations.operationTypeOther.trim()
+        : operations.operationType;
+    if (operations.operationType === "Other" && !selectedOperationType) {
+      toast.error("اكتب اسم العملية الأخرى");
+      return;
+    }
     const receiptNumbers = operations.currentList
       .map((row) => String(row.number ?? "").trim())
       .filter((value) => value.length > 0);
@@ -616,7 +638,7 @@ export function useOperationsActions(operations: OperationsState) {
       listId: operations.selectedListId > 0 ? operations.selectedListId : null,
       doctorTab: operations.activeTab,
       listDate: operations.listDate,
-      operationType: operations.operationType || null,
+      operationType: selectedOperationType || null,
       doctorName: operations.doctorName || null,
       listTime: operations.listTime || null,
       items: operations.currentList.map((row) => ({
@@ -663,7 +685,7 @@ export function useOperationsActions(operations: OperationsState) {
             date: String(operations.listDate),
             names,
             items: operations.currentList,
-            operationType: operations.operationType || null,
+            operationType: selectedOperationType || null,
           },
         ],
       };
@@ -747,11 +769,16 @@ export function useOperationsActions(operations: OperationsState) {
     if (saveListMutation.isPending) return;
     if (operations.currentList.length === 0) return;
 
+    const selectedOperationType =
+      operations.operationType === "Other"
+        ? operations.operationTypeOther.trim()
+        : operations.operationType;
+    if (operations.operationType === "Other" && !selectedOperationType) return;
     const payload = {
       listId: operations.selectedListId > 0 ? operations.selectedListId : null,
       doctorTab: operations.activeTab,
       listDate: operations.listDate,
-      operationType: operations.operationType || null,
+      operationType: selectedOperationType || null,
       doctorName: operations.doctorName || null,
       listTime: operations.listTime || null,
       items: operations.currentList.map((row) => ({

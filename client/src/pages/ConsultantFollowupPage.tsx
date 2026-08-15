@@ -15,6 +15,13 @@ import {
 import { printOrExportPdf } from "@/lib/nativePdf";
 import FollowupTablesBody from "@/components/sheets/FollowupTablesBody";
 
+const FOLLOWUP_TITLES = [
+  "المتابعة الأولى",
+  "المتابعة الثانية",
+  "المتابعة الثالثة",
+  "المتابعة الرابعة",
+];
+
 export default function ConsultantFollowupPage() {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
@@ -37,12 +44,32 @@ export default function ConsultantFollowupPage() {
   const [patientName, setPatientName] = useState("");
   const [patientDOB, setPatientDOB] = useState("");
   const [signatures, setSignatures] = useState({ doctor: "" });
-  const emptyFollowupRow = (id: number | string, type: string, right: boolean, left: boolean) => ({
-    id, date: "", type, right, left,
-    odVa: "", osVa: "",
-    odS: "", odC: "", odAxis: "",
-    osS: "", osC: "", osAxis: "",
-    odIop: "", osIop: "",
+  const emptyFollowupRow = (
+    id: number | string,
+    type: string,
+    right: boolean,
+    left: boolean,
+  ) => ({
+    id,
+    date: "",
+    type,
+    right,
+    left,
+    odVa: "",
+    osVa: "",
+    odS: "",
+    odC: "",
+    odAxis: "",
+    osS: "",
+    osC: "",
+    osAxis: "",
+    odFlapEdges: "",
+    odFlapBed: "",
+    osFlapEdges: "",
+    osFlapBed: "",
+    odIop: "",
+    osIop: "",
+    treatment: "",
     notes: "",
   });
 
@@ -86,24 +113,34 @@ export default function ConsultantFollowupPage() {
   }, [designerSettingsQuery.data]);
 
   useEffect(() => {
-    const names = designerConfig.followupConsultant?.followupNames ?? [];
     setFollowups((prev) =>
-      prev.map((item, i) => ({ ...item, type: names[i] ?? item.type })),
+      prev.map((item, i) => ({ ...item, type: FOLLOWUP_TITLES[i % 4] })),
     );
   }, [designerConfig.followupConsultant?.followupNames]);
 
   useEffect(() => {
     if (!followupSheetsQuery.data) return;
     const sheets = followupSheetsQuery.data as any[];
-    // Fetch items from the followup sheet's own table, one by one, oldest sheet/item first
+    // Each saved follow-up fills its own table, ordered by visit date.
     const items = sheets
       .slice()
       .sort((a, b) => a.version - b.version)
       .flatMap((sheet) =>
         (sheet.items ?? [])
           .slice()
-          .sort((a: any, b: any) => a.tableIndex - b.tableIndex),
-      );
+          .map((item: any) => ({ ...item, sheetVersion: sheet.version })),
+      )
+      .filter((item: any) => item.followupDate)
+      .sort((a: any, b: any) => {
+        const dateOrder =
+          new Date(a.followupDate).getTime() -
+          new Date(b.followupDate).getTime();
+        if (dateOrder !== 0) return dateOrder;
+        const versionOrder = Number(a.sheetVersion) - Number(b.sheetVersion);
+        return versionOrder !== 0
+          ? versionOrder
+          : Number(a.tableIndex) - Number(b.tableIndex);
+      });
     if (items.length === 0) {
       // Keep template data if no followups found
       return;
@@ -121,11 +158,17 @@ export default function ConsultantFollowupPage() {
         return { s: "", c: "", axis: "" };
       }
     };
+    const parseFlap = (json: unknown) => {
+      if (!json) return { edges: "", bed: "" };
+      try {
+        const parsed = typeof json === "string" ? JSON.parse(json) : json;
+        return { edges: parsed?.edges ?? "", bed: parsed?.bed ?? "" };
+      } catch {
+        return { edges: "", bed: "" };
+      }
+    };
     const transformedFollowups = items.map((item: any, index: number) => {
-      const followupName =
-        item.followupName ||
-        designerConfig.followupConsultant?.followupNames?.[index % 4] ||
-        `المتابعة #${index + 1}`;
+      const followupName = FOLLOWUP_TITLES[index % 4];
       const followupDate = item.followupDate
         ? (typeof item.followupDate === "string"
             ? item.followupDate
@@ -134,6 +177,8 @@ export default function ConsultantFollowupPage() {
         : "";
       const od = parseRefrac(item.refracOD);
       const os = parseRefrac(item.refracOS);
+      const flapOD = parseFlap(item.flapOD);
+      const flapOS = parseFlap(item.flapOS);
       return {
         id: item.id,
         date: followupDate,
@@ -142,11 +187,20 @@ export default function ConsultantFollowupPage() {
         left: Boolean(item.leftEye),
         odVa: item.vaOD ?? "",
         osVa: item.vaOS ?? "",
-        odS: od.s, odC: od.c, odAxis: od.axis,
-        osS: os.s, osC: os.c, osAxis: os.axis,
+        odS: od.s,
+        odC: od.c,
+        odAxis: od.axis,
+        osS: os.s,
+        osC: os.c,
+        osAxis: os.axis,
+        odFlapEdges: flapOD.edges,
+        odFlapBed: flapOD.bed,
+        osFlapEdges: flapOS.edges,
+        osFlapBed: flapOS.bed,
         odIop: item.iopOD ?? "",
         osIop: item.iopOS ?? "",
-        notes: item.notes ?? item.treatment ?? "",
+        treatment: item.treatment ?? "",
+        notes: item.notes ?? "",
       };
     });
     setFollowups(transformedFollowups);
@@ -182,11 +236,14 @@ export default function ConsultantFollowupPage() {
         const newFollowups = [];
         for (let i = 0; i < 4; i++) {
           const index = followups.length + i;
-          const followupName =
-            designerConfig.followupConsultant?.followupNames?.[index % 4] ??
-            `المتابعة #${(index % 4) + 1}`;
+          const followupName = FOLLOWUP_TITLES[index % 4];
           newFollowups.push(
-            emptyFollowupRow(nextId + i, followupName, index % 2 === 0, index % 2 === 1),
+            emptyFollowupRow(
+              nextId + i,
+              followupName,
+              index % 2 === 0,
+              index % 2 === 1,
+            ),
           );
         }
         setFollowups([...followups, ...newFollowups]);
@@ -238,9 +295,11 @@ export default function ConsultantFollowupPage() {
       vaOS: f.osVa,
       refracOD: { s: f.odS, c: f.odC, axis: f.odAxis },
       refracOS: { s: f.osS, c: f.osC, axis: f.osAxis },
+      flapOD: { edges: f.odFlapEdges, bed: f.odFlapBed },
+      flapOS: { edges: f.osFlapEdges, bed: f.osFlapBed },
       iopOD: f.odIop,
       iopOS: f.osIop,
-      treatment: f.notes,
+      treatment: f.treatment,
       notes: f.notes,
     }));
 
@@ -351,8 +410,8 @@ export default function ConsultantFollowupPage() {
           }
           .sheet-followup-body, .sheet-followup-body * {
             box-sizing: border-box !important;
-            font-size: 9px !important;
-            line-height: 1.15 !important;
+            font-size: 10px !important;
+            line-height: 1.2 !important;
             font-weight: 400 !important;
             text-decoration: none !important;
           }
@@ -381,15 +440,15 @@ export default function ConsultantFollowupPage() {
             height: 10mm !important;
           }
           .sheet-followup-body .followup-record-head {
-            flex: 0 0 14mm !important;
-            height: 14mm !important;
+            flex: 0 0 19mm !important;
+            height: 19mm !important;
             grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
             border-radius: 0.8mm !important;
           }
           .sheet-followup-body .followup-record-head,
           .sheet-followup-body .followup-record-head * {
-            font-size: 8.5px !important;
-            line-height: 1.1 !important;
+            font-size: 9.5px !important;
+            line-height: 1.15 !important;
           }
           .sheet-followup-body .followup-record-head input,
           .sheet-followup-body .followup-record-head button {
@@ -406,8 +465,8 @@ export default function ConsultantFollowupPage() {
             justify-content: flex-start !important;
           }
           .sheet-followup-body .followup-record-section {
-            flex: 0 0 40mm !important;
-            height: 40mm !important;
+            flex: 0 0 56mm !important;
+            height: 56mm !important;
             min-height: 0 !important;
             display: flex !important;
             flex-direction: column !important;
@@ -415,17 +474,17 @@ export default function ConsultantFollowupPage() {
             border-radius: 0.8mm !important;
           }
           .sheet-followup-body .followup-record-title {
-            flex: 0 0 7mm !important;
-            height: 7mm !important;
-            min-height: 7mm !important;
-            padding: 0.6mm 1.5mm !important;
-            grid-template-columns: auto 1fr !important;
-            gap: 4mm !important;
+            flex: 0 0 8mm !important;
+            height: 8mm !important;
+            min-height: 8mm !important;
+            padding: 0 !important;
+            grid-template-columns: minmax(0, 1fr) 55mm 55mm !important;
+            gap: 0 !important;
           }
           .sheet-followup-body .followup-record-title input {
-            height: 4.5mm !important;
-            min-height: 4.5mm !important;
-            font-size: 9.5px !important;
+            height: 6mm !important;
+            min-height: 6mm !important;
+            font-size: 10.5px !important;
             padding: 0 1mm !important;
           }
           .sheet-followup-body .followup-clinical-grid {
@@ -437,21 +496,28 @@ export default function ConsultantFollowupPage() {
           }
           .sheet-followup-body .followup-record-table {
             flex: 1 1 auto !important;
-            height: 21mm !important;
+            height: 42mm !important;
             min-height: 0 !important;
             table-layout: fixed !important;
             border-collapse: collapse !important;
           }
           .sheet-followup-body .followup-record-table th {
-            height: 5mm !important;
-            padding: 0.35mm 0.6mm !important;
-            font-size: 7px !important;
-            letter-spacing: 0.02em !important;
+            height: auto !important;
+            padding: 0.45mm 0.7mm !important;
+            font-size: 8.5px !important;
+            letter-spacing: 0 !important;
           }
           .sheet-followup-body .followup-record-table td {
-            height: 8mm !important;
+            height: auto !important;
             min-height: 0 !important;
             padding: 0 !important;
+          }
+          .sheet-followup-body .followup-record-title .followup-date-label {
+            font-size: 8.5px !important;
+            line-height: 1 !important;
+          }
+          .sheet-followup-body .followup-record-table tr {
+            height: auto !important;
           }
           .sheet-followup-body .followup-section-bottom {
             flex: 0 0 12mm !important;
@@ -479,7 +545,7 @@ export default function ConsultantFollowupPage() {
             height: 16mm !important;
             gap: 4mm !important;
             padding-top: 4mm !important;
-            font-size: 9px !important;
+            font-size: 9.5px !important;
           }
           .sheet-followup-body section {
             page-break-inside: avoid !important;
@@ -493,6 +559,10 @@ export default function ConsultantFollowupPage() {
             outline: 0 !important;
           }
           .sheet-followup-body input[type="date"]::-webkit-calendar-picker-indicator {
+            display: none !important;
+          }
+          .sheet-followup-body .followup-record-title label button,
+          .sheet-followup-body .followup-record-head label button {
             display: none !important;
           }
           .sheet-followup-body .h-10 { height: 5mm !important; }

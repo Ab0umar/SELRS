@@ -104,6 +104,16 @@ export default function WritePrescription({
   const canImportReadyTemplates = isAdmin;
   const printMode = usePrintMode();
   const initialPatientId = params?.id ? Number(params.id) : 0;
+  const routeVisitDate =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("visitDate") || ""
+      : "";
+  const requestedVisitDate =
+    hubVisitDate && /^\d{4}-\d{2}-\d{2}$/.test(hubVisitDate)
+      ? hubVisitDate
+      : /^\d{4}-\d{2}-\d{2}$/.test(routeVisitDate)
+        ? routeVisitDate
+        : "";
 
   const [patientId, setPatientId] = useState<number | null>(
     initialPatientId > 0 ? initialPatientId : null,
@@ -112,17 +122,17 @@ export default function WritePrescription({
   const [patientAge, setPatientAge] = useState("");
   const [patientCode, setPatientCode] = useState("");
   const [prescriptionDate, setPrescriptionDate] = useState(
-    new Date().toISOString().split("T")[0],
+    requestedVisitDate || new Date().toISOString().split("T")[0],
   );
   const [locationTypeFilter, setLocationTypeFilter] = useState<
     "all" | "center" | "external"
   >("all");
 
   useEffect(() => {
-    if (hubVisitDate && /^\d{4}-\d{2}-\d{2}$/.test(hubVisitDate)) {
-      setPrescriptionDate(hubVisitDate);
+    if (requestedVisitDate) {
+      setPrescriptionDate(requestedVisitDate);
     }
-  }, [hubVisitDate]);
+  }, [requestedVisitDate]);
 
   const toDateInputValue = (value: unknown) => {
     const date = new Date(String(value ?? ""));
@@ -622,7 +632,18 @@ export default function WritePrescription({
       setPrescriptionItems([]);
       return;
     }
-    const latest = history[0];
+    const latest = requestedVisitDate
+      ? history.find(
+          (item) =>
+            toDateInputValue(item.prescriptionDate) === requestedVisitDate,
+        )
+      : history[0];
+    if (!latest) {
+      setPrescriptionItems([]);
+      setGeneralNotes("");
+      if (requestedVisitDate) setPrescriptionDate(requestedVisitDate);
+      return;
+    }
     const items = (latest.items ?? []).map((item: any) => ({
       id: String(item.id ?? Date.now()),
       medicationId: item.medicationId ?? 0,
@@ -633,11 +654,18 @@ export default function WritePrescription({
       instructions: item.instructions ?? "",
     }));
     setPrescriptionItems(items);
-    if (latest.prescriptionDate) {
+    if (requestedVisitDate) {
+      setPrescriptionDate(requestedVisitDate);
+    } else if (latest.prescriptionDate) {
       const dateValue = toDateInputValue(latest.prescriptionDate);
       if (dateValue) setPrescriptionDate(dateValue);
     }
-  }, [historyQuery.data, editingForbidden, initialPatientId]);
+  }, [
+    historyQuery.data,
+    editingForbidden,
+    initialPatientId,
+    requestedVisitDate,
+  ]);
 
   const handleRemoveItem = (id: string) => {
     if (editingForbidden) return;

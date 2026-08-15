@@ -823,6 +823,11 @@ export default function ExaminationForm() {
           visitDate: localISODate(),
         });
         effectivePatientId = created.id ?? 0;
+        if (created.concurrentPatientCreationDetected) {
+          toast.warning(
+            `موظف آخر كان يسجل مريضًا في نفس الوقت. تم حفظ هذا المريض بالكود التالي ${created.patientCode}.`,
+          );
+        }
         if (created.receiptNo) {
           toast.success(`تم تسجيل المريض — إيصال #${created.receiptNo}`);
         }

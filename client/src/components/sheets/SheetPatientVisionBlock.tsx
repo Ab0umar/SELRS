@@ -112,7 +112,7 @@ export default function SheetPatientVisionBlock({
             <span className="text-[#434654]">الاسم:</span>
             <input
               size={(patientName || "").length || 12}
-              className="patient-detail-emphasis text-[#003d9b] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right text-sm font-bold"
+              className="patient-detail-emphasis text-[#003d9b] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right text-lg font-extrabold"
               dir="rtl"
               value={patientName}
               onChange={onText(onPatientNameChange)}

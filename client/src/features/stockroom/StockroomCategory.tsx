@@ -55,8 +55,8 @@ function getStatusClass(status: string) {
 const CATEGORY_MAP: Record<string, string> = {
   "eye-drops": "قطرات العين",
   "op-room": "غرفة العمليات",
-  "surgical": "مستلزمات وأدوات جراحية",
-  "office": "لوازم مكتبية",
+  surgical: "مستلزمات وأدوات جراحية",
+  office: "لوازم مكتبية",
 };
 
 export default function StockroomCategory() {
@@ -124,7 +124,9 @@ export default function StockroomCategory() {
   const [quantity, setQuantity] = useState("");
   const [unitPrice, setUnitPrice] = useState("");
   const [employeeName, setEmployeeName] = useState("");
-  const [destination, setDestination] = useState("");
+  const [destination, setDestination] = useState<
+    "" | "بيع" | "عمليات" | "عيادات"
+  >("");
   const [txDate, setTxDate] = useState(new Date().toISOString().slice(0, 10));
 
   // States for receiving a brand new, unregistered item in the Add tab
@@ -135,7 +137,12 @@ export default function StockroomCategory() {
 
   // Edit item state
   const [editingItem, setEditingItem] = useState<{
-    id: number; name: string; itemCode: string; supplier: string; expiryDate: string;
+    id: number;
+    name: string;
+    itemCode: string;
+    supplier: string;
+    expiryDate: string;
+    unitPrice: string;
   } | null>(null);
 
   // New Item Dialog states
@@ -173,6 +180,7 @@ export default function StockroomCategory() {
     setSelectedItemId(String(item.id));
     setQuantity("");
     setEmployeeName("");
+    setDestination("");
     setActiveTab("dispense");
   };
 
@@ -210,11 +218,15 @@ export default function StockroomCategory() {
       toast.error("يرجى اختيار الصنف");
       return;
     }
+    if (!destination) {
+      toast.error("يرجى اختيار جهة الصرف");
+      return;
+    }
     dispenseMutation.mutate({
       itemId: Number(selectedItemId),
       quantity: Number(quantity),
       employeeName: employeeName,
-      destination: destination || undefined,
+      destination,
       transactionDate: txDate || undefined,
     });
   };
@@ -396,13 +408,18 @@ export default function StockroomCategory() {
                               variant="ghost"
                               size="sm"
                               className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
-                              onClick={() => setEditingItem({
-                                id: item.id,
-                                name: item.name,
-                                itemCode: item.itemCode || "",
-                                supplier: (item as any).supplier || "",
-                                expiryDate: item.expiryDate ? String(item.expiryDate).split("T")[0] : "",
-                              })}
+                              onClick={() =>
+                                setEditingItem({
+                                  id: item.id,
+                                  name: item.name,
+                                  itemCode: item.itemCode || "",
+                                  supplier: (item as any).supplier || "",
+                                  expiryDate: item.expiryDate
+                                    ? String(item.expiryDate).split("T")[0]
+                                    : "",
+                                  unitPrice: "",
+                                })
+                              }
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
@@ -641,7 +658,11 @@ export default function StockroomCategory() {
                 <select
                   className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                   value={destination}
-                  onChange={(e) => setDestination(e.target.value)}
+                  onChange={(e) =>
+                    setDestination(
+                      e.target.value as "" | "بيع" | "عمليات" | "عيادات",
+                    )
+                  }
                 >
                   <option value="">-- اختر الجهة --</option>
                   <option value="بيع">بيع</option>
@@ -673,11 +694,16 @@ export default function StockroomCategory() {
       </Tabs>
 
       {/* Edit Item Dialog */}
-      <Dialog open={!!editingItem} onOpenChange={(o) => !o && setEditingItem(null)}>
+      <Dialog
+        open={!!editingItem}
+        onOpenChange={(o) => !o && setEditingItem(null)}
+      >
         <DialogContent className="sm:max-w-[425px]" dir="rtl">
           <DialogHeader>
             <DialogTitle>تعديل الصنف</DialogTitle>
-            <DialogDescription>تعديل بيانات الصنف في المخزون.</DialogDescription>
+            <DialogDescription>
+              تعديل بيانات الصنف في المخزون.
+            </DialogDescription>
           </DialogHeader>
           {editingItem && (
             <div className="grid gap-4 py-4">
@@ -685,7 +711,9 @@ export default function StockroomCategory() {
                 <Label className="text-right">الاسم</Label>
                 <Input
                   value={editingItem.name}
-                  onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
+                  onChange={(e) =>
+                    setEditingItem({ ...editingItem, name: e.target.value })
+                  }
                   className="col-span-3 text-right"
                 />
               </div>
@@ -693,7 +721,9 @@ export default function StockroomCategory() {
                 <Label className="text-right">الكود</Label>
                 <Input
                   value={editingItem.itemCode}
-                  onChange={(e) => setEditingItem({ ...editingItem, itemCode: e.target.value })}
+                  onChange={(e) =>
+                    setEditingItem({ ...editingItem, itemCode: e.target.value })
+                  }
                   className="col-span-3 font-mono text-right"
                   placeholder="اختياري"
                 />
@@ -702,7 +732,9 @@ export default function StockroomCategory() {
                 <Label className="text-right">المورد</Label>
                 <Input
                   value={editingItem.supplier}
-                  onChange={(e) => setEditingItem({ ...editingItem, supplier: e.target.value })}
+                  onChange={(e) =>
+                    setEditingItem({ ...editingItem, supplier: e.target.value })
+                  }
                   className="col-span-3 text-right"
                   placeholder="اختياري"
                 />
@@ -711,8 +743,31 @@ export default function StockroomCategory() {
                 <Label className="text-right">الصلاحية</Label>
                 <DateInput
                   value={editingItem.expiryDate}
-                  onChange={(e) => setEditingItem({ ...editingItem, expiryDate: e.target.value })}
+                  onChange={(e) =>
+                    setEditingItem({
+                      ...editingItem,
+                      expiryDate: e.target.value,
+                    })
+                  }
                   className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">السعر</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={editingItem.unitPrice}
+                  onChange={(e) =>
+                    setEditingItem({
+                      ...editingItem,
+                      unitPrice: e.target.value,
+                    })
+                  }
+                  className="col-span-3 text-right"
+                  placeholder="اتركه فارغًا بدون تغيير"
                 />
               </div>
             </div>
@@ -730,6 +785,9 @@ export default function StockroomCategory() {
                   itemCode: editingItem.itemCode || undefined,
                   supplier: editingItem.supplier || undefined,
                   expiryDate: editingItem.expiryDate || null,
+                  ...(editingItem.unitPrice.trim() !== ""
+                    ? { unitPrice: Number(editingItem.unitPrice) }
+                    : {}),
                 });
               }}
               disabled={updateItemMutation.isPending}

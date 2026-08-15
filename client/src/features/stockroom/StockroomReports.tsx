@@ -252,6 +252,7 @@ export default function StockroomReports() {
                   <TableHead className="text-right">التاريخ</TableHead>
                   <TableHead className="text-right">الصنف</TableHead>
                   <TableHead className="text-right">الكمية المنصرفة</TableHead>
+                  <TableHead className="text-right">جهة الصرف</TableHead>
                   <TableHead className="text-right">
                     المستلم (موظف/قسم)
                   </TableHead>
@@ -269,6 +270,9 @@ export default function StockroomReports() {
                           </TableCell>
                           <TableCell>
                             <Skeleton className="h-4 w-24" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-4 w-16" />
                           </TableCell>
                           <TableCell>
                             <Skeleton className="h-4 w-32" />
@@ -298,6 +302,9 @@ export default function StockroomReports() {
                         <TableCell className="font-semibold text-warning text-right">
                           {"-"}
                           {row.quantity}
+                        </TableCell>
+                        <TableCell className="font-semibold text-right">
+                          {row.destination || "-"}
                         </TableCell>
                         <TableCell className="text-right">
                           {row.employeeName || "-"}

@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Trash2, Clock, CheckCircle, Pencil } from "lucide-react";
+import { Plus, Trash2, Clock, CheckCircle, Pencil, LogIn } from "lucide-react";
 import { toast } from "sonner";
 import { DateInput } from "@/components/ui/date-input";
 import { useIsMobile } from "@/hooks/useMobile";
@@ -19,7 +19,27 @@ interface PermForm {
   note: string;
 }
 
-const today = new Date().toISOString().split("T")[0];
+const toLocalIsoDate = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+const normalizeDate = (value: unknown) => {
+  if (!value) return "";
+  if (value instanceof Date) return toLocalIsoDate(value);
+  const text = String(value);
+  const isoMatch = text.match(/\d{4}-\d{2}-\d{2}/);
+  if (isoMatch) return isoMatch[0];
+  const parsed = new Date(text);
+  return Number.isNaN(parsed.getTime()) ? "" : toLocalIsoDate(parsed);
+};
+
+const displayDate = (value: unknown) => {
+  const iso = normalizeDate(value);
+  if (!iso) return "-";
+  const [year, month, day] = iso.split("-");
+  return `${day}/${month}/${year}`;
+};
+
+const today = toLocalIsoDate(new Date());
 const emptyForm = (): PermForm => ({
   empCd: "", date: today, type: "out", durationMinutes: 60, notAffectSalary: false, note: "",
 });
@@ -38,6 +58,20 @@ export default function Permissions() {
   });
 
   const empsQuery = trpc.attendance.employeesList.useQuery();
+  const entryPermissionSettingQuery =
+    trpc.attendance.getEntryPermissionRequestsEnabled.useQuery();
+  const setEntryPermissionSetting =
+    trpc.attendance.setEntryPermissionRequestsEnabled.useMutation({
+      onSuccess: (result) => {
+        entryPermissionSettingQuery.refetch();
+        toast.success(
+          result.enabled
+            ? "تم تفعيل طلب إذن الدخول للمستخدمين"
+            : "تم إلغاء طلب إذن الدخول للمستخدمين",
+        );
+      },
+      onError: (e) => toast.error("خطأ: " + e.message),
+    });
 
   const onDone = () => {
     setShowForm(false);
@@ -70,7 +104,7 @@ export default function Permissions() {
     setEditId(p.id);
     setForm({
       empCd: p.empCd,
-      date: String(p.date).split("T")[0],
+      date: normalizeDate(p.date),
       type: p.type,
       durationMinutes: p.durationMinutes,
       notAffectSalary: p.notAffectSalary ?? false,
@@ -94,6 +128,39 @@ export default function Permissions() {
   return (
     <div className="space-y-4" dir="rtl">
       <h1 className="text-3xl font-bold mb-6">الأذونات</h1>
+
+      <Card className="mb-4">
+        <CardContent className="flex items-center justify-between gap-4 pt-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <LogIn className="h-5 w-5 shrink-0 text-primary" />
+            <div className="min-w-0">
+              <div className="font-semibold">طلب إذن الدخول للمستخدمين</div>
+              <div className="text-xs text-muted-foreground">
+                يتحكم في ظهور وإرسال طلب الدخول المتأخر من الملف الشخصي للحضور.
+              </div>
+            </div>
+          </div>
+          <label className="flex shrink-0 cursor-pointer items-center gap-2">
+            <span className="text-sm font-medium">
+              {entryPermissionSettingQuery.data?.enabled !== false
+                ? "مفعّل"
+                : "ملغي"}
+            </span>
+            <input
+              type="checkbox"
+              className="h-5 w-5 accent-primary"
+              checked={entryPermissionSettingQuery.data?.enabled !== false}
+              disabled={
+                entryPermissionSettingQuery.isLoading ||
+                setEntryPermissionSetting.isPending
+              }
+              onChange={(event) =>
+                setEntryPermissionSetting.mutate({ enabled: event.target.checked })
+              }
+            />
+          </label>
+        </CardContent>
+      </Card>
 
       <Card className="mb-4">
         <CardContent className="pt-4">
@@ -222,7 +289,7 @@ export default function Permissions() {
                     <div>
                       <div className="text-muted-foreground">التاريخ</div>
                       <div className="font-medium text-foreground">
-                        {String(p.date).split("T")[0]}
+                        {displayDate(p.date)}
                       </div>
                     </div>
                     <div>
@@ -301,7 +368,7 @@ export default function Permissions() {
                   {(permsQuery.data as any[]).map((p: any) => (
                     <tr key={p.id} className="border-b hover:bg-muted/40">
                       <td className="py-2 px-4 font-mono">{p.empCd}</td>
-                      <td className="py-2 px-4">{String(p.date).split("T")[0]}</td>
+                      <td className="py-2 px-4 tabular-nums" dir="ltr">{displayDate(p.date)}</td>
                       <td className={`py-2 px-4 font-medium ${p.type === "in" ? "text-primary" : "text-secondary"}`}>{typeLabel(p.type)}</td>
                       <td className="py-2 px-4">{p.durationMinutes} د</td>
                       <td className="py-2 px-4">

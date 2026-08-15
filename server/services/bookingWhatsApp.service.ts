@@ -1,4 +1,5 @@
 import { ENV } from "../_core/env";
+import { appendSupportNoticeToLastParameter } from "./whatsappTemplateSupport";
 
 type BookingWhatsAppRequest = {
   recipientPhone: string | null | undefined;
@@ -91,20 +92,13 @@ function bookingTime(request: BookingWhatsAppRequest): string {
 function bookingMapLocation(branch: string | null | undefined): string {
   if (branch === "tanta") {
     return (
-      ENV.whatsappTantaMapUrl ||
-      "https://maps.app.goo.gl/528HEEz1jpMEjH1s8"
+      ENV.whatsappTantaMapUrl || "https://maps.app.goo.gl/528HEEz1jpMEjH1s8"
     );
   }
   if (branch === "kfs") {
-    return (
-      ENV.whatsappKfsMapUrl ||
-      "https://maps.app.goo.gl/528HEEz1jpMEjH1s8"
-    );
+    return ENV.whatsappKfsMapUrl || "https://maps.app.goo.gl/528HEEz1jpMEjH1s8";
   }
-  return (
-    ENV.whatsappKfsMapUrl ||
-    "https://maps.app.goo.gl/528HEEz1jpMEjH1s8"
-  );
+  return ENV.whatsappKfsMapUrl || "https://maps.app.goo.gl/528HEEz1jpMEjH1s8";
 }
 
 function namedTemplateParameters(
@@ -207,7 +201,10 @@ function bookingTemplateName(status: "confirmed" | "cancelled"): string {
     : ENV.whatsappCancellationTemplate;
 }
 
-function templatePayload(request: BookingWhatsAppRequest, templateName: string) {
+function templatePayload(
+  request: BookingWhatsAppRequest,
+  templateName: string,
+) {
   const template: Record<string, unknown> = {
     name: templateName,
     language: { code: ENV.whatsappTemplateLanguage },
@@ -217,7 +214,9 @@ function templatePayload(request: BookingWhatsAppRequest, templateName: string) 
     template.components = [
       {
         type: "body",
-        parameters: namedTemplateParameters(request, templateName),
+        parameters: appendSupportNoticeToLastParameter(
+          namedTemplateParameters(request, templateName),
+        ),
       },
     ];
   }
@@ -227,11 +226,7 @@ function templatePayload(request: BookingWhatsAppRequest, templateName: string) 
 
 function whatsappConfiguration(request: BookingWhatsAppRequest) {
   const templateName = bookingTemplateName(request.status);
-  if (
-    !ENV.whatsappAccessToken ||
-    !ENV.whatsappPhoneNumberId ||
-    !templateName
-  ) {
+  if (!ENV.whatsappAccessToken || !ENV.whatsappPhoneNumberId || !templateName) {
     console.warn(
       "[booking-whatsapp] Cloud API is not configured; booking message was not sent",
     );
@@ -242,7 +237,9 @@ function whatsappConfiguration(request: BookingWhatsAppRequest) {
     ? internationalPhone(request.recipientPhone)
     : null;
   if (!recipientPhone) {
-    console.warn("[booking-whatsapp] Booking has no valid Egyptian mobile number");
+    console.warn(
+      "[booking-whatsapp] Booking has no valid Egyptian mobile number",
+    );
     return null;
   }
 

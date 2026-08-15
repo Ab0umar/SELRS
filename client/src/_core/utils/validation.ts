@@ -29,8 +29,9 @@ export const validatePatientName = (name: string): string | null => {
 export const validatePhoneNumber = (phone: string): string | null => {
   if (!phone) return null; // Optional field
 
-  const phoneRegex = /^[0-9\-\+\(\)\s]{7,20}$/;
-  if (!phoneRegex.test(phone)) {
+  const phoneRegex = /^[\d\-\+\(\)\s]{7,20}$/;
+  const digitCount = (phone.match(/\d/g) ?? []).length;
+  if (!phoneRegex.test(phone) || digitCount < 7) {
     return "رقم الهاتف غير صحيح";
   }
   return null;
@@ -68,19 +69,48 @@ export const validateDate = (
   return null;
 };
 
+const parseLocalDateOnly = (value: string): Date | null => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) {
+    const fallbackDate = new Date(value);
+    return isNaN(fallbackDate.getTime()) ? null : fallbackDate;
+  }
+
+  const year = Number(match[1]);
+  const monthIndex = Number(match[2]) - 1;
+  const day = Number(match[3]);
+  const date = new Date(year, monthIndex, day);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== monthIndex ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+};
+
 /**
  * Validate date of birth
  */
 export const validateDateOfBirth = (dateOfBirth: string): string | null => {
   if (!dateOfBirth) return null; // Optional field
 
-  const dateObj = new Date(dateOfBirth);
-  if (isNaN(dateObj.getTime())) {
+  const dateObj = parseLocalDateOnly(dateOfBirth);
+  if (!dateObj) {
     return "تاريخ الميلاد غير صحيح";
   }
 
   const today = new Date();
-  const age = today.getFullYear() - dateObj.getFullYear();
+  let age = today.getFullYear() - dateObj.getFullYear();
+  const monthDiff = today.getMonth() - dateObj.getMonth();
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && today.getDate() < dateObj.getDate())
+  ) {
+    age--;
+  }
 
   if (age < 0 || age > 150) {
     return "تاريخ الميلاد غير منطقي";

@@ -1,4 +1,4 @@
-import type { Express, Request, Response } from "express";
+import type { Express, NextFunction, Request, Response } from "express";
 import * as db from "../db";
 import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -10,6 +10,39 @@ import { ENV } from "./env";
 export const AUTH_COOKIE_NAME = COOKIE_NAME;
 export const LEGACY_AUTH_COOKIE_NAME = "authToken";
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+const LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 5;
+
+type LoginRateLimitEntry = {
+  count: number;
+  resetAt: number;
+};
+
+const loginRateLimit = new Map<string, LoginRateLimitEntry>();
+
+function loginRateLimiter(req: Request, res: Response, next: NextFunction) {
+  const now = Date.now();
+  const rawUsername =
+    typeof req.body?.username === "string"
+      ? req.body.username.trim().toLowerCase()
+      : "";
+  const key = `${req.ip ?? req.socket.remoteAddress ?? "unknown"}:${rawUsername}`;
+  const existing = loginRateLimit.get(key);
+  const entry =
+    existing && existing.resetAt > now
+      ? existing
+      : { count: 0, resetAt: now + LOGIN_RATE_LIMIT_WINDOW_MS };
+
+  entry.count += 1;
+  loginRateLimit.set(key, entry);
+
+  if (entry.count > LOGIN_RATE_LIMIT_MAX_ATTEMPTS) {
+    res.status(429).json({ error: "Too many login attempts, try again later" });
+    return;
+  }
+
+  next();
+}
 
 export type SessionPayload = {
   userId: number;
@@ -37,7 +70,6 @@ class LocalAuthService {
    * Generate JWT token
    */
   generateToken(user: User): string {
-    const secret = ENV.JWT_SECRET || "your-secret-key";
     return jwt.sign(
       {
         userId: user.id,
@@ -45,7 +77,7 @@ class LocalAuthService {
         role: user.role,
         branch: user.branch,
       },
-      secret,
+      ENV.JWT_SECRET,
       { expiresIn: "24h" },
     );
   }
@@ -55,8 +87,7 @@ class LocalAuthService {
    */
   verifyToken(token: string): any {
     try {
-      const secret = ENV.JWT_SECRET || "your-secret-key";
-      return jwt.verify(token, secret);
+      return jwt.verify(token, ENV.JWT_SECRET);
     } catch (error) {
       return null;
     }
@@ -72,11 +103,12 @@ class LocalAuthService {
     branch: string,
     options: { expiresInMs?: number } = {},
   ): Promise<string> {
-    const secret = ENV.JWT_SECRET || "your-secret-key";
     const expiresIn = options.expiresInMs
       ? Math.floor(options.expiresInMs / 1000)
       : 86400; // Default 24h in seconds
-    return jwt.sign({ userId, username, role, branch }, secret, { expiresIn });
+    return jwt.sign({ userId, username, role, branch }, ENV.JWT_SECRET, {
+      expiresIn,
+    });
   }
 
   /**
@@ -90,8 +122,7 @@ class LocalAuthService {
     }
 
     try {
-      const secret = ENV.JWT_SECRET || "your-secret-key";
-      const payload = jwt.verify(cookieValue, secret) as SessionPayload;
+      const payload = jwt.verify(cookieValue, ENV.JWT_SECRET) as SessionPayload;
       return payload;
     } catch (error) {
       return null;
@@ -142,89 +173,98 @@ export const authService = new LocalAuthService();
  */
 export function registerAuthRoutes(app: Express) {
   // Login route
-  app.post("/api/auth/login", async (req: Request, res: Response) => {
-    try {
-      const { username, password, rememberMe } = req.body;
+  app.post(
+    "/api/auth/login",
+    loginRateLimiter,
+    async (req: Request, res: Response) => {
+      try {
+        const { username, password, rememberMe } = req.body;
 
-      if (!username || !password) {
-        res.status(400).json({ error: "Username and password are required" });
-        return;
+        if (!username || !password) {
+          res.status(400).json({ error: "Username and password are required" });
+          return;
+        }
+
+        // Get user by username
+        const user = await db.getUserByUsername(username);
+
+        if (!user) {
+          res.status(401).json({ error: "Invalid credentials" });
+          return;
+        }
+
+        if (!user.password) {
+          res.status(401).json({ error: "Invalid credentials" });
+          return;
+        }
+
+        // Compare password
+        const isValidPassword = await authService.comparePassword(
+          password,
+          user.password,
+        );
+
+        if (!isValidPassword) {
+          res.status(401).json({ error: "Invalid credentials" });
+          return;
+        }
+
+        // Create session token
+        const sessionToken = await authService.createSessionToken(
+          user.id,
+          user.username,
+          user.role,
+          user.branch || "examinations",
+          { expiresInMs: rememberMe !== false ? ONE_YEAR_MS : 86400000 },
+        );
+
+        await db.updateUserLastSignedIn(user.id);
+        const mustChangePassword = await db.isPasswordChangeRequired(user.id);
+
+        const forwardedProtoHeader = req.headers["x-forwarded-proto"];
+        const forwardedProto = Array.isArray(forwardedProtoHeader)
+          ? forwardedProtoHeader[0]
+          : forwardedProtoHeader;
+        const isHttps =
+          req.secure ||
+          String(forwardedProto || "")
+            .toLowerCase()
+            .includes("https");
+
+        res.cookie(AUTH_COOKIE_NAME, sessionToken, {
+          httpOnly: true,
+          secure: isHttps,
+          sameSite: "lax",
+          path: "/",
+          ...(rememberMe === false ? {} : { maxAge: ONE_YEAR_MS }),
+        });
+        // Backward compatibility for clients still sending the old cookie name.
+        res.cookie(LEGACY_AUTH_COOKIE_NAME, sessionToken, {
+          httpOnly: true,
+          secure: isHttps,
+          sameSite: "lax",
+          path: "/",
+          ...(rememberMe === false ? {} : { maxAge: ONE_YEAR_MS }),
+        });
+
+        res.json({
+          success: true,
+          token: sessionToken,
+          user: {
+            id: user.id,
+            username: user.username,
+            name: user.name,
+            role: user.role,
+            branch: user.branch,
+            mustChangePassword,
+          },
+        });
+      } catch (error) {
+        console.error("[Auth] Login failed", error);
+        res.status(500).json({ error: "Login failed" });
       }
-
-      // Get user by username
-      const user = await db.getUserByUsername(username);
-
-      if (!user) {
-        res.status(401).json({ error: "Invalid credentials" });
-        return;
-      }
-
-      // Compare password
-      const isValidPassword = await authService.comparePassword(
-        password,
-        user.password || "",
-      );
-
-      if (!isValidPassword) {
-        res.status(401).json({ error: "Invalid credentials" });
-        return;
-      }
-
-      // Create session token
-      const sessionToken = await authService.createSessionToken(
-        user.id,
-        user.username,
-        user.role,
-        user.branch || "examinations",
-        { expiresInMs: rememberMe !== false ? ONE_YEAR_MS : 86400000 },
-      );
-
-      await db.updateUserLastSignedIn(user.id);
-      const mustChangePassword = await db.isPasswordChangeRequired(user.id);
-
-      const forwardedProtoHeader = req.headers["x-forwarded-proto"];
-      const forwardedProto = Array.isArray(forwardedProtoHeader)
-        ? forwardedProtoHeader[0]
-        : forwardedProtoHeader;
-      const isHttps =
-        req.secure ||
-        String(forwardedProto || "")
-          .toLowerCase()
-          .includes("https");
-
-      res.cookie(AUTH_COOKIE_NAME, sessionToken, {
-        httpOnly: true,
-        secure: isHttps,
-        sameSite: "lax",
-        path: "/",
-        ...(rememberMe === false ? {} : { maxAge: ONE_YEAR_MS }),
-      });
-      // Backward compatibility for clients still sending the old cookie name.
-      res.cookie(LEGACY_AUTH_COOKIE_NAME, sessionToken, {
-        httpOnly: true,
-        secure: isHttps,
-        sameSite: "lax",
-        path: "/",
-        ...(rememberMe === false ? {} : { maxAge: ONE_YEAR_MS }),
-      });
-
-      res.json({
-        success: true,
-        token: sessionToken,
-        user: {
-          id: user.id,
-          username: user.username,
-          name: user.name,
-          role: user.role,
-          branch: user.branch,
-          mustChangePassword,
-        },
-      });
-    } catch (error) {
-      console.error("[Auth] Login failed", error);
-      res.status(500).json({ error: "Login failed" });
-    }
-  });
+    },
+  );
 
   // Logout route
   app.post("/api/auth/logout", (req: Request, res: Response) => {

@@ -6,6 +6,7 @@ import {
   Eye,
   FileText,
   LayoutDashboard,
+  Filter,
   LayoutGrid,
   Pill,
   Repeat,
@@ -87,6 +88,7 @@ export default function GlobalCommandPalette() {
       { label: "المتابعات", path: "/followups", icon: Repeat },
       { label: "الفحوصات", path: "/examination", icon: Eye },
       { label: "الروشتات", path: "/prescriptions", icon: Pill },
+      { label: "المرجع الطبي", path: "/medical-reference", icon: Filter },
       ...(!isAdmin
         ? [{ label: "الملف الطبي", path: "/patient-file", icon: FileText }]
         : []),

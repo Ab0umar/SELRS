@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const envSchema = z.object({
   VITE_APP_ID: z.string().optional().default(""),
-  JWT_SECRET: z.string().optional().default("dev-only-change-me"),
+  JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
   DATABASE_URL: z.string().optional().default(""),
   OAUTH_SERVER_URL: z.string().optional().default(""),
   OWNER_OPEN_ID: z.string().optional().default(""),
@@ -63,6 +63,7 @@ const envSchema = z.object({
   WHATSAPP_OPERATION_TEMPLATE: z.string().optional().default(""),
   WHATSAPP_OPERATION_CANCELLATION_TEMPLATE: z.string().optional().default(""),
   WHATSAPP_TEMPLATE_LANGUAGE: z.string().optional().default("ar"),
+  WHATSAPP_SUPPORT_NUMBER: z.string().optional().default("01285800309"),
   WHATSAPP_TANTA_MAP_URL: z.string().optional().default(""),
   WHATSAPP_KFS_MAP_URL: z.string().optional().default(""),
   WHATSAPP_OPERATION_MAP_URL: z.string().optional().default(""),
@@ -77,8 +78,6 @@ const parsed = envSchema.parse(process.env);
 if (parsed.NODE_ENV === "production") {
   const missing: string[] = [];
   if (!parsed.DATABASE_URL) missing.push("DATABASE_URL");
-  if (!parsed.JWT_SECRET || parsed.JWT_SECRET === "dev-only-change-me")
-    missing.push("JWT_SECRET");
   if (missing.length > 0) {
     throw new Error(
       `[env] Missing required production env vars: ${missing.join(", ")}`,
@@ -138,6 +137,7 @@ export const ENV = {
   whatsappOperationCancellationTemplate:
     parsed.WHATSAPP_OPERATION_CANCELLATION_TEMPLATE,
   whatsappTemplateLanguage: parsed.WHATSAPP_TEMPLATE_LANGUAGE,
+  whatsappSupportNumber: parsed.WHATSAPP_SUPPORT_NUMBER,
   whatsappTantaMapUrl: parsed.WHATSAPP_TANTA_MAP_URL,
   whatsappKfsMapUrl: parsed.WHATSAPP_KFS_MAP_URL,
   whatsappOperationMapUrl: parsed.WHATSAPP_OPERATION_MAP_URL,

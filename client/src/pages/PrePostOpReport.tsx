@@ -172,6 +172,10 @@ export default function PrePostOpReport() {
   const { isAuthenticated } = useAuth();
   const [, params] = useRoute("/pre-post-op-report/:id");
   const initialPatientId = params?.id ? Number(params.id) : undefined;
+  const requestedVisitDate =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("visitDate") || ""
+      : "";
   const [patientId, setPatientId] = useState<number | undefined>(
     initialPatientId,
   );
@@ -235,9 +239,16 @@ export default function PrePostOpReport() {
 
   useEffect(() => {
     if (!selectedSurgeryId && surgeries.length > 0) {
-      setSelectedSurgeryId(Number(surgeries[0].id));
+      const matchingSurgery = requestedVisitDate
+        ? surgeries.find(
+            (surgery) =>
+              String(surgery.surgeryDate ?? "").split("T")[0] ===
+              requestedVisitDate,
+          )
+        : undefined;
+      setSelectedSurgeryId(Number((matchingSurgery ?? surgeries[0]).id));
     }
-  }, [surgeries, selectedSurgeryId]);
+  }, [surgeries, selectedSurgeryId, requestedVisitDate]);
 
   const selectedSurgery = surgeries.find(
     (s) => Number(s.id) === selectedSurgeryId,
@@ -608,9 +619,12 @@ export default function PrePostOpReport() {
 
             <section className="border border-[#0f4c81] bg-[#d2e4ff] p-4">
               <FieldLabel>Planned Treatment</FieldLabel>
-              <p className="mt-1 text-xl font-extrabold text-[#00355f]">
-                {procedure || "—"}
-              </p>
+              <Input
+                value={procedure}
+                onChange={(event) => setProcedure(event.target.value)}
+                className="mt-1 h-10 border-transparent bg-transparent px-0 text-xl font-extrabold text-[#00355f] shadow-none hover:border-[#0f4c81]/40 focus-visible:border-[#0f4c81] focus-visible:ring-0 print:border-0 print:px-0"
+                placeholder="Planned treatment"
+              />
             </section>
 
             <section className="space-y-3">

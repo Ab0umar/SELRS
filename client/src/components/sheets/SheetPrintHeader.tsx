@@ -11,6 +11,8 @@ type SheetPrintHeaderProps = {
   logoRightContent?: ReactNode;
   /** Optional content rendered below the clinic name/tagline. */
   brandExtraContent?: ReactNode;
+  /** Full-width row rendered below the three main header columns. */
+  bottomContent?: ReactNode;
 };
 
 export default function SheetPrintHeader({
@@ -19,6 +21,7 @@ export default function SheetPrintHeader({
   logoLeftContent,
   logoRightContent,
   brandExtraContent,
+  bottomContent,
 }: SheetPrintHeaderProps) {
   return (
     <header
@@ -53,6 +56,10 @@ export default function SheetPrintHeader({
         </div>
         {brandExtraContent}
       </div>
+
+      {bottomContent ? (
+        <div className="col-span-3 mt-2 w-full">{bottomContent}</div>
+      ) : null}
     </header>
   );
 }

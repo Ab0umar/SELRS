@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { ShieldAlert } from "lucide-react";
-import { type ReactNode, useEffect, useMemo, useRef } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { TRPCClientError } from "@trpc/client";
 import { requestAppReload } from "@/lib/appRuntime";
 import { AppShell } from "@/components/layout/AppShell";
 import { AppShellSkeleton } from "@/components/layout/AppShellSkeleton";
@@ -16,6 +17,7 @@ const DEFINED_PERMISSION_PATHS = new Set(
   PAGE_PERMISSION_DEFINITIONS.map((p) => p.id).filter((id) => id.startsWith("/")),
 );
 const PERMISSIONS_CACHE_KEY = "selrs:my-permissions-cache";
+const PERMISSIONS_RECOVERY_INTERVAL_MS = 10_000;
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -62,7 +64,7 @@ export default function ProtectedRoute({
   requiredRoles,
   requiredBranches,
 }: ProtectedRouteProps) {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const userRole = String(user?.role ?? "").toLowerCase();
   const permissionsCacheKey = `${PERMISSIONS_CACHE_KEY}:${String(
     user?.id ?? user?.username ?? userRole,
@@ -77,15 +79,29 @@ export default function ProtectedRoute({
   const permissionsQuery = trpc.medical.getMyPermissions.useQuery(undefined, {
     enabled: Boolean(user) && userRole !== "admin",
     refetchOnWindowFocus: false,
-    retry: 2,
+    retry: (failureCount, error) => {
+      if (error instanceof TRPCClientError) {
+        const status = error.data?.httpStatus ?? 0;
+        if (
+          error.data?.code === "UNAUTHORIZED" ||
+          error.data?.code === "FORBIDDEN" ||
+          status === 401 ||
+          status === 403
+        ) {
+          return false;
+        }
+      }
+      return failureCount < 5;
+    },
+    retryDelay: attempt => Math.min(1_000 * 2 ** attempt, 8_000),
     staleTime: 5 * 60 * 1000,
   });
-  const cachedPermissionsRef = useRef<string[] | null>(
+  const [cachedPermissions, setCachedPermissions] = useState<string[] | null>(
     readCachedPermissions(permissionsCacheKey),
   );
 
   useEffect(() => {
-    cachedPermissionsRef.current = readCachedPermissions(permissionsCacheKey);
+    setCachedPermissions(readCachedPermissions(permissionsCacheKey));
   }, [permissionsCacheKey]);
 
   useEffect(() => {
@@ -93,7 +109,7 @@ export default function ProtectedRoute({
       const permissions = ((permissionsQuery.data ?? []) as string[]).filter(
         (entry): entry is string => typeof entry === "string",
       );
-      cachedPermissionsRef.current = permissions;
+      setCachedPermissions(permissions);
       cachePermissions(permissionsCacheKey, permissions);
     }
   }, [
@@ -102,16 +118,50 @@ export default function ProtectedRoute({
     permissionsQuery.isSuccess,
   ]);
 
+  useEffect(() => {
+    if (!permissionsQuery.isError || !user || userRole === "admin") return;
+    const error = permissionsQuery.error;
+    if (error instanceof TRPCClientError) {
+      const status = error.data?.httpStatus ?? 0;
+      if (error.data?.code === "UNAUTHORIZED" || status === 401) {
+        void logout({ redirectToLogin: true });
+        return;
+      }
+      if (
+        error.data?.code === "FORBIDDEN" ||
+        status === 403
+      ) {
+        return;
+      }
+    }
+
+    const timer = window.setTimeout(() => {
+      if (navigator.onLine) void permissionsQuery.refetch();
+    }, PERMISSIONS_RECOVERY_INTERVAL_MS);
+    return () => window.clearTimeout(timer);
+  }, [
+    permissionsQuery.error,
+    permissionsQuery.isError,
+    permissionsQuery.refetch,
+    logout,
+    user,
+    userRole,
+  ]);
+
   const allowedPaths = useMemo(() => {
     const raw =
-      permissionsQuery.isError && cachedPermissionsRef.current !== null
-        ? cachedPermissionsRef.current
+      permissionsQuery.isError && cachedPermissions !== null
+        ? cachedPermissions
         : ((permissionsQuery.data ?? []) as string[]);
     const normalized = raw
       .map((entry) => normalizePath(entry.replace(/:r[w]?$/, "")))
       .filter((entry) => entry.length > 0);
     return Array.from(new Set(normalized));
-  }, [permissionsQuery.data, permissionsQuery.isError]);
+  }, [cachedPermissions, permissionsQuery.data, permissionsQuery.isError]);
+
+  const permissionsVerified =
+    permissionsQuery.isSuccess ||
+    (permissionsQuery.isError && cachedPermissions !== null);
 
   const cleanPath = useMemo(() => {
     return normalizePath(location || ROUTES.home);
@@ -334,7 +384,7 @@ export default function ProtectedRoute({
         .includes(userRole);
     if (
       roleMismatch &&
-      !(userRole !== "admin" && permissionsQuery.isSuccess && isPathAllowed)
+      !(userRole !== "admin" && permissionsVerified && isPathAllowed)
     ) {
       setLocation(ROUTES.home);
       return;
@@ -350,7 +400,7 @@ export default function ProtectedRoute({
       return;
     }
 
-    if (userRole !== "admin" && permissionsQuery.isSuccess && !isPathAllowed) {
+    if (userRole !== "admin" && permissionsVerified && !isPathAllowed) {
       const fallback = allowedPaths.includes(ROUTES.kf) ? ROUTES.kf : ROUTES.home;
       setLocation(fallback !== cleanPath ? fallback : ROUTES.home);
       return;
@@ -362,7 +412,7 @@ export default function ProtectedRoute({
     requiredRoles,
     requiredBranches,
     setLocation,
-    permissionsQuery.isSuccess,
+    permissionsVerified,
     isPathAllowed,
     mustChangePassword,
     cleanPath,
@@ -379,7 +429,7 @@ export default function ProtectedRoute({
   if (
     userRole !== "admin" &&
     permissionsQuery.isError &&
-    cachedPermissionsRef.current === null
+    cachedPermissions === null
   ) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30 p-4">
@@ -394,6 +444,13 @@ export default function ProtectedRoute({
             The app could not reach the server to confirm access for this page.
           </p>
           <div className="mt-4 flex justify-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => void logout({ redirectToLogin: true })}
+            >
+              Sign out
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -417,7 +474,7 @@ export default function ProtectedRoute({
     requiredRoles &&
     !requiredRoles.map((role) => String(role).toLowerCase()).includes(userRole);
   const roleOverrideByPermission =
-    userRole !== "admin" && permissionsQuery.isSuccess && isPathAllowed;
+    userRole !== "admin" && permissionsVerified && isPathAllowed;
 
   if (roleMismatch && !roleOverrideByPermission) {
     return (

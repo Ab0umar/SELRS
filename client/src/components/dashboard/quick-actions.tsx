@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
@@ -16,6 +16,8 @@ import {
   CircleDot,
   Syringe,
   Repeat,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -33,6 +35,7 @@ import { QuickPatientEntryDialog } from "@/components/dashboard/QuickPatientEntr
 import { ScheduleVisitDialog } from "@/components/dashboard/ScheduleVisitDialog";
 import { AddPortalBookingDialog } from "@/components/dashboard/AddPortalBookingDialog";
 import { FollowupQuickDialog } from "@/components/dashboard/FollowupQuickDialog";
+import { OperationsBookingQuickDialog } from "@/components/operations/OperationsBookingQuickDialog";
 
 type QuickActionItem =
   | {
@@ -86,6 +89,18 @@ type QuickActionItem =
       permPath: string;
     };
 
+type WorkflowActionKind =
+  | "quick-entry-dialog"
+  | "portal-booking-dialog"
+  | "operations-booking-dialog"
+  | "followup-dialog";
+
+const workflowActionKinds = new Set<string>([
+  "quick-entry-dialog",
+  "portal-booking-dialog",
+  "operations-booking-dialog",
+  "followup-dialog",
+]);
 const quickActions: QuickActionItem[] = [
   {
     label: "تسجيل مريض",
@@ -213,10 +228,12 @@ export function QuickActions({
 }: QuickActionsProps) {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const utils = trpc.useUtils();
   const [quickEntryOpen, setQuickEntryOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [portalBookingOpen, setPortalBookingOpen] = useState(false);
   const [followupDialogOpen, setFollowupDialogOpen] = useState(false);
+  const [operationsBookingOpen, setOperationsBookingOpen] = useState(false);
   const [pickPage, setPickPage] = useState<PageKey | null>(null);
 
   const userRole = String(user?.role ?? "").toLowerCase();
@@ -239,8 +256,20 @@ export function QuickActions({
     return quickActions.filter((a) => isPermAllowed(a.permPath, allowedPaths));
   }, [isAdmin, permissionsQuery.isSuccess, allowedPaths]);
 
-  const primaryActions = visibleActions.slice(0, 4);
-  const secondaryActions = visibleActions.slice(4);
+  const workflowActions = visibleActions.filter(
+    (action): action is Extract<QuickActionItem, { kind: WorkflowActionKind }> =>
+      workflowActionKinds.has(action.kind),
+  );
+  const secondaryActions = visibleActions.filter(
+    (action) => !workflowActionKinds.has(action.kind),
+  );
+  const [activeWorkflowKind, setActiveWorkflowKind] =
+    useState<WorkflowActionKind | null>(null);
+  const displayedWorkflowKind = workflowActions.some(
+    (action) => action.kind === activeWorkflowKind,
+  )
+    ? activeWorkflowKind
+    : null;
 
   const navigateForPatient = (page: PageKey, patientId: number) => {
     const path = patientNavPathForPageKey(page, patientId);
@@ -288,19 +317,8 @@ export function QuickActions({
 
   return (
     <>
-      <QuickPatientEntryDialog
-        open={quickEntryOpen}
-        onOpenChange={setQuickEntryOpen}
-      />
       <ScheduleVisitDialog open={scheduleOpen} onOpenChange={setScheduleOpen} />
-      <AddPortalBookingDialog
-        open={portalBookingOpen}
-        onOpenChange={setPortalBookingOpen}
-      />
-      <FollowupQuickDialog
-        open={followupDialogOpen}
-        onOpenChange={setFollowupDialogOpen}
-      />
+
       <Dialog
         open={pickPage != null}
         onOpenChange={(o) => !o && setPickPage(null)}
@@ -325,11 +343,79 @@ export function QuickActions({
         </DialogContent>
       </Dialog>
 
-      <div aria-label="اختصارات لوحة التحكم" className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          {primaryActions.map((action) => renderActionButton(action, true))}
-          {extraPrimaryAction}
-        </div>
+      <div aria-label="اختصارات لوحة التحكم" className="space-y-3">
+        {workflowActions.length > 0 && (
+          <div className="rounded-lg border border-border bg-background p-1">
+            <div
+              className="grid grid-cols-2 gap-1 sm:flex"
+              aria-label="إجراءات استقبال المريض"
+            >
+              {workflowActions.map((action) => renderWorkflowTab(action))}
+              {extraPrimaryAction ? (
+                <div className="col-span-2 flex sm:ms-auto">
+                  {extraPrimaryAction}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        )}
+        {displayedWorkflowKind ? (
+          <div
+            id={`workflow-panel-${displayedWorkflowKind}`}
+            role="region"
+            aria-label={
+              workflowActions.find(
+                (action) => action.kind === displayedWorkflowKind,
+              )?.label
+            }
+            className="animate-in fade-in slide-in-from-top-1 duration-200"
+          >
+            {displayedWorkflowKind === "quick-entry-dialog" ? (
+              <QuickPatientEntryDialog
+                open={quickEntryOpen}
+                onOpenChange={(open) => {
+                  setQuickEntryOpen(open);
+                  if (!open) setActiveWorkflowKind(null);
+                }}
+                inlineOnDesktop
+                inlineHeader={false}
+              />
+            ) : null}
+            {displayedWorkflowKind === "portal-booking-dialog" ? (
+              <AddPortalBookingDialog
+                open={portalBookingOpen}
+                onOpenChange={(open) => {
+                  setPortalBookingOpen(open);
+                  if (!open) setActiveWorkflowKind(null);
+                }}
+                inlineOnDesktop
+              />
+            ) : null}
+            {displayedWorkflowKind === "operations-booking-dialog" ? (
+              <OperationsBookingQuickDialog
+                open={operationsBookingOpen}
+                onOpenChange={(open) => {
+                  setOperationsBookingOpen(open);
+                  if (!open) setActiveWorkflowKind(null);
+                }}
+                inlineOnDesktop
+                onSaved={() => {
+                  void utils.medical.getTodayOperationLists.invalidate();
+                }}
+              />
+            ) : null}
+            {displayedWorkflowKind === "followup-dialog" ? (
+              <FollowupQuickDialog
+                open={followupDialogOpen}
+                onOpenChange={(open) => {
+                  setFollowupDialogOpen(open);
+                  if (!open) setActiveWorkflowKind(null);
+                }}
+                inlineOnDesktop
+              />
+            ) : null}
+          </div>
+        ) : null}
         {secondaryActions.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
             {secondaryActions.map((action) =>
@@ -341,6 +427,47 @@ export function QuickActions({
     </>
   );
 
+  function renderWorkflowTab(
+    action: Extract<QuickActionItem, { kind: WorkflowActionKind }>,
+  ) {
+    const Icon = action.icon;
+    const active = displayedWorkflowKind === action.kind;
+    const ChevronIcon = active ? ChevronUp : ChevronDown;
+    return (
+      <button
+        key={action.kind}
+        type="button"
+        aria-expanded={active}
+        aria-controls={`workflow-panel-${action.kind}`}
+        aria-label={action.label}
+        onClick={() => {
+          const nextKind = active ? null : action.kind;
+          setActiveWorkflowKind(nextKind);
+          setQuickEntryOpen(nextKind === "quick-entry-dialog");
+          setPortalBookingOpen(nextKind === "portal-booking-dialog");
+          setOperationsBookingOpen(nextKind === "operations-booking-dialog");
+          setFollowupDialogOpen(nextKind === "followup-dialog");
+        }}
+        className={cn(
+          "flex min-h-10 min-w-0 items-center justify-center gap-2 rounded-md px-2.5 py-2 text-xs font-semibold transition-colors sm:flex-1 sm:text-sm",
+          active
+            ? "bg-primary text-primary-foreground shadow-sm"
+            : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+        )}
+      >
+        <span
+          className={cn(
+            "flex h-6 w-6 shrink-0 items-center justify-center rounded-md",
+            active ? "bg-white/15" : "bg-muted",
+          )}
+        >
+          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+        </span>
+        <span className="truncate">{action.label}</span>
+        <ChevronIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
+      </button>
+    );
+  }
   function renderActionButton(action: QuickActionItem, isPrimary: boolean) {
     const Icon = action.icon;
     return (

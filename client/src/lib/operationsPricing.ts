@@ -24,21 +24,23 @@ export const normalizeTabKey = (value: unknown): string => {
 export const OPERATION_LABELS: Record<string, string> = {
   PRK: "PRK",
   Lasik: "LASIK",
-  FL: "F.L",
-  FS: "F.S",
+  FL: "F. L",
+  FS: "F. S",
   "Lasik Moria": "Moria",
   "Lasik Moria N": "Moria N",
   "Lasik Moria D": "Moria D",
-  "Lasik Moria 130": "Moria 130",
-  "Lasik Moria 90": "Moria 90",
-  "Lasik Metal": "Metal",
+  "Lasik Moria 130": "SBK130",
+  "Lasik Moria 90": "SBK90",
+  "Lasik Metal": "SBK Metal",
   "Lasik Metal N": "Metal N",
   "Lasik Metal D": "Metal D",
   IOL: "IOL",
   ICL: "ICL",
   Cataract: "Cataract",
-  Yag: "Yag",
-  Other: "Others",
+  Yag: "YAG",
+  Squint: "Squint",
+  Fundus: "Fundus",
+  Other: "Other",
 };
 
 export const OPERATION_BASE_AMOUNTS: Record<string, number> = {
@@ -57,6 +59,8 @@ export const OPERATION_BASE_AMOUNTS: Record<string, number> = {
   ICL: 0,
   Cataract: 7000,
   Yag: 3000,
+  Squint: 0,
+  Fundus: 0,
   Other: 0,
 };
 
@@ -165,12 +169,7 @@ export const EMPTY_APPOINTMENTS_PRICING: AppointmentsPricingConfig = {
 };
 
 export type OpKey =
-  | "prk"
-  | "lasik"
-  | "lasik_moria"
-  | "lasik_metal"
-  | "femto"
-  | "other";
+  "prk" | "lasik" | "lasik_moria" | "lasik_metal" | "femto" | "other";
 export type LevelKey = "consultant" | "specialist" | "unknown";
 
 export const normalizeText = (value: unknown) =>
@@ -184,9 +183,7 @@ export const includesAny = (text: string, words: string[]) =>
 export const detectOperationKey = (operation: unknown): OpKey => {
   const text = normalizeText(operation);
   if (includesAny(text, ["prk"])) return "prk";
-  if (
-    includesAny(text, ["femto", "فيمتو", "fl", "fs", "smile", "سمايل"])
-  )
+  if (includesAny(text, ["femto", "فيمتو", "fl", "fs", "smile", "سمايل"]))
     return "femto";
   if (includesAny(text, ["metal", "ميتال"])) return "lasik_metal";
   if (includesAny(text, ["moria", "موريا"])) return "lasik_moria";

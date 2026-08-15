@@ -11,9 +11,11 @@ export type TodayQueuePatient = {
   fullName?: string | null;
   phone?: string | null;
   serviceType?: string;
+  locationType?: string | null;
   doctorName?: string | null;
   visitType?: string | null;
-  queueStatus: "checkedIn" | "next" | "clinic1" | "clinic2" | "pentacam" | "treated";
+  queueStatus:
+    "checkedIn" | "next" | "clinic1" | "clinic2" | "pentacam" | "treated";
   checkedInTime?: string | null;
 };
 
@@ -35,13 +37,42 @@ function sortTodayQueuePatients(list: TodayQueuePatient[]) {
   });
 }
 
-/** Today's clinic queue: 3 columns — عيادة 1, عيادة 2, معالج */
-export function useTodayQueuePatientsMerged(dateIso?: string) {
-  const todayIso = useMemo(
-    () => dateIso ?? localISODate(),
-    [dateIso],
-  );
+const EXTERNAL_SERVICE_TYPES = new Set([
+  "external",
+  "pentacam_ex",
+  "pentacam_external",
+  "surgery_external",
+]);
 
+function isCenterQueuePatient(patient: TodayQueuePatient) {
+  const locationType = String(patient.locationType ?? "")
+    .trim()
+    .toLowerCase();
+  const serviceType = String(patient.serviceType ?? "")
+    .trim()
+    .toLowerCase();
+  return (
+    !["external", "خارجي", "outside", "out"].includes(locationType) &&
+    !EXTERNAL_SERVICE_TYPES.has(serviceType)
+  );
+}
+
+/** Today's clinic queue: 3 columns — عيادة 1, عيادة 2, معالج */
+export function useTodayQueuePatientsMerged(
+  dateIso?: string,
+  options: { includeExternal?: boolean } = {},
+) {
+  const includeExternal = options.includeExternal ?? false;
+  const todayIso = useMemo(() => dateIso ?? localISODate(), [dateIso]);
+
+  const checkedIn = trpc.medical.getTodayPatientsByQueueStatus.useQuery(
+    { date: todayIso, queueStatus: "checkedIn" },
+    { refetchInterval: 10000, refetchOnWindowFocus: true },
+  );
+  const next = trpc.medical.getTodayPatientsByQueueStatus.useQuery(
+    { date: todayIso, queueStatus: "next" },
+    { refetchInterval: 10000, refetchOnWindowFocus: true },
+  );
   const clinic1 = trpc.medical.getTodayPatientsByQueueStatus.useQuery(
     { date: todayIso, queueStatus: "clinic1" },
     { refetchInterval: 10000, refetchOnWindowFocus: true },
@@ -66,29 +97,59 @@ export function useTodayQueuePatientsMerged(dateIso?: string) {
       ...(clinic1.data ?? []),
       ...(clinic2.data ?? []),
       ...(pentacam.data ?? []),
+      ...(next.data ?? []),
+      ...(checkedIn.data ?? []),
     ];
     for (const p of ordered) {
       const row = p as TodayQueuePatient;
-      if (typeof row?.id === "number" && !map.has(row.id)) map.set(row.id, row);
+      if (
+        typeof row?.id === "number" &&
+        (includeExternal || isCenterQueuePatient(row)) &&
+        !map.has(row.id)
+      ) {
+        map.set(row.id, row);
+      }
     }
     return sortTodayQueuePatients([...map.values()]);
-  }, [clinic1.data, clinic2.data, pentacam.data, treated.data]);
+  }, [
+    checkedIn.data,
+    next.data,
+    clinic1.data,
+    clinic2.data,
+    pentacam.data,
+    treated.data,
+    includeExternal,
+  ]);
+
+  const visiblePatients = (rows: TodayQueuePatient[] | undefined) =>
+    (rows ?? []).filter(
+      (patient) => includeExternal || isCenterQueuePatient(patient),
+    );
 
   const isLoading =
-    clinic1.isLoading || clinic2.isLoading || pentacam.isLoading || treated.isLoading;
+    checkedIn.isLoading ||
+    next.isLoading ||
+    clinic1.isLoading ||
+    clinic2.isLoading ||
+    pentacam.isLoading ||
+    treated.isLoading;
 
   return {
     todayIso,
     merged,
     isLoading,
     byStatus: {
-      checkedIn: [] as TodayQueuePatient[],
-      next: [] as TodayQueuePatient[],
-      clinic: [...(clinic1.data ?? []), ...(clinic2.data ?? [])] as TodayQueuePatient[],
-      clinic1: clinic1.data as TodayQueuePatient[] ?? [],
-      clinic2: clinic2.data as TodayQueuePatient[] ?? [],
-      pentacam: pentacam.data as TodayQueuePatient[] ?? [],
-      treated: treated.data as TodayQueuePatient[] ?? [],
+      checkedIn: visiblePatients(checkedIn.data as TodayQueuePatient[]),
+      next: visiblePatients(next.data as TodayQueuePatient[]),
+      clinic: visiblePatients([
+        ...(clinic1.data ?? []),
+        ...(clinic2.data ?? []),
+        ...(pentacam.data ?? []),
+      ] as TodayQueuePatient[]),
+      clinic1: visiblePatients(clinic1.data as TodayQueuePatient[]),
+      clinic2: visiblePatients(clinic2.data as TodayQueuePatient[]),
+      pentacam: visiblePatients(pentacam.data as TodayQueuePatient[]),
+      treated: visiblePatients(treated.data as TodayQueuePatient[]),
     },
   };
 }

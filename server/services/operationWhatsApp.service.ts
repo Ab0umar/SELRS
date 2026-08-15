@@ -1,4 +1,5 @@
 import { ENV } from "../_core/env";
+import { appendSupportNoticeToLastParameter } from "./whatsappTemplateSupport";
 import { operationTypeLabelAr } from "../../shared/opTypes";
 
 export type OperationWhatsAppRequest = {
@@ -101,19 +102,16 @@ function operationMapLocation(request: OperationWhatsAppRequest): string {
 
   if (isFemto) {
     return (
-      ENV.whatsappEliteMapUrl ||
-      "https://maps.app.goo.gl/B9a7AMnDtD8jbgf8A"
+      ENV.whatsappEliteMapUrl || "https://maps.app.goo.gl/B9a7AMnDtD8jbgf8A"
     );
   }
   if (hospital.includes("الأمل") || hospital.includes("الامل")) {
     return (
-      ENV.whatsappAlamalMapUrl ||
-      "https://maps.app.goo.gl/ucztDFBrZfxcF2dm8"
+      ENV.whatsappAlamalMapUrl || "https://maps.app.goo.gl/ucztDFBrZfxcF2dm8"
     );
   }
   return (
-    ENV.whatsappOperationMapUrl ||
-    "https://maps.app.goo.gl/arKPUnj2nXTttRew5"
+    ENV.whatsappOperationMapUrl || "https://maps.app.goo.gl/arKPUnj2nXTttRew5"
   );
 }
 
@@ -197,11 +195,11 @@ function templateParameters(
       parameter_name: "doctor_name",
       text: cleanDoctorName(request.doctorName),
     },
-      {
-        type: "text",
-        parameter_name: "hospital_name",
-        text: operationBranchName(request),
-      },
+    {
+      type: "text",
+      parameter_name: "hospital_name",
+      text: operationBranchName(request),
+    },
     {
       type: "text",
       parameter_name: "branch_location",
@@ -217,11 +215,7 @@ export async function sendOperationListWhatsApp(
     request.status === "cancelled"
       ? ENV.whatsappOperationCancellationTemplate
       : ENV.whatsappOperationTemplate;
-  if (
-    !ENV.whatsappAccessToken ||
-    !ENV.whatsappPhoneNumberId ||
-    !templateName
-  ) {
+  if (!ENV.whatsappAccessToken || !ENV.whatsappPhoneNumberId || !templateName) {
     console.warn(
       "[operation-whatsapp] Cloud API is not configured; operation message was not sent",
     );
@@ -256,9 +250,8 @@ export async function sendOperationListWhatsApp(
           components: [
             {
               type: "body",
-              parameters: templateParameters(
-                request,
-                templateName,
+              parameters: appendSupportNoticeToLastParameter(
+                templateParameters(request, templateName),
               ),
             },
           ],

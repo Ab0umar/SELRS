@@ -18,6 +18,12 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { DateInput } from "@/components/ui/date-input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const now = new Date();
 const todayStr = now.toISOString().split("T")[0];
@@ -317,6 +323,7 @@ export default function ShiftSchedule() {
   );
   const [year, month] = fromDate.split("-").map(Number);
   const [showAdd, setShowAdd] = useState(false);
+  const [showMobileAdd, setShowMobileAdd] = useState(false);
   const [addForm, setAddForm] = useState<AddForm>(EMPTY_ADD);
   const [showHolidayAdd, setShowHolidayAdd] = useState(false);
   const [holidayForm, setHolidayForm] = useState<HolidayForm>(EMPTY_HOLIDAY);
@@ -377,6 +384,7 @@ export default function ShiftSchedule() {
       schedQ.refetch();
       payrollQ.refetch();
       setShowAdd(false);
+      setShowMobileAdd(false);
       setAddForm(EMPTY_ADD);
       toast.success(`تم إضافة ${res.inserted} وردية`);
     },
@@ -389,6 +397,9 @@ export default function ShiftSchedule() {
   const addMyShiftMut = (trpc as any).salary.addMyShiftEntry.useMutation({
     onSuccess: () => {
       schedQ.refetch();
+      setShowAdd(false);
+      setShowMobileAdd(false);
+      setAddForm(EMPTY_ADD);
       toast.success("تم تسجيل الوردية");
     },
     onError: (e: any) => toast.error("خطأ: " + e.message),
@@ -483,10 +494,12 @@ export default function ShiftSchedule() {
   const activeDates = allDates.filter(
     (ds) => new Date(`${ds}T00:00:00`).getDay() !== 5,
   );
-  const mobileMonthDates = monthDates(year, month);
+  const mobileMonthDates = monthDates(year, month).filter(
+    (date) => new Date(`${date}T00:00:00`).getDay() !== 5,
+  );
   const firstMonthDate = mobileMonthDates[0];
   const mobilePrefixEmpty = firstMonthDate
-    ? new Date(`${firstMonthDate}T00:00:00`).getDay()
+    ? getSixDayIndex(new Date(`${firstMonthDate}T00:00:00`).getDay())
     : 0;
   const selectedDateInMonth = mobileMonthDates.includes(selectedMobileDate)
     ? selectedMobileDate
@@ -539,8 +552,12 @@ export default function ShiftSchedule() {
   }
 
   function submitAdd() {
-    if (!addForm.staffId || !addForm.startTime || !addForm.endTime) {
-      toast.error("اختر الموظف ووقت البداية والنهاية");
+    if (isManager && !addForm.staffId) {
+      toast.error("اختر الموظف");
+      return;
+    }
+    if (!addForm.startTime || !addForm.endTime) {
+      toast.error("اختر وقت البداية والنهاية");
       return;
     }
     if (addForm.endTime <= addForm.startTime) {
@@ -569,11 +586,22 @@ export default function ShiftSchedule() {
       toast.error("لا يوجد أيام في هذه الفترة");
       return;
     }
-    bulkMut.mutate({
-      staffId: parseInt(addForm.staffId),
+    if (isManager) {
+      bulkMut.mutate({
+        staffId: parseInt(addForm.staffId),
+        startTime: addForm.startTime,
+        endTime: addForm.endTime,
+        dates,
+      });
+      return;
+    }
+
+    addMyShiftMut.mutate({
+      year,
+      month,
+      workDate: dates[0],
       startTime: addForm.startTime,
       endTime: addForm.endTime,
-      dates,
     });
   }
 
@@ -891,19 +919,17 @@ export default function ShiftSchedule() {
         </div>
 
         <section className="rounded-xl border border-border bg-card p-3">
-          <div className="grid grid-cols-7 text-center">
-            {["أحد", "اثنين", "ثلاثاء", "أربعاء", "خميس", "جمعة", "سبت"].map(
-              (dayName) => (
-                <div
-                  key={dayName}
-                  className="py-2 text-[11px] font-black text-muted-foreground/70"
-                >
-                  {dayName}
-                </div>
-              ),
-            )}
+          <div className="grid grid-cols-6 text-center">
+            {DAYS_AR_CALENDAR.map((dayName) => (
+              <div
+                key={dayName}
+                className="py-2 text-[11px] font-black text-muted-foreground/70"
+              >
+                {dayName}
+              </div>
+            ))}
           </div>
-          <div className="grid grid-cols-7 gap-y-2">
+          <div className="grid grid-cols-6 gap-y-2">
             {Array.from({ length: mobilePrefixEmpty }).map((_, idx) => (
               <div key={`mobile-empty-${idx}`} className="h-12" />
             ))}
@@ -922,51 +948,74 @@ export default function ShiftSchedule() {
               );
               const isSelected = ds === selectedDateInMonth;
               const isToday = ds === todayStr;
-              const isFriday = new Date(`${ds}T00:00:00`).getDay() === 5;
               const holiday = holidayByDate.get(ds);
+              const canAdd = isManager || myStaffId !== null;
 
               return (
-                <button
-                  key={ds}
-                  type="button"
-                  onClick={() => setSelectedMobileDate(ds)}
-                  className={`mx-auto flex h-12 w-10 flex-col items-center justify-center rounded-lg text-sm font-bold transition-transform active:scale-95 ${
-                    isSelected
-                      ? "bg-primary text-primary-foreground"
-                      : isToday
-                        ? "bg-primary/10 text-primary"
-                        : isFriday
-                          ? "text-muted-foreground/40"
+                <div key={ds} className="relative mx-auto h-12 w-full max-w-12">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isSelected && canAdd) {
+                        setAddForm((prev) => ({
+                          ...prev,
+                          staffId: isManager ? prev.staffId : String(myStaffId),
+                          period: "day",
+                          anchorDate: ds,
+                        }));
+                        setShowMobileAdd(true);
+                        return;
+                      }
+                      setSelectedMobileDate(ds);
+                    }}
+                    className={`flex h-12 w-full flex-col items-center justify-center rounded-lg text-sm font-bold transition-transform active:scale-95 ${
+                      isSelected
+                        ? "bg-primary text-primary-foreground"
+                        : isToday
+                          ? "bg-primary/10 text-primary"
                           : "text-foreground hover:bg-muted"
-                  }`}
-                >
-                  <span>
-                    {arabicDigits(new Date(`${ds}T00:00:00`).getDate())}
-                  </span>
-                  <span className="mt-1 flex h-2 items-center gap-0.5">
-                    {hasMorning && (
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          isSelected ? "bg-primary-foreground" : "bg-secondary"
-                        }`}
-                      />
+                    }`}
+                    aria-label={
+                      isSelected && canAdd
+                        ? `إضافة وردية يوم ${ds}`
+                        : `عرض ورديات يوم ${ds}`
+                    }
+                  >
+                    <span>
+                      {arabicDigits(new Date(`${ds}T00:00:00`).getDate())}
+                    </span>
+                    <span className="mt-1 flex h-2 items-center gap-0.5">
+                      {hasMorning && (
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            isSelected
+                              ? "bg-primary-foreground"
+                              : "bg-secondary"
+                          }`}
+                        />
+                      )}
+                      {hasNight && (
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            isSelected ? "bg-primary-foreground" : "bg-primary"
+                          }`}
+                        />
+                      )}
+                      {holiday && (
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            isSelected ? "bg-primary-foreground" : "bg-warning"
+                          }`}
+                        />
+                      )}
+                    </span>
+                    {isSelected && canAdd && (
+                      <span className="absolute -left-0.5 -top-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border-2 border-card bg-secondary text-secondary-foreground shadow-sm">
+                        <Plus size={12} strokeWidth={3} aria-hidden />
+                      </span>
                     )}
-                    {hasNight && (
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          isSelected ? "bg-primary-foreground" : "bg-primary"
-                        }`}
-                      />
-                    )}
-                    {holiday && (
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          isSelected ? "bg-primary-foreground" : "bg-warning"
-                        }`}
-                      />
-                    )}
-                  </span>
-                </button>
+                  </button>
+                </div>
               );
             })}
           </div>
@@ -986,8 +1035,90 @@ export default function ShiftSchedule() {
           </div>
         </section>
 
+        <Dialog
+          open={showMobileAdd}
+          onOpenChange={(open) => {
+            setShowMobileAdd(open);
+            if (!open) setAddForm(EMPTY_ADD);
+          }}
+        >
+          <DialogContent
+            className="w-[calc(100vw-2rem)] max-w-sm rounded-xl"
+            dir="rtl"
+          >
+            <DialogHeader>
+              <DialogTitle className="text-right">
+                إضافة وردية - {arabicDigits(selectedDateInMonth)}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {isManager ? (
+                <label className="block space-y-1.5 text-sm font-bold">
+                  <span>الطبيب أو الفني</span>
+                  <select
+                    value={addForm.staffId}
+                    onChange={(e) =>
+                      setAddForm((form) => ({
+                        ...form,
+                        staffId: e.target.value,
+                      }))
+                    }
+                    className="min-h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground"
+                  >
+                    <option value="">اختر الطبيب أو الفني</option>
+                    {displayStaff.map((staff: any) => (
+                      <option key={staff.id} value={staff.id}>
+                        {staff.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+              <div className="grid grid-cols-2 gap-3">
+                <label className="space-y-1.5 text-sm font-bold">
+                  <span>من</span>
+                  <input
+                    type="time"
+                    value={addForm.startTime}
+                    onChange={(e) =>
+                      setAddForm((form) => ({
+                        ...form,
+                        startTime: e.target.value,
+                      }))
+                    }
+                    className="min-h-11 min-w-0 w-full rounded-lg border border-border bg-background px-2 text-sm text-foreground"
+                  />
+                </label>
+                <label className="space-y-1.5 text-sm font-bold">
+                  <span>إلى</span>
+                  <input
+                    type="time"
+                    value={addForm.endTime}
+                    onChange={(e) =>
+                      setAddForm((form) => ({
+                        ...form,
+                        endTime: e.target.value,
+                      }))
+                    }
+                    className="min-h-11 min-w-0 w-full rounded-lg border border-border bg-background px-2 text-sm text-foreground"
+                  />
+                </label>
+              </div>
+              <Button
+                onClick={submitAdd}
+                disabled={bulkMut.isPending || addMyShiftMut.isPending}
+                className="h-11 w-full rounded-lg text-sm font-bold"
+              >
+                {bulkMut.isPending || addMyShiftMut.isPending
+                  ? "جاري الإضافة..."
+                  : "إضافة الوردية"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         <section className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div>
             <div>
               <h3 className="text-lg font-black text-foreground">
                 ورديات اليوم المحدد
@@ -997,23 +1128,6 @@ export default function ShiftSchedule() {
                 {arabicDigits(selectedDateInMonth)}
               </p>
             </div>
-            {isManager && (
-              <Button
-                size="sm"
-                onClick={() => {
-                  setAddForm((prev) => ({
-                    ...prev,
-                    period: "day",
-                    anchorDate: selectedDateInMonth,
-                  }));
-                  setShowAdd(true);
-                }}
-                className="gap-1.5 rounded-xl font-bold"
-              >
-                <Plus size={14} />
-                تسجيل شفت
-              </Button>
-            )}
           </div>
 
           {selectedMobileEntries.length > 0 ? (
@@ -1488,7 +1602,7 @@ export default function ShiftSchedule() {
                     return (
                       <div
                         key={ds}
-                        className={`roster-day-card flex min-h-[156px] flex-col bg-card p-3 transition-colors hover:bg-primary/[0.03] ${
+                        className={`roster-day-card relative flex min-h-[156px] flex-col overflow-hidden bg-card p-3 transition-colors hover:bg-primary/[0.03] ${
                           isToday
                             ? "bg-primary/5 ring-2 ring-inset ring-primary"
                             : ""
@@ -1507,18 +1621,42 @@ export default function ShiftSchedule() {
                               {MONTHS_AR[dateObj.getMonth()]}
                             </span>
                           </div>
-                          {holiday ? (
-                            <span
-                              className="rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-bold text-warning"
-                              title={holiday.name}
-                            >
-                              عطلة
-                            </span>
-                          ) : isToday ? (
-                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-                              اليوم
-                            </span>
-                          ) : null}
+                          <div className="flex items-center gap-1">
+                            {holiday ? (
+                              <span
+                                className="rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-bold text-warning"
+                                title={holiday.name}
+                              >
+                                عطلة
+                              </span>
+                            ) : isToday ? (
+                              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                                اليوم
+                              </span>
+                            ) : null}
+                            {(isManager || myStaffId !== null) && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAddForm((prev) => ({
+                                    ...prev,
+                                    staffId:
+                                      isManager || myStaffId === null
+                                        ? prev.staffId
+                                        : String(myStaffId),
+                                    period: "day",
+                                    anchorDate: ds,
+                                  }));
+                                  setShowAdd(true);
+                                }}
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-primary transition-colors hover:border-primary/50 hover:bg-primary/15"
+                                title="إضافة وردية"
+                                aria-label="إضافة وردية"
+                              >
+                                <Plus size={13} />
+                              </button>
+                            )}
+                          </div>
                         </div>
 
                         <div
@@ -1611,10 +1749,11 @@ export default function ShiftSchedule() {
                           )}
                         </div>
 
-                        {isManager && (
-                          <div className="mt-3">
-                            {showAdd && addForm.anchorDate === ds ? (
-                              <div className="space-y-2 rounded-lg border border-primary/20 bg-primary/5 p-2">
+                        {(isManager || myStaffId !== null) &&
+                          showAdd &&
+                          addForm.anchorDate === ds && (
+                            <div className="absolute inset-x-2 top-12 z-20 space-y-2 rounded-lg border border-primary/25 bg-card/95 p-2 shadow-lg backdrop-blur">
+                              {isManager ? (
                                 <select
                                   value={addForm.staffId}
                                   onChange={(e) =>
@@ -1633,32 +1772,34 @@ export default function ShiftSchedule() {
                                     </option>
                                   ))}
                                 </select>
-                                <div className="grid grid-cols-2 gap-2">
-                                  <input
-                                    type="time"
-                                    value={addForm.startTime}
-                                    onChange={(e) =>
-                                      setAddForm((form) => ({
-                                        ...form,
-                                        startTime: e.target.value,
-                                      }))
-                                    }
-                                    className="min-h-9 min-w-0 rounded-md border border-border bg-background px-1 text-xs text-foreground"
-                                    aria-label="من"
-                                  />
-                                  <input
-                                    type="time"
-                                    value={addForm.endTime}
-                                    onChange={(e) =>
-                                      setAddForm((form) => ({
-                                        ...form,
-                                        endTime: e.target.value,
-                                      }))
-                                    }
-                                    className="min-h-9 min-w-0 rounded-md border border-border bg-background px-1 text-xs text-foreground"
-                                    aria-label="إلى"
-                                  />
-                                </div>
+                              ) : null}
+                              <div className="grid grid-cols-2 gap-2">
+                                <input
+                                  type="time"
+                                  value={addForm.startTime}
+                                  onChange={(e) =>
+                                    setAddForm((form) => ({
+                                      ...form,
+                                      startTime: e.target.value,
+                                    }))
+                                  }
+                                  className="min-h-9 min-w-0 rounded-md border border-border bg-background px-1 text-xs text-foreground"
+                                  aria-label="من"
+                                />
+                                <input
+                                  type="time"
+                                  value={addForm.endTime}
+                                  onChange={(e) =>
+                                    setAddForm((form) => ({
+                                      ...form,
+                                      endTime: e.target.value,
+                                    }))
+                                  }
+                                  className="min-h-9 min-w-0 rounded-md border border-border bg-background px-1 text-xs text-foreground"
+                                  aria-label="إلى"
+                                />
+                              </div>
+                              {isManager ? (
                                 <label className="flex min-h-9 items-center gap-2 text-[11px] font-bold text-foreground">
                                   <input
                                     type="checkbox"
@@ -1675,46 +1816,34 @@ export default function ShiftSchedule() {
                                   />
                                   كل {DAYS_AR[dateObj.getDay()]}
                                 </label>
-                                <div className="grid grid-cols-2 gap-2">
-                                  <Button
-                                    size="sm"
-                                    onClick={submitAdd}
-                                    disabled={bulkMut.isPending}
-                                    className="h-9 rounded-md text-xs"
-                                  >
-                                    {bulkMut.isPending ? "..." : "إضافة"}
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setShowAdd(false);
-                                      setAddForm(EMPTY_ADD);
-                                    }}
-                                    className="h-9 rounded-md text-xs"
-                                  >
-                                    إلغاء
-                                  </Button>
-                                </div>
+                              ) : null}
+                              <div className="grid grid-cols-2 gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={submitAdd}
+                                  disabled={
+                                    bulkMut.isPending || addMyShiftMut.isPending
+                                  }
+                                  className="h-9 rounded-md text-xs"
+                                >
+                                  {bulkMut.isPending || addMyShiftMut.isPending
+                                    ? "..."
+                                    : "إضافة"}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setShowAdd(false);
+                                    setAddForm(EMPTY_ADD);
+                                  }}
+                                  className="h-9 rounded-md text-xs"
+                                >
+                                  إلغاء
+                                </Button>
                               </div>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setAddForm((prev) => ({
-                                    ...prev,
-                                    period: "day",
-                                    anchorDate: ds,
-                                  }));
-                                  setShowAdd(true);
-                                }}
-                                className="roster-add-shift w-full rounded-lg border border-dashed border-primary/25 bg-primary/5 px-2 py-1.5 text-[10px] font-bold text-primary transition-[opacity,background-color,border-color] hover:border-primary/45 hover:bg-primary/10"
-                              >
-                                إضافة وردية
-                              </button>
-                            )}
-                          </div>
-                        )}
+                            </div>
+                          )}
                       </div>
                     );
                   })}

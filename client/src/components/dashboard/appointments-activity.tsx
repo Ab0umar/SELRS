@@ -34,6 +34,7 @@ import {
   Printer,
   Syringe,
   Trash2,
+  UserPlus,
   Users,
 } from "lucide-react";
 import { queueStatusLabelsAr, serviceTypeLabels } from "@/lib/dashboard-data";
@@ -52,8 +53,11 @@ import { FollowupFormDialog } from "@/components/today/FollowupFormDialog";
 import { getLocalDateIso } from "@/hooks/operations/operationsShared";
 import { DateInput } from "@/components/ui/date-input";
 import { buildPrintUrl } from "@/lib/print";
+import { QuickPatientEntryDialog } from "@/components/dashboard/QuickPatientEntryDialog";
 
-type QueueFilter = "all" | QueueStatus | "clinic1" | "clinic2";
+type QueueFilter = "bookings" | "confirmed" | "treated";
+type BookingRegistrationTarget =
+  { source: "schedule"; item: any } | { source: "portal"; item: any };
 
 const PRINT_SHEET_TYPES = [
   { value: "consultant", label: "كشف" },
@@ -63,9 +67,8 @@ const PRINT_SHEET_TYPES = [
 ] as const;
 
 const QUEUE_FILTERS: { value: QueueFilter; label: string }[] = [
-  { value: "clinic1", label: "عيادة 1" },
-  { value: "clinic2", label: "عيادة 2" },
-  { value: "pentacam", label: "بنتاكام" },
+  { value: "bookings", label: "حجز" },
+  { value: "confirmed", label: "مؤكد" },
   { value: "treated", label: "معالج" },
 ];
 
@@ -167,13 +170,18 @@ export function AppointmentsSection({
     else setInternalSelectedDate(ymd);
   };
 
-  const [queueFilter, setQueueFilter] = useState<QueueFilter>("all");
-  const [activeSection, setActiveSection] = useState<
-    "patients" | "bookings" | "operations"
-  >("patients");
+  const [queueFilter, setQueueFilter] = useState<QueueFilter>("confirmed");
+  const [showExternal, setShowExternal] = useState(false);
+  const [activeSection, setActiveSection] = useState<"patients" | "operations">(
+    "patients",
+  );
+  const [registrationTarget, setRegistrationTarget] =
+    useState<BookingRegistrationTarget | null>(null);
 
-  const { merged, isLoading, byStatus } =
-    useTodayQueuePatientsMerged(selectedDate);
+  const { merged, isLoading, byStatus } = useTodayQueuePatientsMerged(
+    selectedDate,
+    { includeExternal: showExternal },
+  );
   const todayPatientIds = useMemo(
     () => merged.map((patient) => patient.id).filter(Boolean),
     [merged],
@@ -212,6 +220,37 @@ export function AppointmentsSection({
   }, [bookingsQuery, scheduleRequestsQuery]);
 
   const utils = trpc.useUtils();
+  const removeRegisteredScheduleRequest =
+    trpc.patient.removeVisitScheduleRequest.useMutation();
+  const confirmRegisteredPortalBooking = (
+    trpc as any
+  ).patientPortal.updateBooking.useMutation();
+
+  const handleBookingRegistrationSaved = async ({
+    patientId,
+  }: {
+    patientId: number;
+  }) => {
+    if (!registrationTarget) return;
+    if (registrationTarget.source === "schedule") {
+      await removeRegisteredScheduleRequest.mutateAsync({
+        requestId: registrationTarget.item.id,
+      });
+    } else {
+      await confirmRegisteredPortalBooking.mutateAsync({
+        id: registrationTarget.item.id,
+        patientId,
+        status: "confirmed",
+        confirmedDate: selectedDate,
+      });
+    }
+    await Promise.all([
+      utils.patient.getVisitScheduleRequests.invalidate(),
+      (utils as any).patientPortal.listBookings.invalidate(),
+      utils.medical.getTodayPatientsByQueueStatus.invalidate(),
+    ]);
+    setRegistrationTarget(null);
+  };
   const markVisitTreated = trpc.medical.updateVisitQueueStatus.useMutation({
     onSuccess: async () => {
       await utils.medical.getTodayPatientsByQueueStatus.invalidate();
@@ -332,14 +371,17 @@ export function AppointmentsSection({
 
   const counts = useMemo(
     () => ({
-      all: merged.length,
-      clinic1: byStatus.clinic1.length,
-      clinic2: byStatus.clinic2.length,
-      pentacam: byStatus.pentacam.length,
+      confirmed:
+        byStatus.checkedIn.length +
+        byStatus.next.length +
+        byStatus.clinic1.length +
+        byStatus.clinic2.length +
+        byStatus.pentacam.length,
       treated: byStatus.treated.length,
     }),
     [
-      merged.length,
+      byStatus.checkedIn.length,
+      byStatus.next.length,
       byStatus.clinic1.length,
       byStatus.clinic2.length,
       byStatus.pentacam.length,
@@ -348,11 +390,11 @@ export function AppointmentsSection({
   );
 
   const filteredPatients = useMemo(() => {
-    if (queueFilter === "all") return merged;
-    if (queueFilter === "clinic1") return byStatus.clinic1;
-    if (queueFilter === "clinic2") return byStatus.clinic2;
+    if (queueFilter === "confirmed") {
+      return merged.filter((patient) => patient.queueStatus !== "treated");
+    }
     if (queueFilter === "treated") return byStatus.treated;
-    return merged.filter((p) => p.queueStatus === queueFilter);
+    return [];
   }, [queueFilter, merged, byStatus]);
 
   return (
@@ -424,14 +466,13 @@ export function AppointmentsSection({
         </DialogContent>
       </Dialog>
       <div
-        className="mb-5 grid grid-cols-3 gap-1 rounded-xl border border-border/60 bg-muted/30 p-1"
+        className="mb-5 grid grid-cols-2 gap-1 rounded-xl border border-border/60 bg-muted/30 p-1"
         role="tablist"
-        aria-label="قوائم المرضى والحجوزات والعمليات"
+        aria-label="مسار اليوم والعمليات"
       >
         {(
           [
-            { id: "patients", label: "مرضى اليوم", icon: Users },
-            { id: "bookings", label: "حجز", icon: CalendarPlus },
+            { id: "patients", label: "مسار اليوم", icon: Users },
             { id: "operations", label: "العمليات", icon: Syringe },
           ] as const
         ).map((tab) => {
@@ -453,15 +494,6 @@ export function AppointmentsSection({
             >
               <Icon className="h-4 w-4" aria-hidden />
               <span>{tab.label}</span>
-              {tab.id === "bookings" &&
-                bookingsForDate.length +
-                  (scheduleRequestsQuery.data?.length ?? 0) >
-                  0 && (
-                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-warning px-1 text-[10px] font-bold text-warning-foreground tabular-nums">
-                    {bookingsForDate.length +
-                      (scheduleRequestsQuery.data?.length ?? 0)}
-                  </span>
-                )}
               {tab.id === "operations" && todayOperationsFlat.length > 0 && (
                 <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-bold text-secondary-foreground tabular-nums">
                   {todayOperationsFlat.length}
@@ -502,32 +534,52 @@ export function AppointmentsSection({
               </div>
             </div>
 
-            <div className="flex h-9 flex-wrap items-center gap-2">
-              {QUEUE_FILTERS.map(({ value, label }) => {
-                const n = (counts as Record<string, number>)[value] ?? 0;
-                const active = queueFilter === value;
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setQueueFilter(value)}
-                    className={cn(
-                      "rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors",
-                      active
-                        ? "border-foreground bg-foreground text-background"
-                        : "border-border bg-card text-foreground",
-                    )}
-                  >
-                    {label}{" "}
-                    <span className="tabular-nums opacity-90">
-                      ({n.toLocaleString("ar-EG")})
-                    </span>
-                  </button>
-                );
-              })}
+            <div className="flex min-h-9 flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {QUEUE_FILTERS.map(({ value, label }) => {
+                  const n =
+                    value === "bookings"
+                      ? bookingsForDate.length +
+                        (scheduleRequestsQuery.data?.length ?? 0)
+                      : ((counts as Record<string, number>)[value] ?? 0);
+                  const active = queueFilter === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setQueueFilter(value)}
+                      className={cn(
+                        "rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors",
+                        active
+                          ? "border-foreground bg-foreground text-background"
+                          : "border-border bg-card text-foreground",
+                      )}
+                    >
+                      {label}{" "}
+                      <span className="tabular-nums opacity-90">
+                        ({n.toLocaleString("ar-EG")})
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <label
+                className={cn(
+                  "cursor-pointer items-center gap-2 text-xs font-medium text-muted-foreground",
+                  queueFilter === "bookings" ? "hidden" : "flex",
+                )}
+              >
+                <Checkbox
+                  checked={showExternal}
+                  onCheckedChange={(checked) =>
+                    setShowExternal(checked === true)
+                  }
+                />
+                إظهار حالات الخارج
+              </label>
             </div>
 
-            {isLoading ? (
+            {queueFilter === "bookings" ? null : isLoading ? (
               <p className="py-10 text-center text-sm text-muted-foreground">
                 جاري التحميل…
               </p>
@@ -558,6 +610,7 @@ export function AppointmentsSection({
                     }}
                     canDelete={canDeletePatient}
                     onRequestDelete={() => setDeleteTarget(patient)}
+                    visitDate={selectedDate}
                   />
                 ))}
               </div>
@@ -565,7 +618,7 @@ export function AppointmentsSection({
           </div>
         )}
 
-        {activeSection === "bookings" && (
+        {activeSection === "patients" && queueFilter === "bookings" && (
           <div className="xl:col-span-12 flex flex-col gap-6">
             <div className="flex flex-col gap-3">
               <div className="flex h-9 items-center gap-2 text-sm font-semibold text-foreground">
@@ -601,7 +654,16 @@ export function AppointmentsSection({
                       </p>
                       <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
                         {(scheduleRequestsQuery.data ?? []).map((r: any) => (
-                          <ScheduleRequestCard key={r.id} r={r} />
+                          <ScheduleRequestCard
+                            key={r.id}
+                            r={r}
+                            onRegister={() =>
+                              setRegistrationTarget({
+                                source: "schedule",
+                                item: r,
+                              })
+                            }
+                          />
                         ))}
                       </div>
                     </div>
@@ -613,7 +675,17 @@ export function AppointmentsSection({
                       </p>
                       <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
                         {bookingsForDate.map((booking) => (
-                          <BookingCard key={booking.id} booking={booking} />
+                          <BookingCard
+                            key={booking.id}
+                            booking={booking}
+                            visitDate={selectedDate}
+                            onRegister={() =>
+                              setRegistrationTarget({
+                                source: "portal",
+                                item: booking,
+                              })
+                            }
+                          />
                         ))}
                       </div>
                     </div>
@@ -666,6 +738,43 @@ export function AppointmentsSection({
           </div>
         )}
       </div>
+      <QuickPatientEntryDialog
+        open={registrationTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setRegistrationTarget(null);
+        }}
+        initialData={
+          registrationTarget
+            ? {
+                patientId:
+                  registrationTarget.source === "portal"
+                    ? registrationTarget.item.patientId
+                    : null,
+                patientCode:
+                  registrationTarget.source === "portal"
+                    ? registrationTarget.item.patientCode
+                    : null,
+                fullName:
+                  registrationTarget.item.fullName ??
+                  registrationTarget.item.patientName ??
+                  registrationTarget.item.guestName,
+                age: registrationTarget.item.age,
+                phone:
+                  registrationTarget.item.phone ??
+                  registrationTarget.item.patientPhone ??
+                  registrationTarget.item.guestPhone,
+                email:
+                  registrationTarget.item.patientEmail ??
+                  registrationTarget.item.guestEmail,
+                visitDate: selectedDate,
+                serviceType:
+                  registrationTarget.item.service ??
+                  registrationTarget.item.bookingType,
+              }
+            : undefined
+        }
+        onSaved={handleBookingRegistrationSaved}
+      />
     </div>
   );
 }
@@ -690,7 +799,13 @@ const BOOKING_TYPES_AR: Record<string, string> = {
   followup: "متابعة",
 };
 
-function ScheduleRequestCard({ r }: { r: any }) {
+function ScheduleRequestCard({
+  r,
+  onRegister,
+}: {
+  r: any;
+  onRegister: () => void;
+}) {
   const utils = trpc.useUtils();
   const remove = trpc.patient.removeVisitScheduleRequest.useMutation({
     onSuccess: async () => {
@@ -708,20 +823,39 @@ function ScheduleRequestCard({ r }: { r: any }) {
           {r.phone ? ` · ${r.phone}` : ""}
         </p>
       </div>
-      <button
-        type="button"
-        disabled={remove.isPending}
-        onClick={() => remove.mutate({ requestId: r.id })}
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
-        aria-label="حذف الموعد"
-      >
-        <Trash2 className="h-3.5 w-3.5" aria-hidden />
-      </button>
+      <div className="flex shrink-0 items-center gap-1">
+        <Button
+          type="button"
+          size="sm"
+          className="h-7 gap-1 px-2 text-[10px]"
+          onClick={onRegister}
+        >
+          <UserPlus className="h-3.5 w-3.5" aria-hidden />
+          تأكيد وتسجيل
+        </Button>
+        <button
+          type="button"
+          disabled={remove.isPending}
+          onClick={() => remove.mutate({ requestId: r.id })}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
+          aria-label="حذف الموعد"
+        >
+          <Trash2 className="h-3.5 w-3.5" aria-hidden />
+        </button>
+      </div>
     </div>
   );
 }
 
-function BookingCard({ booking }: { booking: any }) {
+function BookingCard({
+  booking,
+  onRegister,
+  visitDate,
+}: {
+  booking: any;
+  onRegister: () => void;
+  visitDate: string;
+}) {
   const utils = trpc.useUtils();
   const del = (trpc as any).patientPortal.deleteBooking.useMutation({
     onSuccess: async () => {
@@ -758,6 +892,15 @@ function BookingCard({ booking }: { booking: any }) {
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+          <Button
+            type="button"
+            size="sm"
+            className="h-7 gap-1 px-2 text-[10px]"
+            onClick={onRegister}
+          >
+            <UserPlus className="h-3.5 w-3.5" aria-hidden />
+            تأكيد وتسجيل
+          </Button>
           <span
             className={cn(
               "rounded-full border px-1.5 py-0.5 text-[10px] font-medium",
@@ -773,7 +916,9 @@ function BookingCard({ booking }: { booking: any }) {
                 title="طباعة روشتة"
                 onClick={() =>
                   window.open(
-                    buildPrintUrl(`/prescription/${booking.patientId}`),
+                    buildPrintUrl(
+                      `/prescription/${booking.patientId}?visitDate=${encodeURIComponent(visitDate)}`,
+                    ),
                     "_blank",
                   )
                 }
@@ -787,7 +932,9 @@ function BookingCard({ booking }: { booking: any }) {
                 title="طباعة طلب تحاليل"
                 onClick={() =>
                   window.open(
-                    buildPrintUrl(`/request-tests/${booking.patientId}`),
+                    buildPrintUrl(
+                      `/request-tests/${booking.patientId}?visitDate=${encodeURIComponent(visitDate)}`,
+                    ),
                     "_blank",
                   )
                 }
@@ -801,7 +948,9 @@ function BookingCard({ booking }: { booking: any }) {
                 title="طباعة مقاس النظارة"
                 onClick={() =>
                   window.open(
-                    buildPrintUrl(`/refraction/${booking.patientId}`),
+                    buildPrintUrl(
+                      `/refraction/${booking.patientId}?visitDate=${encodeURIComponent(visitDate)}`,
+                    ),
                     "_blank",
                   )
                 }
@@ -835,6 +984,7 @@ function QueuePatientCard({
   markVisitTreatedPendingVisitId,
   canDelete,
   onRequestDelete,
+  visitDate,
 }: {
   patient: TodayQueuePatient;
   medicalStatus?: PatientMedicalStatus;
@@ -843,6 +993,7 @@ function QueuePatientCard({
   markVisitTreatedPendingVisitId: number | null;
   canDelete?: boolean;
   onRequestDelete?: () => void;
+  visitDate: string;
 }) {
   const st = patient.queueStatus as QueueStatus;
   const visitId = coercePositiveInt((patient as { visitId?: unknown }).visitId);
@@ -854,6 +1005,11 @@ function QueuePatientCard({
     serviceTypeLabels[patient.serviceType ?? ""] ?? patient.serviceType ?? "—";
   const doctorText = String(patient.doctorName ?? "").trim() || "—";
   const timeText = String(patient.checkedInTime ?? "").trim() || "—";
+  const withVisitDate = (path: string) => {
+    const url = new URL(path, window.location.origin);
+    url.searchParams.set("visitDate", visitDate);
+    return `${url.pathname}${url.search}`;
+  };
 
   return (
     <div
@@ -893,6 +1049,15 @@ function QueuePatientCard({
               >
                 {queueStatusLabelsAr[st] ?? st}
               </Badge>
+              {["clinic1", "clinic2", "pentacam"].includes(st) ? (
+                <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+                  {st === "clinic1"
+                    ? "عيادة 1"
+                    : st === "clinic2"
+                      ? "عيادة 2"
+                      : "بنتاكام"}
+                </Badge>
+              ) : null}
               <span className="min-w-0 max-w-full truncate">
                 الطبيب: {doctorText}
               </span>
@@ -961,12 +1126,13 @@ function QueuePatientCard({
                   key={value}
                   onClick={(e) => {
                     e.stopPropagation();
-                    const suffix =
-                      (patient as any).visitType === "followup"
-                        ? "/followup"
-                        : "";
+                    const query = new URLSearchParams({ original: "1" });
+                    query.set("visitDate", visitDate);
+                    if ((patient as any).visitType === "followup") {
+                      query.set("includeFollowups", "1");
+                    }
                     window.open(
-                      `/sheets/${value}/${patient.id}${suffix}?original=1`,
+                      `/sheets/${value}/${patient.id}?${query.toString()}`,
                       "_blank",
                     );
                   }}
@@ -977,7 +1143,10 @@ function QueuePatientCard({
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();
-                  window.open(`/sheets/referral/${patient.id}`, "_blank");
+                  window.open(
+                    withVisitDate(`/sheets/referral/${patient.id}`),
+                    "_blank",
+                  );
                 }}
               >
                 خطاب تحويل
@@ -985,7 +1154,10 @@ function QueuePatientCard({
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();
-                  window.open(`/clinical-report/${patient.id}`, "_blank");
+                  window.open(
+                    withVisitDate(`/clinical-report/${patient.id}`),
+                    "_blank",
+                  );
                 }}
               >
                 التقرير السريري الشامل
@@ -993,7 +1165,10 @@ function QueuePatientCard({
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();
-                  window.open(`/pre-post-op-report/${patient.id}`, "_blank");
+                  window.open(
+                    withVisitDate(`/pre-post-op-report/${patient.id}`),
+                    "_blank",
+                  );
                 }}
               >
                 تقرير ما قبل/بعد العملية
@@ -1001,7 +1176,10 @@ function QueuePatientCard({
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();
-                  window.open(`/post-op-offdays/${patient.id}`, "_blank");
+                  window.open(
+                    withVisitDate(`/post-op-offdays/${patient.id}`),
+                    "_blank",
+                  );
                 }}
               >
                 إجازة ما بعد العملية
@@ -1010,7 +1188,7 @@ function QueuePatientCard({
                 onClick={(e) => {
                   e.stopPropagation();
                   window.open(
-                    `/medical-condition-report/${patient.id}`,
+                    withVisitDate(`/medical-condition-report/${patient.id}`),
                     "_blank",
                   );
                 }}
@@ -1027,7 +1205,9 @@ function QueuePatientCard({
             onClick={(e) => {
               e.stopPropagation();
               window.open(
-                buildPrintUrl(`/prescription/${patient.id}`),
+                buildPrintUrl(
+                  `/prescription/${patient.id}?visitDate=${encodeURIComponent(visitDate)}`,
+                ),
                 "_blank",
               );
             }}
@@ -1042,7 +1222,9 @@ function QueuePatientCard({
             onClick={(e) => {
               e.stopPropagation();
               window.open(
-                buildPrintUrl(`/request-tests/${patient.id}`),
+                buildPrintUrl(
+                  `/request-tests/${patient.id}?visitDate=${encodeURIComponent(visitDate)}`,
+                ),
                 "_blank",
               );
             }}
@@ -1056,7 +1238,12 @@ function QueuePatientCard({
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
             onClick={(e) => {
               e.stopPropagation();
-              window.open(buildPrintUrl(`/refraction/${patient.id}`), "_blank");
+              window.open(
+                buildPrintUrl(
+                  `/refraction/${patient.id}?visitDate=${encodeURIComponent(visitDate)}`,
+                ),
+                "_blank",
+              );
             }}
           >
             <Glasses className="h-4 w-4" aria-hidden />

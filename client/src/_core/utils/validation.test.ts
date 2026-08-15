@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   validatePatientName,
   validatePhoneNumber,
@@ -48,6 +48,8 @@ describe("Validation Utils", () => {
     it("should reject invalid phone numbers", () => {
       expect(validatePhoneNumber("123")).not.toBeNull();
       expect(validatePhoneNumber("abcdefghij")).not.toBeNull();
+      expect(validatePhoneNumber("-------")).not.toBeNull();
+      expect(validatePhoneNumber("       ")).not.toBeNull();
     });
   });
 
@@ -97,6 +99,16 @@ describe("Validation Utils", () => {
       futureDate.setFullYear(futureDate.getFullYear() + 1);
       const dateString = futureDate.toISOString().split("T")[0];
       expect(validateDateOfBirth(dateString)).not.toBeNull();
+    });
+
+    it("should reject tomorrow as a future date", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2026, 0, 15, 12));
+      try {
+        expect(validateDateOfBirth("2026-01-16")).not.toBeNull();
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it("should reject unrealistic age", () => {

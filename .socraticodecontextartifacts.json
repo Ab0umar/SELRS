@@ -16,11 +16,6 @@
       "description": "Parameterized SQL fragments used for all accounting reports."
     },
     {
-      "name": "legacy-accounting-logic",
-      "path": "./Acc_SRV100",
-      "description": "Legacy SQL scripts (.txt) and report templates (.rtm) from the original system."
-    },
-    {
       "name": "database-schema-local",
       "path": "./drizzle",
       "description": "Drizzle migrations defining the local MySQL medical database schema."

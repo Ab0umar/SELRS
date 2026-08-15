@@ -107,6 +107,64 @@ const BLANK: FormState = {
   notes: "",
 };
 
+type IncludedServiceRow = {
+  serviceCode: string;
+  serviceName: string;
+  group: string;
+  quantity: number;
+  revenue: number;
+};
+
+function IncludedServicesTable({
+  title,
+  rows,
+}: {
+  title: string;
+  rows: IncludedServiceRow[];
+}) {
+  return (
+    <details open className="overflow-hidden rounded-md border border-border bg-background">
+      <summary className="cursor-pointer bg-muted/40 px-3 py-2.5 text-xs font-bold text-foreground">
+        {title} ({rows.length} خدمة)
+      </summary>
+      {rows.length > 0 ? (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[620px] text-xs" dir="rtl">
+            <thead>
+              <tr className="border-y border-border bg-muted/20">
+                <th className="px-3 py-2 text-right font-semibold">الخدمة</th>
+                <th className="px-3 py-2 text-center font-semibold">الكود</th>
+                <th className="px-3 py-2 text-center font-semibold">داخلة ضمن</th>
+                <th className="px-3 py-2 text-center font-semibold">الكمية</th>
+                <th className="px-3 py-2 text-center font-semibold">صافي الإيراد</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={`${row.serviceCode}-${row.group}`} className="border-b border-border/70 last:border-b-0">
+                  <td className="px-3 py-2 font-medium">{row.serviceName}</td>
+                  <td className="px-3 py-2 text-center font-mono" dir="ltr">{row.serviceCode}</td>
+                  <td className="px-3 py-2 text-center text-muted-foreground">{row.group}</td>
+                  <td className="px-3 py-2 text-center tabular-nums">
+                    {row.quantity.toLocaleString("ar-EG", { maximumFractionDigits: 2 })}
+                  </td>
+                  <td className="px-3 py-2 text-center font-semibold tabular-nums">
+                    {row.revenue.toLocaleString("ar-EG", { maximumFractionDigits: 2 })} ج
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="border-t border-border px-3 py-4 text-center text-xs text-muted-foreground">
+          لا توجد خدمات محتسبة في الشهر المحدد
+        </div>
+      )}
+    </details>
+  );
+}
+
 export default function CommissionPools() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -115,7 +173,7 @@ export default function CommissionPools() {
   const [form, setForm] = useState<FormState>(BLANK);
 
   const [editingMonth, setEditingMonth] = useState<number | null>(null);
-  const [markazExamRate, setMarkazExamRate] = useState("50");
+  const [markazExamRate, setMarkazExamRate] = useState("75");
   const [consultantRate, setConsultantRate] = useState("15");
   const [specialistRate, setSpecialistRate] = useState("15");
 
@@ -178,6 +236,11 @@ export default function CommissionPools() {
   );
   const [specialistPriceInput, setSpecialistPriceInput] = useState("");
   const [consultantPriceInput, setConsultantPriceInput] = useState("");
+  const [examCommissionInput, setExamCommissionInput] = useState("75");
+  const [examDoctorPercentInput, setExamDoctorPercentInput] = useState("60");
+  const [examEmployeePercentInput, setExamEmployeePercentInput] = useState("40");
+  const [xrayDoctorPercentInput, setXrayDoctorPercentInput] = useState("54.5");
+  const [xrayEmployeePercentInput, setXrayEmployeePercentInput] = useState("45.5");
   const [xray1600PriceInput, setXray1600PriceInput] = useState("");
   const [xrayRemainingPriceInput, setXrayRemainingPriceInput] = useState("");
   const [xray1502PriceInput, setXray1502PriceInput] = useState("");
@@ -185,6 +248,11 @@ export default function CommissionPools() {
     if (priceOverridesQ.data) {
       setSpecialistPriceInput(priceOverridesQ.data.examSpecialist ?? "");
       setConsultantPriceInput(priceOverridesQ.data.examConsultant ?? "");
+      setExamCommissionInput(priceOverridesQ.data.examCommissionPerUnit ?? "75");
+      setExamDoctorPercentInput(priceOverridesQ.data.examDoctorPercent ?? "60");
+      setExamEmployeePercentInput(priceOverridesQ.data.examEmployeePercent ?? "40");
+      setXrayDoctorPercentInput(priceOverridesQ.data.xrayDoctorPercent ?? "54.5");
+      setXrayEmployeePercentInput(priceOverridesQ.data.xrayEmployeePercent ?? "45.5");
       setXray1600PriceInput(priceOverridesQ.data.xray1600 ?? "");
       setXrayRemainingPriceInput(priceOverridesQ.data.xrayRemaining ?? "");
       setXray1502PriceInput(priceOverridesQ.data.xray1502 ?? "");
@@ -202,6 +270,7 @@ export default function CommissionPools() {
     setPriceOverridesMut.mutate({
       examSpecialist: specialistPriceInput === "" ? null : Number(specialistPriceInput),
       examConsultant: consultantPriceInput === "" ? null : Number(consultantPriceInput),
+      examCommissionPerUnit: examCommissionInput === "" ? null : Number(examCommissionInput),
     });
   };
   const saveXrayPrices = () => {
@@ -209,6 +278,14 @@ export default function CommissionPools() {
       xray1600: xray1600PriceInput === "" ? null : Number(xray1600PriceInput),
       xrayRemaining: xrayRemainingPriceInput === "" ? null : Number(xrayRemainingPriceInput),
       xray1502: xray1502PriceInput === "" ? null : Number(xray1502PriceInput),
+    });
+  };
+  const saveCommissionSplits = () => {
+    setPriceOverridesMut.mutate({
+      examDoctorPercent: Number(examDoctorPercentInput),
+      examEmployeePercent: Number(examEmployeePercentInput),
+      xrayDoctorPercent: Number(xrayDoctorPercentInput),
+      xrayEmployeePercent: Number(xrayEmployeePercentInput),
     });
   };
   const fixedPercentageMode =
@@ -292,7 +369,7 @@ export default function CommissionPools() {
       setSpecialistRate(sRate);
     } else {
       setForm(BLANK);
-      setMarkazExamRate("50");
+      setMarkazExamRate("75");
       setConsultantRate("15");
       setSpecialistRate("15");
     }
@@ -659,12 +736,12 @@ export default function CommissionPools() {
                   <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0">
                       <div className="text-sm font-bold text-foreground">
-                        تثبيت نسب الخدمات مع تغيّر الأسعار
+                        طريقة حساب خدمات المركز
                       </div>
                       <div className="mt-1 text-xs leading-5 text-muted-foreground">
                         {fixedPercentageMode
-                          ? "مفعّل: تُحسب النسب مباشرة من إجمالي التحصيل بعد الخصم بالنسب القديمة الثابتة."
-                          : "غير مفعّل: الحساب الحالي يقسم الإيراد على سعر الأساس ثم يضربه في المبلغ الثابت."}
+                          ? "الأشعة تستخدم أسعار الخانات الحالية، وتقسيم يوليو 2026: 50% أطباء و50% موظفين."
+                          : "الكشف والأشعة يستخدمان أسعار الخانات الحالية في حساب عدد الحالات من صافي الإيراد."}
                       </div>
                     </div>
                     <Switch
@@ -677,13 +754,42 @@ export default function CommissionPools() {
                       aria-label="تثبيت نسب خدمات المركز"
                     />
                   </div>
+                  <div className="mt-4 border-t border-primary/15 pt-4">
+                    <div className="mb-3 text-sm font-bold text-foreground">إعدادات تقسيم العمولات</div>
+                    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                      {[
+                        { label: "أطباء الكشف %", value: examDoctorPercentInput, setValue: setExamDoctorPercentInput },
+                        { label: "موظفو الكشف %", value: examEmployeePercentInput, setValue: setExamEmployeePercentInput },
+                        { label: "أطباء الأشعة %", value: xrayDoctorPercentInput, setValue: setXrayDoctorPercentInput },
+                        { label: "موظفو الأشعة %", value: xrayEmployeePercentInput, setValue: setXrayEmployeePercentInput },
+                      ].map((item) => (
+                        <label key={item.label} className="space-y-1">
+                          <span className="text-xs text-muted-foreground">{item.label}</span>
+                          <input
+                            type="number"
+                            value={item.value}
+                            min={0}
+                            max={100}
+                            step="0.5"
+                            onChange={(e) => item.setValue(e.target.value)}
+                            className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                          />
+                        </label>
+                      ))}
+                    </div>
+                    <div className="mt-3 flex justify-end">
+                      <Button type="button" size="sm" onClick={saveCommissionSplits} disabled={setPriceOverridesMut.isPending}>
+                        حفظ تقسيم العمولات
+                      </Button>
+                    </div>
+                  </div>
                   {fixedPercentageMode && (
                     <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] font-semibold text-primary sm:grid-cols-5">
                       <span>أخصائي 23.26%</span>
                       <span>استشاري 10.75%</span>
-                      <span>1600: 23.91%</span>
+                      <span>1600: 24.50%</span>
                       <span>1502: 27.50%</span>
-                      <span>المجمعة 24.29%</span>
+                      <span>الباقي: 110 ج/حالة</span>
                     </div>
                   )}
                 </div>
@@ -695,7 +801,7 @@ export default function CommissionPools() {
                     <div className="text-xs font-semibold text-muted-foreground">
                       سعر الكشف (اتركه فارغًا للقراءة التلقائية من جدول الأسعار)
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                       <div className="space-y-1">
                         <label className="text-xs text-muted-foreground">سعر كشف الأخصائي</label>
                         <input
@@ -720,6 +826,18 @@ export default function CommissionPools() {
                           className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
                         />
                       </div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">مبلغ الخصم لكل كشف</label>
+                        <input
+                          type="number"
+                          value={examCommissionInput}
+                          min={0}
+                          step="0.5"
+                          placeholder="75"
+                          onChange={(e) => setExamCommissionInput(e.target.value)}
+                          className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                        />
+                      </div>
                     </div>
                     <Button type="button" size="sm" onClick={saveExamPrices} disabled={setPriceOverridesMut.isPending}>
                       حفظ الأسعار
@@ -738,7 +856,10 @@ export default function CommissionPools() {
                             <tr className="bg-muted/50 border-b">
                               <th className="px-4 py-3 text-right font-semibold">الكشف</th>
                               <th className="px-4 py-3 text-center font-semibold">الإيراد</th>
-                              <th className="px-4 py-3 text-center font-semibold">النسبة</th>
+                              <th className="px-4 py-3 text-center font-semibold">العدد المحسوب</th>
+                              <th className="px-4 py-3 text-center font-semibold">
+                                العمولة ({autoPools?.breakdown.examCommissionPerUnit ?? 75} ج/كشف)
+                              </th>
                             </tr>
                           </thead>
                           <tbody>
@@ -746,6 +867,9 @@ export default function CommissionPools() {
                               <td className="px-4 py-3 font-medium">أخصائي</td>
                               <td className="px-4 py-3 text-center">
                                 {(autoPools?.breakdown.examSpecialistRevenue ?? 0).toLocaleString("ar-EG")} ج
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                {(autoPools?.breakdown.examSpecialistCount ?? 0).toLocaleString("ar-EG", { maximumFractionDigits: 2 })}
                               </td>
                               <td className="px-4 py-3 text-center font-semibold text-primary">
                                 {(autoPools?.breakdown.examSpecialistPool ?? 0).toLocaleString("ar-EG")} ج
@@ -755,6 +879,9 @@ export default function CommissionPools() {
                               <td className="px-4 py-3 font-medium">استشاري</td>
                               <td className="px-4 py-3 text-center">
                                 {(autoPools?.breakdown.examConsultantRevenue ?? 0).toLocaleString("ar-EG")} ج
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                {(autoPools?.breakdown.examConsultantCount ?? 0).toLocaleString("ar-EG", { maximumFractionDigits: 2 })}
                               </td>
                               <td className="px-4 py-3 text-center font-semibold text-primary">
                                 {(autoPools?.breakdown.examConsultantPool ?? 0).toLocaleString("ar-EG")} ج
@@ -767,18 +894,24 @@ export default function CommissionPools() {
                       {/* Mobile View */}
                       <div className="block lg:hidden space-y-3">
                         {[
-                          { label: "أخصائي", revenue: autoPools?.breakdown.examSpecialistRevenue, pool: autoPools?.breakdown.examSpecialistPool },
-                          { label: "استشاري", revenue: autoPools?.breakdown.examConsultantRevenue, pool: autoPools?.breakdown.examConsultantPool },
+                          { label: "أخصائي", revenue: autoPools?.breakdown.examSpecialistRevenue, count: autoPools?.breakdown.examSpecialistCount, pool: autoPools?.breakdown.examSpecialistPool },
+                          { label: "استشاري", revenue: autoPools?.breakdown.examConsultantRevenue, count: autoPools?.breakdown.examConsultantCount, pool: autoPools?.breakdown.examConsultantPool },
                         ].map((row) => (
                           <div key={row.label} className="rounded-xl border border-border bg-card p-4 flex justify-between items-center">
                             <div>
                               <div className="text-sm font-bold text-foreground">{row.label}</div>
                               <div className="text-[10px] text-muted-foreground">{(row.revenue ?? 0).toLocaleString("ar-EG")} ج إيراد</div>
+                              <div className="text-[10px] text-muted-foreground">{(row.count ?? 0).toLocaleString("ar-EG", { maximumFractionDigits: 2 })} كشف محسوب</div>
                             </div>
                             <div className="text-base font-black text-primary">{(row.pool ?? 0).toLocaleString("ar-EG")} ج</div>
                           </div>
                         ))}
                       </div>
+
+                      <IncludedServicesTable
+                        title="الخدمات الداخلة في الكشف"
+                        rows={(autoPools?.breakdown.includedServices?.exam ?? []) as IncludedServiceRow[]}
+                      />
 
                       <div className="grid grid-cols-3 gap-3">
                         <div className="rounded-xl border border-border bg-card p-4 text-center">
@@ -788,15 +921,15 @@ export default function CommissionPools() {
                           </div>
                         </div>
                         <div className="rounded-xl border border-primary/20 bg-primary/8 p-4 text-center">
-                          <div className="text-[10px] text-primary font-semibold mb-1">الأطباء (60%)</div>
+                          <div className="text-[10px] text-primary font-semibold mb-1">الأطباء ({autoPools?.breakdown.examDoctorPercent ?? 60}%)</div>
                           <div className="text-lg font-black text-primary">
-                            {Math.round((autoPools?.examPool ?? 0) * 0.6 * 100) / 100} ج
+                            {Math.round((autoPools?.examPool ?? 0) * (autoPools?.breakdown.examDoctorPercent ?? 60)) / 100} ج
                           </div>
                         </div>
                         <div className="rounded-xl border border-success/20 bg-success/8 p-4 text-center">
-                          <div className="text-[10px] text-success font-semibold mb-1">الموظفين والفنيين (40%)</div>
+                          <div className="text-[10px] text-success font-semibold mb-1">الموظفين والفنيين ({autoPools?.breakdown.examEmployeePercent ?? 40}%)</div>
                           <div className="text-lg font-black text-success">
-                            {Math.round((autoPools?.examPool ?? 0) * 0.4 * 100) / 100} ج
+                            {Math.round((autoPools?.examPool ?? 0) * (autoPools?.breakdown.examEmployeePercent ?? 40)) / 100} ج
                           </div>
                         </div>
                       </div>
@@ -918,15 +1051,20 @@ export default function CommissionPools() {
                         ))}
                       </div>
 
+                      <IncludedServicesTable
+                        title="الخدمات الداخلة في الأشعة"
+                        rows={(autoPools?.breakdown.includedServices?.xray ?? []) as IncludedServiceRow[]}
+                      />
+
                       <div className="grid grid-cols-2 gap-3">
                         <div className="rounded-xl border border-primary/20 bg-primary/8 p-4 text-center">
-                          <div className="text-[10px] text-primary font-semibold mb-1">الأطباء</div>
+                          <div className="text-[10px] text-primary font-semibold mb-1">الأطباء ({autoPools?.breakdown.xrayDoctorPercent ?? 54.5}%)</div>
                           <div className="text-lg font-black text-primary">
                             {(autoPools?.pentacamDrPool ?? 0).toLocaleString("ar-EG")} ج
                           </div>
                         </div>
                         <div className="rounded-xl border border-success/20 bg-success/8 p-4 text-center">
-                          <div className="text-[10px] text-success font-semibold mb-1">الموظفين</div>
+                          <div className="text-[10px] text-success font-semibold mb-1">الموظفين ({autoPools?.breakdown.xrayEmployeePercent ?? 45.5}%)</div>
                           <div className="text-lg font-black text-success">
                             {(autoPools?.pentacamPool ?? 0).toLocaleString("ar-EG")} ج
                           </div>

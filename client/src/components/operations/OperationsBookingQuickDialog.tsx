@@ -9,6 +9,7 @@ import { getLocalDateIso } from "@/hooks/operations/operationsShared";
 import { TAB_CONFIG } from "@/lib/operationsPricing";
 import { trpc } from "@/lib/trpc";
 import { OperationsBookingFormContent } from "./OperationsBookingFormContent";
+import { useIsMobile } from "@/hooks/useMobile";
 
 export type OperationsBookingDraft = {
   bookingDate: string;
@@ -25,6 +26,7 @@ export type OperationsBookingQuickDialogProps = {
   onSaved: () => void;
   initialDate?: string;
   initialDoctorName?: string;
+  inlineOnDesktop?: boolean;
 };
 
 export function defaultOperationsBookingDraft(
@@ -52,7 +54,9 @@ export function OperationsBookingQuickDialog({
   onSaved,
   initialDate,
   initialDoctorName,
+  inlineOnDesktop = false,
 }: OperationsBookingQuickDialogProps) {
+  const isMobile = useIsMobile();
   const [draft, setDraft] = useState<OperationsBookingDraft>(() =>
     defaultOperationsBookingDraft(initialDate, initialDoctorName),
   );
@@ -90,6 +94,29 @@ export function OperationsBookingQuickDialog({
     });
   };
 
+  const formContent = (
+    <div className="mx-auto min-h-0 w-full max-w-5xl flex-1 overflow-y-auto p-5">
+      <OperationsBookingFormContent
+        draft={draft}
+        onChange={handleChange}
+        onSubmit={handleSubmit}
+        onCancel={() => onOpenChange(false)}
+        isSubmitting={createBooking.isPending}
+      />
+    </div>
+  );
+
+  if (inlineOnDesktop && !isMobile) {
+    return (
+      <section
+        className="overflow-hidden rounded-lg border border-border bg-background"
+        dir="rtl"
+      >
+        {formContent}
+      </section>
+    );
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -100,15 +127,7 @@ export function OperationsBookingQuickDialog({
         <SheetHeader className="shrink-0 border-b px-5 py-4 text-right">
           <SheetTitle className="text-right">حجز عملية</SheetTitle>
         </SheetHeader>
-        <div className="mx-auto min-h-0 w-full max-w-5xl flex-1 overflow-y-auto p-5">
-          <OperationsBookingFormContent
-            draft={draft}
-            onChange={handleChange}
-            onSubmit={handleSubmit}
-            onCancel={() => onOpenChange(false)}
-            isSubmitting={createBooking.isPending}
-          />
-        </div>
+        {formContent}
       </SheetContent>
     </Sheet>
   );

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import {
   router,
   makeSalaryProcedure,
@@ -43,6 +44,7 @@ import {
   PayrollComputeService,
   calcPentacamPool,
 } from "../services/salary/payrollCompute.service";
+import { normalizeLateTiers } from "../services/salary/lateDeduction";
 
 const allowanceInput = z.object({
   basicAmount: z.number().min(0),
@@ -104,6 +106,49 @@ async function fetchShiftAttendanceRange(
         : String(raw).slice(0, 10);
     return d >= fromDate && d <= toDate;
   });
+}
+
+function normalizeShiftStaffName(value: unknown): string {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/^(?:دكتور|دكتورة|د\.?|dr\.?)\s+/iu, "")
+    .replace(/\s+/g, " ");
+}
+
+async function resolveMyShiftStaff(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  user: any,
+) {
+  const userId = Number(user?.id);
+  if (!Number.isFinite(userId)) return null;
+
+  const linked = await db
+    .select({ id: shiftStaff.id, userId: shiftStaff.userId })
+    .from(shiftStaff)
+    .where(eq(shiftStaff.userId as any, userId))
+    .limit(1);
+  if (linked[0]) return linked[0];
+
+  const role = String(user?.role ?? "").toLowerCase();
+  const staffType = role === "doctor" ? "doctor" : role === "technician" ? "tech" : "";
+  if (!staffType) return null;
+
+  const userNames = new Set(
+    [user?.name, user?.username]
+      .map(normalizeShiftStaffName)
+      .filter((name) => name.length > 0),
+  );
+  if (userNames.size === 0) return null;
+
+  const candidates = await db
+    .select({ id: shiftStaff.id, name: shiftStaff.name, userId: shiftStaff.userId })
+    .from(shiftStaff)
+    .where(and(eq(shiftStaff.active, true), eq(shiftStaff.type, staffType)));
+  const matches = candidates.filter((staff: any) =>
+    userNames.has(normalizeShiftStaffName(staff.name)),
+  );
+  return matches.length === 1 ? matches[0] : null;
 }
 
 export const salaryRouter = router({
@@ -474,6 +519,11 @@ export const salaryRouter = router({
       z.object({
         examSpecialist: z.number().min(0).nullable().optional(),
         examConsultant: z.number().min(0).nullable().optional(),
+        examCommissionPerUnit: z.number().min(0).nullable().optional(),
+        examDoctorPercent: z.number().min(0).max(100).nullable().optional(),
+        examEmployeePercent: z.number().min(0).max(100).nullable().optional(),
+        xrayDoctorPercent: z.number().min(0).max(100).nullable().optional(),
+        xrayEmployeePercent: z.number().min(0).max(100).nullable().optional(),
         xray1600: z.number().min(0).nullable().optional(),
         xrayRemaining: z.number().min(0).nullable().optional(),
         xray1502: z.number().min(0).nullable().optional(),
@@ -481,6 +531,21 @@ export const salaryRouter = router({
       }),
     )
     .mutation(async ({ input }) => {
+      const validateSplit = (
+        doctor: number | null | undefined,
+        employee: number | null | undefined,
+        label: string,
+      ) => {
+        if (doctor == null || employee == null) return;
+        if (Math.abs(doctor + employee - 100) > 0.001) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `مجموع نسبة الأطباء والموظفين في ${label} يجب أن يساوي 100%`,
+          });
+        }
+      };
+      validateSplit(input.examDoctorPercent, input.examEmployeePercent, "الكشف");
+      validateSplit(input.xrayDoctorPercent, input.xrayEmployeePercent, "الأشعة");
       const { setPriceOverrides } =
         await import("../services/salary/commissionPoolsMssql.service");
       return setPriceOverrides(input);
@@ -521,7 +586,7 @@ export const salaryRouter = router({
           ? consultantPool + specialistPool
           : input.examPoolOverride !== undefined
             ? r2(input.examPoolOverride)
-            : r2(input.examCount * 50),
+            : r2(input.examCount * (input.section === "مركز" ? 75 : 50)),
       ) as any;
       const pentacamPool = String(
         calcPentacamPool(
@@ -1090,7 +1155,7 @@ export const salaryRouter = router({
       .where(eq(salaryConfig.key, "salary_late_tiers"));
     if (rows.length && rows[0].value) {
       try {
-        return JSON.parse(rows[0].value as string);
+        return normalizeLateTiers(JSON.parse(rows[0].value as string));
       } catch {}
     }
     return [
@@ -1118,8 +1183,13 @@ export const salaryRouter = router({
       if (!db) throw new Error("DB unavailable");
       await db
         .insert(salaryConfig)
-        .values({ key: "salary_late_tiers", value: JSON.stringify(input) })
-        .onDuplicateKeyUpdate({ set: { value: JSON.stringify(input) } });
+        .values({
+          key: "salary_late_tiers",
+          value: JSON.stringify(normalizeLateTiers(input)),
+        })
+        .onDuplicateKeyUpdate({
+          set: { value: JSON.stringify(normalizeLateTiers(input)) },
+        });
       return { success: true };
     }),
 
@@ -1670,13 +1740,8 @@ export const salaryRouter = router({
   getMyShiftStaffId: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
-    const userId = (ctx.user as any).id;
-    const rows = await db
-      .select({ id: shiftStaff.id })
-      .from(shiftStaff)
-      .where(eq(shiftStaff.userId as any, userId))
-      .limit(1);
-    return rows[0]?.id ?? null;
+    const staff = await resolveMyShiftStaff(db, ctx.user);
+    return staff?.id ?? null;
   }),
 
   addMyShiftEntry: protectedProcedure
@@ -1692,15 +1757,10 @@ export const salaryRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const userId = (ctx.user as any).id;
-      const rows = await db
-        .select({ id: shiftStaff.id })
-        .from(shiftStaff)
-        .where(eq(shiftStaff.userId as any, userId))
-        .limit(1);
-      if (!rows[0])
+      const staff = await resolveMyShiftStaff(db, ctx.user);
+      if (!staff)
         throw new Error("No shift staff record linked to your account");
-      const staffId = rows[0].id;
+      const staffId = staff.id;
       if (input.endTime <= input.startTime)
         throw new Error("Shift end time must be later than start time");
       const shiftName = `${input.startTime}-${input.endTime}`;
@@ -1725,7 +1785,6 @@ export const salaryRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const userId = (ctx.user as any).id;
       // verify ownership
       const [entry] = await db
         .select({ staffId: shiftAttendance.staffId })
@@ -1733,12 +1792,8 @@ export const salaryRouter = router({
         .where(eq(shiftAttendance.id, input.id))
         .limit(1);
       if (!entry) throw new Error("Entry not found");
-      const [staff] = await db
-        .select({ userId: shiftStaff.userId })
-        .from(shiftStaff)
-        .where(eq(shiftStaff.id, entry.staffId))
-        .limit(1);
-      if ((staff as any)?.userId !== userId)
+      const staff = await resolveMyShiftStaff(db, ctx.user);
+      if (!staff || staff.id !== entry.staffId)
         throw new Error("Not authorized to modify this entry");
       await db
         .update(shiftAttendance)

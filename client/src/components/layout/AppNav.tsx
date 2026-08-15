@@ -18,6 +18,7 @@ import {
   FileSpreadsheet,
   FileText,
   FileWarning,
+  Filter,
   FlaskConical,
   Glasses,
   History,
@@ -254,6 +255,11 @@ export const adminNavGroups: NavGroup[] = [
         label: "التقارير الطبية",
         path: "/medical-reports",
       },
+      {
+        icon: Filter,
+        label: "المرجع الطبي",
+        path: "/medical-reference",
+      },
     ],
   },
   {
@@ -268,6 +274,16 @@ export const adminNavGroups: NavGroup[] = [
         path: "/sheets/specialist",
       },
       { icon: Zap, label: "شيت تصحيح ابصار", path: "/sheets/lasik" },
+      {
+        icon: Repeat,
+        label: "متابعة الاستشاري",
+        path: "/sheets/followup/consultant",
+      },
+      {
+        icon: Repeat,
+        label: "متابعة الليزك",
+        path: "/sheets/followup/lasik",
+      },
     ],
   },
   {

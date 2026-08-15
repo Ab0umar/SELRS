@@ -1,10 +1,12 @@
-import { getDb } from "../../db";
+import { getDb, getSystemSetting } from "../../db";
 import {
   attendanceEmployees,
   attendanceMonthlyReport,
   attendanceDaily,
+  attendanceOvertimeDays,
   attendanceShifts,
   attendanceLeaves,
+  attendanceHolidays,
   salaryBasics,
   salaryPenalties,
   salaryAdvances,
@@ -16,9 +18,31 @@ import {
   shiftAttendance,
   salaryMissingCheckoutExclude,
   salaryEmployeeSectionSettings,
+  employeeAttendanceMapping,
 } from "../../../drizzle/schema";
 import { eq, and, gte, lte, isNull, or, inArray } from "drizzle-orm";
 import { computeMarkazEffectivePools } from "./commissionPoolsMssql.service";
+import {
+  calcAdjustedCommission,
+  calcWeightedCommissionShare,
+} from "./commissionDistribution";
+import {
+  calcLateDayTier,
+  calcMissingPunchDeduction,
+  normalizeLateTiers,
+  type LateTier,
+} from "./lateDeduction";
+import {
+  APP_NOTIFICATION_FEED_KEY,
+  DEFAULT_APP_NOTIFICATION_SETTINGS,
+  getAppNotificationSettings,
+  pushAppNotification,
+} from "../../_core/appNotifications";
+import {
+  calculateOvertimeCompensationBase,
+  calculateOvertimeDayPay,
+  type OvertimeDayPay,
+} from "./overtimePay";
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
@@ -159,13 +183,6 @@ async function loadAttendanceRates(
   };
 }
 
-interface LateTier {
-  minMin: number;
-  maxMin: number | null;
-  type?: "linear";
-  dayFraction?: number;
-}
-
 const DEFAULT_LATE_TIERS: LateTier[] = [
   { minMin: 1, maxMin: 14, type: "linear" },
   { minMin: 15, maxMin: 29, dayFraction: 0.25 },
@@ -183,7 +200,9 @@ async function loadLateTiers(
     .where(eq(salaryConfig.key, "salary_late_tiers"));
   if (rows.length && rows[0].value) {
     try {
-      return JSON.parse(rows[0].value as string) as LateTier[];
+      return normalizeLateTiers(
+        JSON.parse(rows[0].value as string) as LateTier[],
+      );
     } catch {}
   }
   return DEFAULT_LATE_TIERS;
@@ -198,22 +217,6 @@ async function loadDeductionsEnabled(
     .where(eq(salaryConfig.key, "salary_deductions_enabled"))
     .limit(1);
   return rows[0]?.value !== "false";
-}
-
-function calcLateDayTier(
-  lateMinutes: number,
-  dailyRate: number,
-  minuteRate: number,
-  tiers: LateTier[],
-): number {
-  if (lateMinutes <= 0) return 0;
-  const tier = tiers.find(
-    (t) =>
-      lateMinutes >= t.minMin && (t.maxMin === null || lateMinutes <= t.maxMin),
-  );
-  if (!tier) return round2(lateMinutes * minuteRate);
-  if (tier.type === "linear") return round2(lateMinutes * minuteRate);
-  return round2((tier.dayFraction ?? 0) * dailyRate);
 }
 
 // Leave multiplier for exam/pentacam commissions (separate rule the user specified)
@@ -313,6 +316,39 @@ export class PayrollComputeService {
       ...(sectionSettingsByEmp.get(employee.empCd) ?? {}),
     }));
 
+    const employeeCodes = employees.map((employee: any) => employee.empCd);
+    const attendanceMappings = employeeCodes.length
+      ? await db
+          .select()
+          .from(employeeAttendanceMapping)
+          .where(inArray(employeeAttendanceMapping.machineUserId, employeeCodes))
+      : [];
+    const userIdByEmpCd = new Map<string, number>(
+      attendanceMappings.map((mapping: any) => [
+        String(mapping.machineUserId),
+        Number(mapping.userId),
+      ]),
+    );
+    const notificationSettings = await getAppNotificationSettings().catch(
+      () => DEFAULT_APP_NOTIFICATION_SETTINGS,
+    );
+    const notificationFeedRow = await getSystemSetting(
+      APP_NOTIFICATION_FEED_KEY,
+    ).catch(() => null);
+    let notificationFeed: any[] = [];
+    try {
+      notificationFeed = notificationFeedRow?.value
+        ? JSON.parse(String(notificationFeedRow.value))
+        : [];
+    } catch {
+      notificationFeed = [];
+    }
+    const sentLateWarningKeys = new Set(
+      notificationFeed
+        .map((item: any) => String(item?.meta?.dedupeKey ?? ""))
+        .filter(Boolean),
+    );
+
     const acRates = await loadAttendanceRates(db);
     const lateTiers = await loadLateTiers(db);
     const deductionsEnabled = await loadDeductionsEnabled(db);
@@ -325,10 +361,12 @@ export class PayrollComputeService {
       penalties,
       advances,
       shiftAttendanceRows,
-      holidayRows,
+      salaryHolidayRows,
+      attendanceHolidayRows,
       shiftDefs,
       mcExcludeRows,
       sickLeaveRows,
+      overtimeDayRows,
     ] = await Promise.all([
       db
         .select()
@@ -364,10 +402,16 @@ export class PayrollComputeService {
       db
         .select({
           empCd: attendanceDaily.empCd,
+          shiftId: attendanceDaily.shiftId,
+          firstIn: attendanceDaily.firstIn,
+          lastOut: attendanceDaily.lastOut,
+          workedMinutes: attendanceDaily.workedMinutes,
           status: attendanceDaily.status,
           workDate: attendanceDaily.workDate,
           lateMinutes: attendanceDaily.lateMinutes,
           earlyLeaveMin: attendanceDaily.earlyLeaveMin,
+          overtimeInMinutes: attendanceDaily.overtimeInMinutes,
+          overtimeOutMinutes: attendanceDaily.overtimeOutMinutes,
           overtimeMinutes: attendanceDaily.overtimeMinutes,
           leaveType: attendanceDaily.leaveType,
           leaveNotAffectCommission: attendanceDaily.leaveNotAffectCommission,
@@ -416,7 +460,19 @@ export class PayrollComputeService {
         .select()
         .from(salaryHolidays)
         .where(
-          and(eq(salaryHolidays.year, year), eq(salaryHolidays.month, month)),
+          and(
+            gte(salaryHolidays.date, firstDay as any),
+            lte(salaryHolidays.date, lastDay as any),
+          ),
+        ),
+      db
+        .select()
+        .from(attendanceHolidays)
+        .where(
+          and(
+            gte(attendanceHolidays.date, firstDay as any),
+            lte(attendanceHolidays.date, lastDay as any),
+          ),
         ),
       db.select().from(attendanceShifts),
       db
@@ -443,11 +499,38 @@ export class PayrollComputeService {
             gte(attendanceLeaves.dateTo, firstDay as any),
           ),
         ),
+      db
+        .select()
+        .from(attendanceOvertimeDays)
+        .where(
+          and(
+            gte(attendanceOvertimeDays.workDate, firstDay as any),
+            lte(attendanceOvertimeDays.workDate, lastDay as any),
+          ),
+        ),
     ]);
+
+    const overtimeEnabledDays = new Map(
+      (overtimeDayRows as any[]).map((row) => {
+        const date = row.workDate;
+        const dateKey =
+          date instanceof Date
+            ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+            : String(date).slice(0, 10);
+        return [
+          `${row.empCd}|${dateKey}`,
+          {
+            in: Boolean(row.inEnabled),
+            out: Boolean(row.outEnabled),
+            day: Boolean(row.extraDayEnabled),
+          },
+        ] as const;
+      }),
+    );
 
     // Set of holiday date strings YYYY-MM-DD (not Fridays — already excluded from roster)
     const holidayDates = new Set<string>(
-      holidayRows
+      [...salaryHolidayRows, ...attendanceHolidayRows]
         .map((h: any) => {
           const d = h.date as any;
           return d instanceof Date
@@ -636,9 +719,14 @@ export class PayrollComputeService {
         rawAbsent = empDailyRows.filter(
           (d: any) => d.status === "absent",
         ).length;
-        missingCoDays = empDailyRows.filter(
-          (d: any) => d.status === "missing_checkout",
-        ).length;
+        missingCoDays = empDailyRows.filter((d: any) => {
+          if (d.status !== "missing_checkout") return false;
+          const ds =
+            d.workDate instanceof Date
+              ? `${d.workDate.getFullYear()}-${String(d.workDate.getMonth() + 1).padStart(2, "0")}-${String(d.workDate.getDate()).padStart(2, "0")}`
+              : String(d.workDate).slice(0, 10);
+          return !mcExcludeSet.has(`${emp.empCd}|${ds}`);
+        }).length;
         lateMins = empDailyRows.reduce(
           (s: any, d: any) => s + (d.lateMinutes ?? 0),
           0,
@@ -672,11 +760,11 @@ export class PayrollComputeService {
       netForRatioMap.set(emp.empCd, round2(Math.max(0, basic - deductions)));
     }
 
-    // Pentacam denominator: sum nets-for-ratio of pentacam-eligible employees
-    const sumNetsForPenta = Array.from(netForRatioMap.entries())
+    // Pentacam uses full salary/shift values as distribution weights. Deductions
+    // and leave rules are applied once to each person's resulting share.
+    const sumGrossBasicsForPenta = Array.from(empBasicMap.entries())
       .filter(([cd]) => commFlagsMap.get(cd)?.commPentacam !== false)
-      .reduce((s, [, n]) => s + n, 0);
-    // Exam count: only count employees eligible for exam
+      .reduce((s, [, gross]) => s + gross, 0);
     const activeExamCount = Array.from(empBasicMap.keys()).filter(
       (cd) => commFlagsMap.get(cd)?.commExam !== false,
     ).length;
@@ -694,21 +782,13 @@ export class PayrollComputeService {
     }
 
     // Build shift-name → size map (same logic as salary.ts router)
-    const shiftSizeMap = new Map<string, "big" | "small">();
+    const shiftDurationMinutesMap = new Map<string, number>();
     for (const sd of shiftDefs as any[]) {
-      let size: "big" | "small" = "big";
-      if (sd.shiftSize === "big") size = "big";
-      else if (sd.shiftSize === "small") size = "small";
-      else {
-        // auto: compute duration in minutes
-        const [sh, sm] = (sd.startTime as string).split(":").map(Number);
-        const [eh, em] = (sd.endTime as string).split(":").map(Number);
-        let dur = eh * 60 + em - (sh * 60 + sm);
-        if (dur < 0) dur += 24 * 60;
-        const threshold = sd.autoSmallThresholdMin ?? 270;
-        size = dur <= threshold ? "small" : "big";
-      }
-      shiftSizeMap.set(sd.name as string, size);
+      const [sh, sm] = String(sd.startTime).split(":").map(Number);
+      const [eh, em] = String(sd.endTime).split(":").map(Number);
+      let durationMinutes = eh * 60 + em - (sh * 60 + sm);
+      if (durationMinutes <= 0) durationMinutes += 24 * 60;
+      shiftDurationMinutesMap.set(sd.name as string, durationMinutes);
     }
 
     type ShiftStats = {
@@ -735,7 +815,7 @@ export class PayrollComputeService {
       const attended = rows.filter((a: any) => a.present).length;
 
       const rateBig = Number(ss.ratePerShift);
-      const rateSmall = Number(ss.rateSmallShift ?? 0) || rateBig;
+      const mainShiftMinutes = Number(ss.mainShiftMinutes ?? 360) || 360;
 
       // For linked employees, apply punch deductions; otherwise, just attendance ratio
       let deductionPct = 0;
@@ -781,15 +861,16 @@ export class PayrollComputeService {
         }
       }
 
-      // Calculate pay per shift type (big vs small) like the shift preview does
+      // Every shift is paid hourly from the main large-shift price.
       const byShift: Record<
         string,
         { scheduled: number; attended: number; rate: number }
       > = {};
       for (const a of rows) {
         const isPresent = Boolean(a.present);
-        const size: "big" | "small" = shiftSizeMap.get(a.shiftName) ?? "big";
-        const r = size === "small" ? rateSmall : rateBig;
+        const durationMinutes =
+          shiftDurationMinutesMap.get(a.shiftName) ?? mainShiftMinutes;
+        const r = round2((rateBig * durationMinutes) / mainShiftMinutes);
         if (!byShift[a.shiftName])
           byShift[a.shiftName] = { scheduled: 0, attended: 0, rate: r };
         byShift[a.shiftName].scheduled++;
@@ -829,25 +910,23 @@ export class PayrollComputeService {
     // Separate doctors and techs — techs join employee pools, doctors get remainder
     const doctors = activeShiftStaff.filter((ss: any) => ss.type === "doctor");
     const techs = activeShiftStaff.filter((ss: any) => ss.type === "tech");
-    // Use each tech's net pay (after deductions) for pool calculations
-    const sumTechShiftPay = techs
+    const sumTechGrossPay = techs
       .filter((ss: any) => getShiftEmployeeSettings(ss).commPentacam)
       .reduce(
-        (s: any, ss: any) => s + (shiftStatsMap.get(ss.id)?.netPay ?? 0),
+        (s: any, ss: any) => s + (shiftStatsMap.get(ss.id)?.grossPay ?? 0),
         0,
       );
-    // Denominators: employee nets (excl. insurance deduction) + tech net pay
-    const totalSumForPentacam = sumNetsForPenta + sumTechShiftPay;
-    // Only count techs who have at least one scheduled shift this month
+    const totalGrossForPentacam = sumGrossBasicsForPenta + sumTechGrossPay;
     const activeTechsThisMonth = techs.filter(
       (ss: any) =>
         getShiftEmployeeSettings(ss).commExam &&
         (shiftStatsMap.get(ss.id)?.scheduled ?? 0) > 0,
     );
     const totalCountForExam = activeExamCount + activeTechsThisMonth.length;
-    // مركز: 60% of examPool to doctors (by salary), 40% to emps+techs (equally)
-    const examPoolDrs = round2(examPool * 0.6);
-    const examPoolEmpsTechs = round2(examPool * 0.4);
+    const examDoctorPercent = markazAutoPools?.breakdown.examDoctorPercent ?? 60;
+    const examEmployeePercent = markazAutoPools?.breakdown.examEmployeePercent ?? 40;
+    const examPoolDrs = round2(examPool * (examDoctorPercent / 100));
+    const examPoolEmpsTechs = round2(examPool * (examEmployeePercent / 100));
 
     // عيادة: count eligible employees per pool to avoid double-paying
     const consultantEligible = !isMarkaz
@@ -878,8 +957,18 @@ export class PayrollComputeService {
     for (const emp of employees) {
       const basic = empBasicMap.get(emp.empCd);
       if (!basic) continue;
+      const flags = commFlagsMap.get(emp.empCd) ?? {
+        commAttendance: true,
+        commExam: true,
+        commPentacam: true,
+        commDay10: true,
+        commOvertime: true,
+      };
 
       const report = monthlyReports.find((r: any) => r.empCd === emp.empCd);
+      const empDailyRows = dailyRows.filter(
+        (d: any) => d.empCd === emp.empCd,
+      );
 
       // Working days = scheduled days (all statuses except holiday)
       const workingDays = dailyRows.filter(
@@ -895,9 +984,6 @@ export class PayrollComputeService {
 
       let missingCheckoutDays = 0;
       if (fromDate || toDate) {
-        const empDailyRows = dailyRows.filter(
-          (d: any) => d.empCd === emp.empCd,
-        );
         rawAbsentDays = empDailyRows.filter(
           (d: any) => d.status === "absent",
         ).length;
@@ -917,10 +1003,6 @@ export class PayrollComputeService {
           (s: any, d: any) => s + (d.earlyLeaveMin ?? 0),
           0,
         );
-        overtimeMinutes = empDailyRows.reduce(
-          (s: any, d: any) => s + (d.overtimeMinutes ?? 0),
-          0,
-        );
         leaveDays = empDailyRows.filter(
           (d: any) =>
             d.status === "leave" &&
@@ -933,7 +1015,6 @@ export class PayrollComputeService {
         rawAbsentDays = report?.absentDays ?? 0;
         lateMinutes = report?.totalLateMins ?? 0;
         earlyLeaveMinutes = report?.totalEarlyLeaveMins ?? 0;
-        overtimeMinutes = report?.totalOTMins ?? 0;
         // Exclude sick leave and no-commission-impact leave from leaveDays using dailyRows (always loaded)
         const empDailyRowsForLeave = dailyRows.filter(
           (d: any) => d.empCd === emp.empCd,
@@ -945,17 +1026,104 @@ export class PayrollComputeService {
             !d.leaveNotAffectCommission,
         ).length;
       }
+      const overtimeDays: Array<
+        OvertimeDayPay & { dateKey: string; workedMinutes: number }
+      > =
+        empDailyRows.flatMap((day: any) => {
+        if (!day.firstIn || !day.lastOut) return [];
+        const date = day.workDate;
+        const dateKey =
+          date instanceof Date
+            ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+            : String(date).slice(0, 10);
+        const firstIn = new Date(day.firstIn).getTime();
+        const lastOut = new Date(day.lastOut).getTime();
+        const actualMinutes = Math.max(
+          0,
+          Math.round((lastOut - firstIn) / 60_000),
+        );
+        const kind = holidayDates.has(dateKey)
+          ? "official_holiday"
+          : !day.shiftId
+            ? "weekly_rest"
+            : "regular";
+        const enabled = overtimeEnabledDays.get(`${emp.empCd}|${dateKey}`);
+        const isEnabled =
+          flags.commOvertime &&
+          (kind === "regular"
+            ? enabled?.out !== false
+            : enabled?.day !== false);
+        if (!isEnabled) return [];
+        return [
+          {
+            dateKey,
+            workedMinutes: actualMinutes,
+            ...calculateOvertimeDayPay({
+              compensationBase: basic,
+              workedMinutes: actualMinutes,
+              kind,
+            }),
+          },
+        ];
+        });
+      overtimeMinutes = overtimeDays.reduce(
+        (sum, day) => sum + day.overtimeMinutes,
+        0,
+      );
+      for (const overtimeDay of overtimeDays) {
+        if (
+          !overtimeDay.requiresAlternativeDay ||
+          !notificationSettings.attendance.enabled
+        ) {
+          continue;
+        }
+        const restDayWarningKey = `weekly-rest-replacement:${emp.empCd}:${overtimeDay.dateKey}`;
+        if (sentLateWarningKeys.has(restDayWarningKey)) continue;
+
+        const replacementDeadline = new Date(
+          `${overtimeDay.dateKey}T12:00:00`,
+        );
+        replacementDeadline.setDate(replacementDeadline.getDate() + 7);
+        const deadlineKey = `${replacementDeadline.getFullYear()}-${String(replacementDeadline.getMonth() + 1).padStart(2, "0")}-${String(replacementDeadline.getDate()).padStart(2, "0")}`;
+        await pushAppNotification({
+          title: "مطلوب يوم راحة بديل",
+          message: `${emp.fullName} عمل يوم راحته الأسبوعية بتاريخ ${overtimeDay.dateKey}. يجب تحديد يوم راحة بديل بحد أقصى ${deadlineKey}.`,
+          kind: "warning",
+          targetRoles: notificationSettings.attendance.managerId
+            ? null
+            : ["admin", "manager"],
+          targetUserIds: notificationSettings.attendance.managerId
+            ? [notificationSettings.attendance.managerId]
+            : null,
+          source: "attendance",
+          entityType: "weekly_rest_replacement",
+          meta: {
+            path: "/attendance/employees",
+            empCd: emp.empCd,
+            workDate: overtimeDay.dateKey,
+            replacementDeadline: deadlineKey,
+            dedupeKey: restDayWarningKey,
+          },
+          channels: {
+            inApp: notificationSettings.attendance.inApp,
+            push: notificationSettings.attendance.push,
+            local: notificationSettings.attendance.local,
+          },
+        }).catch((error) => {
+          console.warn("[Payroll] Failed to send rest-day warning:", error);
+        });
+        sentLateWarningKeys.add(restDayWarningKey);
+      }
       const absentDays = Math.max(0, rawAbsentDays - holidayWorkingDaysCount);
 
       const dailyRate = workingDays > 0 ? basic / workingDays : 0;
       const minuteRate = dailyRate / 360; // 6h × 60min
 
-      const overtimeRate = minuteRate * 2; // ساعة الإضافي = ضعف المعدل العادي
       const absentDeduction = deductionsEnabled
         ? round2(absentDays * dailyRate)
         : 0;
       const missingCheckoutDeduction = deductionsEnabled
-        ? round2(missingCheckoutDays * dailyRate * 0.25)
+        ? calcMissingPunchDeduction(missingCheckoutDays, dailyRate)
         : 0;
 
       // Per-day late tier deduction — always use daily rows for tier classification
@@ -964,19 +1132,94 @@ export class PayrollComputeService {
       );
       const lateDeduction = deductionsEnabled
         ? round2(
-            empDailyRowsForLate.reduce((sum: number, d: any) => {
+            [...empDailyRowsForLate]
+              .sort((a: any, b: any) => {
+                const aDate =
+                  a.workDate instanceof Date
+                    ? a.workDate.getTime()
+                    : new Date(`${String(a.workDate).slice(0, 10)}T12:00:00`).getTime();
+                const bDate =
+                  b.workDate instanceof Date
+                    ? b.workDate.getTime()
+                    : new Date(`${String(b.workDate).slice(0, 10)}T12:00:00`).getTime();
+                return aDate - bDate;
+              })
+              .reduce((state: { deduction: number; linearCount: number }, d: any) => {
               const mins = d.lateMinutes ?? 0;
-              return (
-                sum + calcLateDayTier(mins, dailyRate, minuteRate, lateTiers)
+              const tier = lateTiers.find(
+                (item) =>
+                  mins >= item.minMin &&
+                  (item.maxMin === null || mins <= item.maxMin),
               );
-            }, 0),
+              const linearCount =
+                tier?.type === "linear" ? state.linearCount + 1 : state.linearCount;
+              return {
+                linearCount,
+                deduction:
+                  state.deduction +
+                  calcLateDayTier(
+                    mins,
+                    dailyRate,
+                    minuteRate,
+                    lateTiers,
+                    linearCount,
+                  ),
+              };
+            }, { deduction: 0, linearCount: 0 }).deduction,
           )
         : 0;
+
+      const linearLateCount = empDailyRowsForLate.filter((day: any) => {
+        const minutes = Number(day.lateMinutes ?? 0);
+        return lateTiers.find(
+          (tier) =>
+            minutes >= tier.minMin &&
+            (tier.maxMin === null || minutes <= tier.maxMin),
+        )?.type === "linear";
+      }).length;
+      const lateWarningKey = `late-linear-2:${emp.empCd}:${firstDay}:${lastDay}`;
+      if (
+        linearLateCount >= 2 &&
+        notificationSettings.attendance.enabled &&
+        !sentLateWarningKeys.has(lateWarningKey)
+      ) {
+        const employeeUserId = userIdByEmpCd.get(String(emp.empCd));
+        await pushAppNotification({
+          title: "تنبيه تأخير",
+          message: `${emp.fullName}: تم استهلاك مرتي التأخير المحتسبتين بالدقيقة. أي تأخير خطي قادم خلال دورة المرتب الحالية سيُخصم بربع يوم.`,
+          kind: "warning",
+          targetRoles:
+            employeeUserId || notificationSettings.attendance.managerId
+              ? null
+              : ["admin", "manager"],
+          targetUserIds: employeeUserId
+            ? [employeeUserId]
+            : notificationSettings.attendance.managerId
+              ? [notificationSettings.attendance.managerId]
+              : null,
+          source: "attendance",
+          entityType: "late_recurrence_warning",
+          meta: {
+            path: "/attendance/employees",
+            empCd: emp.empCd,
+            fromDate: firstDay,
+            toDate: lastDay,
+            dedupeKey: lateWarningKey,
+          },
+          channels: {
+            inApp: notificationSettings.attendance.inApp,
+            push: notificationSettings.attendance.push,
+            local: notificationSettings.attendance.local,
+          },
+        }).catch((error) => {
+          console.warn("[Payroll] Failed to send late warning:", error);
+        });
+        sentLateWarningKeys.add(lateWarningKey);
+      }
 
       const earlyLeaveDeduction = deductionsEnabled
         ? round2(earlyLeaveMinutes * minuteRate)
         : 0;
-      const overtimePayRaw = round2(overtimeMinutes * overtimeRate);
       const penaltyDeduction = deductionsEnabled
         ? round2(
             penalties
@@ -1024,14 +1267,13 @@ export class PayrollComputeService {
           : deductionsEnabled
             ? leaveMultiplier(leaveDays)
             : 1;
-      // Only insurance is excluded from the commission deduction basis
+      // Insurance affects take-home salary only, not commission eligibility.
       const deductionsForComm = round2(
         absentDeduction +
           missingCheckoutDeduction +
           lateDeduction +
           earlyLeaveDeduction +
-          penaltyDeduction +
-          advancesDeduction,
+          penaltyDeduction,
       );
       const deductionPctForComm =
         basic > 0 ? Math.min(1, deductionsForComm / basic) : 0;
@@ -1046,15 +1288,6 @@ export class PayrollComputeService {
           : deductionsEnabled
             ? attendanceCommissionRate(leaveDays, acRates)
             : acRates.r3;
-
-      const flags = commFlagsMap.get(emp.empCd) ?? {
-        commAttendance: true,
-        commExam: true,
-        commPentacam: true,
-        commDay10: true,
-        commOvertime: true,
-      };
-      const overtimePay = flags.commOvertime ? overtimePayRaw : 0;
 
       const attendanceCommissionRaw = flags.commAttendance
         ? round2(acRate * basic)
@@ -1082,17 +1315,27 @@ export class PayrollComputeService {
           examCommissionRaw = round2((examPool / 3) * empShares);
         }
       }
-      const examCommission = round2(examCommissionRaw * commMult);
       const netForRatio = netForRatioMap.get(emp.empCd) ?? 0;
-      const pentacamCommissionRaw =
+      const examCommission = isMarkaz && flags.commExam
+        ? calcAdjustedCommission(
+            examCommissionRaw,
+            basic,
+            netForRatio,
+            lm,
+          )
+        : round2(examCommissionRaw * commMult);
+      const pentacamShare =
         isMarkaz && flags.commPentacam
-          ? round2(
-              totalSumForPentacam > 0
-                ? (netForRatio / totalSumForPentacam) * pentacamPool
-                : 0,
+          ? calcWeightedCommissionShare(
+              pentacamPool,
+              basic,
+              totalGrossForPentacam,
+              netForRatio,
+              lm,
             )
-          : 0;
-      const pentacamCommission = round2(pentacamCommissionRaw * commMult);
+          : { raw: 0, payable: 0 };
+      const pentacamCommissionRaw = pentacamShare.raw;
+      const pentacamCommission = pentacamShare.payable;
       const costOfLivingAllowancePay =
         flags.commDay10 && netBasic > 0 ? round2(costOfLivingAllowance) : 0;
       const transportAllowancePay =
@@ -1106,6 +1349,38 @@ export class PayrollComputeService {
           pentacamCommission +
           day10Allowances,
       );
+      const overtimeNetBasic = round2(
+        Math.max(
+          0,
+          basic -
+            absentDeduction -
+            missingCheckoutDeduction -
+            lateDeduction -
+            earlyLeaveDeduction -
+            penaltyDeduction,
+        ),
+      );
+      const overtimeCompensationBase = round2(
+        calculateOvertimeCompensationBase({
+          netBasic: overtimeNetBasic,
+          totalCommission,
+          day10Allowances,
+        }),
+      );
+      const overtimePay = flags.commOvertime
+        ? round2(
+            overtimeDays.reduce(
+              (sum, day) =>
+                sum +
+                calculateOvertimeDayPay({
+                  compensationBase: overtimeCompensationBase,
+                  workedMinutes: day.workedMinutes,
+                  kind: day.kind,
+                }).overtimePay,
+              0,
+            ),
+          )
+        : 0;
       const totalPay = round2(netBasic + totalCommission + overtimePay);
 
       results.push({
@@ -1169,6 +1444,52 @@ export class PayrollComputeService {
       const totalDeductions = round2(absentDeduction + punchDeduction);
       const netBasic = netPay;
       const settings = getShiftEmployeeSettings(ss);
+      const overtimeDays: Array<
+        OvertimeDayPay & { dateKey: string; workedMinutes: number }
+      > = ss.empCd
+        ? dailyRows
+            .filter((day: any) => day.empCd === ss.empCd)
+            .flatMap((day: any) => {
+              if (!day.firstIn || !day.lastOut) return [];
+              const dateKey = fmtDate(day.workDate);
+              const firstIn = new Date(day.firstIn).getTime();
+              const lastOut = new Date(day.lastOut).getTime();
+              const workedMinutes = Math.max(
+                0,
+                Math.round((lastOut - firstIn) / 60_000),
+              );
+              const kind = holidayDates.has(dateKey)
+                ? "official_holiday"
+                : !day.shiftId
+                  ? "weekly_rest"
+                  : "regular";
+              const enabled = overtimeEnabledDays.get(
+                `${ss.empCd}|${dateKey}`,
+              );
+              const isEnabled =
+                settings.commOvertime &&
+                (kind === "regular"
+                  ? enabled?.out !== false
+                  : enabled?.day !== false);
+              if (!isEnabled) return [];
+
+              return [
+                {
+                  dateKey,
+                  workedMinutes,
+                  ...calculateOvertimeDayPay({
+                    compensationBase: basicSalary,
+                    workedMinutes,
+                    kind,
+                  }),
+                },
+              ];
+            })
+        : [];
+      const overtimeMinutes = overtimeDays.reduce(
+        (sum, day) => sum + day.overtimeMinutes,
+        0,
+      );
 
       const attendanceCommissionRaw = settings.commAttendance
         ? round2(settings.attendanceRate * netBasic)
@@ -1176,24 +1497,26 @@ export class PayrollComputeService {
       const attendanceCommission = round2(
         attendanceCommissionRaw * settings.commissionMultiplier,
       );
-      const examCommission =
-        settings.commExam &&
-        scheduled > 0 &&
-        totalCountForExam > 0 &&
-        netBasic > 0
-          ? round2(
-              (examPoolEmpsTechs / totalCountForExam) *
-                settings.commissionMultiplier,
-            )
+      const examCommissionRaw =
+        settings.commExam && scheduled > 0 && totalCountForExam > 0
+          ? round2(examPoolEmpsTechs / totalCountForExam)
           : 0;
-      const pentacamCommission =
-        settings.commPentacam && totalSumForPentacam > 0
-          ? round2(
-              (netBasic / totalSumForPentacam) *
-                pentacamPool *
-                settings.commissionMultiplier,
-            )
-          : 0;
+      const examCommission = calcAdjustedCommission(
+        examCommissionRaw,
+        grossPay,
+        netBasic,
+        settings.commissionMultiplier,
+      );
+      const pentacamShare = settings.commPentacam
+        ? calcWeightedCommissionShare(
+            pentacamPool,
+            grossPay,
+            totalGrossForPentacam,
+            netBasic,
+            settings.commissionMultiplier,
+          )
+        : { raw: 0, payable: 0 };
+      const pentacamCommission = pentacamShare.payable;
       const costOfLivingAllowancePay =
         settings.commDay10 && netBasic > 0 ? round2(costOfLivingAllowance) : 0;
       const transportAllowancePay =
@@ -1207,7 +1530,30 @@ export class PayrollComputeService {
           costOfLivingAllowancePay +
           transportAllowancePay,
       );
-      const totalPay = round2(netBasic + totalCommission);
+      const overtimeCompensationBase = round2(
+        calculateOvertimeCompensationBase({
+          netBasic,
+          totalCommission,
+          day10Allowances: round2(
+            costOfLivingAllowancePay + transportAllowancePay,
+          ),
+        }),
+      );
+      const overtimePay = settings.commOvertime
+        ? round2(
+            overtimeDays.reduce(
+              (sum, day) =>
+                sum +
+                calculateOvertimeDayPay({
+                  compensationBase: overtimeCompensationBase,
+                  workedMinutes: day.workedMinutes,
+                  kind: day.kind,
+                }).overtimePay,
+              0,
+            ),
+          )
+        : 0;
+      const totalPay = round2(netBasic + totalCommission + overtimePay);
 
       results.push({
         empCd: `shift_${ss.id}`,
@@ -1219,7 +1565,7 @@ export class PayrollComputeService {
         absentDays: absent,
         lateMinutes: 0,
         earlyLeaveMinutes: 0,
-        overtimeMinutes: 0,
+        overtimeMinutes,
         leaveDays: 0,
         absentDeduction,
         lateDeduction: punchDeduction,
@@ -1234,28 +1580,28 @@ export class PayrollComputeService {
         attendanceCommission,
         attendanceCommissionRaw,
         examCommission,
-        examCommissionRaw: examCommission,
+        examCommissionRaw,
         pentacamCommission,
-        pentacamCommissionRaw: pentacamCommission,
+        pentacamCommissionRaw: pentacamShare.raw,
         costOfLivingAllowance: costOfLivingAllowancePay,
         transportAllowance: transportAllowancePay,
         totalCommission,
-        overtimePay: 0,
+        overtimePay,
         totalPay,
       });
     }
 
-    // Doctors: each commission by salary proportion within doctors only
+    // Doctors: distribute by full shift value, then apply net ratio and leave rules.
     const sumDoctorExamBasics = doctors
       .filter((ss: any) => getShiftEmployeeSettings(ss).commExam)
       .reduce(
-        (s: any, ss: any) => s + (shiftStatsMap.get(ss.id)?.netPay ?? 0),
+        (s: any, ss: any) => s + (shiftStatsMap.get(ss.id)?.grossPay ?? 0),
         0,
       );
     const sumDoctorPentacamBasics = doctors
       .filter((ss: any) => getShiftEmployeeSettings(ss).commPentacam)
       .reduce(
-        (s: any, ss: any) => s + (shiftStatsMap.get(ss.id)?.netPay ?? 0),
+        (s: any, ss: any) => s + (shiftStatsMap.get(ss.id)?.grossPay ?? 0),
         0,
       );
     for (const ss of doctors) {
@@ -1286,22 +1632,26 @@ export class PayrollComputeService {
       const attendanceCommission = round2(
         attendanceCommissionRaw * settings.commissionMultiplier,
       );
-      const examCommission =
-        settings.commExam && sumDoctorExamBasics > 0
-          ? round2(
-              (netBasic / sumDoctorExamBasics) *
-                examPoolDrs *
-                settings.commissionMultiplier,
-            )
-          : 0;
-      const pentacamCommission =
-        settings.commPentacam && sumDoctorPentacamBasics > 0
-          ? round2(
-              (netBasic / sumDoctorPentacamBasics) *
-                pentacamDrPool *
-                settings.commissionMultiplier,
-            )
-          : 0;
+      const examShare = settings.commExam
+        ? calcWeightedCommissionShare(
+            examPoolDrs,
+            grossPay,
+            sumDoctorExamBasics,
+            netBasic,
+            settings.commissionMultiplier,
+          )
+        : { raw: 0, payable: 0 };
+      const examCommission = examShare.payable;
+      const pentacamShare = settings.commPentacam
+        ? calcWeightedCommissionShare(
+            pentacamDrPool,
+            grossPay,
+            sumDoctorPentacamBasics,
+            netBasic,
+            settings.commissionMultiplier,
+          )
+        : { raw: 0, payable: 0 };
+      const pentacamCommission = pentacamShare.payable;
       const costOfLivingAllowancePay =
         settings.commDay10 && netBasic > 0 ? round2(costOfLivingAllowance) : 0;
       const transportAllowancePay =
@@ -1340,9 +1690,9 @@ export class PayrollComputeService {
         attendanceCommission,
         attendanceCommissionRaw,
         examCommission,
-        examCommissionRaw: examCommission,
+        examCommissionRaw: examShare.raw,
         pentacamCommission,
-        pentacamCommissionRaw: pentacamCommission,
+        pentacamCommissionRaw: pentacamShare.raw,
         costOfLivingAllowance: costOfLivingAllowancePay,
         transportAllowance: transportAllowancePay,
         totalCommission,

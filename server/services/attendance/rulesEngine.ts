@@ -13,7 +13,11 @@ export interface Shift {
   graceLateMin: number; // Default: 15 (Taratus: Adjusted value)
   graceEarlyMin: number; // Default: 15 (Taratus: Adjusted value)
   allowOT: boolean; // If false, overtime is never counted regardless of hours worked
+  allowOTIn?: boolean;
+  allowOTOut?: boolean;
   otMinMinutes?: number; // minimum minutes of OT before it counts (0 = any)
+  otMinInMinutes?: number;
+  otMinOutMinutes?: number;
   otMaxMinutes?: number; // cap on OT minutes per day (0 = unlimited)
   breakMinutes: number;
   weekdayMask: number; // bits 0-6: Sun-Sat; used to skip rest days
@@ -53,6 +57,8 @@ export interface DayResult {
   workedMinutes: number | null; // null if missing checkout
   lateMinutes: number;
   earlyLeaveMin: number;
+  overtimeInMinutes: number;
+  overtimeOutMinutes: number;
   overtimeMinutes: number;
   status:
     | "present"
@@ -163,6 +169,8 @@ export function computeDay(ctx: DayContext): DayResult {
     workedMinutes: null,
     lateMinutes: 0,
     earlyLeaveMin: 0,
+    overtimeInMinutes: 0,
+    overtimeOutMinutes: 0,
     overtimeMinutes: 0,
     status: "absent",
     insideNow: false,
@@ -175,8 +183,9 @@ export function computeDay(ctx: DayContext): DayResult {
     return result;
   }
 
-  // Override if holiday
-  if (ctx.isHoliday) {
+  // A holiday without punches needs no further attendance calculation. When
+  // punches exist, retain them so payroll can approve a full extra day.
+  if (ctx.isHoliday && ctx.punches.length === 0) {
     result.status = "holiday";
     return result;
   }
@@ -245,6 +254,10 @@ export function computeDay(ctx: DayContext): DayResult {
 
   const inMs = paired.firstIn.getTime();
   const outMs = paired.lastOut.getTime();
+  const allowOTIn = ctx.shift.allowOTIn ?? ctx.shift.allowOT;
+  const allowOTOut = ctx.shift.allowOTOut ?? ctx.shift.allowOT;
+  const otMinIn = ctx.shift.otMinInMinutes ?? ctx.shift.otMinMinutes ?? 0;
+  const otMinOut = ctx.shift.otMinOutMinutes ?? ctx.shift.otMinMinutes ?? 0;
 
   if (ctx.shift.isFlexible) {
     // Flexible shift: lateness counted only after flexInTo; early-leave before flexOutFrom
@@ -265,17 +278,36 @@ export function computeDay(ctx: DayContext): DayResult {
       }
     }
 
-    // OT: worked beyond flexOutTo
-    if (ctx.shift.allowOT && ctx.shift.flexOutTo) {
+    if (allowOTIn && ctx.shift.flexInFrom) {
+      const flexInFromHm = parseTime(ctx.shift.flexInFrom);
+      if (flexInFromHm) {
+        const minIn = buildDateTime(ctx.workDate, flexInFromHm).getTime();
+        if (inMs < minIn) {
+          result.overtimeInMinutes = applyOTMinimum(
+            Math.round((minIn - inMs) / 60_000),
+            otMinIn,
+          );
+        }
+      }
+    }
+
+    // Departure OT: worked beyond flexOutTo.
+    if (allowOTOut && ctx.shift.flexOutTo) {
       const flexOutToHm = parseTime(ctx.shift.flexOutTo);
       if (flexOutToHm) {
         const maxOut = buildDateTime(ctx.workDate, flexOutToHm).getTime();
         if (outMs > maxOut && result.workedMinutes) {
-          result.overtimeMinutes = Math.round((outMs - maxOut) / 60_000);
+          result.overtimeOutMinutes = applyOTMinimum(
+            Math.round((outMs - maxOut) / 60_000),
+            otMinOut,
+          );
         }
       }
     }
-    result.overtimeMinutes = clampOT(result.overtimeMinutes, ctx.shift);
+    result.overtimeMinutes = capOTTotal(
+      result.overtimeInMinutes + result.overtimeOutMinutes,
+      ctx.shift.otMaxMinutes,
+    );
   } else {
     // Fixed shift: use startTime / endTime
     const shiftStartHm = parseTime(ctx.shift.startTime);
@@ -303,16 +335,22 @@ export function computeDay(ctx: DayContext): DayResult {
       result.earlyLeaveMin = Math.max(0, earlyMin - ctx.shift.graceEarlyMin);
     }
 
-    const shiftDurationMin =
-      (shiftEndDt.getTime() - shiftStartDt.getTime()) / 60_000 - ctx.breakMinutes;
-    if (
-      ctx.shift.allowOT &&
-      result.workedMinutes &&
-      result.workedMinutes > shiftDurationMin
-    ) {
-      result.overtimeMinutes = clampOT(
-        Math.round(result.workedMinutes - shiftDurationMin),
-        ctx.shift,
+    if (allowOTIn || allowOTOut) {
+      if (allowOTIn && inMs < shiftStartDt.getTime()) {
+        result.overtimeInMinutes = applyOTMinimum(
+          Math.round((shiftStartDt.getTime() - inMs) / 60_000),
+          otMinIn,
+        );
+      }
+      if (allowOTOut && outMs > shiftEndDt.getTime()) {
+        result.overtimeOutMinutes = applyOTMinimum(
+          Math.round((outMs - shiftEndDt.getTime()) / 60_000),
+          otMinOut,
+        );
+      }
+      result.overtimeMinutes = capOTTotal(
+        result.overtimeInMinutes + result.overtimeOutMinutes,
+        ctx.shift.otMaxMinutes,
       );
     }
   }
@@ -322,6 +360,7 @@ export function computeDay(ctx: DayContext): DayResult {
   if (result.lateMinutes > 0 || result.earlyLeaveMin > 0) {
     result.status = "partial";
   }
+  if (ctx.isHoliday) result.status = "holiday";
 
   // Inside now
   if (
@@ -404,12 +443,12 @@ export function ymd(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function clampOT(minutes: number, shift: Pick<Shift, "otMinMinutes" | "otMaxMinutes">): number {
-  const min = shift.otMinMinutes ?? 0;
-  const max = shift.otMaxMinutes ?? 0;
-  if (minutes < min) return 0;
-  if (max > 0 && minutes > max) return max;
-  return minutes;
+function applyOTMinimum(minutes: number, minimum: number): number {
+  return minutes < minimum ? 0 : minutes;
+}
+
+function capOTTotal(minutes: number, maximum = 0): number {
+  return maximum > 0 ? Math.min(minutes, maximum) : minutes;
 }
 
 function parseTime(hm: string): { h: number; m: number } | null {

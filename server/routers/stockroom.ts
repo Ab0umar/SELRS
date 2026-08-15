@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { router, makeStockroomProcedure, makeStockroomWriteProcedure } from "../_core/procedures";
+import {
+  router,
+  makeStockroomProcedure,
+  makeStockroomWriteProcedure,
+} from "../_core/procedures";
 import * as db from "../db";
 import { TRPCError } from "@trpc/server";
 
@@ -68,7 +72,9 @@ export const stockroomRouter = router({
           itemCode: input.newItem.itemCode,
           supplier: input.newItem.supplier,
           category: input.newItem.category,
-          expiryDate: input.newItem.expiryDate ? new Date(input.newItem.expiryDate) : undefined,
+          expiryDate: input.newItem.expiryDate
+            ? new Date(input.newItem.expiryDate)
+            : undefined,
           quantity: 0,
           status: "متوفر",
         });
@@ -88,7 +94,9 @@ export const stockroomRouter = router({
         quantity: input.quantity,
         unitPrice: input.unitPrice ? String(input.unitPrice) : null,
         totalValue: input.totalValue ? String(input.totalValue) : null,
-        transactionDate: input.transactionDate ? (input.transactionDate as any) : null,
+        transactionDate: input.transactionDate
+          ? (input.transactionDate as any)
+          : null,
         performedBy: ctx.user?.username || "system",
       });
     }),
@@ -99,7 +107,7 @@ export const stockroomRouter = router({
         itemId: z.number(),
         quantity: z.number(),
         employeeName: z.string().optional(),
-        destination: z.string().optional(),
+        destination: z.enum(["بيع", "عمليات", "عيادات"]),
         transactionDate: z.string().optional(),
       }),
     )
@@ -121,7 +129,9 @@ export const stockroomRouter = router({
         quantity: input.quantity,
         employeeName: input.employeeName,
         destination: input.destination,
-        transactionDate: input.transactionDate ? (input.transactionDate as any) : null,
+        transactionDate: input.transactionDate
+          ? (input.transactionDate as any)
+          : null,
         performedBy: ctx.user?.username || "system",
       });
     }),
@@ -134,14 +144,30 @@ export const stockroomRouter = router({
         itemCode: z.string().optional(),
         supplier: z.string().optional(),
         expiryDate: z.string().nullable().optional(),
+        unitPrice: z.number().min(0).optional(),
       }),
     )
-    .mutation(async ({ input }) => {
-      const { id, expiryDate, ...rest } = input;
+    .mutation(async ({ input, ctx }) => {
+      const { id, expiryDate, unitPrice, ...rest } = input;
       const updates: Record<string, any> = { ...rest };
       if (expiryDate !== undefined)
         updates.expiryDate = expiryDate ? new Date(expiryDate) : null;
       await db.updateStockItem(id, updates);
+
+      if (unitPrice !== undefined) {
+        await db.insertStockTransaction({
+          itemId: id,
+          type: "add",
+          quantity: 0,
+          unitPrice: String(unitPrice),
+          totalValue: "0",
+          employeeName: "تعديل سعر الصنف",
+          destination: "تعديل سعر",
+          transactionDate: new Date().toISOString().slice(0, 10) as any,
+          performedBy: ctx.user?.username || "system",
+        });
+      }
+
       return { success: true };
     }),
 

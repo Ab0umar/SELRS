@@ -2,7 +2,8 @@ model = "gpt-5.5"
 model_reasoning_effort = "medium"
 approvals_reviewer = "user"
 service_tier = "fast"
-sandbox_mode = "workspace-write"
+sandbox_mode = "danger-full-access"
+model_verbosity = "low"
 [notice]
 hide_rate_limit_model_nudge = true
 hide_full_access_warning = true
@@ -71,12 +72,6 @@ trust_level = "trusted"
 [projects.'e:\selrs.cc']
 trust_level = "trusted"
 
-[projects.'e:\selrs.cc']
-trust_level = "trusted"
-
-[projects.'e:\selrs.cc']
-trust_level = "trusted"
-
 [projects.'c:\']
 trust_level = "trusted"
 
@@ -137,3 +132,33 @@ enabled = false
 [mcp_servers.socraticode]
 command = "npx"
 args = ["-y", "socraticode"]
+
+[mcp_servers.socraticode.tools.codebase_about]
+approval_mode = "approve"
+
+[mcp_servers.socraticode.tools.codebase_health]
+approval_mode = "approve"
+
+[mcp_servers.socraticode.tools.codebase_status]
+approval_mode = "approve"
+
+[mcp_servers.socraticode.tools.codebase_watch]
+approval_mode = "approve"
+
+[mcp_servers.socraticode.tools.codebase_index]
+approval_mode = "approve"
+
+[mcp_servers.socraticode.tools.codebase_stop]
+approval_mode = "approve"
+
+[mcp_servers.socraticode.tools.codebase_search]
+approval_mode = "approve"
+
+[mcp_servers.socraticode.tools.codebase_symbols]
+approval_mode = "approve"
+
+[mcp_servers.socraticode.tools.codebase_symbol]
+approval_mode = "approve"
+
+[sandbox_workspace_write]
+network_access = true

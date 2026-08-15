@@ -132,6 +132,38 @@ export async function findExistingPatientByNameOrPhone(
   return null;
 }
 
+export async function findExistingPatientByNameAgeAndPhone(
+  fullNameRaw?: string | null,
+  ageRaw?: number | null,
+  phoneRaw?: string | null,
+) {
+  const fullName = String(fullNameRaw ?? "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+  const age = Number(ageRaw);
+  const phone = normalizePhoneKey(phoneRaw);
+  if (!fullName || !Number.isFinite(age) || age < 0 || !phone) return null;
+
+  const candidates = await db.searchPatients(fullName);
+  return (
+    candidates.find((candidate: any) => {
+      const candidateName = String(candidate?.fullName ?? "")
+        .trim()
+        .replace(/\s+/g, " ")
+        .toLowerCase();
+      const candidateAge = Number(candidate?.age);
+      const candidatePhone = normalizePhoneKey(candidate?.phone);
+      return (
+        candidateName === fullName &&
+        Number.isFinite(candidateAge) &&
+        candidateAge === age &&
+        candidatePhone === phone
+      );
+    }) ?? null
+  );
+}
+
 export async function findExistingPatientByPhoneAndDob(
   phoneRaw?: string | null,
   dateOfBirthRaw?: string | null,
@@ -228,6 +260,7 @@ export async function resolveServiceCodeForType(
 
 export async function pushNewPatientToMssql(patient: {
   patientCode: string;
+  allocatePatientCode?: boolean;
   fullName: string;
   phone?: string | null;
   address?: string | null;
@@ -257,6 +290,7 @@ export async function pushNewPatientToMssql(patient: {
 
   return await insertPatientToMssql({
     patientCode: patient.patientCode,
+    allocatePatientCode: patient.allocatePatientCode,
     fullName: patient.fullName,
     phone: patient.phone,
     address: patient.address,

@@ -147,6 +147,15 @@ function isWebPushSubscription(token: string): boolean {
   return t.startsWith("{") || t.startsWith("[");
 }
 
+async function disableInvalidPushDeviceToken(token: string) {
+  await db.disablePushDeviceToken(token).catch((error) => {
+    console.warn(
+      `[FCM] Failed to disable token ${token.slice(0, 12)}...:`,
+      error,
+    );
+  });
+}
+
 export async function sendFcmPushToRegisteredDevices(payload: FcmPushPayload) {
   const credentials = getFcmCredentials();
   if (!credentials) {
@@ -196,7 +205,7 @@ export async function sendFcmPushToRegisteredDevices(payload: FcmPushPayload) {
       continue;
     }
     if (isWebPushSubscription(token)) {
-      await db.disablePushDeviceToken(token).catch(() => {});
+      await disableInvalidPushDeviceToken(token);
       skipped += 1;
       continue;
     }
@@ -272,7 +281,7 @@ export async function sendFcmPushToRegisteredDevices(payload: FcmPushPayload) {
 
     const detail = await response.text().catch(() => "");
     if (isInvalidTokenResponse(response.status, detail)) {
-      await db.disablePushDeviceToken(token).catch(() => {});
+      await disableInvalidPushDeviceToken(token);
     }
     skipped += 1;
     console.warn(

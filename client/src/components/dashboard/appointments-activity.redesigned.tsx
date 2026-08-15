@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,7 +43,7 @@ import { DateInput } from "@/components/ui/date-input";
 import { buildPrintUrl } from "@/lib/print";
 
 type MainTab = "patients" | "operations" | "bookings";
-type QueueFilter = "all" | QueueStatus | "bookings";
+type QueueFilter = "confirmed" | "treated";
 
 const PRINT_SHEET_TYPES = [
   { value: "consultant", label: "كشف" },
@@ -52,11 +53,7 @@ const PRINT_SHEET_TYPES = [
 ] as const;
 
 const QUEUE_FILTERS: { value: QueueFilter; label: string }[] = [
-  { value: "bookings", label: "حجز" },
-  { value: "checkedIn", label: "تسجيل" },
-  { value: "next", label: "التالي" },
-  { value: "clinic1", label: "عيادة 1" },
-  { value: "clinic2", label: "عيادة 2" },
+  { value: "confirmed", label: "مؤكد" },
   { value: "treated", label: "معالج" },
 ];
 
@@ -166,10 +163,13 @@ export function AppointmentsSection({
   };
 
   const [mainTab, setMainTab] = useState<MainTab>("patients");
-  const [queueFilter, setQueueFilter] = useState<QueueFilter>("all");
+  const [queueFilter, setQueueFilter] = useState<QueueFilter>("confirmed");
+  const [showExternal, setShowExternal] = useState(false);
 
-  const { merged, isLoading, byStatus } =
-    useTodayQueuePatientsMerged(selectedDate);
+  const { merged, isLoading, byStatus } = useTodayQueuePatientsMerged(
+    selectedDate,
+    { includeExternal: showExternal },
+  );
 
   // ── Portal bookings for the selected date ───────────────────────────────
   const bookingsQuery = (trpc as any).patientPortal.listBookings.useQuery(
@@ -326,29 +326,30 @@ export function AppointmentsSection({
 
   const counts = useMemo(
     () => ({
-      all: merged.length,
-      bookings: bookingsForDate.length,
-      checkedIn: byStatus.checkedIn.length,
-      next: byStatus.next.length,
-      clinic1: byStatus.clinic1.length,
-      clinic2: byStatus.clinic2.length,
+      confirmed:
+        byStatus.checkedIn.length +
+        byStatus.next.length +
+        byStatus.clinic1.length +
+        byStatus.clinic2.length +
+        byStatus.pentacam.length,
       treated: byStatus.treated.length,
     }),
     [
-      merged.length,
-      bookingsForDate.length,
       byStatus.checkedIn.length,
       byStatus.next.length,
       byStatus.clinic1.length,
       byStatus.clinic2.length,
+      byStatus.pentacam.length,
       byStatus.treated.length,
     ],
   );
 
   const filteredPatients = useMemo(() => {
-    if (queueFilter === "all" || queueFilter === "bookings") return merged;
-    return merged.filter((p) => p.queueStatus === queueFilter);
-  }, [queueFilter, merged]);
+    if (queueFilter === "confirmed") {
+      return merged.filter((patient) => patient.queueStatus !== "treated");
+    }
+    return byStatus.treated;
+  }, [queueFilter, merged, byStatus.treated]);
 
   const todayPatientIds = useMemo(
     () => merged.map((p) => p.id).filter(Boolean),
@@ -363,8 +364,7 @@ export function AppointmentsSection({
     },
   );
   const medicalStatuses = medicalStatusQuery.data as
-    | Record<number, PatientMedicalStatus>
-    | undefined;
+    Record<number, PatientMedicalStatus> | undefined;
 
   return (
     <div className="space-y-4">
@@ -443,7 +443,7 @@ export function AppointmentsSection({
             "px-4 py-1.5 text-xs font-black rounded-xl transition-all duration-150 cursor-pointer flex items-center gap-2",
             mainTab === "patients"
               ? "bg-white text-slate-900 shadow-sm"
-              : "text-slate-500 hover:text-slate-900"
+              : "text-slate-500 hover:text-slate-900",
           )}
           onClick={() => setMainTab("patients")}
         >
@@ -456,7 +456,7 @@ export function AppointmentsSection({
             "px-4 py-1.5 text-xs font-black rounded-xl transition-all duration-150 cursor-pointer flex items-center gap-2",
             mainTab === "operations"
               ? "bg-white text-slate-900 shadow-sm"
-              : "text-slate-500 hover:text-slate-900"
+              : "text-slate-500 hover:text-slate-900",
           )}
           onClick={() => setMainTab("operations")}
         >
@@ -469,15 +469,17 @@ export function AppointmentsSection({
             "relative px-4 py-1.5 text-xs font-black rounded-xl transition-all duration-150 cursor-pointer flex items-center gap-2",
             mainTab === "bookings"
               ? "bg-white text-slate-900 shadow-sm"
-              : "text-slate-500 hover:text-slate-900"
+              : "text-slate-500 hover:text-slate-900",
           )}
           onClick={() => setMainTab("bookings")}
         >
           <CalendarPlus className="h-4 w-4" />
           حجز
-          {(bookingsForDate.length + (scheduleRequestsQuery.data?.length ?? 0)) > 0 && (
+          {bookingsForDate.length + (scheduleRequestsQuery.data?.length ?? 0) >
+            0 && (
             <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white font-mono shadow-sm">
-              {bookingsForDate.length + (scheduleRequestsQuery.data?.length ?? 0)}
+              {bookingsForDate.length +
+                (scheduleRequestsQuery.data?.length ?? 0)}
             </span>
           )}
         </button>
@@ -485,56 +487,41 @@ export function AppointmentsSection({
 
       {mainTab === "patients" ? (
         <>
-          <div className="flex flex-wrap gap-2 pt-1">
-            {QUEUE_FILTERS.map(({ value, label }) => {
-              const n = (counts as Record<string, number>)[value] ?? 0;
-              const active = queueFilter === value;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setQueueFilter(value)}
-                  className={cn(
-                    "rounded-xl border px-3.5 py-1.5 text-xs font-black transition-all shadow-xs cursor-pointer",
-                    active
-                      ? "border-slate-900 bg-slate-900 text-white shadow-md shadow-slate-900/10"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-350 hover:bg-slate-50",
-                  )}
-                >
-                  {label}{" "}
-                  <span className="font-mono opacity-80 text-[10px] font-semibold">
-                    ({n.toLocaleString("ar-EG")})
-                  </span>
-                </button>
-              );
-            })}
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+            <div className="flex flex-wrap gap-2">
+              {QUEUE_FILTERS.map(({ value, label }) => {
+                const n = (counts as Record<string, number>)[value] ?? 0;
+                const active = queueFilter === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setQueueFilter(value)}
+                    className={cn(
+                      "rounded-xl border px-3.5 py-1.5 text-xs font-black transition-all shadow-xs cursor-pointer",
+                      active
+                        ? "border-slate-900 bg-slate-900 text-white shadow-md shadow-slate-900/10"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-350 hover:bg-slate-50",
+                    )}
+                  >
+                    {label}{" "}
+                    <span className="font-mono opacity-80 text-[10px] font-semibold">
+                      ({n.toLocaleString("ar-EG")})
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-600">
+              <Checkbox
+                checked={showExternal}
+                onCheckedChange={(checked) => setShowExternal(checked === true)}
+              />
+              إظهار حالات الخارج
+            </label>
           </div>
 
-          {queueFilter === "bookings" ? (
-            <BookingsAndQueueView
-              bookingsForDate={bookingsForDate}
-              bookingsLoading={bookingsQuery.isLoading}
-              scheduleRequests={(scheduleRequestsQuery.data ?? []) as any[]}
-              scheduleRequestsLoading={scheduleRequestsQuery.isLoading}
-              queuePatients={merged}
-              queueLoading={isLoading}
-              medicalStatuses={medicalStatuses}
-              onSelectPatient={handleSelectPatient}
-              onMarkVisitTreated={(visitId, patient) =>
-                markVisitTreated.mutate({
-                  visitId,
-                  queueStatus: "treated",
-                  patientId: patient.id,
-                  date: selectedDate,
-                })
-              }
-              markVisitTreatedPendingVisitId={
-                markVisitTreated.isPending
-                  ? (markVisitTreated.variables?.visitId ?? null)
-                  : null
-              }
-            />
-          ) : isLoading ? (
+          {isLoading ? (
             <p className="py-10 text-center text-sm text-muted-foreground">
               جاري التحميل…
             </p>
@@ -610,7 +597,8 @@ export function AppointmentsSection({
                 <Skeleton key={i} className="h-20 rounded-xl" />
               ))}
             </div>
-          ) : bookingsForDate.length === 0 && (scheduleRequestsQuery.data?.length ?? 0) === 0 ? (
+          ) : bookingsForDate.length === 0 &&
+            (scheduleRequestsQuery.data?.length ?? 0) === 0 ? (
             <div className="flex min-h-[220px] flex-col items-center justify-center px-4 py-12 text-center text-sm text-muted-foreground">
               لا توجد حجوزات لهذا اليوم
             </div>
@@ -710,18 +698,31 @@ function BookingCard({ booking }: { booking: any }) {
   });
   const name = booking.patientName ?? booking.guestName ?? "—";
   const code = booking.patientCode ?? (booking.isGuest ? "زائر" : "جديد");
-  const type = BOOKING_TYPES_AR[booking.bookingType] ?? booking.typeLabel ?? booking.bookingType;
-  const stStyle = BOOKING_STATUS_STYLE[booking.status] ?? BOOKING_STATUS_STYLE.completed;
+  const type =
+    BOOKING_TYPES_AR[booking.bookingType] ??
+    booking.typeLabel ??
+    booking.bookingType;
+  const stStyle =
+    BOOKING_STATUS_STYLE[booking.status] ?? BOOKING_STATUS_STYLE.completed;
   const stAr = BOOKING_STATUS_AR[booking.status] ?? booking.status;
   return (
     <div className={cn("rounded-xl border p-3 shadow-sm", stStyle)}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-foreground">{name}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">{code} · {type}</p>
+          <p className="truncate text-sm font-semibold text-foreground">
+            {name}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {code} · {type}
+          </p>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
-          <span className={cn("rounded-full border px-2 py-0.5 text-[11px] font-medium", stStyle)}>
+          <span
+            className={cn(
+              "rounded-full border px-2 py-0.5 text-[11px] font-medium",
+              stStyle,
+            )}
+          >
             {stAr}
           </span>
           {booking.patientId ? (
@@ -729,7 +730,12 @@ function BookingCard({ booking }: { booking: any }) {
               <button
                 type="button"
                 title="طباعة روشتة"
-                onClick={() => window.open(buildPrintUrl(`/prescription/${booking.patientId}`), "_blank")}
+                onClick={() =>
+                  window.open(
+                    buildPrintUrl(`/prescription/${booking.patientId}`),
+                    "_blank",
+                  )
+                }
                 className="text-muted-foreground hover:text-error transition-colors"
                 aria-label="طباعة روشتة"
               >
@@ -738,7 +744,12 @@ function BookingCard({ booking }: { booking: any }) {
               <button
                 type="button"
                 title="طباعة طلب تحاليل"
-                onClick={() => window.open(buildPrintUrl(`/request-tests/${booking.patientId}`), "_blank")}
+                onClick={() =>
+                  window.open(
+                    buildPrintUrl(`/request-tests/${booking.patientId}`),
+                    "_blank",
+                  )
+                }
                 className="text-muted-foreground hover:text-error transition-colors"
                 aria-label="طباعة طلب تحاليل"
               >
@@ -758,7 +769,9 @@ function BookingCard({ booking }: { booking: any }) {
         </div>
       </div>
       {booking.staffNotes ? (
-        <p className="mt-2 truncate text-xs text-muted-foreground">{booking.staffNotes}</p>
+        <p className="mt-2 truncate text-xs text-muted-foreground">
+          {booking.staffNotes}
+        </p>
       ) : null}
     </div>
   );
@@ -828,7 +841,9 @@ function BookingsAndQueueView({
           </p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {bookingsForDate.map((b) => <BookingCard key={b.id} booking={b} />)}
+            {bookingsForDate.map((b) => (
+              <BookingCard key={b.id} booking={b} />
+            ))}
           </div>
         )}
       </div>
@@ -851,7 +866,9 @@ function BookingsAndQueueView({
                 medicalStatus={medicalStatuses?.[patient.id]}
                 onSelectPatient={() => onSelectPatient(patient)}
                 markVisitTreatedPendingVisitId={markVisitTreatedPendingVisitId}
-                onMarkVisitTreated={(visitId) => onMarkVisitTreated(visitId, patient)}
+                onMarkVisitTreated={(visitId) =>
+                  onMarkVisitTreated(visitId, patient)
+                }
               />
             ))}
           </div>
@@ -928,6 +945,15 @@ function QueuePatientCard({
             >
               {queueStatusLabelsAr[st] ?? st}
             </Badge>
+            {["clinic1", "clinic2", "pentacam"].includes(st) ? (
+              <Badge variant="outline" className="max-w-full text-[10px]">
+                {st === "clinic1"
+                  ? "عيادة 1"
+                  : st === "clinic2"
+                    ? "عيادة 2"
+                    : "بنتاكام"}
+              </Badge>
+            ) : null}
           </div>
         </div>
         <div className="mt-2.5 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 border-t border-border/50 pt-2 text-sm">
@@ -981,9 +1007,14 @@ function QueuePatientCard({
                     key={value}
                     onClick={(e) => {
                       e.stopPropagation();
-                      const isFollowup = (patient as any).visitType === "followup";
-                      const suffix = isFollowup ? "/followup" : "";
-                      window.open(`/sheets/${value}/${patient.id}${suffix}?original=1`, "_blank");
+                      const query = new URLSearchParams({ original: "1" });
+                      if ((patient as any).visitType === "followup") {
+                        query.set("includeFollowups", "1");
+                      }
+                      window.open(
+                        `/sheets/${value}/${patient.id}?${query.toString()}`,
+                        "_blank",
+                      );
                     }}
                   >
                     {label}
@@ -1024,7 +1055,10 @@ function QueuePatientCard({
                 <DropdownMenuItem
                   onClick={(e) => {
                     e.stopPropagation();
-                    window.open(`/medical-condition-report/${patient.id}`, "_blank");
+                    window.open(
+                      `/medical-condition-report/${patient.id}`,
+                      "_blank",
+                    );
                   }}
                 >
                   تقرير حالة طبية
@@ -1038,7 +1072,10 @@ function QueuePatientCard({
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-500 hover:text-error"
               onClick={(e) => {
                 e.stopPropagation();
-                window.open(buildPrintUrl(`/prescription/${patient.id}`), "_blank");
+                window.open(
+                  buildPrintUrl(`/prescription/${patient.id}`),
+                  "_blank",
+                );
               }}
             >
               <Pill className="h-4 w-4" aria-hidden />
@@ -1050,7 +1087,10 @@ function QueuePatientCard({
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-500 hover:text-error"
               onClick={(e) => {
                 e.stopPropagation();
-                window.open(buildPrintUrl(`/request-tests/${patient.id}`), "_blank");
+                window.open(
+                  buildPrintUrl(`/request-tests/${patient.id}`),
+                  "_blank",
+                );
               }}
             >
               <FlaskConical className="h-4 w-4" aria-hidden />

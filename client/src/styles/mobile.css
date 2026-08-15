@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Arabic:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -55,33 +56,33 @@
 
 :root {
   /* SELRS Brand Colors */
-  --selrs-navy: #003d82;
+  --selrs-navy: #101a86;
   --selrs-orange: #ff9500;
-  --selrs-dark-blue: #001f47;
-  --selrs-light-blue: #e8f0f8;
+  --selrs-dark-blue: #111754;
+  --selrs-light-blue: #f1f3ff;
   --selrs-light-orange: #ffe8cc;
-  --primary: #003d82;
-  --primary-foreground: #ffffff;
-  --sidebar-primary: #003d82;
-  --sidebar-primary-foreground: #ffffff;
-  --chart-1: #003d82;
-  --chart-2: #0052a3;
+  --primary: #12178a;
+  --primary-foreground: #fbfbff;
+  --sidebar-primary: #12178a;
+  --sidebar-primary-foreground: #fbfbff;
+  --chart-1: #12178a;
+  --chart-2: #2930a8;
   --chart-3: #ff9500;
   --chart-4: #ffb84d;
-  --chart-5: #d7e7f7;
-  --radius: 0.65rem;
-  --background: #fbfdff;
-  --foreground: #001f47;
-  --card: #ffffff;
-  --card-foreground: #001f47;
-  --popover: #ffffff;
-  --popover-foreground: #001f47;
-  --secondary: #ff9500;
-  --secondary-foreground: #001f47;
-  --muted: #e8f0f8;
-  --muted-foreground: #4b5563;
-  --accent: #ff9500;
-  --accent-foreground: #001f47;
+  --chart-5: #eff2ff;
+  --radius: 0.75rem;
+  --background: #fdfcff;
+  --foreground: #23252d;
+  --card: #fefeff;
+  --card-foreground: #23252d;
+  --popover: #fefeff;
+  --popover-foreground: #23252d;
+  --secondary: #eef2ff;
+  --secondary-foreground: #111754;
+  --muted: #f1f3ff;
+  --muted-foreground: #747481;
+  --accent: #12178a;
+  --accent-foreground: #fbfbff;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
   --success: #10b981;
@@ -92,15 +93,15 @@
   --warning-foreground: #92400e;
   --error: #ef4444;
   --error-foreground: #ffffff;
-  --border: #e5e7eb;
-  --input: #e5e7eb;
-  --ring: #003d82;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #001f47;
-  --sidebar-accent: #e8f0f8;
-  --sidebar-accent-foreground: #001f47;
-  --sidebar-border: #e5e7eb;
-  --sidebar-ring: #003d82;
+  --border: #e8e8f2;
+  --input: #e5e5ef;
+  --ring: #12178a;
+  --sidebar: #fefeff;
+  --sidebar-foreground: #23252d;
+  --sidebar-accent: #f1f3ff;
+  --sidebar-accent-foreground: #111754;
+  --sidebar-border: #e8e8f2;
+  --sidebar-ring: #12178a;
   --destructive-text: #b91c1c;
   --success-text: #047857;
   --warning-text: #92400e;
@@ -158,12 +159,18 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family:
+      "Inter",
+      "Noto Sans Arabic",
+      "Segoe UI",
+      system-ui,
+      sans-serif;
+    font-size: 15px;
+    font-weight: 400;
     direction: rtl;
     unicode-bidi: plaintext;
     text-align: start;
-    background-image:
-      radial-gradient(circle at top, rgba(0, 61, 130, 0.08), transparent 22%),
-      linear-gradient(180deg, #fbfdff 0%, #f8fafc 100%);
+    background-image: linear-gradient(180deg, #fefeff 0%, #fafbff 100%);
     background-attachment: fixed;
   }
   .dark html {
@@ -347,19 +354,22 @@
   }
 
   html {
-    font-size: 14px;
+    font-size: 15px;
   }
   body {
-    line-height: 1.35;
+    line-height: 1.45;
   }
   h1 {
-    font-size: 1.35rem;
+    font-size: 1.42rem;
+    font-weight: 700;
   }
   h2 {
-    font-size: 1.15rem;
+    font-size: 1.24rem;
+    font-weight: 600;
   }
   h3 {
-    font-size: 1.05rem;
+    font-size: 1.08rem;
+    font-weight: 600;
   }
   input,
   textarea,
@@ -1755,6 +1765,60 @@ select {
   }
 }
 
+/* Native light mode: utility-app surfaces matched to the reference mobile style. */
+@media screen and (max-width: 640px) {
+  html:not(.dark) :where(body, .selrs-page-bg) {
+    color: #23252d !important;
+    background: #fdfcff !important;
+  }
+
+  html:not(.dark) :where(
+      [data-slot="card"],
+      [data-slot="tabs-list"],
+      .sheet-section-card,
+      .sheet-collapsible,
+      .patient-portal-frame,
+      .patient-guest-content,
+      .salary-table-redesign :where(.overflow-x-auto, .overflow-auto):has(> table)
+    ) {
+    border: 1px solid #e8e8f2 !important;
+    background: #fefeff !important;
+    color: #23252d !important;
+    box-shadow: 0 1px 2px rgba(17, 23, 84, 0.04) !important;
+  }
+
+  html:not(.dark) :where([class*="bg-white"], [class*="bg-card"], [class*="bg-slate-50"], [class*="bg-slate-100"]) {
+    background-color: #fefeff !important;
+  }
+
+  html:not(.dark) :where([class*="text-slate-950"], [class*="text-slate-900"], [class*="text-slate-800"]) {
+    color: #23252d !important;
+  }
+
+  html:not(.dark) :where([class*="text-slate-700"], [class*="text-slate-600"], [class*="text-muted-foreground"]) {
+    color: #747481 !important;
+  }
+
+  html:not(.dark) :where(.text-primary, strong, b) {
+    color: #12178a !important;
+  }
+
+  html:not(.dark) :where(button, [role="button"], input, textarea, select, [data-slot="tabs-trigger"]) {
+    border-color: #e8e8f2 !important;
+    font-family: inherit;
+    letter-spacing: 0;
+  }
+
+  html:not(.dark) :where(input, textarea, select) {
+    background-color: #fefeff !important;
+    color: #23252d !important;
+  }
+
+  html:not(.dark) :where([data-slot="tabs-trigger"][data-state="active"], .bg-primary) {
+    background-color: #12178a !important;
+    color: #fbfbff !important;
+  }
+}
 /* Native dark mode: Messenger/SamMobile-style surfaces across every mobile page. */
 @media screen and (max-width: 640px) {
   .dark :where(

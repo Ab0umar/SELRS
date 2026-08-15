@@ -171,9 +171,18 @@ export const medicalExaminationsRoutes = {
       // autoref/IOP/glasses fields belong exclusively to autorefractometryData /
       // glassesRecords — never duplicate them onto the examinations row itself.
       const DEDICATED_TABLE_ONLY_FIELDS = [
-        "sphereOD", "sphereOS", "cylinderOD", "cylinderOS",
-        "axisOD", "axisOS", "ucvaOD", "ucvaOS",
-        "bcvaOD", "bcvaOS", "iopOD", "iopOS",
+        "sphereOD",
+        "sphereOS",
+        "cylinderOD",
+        "cylinderOS",
+        "axisOD",
+        "axisOS",
+        "ucvaOD",
+        "ucvaOS",
+        "bcvaOD",
+        "bcvaOS",
+        "iopOD",
+        "iopOS",
         "glassesData",
       ] as const;
       const examinationUpdates = { ...input.updates };
@@ -403,7 +412,9 @@ export const medicalExaminationsRoutes = {
       }),
     )
     .mutation(async ({ input }) => {
-      await db.updateVisit(input.visitId, { chiefComplaint: input.chiefComplaint });
+      await db.updateVisit(input.visitId, {
+        chiefComplaint: input.chiefComplaint,
+      });
       return { success: true };
     }),
 
@@ -470,7 +481,21 @@ export const medicalExaminationsRoutes = {
     .input(
       z.object({
         patientId: z.number(),
-        sheetType: z.enum(["consultant", "specialist", "lasik", "surgery", "external", "pentacam_c", "pentacam_ex", "pentacam_ex_c", "surgery_external", "surgery_center", "pentacam_center", "pentacam_external"]),
+        sheetType: z.enum([
+          "consultant",
+          "specialist",
+          "lasik",
+          "surgery",
+          "external",
+          "pentacam_c",
+          "pentacam_ex",
+          "pentacam_ex_c",
+          "surgery_external",
+          "surgery_center",
+          "pentacam_center",
+          "pentacam_external",
+        ]),
+        appendMode: z.boolean().optional(),
         followupItems: z.array(
           z.object({
             tableIndex: z.number(),
@@ -510,13 +535,15 @@ export const medicalExaminationsRoutes = {
       );
       let nextVersion = 1;
 
+      let currentItems: any[] = [];
       if (sheet) {
         // Check if current version is full (4 items with dates)
-        const items = await db.getFollowupItemsBySheet(sheet.id);
-        const fullItems = items.filter((i: any) => i.followupDate);
+        currentItems = await db.getFollowupItemsBySheet(sheet.id);
+        const fullItems = currentItems.filter((i: any) => i.followupDate);
         if (fullItems.length >= 4) {
           nextVersion = sheet.version + 1;
           sheet = null; // Create new sheet
+          currentItems = [];
         }
       }
 
@@ -540,9 +567,17 @@ export const medicalExaminationsRoutes = {
       for (const item of input.followupItems) {
         if (!item.followupDate) continue; // Skip empty items
 
-        const existingItem = await db.getFollowupItemsBySheet(sheet.id);
-        const existingIndex = existingItem.find(
-          (i: any) => i.tableIndex === item.tableIndex,
+        const existingItems = await db.getFollowupItemsBySheet(sheet.id);
+        const usedIndexes = new Set(
+          existingItems
+            .filter((entry: any) => entry.followupDate)
+            .map((entry: any) => Number(entry.tableIndex)),
+        );
+        const targetTableIndex = input.appendMode
+          ? ([0, 1, 2, 3].find((index) => !usedIndexes.has(index)) ?? 0)
+          : item.tableIndex;
+        const existingIndex = existingItems.find(
+          (i: any) => i.tableIndex === targetTableIndex,
         );
 
         if (existingIndex) {
@@ -571,7 +606,7 @@ export const medicalExaminationsRoutes = {
         } else {
           await db.createFollowupItem({
             followupSheetId: sheet.id,
-            tableIndex: item.tableIndex,
+            tableIndex: targetTableIndex,
             followupDate: item.followupDate
               ? new Date(item.followupDate)
               : null,
@@ -663,7 +698,20 @@ export const medicalExaminationsRoutes = {
     .input(
       z.object({
         patientId: z.number(),
-        sheetType: z.enum(["consultant", "specialist", "lasik", "surgery", "external", "pentacam_c", "pentacam_ex", "pentacam_ex_c", "surgery_external", "surgery_center", "pentacam_center", "pentacam_external"]),
+        sheetType: z.enum([
+          "consultant",
+          "specialist",
+          "lasik",
+          "surgery",
+          "external",
+          "pentacam_c",
+          "pentacam_ex",
+          "pentacam_ex_c",
+          "surgery_external",
+          "surgery_center",
+          "pentacam_center",
+          "pentacam_external",
+        ]),
       }),
     )
     .query(async ({ input }) => {
@@ -969,7 +1017,20 @@ export const medicalExaminationsRoutes = {
     .input(
       z.object({
         patientId: z.number(),
-        sheetType: z.enum(["consultant", "specialist", "lasik", "surgery", "external", "pentacam_c", "pentacam_ex", "pentacam_ex_c", "surgery_external", "surgery_center", "pentacam_center", "pentacam_external"]),
+        sheetType: z.enum([
+          "consultant",
+          "specialist",
+          "lasik",
+          "surgery",
+          "external",
+          "pentacam_c",
+          "pentacam_ex",
+          "pentacam_ex_c",
+          "surgery_external",
+          "surgery_center",
+          "pentacam_center",
+          "pentacam_external",
+        ]),
         content: z.string(),
       }),
     )
@@ -1273,15 +1334,13 @@ export const medicalExaminationsRoutes = {
       const autorefractionOd: Record<string, any> =
         (input.data["autoref-od"] as Record<string, any> | undefined) ??
         ((input.data["autoref"] as any)?.od as
-          | Record<string, any>
-          | undefined) ??
+          Record<string, any> | undefined) ??
         (autorefractionPayload?.od as Record<string, any> | undefined) ??
         flatAutorefractionOd;
       const autorefractionOs: Record<string, any> =
         (input.data["autoref-os"] as Record<string, any> | undefined) ??
         ((input.data["autoref"] as any)?.os as
-          | Record<string, any>
-          | undefined) ??
+          Record<string, any> | undefined) ??
         (autorefractionPayload?.os as Record<string, any> | undefined) ??
         flatAutorefractionOs;
 
@@ -1343,13 +1402,17 @@ export const medicalExaminationsRoutes = {
       // DB is a remote server (network round trip per query) — these four
       // lookups are independent (all keyed only by visitId), so fetch them
       // concurrently instead of paying 4 sequential round trips.
-      const [existingExams, existingReports, existingRequests, existingPrescriptions] =
-        await Promise.all([
-          db.getExaminationsByVisit(visitId),
-          db.getDoctorReportsByVisit(visitId),
-          db.getTestRequestsByVisit(visitId),
-          db.getPrescriptionsWithItemsByVisit(visitId),
-        ]);
+      const [
+        existingExams,
+        existingReports,
+        existingRequests,
+        existingPrescriptions,
+      ] = await Promise.all([
+        db.getExaminationsByVisit(visitId),
+        db.getDoctorReportsByVisit(visitId),
+        db.getTestRequestsByVisit(visitId),
+        db.getPrescriptionsWithItemsByVisit(visitId),
+      ]);
 
       // Ensure there is one examination row per visit (FK target for dedicated exam tables).
       if (existingExams.length > 0) {
@@ -2062,7 +2125,14 @@ export const medicalExaminationsRoutes = {
     .input(
       z.object({
         visitId: z.number(),
-        queueStatus: z.enum(["checkedIn", "next", "clinic1", "clinic2", "pentacam", "treated"]),
+        queueStatus: z.enum([
+          "checkedIn",
+          "next",
+          "clinic1",
+          "clinic2",
+          "pentacam",
+          "treated",
+        ]),
         patientId: z.number().optional(),
         date: z.string().optional(),
       }),
@@ -2233,7 +2303,14 @@ export const medicalExaminationsRoutes = {
     .input(
       z.object({
         date: z.string().optional(),
-        queueStatus: z.enum(["checkedIn", "next", "clinic1", "clinic2", "pentacam", "treated"]),
+        queueStatus: z.enum([
+          "checkedIn",
+          "next",
+          "clinic1",
+          "clinic2",
+          "pentacam",
+          "treated",
+        ]),
       }),
     )
     .query(async ({ input }) => {

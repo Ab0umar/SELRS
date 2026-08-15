@@ -95,6 +95,7 @@ const OVERVIEW_ROW_LIMIT = 5000;
 const OVERVIEW_PAGE_SIZE = 50;
 const ACTIVE_DAYS = 30;
 const EXPIRED_AFTER_DAYS = 120;
+const DEFAULT_LOW_STOCK_THRESHOLD = 10;
 
 const MOJIBAKE_HINT = /[ØÙÃÂ]/;
 
@@ -6157,14 +6158,29 @@ export async function saveOperationList(data: {
     throw new Error(`Duplicate receipt number in list: ${duplicateInPayload}`);
   }
   const patientCodes = data.items
-    .map((item) => String(item.code ?? "").trim())
+    .map((item) =>
+      String(item.code ?? "")
+        .trim()
+        .toLowerCase(),
+    )
     .filter((value) => value.length > 0);
   const duplicateCodeInPayload = patientCodes.find(
-    (value, idx) => patientCodes.indexOf(value) !== idx,
+    (value, idx) => value !== "0000" && patientCodes.indexOf(value) !== idx,
   );
   if (duplicateCodeInPayload) {
     throw new Error(
       `Patient code cannot be repeated: ${duplicateCodeInPayload}`,
+    );
+  }
+  const patientPhones = data.items
+    .map((item) => String(item.phone ?? "").replace(/\D/g, ""))
+    .filter((value) => value.length > 0);
+  const duplicatePhoneInPayload = patientPhones.find(
+    (value, idx) => patientPhones.indexOf(value) !== idx,
+  );
+  if (duplicatePhoneInPayload) {
+    throw new Error(
+      `Patient phone cannot be repeated in the same list: ${duplicatePhoneInPayload}`,
     );
   }
 
@@ -6194,43 +6210,6 @@ export async function saveOperationList(data: {
       .limit(1);
     listId = existing.length > 0 ? existing[0].id : null;
   }
-  if (receiptNumbers.length > 0) {
-    const conflicts = await db
-      .select({
-        listId: operationListItems.listId,
-        number: operationListItems.number,
-      })
-      .from(operationListItems)
-      .where(inArray(operationListItems.number, receiptNumbers));
-    const conflict = conflicts.find((row: any) => {
-      if (!row?.number) return false;
-      if (!listId) return true;
-      return Number(row.listId) !== Number(listId);
-    });
-    if (conflict?.number) {
-      throw new Error(`Receipt number already exists: ${conflict.number}`);
-    }
-  }
-  if (patientCodes.length > 0) {
-    const codeConflicts = await db
-      .select({
-        listId: operationListItems.listId,
-        code: operationListItems.code,
-      })
-      .from(operationListItems)
-      .where(inArray(operationListItems.code, patientCodes));
-    const codeConflict = codeConflicts.find((row: any) => {
-      if (!row?.code) return false;
-      if (!listId) return true;
-      return Number(row.listId) !== Number(listId);
-    });
-    if (codeConflict?.code) {
-      throw new Error(
-        `Patient code already exists in another record: ${codeConflict.code}`,
-      );
-    }
-  }
-
   if (!listId) {
     await db.insert(operationLists).values({
       doctorTab: data.doctorTab,
@@ -7559,15 +7538,19 @@ export async function getPatientOperationsByType(input: {
   const matchingRawTypes = await rawOperationTypesForCanonical(
     input.operationType,
   );
+  const normalizedQuery = String(input.query ?? "").trim();
+  if (normalizedQuery.length > 255) {
+    throw new Error("Search query must be 255 characters or fewer");
+  }
   const typeCondition = matchingRawTypes.length
     ? inArray(patientOperations.operationType, matchingRawTypes)
     : sql`1 = 0`;
-  const whereClause = input.query
+  const whereClause = normalizedQuery
     ? and(
         typeCondition,
         or(
-          like(patients.fullName, `%${input.query}%`),
-          like(patients.patientCode, `%${input.query}%`),
+          like(patients.fullName, `%${normalizedQuery}%`),
+          like(patients.patientCode, `%${normalizedQuery}%`),
         ),
       )
     : typeCondition;
@@ -7984,6 +7967,8 @@ export async function autoAdvanceQueuePatients(dateIso: string) {
   // for cascade to pull into clinic1/clinic2), never force-treated.
   const { clinic: clinicCodes, pentacam: pentacamCodes } =
     await getQueueServiceCodeSets();
+  const pentacamVisitIds: number[] = [];
+  const treatedVisitIds: number[] = [];
   for (const row of checkedInRows) {
     const codes = servicesByPatient.get(row.patientId) ?? new Set<string>();
     const hasClinicCode =
@@ -7997,22 +7982,29 @@ export async function autoAdvanceQueuePatients(dateIso: string) {
     if (hasClinicCode) {
       continue;
     } else if (hasPentacamCode) {
-      await conn
-        .update(visits)
-        .set({
-          queueStatus: "pentacam" as any,
-          movedToPentacamAt: sql`CURRENT_TIMESTAMP`,
-        })
-        .where(eq(visits.id, row.id));
+      pentacamVisitIds.push(row.id);
     } else {
-      await conn
-        .update(visits)
-        .set({
-          queueStatus: "treated" as any,
-          treatedAt: sql`CURRENT_TIMESTAMP`,
-        })
-        .where(eq(visits.id, row.id));
+      treatedVisitIds.push(row.id);
     }
+  }
+
+  if (pentacamVisitIds.length > 0) {
+    await conn
+      .update(visits)
+      .set({
+        queueStatus: "pentacam" as any,
+        movedToPentacamAt: sql`CURRENT_TIMESTAMP`,
+      })
+      .where(inArray(visits.id, pentacamVisitIds));
+  }
+  if (treatedVisitIds.length > 0) {
+    await conn
+      .update(visits)
+      .set({
+        queueStatus: "treated" as any,
+        treatedAt: sql`CURRENT_TIMESTAMP`,
+      })
+      .where(inArray(visits.id, treatedVisitIds));
   }
 }
 
@@ -8054,8 +8046,13 @@ export async function deleteAllPatients() {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
+  console.warn(
+    "[CRITICAL] deleteAllPatients() is deleting every patient record",
+  );
   const result = await db.delete(patients);
-  return { deletedCount: 0 };
+  return {
+    deletedCount: Number((result as any)?.[0]?.affectedRows ?? 0),
+  };
 }
 
 /**
@@ -8419,14 +8416,13 @@ export async function insertStockTransaction(data: InsertStockTransaction) {
 
     if (newQuantity < 0) throw new Error("Insufficient stock quantity");
 
-    // 4. Update item quantity and status
-    let status: "متوفر" | "كمية قليلة" | "نفذ المخزون" = "متوفر";
-    if (newQuantity === 0) status = "نفذ المخزون";
-    else if (newQuantity < 10) status = "كمية قليلة"; // Threshold can be item-specific in real app
-
     await tx
       .update(stockItems)
-      .set({ quantity: newQuantity, status, updatedAt: new Date() })
+      .set({
+        quantity: newQuantity,
+        status: stockStatusForQuantity(newQuantity),
+        updatedAt: new Date(),
+      })
       .where(eq(stockItems.id, data.itemId));
 
     return { txId, newQuantity };
@@ -8435,9 +8431,10 @@ export async function insertStockTransaction(data: InsertStockTransaction) {
 
 function stockStatusForQuantity(
   quantity: number,
+  lowStockThreshold = DEFAULT_LOW_STOCK_THRESHOLD,
 ): "متوفر" | "كمية قليلة" | "نفذ المخزون" {
   if (quantity === 0) return "نفذ المخزون";
-  if (quantity < 10) return "كمية قليلة";
+  if (quantity < lowStockThreshold) return "كمية قليلة";
   return "متوفر";
 }
 
@@ -8548,7 +8545,9 @@ export async function getStockTransactions(limit = 500) {
       unitPrice: stockTransactions.unitPrice,
       totalValue: stockTransactions.totalValue,
       employeeName: stockTransactions.employeeName,
+      destination: stockTransactions.destination,
       performedBy: stockTransactions.performedBy,
+      transactionDate: stockTransactions.transactionDate,
       createdAt: stockTransactions.createdAt,
       itemName: stockItems.name,
       itemCategory: stockItems.category,

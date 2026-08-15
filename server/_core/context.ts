@@ -38,8 +38,7 @@ export async function createContext(
   try {
     const raw = opts.req.headers["x-patient-token"] as string | undefined;
     if (raw) {
-      const secret = ENV.JWT_SECRET || "dev-only-change-me";
-      const payload = jwt.verify(raw, secret) as any;
+      const payload = jwt.verify(raw, ENV.JWT_SECRET) as any;
       if (
         payload?.type === "patient" &&
         typeof payload?.patientId === "number"
@@ -59,8 +58,7 @@ export async function createContext(
   try {
     const raw = opts.req.headers["x-doctor-token"] as string | undefined;
     if (raw) {
-      const secret = ENV.JWT_SECRET || "dev-only-change-me";
-      const payload = jwt.verify(raw, secret) as any;
+      const payload = jwt.verify(raw, ENV.JWT_SECRET) as any;
       if (
         payload?.type === "externalDoctor" &&
         typeof payload?.doctorId === "number"

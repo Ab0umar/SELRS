@@ -250,21 +250,71 @@ function permMatchesPath(clean: string, pagePath: string): boolean {
   return clean === pagePath || pagePath.startsWith(clean + "/");
 }
 
+export function makePageProcedure(pagePath: string) {
+  return t.procedure.use(
+    t.middleware(async (opts) => {
+      const { ctx, next } = opts;
+      if (!ctx.user) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
+        });
+      }
+      if (ctx.user.role === "admin") {
+        return next({ ctx: { ...ctx, user: ctx.user } });
+      }
+
+      const permissions = await db.getEffectiveUserPermissions(
+        ctx.user.id,
+        ctx.user.role ?? undefined,
+      );
+      const canAccessPage = permissions.some((permission) => {
+        const clean = String(permission ?? "")
+          .replace(/:r[w]?$/, "")
+          .trim();
+        return permMatchesPath(clean, pagePath);
+      });
+
+      if (!canAccessPage) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Page permission required",
+        });
+      }
+
+      return next({ ctx: { ...ctx, user: ctx.user } });
+    }),
+  );
+}
+
 // KF per-page factory (admin + accountant bypass)
 export function makeKfProcedure(pagePath: string) {
   return t.procedure.use(
     t.middleware(async (opts) => {
       const { ctx, next } = opts;
       if (!ctx.user)
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
+        });
       if (ctx.user.role === "admin" || ctx.user.role === "accountant")
         return next({ ctx: { ...ctx, user: ctx.user } });
-      const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+      const permissions = await db.getEffectiveUserPermissions(
+        ctx.user.id,
+        ctx.user.role ?? undefined,
+      );
       const ok = permissions.some((p) => {
-        const clean = String(p ?? "").trim().replace(/:r[w]?$/, "").trim();
+        const clean = String(p ?? "")
+          .trim()
+          .replace(/:r[w]?$/, "")
+          .trim();
         return permMatchesPath(clean, pagePath);
       });
-      if (!ok) throw new TRPCError({ code: "FORBIDDEN", message: "KF access required" });
+      if (!ok)
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "KF access required",
+        });
       return next({ ctx: { ...ctx, user: ctx.user } });
     }),
   );
@@ -275,17 +325,27 @@ export function makeKfWriteProcedure(pagePath: string) {
     t.middleware(async (opts) => {
       const { ctx, next } = opts;
       if (!ctx.user)
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
+        });
       if (ctx.user.role === "admin" || ctx.user.role === "accountant")
         return next({ ctx: { ...ctx, user: ctx.user } });
-      const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+      const permissions = await db.getEffectiveUserPermissions(
+        ctx.user.id,
+        ctx.user.role ?? undefined,
+      );
       const ok = permissions.some((p) => {
         const raw = String(p ?? "").trim();
         if (raw.endsWith(":r") && !raw.endsWith(":rw")) return false;
         const clean = raw.replace(/:rw$/, "").trim();
         return permMatchesPath(clean, pagePath);
       });
-      if (!ok) throw new TRPCError({ code: "FORBIDDEN", message: "KF write access required" });
+      if (!ok)
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "KF write access required",
+        });
       return next({ ctx: { ...ctx, user: ctx.user } });
     }),
   );
@@ -297,15 +357,28 @@ export function makeAccProcedure(pagePath: string) {
     t.middleware(async (opts) => {
       const { ctx, next } = opts;
       if (!ctx.user)
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
+        });
       if (ctx.user.role === "admin")
         return next({ ctx: { ...ctx, user: ctx.user } });
-      const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+      const permissions = await db.getEffectiveUserPermissions(
+        ctx.user.id,
+        ctx.user.role ?? undefined,
+      );
       const ok = permissions.some((p) => {
-        const clean = String(p ?? "").trim().replace(/:r[w]?$/, "").trim();
+        const clean = String(p ?? "")
+          .trim()
+          .replace(/:r[w]?$/, "")
+          .trim();
         return permMatchesPath(clean, pagePath);
       });
-      if (!ok) throw new TRPCError({ code: "FORBIDDEN", message: "Accounting access required" });
+      if (!ok)
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Accounting access required",
+        });
       return next({ ctx: { ...ctx, user: ctx.user } });
     }),
   );
@@ -316,17 +389,27 @@ export function makeAccWriteProcedure(pagePath: string) {
     t.middleware(async (opts) => {
       const { ctx, next } = opts;
       if (!ctx.user)
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
+        });
       if (ctx.user.role === "admin")
         return next({ ctx: { ...ctx, user: ctx.user } });
-      const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+      const permissions = await db.getEffectiveUserPermissions(
+        ctx.user.id,
+        ctx.user.role ?? undefined,
+      );
       const ok = permissions.some((p) => {
         const raw = String(p ?? "").trim();
         if (raw.endsWith(":r") && !raw.endsWith(":rw")) return false;
         const clean = raw.replace(/:rw$/, "").trim();
         return permMatchesPath(clean, pagePath);
       });
-      if (!ok) throw new TRPCError({ code: "FORBIDDEN", message: "Accounting write access required" });
+      if (!ok)
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Accounting write access required",
+        });
       return next({ ctx: { ...ctx, user: ctx.user } });
     }),
   );
@@ -338,15 +421,28 @@ export function makeAttProcedure(pagePath: string) {
     t.middleware(async (opts) => {
       const { ctx, next } = opts;
       if (!ctx.user)
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
+        });
       if (ctx.user.role === "admin" || ctx.user.role === "manager")
         return next({ ctx: { ...ctx, user: ctx.user } });
-      const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+      const permissions = await db.getEffectiveUserPermissions(
+        ctx.user.id,
+        ctx.user.role ?? undefined,
+      );
       const ok = permissions.some((p) => {
-        const clean = String(p ?? "").trim().replace(/:r[w]?$/, "").trim();
+        const clean = String(p ?? "")
+          .trim()
+          .replace(/:r[w]?$/, "")
+          .trim();
         return permMatchesPath(clean, pagePath);
       });
-      if (!ok) throw new TRPCError({ code: "FORBIDDEN", message: "Attendance access required" });
+      if (!ok)
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Attendance access required",
+        });
       return next({ ctx: { ...ctx, user: ctx.user } });
     }),
   );
@@ -357,17 +453,27 @@ export function makeAttWriteProcedure(pagePath: string) {
     t.middleware(async (opts) => {
       const { ctx, next } = opts;
       if (!ctx.user)
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
+        });
       if (ctx.user.role === "admin" || ctx.user.role === "manager")
         return next({ ctx: { ...ctx, user: ctx.user } });
-      const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+      const permissions = await db.getEffectiveUserPermissions(
+        ctx.user.id,
+        ctx.user.role ?? undefined,
+      );
       const ok = permissions.some((p) => {
         const raw = String(p ?? "").trim();
         if (raw.endsWith(":r") && !raw.endsWith(":rw")) return false;
         const clean = raw.replace(/:rw$/, "").trim();
         return permMatchesPath(clean, pagePath);
       });
-      if (!ok) throw new TRPCError({ code: "FORBIDDEN", message: "Attendance write access required" });
+      if (!ok)
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Attendance write access required",
+        });
       return next({ ctx: { ...ctx, user: ctx.user } });
     }),
   );
@@ -379,15 +485,28 @@ export function makeStockroomProcedure(pagePath: string) {
     t.middleware(async (opts) => {
       const { ctx, next } = opts;
       if (!ctx.user)
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
+        });
       if (ctx.user.role === "admin")
         return next({ ctx: { ...ctx, user: ctx.user } });
-      const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+      const permissions = await db.getEffectiveUserPermissions(
+        ctx.user.id,
+        ctx.user.role ?? undefined,
+      );
       const ok = permissions.some((p) => {
-        const clean = String(p ?? "").trim().replace(/:r[w]?$/, "").trim();
+        const clean = String(p ?? "")
+          .trim()
+          .replace(/:r[w]?$/, "")
+          .trim();
         return permMatchesPath(clean, pagePath);
       });
-      if (!ok) throw new TRPCError({ code: "FORBIDDEN", message: "Stockroom access required" });
+      if (!ok)
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Stockroom access required",
+        });
       return next({ ctx: { ...ctx, user: ctx.user } });
     }),
   );
@@ -398,17 +517,27 @@ export function makeStockroomWriteProcedure(pagePath: string) {
     t.middleware(async (opts) => {
       const { ctx, next } = opts;
       if (!ctx.user)
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
+        });
       if (ctx.user.role === "admin")
         return next({ ctx: { ...ctx, user: ctx.user } });
-      const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+      const permissions = await db.getEffectiveUserPermissions(
+        ctx.user.id,
+        ctx.user.role ?? undefined,
+      );
       const ok = permissions.some((p) => {
         const raw = String(p ?? "").trim();
         if (raw.endsWith(":r") && !raw.endsWith(":rw")) return false;
         const clean = raw.replace(/:rw$/, "").trim();
         return permMatchesPath(clean, pagePath);
       });
-      if (!ok) throw new TRPCError({ code: "FORBIDDEN", message: "Stockroom write access required" });
+      if (!ok)
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Stockroom write access required",
+        });
       return next({ ctx: { ...ctx, user: ctx.user } });
     }),
   );
@@ -420,15 +549,28 @@ export function makeSalaryProcedure(pagePath: string) {
     t.middleware(async (opts) => {
       const { ctx, next } = opts;
       if (!ctx.user)
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
+        });
       if (ctx.user.role === "admin" || ctx.user.role === "manager")
         return next({ ctx: { ...ctx, user: ctx.user } });
-      const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+      const permissions = await db.getEffectiveUserPermissions(
+        ctx.user.id,
+        ctx.user.role ?? undefined,
+      );
       const ok = permissions.some((p) => {
-        const clean = String(p ?? "").trim().replace(/:r[w]?$/, "").trim();
+        const clean = String(p ?? "")
+          .trim()
+          .replace(/:r[w]?$/, "")
+          .trim();
         return permMatchesPath(clean, pagePath);
       });
-      if (!ok) throw new TRPCError({ code: "FORBIDDEN", message: "Salary access required" });
+      if (!ok)
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Salary access required",
+        });
       return next({ ctx: { ...ctx, user: ctx.user } });
     }),
   );
@@ -439,17 +581,27 @@ export function makeSalaryWriteProcedure(pagePath: string) {
     t.middleware(async (opts) => {
       const { ctx, next } = opts;
       if (!ctx.user)
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
+        });
       if (ctx.user.role === "admin" || ctx.user.role === "manager")
         return next({ ctx: { ...ctx, user: ctx.user } });
-      const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+      const permissions = await db.getEffectiveUserPermissions(
+        ctx.user.id,
+        ctx.user.role ?? undefined,
+      );
       const ok = permissions.some((p) => {
         const raw = String(p ?? "").trim();
         if (raw.endsWith(":r") && !raw.endsWith(":rw")) return false;
         const clean = raw.replace(/:rw$/, "").trim();
         return permMatchesPath(clean, pagePath);
       });
-      if (!ok) throw new TRPCError({ code: "FORBIDDEN", message: "Salary write access required" });
+      if (!ok)
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Salary write access required",
+        });
       return next({ ctx: { ...ctx, user: ctx.user } });
     }),
   );

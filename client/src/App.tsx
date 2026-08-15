@@ -128,14 +128,19 @@ async function copyToClipboard(value: string) {
   }
 
   const input = document.createElement("textarea");
-  input.value = value;
-  input.style.position = "fixed";
-  input.style.opacity = "0";
-  document.body.appendChild(input);
-  input.focus();
-  input.select();
-  document.execCommand("copy");
-  document.body.removeChild(input);
+  try {
+    input.value = value;
+    input.style.position = "fixed";
+    input.style.opacity = "0";
+    document.body.appendChild(input);
+    input.focus();
+    input.select();
+    if (!document.execCommand("copy")) {
+      throw new Error("Clipboard copy was rejected");
+    }
+  } finally {
+    input.remove();
+  }
 }
 
 const Router = memo(function Router() {
@@ -190,17 +195,11 @@ function App() {
   const initialBuildRef = useRef<BuildInfo | null>(null);
   const announcedOfflineRef = useRef(false);
   const nativeHealthFailureCountRef = useRef(0);
+  const healthCheckSequenceRef = useRef(0);
   const previousOnlineRef = useRef(getInitialOnlineState());
-  const [locationPath, setLocationPath] = useState(
-    () => window.location.pathname + window.location.search,
-  );
 
   useEffect(() => {
-    setLocationPath(window.location.pathname + window.location.search);
-  }, [currentPath]);
-
-  useEffect(() => {
-    const path = locationPath;
+    const path = currentPath;
     const tracked = TRACKED_ROUTES.find((t) => path.startsWith(t.pathPrefix));
     if (!tracked) return;
     const key = RECENT_KEY(user?.id);
@@ -228,7 +227,7 @@ function App() {
       .slice(0, 10);
     localStorage.setItem(key, JSON.stringify(list));
     window.dispatchEvent(new CustomEvent("selrs-recent-updated"));
-  }, [locationPath, user?.id]);
+  }, [currentPath, user?.id]);
 
   useEffect(() => {
     let stopWatcher: () => void = () => {};
@@ -312,6 +311,7 @@ function App() {
       });
 
     const runHealthCheck = async (silent = false) => {
+      const sequence = ++healthCheckSequenceRef.current;
       if (!navigator.onLine) {
         setServerReachable(false);
         nativeHealthFailureCountRef.current = 0;
@@ -324,6 +324,7 @@ function App() {
 
       try {
         const nextBuild = await fetchHealthSnapshot();
+        if (sequence !== healthCheckSequenceRef.current) return;
         nativeHealthFailureCountRef.current = 0;
         setServerReachable(true);
         setBuildInfo((prev) => {
@@ -351,6 +352,7 @@ function App() {
           setUpdateAvailable(nextBuild);
         }
       } catch (error) {
+        if (sequence !== healthCheckSequenceRef.current) return;
         if (isNativePlatform) {
           nativeHealthFailureCountRef.current += 1;
           if (
@@ -567,7 +569,7 @@ function App() {
     };
   }, []);
 
-  const retryShell = () => {
+  const retryShell = useCallback(() => {
     setBooting(true);
     setUpdateAvailable(null);
     setApiIssue(null);
@@ -598,7 +600,7 @@ function App() {
         setBooting(false);
         window.dispatchEvent(new Event("selrs-shell-ready"));
       });
-  };
+  }, []);
 
   const retrySync = () => {
     setApiIssue(null);
@@ -645,8 +647,7 @@ function App() {
     if (typeof window === "undefined") return;
     const handler = (event: Event) => {
       const detail = (event as CustomEvent).detail as
-        | { reason?: string }
-        | undefined;
+        { reason?: string } | undefined;
       softRefresh(detail?.reason);
     };
     window.addEventListener("selrs-soft-reload", handler as EventListener);

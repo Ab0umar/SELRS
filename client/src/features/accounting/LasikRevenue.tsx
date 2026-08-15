@@ -159,6 +159,31 @@ function serviceGroupLabel(serviceCode: string, serviceName?: string | null) {
     : toArabicDigits(serviceCode);
 }
 
+const PENTACAM_REMAINING_CODES = new Set([
+  "1571", "1572", "1590", "1601", "1614", "1615", "1616", "1524", "1562",
+]);
+
+function formatCalculatedCountAr(value: number): string {
+  return value.toLocaleString("ar-EG", { maximumFractionDigits: 2 });
+}
+
+function buildPentacamNetSummary(sections: ServiceRevenueSection[]) {
+  const totals = { service1600: 0, service1502: 0, remaining: 0 };
+  for (const section of sections) {
+    for (const service of section.services) {
+      const netAmount = Number(service.totalPaid ?? 0);
+      if (service.serviceCode === "1600") totals.service1600 += netAmount;
+      else if (service.serviceCode === "1502") totals.service1502 += netAmount;
+      else if (PENTACAM_REMAINING_CODES.has(service.serviceCode)) totals.remaining += netAmount;
+    }
+  }
+  return [
+    { key: "1600", label: "خدمة 1600", netAmount: totals.service1600, servicePrice: 550 },
+    { key: "1502", label: "خدمة 1502", netAmount: totals.service1502, servicePrice: 450 },
+    { key: "remaining", label: "الخدمات المتبقية", netAmount: totals.remaining, servicePrice: 400 },
+  ].map((row) => ({ ...row, count: row.netAmount / row.servicePrice }));
+}
+
 function getServiceTotals(details: ServiceRevenueDetail[]) {
   return details.reduce(
     (acc, d) => ({
@@ -373,32 +398,15 @@ export default function LasikRevenue() {
   };
 
   const printPentacamSummary = () => {
-    const PRICE_BUCKETS = [250, 350, 400, 450];
-    const CODE_TO_BUCKET: Record<string, number> = { "1502":450,"1572":350,"1590":350,"1600":350,"1601":350,"1616":350,"1614":250,"1615":250 };
-    const PENTACAM_CODES = new Set(Object.keys(CODE_TO_BUCKET));
-    const pentacamDetails: Array<ServiceRevenueDetail & { bucket: number }> = [];
-    for (const section of sections) for (const svc of section.services) {
-      if (!PENTACAM_CODES.has(svc.serviceCode)) continue;
-      for (const d of svc.details ?? []) pentacamDetails.push({ ...d, bucket: CODE_TO_BUCKET[svc.serviceCode] ?? 0 });
-    }
-    const half = (n: number) => Math.round(n / 2);
-    const byBucket = new Map<number, typeof pentacamDetails>();
-    for (const d of pentacamDetails) { if (!byBucket.has(d.bucket)) byBucket.set(d.bucket, []); byBucket.get(d.bucket)!.push(d); }
-    const rows = PRICE_BUCKETS.map((bucket) => {
-      const bRows = byBucket.get(bucket) ?? [];
-      if (!bRows.length) return "";
-      const totalQty = half(bRows.reduce((s,d)=>s+d.quantity,0));
-      const noDiscQty = half(bRows.filter(d=>!d.discount||d.discount===0).reduce((s,d)=>s+d.quantity,0));
-      const discMap = new Map<number,number>();
-      for (const d of bRows) if (d.discount&&d.discount>0) discMap.set(d.discount,(discMap.get(d.discount)??0)+d.quantity);
-      const discText = Array.from(discMap.entries()).sort((a,b)=>a[0]-b[0]).map(([amt,qty])=>`${formatCountAr(half(qty))} × ${formatMoneyAr(amt)}`).join(" | ") || "—";
-      return `<tr><td>${formatMoneyAr(bucket)}</td><td style="text-align:center">${formatCountAr(totalQty)}</td><td style="text-align:center">${formatCountAr(noDiscQty)}</td><td>${discText}</td></tr>`;
-    }).join("");
-    const totalAll = half(pentacamDetails.reduce((s,d)=>s+d.quantity,0));
-    const html = `<h1>ملخص بنتاكام — حسب السعر (العدد للشخص ÷ ٢)</h1>
-    <table><thead><tr><th>السعر</th><th>العدد الإجمالي</th><th>بدون خصم</th><th>بخصم</th></tr></thead>
+    const summary = buildPentacamNetSummary(sections);
+    const rows = summary.map((row) =>
+      `<tr><td>${row.label}</td><td style="text-align:center">${formatMoneyAr(row.netAmount)}</td><td style="text-align:center">${formatMoneyAr(row.servicePrice)}</td><td style="text-align:center">${formatCalculatedCountAr(row.count)}</td></tr>`,
+    ).join("");
+    const totalAll = summary.reduce((sum, row) => sum + row.count, 0);
+    const html = `<h1>ملخص بنتاكام — حسب صافي المبلغ بعد الخصم</h1>
+    <table><thead><tr><th>الخدمة</th><th>المبلغ بعد الخصم</th><th>سعر الخدمة</th><th>العدد</th></tr></thead>
     <tbody>${rows}</tbody>
-    <tfoot><tr><td>الإجمالي</td><td style="text-align:center">${formatCountAr(totalAll)}</td><td></td><td></td></tr></tfoot></table>`;
+    <tfoot><tr><td>الإجمالي</td><td></td><td></td><td style="text-align:center">${formatCalculatedCountAr(totalAll)}</td></tr></tfoot></table>`;
     openIframePrint(html, "ملخص بنتاكام");
   };
 
@@ -1536,70 +1544,18 @@ export default function LasikRevenue() {
         {/* ── Pentacam price-bucket summary ──────────────────────────────── */}
         {!serviceRevenueQuery.isLoading && sections.length > 0
           ? (() => {
-              const PRICE_BUCKETS = [250, 350, 400, 450];
-
-              function nearestBucket(price: number): number {
-                return PRICE_BUCKETS.reduce((a, b) =>
-                  Math.abs(b - price) < Math.abs(a - price) ? b : a,
-                );
-              }
-
-              const CODE_TO_BUCKET: Record<string, number> = {
-                "1502": 450,
-                "1572": 350,
-                "1590": 350,
-                "1600": 350,
-                "1601": 350,
-                "1616": 350,
-                "1614": 250,
-                "1615": 250,
-              };
-              const PENTACAM_CODES = new Set(Object.keys(CODE_TO_BUCKET));
-              const pentacamDetails: Array<
-                ServiceRevenueDetail & { bucket: number }
-              > = [];
-              for (const section of sections) {
-                for (const svc of section.services) {
-                  if (!PENTACAM_CODES.has(svc.serviceCode)) continue;
-                  for (const d of svc.details ?? []) {
-                    pentacamDetails.push({
-                      ...d,
-                      bucket: CODE_TO_BUCKET[svc.serviceCode] ?? 0,
-                    });
-                  }
-                }
-              }
-
-              if (pentacamDetails.length === 0) return null;
-
-              // ÷2 helper — each record = 2 eyes → 1 person
-              const half = (n: number) => Math.round(n / 2);
-
-              // Group by bucket
-              const byBucket = new Map<number, typeof pentacamDetails>();
-              for (const d of pentacamDetails) {
-                if (!byBucket.has(d.bucket)) byBucket.set(d.bucket, []);
-                byBucket.get(d.bucket)!.push(d);
-              }
-
-              const totalAll = half(
-                pentacamDetails.reduce((s, d) => s + d.quantity, 0),
+              const pentacamSummary = buildPentacamNetSummary(sections);
+              if (!pentacamSummary.some((row) => row.netAmount > 0)) return null;
+              const totalAll = pentacamSummary.reduce(
+                (sum, row) => sum + row.count,
+                0,
               );
-              const noDiscAll = half(
-                pentacamDetails
-                  .filter((d) => !d.discount || d.discount === 0)
-                  .reduce((s, d) => s + d.quantity, 0),
-              );
-              const discAll = totalAll - noDiscAll;
 
               return (
                 <Card className={`${styles.noPrint} border-border shadow-sm`}>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-base">
-                      ملخص بنتاكام — حسب السعر{" "}
-                      <span className="text-xs font-normal text-muted-foreground">
-                        (العدد للشخص ÷ ٢)
-                      </span>
+                      ملخص بنتاكام — حسب صافي المبلغ بعد الخصم
                     </CardTitle>
                     <button type="button" onClick={printPentacamSummary} className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted/60 transition-colors">
                       <Printer className="size-3.5" /> طباعة
@@ -1609,73 +1565,30 @@ export default function LasikRevenue() {
                     <table className="w-full text-sm" dir="rtl">
                       <thead>
                         <tr className="border-b border-border bg-muted/60 text-right text-xs font-semibold text-muted-foreground">
-                          <th className="px-4 py-3">السعر</th>
-                          <th className="px-4 py-3 text-center">
-                            العدد الإجمالي
-                          </th>
-                          <th className="px-4 py-3 text-center">بدون خصم</th>
-                          <th className="px-4 py-3">بخصم (عدد × مبلغ الخصم)</th>
+                          <th className="px-4 py-3">الخدمة</th>
+                          <th className="px-4 py-3 text-center">المبلغ بعد الخصم</th>
+                          <th className="px-4 py-3 text-center">سعر الخدمة</th>
+                          <th className="px-4 py-3 text-center">العدد</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {PRICE_BUCKETS.map((bucket) => {
-                          const rows = byBucket.get(bucket) ?? [];
-                          if (rows.length === 0) return null;
-
-                          const totalQty = half(
-                            rows.reduce((s, d) => s + d.quantity, 0),
-                          );
-                          const noDiscQty = half(
-                            rows
-                              .filter((d) => !d.discount || d.discount === 0)
-                              .reduce((s, d) => s + d.quantity, 0),
-                          );
-
-                          const discGroups = new Map<number, number>();
-                          for (const d of rows) {
-                            if (d.discount && d.discount > 0) {
-                              discGroups.set(
-                                d.discount,
-                                (discGroups.get(d.discount) ?? 0) + d.quantity,
-                              );
-                            }
-                          }
-                          const discQty = totalQty - noDiscQty;
-
+                        {pentacamSummary.map((row) => {
                           return (
                             <tr
-                              key={bucket}
+                              key={row.key}
                               className="border-b border-border/50 even:bg-muted/20 hover:bg-muted/40 transition-colors"
                             >
-                              <td className="px-4 py-2.5 font-semibold tabular-nums">
-                                {formatMoneyAr(bucket)}
+                              <td className="px-4 py-2.5 font-semibold">
+                                {row.label}
                               </td>
                               <td className="px-4 py-2.5 text-center tabular-nums font-semibold">
-                                {formatCountAr(totalQty)}
+                                {formatMoneyAr(row.netAmount)}
                               </td>
-                              <td className="px-4 py-2.5 text-center tabular-nums text-success font-medium">
-                                {formatCountAr(noDiscQty)}
+                              <td className="px-4 py-2.5 text-center tabular-nums">
+                                {formatMoneyAr(row.servicePrice)}
                               </td>
-                              <td className="px-4 py-2.5">
-                                {discQty === 0 ? (
-                                  <span className="text-muted-foreground text-xs">
-                                    —
-                                  </span>
-                                ) : (
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {Array.from(discGroups.entries())
-                                      .sort((a, b) => a[0] - b[0])
-                                      .map(([discAmt, qty]) => (
-                                        <span
-                                          key={discAmt}
-                                          className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning"
-                                        >
-                                          {formatCountAr(half(qty))} ×{" "}
-                                          {formatMoneyAr(discAmt)}
-                                        </span>
-                                      ))}
-                                  </div>
-                                )}
+                              <td className="px-4 py-2.5 text-center tabular-nums font-semibold text-primary">
+                                {formatCalculatedCountAr(row.count)}
                               </td>
                             </tr>
                           );
@@ -1684,14 +1597,10 @@ export default function LasikRevenue() {
                       <tfoot>
                         <tr className="border-t-2 border-border bg-muted/60 font-semibold">
                           <td className="px-4 py-2.5">الإجمالي</td>
-                          <td className="px-4 py-2.5 text-center tabular-nums">
-                            {formatCountAr(totalAll)}
-                          </td>
-                          <td className="px-4 py-2.5 text-center tabular-nums text-success">
-                            {formatCountAr(noDiscAll)}
-                          </td>
-                          <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                            {formatCountAr(discAll)} بخصم
+                          <td></td>
+                          <td></td>
+                          <td className="px-4 py-2.5 text-center tabular-nums text-primary">
+                            {formatCalculatedCountAr(totalAll)}
                           </td>
                         </tr>
                       </tfoot>

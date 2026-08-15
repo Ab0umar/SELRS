@@ -41,21 +41,20 @@ export const persistSessionUser = (
   const preferredStorage = usePersistentStorage
     ? window.localStorage
     : window.sessionStorage;
-  const secondaryStorage = usePersistentStorage
-    ? window.sessionStorage
-    : window.localStorage;
 
   if (!user) {
-    preferredStorage.removeItem("user");
-    secondaryStorage.removeItem("user");
+    window.localStorage.removeItem("user");
+    window.localStorage.removeItem("manus-runtime-user-info");
+    window.sessionStorage.removeItem("user");
     void removeDurableValue(NATIVE_USER_SNAPSHOT_KEY, "user");
     return;
   }
 
   const serializedUser = JSON.stringify(user);
+  window.localStorage.removeItem("user");
+  window.sessionStorage.removeItem("user");
   window.localStorage.setItem("manus-runtime-user-info", serializedUser);
   preferredStorage.setItem("user", serializedUser);
-  secondaryStorage.removeItem("user");
   void saveDurableValue(NATIVE_USER_SNAPSHOT_KEY, serializedUser, "user");
 };
 
@@ -150,16 +149,17 @@ export function useAuth(options?: UseAuthOptions) {
   }, [getPreferredStorage, meQuery.data]);
 
   useEffect(() => {
-    if (storedUser) return;
+    if (storedUser || meQuery.data) return;
     void hydrateDurableValue(NATIVE_USER_SNAPSHOT_KEY, "user").then((raw) => {
       if (!raw) return;
+      if (meQuery.data) return;
       try {
         setStoredUser(JSON.parse(raw));
       } catch {
         // Ignore invalid durable user snapshots.
       }
     });
-  }, [storedUser]);
+  }, [meQuery.data, storedUser]);
 
   useEffect(() => {
     if (!(meQuery.error instanceof TRPCClientError)) return;

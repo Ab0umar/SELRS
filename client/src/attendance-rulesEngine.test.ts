@@ -272,6 +272,64 @@ describe("computeDay", () => {
     expect(result.status).toBe("present");
   });
 
+  it("counts arrival overtime independently", () => {
+    const result = computeDay(
+      baseCtx({
+        shift: makeShift({ allowOTIn: true, allowOTOut: false }),
+        punches: [punch("2026-06-10T07:30:00"), punch("2026-06-10T17:00:00")],
+      }),
+    );
+    expect(result.overtimeInMinutes).toBe(30);
+    expect(result.overtimeOutMinutes).toBe(0);
+    expect(result.overtimeMinutes).toBe(30);
+  });
+
+  it("counts departure overtime independently", () => {
+    const result = computeDay(
+      baseCtx({
+        shift: makeShift({ allowOTIn: false, allowOTOut: true }),
+        punches: [punch("2026-06-10T07:30:00"), punch("2026-06-10T17:00:00")],
+      }),
+    );
+    expect(result.overtimeInMinutes).toBe(0);
+    expect(result.overtimeOutMinutes).toBe(60);
+    expect(result.overtimeMinutes).toBe(60);
+  });
+
+  it("applies separate minimums and one shared maximum", () => {
+    const result = computeDay(
+      baseCtx({
+        shift: makeShift({
+          allowOTIn: true,
+          allowOTOut: true,
+          otMinInMinutes: 45,
+          otMinOutMinutes: 30,
+          otMaxMinutes: 90,
+        }),
+        punches: [punch("2026-06-10T07:20:00"), punch("2026-06-10T17:00:00")],
+      }),
+    );
+    expect(result.overtimeInMinutes).toBe(0);
+    expect(result.overtimeOutMinutes).toBe(60);
+    expect(result.overtimeMinutes).toBe(60);
+
+    const capped = computeDay(
+      baseCtx({
+        shift: makeShift({
+          allowOTIn: true,
+          allowOTOut: true,
+          otMinInMinutes: 30,
+          otMinOutMinutes: 30,
+          otMaxMinutes: 90,
+        }),
+        punches: [punch("2026-06-10T07:00:00"), punch("2026-06-10T17:00:00")],
+      }),
+    );
+    expect(capped.overtimeInMinutes).toBe(60);
+    expect(capped.overtimeOutMinutes).toBe(60);
+    expect(capped.overtimeMinutes).toBe(90);
+  });
+
   it("5 — OT disabled: overtime not counted even if worked past shift end", () => {
     const result = computeDay(
       baseCtx({
@@ -335,7 +393,7 @@ describe("computeDay", () => {
     expect(result.lateMinutes).toBe(0);
   });
 
-  it("12 — holiday with punches: status=holiday (implementation returns early before pairing)", () => {
+  it("12 — holiday with punches: retains attendance for extra-day approval", () => {
     const result = computeDay(
       baseCtx({
         isHoliday: true,
@@ -343,6 +401,9 @@ describe("computeDay", () => {
       }),
     );
     expect(result.status).toBe("holiday");
+    expect(result.firstIn).not.toBeNull();
+    expect(result.lastOut).not.toBeNull();
+    expect(result.workedMinutes).toBe(480);
   });
 
   it("13 — no shift resolved with punches: status=partial or missing_checkout", () => {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar, Download } from "lucide-react";
+import { Calendar, CalendarPlus, Download, Timer } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +32,25 @@ export default function DailyView({ department }: { department?: string }) {
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const utils = trpc.useUtils();
+  const setOvertimeEnabled =
+    trpc.attendance.setDailyOvertimeEnabled.useMutation({
+      onSuccess: (result, input) => {
+        setRecords((current) =>
+          current.map((record) =>
+            record.empCd === input.empCd && record.workDate === input.workDate
+              ? {
+                  ...record,
+                  [input.type === "in"
+                    ? "overtimeInEnabled"
+                    : input.type === "out"
+                      ? "overtimeOutEnabled"
+                      : "extraDayEnabled"]: result.enabled,
+                }
+              : record,
+          ),
+        );
+      },
+    });
 
   const filtered = empFilter.trim()
     ? records.filter(
@@ -258,6 +277,25 @@ export default function DailyView({ department }: { department?: string }) {
                         </span>
                       </span>
                     ) : null}
+                    {(record.status === "holiday" || !record.shiftId) && record.firstIn && record.lastOut ? (
+                      <button
+                        type="button"
+                        title="تفعيل أو إلغاء احتساب يوم إجازة إضافي"
+                        disabled={setOvertimeEnabled.isPending}
+                        onClick={() =>
+                          setOvertimeEnabled.mutate({
+                            empCd: record.empCd,
+                            workDate: record.workDate,
+                            type: "day",
+                            enabled: !record.extraDayEnabled,
+                          })
+                        }
+                        className={`inline-flex items-center gap-1 rounded border px-2.5 py-1 text-xs font-semibold ${record.extraDayEnabled ? "border-success/30 bg-success/10 text-success" : "border-border bg-background text-muted-foreground"}`}
+                      >
+                        <CalendarPlus size={13} />
+                        {record.extraDayEnabled ? "يوم إضافي مفعّل" : "احتساب يوم إضافي"}
+                      </button>
+                    ) : null}
                     {record.lastOut ? (
                       <span
                         className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${timeTone.out}`}
@@ -275,7 +313,7 @@ export default function DailyView({ department }: { department?: string }) {
                   {(record.lateMinutes > 0 ||
                     record.earlyLeaveMin > 0 ||
                     record.overtimeMinutes > 0) && (
-                    <div className="mt-3 grid grid-cols-3 gap-2 border-t border-border/60 pt-3 text-center text-xs">
+                    <div className="mt-3 grid grid-cols-2 gap-2 border-t border-border/60 pt-3 text-center text-xs sm:grid-cols-4">
                       <div>
                         <div className="text-muted-foreground">تأخير</div>
                         <div
@@ -301,16 +339,56 @@ export default function DailyView({ department }: { department?: string }) {
                         </div>
                       </div>
                       <div>
-                        <div className="text-muted-foreground">إضافي</div>
+                        <div className="text-muted-foreground">إضافي الحضور</div>
                         <div
                           className={
-                            record.overtimeMinutes > 0
+                            record.overtimeInMinutes > 0
                               ? "font-semibold text-primary"
                               : "text-muted-foreground"
                           }
                         >
-                          {record.overtimeMinutes || "-"}
+                          {record.overtimeInMinutes || "-"}
                         </div>
+                        <button
+                          type="button"
+                          title="تفعيل أو إلغاء إضافي الحضور لهذا اليوم"
+                          disabled={setOvertimeEnabled.isPending}
+                          onClick={() =>
+                            setOvertimeEnabled.mutate({
+                              empCd: record.empCd,
+                              workDate: record.workDate,
+                              type: "in",
+                              enabled: !record.overtimeInEnabled,
+                            })
+                          }
+                          className={`mt-1 inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px] font-semibold ${record.overtimeInEnabled ? "border-success/30 bg-success/10 text-success" : "border-border bg-background text-muted-foreground"}`}
+                        >
+                          <Timer size={11} />
+                          {record.overtimeInEnabled ? "مفعّل" : "غير مفعّل"}
+                        </button>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">إضافي الانصراف</div>
+                        <div className={record.overtimeOutMinutes > 0 ? "font-semibold text-primary" : "text-muted-foreground"}>
+                          {record.overtimeOutMinutes || "-"}
+                        </div>
+                        <button
+                          type="button"
+                          title="تفعيل أو إلغاء إضافي الانصراف لهذا اليوم"
+                          disabled={setOvertimeEnabled.isPending}
+                          onClick={() =>
+                            setOvertimeEnabled.mutate({
+                              empCd: record.empCd,
+                              workDate: record.workDate,
+                              type: "out",
+                              enabled: !record.overtimeOutEnabled,
+                            })
+                          }
+                          className={`mt-1 inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px] font-semibold ${record.overtimeOutEnabled ? "border-success/30 bg-success/10 text-success" : "border-border bg-background text-muted-foreground"}`}
+                        >
+                          <Timer size={11} />
+                          {record.overtimeOutEnabled ? "مفعّل" : "غير مفعّل"}
+                        </button>
                       </div>
                     </div>
                   )}
@@ -343,8 +421,11 @@ export default function DailyView({ department }: { department?: string }) {
                     <th className="px-4 py-3 text-right font-semibold text-warning">
                       المغادرة المبكرة
                     </th>
-                    <th className="px-4 py-3 text-right font-semibold text-primary">
-                      الساعات الإضافية
+                    <th className="px-4 py-3 text-center font-semibold text-primary">
+                      إضافي الحضور
+                    </th>
+                    <th className="px-4 py-3 text-center font-semibold text-primary">
+                      إضافي الانصراف
                     </th>
                     <th className="px-4 py-3 text-right font-semibold text-foreground">
                       الحالة
@@ -420,18 +501,66 @@ export default function DailyView({ department }: { department?: string }) {
                           <span className="text-muted-foreground">-</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right">
-                        {record.overtimeMinutes > 0 ? (
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex flex-col items-center gap-1">
+                        {record.overtimeInMinutes > 0 ? (
                           <span
                             className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${timeTone.overtime}`}
                           >
-                            {record.overtimeMinutes}
+                            {record.overtimeInMinutes} د
                           </span>
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
+                        <button
+                          type="button"
+                          title="تفعيل أو إلغاء إضافي الحضور لهذا اليوم"
+                          disabled={setOvertimeEnabled.isPending}
+                          onClick={() =>
+                            setOvertimeEnabled.mutate({
+                              empCd: record.empCd,
+                              workDate: record.workDate,
+                              type: "in",
+                              enabled: !record.overtimeInEnabled,
+                            })
+                          }
+                          className={`inline-flex min-w-20 items-center justify-center gap-1 rounded-md border px-2 py-1 text-xs font-semibold ${record.overtimeInEnabled ? "border-success/30 bg-success/10 text-success" : "border-border bg-background text-muted-foreground"}`}
+                        >
+                          <Timer size={13} />
+                          {record.overtimeInEnabled ? "مفعّل" : "غير مفعّل"}
+                        </button>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex flex-col items-center gap-1">
+                          {record.overtimeOutMinutes > 0 ? (
+                            <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${timeTone.overtime}`}>
+                              {record.overtimeOutMinutes} د
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                          <button
+                            type="button"
+                            title="تفعيل أو إلغاء إضافي الانصراف لهذا اليوم"
+                            disabled={setOvertimeEnabled.isPending}
+                            onClick={() =>
+                              setOvertimeEnabled.mutate({
+                                empCd: record.empCd,
+                                workDate: record.workDate,
+                                type: "out",
+                                enabled: !record.overtimeOutEnabled,
+                              })
+                            }
+                            className={`inline-flex min-w-20 items-center justify-center gap-1 rounded-md border px-2 py-1 text-xs font-semibold ${record.overtimeOutEnabled ? "border-success/30 bg-success/10 text-success" : "border-border bg-background text-muted-foreground"}`}
+                          >
+                            <Timer size={13} />
+                            {record.overtimeOutEnabled ? "مفعّل" : "غير مفعّل"}
+                          </button>
+                        </div>
                       </td>
                       <td className="px-4 py-3">
+                        <div className="flex flex-col items-start gap-1.5">
                         <span
                           className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${
                             statusTone[record.status] ??
@@ -440,6 +569,26 @@ export default function DailyView({ department }: { department?: string }) {
                         >
                           {getStatusLabel(record.status)}
                         </span>
+                        {(record.status === "holiday" || !record.shiftId) && record.firstIn && record.lastOut ? (
+                          <button
+                            type="button"
+                            title="تفعيل أو إلغاء احتساب يوم إجازة إضافي"
+                            disabled={setOvertimeEnabled.isPending}
+                            onClick={() =>
+                              setOvertimeEnabled.mutate({
+                                empCd: record.empCd,
+                                workDate: record.workDate,
+                                type: "day",
+                                enabled: !record.extraDayEnabled,
+                              })
+                            }
+                            className={`inline-flex min-w-24 items-center justify-center gap-1 rounded-md border px-2 py-1 text-xs font-semibold ${record.extraDayEnabled ? "border-success/30 bg-success/10 text-success" : "border-border bg-background text-muted-foreground"}`}
+                          >
+                            <CalendarPlus size={13} />
+                            {record.extraDayEnabled ? "يوم إضافي مفعّل" : "احتساب يوم إضافي"}
+                          </button>
+                        ) : null}
+                        </div>
                       </td>
                     </tr>
                   ))}

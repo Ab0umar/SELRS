@@ -458,7 +458,9 @@ export const medicalCatalogRoutes = {
       const result = await db.createTestRequest({
         patientId: input.patientId,
         visitId: input.visitId,
-        requestDate: new Date(),
+        requestDate: input.date
+          ? new Date(`${input.date}T12:00:00`)
+          : new Date(),
         status: "pending",
         notes: input.notes,
       });

@@ -15,6 +15,7 @@ import {
   Stethoscope,
   Scissors,
   UserRound,
+  Calculator,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { formatMoneyAr, formatCountAr } from "./accountingFormat";
@@ -72,6 +73,12 @@ const topbarNavItems = [
     label: "إيراد الخدمات",
     icon: TrendingUp,
     activeFor: ["/accounting/service-revenue"],
+  },
+  {
+    href: "/accounting/lasik-cost",
+    label: "تكلفة الليزك",
+    icon: Calculator,
+    activeFor: ["/accounting/lasik-cost"],
   },
   {
     href: "/accounting/services",
@@ -161,9 +168,7 @@ export default function AccountingShell({ children }: AccountingShellProps) {
     },
   ];
 
-  const visibleNavItems = topbarNavItems.filter((item) =>
-    canAccess(item.href),
-  );
+  const visibleNavItems = topbarNavItems.filter((item) => canAccess(item.href));
 
   return (
     <div

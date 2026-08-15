@@ -17,6 +17,13 @@ import { DateInput } from "@/components/ui/date-input";
 import SheetCenterHeader from "@/components/SheetCenterHeader";
 import FollowupTablesBody from "@/components/sheets/FollowupTablesBody";
 
+const FOLLOWUP_TITLES = [
+  "المتابعة الأولى",
+  "المتابعة الثانية",
+  "المتابعة الثالثة",
+  "المتابعة الرابعة",
+];
+
 export default function LasikFollowupPage() {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
@@ -40,11 +47,24 @@ export default function LasikFollowupPage() {
   const [patientDOB, setPatientDOB] = useState("");
   const [signatures, setSignatures] = useState({ doctor: "" });
   const emptyFollowupRow = (id: number | string, type: string) => ({
-    id, date: "", type,
-    odVa: "", osVa: "",
-    odS: "", odC: "", odAxis: "",
-    osS: "", osC: "", osAxis: "",
-    odIop: "", osIop: "",
+    id,
+    date: "",
+    type,
+    odVa: "",
+    osVa: "",
+    odS: "",
+    odC: "",
+    odAxis: "",
+    osS: "",
+    osC: "",
+    osAxis: "",
+    odFlapEdges: "",
+    odFlapBed: "",
+    osFlapEdges: "",
+    osFlapBed: "",
+    odIop: "",
+    osIop: "",
+    treatment: "",
     notes: "",
   });
 
@@ -88,24 +108,34 @@ export default function LasikFollowupPage() {
   }, [designerSettingsQuery.data]);
 
   useEffect(() => {
-    const names = designerConfig.followupLasik?.followupNames ?? [];
     setFollowups((prev) =>
-      prev.map((item, i) => ({ ...item, type: names[i] ?? item.type })),
+      prev.map((item, i) => ({ ...item, type: FOLLOWUP_TITLES[i % 4] })),
     );
   }, [designerConfig.followupLasik?.followupNames]);
 
   useEffect(() => {
     if (!followupSheetsQuery.data) return;
     const sheets = followupSheetsQuery.data as any[];
-    // Fetch items from the followup sheet's own table, one by one, oldest sheet/item first
+    // Each saved follow-up fills its own table, ordered by visit date.
     const items = sheets
       .slice()
       .sort((a, b) => a.version - b.version)
       .flatMap((sheet) =>
         (sheet.items ?? [])
           .slice()
-          .sort((a: any, b: any) => a.tableIndex - b.tableIndex),
-      );
+          .map((item: any) => ({ ...item, sheetVersion: sheet.version })),
+      )
+      .filter((item: any) => item.followupDate)
+      .sort((a: any, b: any) => {
+        const dateOrder =
+          new Date(a.followupDate).getTime() -
+          new Date(b.followupDate).getTime();
+        if (dateOrder !== 0) return dateOrder;
+        const versionOrder = Number(a.sheetVersion) - Number(b.sheetVersion);
+        return versionOrder !== 0
+          ? versionOrder
+          : Number(a.tableIndex) - Number(b.tableIndex);
+      });
     if (items.length === 0) {
       // Keep template data if no followups found
       return;
@@ -123,11 +153,17 @@ export default function LasikFollowupPage() {
         return { s: "", c: "", axis: "" };
       }
     };
+    const parseFlap = (json: unknown) => {
+      if (!json) return { edges: "", bed: "" };
+      try {
+        const parsed = typeof json === "string" ? JSON.parse(json) : json;
+        return { edges: parsed?.edges ?? "", bed: parsed?.bed ?? "" };
+      } catch {
+        return { edges: "", bed: "" };
+      }
+    };
     const transformedFollowups = items.map((item: any, index: number) => {
-      const followupName =
-        item.followupName ||
-        designerConfig.followupLasik?.followupNames?.[index % 4] ||
-        `المتابعة #${index + 1}`;
+      const followupName = FOLLOWUP_TITLES[index % 4];
       const followupDate = item.followupDate
         ? (typeof item.followupDate === "string"
             ? item.followupDate
@@ -136,17 +172,28 @@ export default function LasikFollowupPage() {
         : "";
       const od = parseRefrac(item.refracOD);
       const os = parseRefrac(item.refracOS);
+      const flapOD = parseFlap(item.flapOD);
+      const flapOS = parseFlap(item.flapOS);
       return {
         id: item.id,
         date: followupDate,
         type: followupName,
         odVa: item.vaOD ?? "",
         osVa: item.vaOS ?? "",
-        odS: od.s, odC: od.c, odAxis: od.axis,
-        osS: os.s, osC: os.c, osAxis: os.axis,
+        odS: od.s,
+        odC: od.c,
+        odAxis: od.axis,
+        osS: os.s,
+        osC: os.c,
+        osAxis: os.axis,
+        odFlapEdges: flapOD.edges,
+        odFlapBed: flapOD.bed,
+        osFlapEdges: flapOS.edges,
+        osFlapBed: flapOS.bed,
         odIop: item.iopOD ?? "",
         osIop: item.iopOS ?? "",
-        notes: item.notes ?? item.treatment ?? "",
+        treatment: item.treatment ?? "",
+        notes: item.notes ?? "",
       };
     });
     setFollowups(transformedFollowups);
@@ -179,9 +226,7 @@ export default function LasikFollowupPage() {
         const newFollowups = [];
         for (let i = 0; i < 4; i++) {
           const index = followups.length + i;
-          const followupName =
-            designerConfig.followupLasik?.followupNames?.[index % 4] ??
-            `المتابعة #${(index % 4) + 1}`;
+          const followupName = FOLLOWUP_TITLES[index % 4];
           newFollowups.push(emptyFollowupRow(nextId + i, followupName));
         }
         setFollowups([...followups, ...newFollowups]);
@@ -231,9 +276,11 @@ export default function LasikFollowupPage() {
       vaOS: f.osVa,
       refracOD: { s: f.odS, c: f.odC, axis: f.odAxis },
       refracOS: { s: f.osS, c: f.osC, axis: f.osAxis },
+      flapOD: { edges: f.odFlapEdges, bed: f.odFlapBed },
+      flapOS: { edges: f.osFlapEdges, bed: f.osFlapBed },
       iopOD: f.odIop,
       iopOS: f.osIop,
-      treatment: f.notes,
+      treatment: f.treatment,
       notes: f.notes,
     }));
 
@@ -259,40 +306,79 @@ export default function LasikFollowupPage() {
     if (patient?.id) setLocation(`/sheets/lasik/${patient.id}/followup`);
   };
 
-  const followupTitles = ["1st Follow-up (Day 1)", "2nd Follow-up (1 Week)", "3rd Follow-up (1 Month)", "Later Follow-up"];
+  const followupTitles = [
+    "1st Follow-up (Day 1)",
+    "2nd Follow-up (1 Week)",
+    "3rd Follow-up (1 Month)",
+    "Later Follow-up",
+  ];
 
   return (
-    <div className="min-h-screen bg-[#dde1e7] text-foreground" style={{ fontFamily: "Inter, sans-serif" }}>
+    <div
+      className="lasik-followup-page min-h-screen bg-[#dde1e7] text-foreground"
+      style={{ fontFamily: "Inter, sans-serif" }}
+    >
       <style>{`
         @media print {
           @page { size: A4 portrait; margin: 0; }
           .print\\:hidden { display: none !important; }
-          body { background: white !important; }
+          html,
+          body,
+          #root,
+          .lasik-followup-page,
+          .lasik-followup-page main {
+            width: 210mm !important;
+            min-height: 297mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+          }
           .print-page-center-a4 {
-            width: 190mm;
+            width: 210mm !important;
+            max-width: 210mm !important;
+            min-height: 297mm !important;
             margin: 0 auto;
           }
           .sheet-followup-body {
-            width: 190mm;
+            width: 210mm !important;
+            min-height: 297mm !important;
+            box-sizing: border-box !important;
             margin: 0 auto;
+            padding: 10mm !important;
           }
-          .sheet-followup-body, .sheet-followup-body * { font-weight: 400 !important; text-decoration: none !important; }
-          .sheet-followup-body th { font-weight: 700 !important; }
-          .sheet-followup-body > * + * { margin-top: 2mm !important; }
-          .sheet-followup-body .space-y-5 > * + * { margin-top: 2mm !important; }
           .sheet-followup-body section { page-break-inside: avoid !important; }
-          .sheet-followup-body .sheet-center-header { padding-bottom: 1mm !important; margin-bottom: 1mm !important; }
-          .sheet-followup-body td, .sheet-followup-body th { padding: 1mm 2mm !important; }
-          .sheet-followup-body textarea { height: 9mm !important; min-height: 0 !important; }
-          .sheet-followup-body .h-16 { height: 9mm !important; }
-          .sheet-followup-body .h-10 { height: 5mm !important; }
-          .sheet-followup-body .h-8 { height: 5mm !important; }
-          .sheet-followup-body .h-7 { height: 5mm !important; }
-          .sheet-followup-body .w-8 { width: 5mm !important; }
-          .sheet-followup-body .p-4 { padding: 1.5mm !important; }
-          .sheet-followup-body .py-2 { padding-top: 0.5mm !important; padding-bottom: 0.5mm !important; }
-          .sheet-followup-body footer { padding-top: 1mm !important; }
+          .sheet-followup-body table { font-size: inherit !important; }
+          .sheet-followup-body th,
+          .sheet-followup-body td {
+            padding: 0 !important;
+            line-height: normal !important;
+          }
+          .sheet-followup-body input,
+          .sheet-followup-body select,
+          .sheet-followup-body textarea {
+            line-height: normal !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+          }
+          .sheet-followup-body .followup-record-table input {
+            font-size: 12px !important;
+          }
+          .sheet-followup-body .followup-record-title > input {
+            font-size: 13px !important;
+          }
           .sheet-followup-body section { box-shadow: none !important; }
+        }
+        .print-page-center-a4 {
+          width: 210mm;
+          max-width: calc(100vw - 32px);
+          margin: 0 auto;
+        }
+        .print-page-center-a4 .sheet-followup-body {
+          width: 210mm;
+          max-width: 100%;
+          min-height: 297mm;
+          box-sizing: border-box;
+          padding: 10mm;
         }
         .a4-canvas {
             width: 210mm;
@@ -359,18 +445,25 @@ export default function LasikFollowupPage() {
 
       {/* Top nav */}
       <header className="print:hidden sticky top-0 z-50 flex justify-between items-center w-full px-6 py-2 bg-background border-b border-border/70">
-        <span className="text-base font-bold text-primary">Ophthalmic Clinic Management</span>
+        <span className="text-base font-bold text-primary">
+          Ophthalmic Clinic Management
+        </span>
         <div className="flex items-center gap-3">
           <Button
             type="button"
             variant="outline"
             className="border-[#737685] text-foreground text-xs font-bold px-4 py-2 rounded uppercase tracking-wider hover:bg-[#edeef0]"
-            onClick={() => setLocation(`/sheets/lasik/${initialPatientId ?? ""}`)}
+            onClick={() =>
+              setLocation(`/sheets/lasik/${initialPatientId ?? ""}`)
+            }
           >
             ← Lasik Sheet
           </Button>
           <div className="w-60">
-            <PatientPicker initialPatientId={initialPatientId} onSelect={onPickPatient} />
+            <PatientPicker
+              initialPatientId={initialPatientId}
+              onSelect={onPickPatient}
+            />
           </div>
           <Button
             type="button"
@@ -384,7 +477,12 @@ export default function LasikFollowupPage() {
             type="button"
             variant="outline"
             className="border-[#737685] text-foreground text-xs font-bold px-4 py-2 rounded uppercase tracking-wider hover:bg-[#edeef0]"
-            onClick={() => void printOrExportPdf(`lasik-followup-${initialPatientId ?? "sheet"}.pdf`, { forceBrowserPrint: true })}
+            onClick={() =>
+              void printOrExportPdf(
+                `lasik-followup-${initialPatientId ?? "sheet"}.pdf`,
+                { forceBrowserPrint: true },
+              )
+            }
           >
             <Printer className="h-3 w-3 mr-1" /> Print PDF
           </Button>
@@ -417,4 +515,3 @@ export default function LasikFollowupPage() {
     </div>
   );
 }
-

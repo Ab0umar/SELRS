@@ -106,6 +106,13 @@ export default function RefractionPage() {
   const [, params] = useRoute("/refraction/:id");
   const patientId = Number(params?.id ?? 0);
   const patientIdValid = Number.isFinite(patientId) && patientId > 0;
+  const routeVisitDate =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("visitDate") || ""
+      : "";
+  const requestedVisitDate = /^\d{4}-\d{2}-\d{2}$/.test(routeVisitDate)
+    ? routeVisitDate
+    : "";
 
   const patientQuery = trpc.patient.getPatient.useQuery(patientId, {
     enabled: patientIdValid,
@@ -170,7 +177,18 @@ export default function RefractionPage() {
 
   useEffect(() => {
     if (!patientId) return;
-    const latest = ((glassesQuery.data as any[]) ?? [])[0];
+    const records = (glassesQuery.data as any[]) ?? [];
+    const latest = requestedVisitDate
+      ? records.find((record) => {
+          const value = record.visitDate ?? record.createdAt;
+          if (!value) return false;
+          const date = new Date(value);
+          return (
+            !Number.isNaN(date.valueOf()) &&
+            date.toISOString().split("T")[0] === requestedVisitDate
+          );
+        })
+      : records[0];
     if (!latest) {
       setForm(EMPTY_FORM);
       return;
@@ -190,7 +208,7 @@ export default function RefractionPage() {
       addOS: String(latest.addOS ?? ""),
     };
     setForm(next);
-  }, [patientId, glassesQuery.data]);
+  }, [patientId, glassesQuery.data, requestedVisitDate]);
 
   const mergeAndSerialize = (
     content: string | null | undefined,
@@ -311,7 +329,8 @@ export default function RefractionPage() {
     );
   };
 
-  const todayLabel = new Date().toISOString().split("T")[0];
+  const reportDate =
+    requestedVisitDate || new Date().toISOString().split("T")[0];
   const patient = (patientQuery.data as any) ?? {};
   const patientName = String(patient.fullName ?? "");
   const patientCode = String(patient.patientCode ?? patientId ?? "");
@@ -528,7 +547,7 @@ export default function RefractionPage() {
                 <div className="text-center sm:text-right" dir="rtl">
                   <span className="break-words">الاسم: {patientName}</span>
                 </div>
-                <div className="text-center">التاريخ : {todayLabel}</div>
+                <div className="text-center">التاريخ : {reportDate}</div>
                 <div className="text-center sm:text-left">
                   الكود : {patientCode}
                 </div>

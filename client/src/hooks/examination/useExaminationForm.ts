@@ -81,6 +81,18 @@ export type UseExaminationFormOptions = {
   /** حوار من لوحة التحكم: لا يقرأ `patientId` من المسار، ولا يعيد التوجيه بعد الحفظ */
   embedded?: boolean;
   onEmbeddedClose?: () => void;
+  initialData?: {
+    patientId?: number | null;
+    patientCode?: string | null;
+    fullName?: string;
+    age?: number | string | null;
+    phone?: string | null;
+    email?: string | null;
+    visitDate?: string | null;
+    serviceType?:
+      "consultant" | "specialist" | "lasik" | "external" | "followup" | null;
+  };
+  onEmbeddedSaved?: (result: { patientId: number }) => void | Promise<void>;
 };
 
 /**
@@ -96,6 +108,7 @@ export function useExaminationForm(
 ) {
   const embedded = Boolean(options?.embedded);
   const onEmbeddedClose = options?.onEmbeddedClose;
+  const onEmbeddedSaved = options?.onEmbeddedSaved;
   const EXAM_AUTO_SAVE_ENABLED = false;
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
@@ -145,6 +158,30 @@ export function useExaminationForm(
   const [patientMedicalHistory, setPatientMedicalHistory] =
     useState<MedicalHistoryDraft>({ ...EMPTY_MEDICAL_HISTORY });
 
+  useEffect(() => {
+    if (!embedded || !options?.initialData) return;
+    const initial = options.initialData;
+    setPatientInfo((prev) => ({
+      ...prev,
+      id: initial.patientId ?? prev.id,
+      name: initial.fullName?.trim() || prev.name,
+      code: initial.patientCode?.trim() || prev.code,
+    }));
+    setPatientDetails((prev) => ({
+      ...prev,
+      age: initial.age == null ? prev.age : String(initial.age),
+      phone: initial.phone?.trim() || prev.phone,
+      email: initial.email?.trim() || prev.email,
+    }));
+    if (initial.visitDate) setVisitDate(initial.visitDate);
+    if (initial.serviceType) {
+      setSheetSelection(
+        initial.serviceType === "followup" ? "consultant" : initial.serviceType,
+      );
+      setIsFollowup(initial.serviceType === "followup");
+    }
+  }, [embedded, options?.initialData]);
+
   const nextPatientCodeQuery = trpc.medical.getNextMssqlPatientCode.useQuery(
     undefined,
     { refetchOnWindowFocus: false },
@@ -176,10 +213,12 @@ export function useExaminationForm(
     const visits = Array.isArray(visitsQuery.data)
       ? (visitsQuery.data as Array<{ visitDate?: unknown }>)
       : [];
-    return visits
-      .map((visit) => formatDateForInput(visit.visitDate))
-      .filter(Boolean)
-      .sort()[0] ?? "";
+    return (
+      visits
+        .map((visit) => formatDateForInput(visit.visitDate))
+        .filter(Boolean)
+        .sort()[0] ?? ""
+    );
   }, [visitsQuery.data]);
   const latestExaminationId = useMemo(() => {
     const rows = Array.isArray(examinationsQuery.data)
@@ -888,8 +927,7 @@ export function useExaminationForm(
     if (!data) return;
     if (hydratedPatientStateRef.current === patientInfo.id) return;
     if (data.sheetSelection) setSheetSelection(data.sheetSelection);
-    if (!registrationVisitDate && data.visitDate)
-      setVisitDate(data.visitDate);
+    if (!registrationVisitDate && data.visitDate) setVisitDate(data.visitDate);
     if (typeof data.isFollowup === "boolean") {
       setIsFollowup(data.isFollowup);
     }
@@ -1357,13 +1395,18 @@ export function useExaminationForm(
             "male" | "female" | undefined,
           serviceType: (sheetSelection as any) || "consultant",
           locationType,
-          visitDate: localISODate(),
+          visitDate: visitDate || localISODate(),
           ...(doctorCode ? { doctorCode } : {}),
           ...(validServices.length > 0 ? { services: validServices } : {}),
           ...(shiftNumber ? { shiftNumber } : {}),
           medicalHistory: patientMedicalHistory,
         });
         effectivePatientId = created.id ?? 0;
+        if ((created as any)?.concurrentPatientCreationDetected) {
+          toast.warning(
+            `تم انتظار تسجيل موظف آخر، وحُفظ هذا المريض بالكود التالي ${created.patientCode}.`,
+          );
+        }
         setPatientInfo((prev) => ({
           ...prev,
           id: effectivePatientId,
@@ -1530,10 +1573,17 @@ export function useExaminationForm(
         "consultant" | "specialist" | "lasik" | "external"
       >;
       await syncSelectedSheets(effectivePatientId, allSheetTypes);
+      if (embedded) {
+        await onEmbeddedSaved?.({
+          patientId: effectivePatientId,
+        });
+      }
       toast.success("تم حفظ البيانات بنجاح");
       if (embedded) {
-        // Clear the form for embedded mode (modal stays open)
-        setPatientInfo({ id: 0, name: "", code: "" });
+        const nextCodeResult = await nextPatientCodeQuery.refetch();
+        const nextPatientCode = nextCodeResult.data?.code ?? "";
+        // Keep the embedded form ready for the next patient immediately.
+        setPatientInfo({ id: 0, name: "", code: nextPatientCode });
         setPatientDetails({
           dateOfBirth: "",
           age: "",
