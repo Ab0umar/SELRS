@@ -31,6 +31,7 @@ import {
   LayoutDashboard,
   LogOut,
   Megaphone,
+  MessageCircle,
   Network,
   ScrollText,
   Search,
@@ -287,6 +288,14 @@ export function AppTopNav({
         paths: ["/admin/op-history"],
         checkPath: "/admin/op-history",
       },
+      {
+        icon: MessageCircle,
+        label: "رسائل واتساب",
+        path: "/admin/whatsapp-inbox",
+        key: "whatsapp-inbox",
+        paths: ["/admin/whatsapp-inbox"],
+        checkPath: "/admin/whatsapp-inbox",
+      },
     ],
     [],
   );
@@ -306,23 +315,83 @@ export function AppTopNav({
     });
   }, [isAdmin, allNavTabs, permissionsQuery.isSuccess, allowedRoots, userRole]);
 
-  const adminQuickTabs = useMemo(
+  const adminTopNavItems = useMemo(
     () => [
       {
+        type: "link" as const,
         icon: LayoutDashboard,
         label: "لوحة التحكم",
         path: "/dashboard?tab=admin",
       },
-      { icon: Network, label: "مركز المريض", path: "/patient-hub" },
-      { icon: Banknote, label: "الحسابات", path: "/accounting" },
-      { icon: DollarSign, label: "المرتبات", path: "/salary" },
-      { icon: Activity, label: "الحضور", path: "/attendance" },
-      { icon: Hospital, label: "كفرالشيخ", path: "/kf" },
-      { icon: Archive, label: "المخزن", path: "/stockroom" },
-      { icon: Filter, label: "المرجع الطبي", path: "/medical-reference" },
-      { icon: History, label: "سجل المرضى", path: "/admin/legacy-patients" },
-      { icon: ScrollText, label: "سجل العمليات", path: "/admin/op-history" },
-      { icon: Settings, label: "مركز الإدارة", path: "/admin-hub" },
+      {
+        type: "link" as const,
+        icon: Network,
+        label: "مركز المريض",
+        path: "/patient-hub",
+      },
+      {
+        type: "link" as const,
+        icon: Banknote,
+        label: "الحسابات",
+        path: "/accounting",
+      },
+      {
+        type: "menu" as const,
+        key: "employees",
+        icon: Users,
+        label: "الموظفين",
+        items: [
+          { icon: Activity, label: "الحضور", path: "/attendance" },
+          { icon: DollarSign, label: "المرتبات", path: "/salary" },
+        ],
+      },
+      {
+        type: "link" as const,
+        icon: Hospital,
+        label: "كفرالشيخ",
+        path: "/kf",
+      },
+      {
+        type: "link" as const,
+        icon: Archive,
+        label: "المخزن",
+        path: "/stockroom",
+      },
+      {
+        type: "menu" as const,
+        key: "archive",
+        icon: Archive,
+        label: "أرشيف",
+        items: [
+          {
+            icon: History,
+            label: "سجل المرضى",
+            path: "/admin/legacy-patients",
+          },
+          {
+            icon: ScrollText,
+            label: "سجل العمليات",
+            path: "/admin/op-history",
+          },
+          {
+            icon: Filter,
+            label: "المرجع الطبي",
+            path: "/medical-reference",
+          },
+        ],
+      },
+      {
+        type: "link" as const,
+        icon: MessageCircle,
+        label: "رسائل واتساب",
+        path: "/admin/whatsapp-inbox",
+      },
+      {
+        type: "link" as const,
+        icon: Settings,
+        label: "مركز الإدارة",
+        path: "/admin-hub",
+      },
     ],
     [],
   );
@@ -366,7 +435,6 @@ export function AppTopNav({
       "clinics-prescriptions",
       "clinics-tests",
       "patients",
-      "services",
     ]);
     const movedPaths = new Set([
       "/sheets/pentacam/dashboard",
@@ -382,17 +450,16 @@ export function AppTopNav({
       }))
       .filter((section) => section.items.length > 0);
 
-    const marketingSection =
-      isAdmin
-        ? [
-            {
-              label: "التسويق",
-              navKey: "marketing",
-              groupPath: "/marketing",
-              items: [{ icon: Megaphone, label: "التسويق", path: "/marketing" }],
-            },
-          ]
-        : [];
+    const marketingSection = isAdmin
+      ? [
+          {
+            label: "التسويق",
+            navKey: "marketing",
+            groupPath: "/marketing",
+            items: [{ icon: Megaphone, label: "التسويق", path: "/marketing" }],
+          },
+        ]
+      : [];
 
     return [
       {
@@ -438,12 +505,16 @@ export function AppTopNav({
 
   return (
     <header
+      data-app-top-nav
       dir="rtl"
       className="relative z-40 shrink-0 border-b border-border/80 bg-card/95 pt-[env(safe-area-inset-top)] shadow-[0_1px_2px_oklch(0.28_0.04_257_/_0.06)] print:hidden"
     >
       <div className="selrs-gradient-bar h-0.5 w-full" aria-hidden />
 
-      <div className="flex h-14 w-full items-center gap-2 px-2">
+      <div
+        data-app-top-nav-row
+        className="flex h-14 w-full items-center gap-2 px-2"
+      >
         {/* Logo */}
         <button
           type="button"
@@ -459,32 +530,79 @@ export function AppTopNav({
 
         {/* Main tabs, desktop only */}
         <nav
-          className="hidden min-w-0 flex-1 items-stretch whitespace-nowrap md:flex"
+          className="hidden min-w-0 flex-1 items-stretch overflow-x-auto whitespace-nowrap md:flex [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           aria-label="القائمة الرئيسية"
         >
           {isAdmin
-            ? adminQuickTabs.map((tab) => {
-                const active = tabActive(location, tab.path);
-                const Icon = tab.icon;
+            ? adminTopNavItems.map((item) => {
+                const Icon = item.icon;
+                const active =
+                  item.type === "link"
+                    ? tabActive(location, item.path)
+                    : item.items.some((child) =>
+                        tabActive(location, child.path),
+                      );
+                const triggerClassName = cn(
+                  "my-1 flex h-10 shrink-0 items-center gap-0.5 whitespace-nowrap rounded-xl border px-1.5 text-[10px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary xl:px-2 xl:text-[11px] 2xl:text-xs",
+                  active
+                    ? "border-primary/20 bg-primary text-primary-foreground shadow-sm"
+                    : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/70",
+                );
+
+                if (item.type === "link") {
+                  return (
+                    <button
+                      key={item.path}
+                      type="button"
+                      onClick={() => onNavigate(item.path)}
+                      className={triggerClassName}
+                    >
+                      <Icon
+                        className="h-3.5 w-3.5 shrink-0"
+                        strokeWidth={active ? 2.2 : 1.8}
+                        aria-hidden
+                      />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                }
+
                 return (
-                  <button
-                    key={tab.path}
-                    type="button"
-                    onClick={() => onNavigate(tab.path)}
-                    className={cn(
-                      "my-1 flex h-10 min-w-0 items-center gap-0.5 whitespace-nowrap rounded-xl border px-1.5 text-[10px] font-semibold transition-colors xl:px-2 xl:text-[11px] 2xl:text-xs",
-                      active
-                        ? "border-primary/20 bg-primary text-primary-foreground shadow-sm"
-                        : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/70",
-                    )}
-                  >
-                    <Icon
-                      className="h-3.5 w-3.5 shrink-0"
-                      strokeWidth={active ? 2.2 : 1.8}
-                      aria-hidden
-                    />
-                    <span className="whitespace-nowrap">{tab.label}</span>
-                  </button>
+                  <DropdownMenu key={item.key}>
+                    <DropdownMenuTrigger asChild>
+                      <button type="button" className={triggerClassName}>
+                        <Icon
+                          className="h-3.5 w-3.5 shrink-0"
+                          strokeWidth={active ? 2.2 : 1.8}
+                          aria-hidden
+                        />
+                        <span>{item.label}</span>
+                        <ChevronDown
+                          className="h-3 w-3 shrink-0 opacity-70"
+                          aria-hidden
+                        />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="start"
+                      className="w-48"
+                      style={{ direction: "rtl" } satisfies CSSProperties}
+                    >
+                      {item.items.map((child) => {
+                        const ChildIcon = child.icon;
+                        return (
+                          <DropdownMenuItem
+                            key={child.path}
+                            className="cursor-pointer gap-2"
+                            onClick={() => onNavigate(child.path)}
+                          >
+                            <ChildIcon className="h-4 w-4" aria-hidden />
+                            {child.label}
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 );
               })
             : mainNavTabs.map((tab) => {
@@ -499,7 +617,7 @@ export function AppTopNav({
                     type="button"
                     onClick={() => onNavigate(tab.path)}
                     className={cn(
-                      "my-1 flex h-10 min-w-0 items-center gap-0.5 whitespace-nowrap rounded-xl border px-1.5 text-[10px] font-semibold transition-colors xl:px-2 xl:text-[11px] 2xl:text-xs",
+                      "my-1 flex h-10 shrink-0 items-center gap-0.5 whitespace-nowrap rounded-xl border px-1.5 text-[10px] font-semibold transition-colors xl:px-2 xl:text-[11px] 2xl:text-xs",
                       active
                         ? "border-primary/20 bg-primary text-primary-foreground shadow-sm"
                         : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/70",

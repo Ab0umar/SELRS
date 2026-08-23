@@ -25,7 +25,7 @@ import {
 const TYPES = [
   { value: "consultant" as const, label: "كشف استشاري" },
   { value: "specialist" as const, label: "كشف أخصائي" },
-  { value: "lasik" as const, label: "فحوصات الليزك" },
+  { value: "pentacam" as const, label: "بنتاكام" },
   { value: "external" as const, label: "أشعة بنتاكام" },
   { value: "followup" as const, label: "متابعة" },
 ];
@@ -33,7 +33,7 @@ const TYPES = [
 const TYPE_HINTS: Record<(typeof TYPES)[number]["value"], string> = {
   consultant: "ا.د محمد السعدني غرابه",
   specialist: "كشف أو مقاس نظارة",
-  lasik: "الفحوصات الخاصة بعمليات تصحيح الإبصار",
+  pentacam: "فحص البنتاكام",
   external: "أشعة بنتاكام للقرنية",
   followup: "لمراجعة ما بعد الزيارة",
 };

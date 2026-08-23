@@ -5,16 +5,13 @@ import {
   LayoutGrid,
   Network,
   Pill,
+  BookOpen,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 
 type ServicesHubSurface =
-  | "hub"
-  | "medications"
-  | "registry"
-  | "catalog"
-  | "txhub";
+  "hub" | "medications" | "registry" | "catalog" | "drug-reference" | "txhub";
 
 type HubNavItem = {
   id: ServicesHubSurface;
@@ -59,6 +56,14 @@ const SURFACE_ITEMS: HubNavItem[] = [
     accent: "bg-success/15 text-success",
   },
   {
+    id: "drug-reference",
+    href: "/services-hub/drug-reference",
+    title: "مرجع الأدوية",
+    description: "بحث في قاعدة الأدوية المصرية وإضافة المختار للروشتات.",
+    icon: BookOpen,
+    accent: "bg-primary/10 text-primary",
+  },
+  {
     id: "txhub",
     href: "/txhub",
     title: "ربط النتائج",
@@ -93,7 +98,7 @@ export function ServicesHubNav({ active, className }: ServicesHubNavProps) {
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-5">
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-6">
         {SURFACE_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive = item.id === active;

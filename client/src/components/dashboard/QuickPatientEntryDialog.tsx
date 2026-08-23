@@ -50,7 +50,7 @@ export function QuickPatientEntryDialog({
     const content = (
       <div
         className={cn(
-          "max-h-[72vh] overflow-x-hidden overflow-y-auto p-4",
+          "overflow-x-hidden p-4",
           inlineHeader && !expanded && "hidden",
         )}
       >
@@ -115,16 +115,16 @@ export function QuickPatientEntryDialog({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="top"
-        className="max-h-[92dvh] w-full gap-0 overflow-hidden p-0"
+        className="quick-patient-registration-sheet max-h-[92dvh] w-full gap-0 overflow-hidden p-0"
         dir="rtl"
       >
-        <SheetHeader className="shrink-0 border-b px-5 py-4 text-right">
+        <SheetHeader className="quick-patient-registration-header shrink-0 border-b px-5 py-4 text-right">
           <SheetTitle>تسجيل مريض</SheetTitle>
           <SheetDescription className="sr-only">
             نموذج تسجيل مريض جديد
           </SheetDescription>
         </SheetHeader>
-        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-5">
+        <div className="quick-patient-registration-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-5">
           {open ? (
             <ExaminationPatientQuickDialogContent
               key={mountKey}

@@ -49,7 +49,7 @@ finally {
 }
 
 # Copy output to desktop/installer/ so the server can serve it for auto-updates
-$oneDriveOut = "C:\Users\drels\OneDrive\SELRS.cc\SELRS-Setup-$version.exe"
+$oneDriveOut = "C:\Users\SELRS\OneDrive\SELRS.cc\SELRS-Setup-$version.exe"
 $localInstaller = Join-Path $outputDir "SELRS-Setup-$version.exe"
 if (Test-Path $oneDriveOut) {
   Copy-Item -Path $oneDriveOut -Destination $localInstaller -Force

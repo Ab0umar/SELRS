@@ -4,6 +4,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight,
+  BookOpen,
   FlaskConical,
   LayoutGrid,
   Network,
@@ -18,6 +19,7 @@ import { ServicesHubNav } from "@/components/shared/ServicesHubNav";
 import { StatCard } from "@/components/shared/StatCard";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
+import EgyptianDrugReferencePage from "./EgyptianDrugReferencePage";
 
 type HubModuleCard = {
   href: string;
@@ -28,6 +30,13 @@ type HubModuleCard = {
 };
 
 const MAIN_MODULES: HubModuleCard[] = [
+  {
+    href: "/services-hub/drug-reference",
+    title: "مرجع الأدوية المصرية",
+    description: "بحث عربي وإنجليزي وإضافة الدواء المختار إلى كتالوج الروشتات.",
+    icon: BookOpen,
+    iconWrap: "bg-primary/10 text-primary",
+  },
   {
     href: "/services-hub/medications",
     title: "الأدوية",
@@ -100,6 +109,9 @@ export default function ServicesHubShell() {
 
     if (location === "/services-hub/medications") {
       return <Redirect to="/medications" />;
+    }
+    if (location === "/services-hub/drug-reference") {
+      return <EgyptianDrugReferencePage />;
     }
     if (location === "/services-hub/catalog") {
       return <Redirect to="/examinations/catalog" />;

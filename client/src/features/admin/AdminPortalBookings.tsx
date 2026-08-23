@@ -59,10 +59,10 @@ const STATUS_META: Record<
 };
 
 const BOOKING_TYPES: Record<string, string> = {
-  consultant: "كشف استشاري",
-  specialist: "كشف أخصائي",
-  lasik: "فحوصات الليزك",
-  external: "أشعة خارجي",
+  consultant: "إستشاري",
+  specialist: "أخصائي",
+  pentacam: "بنتاكام",
+  external: "أشعة",
   followup: "متابعة",
 };
 
@@ -91,7 +91,7 @@ type StatusFilter = "" | BookingStatus;
 type BookingType =
   | "consultant"
   | "specialist"
-  | "lasik"
+  | "pentacam"
   | "external"
   | "followup";
 
@@ -536,10 +536,10 @@ function ScheduleRowCard({
 }
 
 const STAFF_BOOKING_TYPES = [
-  { value: "consultant" as const, label: "كشف استشاري" },
-  { value: "specialist" as const, label: "كشف أخصائي" },
-  { value: "lasik" as const, label: "فحوصات الليزك" },
-  { value: "external" as const, label: "أشعة خارجي" },
+  { value: "consultant" as const, label: "إستشاري" },
+  { value: "specialist" as const, label: "أخصائي" },
+  { value: "pentacam" as const, label: "بنتاكام" },
+  { value: "external" as const, label: "أشعة" },
   { value: "followup" as const, label: "متابعة" },
 ];
 
@@ -823,10 +823,10 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
 
 const CLOSURE_TYPES = [
   { value: "", label: "كل الأنواع" },
-  { value: "consultant", label: "كشف استشاري" },
-  { value: "specialist", label: "كشف أخصائي" },
-  { value: "lasik", label: "فحوصات الليزك" },
-  { value: "external", label: "أشعة خارجي" },
+  { value: "consultant", label: "إستشاري" },
+  { value: "specialist", label: "أخصائي" },
+  { value: "pentacam", label: "بنتاكام" },
+  { value: "external", label: "أشعة" },
   { value: "followup", label: "متابعة" },
 ];
 

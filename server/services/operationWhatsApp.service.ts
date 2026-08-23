@@ -1,5 +1,4 @@
 import { ENV } from "../_core/env";
-import { appendSupportNoticeToLastParameter } from "./whatsappTemplateSupport";
 import { operationTypeLabelAr } from "../../shared/opTypes";
 
 export type OperationWhatsAppRequest = {
@@ -250,9 +249,7 @@ export async function sendOperationListWhatsApp(
           components: [
             {
               type: "body",
-              parameters: appendSupportNoticeToLastParameter(
-                templateParameters(request, templateName),
-              ),
+              parameters: templateParameters(request, templateName),
             },
           ],
         },

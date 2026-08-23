@@ -4,6 +4,7 @@ x64:
     - '!build{,/**/*}'
     - main.js
     - preload.js
+    - dist/**/*
     - package.json
     - '!**/*.{iml,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,suo,xproj,cc,d.ts,mk,a,o,obj,forge-meta,pdb}'
     - '!**/._*'
@@ -16,10 +17,11 @@ x64:
     - '**/*'
     - main.js
     - preload.js
+    - dist/**/*
 nsis:
   script: |-
-    !include "D:\C\SRV100_Acc\desktop-electron\node_modules\.pnpm\app-builder-lib@26.8.1_dmg-_62d31da0b96a3ea7b7d51a6bbe3b3b6e\node_modules\app-builder-lib\templates\nsis\include\StdUtils.nsh"
-    !addincludedir "D:\C\SRV100_Acc\desktop-electron\node_modules\.pnpm\app-builder-lib@26.8.1_dmg-_62d31da0b96a3ea7b7d51a6bbe3b3b6e\node_modules\app-builder-lib\templates\nsis\include"
+    !include "E:\selrs.cc\desktop-electron\node_modules\.pnpm\app-builder-lib@26.8.1_dmg-_ee9fd08128272ff003719ac5c8923ac4\node_modules\app-builder-lib\templates\nsis\include\StdUtils.nsh"
+    !addincludedir "E:\selrs.cc\desktop-electron\node_modules\.pnpm\app-builder-lib@26.8.1_dmg-_ee9fd08128272ff003719ac5c8923ac4\node_modules\app-builder-lib\templates\nsis\include"
     !macro _isUpdated _a _b _t _f
       ${StdUtils.TestParameter} $R9 "updated"
       StrCmp "$R9" "true" `${_t}` `${_f}`
@@ -91,9 +93,9 @@ nsis:
       !insertmacro MUI_LANGUAGE "Vietnamese"
     !macroend
 
-    !include "C:\Users\drels\AppData\Local\Temp\t-FzVkLU\3-messages.nsh"
-    !include "C:\Users\drels\AppData\Local\Temp\t-FzVkLU\2-messages.nsh"
-    !addplugindir /x86-unicode "C:\Users\drels\AppData\Local\electron-builder\Cache\nsis\nsis-resources-3.4.1-nsis-resources-3.4.1\plugins\x86-unicode"
+    !addplugindir /x86-unicode "C:\Users\SELRS\AppData\Local\electron-builder\Cache\nsis\nsis-resources-3.4.1-nsis-resources-3.4.1\plugins\x86-unicode"
+    !include "C:\Users\SELRS\AppData\Local\Temp\t-xslcsW\2-messages.nsh"
+    !include "C:\Users\SELRS\AppData\Local\Temp\t-xslcsW\3-messages.nsh"
 
     Var newStartMenuLink
     Var oldStartMenuLink

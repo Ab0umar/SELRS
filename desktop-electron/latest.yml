@@ -1,8 +1,8 @@
-version: 1.0.187
+version: 1.1.13
 files:
-  - url: SELRS-Electron-Setup-1.0.187.exe
-    sha512: eN3AFOX4/NSu6fb3AYPQGLpM/zy2DbP55EndWQRJoYb2qYSo9o0snYpzYXi+/4yyuI2Grgfaw5BcIBZuKzbHbg==
-    size: 105795744
-path: SELRS-Electron-Setup-1.0.187.exe
-sha512: eN3AFOX4/NSu6fb3AYPQGLpM/zy2DbP55EndWQRJoYb2qYSo9o0snYpzYXi+/4yyuI2Grgfaw5BcIBZuKzbHbg==
-releaseDate: '2026-06-19T01:54:59.149Z'
+  - url: SELRS-Electron-Setup-1.1.13.exe
+    sha512: 6SWejmz+f7bLSVqmrEHhkpIGD8Mntxf/XhC+rg8lfiYoMQr0NEqSEkRI5xHdoYNBQuR70Xvb7QtVTEyCeIfEMA==
+    size: 97679659
+path: SELRS-Electron-Setup-1.1.13.exe
+sha512: 6SWejmz+f7bLSVqmrEHhkpIGD8Mntxf/XhC+rg8lfiYoMQr0NEqSEkRI5xHdoYNBQuR70Xvb7QtVTEyCeIfEMA==
+releaseDate: '2026-08-22T22:11:11.193Z'

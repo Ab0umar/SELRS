@@ -27,17 +27,19 @@ import {
   Bell,
   HeartPulse,
   Terminal,
+  RefreshCw,
 } from "lucide-react";
 import { serviceTypeLabels } from "@/lib/dashboard-data";
 import { usePermissions } from "@/hooks/usePermissions";
 import { trpc } from "@/lib/trpc";
 import { useTodayQueuePatientsMerged } from "@/hooks/useTodayQueuePatientsMerged";
-import { cn } from "@/lib/utils";
+import { cn, getTrpcErrorMessage } from "@/lib/utils";
 import { OperationsBookingQuickDialog } from "@/components/operations/OperationsBookingQuickDialog";
 import { getLocalDateIso } from "@/hooks/operations/operationsShared";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
+import { toast } from "sonner";
 import { formatMoneyAr } from "../features/accounting/accountingFormat";
 
 const LazyPortalBookings = lazy(
@@ -1305,7 +1307,7 @@ export default function Dashboard() {
     openMedicalFilePicker,
     openMedicalFileForPatient,
   } = useMedicalFileLauncher();
-  const { canAccess, isLoaded: permsLoaded } = usePermissions();
+  const { canAccess, isAdmin, isLoaded: permsLoaded } = usePermissions();
   const [bookingOpen, setBookingOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(getLocalDateIso);
   const [activeTab, setActiveTab] = useState<TabId>(() => {
@@ -1327,6 +1329,16 @@ export default function Dashboard() {
   }, [permsLoaded, visibleTabs, activeTab]);
   const utils = trpc.useUtils();
   const now = useClock();
+  const syncMssqlMutation = trpc.medical.syncPatientsFromMssql.useMutation({
+    onSuccess: async (result) => {
+      toast.success(
+        `تمت المزامنة: ${result.inserted} جديد، ${result.updated} تحديث`,
+      );
+      await utils.medical.getTodayPatientsByQueueStatus.invalidate();
+    },
+    onError: (error: unknown) =>
+      toast.error(getTrpcErrorMessage(error, "فشلت مزامنة MSSQL")),
+  });
 
   // Lightweight badge data loaded on mount.
   const { merged } = useTodayQueuePatientsMerged(selectedDate);
@@ -1408,6 +1420,53 @@ export default function Dashboard() {
           <QuickActions
             onOpenMeasurementsMedicalFile={openMedicalFilePicker}
             onOpenOperationsBooking={() => setBookingOpen(true)}
+            extraPrimaryAction={
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    void utils.medical.getTodayPatientsByQueueStatus.invalidate();
+                    void utils.medical.getTodayOperationLists.invalidate();
+                    void attQ.refetch();
+                    void stockQ.refetch();
+                    void bookingsQ.refetch();
+                  }}
+                  aria-label="تحديث"
+                  title="تحديث"
+                  className="shrink-0 rounded-xl"
+                >
+                  <RefreshCw className="size-4" />
+                </Button>
+                {isAdmin ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={syncMssqlMutation.isPending}
+                    onClick={() =>
+                      syncMssqlMutation.mutate({ incremental: true })
+                    }
+                    aria-label="مزامنة MSSQL"
+                    title="مزامنة المرضى من MSSQL"
+                    className="shrink-0 gap-2 rounded-xl"
+                  >
+                    <Database
+                      className={cn(
+                        "size-4",
+                        syncMssqlMutation.isPending && "animate-pulse",
+                      )}
+                    />
+                    <span className="hidden sm:inline">
+                      {syncMssqlMutation.isPending
+                        ? "جارِ المزامنة..."
+                        : "مزامنة MSSQL"}
+                    </span>
+                  </Button>
+                ) : null}
+              </div>
+            }
           />
         </div>
 

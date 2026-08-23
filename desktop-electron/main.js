@@ -137,9 +137,8 @@ function showSourceMenu() {
 function createWindow() {
   let showWindowTimer = null;
   mainWindow = new BrowserWindow({
-    width: 1400, height: 900, show: false, frame: false, thickFrame: false,
-    titleBarStyle: "hidden",
-    titleBarOverlay: { color: "#094e78", symbolColor: "#f5f7fa", height: WINDOW_OVERLAY_HEIGHT },
+    width: 1400, height: 900, show: false, frame: true, thickFrame: true,
+    titleBarStyle: "default",
     minimizable: true, maximizable: true, closable: true, autoHideMenuBar: true,
     backgroundColor: "#ffffff",
     webPreferences: {

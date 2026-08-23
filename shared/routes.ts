@@ -61,6 +61,7 @@ export const ROUTES = {
 
   // Bookings / today
   today: "/bookings",
+  workflowPrototype: "/workflow-prototype",
 
   // Admin / accounting
   accounting: "/accounting",

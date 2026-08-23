@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { OPERATION_LABELS } from "@/lib/operationsPricing";
 import { DateInput } from "@/components/ui/date-input";
+import { useIsMobile } from "@/hooks/useMobile";
 
 export type OperationsBookingFormContentProps = {
   draft: {
@@ -30,6 +31,17 @@ export function OperationsBookingFormContent({
   submitLabel = "حفظ الحجز",
   cancelLabel = "إلغاء",
 }: OperationsBookingFormContentProps) {
+  // Inline style, not a CSS class — this device's WebView was found to
+  // silently ignore certain @media rules even after they were verified
+  // byte-correct on the server, so this pairing uses an inline style to
+  // bypass the cascade entirely.
+  const isMobile = useIsMobile();
+  const topRowStyle = isMobile
+    ? { display: "flex" as const, flexWrap: "wrap" as const, gap: "0.65rem" }
+    : undefined;
+  const topFieldStyle = isMobile
+    ? { flex: "1 1 calc(50% - 0.325rem)", minWidth: 0 }
+    : undefined;
   return (
     <form
       className="space-y-4"
@@ -42,34 +54,43 @@ export function OperationsBookingFormContent({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* Right Column: Doctor & Date */}
         <div className="space-y-3">
-          <div>
-            <Label
-              htmlFor="operation-booking-doctor"
-              className="font-semibold text-[11px] mb-1 block text-muted-foreground"
-            >
-              الطبيب المعالج
-            </Label>
-            <Input
-              id="operation-booking-doctor"
-              value={draft.doctorName}
-              onChange={(event) => onChange("doctorName", event.target.value)}
-              placeholder="اسم الطبيب..."
-              className="h-9 text-sm font-medium bg-background"
-            />
-          </div>
-          <div>
-            <Label
-              htmlFor="operation-booking-date"
-              className="font-semibold text-[11px] mb-1 block text-muted-foreground"
-            >
-              تاريخ العملية
-            </Label>
-            <DateInput
-              id="operation-booking-date"
-              value={draft.bookingDate}
-              onChange={(event) => onChange("bookingDate", event.target.value)}
-              className="h-9 text-sm font-mono bg-background"
-            />
+          <div
+            className="operation-booking-top-grid grid grid-cols-1 sm:grid-cols-2 gap-3"
+            style={topRowStyle}
+          >
+            <div style={topFieldStyle}>
+              <Label
+                htmlFor="operation-booking-doctor"
+                className="font-semibold text-[11px] mb-1 block text-muted-foreground"
+              >
+                الطبيب المعالج
+              </Label>
+              <Input
+                id="operation-booking-doctor"
+                value={draft.doctorName}
+                onChange={(event) =>
+                  onChange("doctorName", event.target.value)
+                }
+                placeholder="اسم الطبيب..."
+                className="h-9 text-sm font-medium bg-background"
+              />
+            </div>
+            <div style={topFieldStyle}>
+              <Label
+                htmlFor="operation-booking-date"
+                className="font-semibold text-[11px] mb-1 block text-muted-foreground"
+              >
+                تاريخ العملية
+              </Label>
+              <DateInput
+                id="operation-booking-date"
+                value={draft.bookingDate}
+                onChange={(event) =>
+                  onChange("bookingDate", event.target.value)
+                }
+                className="h-9 text-sm font-mono bg-background"
+              />
+            </div>
           </div>
           <div>
             <Label

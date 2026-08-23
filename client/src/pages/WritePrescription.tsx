@@ -102,7 +102,6 @@ export default function WritePrescription({
   const isReadOnly = user?.role === "reception";
   const editingForbidden = isReadOnly || Boolean(patientHubReadOnly);
   const canImportReadyTemplates = isAdmin;
-  const printMode = usePrintMode();
   const initialPatientId = params?.id ? Number(params.id) : 0;
   const routeVisitDate =
     typeof window !== "undefined"
@@ -220,7 +219,7 @@ export default function WritePrescription({
   const importPollRef = useRef<number | null>(null);
   const [importStatus, setImportStatus] = useState<string>("");
   const [importPath, setImportPath] = useState(
-    "E:\\SELRS.cc\\روشتات\\ready_prescriptions_multisheet_import.xlsx",
+    "E:\\selrs.cc\\روشتات\\ready_prescriptions_multish1eet_import_with_dosages.xlsx",
   );
 
   const readDraft = (keys: string[]) => {
@@ -305,6 +304,15 @@ export default function WritePrescription({
   const medicationsQuery = trpc.medical.getAllMedications.useQuery(undefined, {
     refetchOnWindowFocus: false,
   });
+  const referenceMedicationsQuery =
+    trpc.medical.searchEgyptianDrugReference.useQuery(
+      { query: medicationSearch.trim(), limit: 20 },
+      {
+        enabled: medicationsOpen && medicationSearch.trim().length >= 2,
+        refetchOnWindowFocus: false,
+        staleTime: 10 * 60 * 1000,
+      },
+    );
   const patientQuery = trpc.patient.getPatient.useQuery(patientId ?? 0, {
     enabled: Boolean(patientId) && !isKfRoute,
     refetchOnWindowFocus: false,
@@ -667,6 +675,17 @@ export default function WritePrescription({
     requestedVisitDate,
   ]);
 
+  // Auto-print (triggered by usePrintMode below) must wait for the patient
+  // and their prescription history to actually load — otherwise the print
+  // dialog opens on the very first render, before any data has arrived,
+  // producing a blank prescription/lab-request printout.
+  const printDataReady = !initialPatientId
+    ? true
+    : isKfRoute
+      ? !kfPatientQuery.isLoading
+      : !patientQuery.isLoading && !historyQuery.isLoading;
+  const printMode = usePrintMode({ ready: printDataReady });
+
   const handleRemoveItem = (id: string) => {
     if (editingForbidden) return;
     setPrescriptionItems(prescriptionItems.filter((item) => item.id !== id));
@@ -772,12 +791,48 @@ export default function WritePrescription({
     ]);
   };
 
+  const handleAddReferenceMedication = (drug: {
+    commercialNameEn: string;
+    commercialNameAr: string;
+    scientificName: string;
+  }) => {
+    if (editingForbidden) return;
+    const name = drug.commercialNameEn.trim();
+    if (!name) return;
+    if (
+      prescriptionItems.some(
+        (item) =>
+          item.medicationName.trim().toLowerCase() === name.toLowerCase(),
+      )
+    ) {
+      toast.info("الدواء مضاف بالفعل إلى الروشتة");
+      return;
+    }
+    setPrescriptionItems((current) => [
+      ...current,
+      {
+        id: `reference-${Date.now()}`,
+        medicationId: 0,
+        medicationName: name,
+        dosage: "",
+        frequency: "",
+        duration: "",
+        instructions: "",
+      },
+    ]);
+    toast.success(`تمت إضافة ${drug.commercialNameAr || name}`);
+  };
+
   const formatItemDetails = (item: PrescriptionItem) => {
-    if (item.instructions?.trim()) return item.instructions.trim();
-    const parts = [item.dosage, item.frequency, item.duration]
+    const parts = [
+      item.dosage,
+      item.frequency,
+      item.duration,
+      item.instructions,
+    ]
       .map((p) => String(p ?? "").trim())
       .filter(Boolean);
-    return parts.join(" ");
+    return parts.join(" • ");
   };
 
   const normalizeTemplateId = (value: string) =>
@@ -1289,6 +1344,50 @@ export default function WritePrescription({
                     >
                       إضافة دواء
                     </Button>
+                    {medicationSearch.trim().length >= 2 ? (
+                      <div className="space-y-2 border-b border-[#d9e2ef] pb-3">
+                        <div className="flex items-center justify-between gap-2 text-xs font-bold text-[#1e3a66]">
+                          <span>مرجع الأدوية المصرية</span>
+                          <span className="font-normal text-muted-foreground">
+                            {referenceMedicationsQuery.data?.total ?? 0} نتيجة
+                          </span>
+                        </div>
+                        {referenceMedicationsQuery.isLoading ? (
+                          <p className="py-2 text-center text-xs text-muted-foreground">
+                            جاري البحث في المرجع...
+                          </p>
+                        ) : (
+                          (referenceMedicationsQuery.data?.items ?? []).map(
+                            (drug, index) => (
+                              <button
+                                key={`${drug.commercialNameEn}-${index}`}
+                                type="button"
+                                onClick={() =>
+                                  handleAddReferenceMedication(drug)
+                                }
+                                className="flex w-full items-center justify-between gap-3 rounded-md border border-[#dbe5f2] bg-[#f8fbff] px-3 py-2 text-left hover:border-[#2563eb]"
+                                dir="ltr"
+                              >
+                                <span className="min-w-0">
+                                  <span className="block text-sm font-bold text-[#172033]">
+                                    {drug.commercialNameEn}
+                                  </span>
+                                  <span className="block truncate text-xs text-muted-foreground">
+                                    {drug.scientificName || drug.manufacturer}
+                                  </span>
+                                </span>
+                                <span
+                                  className="shrink-0 text-xs font-semibold text-primary"
+                                  dir="rtl"
+                                >
+                                  {drug.commercialNameAr || "إضافة"}
+                                </span>
+                              </button>
+                            ),
+                          )
+                        )}
+                      </div>
+                    ) : null}
                     {availableMedications.map((med) => {
                       const checked = prescriptionItems.some(
                         (item) => item.medicationId === med.id,
@@ -1599,6 +1698,7 @@ export default function WritePrescription({
             <div
               className="prescription-print-content prescription-paper"
               data-print-prescription-content
+              dir="ltr"
             >
               <div className="prescription-paper-header">
                 <div
@@ -1663,7 +1763,7 @@ export default function WritePrescription({
                 </div>
               </div>
 
-              <Card className="border-0 bg-transparent shadow-none print:[direction:rtl] print:border-0 print:shadow-none">
+              <Card className="border-0 bg-transparent shadow-none print:[direction:ltr] print:border-0 print:shadow-none">
                 <CardHeader className="hidden print:hidden" />
                 <CardContent className="prescription-print-rx p-0">
                   <div className="rx-mark text-2xl font-black tracking-tight text-[#1e3a66]">
@@ -1686,12 +1786,12 @@ export default function WritePrescription({
                           >
                             {item.medicationName}
                           </div>
-                          {item.instructions ? (
+                          {formatItemDetails(item) ? (
                             <div
                               className="prescription-medication-instructions mt-1 text-sm whitespace-pre-line text-right"
                               dir="rtl"
                             >
-                              {item.instructions}
+                              {formatItemDetails(item)}
                             </div>
                           ) : null}
                         </div>
@@ -1730,14 +1830,61 @@ export default function WritePrescription({
                             <div className="prescription-medication-name hidden print:block font-bold text-left">
                               {item.medicationName}
                             </div>
-                            {item.instructions ? (
+                            {formatItemDetails(item) ? (
                               <div
                                 className="prescription-medication-instructions hidden print:block mt-1 text-sm whitespace-pre-line text-right"
                                 dir="rtl"
                               >
-                                {item.instructions}
+                                {formatItemDetails(item)}
                               </div>
                             ) : null}
+                            <div
+                              className="grid grid-cols-1 gap-2 sm:grid-cols-3 print:hidden"
+                              dir="rtl"
+                            >
+                              <Input
+                                value={item.dosage}
+                                onChange={(e) =>
+                                  setPrescriptionItems((prev) =>
+                                    prev.map((p) =>
+                                      p.id === item.id
+                                        ? { ...p, dosage: e.target.value }
+                                        : p,
+                                    ),
+                                  )
+                                }
+                                placeholder="الجرعة"
+                                className="h-9 border-[#dbe4f0] bg-[#f8fafc] text-right"
+                              />
+                              <Input
+                                value={item.frequency}
+                                onChange={(e) =>
+                                  setPrescriptionItems((prev) =>
+                                    prev.map((p) =>
+                                      p.id === item.id
+                                        ? { ...p, frequency: e.target.value }
+                                        : p,
+                                    ),
+                                  )
+                                }
+                                placeholder="التكرار"
+                                className="h-9 border-[#dbe4f0] bg-[#f8fafc] text-right"
+                              />
+                              <Input
+                                value={item.duration}
+                                onChange={(e) =>
+                                  setPrescriptionItems((prev) =>
+                                    prev.map((p) =>
+                                      p.id === item.id
+                                        ? { ...p, duration: e.target.value }
+                                        : p,
+                                    ),
+                                  )
+                                }
+                                placeholder="المدة"
+                                className="h-9 border-[#dbe4f0] bg-[#f8fafc] text-right"
+                              />
+                            </div>
                             <Textarea
                               value={item.instructions}
                               onChange={(e) =>
@@ -1749,7 +1896,7 @@ export default function WritePrescription({
                                   ),
                                 )
                               }
-                              placeholder="الجرعة / التكرار / المدة / تعليمات"
+                              placeholder="تعليمات إضافية"
                               className="min-h-14 w-full border-[#dbe4f0] bg-[#f8fafc] text-center print:hidden"
                             />
                           </div>
@@ -2095,10 +2242,7 @@ export default function WritePrescription({
             page-break-inside: avoid;
           }
           .prescription-root .prescription-item {
-            display: grid !important;
-            grid-template-columns: 1fr 0.9fr !important;
-            column-gap: 10mm !important;
-            align-items: center !important;
+            display: block !important;
             min-height: 11.3mm !important;
             margin: 0 !important;
             padding: 2.2mm 2mm !important;

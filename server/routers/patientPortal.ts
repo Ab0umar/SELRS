@@ -256,7 +256,7 @@ export const patientPortalRouter = router({
         bookingType: z.enum([
           "consultant",
           "specialist",
-          "lasik",
+          "pentacam",
           "external",
           "followup",
         ]),
@@ -351,7 +351,7 @@ export const patientPortalRouter = router({
         bookingType: z.enum([
           "consultant",
           "specialist",
-          "lasik",
+          "pentacam",
           "external",
           "followup",
         ]),
@@ -415,7 +415,7 @@ export const patientPortalRouter = router({
         bookingType: z.enum([
           "consultant",
           "specialist",
-          "lasik",
+          "pentacam",
           "external",
           "followup",
         ]),
@@ -593,7 +593,7 @@ export const patientPortalRouter = router({
         bookingType: z.enum([
           "consultant",
           "specialist",
-          "lasik",
+          "pentacam",
           "external",
           "followup",
         ]),
@@ -697,7 +697,7 @@ export const patientPortalRouter = router({
         bookingType: z.enum([
           "consultant",
           "specialist",
-          "lasik",
+          "pentacam",
           "external",
           "followup",
         ]),
@@ -966,7 +966,7 @@ export const patientPortalRouter = router({
       const types = [
         "consultant",
         "specialist",
-        "lasik",
+        "pentacam",
         "external",
         "followup",
       ] as const;
@@ -1002,7 +1002,7 @@ export const patientPortalRouter = router({
         startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         bookingType: z
-          .enum(["consultant", "specialist", "lasik", "external", "followup"])
+          .enum(["consultant", "specialist", "pentacam", "external", "followup"])
           .nullable()
           .optional(),
       }),
@@ -1048,7 +1048,7 @@ export const patientPortalRouter = router({
         bookingType: z.enum([
           "consultant",
           "specialist",
-          "lasik",
+          "pentacam",
           "external",
           "followup",
         ]),

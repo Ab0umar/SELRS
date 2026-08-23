@@ -87,7 +87,6 @@ export default function RequestTests({
   const mergedParams = params ?? kfParams ?? hubParams;
   const isKfRoute = location.startsWith("/kf/request-tests");
   const draftScope = isKfRoute ? "kf-request-tests" : "request-tests";
-  const printMode = usePrintMode();
   const initialPatientId = mergedParams?.id ? Number(mergedParams.id) : 0;
   const routeVisitDate =
     typeof window !== "undefined"
@@ -280,6 +279,17 @@ export default function RequestTests({
     { patientId: patientId ?? 0 },
     { enabled: Boolean(patientId) && !isKfRoute, refetchOnWindowFocus: false },
   );
+
+  // Auto-print (triggered by usePrintMode below) must wait for the patient
+  // and their test-request history to actually load — otherwise the print
+  // dialog opens on the very first render, before any data has arrived,
+  // producing a blank lab-request printout.
+  const printDataReady = !initialPatientId
+    ? true
+    : isKfRoute
+      ? !kfPatientQuery.isLoading
+      : !patientQuery.isLoading && !requestsHistoryQuery.isLoading;
+  const printMode = usePrintMode({ ready: printDataReady });
 
   const createRequestMutation = trpc.medical.createTestRequest.useMutation({
     onSuccess: () => {

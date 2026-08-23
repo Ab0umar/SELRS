@@ -172,6 +172,7 @@ export default function AccountingShell({ children }: AccountingShellProps) {
 
   return (
     <div
+      data-accounting-shell
       className="page-layout min-h-screen bg-slate-50 p-4 text-slate-800 sm:p-6"
       dir="rtl"
     >

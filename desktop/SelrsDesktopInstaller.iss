@@ -1,9 +1,9 @@
 #define AppName "SELRS"
-#define AppVersion "1.1.6"
+#define AppVersion "1.1.16"
 #define AppPublisher "SELRS"
 #define AppExeName "SELRS.exe"
 #define BuildDir "publish"
-#define OutputDir "C:\Users\drels\OneDrive\SELRS.cc"
+#define OutputDir "C:\Users\SELRS\OneDrive\SELRS.cc"
 #define OutputBaseFilenameSuffix "-Desktop"
 
 [Setup]

@@ -30,6 +30,7 @@ import {
   Clock,
   FlaskConical,
   Glasses,
+  GitBranch,
   Pill,
   Printer,
   Syringe,
@@ -141,8 +142,9 @@ export function AppointmentsSection({
   onSelectedDateChange?: (date: string) => void;
 } = {}) {
   const { user } = useAuth();
-  const canDeletePatient =
-    String((user as any)?.role ?? "").toLowerCase() === "admin";
+  const userRole = String((user as any)?.role ?? "").toLowerCase();
+  const canDeletePatient = userRole === "admin";
+  const canManageTreated = ["reception", "admin"].includes(userRole);
   const [deleteTarget, setDeleteTarget] = useState<TodayQueuePatient | null>(
     null,
   );
@@ -588,7 +590,7 @@ export function AppointmentsSection({
                 لا يوجد مرضى في هذه الفئة
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
+              <div className="grid grid-cols-1 gap-2 min-[520px]:grid-cols-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
                 {filteredPatients.map((patient) => (
                   <QueuePatientCard
                     key={`${patient.id}-${patient.queueStatus}`}
@@ -608,6 +610,7 @@ export function AppointmentsSection({
                         date: selectedDate,
                       });
                     }}
+                    canManageTreated={canManageTreated}
                     canDelete={canDeletePatient}
                     onRequestDelete={() => setDeleteTarget(patient)}
                     visitDate={selectedDate}
@@ -724,7 +727,7 @@ export function AppointmentsSection({
                   لا توجد عمليات مسجّلة لهذا اليوم
                 </div>
               ) : (
-                <div className="grid gap-2">
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
                   {todayOperationsFlat.map((row) => (
                     <TodayOperationListItemCard
                       key={row.key}
@@ -792,10 +795,10 @@ const BOOKING_STATUS_AR: Record<string, string> = {
   completed: "مكتمل",
 };
 const BOOKING_TYPES_AR: Record<string, string> = {
-  consultant: "كشف استشاري",
-  specialist: "كشف أخصائي",
-  lasik: "فحوصات الليزك",
-  external: "أشعة خارجي",
+  consultant: "إستشاري",
+  specialist: "أخصائي",
+  pentacam: "بنتاكام",
+  external: "أشعة",
   followup: "متابعة",
 };
 
@@ -982,6 +985,7 @@ function QueuePatientCard({
   onSelectPatient,
   onMarkVisitTreated,
   markVisitTreatedPendingVisitId,
+  canManageTreated,
   canDelete,
   onRequestDelete,
   visitDate,
@@ -991,13 +995,18 @@ function QueuePatientCard({
   onSelectPatient: () => void;
   onMarkVisitTreated: (visitId: number) => void;
   markVisitTreatedPendingVisitId: number | null;
+  canManageTreated: boolean;
   canDelete?: boolean;
   onRequestDelete?: () => void;
   visitDate: string;
 }) {
   const st = patient.queueStatus as QueueStatus;
   const visitId = coercePositiveInt((patient as { visitId?: unknown }).visitId);
-  const canMarkTreated = st !== "treated" && visitId != null;
+  const canMarkTreated =
+    canManageTreated &&
+    ["clinic1", "clinic2", "pentacam"].includes(st) &&
+    patient.hasQueueCompletionData === true &&
+    visitId != null;
   const markingThis =
     markVisitTreatedPendingVisitId != null &&
     markVisitTreatedPendingVisitId === visitId;
@@ -1055,7 +1064,7 @@ function QueuePatientCard({
                     ? "عيادة 1"
                     : st === "clinic2"
                       ? "عيادة 2"
-                      : "بنتاكام"}
+                      : "الأشعة - بنتاكام"}
                 </Badge>
               ) : null}
               <span className="min-w-0 max-w-full truncate">
@@ -1073,6 +1082,32 @@ function QueuePatientCard({
               <span className="shrink-0 text-foreground tabular-nums">
                 {timeText}
               </span>
+              {visitId != null ? (
+                <button
+                  type="button"
+                  title="فتح مسار الزيارة"
+                  aria-label="فتح مسار الزيارة"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const query = new URLSearchParams({
+                      visitId: String(visitId),
+                      visitDate,
+                    });
+                    window.location.assign(
+                      `/workflow-prototype?${query.toString()}`,
+                    );
+                  }}
+                >
+                  <GitBranch className="h-5 w-5" aria-hidden />
+                </button>
+              ) : null}
+              {st === "treated" && patient.treatedByName ? (
+                <span className="min-w-0 max-w-full truncate font-medium text-success">
+                  تم بواسطة: {patient.treatedByName}
+                </span>
+              ) : null}
             </div>
           </div>
 
@@ -1092,12 +1127,12 @@ function QueuePatientCard({
               <Check className="h-3.5 w-3.5" aria-hidden />
               معالج
             </Button>
-          ) : (
+          ) : st === "treated" ? (
             <CheckCircle2
               className="mt-1 h-4 w-4 shrink-0 text-success"
               aria-hidden
             />
-          )}
+          ) : null}
         </div>
 
         <div className="mt-1.5 flex items-center justify-center gap-1.5">
@@ -1304,21 +1339,26 @@ function TodayOperationListItemCard({
     : "border-destructive/30 bg-destructive/5 text-destructive";
 
   return (
-    <div className={cn("rounded-xl border p-3 shadow-sm", stStyle)}>
-      <div className="flex items-start justify-between gap-2">
+    <div className={cn("rounded-lg border px-3 py-2", stStyle)}>
+      <div className="flex min-h-8 flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-foreground">
             {row.item.name?.trim() || "مريض"}
           </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
+          <p className="truncate text-xs leading-4 text-muted-foreground">
             {row.item.code ?? "—"} · {operationLabel}
             {row.item.eye ? ` · ${row.item.eye}` : ""}
           </p>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+          {row.item.hospital || row.listTime ? (
+            <span className="max-w-48 truncate">
+              {[row.item.hospital, row.listTime].filter(Boolean).join(" · ")}
+            </span>
+          ) : null}
           <span
             className={cn(
-              "rounded-full border px-2 py-0.5 text-[11px] font-medium",
+              "rounded-full border px-2 py-0.5 text-[11px] font-medium leading-4",
               stStyle,
             )}
           >
@@ -1326,11 +1366,6 @@ function TodayOperationListItemCard({
           </span>
         </div>
       </div>
-      {row.item.hospital || row.listTime ? (
-        <p className="mt-2 truncate text-xs text-muted-foreground">
-          {[row.item.hospital, row.listTime].filter(Boolean).join(" · ")}
-        </p>
-      ) : null}
     </div>
   );
 }

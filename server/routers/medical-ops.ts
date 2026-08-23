@@ -48,9 +48,11 @@ import { copyObjectInS3, deleteFromS3, listObjectsInS3 } from "../_core/s3";
 import {
   backfillPapatSrvNamesInMssql,
   deletePatientFromMssqlByCode,
+  deletePatientServicesFromMssqlByCode,
   ensurePatientServiceInMssql,
   getMssqlSyncStatus,
   insertPatientToMssql,
+  renamePatientCodeInMssql,
   syncPatientsFromMssql,
   syncSinglePatientFromMssql,
   upsertPatientToMssql,
@@ -92,6 +94,44 @@ import {
   serviceTypeFromSheetOrType,
   symptomDirectoryEntrySchema,
 } from "./_medical/service-helpers";
+
+const READY_PRESCRIPTION_TABLE_MIGRATION_KEY =
+  "ready_prescription_templates_migrated_v1";
+
+async function ensureReadyPrescriptionTemplatesMigrated() {
+  const marker = await db.getSystemSetting(
+    READY_PRESCRIPTION_TABLE_MIGRATION_KEY,
+  );
+  if (!marker?.value) {
+    const legacy = await db.getSystemSetting("ready_template_overrides");
+    let templates: db.ReadyPrescriptionTemplateInput[] = [];
+    try {
+      const parsed = legacy?.value ? JSON.parse(legacy.value) : {};
+      const prescription = parsed?.prescription;
+      if (prescription && typeof prescription === "object") {
+        templates = Object.entries(prescription).map(
+          ([templateId, value]: [string, any]) => ({
+            templateId,
+            name: String(value?.name ?? templateId),
+            prescriptionItems: Array.isArray(value?.prescriptionItems)
+              ? value.prescriptionItems
+              : [],
+          }),
+        );
+      }
+    } catch {
+      templates = [];
+    }
+    if (templates.length) {
+      await db.replaceReadyPrescriptionTemplates(templates);
+    }
+    await db.updateSystemSettings(READY_PRESCRIPTION_TABLE_MIGRATION_KEY, {
+      migratedAt: new Date().toISOString(),
+      count: templates.length,
+    });
+  }
+  return db.getReadyPrescriptionTemplateOverrides();
+}
 
 export const medicalOpsRoutes = {
   getOpsHealth: adminProcedure.query(async () => {
@@ -364,7 +404,21 @@ export const medicalOpsRoutes = {
         if (!patient) {
           throw new Error(`Patient ${input.patientId} not found`);
         }
+        const patientCode = String((patient as any)?.patientCode ?? "").trim();
         await db.deletePatient(input.patientId);
+
+        let mssql: { deleted: boolean; note?: string } | undefined;
+        if (patientCode) {
+          try {
+            mssql = await deletePatientFromMssqlByCode(patientCode);
+          } catch (mssqlError) {
+            mssql = {
+              deleted: false,
+              note: `MSSQL delete failed: ${mssqlError}`,
+            };
+          }
+        }
+
         await db.logAuditEvent(
           ctx.user.id,
           "DELETE_PATIENT",
@@ -372,12 +426,115 @@ export const medicalOpsRoutes = {
           input.patientId,
           {
             message: `Deleted patient record: ${(patient as any).fullName}`,
+            mssql,
           },
         );
-        return { success: true, patientId: input.patientId };
+        return { success: true, patientId: input.patientId, mssql };
       } catch (error) {
         throw new Error(`Failed to delete patient: ${error}`);
       }
+    }),
+
+  deleteAllPatientServices: adminProcedure
+    .input(z.object({ patientId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const patient = await db.getPatientById(input.patientId);
+      if (!patient) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Patient not found",
+        });
+      }
+      const patientCode = String((patient as any)?.patientCode ?? "").trim();
+      const local = await db.deleteAllPatientServiceEntries(input.patientId);
+
+      let mssql:
+        { deleted: boolean; deletedCount: number; note?: string } | undefined;
+      if (patientCode) {
+        try {
+          mssql = await deletePatientServicesFromMssqlByCode(patientCode);
+        } catch (mssqlError) {
+          mssql = {
+            deleted: false,
+            deletedCount: 0,
+            note: `MSSQL delete failed: ${mssqlError}`,
+          };
+        }
+      }
+
+      await db.logAuditEvent(
+        ctx.user.id,
+        "DELETE_PATIENT_SERVICES",
+        "patient",
+        input.patientId,
+        { local, mssql },
+      );
+      return { success: true, local, mssql };
+    }),
+
+  updatePatientCode: adminProcedure
+    .input(
+      z.object({
+        patientId: z.number(),
+        newPatientCode: z.string().trim().min(1),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const patient = await db.getPatientById(input.patientId);
+      if (!patient) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Patient not found",
+        });
+      }
+      const oldPatientCode = String((patient as any)?.patientCode ?? "").trim();
+      const newPatientCode = input.newPatientCode.trim();
+      if (!oldPatientCode) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Patient has no existing code to rename",
+        });
+      }
+      if (oldPatientCode === newPatientCode) {
+        return {
+          success: true,
+          patientId: input.patientId,
+          patientCode: newPatientCode,
+        };
+      }
+
+      const existing = await db.getPatientByCode(newPatientCode);
+      if (existing && (existing as any).id !== input.patientId) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: `Patient code ${newPatientCode} is already used by another patient`,
+        });
+      }
+
+      let mssql: { updated: boolean; note?: string } | undefined;
+      try {
+        mssql = await renamePatientCodeInMssql(oldPatientCode, newPatientCode);
+      } catch (mssqlError) {
+        mssql = { updated: false, note: `MSSQL rename failed: ${mssqlError}` };
+      }
+
+      await db.updatePatient(input.patientId, {
+        patientCode: newPatientCode,
+      } as any);
+
+      await db.logAuditEvent(
+        ctx.user.id,
+        "UPDATE_PATIENT_CODE",
+        "patient",
+        input.patientId,
+        { oldPatientCode, newPatientCode, mssql },
+      );
+      return {
+        success: true,
+        patientId: input.patientId,
+        patientCode: newPatientCode,
+        mssql,
+      };
     }),
 
   deleteAllPatients: adminProcedure.mutation(async ({ ctx }) => {
@@ -1073,6 +1230,9 @@ export const medicalOpsRoutes = {
                 parseInt(year),
                 parseInt(month) - 1,
                 parseInt(day),
+                12,
+                0,
+                0,
               );
             })()
           : null,
@@ -1114,6 +1274,9 @@ export const medicalOpsRoutes = {
                 parseInt(year),
                 parseInt(month) - 1,
                 parseInt(day),
+                12,
+                0,
+                0,
               );
             })()
           : null,
@@ -1733,6 +1896,9 @@ export const medicalOpsRoutes = {
   getReadyTemplateOverrides: protectedProcedure
     .input(z.object({ scope: readyTemplateScopeSchema }))
     .query(async ({ input }) => {
+      if (input.scope === "prescription") {
+        return await ensureReadyPrescriptionTemplatesMigrated();
+      }
       const row = await db.getSystemSetting("ready_template_overrides");
       if (!row?.value) return {};
       try {
@@ -1751,6 +1917,37 @@ export const medicalOpsRoutes = {
   upsertReadyTemplateOverride: protectedProcedure
     .input(readyTemplateOverrideUpdateSchema)
     .mutation(async ({ input, ctx }) => {
+      if (input.scope === "prescription") {
+        await ensureReadyPrescriptionTemplatesMigrated();
+        const incomingName = String(input.name ?? "").trim();
+        const incomingItems = Array.isArray(input.prescriptionItems)
+          ? input.prescriptionItems
+          : undefined;
+        const shouldDelete =
+          "name" in input &&
+          "prescriptionItems" in input &&
+          !incomingName &&
+          (incomingItems?.length ?? 0) === 0;
+        if (shouldDelete) {
+          await db.deleteReadyPrescriptionTemplate(input.templateId);
+        } else {
+          await db.upsertReadyPrescriptionTemplate({
+            templateId: input.templateId,
+            ...(input.name !== undefined ? { name: incomingName } : {}),
+            ...(incomingItems !== undefined
+              ? { prescriptionItems: incomingItems }
+              : {}),
+          });
+        }
+        await db.logAuditEvent(
+          ctx.user.id,
+          "UPSERT_READY_TEMPLATE_OVERRIDE",
+          "readyPrescriptionTemplate",
+          0,
+          { scope: input.scope, templateId: input.templateId },
+        );
+        return { success: true };
+      }
       const row = await db.getSystemSetting("ready_template_overrides");
       let parsed: Record<string, any> = {};
       if (row?.value) {
@@ -1820,6 +2017,24 @@ export const medicalOpsRoutes = {
     .input(readyTemplateOverrideImportSchema)
     .mutation(async ({ input, ctx }) => {
       await assertReadyTemplateImportPermission(ctx, input.scope);
+      if (input.scope === "prescription") {
+        await ensureReadyPrescriptionTemplatesMigrated();
+        await db.replaceReadyPrescriptionTemplates(
+          input.templates.map((template) => ({
+            templateId: template.templateId,
+            name: template.name,
+            prescriptionItems: template.prescriptionItems ?? [],
+          })),
+        );
+        await db.logAuditEvent(
+          ctx.user.id,
+          "IMPORT_READY_TEMPLATE_OVERRIDES",
+          "readyPrescriptionTemplate",
+          0,
+          { scope: input.scope, count: input.templates.length },
+        );
+        return { success: true };
+      }
       const row = await db.getSystemSetting("ready_template_overrides");
       let parsed: Record<string, any> = {};
       if (row?.value) {
@@ -1908,6 +2123,25 @@ export const medicalOpsRoutes = {
           });
         }
 
+        if (input.scope === "prescription") {
+          await ensureReadyPrescriptionTemplatesMigrated();
+          await db.replaceReadyPrescriptionTemplates(
+            templates as db.ReadyPrescriptionTemplateInput[],
+          );
+          await db.logAuditEvent(
+            ctx.user.id,
+            "IMPORT_READY_TEMPLATE_OVERRIDES",
+            "readyPrescriptionTemplate",
+            0,
+            {
+              scope: input.scope,
+              count: templates.length,
+              filePath: resolvedPath,
+            },
+          );
+          return { success: true, count: templates.length };
+        }
+
         const row = await db.getSystemSetting("ready_template_overrides");
         let parsed: Record<string, any> = {};
         if (row?.value) {
@@ -1926,9 +2160,7 @@ export const medicalOpsRoutes = {
             ...(template.name !== undefined
               ? { name: String(template.name ?? "").trim() }
               : {}),
-            ...(input.scope === "prescription"
-              ? { prescriptionItems: (template as any).prescriptionItems ?? [] }
-              : { testItems: (template as any).testItems ?? [] }),
+            testItems: (template as any).testItems ?? [],
           };
         }
 

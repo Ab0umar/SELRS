@@ -1,5 +1,4 @@
 import { ENV } from "../_core/env";
-import { appendSupportNoticeToLastParameter } from "./whatsappTemplateSupport";
 
 type BookingWhatsAppRequest = {
   recipientPhone: string | null | undefined;
@@ -214,9 +213,7 @@ function templatePayload(
     template.components = [
       {
         type: "body",
-        parameters: appendSupportNoticeToLastParameter(
-          namedTemplateParameters(request, templateName),
-        ),
+        parameters: namedTemplateParameters(request, templateName),
       },
     ];
   }

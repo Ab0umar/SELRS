@@ -155,8 +155,8 @@ export const MedicalHistoryTab: React.FC<MedicalHistoryTabProps> = ({
 
   return (
     <div className="w-full" dir="rtl">
-      <Card className="border-slate-200/80 bg-white shadow-xs w-full rounded-2xl overflow-hidden">
-        <CardContent className="p-4">
+      <Card className="patient-medical-history-card border-slate-200/80 bg-white shadow-xs w-full rounded-2xl overflow-hidden">
+        <CardContent className="patient-medical-history-content p-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
             {/* Right Side: Chronic Diseases Cards */}
             <div>

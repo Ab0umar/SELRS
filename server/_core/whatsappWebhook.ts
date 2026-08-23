@@ -21,6 +21,8 @@ import crypto from "crypto";
 import { ENV } from "./env";
 import { getDb } from "../db";
 import { whatsappInboundMessages } from "../../drizzle/schema";
+import { sendWhatsAppReply } from "../services/whatsappReply.service";
+import { buildWhatsAppInboundAutoReply } from "../services/whatsappInboundAutoReply.service";
 
 interface WhatsAppMessage {
   id: string;
@@ -108,7 +110,7 @@ export function registerWhatsAppWebhook(app: Express) {
       }
 
       for (const msg of messages) {
-        await db
+        const insertResult = await db
           .insert(whatsappInboundMessages)
           .values({
             waMessageId: msg.id ?? null,
@@ -118,6 +120,26 @@ export function registerWhatsAppWebhook(app: Express) {
             rawPayload: JSON.stringify(msg),
           })
           .onDuplicateKeyUpdate({ set: { waMessageId: whatsappInboundMessages.waMessageId } });
+
+        const resultHeader = (insertResult as any)?.[0];
+        const insertedNewMessage =
+          Number(resultHeader?.affectedRows ?? 0) === 1 &&
+          Number(resultHeader?.insertId ?? 0) > 0;
+
+        if (insertedNewMessage && msg.from) {
+          try {
+            await sendWhatsAppReply({
+              recipientPhone: msg.from,
+              message: buildWhatsAppInboundAutoReply(),
+              replyToMessageId: msg.id,
+            });
+          } catch (replyError) {
+            console.error(
+              "[whatsapp-webhook] Failed to send automatic reply:",
+              replyError,
+            );
+          }
+        }
       }
       console.log(`[whatsapp-webhook] Stored ${messages.length} inbound message(s)`);
     } catch (err) {

@@ -27,8 +27,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { cn } from "@/lib/utils";
+import { cn, getTrpcErrorMessage } from "@/lib/utils";
 import {
   type PatientDraft,
   type PatientRow,
@@ -40,6 +41,8 @@ type AdminPatientsTableProps = {
   currentPage: number;
   deletePatientPending: boolean;
   deletePatientFromMssqlPending: boolean;
+  deleteAllServicesPending: boolean;
+  updatePatientCodePending: boolean;
   getDraft: (patient: PatientRow) => PatientDraft;
   hasMore: boolean;
   isExpanded: (patientId: number) => boolean;
@@ -47,6 +50,8 @@ type AdminPatientsTableProps = {
   nextCursor: unknown;
   onDeleteFromMssql: (patient: PatientRow) => void;
   onDeletePatient: (patient: PatientRow) => void;
+  onDeleteAllServices: (patient: PatientRow) => void;
+  onEditPatientCode: (patient: PatientRow, newCode: string) => void;
   onNextPage: () => void;
   onPreviousPage: () => void;
   onSavePatientRow: (patient: PatientRow) => void;
@@ -78,10 +83,26 @@ function AdminPatientTransactions({
   patientId: number;
   serviceCodeToLabel: Map<string, string>;
 }) {
+  const utils = trpc.useUtils();
   const entriesQuery = trpc.medical.getPatientServiceEntries.useQuery(
     { patientId },
     { refetchOnWindowFocus: false, staleTime: 300000 },
   );
+  const deleteEntryMutation = trpc.medical.deletePatientServiceEntry.useMutation({
+    onSuccess: (result) => {
+      const mssqlNote = result?.mssql?.deleted
+        ? " (وتم مسحها من MSSQL)"
+        : result?.mssql
+          ? " (لم يتم العثور على صف مطابق في MSSQL)"
+          : "";
+      toast.success(`تم مسح الخدمة${mssqlNote}`);
+      utils.medical.getPatientServiceEntries.invalidate({ patientId });
+      utils.medical.getAllPatients.invalidate();
+    },
+    onError: (error) => {
+      toast.error(getTrpcErrorMessage(error, "فشل مسح الخدمة"));
+    },
+  });
   const rows = Array.isArray(entriesQuery.data) ? entriesQuery.data : [];
 
   if (entriesQuery.isLoading)
@@ -107,20 +128,80 @@ function AdminPatientTransactions({
         const date = rawEntry.serviceDate
           ? new Date(rawEntry.serviceDate).toLocaleDateString("ar-EG")
           : "";
+        const entryId = Number(rawEntry.id);
+        const isDeletingThis =
+          deleteEntryMutation.isPending &&
+          deleteEntryMutation.variables?.id === entryId;
         return (
           <div
             key={String(rawEntry.id ?? `${patientId}-${code}`)}
-            className="rounded-lg border bg-card p-2"
+            className="flex items-center justify-between gap-2 rounded-lg border bg-card p-2"
           >
             <div className="flex flex-col items-end gap-0.5" dir="rtl">
               <span className="font-medium">{name}</span>
               <span className="text-muted-foreground">({code || "-"})</span>
               <span>{date || "-"}</span>
             </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
+              disabled={!Number.isFinite(entryId) || deleteEntryMutation.isPending}
+              onClick={() => {
+                if (!Number.isFinite(entryId)) return;
+                if (!window.confirm(`مسح خدمة ${name}؟`)) return;
+                deleteEntryMutation.mutate({ id: entryId });
+              }}
+              title="مسح هذه الخدمة"
+            >
+              {isDeletingThis ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="h-3.5 w-3.5" />
+              )}
+            </Button>
           </div>
         );
       })}
     </div>
+  );
+}
+
+function EditablePatientCode({
+  patient,
+  pending,
+  onEditPatientCode,
+  className,
+}: {
+  patient: PatientRow;
+  pending: boolean;
+  onEditPatientCode: (patient: PatientRow, newCode: string) => void;
+  className?: string;
+}) {
+  const currentCode = String(patient.patientCode ?? "");
+  const [value, setValue] = useState(currentCode);
+  useEffect(() => setValue(currentCode), [currentCode]);
+  return (
+    <Input
+      value={value}
+      dir="ltr"
+      disabled={pending}
+      onChange={(event) => setValue(event.target.value)}
+      onBlur={() => {
+        if (value.trim() && value.trim() !== currentCode.trim()) {
+          onEditPatientCode(patient, value.trim());
+        } else {
+          setValue(currentCode);
+        }
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") (event.target as HTMLInputElement).blur();
+        if (event.key === "Escape") setValue(currentCode);
+      }}
+      className={cn("h-7 w-24 rounded-lg text-xs tabular-nums", className)}
+      title="تعديل كود المريض (يتم مزامنته مع MSSQL)"
+    />
   );
 }
 
@@ -147,12 +228,16 @@ type AdminPatientItemProps = {
   manualLockEnabled: boolean;
   deletePatientPending: boolean;
   deletePatientFromMssqlPending: boolean;
+  deleteAllServicesPending: boolean;
+  updatePatientCodePending: boolean;
   savePatientPageStatePending: boolean;
   updatePatientPending: boolean;
   serviceCodeToLabel: Map<string, string>;
   serviceCodeToType: Map<string, string>;
   onDeleteFromMssql: (patient: PatientRow) => void;
   onDeletePatient: (patient: PatientRow) => void;
+  onDeleteAllServices: (patient: PatientRow) => void;
+  onEditPatientCode: (patient: PatientRow, newCode: string) => void;
   onSavePatientRow: (patient: PatientRow) => void;
   onSetDraftField: (
     patient: PatientRow,
@@ -174,6 +259,8 @@ const arePatientItemPropsEqual = (
   prev.manualLockEnabled === next.manualLockEnabled &&
   prev.deletePatientPending === next.deletePatientPending &&
   prev.deletePatientFromMssqlPending === next.deletePatientFromMssqlPending &&
+  prev.deleteAllServicesPending === next.deleteAllServicesPending &&
+  prev.updatePatientCodePending === next.updatePatientCodePending &&
   prev.savePatientPageStatePending === next.savePatientPageStatePending &&
   prev.updatePatientPending === next.updatePatientPending &&
   prev.status?.state === next.status?.state &&
@@ -190,12 +277,16 @@ const AdminPatientCard = memo(function AdminPatientCard({
   manualLockEnabled,
   deletePatientPending,
   deletePatientFromMssqlPending,
+  deleteAllServicesPending,
+  updatePatientCodePending,
   savePatientPageStatePending,
   updatePatientPending,
   serviceCodeToLabel,
   serviceCodeToType,
   onDeleteFromMssql,
   onDeletePatient,
+  onDeleteAllServices,
+  onEditPatientCode,
   onSavePatientRow,
   onSetDraftField,
   onToggleExpanded,
@@ -226,12 +317,11 @@ const AdminPatientCard = memo(function AdminPatientCard({
         />
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <div className="flex items-center gap-2">
-            <span
-              className="text-xs tabular-nums text-muted-foreground"
-              dir="ltr"
-            >
-              {patient.patientCode ?? "—"}
-            </span>
+            <EditablePatientCode
+              patient={patient}
+              pending={updatePatientCodePending}
+              onEditPatientCode={onEditPatientCode}
+            />
             <Button
               type="button"
               variant="outline"
@@ -295,16 +385,28 @@ const AdminPatientCard = memo(function AdminPatientCard({
             patientId={patient.id}
             serviceCodeToLabel={serviceCodeToLabel}
           />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="w-full rounded-lg text-xs"
-            disabled={deletePatientFromMssqlPending}
-            onClick={() => onDeleteFromMssql(patient)}
-          >
-            حذف من MSSQL
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="flex-1 rounded-lg text-xs"
+              disabled={deletePatientFromMssqlPending}
+              onClick={() => onDeleteFromMssql(patient)}
+            >
+              حذف من MSSQL
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="flex-1 rounded-lg text-xs text-destructive"
+              disabled={deleteAllServicesPending}
+              onClick={() => onDeleteAllServices(patient)}
+            >
+              حذف كل الخدمات
+            </Button>
+          </div>
         </div>
       ) : null}
       <div className="mt-2.5 flex items-center justify-between gap-2">
@@ -370,12 +472,16 @@ const AdminPatientRow = memo(function AdminPatientRow({
   manualLockEnabled,
   deletePatientPending,
   deletePatientFromMssqlPending,
+  deleteAllServicesPending,
+  updatePatientCodePending,
   savePatientPageStatePending,
   updatePatientPending,
   serviceCodeToLabel,
   serviceCodeToType,
   onDeleteFromMssql,
   onDeletePatient,
+  onDeleteAllServices,
+  onEditPatientCode,
   onSavePatientRow,
   onSetDraftField,
   onToggleExpanded,
@@ -406,7 +512,11 @@ const AdminPatientRow = memo(function AdminPatientRow({
           />
         </TableCell>
         <TableCell className="tabular-nums text-muted-foreground" dir="ltr">
-          {patient.patientCode ?? "—"}
+          <EditablePatientCode
+            patient={patient}
+            pending={updatePatientCodePending}
+            onEditPatientCode={onEditPatientCode}
+          />
         </TableCell>
         <TableCell>
           <div className="flex flex-col items-stretch gap-1.5">
@@ -440,16 +550,28 @@ const AdminPatientRow = memo(function AdminPatientRow({
                   patientId={patient.id}
                   serviceCodeToLabel={serviceCodeToLabel}
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="w-full rounded-lg text-xs"
-                  disabled={deletePatientFromMssqlPending}
-                  onClick={() => onDeleteFromMssql(patient)}
-                >
-                  حذف من MSSQL
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 rounded-lg text-xs"
+                    disabled={deletePatientFromMssqlPending}
+                    onClick={() => onDeleteFromMssql(patient)}
+                  >
+                    حذف من MSSQL
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 rounded-lg text-xs text-destructive"
+                    disabled={deleteAllServicesPending}
+                    onClick={() => onDeleteAllServices(patient)}
+                  >
+                    حذف كل الخدمات
+                  </Button>
+                </div>
               </div>
             ) : null}
           </div>
@@ -543,6 +665,8 @@ function AdminPatientsTableComponent({
   currentPage,
   deletePatientPending,
   deletePatientFromMssqlPending,
+  deleteAllServicesPending,
+  updatePatientCodePending,
   getDraft,
   hasMore,
   isExpanded,
@@ -550,6 +674,8 @@ function AdminPatientsTableComponent({
   nextCursor,
   onDeleteFromMssql,
   onDeletePatient,
+  onDeleteAllServices,
+  onEditPatientCode,
   onNextPage,
   onPreviousPage,
   onSavePatientRow,
@@ -684,12 +810,16 @@ function AdminPatientsTableComponent({
                     deletePatientFromMssqlPending={
                       deletePatientFromMssqlPending
                     }
+                    deleteAllServicesPending={deleteAllServicesPending}
+                    updatePatientCodePending={updatePatientCodePending}
                     savePatientPageStatePending={savePatientPageStatePending}
                     updatePatientPending={updatePatientPending}
                     serviceCodeToLabel={serviceCodeToLabel}
                     serviceCodeToType={serviceCodeToType}
                     onDeleteFromMssql={onDeleteFromMssql}
                     onDeletePatient={onDeletePatient}
+                    onDeleteAllServices={onDeleteAllServices}
+                    onEditPatientCode={onEditPatientCode}
                     onSavePatientRow={onSavePatientRow}
                     onSetDraftField={onSetDraftField}
                     onToggleExpanded={onToggleExpanded}
@@ -831,6 +961,8 @@ function AdminPatientsTableComponent({
                           deletePatientFromMssqlPending={
                             deletePatientFromMssqlPending
                           }
+                          deleteAllServicesPending={deleteAllServicesPending}
+                          updatePatientCodePending={updatePatientCodePending}
                           savePatientPageStatePending={
                             savePatientPageStatePending
                           }
@@ -839,6 +971,8 @@ function AdminPatientsTableComponent({
                           serviceCodeToType={serviceCodeToType}
                           onDeleteFromMssql={onDeleteFromMssql}
                           onDeletePatient={onDeletePatient}
+                          onDeleteAllServices={onDeleteAllServices}
+                          onEditPatientCode={onEditPatientCode}
                           onSavePatientRow={onSavePatientRow}
                           onSetDraftField={onSetDraftField}
                           onToggleExpanded={onToggleExpanded}

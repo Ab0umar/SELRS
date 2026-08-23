@@ -36,12 +36,7 @@ import { getTrpcErrorMessage } from "@/lib/utils";
 import { loadXlsx } from "@/lib/xlsx";
 
 type MedicationType =
-  | "tablet"
-  | "drops"
-  | "ointment"
-  | "injection"
-  | "suspension"
-  | "other";
+  "tablet" | "drops" | "ointment" | "injection" | "suspension" | "other";
 type TestType = "examination" | "lab" | "imaging" | "other";
 
 function medicationTypeLabel(type: string | undefined | null): string {
@@ -273,10 +268,34 @@ export default function MedicationsTestsManagement() {
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
         for (const row of jsonData as any[]) {
+          const name = row["اسم الدواء"] ?? row["Name"] ?? row["name"] ?? "";
+          if (!String(name).trim()) continue;
+          const strength =
+            row["التركيز"] ??
+            row["تركيز"] ??
+            row["Strength"] ??
+            row["strength"] ??
+            row["Concentration"] ??
+            row["concentration"] ??
+            "";
+          const dosage =
+            row["الجرعة"] ??
+            row["جرعة"] ??
+            row["Dosage"] ??
+            row["dosage"] ??
+            row["Dose"] ??
+            row["dose"] ??
+            "";
           await createMedicationMutation.mutateAsync({
-            name: row["اسم الدواء"] || row["name"] || "",
-            type: row["النوع"] || row["type"] || "drops",
-            strength: row["التركيز"] || row["strength"] || "",
+            name: String(name).trim(),
+            type:
+              row["النوع"] ??
+              row["Form"] ??
+              row["form"] ??
+              row["type"] ??
+              "drops",
+            strength: String(strength).trim(),
+            dosage: String(dosage).trim(),
           });
         }
         toast.success("تم استيراد الأدوية بنجاح");

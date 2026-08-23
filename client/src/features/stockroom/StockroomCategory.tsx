@@ -323,6 +323,7 @@ export default function StockroomCategory() {
                   <TableHead className="text-right">الكود</TableHead>
                   <TableHead className="text-right">اسم الصنف</TableHead>
                   <TableHead className="text-right">الكمية</TableHead>
+                  <TableHead className="text-right">السعر</TableHead>
                   <TableHead className="text-right">الحالة</TableHead>
                   <TableHead className="text-right">تاريخ الصلاحية</TableHead>
                   <TableHead className="text-left">الإجراءات</TableHead>
@@ -342,6 +343,9 @@ export default function StockroomCategory() {
                           </TableCell>
                           <TableCell>
                             <Skeleton className="h-4 w-8" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-4 w-14" />
                           </TableCell>
                           <TableCell>
                             <Skeleton className="h-6 w-20" />
@@ -364,6 +368,11 @@ export default function StockroomCategory() {
                         </TableCell>
                         <TableCell className="font-semibold text-foreground text-right">
                           {item.quantity}
+                        </TableCell>
+                        <TableCell className="font-semibold text-foreground text-right" dir="ltr">
+                          {item.unitPrice != null
+                            ? `${Number(item.unitPrice).toLocaleString("ar-EG")} ج.م`
+                            : "-"}
                         </TableCell>
                         <TableCell className="text-right">
                           <Badge
@@ -417,7 +426,10 @@ export default function StockroomCategory() {
                                   expiryDate: item.expiryDate
                                     ? String(item.expiryDate).split("T")[0]
                                     : "",
-                                  unitPrice: "",
+                                  unitPrice:
+                                    item.unitPrice != null
+                                      ? String(item.unitPrice)
+                                      : "",
                                 })
                               }
                             >

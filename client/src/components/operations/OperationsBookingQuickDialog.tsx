@@ -34,10 +34,7 @@ export function defaultOperationsBookingDraft(
   initialDoctorName?: string,
 ): OperationsBookingDraft {
   const now = new Date();
-  const doctorName =
-    String(initialDoctorName ?? "").trim() ||
-    TAB_CONFIG[0]?.doctor ||
-    "طبيب غير محدد";
+  const doctorName = String(initialDoctorName ?? "").trim();
   return {
     bookingDate: initialDate || getLocalDateIso(),
     bookingTime: `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,

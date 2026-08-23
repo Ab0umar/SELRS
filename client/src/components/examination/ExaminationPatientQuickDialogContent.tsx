@@ -80,7 +80,7 @@ export function ExaminationPatientQuickDialogContent({
       ref={form.formRef}
       onSubmit={form.handleSubmit}
       dir="rtl"
-      className="space-y-0"
+      className="quick-patient-registration-form space-y-0"
     >
       {otherActiveCount > 0 ? (
         <Alert variant="destructive" className="mx-6 mb-4 w-auto">
@@ -95,7 +95,7 @@ export function ExaminationPatientQuickDialogContent({
       <Tabs value="patient-info" onValueChange={() => {}} className="w-full">
         <ExaminationPatientInfoTab form={form} showMedicalHistory />
       </Tabs>
-      <div className="flex flex-wrap gap-3 justify-end border-t border-border/60 pt-4 px-6 pb-6">
+      <div className="quick-patient-registration-actions flex flex-wrap gap-3 justify-end border-t border-border/60 pt-4 px-6 pb-6">
         <Button type="button" variant="outline" onClick={form.handleCancel}>
           إلغاء
         </Button>

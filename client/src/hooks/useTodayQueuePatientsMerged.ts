@@ -11,12 +11,17 @@ export type TodayQueuePatient = {
   fullName?: string | null;
   phone?: string | null;
   serviceType?: string;
+  serviceCode?: string | null;
+  serviceCodes?: string[];
   locationType?: string | null;
   doctorName?: string | null;
   visitType?: string | null;
   queueStatus:
     "checkedIn" | "next" | "clinic1" | "clinic2" | "pentacam" | "treated";
   checkedInTime?: string | null;
+  treatedByUserId?: number | null;
+  treatedByName?: string | null;
+  hasQueueCompletionData?: boolean;
 };
 
 function sortTodayQueuePatients(list: TodayQueuePatient[]) {
@@ -57,7 +62,7 @@ function isCenterQueuePatient(patient: TodayQueuePatient) {
   );
 }
 
-/** Today's clinic queue: 3 columns — عيادة 1, عيادة 2, معالج */
+/** Today's queue across reception, examination clinics, Pentacam, and completion. */
 export function useTodayQueuePatientsMerged(
   dateIso?: string,
   options: { includeExternal?: boolean } = {},

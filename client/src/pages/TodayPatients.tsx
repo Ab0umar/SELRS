@@ -137,19 +137,35 @@ export default function TodayPatients() {
                 onOpenMeasurementsMedicalFile={openMedicalFilePicker}
                 onOpenOperationsBooking={() => setBookingOpen(true)}
                 extraPrimaryAction={
-                  userRole === "reception" || userRole === "admin" ? (
+                  <div className="flex items-center gap-2">
+                    {userRole === "reception" || userRole === "admin" ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setLocation("/booking-triage/portal-bookings")
+                        }
+                        className="gap-2 shrink-0 rounded-xl"
+                      >
+                        <CalendarDays className="size-4" />
+                        حجوزات البوابة
+                      </Button>
+                    ) : null}
                     <Button
+                      type="button"
                       variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setLocation("/booking-triage/portal-bookings")
-                      }
-                      className="gap-2 shrink-0 rounded-xl"
+                      size="icon"
+                      onClick={refreshToday}
+                      disabled={isLoading}
+                      aria-label="تحديث"
+                      title="تحديث"
+                      className="shrink-0 rounded-xl"
                     >
-                      <CalendarDays className="size-4" />
-                      حجوزات البوابة
+                      <RefreshCw
+                        className={cn("size-4", isLoading && "animate-spin")}
+                      />
                     </Button>
-                  ) : null
+                  </div>
                 }
               />
             </div>

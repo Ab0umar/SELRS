@@ -40,12 +40,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { loadXlsx } from "@/lib/xlsx";
 
 type MedicationType =
-  | "tablet"
-  | "drops"
-  | "ointment"
-  | "injection"
-  | "suspension"
-  | "other";
+  "tablet" | "drops" | "ointment" | "injection" | "suspension" | "other";
 type TestType = "examination" | "lab" | "imaging" | "other";
 
 const REGISTRY_TAB_VALUES = [
@@ -410,8 +405,14 @@ export default function MedicationsManagement() {
     );
   }, [medications, medListSearch]);
 
-  const TEST_TEMPLATE_CATEGORIES = ["مياه بيضاء", "ليزك", "زراعة عدسات", "اخري"];
-  const testTemplateOverrides = (testTemplateOverridesQuery.data ?? {}) as Record<
+  const TEST_TEMPLATE_CATEGORIES = [
+    "مياه بيضاء",
+    "ليزك",
+    "زراعة عدسات",
+    "اخري",
+  ];
+  const testTemplateOverrides = (testTemplateOverridesQuery.data ??
+    {}) as Record<
     string,
     {
       name?: string;
@@ -550,12 +551,27 @@ export default function MedicationsManagement() {
             const name = row["Name"] || row["name"] || row["اسم الدواء"] || "";
             if (!String(name).trim()) continue;
             const form = row["Form"] || row["form"] || row["النوع"] || "drops";
-            const category =
-              row["Category"] || row["category"] || row["التصنيف"] || "";
+            const strength =
+              row["التركيز"] ??
+              row["تركيز"] ??
+              row["Strength"] ??
+              row["strength"] ??
+              row["Concentration"] ??
+              row["concentration"] ??
+              "";
+            const dosage =
+              row["الجرعة"] ??
+              row["جرعة"] ??
+              row["Dosage"] ??
+              row["dosage"] ??
+              row["Dose"] ??
+              row["dose"] ??
+              "";
             await createMedicationMutation.mutateAsync({
               name: String(name).trim(),
               type: String(form || "drops") as MedicationType,
-              strength: String(category || "").trim(),
+              strength: String(strength).trim(),
+              dosage: String(dosage).trim(),
             });
           }
           toast.success("تم استيراد الأدوية بنجاح");
@@ -691,14 +707,16 @@ export default function MedicationsManagement() {
       return;
     }
     const templateId =
-      editingTemplateId || `${normalizeTemplateId(cleanName)}-${Date.now().toString(36)}`;
+      editingTemplateId ||
+      `${normalizeTemplateId(cleanName)}-${Date.now().toString(36)}`;
     const testItems = templateSelectedTestIds
       .map((id) => {
         const test = tests.find((t) => t.id === id);
         return test ? { testId: id, testName: test.name, notes: "" } : null;
       })
-      .filter((item): item is { testId: number; testName: string; notes: string } =>
-        Boolean(item),
+      .filter(
+        (item): item is { testId: number; testName: string; notes: string } =>
+          Boolean(item),
       );
     try {
       await upsertTestTemplateOverrideMutation.mutateAsync({
@@ -1332,7 +1350,9 @@ export default function MedicationsManagement() {
                     <ClipboardList className="h-4 w-4" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg">قوالب فحوصات جاهزة</CardTitle>
+                    <CardTitle className="text-lg">
+                      قوالب فحوصات جاهزة
+                    </CardTitle>
                     <CardDescription>
                       اختر من الفحوصات الموجودة بالأعلى لبناء قالب جاهز يُستخدم
                       في صفحة طلب الفحوصات
@@ -1362,7 +1382,9 @@ export default function MedicationsManagement() {
                 <div className="grid grid-cols-1 gap-4 rounded-lg border border-border/80 bg-muted/10 p-4 lg:grid-cols-2">
                   <div className="space-y-3">
                     <div className="space-y-2">
-                      <label className="text-sm font-semibold">اسم القالب</label>
+                      <label className="text-sm font-semibold">
+                        اسم القالب
+                      </label>
                       <Input
                         value={templateName}
                         onChange={(e) => setTemplateName(e.target.value)}
@@ -1419,7 +1441,9 @@ export default function MedicationsManagement() {
                             className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/50"
                           >
                             <Checkbox
-                              checked={templateSelectedTestIds.includes(test.id)}
+                              checked={templateSelectedTestIds.includes(
+                                test.id,
+                              )}
                               onCheckedChange={(checked) =>
                                 setTemplateSelectedTestIds((prev) =>
                                   Boolean(checked)

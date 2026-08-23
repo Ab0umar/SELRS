@@ -7,6 +7,31 @@ export interface LateTier {
 
 const round2 = (value: number) => Math.round(value * 100) / 100;
 
+export function getPayrollWeekKey(workDate: Date | string): string {
+  const date =
+    workDate instanceof Date
+      ? new Date(
+          workDate.getFullYear(),
+          workDate.getMonth(),
+          workDate.getDate(),
+          12,
+        )
+      : new Date(`${String(workDate).slice(0, 10)}T12:00:00`);
+  const cycleStart = new Date(date.getFullYear(), date.getMonth(), 26, 12);
+  if (date < cycleStart) {
+    cycleStart.setMonth(cycleStart.getMonth() - 1);
+  }
+  const daysIntoCycle = Math.floor(
+    (date.getTime() - cycleStart.getTime()) / (24 * 60 * 60 * 1000),
+  );
+  cycleStart.setDate(cycleStart.getDate() + Math.floor(daysIntoCycle / 7) * 7);
+
+  const year = cycleStart.getFullYear();
+  const month = String(cycleStart.getMonth() + 1).padStart(2, "0");
+  const day = String(cycleStart.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function normalizeLateTiers(tiers: LateTier[]): LateTier[] {
   return tiers.map((tier, index) => {
     if (index === 0) return { ...tier };
@@ -34,9 +59,8 @@ export function calcLateDayTier(
   );
   if (!tier) return 0;
   if (tier.type === "linear") {
-    if (linearOccurrence >= 5) return round2(0.5 * dailyRate);
-    if (linearOccurrence >= 3) return round2(0.25 * dailyRate);
-    return round2(lateMinutes * minuteRate);
+    const weeklyMultiplier = Math.min(Math.max(linearOccurrence, 1), 4);
+    return round2(lateMinutes * minuteRate * weeklyMultiplier);
   }
   return round2((tier.dayFraction ?? 0) * dailyRate);
 }

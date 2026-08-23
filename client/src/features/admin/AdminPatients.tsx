@@ -304,6 +304,12 @@ export default function AdminPatients() {
             deletePatientFromMssqlPending={
               list.deletePatientFromMssqlMutation.isPending
             }
+            deleteAllServicesPending={
+              list.deleteAllPatientServicesMutation.isPending
+            }
+            updatePatientCodePending={
+              list.updatePatientCodeMutation.isPending
+            }
             getDraft={list.getDraft}
             hasMore={list.hasMore}
             isExpanded={list.isExpanded}
@@ -311,6 +317,8 @@ export default function AdminPatients() {
             nextCursor={list.nextCursor}
             onDeleteFromMssql={list.handleDeleteFromMssql}
             onDeletePatient={list.handleDeletePatient}
+            onDeleteAllServices={list.handleDeleteAllServices}
+            onEditPatientCode={list.handleEditPatientCode}
             onNextPage={list.goToNextPage}
             onPreviousPage={list.goToPreviousPage}
             onSavePatientRow={list.savePatientRow}

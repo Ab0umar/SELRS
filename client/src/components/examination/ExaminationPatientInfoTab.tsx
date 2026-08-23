@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import PatientPicker from "@/components/PatientPicker";
 import SearchableCombobox from "@/components/SearchableCombobox";
 import { Button } from "@/components/ui/button";
@@ -15,10 +15,51 @@ import {
 } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
 import { cn, localISODate } from "@/lib/utils";
-import { Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 import type { UseExaminationFormResult } from "@/hooks/examination/useExaminationForm";
 import { DateInput } from "@/components/ui/date-input";
 import { MedicalHistoryTab } from "@/components/patient-details/MedicalHistoryTab";
+import { useIsMobile } from "@/hooks/useMobile";
+
+function MobileCollapsibleSection({
+  title,
+  summary,
+  children,
+}: {
+  title: string;
+  summary?: string;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="mobile-collapsible-section">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        aria-expanded={open}
+        className="mobile-collapsible-toggle flex w-full items-center justify-between gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2.5 text-right"
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-sm font-bold text-foreground">
+            {title}
+          </span>
+          {summary ? (
+            <span className="shrink-0 text-xs font-medium text-muted-foreground">
+              {summary}
+            </span>
+          ) : null}
+        </span>
+        {open ? (
+          <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+        ) : (
+          <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+        )}
+      </button>
+      {open ? <div className="mt-2">{children}</div> : null}
+    </div>
+  );
+}
 
 interface ExaminationPatientInfoTabProps {
   form: UseExaminationFormResult;
@@ -56,6 +97,29 @@ export default function ExaminationPatientInfoTab({
     doctorsCatalogQuery,
     servicesCatalogQuery,
   } = form;
+
+  const isMobile = useIsMobile();
+
+  // Inline styles, not CSS classes — this device's WebView was found to
+  // silently ignore certain @media/!important CSS rules for reasons that
+  // couldn't be pinned down even after the CSS was verified byte-correct on
+  // the server. Inline styles bypass the cascade entirely, so pairing these
+  // fields side by side is guaranteed to render regardless of that bug.
+  const fieldRowStyle: CSSProperties = isMobile
+    ? { display: "flex", flexWrap: "wrap", gap: "0.45rem" }
+    : {};
+  const fieldFull: CSSProperties = isMobile
+    ? { flex: "1 1 100%", minWidth: 0 }
+    : {};
+  const fieldTwoThirds: CSSProperties = isMobile
+    ? { flex: "1 1 calc(66.666% - 0.3rem)", minWidth: 0 }
+    : {};
+  const fieldOneThird: CSSProperties = isMobile
+    ? { flex: "1 1 calc(33.333% - 0.3rem)", minWidth: 0 }
+    : {};
+  const fieldHalf: CSSProperties = isMobile
+    ? { flex: "1 1 calc(50% - 0.225rem)", minWidth: 0 }
+    : {};
 
   const mysqlServices = useMemo(
     () => (servicesCatalogQuery?.data ?? []) as any[],
@@ -112,10 +176,10 @@ export default function ExaminationPatientInfoTab({
   );
 
   return (
-    <TabsContent value="patient-info" className="w-full">
+    <TabsContent value="patient-info" className="examination-patient-info w-full">
       <Card className="border-0 shadow-none">
-        <CardContent className="pt-2 space-y-4 px-4" dir="rtl">
-          <div className="flex justify-center rounded-xl border border-dashed bg-muted/20 p-3">
+        <CardContent className="examination-patient-content pt-2 space-y-4 px-4" dir="rtl">
+          <div className="patient-picker-strip flex justify-center rounded-xl border border-dashed bg-muted/20 p-3">
             <div className="flex w-full flex-col items-end justify-center gap-3 sm:flex-row">
               <div className="w-full sm:w-[28rem]">
                 <PatientPicker onSelect={handleSelectPatient} />
@@ -147,14 +211,17 @@ export default function ExaminationPatientInfoTab({
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
             {/* Column 1: Patient Information */}
-            <div className="space-y-4 border border-slate-200/80 rounded-2xl p-4 bg-white shadow-xs">
+            <div className="patient-personal-card space-y-4 border border-slate-200/80 rounded-2xl p-4 bg-white shadow-xs">
               <h3 className="font-bold text-slate-800 text-sm border-b border-slate-100 pb-2">
                 👤 البيانات الشخصية للمريض:
               </h3>
-              <div className="space-y-3">
+              <div className="patient-details-fields space-y-3">
                 {/* Row 1: الاسم - تاريخ الميلاد - السن */}
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
-                  <div className="sm:col-span-6">
+                <div
+                  className="patient-identity-grid grid grid-cols-1 sm:grid-cols-12 gap-2.5"
+                  style={fieldRowStyle}
+                >
+                  <div className="patient-name-field sm:col-span-6" style={fieldFull}>
                     <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                       الاسم بالكامل
                     </Label>
@@ -171,7 +238,7 @@ export default function ExaminationPatientInfoTab({
                       placeholder="اسم المريض..."
                     />
                   </div>
-                  <div className="sm:col-span-4">
+                  <div className="patient-dob-field sm:col-span-4" style={fieldTwoThirds}>
                     <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                       تاريخ الميلاد
                     </Label>
@@ -194,7 +261,7 @@ export default function ExaminationPatientInfoTab({
                       className="text-xs border h-8 px-2 bg-background rounded-lg"
                     />
                   </div>
-                  <div className="sm:col-span-2">
+                  <div className="patient-age-field sm:col-span-2" style={fieldOneThird}>
                     <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                       السن
                     </Label>
@@ -213,8 +280,11 @@ export default function ExaminationPatientInfoTab({
                 </div>
 
                 {/* Row 2: رقم الموبايل - رقم موبايل 2 */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <div>
+                <div
+                  className="patient-phone-grid grid grid-cols-1 sm:grid-cols-2 gap-2.5"
+                  style={fieldRowStyle}
+                >
+                  <div style={fieldHalf}>
                     <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                       رقم الموبايل
                     </Label>
@@ -232,7 +302,7 @@ export default function ExaminationPatientInfoTab({
                       dir="ltr"
                     />
                   </div>
-                  <div>
+                  <div style={fieldHalf}>
                     <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                       رقم موبايل بديل
                     </Label>
@@ -253,8 +323,11 @@ export default function ExaminationPatientInfoTab({
                 </div>
 
                 {/* Row 3: العنوان - الوظيفة - الجنس */}
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
-                  <div className="sm:col-span-5">
+                <div
+                  className="patient-demographics-grid grid grid-cols-1 sm:grid-cols-12 gap-2.5"
+                  style={fieldRowStyle}
+                >
+                  <div className="patient-address-field sm:col-span-5" style={fieldFull}>
                     <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                       العنوان
                     </Label>
@@ -271,7 +344,7 @@ export default function ExaminationPatientInfoTab({
                       placeholder="العنوان..."
                     />
                   </div>
-                  <div className="sm:col-span-4">
+                  <div className="patient-job-field sm:col-span-4" style={fieldTwoThirds}>
                     <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                       الوظيفة
                     </Label>
@@ -288,7 +361,7 @@ export default function ExaminationPatientInfoTab({
                       placeholder="الوظيفة..."
                     />
                   </div>
-                  <div className="sm:col-span-3">
+                  <div className="patient-gender-field sm:col-span-3" style={fieldOneThird}>
                     <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                       الجنس
                     </Label>
@@ -315,25 +388,17 @@ export default function ExaminationPatientInfoTab({
               </div>
             </div>
 
-            {showMedicalHistory ? (
-              <div className="min-w-0">
-                <MedicalHistoryTab
-                  patientId={
-                    patientInfo.id ? Number(patientInfo.id) : undefined
-                  }
-                  symptoms={[]}
-                  onChange={setPatientMedicalHistory}
-                />
-              </div>
-            ) : null}
-          </div>
-
-          {/* Left Column: Visit Assignment & Financials (Now second in RTL) */}
-          <div className="bg-primary/40 p-4 rounded-xl border border-primary/20 space-y-3 order-2 h-full flex flex-col">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_10rem]">
+            {/* Column 2: Doctor & Services, with Medical History stacked below */}
+            <div className="min-w-0">
+            <MobileCollapsibleSection
+              title="💳 الخدمة"
+              summary={`${patientShare.toFixed(2)} EGP`}
+            >
+          <div className="patient-services-panel min-w-0 space-y-3 h-full flex flex-col border border-slate-200/80 rounded-2xl p-4 bg-white shadow-xs">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:items-end">
               <div className="space-y-1">
-                <Label className="font-bold text-[11px] text-primary">
-                  الطبيب المعالج
+                <Label className="font-semibold text-[11px] text-muted-foreground">
+                  الطبيب
                 </Label>
                 <SearchableCombobox
                   value={doctorName || ""}
@@ -343,161 +408,150 @@ export default function ExaminationPatientInfoTab({
                   options={doctorOptions}
                   placeholder="ابحث باسم الطبيب أو الكود"
                   searchPlaceholder="ابحث بالاسم أو الكود..."
-                  className="h-9 bg-background border-ring/30 text-xs"
+                  className="h-11 text-sm sm:h-9 bg-background border-ring/30 sm:text-xs"
                 />
               </div>
 
               <div className="space-y-1">
-                <Label className="font-bold text-[11px] text-primary">
-                  الوردية
+                <Label className="font-semibold text-[11px] text-muted-foreground">
+                  الخدمة
                 </Label>
-                <Select
-                  value={shiftNumber ? String(shiftNumber) : ""}
-                  onValueChange={(v) =>
-                    setShiftNumber(v ? (Number(v) as 1 | 2) : undefined)
-                  }
+                <SearchableCombobox
+                  value={services[0]?.code || ""}
+                  onChange={(value) => {
+                    if (value && value !== "none") {
+                      const svc = sortedServices.find((s) => s.code === value);
+                      if (svc) {
+                        updateService(0, {
+                          code: value,
+                          price: Number(svc.price || 0),
+                          discount: 0,
+                          qty: services[0]?.qty || "1",
+                        });
+                      }
+                    } else {
+                      updateService(0, { code: "", price: 0, discount: 0, qty: "" });
+                    }
+                  }}
+                  options={serviceOptions}
+                  placeholder="اختر الخدمة"
+                  searchPlaceholder="ابحث بالاسم أو الكود..."
+                  className="h-11 text-sm sm:h-9 bg-background border-ring/30 sm:text-xs"
+                />
+              </div>
+
+              <div className="flex items-end gap-2 sm:col-span-2">
+                <div className="flex-1 space-y-1">
+                  <Label className="font-semibold text-[11px] text-muted-foreground">
+                    الوردية
+                  </Label>
+                  <Select
+                    value={shiftNumber ? String(shiftNumber) : ""}
+                    onValueChange={(v) =>
+                      setShiftNumber(v ? (Number(v) as 1 | 2) : undefined)
+                    }
+                  >
+                    <SelectTrigger className="h-11 text-sm sm:h-9 bg-background border-ring/30 sm:text-xs">
+                      <SelectValue placeholder="اختر الوردية" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1" className="text-xs">
+                        الوردية الأولى
+                      </SelectItem>
+                      <SelectItem value="2" className="text-xs">
+                        الوردية الثانية
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-11 w-11 sm:h-9 sm:w-9 shrink-0"
+                  aria-label="إضافة خدمة"
+                  onClick={addService}
                 >
-                  <SelectTrigger className="h-9 bg-background border-ring/30 text-xs">
-                    <SelectValue placeholder="اختر الوردية" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1" className="text-xs">
-                      الوردية الأولى
-                    </SelectItem>
-                    <SelectItem value="2" className="text-xs">
-                      الوردية الثانية
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                  <Plus className="h-4 w-4" />
+                </Button>
               </div>
             </div>
 
-            <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-              <div className="flex items-center justify-between sticky top-0 bg-primary/40 z-10 py-1">
-                <Label className="font-bold text-[11px] text-primary">
-                  الخدمات المطلوبة
-                </Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 text-[10px] text-card-foreground hover:text-primary hover:bg-primary/50"
-                  onClick={addService}
-                >
-                  + إضافة خدمة
-                </Button>
+            <div className="patient-services-list space-y-2 max-h-[220px] overflow-y-auto pr-1">
+              <div className="grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem_4.5rem_auto] gap-2 px-1 text-[9px] font-bold text-muted-foreground">
+                <span>الخدمة</span>
+                <span className="text-center">الكمية</span>
+                <span className="text-center">السعر</span>
+                <span className="text-center">الخصم</span>
+                <span></span>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {services.map((srv, idx) => (
                   <div
                     key={idx}
-                    className="bg-background p-2 rounded-lg border border-primary/20 shadow-sm space-y-1.5 relative group"
+                    className="grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem_4.5rem_auto] items-center gap-2 rounded-lg border border-slate-200/80 bg-background p-1.5"
                   >
-                    <div className="flex items-start gap-2">
-                      <div className="flex-1 min-w-0">
-                        <SearchableCombobox
-                          value={srv.code || ""}
-                          onChange={(value) => {
-                            if (value && value !== "none") {
-                              const svc = sortedServices.find(
-                                (s) => s.code === value,
-                              );
-                              if (svc) {
-                                updateService(idx, {
-                                  code: value,
-                                  price: Number(svc.price || 0),
-                                  discount: 0,
-                                  qty: "1",
-                                });
-                              }
-                            } else {
-                              updateService(idx, {
-                                code: "",
-                                price: 0,
-                                discount: 0,
-                                qty: "",
-                              });
-                            }
-                          }}
-                          options={serviceOptions}
-                          className="h-8 text-xs"
-                        />
-                      </div>
-                      {services.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive/60 hover:text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground shrink-0"
-                          aria-label="حذف الخدمة"
-                          onClick={() => removeService(idx)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <Label className="text-[9px] mb-0.5 block text-muted-foreground">
-                          الكمية
-                        </Label>
-                        <Input
-                          type="number"
-                          value={srv.qty || "1"}
-                          onChange={(e) =>
-                            updateService(idx, { qty: e.target.value })
-                          }
-                          className="h-7 border-primary/20 text-center font-bold text-[11px]"
-                          min="1"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-[9px] mb-0.5 block text-muted-foreground">
-                          السعر
-                        </Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          value={srv.price}
-                          onChange={(e) =>
-                            updateService(idx, {
-                              price: Math.max(0, Number(e.target.value) || 0),
-                            })
-                          }
-                          className="h-7 border-primary/20 text-center font-bold text-[11px]"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-[9px] mb-0.5 block text-muted-foreground">
-                          الخصم
-                        </Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={srv.discount}
-                          onChange={(e) => {
-                            const value = Math.max(
-                              0,
-                              Number(e.target.value) || 0,
-                            );
-                            const total = srv.price * (Number(srv.qty) || 1);
-                            updateService(idx, {
-                              discount: Math.min(value, total),
-                            });
-                          }}
-                          className="h-7 border-primary/20 text-center font-bold text-[11px] text-destructive"
-                        />
-                      </div>
-                    </div>
+                    <span className="h-8 min-w-0 flex items-center truncate px-1 text-xs font-semibold text-foreground">
+                      {sortedServices.find((s) => s.code === srv.code)?.name ||
+                        srv.code ||
+                        "—"}
+                    </span>
+                    <Input
+                      type="number"
+                      value={srv.qty || "1"}
+                      onChange={(e) =>
+                        updateService(idx, { qty: e.target.value })
+                      }
+                      className="h-8 border-slate-200/80 text-center font-bold text-[11px]"
+                      min="1"
+                    />
+                    <Input
+                      type="number"
+                      min="0"
+                      value={srv.price}
+                      onChange={(e) =>
+                        updateService(idx, {
+                          price: Math.max(0, Number(e.target.value) || 0),
+                        })
+                      }
+                      className="h-8 border-slate-200/80 text-center font-bold text-[11px]"
+                    />
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={srv.discount}
+                      onChange={(e) => {
+                        const value = Math.max(0, Number(e.target.value) || 0);
+                        const total = srv.price * (Number(srv.qty) || 1);
+                        updateService(idx, {
+                          discount: Math.min(value, total),
+                        });
+                      }}
+                      className="h-8 border-slate-200/80 text-center font-bold text-[11px] text-destructive"
+                    />
+                    {services.length > 1 ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0 text-destructive/60 hover:text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground"
+                        aria-label="حذف الخدمة"
+                        onClick={() => removeService(idx)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    ) : (
+                      <span className="w-8" />
+                    )}
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="mt-auto pt-3 border-t border-primary/20 flex items-center justify-between">
+            <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label className="font-bold text-[11px] text-foreground block">
                   المطلوب تحصيله
@@ -521,6 +575,22 @@ export default function ExaminationPatientInfoTab({
                 />
               </div>
             </div>
+          </div>
+          </MobileCollapsibleSection>
+
+          {/* Medical History (stacked under the services column) */}
+          {showMedicalHistory ? (
+            <div className="patient-medical-history min-w-0 mt-4">
+              <MobileCollapsibleSection title="🩺 التاريخ المرضي">
+                <MedicalHistoryTab
+                  patientId={patientInfo.id ? Number(patientInfo.id) : undefined}
+                  symptoms={[]}
+                  onChange={setPatientMedicalHistory}
+                />
+              </MobileCollapsibleSection>
+            </div>
+          ) : null}
+          </div>
           </div>
 
           {/* Medical Checklist (hidden) */}

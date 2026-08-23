@@ -392,12 +392,16 @@ export const medicalExaminationsRoutes = {
       }),
     )
     .mutation(async ({ input }) => {
-      // Parse the date
+      // Use noon so UTC conversion never rolls the date backward by a day
+      // (servers in UTC+2/+3 would shift midnight to the previous UTC day).
       const [year, month, day] = input.visitDate.split("-");
       const visitDate = new Date(
         parseInt(year),
         parseInt(month) - 1,
         parseInt(day),
+        12,
+        0,
+        0,
       );
 
       await db.updateVisit(input.visitId, { visitDate });
@@ -481,6 +485,7 @@ export const medicalExaminationsRoutes = {
     .input(
       z.object({
         patientId: z.number(),
+        visitId: z.number().optional(),
         sheetType: z.enum([
           "consultant",
           "specialist",
@@ -698,6 +703,7 @@ export const medicalExaminationsRoutes = {
     .input(
       z.object({
         patientId: z.number(),
+        visitId: z.number().optional(),
         sheetType: z.enum([
           "consultant",
           "specialist",
@@ -715,7 +721,11 @@ export const medicalExaminationsRoutes = {
       }),
     )
     .query(async ({ input }) => {
-      const stored = await db.getSheetEntry(input.patientId, input.sheetType);
+      const stored = await db.getSheetEntry(
+        input.patientId,
+        input.sheetType,
+        input.visitId,
+      );
       let base: any = {};
       if (stored) {
         try {
@@ -741,9 +751,23 @@ export const medicalExaminationsRoutes = {
         db.getDoctorReportsByPatient(input.patientId),
         db.getSurgeriesByPatient(input.patientId),
       ]);
+      const visitExaminations = input.visitId
+        ? await db.getExaminationsByVisit(input.visitId)
+        : [];
+      const visitExaminationIds = new Set(
+        visitExaminations.map((row: any) => Number(row.id)),
+      );
 
+      const rowsForVisit = (rows: any[] | undefined) => {
+        if (!input.visitId) return rows ?? [];
+        return (rows ?? []).filter(
+          (row: any) =>
+            Number(row?.visitId) === Number(input.visitId) ||
+            visitExaminationIds.has(Number(row?.examinationId)),
+        );
+      };
       const pickFirstWithValues = (rows: any[] | undefined, keys: string[]) =>
-        (rows ?? []).find((row: any) =>
+        rowsForVisit(rows).find((row: any) =>
           keys.some((key) => {
             const value = row?.[key];
             return (
@@ -753,7 +777,7 @@ export const medicalExaminationsRoutes = {
             );
           }),
         ) ??
-        (rows ?? [])[0] ??
+        rowsForVisit(rows)[0] ??
         {};
 
       const autoref = pickFirstWithValues(autorefRows as any[], [
@@ -811,7 +835,7 @@ export const medicalExaminationsRoutes = {
         "tttOS",
         "ablationOS",
       ]) as any;
-      const report = (reports?.[0] ?? {}) as any;
+      const report = (rowsForVisit(reports as any[])?.[0] ?? {}) as any;
       const surgery = (surgeries?.[0] ?? {}) as any;
       const odSphere =
         autoref?.sphereOD ?? base?.examData?.autorefraction?.od?.s ?? "";
@@ -1017,6 +1041,7 @@ export const medicalExaminationsRoutes = {
     .input(
       z.object({
         patientId: z.number(),
+        visitId: z.number().optional(),
         sheetType: z.enum([
           "consultant",
           "specialist",
@@ -1037,6 +1062,7 @@ export const medicalExaminationsRoutes = {
     .mutation(async ({ input, ctx }) => {
       await db.upsertSheetEntry({
         patientId: input.patientId,
+        visitId: input.visitId,
         sheetType: input.sheetType,
         content: input.content,
       });
@@ -1051,10 +1077,27 @@ export const medicalExaminationsRoutes = {
       return { success: true };
     }),
 
+  deleteSheetEntryForVisit: medicalStaffProcedure
+    .input(
+      z.object({
+        patientId: z.number(),
+        visitId: z.number(),
+        sheetType: z.enum(["consultant", "specialist", "lasik", "external"]),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const result = await db.deleteSheetEntryForVisit(input);
+      broadcastSheetUpdate(input.patientId, input.sheetType);
+      return result;
+    }),
+
   saveRefractionToExamination: protectedProcedure
     .input(
       z.object({
         patientId: z.number(),
+        visitId: z.number().optional(),
+        examinationId: z.number().optional(),
+        createVisitIfMissing: z.boolean().optional().default(true),
         autorefraction: z
           .object({
             od: z
@@ -1130,16 +1173,37 @@ export const medicalExaminationsRoutes = {
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      // Get or create today's examination for patient
+      // Use the explicitly selected visit when provided. Legacy callers may
+      // still fall back to today's visit creation behavior.
       const today = new Date().toISOString().split("T")[0];
       const visits = await db.getVisitsByPatient(input.patientId);
-      let visitId = visits.find((v: any) => {
-        const vDate =
-          v.visitDate instanceof Date
-            ? v.visitDate.toISOString()
-            : String(v.visitDate ?? "");
-        return vDate.split("T")[0] === today;
-      })?.id;
+      let visitId = input.visitId;
+      if (visitId) {
+        const belongsToPatient = visits.some(
+          (visit: any) => Number(visit.id) === Number(visitId),
+        );
+        if (!belongsToPatient) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "الزيارة المحددة لا تخص هذا المريض",
+          });
+        }
+      } else {
+        visitId = visits.find((v: any) => {
+          const vDate =
+            v.visitDate instanceof Date
+              ? v.visitDate.toISOString()
+              : String(v.visitDate ?? "");
+          return vDate.split("T")[0] === today;
+        })?.id;
+      }
+
+      if (!visitId && !input.createVisitIfMissing) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "يجب اختيار زيارة موجودة قبل حفظ الفحص",
+        });
+      }
 
       if (!visitId) {
         // Create new visit for today
@@ -1161,7 +1225,19 @@ export const medicalExaminationsRoutes = {
       const exams = await db.getExaminationsByVisit(visitId!);
       let examinationId: number;
 
-      if (exams.length > 0) {
+      if (input.examinationId) {
+        const selectedExamination = exams.find(
+          (exam: any) => Number(exam.id) === Number(input.examinationId),
+        );
+        if (!selectedExamination) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "الفحص المحدد لا يخص الزيارة المختارة",
+          });
+        }
+        examinationId = selectedExamination.id;
+        await db.updateExamination(examinationId, examinationData);
+      } else if (exams.length > 0) {
         // Update existing examination
         examinationId = exams[0].id;
         await db.updateExamination(examinationId, examinationData);
@@ -1257,14 +1333,18 @@ export const medicalExaminationsRoutes = {
         return { success: true, examinationId: null, visitId: null };
       }
 
-      // Parse visitDate to avoid timezone issues
+      // Use noon so UTC conversion never rolls the date backward by a day
+      // (servers in UTC+2/+3 would shift midnight to the previous UTC day).
       const [year, month, day] = input.visitDate.split("-");
       const visitDate = new Date(
         parseInt(year),
         parseInt(month) - 1,
         parseInt(day),
+        12,
+        0,
+        0,
       );
-      const visitDateStr = visitDate.toISOString().split("T")[0];
+      const visitDateStr = input.visitDate;
 
       // Find existing visit for this patient on this date
       const existingVisits = await db.getVisitsByPatient(input.patientId);
@@ -1932,7 +2012,8 @@ export const medicalExaminationsRoutes = {
         return { success: true, examinationId: null, visitId: null };
       }
 
-      // Parse visitDate to avoid timezone issues
+      // Use noon so UTC conversion never rolls the date backward by a day
+      // (servers in UTC+2/+3 would shift midnight to the previous UTC day).
       let visitDate: Date;
       if (input.visitDate) {
         const [year, month, day] = input.visitDate.split("-");
@@ -1940,6 +2021,9 @@ export const medicalExaminationsRoutes = {
           parseInt(year),
           parseInt(month) - 1,
           parseInt(day),
+          12,
+          0,
+          0,
         );
       } else {
         visitDate = new Date();
@@ -2161,7 +2245,29 @@ export const medicalExaminationsRoutes = {
         });
       }
 
-      await db.updateVisitQueueStatus(input.visitId, input.queueStatus);
+      if (input.queueStatus === "treated") {
+        if (!["reception", "admin"].includes(role)) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "تسجيل المريض كمعالج متاح للاستقبال والأدمن فقط.",
+          });
+        }
+        const hasCompletionData = await db.visitHasQueueCompletionData(
+          input.visitId,
+        );
+        if (!hasCompletionData) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "لا يمكن تسجيل المريض كمعالج قبل إدخال بيانات الكشف.",
+          });
+        }
+      }
+
+      await db.updateVisitQueueStatus(
+        input.visitId,
+        input.queueStatus,
+        ctx.user.id,
+      );
 
       // If marked as treated, advance the non-external queue one-by-one.
       if (input.queueStatus === "treated") {
@@ -2194,21 +2300,8 @@ export const medicalExaminationsRoutes = {
   undoVisitTreated: protectedProcedure
     .input(z.object({ visitId: z.number() }))
     .mutation(async ({ input, ctx }) => {
-      const permissions = await db.getEffectiveUserPermissions(
-        ctx.user.id,
-        ctx.user.role,
-      );
       const role = String(ctx.user.role ?? "").toLowerCase();
-      const staffRoles = [
-        "doctor",
-        "nurse",
-        "technician",
-        "reception",
-        "manager",
-        "admin",
-      ];
-      const canUpdateQueue =
-        permissions.includes("/patients") || staffRoles.includes(role);
+      const canUpdateQueue = ["reception", "admin"].includes(role);
       if (!canUpdateQueue) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -2355,6 +2448,13 @@ export const medicalExaminationsRoutes = {
             movedToNextAt: visit.movedToNextAt,
             movedToClinicAt: visit.movedToClinicAt,
             treatedAt: visit.treatedAt,
+            treatedByUserId: visit.treatedByUserId,
+            treatedByName:
+              String(visit.treatedByName ?? "").trim() ||
+              String(visit.treatedByUsername ?? "").trim() ||
+              null,
+            hasQueueCompletionData:
+              Number(visit.hasQueueCompletionData ?? 0) === 1,
           };
           if (!patientMap.has(patientId)) {
             patientMap.set(patientId, row);

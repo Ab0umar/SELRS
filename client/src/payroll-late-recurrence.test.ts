@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   calcLateDayTier,
   calcMissingPunchDeduction,
+  getPayrollWeekKey,
   normalizeLateTiers,
   type LateTier,
 } from "../../server/services/salary/lateDeduction";
@@ -11,17 +12,24 @@ const tiers: LateTier[] = [
   { minMin: 15, maxMin: 29, dayFraction: 0.25 },
 ];
 
-describe("progressive linear lateness deductions", () => {
-  it("escalates only linear occurrences within the payroll period", () => {
+describe("weekly progressive linear lateness deductions", () => {
+  it("multiplies only linear occurrences up to four times", () => {
     const dailyRate = 120;
     const minuteRate = dailyRate / 360;
 
     expect(calcLateDayTier(10, dailyRate, minuteRate, tiers, 1)).toBe(3.33);
-    expect(calcLateDayTier(10, dailyRate, minuteRate, tiers, 2)).toBe(3.33);
-    expect(calcLateDayTier(10, dailyRate, minuteRate, tiers, 3)).toBe(30);
-    expect(calcLateDayTier(10, dailyRate, minuteRate, tiers, 4)).toBe(30);
-    expect(calcLateDayTier(10, dailyRate, minuteRate, tiers, 5)).toBe(60);
-    expect(calcLateDayTier(10, dailyRate, minuteRate, tiers, 8)).toBe(60);
+    expect(calcLateDayTier(10, dailyRate, minuteRate, tiers, 2)).toBe(6.67);
+    expect(calcLateDayTier(10, dailyRate, minuteRate, tiers, 3)).toBe(10);
+    expect(calcLateDayTier(10, dailyRate, minuteRate, tiers, 4)).toBe(13.33);
+    expect(calcLateDayTier(10, dailyRate, minuteRate, tiers, 5)).toBe(13.33);
+    expect(calcLateDayTier(10, dailyRate, minuteRate, tiers, 8)).toBe(13.33);
+  });
+
+  it("starts weekly recurrence windows from the payroll cycle start on the 26th", () => {
+    expect(getPayrollWeekKey("2026-08-01")).toBe("2026-07-26");
+    expect(getPayrollWeekKey("2026-08-02")).toBe("2026-08-02");
+    expect(getPayrollWeekKey("2026-08-25")).toBe("2026-08-23");
+    expect(getPayrollWeekKey("2026-08-26")).toBe("2026-08-26");
   });
 
   it("does not escalate an existing fixed day-fraction tier", () => {

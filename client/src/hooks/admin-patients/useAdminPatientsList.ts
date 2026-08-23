@@ -121,6 +121,10 @@ export function useAdminPatientsList() {
   });
   const deleteAllPatientsMutation =
     trpc.medical.deleteAllPatients.useMutation();
+  const deleteAllPatientServicesMutation =
+    trpc.medical.deleteAllPatientServices.useMutation();
+  const updatePatientCodeMutation =
+    trpc.medical.updatePatientCode.useMutation();
   const statsFilterInput = useMemo(
     () => ({
       doctorName: doctorFilter === "all" ? undefined : doctorFilter,
@@ -790,7 +794,7 @@ export function useAdminPatientsList() {
       const patientCode = String(patient.patientCode ?? "").trim();
       const displayName = patientName || patientCode || `ID ${patient.id}`;
       const confirmed = window.confirm(
-        `Are you sure you want to delete patient: ${displayName}?\n\nThis will remove the patient record but keep exam data.`,
+        `Are you sure you want to permanently delete patient: ${displayName}?\n\nThis removes the patient and all their medical/exam data, both locally and from MSSQL.`,
       );
       if (!confirmed) return;
       const confirmName = window.prompt(
@@ -801,13 +805,69 @@ export function useAdminPatientsList() {
         return;
       }
       try {
-        await deletePatientMutation.mutateAsync({ patientId: patient.id });
-        toast.success(`Patient ${displayName} deleted successfully`);
+        const result = await deletePatientMutation.mutateAsync({
+          patientId: patient.id,
+        });
+        const mssqlNote = result?.mssql?.deleted
+          ? " (removed from MSSQL too)"
+          : result?.mssql
+            ? " (no matching MSSQL row)"
+            : "";
+        toast.success(`Patient ${displayName} deleted successfully${mssqlNote}`);
       } catch (error) {
         toast.error(getTrpcErrorMessage(error, "Failed to delete patient"));
       }
     },
     [deletePatientMutation],
+  );
+
+  const handleDeleteAllServices = useCallback(
+    async (patient: PatientRow) => {
+      const patientName = String(patient.fullName ?? "").trim();
+      const patientCode = String(patient.patientCode ?? "").trim();
+      const displayName = patientName || patientCode || `ID ${patient.id}`;
+      const confirmed = window.confirm(
+        `Delete ALL services for ${displayName}?\n\nThis removes every service entry locally and from MSSQL. The patient record itself is kept.`,
+      );
+      if (!confirmed) return;
+      try {
+        const result = await deleteAllPatientServicesMutation.mutateAsync({
+          patientId: patient.id,
+        });
+        const mssqlNote = result?.mssql
+          ? ` (MSSQL: ${result.mssql.deletedCount} row(s))`
+          : "";
+        toast.success(
+          `Deleted ${result.local.deletedCount} service(s) for ${displayName}${mssqlNote}`,
+        );
+        await utils.medical.getAllPatients.invalidate();
+      } catch (error) {
+        toast.error(getTrpcErrorMessage(error, "Failed to delete services"));
+      }
+    },
+    [deleteAllPatientServicesMutation, utils],
+  );
+
+  const handleEditPatientCode = useCallback(
+    async (patient: PatientRow, newCode: string) => {
+      const trimmed = newCode.trim();
+      const currentCode = String(patient.patientCode ?? "").trim();
+      if (!trimmed || trimmed === currentCode) return;
+      try {
+        const result = await updatePatientCodeMutation.mutateAsync({
+          patientId: patient.id,
+          newPatientCode: trimmed,
+        });
+        const mssqlNote = result?.mssql?.updated
+          ? " (synced to MSSQL)"
+          : " (MSSQL not updated — check note)";
+        toast.success(`Patient code updated to ${trimmed}${mssqlNote}`);
+        await utils.medical.getAllPatients.invalidate();
+      } catch (error) {
+        toast.error(getTrpcErrorMessage(error, "Failed to update patient code"));
+      }
+    },
+    [updatePatientCodeMutation, utils],
   );
 
   const allVisibleSelected =
@@ -864,6 +924,8 @@ export function useAdminPatientsList() {
     deleteAllPatientsMutation,
     deletePatientFromMssqlMutation,
     deletePatientMutation,
+    deleteAllPatientServicesMutation,
+    updatePatientCodeMutation,
     doctorFilter,
     doctorOptions,
     drafts,
@@ -878,6 +940,8 @@ export function useAdminPatientsList() {
     handleDeleteAll,
     handleDeleteFromMssql,
     handleDeletePatient,
+    handleDeleteAllServices,
+    handleEditPatientCode,
     handleSaveAll,
     handleToggleManualLock,
     hasMore,

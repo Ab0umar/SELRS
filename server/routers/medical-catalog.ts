@@ -38,11 +38,26 @@ import {
   testRequests,
   prescriptions,
   patientServiceEntries,
+  type Medication,
 } from "../../drizzle/schema";
 import { mssqlQuery } from "../services/accounting/mssqlAccounting";
 import { broadcastSheetUpdate } from "../_core/ws";
 import { symptomDirectoryEntrySchema } from "./_medical/service-helpers";
 import { getBuildInfo } from "../_core/buildInfo";
+import {
+  egyptianDrugDosageForms,
+  type EgyptianDrugReference,
+  matchEgyptianDrugReference,
+  searchEgyptianDrugReference,
+} from "../services/egyptianDrugReference";
+
+type ExistingMedicationReferenceMatch = {
+  medicationId: number;
+  currentName: string;
+  currentStrength: string;
+  confidence: "exact" | "normalized" | "ingredient" | "suggested" | "suspected";
+  reference: EgyptianDrugReference;
+};
 import { copyObjectInS3, deleteFromS3, listObjectsInS3 } from "../_core/s3";
 import {
   backfillPapatSrvNamesInMssql,
@@ -56,6 +71,237 @@ import {
 } from "../integrations/mssqlPatients";
 
 export const medicalCatalogRoutes = {
+  matchExistingMedicationsWithEgyptianReference: medicalStaffProcedure.query(
+    async () => {
+      const medications = await db.getAllMedications();
+      const matches = await matchEgyptianDrugReference(
+        medications.map((medication: Medication) => medication.name),
+      );
+      const byName = new Map(
+        matches.map((result) => [result.name.trim().toLowerCase(), result]),
+      );
+      const items = medications
+        .map((medication: Medication) => {
+          const result = byName.get(medication.name.trim().toLowerCase());
+          return result?.match
+            ? {
+                medicationId: medication.id,
+                currentName: medication.name,
+                currentStrength: medication.strength ?? "",
+                confidence: result.confidence,
+                reference: result.match,
+              }
+            : null;
+        })
+        .filter(
+          (
+            item: ExistingMedicationReferenceMatch | null,
+          ): item is ExistingMedicationReferenceMatch => item != null,
+        );
+      return {
+        items,
+        totalExisting: medications.length,
+        unmatched: medications.length - items.length,
+      };
+    },
+  ),
+
+  syncExistingMedicationsWithEgyptianReference: medicalStaffProcedure
+    .input(
+      z.object({
+        medicationIds: z.array(z.number().int().positive()).min(1).max(10_000),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const selectedIds = new Set(input.medicationIds);
+      const medications = (await db.getAllMedications()).filter(
+        (medication: Medication) => selectedIds.has(medication.id),
+      );
+      const matches = await matchEgyptianDrugReference(
+        medications.map((medication: Medication) => medication.name),
+      );
+      let updated = 0;
+      for (const medication of medications) {
+        const result = matches.find(
+          (match) =>
+            match.name.trim().toLowerCase() ===
+            medication.name.trim().toLowerCase(),
+        );
+        const drug = result?.match;
+        if (!drug || !result) continue;
+        const ingredientOnly = result.confidence === "ingredient";
+        await db.updateMedication(medication.id, {
+          name: ingredientOnly ? medication.name : drug.commercialNameEn,
+          type:
+            drug.dosageForm === "drops"
+              ? "drops"
+              : drug.dosageForm === "ointment"
+                ? "ointment"
+                : drug.dosageForm === "ampoules"
+                  ? "injection"
+                  : drug.dosageForm === "suspension" ||
+                      drug.dosageForm === "syrup" ||
+                      drug.dosageForm === "solution"
+                    ? "suspension"
+                    : drug.dosageForm === "tablets" ||
+                        drug.dosageForm === "capsules"
+                      ? "tablet"
+                      : "other",
+          activeIngredient: drug.scientificName,
+          strength: ingredientOnly
+            ? medication.strength || ""
+            : drug.strength || medication.strength || "",
+          manufacturer: ingredientOnly
+            ? medication.manufacturer || ""
+            : drug.manufacturer,
+          description: [
+            drug.commercialNameAr,
+            drug.route ? `Route: ${drug.route}` : "",
+            "Source: Egyptian Drug Database (CC0)",
+          ]
+            .filter(Boolean)
+            .join(" | "),
+        });
+        updated += 1;
+      }
+      return { updated, skipped: input.medicationIds.length - updated };
+    }),
+
+  searchEgyptianDrugReference: protectedProcedure
+    .input(
+      z.object({
+        query: z.string().trim().max(100).default(""),
+        limit: z.number().int().min(1).max(50).default(30),
+        dosageForm: z.enum(egyptianDrugDosageForms).optional(),
+      }),
+    )
+    .query(async ({ input }) =>
+      searchEgyptianDrugReference(input.query, input.limit, input.dosageForm),
+    ),
+
+  addEgyptianDrugToPrescriptionCatalog: medicalStaffProcedure
+    .input(
+      z.object({
+        commercialNameEn: z.string().trim().min(1).max(255),
+        commercialNameAr: z.string().trim().max(255).optional(),
+        scientificName: z.string().trim().max(255).optional(),
+        manufacturer: z.string().trim().max(255).optional(),
+        route: z.string().trim().max(100).optional(),
+        dosageForm: z.enum(egyptianDrugDosageForms).optional(),
+        strength: z.string().trim().max(255).optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const existing = (await db.getAllMedications()).find(
+        (row: { name: string }) =>
+          row.name.trim().toLowerCase() ===
+          input.commercialNameEn.trim().toLowerCase(),
+      );
+      if (existing) return { medication: existing, created: false };
+
+      const result = await db.createMedication({
+        name: input.commercialNameEn,
+        type:
+          input.dosageForm === "drops"
+            ? "drops"
+            : input.dosageForm === "ointment"
+              ? "ointment"
+              : input.dosageForm === "ampoules"
+                ? "injection"
+                : input.dosageForm === "suspension" ||
+                    input.dosageForm === "syrup" ||
+                    input.dosageForm === "solution"
+                  ? "suspension"
+                  : input.dosageForm === "tablets" ||
+                      input.dosageForm === "capsules"
+                    ? "tablet"
+                    : "other",
+        activeIngredient: input.scientificName || "",
+        strength: input.strength || "",
+        manufacturer: input.manufacturer || "",
+        description: [
+          input.commercialNameAr,
+          input.route ? `Route: ${input.route}` : "",
+          "Source: Egyptian Drug Database (CC0)",
+        ]
+          .filter(Boolean)
+          .join(" | "),
+      });
+      return { medication: result, created: true };
+    }),
+
+  addEgyptianDrugsToPrescriptionCatalog: medicalStaffProcedure
+    .input(
+      z.object({
+        query: z.string().trim().max(100).default(""),
+        dosageForm: z.enum(egyptianDrugDosageForms).optional(),
+        selectedNames: z
+          .array(z.string().trim().min(1).max(255))
+          .min(1)
+          .max(10_000),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const reference = await searchEgyptianDrugReference(
+        input.query,
+        10_000,
+        input.dosageForm,
+      );
+      const selectedNames = new Set(
+        input.selectedNames.map((name) => name.toLowerCase()),
+      );
+      const existingNames = new Set(
+        (await db.getAllMedications()).map((row: { name: string }) =>
+          row.name.trim().toLowerCase(),
+        ),
+      );
+      const unique = new Map(
+        reference.items
+          .filter((drug) =>
+            selectedNames.has(drug.commercialNameEn.toLowerCase()),
+          )
+          .map((drug) => [drug.commercialNameEn.toLowerCase(), drug]),
+      );
+      const rows = [...unique.values()]
+        .filter(
+          (drug) => !existingNames.has(drug.commercialNameEn.toLowerCase()),
+        )
+        .map((drug) => ({
+          name: drug.commercialNameEn,
+          type:
+            drug.dosageForm === "drops"
+              ? ("drops" as const)
+              : drug.dosageForm === "ointment"
+                ? ("ointment" as const)
+                : drug.dosageForm === "ampoules"
+                  ? ("injection" as const)
+                  : drug.dosageForm === "suspension" ||
+                      drug.dosageForm === "syrup" ||
+                      drug.dosageForm === "solution"
+                    ? ("suspension" as const)
+                    : drug.dosageForm === "tablets" ||
+                        drug.dosageForm === "capsules"
+                      ? ("tablet" as const)
+                      : ("other" as const),
+          activeIngredient: drug.scientificName,
+          strength: drug.strength,
+          manufacturer: drug.manufacturer,
+          description: [
+            drug.commercialNameAr,
+            drug.route ? `Route: ${drug.route}` : "",
+            "Source: Egyptian Drug Database (CC0)",
+          ]
+            .filter(Boolean)
+            .join(" | "),
+        }));
+
+      await db.createMedicationsBulk(rows);
+      return {
+        created: rows.length,
+        skipped: input.selectedNames.length - rows.length,
+      };
+    }),
+
   getMedications: protectedProcedure.query(async () => {
     return await db.getAllMedications();
   }),
@@ -490,6 +736,53 @@ export const medicalCatalogRoutes = {
       return { success: true };
     }),
 
+  replaceTestRequest: medicalStaffProcedure
+    .input(
+      z.object({
+        patientId: z.number(),
+        visitId: z.number(),
+        date: z.string().optional(),
+        priority: z.string().optional(),
+        notes: z.string().optional(),
+        items: z.array(
+          z.object({
+            testId: z.number(),
+            notes: z.string().optional(),
+          }),
+        ),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      await db.deleteTestRequestsByVisit(input.visitId);
+      if (input.items.length > 0) {
+        const result = await db.createTestRequest({
+          patientId: input.patientId,
+          visitId: input.visitId,
+          requestDate: input.date
+            ? new Date(`${input.date}T12:00:00`)
+            : new Date(),
+          status: "pending",
+          notes: input.notes,
+        });
+        const testRequestId = result[0].insertId;
+        await db.createTestRequestItems(
+          input.items.map((item) => ({
+            testRequestId,
+            testId: item.testId,
+            result: item.notes,
+          })),
+        );
+      }
+      await db.logAuditEvent(
+        ctx.user.id,
+        "REPLACE_TEST_REQUEST",
+        "visit",
+        input.visitId,
+        { itemCount: input.items.length },
+      );
+      return { success: true };
+    }),
+
   getTestRequestsByPatient: protectedProcedure
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {
@@ -615,6 +908,50 @@ export const medicalCatalogRoutes = {
         "prescription",
         0,
         { message: `Created prescription for patient ${input.patientId}` },
+      );
+      return { success: true };
+    }),
+
+  replacePrescriptionWithItems: medicalStaffProcedure
+    .input(
+      z.object({
+        patientId: z.number(),
+        visitId: z.number(),
+        date: z.string().optional(),
+        notes: z.string().optional(),
+        items: z.array(
+          z.object({
+            medicationId: z.number().optional(),
+            medicationName: z.string(),
+            dosage: z.string().optional(),
+            frequency: z.string().optional(),
+            duration: z.string().optional(),
+            instructions: z.string().optional(),
+          }),
+        ),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const existing = await db.getPrescriptionsWithItemsByVisit(input.visitId);
+      for (const prescription of existing ?? []) {
+        if (prescription?.id) await db.deletePrescription(prescription.id);
+      }
+      if (input.items.length > 0) {
+        await db.createPrescriptionWithItems({
+          patientId: input.patientId,
+          visitId: input.visitId,
+          doctorId: ctx.user.id,
+          date: input.date,
+          notes: input.notes,
+          items: input.items,
+        });
+      }
+      await db.logAuditEvent(
+        ctx.user.id,
+        "REPLACE_PRESCRIPTION",
+        "visit",
+        input.visitId,
+        { itemCount: input.items.length },
       );
       return { success: true };
     }),

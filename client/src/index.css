@@ -303,6 +303,11 @@
     font-size: 15px;
     line-height: 1.45;
     font-family: var(--font-arabic);
+    /* Block the native browser/WebView swipe-down-to-reload gesture app-wide —
+       it fires at the top of any scroll area (including open forms/sheets)
+       and reloads the whole SPA, wiping unsaved input. Manual refresh
+       buttons (RefreshCw) and the in-app PullToRefresh component still work. */
+    overscroll-behavior-y: contain;
   }
 
   :lang(en),
@@ -320,6 +325,7 @@
   body {
     @apply bg-background text-foreground;
     font-family: inherit;
+    overscroll-behavior-y: contain;
     direction: rtl;
     unicode-bidi: plaintext;
     text-align: start;
@@ -425,8 +431,8 @@
    print layouts are intentionally unaffected. */
 @media screen and (max-width: 640px) {
   :where([data-slot="table-container"], .overflow-x-auto, .overflow-auto):has(
-      > table
-    ) {
+    > table
+  ) {
     width: 100% !important;
     max-width: 100% !important;
     overflow-x: clip !important;
@@ -1198,9 +1204,14 @@ img {
     margin: 0 auto !important;
     background: white;
   }
-  .sheet-followup-body table { font-size: 10px !important; }
+  .sheet-followup-body table {
+    font-size: 10px !important;
+  }
   .sheet-followup-body th,
-  .sheet-followup-body td { padding: 3px !important; line-height: 1.05 !important; }
+  .sheet-followup-body td {
+    padding: 3px !important;
+    line-height: 1.05 !important;
+  }
   .sheet-followup-body input,
   .sheet-followup-body select,
   .sheet-followup-body textarea {
@@ -1226,7 +1237,10 @@ img {
   }
 
   /* Strip shadows and rounded corners from all card-like elements on print */
-  .shadow-sm, .shadow, .shadow-md, .shadow-lg {
+  .shadow-sm,
+  .shadow,
+  .shadow-md,
+  .shadow-lg {
     box-shadow: none !important;
   }
 
@@ -1256,7 +1270,8 @@ img {
   }
 
   /* Remove bottom padding from sheet wrappers */
-  .pb-10, .pb-6 {
+  .pb-10,
+  .pb-6 {
     padding-bottom: 0 !important;
   }
 
@@ -1452,7 +1467,9 @@ select {
 
   .selrs-app-content > [class*="max-w"],
   .selrs-app-content > [class*="container"],
-  .selrs-app-content > * > :where(
+  .selrs-app-content
+    > *
+    > :where(
       main,
       section,
       [role="main"],
@@ -1860,7 +1877,12 @@ select {
   animation: pulse-revue 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-@media print { * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
 
 /* Center printable sheets and reports on A4; the specialist sheet keeps its
    established print positioning. */

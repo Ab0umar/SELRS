@@ -20,19 +20,19 @@ function getBadges(
   const badges: Badge[] = [];
   if (canAccess("/examination") && status.autoref && status.afterRef)
     badges.push({
-      color: "bg-success/100",
+      color: "bg-success",
       title: "قياس الانكسار الآلي + ما بعد الانكسار",
     });
   if (canAccess("/refraction") && status.glasses)
-    badges.push({ color: "bg-primary/50", title: "مقاس النظارة / الانكسار" });
+    badges.push({ color: "bg-blue-600", title: "مقاس النظارة / الانكسار" });
   if (canAccess("/sheets") && status.pentacam)
-    badges.push({ color: "bg-destructive/100", title: "بيانات بنتاكام" });
+    badges.push({ color: "bg-red-600", title: "بيانات بنتاكام" });
   if (
     (canAccess("/prescription") && status.prescription) ||
     (canAccess("/request-tests") && status.tests) ||
     (canAccess("/medical-reports") && status.reports)
   )
-    badges.push({ color: "bg-secondary", title: "تشخيص / روشتة / تحاليل" });
+    badges.push({ color: "bg-black", title: "تشخيص / روشتة / تحاليل" });
   if (badges.length === 0)
     badges.push({ color: "bg-muted", title: "لا توجد بيانات طبية" });
   return badges;

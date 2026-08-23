@@ -43,6 +43,8 @@ import {
   medicalConditionReportTemplates,
   prescriptions,
   prescriptionItems,
+  readyPrescriptionTemplates,
+  readyPrescriptionTemplateItems,
   surgeries,
   postOpFollowups,
   consentForms,
@@ -83,6 +85,156 @@ import {
   InsertStockItem,
   InsertStockTransaction,
 } from "../drizzle/schema";
+
+export type ReadyPrescriptionTemplateInput = {
+  templateId: string;
+  name?: string;
+  prescriptionItems?: Array<{
+    medicationName: string;
+    dosage?: string;
+    frequency?: string;
+    duration?: string;
+    instructions?: string;
+  }>;
+};
+
+export async function getReadyPrescriptionTemplateOverrides() {
+  const db = await getDb();
+  if (!db) return {};
+  const [templates, items] = await Promise.all([
+    db
+      .select()
+      .from(readyPrescriptionTemplates)
+      .orderBy(asc(readyPrescriptionTemplates.id)),
+    db
+      .select()
+      .from(readyPrescriptionTemplateItems)
+      .orderBy(
+        asc(readyPrescriptionTemplateItems.templateId),
+        asc(readyPrescriptionTemplateItems.sortOrder),
+        asc(readyPrescriptionTemplateItems.id),
+      ),
+  ]);
+  const itemsByTemplate = new Map<number, typeof items>();
+  for (const item of items) {
+    const current = itemsByTemplate.get(item.templateId) ?? [];
+    current.push(item);
+    itemsByTemplate.set(item.templateId, current);
+  }
+  return Object.fromEntries(
+    templates.map((template: any) => [
+      template.templateKey,
+      {
+        name: template.name,
+        prescriptionItems: (itemsByTemplate.get(template.id) ?? []).map(
+          (item: any) => ({
+            medicationName: item.medicationName,
+            dosage: item.dosage ?? "",
+            frequency: item.frequency ?? "",
+            duration: item.duration ?? "",
+            instructions: item.instructions ?? "",
+          }),
+        ),
+      },
+    ]),
+  );
+}
+
+export async function replaceReadyPrescriptionTemplates(
+  templates: ReadyPrescriptionTemplateInput[],
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.transaction(async (tx: any) => {
+    await tx.delete(readyPrescriptionTemplateItems);
+    await tx.delete(readyPrescriptionTemplates);
+    for (const template of templates) {
+      const result: any = await tx.insert(readyPrescriptionTemplates).values({
+        templateKey: template.templateId,
+        name:
+          String(template.name ?? template.templateId).trim() ||
+          template.templateId,
+      });
+      const templateDbId = Number(
+        result?.[0]?.insertId ?? result?.insertId ?? 0,
+      );
+      const items = (template.prescriptionItems ?? []).filter((item) =>
+        String(item.medicationName ?? "").trim(),
+      );
+      if (items.length) {
+        await tx.insert(readyPrescriptionTemplateItems).values(
+          items.map((item, sortOrder) => ({
+            templateId: templateDbId,
+            sortOrder,
+            medicationName: item.medicationName.trim(),
+            dosage: item.dosage?.trim() || null,
+            frequency: item.frequency?.trim() || null,
+            duration: item.duration?.trim() || null,
+            instructions: item.instructions?.trim() || null,
+          })),
+        );
+      }
+    }
+  });
+}
+
+export async function upsertReadyPrescriptionTemplate(
+  template: ReadyPrescriptionTemplateInput,
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.transaction(async (tx: any) => {
+    const existing = await tx
+      .select()
+      .from(readyPrescriptionTemplates)
+      .where(eq(readyPrescriptionTemplates.templateKey, template.templateId))
+      .limit(1);
+    let templateDbId = Number(existing[0]?.id ?? 0);
+    if (!templateDbId) {
+      const result: any = await tx.insert(readyPrescriptionTemplates).values({
+        templateKey: template.templateId,
+        name:
+          String(template.name ?? template.templateId).trim() ||
+          template.templateId,
+      });
+      templateDbId = Number(result?.[0]?.insertId ?? result?.insertId ?? 0);
+    } else if (template.name !== undefined) {
+      await tx
+        .update(readyPrescriptionTemplates)
+        .set({ name: template.name.trim() || template.templateId })
+        .where(eq(readyPrescriptionTemplates.id, templateDbId));
+    }
+    if (template.prescriptionItems !== undefined) {
+      await tx
+        .delete(readyPrescriptionTemplateItems)
+        .where(eq(readyPrescriptionTemplateItems.templateId, templateDbId));
+      const items = template.prescriptionItems.filter((item) =>
+        String(item.medicationName ?? "").trim(),
+      );
+      if (items.length) {
+        await tx.insert(readyPrescriptionTemplateItems).values(
+          items.map((item, sortOrder) => ({
+            templateId: templateDbId,
+            sortOrder,
+            medicationName: item.medicationName.trim(),
+            dosage: item.dosage?.trim() || null,
+            frequency: item.frequency?.trim() || null,
+            duration: item.duration?.trim() || null,
+            instructions: item.instructions?.trim() || null,
+          })),
+        );
+      }
+    }
+  });
+}
+
+export async function deleteReadyPrescriptionTemplate(templateKey: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .delete(readyPrescriptionTemplates)
+    .where(eq(readyPrescriptionTemplates.templateKey, templateKey));
+}
 import { PENTACAM_ALLOWED_SRV_CODES } from "../shared/pentacam";
 import { getServiceTypeFilterVariants } from "../shared/serviceType";
 import { OP_TYPES, resolveCanonicalOpType } from "../shared/opTypes";
@@ -107,6 +259,114 @@ function anyMeaningfulValueCondition(columns: any[]) {
   return or(
     ...(columns.map((column) => meaningfulValueCondition(column)) as any),
   );
+}
+
+function visitQueueCompletionEligibilitySql(_visitIdColumn: any) {
+  // Use the concrete outer-table qualifier because MySQL treats an unqualified
+  // `id` in the correlated subqueries as ambiguous once child tables are joined.
+  const correlatedVisitId = sql.raw("`visits`.`id`");
+  return sql<number>`CASE WHEN
+    EXISTS (
+      SELECT 1
+      FROM autorefractometryData ard
+      INNER JOIN examinations ae ON ae.id = ard.examinationId
+      WHERE ae.visitId = ${correlatedVisitId}
+    )
+    OR EXISTS (
+      SELECT 1
+      FROM afterRefractionData afr
+      INNER JOIN examinations afe ON afe.id = afr.examinationId
+      WHERE afe.visitId = ${correlatedVisitId}
+    )
+    OR EXISTS (
+      SELECT 1
+      FROM examinations qe
+      WHERE qe.visitId = ${correlatedVisitId}
+        AND COALESCE(
+          NULLIF(TRIM(qe.ucvaOD), ''), NULLIF(TRIM(qe.ucvaOS), ''),
+          NULLIF(TRIM(qe.bcvaOD), ''), NULLIF(TRIM(qe.bcvaOS), ''),
+          NULLIF(TRIM(qe.sphereOD), ''), NULLIF(TRIM(qe.sphereOS), ''),
+          NULLIF(TRIM(qe.cylinderOD), ''), NULLIF(TRIM(qe.cylinderOS), ''),
+          NULLIF(TRIM(qe.axisOD), ''), NULLIF(TRIM(qe.axisOS), ''),
+          NULLIF(TRIM(qe.iopOD), ''), NULLIF(TRIM(qe.iopOS), ''),
+          NULLIF(TRIM(qe.anteriorSegmentOD), ''),
+          NULLIF(TRIM(qe.anteriorSegmentOS), ''),
+          NULLIF(TRIM(qe.posteriorSegmentOD), ''),
+          NULLIF(TRIM(qe.posteriorSegmentOS), ''),
+          NULLIF(TRIM(qe.radiologyLabsNotes), ''),
+          NULLIF(TRIM(qe.airPuffOD), ''), NULLIF(TRIM(qe.airPuffOS), ''),
+          NULLIF(TRIM(qe.glassesData), '')
+        ) IS NOT NULL
+    )
+    OR EXISTS (
+      SELECT 1
+      FROM glassesRecords qgr
+      INNER JOIN examinations qge ON qge.id = qgr.examinationId
+      WHERE qge.visitId = ${correlatedVisitId}
+        AND COALESCE(
+          NULLIF(TRIM(qgr.sOD), ''), NULLIF(TRIM(qgr.cOD), ''),
+          NULLIF(TRIM(qgr.axisOD), ''), NULLIF(TRIM(qgr.pdOD), ''),
+          NULLIF(TRIM(qgr.addOD), ''), NULLIF(TRIM(qgr.bcvaOD), ''),
+          NULLIF(TRIM(qgr.sOS), ''), NULLIF(TRIM(qgr.cOS), ''),
+          NULLIF(TRIM(qgr.axisOS), ''), NULLIF(TRIM(qgr.pdOS), ''),
+          NULLIF(TRIM(qgr.addOS), ''), NULLIF(TRIM(qgr.bcvaOS), '')
+        ) IS NOT NULL
+    )
+    OR EXISTS (
+      SELECT 1
+      FROM doctorReports qdr
+      WHERE qdr.visitId = ${correlatedVisitId}
+        AND COALESCE(
+          NULLIF(TRIM(qdr.diagnosis), ''),
+          NULLIF(TRIM(qdr.diseases), ''),
+          NULLIF(TRIM(qdr.treatment), ''),
+          NULLIF(TRIM(qdr.recommendations), ''),
+          NULLIF(TRIM(qdr.clinicalOpinion), ''),
+          NULLIF(TRIM(qdr.additionalNotes), '')
+        ) IS NOT NULL
+    )
+    OR EXISTS (
+      SELECT 1
+      FROM pentacamResults qpr
+      WHERE qpr.visitId = ${correlatedVisitId}
+        AND COALESCE(
+          NULLIF(TRIM(qpr.pachymetryOD), ''), NULLIF(TRIM(qpr.pachymetryOS), ''),
+          NULLIF(TRIM(qpr.k1OD), ''), NULLIF(TRIM(qpr.k2OD), ''),
+          NULLIF(TRIM(qpr.axisOD), ''), NULLIF(TRIM(qpr.thinnestPointOD), ''),
+          NULLIF(TRIM(qpr.apexOD), ''), NULLIF(TRIM(qpr.residualOD), ''),
+          NULLIF(TRIM(qpr.tttOD), ''), NULLIF(TRIM(qpr.ablationOD), ''),
+          NULLIF(TRIM(qpr.k1OS), ''), NULLIF(TRIM(qpr.k2OS), ''),
+          NULLIF(TRIM(qpr.axisOS), ''), NULLIF(TRIM(qpr.thinnestPointOS), ''),
+          NULLIF(TRIM(qpr.apexOS), ''), NULLIF(TRIM(qpr.residualOS), ''),
+          NULLIF(TRIM(qpr.tttOS), ''), NULLIF(TRIM(qpr.ablationOS), ''),
+          NULLIF(TRIM(qpr.keratometryOD), ''),
+          NULLIF(TRIM(qpr.keratometryOS), ''),
+          NULLIF(TRIM(qpr.notes), '')
+        ) IS NOT NULL
+    )
+    OR EXISTS (
+      SELECT 1
+      FROM prescriptions qp
+      WHERE qp.visitId = ${correlatedVisitId}
+        AND (
+          (
+            NULLIF(TRIM(qp.notes), '') IS NOT NULL
+            AND TRIM(qp.notes) <> 'Created from examination form'
+          )
+          OR EXISTS (
+            SELECT 1
+            FROM prescriptionItems qpi
+            WHERE qpi.prescriptionId = qp.id
+          )
+        )
+    )
+    OR EXISTS (
+      SELECT 1
+      FROM testRequests qtr
+      INNER JOIN testRequestItems qtri ON qtri.testRequestId = qtr.id
+      WHERE qtr.visitId = ${correlatedVisitId}
+    )
+  THEN 1 ELSE 0 END`;
 }
 
 function overviewSearchClause(search: string, columns: any[]) {
@@ -1396,9 +1656,22 @@ export async function updatePatient(patientId: number, updates: any) {
 }
 
 export async function deletePatient(patientId: number) {
-  throw new Error(
-    `Direct deletion of patient ${patientId} is disabled because it can orphan visits and medical records. Use MSSQL synchronization or the explicit delete-all-data workflow instead.`,
-  );
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await deletePatientWithAllData(patientId);
+  await db.delete(patients).where(eq(patients.id, patientId));
+}
+
+/**
+ * Delete every locally-synced service entry for a patient (does not touch MSSQL).
+ */
+export async function deleteAllPatientServiceEntries(patientId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db
+    .delete(patientServiceEntries)
+    .where(eq(patientServiceEntries.patientId, patientId));
+  return { deletedCount: Number((result as any)?.[0]?.affectedRows ?? 0) };
 }
 
 /**
@@ -3120,9 +3393,10 @@ export async function getAllVisits() {
       airPuffOS: examinations.airPuffOS,
     })
     .from(visits)
-    .innerJoin(examinations, eq(visits.id, examinations.visitId))
+    .leftJoin(examinations, eq(visits.id, examinations.visitId))
     .leftJoin(patients, eq(visits.patientId, patients.id))
-    .orderBy(desc(visits.visitDate));
+    .orderBy(desc(visits.visitDate))
+    .limit(500);
 
   return result;
 }
@@ -5413,6 +5687,18 @@ export async function createMedication(medicationData: any) {
   return result;
 }
 
+export async function createMedicationsBulk(medicationData: any[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  if (!medicationData.length) return;
+
+  for (let index = 0; index < medicationData.length; index += 250) {
+    await db
+      .insert(medications)
+      .values(medicationData.slice(index, index + 250));
+  }
+}
+
 export async function getAllMedications() {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -5551,6 +5837,22 @@ export async function getTestRequestsByVisit(visitId: number) {
     }),
   );
   return withItems;
+}
+
+export async function deleteTestRequestsByVisit(visitId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const rows = await db
+    .select({ id: testRequests.id })
+    .from(testRequests)
+    .where(eq(testRequests.visitId, visitId));
+  const ids = rows.map((row: { id: number }) => row.id);
+  if (ids.length > 0) {
+    await db
+      .delete(testRequestItems)
+      .where(inArray(testRequestItems.testRequestId, ids));
+  }
+  await db.delete(testRequests).where(eq(testRequests.visitId, visitId));
 }
 
 export async function getTestRequestsByPatient(patientId: number) {
@@ -5950,7 +6252,11 @@ export async function setUserPermissions(
 
 // ============ SHEET ENTRIES ============
 
-export async function getSheetEntry(patientId: number, sheetType: string) {
+export async function getSheetEntry(
+  patientId: number,
+  sheetType: string,
+  visitId?: number,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -5964,9 +6270,17 @@ export async function getSheetEntry(patientId: number, sheetType: string) {
       ),
     )
     .orderBy(desc(sheetEntries.updatedAt))
-    .limit(1);
+    .limit(100);
 
-  return rows.length > 0 ? rows[0].content : null;
+  if (!visitId) return rows.length > 0 ? rows[0].content : null;
+  const matching = rows.find((row: any) => {
+    try {
+      return Number(JSON.parse(row.content)?.visitId) === Number(visitId);
+    } catch {
+      return false;
+    }
+  });
+  return matching?.content ?? null;
 }
 
 export async function getSheet_Entries(patientId: number) {
@@ -5986,6 +6300,7 @@ export async function upsertSheetEntry(params: {
   patientId: number;
   sheetType: string;
   content: string;
+  visitId?: number;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -5999,14 +6314,26 @@ export async function upsertSheetEntry(params: {
         eq(sheetEntries.sheetType, params.sheetType as any),
       ),
     )
-    .limit(1);
+    .limit(100);
 
-  if (existing.length > 0) {
+  const matchingExisting = params.visitId
+    ? existing.find((row: any) => {
+        try {
+          return (
+            Number(JSON.parse(row.content)?.visitId) === Number(params.visitId)
+          );
+        } catch {
+          return false;
+        }
+      })
+    : existing[0];
+
+  if (matchingExisting) {
     await db
       .update(sheetEntries)
       .set({ content: params.content, updatedAt: new Date() })
-      .where(eq(sheetEntries.id, existing[0].id));
-    return { id: existing[0].id };
+      .where(eq(sheetEntries.id, matchingExisting.id));
+    return { id: matchingExisting.id };
   }
 
   const result = await db.insert(sheetEntries).values({
@@ -6015,6 +6342,49 @@ export async function upsertSheetEntry(params: {
     content: params.content,
   });
   return { id: (result as any).insertId };
+}
+
+export async function deleteSheetEntryForVisit(params: {
+  patientId: number;
+  sheetType: string;
+  visitId: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const rows = await db
+    .select()
+    .from(sheetEntries)
+    .where(
+      and(
+        eq(sheetEntries.patientId, params.patientId),
+        eq(sheetEntries.sheetType, params.sheetType as any),
+      ),
+    );
+  const matching = rows.find((row: any) => {
+    try {
+      return (
+        Number(JSON.parse(row.content)?.visitId) === Number(params.visitId)
+      );
+    } catch {
+      return false;
+    }
+  });
+  const legacy = rows.find((row: any) => {
+    try {
+      const storedVisitId = JSON.parse(row.content)?.visitId;
+      return (
+        storedVisitId === null ||
+        storedVisitId === undefined ||
+        storedVisitId === ""
+      );
+    } catch {
+      return true;
+    }
+  });
+  const target = matching ?? legacy;
+  if (!target) return { deleted: false };
+  await db.delete(sheetEntries).where(eq(sheetEntries.id, target.id));
+  return { deleted: true, deletedLegacy: !matching };
 }
 
 // ============ OPERATION LISTS ============
@@ -7721,11 +8091,16 @@ export async function getTodayVisitsByQueueStatus(
       movedToNextAt: visits.movedToNextAt,
       movedToClinicAt: visits.movedToClinicAt,
       treatedAt: visits.treatedAt,
+      treatedByUserId: visits.treatedByUserId,
+      treatedByName: users.name,
+      treatedByUsername: users.username,
+      hasQueueCompletionData: visitQueueCompletionEligibilitySql(visits.id),
       doctorName: doctorsLookup.name,
     })
     .from(visits)
     .innerJoin(patients, eq(visits.patientId, patients.id))
     .leftJoin(doctorsLookup, sql`${doctorsLookup.id} = ${patients.doctorId}`)
+    .leftJoin(users, eq(visits.treatedByUserId, users.id))
     .where(and(...whereClauses))
     .orderBy(visits.id)
     .limit(500);
@@ -8061,6 +8436,7 @@ export async function deleteAllPatients() {
 export async function updateVisitQueueStatus(
   visitId: number,
   queueStatus: string,
+  actorUserId?: number | null,
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -8076,6 +8452,7 @@ export async function updateVisitQueueStatus(
     timestampCol.movedToPentacamAt = sql`CURRENT_TIMESTAMP`;
   if (queueStatus === "treated") {
     timestampCol.treatedAt = sql`CURRENT_TIMESTAMP`;
+    timestampCol.treatedByUserId = actorUserId ?? null;
     const [current] = await db
       .select({ queueStatus: visits.queueStatus })
       .from(visits)
@@ -8090,6 +8467,26 @@ export async function updateVisitQueueStatus(
     .update(visits)
     .set({ queueStatus: queueStatus as any, ...timestampCol })
     .where(eq(visits.id, visitId));
+}
+
+export async function visitHasQueueCompletionData(visitId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const [row] = await db
+    .select({
+      queueStatus: visits.queueStatus,
+      eligible: visitQueueCompletionEligibilitySql(visits.id),
+    })
+    .from(visits)
+    .where(eq(visits.id, visitId))
+    .limit(1);
+
+  return (
+    ["clinic1", "clinic2", "pentacam"].includes(
+      String(row?.queueStatus ?? ""),
+    ) && Number(row?.eligible ?? 0) === 1
+  );
 }
 
 /** Revert a "treated" visit back to its status right before it was marked treated. */
@@ -8116,6 +8513,7 @@ export async function undoVisitTreated(visitId: number) {
     .set({
       queueStatus: restoreStatus as any,
       treatedAt: null,
+      treatedByUserId: null,
       preTreatedQueueStatus: null,
     })
     .where(eq(visits.id, visitId));

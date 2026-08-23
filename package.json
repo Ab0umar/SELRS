@@ -1,6 +1,6 @@
 {
   "name": "SELRS",
-  "version": "1.1.7",
+  "version": "1.1.16",
   "type": "module",
   "license": "MIT",
   "scripts": {
@@ -11,8 +11,8 @@
     "sync:year2024": "cross-env tsx server/integrations/syncYearPatients.ts 2024",
     "sync:year2025": "cross-env tsx server/integrations/syncYearPatients.ts 2025",
     "check:encoding": "node scripts/check-mojibake.mjs",
-    "build": "pnpm check:encoding && vite build && esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
-    "build:watch": "cross-env FAST_BUILD=1 vite build && esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+    "build": "pnpm check:encoding && vite build && node scripts/fix-legacy-media-queries.mjs && esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+    "build:watch": "cross-env FAST_BUILD=1 vite build && node scripts/fix-legacy-media-queries.mjs && esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "build:server:watch": "esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "dev:prod-watch": "node scripts/watch-build-start.mjs",

@@ -21,13 +21,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { Eye, Search, Save, Trash2, ChevronDown } from "lucide-react";
+import { Eye, Search, Save, Trash2, ChevronDown, Printer } from "lucide-react";
 import { toast } from "sonner";
 import RefractionValueSelect from "./RefractionValueSelect";
 import {
   SPHERE_OPTIONS,
   CYLINDER_OPTIONS,
   UCVA_BCVA_OPTIONS,
+  IOP_OPTIONS,
   ADD_OPTIONS,
 } from "@/lib/refractionOptions";
 import { cn } from "@/lib/utils";
@@ -46,7 +47,23 @@ interface MedicalFilePanelProps {
   patientHubViewOnlyHint?: string;
   /** ربط صريح بصفحة الزيارة (visit) عند المعرف في الرابط؛ يفضّل على مطابقة تاريخ الإنشاء لوحده */
   hubVisitId?: number;
+  /** تاب أولي اختياري عند فتحه من WorkflowPrototype */
+  initialMedicalTab?: "data" | "plan" | "images";
+  /** قسم القياسات الأولي داخل تاب البيانات */
+  initialMeasurementView?: string;
+  /** داخل الـWorkflow: القياسات والبيانات فقط بدون تبويبات الخطة والصور. */
+  workflowMeasurementsOnly?: boolean;
+  /** داخل الـWorkflow: الخطة العلاجية فقط بدون القياسات والصور. */
+  workflowPlanOnly?: boolean;
+  /** Restrict the measurements selector when the panel is embedded in a workflow stage. */
+  workflowMeasurementViews?: Array<(typeof MEASUREMENT_VIEWS)[number]["value"]>;
+  /** Show all allowed workflow measurement views together instead of using the selector. */
+  workflowStackMeasurementViews?: boolean;
+  /** Called only after the primary legacy-table save succeeds. */
+  onSaved?: () => void | Promise<void>;
+
   onHubVisitDateChange?: (isoDate: string) => void;
+  onHubVisitIdChange?: (visitId: number) => void;
 }
 
 const READY_TABS = [
@@ -64,13 +81,37 @@ const READY_TABS = [
 
 const TEST_READY_TABS = ["مياه بيضاء", "ليزك", "زراعة عدسات", "اخري"];
 
+const escapePrintText = (value: unknown) =>
+  String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+
+const printDirectly = (markup: string) => {
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.position = "fixed";
+  frame.style.width = "1px";
+  frame.style.height = "1px";
+  frame.style.right = "-10000px";
+  frame.style.bottom = "0";
+  frame.style.opacity = "0";
+  frame.srcdoc = markup;
+  frame.onload = () => {
+    window.setTimeout(() => frame.contentWindow?.print(), 30);
+  };
+  document.body.appendChild(frame);
+  window.setTimeout(() => frame.remove(), 60_000);
+};
+
 const getTestTemplateCategory = (name: string) => {
   for (const tab of TEST_READY_TABS) {
     if (name.includes(tab)) return tab;
   }
   return "اخري";
 };
-const MEDICAL_TABS = ["data", "plan", "images"];
+const MEDICAL_TABS = ["data", "plan", "images"] as const;
 const MEASUREMENT_VIEWS = [
   { value: "all", label: "الكل" },
   { value: "autoref", label: "AutoRef | IOP" },
@@ -128,15 +169,26 @@ export default function MedicalFilePanel({
   patientHubViewOnlyHint = "العرض فقط داخل المركز",
   hubVisitDate,
   hubVisitId,
+  initialMedicalTab = "data",
+  initialMeasurementView = "all",
+  workflowMeasurementsOnly = false,
+  workflowPlanOnly = false,
+  workflowMeasurementViews,
+  workflowStackMeasurementViews = false,
+  onSaved,
   onHubVisitDateChange,
+  onHubVisitIdChange,
 }: MedicalFilePanelProps) {
   const dismiss = onClose ?? (() => {});
   const { user } = useAuth();
   const isAdmin = String(user?.role ?? "").toLowerCase() === "admin";
   const hubRo = Boolean(patientHubReadOnly);
   const queryClient = useQueryClient();
-  const [activeMedicalTab, setActiveMedicalTab] = useState("data");
-  const [planEverActive, setPlanEverActive] = useState(false);
+  const [activeMedicalTab, setActiveMedicalTab] = useState(initialMedicalTab);
+
+  const [planEverActive, setPlanEverActive] = useState(
+    initialMedicalTab === "plan" || workflowPlanOnly,
+  );
   const [fundusOpen, setFundusOpen] = useState(false);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
@@ -242,7 +294,20 @@ export default function MedicalFilePanel({
   const [destinationTab, setDestinationTab] = useState<string | null>(null);
   const [shouldSaveAfterCreate, setShouldSaveAfterCreate] = useState(false);
   const [isFollowup, setIsFollowup] = useState(false);
-  const [autorefSectionTab, setAutorefSectionTab] = useState("all");
+  const [autorefSectionTab, setAutorefSectionTab] = useState(
+    initialMeasurementView,
+  );
+  const visibleMeasurementViews = workflowMeasurementViews?.length
+    ? MEASUREMENT_VIEWS.filter((option) =>
+        workflowMeasurementViews.includes(option.value),
+      )
+    : MEASUREMENT_VIEWS;
+  const showsMeasurementView = (
+    view: Exclude<(typeof MEASUREMENT_VIEWS)[number]["value"], "all">,
+  ) =>
+    workflowStackMeasurementViews
+      ? Boolean(workflowMeasurementViews?.includes(view))
+      : autorefSectionTab === "all" || autorefSectionTab === view;
 
   // Get patient data
   const patientQuery = trpc.patient.getPatient.useQuery(patientId, {
@@ -280,6 +345,7 @@ export default function MedicalFilePanel({
         setSelectedExaminationId((prev) =>
           prev === matchByVisit.id ? prev : matchByVisit.id,
         );
+        onHubVisitIdChange?.(Number(matchByVisit.visitId));
         return;
       }
     }
@@ -291,8 +357,12 @@ export default function MedicalFilePanel({
     });
     if (match?.id != null) {
       setSelectedExaminationId((prev) => (prev === match.id ? prev : match.id));
+      const matchedVisitId = Number(match.visitId);
+      if (Number.isFinite(matchedVisitId) && matchedVisitId > 0) {
+        onHubVisitIdChange?.(matchedVisitId);
+      }
     }
-  }, [embedded, hubVisitId, hubVisitDate, examinations]);
+  }, [embedded, hubVisitId, hubVisitDate, examinations, onHubVisitIdChange]);
 
   // Get the latest visit for this patient
   const patientVisit = (visitsQuery.data as any)?.find(
@@ -303,6 +373,16 @@ export default function MedicalFilePanel({
   const selectedExamination = examinations.find(
     (e: any) => e.id === selectedExaminationId,
   );
+  const handleSelectExamination = (examinationId: number) => {
+    setSelectedExaminationId(examinationId);
+    const examination = examinations.find(
+      (item: any) => Number(item.id) === Number(examinationId),
+    );
+    const nextVisitId = Number(examination?.visitId);
+    if (Number.isFinite(nextVisitId) && nextVisitId > 0) {
+      onHubVisitIdChange?.(nextVisitId);
+    }
+  };
 
   // Get pentacam results for the selected visit
   const pentacamQuery = trpc.medical.getPentacamResultsByVisit.useQuery(
@@ -550,16 +630,13 @@ export default function MedicalFilePanel({
             : [],
         ),
       );
-      if (Object.keys(prescriptionDetails).length > 0) {
-        setTreatmentDetailsByMedicationId(prescriptionDetails);
-      }
+      setTreatmentDetailsByMedicationId(prescriptionDetails);
 
       setFormData((prev: any) => {
         // Only override tests/treatment if we actually loaded data from the visit
         // Otherwise preserve what the user entered for a new exam
-        const finalTests = testIds.length > 0 ? testIds : prev.tests;
-        const finalTreatment =
-          prescriptionMedIds.length > 0 ? prescriptionMedIds : prev.treatment;
+        const finalTests = testIds;
+        const finalTreatment = prescriptionMedIds;
 
         return {
           ...prev,
@@ -606,10 +683,7 @@ export default function MedicalFilePanel({
             doctorReport?.clinicalOpinion ||
             "",
           diagnosis: doctorReport?.diagnosis || "",
-          recommendations:
-            doctorReport?.clinicalOpinion ||
-            doctorReport?.recommendations ||
-            "",
+          recommendations: doctorReport?.recommendations || "",
           diseases: diseases,
           tests: finalTests,
           treatment: finalTreatment,
@@ -693,8 +767,6 @@ export default function MedicalFilePanel({
         axisOS: fv2(formData.measurements?.autoref?.os?.axis),
         ucvaOD: fv2(formData.measurements?.autoref?.od?.ucva),
         ucvaOS: fv2(formData.measurements?.autoref?.os?.ucva),
-        bcvaOD: fv2(formData.measurements?.autoref?.od?.bcva),
-        bcvaOS: fv2(formData.measurements?.autoref?.os?.bcva),
         iopOD: fv2(formData.measurements?.iop?.od),
         iopOS: fv2(formData.measurements?.iop?.os),
         glassesData: JSON.stringify({
@@ -703,12 +775,14 @@ export default function MedicalFilePanel({
             c: fvs2(refractionTableData.od?.c),
             axis: fvs2(refractionTableData.od?.a),
             pd: fvs2(refractionTableData.od?.pd),
+            bcva: fvs2(formData.measurements?.autoref?.od?.bcva),
           },
           os: {
             s: fvs2(refractionTableData.os?.s),
             c: fvs2(refractionTableData.os?.c),
             axis: fvs2(refractionTableData.os?.a),
             pd: fvs2(refractionTableData.os?.pd),
+            bcva: fvs2(formData.measurements?.autoref?.os?.bcva),
           },
         }),
         radiologyLabsNotes: formData.radiologyLabsNotes || null,
@@ -733,8 +807,7 @@ export default function MedicalFilePanel({
               updateDoctorReportMutation.mutate({
                 reportId: doctorReport.id,
                 diagnosis: formData.diagnosis || "",
-                clinicalOpinion:
-                  formData.recommendations || formData.medicalHistory || "",
+                clinicalOpinion: formData.medicalHistory || "",
                 additionalNotes: formData.diseases
                   ? JSON.stringify(formData.diseases)
                   : "",
@@ -944,13 +1017,12 @@ export default function MedicalFilePanel({
 
   const updateVisitChiefComplaintMutation =
     trpc.medical.updateVisitChiefComplaint.useMutation();
-  const upsertMedicalHistoryMutation =
-    trpc.medical.upsertMedicalHistory.useMutation();
 
   // Mutation for updating examination
   const updateExaminationMutation = trpc.medical.updateExamination.useMutation({
     onSuccess: async () => {
       await autorefQuery.refetch();
+      await onSaved?.();
       toast.success("تم حفظ البيانات بنجاح");
       setIsSaving(false);
       if (!embedded) {
@@ -1017,6 +1089,16 @@ export default function MedicalFilePanel({
       toast.error(error.message || "خطأ في حفظ طلب الفحص");
     },
   });
+  const replaceTestRequestMutation =
+    trpc.medical.replaceTestRequest.useMutation({
+      onSuccess: async () => {
+        await visitTestRequestsQuery.refetch();
+        toast.success("تم تحديث طلب التحاليل والأشعة");
+      },
+      onError: (error: any) => {
+        toast.error(error.message || "خطأ في تحديث طلب التحاليل والأشعة");
+      },
+    });
 
   // Mutation for creating prescriptions with multiple items
   const createPrescriptionWithItemsMutation =
@@ -1032,6 +1114,16 @@ export default function MedicalFilePanel({
       onError: (error: any) => {
         console.error("Prescription create error:", error);
         toast.error(error.message || "خطأ في حفظ الوصفة الطبية");
+      },
+    });
+  const replacePrescriptionWithItemsMutation =
+    trpc.medical.replacePrescriptionWithItems.useMutation({
+      onSuccess: async () => {
+        await visitPrescriptionsQuery.refetch();
+        toast.success("تم تحديث الوصفة الطبية");
+      },
+      onError: (error: any) => {
+        toast.error(error.message || "خطأ في تحديث الوصفة الطبية");
       },
     });
 
@@ -1143,6 +1235,8 @@ export default function MedicalFilePanel({
         ]);
       }
 
+      await onSaved?.();
+
       setTimeout(() => {
         setIsSaving(false);
         if (!embedded) dismiss();
@@ -1224,6 +1318,16 @@ export default function MedicalFilePanel({
         bcva: formData.measurements?.autoref?.os?.bcva || "",
       },
     };
+    const autorefForSave = {
+      od: {
+        ...formData.measurements?.autoref?.od,
+        bcva: undefined,
+      },
+      os: {
+        ...formData.measurements?.autoref?.os,
+        bcva: undefined,
+      },
+    };
 
     // Create a new visit when there are no exams OR when exams exist but none is selected.
     if (examinations.length === 0 || !selectedExaminationId) {
@@ -1233,7 +1337,7 @@ export default function MedicalFilePanel({
         patientId: patientId,
         visitDate: visitDate,
         isFollowup: isFollowup,
-        autoref: stripDash(formData.measurements?.autoref),
+        autoref: stripDash(autorefForSave),
         iop: stripDash(formData.measurements?.iop),
         after: stripDash(formData.measurements?.after),
         glasses: glassesData,
@@ -1279,8 +1383,6 @@ export default function MedicalFilePanel({
       axisOS: fv(formData.measurements?.autoref?.os?.axis),
       ucvaOD: fv(formData.measurements?.autoref?.od?.ucva),
       ucvaOS: fv(formData.measurements?.autoref?.os?.ucva),
-      bcvaOD: fv(formData.measurements?.autoref?.od?.bcva),
-      bcvaOS: fv(formData.measurements?.autoref?.os?.bcva),
       iopOD: fv(formData.measurements?.iop?.od),
       iopOS: fv(formData.measurements?.iop?.os),
       glassesData: JSON.stringify({
@@ -1289,12 +1391,14 @@ export default function MedicalFilePanel({
           c: fvs(refractionTableData.od?.c),
           axis: fvs(refractionTableData.od?.a),
           pd: fvs(refractionTableData.od?.pd),
+          bcva: fvs(formData.measurements?.autoref?.od?.bcva),
         },
         os: {
           s: fvs(refractionTableData.os?.s),
           c: fvs(refractionTableData.os?.c),
           axis: fvs(refractionTableData.os?.a),
           pd: fvs(refractionTableData.os?.pd),
+          bcva: fvs(formData.measurements?.autoref?.os?.bcva),
         },
       }),
       posteriorSegmentOD: Object.values(formData.fundus?.od || {}).some(
@@ -1332,10 +1436,6 @@ export default function MedicalFilePanel({
               visitId,
               chiefComplaint: formData.medicalHistory,
             });
-            upsertMedicalHistoryMutation.mutate({
-              patientId,
-              medications: formData.medicalHistory,
-            });
           }
           console.log("Exam saved, now saving doctor report");
           const doctorReport = (doctorReportQuery.data as any)?.[0];
@@ -1347,13 +1447,11 @@ export default function MedicalFilePanel({
               {
                 reportId: doctorReport.id,
                 diagnosis: formData.diagnosis || "",
-                clinicalOpinion:
-                  formData.recommendations || formData.medicalHistory || "",
+                clinicalOpinion: formData.medicalHistory || "",
                 additionalNotes: formData.diseases
                   ? JSON.stringify(formData.diseases)
                   : "",
-                recommendations:
-                  formData.recommendations || formData.medicalHistory || "",
+                recommendations: formData.recommendations || "",
                 prescription: formData.treatment
                   ? JSON.stringify(formData.treatment)
                   : "",
@@ -1433,54 +1531,90 @@ export default function MedicalFilePanel({
             });
           }
 
-          // Save test requests if any selected
-          if (visitId && (formData.tests || []).length > 0) {
+          // Replace the visit test request, including clearing it when empty.
+          if (visitId) {
             const validTests = (formData.tests || []).filter(
               (id: any) => id !== undefined && id !== null,
             );
-            if (validTests.length > 0) {
-              console.log("Saving test requests:", validTests);
-              const testItems = validTests.map((testId: number) => ({
-                testId: testId,
-              }));
-              createTestRequestMutation.mutate({
-                patientId: patientId,
-                visitId: visitId,
-                items: testItems,
-              });
-            }
+            const testItems = validTests.map((testId: number) => ({ testId }));
+            await replaceTestRequestMutation.mutateAsync({
+              patientId,
+              visitId,
+              items: testItems,
+            });
           }
 
-          // Save prescriptions if any selected
-          if (visitId && (formData.treatment || []).length > 0) {
+          // Replace the visit prescription, including clearing it when no items remain.
+          if (visitId) {
             const validMeds = (formData.treatment || []).filter(
               (id: any) => id !== undefined && id !== null,
             );
-            if (validMeds.length > 0) {
-              console.log("Saving prescriptions:", validMeds);
-              const prescriptionItems = validMeds.map((medId: number) => {
-                const medication = medicationsQuery.data?.find(
-                  (m: any) => m.id === medId,
-                );
-                return {
-                  medicationId: medId,
-                  medicationName: medication?.name || `Med ${medId}`,
-                  ...(treatmentDetailsByMedicationId[medId] ?? {}),
-                };
-              });
+            const prescriptionItems = validMeds.map((medId: number) => {
+              const medication = medicationsQuery.data?.find(
+                (m: any) => m.id === medId,
+              );
+              return {
+                medicationId: medId,
+                medicationName: medication?.name || `Med ${medId}`,
+                ...(treatmentDetailsByMedicationId[medId] ?? {}),
+              };
+            });
 
-              await createPrescriptionWithItemsMutation.mutateAsync({
-                patientId: patientId,
-                visitId: visitId,
-                notes: "Prescribed from medical file panel",
-                items: prescriptionItems,
-              });
-            }
+            await replacePrescriptionWithItemsMutation.mutateAsync({
+              patientId: patientId,
+              visitId: visitId,
+              notes: "Prescribed from medical file panel",
+              items: prescriptionItems,
+            });
           }
 
           setIsSaving(false);
         },
       },
+    );
+  };
+
+  const printCurrentMedicalItems = (kind: "tests" | "treatment") => {
+    const isTests = kind === "tests";
+    const ids = isTests ? formData.tests || [] : formData.treatment || [];
+    const prescriptionItems = !isTests
+      ? ids
+          .map((id: number) => {
+            const item = medicationsQuery.data?.find(
+              (entry: any) => entry.id === id,
+            );
+            const details = treatmentDetailsByMedicationId[id];
+            const instructions = details
+              ? [
+                  details.dosage,
+                  details.frequency,
+                  details.duration,
+                  details.instructions,
+                ]
+                  .filter(Boolean)
+                  .join(" - ")
+              : "";
+            return `<div class="prescription-item"><div class="medication-name">${escapePrintText(item?.name || id)}</div>${instructions ? `<div class="medication-instructions">${escapePrintText(instructions)}</div>` : ""}</div>`;
+          })
+          .join("")
+      : "";
+    const testItems = isTests
+      ? ids
+          .map((id: number, index: number) => {
+            const item = testsQuery.data?.find((entry: any) => entry.id === id);
+            return `<div class="request-test-item"><b><span dir="ltr">${index + 1}.</span> ${escapePrintText(item?.name || id)}</b></div>`;
+          })
+          .join("")
+      : "";
+    const printableContent = isTests
+      ? testItems
+        ? `<div class="request-tests-list">${testItems}</div>`
+        : '<div class="empty">لا توجد عناصر مسجلة</div>'
+      : prescriptionItems
+        ? `<div class="prescription"><div class="rx-mark">RX :</div>${prescriptionItems}</div>`
+        : '<div class="empty">لا توجد عناصر مسجلة</div>';
+    printDirectly(
+      `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>${isTests ? "طلب تحاليل وأشعة" : "روشتة علاج"}</title><style>@page{size:A5;margin:0}*{box-sizing:border-box}body{width:132mm;margin:35mm auto 0;font-family:Arial,"Segoe UI",sans-serif;color:#111}.head{border-bottom:1px solid #17468f;padding-bottom:2.4mm;margin-bottom:3mm}.meta{display:grid;grid-template-columns:repeat(3,1fr);gap:2mm 5mm;font-size:9.5pt;line-height:1.25}.diagnosis{grid-column:1/-1;border-top:1px solid #d1d5db;padding-top:1.5mm;text-align:center}.request-tests-list{direction:ltr;text-align:left;margin-top:3mm;border:1px solid #e5e5e5;font-size:10pt;line-height:1.3}.request-test-item{padding:2.5mm 3.5mm;border-bottom:1px solid #e5e5e5;break-inside:avoid}.request-test-item:last-child{border-bottom:0}.prescription{margin-top:3mm;border:1px solid #e5e5e5;font-size:10pt;line-height:1.3}.rx-mark{direction:ltr;text-align:left;border-bottom:1px solid #e5e5e5;font-size:12pt;line-height:1.25;padding:2.5mm 2mm;font-weight:800}.prescription-item{display:block;min-height:11.3mm;padding:2.2mm 2mm;border-bottom:1px solid #e5e5e5;break-inside:avoid}.prescription-item:last-child{border-bottom:0}.medication-name{direction:ltr;text-align:left;font-size:9.8pt;line-height:1.25;font-weight:800;text-transform:uppercase}.medication-instructions{direction:rtl;text-align:right;margin-top:1mm;font-size:9pt;line-height:1.35;font-weight:700;white-space:pre-line}.empty{text-align:center;padding:8mm;color:#666}.sign{margin-top:12mm;border-top:1px solid #bbb;padding-top:3mm;font-size:9.5pt}</style></head><body><div class="head"><div class="meta"><div>الاسم: <b>${escapePrintText(patient?.fullName)}</b></div><div>الكود: <b>${escapePrintText(patient?.patientCode)}</b></div><div>التاريخ: <b>${escapePrintText(visitDate)}</b></div><div class="diagnosis">التشخيص: <b>${escapePrintText(formData.diagnosis)}</b></div></div></div>${printableContent}<div class="sign">توقيع الطبيب: ................................</div></body></html>`,
     );
   };
 
@@ -1581,7 +1715,7 @@ export default function MedicalFilePanel({
               <span className="text-muted-foreground">الفحص:</span>
               <Select
                 value={String(selectedExaminationId || "")}
-                onValueChange={(val) => setSelectedExaminationId(Number(val))}
+                onValueChange={(val) => handleSelectExamination(Number(val))}
               >
                 <SelectTrigger className="h-7 w-[160px] text-xs">
                   <SelectValue placeholder="اختر فحص" />
@@ -1619,30 +1753,32 @@ export default function MedicalFilePanel({
         </div>
 
         {/* Section toggle */}
-        <div className="flex gap-1 border-b border-border/40 px-4 py-2 flex-shrink-0">
-          {(["data", "plan", "images"] as const).map((sec) => (
-            <button
-              key={sec}
-              type="button"
-              onClick={() => {
-                setActiveMedicalTab(sec);
-                if (sec === "plan") setPlanEverActive(true);
-              }}
-              className={cn(
-                "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                activeMedicalTab === sec
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted text-muted-foreground",
-              )}
-            >
-              {sec === "data"
-                ? "القياسات والبيانات"
-                : sec === "plan"
-                  ? "الخطة العلاجية"
-                  : "صور التشخيص"}
-            </button>
-          ))}
-        </div>
+        {!workflowMeasurementsOnly && !workflowPlanOnly && (
+          <div className="flex gap-1 border-b border-border/40 px-4 py-2 flex-shrink-0">
+            {(["data", "plan", "images"] as const).map((sec) => (
+              <button
+                key={sec}
+                type="button"
+                onClick={() => {
+                  setActiveMedicalTab(sec);
+                  if (sec === "plan") setPlanEverActive(true);
+                }}
+                className={cn(
+                  "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                  activeMedicalTab === sec
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted text-muted-foreground",
+                )}
+              >
+                {sec === "data"
+                  ? "القياسات والبيانات"
+                  : sec === "plan"
+                    ? "الخطة العلاجية"
+                    : "صور التشخيص"}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Content */}
         <div
@@ -1655,7 +1791,7 @@ export default function MedicalFilePanel({
                 <span className="text-muted-foreground">تاريخ الزيارة</span>
                 <Select
                   value={String(selectedExaminationId || "")}
-                  onValueChange={(val) => setSelectedExaminationId(Number(val))}
+                  onValueChange={(val) => handleSelectExamination(Number(val))}
                 >
                   <SelectTrigger className="h-7 flex-1 text-xs max-w-[200px]">
                     <SelectValue placeholder="اختر زيارة" />
@@ -1671,85 +1807,132 @@ export default function MedicalFilePanel({
               </div>
             )}
 
-            <div className="flex items-center justify-end gap-2">
-              <span className="text-xs font-medium text-muted-foreground">
-                عرض القياسات
-              </span>
-              <Select
-                value={autorefSectionTab}
-                onValueChange={setAutorefSectionTab}
-              >
-                <SelectTrigger className="h-7 w-[180px] text-xs">
-                  <SelectValue placeholder="الكل" />
-                </SelectTrigger>
-                <SelectContent>
-                  {MEASUREMENT_VIEWS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {!workflowStackMeasurementViews ? (
+              <div className="flex items-center justify-end gap-2">
+                <span className="text-xs font-medium text-muted-foreground">
+                  عرض القياسات
+                </span>
+                <Select
+                  value={autorefSectionTab}
+                  onValueChange={setAutorefSectionTab}
+                >
+                  <SelectTrigger className="h-7 w-[180px] text-xs">
+                    <SelectValue placeholder="الكل" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {visibleMeasurementViews.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
 
             {/* AutoRef | IOP */}
-            {(autorefSectionTab === "all" ||
-              autorefSectionTab === "autoref") && (
+            {showsMeasurementView("autoref") && (
               <div>
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                   AutoRef | IOP
                 </h3>
-                <div className="flex items-center gap-2 mb-3" dir="ltr">
-                  <label className="font-medium min-w-[42px] text-xs">
-                    UCVA
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="OD"
-                    value={formData.measurements?.autoref?.od?.ucva || ""}
-                    onChange={(e) =>
-                      setFormData((prev: any) => ({
-                        ...prev,
-                        measurements: {
-                          ...prev.measurements,
-                          autoref: {
-                            ...prev.measurements?.autoref,
-                            od: {
-                              ...prev.measurements?.autoref?.od,
-                              ucva: e.target.value,
+                <div
+                  className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-2"
+                  dir="ltr"
+                >
+                  <div className="grid min-w-0 grid-cols-[42px_minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5">
+                    <label className="font-medium text-xs">UCVA</label>
+                    <RefractionValueSelect
+                      value={formData.measurements?.autoref?.od?.ucva || ""}
+                      onChange={(value) =>
+                        setFormData((prev: any) => ({
+                          ...prev,
+                          measurements: {
+                            ...prev.measurements,
+                            autoref: {
+                              ...prev.measurements?.autoref,
+                              od: {
+                                ...prev.measurements?.autoref?.od,
+                                ucva: value,
+                              },
                             },
                           },
-                        },
-                      }))
-                    }
-                    className="w-16 px-2 py-1 border rounded text-xs text-center"
-                  />
-                  <span className="text-muted-foreground">/</span>
-                  <input
-                    type="text"
-                    placeholder="OS"
-                    value={formData.measurements?.autoref?.os?.ucva || ""}
-                    onChange={(e) =>
-                      setFormData((prev: any) => ({
-                        ...prev,
-                        measurements: {
-                          ...prev.measurements,
-                          autoref: {
-                            ...prev.measurements?.autoref,
-                            os: {
-                              ...prev.measurements?.autoref?.os,
-                              ucva: e.target.value,
+                        }))
+                      }
+                      options={UCVA_BCVA_OPTIONS}
+                      placeholder="OD"
+                      triggerClassName="h-8 w-full min-w-0 text-sm text-center"
+                    />
+                    <span className="text-muted-foreground">/</span>
+                    <RefractionValueSelect
+                      value={formData.measurements?.autoref?.os?.ucva || ""}
+                      onChange={(value) =>
+                        setFormData((prev: any) => ({
+                          ...prev,
+                          measurements: {
+                            ...prev.measurements,
+                            autoref: {
+                              ...prev.measurements?.autoref,
+                              os: {
+                                ...prev.measurements?.autoref?.os,
+                                ucva: value,
+                              },
                             },
                           },
-                        },
-                      }))
-                    }
-                    className="w-16 px-2 py-1 border rounded text-xs text-center"
-                  />
+                        }))
+                      }
+                      options={UCVA_BCVA_OPTIONS}
+                      placeholder="OS"
+                      triggerClassName="h-8 w-full min-w-0 text-sm text-center"
+                    />
+                  </div>
+                  <div className="grid min-w-0 grid-cols-[42px_minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5">
+                    <label className="font-medium text-xs">IOP</label>
+                    <RefractionValueSelect
+                      value={formData.measurements?.iop?.od || ""}
+                      onChange={(value) =>
+                        setFormData((prev: any) => ({
+                          ...prev,
+                          measurements: {
+                            ...prev.measurements,
+                            iop: { ...prev.measurements?.iop, od: value },
+                          },
+                        }))
+                      }
+                      options={IOP_OPTIONS}
+                      placeholder="OD"
+                      triggerClassName="h-8 w-full min-w-0 text-sm text-center"
+                    />
+                    <span className="text-muted-foreground">/</span>
+                    <RefractionValueSelect
+                      value={formData.measurements?.iop?.os || ""}
+                      onChange={(value) =>
+                        setFormData((prev: any) => ({
+                          ...prev,
+                          measurements: {
+                            ...prev.measurements,
+                            iop: { ...prev.measurements?.iop, os: value },
+                          },
+                        }))
+                      }
+                      options={IOP_OPTIONS}
+                      placeholder="OS"
+                      triggerClassName="h-8 w-full min-w-0 text-sm text-center"
+                    />
+                  </div>
                 </div>
-                <div className="rounded-lg border overflow-hidden hidden md:block">
+                <div
+                  className={cn(
+                    "hidden overflow-hidden rounded-lg border md:block",
+                    workflowStackMeasurementViews && "mx-auto max-w-4xl",
+                  )}
+                >
                   <table
-                    className="w-full border-collapse text-center text-xs"
+                    className={cn(
+                      "w-full border-collapse text-center text-xs",
+                      workflowStackMeasurementViews &&
+                        "mx-auto max-w-4xl text-base [&_button]:!text-base [&_button_span]:!text-base [&_input]:!text-base [&_td]:!py-1 [&_td]:!text-base [&_th]:!py-1 [&_th]:!text-base",
+                    )}
                     dir="ltr"
                   >
                     <thead className="bg-muted/50">
@@ -1759,12 +1942,6 @@ export default function MedicalFilePanel({
                           className="border px-2 py-1.5 font-semibold text-[10px]"
                         >
                           Eye
-                        </th>
-                        <th
-                          scope="col"
-                          className="border px-2 py-1.5 font-semibold text-[10px]"
-                        >
-                          UCVA
                         </th>
                         <th
                           scope="col"
@@ -1784,12 +1961,6 @@ export default function MedicalFilePanel({
                         >
                           Axis
                         </th>
-                        <th
-                          scope="col"
-                          className="border px-2 py-1.5 font-semibold text-[10px]"
-                        >
-                          IOP
-                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1797,34 +1968,6 @@ export default function MedicalFilePanel({
                         <tr key={eye} className="hover:bg-muted/20">
                           <td className="border px-2 py-1.5 font-bold text-[10px]">
                             {eye === "od" ? "OD" : "OS"}
-                          </td>
-                          <td className="border px-1 py-1">
-                            <RefractionValueSelect
-                              value={
-                                formData.measurements?.autoref?.[
-                                  eye as "od" | "os"
-                                ]?.ucva || ""
-                              }
-                              onChange={(value) =>
-                                setFormData((prev: any) => ({
-                                  ...prev,
-                                  measurements: {
-                                    ...prev.measurements,
-                                    autoref: {
-                                      ...prev.measurements?.autoref,
-                                      [eye]: {
-                                        ...prev.measurements?.autoref?.[
-                                          eye as "od" | "os"
-                                        ],
-                                        ucva: value,
-                                      },
-                                    },
-                                  },
-                                }))
-                              }
-                              options={UCVA_BCVA_OPTIONS}
-                              triggerClassName="h-6 w-full text-[10px] text-center border-input"
-                            />
                           </td>
                           <td className="border px-1 py-1">
                             <RefractionValueSelect
@@ -1909,28 +2052,6 @@ export default function MedicalFilePanel({
                               className="h-6 w-full text-[10px] text-center border-input"
                             />
                           </td>
-                          <td className="border px-1 py-1">
-                            <Input
-                              value={
-                                formData.measurements?.iop?.[
-                                  eye as "od" | "os"
-                                ] || ""
-                              }
-                              onChange={(e) =>
-                                setFormData((prev: any) => ({
-                                  ...prev,
-                                  measurements: {
-                                    ...prev.measurements,
-                                    iop: {
-                                      ...prev.measurements?.iop,
-                                      [eye]: e.target.value,
-                                    },
-                                  },
-                                }))
-                              }
-                              className="h-6 w-full text-[10px] text-center border-input"
-                            />
-                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -1946,51 +2067,6 @@ export default function MedicalFilePanel({
                         {eye === "od" ? "OD" : "OS"}
                       </div>
                       <div className="grid grid-cols-2 gap-1.5 text-xs">
-                        <RefractionValueSelect
-                          value={
-                            formData.measurements?.autoref?.[eye as "od" | "os"]
-                              ?.ucva || ""
-                          }
-                          onChange={(value) =>
-                            setFormData((prev: any) => ({
-                              ...prev,
-                              measurements: {
-                                ...prev.measurements,
-                                autoref: {
-                                  ...prev.measurements?.autoref,
-                                  [eye]: {
-                                    ...prev.measurements?.autoref?.[
-                                      eye as "od" | "os"
-                                    ],
-                                    ucva: value,
-                                  },
-                                },
-                              },
-                            }))
-                          }
-                          options={UCVA_BCVA_OPTIONS}
-                          triggerClassName="h-8 w-full text-xs text-center border-input"
-                        />
-                        <Input
-                          value={
-                            formData.measurements?.iop?.[eye as "od" | "os"] ||
-                            ""
-                          }
-                          onChange={(e) =>
-                            setFormData((prev: any) => ({
-                              ...prev,
-                              measurements: {
-                                ...prev.measurements,
-                                iop: {
-                                  ...prev.measurements?.iop,
-                                  [eye]: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          className="h-8 text-xs text-center border-input"
-                          placeholder="IOP"
-                        />
                         <RefractionValueSelect
                           value={
                             formData.measurements?.autoref?.[eye as "od" | "os"]
@@ -2074,14 +2150,23 @@ export default function MedicalFilePanel({
             )}
 
             {/* After Refraction */}
-            {(autorefSectionTab === "all" || autorefSectionTab === "after") && (
+            {showsMeasurementView("after") && (
               <div>
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                   After Refraction
                 </h3>
-                <div className="rounded-lg border overflow-hidden hidden md:block">
+                <div
+                  className={cn(
+                    "hidden overflow-hidden rounded-lg border md:block",
+                    workflowStackMeasurementViews && "mx-auto max-w-4xl",
+                  )}
+                >
                   <table
-                    className="w-full border-collapse text-center text-xs"
+                    className={cn(
+                      "w-full border-collapse text-center text-xs",
+                      workflowStackMeasurementViews &&
+                        "mx-auto max-w-4xl text-base [&_button]:!text-base [&_button_span]:!text-base [&_input]:!text-base [&_td]:!py-1 [&_td]:!text-base [&_th]:!py-1 [&_th]:!text-base",
+                    )}
                     dir="ltr"
                   >
                     <thead className="bg-muted/50">
@@ -2299,8 +2384,7 @@ export default function MedicalFilePanel({
             )}
 
             {/* Glasses / Refraction */}
-            {(autorefSectionTab === "all" ||
-              autorefSectionTab === "refraction") && (
+            {showsMeasurementView("refraction") && (
               <div>
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                   Refraction
@@ -2353,9 +2437,18 @@ export default function MedicalFilePanel({
                     className="w-16 px-2 py-1 border rounded text-xs text-center"
                   />
                 </div>
-                <div className="rounded-lg border overflow-hidden hidden md:block">
+                <div
+                  className={cn(
+                    "hidden overflow-hidden rounded-lg border md:block",
+                    workflowStackMeasurementViews && "mx-auto max-w-4xl",
+                  )}
+                >
                   <table
-                    className="w-full border-collapse text-center text-xs"
+                    className={cn(
+                      "w-full border-collapse text-center text-xs",
+                      workflowStackMeasurementViews &&
+                        "mx-auto max-w-4xl text-base [&_button]:!text-base [&_button_span]:!text-base [&_input]:!text-base [&_td]:!py-1 [&_td]:!text-base [&_th]:!py-1 [&_th]:!text-base",
+                    )}
                     dir="ltr"
                   >
                     <thead className="bg-muted/50">
@@ -2614,8 +2707,7 @@ export default function MedicalFilePanel({
             )}
 
             {/* Pentacam */}
-            {(autorefSectionTab === "all" ||
-              autorefSectionTab === "pentacam") && (
+            {showsMeasurementView("pentacam") && (
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -2634,9 +2726,18 @@ export default function MedicalFilePanel({
                     <Eye className="h-3 w-3" /> عرض الصور
                   </Button>
                 </div>
-                <div className="rounded-lg border overflow-hidden hidden md:block">
+                <div
+                  className={cn(
+                    "hidden overflow-hidden rounded-lg border md:block",
+                    workflowStackMeasurementViews && "mx-auto max-w-4xl",
+                  )}
+                >
                   <table
-                    className="w-full border-collapse text-center text-xs"
+                    className={cn(
+                      "w-full border-collapse text-center text-xs",
+                      workflowStackMeasurementViews &&
+                        "mx-auto max-w-4xl text-base [&_button]:!text-base [&_button_span]:!text-base [&_input]:!text-base [&_td]:!py-1 [&_td]:!text-base [&_th]:!py-1 [&_th]:!text-base",
+                    )}
                     dir="ltr"
                   >
                     <thead className="bg-muted/50 text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -2751,8 +2852,7 @@ export default function MedicalFilePanel({
             )}
 
             {/* Fundus (collapsible) */}
-            {(autorefSectionTab === "all" ||
-              autorefSectionTab === "fundus") && (
+            {showsMeasurementView("fundus") && (
               <div>
                 <button
                   type="button"
@@ -2766,9 +2866,18 @@ export default function MedicalFilePanel({
                 </button>
                 {fundusOpen && (
                   <>
-                    <div className="rounded-lg border overflow-hidden hidden md:block">
+                    <div
+                      className={cn(
+                        "hidden overflow-hidden rounded-lg border md:block",
+                        workflowStackMeasurementViews && "mx-auto max-w-4xl",
+                      )}
+                    >
                       <table
-                        className="w-full border-collapse text-center text-xs"
+                        className={cn(
+                          "w-full border-collapse text-center text-xs",
+                          workflowStackMeasurementViews &&
+                            "mx-auto max-w-4xl text-base [&_button]:!text-base [&_button_span]:!text-base [&_input]:!text-base [&_td]:!py-1 [&_td]:!text-base [&_th]:!py-1 [&_th]:!text-base",
+                        )}
                         dir="ltr"
                       >
                         <thead className="bg-muted/50">
@@ -3035,139 +3144,151 @@ export default function MedicalFilePanel({
           </div>
 
           {planEverActive && (
-            <div className={activeMedicalTab !== "plan" ? "hidden" : undefined}>
+            <div
+              className={cn(
+                "text-base [&_h3]:!text-base [&_label]:!text-base [&_input]:!text-base [&_textarea]:!text-base [&_button]:!text-sm",
+                activeMedicalTab !== "plan" && "hidden",
+              )}
+            >
               {/* Patient profile */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-[10px] text-muted-foreground">
-                    الاسم
-                  </Label>
-                  <Input
-                    value={patient?.fullName ?? ""}
-                    disabled
-                    className="mt-0.5 text-xs h-8"
-                  />
+              {!workflowPlanOnly && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">
+                      الاسم
+                    </Label>
+                    <Input
+                      value={patient?.fullName ?? ""}
+                      disabled
+                      className="mt-0.5 text-xs h-8"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">
+                      السن
+                    </Label>
+                    <Input
+                      value={patient?.age ?? ""}
+                      disabled
+                      className="mt-0.5 text-xs h-8"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">
+                      تاريخ الفحص
+                    </Label>
+                    <DateInput
+                      value={examinationDate}
+                      disabled
+                      className="mt-0.5 text-xs h-8"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">
+                      تاريخ الزيارة
+                    </Label>
+                    <DateInput
+                      value={visitDate}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setVisitDate(v);
+                        onHubVisitDateChange?.(v);
+                      }}
+                      className="mt-0.5 text-xs h-8"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-[10px] text-muted-foreground">
-                    السن
-                  </Label>
-                  <Input
-                    value={patient?.age ?? ""}
-                    disabled
-                    className="mt-0.5 text-xs h-8"
-                  />
-                </div>
-                <div>
-                  <Label className="text-[10px] text-muted-foreground">
-                    تاريخ الفحص
-                  </Label>
-                  <DateInput
-                    value={examinationDate}
-                    disabled
-                    className="mt-0.5 text-xs h-8"
-                  />
-                </div>
-                <div>
-                  <Label className="text-[10px] text-muted-foreground">
-                    تاريخ الزيارة
-                  </Label>
-                  <DateInput
-                    value={visitDate}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setVisitDate(v);
-                      onHubVisitDateChange?.(v);
-                    }}
-                    className="mt-0.5 text-xs h-8"
-                  />
-                </div>
-              </div>
+              )}
 
-              {/* Complaint & Symptoms */}
-              <div>
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  الشكوى و الاعراض
-                </h3>
-                <Textarea
-                  value={formData.medicalHistory}
-                  onChange={(e) =>
-                    setFormData((prev: any) => ({
-                      ...prev,
-                      medicalHistory: e.target.value,
-                    }))
-                  }
-                  placeholder="اكتب الشكوى و الاعراض هنا..."
-                  className="text-sm"
-                  rows={3}
-                />
-                <div className="relative mt-2">
-                  <Search className="absolute right-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    placeholder="ابحث عن الأعراض..."
-                    value={symptomSearchText}
-                    onChange={(e) => setSymptomSearchText(e.target.value)}
-                    className="pr-8 text-xs h-8"
-                  />
-                </div>
-                {symptomSearchText && (
-                  <>
-                    {symptomsQuery.isLoading ? (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        جاري التحميل...
-                      </p>
-                    ) : symptomsQuery.isError ? (
-                      <p className="text-xs text-destructive mt-1">
-                        خطأ في تحميل الأعراض
-                      </p>
-                    ) : (
-                      <div className="space-y-1 max-h-[160px] overflow-y-auto border rounded-md p-1.5 mt-1">
-                        {(symptomsQuery.data ?? []).filter((symptom: any) =>
-                          symptom.name
-                            .toLowerCase()
-                            .includes(symptomSearchText.toLowerCase()),
-                        ).length === 0 ? (
-                          <p className="text-xs text-muted-foreground px-1.5">
-                            لا توجد نتائج
+              <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+                {/* Complaint & Symptoms */}
+                {!workflowPlanOnly && (
+                  <div className="flex flex-col rounded-md border border-border/60 p-3">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                      الشكوى و الاعراض
+                    </h3>
+                    <Textarea
+                      value={formData.medicalHistory}
+                      onChange={(e) =>
+                        setFormData((prev: any) => ({
+                          ...prev,
+                          medicalHistory: e.target.value,
+                        }))
+                      }
+                      placeholder="اكتب الشكوى و الاعراض هنا..."
+                      className="order-3 min-h-[120px] text-sm"
+                      rows={5}
+                    />
+                    <div className="relative order-1 mb-2 ml-auto w-full md:w-80">
+                      <Search className="absolute right-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        placeholder="ابحث عن الأعراض..."
+                        value={symptomSearchText}
+                        onChange={(e) => setSymptomSearchText(e.target.value)}
+                        className="h-10 pr-8 text-xs"
+                      />
+                    </div>
+                    {symptomSearchText && (
+                      <>
+                        {symptomsQuery.isLoading ? (
+                          <p className="order-2 text-xs text-muted-foreground mt-1">
+                            جاري التحميل...
+                          </p>
+                        ) : symptomsQuery.isError ? (
+                          <p className="order-2 text-xs text-destructive mt-1">
+                            خطأ في تحميل الأعراض
                           </p>
                         ) : (
-                          (symptomsQuery.data ?? [])
-                            .filter((symptom: any) =>
+                          <div className="order-2 space-y-1 max-h-[160px] overflow-y-auto border rounded-md p-1.5 mt-1">
+                            {(symptomsQuery.data ?? []).filter((symptom: any) =>
                               symptom.name
                                 .toLowerCase()
                                 .includes(symptomSearchText.toLowerCase()),
-                            )
-                            .map((symptom: any) => (
-                              <button
-                                type="button"
-                                key={symptom.id}
-                                className="block w-full rounded px-1.5 py-1 text-left text-xs hover:bg-muted/50"
-                                onClick={() => {
-                                  setFormData((prev: any) => ({
-                                    ...prev,
-                                    medicalHistory: prev.medicalHistory
-                                      ? `${prev.medicalHistory}, ${symptom.name}`
-                                      : symptom.name,
-                                  }));
-                                  setSymptomSearchText("");
-                                }}
-                              >
-                                {symptom.name}
-                              </button>
-                            ))
+                            ).length === 0 ? (
+                              <p className="text-xs text-muted-foreground px-1.5">
+                                لا توجد نتائج
+                              </p>
+                            ) : (
+                              (symptomsQuery.data ?? [])
+                                .filter((symptom: any) =>
+                                  symptom.name
+                                    .toLowerCase()
+                                    .includes(symptomSearchText.toLowerCase()),
+                                )
+                                .map((symptom: any) => (
+                                  <button
+                                    type="button"
+                                    key={symptom.id}
+                                    className="block w-full rounded px-1.5 py-1 text-left text-xs hover:bg-muted/50"
+                                    onClick={() => {
+                                      setFormData((prev: any) => ({
+                                        ...prev,
+                                        medicalHistory: prev.medicalHistory
+                                          ? `${prev.medicalHistory}, ${symptom.name}`
+                                          : symptom.name,
+                                      }));
+                                      setSymptomSearchText("");
+                                    }}
+                                  >
+                                    {symptom.name}
+                                  </button>
+                                ))
+                            )}
+                          </div>
                         )}
-                      </div>
+                      </>
                     )}
-                  </>
+                  </div>
                 )}
-              </div>
 
-              {/* Diagnosis + Diseases */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-xs font-medium mb-1.5 block">
-                    التشخيص
-                  </Label>
+                {/* Diagnosis + Diseases */}
+                <div
+                  className="flex flex-col rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] px-3 pb-3 pt-0 text-left text-[#1f2937]"
+                  dir="ltr"
+                >
+                  <p className="mb-2 !text-[13px] font-bold text-[#003d9b]">
+                    Diagnosis:
+                  </p>
                   <Textarea
                     value={formData.diagnosis}
                     onChange={(e) =>
@@ -3176,51 +3297,17 @@ export default function MedicalFilePanel({
                         diagnosis: e.target.value,
                       }))
                     }
-                    placeholder="أدخل تفاصيل التشخيص..."
-                    className="text-sm min-h-[120px]"
-                    rows={5}
+                    placeholder="اكتب التشخيص يدويًا أو ابحث بالأسفل..."
+                    className="min-h-[48px] w-full rounded-md border-[#c3c6d6] bg-white px-2 py-1 !text-[12px] print:placeholder-transparent"
+                    rows={2}
                   />
-                </div>
-                <div className="space-y-3">
-                  <Label className="text-xs font-medium block">الأمراض</Label>
-                  {(formData.diseases || []).length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {(formData.diseases || []).map((diseaseId: any) => {
-                        const disease = diseasesQuery.data?.find(
-                          (d: any) => d.id === diseaseId,
-                        );
-                        return disease ? (
-                          <span
-                            key={diseaseId}
-                            className="inline-flex items-center gap-1 rounded-md bg-primary text-primary-foreground"
-                          >
-                            {disease.name}
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setFormData((prev: any) => ({
-                                  ...prev,
-                                  diseases: (prev.diseases || []).filter(
-                                    (d: any) => d !== diseaseId,
-                                  ),
-                                }))
-                              }
-                              className="hover:text-destructive"
-                            >
-                              ×
-                            </button>
-                          </span>
-                        ) : null;
-                      })}
-                    </div>
-                  )}
-                  <div className="relative">
-                    <Search className="absolute right-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+                  <div className="relative mt-2 w-full">
+                    <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      placeholder="ابحث عن الأمراض..."
+                      placeholder="ابحث عن التشخيص..."
                       value={diseaseSearchText}
                       onChange={(e) => setDiseaseSearchText(e.target.value)}
-                      className="pr-8 text-xs h-8"
+                      className="h-8 w-full rounded-md border-[#c3c6d6] bg-white pl-7 pr-2 !text-[12px]"
                     />
                   </div>
                   {diseaseSearchText && (
@@ -3234,7 +3321,7 @@ export default function MedicalFilePanel({
                           خطأ في تحميل الأمراض
                         </p>
                       ) : (
-                        <div className="space-y-1 max-h-[160px] overflow-y-auto border rounded-md p-1.5">
+                        <div className="mb-2 max-h-[160px] space-y-1 overflow-y-auto rounded-md border p-1.5">
                           {(diseasesQuery.data ?? []).filter((disease: any) =>
                             disease.name
                               .toLowerCase()
@@ -3251,34 +3338,30 @@ export default function MedicalFilePanel({
                                   .includes(diseaseSearchText.toLowerCase()),
                               )
                               .map((disease: any) => (
-                                <label
+                                <button
+                                  type="button"
                                   key={disease.id}
-                                  className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/50 cursor-pointer text-xs"
+                                  className="block w-full rounded px-1.5 py-1 text-left text-xs hover:bg-muted/50"
+                                  onClick={() => {
+                                    setFormData((prev: any) => ({
+                                      ...prev,
+                                      diagnosis: prev.diagnosis
+                                        ? `${prev.diagnosis}, ${disease.name}`
+                                        : disease.name,
+                                      diseases: (prev.diseases || []).includes(
+                                        disease.id,
+                                      )
+                                        ? prev.diseases
+                                        : [
+                                            ...(prev.diseases || []),
+                                            disease.id,
+                                          ],
+                                    }));
+                                    setDiseaseSearchText("");
+                                  }}
                                 >
-                                  <Checkbox
-                                    id={`disease-${disease.id}`}
-                                    checked={(formData.diseases || []).includes(
-                                      disease.id,
-                                    )}
-                                    onCheckedChange={() => {
-                                      setFormData((prev: any) => {
-                                        const diseases = prev.diseases || [];
-                                        if (diseases.includes(disease.id))
-                                          return {
-                                            ...prev,
-                                            diseases: diseases.filter(
-                                              (d: any) => d !== disease.id,
-                                            ),
-                                          };
-                                        return {
-                                          ...prev,
-                                          diseases: [...diseases, disease.id],
-                                        };
-                                      });
-                                    }}
-                                  />
-                                  <span className="flex-1">{disease.name}</span>
-                                </label>
+                                  {disease.name}
+                                </button>
                               ))
                           )}
                         </div>
@@ -3286,336 +3369,414 @@ export default function MedicalFilePanel({
                     </>
                   )}
                 </div>
+                {workflowPlanOnly && (
+                  <div
+                    className="flex flex-col rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] px-3 pb-3 pt-0 text-left text-[#1f2937]"
+                    dir="ltr"
+                  >
+                    <p className="mb-2 !text-[13px] font-bold text-[#003d9b]">
+                      Recommendations:
+                    </p>
+                    <Textarea
+                      value={formData.recommendations}
+                      onChange={(e) =>
+                        setFormData((prev: any) => ({
+                          ...prev,
+                          recommendations: e.target.value,
+                        }))
+                      }
+                      placeholder="اكتب التوصيات هنا..."
+                      className="min-h-[48px] w-full flex-1 rounded-md border-[#c3c6d6] bg-white px-2 py-1 !text-[12px] print:placeholder-transparent"
+                      rows={2}
+                    />
+                  </div>
+                )}
               </div>
 
-              {/* Recommendations */}
-              <div>
-                <Label className="text-xs font-medium mb-1.5 block">
-                  التوصيات
-                </Label>
-                <Textarea
-                  value={formData.recommendations}
-                  onChange={(e) =>
-                    setFormData((prev: any) => ({
-                      ...prev,
-                      recommendations: e.target.value,
-                    }))
-                  }
-                  placeholder="أدخل التوصيات..."
-                  className="text-sm"
-                  rows={3}
-                />
-              </div>
-
-              {/* Investigations */}
-              <div>
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  التحاليل و الأشعة
-                </h3>
-                <div className="relative mb-2">
-                  <Search className="absolute right-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    placeholder="ابحث عن الفحوصات..."
-                    value={testSearchText}
-                    onChange={(e) => setTestSearchText(e.target.value)}
-                    className="pr-8 text-xs h-8"
-                  />
-                </div>
-                {testSearchText && (
-                  <>
-                    {testsQuery.isLoading ? (
-                      <p className="text-xs text-muted-foreground">
-                        جاري التحميل...
-                      </p>
-                    ) : testsQuery.isError ? (
-                      <p className="text-xs text-destructive">
-                        خطأ في تحميل الفحوصات
-                      </p>
-                    ) : (
-                      <div className="space-y-1 max-h-[160px] overflow-y-auto border rounded-md p-1.5">
-                        {(testsQuery.data ?? []).filter((test: any) =>
-                          test.name
-                            .toLowerCase()
-                            .includes(testSearchText.toLowerCase()),
-                        ).length === 0 ? (
-                          <p className="text-xs text-muted-foreground px-1.5">
-                            لا توجد نتائج
+              {!workflowPlanOnly && (
+                <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+                  {/* Investigations */}
+                  <div className="flex flex-col rounded-md border border-border/60 p-3">
+                    <div className="order-0 mb-2 flex items-center justify-between gap-2">
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        التحاليل و الأشعة
+                      </h3>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 gap-1.5 text-xs"
+                        onClick={() => printCurrentMedicalItems("tests")}
+                      >
+                        <Printer className="h-3.5 w-3.5" />
+                        طباعة
+                      </Button>
+                    </div>
+                    <div className="relative order-2 mb-2 ml-auto w-full md:w-80">
+                      <Search className="absolute right-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        placeholder="ابحث عن الفحوصات..."
+                        value={testSearchText}
+                        onChange={(e) => setTestSearchText(e.target.value)}
+                        className="h-10 pr-8 text-xs"
+                      />
+                    </div>
+                    {testSearchText && (
+                      <>
+                        {testsQuery.isLoading ? (
+                          <p className="order-3 text-xs text-muted-foreground">
+                            جاري التحميل...
+                          </p>
+                        ) : testsQuery.isError ? (
+                          <p className="order-3 text-xs text-destructive">
+                            خطأ في تحميل الفحوصات
                           </p>
                         ) : (
-                          (testsQuery.data ?? [])
-                            .filter((test: any) =>
+                          <div className="order-3 space-y-1 max-h-[160px] overflow-y-auto border rounded-md p-1.5">
+                            {(testsQuery.data ?? []).filter((test: any) =>
                               test.name
                                 .toLowerCase()
                                 .includes(testSearchText.toLowerCase()),
-                            )
-                            .map((test: any) => (
-                              <label
-                                key={test.id}
-                                className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/50 cursor-pointer text-xs"
-                              >
-                                <Checkbox
-                                  id={`test-${test.id}`}
-                                  checked={(formData.tests || []).includes(
-                                    test.id,
-                                  )}
-                                  onCheckedChange={() =>
-                                    toggleCheckbox("tests", test.id)
-                                  }
-                                />
-                                <span className="flex-1">{test.name}</span>
-                              </label>
-                            ))
-                        )}
-                      </div>
-                    )}
-                  </>
-                )}
-                {(formData.tests || []).length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {(formData.tests || []).map((testId: number) => {
-                      const test = testsQuery.data?.find(
-                        (t: any) => t.id === testId,
-                      );
-                      return (
-                        <span
-                          key={testId}
-                          className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[10px]"
-                        >
-                          {test?.name || `Test ${testId}`}
-                          <button
-                            type="button"
-                            onClick={() => toggleCheckbox("tests", testId)}
-                            className="text-muted-foreground hover:text-destructive"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-                {testRequestsQuery.data &&
-                  Object.keys(testRequestsQuery.data).length > 0 && (
-                    <div className="mt-2">
-                      <span className="text-[10px] text-muted-foreground">
-                        قوالب:
-                      </span>
-                      <div className="flex flex-wrap gap-1.5 items-center">
-                        {TEST_READY_TABS.map((tab) => {
-                          const templatesInTab = Object.entries(
-                            testRequestsQuery.data || {},
-                          ).filter(
-                            ([templateId, template]: [string, any]) =>
-                              getTestTemplateCategory(
-                                template.name || templateId,
-                              ) === tab,
-                          );
-                          if (templatesInTab.length === 0) return null;
-                          return (
-                            <DropdownMenu key={tab}>
-                              <DropdownMenuTrigger asChild>
-                                <button
-                                  type="button"
-                                  className="rounded-md border border-input bg-transparent px-2.5 py-1 text-[10px] hover:bg-muted/60 transition-colors flex items-center gap-1 font-medium text-[#1e3a66]"
-                                >
-                                  <span>{tab}</span>
-                                  <ChevronDown className="h-3 w-3 opacity-70" />
-                                </button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent
-                                align="start"
-                                className="max-h-[300px] overflow-y-auto min-w-[160px]"
-                              >
-                                {templatesInTab.map(
-                                  ([templateId, template]: [string, any]) => (
-                                    <DropdownMenuItem
-                                      key={templateId}
-                                      className="text-right text-xs cursor-pointer hover:bg-muted/50 pr-4 py-2"
-                                      onClick={() => {
-                                        setSelectedTestRequestId(templateId);
-                                      }}
-                                    >
-                                      {getTemplateDisplayName(
-                                        templateId,
-                                        template.name || templateId,
-                                        testRequestsQuery.data,
+                            ).length === 0 ? (
+                              <p className="text-xs text-muted-foreground px-1.5">
+                                لا توجد نتائج
+                              </p>
+                            ) : (
+                              (testsQuery.data ?? [])
+                                .filter((test: any) =>
+                                  test.name
+                                    .toLowerCase()
+                                    .includes(testSearchText.toLowerCase()),
+                                )
+                                .map((test: any) => (
+                                  <label
+                                    key={test.id}
+                                    className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/50 cursor-pointer text-xs"
+                                  >
+                                    <Checkbox
+                                      id={`test-${test.id}`}
+                                      checked={(formData.tests || []).includes(
+                                        test.id,
                                       )}
-                                    </DropdownMenuItem>
-                                  ),
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                                      onCheckedChange={() =>
+                                        toggleCheckbox("tests", test.id)
+                                      }
+                                    />
+                                    <span className="flex-1">{test.name}</span>
+                                  </label>
+                                ))
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {(formData.tests || []).length > 0 && (
+                      <div className="order-4 mt-2 flex flex-wrap gap-1.5">
+                        {(formData.tests || []).map((testId: number) => {
+                          const test = testsQuery.data?.find(
+                            (t: any) => t.id === testId,
+                          );
+                          return (
+                            <span
+                              key={testId}
+                              className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[10px]"
+                            >
+                              {test?.name || `Test ${testId}`}
+                              <button
+                                type="button"
+                                onClick={() => toggleCheckbox("tests", testId)}
+                                className="text-muted-foreground hover:text-destructive"
+                              >
+                                ×
+                              </button>
+                            </span>
                           );
                         })}
                       </div>
-                    </div>
-                  )}
-              </div>
+                    )}
+                    {testRequestsQuery.data &&
+                      Object.keys(testRequestsQuery.data).length > 0 && (
+                        <div className="order-1 mb-2">
+                          <span className="text-[10px] text-muted-foreground">
+                            قوالب:
+                          </span>
+                          <div className="flex flex-wrap gap-1.5 items-center">
+                            {TEST_READY_TABS.map((tab) => {
+                              const templatesInTab = Object.entries(
+                                testRequestsQuery.data || {},
+                              ).filter(
+                                ([templateId, template]: [string, any]) =>
+                                  getTestTemplateCategory(
+                                    template.name || templateId,
+                                  ) === tab,
+                              );
+                              if (templatesInTab.length === 0) return null;
+                              return (
+                                <DropdownMenu key={tab}>
+                                  <DropdownMenuTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="rounded-md border border-input bg-transparent px-2.5 py-1 text-[10px] hover:bg-muted/60 transition-colors flex items-center gap-1 font-medium text-[#1e3a66]"
+                                    >
+                                      <span>{tab}</span>
+                                      <ChevronDown className="h-3 w-3 opacity-70" />
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent
+                                    align="start"
+                                    className="max-h-[300px] overflow-y-auto min-w-[160px]"
+                                  >
+                                    {templatesInTab.map(
+                                      ([templateId, template]: [
+                                        string,
+                                        any,
+                                      ]) => (
+                                        <DropdownMenuItem
+                                          key={templateId}
+                                          className="text-right text-xs cursor-pointer hover:bg-muted/50 pr-4 py-2"
+                                          onClick={() => {
+                                            setSelectedTestRequestId(
+                                              templateId,
+                                            );
+                                          }}
+                                        >
+                                          {getTemplateDisplayName(
+                                            templateId,
+                                            template.name || templateId,
+                                            testRequestsQuery.data,
+                                          )}
+                                        </DropdownMenuItem>
+                                      ),
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                  </div>
 
-              {/* Treatment / Medications */}
-              <div>
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  العلاج
-                </h3>
-                <div className="relative mb-2">
-                  <Search className="absolute right-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    placeholder="ابحث عن الأدوية..."
-                    value={medicationSearchText}
-                    onChange={(e) => setMedicationSearchText(e.target.value)}
-                    className="pr-8 text-xs h-8"
-                  />
-                </div>
-                {medicationSearchText && (
-                  <>
-                    {medicationsQuery.isLoading ? (
-                      <p className="text-xs text-muted-foreground">
-                        جاري التحميل...
-                      </p>
-                    ) : medicationsQuery.isError ? (
-                      <p className="text-xs text-destructive">
-                        خطأ في تحميل العلاجات
-                      </p>
-                    ) : (
-                      <div className="space-y-1 max-h-[160px] overflow-y-auto border rounded-md p-1.5">
-                        {(medicationsQuery.data ?? []).filter((med: any) =>
-                          med.name
-                            .toLowerCase()
-                            .includes(medicationSearchText.toLowerCase()),
-                        ).length === 0 ? (
-                          <p className="text-xs text-muted-foreground px-1.5">
-                            لا توجد نتائج
+                  {/* Treatment / Medications */}
+                  <div className="flex flex-col rounded-md border border-border/60 p-3">
+                    <div className="order-0 mb-2 flex items-center justify-between gap-2">
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        العلاج
+                      </h3>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 gap-1.5 text-xs"
+                        onClick={() => printCurrentMedicalItems("treatment")}
+                      >
+                        <Printer className="h-3.5 w-3.5" />
+                        طباعة
+                      </Button>
+                    </div>
+                    <div className="relative order-2 mb-2 ml-auto w-full md:w-80">
+                      <Search className="absolute right-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        placeholder="ابحث عن الأدوية..."
+                        value={medicationSearchText}
+                        onChange={(e) =>
+                          setMedicationSearchText(e.target.value)
+                        }
+                        className="h-10 pr-8 text-xs"
+                      />
+                    </div>
+                    {medicationSearchText && (
+                      <>
+                        {medicationsQuery.isLoading ? (
+                          <p className="order-3 text-xs text-muted-foreground">
+                            جاري التحميل...
+                          </p>
+                        ) : medicationsQuery.isError ? (
+                          <p className="order-3 text-xs text-destructive">
+                            خطأ في تحميل العلاجات
                           </p>
                         ) : (
-                          (medicationsQuery.data ?? [])
-                            .filter((med: any) =>
+                          <div className="order-3 space-y-1 max-h-[160px] overflow-y-auto border rounded-md p-1.5">
+                            {(medicationsQuery.data ?? []).filter((med: any) =>
                               med.name
                                 .toLowerCase()
                                 .includes(medicationSearchText.toLowerCase()),
-                            )
-                            .map((med: any) => (
-                              <label
-                                key={med.id}
-                                className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/50 cursor-pointer text-xs"
-                              >
-                                <Checkbox
-                                  id={`med-${med.id}`}
-                                  checked={(formData.treatment || []).includes(
-                                    med.id,
-                                  )}
-                                  onCheckedChange={() =>
-                                    toggleCheckbox("treatment", med.id)
-                                  }
-                                />
-                                <span className="flex-1">{med.name}</span>
-                              </label>
-                            ))
-                        )}
-                      </div>
-                    )}
-                  </>
-                )}
-                {(formData.treatment || []).length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {(formData.treatment || []).map((medId: number) => {
-                      const medication = medicationsQuery.data?.find(
-                        (m: any) => m.id === medId,
-                      );
-                      const details = treatmentDetailsByMedicationId[medId];
-                      const detailsText = [
-                        details?.dosage,
-                        details?.frequency,
-                        details?.duration,
-                        details?.instructions,
-                      ]
-                        .filter(Boolean)
-                        .join(" • ");
-                      return (
-                        <span
-                          key={medId}
-                          className="inline-flex max-w-full items-start gap-1 rounded-md bg-primary/8 px-2 py-1 text-[10px]"
-                        >
-                          <span className="min-w-0">
-                            <span className="block font-medium">
-                              {medication?.name || `Med ${medId}`}
-                            </span>
-                            {detailsText && (
-                              <span className="mt-0.5 block whitespace-pre-wrap text-muted-foreground">
-                                {detailsText}
-                              </span>
+                            ).length === 0 ? (
+                              <p className="text-xs text-muted-foreground px-1.5">
+                                لا توجد نتائج
+                              </p>
+                            ) : (
+                              (medicationsQuery.data ?? [])
+                                .filter((med: any) =>
+                                  med.name
+                                    .toLowerCase()
+                                    .includes(
+                                      medicationSearchText.toLowerCase(),
+                                    ),
+                                )
+                                .map((med: any) => (
+                                  <label
+                                    key={med.id}
+                                    className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/50 cursor-pointer text-xs"
+                                  >
+                                    <Checkbox
+                                      id={`med-${med.id}`}
+                                      checked={(
+                                        formData.treatment || []
+                                      ).includes(med.id)}
+                                      onCheckedChange={() =>
+                                        toggleCheckbox("treatment", med.id)
+                                      }
+                                    />
+                                    <span className="flex-1">{med.name}</span>
+                                  </label>
+                                ))
                             )}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => toggleCheckbox("treatment", medId)}
-                            className="text-muted-foreground hover:text-destructive"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-                {prescriptionsQuery.data &&
-                  Object.keys(prescriptionsQuery.data).length > 0 && (
-                    <div className="mt-2">
-                      <span className="text-[10px] text-muted-foreground">
-                        وصفات جاهزة:
-                      </span>
-                      <div className="flex flex-wrap gap-1.5 items-center">
-                        {READY_TABS.map((tab) => {
-                          const templatesInTab = Object.entries(
-                            prescriptionsQuery.data || {},
-                          ).filter(
-                            ([templateId, template]: [string, any]) =>
-                              getTemplateCategory(
-                                template.name || templateId,
-                              ) === tab,
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {(formData.treatment || []).length > 0 && (
+                      <div className="order-4 mt-2 flex flex-wrap gap-1.5">
+                        {(formData.treatment || []).map((medId: number) => {
+                          const medication = medicationsQuery.data?.find(
+                            (m: any) => m.id === medId,
                           );
-                          if (templatesInTab.length === 0) return null;
+                          const details = treatmentDetailsByMedicationId[medId];
+                          const detailsText = [
+                            details?.dosage,
+                            details?.frequency,
+                            details?.duration,
+                            details?.instructions,
+                          ]
+                            .filter(Boolean)
+                            .join(" • ");
                           return (
-                            <DropdownMenu key={tab}>
-                              <DropdownMenuTrigger asChild>
-                                <button
-                                  type="button"
-                                  className="rounded-md border border-input bg-transparent px-2.5 py-1 text-[10px] hover:bg-muted/60 transition-colors flex items-center gap-1 font-medium text-[#1e3a66]"
-                                >
-                                  <span>{tab}</span>
-                                  <ChevronDown className="h-3 w-3 opacity-70" />
-                                </button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent
-                                align="start"
-                                className="max-h-[300px] overflow-y-auto min-w-[160px]"
-                              >
-                                {templatesInTab.map(
-                                  ([templateId, template]: [string, any]) => (
-                                    <DropdownMenuItem
-                                      key={templateId}
-                                      className="text-right text-xs cursor-pointer hover:bg-muted/50 pr-4 py-2"
-                                      onClick={() => {
-                                        setSelectedPrescriptionIds([
-                                          templateId,
-                                        ]);
-                                      }}
-                                    >
-                                      {getTemplateDisplayName(
-                                        templateId,
-                                        template.name || templateId,
-                                        prescriptionsQuery.data,
-                                      )}
-                                    </DropdownMenuItem>
-                                  ),
+                            <span
+                              key={medId}
+                              className="inline-flex max-w-full items-start gap-1 rounded-md bg-primary/8 px-2 py-1 text-[10px]"
+                            >
+                              <span className="min-w-0">
+                                <span className="block font-medium">
+                                  {medication?.name || `Med ${medId}`}
+                                </span>
+                                {detailsText && (
+                                  <span className="mt-0.5 block whitespace-pre-wrap text-muted-foreground">
+                                    {detailsText}
+                                  </span>
                                 )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  toggleCheckbox("treatment", medId)
+                                }
+                                className="text-muted-foreground hover:text-destructive"
+                              >
+                                ×
+                              </button>
+                            </span>
                           );
                         })}
                       </div>
-                    </div>
-                  )}
-              </div>
+                    )}
+                    {prescriptionsQuery.data &&
+                      Object.keys(prescriptionsQuery.data).length > 0 && (
+                        <div className="order-1 mb-2">
+                          <span className="text-[10px] text-muted-foreground">
+                            وصفات جاهزة:
+                          </span>
+                          <div className="flex flex-wrap gap-1.5 items-center">
+                            {READY_TABS.map((tab) => {
+                              const templatesInTab = Object.entries(
+                                prescriptionsQuery.data || {},
+                              ).filter(
+                                ([templateId, template]: [string, any]) =>
+                                  getTemplateCategory(
+                                    template.name || templateId,
+                                  ) === tab,
+                              );
+                              if (templatesInTab.length === 0) return null;
+                              return (
+                                <DropdownMenu key={tab}>
+                                  <DropdownMenuTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="rounded-md border border-input bg-transparent px-2.5 py-1 text-[10px] hover:bg-muted/60 transition-colors flex items-center gap-1 font-medium text-[#1e3a66]"
+                                    >
+                                      <span>{tab}</span>
+                                      <ChevronDown className="h-3 w-3 opacity-70" />
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent
+                                    align="start"
+                                    className="max-h-[300px] overflow-y-auto min-w-[160px]"
+                                  >
+                                    {templatesInTab.map(
+                                      ([templateId, template]: [
+                                        string,
+                                        any,
+                                      ]) => (
+                                        <DropdownMenuItem
+                                          key={templateId}
+                                          className="text-right text-xs cursor-pointer hover:bg-muted/50 pr-4 py-2"
+                                          onClick={() => {
+                                            setSelectedPrescriptionIds([
+                                              templateId,
+                                            ]);
+                                          }}
+                                        >
+                                          {getTemplateDisplayName(
+                                            templateId,
+                                            template.name || templateId,
+                                            prescriptionsQuery.data,
+                                          )}
+                                        </DropdownMenuItem>
+                                      ),
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                  </div>
+                </div>
+              )}
+
+              {/* Recommendations */}
+              {!workflowPlanOnly && (
+                <div className="rounded-md border border-border/60 p-3">
+                  <Label className="text-xs font-medium mb-1.5 block">
+                    التوصيات
+                  </Label>
+                  <Textarea
+                    value={formData.recommendations}
+                    onChange={(e) =>
+                      setFormData((prev: any) => ({
+                        ...prev,
+                        recommendations: e.target.value,
+                      }))
+                    }
+                    placeholder="أدخل التوصيات..."
+                    className="text-sm"
+                    rows={3}
+                  />
+                </div>
+              )}
+
+              {workflowPlanOnly && (
+                <div className="rounded-md border border-border/60 p-3">
+                  <Label className="mb-3 block text-sm font-semibold">
+                    صور التشخيص
+                  </Label>
+                  <DiagnosisImagesPanel
+                    patientId={patientId}
+                    readOnly={hubRo}
+                  />
+                </div>
+              )}
             </div>
           )}
 

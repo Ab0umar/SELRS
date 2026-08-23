@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Linq;
+using System.Collections.Generic;
 using System.Windows.Forms;
 #if !NETFRAMEWORK
 using System.Net.Http;
@@ -44,8 +45,12 @@ public partial class Form1 : Form
     private const int WmNclbuttondown = 0xA1;
     private const int HtCaption = 0x2;
     private const int TopBarExpandedHeight = 44;
+    private const int TopBarCollapsedHeight = 10;
+    private const int BottomTaskbarRevealHeight = 12;
     private readonly System.Windows.Forms.Timer _topBarTimer = new() { Interval = 150 };
     private DateTime _lastTopEdgeHoverUtc = DateTime.UtcNow;
+    private readonly List<TouchMessageHook> _touchHooks = [];
+    private Panel? _bottomTaskbarReveal;
 
     private static readonly Color ShellBg = Color.FromArgb(246, 248, 252);
     private static readonly Color PanelBg = Color.FromArgb(253, 254, 255);
@@ -90,10 +95,10 @@ public partial class Form1 : Form
         var forceModernChrome = chromeMode == "modern" || chromeMode == "borderless";
 #if NETFRAMEWORK
         if (forceModernChrome) EnableModernBorderlessShell();
-        else EnableFullScreenShell();
+        else EnableNativeWindowShell();
 #else
         if (forceModernChrome) EnableModernBorderlessShell();
-        else EnableFullScreenShell();
+        else EnableNativeWindowShell();
 #endif
     }
 
@@ -586,17 +591,29 @@ public partial class Form1 : Form
     }
 
     // ── Window chrome ─────────────────────────────────────────────────────────
-    private void EnableFullScreenShell()
+    private void EnableNativeWindowShell()
     {
         FormBorderStyle = FormBorderStyle.None;
         ControlBox = false;
         MinimizeBox = false;
         MaximizeBox = false;
+        ShowInTaskbar = true;
         DoubleBuffered = true;
         WindowState = FormWindowState.Normal;
-        Bounds = Screen.FromControl(this).Bounds;
-        Shown += (_, _) => Bounds = Screen.FromControl(this).Bounds;
+        Bounds = GetTaskbarTouchSafeBounds();
+        Shown += (_, _) => Bounds = GetTaskbarTouchSafeBounds();
         EnableAutoHideTopBar();
+    }
+
+    private Rectangle GetTaskbarTouchSafeBounds()
+    {
+        var screen = Screen.FromControl(this);
+        var area = screen.WorkingArea;
+        var taskbarIsAutoHidden = area.Height >= screen.Bounds.Height - 2;
+        if (!taskbarIsAutoHidden) return area;
+
+        const int touchRevealStrip = 12;
+        return new Rectangle(area.X, area.Y, area.Width, Math.Max(1, area.Height - touchRevealStrip));
     }
 
     private void EnableModernBorderlessShell()
@@ -619,7 +636,31 @@ public partial class Form1 : Form
         StyleChromeButton(btnMinimize, danger: false);
         StyleChromeButton(btnMaximize, danger: false);
         StyleChromeButton(btnClose, danger: true);
-        if (topBar != null) { topBar.Visible = false; topBar.MouseMove += HandleAnyMouseMove; topBar.MouseDown += HandleTopBarMouseDown; }
+        if (topBar != null)
+        {
+            topBar.Visible = true;
+            topBar.Height = TopBarCollapsedHeight;
+            topBar.Cursor = Cursors.Hand;
+            topBar.MouseMove += HandleAnyMouseMove;
+            topBar.MouseDown += HandleTopBarMouseDown;
+            topBar.BringToFront();
+            HookTouch(topBar, ShowTopBar);
+            HookTouch(btnMinimize, ShowTopBar);
+            HookTouch(btnMaximize, ShowTopBar);
+            HookTouch(btnClose, ShowTopBar);
+            HookTouch(titleLabel, ShowTopBar);
+        }
+        _bottomTaskbarReveal = new Panel
+        {
+            Dock = DockStyle.Bottom,
+            Height = BottomTaskbarRevealHeight,
+            BackColor = ShellBg,
+            Cursor = Cursors.Hand,
+        };
+        _bottomTaskbarReveal.MouseDown += (_, _) => ShowWindowsTaskbar();
+        Controls.Add(_bottomTaskbarReveal);
+        _bottomTaskbarReveal.BringToFront();
+        HookTouch(_bottomTaskbarReveal, ShowWindowsTaskbar);
         MouseMove += HandleAnyMouseMove;
         if (webView != null) webView.MouseMove += HandleAnyMouseMove;
         if (btnMinimize != null) btnMinimize.Click += (_, _) => WindowState = FormWindowState.Minimized;
@@ -643,13 +684,37 @@ public partial class Form1 : Form
 
     [DllImport("user32.dll")] private static extern bool ReleaseCapture();
     [DllImport("user32.dll")] private static extern IntPtr SendMessage(IntPtr hWnd, int msg, int wParam, int lParam);
+    [DllImport("user32.dll", SetLastError = true)] private static extern IntPtr FindWindow(string? className, string? windowName);
+    [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hWnd);
+    [DllImport("user32.dll")] private static extern void keybd_event(byte virtualKey, byte scanCode, uint flags, UIntPtr extraInfo);
 
-    private void HandleTopBarMouseDown(object? sender, MouseEventArgs e) { if (e.Button != MouseButtons.Left) return; ReleaseCapture(); SendMessage(Handle, WmNclbuttondown, HtCaption, 0); }
-    private void HandleAnyMouseMove(object? sender, MouseEventArgs e) { var clientPoint = PointToClient(Cursor.Position); if (clientPoint.Y <= 10 || (topBar.Visible && clientPoint.Y <= TopBarExpandedHeight + 6)) { _lastTopEdgeHoverUtc = DateTime.UtcNow; ShowTopBar(); } }
-    private void HandleTopBarAutoHideTick() { var clientPoint = PointToClient(Cursor.Position); var overTopArea = clientPoint.Y <= TopBarExpandedHeight + 6; if (clientPoint.Y <= 10) { _lastTopEdgeHoverUtc = DateTime.UtcNow; ShowTopBar(); return; } if (!topBar.Visible) return; if (overTopArea) { _lastTopEdgeHoverUtc = DateTime.UtcNow; return; } if ((DateTime.UtcNow - _lastTopEdgeHoverUtc).TotalMilliseconds < 800) return; topBar.Height = 0; topBar.Visible = false; }
-    private void HideTopBar() { if (!topBar.Visible) return; topBar.Height = 0; topBar.Visible = false; }
+    private void HookTouch(Control control, Action action)
+    {
+        if (!control.IsHandleCreated) _ = control.Handle;
+        _touchHooks.Add(new TouchMessageHook(control.Handle, () => BeginInvoke(action)));
+    }
+
+    private void ShowWindowsTaskbar()
+    {
+        var taskbar = FindWindow("Shell_TrayWnd", null);
+        if (taskbar != IntPtr.Zero) SetForegroundWindow(taskbar);
+
+        // Win+T asks Explorer to reveal and focus an auto-hidden taskbar.
+        const byte vkLeftWin = 0x5B;
+        const byte vkT = 0x54;
+        const uint keyUp = 0x0002;
+        keybd_event(vkLeftWin, 0, 0, UIntPtr.Zero);
+        keybd_event(vkT, 0, 0, UIntPtr.Zero);
+        keybd_event(vkT, 0, keyUp, UIntPtr.Zero);
+        keybd_event(vkLeftWin, 0, keyUp, UIntPtr.Zero);
+    }
+
+    private void HandleTopBarMouseDown(object? sender, MouseEventArgs e) { if (e.Button != MouseButtons.Left) return; if (topBar.Height <= TopBarCollapsedHeight) { _lastTopEdgeHoverUtc = DateTime.UtcNow; ShowTopBar(); return; } ReleaseCapture(); SendMessage(Handle, WmNclbuttondown, HtCaption, 0); }
+    private void HandleAnyMouseMove(object? sender, MouseEventArgs e) { var clientPoint = PointToClient(Cursor.Position); if (clientPoint.Y <= TopBarCollapsedHeight || clientPoint.Y <= TopBarExpandedHeight + 6) { _lastTopEdgeHoverUtc = DateTime.UtcNow; ShowTopBar(); } }
+    private void HandleTopBarAutoHideTick() { if (topBar.Height <= TopBarCollapsedHeight) return; var clientPoint = PointToClient(Cursor.Position); var overTopArea = clientPoint.Y <= TopBarExpandedHeight + 6; if (overTopArea) { _lastTopEdgeHoverUtc = DateTime.UtcNow; return; } if ((DateTime.UtcNow - _lastTopEdgeHoverUtc).TotalMilliseconds < 800) return; HideTopBar(); }
+    private void HideTopBar() { topBar.Visible = true; topBar.Height = TopBarCollapsedHeight; topBar.BringToFront(); }
     private void UpdateMaximizeButtonText() { if (btnMaximize != null) btnMaximize.Text = WindowState == FormWindowState.Maximized ? "❐" : "□"; }
-    private void ShowTopBar() { if (topBar.Visible) return; topBar.Visible = true; topBar.Height = TopBarExpandedHeight; }
+    private void ShowTopBar() { if (topBar.Height >= TopBarExpandedHeight) return; topBar.Visible = true; topBar.Height = TopBarExpandedHeight; topBar.BringToFront(); }
 
     // ── Web messages ──────────────────────────────────────────────────────────
     private void HandleContextMenuRequested(object? sender, CoreWebView2ContextMenuRequestedEventArgs e) => ShowUrlSwitchMenu(e);
@@ -730,5 +795,25 @@ h1{font-size:20px;font-weight:700;margin:0;line-height:1.35}
     {
         if (string.IsNullOrWhiteSpace(uri)) return string.Empty;
         return Uri.TryCreate(uri, UriKind.Absolute, out var parsed) ? parsed.ToString() : uri!.Trim();
+    }
+}
+
+internal sealed class TouchMessageHook : NativeWindow
+{
+    private const int WmTouch = 0x0240;
+    private const int WmPointerDown = 0x0246;
+    private const int WmGesture = 0x0119;
+    private readonly Action _onTouch;
+
+    public TouchMessageHook(IntPtr handle, Action onTouch)
+    {
+        _onTouch = onTouch;
+        AssignHandle(handle);
+    }
+
+    protected override void WndProc(ref Message m)
+    {
+        if (m.Msg is WmTouch or WmPointerDown or WmGesture) _onTouch();
+        base.WndProc(ref m);
     }
 }

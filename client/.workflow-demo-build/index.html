@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#003D82" />
+    <meta name="color-scheme" content="light" />
+    <meta
+      name="description"
+      content="عيون الشروق — البوابة الطبية." />
+    <link rel="dns-prefetch" href="//op.selrs.cc" />
+    <link rel="preconnect" href="https://op.selrs.cc" crossorigin />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png?v=20260511" />
+    <link rel="shortcut icon" href="/favicon.ico?v=20260511" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260511" />
+    <link rel="manifest" href="/site.webmanifest?v=20260511" />
+    <title>عيون الشروق</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+      #boot-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at top left, rgba(0, 61, 130, 0.08), transparent 34%),
+          linear-gradient(180deg, #ffffff 0%, #e8f0f8 100%);
+        transition: opacity 220ms ease, visibility 220ms ease;
+      }
+
+      #boot-splash.is-hidden {
+        opacity: 0;
+        visibility: hidden;
+      }
+
+      .boot-splash-logo-frame {
+        position: relative;
+        width: clamp(196px, 28vw, 248px);
+        height: clamp(196px, 28vw, 248px);
+        border-radius: 52px;
+        border: 1px solid rgba(229, 231, 235, 0.95);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(232, 240, 248, 0.95));
+        overflow: hidden;
+        box-shadow: 0 16px 42px rgba(15, 23, 42, 0.08);
+      }
+
+      .boot-splash-logo-frame::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: url("/logos/full.png");
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: clamp(138px, 20vw, 184px) clamp(138px, 20vw, 184px);
+        will-change: clip-path, filter, opacity;
+        animation: boot-lid-wipe 2.7s ease-in-out infinite;
+      }
+
+      @keyframes boot-lid-wipe {
+        0% {
+          clip-path: ellipse(70% 5% at 50% 50%);
+          opacity: 0.6;
+          filter: blur(0.3px);
+        }
+        18% {
+          clip-path: ellipse(72% 18% at 50% 50%);
+          opacity: 0.86;
+        }
+        40% {
+          clip-path: ellipse(72% 62% at 50% 50%);
+          opacity: 1;
+          filter: blur(0);
+        }
+        58% {
+          clip-path: ellipse(72% 18% at 50% 50%);
+          opacity: 0.86;
+        }
+        100% {
+          clip-path: ellipse(70% 5% at 50% 50%);
+          opacity: 0.6;
+          filter: blur(0.3px);
+        }
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-CHKfAtd9.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-Dw2cE7zH.js">
+    <link rel="modulepreload" crossorigin href="/assets/date-utils-DolFOHtA.js">
+    <link rel="modulepreload" crossorigin href="/assets/charts-Bnwx77Nk.js">
+    <link rel="modulepreload" crossorigin href="/assets/data-core-u1TPZzGK.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-B0fgRO9K.js">
+    <link rel="modulepreload" crossorigin href="/assets/utils-Cnb6lgNC.js">
+    <link rel="modulepreload" crossorigin href="/assets/skeleton-Cc59p5MR.js">
+    <link rel="modulepreload" crossorigin href="/assets/AppShellSkeleton-Db-EsELn.js">
+    <link rel="modulepreload" crossorigin href="/assets/const-OLP944Go.js">
+    <link rel="modulepreload" crossorigin href="/assets/appRuntime-BpGW2Ssj.js">
+    <link rel="modulepreload" crossorigin href="/assets/trpc-f87YPGMk.js">
+    <link rel="modulepreload" crossorigin href="/assets/react-core-DaLBU1SO.js">
+  </head>
+
+  <body>
+    <div id="boot-splash" aria-busy="true" aria-label="جاري تحميل واجهة النظام" role="status">
+      <div class="boot-splash-logo-frame" aria-hidden="true"></div>
+      </div>
+    </div>
+    <div id="root"></div>
+</body>
+
+</html>
+

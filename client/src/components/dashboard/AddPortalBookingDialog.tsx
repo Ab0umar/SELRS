@@ -16,15 +16,13 @@ import { DateInput } from "@/components/ui/date-input";
 import { useIsMobile } from "@/hooks/useMobile";
 
 const STAFF_BOOKING_TYPES = [
-  { value: "consultant" as const, label: "كشف استشاري" },
-  { value: "specialist" as const, label: "كشف أخصائي" },
-  { value: "lasik" as const, label: "فحوصات الليزك" },
-  { value: "external" as const, label: "أشعة خارجي" },
+  { value: "consultant" as const, label: "إستشاري" },
+  { value: "specialist" as const, label: "أخصائي" },
+  { value: "pentacam" as const, label: "بنتاكام" },
   { value: "followup" as const, label: "متابعة" },
 ];
 
-type BookingType =
-  "consultant" | "specialist" | "lasik" | "external" | "followup";
+type BookingType = "consultant" | "specialist" | "pentacam" | "followup";
 
 type Branch = "tanta" | "kfs";
 
@@ -125,11 +123,12 @@ export function AddPortalBookingDialog({
   const formContent = (
     <>
       <div
-        className="mx-auto w-full max-w-3xl space-y-5 bg-background p-4"
+        className="mobile-booking-form mx-auto w-full max-w-3xl space-y-5 bg-background p-4"
         dir="rtl"
       >
-        {/* Patient type */}
-        <div className="space-y-1.5">
+        <div className="grid grid-cols-2 gap-3" dir="rtl">
+          {/* Patient type */}
+          <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground block text-right">
             نوع الزيارة
           </label>
@@ -161,10 +160,10 @@ export function AddPortalBookingDialog({
               </button>
             ))}
           </div>
-        </div>
+          </div>
 
-        {/* Branch */}
-        <div className="space-y-1.5">
+          {/* Branch */}
+          <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground block text-right">
             الفرع
           </label>
@@ -175,7 +174,7 @@ export function AddPortalBookingDialog({
                 type="button"
                 onClick={() => setBranch(b.value)}
                 className={cn(
-                  "flex-1 h-9 rounded-xl border text-xs font-bold transition-all cursor-pointer",
+                  "h-9 px-3.5 rounded-xl border text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
                   branch === b.value
                     ? "bg-primary text-primary-foreground border-primary shadow-xs"
                     : "bg-background text-muted-foreground border-border hover:bg-muted/40",
@@ -185,13 +184,18 @@ export function AddPortalBookingDialog({
               </button>
             ))}
           </div>
+          </div>
         </div>
 
-        <div className="grid gap-4 items-start lg:grid-cols-[1fr_148px]">
+        <div
+          className="mobile-booking-fields grid gap-4 items-start lg:grid-cols-[1fr_148px]"
+          dir="rtl"
+        >
           {/* Right column: fields */}
           <div className="flex flex-col gap-3">
-            {/* Patient search or manual entry */}
-            <div className="relative space-y-1.5" ref={searchRef}>
+            {/* Patient search / name, next to the date */}
+            <div className="grid grid-cols-2 gap-3 items-start" dir="rtl">
+            <div className="relative min-w-0 space-y-1.5" ref={searchRef}>
               <label className="text-xs font-medium text-muted-foreground block text-right">
                 {patientType === "existing" ? "المريض" : "الاسم"}
               </label>
@@ -230,6 +234,7 @@ export function AddPortalBookingDialog({
                         }}
                         onFocus={() => setShowDropdown(true)}
                         placeholder="اسم المريض أو الكود أو الموبايل..."
+                        dir="rtl"
                         className="h-10 rounded-xl pr-9 text-sm"
                       />
                     </div>
@@ -269,14 +274,27 @@ export function AddPortalBookingDialog({
                   value={guestName}
                   onChange={(e) => setGuestName(e.target.value)}
                   placeholder="الاسم بالكامل..."
+                  dir="rtl"
                   className="h-10 rounded-xl text-sm"
                 />
               )}
             </div>
 
-            {/* Contact details and date for a new patient */}
+            <div className="min-w-0 space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground block text-right">
+                التاريخ
+              </label>
+              <DateInput
+                value={requestedDate}
+                onChange={(e) => setRequestedDate(e.target.value)}
+                className="h-10 w-full min-w-0 rounded-xl text-sm"
+              />
+            </div>
+            </div>
+
+            {/* Contact details for a new patient */}
             {patientType !== "existing" ? (
-              <div className="grid gap-3 md:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3" dir="rtl">
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground block text-right">
                     الموبايل
@@ -285,6 +303,7 @@ export function AddPortalBookingDialog({
                     value={guestPhone}
                     onChange={(e) => setGuestPhone(e.target.value)}
                     placeholder="01xxxxxxxxx"
+                    dir="rtl"
                     className="h-10 rounded-xl text-sm"
                   />
                 </div>
@@ -301,29 +320,8 @@ export function AddPortalBookingDialog({
                     dir="ltr"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground block text-right">
-                    التاريخ
-                  </label>
-                  <DateInput
-                    value={requestedDate}
-                    onChange={(e) => setRequestedDate(e.target.value)}
-                    className="h-10 rounded-xl text-sm"
-                  />
-                </div>
               </div>
-            ) : (
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground block text-right">
-                  التاريخ
-                </label>
-                <DateInput
-                  value={requestedDate}
-                  onChange={(e) => setRequestedDate(e.target.value)}
-                  className="h-10 rounded-xl text-sm"
-                />
-              </div>
-            )}
+            ) : null}
 
             {/* Staff notes */}
             <div className="space-y-1.5">
@@ -336,6 +334,7 @@ export function AddPortalBookingDialog({
                 onChange={(e) => setStaffNotes(e.target.value)}
                 rows={2}
                 placeholder="ملاحظات للمريض..."
+                dir="rtl"
                 className="w-full resize-none rounded-xl border border-border bg-muted/10 px-3 py-2.5 text-sm leading-6 outline-none transition-shadow focus:ring-2 focus:ring-primary/30"
               />
             </div>
@@ -346,14 +345,14 @@ export function AddPortalBookingDialog({
             <label className="text-xs font-medium text-muted-foreground block text-right">
               الخدمة
             </label>
-            <div className="flex flex-col gap-1.5">
+            <div className="grid grid-cols-2 gap-2 w-fit" dir="rtl">
               {STAFF_BOOKING_TYPES.map((t) => (
                 <button
                   key={t.value}
                   type="button"
                   onClick={() => setBookingType(t.value)}
                   className={cn(
-                    "w-full rounded-xl border px-3 py-2 text-xs font-medium text-right transition-colors",
+                    "rounded-xl border px-3 py-2 text-xs font-medium text-center transition-colors whitespace-nowrap",
                     bookingType === t.value
                       ? "border-primary/30 bg-primary/10 text-primary"
                       : "border-border bg-muted/20 text-muted-foreground hover:bg-muted/40",
@@ -368,7 +367,7 @@ export function AddPortalBookingDialog({
       </div>
 
       <div
-        className="flex items-center gap-2 border-t bg-muted/10 px-4 py-3"
+        className="mobile-booking-actions flex items-center gap-2 border-t bg-muted/10 px-4 py-3"
         dir="rtl"
       >
         <Button
@@ -428,10 +427,10 @@ export function AddPortalBookingDialog({
       <SheetContent
         side="top"
         dir="rtl"
-        className="max-h-[92dvh] w-full gap-0 overflow-x-hidden overflow-y-auto p-0"
+        className="mobile-booking-sheet max-h-[92dvh] w-full gap-0 overflow-x-hidden overflow-y-auto p-0"
       >
         {/* Header */}
-        <SheetHeader className="p-4 border-b bg-muted/20" dir="rtl">
+        <SheetHeader className="mobile-booking-header p-4 border-b bg-muted/20" dir="rtl">
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
               <Plus className="h-4 w-4 text-primary" />

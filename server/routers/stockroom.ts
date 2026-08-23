@@ -6,12 +6,119 @@ import {
 } from "../_core/procedures";
 import * as db from "../db";
 import { TRPCError } from "@trpc/server";
+import { matchEgyptianDrugReference } from "../services/egyptianDrugReference";
+import type { StockItem } from "../../drizzle/schema";
 
 export const stockroomRouter = router({
+  matchEyeDropsWithEgyptianReference: makeStockroomProcedure(
+    "/stockroom",
+  ).query(async () => {
+    const [items, transactions] = await Promise.all([
+      db.getStockItems("قطرات العين"),
+      db.getStockTransactions(10_000),
+    ]);
+    const matches = await matchEgyptianDrugReference(
+      items.map((item: StockItem) => item.name),
+      ["drops", "ointment"],
+    );
+    const latestPriceByItem = new Map<number, string>();
+    for (const transaction of transactions) {
+      if (
+        transaction.unitPrice != null &&
+        !latestPriceByItem.has(transaction.itemId)
+      ) {
+        latestPriceByItem.set(transaction.itemId, transaction.unitPrice);
+      }
+    }
+
+    const matchedItems = items.flatMap((item: StockItem, index: number) => {
+      const result = matches[index];
+      if (!result?.match) return [];
+      return [
+        {
+          itemId: item.id,
+          currentName: item.name,
+          currentSupplier: item.supplier ?? "",
+          currentPrice: latestPriceByItem.get(item.id) ?? null,
+          confidence: result.confidence,
+          reference: result.match,
+        },
+      ];
+    });
+
+    return {
+      items: matchedItems,
+      totalExisting: items.length,
+      unmatched: items.length - matchedItems.length,
+    };
+  }),
+
+  syncEyeDropsWithEgyptianReference: makeStockroomWriteProcedure("/stockroom")
+    .input(
+      z.object({
+        itemIds: z.array(z.number().int().positive()).min(1).max(10_000),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const selectedIds = new Set(input.itemIds);
+      const items = (await db.getStockItems("قطرات العين")).filter(
+        (item: StockItem) => selectedIds.has(item.id),
+      );
+      const matches = await matchEgyptianDrugReference(
+        items.map((item: StockItem) => item.name),
+        ["drops", "ointment"],
+      );
+      let updated = 0;
+
+      for (let index = 0; index < items.length; index += 1) {
+        const item = items[index];
+        const drug = matches[index]?.match;
+        if (!drug) continue;
+
+        await db.updateStockItem(item.id, {
+          name: drug.commercialNameEn,
+          supplier: drug.manufacturer || item.supplier || null,
+        });
+        if (drug.priceEgp != null) {
+          await db.insertStockTransaction({
+            itemId: item.id,
+            type: "add",
+            quantity: 0,
+            unitPrice: String(drug.priceEgp),
+            totalValue: "0",
+            employeeName: "تحديث من مرجع الأدوية المصرية",
+            destination: "تعديل سعر",
+            transactionDate: new Date().toISOString().slice(0, 10) as any,
+            performedBy: ctx.user?.username || "system",
+          });
+        }
+        updated += 1;
+      }
+
+      return { updated, skipped: input.itemIds.length - updated };
+    }),
+
   getItems: makeStockroomProcedure("/stockroom")
     .input(z.object({ category: z.string().optional() }))
     .query(async ({ input }) => {
-      return await db.getStockItems(input.category);
+      const [items, transactions] = await Promise.all([
+        db.getStockItems(input.category),
+        db.getStockTransactions(10_000),
+      ]);
+      const latestPriceByItem = new Map<number, string>();
+      for (const transaction of transactions) {
+        if (
+          transaction.unitPrice != null &&
+          !latestPriceByItem.has(transaction.itemId)
+        ) {
+          latestPriceByItem.set(transaction.itemId, transaction.unitPrice);
+        }
+      }
+
+      return items.map((item: StockItem) => ({
+        ...item,
+        unitPrice: latestPriceByItem.get(item.id) ?? null,
+      }));
     }),
 
   createItem: makeStockroomWriteProcedure("/stockroom")

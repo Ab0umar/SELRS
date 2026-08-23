@@ -51,6 +51,132 @@
   --color-error-foreground: var(--error-foreground);
 }
 
+@media (orientation: landscape) and (min-width: 700px) and (max-width: 1400px) {
+  [data-accounting-shell] {
+    padding: 12px !important;
+  }
+
+  [data-accounting-shell] > header {
+    max-width: none !important;
+    margin-bottom: 12px !important;
+    gap: 12px !important;
+    padding: 12px !important;
+    border-radius: 12px !important;
+  }
+
+  [data-accounting-shell] > div {
+    max-width: none !important;
+    gap: 12px !important;
+  }
+
+  [data-accounting-shell] nav,
+  [data-accounting-module] {
+    border-radius: 12px !important;
+  }
+
+  [data-accounting-module] {
+    width: 100% !important;
+    padding: 12px !important;
+    overflow: hidden;
+  }
+
+  [data-accounting-module] :where(.overflow-x-auto) {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  [data-accounting-module] table {
+    width: 100%;
+    max-width: 100%;
+    font-size: 13px;
+  }
+
+  [data-accounting-module] table :where(th, td) {
+    padding: 8px 10px !important;
+    line-height: 1.35;
+  }
+}
+
+@media (orientation: portrait) and (min-width: 641px) and (max-width: 900px) {
+  html,
+  body,
+  #root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  [data-app-top-nav-row] {
+    gap: 4px !important;
+    padding-inline: 6px !important;
+  }
+
+  [data-app-top-nav-row] > nav {
+    min-width: 0 !important;
+    overflow-x: auto !important;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+
+  [data-app-top-nav-row] > nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  [data-app-top-nav-row] > nav button {
+    flex-shrink: 0;
+  }
+
+  .page-layout {
+    width: 100%;
+    max-width: 100%;
+    padding: 12px !important;
+    overflow-x: hidden;
+  }
+
+  .page-layout :where(.container) {
+    width: 100%;
+    max-width: 100% !important;
+    padding-inline: 0 !important;
+  }
+
+  .page-layout :where(input, textarea, select, [role="combobox"]) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .page-layout :where(.overflow-x-auto) {
+    width: 100%;
+    max-width: 100%;
+    overscroll-behavior-inline: contain;
+  }
+
+  [role="dialog"] {
+    max-width: calc(100vw - 24px) !important;
+    max-height: calc(100dvh - 24px) !important;
+  }
+
+  [data-accounting-shell],
+  [data-accounting-module] {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  [data-accounting-shell] {
+    padding: 12px !important;
+  }
+
+  [data-accounting-shell] > header,
+  [data-accounting-shell] nav,
+  [data-accounting-module] {
+    border-radius: 12px !important;
+  }
+
+  [data-accounting-module] {
+    padding: 12px !important;
+    overflow: hidden;
+  }
+}
+
 :root {
   /* SELRS Brand Colors */
   --selrs-navy: #101a86;
@@ -163,6 +289,11 @@
     size: A4 portrait;
     margin: 0 !important;
   }
+  .final-report-sheet {
+    width: 271mm !important;
+    max-width: 271mm !important;
+    zoom: 0.7;
+  }
   :root,
   html,
   body,
@@ -211,7 +342,8 @@
     height: auto !important;
   }
 
-  body, html {
+  body,
+  html {
     min-height: 0 !important;
     height: auto !important;
   }
@@ -284,299 +416,299 @@
   .a4-page-card textarea,
   main input:not([type="checkbox"]):not([type="radio"]),
   main textarea {
-  .a4-page-card textarea {
-    border: 0 !important;
-    border-bottom: 0 !important;
-    box-shadow: none !important;
-    outline: 0 !important;
-    background: transparent !important;
-    text-decoration: none !important;
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    line-height: 1.15 !important;
-  }
-  .sheet-layout .border-b,
-  .sheet-layout .border-b-2,
-  .sheet-layout .border-b-4,
-  .sheet-layout .border-b-8,
-  .lasik-print-root .border-b,
-  .lasik-print-root .border-b-2,
-  .lasik-print-root .border-b-4,
-  .lasik-print-root .border-b-8,
-  .specialist-print-root .border-b,
-  .specialist-print-root .border-b-2,
-  .specialist-print-root .border-b-4,
-  .specialist-print-root .border-b-8,
-  .followup-print-root .border-b,
-  .followup-print-root .border-b-2,
-  .followup-print-root .border-b-4,
-  .followup-print-root .border-b-8,
-  .referral-print-root .border-b,
-  .referral-print-root .border-b-2,
-  .referral-print-root .border-b-4,
-  .referral-print-root .border-b-8,
-  .a4-page-card .border-b,
-  .a4-page-card .border-b-2,
-  .a4-page-card .border-b-4,
-  .a4-page-card .border-b-8,
-  main .border-b,
-  main .border-b-2,
-  main .border-b-4,
-  main .border-b-8 {
-    border-bottom: 0 !important;
-  }
-  .sheet-layout input[type="checkbox"],
-  .sheet-layout input[type="radio"],
-  .lasik-print-root input[type="checkbox"],
-  .lasik-print-root input[type="radio"],
-  .specialist-print-root input[type="checkbox"],
-  .specialist-print-root input[type="radio"],
-  .followup-print-root input[type="checkbox"],
-  .followup-print-root input[type="radio"],
-  .a4-page-card input[type="checkbox"],
-  .a4-page-card input[type="radio"],
-  main input[type="checkbox"],
-  main input[type="radio"] {
-    width: 12px !important;
-    height: 12px !important;
-    -webkit-appearance: none !important;
-    appearance: none !important;
-    border: 1.2px solid #191c1e !important;
-    background: white !important;
-    print-color-adjust: exact !important;
-    -webkit-print-color-adjust: exact !important;
-    flex-shrink: 0 !important;
-  }
-  .sheet-layout input[type="checkbox"]:checked,
-  .lasik-print-root input[type="checkbox"]:checked,
-  .specialist-print-root input[type="checkbox"]:checked,
-  .followup-print-root input[type="checkbox"]:checked,
-  .a4-page-card input[type="checkbox"]:checked,
-  main input[type="checkbox"]:checked {
-    background-color: #191c1e !important;
-    position: relative !important;
-  }
-  .sheet-layout input[type="checkbox"]:checked::after,
-  .lasik-print-root input[type="checkbox"]:checked::after,
-  .specialist-print-root input[type="checkbox"]:checked::after,
-  .followup-print-root input[type="checkbox"]:checked::after,
-  .a4-page-card input[type="checkbox"]:checked::after,
-  main input[type="checkbox"]:checked::after {
-    content: "" !important;
-    position: absolute !important;
-    left: 3px !important;
-    top: 0px !important;
-    width: 3px !important;
-    height: 6px !important;
-    border: solid white !important;
-    border-width: 0 1.5px 1.5px 0 !important;
-    transform: rotate(45deg) !important;
-  }
-  .sheet-layout input[type="radio"],
-  .lasik-print-root input[type="radio"],
-  .specialist-print-root input[type="radio"],
-  .followup-print-root input[type="radio"],
-  .a4-page-card input[type="radio"],
-  main input[type="radio"] {
-    border-radius: 50% !important;
-  }
-  .sheet-layout input[type="radio"]:checked,
-  .lasik-print-root input[type="radio"]:checked,
-  .specialist-print-root input[type="radio"]:checked,
-  .followup-print-root input[type="radio"]:checked,
-  .a4-page-card input[type="radio"]:checked,
-  main input[type="radio"]:checked {
-    background-color: #191c1e !important;
-  }
+    .a4-page-card textarea {
+      border: 0 !important;
+      border-bottom: 0 !important;
+      box-shadow: none !important;
+      outline: 0 !important;
+      background: transparent !important;
+      text-decoration: none !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      line-height: 1.15 !important;
+    }
+    .sheet-layout .border-b,
+    .sheet-layout .border-b-2,
+    .sheet-layout .border-b-4,
+    .sheet-layout .border-b-8,
+    .lasik-print-root .border-b,
+    .lasik-print-root .border-b-2,
+    .lasik-print-root .border-b-4,
+    .lasik-print-root .border-b-8,
+    .specialist-print-root .border-b,
+    .specialist-print-root .border-b-2,
+    .specialist-print-root .border-b-4,
+    .specialist-print-root .border-b-8,
+    .followup-print-root .border-b,
+    .followup-print-root .border-b-2,
+    .followup-print-root .border-b-4,
+    .followup-print-root .border-b-8,
+    .referral-print-root .border-b,
+    .referral-print-root .border-b-2,
+    .referral-print-root .border-b-4,
+    .referral-print-root .border-b-8,
+    .a4-page-card .border-b,
+    .a4-page-card .border-b-2,
+    .a4-page-card .border-b-4,
+    .a4-page-card .border-b-8,
+    main .border-b,
+    main .border-b-2,
+    main .border-b-4,
+    main .border-b-8 {
+      border-bottom: 0 !important;
+    }
+    .sheet-layout input[type="checkbox"],
+    .sheet-layout input[type="radio"],
+    .lasik-print-root input[type="checkbox"],
+    .lasik-print-root input[type="radio"],
+    .specialist-print-root input[type="checkbox"],
+    .specialist-print-root input[type="radio"],
+    .followup-print-root input[type="checkbox"],
+    .followup-print-root input[type="radio"],
+    .a4-page-card input[type="checkbox"],
+    .a4-page-card input[type="radio"],
+    main input[type="checkbox"],
+    main input[type="radio"] {
+      width: 12px !important;
+      height: 12px !important;
+      -webkit-appearance: none !important;
+      appearance: none !important;
+      border: 1.2px solid #191c1e !important;
+      background: white !important;
+      print-color-adjust: exact !important;
+      -webkit-print-color-adjust: exact !important;
+      flex-shrink: 0 !important;
+    }
+    .sheet-layout input[type="checkbox"]:checked,
+    .lasik-print-root input[type="checkbox"]:checked,
+    .specialist-print-root input[type="checkbox"]:checked,
+    .followup-print-root input[type="checkbox"]:checked,
+    .a4-page-card input[type="checkbox"]:checked,
+    main input[type="checkbox"]:checked {
+      background-color: #191c1e !important;
+      position: relative !important;
+    }
+    .sheet-layout input[type="checkbox"]:checked::after,
+    .lasik-print-root input[type="checkbox"]:checked::after,
+    .specialist-print-root input[type="checkbox"]:checked::after,
+    .followup-print-root input[type="checkbox"]:checked::after,
+    .a4-page-card input[type="checkbox"]:checked::after,
+    main input[type="checkbox"]:checked::after {
+      content: "" !important;
+      position: absolute !important;
+      left: 3px !important;
+      top: 0px !important;
+      width: 3px !important;
+      height: 6px !important;
+      border: solid white !important;
+      border-width: 0 1.5px 1.5px 0 !important;
+      transform: rotate(45deg) !important;
+    }
+    .sheet-layout input[type="radio"],
+    .lasik-print-root input[type="radio"],
+    .specialist-print-root input[type="radio"],
+    .followup-print-root input[type="radio"],
+    .a4-page-card input[type="radio"],
+    main input[type="radio"] {
+      border-radius: 50% !important;
+    }
+    .sheet-layout input[type="radio"]:checked,
+    .lasik-print-root input[type="radio"]:checked,
+    .specialist-print-root input[type="radio"]:checked,
+    .followup-print-root input[type="radio"]:checked,
+    .a4-page-card input[type="radio"]:checked,
+    main input[type="radio"]:checked {
+      background-color: #191c1e !important;
+    }
 
-  /* Keep sheet layouts side-by-side in print instead of collapsing to base mobile columns. */
-  .sheet-layout .md\:grid-cols-2,
-  .sheet-layout .lg\:grid-cols-2,
-  .sheet-layout .xl\:grid-cols-2,
-  .lasik-print-root .md\:grid-cols-2,
-  .lasik-print-root .lg\:grid-cols-2,
-  .lasik-print-root .xl\:grid-cols-2,
-  .specialist-print-root .md\:grid-cols-2,
-  .specialist-print-root .lg\:grid-cols-2,
-  .specialist-print-root .xl\:grid-cols-2,
-  .followup-print-root .md\:grid-cols-2,
-  .followup-print-root .lg\:grid-cols-2,
-  .followup-print-root .xl\:grid-cols-2,
-  .a4-page-card .md\:grid-cols-2,
-  .a4-page-card .lg\:grid-cols-2,
-  .a4-page-card .xl\:grid-cols-2,
-  main .md\:grid-cols-2,
-  main .lg\:grid-cols-2,
-  main .xl\:grid-cols-2 {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
+    /* Keep sheet layouts side-by-side in print instead of collapsing to base mobile columns. */
+    .sheet-layout .md\:grid-cols-2,
+    .sheet-layout .lg\:grid-cols-2,
+    .sheet-layout .xl\:grid-cols-2,
+    .lasik-print-root .md\:grid-cols-2,
+    .lasik-print-root .lg\:grid-cols-2,
+    .lasik-print-root .xl\:grid-cols-2,
+    .specialist-print-root .md\:grid-cols-2,
+    .specialist-print-root .lg\:grid-cols-2,
+    .specialist-print-root .xl\:grid-cols-2,
+    .followup-print-root .md\:grid-cols-2,
+    .followup-print-root .lg\:grid-cols-2,
+    .followup-print-root .xl\:grid-cols-2,
+    .a4-page-card .md\:grid-cols-2,
+    .a4-page-card .lg\:grid-cols-2,
+    .a4-page-card .xl\:grid-cols-2,
+    main .md\:grid-cols-2,
+    main .lg\:grid-cols-2,
+    main .xl\:grid-cols-2 {
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
 
-  .sheet-layout .md\:grid-cols-3,
-  .sheet-layout .lg\:grid-cols-3,
-  .sheet-layout .xl\:grid-cols-3,
-  .lasik-print-root .md\:grid-cols-3,
-  .lasik-print-root .lg\:grid-cols-3,
-  .lasik-print-root .xl\:grid-cols-3,
-  .specialist-print-root .md\:grid-cols-3,
-  .specialist-print-root .lg\:grid-cols-3,
-  .specialist-print-root .xl\:grid-cols-3,
-  .followup-print-root .md\:grid-cols-3,
-  .followup-print-root .lg\:grid-cols-3,
-  .followup-print-root .xl\:grid-cols-3,
-  .a4-page-card .md\:grid-cols-3,
-  .a4-page-card .lg\:grid-cols-3,
-  .a4-page-card .xl\:grid-cols-3,
-  main .md\:grid-cols-3,
-  main .lg\:grid-cols-3,
-  main .xl\:grid-cols-3 {
-    display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  }
+    .sheet-layout .md\:grid-cols-3,
+    .sheet-layout .lg\:grid-cols-3,
+    .sheet-layout .xl\:grid-cols-3,
+    .lasik-print-root .md\:grid-cols-3,
+    .lasik-print-root .lg\:grid-cols-3,
+    .lasik-print-root .xl\:grid-cols-3,
+    .specialist-print-root .md\:grid-cols-3,
+    .specialist-print-root .lg\:grid-cols-3,
+    .specialist-print-root .xl\:grid-cols-3,
+    .followup-print-root .md\:grid-cols-3,
+    .followup-print-root .lg\:grid-cols-3,
+    .followup-print-root .xl\:grid-cols-3,
+    .a4-page-card .md\:grid-cols-3,
+    .a4-page-card .lg\:grid-cols-3,
+    .a4-page-card .xl\:grid-cols-3,
+    main .md\:grid-cols-3,
+    main .lg\:grid-cols-3,
+    main .xl\:grid-cols-3 {
+      display: grid !important;
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
 
-  .sheet-layout .md\:grid-cols-4,
-  .sheet-layout .lg\:grid-cols-4,
-  .sheet-layout .xl\:grid-cols-4,
-  .lasik-print-root .md\:grid-cols-4,
-  .lasik-print-root .lg\:grid-cols-4,
-  .lasik-print-root .xl\:grid-cols-4,
-  .specialist-print-root .md\:grid-cols-4,
-  .specialist-print-root .lg\:grid-cols-4,
-  .specialist-print-root .xl\:grid-cols-4,
-  .followup-print-root .md\:grid-cols-4,
-  .followup-print-root .lg\:grid-cols-4,
-  .followup-print-root .xl\:grid-cols-4,
-  .a4-page-card .md\:grid-cols-4,
-  .a4-page-card .lg\:grid-cols-4,
-  .a4-page-card .xl\:grid-cols-4,
-  main .md\:grid-cols-4,
-  main .lg\:grid-cols-4,
-  main .xl\:grid-cols-4 {
-    display: grid !important;
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  }
+    .sheet-layout .md\:grid-cols-4,
+    .sheet-layout .lg\:grid-cols-4,
+    .sheet-layout .xl\:grid-cols-4,
+    .lasik-print-root .md\:grid-cols-4,
+    .lasik-print-root .lg\:grid-cols-4,
+    .lasik-print-root .xl\:grid-cols-4,
+    .specialist-print-root .md\:grid-cols-4,
+    .specialist-print-root .lg\:grid-cols-4,
+    .specialist-print-root .xl\:grid-cols-4,
+    .followup-print-root .md\:grid-cols-4,
+    .followup-print-root .lg\:grid-cols-4,
+    .followup-print-root .xl\:grid-cols-4,
+    .a4-page-card .md\:grid-cols-4,
+    .a4-page-card .lg\:grid-cols-4,
+    .a4-page-card .xl\:grid-cols-4,
+    main .md\:grid-cols-4,
+    main .lg\:grid-cols-4,
+    main .xl\:grid-cols-4 {
+      display: grid !important;
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    }
 
-  .sheet-layout .lg\:grid-cols-12,
-  .sheet-layout .xl\:grid-cols-12,
-  .lasik-print-root .lg\:grid-cols-12,
-  .lasik-print-root .xl\:grid-cols-12,
-  .specialist-print-root .lg\:grid-cols-12,
-  .specialist-print-root .xl\:grid-cols-12,
-  .followup-print-root .lg\:grid-cols-12,
-  .followup-print-root .xl\:grid-cols-12,
-  .a4-page-card .lg\:grid-cols-12,
-  .a4-page-card .xl\:grid-cols-12,
-  main .lg\:grid-cols-12,
-  main .xl\:grid-cols-12 {
-    display: grid !important;
-    grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
-  }
+    .sheet-layout .lg\:grid-cols-12,
+    .sheet-layout .xl\:grid-cols-12,
+    .lasik-print-root .lg\:grid-cols-12,
+    .lasik-print-root .xl\:grid-cols-12,
+    .specialist-print-root .lg\:grid-cols-12,
+    .specialist-print-root .xl\:grid-cols-12,
+    .followup-print-root .lg\:grid-cols-12,
+    .followup-print-root .xl\:grid-cols-12,
+    .a4-page-card .lg\:grid-cols-12,
+    .a4-page-card .xl\:grid-cols-12,
+    main .lg\:grid-cols-12,
+    main .xl\:grid-cols-12 {
+      display: grid !important;
+      grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+    }
 
-  .sheet-layout .md\:col-span-2,
-  .sheet-layout .lg\:col-span-2,
-  .sheet-layout .xl\:col-span-2,
-  .lasik-print-root .md\:col-span-2,
-  .lasik-print-root .lg\:col-span-2,
-  .lasik-print-root .xl\:col-span-2,
-  .specialist-print-root .md\:col-span-2,
-  .specialist-print-root .lg\:col-span-2,
-  .specialist-print-root .xl\:col-span-2,
-  .followup-print-root .md\:col-span-2,
-  .followup-print-root .lg\:col-span-2,
-  .followup-print-root .xl\:col-span-2,
-  .a4-page-card .md\:col-span-2,
-  .a4-page-card .lg\:col-span-2,
-  .a4-page-card .xl\:col-span-2,
-  main .md\:col-span-2,
-  main .lg\:col-span-2,
-  main .xl\:col-span-2 {
-    grid-column: span 2 / span 2 !important;
-  }
+    .sheet-layout .md\:col-span-2,
+    .sheet-layout .lg\:col-span-2,
+    .sheet-layout .xl\:col-span-2,
+    .lasik-print-root .md\:col-span-2,
+    .lasik-print-root .lg\:col-span-2,
+    .lasik-print-root .xl\:col-span-2,
+    .specialist-print-root .md\:col-span-2,
+    .specialist-print-root .lg\:col-span-2,
+    .specialist-print-root .xl\:col-span-2,
+    .followup-print-root .md\:col-span-2,
+    .followup-print-root .lg\:col-span-2,
+    .followup-print-root .xl\:col-span-2,
+    .a4-page-card .md\:col-span-2,
+    .a4-page-card .lg\:col-span-2,
+    .a4-page-card .xl\:col-span-2,
+    main .md\:col-span-2,
+    main .lg\:col-span-2,
+    main .xl\:col-span-2 {
+      grid-column: span 2 / span 2 !important;
+    }
 
-  .sheet-layout .md\:col-span-4,
-  .sheet-layout .lg\:col-span-4,
-  .sheet-layout .xl\:col-span-4,
-  .lasik-print-root .md\:col-span-4,
-  .lasik-print-root .lg\:col-span-4,
-  .lasik-print-root .xl\:col-span-4,
-  .specialist-print-root .md\:col-span-4,
-  .specialist-print-root .lg\:col-span-4,
-  .specialist-print-root .xl\:col-span-4,
-  .followup-print-root .md\:col-span-4,
-  .followup-print-root .lg\:col-span-4,
-  .followup-print-root .xl\:col-span-4,
-  .a4-page-card .md\:col-span-4,
-  .a4-page-card .lg\:col-span-4,
-  .a4-page-card .xl\:col-span-4,
-  main .md\:col-span-4,
-  main .lg\:col-span-4,
-  main .xl\:col-span-4 {
-    grid-column: span 4 / span 4 !important;
-  }
+    .sheet-layout .md\:col-span-4,
+    .sheet-layout .lg\:col-span-4,
+    .sheet-layout .xl\:col-span-4,
+    .lasik-print-root .md\:col-span-4,
+    .lasik-print-root .lg\:col-span-4,
+    .lasik-print-root .xl\:col-span-4,
+    .specialist-print-root .md\:col-span-4,
+    .specialist-print-root .lg\:col-span-4,
+    .specialist-print-root .xl\:col-span-4,
+    .followup-print-root .md\:col-span-4,
+    .followup-print-root .lg\:col-span-4,
+    .followup-print-root .xl\:col-span-4,
+    .a4-page-card .md\:col-span-4,
+    .a4-page-card .lg\:col-span-4,
+    .a4-page-card .xl\:col-span-4,
+    main .md\:col-span-4,
+    main .lg\:col-span-4,
+    main .xl\:col-span-4 {
+      grid-column: span 4 / span 4 !important;
+    }
 
-  .sheet-layout .md\:col-span-5,
-  .sheet-layout .lg\:col-span-5,
-  .sheet-layout .xl\:col-span-5,
-  .lasik-print-root .md\:col-span-5,
-  .lasik-print-root .lg\:col-span-5,
-  .lasik-print-root .xl\:col-span-5,
-  .specialist-print-root .md\:col-span-5,
-  .specialist-print-root .lg\:col-span-5,
-  .specialist-print-root .xl\:col-span-5,
-  .followup-print-root .md\:col-span-5,
-  .followup-print-root .lg\:col-span-5,
-  .followup-print-root .xl\:col-span-5,
-  .a4-page-card .md\:col-span-5,
-  .a4-page-card .lg\:col-span-5,
-  .a4-page-card .xl\:col-span-5,
-  main .md\:col-span-5,
-  main .lg\:col-span-5,
-  main .xl\:col-span-5 {
-    grid-column: span 5 / span 5 !important;
-  }
+    .sheet-layout .md\:col-span-5,
+    .sheet-layout .lg\:col-span-5,
+    .sheet-layout .xl\:col-span-5,
+    .lasik-print-root .md\:col-span-5,
+    .lasik-print-root .lg\:col-span-5,
+    .lasik-print-root .xl\:col-span-5,
+    .specialist-print-root .md\:col-span-5,
+    .specialist-print-root .lg\:col-span-5,
+    .specialist-print-root .xl\:col-span-5,
+    .followup-print-root .md\:col-span-5,
+    .followup-print-root .lg\:col-span-5,
+    .followup-print-root .xl\:col-span-5,
+    .a4-page-card .md\:col-span-5,
+    .a4-page-card .lg\:col-span-5,
+    .a4-page-card .xl\:col-span-5,
+    main .md\:col-span-5,
+    main .lg\:col-span-5,
+    main .xl\:col-span-5 {
+      grid-column: span 5 / span 5 !important;
+    }
 
-  .sheet-layout .md\:col-span-7,
-  .sheet-layout .lg\:col-span-7,
-  .sheet-layout .xl\:col-span-7,
-  .lasik-print-root .md\:col-span-7,
-  .lasik-print-root .lg\:col-span-7,
-  .lasik-print-root .xl\:col-span-7,
-  .specialist-print-root .md\:col-span-7,
-  .specialist-print-root .lg\:col-span-7,
-  .specialist-print-root .xl\:col-span-7,
-  .followup-print-root .md\:col-span-7,
-  .followup-print-root .lg\:col-span-7,
-  .followup-print-root .xl\:col-span-7,
-  .a4-page-card .md\:col-span-7,
-  .a4-page-card .lg\:col-span-7,
-  .a4-page-card .xl\:col-span-7,
-  main .md\:col-span-7,
-  main .lg\:col-span-7,
-  main .xl\:col-span-7 {
-    grid-column: span 7 / span 7 !important;
-  }
+    .sheet-layout .md\:col-span-7,
+    .sheet-layout .lg\:col-span-7,
+    .sheet-layout .xl\:col-span-7,
+    .lasik-print-root .md\:col-span-7,
+    .lasik-print-root .lg\:col-span-7,
+    .lasik-print-root .xl\:col-span-7,
+    .specialist-print-root .md\:col-span-7,
+    .specialist-print-root .lg\:col-span-7,
+    .specialist-print-root .xl\:col-span-7,
+    .followup-print-root .md\:col-span-7,
+    .followup-print-root .lg\:col-span-7,
+    .followup-print-root .xl\:col-span-7,
+    .a4-page-card .md\:col-span-7,
+    .a4-page-card .lg\:col-span-7,
+    .a4-page-card .xl\:col-span-7,
+    main .md\:col-span-7,
+    main .lg\:col-span-7,
+    main .xl\:col-span-7 {
+      grid-column: span 7 / span 7 !important;
+    }
 
-  .sheet-layout .md\:col-span-8,
-  .sheet-layout .lg\:col-span-8,
-  .sheet-layout .xl\:col-span-8,
-  .lasik-print-root .md\:col-span-8,
-  .lasik-print-root .lg\:col-span-8,
-  .lasik-print-root .xl\:col-span-8,
-  .specialist-print-root .md\:col-span-8,
-  .specialist-print-root .lg\:col-span-8,
-  .specialist-print-root .xl\:col-span-8,
-  .followup-print-root .md\:col-span-8,
-  .followup-print-root .lg\:col-span-8,
-  .followup-print-root .xl\:col-span-8,
-  .a4-page-card .md\:col-span-8,
-  .a4-page-card .lg\:col-span-8,
-  .a4-page-card .xl\:col-span-8,
-  main .md\:col-span-8,
-  main .lg\:col-span-8,
-  main .xl\:col-span-8 {
-    grid-column: span 8 / span 8 !important;
+    .sheet-layout .md\:col-span-8,
+    .sheet-layout .lg\:col-span-8,
+    .sheet-layout .xl\:col-span-8,
+    .lasik-print-root .md\:col-span-8,
+    .lasik-print-root .lg\:col-span-8,
+    .lasik-print-root .xl\:col-span-8,
+    .specialist-print-root .md\:col-span-8,
+    .specialist-print-root .lg\:col-span-8,
+    .specialist-print-root .xl\:col-span-8,
+    .followup-print-root .md\:col-span-8,
+    .followup-print-root .lg\:col-span-8,
+    .followup-print-root .xl\:col-span-8,
+    .a4-page-card .md\:col-span-8,
+    .a4-page-card .lg\:col-span-8,
+    .a4-page-card .xl\:col-span-8,
+    main .md\:col-span-8,
+    main .lg\:col-span-8,
+    main .xl\:col-span-8 {
+      grid-column: span 8 / span 8 !important;
+    }
   }
-}
 }
 @layer base {
   * {
@@ -584,12 +716,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family:
-      "Inter",
-      "Noto Sans Arabic",
-      "Segoe UI",
-      system-ui,
-      sans-serif;
+    font-family: "Inter", "Noto Sans Arabic", "Segoe UI", system-ui, sans-serif;
     font-size: 15px;
     font-weight: 400;
     direction: rtl;
@@ -691,7 +818,11 @@
 
   .dark [class*="bg-[radial-gradient"],
   .dark [class*="bg-[linear-gradient"] {
-    background-image: linear-gradient(180deg, #000000 0%, #000000 100%) !important;
+    background-image: linear-gradient(
+      180deg,
+      #000000 0%,
+      #000000 100%
+    ) !important;
   }
 
   .dark [class*="shadow-sm"],
@@ -860,7 +991,8 @@ html:not(.dark) :where(body, .selrs-page-bg) {
   background-color: #fdfcff !important;
 }
 
-html:not(.dark) :where(
+html:not(.dark)
+  :where(
     [data-slot="card"],
     [data-slot="tabs-list"],
     .sheet-section-card,
@@ -875,15 +1007,31 @@ html:not(.dark) :where(
   box-shadow: 0 1px 2px rgba(17, 23, 84, 0.04) !important;
 }
 
-html:not(.dark) :where([class*="bg-white"], [class*="bg-card"], [class*="bg-slate-50"], [class*="bg-slate-100"]) {
+html:not(.dark)
+  :where(
+    [class*="bg-white"],
+    [class*="bg-card"],
+    [class*="bg-slate-50"],
+    [class*="bg-slate-100"]
+  ) {
   background-color: #fefeff !important;
 }
 
-html:not(.dark) :where([class*="text-slate-950"], [class*="text-slate-900"], [class*="text-slate-800"]) {
+html:not(.dark)
+  :where(
+    [class*="text-slate-950"],
+    [class*="text-slate-900"],
+    [class*="text-slate-800"]
+  ) {
   color: #23252d !important;
 }
 
-html:not(.dark) :where([class*="text-slate-700"], [class*="text-slate-600"], [class*="text-muted-foreground"]) {
+html:not(.dark)
+  :where(
+    [class*="text-slate-700"],
+    [class*="text-slate-600"],
+    [class*="text-muted-foreground"]
+  ) {
   color: #747481 !important;
 }
 
@@ -891,7 +1039,15 @@ html:not(.dark) :where(.text-primary, strong, b) {
   color: #12178a !important;
 }
 
-html:not(.dark) :where(button, [role="button"], input, textarea, select, [data-slot="tabs-trigger"]) {
+html:not(.dark)
+  :where(
+    button,
+    [role="button"],
+    input,
+    textarea,
+    select,
+    [data-slot="tabs-trigger"]
+  ) {
   border-color: #e8e8f2 !important;
   font-family: inherit;
   letter-spacing: 0;
@@ -902,7 +1058,8 @@ html:not(.dark) :where(input, textarea, select) {
   color: #23252d !important;
 }
 
-html:not(.dark) :where([data-slot="tabs-trigger"][data-state="active"], .bg-primary) {
+html:not(.dark)
+  :where([data-slot="tabs-trigger"][data-state="active"], .bg-primary) {
   background-color: #12178a !important;
   color: #fbfbff !important;
 }
@@ -1685,8 +1842,8 @@ select {
    print layouts are intentionally unaffected. */
 @media screen and (max-width: 640px) {
   :where([data-slot="table-container"], .overflow-x-auto, .overflow-auto):has(
-      > table
-    ) {
+    > table
+  ) {
     width: 100% !important;
     max-width: 100% !important;
     overflow-x: clip !important;
@@ -2003,7 +2160,9 @@ select {
 
   .selrs-app-content > [class*="max-w"],
   .selrs-app-content > [class*="container"],
-  .selrs-app-content > * > :where(
+  .selrs-app-content
+    > *
+    > :where(
       main,
       section,
       [role="main"],
@@ -2019,5 +2178,4 @@ select {
   .patient-guest-content {
     padding-inline: 0.25rem;
   }
-
 }

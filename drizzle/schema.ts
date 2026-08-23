@@ -300,6 +300,7 @@ export const visits = mysqlTable("visits", {
   movedToClinicAt: timestamp("movedToClinicAt"),
   movedToPentacamAt: timestamp("movedToPentacamAt"),
   treatedAt: timestamp("treatedAt"),
+  treatedByUserId: int("treatedByUserId"),
   preTreatedQueueStatus: mysqlEnum("preTreatedQueueStatus", [
     "checkedIn",
     "next",
@@ -680,6 +681,43 @@ export const prescriptionItems = mysqlTable("prescriptionItems", {
 
 export type PrescriptionItem = typeof prescriptionItems.$inferSelect;
 export type InsertPrescriptionItem = typeof prescriptionItems.$inferInsert;
+
+export const readyPrescriptionTemplates = mysqlTable(
+  "ready_prescription_templates",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    templateKey: varchar("template_key", { length: 64 }).notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => [uniqueIndex("ready_rx_template_key_uq").on(table.templateKey)],
+);
+
+export const readyPrescriptionTemplateItems = mysqlTable(
+  "ready_prescription_template_items",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    templateId: int("template_id").notNull(),
+    sortOrder: int("sort_order").default(0).notNull(),
+    medicationName: varchar("medication_name", { length: 255 }).notNull(),
+    dosage: varchar("dosage", { length: 100 }),
+    frequency: varchar("frequency", { length: 100 }),
+    duration: varchar("duration", { length: 100 }),
+    instructions: text("instructions"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => [
+    index("ready_rx_item_template_idx").on(table.templateId),
+    index("ready_rx_item_order_idx").on(table.templateId, table.sortOrder),
+  ],
+);
+
+export type ReadyPrescriptionTemplate =
+  typeof readyPrescriptionTemplates.$inferSelect;
+export type ReadyPrescriptionTemplateItem =
+  typeof readyPrescriptionTemplateItems.$inferSelect;
 
 /**
  * Diseases table - ط§ظ„ط£ظ…ط±ط§ط¶
@@ -2509,7 +2547,7 @@ export const bookingScheduleConfig = mysqlTable(
     bookingType: mysqlEnum("bookingType", [
       "consultant",
       "specialist",
-      "lasik",
+      "pentacam",
       "external",
       "followup",
     ]).notNull(),
@@ -2538,7 +2576,7 @@ export const bookingClosures = mysqlTable("booking_closures", {
   bookingType: mysqlEnum("bookingType", [
     "consultant",
     "specialist",
-    "lasik",
+    "pentacam",
     "external",
     "followup",
   ]),
@@ -2557,7 +2595,7 @@ export const patientPortalBookings = mysqlTable(
     bookingType: mysqlEnum("bookingType", [
       "consultant",
       "specialist",
-      "lasik",
+      "pentacam",
       "external",
       "followup",
     ]).notNull(),

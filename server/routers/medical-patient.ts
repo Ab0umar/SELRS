@@ -17,6 +17,7 @@ import {
   upsertPatientToMssql,
   createOrSyncPatientFromMssql,
   syncSinglePatientFromMssql,
+  deleteSinglePatientServiceFromMssqlByCode,
 } from "../integrations/mssqlPatients";
 import { isExternalServiceType } from "../../shared/serviceType";
 import {
@@ -1154,10 +1155,37 @@ export const medicalPatientRoutes = {
     .mutation(async ({ input }) => {
       const conn = await db.getDb();
       if (!conn) throw new Error("Database not available");
+      const [entry] = await conn
+        .select()
+        .from(patientServiceEntries)
+        .where(eq(patientServiceEntries.id, input.id))
+        .limit(1);
       await conn
         .delete(patientServiceEntries)
         .where(eq(patientServiceEntries.id, input.id));
-      return { success: true };
+
+      let mssql: { deleted: boolean; deletedCount: number; note?: string } | undefined;
+      if (entry) {
+        const patient = await db.getPatientById(entry.patientId);
+        const patientCode = String((patient as any)?.patientCode ?? "").trim();
+        if (patientCode && entry.serviceCode) {
+          try {
+            mssql = await deleteSinglePatientServiceFromMssqlByCode(
+              patientCode,
+              entry.serviceCode,
+              entry.serviceDate,
+            );
+          } catch (mssqlError) {
+            mssql = {
+              deleted: false,
+              deletedCount: 0,
+              note: `MSSQL delete failed: ${mssqlError}`,
+            };
+          }
+        }
+      }
+
+      return { success: true, mssql };
     }),
 
   setPatientStatus: receptionProcedure
@@ -1186,7 +1214,17 @@ export const medicalPatientRoutes = {
         ]),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const role = String(ctx.user.role ?? "").toLowerCase();
+      if (
+        input.queueStatus === "treated" &&
+        !["reception", "admin"].includes(role)
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "تسجيل المريض كمعالج متاح للاستقبال والأدمن فقط.",
+        });
+      }
       const visitsRows = await db.getVisitsByPatient(input.patientId);
       const latest = visitsRows[0];
       if (!latest) {
@@ -1195,7 +1233,20 @@ export const medicalPatientRoutes = {
           message: "Patient has no visits",
         });
       }
-      await db.updateVisitQueueStatus(Number(latest.id), input.queueStatus);
+      if (
+        input.queueStatus === "treated" &&
+        !(await db.visitHasQueueCompletionData(Number(latest.id)))
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "لا يمكن تسجيل المريض كمعالج قبل إدخال بيانات الكشف.",
+        });
+      }
+      await db.updateVisitQueueStatus(
+        Number(latest.id),
+        input.queueStatus,
+        ctx.user.id,
+      );
       return { success: true };
     }),
 

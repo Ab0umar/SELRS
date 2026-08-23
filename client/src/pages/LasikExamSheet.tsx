@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
   Target,
   Clock,
   Search,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
@@ -35,6 +36,12 @@ import FollowupTablesBody, {
 } from "@/components/sheets/FollowupTablesBody";
 import SheetPrintHeader from "@/components/sheets/SheetPrintHeader";
 import SheetWatermark from "@/components/sheets/SheetWatermark";
+import RefractionValueSelect from "@/components/RefractionValueSelect";
+import {
+  CYLINDER_OPTIONS,
+  SPHERE_OPTIONS,
+  UCVA_BCVA_OPTIONS,
+} from "@/lib/refractionOptions";
 import { MedicalHistoryTab } from "@/components/patient-details/MedicalHistoryTab";
 import {
   displaySheetDate,
@@ -42,19 +49,123 @@ import {
   getPatientSheetDateOfBirth,
 } from "@/lib/sheetDates";
 
-export default function LasikExamSheet() {
+function FundusDrawingCanvas({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const drawingRef = useRef(false);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!canvas || !context) return;
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    if (!value) return;
+    const image = new Image();
+    image.onload = () => {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    };
+    image.src = value;
+  }, [value]);
+  const persistDrawing = () => {
+    drawingRef.current = false;
+    const canvas = canvasRef.current;
+    if (canvas) onChange(canvas.toDataURL("image/webp", 0.82));
+  };
+  const point = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    return {
+      x: ((event.clientX - rect.left) / rect.width) * event.currentTarget.width,
+      y:
+        ((event.clientY - rect.top) / rect.height) * event.currentTarget.height,
+    };
+  };
+  return (
+    <>
+      <canvas
+        ref={canvasRef}
+        width={360}
+        height={720}
+        className="absolute inset-0 z-10 h-full w-full touch-none cursor-crosshair"
+        onPointerDown={(event) => {
+          drawingRef.current = true;
+          event.currentTarget.setPointerCapture(event.pointerId);
+          const ctx = event.currentTarget.getContext("2d");
+          const current = point(event);
+          ctx?.beginPath();
+          ctx?.moveTo(current.x, current.y);
+        }}
+        onPointerMove={(event) => {
+          if (!drawingRef.current) return;
+          const ctx = event.currentTarget.getContext("2d");
+          if (!ctx) return;
+          const current = point(event);
+          ctx.strokeStyle = "#dc2626";
+          ctx.lineWidth = 2.5;
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.lineTo(current.x, current.y);
+          ctx.stroke();
+        }}
+        onPointerUp={persistDrawing}
+        onPointerCancel={persistDrawing}
+      />
+      <button
+        type="button"
+        title="مسح الرسم"
+        aria-label="مسح الرسم"
+        className="absolute right-1 top-1 z-20 flex h-5 w-5 items-center justify-center rounded-full bg-white/90 text-[10px] font-bold text-slate-500 shadow print:hidden"
+        onClick={() => {
+          const canvas = canvasRef.current;
+          if (canvas) {
+            canvas
+              .getContext("2d")
+              ?.clearRect(0, 0, canvas.width, canvas.height);
+            onChange("");
+          }
+        }}
+      >
+        ×
+      </button>
+    </>
+  );
+}
+
+type LasikExamSheetProps = {
+  params?: unknown;
+  embedded?: boolean;
+  patientId?: number;
+  visitId?: number;
+  sheetType?: "consultant" | "lasik" | "external";
+  embeddedMode?: "full" | "examination";
+};
+
+export default function LasikExamSheet({
+  embedded = false,
+  patientId: embeddedPatientId,
+  visitId: embeddedVisitId,
+  sheetType: embeddedSheetType,
+  embeddedMode = "full",
+}: LasikExamSheetProps = {}) {
+  const [selectedVisitId, setSelectedVisitId] = useState(embeddedVisitId);
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const { goBack } = useAppNavigation();
   const [, params] = useRoute("/sheets/:type/:id");
   const currentPath =
     typeof window !== "undefined" ? window.location.pathname : "";
-  const currentSheetType = currentPath.includes("/sheets/consultant")
-    ? "consultant"
-    : currentPath.includes("/sheets/external") ||
-        currentPath.includes("/sheets/operation")
-      ? "external"
-      : "lasik";
+  const currentSheetType =
+    embeddedSheetType ??
+    (currentPath.includes("/sheets/consultant")
+      ? "consultant"
+      : currentPath.includes("/sheets/external") ||
+          currentPath.includes("/sheets/operation")
+        ? "external"
+        : "lasik");
   const sheetTypeLabel =
     currentSheetType === "consultant"
       ? "كشف"
@@ -69,9 +180,11 @@ export default function LasikExamSheet() {
     );
     return match?.[1] ? Number(match[1]) : undefined;
   })();
-  const initialPatientId = Number.isFinite(routePatientId)
-    ? routePatientId
-    : undefined;
+  const initialPatientId = Number.isFinite(embeddedPatientId)
+    ? embeddedPatientId
+    : Number.isFinite(routePatientId)
+      ? routePatientId
+      : undefined;
   const printMode = usePrintMode({ ready: Boolean(initialPatientId) });
   const originalMode =
     typeof window !== "undefined" &&
@@ -144,8 +257,8 @@ export default function LasikExamSheet() {
     },
   });
   const [clinicalRefraction, setClinicalRefraction] = useState({
-    od: { s: "", c: "", axis: "" },
-    os: { s: "", c: "", axis: "" },
+    od: { s: "", c: "", axis: "", pd: "" },
+    os: { s: "", c: "", axis: "", pd: "" },
   });
   const [signatures, setSignatures] = useState({
     reception: "",
@@ -156,6 +269,7 @@ export default function LasikExamSheet() {
   const [readingValue, setReadingValue] = useState("");
   const [diagnosisText, setDiagnosisText] = useState("");
   const [finalDecisionText, setFinalDecisionText] = useState("");
+  const [consultantDrawing, setConsultantDrawing] = useState("");
   const [consultantExam, setConsultantExam] = useState({
     externalPtosis: false,
     externalSquint: false,
@@ -170,6 +284,31 @@ export default function LasikExamSheet() {
     fundusAbnormalNote: "",
     complains: "",
   });
+  useEffect(() => {
+    setSelectedVisitId(embeddedVisitId);
+  }, [embeddedVisitId]);
+  useEffect(() => {
+    if (!selectedVisitId) return;
+    setConsultantExam({
+      externalPtosis: false,
+      externalSquint: false,
+      externalOthers: false,
+      externalOthersNote: "",
+      muscleNormal: false,
+      muscleAbnormal: false,
+      muscleAbnormalNote: "",
+      otherAbnormalities: "",
+      fundusNormal: false,
+      fundusAbnormal: false,
+      fundusAbnormalNote: "",
+      complains: "",
+    });
+    setClinicalRefraction({
+      od: { s: "", c: "", axis: "", pd: "" },
+      os: { s: "", c: "", axis: "", pd: "" },
+    });
+    setConsultantDrawing("");
+  }, [selectedVisitId]);
   const [complainsSearchText, setComplainsSearchText] = useState("");
   const [complainsSearchOpen, setComplainsSearchOpen] = useState(false);
   const symptomsQuery = trpc.medical.getAllSymptoms.useQuery(undefined, {
@@ -246,7 +385,11 @@ export default function LasikExamSheet() {
     refetchOnWindowFocus: false,
   });
   const sheetQuery = trpc.medical.getSheetEntry.useQuery(
-    { patientId: initialPatientId ?? 0, sheetType: currentSheetType },
+    {
+      patientId: initialPatientId ?? 0,
+      visitId: selectedVisitId,
+      sheetType: currentSheetType,
+    },
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   const fallbackSheetType =
@@ -404,6 +547,16 @@ export default function LasikExamSheet() {
   }, [followupSheetsQuery.data, followupLabels.followupNames]);
 
   useEffect(() => {
+    let sheetOwnsOtherHistory = false;
+    try {
+      const savedSheet = sheetQuery.data ? JSON.parse(sheetQuery.data) : null;
+      sheetOwnsOtherHistory = Object.prototype.hasOwnProperty.call(
+        savedSheet ?? {},
+        "medicalHistoryOther",
+      );
+    } catch {
+      sheetOwnsOtherHistory = false;
+    }
     if (medicalHistoryQuery.data && medicalHistoryQuery.data.length > 0) {
       const rec = medicalHistoryQuery.data[0];
       setMedicalHistory({
@@ -416,10 +569,12 @@ export default function LasikExamSheet() {
           ? "yes"
           : "no",
       });
-      if (rec.previousSurgeries || rec.medications || rec.familyHistory) {
+      if (
+        !sheetOwnsOtherHistory &&
+        (rec.previousSurgeries || rec.familyHistory)
+      ) {
         const extraParts = [
           rec.previousSurgeries && `عمليات سابقة: ${rec.previousSurgeries}`,
-          rec.medications && `أدوية: ${rec.medications}`,
           rec.familyHistory && `تاريخ عائلي: ${rec.familyHistory}`,
         ]
           .filter(Boolean)
@@ -436,7 +591,7 @@ export default function LasikExamSheet() {
         "قرنية مخروطية بالعائلة؟": "no",
       });
     }
-  }, [medicalHistoryQuery.data]);
+  }, [medicalHistoryQuery.data, sheetQuery.data]);
   useEffect(() => {
     if (!initialPatientId) return;
     const socket = connectSheetUpdates({
@@ -484,8 +639,35 @@ export default function LasikExamSheet() {
       toast.success("تم الحفظ");
     },
   });
+  const deleteVisitSheetMutation =
+    trpc.medical.deleteSheetEntryForVisit.useMutation({
+      onSuccess: async ({ deleted }) => {
+        setConsultantExam({
+          externalPtosis: false,
+          externalSquint: false,
+          externalOthers: false,
+          externalOthersNote: "",
+          muscleNormal: false,
+          muscleAbnormal: false,
+          muscleAbnormalNote: "",
+          otherAbnormalities: "",
+          fundusNormal: false,
+          fundusAbnormal: false,
+          fundusAbnormalNote: "",
+          complains: "",
+        });
+        await sheetQuery.refetch();
+        toast.success(
+          deleted ? "تم مسح شيت الزيارة" : "لا يوجد شيت محفوظ لهذه الزيارة",
+        );
+      },
+      onError: (error) =>
+        toast.error(getTrpcErrorMessage(error, "تعذر مسح شيت الزيارة")),
+    });
   const saveRefractionMutation =
     trpc.medical.saveRefractionToExamination.useMutation();
+  const updateChiefComplaintMutation =
+    trpc.medical.updateVisitChiefComplaint.useMutation();
 
   const handleSelectPatient = (patient: {
     id: number;
@@ -593,11 +775,23 @@ export default function LasikExamSheet() {
       if (parsed.consultantExam) {
         setConsultantExam((prev) => ({ ...prev, ...parsed.consultantExam }));
       }
+      setConsultantDrawing(String(parsed.consultantDrawing ?? ""));
       if (parsed.medicalHistory) {
         setMedicalHistory((prev) => ({ ...parsed.medicalHistory, ...prev }));
       }
-      if (parsed.medicalHistoryOther) {
-        setMedicalHistoryOther(parsed.medicalHistoryOther);
+      if (Object.prototype.hasOwnProperty.call(parsed, "medicalHistoryOther")) {
+        const savedOther = String(parsed.medicalHistoryOther ?? "").trim();
+        const savedComplaint = String(
+          parsed.consultantExam?.complains ?? "",
+        ).trim();
+        const otherWithoutLegacyMedicationLabel = savedOther
+          .replace(/^أدوية:\s*/u, "")
+          .trim();
+        setMedicalHistoryOther(
+          savedComplaint && otherWithoutLegacyMedicationLabel === savedComplaint
+            ? ""
+            : savedOther,
+        );
       }
       if (parsed.operationDetails) {
         setOperationType(parsed.operationDetails.type ?? "");
@@ -622,7 +816,11 @@ export default function LasikExamSheet() {
 
   useEffect(() => {
     if (!examinationsQuery.data || examinationsQuery.data.length === 0) return;
-    const latestExam = examinationsQuery.data[0] as any;
+    const latestExam =
+      ((examinationsQuery.data as any[]) ?? []).find(
+        (row) => Number(row.visitId) === Number(selectedVisitId),
+      ) ?? (!selectedVisitId ? (examinationsQuery.data[0] as any) : null);
+    if (!latestExam) return;
     if (latestExam.autorefraction) {
       const auto = latestExam.autorefraction;
       setExamData((prev) => ({
@@ -643,27 +841,58 @@ export default function LasikExamSheet() {
         },
       }));
     }
-  }, [examinationsQuery.data]);
+  }, [examinationsQuery.data, selectedVisitId]);
 
   useEffect(() => {
-    const latest = ((glassesQuery.data as any[]) ?? [])[0];
+    const selectedExamination = ((examinationsQuery.data as any[]) ?? []).find(
+      (row) => Number(row.visitId) === Number(selectedVisitId),
+    );
+    const latest =
+      ((glassesQuery.data as any[]) ?? []).find(
+        (row) =>
+          Number(row.visitId) === Number(selectedVisitId) ||
+          Number(row.examinationId) === Number(selectedExamination?.id),
+      ) ?? (!selectedVisitId ? ((glassesQuery.data as any[]) ?? [])[0] : null);
     if (!latest) return;
     setClinicalRefraction({
       od: {
         s: String(latest.sOD ?? ""),
         c: String(latest.cOD ?? ""),
         axis: String(latest.axisOD ?? ""),
+        pd: String(latest.pdOD ?? ""),
       },
       os: {
         s: String(latest.sOS ?? ""),
         c: String(latest.cOS ?? ""),
         axis: String(latest.axisOS ?? ""),
+        pd: String(latest.pdOS ?? ""),
       },
     });
-  }, [glassesQuery.data]);
+    setExamData((previous) => ({
+      ...previous,
+      autorefraction: {
+        od: {
+          ...previous.autorefraction.od,
+          bcva: String(latest.bcvaOD || previous.autorefraction.od.bcva || ""),
+        },
+        os: {
+          ...previous.autorefraction.os,
+          bcva: String(latest.bcvaOS || previous.autorefraction.os.bcva || ""),
+        },
+      },
+    }));
+  }, [examinationsQuery.data, glassesQuery.data, selectedVisitId]);
 
   useEffect(() => {
-    const latest = ((autorefQuery.data as any[]) ?? [])[0];
+    const selectedExamination = ((examinationsQuery.data as any[]) ?? []).find(
+      (row) => Number(row.visitId) === Number(selectedVisitId),
+    );
+    const latest =
+      ((autorefQuery.data as any[]) ?? []).find(
+        (row) =>
+          Number(row.visitId) === Number(selectedVisitId) ||
+          Number(row.examinationId) === Number(selectedExamination?.id),
+      ) ?? (!selectedVisitId ? ((autorefQuery.data as any[]) ?? [])[0] : null);
     if (!latest) return;
     setExamData((previous) => ({
       ...previous,
@@ -674,7 +903,7 @@ export default function LasikExamSheet() {
           c: String(latest.cylinderOD ?? ""),
           axis: String(latest.axisOD ?? ""),
           ucva: String(latest.ucvaOD ?? ""),
-          bcva: String(latest.bcvaOD ?? ""),
+          bcva: String(latest.bcvaOD || previous.autorefraction.od.bcva || ""),
           iop: String(latest.iopOD ?? ""),
         },
         os: {
@@ -683,35 +912,58 @@ export default function LasikExamSheet() {
           c: String(latest.cylinderOS ?? ""),
           axis: String(latest.axisOS ?? ""),
           ucva: String(latest.ucvaOS ?? ""),
-          bcva: String(latest.bcvaOS ?? ""),
+          bcva: String(latest.bcvaOS || previous.autorefraction.os.bcva || ""),
           iop: String(latest.iopOS ?? ""),
         },
       },
     }));
-  }, [autorefQuery.data]);
+  }, [autorefQuery.data, examinationsQuery.data, selectedVisitId]);
 
   useEffect(() => {
-    const latestExamination = ((examinationsQuery.data as any[]) ?? [])[0];
+    const latestExamination =
+      ((examinationsQuery.data as any[]) ?? []).find(
+        (row) => Number(row.visitId) === Number(selectedVisitId),
+      ) ??
+      (!selectedVisitId ? ((examinationsQuery.data as any[]) ?? [])[0] : null);
     const visit =
       ((visitsQuery.data as any[]) ?? []).find(
         (row) => Number(row.id) === Number(latestExamination?.visitId),
-      ) ?? ((visitsQuery.data as any[]) ?? [])[0];
+      ) ??
+      ((visitsQuery.data as any[]) ?? []).find(
+        (row) => Number(row.id) === Number(selectedVisitId),
+      );
     const complaint = String(visit?.chiefComplaint ?? "").trim();
-    if (complaint) {
-      setConsultantExam((previous) => ({
-        ...previous,
-        complains: complaint,
-      }));
+    let hasSavedComplaint = false;
+    try {
+      const savedSheet = sheetQuery.data ? JSON.parse(sheetQuery.data) : null;
+      hasSavedComplaint =
+        Number(savedSheet?.visitId) === Number(selectedVisitId) &&
+        Object.prototype.hasOwnProperty.call(
+          savedSheet?.consultantExam ?? {},
+          "complains",
+        );
+    } catch {
+      hasSavedComplaint = false;
     }
-  }, [examinationsQuery.data, sheetQuery.data, visitsQuery.data]);
+    if (hasSavedComplaint) return;
+    setConsultantExam((previous) => ({ ...previous, complains: complaint }));
+  }, [
+    examinationsQuery.data,
+    selectedVisitId,
+    sheetQuery.data,
+    visitsQuery.data,
+  ]);
 
   useEffect(() => {
-    const latestReport = ((reportsQuery.data as any[]) ?? [])[0];
+    const latestReport =
+      ((reportsQuery.data as any[]) ?? []).find(
+        (row) => Number(row.visitId) === Number(selectedVisitId),
+      ) ?? (!selectedVisitId ? ((reportsQuery.data as any[]) ?? [])[0] : null);
     setDiagnosisText(String(latestReport?.diagnosis ?? ""));
     setFinalDecisionText(
       String(latestReport?.recommendations ?? latestReport?.treatment ?? ""),
     );
-  }, [reportsQuery.data]);
+  }, [reportsQuery.data, selectedVisitId]);
 
   useEffect(() => {
     const stateData = (examinationStateQuery.data as any)?.data;
@@ -739,6 +991,17 @@ export default function LasikExamSheet() {
   const handleSaveSheet = async () => {
     if (!initialPatientId) {
       toast.error("يرجى اختيار المريض أولاً");
+      return;
+    }
+    if (embedded && !selectedVisitId) {
+      toast.error("يجب اختيار زيارة موجودة قبل الحفظ");
+      return;
+    }
+    const selectedExamination = ((examinationsQuery.data as any[]) ?? []).find(
+      (examination) => Number(examination.visitId) === Number(selectedVisitId),
+    );
+    if (embeddedMode === "examination" && !selectedExamination?.id) {
+      toast.error("الزيارة المختارة لا تحتوي على فحص قياسات محفوظ");
       return;
     }
     try {
@@ -891,12 +1154,15 @@ export default function LasikExamSheet() {
       };
       await saveSheetMutation.mutateAsync({
         patientId: initialPatientId,
+        visitId: selectedVisitId,
         sheetType: currentSheetType,
         content: JSON.stringify({
           ...existing,
+          visitId: selectedVisitId,
           formData: { ...(existing.formData ?? {}), ...formData },
           examData: mergedExamData,
           consultantExam,
+          consultantDrawing,
           medicalHistory,
           medicalHistoryOther,
           diagnosisText,
@@ -908,6 +1174,12 @@ export default function LasikExamSheet() {
           },
         }),
       });
+      if (selectedVisitId) {
+        await updateChiefComplaintMutation.mutateAsync({
+          visitId: selectedVisitId,
+          chiefComplaint: consultantExam.complains.trim(),
+        });
+      }
       await upsertMedicalHistoryMutation.mutateAsync({
         patientId: initialPatientId,
         diabetes: medicalHistory["سكر؟"] === "yes",
@@ -917,21 +1189,37 @@ export default function LasikExamSheet() {
         glaucoma: medicalHistory["ماء زرقاء؟"] === "yes",
         familyKeratoconus: medicalHistory["قرنية مخروطية بالعائلة؟"] === "yes",
       });
-      await saveRefractionMutation.mutateAsync({
-        patientId: initialPatientId,
-        glassesData: {
-          od: {
-            s: clinicalRefraction.od.s || undefined,
-            c: clinicalRefraction.od.c || undefined,
-            axis: clinicalRefraction.od.axis || undefined,
+      if (selectedExamination?.id) {
+        await saveRefractionMutation.mutateAsync({
+          patientId: initialPatientId,
+          visitId: selectedVisitId,
+          examinationId: selectedExamination.id,
+          createVisitIfMissing: false,
+          glassesData: {
+            od: {
+              s: clinicalRefraction.od.s || undefined,
+              c: clinicalRefraction.od.c || undefined,
+              axis: clinicalRefraction.od.axis || undefined,
+              pd: clinicalRefraction.od.pd || undefined,
+              bcva: examData.autorefraction.od.bcva || undefined,
+            },
+            os: {
+              s: clinicalRefraction.os.s || undefined,
+              c: clinicalRefraction.os.c || undefined,
+              axis: clinicalRefraction.os.axis || undefined,
+              pd: clinicalRefraction.os.pd || undefined,
+              bcva: examData.autorefraction.os.bcva || undefined,
+            },
           },
-          os: {
-            s: clinicalRefraction.os.s || undefined,
-            c: clinicalRefraction.os.c || undefined,
-            axis: clinicalRefraction.os.axis || undefined,
-          },
-        },
-      });
+        });
+      }
+      await Promise.all([
+        sheetQuery.refetch(),
+        examinationsQuery.refetch(),
+        glassesQuery.refetch(),
+        autorefQuery.refetch(),
+        visitsQuery.refetch(),
+      ]);
     } catch (error) {
       toast.error(getTrpcErrorMessage(error, "حدث خطأ أثناء الحفظ"));
     }
@@ -966,7 +1254,7 @@ export default function LasikExamSheet() {
         }));
 
     const mkClinicalPatch =
-      (eye: "od" | "os", field: "s" | "c" | "axis") =>
+      (eye: "od" | "os", field: "s" | "c" | "axis" | "pd") =>
       (event: React.ChangeEvent<HTMLInputElement>) =>
         setClinicalRefraction((previous) => ({
           ...previous,
@@ -993,104 +1281,114 @@ export default function LasikExamSheet() {
 
     return (
       <div
-        className="lasik-sheet relative overflow-hidden bg-white text-[#191c1e] font-sans p-8 print:p-[10mm] print:border-0 print:shadow-none border border-[#c3c6d6] shadow-sm flex flex-col gap-5 w-[210mm] max-w-full mx-auto"
+        className={`lasik-sheet relative overflow-hidden bg-white text-[#191c1e] font-sans print:p-[10mm] print:border-0 print:shadow-none flex flex-col ${
+          embeddedMode === "examination"
+            ? "consultant-examination-only w-full max-w-none gap-0 border-0 p-0 shadow-none"
+            : embedded
+              ? "w-full max-w-none gap-5 border border-[#c3c6d6] p-8 shadow-sm"
+              : "w-[210mm] max-w-full mx-auto gap-5 border border-[#c3c6d6] p-8 shadow-sm"
+        }`}
         dir="ltr"
       >
-        <SheetWatermark />
-        <SheetPrintHeader
-          sheetType={sheetTypeLabel}
-          bottomContent={
-            currentSheetType !== "consultant" ? (
-              <div
-                className="flex w-full items-center justify-between gap-5 text-[11px]"
-                dir="rtl"
-              >
-                <div className="flex min-w-0 items-center gap-2 whitespace-nowrap">
-                  <span className="font-bold text-[#434654]">
-                    تاريخ العملية:
-                  </span>
-                  <DateInput
-                    className="h-7 w-40 shrink-0 rounded-none border-0 border-b border-[#c3c6d6] bg-transparent px-1 text-center text-[11px] font-normal"
-                    inputClassName="min-w-[7.5rem] w-[7.5rem] px-1 text-center tabular-nums"
-                    value={operationDateRight}
-                    onChange={(event) =>
-                      setOperationDateRight(event.target.value)
-                    }
-                  />
-                </div>
+        {embeddedMode !== "examination" ? <SheetWatermark /> : null}
+        {embeddedMode !== "examination" ? (
+          <SheetPrintHeader
+            sheetType={sheetTypeLabel}
+            bottomContent={
+              currentSheetType !== "consultant" ? (
                 <div
-                  className="flex items-center justify-center gap-4 font-bold"
-                  dir="ltr"
+                  className="flex w-full items-center justify-between gap-5 text-[11px]"
+                  dir="rtl"
                 >
-                  {[
-                    ["PRK", "PRK"],
-                    ["LASIK", "LASIK"],
-                    ["F.S", "FS"],
-                    ["F.L", "FL"],
-                    ["IOL", "IOL"],
-                    ["ICL", "ICL"],
-                  ].map(([label, value]) => (
-                    <label
-                      key={value}
-                      className="inline-flex items-center gap-1"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={operationType === value}
-                        onChange={() =>
-                          setOperationType(operationType === value ? "" : value)
-                        }
-                      />
-                      <span>{label}</span>
-                    </label>
-                  ))}
-                </div>
-                <div
-                  className="flex items-center gap-3 whitespace-nowrap"
-                  dir="ltr"
-                >
-                  <span className="font-bold text-[#434654]">Eye:</span>
-                  {(
-                    [
-                      ["OD", "right"],
-                      ["OS", "left"],
-                      ["OU", "both"],
-                    ] as const
-                  ).map(([label, eye]) => (
-                    <label
-                      key={eye}
-                      className="flex items-center gap-1 font-bold"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={operationEyes[eye]}
-                        onChange={(event) => {
-                          const checked = event.target.checked;
-                          if (eye === "both") {
-                            setOperationEyes({
-                              right: checked,
-                              left: checked,
-                              both: checked,
-                            });
-                            return;
+                  <div className="flex min-w-0 items-center gap-2 whitespace-nowrap">
+                    <span className="font-bold text-[#434654]">
+                      تاريخ العملية:
+                    </span>
+                    <DateInput
+                      className="h-7 w-40 shrink-0 rounded-none border-0 border-b border-[#c3c6d6] bg-transparent px-1 text-center text-[11px] font-normal"
+                      inputClassName="min-w-[7.5rem] w-[7.5rem] px-1 text-center tabular-nums"
+                      value={operationDateRight}
+                      onChange={(event) =>
+                        setOperationDateRight(event.target.value)
+                      }
+                    />
+                  </div>
+                  <div
+                    className="flex items-center justify-center gap-4 font-bold"
+                    dir="ltr"
+                  >
+                    {[
+                      ["PRK", "PRK"],
+                      ["LASIK", "LASIK"],
+                      ["F.S", "FS"],
+                      ["F.L", "FL"],
+                      ["IOL", "IOL"],
+                      ["ICL", "ICL"],
+                    ].map(([label, value]) => (
+                      <label
+                        key={value}
+                        className="inline-flex items-center gap-1"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={operationType === value}
+                          onChange={() =>
+                            setOperationType(
+                              operationType === value ? "" : value,
+                            )
                           }
-                          setOperationEyes((previous) => {
-                            const next = { ...previous, [eye]: checked };
-                            return {
-                              ...next,
-                              both: next.right && next.left,
-                            };
-                          });
-                        }}
-                      />
-                      {label}
-                    </label>
-                  ))}
+                        />
+                        <span>{label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div
+                    className="flex items-center gap-3 whitespace-nowrap"
+                    dir="ltr"
+                  >
+                    <span className="font-bold text-[#434654]">Eye:</span>
+                    {(
+                      [
+                        ["OD", "right"],
+                        ["OS", "left"],
+                        ["OU", "both"],
+                      ] as const
+                    ).map(([label, eye]) => (
+                      <label
+                        key={eye}
+                        className="flex items-center gap-1 font-bold"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={operationEyes[eye]}
+                          onChange={(event) => {
+                            const checked = event.target.checked;
+                            if (eye === "both") {
+                              setOperationEyes({
+                                right: checked,
+                                left: checked,
+                                both: checked,
+                              });
+                              return;
+                            }
+                            setOperationEyes((previous) => {
+                              const next = { ...previous, [eye]: checked };
+                              return {
+                                ...next,
+                                both: next.right && next.left,
+                              };
+                            });
+                          }}
+                        />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ) : undefined
-          }
-        />
+              ) : undefined
+            }
+          />
+        ) : null}
 
         {/* Patient Info */}
         <section
@@ -1515,8 +1813,136 @@ export default function LasikExamSheet() {
         </section>
 
         {/* Detailed Refraction */}
-        <section>
-          <table className="w-full text-center border-collapse">
+        <section
+          className={
+            embeddedMode === "examination"
+              ? "mx-auto w-full max-w-4xl"
+              : undefined
+          }
+          data-purpose="clinical-refraction"
+        >
+          {embeddedMode === "examination" ? (
+            <div className="mb-3 flex flex-wrap items-center gap-2" dir="ltr">
+              <span className="min-w-[42px] text-xs font-medium">BCVA</span>
+              <RefractionValueSelect
+                value={examData.autorefraction.od.bcva}
+                onChange={(value) =>
+                  setExamData((previous) => ({
+                    ...previous,
+                    autorefraction: {
+                      ...previous.autorefraction,
+                      od: { ...previous.autorefraction.od, bcva: value },
+                    },
+                  }))
+                }
+                options={UCVA_BCVA_OPTIONS}
+                placeholder="OD"
+                triggerClassName="h-8 w-20 text-center text-xs font-mono"
+              />
+              <span className="text-muted-foreground">/</span>
+              <RefractionValueSelect
+                value={examData.autorefraction.os.bcva}
+                onChange={(value) =>
+                  setExamData((previous) => ({
+                    ...previous,
+                    autorefraction: {
+                      ...previous.autorefraction,
+                      os: { ...previous.autorefraction.os, bcva: value },
+                    },
+                  }))
+                }
+                options={UCVA_BCVA_OPTIONS}
+                placeholder="OS"
+                triggerClassName="h-8 w-20 text-center text-xs font-mono"
+              />
+              <span className="mx-2 h-6 border-l" />
+              <span className="min-w-[28px] text-xs font-medium">PD</span>
+              <input
+                className="h-8 w-20 rounded border border-input bg-background px-2 text-center text-xs font-mono outline-none focus:border-[#003d9b]"
+                inputMode="decimal"
+                value={clinicalRefraction.od.pd}
+                onChange={(event) => {
+                  const pd = event.target.value;
+                  setClinicalRefraction((previous) => ({
+                    od: { ...previous.od, pd },
+                    os: { ...previous.os, pd },
+                  }));
+                }}
+              />
+            </div>
+          ) : null}
+          {embeddedMode === "examination" ? (
+            <div className="mb-3 grid grid-cols-1 gap-2 sm:hidden" dir="ltr">
+              {(["od", "os"] as const).map((eye) => (
+                <div
+                  key={eye}
+                  className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+                >
+                  <div
+                    className={`px-3 py-2 text-sm font-bold ${
+                      eye === "od"
+                        ? "bg-blue-50 text-blue-900"
+                        : "bg-slate-100 text-slate-700"
+                    }`}
+                  >
+                    {eye === "od" ? "OD (Right)" : "OS (Left)"}
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 p-2">
+                    <label className="min-w-0 text-center text-xs font-semibold text-slate-500">
+                      S
+                      <RefractionValueSelect
+                        value={clinicalRefraction[eye].s}
+                        onChange={(value) =>
+                          setClinicalRefraction((previous) => ({
+                            ...previous,
+                            [eye]: { ...previous[eye], s: value },
+                          }))
+                        }
+                        options={SPHERE_OPTIONS}
+                        triggerClassName="mt-1 h-9 w-full border-slate-200 text-center font-mono text-sm"
+                      />
+                    </label>
+                    <label className="min-w-0 text-center text-xs font-semibold text-slate-500">
+                      C
+                      <RefractionValueSelect
+                        value={clinicalRefraction[eye].c}
+                        onChange={(value) =>
+                          setClinicalRefraction((previous) => ({
+                            ...previous,
+                            [eye]: { ...previous[eye], c: value },
+                          }))
+                        }
+                        options={CYLINDER_OPTIONS}
+                        triggerClassName="mt-1 h-9 w-full border-slate-200 text-center font-mono text-sm"
+                      />
+                    </label>
+                    <label className="col-span-2 min-w-0 text-center text-xs font-semibold text-slate-500">
+                      Axis
+                      <input
+                        className="mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-1 text-center font-mono text-sm outline-none focus:border-blue-600"
+                        inputMode="numeric"
+                        value={clinicalRefraction[eye].axis}
+                        onChange={mkClinicalPatch(eye, "axis")}
+                      />
+                    </label>
+                  </div>
+                </div>
+              ))}
+              <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 text-sm font-semibold text-blue-900">
+                <span className="shrink-0">Reading / Add +</span>
+                <input
+                  className="h-9 min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-2 text-center font-mono outline-none focus:border-blue-600"
+                  value={readingValue}
+                  onChange={(event) => setReadingValue(event.target.value)}
+                />
+              </label>
+            </div>
+          ) : null}
+          <table
+            className={`clinical-refraction-desktop-table w-full border-collapse text-center ${
+              embeddedMode === "examination" ? "hidden sm:table" : ""
+            }`}
+          >
             <thead className="bg-[#e7e8ea] text-xs uppercase font-bold">
               <tr>
                 <th className={`${ctd} w-48`}>Refraction</th>
@@ -1541,17 +1967,29 @@ export default function LasikExamSheet() {
               <tr>
                 <td className={`${ctd} bg-[#f3f4f6]`}>&nbsp;</td>
                 <td className={ctd}>
-                  <input
-                    className={inp}
+                  <RefractionValueSelect
                     value={clinicalRefraction.od.s}
-                    onChange={mkClinicalPatch("od", "s")}
+                    onChange={(value) =>
+                      setClinicalRefraction((previous) => ({
+                        ...previous,
+                        od: { ...previous.od, s: value },
+                      }))
+                    }
+                    options={SPHERE_OPTIONS}
+                    triggerClassName="h-8 border-0 text-center font-mono"
                   />
                 </td>
                 <td className={ctd}>
-                  <input
-                    className={inp}
+                  <RefractionValueSelect
                     value={clinicalRefraction.od.c}
-                    onChange={mkClinicalPatch("od", "c")}
+                    onChange={(value) =>
+                      setClinicalRefraction((previous) => ({
+                        ...previous,
+                        od: { ...previous.od, c: value },
+                      }))
+                    }
+                    options={CYLINDER_OPTIONS}
+                    triggerClassName="h-8 border-0 text-center font-mono"
                   />
                 </td>
                 <td className={ctd}>
@@ -1562,17 +2000,29 @@ export default function LasikExamSheet() {
                   />
                 </td>
                 <td className={ctd}>
-                  <input
-                    className={inp}
+                  <RefractionValueSelect
                     value={clinicalRefraction.os.s}
-                    onChange={mkClinicalPatch("os", "s")}
+                    onChange={(value) =>
+                      setClinicalRefraction((previous) => ({
+                        ...previous,
+                        os: { ...previous.os, s: value },
+                      }))
+                    }
+                    options={SPHERE_OPTIONS}
+                    triggerClassName="h-8 border-0 text-center font-mono"
                   />
                 </td>
                 <td className={ctd}>
-                  <input
-                    className={inp}
+                  <RefractionValueSelect
                     value={clinicalRefraction.os.c}
-                    onChange={mkClinicalPatch("os", "c")}
+                    onChange={(value) =>
+                      setClinicalRefraction((previous) => ({
+                        ...previous,
+                        os: { ...previous.os, c: value },
+                      }))
+                    }
+                    options={CYLINDER_OPTIONS}
+                    triggerClassName="h-8 border-0 text-center font-mono"
                   />
                 </td>
                 <td className={ctd}>
@@ -1618,9 +2068,9 @@ export default function LasikExamSheet() {
             className="print-consultant-diagrams flex flex-wrap items-stretch gap-2 border border-[#c3c6d6] rounded-xl p-4 bg-white flex-1 min-h-[90mm]"
             data-purpose="clinical-diagrams"
           >
-            <div className="consultant-eyes-block flex w-full sm:w-1/4 flex-col items-center justify-center gap-4">
-              <div className="flex flex-col items-center justify-center gap-1">
-                <div className="w-28 h-28 rounded-full border-4 border-[#003d9b]/30 flex items-center justify-center relative bg-white">
+            <div className="consultant-eyes-block relative flex w-full sm:w-1/4 flex-col items-center justify-center gap-4 overflow-hidden rounded-lg">
+              <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-1">
+                <div className="fundus-drawing-surface aspect-square w-full max-w-[150px] rounded-full border-4 border-[#003d9b]/30 flex items-center justify-center relative bg-white">
                   <div className="absolute inset-0 flex items-center justify-center opacity-10">
                     <div className="w-full border-t border-slate-900" />
                     <div className="h-full border-l border-slate-900 absolute top-0" />
@@ -1633,8 +2083,8 @@ export default function LasikExamSheet() {
                   OD
                 </span>
               </div>
-              <div className="flex flex-col items-center justify-center gap-1">
-                <div className="w-28 h-28 rounded-full border-4 border-slate-300 flex items-center justify-center relative bg-white">
+              <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-1">
+                <div className="fundus-drawing-surface aspect-square w-full max-w-[150px] rounded-full border-4 border-slate-300 flex items-center justify-center relative bg-white">
                   <div className="absolute inset-0 flex items-center justify-center opacity-10">
                     <div className="w-full border-t border-slate-900" />
                     <div className="h-full border-l border-slate-900 absolute top-0" />
@@ -1647,6 +2097,10 @@ export default function LasikExamSheet() {
                   OS
                 </span>
               </div>
+              <FundusDrawingCanvas
+                value={consultantDrawing}
+                onChange={setConsultantDrawing}
+              />
             </div>
             <div className="consultant-right-column flex w-full sm:w-[calc(75%-0.5rem)] flex-col gap-2">
               <div
@@ -2152,7 +2606,8 @@ export default function LasikExamSheet() {
   };
 
   const hasAttachedFollowupPage =
-    currentSheetType === "consultant" || currentSheetType === "lasik";
+    embeddedMode !== "examination" &&
+    (currentSheetType === "consultant" || currentSheetType === "lasik");
   const renderAttachedFollowupPage = () => (
     <FollowupTablesBody
       titleEn={
@@ -2180,7 +2635,12 @@ export default function LasikExamSheet() {
   );
 
   return (
-    <div className="min-h-screen print:min-h-0 bg-[#dde1e7]" dir="ltr">
+    <div
+      className={
+        embedded ? "bg-white" : "min-h-screen print:min-h-0 bg-[#dde1e7]"
+      }
+      dir="ltr"
+    >
       <style>{`
         ${customSheetCss}
         .lasik-sheet, .lasik-sheet * {
@@ -2227,18 +2687,55 @@ export default function LasikExamSheet() {
         .lasik-sheet .sheet-watermark {
           opacity: 1 !important;
         }
+        .consultant-examination-only > * {
+          display: none !important;
+        }
+        .consultant-examination-only > [data-purpose="clinical-diagrams"] {
+          display: flex !important;
+          order: 1 !important;
+          min-height: 0 !important;
+          border: 0 !important;
+          padding: 0 !important;
+        }
+        .consultant-examination-only > [data-purpose="clinical-refraction"] {
+          display: block !important;
+          order: 2 !important;
+          width: 100% !important;
+          margin-top: 8px !important;
+        }
+        .consultant-examination-only > [data-purpose="clinical-refraction"] th,
+        .consultant-examination-only > [data-purpose="clinical-refraction"] td {
+          padding: 2px 4px !important;
+          font-size: 16px !important;
+        }
+        .consultant-examination-only > [data-purpose="clinical-refraction"] input,
+        .consultant-examination-only > [data-purpose="clinical-refraction"] button,
+        .consultant-examination-only > [data-purpose="clinical-refraction"] button span {
+          font-size: 16px !important;
+        }
+        @media screen and (max-width: 639px) {
+          #root .consultant-examination-only .clinical-refraction-desktop-table {
+            display: none !important;
+          }
+        }
+        .consultant-examination-only .consultant-eyes-block {
+          display: none !important;
+        }
+        .consultant-examination-only .consultant-right-column {
+          width: 100% !important;
+        }
         .attached-followup-screen {
-          width: 210mm !important;
-          max-width: calc(100vw - 32px) !important;
+          width: ${embedded ? "100%" : "210mm"} !important;
+          max-width: ${embedded ? "none" : "calc(100vw - 32px)"} !important;
           margin-left: auto !important;
           margin-right: auto !important;
           padding: 0 !important;
           overflow: hidden;
         }
         .attached-followup-screen > .sheet-followup-body {
-          width: 210mm !important;
-          max-width: 100% !important;
-          min-height: 297mm;
+          width: ${embedded ? "100%" : "210mm"} !important;
+          max-width: ${embedded ? "none" : "100%"} !important;
+          min-height: ${embedded ? "auto" : "297mm"};
           box-sizing: border-box !important;
           padding: 10mm !important;
         }
@@ -2456,7 +2953,7 @@ export default function LasikExamSheet() {
             min-height: 0 !important;
             padding: 6mm !important;
           }
-          .print-consultant-diagrams .w-28 {
+          .print-consultant-diagrams .fundus-drawing-surface {
             width: 32mm !important;
             height: 32mm !important;
           }
@@ -2585,80 +3082,140 @@ export default function LasikExamSheet() {
 
         }
       `}</style>
-      <header
-        className="sticky top-0 z-50 print:hidden flex justify-between items-center px-6 py-2 bg-[#f8f9fb] border-b border-[#c3c6d6]"
-        style={{ fontFamily: "Inter, sans-serif" }}
-      >
-        {initialPatientId ? (
-          <div className="flex items-center gap-1 text-sm">
-            {[
-              { key: "consultant", label: "استشاري" },
-              { key: "lasik", label: "ليزك" },
-              { key: "external", label: "اشعه خارجي" },
-              { key: "referral", label: "خطاب تحويل" },
-            ].map((tab) => {
-              const hubPrefix = currentPath.startsWith("/patient-hub/")
-                ? "/patient-hub"
-                : "";
-              const href =
-                tab.key === "referral"
-                  ? `${hubPrefix}/sheets/referral/${initialPatientId}`
-                  : `${hubPrefix}/sheets/${tab.key}/${initialPatientId}`;
-              const active = tab.key === currentSheetType;
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setLocation(href)}
-                  className={`px-3 py-1.5 rounded font-bold ${active ? "bg-[#003d9b] text-white" : "text-[#434654] hover:bg-[#003d9b]/10"}`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
+      {!embedded ? (
+        <header
+          className="sticky top-0 z-50 print:hidden flex justify-between items-center px-6 py-2 bg-[#f8f9fb] border-b border-[#c3c6d6]"
+          style={{ fontFamily: "Inter, sans-serif" }}
+        >
+          {initialPatientId ? (
+            <div className="flex items-center gap-1 text-sm">
+              {[
+                { key: "consultant", label: "استشاري" },
+                { key: "lasik", label: "ليزك" },
+                { key: "external", label: "اشعه خارجي" },
+                { key: "referral", label: "خطاب تحويل" },
+              ].map((tab) => {
+                const hubPrefix = currentPath.startsWith("/patient-hub/")
+                  ? "/patient-hub"
+                  : "";
+                const href =
+                  tab.key === "referral"
+                    ? `${hubPrefix}/sheets/referral/${initialPatientId}`
+                    : `${hubPrefix}/sheets/${tab.key}/${initialPatientId}`;
+                const active = tab.key === currentSheetType;
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setLocation(href)}
+                    className={`px-3 py-1.5 rounded font-bold ${active ? "bg-[#003d9b] text-white" : "text-[#434654] hover:bg-[#003d9b]/10"}`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div />
+          )}
+          <div className="flex items-center gap-3">
+            <div className="w-60">
+              <PatientPicker
+                initialPatientId={initialPatientId}
+                onSelect={handleSelectPatient}
+              />
+            </div>
+            <Button
+              size="sm"
+              className="bg-[#003d9b] text-white font-bold px-4 py-2 rounded hover:opacity-90 active:scale-95"
+              onClick={handleSaveSheet}
+              disabled={saveSheetMutation.isPending}
+              type="button"
+            >
+              {saveSheetMutation.isPending ? "حفظ..." : "حفظ"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-[#003d9b] text-[#003d9b] font-bold px-4 py-2 rounded hover:bg-[#003d9b]/5"
+              onClick={handlePrint}
+              type="button"
+            >
+              <Printer className="h-4 w-4 mr-1" /> Print
+            </Button>
           </div>
-        ) : (
-          <div />
-        )}
-        <div className="flex items-center gap-3">
-          <div className="w-60">
-            <PatientPicker
-              initialPatientId={initialPatientId}
-              onSelect={handleSelectPatient}
-            />
-          </div>
-          <Button
-            size="sm"
-            className="bg-[#003d9b] text-white font-bold px-4 py-2 rounded hover:opacity-90 active:scale-95"
-            onClick={handleSaveSheet}
-            disabled={saveSheetMutation.isPending}
-            type="button"
-          >
-            {saveSheetMutation.isPending ? "حفظ..." : "حفظ"}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="border-[#003d9b] text-[#003d9b] font-bold px-4 py-2 rounded hover:bg-[#003d9b]/5"
-            onClick={handlePrint}
-            type="button"
-          >
-            <Printer className="h-4 w-4 mr-1" /> Print
-          </Button>
-        </div>
-      </header>
-      {printMode.printView && (
+        </header>
+      ) : null}
+      {!embedded && printMode.printView && (
         <PrintPreviewBanner
           title={sheetTypeLabel}
           subtitle={formData.patientName || undefined}
           onPrint={handlePrint}
         />
       )}
-      <div className="py-8 print:py-0">
+      <div className={embedded ? "py-0" : "py-8 print:py-0"}>
+        {embedded && embeddedMode !== "examination" ? (
+          <div
+            className="sticky top-0 z-30 mb-2 flex justify-end bg-white/95 py-2 print:hidden"
+            dir="rtl"
+          >
+            <Button
+              size="sm"
+              onClick={handleSaveSheet}
+              disabled={saveSheetMutation.isPending}
+              type="button"
+            >
+              {saveSheetMutation.isPending ? "حفظ..." : "حفظ الملف"}
+            </Button>
+          </div>
+        ) : null}
+        {embedded && embeddedMode === "examination" ? (
+          <div
+            className="mb-2 flex flex-wrap items-end justify-end gap-2 print:hidden"
+            dir="rtl"
+          >
+            <Button
+              size="sm"
+              onClick={handleSaveSheet}
+              disabled={saveSheetMutation.isPending}
+              type="button"
+            >
+              {saveSheetMutation.isPending ? "حفظ..." : "حفظ الفحص"}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              className="h-9 gap-1.5"
+              disabled={!selectedVisitId || deleteVisitSheetMutation.isPending}
+              onClick={() => {
+                if (!initialPatientId || !selectedVisitId) return;
+                if (!window.confirm("مسح شيت هذه الزيارة من sheet_entries؟"))
+                  return;
+                deleteVisitSheetMutation.mutate({
+                  patientId: initialPatientId,
+                  visitId: selectedVisitId,
+                  sheetType: currentSheetType,
+                });
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+              {deleteVisitSheetMutation.isPending
+                ? "جاري المسح..."
+                : "مسح الزيارة"}
+            </Button>
+          </div>
+        ) : null}
         <div className={`print:hidden ${printMode.printView ? "hidden" : ""}`}>
-          <div className="a4-page-card">{renderSheetBody()}</div>
+          <div className={embedded ? "w-full" : "a4-page-card"}>
+            {renderSheetBody()}
+          </div>
           {hasAttachedFollowupPage && (
-            <div className="attached-followup-screen a4-page-card mt-8">
+            <div
+              className={`attached-followup-screen mt-8 ${
+                embedded ? "w-full max-w-none" : "a4-page-card"
+              }`}
+            >
               {renderAttachedFollowupPage()}
             </div>
           )}

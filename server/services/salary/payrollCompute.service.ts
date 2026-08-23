@@ -29,6 +29,7 @@ import {
 import {
   calcLateDayTier,
   calcMissingPunchDeduction,
+  getPayrollWeekKey,
   normalizeLateTiers,
   type LateTier,
 } from "./lateDeduction";
@@ -1144,17 +1145,24 @@ export class PayrollComputeService {
                     : new Date(`${String(b.workDate).slice(0, 10)}T12:00:00`).getTime();
                 return aDate - bDate;
               })
-              .reduce((state: { deduction: number; linearCount: number }, d: any) => {
+              .reduce((state: { deduction: number; linearCount: number; weekKey: string | null }, d: any) => {
               const mins = d.lateMinutes ?? 0;
               const tier = lateTiers.find(
                 (item) =>
                   mins >= item.minMin &&
                   (item.maxMin === null || mins <= item.maxMin),
               );
+              const weekKey =
+                tier?.type === "linear" ? getPayrollWeekKey(d.workDate) : state.weekKey;
               const linearCount =
-                tier?.type === "linear" ? state.linearCount + 1 : state.linearCount;
+                tier?.type === "linear"
+                  ? state.weekKey === weekKey
+                    ? state.linearCount + 1
+                    : 1
+                  : state.linearCount;
               return {
                 linearCount,
+                weekKey,
                 deduction:
                   state.deduction +
                   calcLateDayTier(
@@ -1165,28 +1173,39 @@ export class PayrollComputeService {
                     linearCount,
                   ),
               };
-            }, { deduction: 0, linearCount: 0 }).deduction,
+            }, { deduction: 0, linearCount: 0, weekKey: null }).deduction,
           )
         : 0;
 
-      const linearLateCount = empDailyRowsForLate.filter((day: any) => {
+      const linearLateWeekCounts = new Map<string, number>();
+      for (const day of empDailyRowsForLate) {
         const minutes = Number(day.lateMinutes ?? 0);
-        return lateTiers.find(
+        const isLinear = lateTiers.find(
           (tier) =>
             minutes >= tier.minMin &&
             (tier.maxMin === null || minutes <= tier.maxMin),
         )?.type === "linear";
-      }).length;
-      const lateWarningKey = `late-linear-2:${emp.empCd}:${firstDay}:${lastDay}`;
+        if (!isLinear) continue;
+
+        const weekKey = getPayrollWeekKey(day.workDate);
+        linearLateWeekCounts.set(
+          weekKey,
+          (linearLateWeekCounts.get(weekKey) ?? 0) + 1,
+        );
+      }
+      const hasRepeatedLinearLateInWeek = [...linearLateWeekCounts.values()].some(
+        (count) => count >= 2,
+      );
+      const lateWarningKey = `late-linear-weekly-2:${emp.empCd}:${firstDay}:${lastDay}`;
       if (
-        linearLateCount >= 2 &&
+        hasRepeatedLinearLateInWeek &&
         notificationSettings.attendance.enabled &&
         !sentLateWarningKeys.has(lateWarningKey)
       ) {
         const employeeUserId = userIdByEmpCd.get(String(emp.empCd));
         await pushAppNotification({
           title: "تنبيه تأخير",
-          message: `${emp.fullName}: تم استهلاك مرتي التأخير المحتسبتين بالدقيقة. أي تأخير خطي قادم خلال دورة المرتب الحالية سيُخصم بربع يوم.`,
+          message: `${emp.fullName}: تكرار التأخير الخطي يتصاعد أسبوعيًا داخل دورة المرتب: الثانية ×2، الثالثة ×3، والرابعة فأكثر ×4.`,
           kind: "warning",
           targetRoles:
             employeeUserId || notificationSettings.attendance.managerId

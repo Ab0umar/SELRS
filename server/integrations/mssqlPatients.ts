@@ -5189,15 +5189,158 @@ export async function deletePatientFromMssqlByCode(
     const deletedIo = await tryDeleteByCode("op2026.dbo.PAPAT_IO");
     const deletedMf = await tryDeleteByCode("op2026.dbo.PAPATMF");
     const deletedHeader = await tryDeleteByCode(targetTable);
+    // PAJRNRCVH is the receipts/journal table itself — delete from it
+    // explicitly in case MSSQL_PUSH_PATIENTS_TABLE points elsewhere.
+    const deletedJrn =
+      targetTable.toLowerCase() === "op2026.dbo.pajrnrcvh"
+        ? 0
+        : await tryDeleteByCode("op2026.dbo.PAJRNRCVH");
 
-    const totalDeleted = deletedSrv + deletedIo + deletedMf + deletedHeader;
+    const totalDeleted =
+      deletedSrv + deletedIo + deletedMf + deletedHeader + deletedJrn;
     return {
       deleted: totalDeleted > 0,
       note:
         totalDeleted > 0
-          ? `Deleted rows - SRV:${deletedSrv}, IO:${deletedIo}, MF:${deletedMf}, HEADER:${deletedHeader}`
-          : "No MSSQL row found for PAT_CD in SRV/IO/MF/header",
+          ? `Deleted rows - SRV:${deletedSrv}, IO:${deletedIo}, MF:${deletedMf}, HEADER:${deletedHeader}, JRN:${deletedJrn}`
+          : "No MSSQL row found for PAT_CD in SRV/IO/MF/header/JRN",
     };
+  } finally {
+    // Pool is shared/cached across calls (see createMssqlPool) — don't close it here.
+  }
+}
+
+/**
+ * Delete only the service rows (PAPAT_SRV) for a patient code — leaves the
+ * receipt header (PAJRNRCVH) and other patient rows intact. Used for
+ * "delete all services" without deleting the whole patient/receipt history.
+ */
+export async function deletePatientServicesFromMssqlByCode(
+  patientCodeRaw: string,
+): Promise<{ deleted: boolean; deletedCount: number; note?: string }> {
+  const patientCode = String(patientCodeRaw ?? "").trim();
+  if (!patientCode) return { deleted: false, deletedCount: 0, note: "Missing patientCode" };
+
+  const enabled = asBool(process.env.MSSQL_PUSH_NEW_PATIENTS_ENABLED, true);
+  if (!enabled) {
+    return { deleted: false, deletedCount: 0, note: "MSSQL_PUSH_NEW_PATIENTS_ENABLED=false" };
+  }
+
+  const pool = await createMssqlPool();
+  try {
+    await pool.connect();
+    const result = await pool
+      .request()
+      .input("PAT_CD", patientCode)
+      .query(`DELETE FROM op2026.dbo.PAPAT_SRV WHERE PAT_CD = @PAT_CD`);
+    const deletedCount = Number(result?.rowsAffected?.[0] ?? 0);
+    return { deleted: deletedCount > 0, deletedCount };
+  } finally {
+    // Pool is shared/cached across calls (see createMssqlPool) — don't close it here.
+  }
+}
+
+/**
+ * Rename a patient's code (PAT_CD) across every MSSQL table that references it.
+ */
+export async function renamePatientCodeInMssql(
+  oldCodeRaw: string,
+  newCodeRaw: string,
+): Promise<{ updated: boolean; note?: string }> {
+  const oldCode = String(oldCodeRaw ?? "").trim();
+  const newCode = String(newCodeRaw ?? "").trim();
+  if (!oldCode || !newCode) {
+    return { updated: false, note: "Missing old or new patient code" };
+  }
+  if (oldCode === newCode) return { updated: true, note: "No change" };
+
+  const enabled = asBool(process.env.MSSQL_PUSH_NEW_PATIENTS_ENABLED, true);
+  if (!enabled) {
+    return { updated: false, note: "MSSQL_PUSH_NEW_PATIENTS_ENABLED=false" };
+  }
+
+  const targetTable = String(
+    process.env.MSSQL_PUSH_PATIENTS_TABLE ?? "op2026.dbo.PAJRNRCVH",
+  ).trim();
+  const pool = await createMssqlPool();
+  try {
+    await pool.connect();
+
+    const tryRenameCode = async (tableName: string): Promise<number> => {
+      try {
+        const result = await pool
+          .request()
+          .input("OLD_CD", oldCode)
+          .input("NEW_CD", newCode)
+          .query(
+            `UPDATE ${tableName} SET PAT_CD = @NEW_CD WHERE PAT_CD = @OLD_CD`,
+          );
+        return Number(result?.rowsAffected?.[0] ?? 0);
+      } catch {
+        return 0;
+      }
+    };
+
+    const updatedSrv = await tryRenameCode("op2026.dbo.PAPAT_SRV");
+    const updatedIo = await tryRenameCode("op2026.dbo.PAPAT_IO");
+    const updatedMf = await tryRenameCode("op2026.dbo.PAPATMF");
+    const updatedHeader = await tryRenameCode(targetTable);
+    // PAJRNRCVH is the receipts/journal table itself — rename it explicitly
+    // in case MSSQL_PUSH_PATIENTS_TABLE points elsewhere (targetTable is
+    // configurable and may differ from the real receipts table).
+    const updatedJrn =
+      targetTable.toLowerCase() === "op2026.dbo.pajrnrcvh"
+        ? 0
+        : await tryRenameCode("op2026.dbo.PAJRNRCVH");
+
+    const total = updatedSrv + updatedIo + updatedMf + updatedHeader + updatedJrn;
+    return {
+      updated: total > 0,
+      note: `Updated rows - SRV:${updatedSrv}, IO:${updatedIo}, MF:${updatedMf}, HEADER:${updatedHeader}, JRN:${updatedJrn}`,
+    };
+  } finally {
+    // Pool is shared/cached across calls (see createMssqlPool) — don't close it here.
+  }
+}
+
+/**
+ * Delete a single service row (PAPAT_SRV) for a patient — matched by
+ * service code, and by service date when known (a patient can have the
+ * same service code on different dates/visits).
+ */
+export async function deleteSinglePatientServiceFromMssqlByCode(
+  patientCodeRaw: string,
+  serviceCodeRaw: string,
+  serviceDateRaw?: string | Date | null,
+): Promise<{ deleted: boolean; deletedCount: number; note?: string }> {
+  const patientCode = String(patientCodeRaw ?? "").trim();
+  const serviceCode = String(serviceCodeRaw ?? "").trim();
+  if (!patientCode || !serviceCode) {
+    return { deleted: false, deletedCount: 0, note: "Missing patientCode/serviceCode" };
+  }
+
+  const enabled = asBool(process.env.MSSQL_PUSH_NEW_PATIENTS_ENABLED, true);
+  if (!enabled) {
+    return { deleted: false, deletedCount: 0, note: "MSSQL_PUSH_NEW_PATIENTS_ENABLED=false" };
+  }
+
+  const serviceDateIso = normalizeIsoDate(serviceDateRaw ?? undefined);
+  const pool = await createMssqlPool();
+  try {
+    await pool.connect();
+    const request = pool
+      .request()
+      .input("PAT_CD", patientCode)
+      .input("SRV_CD", serviceCode);
+    const whereDate = serviceDateIso
+      ? " AND CAST(SRV_DT AS date) = CAST(@SRV_DT AS date)"
+      : "";
+    if (serviceDateIso) request.input("SRV_DT", serviceDateIso);
+    const result = await request.query(
+      `DELETE FROM op2026.dbo.PAPAT_SRV WHERE PAT_CD = @PAT_CD AND SRV_CD = @SRV_CD${whereDate}`,
+    );
+    const deletedCount = Number(result?.rowsAffected?.[0] ?? 0);
+    return { deleted: deletedCount > 0, deletedCount };
   } finally {
     // Pool is shared/cached across calls (see createMssqlPool) — don't close it here.
   }

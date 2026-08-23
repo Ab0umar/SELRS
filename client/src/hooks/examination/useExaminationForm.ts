@@ -210,6 +210,12 @@ export function useExaminationForm(
     { enabled: Boolean(patientInfo.id), refetchOnWindowFocus: false },
   );
   const registrationVisitDate = useMemo(() => {
+    // Quick registration (embedded) always books a NEW visit for the date
+    // the user picked (defaulting to today) — it must never be silently
+    // overridden to some date from the patient's visit history, or the new
+    // registration gets filed under an old date and never shows up in
+    // today's queue even though it saved successfully.
+    if (embedded) return "";
     const visits = Array.isArray(visitsQuery.data)
       ? (visitsQuery.data as Array<{ visitDate?: unknown }>)
       : [];
@@ -219,7 +225,7 @@ export function useExaminationForm(
         .filter(Boolean)
         .sort()[0] ?? ""
     );
-  }, [visitsQuery.data]);
+  }, [visitsQuery.data, embedded]);
   const latestExaminationId = useMemo(() => {
     const rows = Array.isArray(examinationsQuery.data)
       ? (examinationsQuery.data as Array<{ id?: number }>)

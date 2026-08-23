@@ -15,17 +15,17 @@ import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 
 const STAFF_BOOKING_TYPES = [
-  { value: "consultant" as const, label: "كشف استشاري" },
-  { value: "specialist" as const, label: "كشف أخصائي" },
-  { value: "lasik" as const, label: "فحوصات الليزك" },
-  { value: "external" as const, label: "أشعة خارجي" },
+  { value: "consultant" as const, label: "إستشاري" },
+  { value: "specialist" as const, label: "أخصائي" },
+  { value: "pentacam" as const, label: "بنتاكام" },
+  { value: "external" as const, label: "أشعة" },
   { value: "followup" as const, label: "متابعة" },
 ];
 
 type BookingType =
   | "consultant"
   | "specialist"
-  | "lasik"
+  | "pentacam"
   | "external"
   | "followup";
 
