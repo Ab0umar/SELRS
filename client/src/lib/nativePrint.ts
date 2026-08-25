@@ -99,6 +99,43 @@ function buildScopedPrintHtml(): string {
     (clone.querySelector("head") ?? clone).appendChild(style);
   }
 
+  const printScrollbarReset = document.createElement("style");
+  printScrollbarReset.textContent = `
+    html, body, #root,
+    [data-app-scroll-container],
+    .a4-page-card, .print-page-center-a4, .print-page-center-a5,
+    .attached-followup-page, .sheet-followup-body,
+    .lasik-print-root, .specialist-page-root,
+    .lasik-sheet, .specialist-sheet {
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      overflow: hidden !important;
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+    }
+
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar,
+    #root::-webkit-scrollbar,
+    [data-app-scroll-container]::-webkit-scrollbar,
+    .a4-page-card::-webkit-scrollbar,
+    .print-page-center-a4::-webkit-scrollbar,
+    .print-page-center-a5::-webkit-scrollbar,
+    .attached-followup-page::-webkit-scrollbar,
+    .sheet-followup-body::-webkit-scrollbar,
+    .lasik-print-root::-webkit-scrollbar,
+    .specialist-page-root::-webkit-scrollbar,
+    .lasik-sheet::-webkit-scrollbar,
+    .specialist-sheet::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+      background: transparent !important;
+    }
+  `;
+  (clone.querySelector("head") ?? clone).appendChild(printScrollbarReset);
+
   return clone.outerHTML;
 }
 

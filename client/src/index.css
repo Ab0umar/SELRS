@@ -1921,4 +1921,68 @@ select {
     display: block !important;
     min-height: 0 !important;
   }
+
+  html, body, #root,
+  [data-app-scroll-container],
+  .lasik-print-root, .specialist-page-root,
+  .a4-page-card, .print-page-center-a4, .print-page-center-a5,
+  .attached-followup-page, .sheet-followup-body,
+  .lasik-sheet, .specialist-sheet {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: hidden !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  #root::-webkit-scrollbar,
+  [data-app-scroll-container]::-webkit-scrollbar,
+  .lasik-print-root::-webkit-scrollbar,
+  .specialist-page-root::-webkit-scrollbar,
+  .a4-page-card::-webkit-scrollbar,
+  .print-page-center-a4::-webkit-scrollbar,
+  .print-page-center-a5::-webkit-scrollbar,
+  .attached-followup-page::-webkit-scrollbar,
+  .sheet-followup-body::-webkit-scrollbar,
+  .lasik-sheet::-webkit-scrollbar,
+  .specialist-sheet::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+}
+
+/* The print route is shown on screen before the native print dialog opens. */
+body:has(.print-view-active),
+body:has(.print-view-active) > #root,
+body:has(.print-view-active) [data-app-scroll-container],
+.print-view-active {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.print-view-active :is(.a4-page-card, .print-page-center-a4, .print-page-center-a5, .attached-followup-page, .sheet-followup-body, .lasik-sheet, .specialist-sheet) {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: hidden !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+body:has(.print-view-active)::-webkit-scrollbar,
+body:has(.print-view-active) > #root::-webkit-scrollbar,
+body:has(.print-view-active) [data-app-scroll-container]::-webkit-scrollbar,
+.print-view-active::-webkit-scrollbar,
+.print-view-active *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }

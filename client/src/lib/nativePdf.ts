@@ -310,6 +310,14 @@ async function createIsolatedSnapshotTarget(sourceElement: HTMLElement) {
     *, *::before, *::after {
       box-sizing: border-box;
       text-shadow: none !important;
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+    }
+
+    *::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
     }
   `;
   iframeDocument.head.appendChild(baseStyle);

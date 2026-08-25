@@ -2637,7 +2637,9 @@ export default function LasikExamSheet({
   return (
     <div
       className={
-        embedded ? "bg-white" : "min-h-screen print:min-h-0 bg-[#dde1e7]"
+        embedded
+          ? `lasik-print-root ${printMode.printView ? "print-view-active" : ""} bg-white`
+          : `lasik-print-root ${printMode.printView ? "print-view-active" : ""} min-h-screen print:min-h-0 bg-[#dde1e7]`
       }
       dir="ltr"
     >
@@ -2740,6 +2742,21 @@ export default function LasikExamSheet({
           padding: 10mm !important;
         }
         @media print {
+          html, body, #root,
+          .lasik-print-root,
+          .lasik-print-root * {
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+          }
+          html::-webkit-scrollbar,
+          body::-webkit-scrollbar,
+          #root::-webkit-scrollbar,
+          .lasik-print-root::-webkit-scrollbar,
+          .lasik-print-root *::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+          }
           .print-page-break { page-break-before: always !important; break-before: page !important; }
           body:has(.attached-followup-page),
           body:has(.attached-followup-page) > #root,

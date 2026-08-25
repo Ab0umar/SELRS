@@ -454,7 +454,7 @@ export default function SpecialistSheet() {
 
   return (
     <div
-      className={`min-h-screen bg-[#dde1e7] sheet-layout specialist-page-root ${mobileSheetModeEnabled && !printMode.printView ? "mobile-sheet-mode" : ""}`}
+      className={`min-h-screen bg-[#dde1e7] sheet-layout specialist-page-root ${printMode.printView ? "print-view-active" : ""} ${mobileSheetModeEnabled && !printMode.printView ? "mobile-sheet-mode" : ""}`}
       dir="rtl"
     >
       <style>{`
@@ -512,6 +512,21 @@ export default function SpecialistSheet() {
           opacity: 1 !important;
         }
         @media print {
+          html, body, #root,
+          .specialist-page-root,
+          .specialist-page-root * {
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+          }
+          html::-webkit-scrollbar,
+          body::-webkit-scrollbar,
+          #root::-webkit-scrollbar,
+          .specialist-page-root::-webkit-scrollbar,
+          .specialist-page-root *::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+          }
           .print-page-center-a5 { width: 100%; margin: 0 auto; }
           body { background: white !important; }
           /* the shared .sheet-layout print rule clips this page's fixed-width sheet — undo it here */
