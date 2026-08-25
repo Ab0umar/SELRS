@@ -1965,7 +1965,7 @@ select {
   }
 }
 
-/* Print preview mode is rendered on screen before the native print dialog opens. */
+/* The print route is shown on screen before the native print dialog opens. */
 body:has(.print-view-active),
 body:has(.print-view-active) > #root,
 body:has(.print-view-active) [data-app-scroll-container],
@@ -1973,13 +1973,12 @@ body:has(.print-view-active) [data-app-scroll-container],
   height: auto !important;
   min-height: 0 !important;
   max-height: none !important;
-  overflow: hidden !important;
-  overflow-y: hidden !important;
+  overflow: visible !important;
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
 }
 
-.print-view-active :is(.a4-page-card, .print-page-center-a4, .attached-followup-page, .sheet-followup-body, .lasik-sheet, .print-page-center-a5, .specialist-sheet) {
+.print-view-active :is(.a4-page-card, .print-page-center-a4, .print-page-center-a5, .attached-followup-page, .sheet-followup-body, .lasik-sheet, .specialist-sheet) {
   height: auto !important;
   min-height: 0 !important;
   max-height: none !important;

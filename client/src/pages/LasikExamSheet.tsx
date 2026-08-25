@@ -2766,6 +2766,18 @@ export default function LasikExamSheet({
             size: A4 portrait;
             margin: 0;
           }
+          body:has(.attached-followup-page),
+          body:has(.attached-followup-page) > #root,
+          body .two-page-sheet-print,
+          body .two-page-sheet-print > div {
+            display: block !important;
+            width: 210mm !important;
+            min-height: 0 !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
+            align-items: initial !important;
+            justify-content: initial !important;
+          }
           /* Scrollbars are useful on screen but must never be captured in print/PDF output. */
           html, body, #root,
           .lasik-print-root,
