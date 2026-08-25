@@ -3,10 +3,11 @@ import { useAuth } from "@/hooks/useAuth";
 import EmployeesList from "./EmployeesList";
 import LeaveManagement from "./LeaveManagement";
 import Permissions from "./Permissions";
+import ManualPunches from "./ManualPunches";
 import ShiftAssignments from "./ShiftAssignments";
 import UserMappings from "./UserMappings";
 import ScheduleSwap from "./ScheduleSwap";
-import { Users, FileSpreadsheet, FileClock, CalendarClock, Shuffle, Link2 } from "lucide-react";
+import { Users, FileSpreadsheet, FileClock, Fingerprint, CalendarClock, Shuffle, Link2 } from "lucide-react";
 
 const BASE_TABS = [
   {
@@ -38,6 +39,16 @@ const BASE_TABS = [
     themeCls: "bg-sky-50/60 border-sky-100 hover:border-sky-300 text-sky-900",
     activeCls: "ring-2 ring-sky-500 bg-sky-100/70 border-sky-300",
     iconCls: "bg-sky-500 text-white",
+  },
+  {
+    key: "manual-punches",
+    label: "تسجيل حضور يدوي",
+    subLabel: "Manual Punches",
+    description: "إضافة وتسجيل بصمات دخول وخروج يدويًا لموظف معيّن",
+    icon: Fingerprint,
+    themeCls: "bg-emerald-50/60 border-emerald-100 hover:border-emerald-300 text-emerald-900",
+    activeCls: "ring-2 ring-emerald-500 bg-emerald-100/70 border-emerald-300",
+    iconCls: "bg-emerald-500 text-white",
   },
   {
     key: "shifts",
@@ -140,6 +151,7 @@ export default function EmployeesHub() {
           {tab === "employees" && <EmployeesList />}
           {tab === "leaves" && <LeaveManagement />}
           {tab === "permissions" && <Permissions />}
+          {tab === "manual-punches" && <ManualPunches />}
           {tab === "shifts" && <ShiftAssignments />}
           {tab === "schedule-swap" && <ScheduleSwap />}
           {tab === "mappings" && <UserMappings />}

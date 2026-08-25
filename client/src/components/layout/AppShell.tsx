@@ -197,7 +197,7 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
 
   return (
     <div
-      className="flex h-dvh min-h-0 w-full max-w-[100vw] flex-col overflow-hidden selrs-page-bg"
+      className="flex h-dvh min-h-0 w-full max-w-[100vw] flex-col overflow-hidden selrs-page-bg print:h-auto print:overflow-visible print:max-w-none"
       dir="rtl"
     >
       {!hideSidebar && (
@@ -218,7 +218,7 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
 
       <main
         data-app-scroll-container
-        className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${isAdminPatientsRoute ? "overflow-x-auto" : "overflow-x-hidden"} ${isDashboardLikeRoute ? "bg-transparent" : "bg-background"} ${isShiftScheduleRoute ? "p-0" : "px-1 pt-2 pb-2 sm:px-4 sm:py-3 md:px-4 md:py-4"}`}
+        className={`flex min-h-0 flex-1 flex-col overflow-y-auto print:h-auto print:min-h-0 print:overflow-visible ${isAdminPatientsRoute ? "overflow-x-auto" : "overflow-x-hidden"} print:overflow-x-visible ${isDashboardLikeRoute ? "bg-transparent" : "bg-background"} ${isShiftScheduleRoute ? "p-0" : "px-1 pt-2 pb-2 sm:px-4 sm:py-3 md:px-4 md:py-4"}`}
       >
         <div
           className={`selrs-app-content mx-auto min-h-0 w-full flex-1 ${isAdminPatientsRoute || isShiftScheduleRoute ? "max-w-none" : "max-w-[1600px]"}`}

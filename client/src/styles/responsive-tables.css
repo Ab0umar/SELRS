@@ -1,5 +1,8 @@
-/* Preserve conventional table rows on phones while containing every table
-   within the viewport. This stylesheet loads after platform/page styles. */
+/* Keep phones from developing page-level horizontal scroll, but let each
+   table scroll horizontally within its own container at a readable size
+   instead of being crushed to fit — crushing columns down to ~8px text
+   is worse UX than a scrollable table. This stylesheet loads after
+   platform/page styles. */
 @media screen and (max-width: 640px) {
   html,
   body,
@@ -13,49 +16,42 @@
       table
     ) {
     width: 100% !important;
-    min-width: 0 !important;
     max-width: 100% !important;
-    overflow-x: hidden !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
   }
 
-  #root :is(div, section, article):has(table) {
-    min-width: 0 !important;
-    max-width: 100% !important;
-    overflow-x: hidden !important;
+  /* Tables inside a scrollable container: keep natural column widths and
+     scroll instead of shrinking. Tables NOT inside such a container (rare)
+     still get clamped so they don't blow out the page. */
+  #root :is([data-slot="table-container"], .overflow-x-auto, .overflow-auto):has(
+      table
+    )
+    table {
+    width: max-content !important;
+    min-width: 100% !important;
+    table-layout: auto !important;
   }
 
-  #root table {
-    display: table !important;
+  #root table:not(
+      :is([data-slot="table-container"], .overflow-x-auto, .overflow-auto) table
+    ) {
     width: 100% !important;
-    min-width: 0 !important;
     max-width: 100% !important;
     table-layout: fixed !important;
   }
 
-  #root table :is(thead, tbody, tfoot) {
-    width: 100% !important;
-    max-width: 100% !important;
-  }
-
   #root table :is(th, td) {
-    min-width: 0 !important;
-    max-width: none !important;
     height: auto !important;
-    padding: 0.25rem 0.12rem !important;
-    white-space: normal !important;
-    overflow: hidden !important;
+    padding: 0.4rem 0.5rem !important;
+    white-space: nowrap !important;
     overflow-wrap: anywhere !important;
     word-break: break-word !important;
-    text-overflow: clip !important;
-    font-size: clamp(0.5rem, 1.9vw, 0.68rem) !important;
-    line-height: 1.2 !important;
+    font-size: 0.75rem !important;
+    line-height: 1.35 !important;
   }
 
   #root table :is(input, select, textarea, button) {
-    width: 100% !important;
-    min-width: 0 !important;
-    max-width: 100% !important;
-    padding-inline: 0.1rem !important;
     font-size: inherit !important;
   }
 

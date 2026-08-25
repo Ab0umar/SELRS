@@ -70,8 +70,9 @@ export class PunchesService {
     punch: RawPunch,
     insertedBy: number,
     note: string,
+    dbOverride?: any,
   ): Promise<number> {
-    const db = await getDb();
+    const db = dbOverride ?? (await getDb());
     if (!db) throw new Error("Database not available");
 
     const sourceHash = crypto
@@ -107,8 +108,9 @@ export class PunchesService {
     toDate: Date,
     empCd?: string,
     source?: "access" | "tcp" | "manual",
+    dbOverride?: any,
   ): Promise<any[]> {
-    const db = await getDb();
+    const db = dbOverride ?? (await getDb());
     if (!db) throw new Error("Database not available");
 
     const endDate = new Date(toDate.getTime() + 24 * 60 * 60 * 1000);

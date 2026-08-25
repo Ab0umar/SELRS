@@ -14,6 +14,8 @@ import {
 import { DashboardService } from "../services/attendance/dashboard.service";
 import { MonthlyComputeService } from "../services/attendance/monthlyCompute.service";
 import { AuditLogService } from "../services/attendance/auditLog.service";
+import { PunchesService } from "../services/attendance/punches.service";
+import { DailyMaterializer } from "../services/attendance/dailyMaterializer";
 import { getDb, getAllUsers } from "../db";
 import { attendanceSyncRoutes } from "./attendance-sync";
 import { attendanceShiftsRoutes } from "./attendance-shifts";
@@ -167,6 +169,7 @@ export const attendanceRouter = router({
         fromDate: z.string().optional(), // YYYY-MM-DD
         toDate: z.string().optional(), // YYYY-MM-DD
         department: z.string().optional(),
+        source: z.enum(["access", "tcp", "manual"]).optional(),
         limit: z.number().int().min(1).max(1000).default(500),
         offset: z.number().int().min(0).default(0),
       }),
@@ -179,6 +182,10 @@ export const attendanceRouter = router({
 
       if (input.empCd) {
         conditions.push(eq(attendancePunches.empCd, input.empCd));
+      }
+
+      if (input.source) {
+        conditions.push(eq(attendancePunches.source, input.source));
       }
 
       if (input.fromDate) {
@@ -214,6 +221,8 @@ export const attendanceRouter = router({
               direction: attendancePunches.direction,
               deviceId: attendancePunches.deviceId,
               sourceHash: attendancePunches.sourceHash,
+              source: attendancePunches.source,
+              note: attendancePunches.note,
             })
             .from(attendancePunches)
             .leftJoin(
@@ -257,9 +266,118 @@ export const attendanceRouter = router({
           direction: p.direction,
           deviceId: p.deviceId,
           sourceHash: p.sourceHash,
+          source: p.source,
+          note: p.note,
         })),
         total: total[0]?.count ?? 0,
       };
+    }),
+  addManualPunch: makeAttWriteProcedure("/attendance")
+    .input(
+      z.object({
+        empCd: z.string().min(1),
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        time: z.string().regex(/^\d{2}:\d{2}$/), // HH:mm
+        direction: z.enum(["in", "out", "unknown"]).default("unknown"),
+        note: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const punchAt = new Date(`${input.date}T${input.time}:00`);
+      if (Number.isNaN(punchAt.getTime())) throw new Error("تاريخ/وقت غير صالح");
+
+      const insertId = await db.transaction(async (tx: any) => {
+        const emp = await tx
+          .select({ empCd: attendanceEmployees.empCd })
+          .from(attendanceEmployees)
+          .where(eq(attendanceEmployees.empCd, input.empCd))
+          .limit(1);
+        if (!emp[0]) throw new Error("الموظف غير موجود");
+
+        const duplicate = await tx
+          .select({ id: attendancePunches.id })
+          .from(attendancePunches)
+          .where(
+            and(
+              eq(attendancePunches.empCd, input.empCd),
+              eq(attendancePunches.punchAt, punchAt),
+              eq(attendancePunches.source, "manual"),
+            ),
+          )
+          .limit(1);
+        if (duplicate[0]) throw new Error("توجد بصمة يدوية مسجلة في نفس الوقت");
+
+        const id = await PunchesService.insertManualAdjustment(
+          {
+            empCd: input.empCd,
+            punchAt,
+            direction: input.direction,
+            sourceRowId: `manual_${input.empCd}_${punchAt.getTime()}`,
+          },
+          ctx.user.id,
+          input.note || "",
+          tx,
+        );
+
+        await DailyMaterializer.recomputeRange(
+          punchAt,
+          punchAt,
+          { empCd: input.empCd },
+          tx,
+        );
+        return id;
+      });
+
+      AuditLogService.log({
+        action: "manual_punch_added",
+        empCd: input.empCd,
+        details: { punchAt: punchAt.toISOString(), direction: input.direction, note: input.note },
+        userId: ctx.user.id,
+        status: "success",
+      });
+
+      return { success: true, id: insertId };
+    }),
+  deleteManualPunch: makeAttWriteProcedure("/attendance")
+    .input(z.object({ id: z.number().int() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const deleted = await db.transaction(async (tx: any) => {
+        const row = await tx
+          .select()
+          .from(attendancePunches)
+          .where(eq(attendancePunches.id, input.id))
+          .limit(1);
+        if (!row[0]) throw new Error("البصمة غير موجودة");
+        if (row[0].source !== "manual") {
+          throw new Error("لا يمكن حذف بصمات الأجهزة، فقط البصمات اليدوية");
+        }
+
+        const punchAt = new Date(row[0].punchAt);
+        await tx.delete(attendancePunches).where(eq(attendancePunches.id, input.id));
+        await DailyMaterializer.recomputeRange(
+          punchAt,
+          punchAt,
+          { empCd: row[0].empCd },
+          tx,
+        );
+        return { punchAt, empCd: row[0].empCd };
+      });
+
+      AuditLogService.log({
+        action: "manual_punch_deleted",
+        empCd: deleted.empCd,
+        details: { punchAt: deleted.punchAt.toISOString(), id: input.id },
+        userId: ctx.user.id,
+        status: "success",
+      });
+
+      return { success: true };
     }),
   listDepartments: makeAttProcedure("/attendance").query(async () => {
     const db = await getDb();
@@ -343,9 +461,9 @@ export const attendanceRouter = router({
         overtimeOutMinutes: d.overtimeOutMinutes,
         overtimeMinutes: d.overtimeMinutes,
         overtimeInEnabled:
-          d.overtimeInEnabled == null ? true : Boolean(d.overtimeInEnabled),
+          d.overtimeInEnabled == null ? false : Boolean(d.overtimeInEnabled),
         overtimeOutEnabled:
-          d.overtimeOutEnabled == null ? true : Boolean(d.overtimeOutEnabled),
+          d.overtimeOutEnabled == null ? false : Boolean(d.overtimeOutEnabled),
         extraDayEnabled:
           d.extraDayEnabled == null ? true : Boolean(d.extraDayEnabled),
         status: d.status,

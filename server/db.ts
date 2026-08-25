@@ -3284,6 +3284,30 @@ export async function createVisit(visitData: any) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
+  // Reuse the patient's existing visit for the same calendar day instead of
+  // spawning a second, orphaned visit row (e.g. an exam-save creating a new
+  // "examination" visit alongside the checked-in "consultation" visit).
+  const visitDateIso =
+    visitData.visitDate instanceof Date
+      ? visitData.visitDate.toISOString().slice(0, 10)
+      : String(visitData.visitDate).slice(0, 10);
+
+  const existingVisit = await db
+    .select()
+    .from(visits)
+    .where(
+      and(
+        eq(visits.patientId, visitData.patientId),
+        sql`DATE(${visits.visitDate}) = ${visitDateIso}`,
+      ),
+    )
+    .orderBy(desc(visits.id))
+    .limit(1);
+
+  if (existingVisit.length > 0) {
+    return { insertId: existingVisit[0].id, ...existingVisit[0] };
+  }
+
   await db.insert(visits).values(visitData);
 
   // Query back the created visit by patientId and visitDate

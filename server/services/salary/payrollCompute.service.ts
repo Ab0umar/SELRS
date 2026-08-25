@@ -716,31 +716,23 @@ export class PayrollComputeService {
         lateMins = 0,
         earlyMins = 0,
         missingCoDays = 0;
-      if (fromDate || toDate) {
-        rawAbsent = empDailyRows.filter(
-          (d: any) => d.status === "absent",
-        ).length;
-        missingCoDays = empDailyRows.filter((d: any) => {
-          if (d.status !== "missing_checkout") return false;
-          const ds =
-            d.workDate instanceof Date
-              ? `${d.workDate.getFullYear()}-${String(d.workDate.getMonth() + 1).padStart(2, "0")}-${String(d.workDate.getDate()).padStart(2, "0")}`
-              : String(d.workDate).slice(0, 10);
-          return !mcExcludeSet.has(`${emp.empCd}|${ds}`);
-        }).length;
-        lateMins = empDailyRows.reduce(
-          (s: any, d: any) => s + (d.lateMinutes ?? 0),
-          0,
-        );
-        earlyMins = empDailyRows.reduce(
-          (s: any, d: any) => s + (d.earlyLeaveMin ?? 0),
-          0,
-        );
-      } else {
-        rawAbsent = Number(report?.absentDays ?? 0);
-        lateMins = Number(report?.totalLateMins ?? 0);
-        earlyMins = Number(report?.totalEarlyLeaveMins ?? 0);
-      }
+      rawAbsent = empDailyRows.filter((d: any) => d.status === "absent").length;
+      missingCoDays = empDailyRows.filter((d: any) => {
+        if (d.status !== "missing_checkout") return false;
+        const ds =
+          d.workDate instanceof Date
+            ? `${d.workDate.getFullYear()}-${String(d.workDate.getMonth() + 1).padStart(2, "0")}-${String(d.workDate.getDate()).padStart(2, "0")}`
+            : String(d.workDate).slice(0, 10);
+        return !mcExcludeSet.has(`${emp.empCd}|${ds}`);
+      }).length;
+      lateMins = empDailyRows.reduce(
+        (s: any, d: any) => s + (d.lateMinutes ?? 0),
+        0,
+      );
+      earlyMins = empDailyRows.reduce(
+        (s: any, d: any) => s + (d.earlyLeaveMin ?? 0),
+        0,
+      );
       const absentD = Math.max(0, rawAbsent - holidayWorkingDaysCount);
       const dayRate = wDays > 0 ? basic / wDays : 0;
       const minRate = dayRate / 360;
@@ -984,49 +976,29 @@ export class PayrollComputeService {
       let leaveDays = 0;
 
       let missingCheckoutDays = 0;
-      if (fromDate || toDate) {
-        rawAbsentDays = empDailyRows.filter(
-          (d: any) => d.status === "absent",
-        ).length;
-        missingCheckoutDays = empDailyRows.filter((d: any) => {
-          if (d.status !== "missing_checkout") return false;
-          const ds =
-            d.workDate instanceof Date
-              ? `${d.workDate.getFullYear()}-${String(d.workDate.getMonth() + 1).padStart(2, "0")}-${String(d.workDate.getDate()).padStart(2, "0")}`
-              : String(d.workDate).slice(0, 10);
-          return !mcExcludeSet.has(`${emp.empCd}|${ds}`);
-        }).length;
-        lateMinutes = empDailyRows.reduce(
-          (s: any, d: any) => s + (d.lateMinutes ?? 0),
-          0,
-        );
-        earlyLeaveMinutes = empDailyRows.reduce(
-          (s: any, d: any) => s + (d.earlyLeaveMin ?? 0),
-          0,
-        );
-        leaveDays = empDailyRows.filter(
-          (d: any) =>
-            d.status === "leave" &&
-            !d.leaveNotAffectCommission &&
-            !sickDatesSet.has(
-              `${emp.empCd}|${String(d.workDate instanceof Date ? d.workDate.toISOString().slice(0, 10) : d.workDate).slice(0, 10)}`,
-            ),
-        ).length;
-      } else {
-        rawAbsentDays = report?.absentDays ?? 0;
-        lateMinutes = report?.totalLateMins ?? 0;
-        earlyLeaveMinutes = report?.totalEarlyLeaveMins ?? 0;
-        // Exclude sick leave and no-commission-impact leave from leaveDays using dailyRows (always loaded)
-        const empDailyRowsForLeave = dailyRows.filter(
-          (d: any) => d.empCd === emp.empCd,
-        );
-        leaveDays = empDailyRowsForLeave.filter(
-          (d: any) =>
-            d.status === "leave" &&
-            d.leaveType !== "sick" &&
-            !d.leaveNotAffectCommission,
-        ).length;
-      }
+      rawAbsentDays = empDailyRows.filter((d: any) => d.status === "absent").length;
+      missingCheckoutDays = empDailyRows.filter((d: any) => {
+        if (d.status !== "missing_checkout") return false;
+        const ds =
+          d.workDate instanceof Date
+            ? `${d.workDate.getFullYear()}-${String(d.workDate.getMonth() + 1).padStart(2, "0")}-${String(d.workDate.getDate()).padStart(2, "0")}`
+            : String(d.workDate).slice(0, 10);
+        return !mcExcludeSet.has(`${emp.empCd}|${ds}`);
+      }).length;
+      lateMinutes = empDailyRows.reduce(
+        (s: any, d: any) => s + (d.lateMinutes ?? 0),
+        0,
+      );
+      earlyLeaveMinutes = empDailyRows.reduce(
+        (s: any, d: any) => s + (d.earlyLeaveMin ?? 0),
+        0,
+      );
+      leaveDays = empDailyRows.filter(
+        (d: any) =>
+          d.status === "leave" &&
+          d.leaveType !== "sick" &&
+          !d.leaveNotAffectCommission,
+      ).length;
       const overtimeDays: Array<
         OvertimeDayPay & { dateKey: string; workedMinutes: number }
       > =
@@ -1052,7 +1024,7 @@ export class PayrollComputeService {
         const isEnabled =
           flags.commOvertime &&
           (kind === "regular"
-            ? enabled?.out !== false
+            ? enabled?.out === true
             : enabled?.day !== false);
         if (!isEnabled) return [];
         return [
@@ -1488,7 +1460,7 @@ export class PayrollComputeService {
               const isEnabled =
                 settings.commOvertime &&
                 (kind === "regular"
-                  ? enabled?.out !== false
+                  ? enabled?.out === true
                   : enabled?.day !== false);
               if (!isEnabled) return [];
 

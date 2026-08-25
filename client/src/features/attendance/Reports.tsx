@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, Calendar, Printer } from "lucide-react";
 import { DateInput } from "@/components/ui/date-input";
+import { useIsMobile } from "@/hooks/useMobile";
 
 type ReportTab =
   | "summary"
@@ -25,6 +26,7 @@ const firstOfMonth = new Date(
   .split("T")[0];
 
 export default function Reports({ department }: { department?: string }) {
+  const isMobile = useIsMobile();
   const [dates, setDates] = useState({ from: firstOfMonth, to: todayStr });
   const [activeTab, setActiveTab] = useState<ReportTab>("summary");
   const [balanceYear, setBalanceYear] = useState(new Date().getFullYear());
@@ -195,6 +197,7 @@ export default function Reports({ department }: { department?: string }) {
     "مجموع دخول (د)": p.totalInMins,
     "أذونات خروج": p.outCount,
     "مجموع خروج (د)": p.totalOutMins,
+    مأموريات: p.missionCount ?? 0,
   }));
 
   const balanceData = balances.map((b: any) => ({
@@ -213,6 +216,43 @@ export default function Reports({ department }: { department?: string }) {
         <div className="text-center py-8 text-gray-500">لا توجد بيانات</div>
       );
     const cols = Object.keys(rows[0]);
+
+    if (isMobile) {
+      const [titleCol, ...restCols] = cols;
+      return (
+        <div className="space-y-2" dir="rtl">
+          {rows.map((row: any, i: number) => (
+            <div
+              key={i}
+              className="rounded-2xl border border-border bg-background p-3 shadow-sm"
+            >
+              <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-2">
+                <span className="text-sm font-semibold text-foreground">
+                  {row[restCols[0]] ?? row[titleCol]}
+                </span>
+                <span className="font-mono text-xs text-muted-foreground">
+                  {titleCol}: {row[titleCol]}
+                </span>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+                {restCols.slice(1).map((c) => (
+                  <div
+                    key={c}
+                    className="flex items-center justify-between gap-2 rounded-lg bg-muted/40 px-2 py-1.5"
+                  >
+                    <span className="text-muted-foreground">{c}</span>
+                    <span className="font-semibold tabular-nums text-foreground">
+                      {row[c]}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
     return (
       <div className="overflow-x-auto" dir="rtl">
         <table dir="rtl" className="min-w-[42rem] w-full text-sm">

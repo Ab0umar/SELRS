@@ -346,7 +346,7 @@ export default function ConsultantFollowupPage() {
         }
         .consultant-followup-shell .sheet-followup-body {
           width: 210mm;
-          min-height: 297mm;
+          min-height: 0;
           margin: 0 auto;
           border: 0;
           padding: 10mm;
@@ -363,26 +363,29 @@ export default function ConsultantFollowupPage() {
             print-color-adjust: exact !important;
           }
           html, body {
-            width: 210mm !important;
-            height: 297mm !important;
+            width: 100% !important;
+            height: auto !important;
+            min-height: 0 !important;
             margin: 0 !important;
             padding: 0 !important;
-            overflow: hidden !important;
+            overflow-x: hidden !important;
+            overflow-y: hidden !important;
             background: white !important;
           }
           .consultant-followup-page,
           .consultant-followup-page main {
             display: block !important;
-            width: 210mm !important;
-            height: 297mm !important;
+            width: 100% !important;
+            height: auto !important;
             min-height: 0 !important;
             margin: 0 !important;
             padding: 0 !important;
-            overflow: hidden !important;
+            overflow-x: hidden !important;
+            overflow-y: hidden !important;
           }
           .print-page-center-a4 {
-            width: 210mm !important;
-            height: 297mm !important;
+            width: 100% !important;
+            height: auto !important;
             min-height: 0 !important;
             margin: 0 auto !important;
             padding: 0 !important;
@@ -390,9 +393,9 @@ export default function ConsultantFollowupPage() {
             background: white !important;
           }
           .sheet-followup-body {
-            width: 210mm !important;
-            height: 297mm !important;
-            max-height: 297mm !important;
+            width: 100% !important;
+            height: auto !important;
+            max-height: none !important;
             min-height: 0 !important;
             margin: 0 auto !important;
             box-sizing: border-box !important;
@@ -403,10 +406,11 @@ export default function ConsultantFollowupPage() {
             background: white !important;
           }
           .sheet-followup-body .sheet-followup-content {
-            height: 100% !important;
+            height: auto !important;
+            flex: 0 0 auto !important;
             display: flex !important;
             flex-direction: column !important;
-            gap: 2.8mm !important;
+            gap: 1.5mm !important;
           }
           .sheet-followup-body, .sheet-followup-body * {
             box-sizing: border-box !important;
@@ -457,7 +461,7 @@ export default function ConsultantFollowupPage() {
             border-radius: 1mm !important;
           }
           .sheet-followup-body .followup-record-list {
-            flex: 1 1 auto !important;
+            flex: 0 0 auto !important;
             min-height: 0 !important;
             gap: 2.2mm !important;
             display: flex !important;

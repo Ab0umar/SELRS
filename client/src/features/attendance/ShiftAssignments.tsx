@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import { DateInput } from "@/components/ui/date-input";
+import { useIsMobile } from "@/hooks/useMobile";
 
 const PERIOD_LABEL: Record<string, string> = {
   day: "يومي",
@@ -80,6 +81,7 @@ const WEEKDAYS = [
 // weekdayMask is managed from the Employees page, not here
 
 export default function ShiftAssignments() {
+  const isMobile = useIsMobile();
   const [tab, setTab] = useState<"assignments" | "cycles" | "swap">(
     "assignments",
   );
@@ -826,6 +828,153 @@ export default function ShiftAssignments() {
               <div className="py-8 text-center text-muted-foreground">
                 لا توجد تعيينات
               </div>
+            ) : isMobile ? (
+              <div className="space-y-2">
+                {assignments.map((assignment: any) => {
+                  const isEditing = editingId === assignment.id;
+                  const isExpired = assignment.isExpired;
+                  return (
+                    <div
+                      key={assignment.id}
+                      className={`rounded-2xl border border-border bg-background p-3 shadow-sm ${
+                        isEditing ? "bg-primary/5" : isExpired ? "opacity-60" : ""
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="text-sm font-semibold text-foreground">
+                            {assignment.empName}
+                            {isExpired && (
+                              <span className="mr-2 text-[10px] text-muted-foreground">
+                                (منتهي)
+                              </span>
+                            )}
+                          </div>
+                          <div className="font-mono text-xs text-muted-foreground">
+                            {assignment.empCd}
+                          </div>
+                        </div>
+                        {!isEditing && (
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => startEdit(assignment)}
+                              aria-label={`تعديل تعيين الوردية للموظف ${assignment.empName}`}
+                              className="h-9 w-9 p-0"
+                            >
+                              <Pencil size={15} className="text-primary" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                deleteAssignmentMutation.mutate({
+                                  id: assignment.id,
+                                })
+                              }
+                              aria-label={`حذف تعيين الوردية للموظف ${assignment.empName}`}
+                              className="h-9 w-9 p-0"
+                            >
+                              <Trash2 size={15} className="text-destructive" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {isEditing ? (
+                        <div className="mt-3 space-y-2 border-t border-border/60 pt-2">
+                          <select
+                            value={editRow.shiftId || ""}
+                            onChange={(e) =>
+                              setEditRow({
+                                ...editRow,
+                                shiftId: parseInt(e.target.value, 10),
+                              })
+                            }
+                            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                          >
+                            {shifts.map((shift) => (
+                              <option key={shift.id} value={shift.id}>
+                                {shift.name}
+                              </option>
+                            ))}
+                          </select>
+                          <div className="grid grid-cols-2 gap-2">
+                            <DateInput
+                              value={editRow.effectiveFrom}
+                              onChange={(e) =>
+                                setEditRow({
+                                  ...editRow,
+                                  effectiveFrom: e.target.value,
+                                })
+                              }
+                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                            />
+                            <DateInput
+                              value={editRow.effectiveTo ?? ""}
+                              onChange={(e) =>
+                                setEditRow({
+                                  ...editRow,
+                                  effectiveTo: e.target.value || undefined,
+                                })
+                              }
+                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                            />
+                          </div>
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                updateAssignmentMutation.mutate({
+                                  id: assignment.id,
+                                  ...editRow,
+                                })
+                              }
+                              disabled={updateAssignmentMutation.isPending}
+                              aria-label={`حفظ تعديل الوردية للموظف ${assignment.empName}`}
+                              className="h-9 w-9 p-0"
+                            >
+                              <Check size={15} className="text-success" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingId(null)}
+                              aria-label={`إلغاء تعديل الوردية للموظف ${assignment.empName}`}
+                              className="h-9 w-9 p-0"
+                            >
+                              <X size={15} className="text-muted-foreground" />
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-2 grid grid-cols-3 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
+                          <div>
+                            <div className="text-muted-foreground">الوردية</div>
+                            <div className="font-medium text-foreground">
+                              {assignment.shiftName}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">من</div>
+                            <div className="font-mono font-medium text-foreground">
+                              {assignment.effectiveFrom}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">حتى</div>
+                            <div className="font-mono font-medium text-foreground">
+                              {assignment.effectiveTo ?? "—"}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             ) : (
               <div className="overflow-x-auto" dir="rtl">
                 <table dir="rtl" className="min-w-[58rem] w-full text-sm">
@@ -1442,6 +1591,172 @@ export default function ShiftAssignments() {
               {cycleAssignments.length === 0 ? (
                 <div className="py-8 text-center text-muted-foreground">
                   لا توجد تعيينات
+                </div>
+              ) : isMobile ? (
+                <div className="space-y-2">
+                  {cycleAssignments.map((a: any) => {
+                    const isEditing = editingCycleAssignId === a.id;
+                    const cycle = cycles.find((c: any) => c.id === a.cycleId);
+                    const todaySlotIdx =
+                      cycle?.period === "month"
+                        ? new Date().getDate()
+                        : new Date().getDay();
+                    const todaySlot = cycle?.slots?.find(
+                      (s: any) => s.slotIndex === todaySlotIdx,
+                    );
+                    const todayShift = todaySlot
+                      ? shifts.find((s: any) => s.id === todaySlot.shiftId)
+                      : null;
+                    return (
+                      <div
+                        key={a.id}
+                        className={`rounded-2xl border border-border bg-background p-3 shadow-sm ${isEditing ? "bg-primary/5" : ""}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="text-sm font-semibold text-foreground">
+                              {a.empName ?? a.empCd}
+                            </div>
+                            <div className="font-mono text-xs text-muted-foreground">
+                              {a.empCd}
+                            </div>
+                          </div>
+                          {!isEditing && (
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-9 w-9 p-0"
+                                onClick={() => {
+                                  setEditingCycleAssignId(a.id);
+                                  setEditCycleAssignRow({
+                                    cycleId: a.cycleId,
+                                    effectiveFrom: a.effectiveFrom,
+                                    effectiveTo: a.effectiveTo ?? "",
+                                  });
+                                }}
+                              >
+                                <Pencil size={14} className="text-primary" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-9 w-9 p-0"
+                                onClick={() =>
+                                  removeCycleAssignmentMutation.mutate({
+                                    id: a.id,
+                                  })
+                                }
+                              >
+                                <Trash2 size={14} className="text-destructive" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+
+                        {isEditing ? (
+                          <div className="mt-3 space-y-2 border-t border-border/60 pt-2">
+                            <select
+                              value={editCycleAssignRow.cycleId}
+                              onChange={(e) =>
+                                setEditCycleAssignRow({
+                                  ...editCycleAssignRow,
+                                  cycleId: Number(e.target.value),
+                                })
+                              }
+                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                            >
+                              {cycles.map((c: any) => (
+                                <option key={c.id} value={c.id}>
+                                  {c.name} ({PERIOD_LABEL[c.period]})
+                                </option>
+                              ))}
+                            </select>
+                            <div className="grid grid-cols-2 gap-2">
+                              <DateInput
+                                value={editCycleAssignRow.effectiveFrom}
+                                onChange={(e) =>
+                                  setEditCycleAssignRow({
+                                    ...editCycleAssignRow,
+                                    effectiveFrom: e.target.value,
+                                  })
+                                }
+                                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                              />
+                              <DateInput
+                                value={editCycleAssignRow.effectiveTo}
+                                onChange={(e) =>
+                                  setEditCycleAssignRow({
+                                    ...editCycleAssignRow,
+                                    effectiveTo: e.target.value,
+                                  })
+                                }
+                                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                              />
+                            </div>
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-9 w-9 p-0"
+                                onClick={() =>
+                                  updateCycleAssignmentMutation.mutate({
+                                    id: a.id,
+                                    cycleId: editCycleAssignRow.cycleId,
+                                    effectiveFrom:
+                                      editCycleAssignRow.effectiveFrom,
+                                    effectiveTo:
+                                      editCycleAssignRow.effectiveTo || null,
+                                  })
+                                }
+                                disabled={updateCycleAssignmentMutation.isPending}
+                              >
+                                <Check size={15} className="text-success" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-9 w-9 p-0"
+                                onClick={() => setEditingCycleAssignId(null)}
+                              >
+                                <X size={15} className="text-muted-foreground" />
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mt-2 grid grid-cols-3 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
+                            <div>
+                              <div className="text-muted-foreground">الدورة</div>
+                              <div className="font-medium text-foreground">
+                                {a.cycleName}
+                              </div>
+                              {todayShift ? (
+                                <span className="mt-0.5 inline-block rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">
+                                  {todayShift.name}
+                                </span>
+                              ) : (
+                                <span className="mt-0.5 block text-[10px] text-muted-foreground">
+                                  راحة
+                                </span>
+                              )}
+                            </div>
+                            <div>
+                              <div className="text-muted-foreground">من</div>
+                              <div className="font-mono font-medium text-foreground">
+                                {a.effectiveFrom}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-muted-foreground">حتى</div>
+                              <div className="font-mono font-medium text-foreground">
+                                {a.effectiveTo ?? "—"}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="overflow-x-auto" dir="rtl">

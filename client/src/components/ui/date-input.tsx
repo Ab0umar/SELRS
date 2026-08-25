@@ -190,7 +190,7 @@ export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
               variant="ghost"
               size="icon"
               disabled={isDisabled}
-              className="h-8 w-8 shrink-0"
+              className="h-8 w-8 shrink-0 print:hidden"
               tabIndex={-1}
             >
               <CalendarIcon className="h-4 w-4 opacity-60" />

@@ -121,6 +121,7 @@ export default function RequestTests({
   const [locationTypeFilter, setLocationTypeFilter] = useState<
     "all" | "center" | "external"
   >("all");
+  const [diagnosis, setDiagnosis] = useState("");
 
   useEffect(() => {
     if (requestedVisitDate) {
@@ -365,6 +366,8 @@ export default function RequestTests({
     if (data.requestDate) setRequestDate(data.requestDate);
     if (data.generalNotes !== undefined)
       setGeneralNotes(data.generalNotes ?? "");
+    if (data.diagnosis !== undefined)
+      setDiagnosis(data.diagnosis ?? "");
     if (Array.isArray(data.selectedTests)) setSelectedTests(data.selectedTests);
     hydratedPatientStateRef.current = patientId;
   }, [patientStateQuery.data, patientId]);
@@ -415,6 +418,7 @@ export default function RequestTests({
       requestDate,
       generalNotes,
       selectedTests,
+      diagnosis,
     };
     patientStateTimerRef.current = setTimeout(() => {
       savePatientStateMutation.mutate({
@@ -433,6 +437,7 @@ export default function RequestTests({
     requestDate,
     generalNotes,
     selectedTests,
+    diagnosis,
     savePatientStateMutation,
     isKfRoute,
   ]);
@@ -444,6 +449,7 @@ export default function RequestTests({
       requestDate,
       generalNotes,
       selectedTests,
+      diagnosis,
     };
     localDraftTimerRef.current = setTimeout(() => {
       const key = patientId
@@ -464,6 +470,7 @@ export default function RequestTests({
     requestDate,
     generalNotes,
     selectedTests,
+    diagnosis,
     draftScope,
   ]);
 
@@ -474,6 +481,7 @@ export default function RequestTests({
         requestDate,
         generalNotes,
         selectedTests,
+        diagnosis,
       };
       const draft = {
         updatedAt: new Date().toISOString(),
@@ -501,7 +509,7 @@ export default function RequestTests({
     requestDate,
     generalNotes,
     selectedTests,
-    draftScope,
+    diagnosis,
   ]);
 
   if (!isAuthenticated) return null;
@@ -1121,6 +1129,19 @@ export default function RequestTests({
                     className="h-9 text-xs font-semibold"
                   />
                 </div>
+                <div className="grid grid-cols-1 gap-2 mt-2">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-600">التشخيص (Diagnosis)</label>
+                    <Input
+                      value={diagnosis}
+                      onChange={(e) => setDiagnosis(e.target.value)}
+                      placeholder="اكتب التشخيص هنا..."
+                      disabled={editingForbidden}
+                      className="h-9 border-[#dbe4f0] bg-[#f8fafc] text-right font-medium"
+                      dir="rtl"
+                    />
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -1417,64 +1438,29 @@ export default function RequestTests({
           <div className="request-tests-print-content request-tests-paper space-y-5">
             <div className="request-tests-paper-header">
               <div
-                className="request-patient-grid flex flex-wrap items-center justify-between gap-3 text-sm"
+                className="request-patient-grid"
                 dir="rtl"
               >
-                <span
-                  className="request-patient-field inline-flex min-w-[12rem] items-center gap-1"
-                  dir="rtl"
-                >
-                  <span className="request-patient-label font-bold text-[#1e3a66]">
-                    الاسم:
+                <div className="request-patient-field">
+                  <span className="request-patient-label">الاسم:</span>
+                  <span className="request-patient-value">{patientName || "غير محدد"}</span>
+                </div>
+                <div className="request-patient-field">
+                  <span className="request-patient-label">الكود:</span>
+                  <span className="request-patient-value" dir="ltr">
+                    {patientCode || (patientId != null ? String(patientId) : "")}
                   </span>
-                  <span className="request-patient-value font-semibold">
-                    {patientName || "غير محدد"}
+                </div>
+                <div className="request-patient-field">
+                  <span className="request-patient-label">التاريخ:</span>
+                  <span className="request-patient-value" dir="ltr">
+                    {formatDateLabel(requestDate)}
                   </span>
-                </span>
-                <span
-                  className="request-patient-field inline-flex items-center gap-1"
-                  dir="rtl"
-                >
-                  <span className="request-patient-label font-bold text-[#1e3a66]">
-                    الكود:
-                  </span>
-                  <span
-                    className="request-patient-value font-semibold"
-                    dir="ltr"
-                  >
-                    {patientCode ||
-                      (patientId != null ? String(patientId) : "")}
-                  </span>
-                </span>
-                {requestDate ? (
-                  <span
-                    className="request-patient-field inline-flex items-center gap-1"
-                    dir="rtl"
-                  >
-                    <span className="request-patient-label font-bold text-[#1e3a66]">
-                      التاريخ:
-                    </span>
-                    <span
-                      className="request-patient-value font-semibold"
-                      dir="ltr"
-                    >
-                      {formatDateLabel(requestDate)}
-                    </span>
-                  </span>
-                ) : null}
-                <span
-                  className="request-patient-field inline-flex items-center gap-1"
-                  dir="rtl"
-                >
-                  <span className="request-patient-label font-bold text-[#1e3a66]">
-                    السن:
-                  </span>
-                  <span className="request-patient-value font-semibold">
-                    {patientAge ? `${patientAge} سنة` : ""}
-                  </span>
-                </span>
-                <span className="request-patient-field" />
-                <span className="request-patient-field" />
+                </div>
+                <div className="request-patient-diagnosis">
+                  <span className="request-patient-label">التشخيص:</span>
+                  <span className="request-patient-value font-bold mr-1">{diagnosis || "غير محدد"}</span>
+                </div>
               </div>
             </div>
 
@@ -1552,6 +1538,9 @@ export default function RequestTests({
                 <div className="whitespace-pre-line">{generalNotes}</div>
               </div>
             ) : null}
+            <div className="hidden print:block print-signature-section">
+              توقيع الطبيب: ................................
+            </div>
           </div>
           <div
             className={`print:hidden sticky bottom-4 z-10 flex items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white/90 p-3.5 shadow-lg backdrop-blur-md transition-all xl:col-start-2 ${printMode.printView ? "hidden" : ""}`}
@@ -1662,13 +1651,15 @@ export default function RequestTests({
             box-shadow: none !important;
           }
           .request-tests-root .request-tests-paper-header {
-            border: 1px solid #e5e5e5 !important;
+            border: none !important;
+            border-bottom: 1px solid #17468f !important;
             border-radius: 0 !important;
-            padding: 2.4mm 2.8mm !important;
+            padding: 0 0 2.4mm 0 !important;
+            margin-bottom: 3mm !important;
           }
           .request-tests-root .request-patient-grid {
             display: grid !important;
-            grid-template-columns: 1.4fr 0.72fr 1fr !important;
+            grid-template-columns: repeat(3, 1fr) !important;
             gap: 2mm 5mm !important;
             align-items: center !important;
             direction: rtl !important;
@@ -1683,8 +1674,12 @@ export default function RequestTests({
             justify-content: flex-start !important;
             white-space: nowrap !important;
           }
-          .request-tests-root .request-patient-name {
-            direction: rtl !important;
+          .request-tests-root .request-patient-diagnosis {
+            grid-column: 1 / -1 !important;
+            border-top: 1px solid #d1d5db !important;
+            padding-top: 1.5mm !important;
+            text-align: center !important;
+            font-size: 9.5pt !important;
           }
           .request-tests-root .request-patient-label,
           .request-tests-root .request-patient-value {
@@ -1724,6 +1719,15 @@ export default function RequestTests({
             padding: 2.4mm 2.8mm !important;
             break-inside: avoid;
             page-break-inside: avoid;
+          }
+          .request-tests-root .print-signature-section {
+            display: block !important;
+            margin-top: 12mm !important;
+            border-top: 1px solid #bbb !important;
+            padding-top: 3mm !important;
+            font-size: 9.5pt !important;
+            text-align: right !important;
+            direction: rtl !important;
           }
         }
       `}</style>

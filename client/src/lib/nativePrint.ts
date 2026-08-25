@@ -99,6 +99,106 @@ function buildScopedPrintHtml(): string {
     (clone.querySelector("head") ?? clone).appendChild(style);
   }
 
+  // Neutralize every computed scrolling ancestor in the cloned document. The
+  // print preview can contain generated wrappers whose class names are not
+  // known here; leaving any one of them scrollable lets Android paint a bar on
+  // the corresponding paper page.
+  const sourceNodes = [
+    document.documentElement,
+    ...Array.from(document.documentElement.querySelectorAll<HTMLElement>("*")),
+  ];
+  const cloneNodes = [
+    clone,
+    ...Array.from(clone.querySelectorAll<HTMLElement>("*")),
+  ];
+  cloneNodes.forEach((cloneNode, index) => {
+    const sourceNode = sourceNodes[index];
+    if (!sourceNode) return;
+    const computed = window.getComputedStyle(sourceNode);
+    if (
+      [computed.overflow, computed.overflowX, computed.overflowY].some(
+        (value) => value === "auto" || value === "scroll",
+      ) ||
+      sourceNode.scrollHeight > sourceNode.clientHeight
+    ) {
+      cloneNode.style.setProperty("overflow", "hidden", "important");
+      cloneNode.style.setProperty("overflow-y", "hidden", "important");
+      cloneNode.style.setProperty("scrollbar-width", "none", "important");
+      cloneNode.style.setProperty("-ms-overflow-style", "none", "important");
+    }
+  });
+
+  // The Android print WebView can paint its own scrollbars over every rendered
+  // page even when the source page has @media print rules. Append this reset
+  // last so it wins after all extracted application CSS has been inlined.
+  const printScrollbarReset = document.createElement("style");
+  printScrollbarReset.textContent = `
+    html, body, #root,
+    [data-app-scroll-container],
+    .lasik-print-root, .specialist-page-root {
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      overflow: hidden !important;
+      overflow-y: hidden !important;
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+    }
+
+    /* The print WebView itself must not expose a document scrollbar. */
+    html, body, #root {
+      overflow-x: hidden !important;
+      overflow-y: hidden !important;
+    }
+
+    /* Do not let the native-print cleanup override the paper geometry. */
+    .a4-page-card, .print-page-center-a4, .print-page-center-a5,
+    .attached-followup-page, .sheet-followup-body,
+    .lasik-sheet, .specialist-sheet {
+      overflow: hidden !important;
+      overflow-y: hidden !important;
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+    }
+
+    [data-print-document="lasik"] .print-page-center-a4 > .lasik-sheet {
+      height: 275mm !important;
+      min-height: 275mm !important;
+      max-height: 275mm !important;
+      box-sizing: border-box !important;
+    }
+
+    [data-print-document="lasik"] .attached-followup-page,
+    [data-print-document="lasik"] .attached-followup-page > .sheet-followup-body {
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      box-sizing: border-box !important;
+    }
+
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar,
+    #root::-webkit-scrollbar,
+    [data-app-scroll-container]::-webkit-scrollbar,
+    .a4-page-card::-webkit-scrollbar,
+    .print-page-center-a4::-webkit-scrollbar,
+    .print-page-center-a5::-webkit-scrollbar,
+    .attached-followup-page::-webkit-scrollbar,
+    .sheet-followup-body::-webkit-scrollbar,
+    .lasik-print-root::-webkit-scrollbar,
+    .specialist-page-root::-webkit-scrollbar,
+    .lasik-sheet::-webkit-scrollbar,
+    .specialist-sheet::-webkit-scrollbar,
+    [data-print-document="lasik"] .print-page-center-a4::-webkit-scrollbar,
+    [data-print-document="lasik"] .print-page-center-a4 > .lasik-sheet::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+      background: transparent !important;
+    }
+  `;
+  (clone.querySelector("head") ?? clone).appendChild(printScrollbarReset);
+
   return clone.outerHTML;
 }
 

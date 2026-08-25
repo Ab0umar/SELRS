@@ -17,12 +17,14 @@ import {
   attendanceHolidays,
   attendancePermissions,
 } from "../../../drizzle/schema";
-import { eq, and, lte, gte, isNull, or } from "drizzle-orm";
+import { eq, and, lte, gte, isNull, or, notInArray } from "drizzle-orm";
 import {
   computeDay,
   DayContext,
-  resolveShift,
+  resolveShifts,
   resolveCycleShift,
+  partitionPunchesForShifts,
+  applyApprovedPermissions,
   ShiftCycle,
   CycleAssignment,
   Shift,
@@ -39,8 +41,9 @@ export class DailyMaterializer {
     from: Date,
     to: Date,
     scope?: { empCd?: string },
+    dbOverride?: any,
   ): Promise<number> {
-    const db = await getDb();
+    const db = dbOverride ?? (await getDb());
     if (!db) throw new Error("Database not available");
 
     const fromDate = new Date(from);
@@ -111,32 +114,38 @@ export class DailyMaterializer {
             fromStr <= workDateStr && (toStr === null || toStr >= workDateStr)
           );
         });
-        const shift =
-          resolveShift(
-            empCd,
-            workDate,
-            empAssignments,
-            hasActiveCycle ? null : defaultShift,
-            shiftsById,
-          ) ??
-          resolveCycleShift(
+        let dayShifts = resolveShifts(
+          empCd,
+          workDate,
+          empAssignments,
+          hasActiveCycle ? null : defaultShift,
+          shiftsById,
+        );
+
+        if (dayShifts.length === 0) {
+          const cycleShift = resolveCycleShift(
             empCd,
             workDate,
             cycleAssignments,
             cyclesById,
             shiftsById,
           );
+          if (cycleShift) {
+            dayShifts = [cycleShift];
+          }
+        }
 
         // Get punches for this day and empCd
         const punches = await PunchesService.getPunchesByRange(
           workDate,
           workDate,
           empCd,
+          undefined,
+          db,
         );
 
         // Skip days with no shift assignment AND no punches — not a working day
-        // Also delete any stale row (e.g. from a previous run that used defaultShift on a cycle rest day)
-        if (!shift && punches.length === 0) {
+        if (dayShifts.length === 0 && punches.length === 0) {
           await db
             .delete(attendanceDaily)
             .where(
@@ -148,78 +157,58 @@ export class DailyMaterializer {
           continue;
         }
 
-        // Get break minutes for this day (TODO: configurable breaks)
-        const breakMinutes = 0;
-
-        // Build context and compute
-        const ctx: DayContext = {
-          empCd,
-          workDate,
-          shift: shift ?? null,
-          punches: punches.map((p) => ({
+        const partitionedPunches = partitionPunchesForShifts(
+          punches.map((p) => ({
             id: p.id,
             punchAt: new Date(p.punchAt),
             direction: p.direction,
             source: p.source,
+            deviceId: p.deviceId,
           })),
-          leaveApproved,
-          isHoliday,
-          breakMinutes,
-          now,
-        };
-
-        const result = computeDay(ctx);
-
-        // Apply approved permissions — reduce lateMinutes / earlyLeaveMin
-        const dayPerms = permissions.filter(
-          (p) =>
-            p.empCd === empCd &&
-            p.approved &&
-            this.dateKey(new Date(p.date)) === workDateStr,
+          dayShifts,
+          workDate,
         );
-        for (const perm of dayPerms) {
-          if (perm.type === "in") {
-            result.lateMinutes = Math.max(
-              0,
-              (result.lateMinutes || 0) - perm.durationMinutes,
-            );
-          } else if (perm.type === "out") {
-            result.earlyLeaveMin = Math.max(
-              0,
-              (result.earlyLeaveMin || 0) - perm.durationMinutes,
-            );
-          }
-        }
-        if (
-          result.status === "partial" &&
-          result.lateMinutes === 0 &&
-          result.earlyLeaveMin === 0
-        ) {
-          result.status = "present";
-        }
 
-        // UPSERT to attendance_daily
-        await db
-          .insert(attendanceDaily)
-          .values({
-            empCd: result.empCd,
-            workDate: workDateStr as any,
-            shiftId: result.shiftId,
-            firstIn: result.firstIn,
-            lastOut: result.lastOut,
-            workedMinutes: result.workedMinutes,
-            lateMinutes: result.lateMinutes,
-            earlyLeaveMin: result.earlyLeaveMin,
-            overtimeInMinutes: result.overtimeInMinutes,
-            overtimeOutMinutes: result.overtimeOutMinutes,
-            overtimeMinutes: result.overtimeMinutes,
-            status: result.status,
-            insideNow: result.insideNow,
-            computedAt: result.computedAt,
-          })
-          .onDuplicateKeyUpdate({
-            set: {
-              shiftId: result.shiftId,
+        // Get break minutes for this day (TODO: configurable breaks)
+        const breakMinutes = 0;
+        const shiftsToProcess = dayShifts.length > 0 ? dayShifts : [null];
+        const processedShiftIds = new Set<number>();
+
+        for (const shift of shiftsToProcess) {
+          const shiftId = shift?.id ?? 0;
+          processedShiftIds.add(shiftId);
+          const shiftPunches = partitionedPunches.get(shiftId) ?? [];
+
+          // Build context and compute
+          const ctx: DayContext = {
+            empCd,
+            workDate,
+            shift,
+            punches: shiftPunches,
+            leaveApproved,
+            isHoliday,
+            breakMinutes,
+            now,
+          };
+
+          let result = computeDay(ctx);
+
+          // Apply approved permissions — reduce lateMinutes / earlyLeaveMin
+          const dayPerms = permissions.filter(
+            (p) =>
+              p.empCd === empCd &&
+              p.approved &&
+              this.dateKey(new Date(p.date)) === workDateStr,
+          );
+          result = applyApprovedPermissions(result, dayPerms as any[]);
+
+          // UPSERT to attendance_daily
+          await db
+            .insert(attendanceDaily)
+            .values({
+              empCd: result.empCd,
+              workDate: workDateStr as any,
+              shiftId: shiftId,
               firstIn: result.firstIn,
               lastOut: result.lastOut,
               workedMinutes: result.workedMinutes,
@@ -229,12 +218,43 @@ export class DailyMaterializer {
               overtimeOutMinutes: result.overtimeOutMinutes,
               overtimeMinutes: result.overtimeMinutes,
               status: result.status,
+              leaveType: leaveApproved ? "leave" : null,
               insideNow: result.insideNow,
-              computedAt: result.computedAt,
-            },
-          });
+              computedAt: now,
+            })
+            .onDuplicateKeyUpdate({
+              set: {
+                firstIn: result.firstIn,
+                lastOut: result.lastOut,
+                workedMinutes: result.workedMinutes,
+                lateMinutes: result.lateMinutes,
+                earlyLeaveMin: result.earlyLeaveMin,
+                overtimeInMinutes: result.overtimeInMinutes,
+                overtimeOutMinutes: result.overtimeOutMinutes,
+                overtimeMinutes: result.overtimeMinutes,
+                status: result.status,
+                leaveType: leaveApproved ? "leave" : null,
+                insideNow: result.insideNow,
+                computedAt: now,
+              },
+            });
 
-        rowsWritten++;
+          rowsWritten++;
+        }
+
+        // Delete any daily rows for this employee and date that are NOT in processedShiftIds
+        if (processedShiftIds.size > 0) {
+          const processedList = Array.from(processedShiftIds);
+          await db
+            .delete(attendanceDaily)
+            .where(
+              and(
+                eq(attendanceDaily.empCd, empCd),
+                eq(attendanceDaily.workDate, workDateStr as any),
+                notInArray(attendanceDaily.shiftId, processedList)
+              )
+            );
+        }
       }
     }
 

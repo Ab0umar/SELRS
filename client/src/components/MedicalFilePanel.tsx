@@ -346,8 +346,10 @@ export default function MedicalFilePanel({
           prev === matchByVisit.id ? prev : matchByVisit.id,
         );
         onHubVisitIdChange?.(Number(matchByVisit.visitId));
-        return;
       }
+      // A specific visit was explicitly requested — never substitute a
+      // different same-day visit's exam data when no exact match exists.
+      return;
     }
     if (!hubVisitDate) return;
     const match = examinations.find((e: any) => {

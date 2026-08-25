@@ -457,7 +457,7 @@ export default function AccountingAdvances() {
                       type="button"
                       onClick={handleSubmit}
                       disabled={busy || !txDate || !employee.trim()}
-                      className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40 sm:w-auto"
+                      className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground sm:w-auto"
                     >
                       {busy ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -473,8 +473,8 @@ export default function AccountingAdvances() {
                     disabled={busy || !txDate || !employee.trim()}
                     onClick={handleSubmit}
                     className={cn(
-                      "inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg px-4 text-sm font-semibold text-card-foreground transition-opacity hover:opacity-90 disabled:opacity-40 sm:w-auto",
-                      saved ? "bg-success/100" : "bg-primary",
+                      "inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg px-4 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground sm:w-auto",
+                      saved ? "bg-success text-success-foreground" : "bg-primary",
                     )}
                   >
                     {busy ? (
@@ -508,7 +508,94 @@ export default function AccountingAdvances() {
                 {byEmployee.length} موظف برصيد متبقٍ
               </span>
             </div>
-            <div className="overflow-x-auto">
+            {/* Mobile: card list */}
+            <div className="grid gap-2 px-4 py-3 sm:hidden">
+              {allEmployees.map((r) => (
+                <div
+                  key={r.employee}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setEmployee(r.employee);
+                    setEmpCd(null);
+                    setAdvance("");
+                    setRepayment("");
+                    setNotes("");
+                    setEditingId(null);
+                    setSearch(r.employee);
+                    setPage(1);
+                    formRef.current?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "nearest",
+                    });
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      setEmployee(r.employee);
+                      setSearch(r.employee);
+                      setPage(1);
+                    }
+                  }}
+                  className={cn(
+                    "rounded-2xl border border-border bg-background p-3 shadow-sm transition-colors",
+                    employee === r.employee && "ring-1 ring-warning/40 bg-warning/5",
+                    r.remaining <= 0 && "opacity-60",
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate text-sm font-semibold text-foreground">
+                      {r.employee}
+                    </span>
+                    <span
+                      className={cn(
+                        "shrink-0 rounded-full px-2.5 py-1 text-xs font-bold tabular-nums",
+                        r.remaining > 0
+                          ? "bg-destructive/10 text-destructive"
+                          : "bg-success/10 text-success",
+                      )}
+                    >
+                      {fmt(r.remaining)}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                    <div className="rounded-xl bg-warning/10 px-3 py-2">
+                      <div className="text-[10px] text-warning">إجمالي السلف</div>
+                      <div className="mt-1 font-semibold tabular-nums text-warning">
+                        {fmt(r.totalAdvance)}
+                      </div>
+                    </div>
+                    <div className="rounded-xl bg-success/10 px-3 py-2">
+                      <div className="text-[10px] text-success">إجمالي السداد</div>
+                      <div className="mt-1 font-semibold tabular-nums text-success">
+                        {fmt(r.totalRepaid)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-3 text-sm font-bold">
+                <div className="flex items-center justify-between">
+                  <span>الإجمالي</span>
+                  <span
+                    className={cn(
+                      "tabular-nums",
+                      totalAdvance - totalRepaid > 0
+                        ? "text-destructive"
+                        : "text-success",
+                    )}
+                  >
+                    {fmt(totalAdvance - totalRepaid)}
+                  </span>
+                </div>
+                <div className="mt-1 flex items-center justify-between text-xs font-medium text-muted-foreground">
+                  <span className="text-warning">سلف: {fmt(totalAdvance)}</span>
+                  <span className="text-success">سداد: {fmt(totalRepaid)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop: table */}
+            <div className="hidden overflow-x-auto sm:block">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/30 text-xs">

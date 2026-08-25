@@ -7,6 +7,8 @@
 export interface Shift {
   id: number;
   name: string;
+  branch?: "operations" | "center" | null;
+  deviceId?: string | null;
   startTime: string; // HH:mm (or multiple times for split shifts, comma-separated)
   endTime: string;
   crossesMidnight: boolean;
@@ -35,6 +37,7 @@ export interface RawPunchRecord {
   punchAt: Date;
   direction?: "in" | "out" | "unknown";
   source?: string;
+  deviceId?: string | null;
 }
 
 export interface DayContext {
@@ -71,10 +74,106 @@ export interface DayResult {
   computedAt: Date;
 }
 
+export interface ApprovedPermission {
+  type: "in" | "out" | "mission";
+  durationMinutes: number;
+}
+
+export function applyApprovedPermissions(
+  result: DayResult,
+  permissions: ApprovedPermission[],
+): DayResult {
+  const adjusted = { ...result };
+  for (const permission of permissions) {
+    if (permission.type === "in") {
+      adjusted.lateMinutes = Math.max(
+        0,
+        adjusted.lateMinutes - permission.durationMinutes,
+      );
+    } else if (permission.type === "out") {
+      adjusted.earlyLeaveMin = Math.max(
+        0,
+        adjusted.earlyLeaveMin - permission.durationMinutes,
+      );
+    }
+  }
+
+  if (permissions.some((permission) => permission.type === "mission")) {
+    adjusted.lateMinutes = 0;
+    adjusted.earlyLeaveMin = 0;
+    if (adjusted.status === "absent" || adjusted.status === "partial") {
+      adjusted.status = "present";
+    }
+  }
+
+  if (
+    adjusted.status === "partial" &&
+    adjusted.lateMinutes === 0 &&
+    adjusted.earlyLeaveMin === 0
+  ) {
+    adjusted.status = "present";
+  }
+  return adjusted;
+}
+
 /**
  * Resolve which shift applies to an employee on a given date
  * Checks explicit assignments first, falls back to default shift
  */
+export function resolveShifts(
+  empCd: string,
+  date: Date,
+  assignments: Array<{
+    empCd: string;
+    shiftId: number;
+    effectiveFrom: Date;
+    effectiveTo: Date | null;
+    weekdayMask: number;
+  }>,
+  defaultShiftId: number | null,
+  shiftsById: Map<number, Shift>,
+): Shift[] {
+  const weekday = date.getDay(); // 0 = Sunday
+  const dateStr = ymd(date);
+
+  // 1. Find all matching assignments
+  const matchingAssignments = [];
+  for (const asn of assignments) {
+    if (asn.empCd !== empCd) continue;
+    if (ymd(asn.effectiveFrom) > dateStr) continue;
+    if (asn.effectiveTo && ymd(asn.effectiveTo) < dateStr) continue;
+    if (!(asn.weekdayMask & (1 << weekday))) continue;
+    matchingAssignments.push(asn);
+  }
+
+  if (matchingAssignments.length > 0) {
+    // Keep the latest assignment in each branch. Legacy shifts without a branch
+    // remain mutually exclusive, while operations + center may run in one day.
+    const latestByBranch = new Map<string, (typeof matchingAssignments)[number]>();
+    for (const asn of matchingAssignments) {
+      const shift = shiftsById.get(asn.shiftId);
+      if (!shift) continue;
+      const branchKey = shift.branch ?? "__unassigned";
+      const current = latestByBranch.get(branchKey);
+      if (!current || asn.effectiveFrom.getTime() > current.effectiveFrom.getTime()) {
+        latestByBranch.set(branchKey, asn);
+      }
+    }
+
+    return Array.from(latestByBranch.values())
+      .map((asn) => shiftsById.get(asn.shiftId))
+      .filter((shift): shift is Shift => Boolean(shift));
+  }
+
+  // Fall back to default shift — cycle slots handle rest-day exclusion
+  if (defaultShiftId) {
+    const shift = shiftsById.get(defaultShiftId);
+    if (shift) return [shift];
+  }
+
+  return [];
+}
+
 export function resolveShift(
   empCd: string,
   date: Date,
@@ -88,35 +187,8 @@ export function resolveShift(
   defaultShiftId: number | null,
   shiftsById: Map<number, Shift>,
 ): Shift | null {
-  const weekday = date.getDay(); // 0 = Sunday
-
-  const dateStr = ymd(date);
-  // Find latest assignment that matches this date and weekday
-  let matchingAssignment = null;
-  for (const asn of assignments) {
-    if (asn.empCd !== empCd) continue;
-    if (ymd(asn.effectiveFrom) > dateStr) continue;
-    if (asn.effectiveTo && ymd(asn.effectiveTo) < dateStr) continue;
-    if (!(asn.weekdayMask & (1 << weekday))) continue;
-
-    if (
-      !matchingAssignment ||
-      ymd(asn.effectiveFrom) > ymd(matchingAssignment.effectiveFrom)
-    ) {
-      matchingAssignment = asn;
-    }
-  }
-
-  if (matchingAssignment) {
-    return shiftsById.get(matchingAssignment.shiftId) ?? null;
-  }
-
-  // Fall back to default shift — cycle slots handle rest-day exclusion
-  if (defaultShiftId) {
-    return shiftsById.get(defaultShiftId) ?? null;
-  }
-
-  return null;
+  const shifts = resolveShifts(empCd, date, assignments, defaultShiftId, shiftsById);
+  return shifts[0] ?? null;
 }
 
 /**
@@ -461,4 +533,68 @@ function buildDateTime(date: Date, time: { h: number; m: number }): Date {
   const dt = new Date(date);
   dt.setHours(time.h, time.m, 0, 0);
   return dt;
+}
+
+export function partitionPunchesForShifts(
+  punches: RawPunchRecord[],
+  shifts: Shift[],
+  workDate: Date,
+): Map<number, RawPunchRecord[]> {
+  const groups = new Map<number, RawPunchRecord[]>();
+  for (const s of shifts) {
+    groups.set(s.id, []);
+  }
+
+  if (shifts.length <= 1) {
+    const shiftId = shifts[0]?.id ?? 0;
+    groups.set(shiftId, [...punches]);
+    return groups;
+  }
+
+  // Calculate midpoints for each shift. Device match takes priority because
+  // overlapping center shifts cannot be identified reliably by time alone.
+  const shiftMidpoints = shifts.map((s) => {
+    const startHm = parseTime(s.startTime);
+    const endHm = parseTime(s.endTime);
+    if (!startHm || !endHm) {
+      return { shiftId: s.id, midpoint: 0 };
+    }
+    const startDt = buildDateTime(workDate, startHm);
+    let endDt = buildDateTime(workDate, endHm);
+    if (s.crossesMidnight && endDt <= startDt) {
+      endDt = new Date(endDt.getTime() + 24 * 60 * 60 * 1000);
+    }
+    const midpoint = (startDt.getTime() + endDt.getTime()) / 2;
+    return { shiftId: s.id, midpoint };
+  });
+
+  for (const p of punches) {
+    const time = p.punchAt.getTime();
+    const deviceCandidates = p.deviceId
+      ? shifts.filter((shift) => shift.deviceId === p.deviceId)
+      : [];
+    const candidates = deviceCandidates.length > 0 ? deviceCandidates : shifts;
+    let closestShiftId = candidates[0].id;
+    let minDistance = Infinity;
+
+    for (const m of shiftMidpoints.filter((midpoint) =>
+      candidates.some((shift) => shift.id === midpoint.shiftId),
+    )) {
+      if (m.midpoint === 0) continue;
+      const dist = Math.abs(time - m.midpoint);
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestShiftId = m.shiftId;
+      }
+    }
+
+    const list = groups.get(closestShiftId);
+    if (list) {
+      list.push(p);
+    } else {
+      groups.set(closestShiftId, [p]);
+    }
+  }
+
+  return groups;
 }

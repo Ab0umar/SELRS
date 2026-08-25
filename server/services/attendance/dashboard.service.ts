@@ -6,6 +6,7 @@
 import { getDb } from "../../db";
 import { attendanceDaily, attendanceSyncRuns, attendanceShifts } from "../../../drizzle/schema";
 import { sql, eq } from "drizzle-orm";
+import { aggregateAttendanceDays } from "./dailyAggregation";
 
 export interface DashboardSummary {
   presentToday: number;
@@ -37,14 +38,14 @@ export class DashboardService {
     yest.setDate(yest.getDate() - 1);
     const yesterdayStr = `${yest.getFullYear()}-${String(yest.getMonth() + 1).padStart(2, "0")}-${String(yest.getDate()).padStart(2, "0")}`;
 
-    // Count present today (status in present, partial, holiday)
-    const presentTodayResult = await db
-      .select({ count: sql<number>`COUNT(*) as count` })
+    const todayRows = await db
+      .select()
       .from(attendanceDaily)
-      .where(
-        sql`${attendanceDaily.workDate} = ${todayStr} AND ${attendanceDaily.status} IN ('present', 'partial', 'holiday')`,
-      );
-    const presentToday = Number(presentTodayResult[0]?.count ?? 0);
+      .where(sql`${attendanceDaily.workDate} = ${todayStr}`);
+    const todayDays = aggregateAttendanceDays(todayRows as any[]);
+    const presentToday = todayDays.filter((day) =>
+      ["present", "partial", "missing_checkout", "holiday"].includes(day.status),
+    ).length;
 
     // Count present today by shift
     const presentList = await db
@@ -74,42 +75,21 @@ export class DashboardService {
     });
 
     // Count absent today
-    const absentTodayResult = await db
-      .select({ count: sql<number>`COUNT(*) as count` })
-      .from(attendanceDaily)
-      .where(
-        sql`${attendanceDaily.workDate} = ${todayStr} AND ${attendanceDaily.status} = 'absent'`,
-      );
-    const absentToday = Number(absentTodayResult[0]?.count ?? 0);
+    const absentToday = todayDays.filter((day) => day.status === "absent").length;
 
     // Count late today (late_minutes > 0)
-    const lateTodayResult = await db
-      .select({ count: sql<number>`COUNT(*) as count` })
-      .from(attendanceDaily)
-      .where(
-        sql`${attendanceDaily.workDate} = ${todayStr} AND ${attendanceDaily.lateMinutes} > 0`,
-      );
-    const lateToday = Number(lateTodayResult[0]?.count ?? 0);
+    const lateToday = todayDays.filter((day) => (day.lateMinutes ?? 0) > 0).length;
 
     // Count inside now (today and inside_now = 1)
-    const insideNowResult = await db
-      .select({ count: sql<number>`COUNT(*) as count` })
-      .from(attendanceDaily)
-      .where(
-        sql`${attendanceDaily.workDate} = ${todayStr} AND ${attendanceDaily.insideNow} = 1`,
-      );
-    const insideNow = Number(insideNowResult[0]?.count ?? 0);
+    const insideNow = todayDays.filter((day) => day.insideNow).length;
 
     // Count missing checkout yesterday
-    const missingCheckoutResult = await db
-      .select({ count: sql<number>`COUNT(*) as count` })
+    const yesterdayRows = await db
+      .select()
       .from(attendanceDaily)
-      .where(
-        sql`${attendanceDaily.workDate} = ${yesterdayStr} AND ${attendanceDaily.status} = 'missing_checkout'`,
-      );
-    const missingCheckoutYesterday = Number(
-      missingCheckoutResult[0]?.count ?? 0,
-    );
+      .where(sql`${attendanceDaily.workDate} = ${yesterdayStr}`);
+    const missingCheckoutYesterday = aggregateAttendanceDays(yesterdayRows as any[])
+      .filter((day) => day.status === "missing_checkout").length;
 
     // Get last sync run
     const lastSyncRows = await db

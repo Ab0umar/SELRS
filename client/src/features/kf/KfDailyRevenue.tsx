@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { formatDateAr, formatCountAr } from "../accounting/accountingFormat";
 import { DateInput } from "@/components/ui/date-input";
+import { useIsMobile } from "@/hooks/useMobile";
 
 function todayIso() { return new Date().toISOString().split("T")[0]; }
 
@@ -24,6 +25,7 @@ function buildUrl(f: { fromDate: string; toDate: string }) {
 function fmt(n: number) { return n.toLocaleString("ar-EG"); }
 
 export default function KfDailyRevenue() {
+  const isMobile = useIsMobile();
   const [, setLocation] = useLocation();
   const search = useSearch();
   const filters = useMemo(() => readFilters(search), [search]);
@@ -98,7 +100,34 @@ export default function KfDailyRevenue() {
             <p className="py-10 text-center text-muted-foreground text-sm">لا توجد بيانات للفترة المختارة.</p>
           )}
 
-          {!q.isLoading && rows.length > 0 && (
+          {!q.isLoading && rows.length > 0 && isMobile && (
+            <div className="space-y-2">
+              {rows.map((row: any) => (
+                <div key={row.date} className="rounded-2xl border border-border bg-background p-3 shadow-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-semibold text-foreground">{formatDateAr(row.date)}</span>
+                    <span className="font-semibold tabular-nums text-primary">{fmt(row.total)}</span>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
+                    <div>
+                      <div className="text-muted-foreground">استشاري</div>
+                      <div className="mt-0.5 font-medium text-foreground">{formatCountAr(row.consultationCount)} · {fmt(row.consultationTotal)} ج</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">أخصائي</div>
+                      <div className="mt-0.5 font-medium text-foreground">{formatCountAr(row.examinationCount)} · {fmt(row.examinationTotal)} ج</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-3 text-sm font-bold flex items-center justify-between">
+                <span>الإجمالي العام ({formatCountAr(totals.totalCount)})</span>
+                <span className="tabular-nums text-primary">{fmt(totals.total)}</span>
+              </div>
+            </div>
+          )}
+
+          {!q.isLoading && rows.length > 0 && !isMobile && (
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>

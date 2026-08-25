@@ -249,6 +249,96 @@ export const kfRouter = router({
       return row;
     }),
 
+  getPatientWorkflowData: makeKfProcedure("/kf/patients")
+    .input(z.object({
+      kfPatientId: z.number().int().positive(),
+      date: z.string()
+    }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const [patient] = await db
+        .select()
+        .from(kfPatients)
+        .where(eq(kfPatients.kfId, input.kfPatientId))
+        .limit(1);
+      if (!patient) throw error("KF patient not found", "NOT_FOUND");
+
+      const dateObj = toMysqlDate(input.date) as Date;
+
+      // Find visit for today
+      const [visit] = await db
+        .select()
+        .from(kfVisits)
+        .where(and(
+          eq(kfVisits.kfPatientId, input.kfPatientId),
+          eq(kfVisits.visitDate, dateObj)
+        ))
+        .limit(1);
+
+      let examination = null;
+      let prescription = null;
+      let testRequest = null;
+
+      if (visit) {
+        // Find examination for this visit
+        const [examRow] = await db
+          .select()
+          .from(kfExaminations)
+          .where(eq(kfExaminations.kfVisitId, visit.kfVisitId))
+          .limit(1);
+        examination = examRow || null;
+
+        // Find prescription for this visit
+        const [presRow] = await db
+          .select()
+          .from(kfPrescriptions)
+          .where(eq(kfPrescriptions.kfVisitId, visit.kfVisitId))
+          .limit(1);
+        if (presRow) {
+          const items = await db
+            .select()
+            .from(kfPrescriptionItems)
+            .where(eq(kfPrescriptionItems.kfPrescriptionId, presRow.kfPrescriptionId));
+          prescription = {
+            ...presRow,
+            items
+          };
+        }
+
+        // Find test request for this visit
+        const [testRow] = await db
+          .select()
+          .from(kfTestRequests)
+          .where(eq(kfTestRequests.kfVisitId, visit.kfVisitId))
+          .limit(1);
+        if (testRow) {
+          const items = await db
+            .select({
+              id: kfTestRequestItems.id,
+              kfTestRequestId: kfTestRequestItems.kfTestRequestId,
+              testId: kfTestRequestItems.testId,
+              result: kfTestRequestItems.result,
+              testName: tests.name,
+            })
+            .from(kfTestRequestItems)
+            .leftJoin(tests, eq(kfTestRequestItems.testId, tests.id))
+            .where(eq(kfTestRequestItems.kfTestRequestId, testRow.kfTestRequestId));
+          testRequest = {
+            ...testRow,
+            items
+          };
+        }
+      }
+
+      return {
+        patient,
+        visit: visit || null,
+        examination,
+        prescription,
+        testRequest
+      };
+    }),
+
   listOperations: makeKfProcedure("/kf/operations")
     .input(kfListOperationsInputSchema)
     .query(async ({ input }) => {

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { DateInput } from "@/components/ui/date-input";
+import { useIsMobile } from "@/hooks/useMobile";
 
 const todayStr = new Date().toISOString().split("T")[0];
 const firstOfMonth = new Date(
@@ -65,6 +66,7 @@ function fmt(date: string | Date | null): string {
 }
 
 export default function EmployeeDetail() {
+  const isMobile = useIsMobile();
   const [, params] = useRoute("/attendance/employees/:empCd");
   const empCd = params?.empCd ?? "";
 
@@ -551,6 +553,41 @@ export default function EmployeeDetail() {
                 <p className="px-4 py-6 text-center text-sm text-muted-foreground">جارٍ التحميل…</p>
               ) : !permListQuery.data?.length ? (
                 <p className="px-4 py-6 text-center text-sm text-muted-foreground">لا توجد أذونات مسجلة</p>
+              ) : isMobile ? (
+                <div className="space-y-2 p-3">
+                  {(permListQuery.data as any[]).map((p: any) => (
+                    <div
+                      key={p.id}
+                      className="rounded-2xl border border-border bg-background p-3 shadow-sm"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-xs text-muted-foreground">
+                          {p.date instanceof Date ? p.date.toLocaleDateString("ar-EG") : String(p.date ?? "")}
+                        </span>
+                        <span
+                          className={`inline-flex rounded px-1.5 py-0.5 text-xs font-medium ${
+                            p.type === "mission"
+                              ? "bg-info/15 text-info"
+                              : p.type === "out"
+                                ? "bg-warning/15 text-warning"
+                                : "bg-primary/15 text-foreground"
+                          }`}
+                        >
+                          {p.type === "mission" ? "مأمورية" : p.type === "out" ? "خروج" : "دخول"}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">{p.durationMinutes} د</span>
+                        {p.notAffectSalary
+                          ? <span className="text-muted-foreground">لا يؤثر على الراتب</span>
+                          : <span className="text-destructive">يؤثر على الراتب</span>}
+                      </div>
+                      {p.note && (
+                        <div className="mt-1 text-xs text-muted-foreground">{p.note}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -568,8 +605,16 @@ export default function EmployeeDetail() {
                         <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20">
                           <td className="px-3 py-2 font-mono text-xs">{p.date instanceof Date ? p.date.toLocaleDateString("ar-EG") : String(p.date ?? "")}</td>
                           <td className="px-3 py-2">
-                            <span className={`inline-flex rounded px-1.5 py-0.5 text-xs font-medium ${p.type === "out" ? "bg-warning/15 text-warning" : "bg-primary/15 text-foreground"}`}>
-                              {p.type === "out" ? "خروج" : "دخول"}
+                            <span
+                              className={`inline-flex rounded px-1.5 py-0.5 text-xs font-medium ${
+                                p.type === "mission"
+                                  ? "bg-info/15 text-info"
+                                  : p.type === "out"
+                                    ? "bg-warning/15 text-warning"
+                                    : "bg-primary/15 text-foreground"
+                              }`}
+                            >
+                              {p.type === "mission" ? "مأمورية" : p.type === "out" ? "خروج" : "دخول"}
                             </span>
                           </td>
                           <td className="px-3 py-2">{p.durationMinutes} د</td>
@@ -969,6 +1014,104 @@ export default function EmployeeDetail() {
             <p className="py-6 text-center text-sm text-muted-foreground">
               لا توجد طلبات تغيير مواعيد مسجلة
             </p>
+          ) : isMobile ? (
+            <div className="space-y-2">
+              {shiftRequestsQuery.data.map((r: any) => {
+                const typeAr =
+                  r.requestType === "daily"
+                    ? "يومي (مؤقت)"
+                    : r.requestType === "weekly"
+                      ? "أسبوعي"
+                      : r.requestType === "monthly"
+                        ? "شهري"
+                        : "تبادل مع زميل";
+
+                let details = "";
+                if (r.requestType === "daily" || r.requestType === "weekly") {
+                  details = `الوردية: ${r.newShiftName || "—"}`;
+                  if (r.requestType === "weekly" && r.weekdayMask) {
+                    const days = [];
+                    for (let i = 0; i < 7; i++) {
+                      if (r.weekdayMask & (1 << i)) days.push(DAYS_FULL[i]);
+                    }
+                    details += ` (${days.join("، ")})`;
+                  }
+                } else if (r.requestType === "monthly") {
+                  details = `الدورة: ${r.cycleName || "—"}`;
+                } else if (r.requestType === "swap") {
+                  details = `تبادل مع: ${r.swapEmpName || r.swapEmpCd || "—"}`;
+                }
+
+                return (
+                  <div
+                    key={r.id}
+                    className="rounded-2xl border border-border bg-background p-3 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="text-sm font-semibold text-foreground">
+                          {typeAr}
+                        </div>
+                        <div className="font-mono text-xs text-muted-foreground">
+                          {r.dateFrom} {r.dateTo ? `← ${r.dateTo}` : ""}
+                        </div>
+                      </div>
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                          r.status === "approved"
+                            ? "bg-success/10 text-success"
+                            : r.status === "rejected"
+                              ? "bg-destructive/10 text-destructive"
+                              : "bg-warning/10 text-warning"
+                        }`}
+                      >
+                        {r.status === "approved"
+                          ? "معتمد"
+                          : r.status === "rejected"
+                            ? "مرفوض"
+                            : "قيد الانتظار"}
+                      </span>
+                    </div>
+                    {details && (
+                      <div className="mt-2 text-xs text-foreground">{details}</div>
+                    )}
+                    {r.note && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {r.note}
+                      </div>
+                    )}
+                    {r.status === "pending" && (
+                      <div className="mt-3 flex justify-end gap-1.5 border-t border-border/60 pt-2">
+                        <Button
+                          size="sm"
+                          className="h-9 px-3 text-xs bg-success hover:bg-success/90"
+                          onClick={() =>
+                            approveShiftMut.mutate({ requestId: r.id })
+                          }
+                          disabled={approveShiftMut.isPending}
+                        >
+                          اعتماد
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="h-9 px-3 text-xs"
+                          onClick={() => {
+                            const note = prompt("ملاحظة الرفض (اختياري):");
+                            if (note !== null) {
+                              rejectShiftMut.mutate({ requestId: r.id, note });
+                            }
+                          }}
+                          disabled={rejectShiftMut.isPending}
+                        >
+                          رفض
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -1161,6 +1304,49 @@ export default function EmployeeDetail() {
             <p className="py-8 text-center text-sm text-muted-foreground">
               لا توجد سجلات في هذه الفترة
             </p>
+          ) : isMobile ? (
+            <div className="space-y-2">
+              {dailyQuery.data.map((r: any) => (
+                <div
+                  key={r.workDate}
+                  className="rounded-2xl border border-border bg-background p-3 shadow-sm"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {r.workDate}
+                    </span>
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_CLS[r.status] ?? "bg-muted text-muted-foreground"}`}
+                    >
+                      {STATUS_AR[r.status] ?? r.status}
+                    </span>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
+                    <div>
+                      <div className="text-muted-foreground">دخول</div>
+                      <div className="font-medium text-foreground">{fmt(r.firstIn)}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">خروج</div>
+                      <div className="font-medium text-foreground">{fmt(r.lastOut)}</div>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      عمل: {r.workedMinutes ?? "—"} د
+                    </span>
+                    <span className="flex items-center gap-2">
+                      {r.lateMinutes > 0 && (
+                        <span className="font-semibold text-destructive">تأخير {r.lateMinutes} د</span>
+                      )}
+                      {r.earlyLeaveMin > 0 && (
+                        <span className="font-semibold text-warning">مبكر {r.earlyLeaveMin} د</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

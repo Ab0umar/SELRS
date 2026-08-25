@@ -72,6 +72,8 @@ export const attendanceShiftsRoutes = {
     return shifts.map((s: any) => ({
       id: s.id,
       name: s.name,
+      branch: s.branch,
+      deviceId: s.deviceId,
       startTime: s.startTime,
       endTime: s.endTime,
       crossesMidnight: s.crossesMidnight,
@@ -102,6 +104,8 @@ export const attendanceShiftsRoutes = {
     .input(
       z.object({
         name: z.string().min(1).max(64),
+        branch: z.enum(["operations", "center"]),
+        deviceId: z.string().trim().min(1).max(64),
         startTime: z.string().regex(/^\d{2}:\d{2}$/),
         endTime: z.string().regex(/^\d{2}:\d{2}$/),
         crossesMidnight: z.boolean().optional(),
@@ -132,6 +136,8 @@ export const attendanceShiftsRoutes = {
       try {
         const result = await db.insert(attendanceShifts).values({
           name: input.name,
+          branch: input.branch,
+          deviceId: input.deviceId,
           startTime: input.isFlexible ? (input.flexInFrom ?? "00:00") : input.startTime,
           endTime: input.isFlexible ? (input.flexOutTo ?? "00:00") : input.endTime,
           crossesMidnight: input.crossesMidnight ?? false,
@@ -182,6 +188,8 @@ export const attendanceShiftsRoutes = {
       z.object({
         id: z.number(),
         name: z.string().min(1).max(64).optional(),
+        branch: z.enum(["operations", "center"]).optional(),
+        deviceId: z.string().trim().min(1).max(64).optional(),
         startTime: z
           .string()
           .regex(/^\d{2}:\d{2}$/)
@@ -217,6 +225,8 @@ export const attendanceShiftsRoutes = {
       try {
         const updateData: any = {};
         if (input.name) updateData.name = input.name;
+        if (input.branch !== undefined) updateData.branch = input.branch;
+        if (input.deviceId !== undefined) updateData.deviceId = input.deviceId;
         if (input.startTime) updateData.startTime = input.startTime;
         if (input.endTime) updateData.endTime = input.endTime;
         if (input.graceLateMin !== undefined)

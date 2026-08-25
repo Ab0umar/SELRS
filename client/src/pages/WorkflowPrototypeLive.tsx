@@ -801,7 +801,7 @@ export default function WorkflowPrototypeLive() {
     )
       return;
     const patient = livePatients.find(
-      (item) => item.visitId === requestedVisitId,
+      (item) => Number(item.visitId) === requestedVisitId,
     );
     if (patient) {
       requestedVisitHandledRef.current = true;
@@ -809,14 +809,19 @@ export default function WorkflowPrototypeLive() {
     }
   }, [requestedVisitId, livePatients]);
   const effectiveLivePatientId =
-    selectedLivePatientId ?? livePatients[0]?.id ?? null;
+    selectedLivePatientId ??
+    (requestedVisitId !== null &&
+    !requestedVisitHandledRef.current &&
+    liveQueue.isLoading
+      ? null
+      : (livePatients[0]?.id ?? null));
   const selectedLivePatient = useMemo(
     () =>
       livePatients.find(
         (patient) =>
           patient.id === effectiveLivePatientId &&
           (selectedLiveVisitId == null ||
-            patient.visitId === selectedLiveVisitId),
+            Number(patient.visitId) === selectedLiveVisitId),
       ) ??
       livePatients.find((patient) => patient.id === effectiveLivePatientId) ??
       null,
@@ -2514,7 +2519,7 @@ export default function WorkflowPrototypeLive() {
                 ? Number(event.target.value)
                 : null;
               const patient = livePatients.find(
-                (item) => item.visitId === visitId,
+                (item) => Number(item.visitId) === visitId,
               );
               selectLivePatient(patient?.id ?? null, visitId);
             }}

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DateInput } from "@/components/ui/date-input";
+import { useIsMobile } from "@/hooks/useMobile";
 
 const directionTone = {
   in: "border-success/20 bg-success/10 text-success",
@@ -13,6 +14,7 @@ const directionTone = {
 };
 
 export default function RawLogs({ department }: { department?: string }) {
+  const isMobile = useIsMobile();
   const [filters, setFilters] = useState({
     empNo: "",
     fromDate: "",
@@ -149,6 +151,38 @@ export default function RawLogs({ department }: { department?: string }) {
             <div className="space-y-2">
               {[1, 2, 3, 4, 5].map((i) => (
                 <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : punches.length > 0 && isMobile ? (
+            <div className="space-y-2" dir="rtl">
+              {punches.map((punch: any, idx: number) => (
+                <div
+                  key={idx}
+                  className="rounded-2xl border border-border bg-background p-3 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="text-sm font-semibold text-foreground">
+                        {new Date(punch.punchAt).toLocaleString("ar-EG")}
+                      </div>
+                      <div className="font-mono text-xs text-muted-foreground">
+                        {punch.empCd}
+                      </div>
+                    </div>
+                    <span
+                      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${
+                        punch.direction === "in"
+                          ? directionTone.in
+                          : directionTone.out
+                      }`}
+                    >
+                      {punch.direction === "in" ? "دخول" : "خروج"}
+                    </span>
+                  </div>
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    الجهاز: {punch.deviceId || "-"}
+                  </div>
+                </div>
               ))}
             </div>
           ) : punches.length > 0 ? (

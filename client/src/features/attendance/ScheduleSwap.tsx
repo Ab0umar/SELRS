@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DateInput } from "@/components/ui/date-input";
+import { useIsMobile } from "@/hooks/useMobile";
 
 const DAYS_SH = ["ح", "ن", "ث", "ر", "خ", "ج", "س"];
 const DAYS_FULL = [
@@ -32,6 +33,7 @@ const DAYS_FULL = [
 ];
 
 export default function ScheduleSwap() {
+  const isMobile = useIsMobile();
   const [subTab, setSubTab] = useState<"change" | "swap">("change");
 
   // State for single employee change
@@ -233,6 +235,106 @@ export default function ScheduleSwap() {
           ) : !pendingRequestsQuery.data?.length ? (
             <div className="py-6 text-center text-sm text-muted-foreground bg-muted/20 rounded-lg border border-dashed border-border">
               لا توجد طلبات تغيير مواعيد معلقة حالياً.
+            </div>
+          ) : isMobile ? (
+            <div className="space-y-2">
+              {pendingRequestsQuery.data.map((r: any) => {
+                const typeAr =
+                  r.requestType === "daily"
+                    ? "يومي (مؤقت)"
+                    : r.requestType === "weekly"
+                      ? "أسبوعي"
+                      : r.requestType === "monthly"
+                        ? "شهري"
+                        : "تبادل مع زميل";
+
+                let details = "";
+                if (r.requestType === "daily" || r.requestType === "weekly") {
+                  details = `الوردية: ${r.newShiftName || "—"}`;
+                  if (r.requestType === "weekly" && r.weekdayMask) {
+                    const days = [];
+                    for (let i = 0; i < 7; i++) {
+                      if (r.weekdayMask & (1 << i)) days.push(DAYS_FULL[i]);
+                    }
+                    details += ` (${days.join("، ")})`;
+                  }
+                } else if (r.requestType === "monthly") {
+                  details = `الدورة: ${r.cycleName || "—"}`;
+                } else if (r.requestType === "swap") {
+                  details = `تبادل مع: ${r.swapEmpName || r.swapEmpCd || "—"}`;
+                }
+
+                return (
+                  <div
+                    key={r.id}
+                    className="rounded-2xl border border-border bg-background p-3 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="text-sm font-semibold text-foreground">
+                          {r.empName || "—"}
+                        </div>
+                        <div className="font-mono text-xs text-muted-foreground">
+                          {r.empCd}
+                        </div>
+                      </div>
+                      <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary">
+                        {typeAr}
+                      </span>
+                    </div>
+                    <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
+                      <div>
+                        <div className="text-muted-foreground">من</div>
+                        <div className="font-mono font-medium text-foreground">
+                          {r.dateFrom}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">إلى</div>
+                        <div className="font-mono font-medium text-foreground">
+                          {r.dateTo || "—"}
+                        </div>
+                      </div>
+                    </div>
+                    {details && (
+                      <div className="mt-2 text-xs text-foreground">
+                        {details}
+                      </div>
+                    )}
+                    {r.note && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        ملاحظة: {r.note}
+                      </div>
+                    )}
+                    <div className="mt-3 flex justify-end gap-1.5 border-t border-border/60 pt-2">
+                      <Button
+                        size="sm"
+                        className="h-9 px-3 text-xs bg-success hover:bg-success/90"
+                        onClick={() =>
+                          approveRequestMut.mutate({ requestId: r.id })
+                        }
+                        disabled={approveRequestMut.isPending}
+                      >
+                        اعتماد
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="h-9 px-3 text-xs"
+                        onClick={() => {
+                          const note = prompt("ملاحظة الرفض (اختياري):");
+                          if (note !== null) {
+                            rejectRequestMut.mutate({ requestId: r.id, note });
+                          }
+                        }}
+                        disabled={rejectRequestMut.isPending}
+                      >
+                        رفض
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="overflow-x-auto rounded-lg border border-border">

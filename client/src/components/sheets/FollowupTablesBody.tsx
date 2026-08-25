@@ -93,6 +93,7 @@ export default function FollowupTablesBody<T extends FollowupItem>({
   return (
     <div
       className="sheet-followup-body relative overflow-hidden border border-[#d5dbe5] bg-white p-6 shadow-sm"
+      data-print-followup-body="true"
       dir="rtl"
     >
       <style>{`
@@ -106,6 +107,90 @@ export default function FollowupTablesBody<T extends FollowupItem>({
         .sheet-followup-body .followup-record-section > div:last-child > div {
           text-align: center !important;
           vertical-align: middle !important;
+        }
+        @media print {
+          .sheet-followup-body,
+          .sheet-followup-body .sheet-followup-content,
+          .sheet-followup-body .followup-record-head,
+          .sheet-followup-body .followup-record-list,
+          .sheet-followup-body .followup-record-section {
+            overflow: hidden !important;
+            overflow-y: hidden !important;
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+          }
+          .sheet-followup-body::-webkit-scrollbar,
+          .sheet-followup-body .sheet-followup-content::-webkit-scrollbar,
+          .sheet-followup-body .followup-record-head::-webkit-scrollbar,
+          .sheet-followup-body .followup-record-list::-webkit-scrollbar,
+          .sheet-followup-body .followup-record-section::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            background: transparent !important;
+          }
+          .sheet-followup-body {
+            padding: 1mm 2mm !important;
+            border: 0 !important;
+            box-shadow: none !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          .sheet-followup-body .sheet-followup-content {
+            gap: 0 !important;
+          }
+          .sheet-followup-body .followup-record-head {
+            margin-bottom: 0 !important;
+            flex: 0 0 auto !important;
+          }
+          .sheet-followup-body .followup-record-list {
+            gap: 0 !important;
+          }
+          .sheet-followup-body .followup-record-section {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          .sheet-followup-body .followup-record-title {
+            grid-template-columns: minmax(0, 1fr) 50mm 50mm !important;
+            height: 16px !important;
+            min-height: 16px !important;
+          }
+          .sheet-followup-body .followup-record-title input {
+            height: 16px !important;
+            font-size: 9.5px !important;
+          }
+          .sheet-followup-body .followup-record-table th,
+          .sheet-followup-body .followup-record-table td {
+            height: 14px !important;
+            padding: 0px 1px !important;
+            font-size: 8px !important;
+            line-height: 1.05 !important;
+          }
+          .sheet-followup-body .followup-record-table tr {
+            height: 14px !important;
+          }
+          .sheet-followup-body .followup-record-table input {
+            font-size: 8px !important;
+            min-height: 12px !important;
+          }
+          .sheet-followup-body .followup-comment-row {
+            height: 14px !important;
+          }
+          .sheet-followup-body .followup-record-section > div:last-child {
+            height: 13px !important;
+            font-size: 7px !important;
+          }
+        }
+        .sheet-followup-body[data-print-followup-body="true"] {
+          overflow: hidden !important;
+          overflow-y: hidden !important;
+          scrollbar-width: none !important;
+          -ms-overflow-style: none !important;
+        }
+        .sheet-followup-body[data-print-followup-body="true"]::-webkit-scrollbar {
+          display: none !important;
+          width: 0 !important;
+          height: 0 !important;
         }
       `}</style>
       <SheetWatermark />

@@ -163,7 +163,7 @@ export default function LasikExamSheet({
     (currentPath.includes("/sheets/consultant")
       ? "consultant"
       : currentPath.includes("/sheets/external") ||
-          currentPath.includes("/sheets/operation")
+        currentPath.includes("/sheets/operation")
         ? "external"
         : "lasik");
   const sheetTypeLabel =
@@ -344,22 +344,22 @@ export default function LasikExamSheet({
 
   useEffect(() => {
     const localDesigner = loadSheetDesignerConfig();
-    setCustomSheetCss(localDesigner.css.lasik || "");
-    setSheetTemplate(localDesigner.templates.lasik);
-    setPrintOffsetXmm(localDesigner.layout.lasik.offsetXmm);
-    setPrintOffsetYmm(localDesigner.layout.lasik.offsetYmm);
-    setPrintScale(localDesigner.layout.lasik.scale);
+    setCustomSheetCss(localDesigner.css[currentSheetType] || "");
+    setSheetTemplate(localDesigner.templates[currentSheetType]);
+    setPrintOffsetXmm(localDesigner.layout[currentSheetType].offsetXmm);
+    setPrintOffsetYmm(localDesigner.layout[currentSheetType].offsetYmm);
+    setPrintScale(localDesigner.layout[currentSheetType].scale);
     setFollowupLabels(localDesigner.followupLasik);
   }, []);
 
   useEffect(() => {
     if (!designerSettingsQuery.data?.value) return;
     const merged = coerceSheetDesignerConfig(designerSettingsQuery.data.value);
-    setCustomSheetCss(merged.css.lasik || "");
-    setSheetTemplate(merged.templates.lasik);
-    setPrintOffsetXmm(merged.layout.lasik.offsetXmm);
-    setPrintOffsetYmm(merged.layout.lasik.offsetYmm);
-    setPrintScale(merged.layout.lasik.scale);
+    setCustomSheetCss(merged.css[currentSheetType] || "");
+    setSheetTemplate(merged.templates[currentSheetType]);
+    setPrintOffsetXmm(merged.layout[currentSheetType].offsetXmm);
+    setPrintOffsetYmm(merged.layout[currentSheetType].offsetYmm);
+    setPrintScale(merged.layout[currentSheetType].scale);
     setFollowupLabels(merged.followupLasik);
     saveSheetDesignerConfig(merged);
   }, [designerSettingsQuery.data]);
@@ -1241,39 +1241,39 @@ export default function LasikExamSheet({
 
     const mkAutoPatch =
       (eye: "od" | "os", field: string) =>
-      (e: React.ChangeEvent<HTMLInputElement>) =>
-        setExamData((prev) => ({
-          ...prev,
-          autorefraction: {
-            ...prev.autorefraction,
-            [eye]: {
-              ...prev.autorefraction[eye],
-              [field]: e.target.value,
-            } as typeof prev.autorefraction.od,
-          },
-        }));
+        (e: React.ChangeEvent<HTMLInputElement>) =>
+          setExamData((prev) => ({
+            ...prev,
+            autorefraction: {
+              ...prev.autorefraction,
+              [eye]: {
+                ...prev.autorefraction[eye],
+                [field]: e.target.value,
+              } as typeof prev.autorefraction.od,
+            },
+          }));
 
     const mkClinicalPatch =
       (eye: "od" | "os", field: "s" | "c" | "axis" | "pd") =>
-      (event: React.ChangeEvent<HTMLInputElement>) =>
-        setClinicalRefraction((previous) => ({
-          ...previous,
-          [eye]: { ...previous[eye], [field]: event.target.value },
-        }));
+        (event: React.ChangeEvent<HTMLInputElement>) =>
+          setClinicalRefraction((previous) => ({
+            ...previous,
+            [eye]: { ...previous[eye], [field]: event.target.value },
+          }));
 
     const mkPentaPatch =
       (eye: "od" | "os", field: string) =>
-      (e: React.ChangeEvent<HTMLInputElement>) =>
-        setExamData((prev) => ({
-          ...prev,
-          pentacam: {
-            ...prev.pentacam,
-            [eye]: {
-              ...prev.pentacam[eye],
-              [field]: e.target.value,
-            } as typeof prev.pentacam.od,
-          },
-        }));
+        (e: React.ChangeEvent<HTMLInputElement>) =>
+          setExamData((prev) => ({
+            ...prev,
+            pentacam: {
+              ...prev.pentacam,
+              [eye]: {
+                ...prev.pentacam[eye],
+                [field]: e.target.value,
+              } as typeof prev.pentacam.od,
+            },
+          }));
 
     const inp =
       "w-full text-center bg-transparent border-0 border-b border-solid border-[#737685] focus:outline-none focus:border-[#003d9b] py-1 text-sm";
@@ -1281,13 +1281,12 @@ export default function LasikExamSheet({
 
     return (
       <div
-        className={`lasik-sheet relative overflow-hidden bg-white text-[#191c1e] font-sans print:p-[10mm] print:border-0 print:shadow-none flex flex-col ${
-          embeddedMode === "examination"
-            ? "consultant-examination-only w-full max-w-none gap-0 border-0 p-0 shadow-none"
-            : embedded
-              ? "w-full max-w-none gap-5 border border-[#c3c6d6] p-8 shadow-sm"
-              : "w-[210mm] max-w-full mx-auto gap-5 border border-[#c3c6d6] p-8 shadow-sm"
-        }`}
+        className={`lasik-sheet sheet-type-${currentSheetType} relative overflow-hidden bg-white text-[#191c1e] font-sans print:p-[10mm] print:border-0 print:shadow-none flex flex-col ${embeddedMode === "examination"
+          ? "consultant-examination-only w-full max-w-none gap-0 border-0 p-0 shadow-none"
+          : embedded
+            ? "w-full max-w-none gap-5 border border-[#c3c6d6] p-8 shadow-sm"
+            : "w-full max-w-[210mm] mx-auto gap-5 border border-[#c3c6d6] p-8 shadow-sm"
+          }`}
         dir="ltr"
       >
         {embeddedMode !== "examination" ? <SheetWatermark /> : null}
@@ -1304,9 +1303,12 @@ export default function LasikExamSheet({
                     <span className="font-bold text-[#434654]">
                       تاريخ العملية:
                     </span>
-                    <DateInput
-                      className="h-7 w-40 shrink-0 rounded-none border-0 border-b border-[#c3c6d6] bg-transparent px-1 text-center text-[11px] font-normal"
-                      inputClassName="min-w-[7.5rem] w-[7.5rem] px-1 text-center tabular-nums"
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      aria-label="تاريخ العملية"
+                      placeholder="       /       /       "
+                      className="h-7 w-40 shrink-0 rounded-none border-0 border-b border-[#c3c6d6] bg-transparent px-1 text-center text-[11px] font-normal tabular-nums outline-none placeholder:text-[#191c1e] placeholder:opacity-100"
                       value={operationDateRight}
                       onChange={(event) =>
                         setOperationDateRight(event.target.value)
@@ -1879,11 +1881,10 @@ export default function LasikExamSheet({
                   className="overflow-hidden rounded-lg border border-slate-200 bg-white"
                 >
                   <div
-                    className={`px-3 py-2 text-sm font-bold ${
-                      eye === "od"
-                        ? "bg-blue-50 text-blue-900"
-                        : "bg-slate-100 text-slate-700"
-                    }`}
+                    className={`px-3 py-2 text-sm font-bold ${eye === "od"
+                      ? "bg-blue-50 text-blue-900"
+                      : "bg-slate-100 text-slate-700"
+                      }`}
                   >
                     {eye === "od" ? "OD (Right)" : "OS (Left)"}
                   </div>
@@ -1939,9 +1940,8 @@ export default function LasikExamSheet({
             </div>
           ) : null}
           <table
-            className={`clinical-refraction-desktop-table w-full border-collapse text-center ${
-              embeddedMode === "examination" ? "hidden sm:table" : ""
-            }`}
+            className={`clinical-refraction-desktop-table w-full border-collapse text-center ${embeddedMode === "examination" ? "hidden sm:table" : ""
+              }`}
           >
             <thead className="bg-[#e7e8ea] text-xs uppercase font-bold">
               <tr>
@@ -2111,7 +2111,7 @@ export default function LasikExamSheet({
                   Complains:
                 </p>
                 <textarea
-                  className="w-full min-h-[48px] rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none print:placeholder-transparent"
+                  className="w-full min-h-[48px] resize-none rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none print:placeholder-transparent"
                   value={consultantExam.complains}
                   onChange={(e) =>
                     setConsultantExamField("complains", e.target.value)
@@ -2140,10 +2140,10 @@ export default function LasikExamSheet({
                           جاري التحميل...
                         </p>
                       ) : (symptomsQuery.data ?? []).filter((s: any) =>
-                          String(s.name ?? "")
-                            .toLowerCase()
-                            .includes(complainsSearchText.toLowerCase()),
-                        ).length === 0 ? (
+                        String(s.name ?? "")
+                          .toLowerCase()
+                          .includes(complainsSearchText.toLowerCase()),
+                      ).length === 0 ? (
                         <p className="px-2 py-1 text-[11px] text-muted-foreground">
                           لا توجد نتائج
                         </p>
@@ -2347,8 +2347,8 @@ export default function LasikExamSheet({
           </section>
         ) : (
           <section className="print-lasik-pentacam-right grid grid-cols-1 lg:grid-cols-[1fr_1.3fr_1.3fr] gap-4">
-            <div className="hidden lg:block print:block" />{" "}
-            {/* Empty space on the left */}
+            <div className="hidden lg:block print:hidden" />{" "}
+            {/* Empty space on the left (screen only — print uses the full width for the two eye cards) */}
             {(["od", "os"] as const).map((eye) => {
               const isOD = eye === "od";
               const thin = isOD ? odThinnestNum : osThinnestNum;
@@ -2488,7 +2488,7 @@ export default function LasikExamSheet({
         {currentSheetType !== "consultant" ? (
           <>
             {/* Treatment plan */}
-            <section>
+            <section className="print-lasik-treatment-plan">
               <table className="w-full text-center border-collapse text-sm">
                 <thead className="bg-[#e7e8ea] text-xs uppercase font-bold text-[#434654]">
                   <tr>
@@ -2540,9 +2540,7 @@ export default function LasikExamSheet({
         ) : null}
 
         {/* Notes + signatures */}
-        <footer
-          className={`pt-6 border-t-2 border-[#003d9b] space-y-6 ${currentSheetType !== "consultant" ? "print-lasik-compact-footer" : ""}`}
-        >
+        <footer className="pt-6 border-t-2 border-[#003d9b] space-y-6 print-lasik-compact-footer">
           <div className="print-lasik-footer-grid grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 space-y-4">
               <div>
@@ -2637,7 +2635,9 @@ export default function LasikExamSheet({
   return (
     <div
       className={
-        embedded ? "bg-white" : "min-h-screen print:min-h-0 bg-[#dde1e7]"
+        embedded
+          ? `lasik-print-root ${printMode.printView ? "print-view-active" : ""} bg-white`
+          : `lasik-print-root ${printMode.printView ? "print-view-active" : ""} min-h-screen print:min-h-0 bg-[#dde1e7]`
       }
       dir="ltr"
     >
@@ -2654,32 +2654,32 @@ export default function LasikExamSheet({
         .lasik-sheet .border-b-2 {
           border-bottom: none !important;
         }
-        .lasik-sheet .sheet-print-header {
-          display: grid !important;
-          grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
-          align-items: center !important;
-          border-bottom: 2px solid #003d9b !important;
-          padding-bottom: 10px !important;
-          margin-bottom: 10px !important;
-        }
+          .lasik-sheet .sheet-print-header {
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+            align-items: center !important;
+            border-bottom: 2px solid #003d9b !important;
+            padding-bottom: 2px !important;
+            margin-bottom: 2px !important;
+          }
         .lasik-sheet .sheet-print-clinic-name {
-          font-size: 24px !important;
+          font-size: 20px !important;
           font-weight: 700 !important;
           line-height: 1.1 !important;
           color: #003d9b !important;
         }
         .lasik-sheet .sheet-print-clinic-tagline {
-          font-size: 14px !important;
+          font-size: 12px !important;
           font-weight: 400 !important;
           line-height: 1.2 !important;
           color: #434654 !important;
         }
-        .lasik-sheet .sheet-print-logo {
-          width: 64px !important;
-          height: 64px !important;
-        }
+          .lasik-sheet .sheet-print-logo {
+            width: 40px !important;
+            height: 40px !important;
+          }
         .lasik-sheet .sheet-print-type {
-          font-size: 20px !important;
+          font-size: 17px !important;
           font-weight: 700 !important;
           line-height: 1.15 !important;
           color: #191c1e !important;
@@ -2725,105 +2725,90 @@ export default function LasikExamSheet({
           width: 100% !important;
         }
         .attached-followup-screen {
-          width: ${embedded ? "100%" : "210mm"} !important;
-          max-width: ${embedded ? "none" : "calc(100vw - 32px)"} !important;
+          width: 100% !important;
+          max-width: ${embedded ? "none" : "210mm"} !important;
           margin-left: auto !important;
           margin-right: auto !important;
           padding: 0 !important;
           overflow: hidden;
         }
         .attached-followup-screen > .sheet-followup-body {
-          width: ${embedded ? "100%" : "210mm"} !important;
-          max-width: ${embedded ? "none" : "100%"} !important;
+          width: 100% !important;
+          max-width: ${embedded ? "none" : "210mm"} !important;
           min-height: ${embedded ? "auto" : "297mm"};
           box-sizing: border-box !important;
-          padding: 10mm !important;
+          padding: 4mm !important;
         }
+        /* Print preview pages must not become independent scroll containers. */
+        .lasik-print-root.print-view-active [data-print-page],
+        .lasik-print-root.print-view-active .print-page-center-a4,
+        .lasik-print-root.print-view-active .print-page-center-a4 > .lasik-sheet,
+        .lasik-print-root.print-view-active .attached-followup-page,
+        .lasik-print-root.print-view-active .attached-followup-page > .sheet-followup-body {
+          overflow: hidden !important;
+          overflow-y: hidden !important;
+          scrollbar-width: none !important;
+          -ms-overflow-style: none !important;
+        }
+        .lasik-print-root.print-view-active [data-print-page]::-webkit-scrollbar,
+        .lasik-print-root.print-view-active .print-page-center-a4::-webkit-scrollbar,
+        .lasik-print-root.print-view-active .print-page-center-a4 > .lasik-sheet::-webkit-scrollbar,
+        .lasik-print-root.print-view-active .attached-followup-page::-webkit-scrollbar,
+        .lasik-print-root.print-view-active .attached-followup-page > .sheet-followup-body::-webkit-scrollbar {
+          display: none !important;
+          width: 0 !important;
+          height: 0 !important;
+          background: transparent !important;
+        }
+
         @media print {
-          .print-page-break { page-break-before: always !important; break-before: page !important; }
-          body:has(.attached-followup-page),
-          body:has(.attached-followup-page) > #root,
-          body .two-page-sheet-print,
-          body .two-page-sheet-print > div {
-            display: block !important;
-            width: 210mm !important;
-            min-height: 0 !important;
-            margin: 0 auto !important;
-            padding: 0 !important;
-            align-items: initial !important;
-            justify-content: initial !important;
+          @page {
+            size: A4 portrait;
+            margin: 0;
           }
-          body:has(.attached-followup-page) #root > div {
-            min-height: 0 !important;
+          /* Scrollbars are useful on screen but must never be captured in print/PDF output. */
+          html, body, #root,
+          .lasik-print-root,
+          .lasik-print-root * {
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
           }
-          .print-page-center-a4 {
-            width: 210mm !important;
-            /* The shared print stylesheet reserves 5mm on each edge, so the
-               printable A4 height is 287mm. Keep this box slightly inside it
-               or Chromium moves the entire sheet to a new page. */
-            height: 285mm !important;
-            margin: 0 auto !important;
-            position: relative !important;
+          html::-webkit-scrollbar,
+          body::-webkit-scrollbar,
+          #root::-webkit-scrollbar,
+          .lasik-print-root::-webkit-scrollbar,
+          .lasik-print-root *::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+          }
+          .lasik-print-root {
+            overflow: visible !important;
+            max-height: none !important;
+          }
+
+          /* Keep the outer root visible for page breaks, but never the paper pages. */
+          [data-print-document="lasik"] [data-print-page],
+          [data-print-document="lasik"] .print-page-center-a4,
+          [data-print-document="lasik"] .print-page-center-a4 > .lasik-sheet,
+          [data-print-document="lasik"] .attached-followup-page,
+          [data-print-document="lasik"] .attached-followup-page > .sheet-followup-body {
             overflow: hidden !important;
-            page-break-before: auto !important;
-            break-before: auto !important;
-            page-break-after: auto !important;
-            break-after: auto !important;
+            overflow-y: hidden !important;
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
           }
-          .print-page-center-a4 > .lasik-sheet {
-            position: absolute !important;
-            top: 50% !important;
-            left: 50% !important;
-            transform: translate(-50%, -50%) !important;
+
+          [data-print-document="lasik"] [data-print-page]::-webkit-scrollbar,
+          [data-print-document="lasik"] .print-page-center-a4::-webkit-scrollbar,
+          [data-print-document="lasik"] .print-page-center-a4 > .lasik-sheet::-webkit-scrollbar,
+          [data-print-document="lasik"] .attached-followup-page::-webkit-scrollbar,
+          [data-print-document="lasik"] .attached-followup-page > .sheet-followup-body::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            background: transparent !important;
           }
-          .two-page-sheet-print .print-page-center-a4 > .lasik-sheet {
-            top: 0 !important;
-            transform: translateX(-50%) !important;
-          }
-          .attached-followup-page {
-            width: 210mm !important;
-            height: 285mm !important;
-            margin: 0 auto !important;
-            overflow: hidden !important;
-            page-break-before: always !important;
-            break-before: page !important;
-            page-break-after: avoid !important;
-            break-after: avoid !important;
-          }
-          .attached-followup-page > .sheet-followup-body {
-            width: 210mm !important;
-            height: 285mm !important;
-            box-sizing: border-box !important;
-            border: 0 !important;
-            padding: 7mm 9mm !important;
-            box-shadow: none !important;
-          }
-          .attached-followup-page .sheet-followup-content {
-            height: 100% !important;
-            gap: 2.2mm !important;
-          }
-          .attached-followup-page .followup-record-head {
-            flex: 0 0 19mm !important;
-          }
-          .attached-followup-page .followup-record-list {
-            min-height: 0 !important;
-            gap: 2.2mm !important;
-          }
-          .attached-followup-page .followup-record-section {
-            min-height: 0 !important;
-          }
-          .attached-followup-page .followup-record-title {
-            grid-template-columns: minmax(0, 1fr) 55mm 55mm !important;
-          }
-          .attached-followup-page .followup-comment-row {
-            display: table-row !important;
-            height: 8mm !important;
-          }
-          .attached-followup-page input,
-          .attached-followup-page button {
-            opacity: 1 !important;
-          }
-          @page { size: A4 portrait; margin: 0; }
           html, body {
             width: 100% !important;
             margin: 0 !important;
@@ -2834,24 +2819,148 @@ export default function LasikExamSheet({
             width: 100% !important;
             max-width: 100% !important;
             margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
             overflow: visible !important;
-            max-height: none !important;
-            page-break-inside: auto !important;
-            break-inside: auto !important;
-            page-break-after: auto !important;
-            break-after: auto !important;
           }
-          .lasik-sheet {
-            width: 210mm !important;
-            max-width: 210mm !important;
+          .print-page-break {
+            page-break-before: always !important;
+            break-before: page !important;
+          }
+          .print-page-center-a4 {
+            width: 100% !important;
+            max-width: 100% !important;
             height: auto !important;
             min-height: 0 !important;
+            max-height: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          .two-page-sheet-print .print-page-center-a4 {
+            page-break-after: always !important;
+            break-after: page !important;
+          }
+          .print-page-center-a4 > .lasik-sheet {
+            width: 100% !important;
+            max-width: 100% !important;
+            height: 275mm !important;
+            min-height: 275mm !important;
+            max-height: 275mm !important;
             box-sizing: border-box !important;
-            padding: 6mm !important;
-            padding-top: 0 !important;
-            gap: 10px !important;
-            font-size: 104% !important;
-            line-height: 1.15 !important;
+            padding: 1.5mm 3mm !important;
+            gap: 0 !important;
+            font-size: 98% !important;
+            line-height: 1.02 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            row-gap: 1.5mm !important;
+          }
+          .print-page-center-a4 > .lasik-sheet > * {
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+          }
+          .print-page-center-a4 > .lasik-sheet section {
+            margin-block: 0 !important;
+          }
+          .print-page-center-a4 > .lasik-sheet table th,
+          .print-page-center-a4 > .lasik-sheet table td {
+            padding: 1px 2px !important;
+            line-height: 0.98 !important;
+          }
+          .attached-followup-page {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
+            page-break-before: always !important;
+            break-before: page !important;
+            page-break-after: auto !important;
+            break-after: auto !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          .attached-followup-page > .sheet-followup-body {
+            width: 100% !important;
+            max-width: 100% !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            box-sizing: border-box !important;
+            border: 0 !important;
+            padding: 3mm 4mm !important;
+            box-shadow: none !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: flex-start !important;
+            row-gap: 1.5mm !important;
+          }
+          .attached-followup-page .sheet-followup-content {
+            height: auto !important;
+            flex: 0 0 auto !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: flex-start !important;
+            gap: 1.5mm !important;
+          }
+          .attached-followup-page .followup-record-head {
+            flex: 0 0 auto !important;
+          }
+          .attached-followup-page .followup-record-head .px-3 {
+            padding-left: 4px !important;
+            padding-right: 4px !important;
+            padding-top: 2px !important;
+            padding-bottom: 2px !important;
+          }
+          .attached-followup-page .followup-record-list {
+            min-height: 0 !important;
+            flex: 0 0 auto !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: flex-start !important;
+            gap: 1.5mm !important;
+          }
+          .attached-followup-page .followup-record-section {
+            flex: 0 0 auto !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: flex-start !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          .attached-followup-page .followup-record-title {
+            grid-template-columns: minmax(0, 1fr) 48mm 48mm !important;
+            height: 22px !important;
+          }
+          .attached-followup-page .followup-record-title input {
+            height: 22px !important;
+            font-size: 11px !important;
+          }
+          .attached-followup-page .followup-record-table th,
+          .attached-followup-page .followup-record-table td {
+            padding: 1px 2px !important;
+            height: 18px !important;
+            font-size: 9.5px !important;
+            line-height: 1.05 !important;
+          }
+          .attached-followup-page .followup-record-table tr {
+            height: 18px !important;
+          }
+          .attached-followup-page .followup-comment-row {
+            display: table-row !important;
+            height: 20px !important;
+          }
+          .attached-followup-page input,
+          .attached-followup-page button {
+            opacity: 1 !important;
+            font-size: 9.5px !important;
+          }
+          .attached-followup-page .followup-record-section > div:last-child {
+            height: 20px !important;
+            font-size: 9px !important;
           }
           .lasik-sheet section,
           .lasik-sheet footer,
@@ -2873,6 +2982,9 @@ export default function LasikExamSheet({
             padding-top: 1px !important;
             padding-bottom: 1px !important;
           }
+          .lasik-sheet textarea {
+            overflow: hidden !important;
+          }
           .lasik-sheet input:not([type="checkbox"]):not([type="radio"]),
           .lasik-sheet textarea {
             border: 0 !important;
@@ -2891,6 +3003,23 @@ export default function LasikExamSheet({
           .lasik-sheet .patient-detail-emphasis {
             font-size: 14px !important;
             font-weight: 700 !important;
+          }
+          .sheet-type-consultant .print-lasik-patient-grid {
+            min-height: 29mm !important;
+            padding: 4mm !important;
+            row-gap: 2.5mm !important;
+          }
+          .sheet-type-consultant .print-lasik-patient-grid > div {
+            row-gap: 2.5mm !important;
+          }
+          .sheet-type-consultant .print-lasik-patient-grid label,
+          .sheet-type-consultant .print-lasik-patient-grid span {
+            font-size: 13px !important;
+            line-height: 1.2 !important;
+          }
+          .sheet-type-consultant .print-lasik-patient-grid .patient-detail-emphasis {
+            font-size: 15px !important;
+            line-height: 1.2 !important;
           }
           .lasik-sheet .border-b,
           .lasik-sheet .border-b-2,
@@ -2932,7 +3061,39 @@ export default function LasikExamSheet({
           .lasik-sheet .gap-4 { gap: 6px !important; }
           .lasik-sheet .p-8 { padding: 0 !important; }
           .lasik-sheet .p-4 { padding: 8px !important; }
-          .print-lasik-eye-card { padding-left: 10mm !important; }
+          .print-lasik-eye-card { padding-left: 10mm !important; padding-top: 4px !important; padding-bottom: 4px !important; }
+          .sheet-type-lasik .print-lasik-eye-card,
+          .sheet-type-external .print-lasik-eye-card {
+            height: 100% !important;
+            display: flex !important;
+            flex-direction: column !important;
+          }
+          .sheet-type-lasik .print-lasik-eye-card > table,
+          .sheet-type-external .print-lasik-eye-card > table {
+            width: 100% !important;
+            height: 100% !important;
+            table-layout: fixed !important;
+            flex: 1 1 auto !important;
+          }
+          .sheet-type-lasik .print-lasik-eye-card > table > tbody,
+          .sheet-type-external .print-lasik-eye-card > table > tbody {
+            height: 100% !important;
+          }
+          .sheet-type-lasik .print-lasik-eye-card > table > tbody > tr,
+          .sheet-type-external .print-lasik-eye-card > table > tbody > tr {
+            height: 14.285% !important;
+          }
+          .print-lasik-pentacam-right table {
+            font-size: 10px !important;
+          }
+          .print-lasik-pentacam-right td,
+          .print-lasik-pentacam-right th {
+            padding: 1px 3px !important;
+            line-height: 1.1 !important;
+          }
+          .print-lasik-pentacam-right .mb-2 {
+            margin-bottom: 2px !important;
+          }
           .lasik-sheet .pt-6 { padding-top: 10px !important; }
           .lasik-sheet .pt-4 { padding-top: 8px !important; }
           .lasik-sheet .pb-3 { padding-bottom: 6px !important; }
@@ -2942,7 +3103,27 @@ export default function LasikExamSheet({
           .lasik-sheet .h-8 { height: 22px !important; }
           .lasik-sheet .h-6 { height: 16px !important; }
           .print-lasik-patient-grid { display: flex !important; flex-wrap: wrap !important; column-gap: 6mm !important; row-gap: 1.5mm !important; }
-          .print-lasik-pentacam-right { display: grid !important; grid-template-columns: 1fr 1.3fr 1.3fr !important; }
+          .print-lasik-pentacam-right {
+            display: grid !important;
+            grid-template-columns: 1fr 1.3fr 1.3fr !important;
+          }
+          .print-lasik-pentacam-right > div:first-child { display: block !important; }
+          .sheet-type-lasik .print-lasik-pentacam-right {
+            min-height: 65mm !important;
+            align-items: stretch !important;
+          }
+          .sheet-type-external .print-lasik-pentacam-right {
+            min-height: 65mm !important;
+            align-items: stretch !important;
+          }
+          .print-lasik-treatment-plan table {
+            font-size: 10px !important;
+          }
+          .print-lasik-treatment-plan th,
+          .print-lasik-treatment-plan td {
+            padding: 2px 3px !important;
+            line-height: 1.05 !important;
+          }
           .print-consultant-diagrams {
             display: flex !important;
             flex-wrap: wrap !important;
@@ -2950,12 +3131,12 @@ export default function LasikExamSheet({
             justify-content: center !important;
             gap: 3mm !important;
             flex: 1 1 auto !important;
-            min-height: 0 !important;
-            padding: 6mm !important;
+            min-height: 125mm !important;
+            padding: 4mm !important;
           }
           .print-consultant-diagrams .fundus-drawing-surface {
-            width: 32mm !important;
-            height: 32mm !important;
+            width: 26mm !important;
+            height: 26mm !important;
           }
           .print-consultant-diagrams [class*="f4c98a"] {
             print-color-adjust: exact !important;
@@ -2974,7 +3155,7 @@ export default function LasikExamSheet({
             flex: 1 !important;
           }
           .print-consultant-diagrams .consultant-examination-block {
-            flex: 3 !important;
+            flex: 2.4 !important;
           }
           .print-consultant-diagrams p {
             margin-top: 2mm !important;
@@ -2991,6 +3172,17 @@ export default function LasikExamSheet({
           }
           .print-lasik-visual-grid {
             width: calc(25% - 3mm) !important;
+          }
+          .print-external-vision-grid {
+            gap: 3mm !important;
+          }
+          .print-external-vision-grid table {
+            font-size: 10px !important;
+          }
+          .print-external-vision-grid th,
+          .print-external-vision-grid td {
+            padding: 2px 3px !important;
+            line-height: 1.05 !important;
           }
           .print-lasik-questions table {
             font-size: 10px !important;
@@ -3048,36 +3240,75 @@ export default function LasikExamSheet({
           }
           .print-lasik-footer-grid { display: grid !important; grid-template-columns: minmax(0, 8fr) minmax(0, 4fr) !important; }
           .print-lasik-signatures { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+          .print-page-center-a4 > .lasik-sheet > .print-lasik-compact-footer {
+            flex: 0 0 auto !important;
+            min-height: 0 !important;
+            margin-top: 0 !important;
+            padding-top: 2px !important;
+            gap: 2px !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
           .print-lasik-compact-footer {
-            padding-top: 3px !important;
+            padding-top: 2px !important;
           }
           .print-lasik-compact-footer > :not([hidden]) ~ :not([hidden]) {
-            margin-top: 3px !important;
+            margin-top: 2px !important;
           }
           .print-lasik-compact-footer .space-y-4 > :not([hidden]) ~ :not([hidden]) {
-            margin-top: 3px !important;
+            margin-top: 2px !important;
           }
           .print-lasik-compact-footer textarea {
-            min-height: 32px !important;
-            height: 32px !important;
+            min-height: 36px !important;
+            height: 36px !important;
+            font-size: 10px !important;
+            margin-top: 0 !important;
+            padding: 1px !important;
+          }
+          .sheet-type-lasik .print-lasik-compact-footer textarea,
+          .sheet-type-external .print-lasik-compact-footer textarea {
+            min-height: 62px !important;
+            height: 62px !important;
+          }
+          .print-lasik-compact-footer label {
+            font-size: 11px !important;
+          }
+          .print-lasik-compact-footer .print-lasik-footer-grid {
+            gap: 3px !important;
+          }
+          .print-lasik-compact-footer .print-lasik-footer-grid > div:first-child {
+            gap: 2px !important;
           }
           .print-lasik-compact-footer .print-lasik-footer-grid > div:last-child {
-            padding: 5px !important;
+            padding: 3px !important;
+          }
+          .print-lasik-compact-footer .print-lasik-footer-grid > div:last-child > div:first-child {
+            font-size: 9px !important;
+            padding-bottom: 1px !important;
+            margin-bottom: 1px !important;
           }
           .print-lasik-compact-footer .print-lasik-footer-grid > div:last-child > div {
-            margin-bottom: 3px !important;
-            padding-bottom: 2px !important;
+            margin-bottom: 1px !important;
+            padding-bottom: 1px !important;
           }
           .print-lasik-compact-footer .print-lasik-footer-grid > div:last-child .h-6 {
-            height: 14px !important;
+            height: 20px !important;
             margin-bottom: 2px !important;
           }
+          .sheet-type-lasik .print-lasik-compact-footer .print-lasik-footer-grid > div:last-child .h-6,
+          .sheet-type-external .print-lasik-compact-footer .print-lasik-footer-grid > div:last-child .h-6 {
+            height: 30px !important;
+            margin-bottom: 3px !important;
+          }
           .print-lasik-compact-footer .print-lasik-signatures {
-            padding-top: 3px !important;
-            gap: 12px !important;
+            padding-top: 2px !important;
+            gap: 8px !important;
+          }
+          .print-lasik-compact-footer .print-lasik-signatures > div {
+            gap: 1px !important;
           }
           .print-lasik-compact-footer .print-lasik-signatures .h-9 {
-            height: 22px !important;
+            height: 18px !important;
           }
 
         }
@@ -3212,23 +3443,20 @@ export default function LasikExamSheet({
           </div>
           {hasAttachedFollowupPage && (
             <div
-              className={`attached-followup-screen mt-8 ${
-                embedded ? "w-full max-w-none" : "a4-page-card"
-              }`}
+              className={`attached-followup-screen mt-8 ${embedded ? "w-full max-w-none" : "a4-page-card"
+                }`}
             >
               {renderAttachedFollowupPage()}
             </div>
           )}
         </div>
         <div
-          className={`hidden print:block ${hasAttachedFollowupPage ? "two-page-sheet-print" : ""}`}
+          className="hidden print:block"
+          data-print-document="lasik"
         >
-          <div className="print-page-center-a4">{renderSheetBody(true)}</div>
-          {hasAttachedFollowupPage && (
-            <div className="attached-followup-page">
-              {renderAttachedFollowupPage()}
-            </div>
-          )}
+          <div className="print-page-center-a4" data-print-page="main">
+            {renderSheetBody(true)}
+          </div>
         </div>
       </div>
     </div>

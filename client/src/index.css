@@ -425,6 +425,12 @@
     background-color: #fff !important;
     color: #000 !important;
   }
+
+  /* Hide the native textarea resize grip — it's a browser UI affordance,
+     never meant to show up in printed sheets/reports. */
+  textarea {
+    resize: none !important;
+  }
 }
 
 /* Keep every data table inside narrow phone viewports. Desktop widths and
@@ -1084,64 +1090,46 @@ img {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 5mm;
+    margin: 0;
   }
 
-  body {
-    margin: 0;
-    padding: 0;
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
     background: white !important;
   }
 
-  /* Force sheet contents to fit on a single A4 page by preventing breaks and scaling slightly */
+  /* Force sheet contents to fit on A4 page cleanly without scrollbars */
   .sheet-layout,
+  .specialist-print-root,
   .lasik-print-root,
-  .specialist-print-root {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    page-break-after: avoid !important;
-    page-break-before: avoid !important;
-    break-after: avoid !important;
-    break-before: avoid !important;
-    max-height: 285mm !important;
-    overflow: hidden !important;
-    font-size: 96% !important;
+  .followup-print-root {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
   }
   .sheet-layout table,
-  .lasik-print-root table,
-  .specialist-print-root table,
-  .followup-print-root table,
-  .a4-page-card table {
+  .specialist-print-root table {
     font-size: 10px !important;
   }
   .sheet-layout th,
   .sheet-layout td,
-  .lasik-print-root th,
-  .lasik-print-root td,
   .specialist-print-root th,
-  .specialist-print-root td,
-  .followup-print-root th,
-  .followup-print-root td,
-  .a4-page-card th,
-  .a4-page-card td {
+  .specialist-print-root td {
     padding: 3px !important;
     line-height: 1.05 !important;
   }
   .sheet-layout input,
   .sheet-layout select,
   .sheet-layout textarea,
-  .lasik-print-root input,
-  .lasik-print-root select,
-  .lasik-print-root textarea,
   .specialist-print-root input,
   .specialist-print-root select,
-  .specialist-print-root textarea,
-  .followup-print-root input,
-  .followup-print-root select,
-  .followup-print-root textarea,
-  .a4-page-card input,
-  .a4-page-card select,
-  .a4-page-card textarea {
+  .specialist-print-root textarea {
     font-size: 10px !important;
     line-height: 1.05 !important;
     padding-top: 1px !important;
@@ -1200,7 +1188,8 @@ img {
 
   /* Embedded followup body — no max-height/overflow/page-break restrictions */
   .sheet-followup-body {
-    width: 210mm !important;
+    width: 100% !important;
+    max-width: 100% !important;
     margin: 0 auto !important;
     background: white;
   }
@@ -1888,19 +1877,25 @@ select {
    established print positioning. */
 @media print {
   body:not(:has(.specialist-print-root)) {
-    display: flex !important;
-    min-height: 297mm !important;
-    align-items: center !important;
-    justify-content: center !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+    margin: 0 !important;
   }
 
   body:not(:has(.specialist-print-root)) > #root {
-    display: flex !important;
-    width: 210mm !important;
-    min-height: 297mm !important;
-    align-items: center !important;
-    justify-content: center !important;
-    margin: 0 auto !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+    margin: 0 !important;
   }
 
   body:not(:has(.specialist-print-root))
@@ -1921,4 +1916,84 @@ select {
     display: block !important;
     min-height: 0 !important;
   }
+
+  /* The app shell owns the viewport scrollbar. Do not let it be captured with a sheet. */
+  body:has(.lasik-print-root),
+  body:has(.specialist-page-root),
+  body:has(.lasik-print-root) > #root,
+  body:has(.specialist-page-root) > #root,
+  body:has(.lasik-print-root) [data-app-scroll-container],
+  body:has(.specialist-page-root) [data-app-scroll-container] {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: hidden !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  body:has(.lasik-print-root)::-webkit-scrollbar,
+  body:has(.specialist-page-root)::-webkit-scrollbar,
+  body:has(.lasik-print-root) > #root::-webkit-scrollbar,
+  body:has(.specialist-page-root) > #root::-webkit-scrollbar,
+  body:has(.lasik-print-root) [data-app-scroll-container]::-webkit-scrollbar,
+  body:has(.specialist-page-root) [data-app-scroll-container]::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  /* Each visual paper must be a normal print-flow block, not a nested scroll box. */
+  body:has(.lasik-print-root)
+    :is(.a4-page-card, .print-page-center-a4, .attached-followup-page, .sheet-followup-body, .lasik-sheet),
+  body:has(.specialist-page-root)
+    :is(.print-page-center-a5, .specialist-sheet) {
+    overflow: hidden !important;
+    max-height: none !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  body:has(.lasik-print-root)
+    :is(.a4-page-card, .print-page-center-a4, .attached-followup-page, .sheet-followup-body, .lasik-sheet)::-webkit-scrollbar,
+  body:has(.specialist-page-root)
+    :is(.print-page-center-a5, .specialist-sheet)::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+}
+
+/* Print preview mode is rendered on screen before the native print dialog opens. */
+body:has(.print-view-active),
+body:has(.print-view-active) > #root,
+body:has(.print-view-active) [data-app-scroll-container],
+.print-view-active {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: hidden !important;
+  overflow-y: hidden !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.print-view-active :is(.a4-page-card, .print-page-center-a4, .attached-followup-page, .sheet-followup-body, .lasik-sheet, .print-page-center-a5, .specialist-sheet) {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: hidden !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+body:has(.print-view-active)::-webkit-scrollbar,
+body:has(.print-view-active) > #root::-webkit-scrollbar,
+body:has(.print-view-active) [data-app-scroll-container]::-webkit-scrollbar,
+.print-view-active::-webkit-scrollbar,
+.print-view-active *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }

@@ -5,6 +5,7 @@ import {
   attendanceMonthlyReport,
 } from "../../../drizzle/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
+import { aggregateAttendanceDays } from "./dailyAggregation";
 
 export class MonthlyComputeService {
   static getYearMonth(date: Date): string {
@@ -36,10 +37,14 @@ export class MonthlyComputeService {
         ),
       );
 
+    // Day counts are employee-level; minute totals are still the sum of all
+    // assigned shifts in that day.
+    const employeeDays = aggregateAttendanceDays(daily as any[]);
+
     // Group by empCd
     const grouped = new Map<string, any>();
 
-    for (const d of daily) {
+    for (const d of employeeDays) {
       const key = d.empCd;
       if (!grouped.has(key)) {
         grouped.set(key, {
@@ -213,20 +218,21 @@ export class MonthlyComputeService {
           ),
         );
 
-      const partialDays = allDailyRecords.filter(
+      const employeeDays = aggregateAttendanceDays(allDailyRecords as any[]);
+      const partialDays = employeeDays.filter(
         (d: any) => d.status === "partial",
       ).length;
-      const missingCheckoutDays = allDailyRecords.filter(
+      const missingCheckoutDays = employeeDays.filter(
         (d: any) => d.status === "missing_checkout",
       ).length;
       // Recalculate presentDays to include partial + missing_checkout
-      m.presentDays = allDailyRecords.filter(
+      m.presentDays = employeeDays.filter(
         (d: any) =>
           d.status === "present" ||
           d.status === "partial" ||
           d.status === "missing_checkout",
       ).length;
-      m.absentDays = allDailyRecords.filter(
+      m.absentDays = employeeDays.filter(
         (d: any) => d.status === "absent",
       ).length;
 

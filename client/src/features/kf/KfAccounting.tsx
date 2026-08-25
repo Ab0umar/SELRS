@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import { Loader2, Banknote, Receipt, CalendarDays } from "lucide-react";
 import { DateInput } from "@/components/ui/date-input";
+import { useIsMobile } from "@/hooks/useMobile";
 
 const KF_LABELS: Record<string, string> = {
   consultation: "كشف استشاري",
@@ -20,6 +21,7 @@ const KF_PRICES: Record<string, number> = {
 };
 
 export default function KfAccounting() {
+  const isMobile = useIsMobile();
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
 
   const { data: revenue, isLoading: loadingRevenue } = trpc.kf.getRevenue.useQuery({ date });
@@ -110,6 +112,32 @@ export default function KfAccounting() {
             <div className="py-12 text-center text-muted-foreground text-sm">
               <CalendarDays className="mx-auto h-8 w-8 mb-2 opacity-40" />
               لا توجد زيارات في هذا التاريخ
+            </div>
+          ) : isMobile ? (
+            <div className="space-y-2 p-3">
+              {(receipts as any[]).map((r: any) => (
+                <div key={r.kfVisitId} className="rounded-2xl border border-border bg-background p-3 shadow-sm">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="text-sm font-semibold text-foreground">{r.patientName}</div>
+                      <div className="font-mono text-xs text-muted-foreground">{r.kfCode}</div>
+                    </div>
+                    <span className="font-semibold text-primary">
+                      {r.fee > 0 ? `${r.fee} ج` : <span className="text-muted-foreground text-xs">—</span>}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                    <Badge variant={r.fee > 0 ? "default" : "secondary"} className="text-xs">
+                      {KF_LABELS[r.visitType] ?? r.visitType}
+                    </Badge>
+                    <span className="text-muted-foreground">{r.doctorName ?? "—"}</span>
+                  </div>
+                </div>
+              ))}
+              <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-3 text-sm font-bold flex items-center justify-between">
+                <span>الإجمالي</span>
+                <span className="text-primary">{(revenue?.total ?? 0).toLocaleString("ar-EG")} ج</span>
+              </div>
             </div>
           ) : (
             <div className="overflow-x-auto">

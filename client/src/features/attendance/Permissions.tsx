@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { DateInput } from "@/components/ui/date-input";
 import { useIsMobile } from "@/hooks/useMobile";
 
-type PermType = "in" | "out";
+type PermType = "in" | "out" | "mission";
 
 interface PermForm {
   empCd: string;
@@ -122,7 +122,14 @@ export default function Permissions() {
   };
 
   const employees: { empCd: string; fullName: string }[] = (empsQuery.data?.employees ?? []) as any;
-  const typeLabel = (t: string) => (t === "in" ? "دخول متأخر" : "خروج مبكر");
+  const typeLabel = (t: string) =>
+    t === "mission" ? "مأمورية" : t === "in" ? "دخول متأخر" : "خروج مبكر";
+  const typeColorClass = (t: string) =>
+    t === "mission"
+      ? "border-info/20 bg-info/10 text-info"
+      : t === "in"
+        ? "border-primary/20 bg-primary/10 text-primary"
+        : "border-secondary/20 bg-secondary/10 text-secondary";
   const isPending = createMut.isPending || updateMut.isPending;
 
   return (
@@ -214,15 +221,30 @@ export default function Permissions() {
               </div>
               <div>
                 <label htmlFor="attendance-perm-form-type" className="block text-sm font-medium mb-1">النوع</label>
-                <select id="attendance-perm-form-type" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as PermType })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+                <select
+                  id="attendance-perm-form-type"
+                  value={form.type}
+                  onChange={(e) => {
+                    const type = e.target.value as PermType;
+                    setForm({
+                      ...form,
+                      type,
+                      durationMinutes: type === "mission" ? 480 : form.durationMinutes,
+                    });
+                  }}
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                >
                   <option value="out">خروج مبكر</option>
                   <option value="in">دخول متأخر</option>
+                  <option value="mission">مأمورية</option>
                 </select>
               </div>
-              <div>
-                <label htmlFor="attendance-perm-form-duration" className="block text-sm font-medium mb-1">المدة (دقيقة)</label>
-                <input id="attendance-perm-form-duration" type="number" min={1} max={480} value={form.durationMinutes} onChange={(e) => setForm({ ...form, durationMinutes: parseInt(e.target.value) || 60 })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
-              </div>
+              {form.type === "mission" ? null : (
+                <div>
+                  <label htmlFor="attendance-perm-form-duration" className="block text-sm font-medium mb-1">المدة (دقيقة)</label>
+                  <input id="attendance-perm-form-duration" type="number" min={1} max={480} value={form.durationMinutes} onChange={(e) => setForm({ ...form, durationMinutes: parseInt(e.target.value) || 60 })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                </div>
+              )}
               <div>
                 <label className="flex items-center gap-2 cursor-pointer select-none pt-6">
                   <input type="checkbox" checked={form.notAffectSalary} onChange={(e) => setForm({ ...form, notAffectSalary: e.target.checked })} className="h-4 w-4 rounded border-border accent-secondary" />
@@ -268,7 +290,7 @@ export default function Permissions() {
                         {p.empCd}
                       </div>
                       <div
-                        className={`text-sm font-semibold ${p.type === "in" ? "text-primary" : "text-secondary"}`}
+                        className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${typeColorClass(p.type)}`}
                       >
                         {typeLabel(p.type)}
                       </div>
@@ -369,7 +391,11 @@ export default function Permissions() {
                     <tr key={p.id} className="border-b hover:bg-muted/40">
                       <td className="py-2 px-4 font-mono">{p.empCd}</td>
                       <td className="py-2 px-4 tabular-nums" dir="ltr">{displayDate(p.date)}</td>
-                      <td className={`py-2 px-4 font-medium ${p.type === "in" ? "text-primary" : "text-secondary"}`}>{typeLabel(p.type)}</td>
+                      <td className="py-2 px-4">
+                        <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${typeColorClass(p.type)}`}>
+                          {typeLabel(p.type)}
+                        </span>
+                      </td>
                       <td className="py-2 px-4">{p.durationMinutes} د</td>
                       <td className="py-2 px-4">
                         {p.approved ? (

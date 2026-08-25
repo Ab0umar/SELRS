@@ -74,10 +74,10 @@ const EMPTY_MEDICAL_HISTORY: MedicalHistoryState = {
   glaucomaTreatment: false,
 };
 
-export default function KfExaminationForm() {
+export default function KfExaminationForm({ patientId }: { patientId?: number }) {
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/kf/patients/:kfPatientId/examinations/new");
-  const kfPatientId = params?.kfPatientId ? Number(params.kfPatientId) : null;
+  const kfPatientId = patientId ?? (params?.kfPatientId ? Number(params.kfPatientId) : null);
 
   // Form State
   const [examDate, setExamDate] = useState(() => new Date().toISOString().split("T")[0]);

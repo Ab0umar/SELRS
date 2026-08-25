@@ -291,15 +291,15 @@ export default function KfPatients() {
             <div className="text-base font-bold">مركز ساعدني لجراحة وتقويم الإبصار — وحدة كفرالشيخ</div>
             <div className="text-sm">سجل المرضى — تاريخ الطباعة: {new Date().toLocaleDateString("ar-EG")}</div>
           </div>
-          <div className="rounded-md border">
-            <Table>
+          <div className="rounded-md border overflow-x-auto w-full">
+            <Table className="min-w-[600px] md:min-w-full">
               <TableHeader>
                 <TableRow>
                   <TableHead className="text-right font-semibold">كود المريض</TableHead>
                   <TableHead className="text-right font-semibold">الاسم بالكامل</TableHead>
                   <TableHead className="text-right font-semibold">رقم الموبايل</TableHead>
-                  <TableHead className="text-right font-semibold">الرقم القومي</TableHead>
-                  <TableHead className="text-right font-semibold">تاريخ التسجيل</TableHead>
+                  <TableHead className="text-right font-semibold hidden lg:table-cell">الرقم القومي</TableHead>
+                  <TableHead className="text-right font-semibold hidden md:table-cell">تاريخ التسجيل</TableHead>
                   <TableHead className="text-left font-semibold">إجراءات</TableHead>
                 </TableRow>
               </TableHeader>
@@ -310,8 +310,8 @@ export default function KfPatients() {
                       <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell className="hidden lg:table-cell"><Skeleton className="h-4 w-28" /></TableCell>
+                      <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-20" /></TableCell>
                       <TableCell><Skeleton className="h-8 w-20" /></TableCell>
                     </TableRow>
                   ))
@@ -354,7 +354,7 @@ export default function KfPatients() {
                           <span className="text-muted-foreground text-xs">—</span>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         {patient.nationalId ? (
                           <span className="inline-flex items-center gap-1">
                             <CreditCard className="h-3 w-3 text-muted-foreground" />
@@ -364,7 +364,7 @@ export default function KfPatients() {
                           <span className="text-muted-foreground text-xs">—</span>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden md:table-cell">
                         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                           <Calendar className="h-3 w-3" />
                           <span>{new Date(patient.createdAt).toLocaleDateString("ar-EG")}</span>

@@ -516,7 +516,7 @@ export const attendanceLeavesRoutes = {
       z.object({
         empCd: z.string(),
         date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-        type: z.enum(["in", "out"]),
+        type: z.enum(["in", "out", "mission"]),
         durationMinutes: z.number().int().min(1).max(480),
         notAffectSalary: z.boolean().optional(),
         note: z.string().optional(),
@@ -546,7 +546,12 @@ export const attendanceLeavesRoutes = {
           () => DEFAULT_APP_NOTIFICATION_SETTINGS,
         );
         if (ns.attendance.enabled) {
-          const typeAr = input.type === "out" ? "خروج مبكر" : "دخول متأخر";
+          const typeAr =
+            input.type === "mission"
+              ? "مأمورية"
+              : input.type === "out"
+                ? "خروج مبكر"
+                : "دخول متأخر";
           pushAppNotification({
             title: "تم منح إذن",
             message: `تمت الموافقة على إذن ${typeAr} — ${input.durationMinutes} دقيقة (${input.date})`,
@@ -568,7 +573,7 @@ export const attendanceLeavesRoutes = {
       z.object({
         id: z.number().int(),
         date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-        type: z.enum(["in", "out"]),
+        type: z.enum(["in", "out", "mission"]),
         durationMinutes: z.number().int().min(1).max(480),
         notAffectSalary: z.boolean().optional(),
         note: z.string().optional(),
@@ -676,7 +681,12 @@ export const attendanceLeavesRoutes = {
           () => DEFAULT_APP_NOTIFICATION_SETTINGS,
         );
         if (ns.attendance.enabled) {
-          const typeAr = perm.type === "out" ? "خروج مبكر" : "دخول متأخر";
+          const typeAr =
+            perm.type === "mission"
+              ? "مأمورية"
+              : perm.type === "out"
+                ? "خروج مبكر"
+                : "دخول متأخر";
           pushAppNotification({
             title: "تمت الموافقة على إذن",
             message: `تمت الموافقة على طلب إذن ${typeAr} — ${perm.durationMinutes} دقيقة (${perm.date})`,
@@ -789,6 +799,7 @@ export const attendanceLeavesRoutes = {
             empName: p.empName,
             inCount: 0,
             outCount: 0,
+            missionCount: 0,
             totalInMins: 0,
             totalOutMins: 0,
           });
@@ -796,6 +807,8 @@ export const attendanceLeavesRoutes = {
         if (p.type === "in") {
           agg.inCount++;
           agg.totalInMins += p.durationMinutes;
+        } else if (p.type === "mission") {
+          agg.missionCount++;
         } else {
           agg.outCount++;
           agg.totalOutMins += p.durationMinutes;

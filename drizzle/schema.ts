@@ -184,6 +184,8 @@ export const attendanceShifts = mysqlTable(
   {
     id: int("id").autoincrement().primaryKey(),
     name: varchar("name", { length: 64 }).notNull(),
+    branch: mysqlEnum("branch", ["operations", "center"]),
+    deviceId: varchar("device_id", { length: 64 }),
     startTime: varchar("start_time", { length: 8 }).notNull(),
     endTime: varchar("end_time", { length: 8 }).notNull(),
     crossesMidnight: boolean("crosses_midnight").default(false).notNull(),
@@ -214,6 +216,10 @@ export const attendanceShifts = mysqlTable(
   },
   (table) => ({
     idxActive: index("idx_active").on(table.active),
+    idxBranchDevice: index("idx_attendance_shift_branch_device").on(
+      table.branch,
+      table.deviceId,
+    ),
   }),
 );
 
@@ -1752,7 +1758,7 @@ export const attendancePermissions = mysqlTable(
     id: int("id").autoincrement().primaryKey(),
     empCd: varchar("emp_cd", { length: 32 }).notNull(),
     date: date("date").notNull(),
-    type: mysqlEnum("perm_type", ["in", "out"]).notNull(),
+    type: mysqlEnum("perm_type", ["in", "out", "mission"]).notNull(),
     durationMinutes: int("duration_minutes").notNull(),
     approved: boolean("approved").default(false).notNull(),
     notAffectSalary: boolean("not_affect_salary").default(false).notNull(),
@@ -1774,7 +1780,7 @@ export const attendanceDaily = mysqlTable(
   {
     empCd: varchar("emp_cd", { length: 32 }).notNull(),
     workDate: date("work_date").notNull(),
-    shiftId: int("shift_id"),
+    shiftId: int("shift_id").default(0).notNull(),
     firstIn: timestamp("first_in"),
     lastOut: timestamp("last_out"),
     workedMinutes: int("worked_minutes"),
@@ -1799,7 +1805,7 @@ export const attendanceDaily = mysqlTable(
     computedAt: timestamp("computedAt").notNull(),
   },
   (table) => ({
-    pkAttendanceDaily: primaryKey({ columns: [table.empCd, table.workDate] }),
+    pkAttendanceDaily: primaryKey({ columns: [table.empCd, table.workDate, table.shiftId] }),
     idxDateStatus: index("idx_date_status").on(table.workDate, table.status),
     idxInsideNow: index("idx_inside_now").on(table.insideNow),
   }),

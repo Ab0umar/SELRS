@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { formatDateAr, toArabicDigits } from "../accounting/accountingFormat";
 import { DateInput } from "@/components/ui/date-input";
+import { useIsMobile } from "@/hooks/useMobile";
 
 const KF_LABELS: Record<string, string> = {
   consultation: "كشف استشاري",
@@ -38,6 +39,7 @@ function buildUrl(f: { fromDate: string; toDate: string; kfCode: string }) {
 function fmt(n: number) { return n.toLocaleString("ar-EG"); }
 
 export default function KfReceipts() {
+  const isMobile = useIsMobile();
   const [, setLocation] = useLocation();
   const search = useSearch();
   const filters = useMemo(() => readFilters(search), [search]);
@@ -121,7 +123,36 @@ export default function KfReceipts() {
             </div>
           )}
 
-          {!q.isLoading && rows.length > 0 && (
+          {!q.isLoading && rows.length > 0 && isMobile && (
+            <div className="space-y-2">
+              {rows.map((row: any, i: number) => (
+                <div key={row.kfVisitId} className="rounded-2xl border border-border bg-background p-3 shadow-sm">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="text-sm font-semibold text-foreground">{row.patientName}</div>
+                      <div className="font-mono text-xs text-muted-foreground">{row.kfCode}</div>
+                    </div>
+                    <span className="font-semibold tabular-nums text-primary">
+                      {row.fee > 0 ? fmt(row.fee) : <span className="text-muted-foreground">—</span>}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                    <Badge variant={row.fee > 0 ? "default" : "secondary"} className="text-xs">
+                      {KF_LABELS[row.visitType] ?? row.visitType}
+                    </Badge>
+                    <span className="text-muted-foreground">{row.doctorName ?? "—"}</span>
+                    <span className="mr-auto text-muted-foreground">{formatDateAr(row.visitDate)}</span>
+                  </div>
+                </div>
+              ))}
+              <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-3 text-sm font-bold flex items-center justify-between">
+                <span>الإجمالي</span>
+                <span className="tabular-nums text-primary">{fmt(total)}</span>
+              </div>
+            </div>
+          )}
+
+          {!q.isLoading && rows.length > 0 && !isMobile && (
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>

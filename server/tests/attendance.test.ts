@@ -4,7 +4,9 @@ import {
   attendanceHolidays,
   attendanceLeaves,
   attendancePermissions,
+  attendancePunches,
 } from "../../drizzle/schema";
+import { DailyMaterializer } from "../services/attendance/dailyMaterializer";
 import { makeCallerAs } from "./helpers/auth";
 import { cleanupTables, getTestDb } from "./setup";
 import { seedEmployee } from "./helpers/db";
@@ -30,6 +32,7 @@ async function resetAttendanceTables() {
   await cleanupTables(
     db,
     "attendance_daily",
+    "attendance_punches",
     "attendance_leave_balances",
     "attendance_leaves",
     "attendance_permissions",
@@ -234,6 +237,62 @@ describe.sequential("attendance leave and permission mutations", () => {
       .from(attendancePermissions)
       .where(eq(attendancePermissions.empCd, TEST_EMP_CD));
     expect(afterRows).toHaveLength(0);
+  });
+
+  it("rolls back a manual punch when daily recomputation fails", async () => {
+    const db = await seedTestEmployee();
+    const caller = appRouter.createCaller(makeCallerAs("admin"));
+    const recompute = vi
+      .spyOn(DailyMaterializer, "recomputeRange")
+      .mockRejectedValueOnce(new Error("forced recompute failure"));
+
+    await expect(
+      caller.attendance.addManualPunch({
+        empCd: TEST_EMP_CD,
+        date: "2026-03-03",
+        time: "09:00",
+        direction: "in",
+      }),
+    ).rejects.toThrow("forced recompute failure");
+
+    const rows = await db
+      .select()
+      .from(attendancePunches)
+      .where(eq(attendancePunches.empCd, TEST_EMP_CD));
+    expect(rows).toHaveLength(0);
+    recompute.mockRestore();
+  });
+
+  it("rolls back manual punch deletion when daily recomputation fails", async () => {
+    const db = await seedTestEmployee();
+    const caller = appRouter.createCaller(makeCallerAs("admin"));
+    const punchAt = new Date("2026-03-03T17:00:00");
+    const result = await db.insert(attendancePunches).values({
+      empCd: TEST_EMP_CD,
+      punchAt,
+      direction: "out",
+      source: "manual",
+      sourceHash: "manual-delete-rollback-test",
+      insertedBy: 123,
+    });
+    const id = Number(
+      (result as any)?.[0]?.insertId ?? (result as any)?.insertId ?? 0,
+    );
+    expect(id).toBeGreaterThan(0);
+
+    const recompute = vi
+      .spyOn(DailyMaterializer, "recomputeRange")
+      .mockRejectedValueOnce(new Error("forced delete recompute failure"));
+    await expect(
+      caller.attendance.deleteManualPunch({ id }),
+    ).rejects.toThrow("forced delete recompute failure");
+
+    const rows = await db
+      .select()
+      .from(attendancePunches)
+      .where(eq(attendancePunches.id, id));
+    expect(rows).toHaveLength(1);
+    recompute.mockRestore();
   });
 
   it("addHoliday creates a holiday record", async () => {

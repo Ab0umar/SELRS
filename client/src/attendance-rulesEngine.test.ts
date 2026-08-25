@@ -7,6 +7,9 @@
 import { describe, it, expect } from "vitest";
 import {
   resolveShift,
+  resolveShifts,
+  partitionPunchesForShifts,
+  applyApprovedPermissions,
   pairPunches,
   computeDay,
   type Shift,
@@ -170,6 +173,76 @@ describe("resolveShift", () => {
       shiftsById,
     );
     expect(result).toBeNull();
+  });
+});
+
+describe("multiple branch shifts", () => {
+  const operations = makeShift({
+    id: 10,
+    name: "Operations",
+    branch: "operations",
+    deviceId: "operations-device",
+    startTime: "09:00",
+    endTime: "15:00",
+  });
+  const center = makeShift({
+    id: 20,
+    name: "Center",
+    branch: "center",
+    deviceId: "center-device",
+    startTime: "13:00",
+    endTime: "19:00",
+  });
+  const branchShifts = new Map<number, Shift>([
+    [operations.id, operations],
+    [center.id, center],
+  ]);
+
+  it("keeps active assignments from different branches", () => {
+    const result = resolveShifts(
+      "001",
+      d("2026-06-10T00:00:00"),
+      [
+        asn("001", operations.id, "2026-06-01T00:00:00"),
+        asn("001", center.id, "2026-06-08T00:00:00"),
+      ],
+      null,
+      branchShifts,
+    );
+    expect(result.map((shift) => shift.id).sort()).toEqual([10, 20]);
+  });
+
+  it("maps four punches to the shift device before using time", () => {
+    const groups = partitionPunchesForShifts(
+      [
+        { ...punch("2026-06-10T09:00:00", "in"), deviceId: "operations-device" },
+        { ...punch("2026-06-10T15:00:00", "out"), deviceId: "operations-device" },
+        { ...punch("2026-06-10T15:10:00", "in"), deviceId: "center-device" },
+        { ...punch("2026-06-10T19:00:00", "out"), deviceId: "center-device" },
+      ],
+      [operations, center],
+      d("2026-06-10T00:00:00"),
+    );
+
+    expect(groups.get(operations.id)?.map((item) => item.direction)).toEqual(["in", "out"]);
+    expect(groups.get(center.id)?.map((item) => item.direction)).toEqual(["in", "out"]);
+  });
+
+  it("applies a full-day mission independently to both assigned shifts", () => {
+    for (const shift of [operations, center]) {
+      const result = computeDay(
+        baseCtx({ shift, punches: [], now: d("2026-06-10T20:00:00") }),
+      );
+      const adjusted = applyApprovedPermissions(result, [
+        { type: "mission", durationMinutes: 480 },
+      ]);
+      expect(adjusted).toMatchObject({
+        shiftId: shift.id,
+        status: "present",
+        lateMinutes: 0,
+        earlyLeaveMin: 0,
+      });
+    }
   });
 });
 

@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Loader2, TrendingUp, TrendingDown, Wallet, Trash2, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { fmt, fmtDate, todayIso } from "../accounting/accountingFormat";
 import { DateInput } from "@/components/ui/date-input";
+import { useIsMobile } from "@/hooks/useMobile";
 
 const PAGE_SIZE = 50;
 
 export default function KfLedger() {
+  const isMobile = useIsMobile();
   const [page, setPage] = useState(1);
   const [filterNotes, setFilterNotes] = useState("");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -145,6 +147,41 @@ export default function KfLedger() {
           <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : rows.length === 0 ? (
           <p className="py-10 text-center text-muted-foreground text-sm">لا توجد قيود.</p>
+        ) : isMobile ? (
+          <div className="space-y-2 p-3">
+            {(rows as any[]).map((row: any) => (
+              <div key={row.kfLedgerId} className="rounded-2xl border border-border bg-background p-3 shadow-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    {fmtDate(row.entryDate instanceof Date ? row.entryDate.toISOString().split("T")[0] : String(row.entryDate).slice(0, 10))}
+                  </span>
+                  {delConfirm === row.kfLedgerId ? (
+                    <div className="flex gap-1">
+                      <Button variant="destructive" size="sm" className="h-7 px-2 text-xs" onClick={() => deleteMut.mutate({ kfLedgerId: row.kfLedgerId })} disabled={deleteMut.isPending}>
+                        {deleteMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "حذف"}
+                      </Button>
+                      <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setDelConfirm(null)}>لا</Button>
+                    </div>
+                  ) : (
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive" onClick={() => setDelConfirm(row.kfLedgerId)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
+                  <div>
+                    <div className="text-success">إيراد</div>
+                    <div className="mt-0.5 font-semibold tabular-nums text-success">{row.income > 0 ? fmt(row.income) : "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-destructive">مصروف</div>
+                    <div className="mt-0.5 font-semibold tabular-nums text-destructive">{row.expense > 0 ? fmt(row.expense) : "—"}</div>
+                  </div>
+                </div>
+                {row.notes && <div className="mt-2 text-xs text-muted-foreground">{row.notes}</div>}
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
