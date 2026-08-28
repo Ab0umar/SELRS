@@ -430,6 +430,7 @@ const topbarNavItems = [
 export default function AdminHubShell() {
   const [location] = useLocation();
   const { canAccess } = usePermissions();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const opsHealthQuery = trpc.medical.getOpsHealth.useQuery(undefined, {
     refetchInterval: 10_000,
@@ -437,8 +438,7 @@ export default function AdminHubShell() {
   });
 
   const opsHealth = opsHealthQuery.data;
-  const isHubHome =
-    location === "/admin-hub" || location === "/admin-hub/";
+  const isHubHome = location === "/admin-hub" || location === "/admin-hub/";
 
   const getBreadcrumbs = () => {
     if (isHubHome) return null;
@@ -469,15 +469,12 @@ export default function AdminHubShell() {
     if (loc === "/admin-hub/sheets") return <AdminSheets />;
     if (loc === "/admin-hub/sheet-designer") return <AdminSheetDesigner />;
     if (loc === "/admin-hub/doctors") return <AdminDoctors />;
-    if (loc === "/admin-hub/pentacam-failed")
-      return <AdminPentacamFailed />;
+    if (loc === "/admin-hub/pentacam-failed") return <AdminPentacamFailed />;
     if (loc === "/admin-hub/sheet-copies") return <AdminSheetCopies />;
     if (loc === "/admin-hub/forms") return <AdminFormsHub />;
     if (loc === "/admin-hub/patients") return <AdminPatients />;
-    if (loc === "/admin-hub/portal-bookings")
-      return <AdminPortalBookings />;
-    if (loc === "/admin-hub/card-visibility")
-      return <AdminCardVisibility />;
+    if (loc === "/admin-hub/portal-bookings") return <AdminPortalBookings />;
+    if (loc === "/admin-hub/card-visibility") return <AdminCardVisibility />;
     if (loc === "/admin-hub/diagnostics") return <AdminDiagnostics />;
     if (loc === "/admin-hub/audit") return <AdminDataSourceAudit />;
     if (loc === "/admin-hub/notifications")
@@ -496,8 +493,8 @@ export default function AdminHubShell() {
       title: "إدارة كادر العمل البشري",
       subtitle: "إضافة وتعديل بيانات الموظفين والمستخدمين والصلاحيات والأطباء",
       icon: Users,
-      color: "text-blue-500",
-      bg: "bg-blue-500/10 border-blue-500/20",
+      color: "text-primary",
+      bg: "bg-primary/10 border-primary/20",
     },
     {
       id: "services" as const,
@@ -505,16 +502,16 @@ export default function AdminHubShell() {
       subtitle:
         "إعداد حقول كشف الحالات والتعليمات ونماذج الموافقة الطبية والأسعار",
       icon: Layers,
-      color: "text-purple-500",
-      bg: "bg-purple-500/10 border-purple-500/20",
+      color: "text-secondary",
+      bg: "bg-secondary/10 border-secondary/20",
     },
     {
       id: "portal" as const,
       title: "المرضى وحجوزات البوابة الخارجية",
       subtitle: "البحث في ملفات المرضى ومراجعة طلبات الكشف والحجز الخارجي",
       icon: HeartPulse,
-      color: "text-rose-500",
-      bg: "bg-rose-500/10 border-rose-500/20",
+      color: "text-info",
+      bg: "bg-info/10 border-info/20",
     },
     {
       id: "system" as const,
@@ -522,8 +519,8 @@ export default function AdminHubShell() {
       subtitle:
         "ترحيل البيانات، ومراقبة مؤشرات كفاءة الخادم وسجلات الأمان الفنية",
       icon: Terminal,
-      color: "text-amber-500",
-      bg: "bg-amber-500/10 border-amber-500/20",
+      color: "text-warning",
+      bg: "bg-warning/10 border-warning/20",
     },
   ];
 
@@ -538,11 +535,11 @@ export default function AdminHubShell() {
           ? "متصلة"
           : "غير متصلة",
       tone: opsHealth?.dbConnected
-        ? "text-emerald-500 font-black animate-pulse"
-        : "text-rose-500 font-black",
+        ? "text-success font-black animate-pulse"
+        : "text-destructive font-black",
       accent: opsHealth?.dbConnected
-        ? "bg-emerald-500/10 border-emerald-500/20"
-        : "bg-rose-500/10 border-rose-500/20",
+        ? "bg-success/10 border-success/20"
+        : "bg-destructive/10 border-destructive/20",
     },
     {
       label: "النفق الآمن",
@@ -552,11 +549,11 @@ export default function AdminHubShell() {
           ? "نشط"
           : "غير نشط",
       tone: opsHealth?.tunnelConnected
-        ? "text-emerald-500 font-black animate-pulse"
-        : "text-rose-500 font-black",
+        ? "text-success font-black animate-pulse"
+        : "text-destructive font-black",
       accent: opsHealth?.tunnelConnected
-        ? "bg-emerald-500/10 border-emerald-500/20"
-        : "bg-rose-500/10 border-rose-500/20",
+        ? "bg-success/10 border-success/20"
+        : "bg-destructive/10 border-destructive/20",
     },
     {
       label: "مرضى اليوم",
@@ -568,188 +565,376 @@ export default function AdminHubShell() {
     },
   ];
 
+  const sidebarSections = navigationSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => canAccess(item.href)),
+    }))
+    .filter((section) => section.items.length > 0);
+
+  const quickLinks = [
+    {
+      href: "/admin-hub/portal-bookings",
+      label: "حجوزات البوابة",
+      hint: "مراجعة الطلبات الجديدة",
+      icon: CalendarDays,
+    },
+    {
+      href: "/admin-hub/users",
+      label: "المستخدمون",
+      hint: "الحسابات والأدوار",
+      icon: Users,
+    },
+    {
+      href: "/admin-hub/status",
+      label: "حالة النظام",
+      hint: "الاتصال والأداء",
+      icon: Activity,
+    },
+  ].filter((item) => canAccess(item.href));
+
   return (
     <div
-      className="min-h-screen bg-background text-foreground p-4 sm:p-6"
+      data-admin-hub
+      className="min-h-screen bg-background text-foreground"
       dir="rtl"
     >
-      {/* ── 1. Floating Bento Top Header Capsule ── */}
-      <header className="max-w-[1600px] mx-auto mb-6 bg-card border border-border/60 rounded-3xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary text-primary-foreground rounded-2xl flex items-center justify-center font-mono font-black text-sm">
-            AD
-          </div>
-          <div>
-            <h1 className="text-sm font-black text-foreground leading-none">
-              لوحة التحكم الإدارية للمشرف
-            </h1>
-            <span className="text-[10px] text-muted-foreground block mt-1 font-medium">
-              إدارة المستخدمين والأطباء والصلاحيات وحالة تشغيل المركز
-            </span>
-          </div>
-        </div>
-
-        {/* Top metrics grids */}
-        <div className="grid w-full grid-cols-3 gap-2 sm:grid-cols-3 md:w-auto md:min-w-[500px]">
-          {metrics.map((metric) => (
-            <div
-              key={metric.label}
-              className={`rounded-2xl border p-2.5 px-3 flex flex-col justify-center ${metric.accent}`}
-            >
-              <span className="text-[9px] font-bold text-muted-foreground block leading-none">
-                {metric.label}
-              </span>
-              <span
-                className={`mt-1 text-xs font-black font-mono leading-none ${metric.tone}`}
-              >
-                {metric.value}
-              </span>
-            </div>
-          ))}
-        </div>
-      </header>
-
-      {/* ── 2. Floating Console Layout ── */}
-      <div className="max-w-[1600px] mx-auto flex flex-col gap-6">
-        {/* Horizontal Top Navigation Bar (all breakpoints) */}
-        <nav className="w-full flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 scrollbar-none print:hidden">
-          {topbarNavItems
-            .filter((item) => canAccess(item.href))
-            .map((item) => {
-              const isActive = isItemActive(location, [item.href]);
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold shrink-0 transition-all ${
-                    isActive
-                      ? "bg-slate-900 text-white shadow-md shadow-slate-900/10 dark:bg-primary dark:text-primary-foreground dark:shadow-primary/10"
-                      : "bg-card border border-border/60 text-muted-foreground hover:bg-muted/50"
-                  }`}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-        </nav>
-
-        {/* Main Content Floating Bento Container */}
-        <main className="flex-1 w-full min-w-0 bg-card border border-border/60 rounded-3xl p-6 shadow-sm">
-          {crumbs && (
-            <nav className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold mb-4 print:hidden">
-              {crumbs.map((crumb, i) => (
-                <span key={crumb.href} className="flex items-center gap-1.5">
-                  {i > 0 && <span className="opacity-40">/</span>}
-                  <Link
-                    href={crumb.href}
-                    className={cn(
-                      "transition-colors hover:text-foreground",
-                      i === crumbs.length - 1
-                        ? "font-black text-foreground pointer-events-none"
-                        : "underline-offset-4 hover:underline",
-                    )}
-                  >
-                    {crumb.label}
-                  </Link>
-                </span>
-              ))}
-            </nav>
+      <div className="min-h-screen lg:flex lg:flex-row-reverse">
+        <aside
+          className={cn(
+            "fixed inset-y-0 right-0 z-40 flex w-[min(86vw,320px)] flex-col border-l border-border/70 bg-card shadow-2xl transition-transform duration-200 lg:static lg:w-[280px] lg:shrink-0 lg:translate-x-0 lg:shadow-none",
+            sidebarOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0",
           )}
+        >
+          <div className="flex items-center justify-between border-b border-border/70 px-5 py-5">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(false)}
+              className="rounded-xl p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:hidden"
+              aria-label="إغلاق القائمة"
+            >
+              <PanelRightClose className="size-5" />
+            </button>
+            <Link href="/admin-hub" className="flex items-center gap-3">
+              <span className="flex size-10 items-center justify-center rounded-2xl bg-primary text-sm font-black text-primary-foreground shadow-sm">
+                AD
+              </span>
+              <span className="text-right">
+                <span className="block text-sm font-black text-foreground">
+                  Admin Hub
+                </span>
+                <span className="mt-0.5 block text-[11px] font-medium text-muted-foreground">
+                  عيون الشروق
+                </span>
+              </span>
+            </Link>
+          </div>
 
-          {isHubHome ? (
-            <div className="space-y-6">
-              {/* Critical Actions Tier */}
-              <Link href="/admin-hub/diagnostics">
-                <div className="group relative overflow-hidden border border-emerald-500/20 bg-emerald-500/5 rounded-2xl p-4 shadow-sm hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:scale-[1.002] active:scale-[0.998] transition-all duration-150 cursor-pointer flex items-center justify-between">
-                  <div className="flex items-center gap-4 text-right">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 transition-transform group-hover:scale-105">
-                      <Wrench className="h-5 w-5" />
+          <nav className="flex-1 overflow-y-auto px-3 py-5">
+            <p className="px-3 pb-3 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
+              مساحة الإدارة
+            </p>
+            <div className="space-y-5">
+              {sidebarSections.map((section) => {
+                const SectionIcon = section.icon;
+                return (
+                  <div key={section.id}>
+                    <div className="mb-2 flex items-center gap-2 px-3 text-xs font-bold text-foreground">
+                      <SectionIcon className="size-4 text-primary" />
+                      <span>{section.label}</span>
                     </div>
-                    <div className="space-y-0.5">
-                      <div className="font-bold text-foreground text-xs">
-                        التشخيص والإصلاح
-                      </div>
-                      <p className="text-[10px] text-muted-foreground font-semibold">
-                        أدوات فحص وإصلاح البيانات المتقدمة للمشرفين التقنيين.
-                      </p>
+                    <div className="space-y-1">
+                      {section.items.map((item) => {
+                        const active = isItemActive(location, item.activeFor);
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            onClick={() => setSidebarOpen(false)}
+                            className={cn(
+                              "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold transition-colors",
+                              active
+                                ? "bg-primary text-primary-foreground shadow-sm"
+                                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                            )}
+                          >
+                            <ChevronRight
+                              className={cn(
+                                "size-3.5 shrink-0 transition-transform",
+                                active
+                                  ? "rotate-180"
+                                  : "group-hover:-translate-x-0.5",
+                              )}
+                            />
+                            <span className="min-w-0 flex-1 truncate">
+                              {item.label}
+                            </span>
+                          </Link>
+                        );
+                      })}
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-emerald-500 rotate-180 transition-transform group-hover:-translate-x-1" />
+                );
+              })}
+            </div>
+          </nav>
+
+          <div className="border-t border-border/70 p-4">
+            <Link
+              href="/dashboard"
+              className="flex items-center justify-between rounded-xl bg-muted/60 px-3 py-2.5 text-xs font-bold text-foreground transition-colors hover:bg-muted"
+            >
+              <span>العودة للوحة الرئيسية</span>
+              <ArrowRight className="size-4 rotate-180" />
+            </Link>
+          </div>
+        </aside>
+
+        {sidebarOpen ? (
+          <button
+            type="button"
+            aria-label="إغلاق القائمة"
+            className="fixed inset-0 z-30 bg-foreground/20 backdrop-blur-[1px] lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        ) : null}
+
+        <section className="min-w-0 flex-1">
+          <header className="sticky top-0 z-20 border-b border-border/70 bg-background/95 backdrop-blur print:static">
+            <div className="mx-auto flex min-h-16 w-full max-w-[1680px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+              <div className="flex min-w-0 items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSidebarOpen(true)}
+                  className="rounded-xl border border-border bg-card p-2 text-muted-foreground shadow-sm transition-colors hover:text-foreground lg:hidden"
+                  aria-label="فتح القائمة"
+                >
+                  <PanelRightOpen className="size-5" />
+                </button>
+                <div className="min-w-0">
+                  <p className="truncate text-[10px] font-black uppercase tracking-[0.18em] text-primary">
+                    Admin Hub
+                  </p>
+                  <p className="truncate text-sm font-bold text-foreground">
+                    مركز الإدارة والتشغيل
+                  </p>
                 </div>
-              </Link>
-
-              {/* Grouped Modules */}
-              <div className="space-y-8">
-                {CATEGORIES.map((cat) => {
-                  const CatIcon = cat.icon;
-                  const modules = ALL_MODULES.filter(
-                    (m) => m.category === cat.id && canAccess(m.href),
-                  );
-
-                  return (
-                    <div key={cat.id} className="space-y-3">
-                      <div className="flex items-center gap-3 border-b border-border pb-2">
-                        <div
-                          className={cn(
-                            "flex h-8 w-8 items-center justify-center rounded-xl text-sm border",
-                            cat.bg,
-                            cat.color,
-                          )}
-                        >
-                          <CatIcon className="h-4 w-4" />
-                        </div>
-                        <div className="text-right">
-                          <h2 className="text-xs font-black text-foreground">
-                            {cat.title}
-                          </h2>
-                          <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">
-                            {cat.subtitle}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        {modules.map((mod) => {
-                          const Icon = mod.icon;
-                          return (
-                            <Link key={mod.href} href={mod.href}>
-                              <div className="group h-full bg-card border border-border/60 rounded-2xl p-5 shadow-xs hover:border-border hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between">
-                                <div className="flex items-start gap-3 text-right">
-                                  <div
-                                    className={cn(
-                                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors border border-border/40 group-hover:bg-muted/40",
-                                      mod.iconWrap,
-                                    )}
-                                  >
-                                    <Icon className="h-4 w-4" />
-                                  </div>
-                                  <div className="min-w-0 flex-1 space-y-1">
-                                    <h3 className="font-bold text-xs tracking-tight text-foreground transition-colors group-hover:text-foreground">
-                                      {mod.title}
-                                    </h3>
-                                    <p className="text-[10px] leading-normal text-muted-foreground font-semibold line-clamp-2">
-                                      {mod.description}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
+              </div>
+              <div className="flex items-center gap-2 sm:gap-3">
+                {metrics.map((metric) => (
+                  <div
+                    key={metric.label}
+                    className={cn(
+                      "hidden min-w-[92px] rounded-xl border px-3 py-2 text-right sm:block",
+                      metric.accent,
+                    )}
+                  >
+                    <span className="block text-[10px] font-semibold text-muted-foreground">
+                      {metric.label}
+                    </span>
+                    <span
+                      className={cn(
+                        "mt-0.5 block text-xs font-black",
+                        metric.tone,
+                      )}
+                    >
+                      {metric.value}
+                    </span>
+                  </div>
+                ))}
+                <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-xs font-black text-primary-foreground sm:hidden">
+                  AD
+                </span>
               </div>
             </div>
-          ) : (
-            <Suspense fallback={<AppShellSkeleton />}>
-              {renderComponent()}
-            </Suspense>
-          )}
-        </main>
+          </header>
+
+          <main className="mx-auto w-full max-w-[1680px] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+            {crumbs ? (
+              <nav className="mb-5 flex flex-wrap items-center gap-2 text-xs font-semibold text-muted-foreground print:hidden">
+                {crumbs.map((crumb, index) => (
+                  <span key={crumb.href} className="flex items-center gap-2">
+                    {index > 0 ? (
+                      <ChevronRight className="size-3 rotate-180 opacity-40" />
+                    ) : null}
+                    <Link
+                      href={crumb.href}
+                      className={cn(
+                        "transition-colors hover:text-foreground",
+                        index === crumbs.length - 1
+                          ? "pointer-events-none font-black text-foreground"
+                          : "hover:underline hover:underline-offset-4",
+                      )}
+                    >
+                      {crumb.label}
+                    </Link>
+                  </span>
+                ))}
+              </nav>
+            ) : null}
+
+            {isHubHome ? (
+              <div className="space-y-7">
+                <section className="admin-hub-hero flex flex-col gap-6 rounded-3xl border border-border/70 bg-card px-5 py-6 shadow-sm lg:flex-row lg:items-end lg:justify-between lg:px-7">
+                  <div className="max-w-2xl">
+                    <span className="inline-flex rounded-full bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-primary">
+                      Operations control room
+                    </span>
+                    <h1 className="mt-3 text-2xl font-black tracking-tight text-foreground sm:text-3xl">
+                      مركز إدارة عيون الشروق
+                    </h1>
+                    <p className="mt-2 max-w-xl text-sm leading-7 text-muted-foreground">
+                      كل أدوات الإدارة في مساحة واحدة هادئة وواضحة، مع تنقّل
+                      جانبي ثابت بدل التابات والكروت المتكررة.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                    {metrics.map((metric) => (
+                      <div
+                        key={metric.label}
+                        className={cn(
+                          "min-w-[92px] rounded-2xl border px-3 py-3",
+                          metric.accent,
+                        )}
+                      >
+                        <span className="block text-[10px] font-semibold text-muted-foreground">
+                          {metric.label}
+                        </span>
+                        <span
+                          className={cn(
+                            "mt-1 block text-base font-black",
+                            metric.tone,
+                          )}
+                        >
+                          {metric.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {quickLinks.length > 0 ? (
+                  <section>
+                    <div className="mb-3 flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-primary">
+                          Shortcuts
+                        </p>
+                        <h2 className="mt-1 text-lg font-black text-foreground">
+                          الوصول السريع
+                        </h2>
+                      </div>
+                      <span className="text-xs font-semibold text-muted-foreground">
+                        أكثر المهام استخدامًا
+                      </span>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-3">
+                      {quickLinks.map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            className="group flex items-center gap-3 rounded-2xl border border-border/70 bg-card px-4 py-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                          >
+                            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                              <Icon className="size-5" />
+                            </span>
+                            <span className="min-w-0 flex-1 text-right">
+                              <span className="block text-sm font-black text-foreground">
+                                {item.label}
+                              </span>
+                              <span className="mt-0.5 block text-xs text-muted-foreground">
+                                {item.hint}
+                              </span>
+                            </span>
+                            <ArrowRight className="size-4 rotate-180 text-muted-foreground transition-transform group-hover:-translate-x-1" />
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </section>
+                ) : null}
+
+                <div className="space-y-8">
+                  {CATEGORIES.map((category) => {
+                    const CategoryIcon = category.icon;
+                    const modules = ALL_MODULES.filter(
+                      (module) =>
+                        module.category === category.id &&
+                        canAccess(module.href),
+                    );
+                    if (modules.length === 0) return null;
+                    return (
+                      <section key={category.id}>
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <span
+                              className={cn(
+                                "flex size-10 shrink-0 items-center justify-center rounded-xl border",
+                                category.bg,
+                                category.color,
+                              )}
+                            >
+                              <CategoryIcon className="size-5" />
+                            </span>
+                            <div className="min-w-0">
+                              <h2 className="truncate text-base font-black text-foreground">
+                                {category.title}
+                              </h2>
+                              <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                                {category.subtitle}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="shrink-0 rounded-full bg-muted px-3 py-1 text-xs font-black text-muted-foreground">
+                            {modules.length}
+                          </span>
+                        </div>
+                        <div className="admin-hub-module-list grid overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm md:grid-cols-2">
+                          {modules.map((module) => {
+                            const Icon = module.icon;
+                            return (
+                              <Link
+                                key={module.href}
+                                href={module.href}
+                                className="group flex min-w-0 items-center gap-3 border-b border-border/60 px-4 py-3.5 text-right transition-colors last:border-b-0 hover:bg-muted/45"
+                              >
+                                <span
+                                  className={cn(
+                                    "flex size-9 shrink-0 items-center justify-center rounded-xl",
+                                    module.iconWrap,
+                                  )}
+                                >
+                                  <Icon className="size-4" />
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <span className="block truncate text-sm font-bold text-foreground">
+                                    {module.title}
+                                  </span>
+                                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                                    {module.description}
+                                  </span>
+                                </span>
+                                <ChevronRight className="size-4 shrink-0 rotate-180 text-muted-foreground transition-transform group-hover:-translate-x-1" />
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </section>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="admin-hub-page-surface">
+                <Suspense fallback={<AppShellSkeleton />}>
+                  {renderComponent()}
+                </Suspense>
+              </div>
+            )}
+          </main>
+        </section>
       </div>
     </div>
   );

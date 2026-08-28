@@ -1093,7 +1093,8 @@ img {
     margin: 0;
   }
 
-  html, body {
+  html,
+  body {
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
@@ -1938,7 +1939,8 @@ select {
   body:has(.lasik-print-root) > #root::-webkit-scrollbar,
   body:has(.specialist-page-root) > #root::-webkit-scrollbar,
   body:has(.lasik-print-root) [data-app-scroll-container]::-webkit-scrollbar,
-  body:has(.specialist-page-root) [data-app-scroll-container]::-webkit-scrollbar {
+  body:has(.specialist-page-root)
+    [data-app-scroll-container]::-webkit-scrollbar {
     display: none !important;
     width: 0 !important;
     height: 0 !important;
@@ -1946,7 +1948,13 @@ select {
 
   /* Each visual paper must be a normal print-flow block, not a nested scroll box. */
   body:has(.lasik-print-root)
-    :is(.a4-page-card, .print-page-center-a4, .attached-followup-page, .sheet-followup-body, .lasik-sheet),
+    :is(
+      .a4-page-card,
+      .print-page-center-a4,
+      .attached-followup-page,
+      .sheet-followup-body,
+      .lasik-sheet
+    ),
   body:has(.specialist-page-root)
     :is(.print-page-center-a5, .specialist-sheet) {
     overflow: hidden !important;
@@ -1956,7 +1964,13 @@ select {
   }
 
   body:has(.lasik-print-root)
-    :is(.a4-page-card, .print-page-center-a4, .attached-followup-page, .sheet-followup-body, .lasik-sheet)::-webkit-scrollbar,
+    :is(
+      .a4-page-card,
+      .print-page-center-a4,
+      .attached-followup-page,
+      .sheet-followup-body,
+      .lasik-sheet
+    )::-webkit-scrollbar,
   body:has(.specialist-page-root)
     :is(.print-page-center-a5, .specialist-sheet)::-webkit-scrollbar {
     display: none !important;
@@ -1978,7 +1992,16 @@ body:has(.print-view-active) [data-app-scroll-container],
   -ms-overflow-style: none !important;
 }
 
-.print-view-active :is(.a4-page-card, .print-page-center-a4, .print-page-center-a5, .attached-followup-page, .sheet-followup-body, .lasik-sheet, .specialist-sheet) {
+.print-view-active
+  :is(
+    .a4-page-card,
+    .print-page-center-a4,
+    .print-page-center-a5,
+    .attached-followup-page,
+    .sheet-followup-body,
+    .lasik-sheet,
+    .specialist-sheet
+  ) {
   height: auto !important;
   min-height: 0 !important;
   max-height: none !important;
@@ -1995,4 +2018,132 @@ body:has(.print-view-active) [data-app-scroll-container]::-webkit-scrollbar,
   display: none !important;
   width: 0 !important;
   height: 0 !important;
+}
+
+/* Admin Hub brand system: one calm surface, one accent, consistent controls. */
+@layer components {
+  [data-admin-hub] {
+    font-family: var(--font-arabic);
+    --admin-hub-surface: color-mix(in oklch, var(--card) 96%, var(--primary));
+    --admin-hub-line: color-mix(in oklch, var(--border) 82%, var(--primary));
+    --admin-hub-soft-shadow: 0 12px 28px oklch(0.28 0.04 257 / 0.06);
+  }
+
+  [data-admin-hub] .admin-hub-hero {
+    background-image:
+      radial-gradient(
+        circle at 12% 15%,
+        color-mix(in oklch, var(--secondary) 13%, transparent),
+        transparent 24%
+      ),
+      radial-gradient(
+        circle at 90% 5%,
+        color-mix(in oklch, var(--primary) 12%, transparent),
+        transparent 28%
+      );
+  }
+
+  [data-admin-hub] .admin-hub-page-surface {
+    border: 1px solid var(--admin-hub-line);
+    border-radius: 1.5rem;
+    background: var(--admin-hub-surface);
+    padding: clamp(1rem, 2vw, 1.75rem);
+    box-shadow: var(--admin-hub-soft-shadow);
+  }
+
+  [data-admin-hub] .admin-hub-page-surface [data-slot="card"],
+  [data-admin-hub] .admin-hub-page-surface section,
+  [data-admin-hub] .admin-hub-page-surface article {
+    border-color: var(--admin-hub-line);
+    border-radius: 1.15rem;
+    box-shadow: 0 2px 8px oklch(0.28 0.04 257 / 0.04);
+  }
+
+  [data-admin-hub] .admin-hub-page-surface [data-slot="card-header"] {
+    border-bottom: 1px solid color-mix(in oklch, var(--border) 72%, transparent);
+  }
+
+  [data-admin-hub] .admin-hub-page-surface [data-slot="tabs-list"] {
+    display: inline-flex;
+    max-width: 100%;
+    gap: 0.2rem;
+    overflow-x: auto;
+    border: 1px solid var(--admin-hub-line);
+    border-radius: 0.9rem;
+    background: var(--muted);
+    padding: 0.25rem;
+  }
+
+  [data-admin-hub] .admin-hub-page-surface [data-slot="tabs-trigger"] {
+    border-radius: 0.7rem;
+    font-weight: 700;
+  }
+
+  [data-admin-hub]
+    .admin-hub-page-surface
+    [data-slot="tabs-trigger"][data-state="active"] {
+    background: var(--card);
+    color: var(--primary);
+    box-shadow: var(--bento-shadow-soft);
+  }
+
+  [data-admin-hub] .admin-hub-page-surface input,
+  [data-admin-hub] .admin-hub-page-surface select,
+  [data-admin-hub] .admin-hub-page-surface textarea,
+  [data-admin-hub] .admin-hub-page-surface button[role="combobox"] {
+    border-radius: 0.85rem;
+    border-color: var(--admin-hub-line);
+  }
+
+  [data-admin-hub] .admin-hub-page-surface table {
+    overflow: hidden;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--admin-hub-line);
+    border-radius: 1rem;
+  }
+
+  [data-admin-hub] .admin-hub-page-surface thead tr {
+    background: color-mix(in oklch, var(--primary) 7%, var(--card));
+  }
+
+  [data-admin-hub] .admin-hub-page-surface tbody tr {
+    transition: background-color 160ms ease-out;
+  }
+
+  [data-admin-hub] .admin-hub-page-surface tbody tr:hover {
+    background: color-mix(in oklch, var(--primary) 6%, var(--card));
+  }
+
+  @media screen and (max-width: 640px) {
+    [data-admin-hub] .admin-hub-page-surface {
+      padding: 0.75rem;
+      border-radius: 1.15rem;
+    }
+
+    [data-admin-hub] .admin-hub-page-surface [data-slot="card"],
+    [data-admin-hub] .admin-hub-page-surface section,
+    [data-admin-hub] .admin-hub-page-surface article {
+      border-radius: 0.95rem;
+    }
+  }
+}
+
+@media screen {
+  [data-admin-hub] .admin-hub-page-surface .bg-white {
+    background-color: var(--card);
+  }
+}
+
+@layer components {
+  @media screen and (min-width: 768px) {
+    [data-admin-hub] .admin-hub-module-list > a:nth-child(odd) {
+      border-inline-end: 1px solid
+        color-mix(in oklch, var(--border) 72%, transparent);
+    }
+
+    [data-admin-hub] .admin-hub-module-list > a:nth-last-child(-n + 2) {
+      border-bottom: 0;
+    }
+  }
 }
