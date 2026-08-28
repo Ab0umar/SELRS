@@ -41,7 +41,7 @@ export const PAGE_PERMISSION_DEFINITIONS = [
 
   // ── الحجوزات ──
   {
-    id: "/booking-triage/portal-bookings",
+    id: "/admin-hub/portal-bookings",
     label: "حجوزات البوابة الإلكترونية",
     group: "الحجوزات",
   },

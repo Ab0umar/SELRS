@@ -143,7 +143,7 @@ export default function TodayPatients() {
                         variant="outline"
                         size="sm"
                         onClick={() =>
-                          setLocation("/booking-triage/portal-bookings")
+                          setLocation("/admin-hub/portal-bookings")
                         }
                         className="gap-2 shrink-0 rounded-xl"
                       >

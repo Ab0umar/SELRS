@@ -191,7 +191,7 @@ export default function TodayPatients() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setLocation("/booking-triage/portal-bookings")}
+                onClick={() => setLocation("/admin-hub/portal-bookings")}
                 className="gap-2 shrink-0"
               >
                 <CalendarDays className="size-4" />

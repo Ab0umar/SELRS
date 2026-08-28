@@ -46,21 +46,28 @@ const TestsManagement = lazy(() => import("../pages/TestsManagement"));
 export const AdminRoutes = (
   <>
     {/* Admin routes */}
+    {/* Legacy namespace kept as a compatibility redirect after Admin Hub was renamed. */}
+    <Route
+      path={ROUTES.legacyAdminHub}
+      component={() => <Redirect href={ROUTES.adminHub} />}
+    />
+    <Route
+      path={ROUTES.legacyAdminHubRestWildcard}
+      component={() => {
+        const [, params] = useRoute("/booking-triage/:rest*");
+        const rest = (params as Record<string, string>)?.["rest*"];
+        return (
+          <Redirect
+            href={rest ? `${ROUTES.adminHub}/${rest}` : ROUTES.adminHub}
+          />
+        );
+      }}
+    />
+
     {/* Admin Hub - handles all /admin-hub routes internally */}
     <Route
       path={ROUTES.adminHubRoot}
       component={() => <Redirect href={ROUTES.adminHub} />}
-    />
-    <Route
-      path={ROUTES.adminHubRestWildcard}
-      component={() => {
-        const [, params] = useRoute("/admin-hub/:rest*");
-        return (
-          <Redirect
-            href={`${ROUTES.adminHub}/${(params as Record<string, string>)?.["rest*"] ?? ""}`}
-          />
-        );
-      }}
     />
     <Route
       path={ROUTES.adminHub}

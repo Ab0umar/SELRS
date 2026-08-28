@@ -76,7 +76,7 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "staff",
   },
   {
-    href: "/booking-triage/permissions",
+    href: "/admin-hub/permissions",
     title: "الصلاحيات",
     description: "تحديد صلاحيات الوصول للأدوار المختلفة.",
     icon: Shield,
@@ -84,7 +84,7 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "staff",
   },
   {
-    href: "/booking-triage/doctors",
+    href: "/admin-hub/doctors",
     title: "إدارة الأطباء",
     description: "تنظيم قائمة الأطباء والتخصصات.",
     icon: Stethoscope,
@@ -92,7 +92,7 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "staff",
   },
   {
-    href: "/booking-triage/users",
+    href: "/admin-hub/users",
     title: "إدارة المستخدمين",
     description: "إضافة وتعديل بيانات الموظفين والمستخدمين.",
     icon: Users,
@@ -100,7 +100,7 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "staff",
   },
   {
-    href: "/booking-triage/external-doctors",
+    href: "/admin-hub/external-doctors",
     title: "الأطباء الخارجيون",
     description: "أطباء الإحالة الخارجيين وعلاقاتهم بالمركز.",
     icon: Stethoscope,
@@ -108,7 +108,7 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "staff",
   },
   {
-    href: "/booking-triage/external-referrals",
+    href: "/admin-hub/external-referrals",
     title: "إحالات الأطباء الخارجية",
     description: "متابعة الحالات المحولة ونسب الإحالة للأطباء.",
     icon: FileSearch,
@@ -116,7 +116,7 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "staff",
   },
   {
-    href: "/booking-triage/status",
+    href: "/admin-hub/status",
     title: "حالة النظام",
     description: "مراقبة اتصال الخادم وقاعدة البيانات والأداء.",
     icon: Terminal,
@@ -124,7 +124,7 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "system",
   },
   {
-    href: "/booking-triage/migrations",
+    href: "/admin-hub/migrations",
     title: "ترحيل البيانات",
     description: "تطبيق ترحيلات Drizzle وأدوات الصيانة.",
     icon: Database,
@@ -132,7 +132,7 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "system",
   },
   {
-    href: "/booking-triage/services",
+    href: "/admin-hub/services",
     title: "ربط الخدمات",
     description: "مطابقة الخدمات المحلية مع رموز الربط.",
     icon: LayoutGrid,
@@ -140,7 +140,7 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "services",
   },
   {
-    href: "/booking-triage/tests",
+    href: "/admin-hub/tests",
     title: "تسعير الفحوصات",
     description: "تحديد الفحوصات الطبية وأسعارها بالمركز.",
     icon: TestTube2,
@@ -148,7 +148,7 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "services",
   },
   {
-    href: "/booking-triage/forms",
+    href: "/admin-hub/forms",
     title: "مستندات ونماذج المرضى",
     description: "إعداد استمارات الموافقة الجراحية والتعليمات الطبية للمرضى.",
     icon: PenSquare,
@@ -156,7 +156,7 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "services",
   },
   {
-    href: "/booking-triage/sheets",
+    href: "/admin-hub/sheets",
     title: "ملفات الفحص",
     description: "مراجعة وحذف وتعديل استمارات فحص الحالات.",
     icon: Layers,
@@ -164,7 +164,7 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "services",
   },
   {
-    href: "/booking-triage/sheet-designer",
+    href: "/admin-hub/sheet-designer",
     title: "مصمم نماذج الملفات",
     description: "بناء وتحديث حقول استمارات الفحص والمتابعة.",
     icon: Scan,
@@ -172,7 +172,7 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "services",
   },
   {
-    href: "/booking-triage/sheet-copies",
+    href: "/admin-hub/sheet-copies",
     title: "سجلات نسخ الملفات",
     description: "مراجعة ونقل الحقول الطبية المسجلة للملف الإلكتروني.",
     icon: Copy,
@@ -180,7 +180,7 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "services",
   },
   {
-    href: "/booking-triage/patients",
+    href: "/admin-hub/patients",
     title: "سجل المرضى الكلي",
     description: "البحث التفصيلي وتعديل كافة ملفات المرضى التاريخية بالمركز.",
     icon: Users,
@@ -188,7 +188,7 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "portal",
   },
   {
-    href: "/booking-triage/portal-bookings",
+    href: "/admin-hub/portal-bookings",
     title: "حجوزات البوابة الخارجية",
     description: "التحقق وتأكيد حجوزات موقع الويب الخارجي والطلبات للعيادات.",
     icon: CalendarDays,
@@ -196,7 +196,7 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "portal",
   },
   {
-    href: "/booking-triage/settings",
+    href: "/admin-hub/settings",
     title: "الإعدادات العامة",
     description: "تعديل المسمى الطبي والتأكيد على خيارات تشغيل المنشأة.",
     icon: Settings,
@@ -204,7 +204,7 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "system",
   },
   {
-    href: "/booking-triage/card-visibility",
+    href: "/admin-hub/card-visibility",
     title: "بطاقات الاستعلام",
     description: "التحكم في ظهور كروت الإحصائيات بالرئيسية.",
     icon: Eye,
@@ -212,7 +212,7 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "system",
   },
   {
-    href: "/booking-triage/audit",
+    href: "/admin-hub/audit",
     title: "تدقيق الحسابات",
     description: "سجل حركات تعديل قيم الكشوفات والمبالغ المالية.",
     icon: FileSearch,
@@ -220,7 +220,7 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "system",
   },
   {
-    href: "/booking-triage/notifications",
+    href: "/admin-hub/notifications",
     title: "إعدادات التنبيهات",
     description: "ضبط تنبيهات النظام وقنوات الإرسال.",
     icon: Bell,
@@ -237,34 +237,34 @@ const navigationSections = [
     icon: Users,
     items: [
       {
-        href: "/booking-triage/users",
+        href: "/admin-hub/users",
         label: "إدارة المستخدمين",
         description: "بيانات حسابات ودخول الموظفين",
-        activeFor: ["/booking-triage/users"],
+        activeFor: ["/admin-hub/users"],
       },
       {
-        href: "/booking-triage/doctors",
+        href: "/admin-hub/doctors",
         label: "كادر الأطباء بالمركز",
         description: "بيانات وتخصصات الأطباء المسجلين",
-        activeFor: ["/booking-triage/doctors"],
+        activeFor: ["/admin-hub/doctors"],
       },
       {
-        href: "/booking-triage/permissions",
+        href: "/admin-hub/permissions",
         label: "صلاحيات الوصول للأدوار",
         description: "صلاحيات ومجموعات العمل بالسيستم",
-        activeFor: ["/booking-triage/permissions"],
+        activeFor: ["/admin-hub/permissions"],
       },
       {
-        href: "/booking-triage/external-doctors",
+        href: "/admin-hub/external-doctors",
         label: "الأطباء الخارجيون",
         description: "أطباء الإحالة الخارجيين وعلاقاتهم",
-        activeFor: ["/booking-triage/external-doctors"],
+        activeFor: ["/admin-hub/external-doctors"],
       },
       {
-        href: "/booking-triage/external-referrals",
+        href: "/admin-hub/external-referrals",
         label: "إحالات الأطباء الخارجية",
         description: "الحالات المحولة ونسب الإحالة",
-        activeFor: ["/booking-triage/external-referrals"],
+        activeFor: ["/admin-hub/external-referrals"],
       },
     ],
   },
@@ -275,40 +275,40 @@ const navigationSections = [
     icon: Layers,
     items: [
       {
-        href: "/booking-triage/services",
+        href: "/admin-hub/services",
         label: "ربط وتطابق الخدمات",
         description: "تطابق أسماء الخدمات بالمركز",
-        activeFor: ["/booking-triage/services"],
+        activeFor: ["/admin-hub/services"],
       },
       {
-        href: "/booking-triage/tests",
+        href: "/admin-hub/tests",
         label: "إعدادات وتسعير الفحوصات",
         description: "أسعار التحاليل والفحوصات الفنية",
-        activeFor: ["/booking-triage/tests"],
+        activeFor: ["/admin-hub/tests"],
       },
       {
-        href: "/booking-triage/forms",
+        href: "/admin-hub/forms",
         label: "مستندات ونماذج المرضى",
         description: "الموافقات الطبية وتعليمات الليزك",
-        activeFor: ["/booking-triage/forms"],
+        activeFor: ["/admin-hub/forms"],
       },
       {
-        href: "/booking-triage/sheets",
+        href: "/admin-hub/sheets",
         label: "ملفات الفحص الإلكترونية",
         description: "ملفات كشف واستمارات الفحص للحالات",
-        activeFor: ["/booking-triage/sheets"],
+        activeFor: ["/admin-hub/sheets"],
       },
       {
-        href: "/booking-triage/sheet-designer",
+        href: "/admin-hub/sheet-designer",
         label: "مصمم نماذج الملفات",
         description: "أداة بناء حقول وقيم الكشف",
-        activeFor: ["/booking-triage/sheet-designer"],
+        activeFor: ["/admin-hub/sheet-designer"],
       },
       {
-        href: "/booking-triage/sheet-copies",
+        href: "/admin-hub/sheet-copies",
         label: "سجلات نسخ الملفات",
         description: "سجل نقل بنية وقيم الحقول الطبية",
-        activeFor: ["/booking-triage/sheet-copies"],
+        activeFor: ["/admin-hub/sheet-copies"],
       },
     ],
   },
@@ -319,16 +319,16 @@ const navigationSections = [
     icon: HeartPulse,
     items: [
       {
-        href: "/booking-triage/patients",
+        href: "/admin-hub/patients",
         label: "سجل المرضى الكلي",
         description: "البحث في كافة المرضى المسجلين بالمركز",
-        activeFor: ["/booking-triage/patients"],
+        activeFor: ["/admin-hub/patients"],
       },
       {
-        href: "/booking-triage/portal-bookings",
+        href: "/admin-hub/portal-bookings",
         label: "حجوزات البوابة الخارجية",
         description: "حجوزات موقع الويب الخارجي والطلبات",
-        activeFor: ["/booking-triage/portal-bookings"],
+        activeFor: ["/admin-hub/portal-bookings"],
       },
       {
         href: "/admin/legacy-patients",
@@ -345,46 +345,46 @@ const navigationSections = [
     icon: Terminal,
     items: [
       {
-        href: "/booking-triage/status",
+        href: "/admin-hub/status",
         label: "حالة الخادم الفنية",
         description: "أداء السيرفر واستخدام المعالج والذاكرة",
-        activeFor: ["/booking-triage/status"],
+        activeFor: ["/admin-hub/status"],
       },
       {
-        href: "/booking-triage/migrations",
+        href: "/admin-hub/migrations",
         label: "مزامنة تحديثات الجداول",
         description: "ترحيل البيانات وتعديل قواعد البيانات",
-        activeFor: ["/booking-triage/migrations"],
+        activeFor: ["/admin-hub/migrations"],
       },
       {
-        href: "/booking-triage/api",
+        href: "/admin-hub/api",
         label: "لوحة اختبار tRPC API",
         description: "أدوات API للمطورين",
-        activeFor: ["/booking-triage/api"],
+        activeFor: ["/admin-hub/api"],
       },
       {
-        href: "/booking-triage/settings",
+        href: "/admin-hub/settings",
         label: "إعدادات النظام العامة",
         description: "عناوين وخواص تشغيل المركز الكلية",
-        activeFor: ["/booking-triage/settings"],
+        activeFor: ["/admin-hub/settings"],
       },
       {
-        href: "/booking-triage/card-visibility",
+        href: "/admin-hub/card-visibility",
         label: "إعدادات بطاقات الاستعلام",
         description: "التحكم في ظهور كروت Dashboard",
-        activeFor: ["/booking-triage/card-visibility"],
+        activeFor: ["/admin-hub/card-visibility"],
       },
       {
-        href: "/booking-triage/audit",
+        href: "/admin-hub/audit",
         label: "سجل تدقيق التغييرات",
         description: "سجلات الأمن وحركة التعديل",
-        activeFor: ["/booking-triage/audit"],
+        activeFor: ["/admin-hub/audit"],
       },
       {
-        href: "/booking-triage/notifications",
+        href: "/admin-hub/notifications",
         label: "إعدادات التنبيهات",
         description: "إعدادات الرسائل وسيرفرات البريد",
-        activeFor: ["/booking-triage/notifications"],
+        activeFor: ["/admin-hub/notifications"],
       },
     ],
   },
@@ -392,7 +392,7 @@ const navigationSections = [
 
 function isItemActive(pathname: string, activeFor: string[]) {
   return activeFor.some((path) =>
-    path === "/booking-triage"
+    path === "/admin-hub"
       ? pathname === path
       : pathname === path || pathname.startsWith(`${path}/`),
   );
@@ -400,31 +400,31 @@ function isItemActive(pathname: string, activeFor: string[]) {
 
 // Top navigation (horizontal bar, single row, all breakpoints)
 const topbarNavItems = [
-  { href: "/booking-triage/users", label: "المستخدمين", icon: Users },
-  { href: "/booking-triage/doctors", label: "الأطباء", icon: Stethoscope },
-  { href: "/booking-triage/permissions", label: "الصلاحيات", icon: Shield },
+  { href: "/admin-hub/users", label: "المستخدمين", icon: Users },
+  { href: "/admin-hub/doctors", label: "الأطباء", icon: Stethoscope },
+  { href: "/admin-hub/permissions", label: "الصلاحيات", icon: Shield },
   {
-    href: "/booking-triage/external-doctors",
+    href: "/admin-hub/external-doctors",
     label: "طبيب خارجي",
     icon: FileSearch,
   },
-  { href: "/booking-triage/tests", label: "الخدمات", icon: TestTube2 },
-  { href: "/booking-triage/services", label: "ربط الخدمات", icon: LayoutGrid },
+  { href: "/admin-hub/tests", label: "الخدمات", icon: TestTube2 },
+  { href: "/admin-hub/services", label: "ربط الخدمات", icon: LayoutGrid },
   {
-    href: "/booking-triage/sheet-designer",
+    href: "/admin-hub/sheet-designer",
     label: "نماذج الملفات",
     icon: Scan,
   },
-  { href: "/booking-triage/patients", label: "المرضى", icon: Users },
+  { href: "/admin-hub/patients", label: "المرضى", icon: Users },
   { href: "/admin/legacy-patients", label: "سجل المرضى", icon: HeartPulse },
   {
-    href: "/booking-triage/portal-bookings",
+    href: "/admin-hub/portal-bookings",
     label: "الحجز",
     icon: CalendarDays,
   },
-  { href: "/booking-triage/status", label: "السيرفر", icon: Terminal },
-  { href: "/booking-triage/migrations", label: "اسكيما", icon: Database },
-  { href: "/booking-triage/notifications", label: "الإشعارات", icon: Bell },
+  { href: "/admin-hub/status", label: "السيرفر", icon: Terminal },
+  { href: "/admin-hub/migrations", label: "اسكيما", icon: Database },
+  { href: "/admin-hub/notifications", label: "الإشعارات", icon: Bell },
 ];
 
 export default function AdminHubShell() {
@@ -438,14 +438,14 @@ export default function AdminHubShell() {
 
   const opsHealth = opsHealthQuery.data;
   const isHubHome =
-    location === "/booking-triage" || location === "/booking-triage/";
+    location === "/admin-hub" || location === "/admin-hub/";
 
   const getBreadcrumbs = () => {
     if (isHubHome) return null;
     const parts = location.split("/").filter(Boolean);
-    const crumbs = [{ label: "الرئيسية للمشرف", href: "/booking-triage" }];
+    const crumbs = [{ label: "الرئيسية للمشرف", href: "/admin-hub" }];
 
-    let currentPath = "/booking-triage";
+    let currentPath = "/admin-hub";
     for (let i = 1; i < parts.length; i++) {
       const part = parts[i];
       currentPath += `/${part}`;
@@ -460,32 +460,32 @@ export default function AdminHubShell() {
 
   const renderComponent = () => {
     const loc = location.replace(/\/$/, "");
-    if (loc === "/booking-triage/users") return <AdminUsers />;
-    if (loc === "/booking-triage/migrations") return <AdminMigrations />;
-    if (loc === "/booking-triage/api") return <AdminApiTools />;
-    if (loc === "/booking-triage/status") return <AdminStatus />;
-    if (loc === "/booking-triage/settings") return <AdminSettings />;
-    if (loc === "/booking-triage/permissions") return <AdminPermissions />;
-    if (loc === "/booking-triage/sheets") return <AdminSheets />;
-    if (loc === "/booking-triage/sheet-designer") return <AdminSheetDesigner />;
-    if (loc === "/booking-triage/doctors") return <AdminDoctors />;
-    if (loc === "/booking-triage/pentacam-failed")
+    if (loc === "/admin-hub/users") return <AdminUsers />;
+    if (loc === "/admin-hub/migrations") return <AdminMigrations />;
+    if (loc === "/admin-hub/api") return <AdminApiTools />;
+    if (loc === "/admin-hub/status") return <AdminStatus />;
+    if (loc === "/admin-hub/settings") return <AdminSettings />;
+    if (loc === "/admin-hub/permissions") return <AdminPermissions />;
+    if (loc === "/admin-hub/sheets") return <AdminSheets />;
+    if (loc === "/admin-hub/sheet-designer") return <AdminSheetDesigner />;
+    if (loc === "/admin-hub/doctors") return <AdminDoctors />;
+    if (loc === "/admin-hub/pentacam-failed")
       return <AdminPentacamFailed />;
-    if (loc === "/booking-triage/sheet-copies") return <AdminSheetCopies />;
-    if (loc === "/booking-triage/forms") return <AdminFormsHub />;
-    if (loc === "/booking-triage/patients") return <AdminPatients />;
-    if (loc === "/booking-triage/portal-bookings")
+    if (loc === "/admin-hub/sheet-copies") return <AdminSheetCopies />;
+    if (loc === "/admin-hub/forms") return <AdminFormsHub />;
+    if (loc === "/admin-hub/patients") return <AdminPatients />;
+    if (loc === "/admin-hub/portal-bookings")
       return <AdminPortalBookings />;
-    if (loc === "/booking-triage/card-visibility")
+    if (loc === "/admin-hub/card-visibility")
       return <AdminCardVisibility />;
-    if (loc === "/booking-triage/diagnostics") return <AdminDiagnostics />;
-    if (loc === "/booking-triage/audit") return <AdminDataSourceAudit />;
-    if (loc === "/booking-triage/notifications")
+    if (loc === "/admin-hub/diagnostics") return <AdminDiagnostics />;
+    if (loc === "/admin-hub/audit") return <AdminDataSourceAudit />;
+    if (loc === "/admin-hub/notifications")
       return <AdminNotificationSettings />;
-    if (loc === "/booking-triage/services") return <AdminServices />;
-    if (loc === "/booking-triage/tests") return <TestsManagement />;
-    if (loc === "/booking-triage/external-doctors") return <ExternalDoctors />;
-    if (loc === "/booking-triage/external-referrals")
+    if (loc === "/admin-hub/services") return <AdminServices />;
+    if (loc === "/admin-hub/tests") return <TestsManagement />;
+    if (loc === "/admin-hub/external-doctors") return <ExternalDoctors />;
+    if (loc === "/admin-hub/external-referrals")
       return <ExternalDoctorReferrals />;
     return null;
   };
@@ -661,7 +661,7 @@ export default function AdminHubShell() {
           {isHubHome ? (
             <div className="space-y-6">
               {/* Critical Actions Tier */}
-              <Link href="/booking-triage/diagnostics">
+              <Link href="/admin-hub/diagnostics">
                 <div className="group relative overflow-hidden border border-emerald-500/20 bg-emerald-500/5 rounded-2xl p-4 shadow-sm hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:scale-[1.002] active:scale-[0.998] transition-all duration-150 cursor-pointer flex items-center justify-between">
                   <div className="flex items-center gap-4 text-right">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 transition-transform group-hover:scale-105">

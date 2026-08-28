@@ -105,7 +105,7 @@ const TABS: Array<{
     label: "الحجوزات",
     icon: CalendarDays,
     iconWrapCls: "bg-info/15 text-info",
-    permPath: "/booking-triage/portal-bookings",
+    permPath: "/admin-hub/portal-bookings",
   },
 ];
 
@@ -1310,7 +1310,7 @@ export default function Dashboard() {
   const stockQ = trpc.stockroom.getReports.useQuery({});
   const bookingsQ = (trpc as any).patientPortal.listBookings.useQuery(
     { status: "pending", limit: 200 },
-    { staleTime: 60_000, refetchOnWindowFocus: false, enabled: canAccess("/booking-triage/portal-bookings") },
+    { staleTime: 60_000, refetchOnWindowFocus: false, enabled: canAccess("/admin-hub/portal-bookings") },
   );
 
   const todayBadge = merged.length;
