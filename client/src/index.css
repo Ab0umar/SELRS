@@ -2147,3 +2147,96 @@ body:has(.print-view-active) [data-app-scroll-container]::-webkit-scrollbar,
     }
   }
 }
+
+/* Admin Hub mobile brand treatment: right drawer, compact header, flatter lists. */
+@layer components {
+  @media screen and (max-width: 767px) {
+    [data-admin-hub] .admin-hub-mobile-topbar {
+      background: var(--primary);
+      border-bottom-color: color-mix(
+        in oklch,
+        var(--primary-foreground) 18%,
+        transparent
+      );
+      color: var(--primary-foreground);
+    }
+
+    [data-admin-hub] .admin-hub-mobile-topbar p.text-primary,
+    [data-admin-hub] .admin-hub-mobile-topbar p.text-foreground {
+      color: var(--primary-foreground);
+    }
+
+    [data-admin-hub] .admin-hub-mobile-menu-button {
+      border-color: color-mix(
+        in oklch,
+        var(--primary-foreground) 28%,
+        transparent
+      );
+      background: color-mix(
+        in oklch,
+        var(--primary-foreground) 12%,
+        transparent
+      );
+      color: var(--primary-foreground);
+      box-shadow: none;
+    }
+
+    [data-admin-hub] aside {
+      top: 0.5rem;
+      bottom: 0.5rem;
+      height: calc(100dvh - 1rem);
+      width: min(88vw, 360px);
+      border-left: 0;
+      border-radius: 1.25rem 0 0 1.25rem;
+    }
+
+    [data-admin-hub] .admin-hub-hero {
+      border-radius: 1.35rem;
+      padding: 1.15rem;
+    }
+
+    [data-admin-hub] .admin-hub-hero-stats {
+      width: 100%;
+      grid-template-columns: repeat(3, minmax(106px, 1fr));
+      overflow-x: auto;
+      padding-bottom: 0.15rem;
+      scrollbar-width: none;
+    }
+
+    [data-admin-hub] .admin-hub-hero-stats::-webkit-scrollbar,
+    [data-admin-hub] .admin-hub-quick-links::-webkit-scrollbar {
+      display: none;
+    }
+
+    [data-admin-hub] .admin-hub-quick-links {
+      display: flex;
+      gap: 0.625rem;
+      overflow-x: auto;
+      padding-bottom: 0.25rem;
+      scroll-snap-type: x mandatory;
+    }
+
+    [data-admin-hub] .admin-hub-quick-links > a {
+      flex: 0 0 84%;
+      scroll-snap-align: start;
+    }
+
+    [data-admin-hub] .admin-hub-module-list {
+      gap: 0.5rem;
+      overflow: visible;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    [data-admin-hub] .admin-hub-module-list > a,
+    [data-admin-hub] .admin-hub-module-list > a:nth-child(odd),
+    [data-admin-hub] .admin-hub-module-list > a:nth-last-child(-n + 2) {
+      border: 1px solid var(--admin-hub-line);
+      border-radius: 0.95rem;
+      background: var(--card);
+      box-shadow: 0 2px 8px oklch(0.28 0.04 257 / 0.04);
+    }
+  }
+}

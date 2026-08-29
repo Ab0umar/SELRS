@@ -789,13 +789,13 @@ export default function AdminHubShell() {
         ) : null}
 
         <section className="min-w-0 flex-1">
-          <header className="sticky top-0 z-20 border-b border-border/70 bg-background/95 backdrop-blur print:static">
+          <header className="admin-hub-mobile-topbar sticky top-0 z-20 border-b border-border/70 bg-background/95 backdrop-blur print:static">
             <div className="mx-auto flex min-h-16 w-full max-w-[1680px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
               <div className="flex min-w-0 items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setSidebarOpen(true)}
-                  className="rounded-xl border border-border bg-card p-2 text-muted-foreground shadow-sm transition-colors hover:text-foreground lg:hidden"
+                  className="admin-hub-mobile-menu-button rounded-xl border border-border bg-card p-2 text-muted-foreground shadow-sm transition-colors hover:text-foreground lg:hidden"
                   aria-label="فتح القائمة"
                 >
                   <PanelRightOpen className="size-5" />
@@ -877,7 +877,7 @@ export default function AdminHubShell() {
                       جانبي ثابت بدل التابات والكروت المتكررة.
                     </p>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                  <div className="admin-hub-hero-stats grid grid-cols-3 gap-2 sm:gap-3">
                     {metrics.map((metric) => (
                       <div
                         key={metric.label}
@@ -917,7 +917,7 @@ export default function AdminHubShell() {
                         أكثر المهام استخدامًا
                       </span>
                     </div>
-                    <div className="grid gap-3 md:grid-cols-3">
+                    <div className="admin-hub-quick-links grid gap-3 md:grid-cols-3">
                       {quickLinks.map((item) => {
                         const Icon = item.icon;
                         return (
