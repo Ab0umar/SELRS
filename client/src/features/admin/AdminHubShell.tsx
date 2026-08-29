@@ -685,13 +685,13 @@ export default function AdminHubShell() {
   return (
     <div
       data-admin-hub
-      className="min-h-screen bg-background text-foreground"
+      className="admin-hub-redesign-v2 min-h-screen bg-[#f2f5f9] text-foreground"
       dir="rtl"
     >
-      <div className="min-h-screen lg:flex lg:flex-row">
+      <div className="min-h-screen lg:flex lg:flex-row-reverse">
         <aside
           className={cn(
-            "fixed inset-y-0 right-0 z-40 flex w-[min(86vw,320px)] flex-col border-l border-border/70 bg-card shadow-2xl transition-transform duration-200 lg:static lg:w-[280px] lg:shrink-0 lg:translate-x-0 lg:shadow-none",
+            "fixed inset-y-0 right-0 z-40 flex w-[min(86vw,320px)] flex-col border-l border-[#173866] bg-[#0b1b3a] text-white shadow-2xl transition-transform duration-200 lg:static lg:w-[296px] lg:shrink-0 lg:translate-x-0 lg:shadow-none",
             sidebarOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0",
           )}
         >
@@ -788,8 +788,8 @@ export default function AdminHubShell() {
           />
         ) : null}
 
-        <section className="min-w-0 flex-1">
-          <header className="admin-hub-mobile-topbar sticky top-0 z-20 border-b border-border/70 bg-background/95 backdrop-blur print:static">
+        <section className="min-w-0 flex-1 bg-[#f2f5f9]">
+          <header className="admin-hub-mobile-topbar sticky top-0 z-20 border-b border-[#d8e0ec] bg-white/95 backdrop-blur print:static">
             <div className="mx-auto flex min-h-16 w-full max-w-[1680px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
               <div className="flex min-w-0 items-center gap-3">
                 <button
