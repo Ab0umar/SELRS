@@ -49,7 +49,7 @@ export const AdminRoutes = (
     {/* Legacy namespace kept as a compatibility redirect after Admin Hub was renamed. */}
     <Route
       path={ROUTES.legacyAdminHub}
-      component={() => <Redirect href={ROUTES.adminHub} />}
+      component={() => <Redirect to={ROUTES.adminHub} />}
     />
     <Route
       path={ROUTES.legacyAdminHubRestWildcard}
@@ -58,7 +58,7 @@ export const AdminRoutes = (
         const rest = (params as Record<string, string>)?.["rest*"];
         return (
           <Redirect
-            href={rest ? `${ROUTES.adminHub}/${rest}` : ROUTES.adminHub}
+            to={rest ? `${ROUTES.adminHub}/${rest}` : ROUTES.adminHub}
           />
         );
       }}
@@ -67,7 +67,7 @@ export const AdminRoutes = (
     {/* Admin Hub - handles all /admin-hub routes internally */}
     <Route
       path={ROUTES.adminHubRoot}
-      component={() => <Redirect href={ROUTES.adminHub} />}
+      component={() => <Redirect to={ROUTES.adminHub} />}
     />
     <Route
       path={ROUTES.adminHub}
