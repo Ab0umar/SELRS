@@ -912,482 +912,495 @@ async function findAvailablePort(
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
-  async function withDb<T>(run: (conn: mysql.Connection) => Promise<T>) {
-    const databaseUrl = process.env.DATABASE_URL;
-    if (!databaseUrl) {
-      throw new Error("DATABASE_URL is missing");
-    }
-    const conn = await mysql.createConnection(databaseUrl);
-    try {
-      return await run(conn);
-    } finally {
-      await conn.end();
-    }
+async function withDb<T>(run: (conn: mysql.Connection) => Promise<T>) {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error("DATABASE_URL is missing");
+  }
+  const conn = await mysql.createConnection(databaseUrl);
+  try {
+    return await run(conn);
+  } finally {
+    await conn.end();
+  }
+}
+
+async function startSrv100FolderImporter() {
+  const cfg = getSrv100FolderImportOptions();
+  if (!cfg.enabled) {
+    console.log("[srv100-import] Disabled");
+    return;
+  }
+  if (!cfg.sourceDir) {
+    console.warn(
+      "[srv100-import] Disabled: SRV100_IMPORT_SOURCE_DIR is missing",
+    );
+    return;
   }
 
-  async function startSrv100FolderImporter() {
-    const cfg = getSrv100FolderImportOptions();
-    if (!cfg.enabled) {
-      console.log("[srv100-import] Disabled");
-      return;
-    }
-    if (!cfg.sourceDir) {
-      console.warn(
-        "[srv100-import] Disabled: SRV100_IMPORT_SOURCE_DIR is missing",
-      );
-      return;
-    }
+  await mkdir(cfg.sourceDir, { recursive: true });
+  await mkdir(cfg.processedDir, { recursive: true });
 
-    await mkdir(cfg.sourceDir, { recursive: true });
-    await mkdir(cfg.processedDir, { recursive: true });
+  console.log(
+    `[srv100-import] Watching ${cfg.sourceDir} every ${cfg.pollIntervalMs}ms (source -> ${cfg.processedDir})`,
+  );
 
-    console.log(
-      `[srv100-import] Watching ${cfg.sourceDir} every ${cfg.pollIntervalMs}ms (source -> ${cfg.processedDir})`,
+  // In-memory cache of already-imported file_names so steady-state cycles
+  // skip known files without a DB round-trip per file — collectFiles() can't
+  // rename foldered files to mark them done (would fight FolderOrganizer),
+  // so without this cache every cycle re-queries the DB for every file forever.
+  const importedFileNames = new Set<string>();
+  try {
+    const rows = await withDb((conn) =>
+      conn.query(
+        `SELECT file_name FROM srv100_uploads WHERE file_name IS NOT NULL`,
+      ),
     );
-
-    // In-memory cache of already-imported file_names so steady-state cycles
-    // skip known files without a DB round-trip per file — collectFiles() can't
-    // rename foldered files to mark them done (would fight FolderOrganizer),
-    // so without this cache every cycle re-queries the DB for every file forever.
-    const importedFileNames = new Set<string>();
-    try {
-      const rows = await withDb((conn) =>
-        conn.query(`SELECT file_name FROM srv100_uploads WHERE file_name IS NOT NULL`),
-      );
-      for (const row of rows[0] as any[]) {
-        if (row.file_name) importedFileNames.add(String(row.file_name));
-      }
-      console.log(
-        `[srv100-import] Preloaded ${importedFileNames.size} already-imported file names`,
-      );
-    } catch (error: any) {
-      console.warn(
-        `[srv100-import] Failed to preload imported file names: ${String(error?.message ?? error)}`,
-      );
+    for (const row of rows[0] as any[]) {
+      if (row.file_name) importedFileNames.add(String(row.file_name));
     }
+    console.log(
+      `[srv100-import] Preloaded ${importedFileNames.size} already-imported file names`,
+    );
+  } catch (error: any) {
+    console.warn(
+      `[srv100-import] Failed to preload imported file names: ${String(error?.message ?? error)}`,
+    );
+  }
 
-    let busy = false;
-    const runCycle = async () => {
-      if (busy) return;
-      if (srv100DbCycleBusy) return;
-      busy = true;
-      srv100DbCycleBusy = true;
-      try {
-        const now = Date.now();
-        // Collect files from root and one level of subfolders (XXXX/ patient folders)
-        const collectFiles = async (dir: string): Promise<string[]> => {
-          const entries = await readdir(dir, { withFileTypes: true });
-          const files: string[] = [];
-          for (const entry of entries) {
-            if (entry.isDirectory()) {
-              const sub = await readdir(path.join(dir, entry.name), { withFileTypes: true });
-              for (const subEntry of sub) {
-                if (subEntry.isFile() && IMPORTABLE_IMAGE_EXT.test(subEntry.name)
-                  && !subEntry.name.startsWith("IMPORTED_") && !subEntry.name.startsWith("FAILED_")) {
-                  files.push(path.join(entry.name, subEntry.name));
-                }
-              }
-            } else if (entry.isFile() && IMPORTABLE_IMAGE_EXT.test(entry.name)
-              && !entry.name.startsWith("IMPORTED_") && !entry.name.startsWith("FAILED_")) {
-              files.push(entry.name);
-            }
-          }
-          return files.sort((a, b) => a.localeCompare(b)).slice(0, cfg.maxFilesPerCycle);
-        };
-        const fileNames = await collectFiles(cfg.sourceDir);
-        if (fileNames.length > 0) {
-          console.log(
-            `[srv100-import] cycle candidates=${fileNames.length} source=${cfg.sourceDir}`,
-          );
-        }
-
-        for (const fileName of fileNames) {
-          const dbFileNameEarly = path.basename(fileName).slice(0, 255);
-          if (importedFileNames.has(dbFileNameEarly)) continue;
-
-          const fullPath = path.join(cfg.sourceDir, fileName);
-          const fileInfo = await stat(fullPath).catch(() => null);
-          if (!fileInfo?.isFile()) continue;
-          if (now - Number(fileInfo.mtimeMs || 0) < cfg.minFileAgeMs) continue;
-
-          let fileData: Buffer | null = null;
-          try {
-            fileData = await readFile(fullPath);
-            if (fileData.length === 0) {
-              throw new Error("File is empty");
-            }
-            const mimeType = guessMimeType(fileName);
-            // Use the basename only — collectFiles may return "{code}/{name}.JPG"
-            // for files already inside a patient subfolder; the subfolder prefix
-            // must not leak into the DB file_name or the S3 key.
-            const dbFileName = dbFileNameEarly;
-            // document_id convention in srv100_uploads is the full filename (with
-            // extension) — existing rows use that scheme, so we match it here.
-            const documentId = dbFileName;
-
-            // Dedup on file_name (indexed, basename) — stable regardless of how
-            // old rows stored document_id (some used stem, some full name).
-            const [existing] = await withDb(async (conn) => {
-              return conn.query(
-                `SELECT id FROM srv100_uploads WHERE file_name = ? LIMIT 1`,
-                [dbFileName],
-              );
+  let busy = false;
+  const runCycle = async () => {
+    if (busy) return;
+    if (srv100DbCycleBusy) return;
+    busy = true;
+    srv100DbCycleBusy = true;
+    try {
+      const now = Date.now();
+      // Collect files from root and one level of subfolders (XXXX/ patient folders)
+      const collectFiles = async (dir: string): Promise<string[]> => {
+        const entries = await readdir(dir, { withFileTypes: true });
+        const files: string[] = [];
+        for (const entry of entries) {
+          if (entry.isDirectory()) {
+            const sub = await readdir(path.join(dir, entry.name), {
+              withFileTypes: true,
             });
-
-            if ((existing as any[]).length > 0) {
-              // already-imported skips are too verbose to log individually
-              importedFileNames.add(dbFileName);
-              continue;
+            for (const subEntry of sub) {
+              if (
+                subEntry.isFile() &&
+                IMPORTABLE_IMAGE_EXT.test(subEntry.name) &&
+                !subEntry.name.startsWith("IMPORTED_") &&
+                !subEntry.name.startsWith("FAILED_")
+              ) {
+                files.push(path.join(entry.name, subEntry.name));
+              }
             }
+          } else if (
+            entry.isFile() &&
+            IMPORTABLE_IMAGE_EXT.test(entry.name) &&
+            !entry.name.startsWith("IMPORTED_") &&
+            !entry.name.startsWith("FAILED_")
+          ) {
+            files.push(entry.name);
+          }
+        }
+        return files
+          .sort((a, b) => a.localeCompare(b))
+          .slice(0, cfg.maxFilesPerCycle);
+      };
+      const fileNames = await collectFiles(cfg.sourceDir);
+      if (fileNames.length > 0) {
+        console.log(
+          `[srv100-import] cycle candidates=${fileNames.length} source=${cfg.sourceDir}`,
+        );
+      }
 
-            let s3Key: string | null = null;
-            try {
-              const patientIdMatch = dbFileName.match(/^(\d{4})_/);
-              const patientPrefix = patientIdMatch ? patientIdMatch[1] : "unknown";
-              const candidateKey = `SELRS/${patientPrefix}/${dbFileName}`;
-              await uploadToS3(candidateKey, fileData, mimeType);
-              s3Key = candidateKey;
-              console.log(
-                `[srv100-import] Uploaded ${fileName} to S3: ${s3Key}`,
-              );
-            } catch (error: any) {
-              console.warn(
-                `[srv100-import] S3 upload failed for ${fileName}: ${String(error?.message ?? error)}`,
-              );
-            }
+      for (const fileName of fileNames) {
+        const dbFileNameEarly = path.basename(fileName).slice(0, 255);
+        if (importedFileNames.has(dbFileNameEarly)) continue;
 
-            const uploadId = await withDb(async (conn) => {
-              const [insertResult] = await conn.query(
-                `INSERT INTO srv100_uploads
+        const fullPath = path.join(cfg.sourceDir, fileName);
+        const fileInfo = await stat(fullPath).catch(() => null);
+        if (!fileInfo?.isFile()) continue;
+        if (now - Number(fileInfo.mtimeMs || 0) < cfg.minFileAgeMs) continue;
+
+        let fileData: Buffer | null = null;
+        try {
+          fileData = await readFile(fullPath);
+          if (fileData.length === 0) {
+            throw new Error("File is empty");
+          }
+          const mimeType = guessMimeType(fileName);
+          // Use the basename only — collectFiles may return "{code}/{name}.JPG"
+          // for files already inside a patient subfolder; the subfolder prefix
+          // must not leak into the DB file_name or the S3 key.
+          const dbFileName = dbFileNameEarly;
+          // document_id convention in srv100_uploads is the full filename (with
+          // extension) — existing rows use that scheme, so we match it here.
+          const documentId = dbFileName;
+
+          // Dedup on file_name (indexed, basename) — stable regardless of how
+          // old rows stored document_id (some used stem, some full name).
+          const [existing] = await withDb(async (conn) => {
+            return conn.query(
+              `SELECT id FROM srv100_uploads WHERE file_name = ? LIMIT 1`,
+              [dbFileName],
+            );
+          });
+
+          if ((existing as any[]).length > 0) {
+            // already-imported skips are too verbose to log individually
+            importedFileNames.add(dbFileName);
+            continue;
+          }
+
+          let s3Key: string | null = null;
+          try {
+            const patientIdMatch = dbFileName.match(/^(\d{4})_/);
+            const patientPrefix = patientIdMatch
+              ? patientIdMatch[1]
+              : "unknown";
+            const candidateKey = `SELRS/${patientPrefix}/${dbFileName}`;
+            await uploadToS3(candidateKey, fileData, mimeType);
+            s3Key = candidateKey;
+            console.log(`[srv100-import] Uploaded ${fileName} to S3: ${s3Key}`);
+          } catch (error: any) {
+            console.warn(
+              `[srv100-import] S3 upload failed for ${fileName}: ${String(error?.message ?? error)}`,
+            );
+          }
+
+          const uploadId = await withDb(async (conn) => {
+            const [insertResult] = await conn.query(
+              `INSERT INTO srv100_uploads
                  (document_id, file_name, mime_type, file_data, s3_key, source_printer)
                  VALUES (?, ?, ?, ?, ?, ?)`,
-                [
-                  documentId,
-                  dbFileName,
-                  mimeType,
+              [
+                documentId,
+                dbFileName,
+                mimeType,
+                fileData,
+                s3Key,
+                cfg.sourcePrinter,
+              ],
+            );
+            return Number((insertResult as any)?.insertId ?? 0);
+          });
+          importedFileNames.add(dbFileName);
+
+          let importCode = "";
+          const ocrCfg = getSrv100OcrLinkOptions();
+          if (ocrCfg.enabled) {
+            try {
+              const psmCandidates = Array.from(new Set([4, ocrCfg.psm]));
+              for (const psm of psmCandidates) {
+                const tsvRows = await runOcrTsvFromBuffer(
                   fileData,
-                  s3Key,
-                  cfg.sourcePrinter,
-                ],
-              );
-              return Number((insertResult as any)?.insertId ?? 0);
-            });
-            importedFileNames.add(dbFileName);
-
-            let importCode = "";
-            const ocrCfg = getSrv100OcrLinkOptions();
-            if (ocrCfg.enabled) {
-              try {
-                const psmCandidates = Array.from(new Set([4, ocrCfg.psm]));
-                for (const psm of psmCandidates) {
-                  const tsvRows = await runOcrTsvFromBuffer(
-                    fileData,
-                    fileName,
-                    ocrCfg,
-                    psm,
-                  );
-                  const renameCode = extractStrictHeaderIdFromTsv(tsvRows);
-                  if (renameCode) {
-                    importCode = renameCode;
-                    break;
-                  }
+                  fileName,
+                  ocrCfg,
+                  psm,
+                );
+                const renameCode = extractStrictHeaderIdFromTsv(tsvRows);
+                if (renameCode) {
+                  importCode = renameCode;
+                  break;
                 }
-              } catch {
-                // Keep import fast/resilient; OCR-based naming is best-effort.
               }
+            } catch {
+              // Keep import fast/resilient; OCR-based naming is best-effort.
             }
-
-            // Files already inside a patient subfolder ("{code}/{name}.JPG") are
-            // produced by the Python watcher and are canonically named + placed.
-            // For those we upload only and leave the file where it is — renaming or
-            // moving them to processedDir would fight the FolderOrganizer (the
-            // "bounce") and strip the curated folder layout. Only flat files in the
-            // source root still get the legacy rename+flatten treatment.
-            const subdir = path.dirname(fileName);
-            const alreadyFoldered =
-              subdir !== "." && /^\d{3,5}$/.test(path.basename(subdir));
-            let movedFileName = dbFileName;
-            if (!alreadyFoldered) {
-              // Use OCR-extracted ID if found, otherwise fall back to leading numeric ID in filename.
-              const effectiveCode =
-                importCode || extractLeadingIdFromFileName(fileName);
-              const renamedPath = await renameToPatientIdentity(
-                fullPath,
-                effectiveCode,
-                undefined,
-                undefined,
-              );
-              const movedPath =
-                path.resolve(path.dirname(renamedPath)) ===
-                path.resolve(cfg.processedDir)
-                  ? renamedPath
-                  : await moveToDirAvoidingOverwrite(
-                      renamedPath,
-                      cfg.processedDir,
-                    );
-              movedFileName = path.basename(movedPath).slice(0, 255);
-            }
-            if (uploadId > 0 && movedFileName && movedFileName !== dbFileName) {
-              await withDb((conn) =>
-                conn.query(
-                  "UPDATE srv100_uploads SET file_name = ?, document_id = ? WHERE id = ?",
-                  [
-                    movedFileName,
-                    path.parse(movedFileName).name.slice(0, 255),
-                    uploadId,
-                  ],
-                ),
-              );
-            }
-            console.log(`[srv100-import] Imported ${fileName}`);
-          } catch (error: any) {
-            const reason = String(error?.message ?? "unknown error");
-            if (isLockWaitError(error)) {
-              try {
-                const ocrCfg = getSrv100OcrLinkOptions();
-                if (ocrCfg.enabled && fileData && fileData.length > 0) {
-                  const tsvRows = await runOcrTsvFromBuffer(
-                    fileData,
-                    fileName,
-                    ocrCfg,
-                    4,
-                  );
-                  const strictCode = extractStrictHeaderIdFromTsv(tsvRows);
-                  if (strictCode) {
-                    const renamedPath = await renameToPatientIdentity(
-                      fullPath,
-                      strictCode,
-                      undefined,
-                      undefined,
-                    );
-                    const renamed = path.basename(renamedPath);
-                    console.log(
-                      `[srv100-import] Renamed by OCR on lock timeout: ${fileName} -> ${renamed}`,
-                    );
-                  }
-                }
-              } catch {
-                // Keep import loop resilient; rename fallback is best-effort only.
-              }
-              console.warn(
-                `[srv100-import] Lock timeout on ${fileName}; will retry next cycle.`,
-              );
-              continue;
-            }
-            console.error(`[srv100-import] Failed ${fileName}: ${reason}`);
-            await renameWithPrefix(fullPath, "FAILED").catch(() => undefined);
           }
+
+          // Files already inside a patient subfolder ("{code}/{name}.JPG") are
+          // produced by the Python watcher and are canonically named + placed.
+          // For those we upload only and leave the file where it is — renaming or
+          // moving them to processedDir would fight the FolderOrganizer (the
+          // "bounce") and strip the curated folder layout. Only flat files in the
+          // source root still get the legacy rename+flatten treatment.
+          const subdir = path.dirname(fileName);
+          const alreadyFoldered =
+            subdir !== "." && /^\d{3,5}$/.test(path.basename(subdir));
+          let movedFileName = dbFileName;
+          if (!alreadyFoldered) {
+            // Use OCR-extracted ID if found, otherwise fall back to leading numeric ID in filename.
+            const effectiveCode =
+              importCode || extractLeadingIdFromFileName(fileName);
+            const renamedPath = await renameToPatientIdentity(
+              fullPath,
+              effectiveCode,
+              undefined,
+              undefined,
+            );
+            const movedPath =
+              path.resolve(path.dirname(renamedPath)) ===
+              path.resolve(cfg.processedDir)
+                ? renamedPath
+                : await moveToDirAvoidingOverwrite(
+                    renamedPath,
+                    cfg.processedDir,
+                  );
+            movedFileName = path.basename(movedPath).slice(0, 255);
+          }
+          if (uploadId > 0 && movedFileName && movedFileName !== dbFileName) {
+            await withDb((conn) =>
+              conn.query(
+                "UPDATE srv100_uploads SET file_name = ?, document_id = ? WHERE id = ?",
+                [
+                  movedFileName,
+                  path.parse(movedFileName).name.slice(0, 255),
+                  uploadId,
+                ],
+              ),
+            );
+          }
+          console.log(`[srv100-import] Imported ${fileName}`);
+        } catch (error: any) {
+          const reason = String(error?.message ?? "unknown error");
+          if (isLockWaitError(error)) {
+            try {
+              const ocrCfg = getSrv100OcrLinkOptions();
+              if (ocrCfg.enabled && fileData && fileData.length > 0) {
+                const tsvRows = await runOcrTsvFromBuffer(
+                  fileData,
+                  fileName,
+                  ocrCfg,
+                  4,
+                );
+                const strictCode = extractStrictHeaderIdFromTsv(tsvRows);
+                if (strictCode) {
+                  const renamedPath = await renameToPatientIdentity(
+                    fullPath,
+                    strictCode,
+                    undefined,
+                    undefined,
+                  );
+                  const renamed = path.basename(renamedPath);
+                  console.log(
+                    `[srv100-import] Renamed by OCR on lock timeout: ${fileName} -> ${renamed}`,
+                  );
+                }
+              }
+            } catch {
+              // Keep import loop resilient; rename fallback is best-effort only.
+            }
+            console.warn(
+              `[srv100-import] Lock timeout on ${fileName}; will retry next cycle.`,
+            );
+            continue;
+          }
+          console.error(`[srv100-import] Failed ${fileName}: ${reason}`);
+          await renameWithPrefix(fullPath, "FAILED").catch(() => undefined);
         }
-      } catch (error: any) {
-        console.error(
-          "[srv100-import] Cycle error:",
-          String(error?.message ?? error),
-        );
-      } finally {
-        srv100DbCycleBusy = false;
-        busy = false;
       }
-    };
-
-    void runCycle();
-    setInterval(() => {
-      void runCycle();
-    }, cfg.pollIntervalMs);
-  }
-
-  async function startSrv100OcrLinker() {
-    const cfg = getSrv100OcrLinkOptions();
-    const importCfg = getSrv100FolderImportOptions();
-    if (!cfg.enabled) {
-      console.log("[srv100-ocr] Disabled");
-      return;
-    }
-    try {
-      await execFile(cfg.tesseractPath, ["--version"], {
-        windowsHide: true,
-        timeout: 15_000,
-      });
     } catch (error: any) {
       console.error(
-        `[srv100-ocr] Disabled: Tesseract is not available at "${cfg.tesseractPath}" (${String(error?.message ?? error)})`,
+        "[srv100-import] Cycle error:",
+        String(error?.message ?? error),
       );
-      return;
+    } finally {
+      srv100DbCycleBusy = false;
+      busy = false;
     }
-    console.log(
-      `[srv100-ocr] Enabled (poll=${cfg.pollIntervalMs}ms, batch=${cfg.batchSize}, lang=${cfg.lang}, psm=${cfg.psm})`,
-    );
+  };
 
-    let busy = false;
-    const runCycle = async () => {
-      if (busy) return;
-      if (srv100DbCycleBusy) return;
-      busy = true;
-      srv100DbCycleBusy = true;
-      try {
-        await withDb(async (conn) => {
-          const [rows] = await conn.query(
-            `SELECT id, document_id, file_name, file_data, s3_key, ocr_text, plain_text
+  void runCycle();
+  setInterval(() => {
+    void runCycle();
+  }, cfg.pollIntervalMs);
+}
+
+async function startSrv100OcrLinker() {
+  const cfg = getSrv100OcrLinkOptions();
+  const importCfg = getSrv100FolderImportOptions();
+  if (!cfg.enabled) {
+    console.log("[srv100-ocr] Disabled");
+    return;
+  }
+  try {
+    await execFile(cfg.tesseractPath, ["--version"], {
+      windowsHide: true,
+      timeout: 15_000,
+    });
+  } catch (error: any) {
+    console.error(
+      `[srv100-ocr] Disabled: Tesseract is not available at "${cfg.tesseractPath}" (${String(error?.message ?? error)})`,
+    );
+    return;
+  }
+  console.log(
+    `[srv100-ocr] Enabled (poll=${cfg.pollIntervalMs}ms, batch=${cfg.batchSize}, lang=${cfg.lang}, psm=${cfg.psm})`,
+  );
+
+  let busy = false;
+  const runCycle = async () => {
+    if (busy) return;
+    if (srv100DbCycleBusy) return;
+    busy = true;
+    srv100DbCycleBusy = true;
+    try {
+      await withDb(async (conn) => {
+        const [rows] = await conn.query(
+          `SELECT id, document_id, file_name, file_data, s3_key, ocr_text, plain_text
              FROM srv100_uploads
              WHERE patient_id IS NULL
              ORDER BY id DESC
              LIMIT ?`,
-            [cfg.batchSize],
-          );
-          const uploads = rows as Array<{
-            id: number;
-            document_id: string;
-            file_name: string | null;
-            file_data: Buffer | null;
-            s3_key: string | null;
-            ocr_text: string | null;
-            plain_text: string | null;
-          }>;
-
-          for (const row of uploads) {
-            try {
-              let imageData: Buffer | null = null;
-              if (row.s3_key) {
-                try {
-                  imageData = await downloadFromS3(row.s3_key);
-                } catch (error: any) {
-                  console.warn(
-                    `[srv100-ocr] Failed to download from S3: ${row.s3_key}, trying DB fallback`,
-                  );
-                  if (row.file_data && row.file_data.length > 0) {
-                    imageData = row.file_data;
-                  }
-                }
-              } else if (row.file_data && row.file_data.length > 0) {
-                imageData = row.file_data;
-              }
-
-              let ocrText = String(row.ocr_text ?? "").trim();
-              if (imageData && imageData.length > 0 && !ocrText) {
-                imageData = Buffer.isBuffer(imageData)
-                  ? imageData
-                  : Buffer.from(imageData as any);
-                if (looksCorruptedBinaryImage(imageData) && row.file_name) {
-                  const diskFallback = await loadImageFromImportFolders(
-                    row.file_name,
-                  );
-                  if (diskFallback) imageData = diskFallback;
-                }
-                try {
-                  ocrText = await runOcrFromBuffer(
-                    imageData,
-                    row.file_name || `${row.id}.jpg`,
-                    cfg,
-                  );
-                  if (ocrText) {
-                    await conn.query(
-                      "UPDATE srv100_uploads SET ocr_text = ? WHERE id = ?",
-                      [ocrText, row.id],
-                    );
-                  }
-                } catch (error: any) {
-                  console.warn(
-                    `[srv100-ocr] OCR failed for upload ${row.id}, will try filename matching: ${String(error?.message ?? error)}`,
-                  );
-                }
-              }
-
-              const labeledOcrCandidates =
-                extractLabeledIdCandidatesFromText(ocrText);
-              const ocrCandidates =
-                labeledOcrCandidates.length > 0
-                  ? labeledOcrCandidates
-                  : extractIdCandidatesFromText(ocrText);
-              const candidates = Array.from(
-                new Set([
-                  ...labeledOcrCandidates,
-                  ...extractIdCandidatesFromText(row.document_id),
-                  ...extractIdCandidatesFromText(row.file_name ?? ""),
-                  ...ocrCandidates,
-                  ...extractIdCandidatesFromText(row.plain_text ?? ""),
-                ]),
-              );
-              if (candidates.length === 0) continue;
-
-              const renameCode = normalizeIdCode(labeledOcrCandidates[0] ?? "");
-              if (renameCode && row.file_name) {
-                const renamedFile = await prefixProcessedFileWithCode(
-                  importCfg.processedDir,
-                  row.file_name,
-                  renameCode,
-                );
-                if (renamedFile && renamedFile !== row.file_name) {
-                  await conn.query(
-                    "UPDATE srv100_uploads SET file_name = ?, document_id = ? WHERE id = ?",
-                    [
-                      renamedFile,
-                      path.parse(renamedFile).name.slice(0, 255),
-                      row.id,
-                    ],
-                  );
-                }
-              }
-
-              const patientId = await resolvePatientByIds(conn, candidates);
-              if (!patientId) continue;
-
-              await conn.query(
-                "UPDATE srv100_uploads SET patient_id = ? WHERE id = ? AND patient_id IS NULL",
-                [patientId, row.id],
-              );
-              console.log(
-                `[srv100-ocr] Linked upload ${row.id} -> patient_id=${patientId}`,
-              );
-            } catch (error: any) {
-              if (isLockWaitError(error)) {
-                console.warn(
-                  `[srv100-ocr] Lock timeout on upload ${row.id}; will retry next cycle.`,
-                );
-                continue;
-              }
-              throw error;
-            }
-          }
-        });
-      } catch (error: any) {
-        console.error(
-          "[srv100-ocr] Cycle error:",
-          String(error?.message ?? error),
+          [cfg.batchSize],
         );
-      } finally {
-        srv100DbCycleBusy = false;
-        busy = false;
-      }
-    };
+        const uploads = rows as Array<{
+          id: number;
+          document_id: string;
+          file_name: string | null;
+          file_data: Buffer | null;
+          s3_key: string | null;
+          ocr_text: string | null;
+          plain_text: string | null;
+        }>;
 
-    void runCycle();
-    setInterval(() => {
-      void runCycle();
-    }, cfg.pollIntervalMs);
-  }
+        for (const row of uploads) {
+          try {
+            let imageData: Buffer | null = null;
+            if (row.s3_key) {
+              try {
+                imageData = await downloadFromS3(row.s3_key);
+              } catch (error: any) {
+                console.warn(
+                  `[srv100-ocr] Failed to download from S3: ${row.s3_key}, trying DB fallback`,
+                );
+                if (row.file_data && row.file_data.length > 0) {
+                  imageData = row.file_data;
+                }
+              }
+            } else if (row.file_data && row.file_data.length > 0) {
+              imageData = row.file_data;
+            }
 
-  function startPentacamAutoLinker() {
-    const INTERVAL_MS = 5 * 60 * 1000;
-    let busy = false;
-    const run = async () => {
-      if (busy) return;
-      busy = true;
-      try {
-        const result = await autoLinkUnlinkedPentacamFiles();
-        if (result.imported > 0) {
-          console.log(
-            `[pentacam-auto] Linked ${result.imported} new files (unmatched=${result.unmatched})`,
-          );
+            let ocrText = String(row.ocr_text ?? "").trim();
+            if (imageData && imageData.length > 0 && !ocrText) {
+              imageData = Buffer.isBuffer(imageData)
+                ? imageData
+                : Buffer.from(imageData as any);
+              if (looksCorruptedBinaryImage(imageData) && row.file_name) {
+                const diskFallback = await loadImageFromImportFolders(
+                  row.file_name,
+                );
+                if (diskFallback) imageData = diskFallback;
+              }
+              try {
+                ocrText = await runOcrFromBuffer(
+                  imageData,
+                  row.file_name || `${row.id}.jpg`,
+                  cfg,
+                );
+                if (ocrText) {
+                  await conn.query(
+                    "UPDATE srv100_uploads SET ocr_text = ? WHERE id = ?",
+                    [ocrText, row.id],
+                  );
+                }
+              } catch (error: any) {
+                console.warn(
+                  `[srv100-ocr] OCR failed for upload ${row.id}, will try filename matching: ${String(error?.message ?? error)}`,
+                );
+              }
+            }
+
+            const labeledOcrCandidates =
+              extractLabeledIdCandidatesFromText(ocrText);
+            const ocrCandidates =
+              labeledOcrCandidates.length > 0
+                ? labeledOcrCandidates
+                : extractIdCandidatesFromText(ocrText);
+            const candidates = Array.from(
+              new Set([
+                ...labeledOcrCandidates,
+                ...extractIdCandidatesFromText(row.document_id),
+                ...extractIdCandidatesFromText(row.file_name ?? ""),
+                ...ocrCandidates,
+                ...extractIdCandidatesFromText(row.plain_text ?? ""),
+              ]),
+            );
+            if (candidates.length === 0) continue;
+
+            const renameCode = normalizeIdCode(labeledOcrCandidates[0] ?? "");
+            if (renameCode && row.file_name) {
+              const renamedFile = await prefixProcessedFileWithCode(
+                importCfg.processedDir,
+                row.file_name,
+                renameCode,
+              );
+              if (renamedFile && renamedFile !== row.file_name) {
+                await conn.query(
+                  "UPDATE srv100_uploads SET file_name = ?, document_id = ? WHERE id = ?",
+                  [
+                    renamedFile,
+                    path.parse(renamedFile).name.slice(0, 255),
+                    row.id,
+                  ],
+                );
+              }
+            }
+
+            const patientId = await resolvePatientByIds(conn, candidates);
+            if (!patientId) continue;
+
+            await conn.query(
+              "UPDATE srv100_uploads SET patient_id = ? WHERE id = ? AND patient_id IS NULL",
+              [patientId, row.id],
+            );
+            console.log(
+              `[srv100-ocr] Linked upload ${row.id} -> patient_id=${patientId}`,
+            );
+          } catch (error: any) {
+            if (isLockWaitError(error)) {
+              console.warn(
+                `[srv100-ocr] Lock timeout on upload ${row.id}; will retry next cycle.`,
+              );
+              continue;
+            }
+            throw error;
+          }
         }
-      } catch (err: any) {
-        console.error("[pentacam-auto] Error:", String(err?.message ?? err));
-      } finally {
-        busy = false;
-      }
-    };
-    void run();
-    setInterval(() => void run(), INTERVAL_MS);
-  }
+      });
+    } catch (error: any) {
+      console.error(
+        "[srv100-ocr] Cycle error:",
+        String(error?.message ?? error),
+      );
+    } finally {
+      srv100DbCycleBusy = false;
+      busy = false;
+    }
+  };
 
+  void runCycle();
+  setInterval(() => {
+    void runCycle();
+  }, cfg.pollIntervalMs);
+}
+
+function startPentacamAutoLinker() {
+  const INTERVAL_MS = 5 * 60 * 1000;
+  let busy = false;
+  const run = async () => {
+    if (busy) return;
+    busy = true;
+    try {
+      const result = await autoLinkUnlinkedPentacamFiles();
+      if (result.imported > 0) {
+        console.log(
+          `[pentacam-auto] Linked ${result.imported} new files (unmatched=${result.unmatched})`,
+        );
+      }
+    } catch (err: any) {
+      console.error("[pentacam-auto] Error:", String(err?.message ?? err));
+    } finally {
+      busy = false;
+    }
+  };
+  void run();
+  setInterval(() => void run(), INTERVAL_MS);
+}
 
 // --- Pentacam / Srv100 background services (run standalone via
 // server/services/pentacam.ts; the main web server no longer starts them) ---
@@ -1690,12 +1703,10 @@ async function startServer() {
   app.post("/api/srv100/uploads/ocr-link/run", async (_req, res) => {
     try {
       if (srv100DbCycleBusy) {
-        res
-          .status(409)
-          .json({
-            ok: false,
-            error: "Black Ice worker is busy, retry shortly",
-          });
+        res.status(409).json({
+          ok: false,
+          error: "Black Ice worker is busy, retry shortly",
+        });
         return;
       }
       srv100DbCycleBusy = true;
@@ -2022,12 +2033,10 @@ async function startServer() {
   app.get("/api/pentacam/s3-debug", async (_req, res) => {
     try {
       const objects = await listObjectsInS3("");
-      res
-        .status(200)
-        .json({
-          count: objects.length,
-          keys: objects.slice(0, 200).map((o) => o.key),
-        });
+      res.status(200).json({
+        count: objects.length,
+        keys: objects.slice(0, 200).map((o) => o.key),
+      });
     } catch (err: any) {
       res.status(500).json({ error: String(err?.message ?? err) });
     }
@@ -2132,12 +2141,10 @@ async function startServer() {
       );
       res.status(200).send(fileBuffer);
     } catch (error: any) {
-      res
-        .status(500)
-        .json({
-          ok: false,
-          error: String(error?.message ?? "Failed to read Pentacam image"),
-        });
+      res.status(500).json({
+        ok: false,
+        error: String(error?.message ?? "Failed to read Pentacam image"),
+      });
     }
   });
   const marketingImageDir = path.resolve(
@@ -2161,22 +2168,35 @@ async function startServer() {
   );
   app.use(
     "/pentacam-failed",
-    express.static(path.resolve(process.cwd(), "Pentacam", "Watcher", "_failed"), {
-      maxAge: "5m",
-      fallthrough: true,
-    }),
+    express.static(
+      path.resolve(process.cwd(), "Pentacam", "Watcher", "_failed"),
+      {
+        maxAge: "5m",
+        fallthrough: true,
+      },
+    ),
   );
   // Electron auto-updater: serve installer files from desktop-electron/
   const electronUpdatesDir = path.resolve(process.cwd(), "desktop-electron");
-  app.use("/updates", express.static(electronUpdatesDir, { maxAge: "5m", fallthrough: true }));
+  app.use(
+    "/updates",
+    express.static(electronUpdatesDir, { maxAge: "5m", fallthrough: true }),
+  );
   // WebView2 auto-updater: serve installer files from desktop/installer/
   const webviewUpdatesDir = path.resolve(process.cwd(), "desktop", "installer");
-  app.use("/updates/webview", express.static(webviewUpdatesDir, { maxAge: "5m", fallthrough: true }));
+  app.use(
+    "/updates/webview",
+    express.static(webviewUpdatesDir, { maxAge: "5m", fallthrough: true }),
+  );
   // Android auto-updater: serve release APKs from ANDROID_APK_DIR (defaults to android/releases/)
   const androidUpdatesDir = path.resolve(
-    process.env.ANDROID_APK_DIR || path.join(process.cwd(), "android", "releases"),
+    process.env.ANDROID_APK_DIR ||
+      path.join(process.cwd(), "android", "releases"),
   );
-  app.use("/updates/android", express.static(androidUpdatesDir, { maxAge: "5m", fallthrough: true }));
+  app.use(
+    "/updates/android",
+    express.static(androidUpdatesDir, { maxAge: "5m", fallthrough: true }),
+  );
 
   // Facebook OAuth callback — security: state is verified, token never logged or returned to client
   app.get("/api/marketing/facebook/callback", async (req, res) => {
@@ -2280,6 +2300,21 @@ async function startServer() {
       createContext,
     }),
   );
+  // Keep the renamed Admin Hub canonical in both development and production.
+  app.use((req, res, next) => {
+    if (
+      req.path === "/booking-triage" ||
+      req.path.startsWith("/booking-triage/")
+    ) {
+      const rest = req.path.slice("/booking-triage".length);
+      const query = req.url.includes("?")
+        ? req.url.slice(req.url.indexOf("?"))
+        : "";
+      return res.redirect(301, `/admin-hub${rest}${query}`);
+    }
+    next();
+  });
+
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
@@ -2314,9 +2349,16 @@ async function startServer() {
       const k40 = DeviceSettingsService.getK40Settings();
       if (!k40.ip || !k40.enabled) return;
       if ((k40.zk40Protocol ?? "adms") !== "tcp") return; // skip unless TCP pull mode
-      const { ZKDevicePuller } = await import("../services/attendance/zkDevicePuller");
-      await ZKDevicePuller.setDeviceTime(k40.ip, k40.port, k40.commPassword ?? 0);
-    } catch { /* ignore — device may be offline */ }
+      const { ZKDevicePuller } =
+        await import("../services/attendance/zkDevicePuller");
+      await ZKDevicePuller.setDeviceTime(
+        k40.ip,
+        k40.port,
+        k40.commPassword ?? 0,
+      );
+    } catch {
+      /* ignore — device may be offline */
+    }
   }, zkClockSyncIntervalMs);
 
   startMssqlSyncScheduler();
