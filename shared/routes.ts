@@ -1,6 +1,7 @@
 export const ROUTES = {
   // Core navigation
   home: "/",
+  homeAlias: "/home",
   login: "/login",
   dashboard: "/dashboard",
   profile: "/profile",

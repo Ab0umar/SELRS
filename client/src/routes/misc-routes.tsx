@@ -168,6 +168,7 @@ export const MiscRoutes = (
         </ProtectedRoute>
       )}
     />
+    <Route path={ROUTES.homeAlias} component={Home} />
     <Route path={ROUTES.home} component={Home} />
     <Route
       path={`${ROUTES.patientHub}/*?`}
