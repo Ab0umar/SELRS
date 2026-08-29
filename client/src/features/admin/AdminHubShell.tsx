@@ -599,7 +599,7 @@ export default function AdminHubShell() {
       className="min-h-screen bg-background text-foreground"
       dir="rtl"
     >
-      <div className="min-h-screen lg:flex lg:flex-row-reverse">
+      <div className="min-h-screen lg:flex lg:flex-row">
         <aside
           className={cn(
             "fixed inset-y-0 right-0 z-40 flex w-[min(86vw,320px)] flex-col border-l border-border/70 bg-card shadow-2xl transition-transform duration-200 lg:static lg:w-[280px] lg:shrink-0 lg:translate-x-0 lg:shadow-none",
