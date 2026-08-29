@@ -114,7 +114,7 @@ export default function AdminSheets() {
         <Button
           type="button"
           className="selrs-gradient-btn shrink-0 gap-2 self-start text-primary-foreground sm:mt-1"
-          onClick={() => setLocation("/sheet-designer")}
+          onClick={() => setLocation("/admin-hub/sheet-designer")}
         >
           <Plus className="h-4 w-4" />
           نموذج جديد

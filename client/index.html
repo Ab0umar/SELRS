@@ -8,20 +8,6 @@
     />
     <meta name="theme-color" content="#003D82" />
     <meta name="color-scheme" content="light" />
-    <script>
-      (() => {
-        const pathname = window.location.pathname;
-        if (
-          pathname === "/booking-triage" ||
-          pathname.startsWith("/booking-triage/")
-        ) {
-          const rest = pathname.slice("/booking-triage".length);
-          window.location.replace(
-            `/admin-hub${rest}${window.location.search}${window.location.hash}`,
-          );
-        }
-      })();
-    </script>
     <meta name="description" content="عيون الشروق — البوابة الطبية." />
     <link rel="dns-prefetch" href="//op.selrs.cc" />
     <link rel="preconnect" href="https://op.selrs.cc" crossorigin />

@@ -506,8 +506,22 @@ function isItemActive(pathname: string, activeFor: string[]) {
   );
 }
 
-export default function AdminHubShell() {
+type AdminHubShellProps = {
+  basePath?: string;
+};
+
+export default function AdminHubShell({
+  basePath = "/admin-hub",
+}: AdminHubShellProps) {
   const [location, setLocation] = useLocation();
+  const hubLocation =
+    basePath === "/admin-hub"
+      ? location
+      : location === basePath
+        ? "/admin-hub"
+        : location.startsWith(`${basePath}/`)
+          ? `/admin-hub${location.slice(basePath.length)}`
+          : location;
   const { canAccess } = usePermissions();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -517,11 +531,12 @@ export default function AdminHubShell() {
   });
 
   const opsHealth = opsHealthQuery.data;
-  const isHubHome = location === "/admin-hub" || location === "/admin-hub/";
+  const isHubHome =
+    hubLocation === "/admin-hub" || hubLocation === "/admin-hub/";
 
   const getBreadcrumbs = () => {
     if (isHubHome) return null;
-    const parts = location.split("/").filter(Boolean);
+    const parts = hubLocation.split("/").filter(Boolean);
     const crumbs = [{ label: "الرئيسية للمشرف", href: "/admin-hub" }];
 
     let currentPath = "/admin-hub";
@@ -538,7 +553,7 @@ export default function AdminHubShell() {
   };
 
   const renderComponent = () => {
-    const loc = location.replace(/\/$/, "");
+    const loc = hubLocation.replace(/\/$/, "");
     if (loc === "/admin-hub/users") return <AdminUsers />;
     if (loc === "/admin-hub/migrations") return <AdminMigrations />;
     if (loc === "/admin-hub/api") return <AdminApiTools />;
@@ -684,7 +699,7 @@ export default function AdminHubShell() {
 
   const allNavItems = sidebarSections.flatMap((section) => section.items);
   const activeNavItem = allNavItems.find((item) =>
-    isItemActive(location, item.activeFor),
+    isItemActive(hubLocation, item.activeFor),
   );
   const pageTitle = isHubHome
     ? "مركز التحكم التشغيلي"
@@ -740,7 +755,7 @@ export default function AdminHubShell() {
               const firstItem = section.items[0];
               if (!firstItem) return null;
               const sectionActive = section.items.some((item) =>
-                isItemActive(location, item.activeFor),
+                isItemActive(hubLocation, item.activeFor),
               );
               return (
                 <Link

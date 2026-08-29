@@ -311,15 +311,27 @@ export default function AdminSheetDesigner() {
       label: "قالب مقاس نظاره / اشعه خارجي",
       sections: "عناوين الشيت",
     },
-    { id: "lasik-template", label: "قالب تصحيح ابصار", sections: "عناوين الشيت" },
-    { id: "external-template", label: "قالب د.الصواف", sections: "عناوين الشيت" },
+    {
+      id: "lasik-template",
+      label: "قالب تصحيح ابصار",
+      sections: "عناوين الشيت",
+    },
+    {
+      id: "external-template",
+      label: "قالب د.الصواف",
+      sections: "عناوين الشيت",
+    },
     {
       id: "pentacam-template",
       label: "قالب Pentacam",
       sections: "عناوين الشيت",
     },
     { id: "consultant-css", label: "CSS كشف", sections: "أنماط مخصصة" },
-    { id: "specialist-css", label: "CSS مقاس نظاره / اشعه خارجي", sections: "أنماط مخصصة" },
+    {
+      id: "specialist-css",
+      label: "CSS مقاس نظاره / اشعه خارجي",
+      sections: "أنماط مخصصة",
+    },
     { id: "lasik-css", label: "CSS تصحيح ابصار", sections: "أنماط مخصصة" },
     { id: "external-css", label: "CSS د.الصواف", sections: "أنماط مخصصة" },
     { id: "pentacam-css", label: "CSS Pentacam", sections: "أنماط مخصصة" },
@@ -342,7 +354,7 @@ export default function AdminSheetDesigner() {
         <Button
           type="button"
           className="selrs-gradient-btn shrink-0 gap-2 self-start text-primary-foreground sm:mt-1"
-          onClick={() => setLocation("/medical-sheets")}
+          onClick={() => setLocation("/admin-hub/sheets")}
         >
           <Plus className="h-4 w-4" />
           نموذج جديد

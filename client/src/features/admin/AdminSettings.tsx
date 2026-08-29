@@ -57,7 +57,7 @@ export default function AdminSettings({
 }: {
   pricingOnly?: boolean;
 }) {
-  const PRICING_RULES_PERMISSION = "/admin/settings/pricing-rules";
+  const PRICING_RULES_PERMISSION = "/admin-hub/settings/pricing-rules";
   const PRICING_RULES_KEY_PERMISSION = "appointments_pricing_v1";
   const { user, isAuthenticated } = useAuth();
   const [location, setLocation] = useLocation();
@@ -148,7 +148,7 @@ export default function AdminSettings({
   if (!isAuthenticated) return null;
 
   const isPricingOnlyMode =
-    pricingOnly || location.startsWith("/admin/settings/pricing-rules");
+    pricingOnly || location.startsWith("/admin-hub/settings/pricing-rules");
   const userRole = String(user?.role ?? "").toLowerCase();
   const myPermissions = (permissionsQuery.data ?? []) as string[];
   const canReadPricingRules =

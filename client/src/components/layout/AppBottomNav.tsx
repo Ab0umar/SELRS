@@ -303,10 +303,10 @@ export function AppBottomNav({
       ),
     );
     const recordItems = [
-      ["/admin/legacy-patients", "المرضى"],
+      ["/admin-hub/legacy-patients", "المرضى"],
       ["/followups", "المتابعات"],
       ["/visits", "الزيارات"],
-      ["/admin/op-history", "العمليات"],
+      ["/admin-hub/op-history", "العمليات"],
       ["/sheets/autorefs/dashboard", "AutoRef"],
       ["/sheets/refractions/dashboard", "Refractions"],
       ["/sheets/pentacam/dashboard", "Pentacam"],
