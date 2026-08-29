@@ -12,7 +12,6 @@ import {
   Stethoscope,
   Terminal,
   Users,
-  Wrench,
   FileSearch,
   Settings,
   DollarSign,
@@ -26,7 +25,6 @@ import {
   Bell,
   Eye,
   ChevronRight,
-  UserCheck,
   PanelRightClose,
   PanelRightOpen,
 } from "lucide-react";
@@ -50,9 +48,13 @@ import AdminDataSourceAudit from "./AdminDataSourceAudit";
 import AdminNotificationSettings from "./AdminNotificationSettings";
 import AdminPatients from "./AdminPatients";
 import AdminPortalBookings from "./AdminPortalBookings";
+import AdminLegacyPatients from "./AdminLegacyPatients";
+import OpHistory from "./OpHistory";
+import AdminWhatsAppInbox from "./AdminWhatsAppInbox";
+import AdminPentacamLinking from "./AdminPentacamLinking";
+import AdminPentacamDuplicates from "./AdminPentacamDuplicates";
 import ExternalDoctors from "../../pages/ExternalDoctors";
 import ExternalDoctorReferrals from "../../pages/ExternalDoctorReferrals";
-import { PageHeader } from "@/components/shared/PageHeader";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { AppShellSkeleton } from "@/components/layout/AppShellSkeleton";
@@ -104,7 +106,7 @@ const ALL_MODULES: HubModuleCard[] = [
     title: "الأطباء الخارجيون",
     description: "أطباء الإحالة الخارجيين وعلاقاتهم بالمركز.",
     icon: Stethoscope,
-    iconWrap: "bg-teal-500/10 text-teal-500",
+    iconWrap: "bg-info/10 text-info",
     category: "staff",
   },
   {
@@ -112,7 +114,7 @@ const ALL_MODULES: HubModuleCard[] = [
     title: "إحالات الأطباء الخارجية",
     description: "متابعة الحالات المحولة ونسب الإحالة للأطباء.",
     icon: FileSearch,
-    iconWrap: "bg-indigo-500/10 text-indigo-500",
+    iconWrap: "bg-primary/10 text-primary",
     category: "staff",
   },
   {
@@ -144,7 +146,7 @@ const ALL_MODULES: HubModuleCard[] = [
     title: "تسعير الفحوصات",
     description: "تحديد الفحوصات الطبية وأسعارها بالمركز.",
     icon: TestTube2,
-    iconWrap: "bg-indigo-500/10 text-indigo-500",
+    iconWrap: "bg-primary/10 text-primary",
     category: "services",
   },
   {
@@ -152,7 +154,7 @@ const ALL_MODULES: HubModuleCard[] = [
     title: "مستندات ونماذج المرضى",
     description: "إعداد استمارات الموافقة الجراحية والتعليمات الطبية للمرضى.",
     icon: PenSquare,
-    iconWrap: "bg-emerald-500/10 text-emerald-500",
+    iconWrap: "bg-success/10 text-success",
     category: "services",
   },
   {
@@ -184,15 +186,63 @@ const ALL_MODULES: HubModuleCard[] = [
     title: "سجل المرضى الكلي",
     description: "البحث التفصيلي وتعديل كافة ملفات المرضى التاريخية بالمركز.",
     icon: Users,
-    iconWrap: "bg-teal-500/10 text-teal-500",
+    iconWrap: "bg-info/10 text-info",
     category: "portal",
+  },
+  {
+    href: "/admin-hub/legacy-patients",
+    title: "سجل المرضى التاريخي",
+    description: "بحث ومراجعة ملفات السنوات السابقة للمرضى.",
+    icon: Users,
+    iconWrap: "bg-muted text-muted-foreground",
+    category: "portal",
+  },
+  {
+    href: "/admin-hub/whatsapp-inbox",
+    title: "رسائل واتساب الواردة",
+    description: "متابعة رسائل المرضى والرد عليها من داخل المركز.",
+    icon: Bell,
+    iconWrap: "bg-success/10 text-success",
+    category: "portal",
+  },
+  {
+    href: "/admin-hub/op-history",
+    title: "سجل العمليات",
+    description: "مراجعة العمليات وتكويد الخدمات والتعديلات اليدوية.",
+    icon: FileSearch,
+    iconWrap: "bg-primary/10 text-primary",
+    category: "system",
+  },
+  {
+    href: "/admin-hub/pentacam-linking",
+    title: "ربط ملفات البنتاكام",
+    description: "استيراد وربط صور البنتاكام بملفات المرضى.",
+    icon: Link2,
+    iconWrap: "bg-secondary/10 text-secondary",
+    category: "services",
+  },
+  {
+    href: "/admin-hub/pentacam-duplicates",
+    title: "تنظيف ملفات البنتاكام المكررة",
+    description: "مراجعة وحذف سجلات الرفع المكررة بأمان.",
+    icon: Copy,
+    iconWrap: "bg-warning/10 text-warning",
+    category: "services",
+  },
+  {
+    href: "/admin-hub/pentacam-failed",
+    title: "فشل رفع البنتاكام",
+    description: "مراجعة الملفات التي فشل رفعها ومعالجة أسباب الخطأ.",
+    icon: Activity,
+    iconWrap: "bg-destructive/10 text-destructive",
+    category: "services",
   },
   {
     href: "/admin-hub/portal-bookings",
     title: "حجوزات البوابة الخارجية",
     description: "التحقق وتأكيد حجوزات موقع الويب الخارجي والطلبات للعيادات.",
     icon: CalendarDays,
-    iconWrap: "bg-indigo-500/10 text-indigo-500",
+    iconWrap: "bg-primary/10 text-primary",
     category: "portal",
   },
   {
@@ -224,7 +274,23 @@ const ALL_MODULES: HubModuleCard[] = [
     title: "إعدادات التنبيهات",
     description: "ضبط تنبيهات النظام وقنوات الإرسال.",
     icon: Bell,
-    iconWrap: "bg-rose-500/10 text-rose-500",
+    iconWrap: "bg-destructive/10 text-destructive",
+    category: "system",
+  },
+  {
+    href: "/admin-hub/api",
+    title: "أدوات API",
+    description: "اختبار أدوات المطورين وواجهات النظام الداخلية.",
+    icon: Terminal,
+    iconWrap: "bg-muted text-muted-foreground",
+    category: "system",
+  },
+  {
+    href: "/admin-hub/diagnostics",
+    title: "تشخيصات النظام",
+    description: "فحوصات سريعة لمشاكل الاتصال والتشغيل.",
+    icon: Activity,
+    iconWrap: "bg-info/10 text-info",
     category: "system",
   },
 ];
@@ -236,6 +302,12 @@ const navigationSections = [
     description: "المستخدمون، الأطباء، الصلاحيات والإحالات",
     icon: Users,
     items: [
+      {
+        href: "/salary",
+        label: "المرتبات والعمولات",
+        description: "الرواتب والجزاءات وتقارير الموظفين",
+        activeFor: ["/salary"],
+      },
       {
         href: "/admin-hub/users",
         label: "إدارة المستخدمين",
@@ -310,6 +382,24 @@ const navigationSections = [
         description: "سجل نقل بنية وقيم الحقول الطبية",
         activeFor: ["/admin-hub/sheet-copies"],
       },
+      {
+        href: "/admin-hub/pentacam-linking",
+        label: "ربط ملفات البنتاكام",
+        description: "استيراد وربط صور البنتاكام",
+        activeFor: ["/admin-hub/pentacam-linking"],
+      },
+      {
+        href: "/admin-hub/pentacam-duplicates",
+        label: "تنظيف البنتاكام المكرر",
+        description: "مراجعة سجلات الرفع المكررة",
+        activeFor: ["/admin-hub/pentacam-duplicates"],
+      },
+      {
+        href: "/admin-hub/pentacam-failed",
+        label: "فشل رفع البنتاكام",
+        description: "مراجعة الملفات التي فشل رفعها",
+        activeFor: ["/admin-hub/pentacam-failed"],
+      },
     ],
   },
   {
@@ -331,10 +421,16 @@ const navigationSections = [
         activeFor: ["/admin-hub/portal-bookings"],
       },
       {
-        href: "/admin/legacy-patients",
-        label: "سجل المرضى (23/24/25)",
+        href: "/admin-hub/legacy-patients",
+        label: "سجل المرضى التاريخي",
         description: "بحث للمراجعة فقط في قواعد بيانات السنوات السابقة",
-        activeFor: ["/admin/legacy-patients"],
+        activeFor: ["/admin-hub/legacy-patients"],
+      },
+      {
+        href: "/admin-hub/whatsapp-inbox",
+        label: "رسائل واتساب الواردة",
+        description: "متابعة الرسائل والردود",
+        activeFor: ["/admin-hub/whatsapp-inbox"],
       },
     ],
   },
@@ -386,6 +482,18 @@ const navigationSections = [
         description: "إعدادات الرسائل وسيرفرات البريد",
         activeFor: ["/admin-hub/notifications"],
       },
+      {
+        href: "/admin-hub/op-history",
+        label: "سجل العمليات",
+        description: "سجل التعديلات والعمليات الإدارية",
+        activeFor: ["/admin-hub/op-history"],
+      },
+      {
+        href: "/admin-hub/diagnostics",
+        label: "تشخيصات النظام",
+        description: "فحوصات الاتصال والتشغيل",
+        activeFor: ["/admin-hub/diagnostics"],
+      },
     ],
   },
 ];
@@ -397,35 +505,6 @@ function isItemActive(pathname: string, activeFor: string[]) {
       : pathname === path || pathname.startsWith(`${path}/`),
   );
 }
-
-// Top navigation (horizontal bar, single row, all breakpoints)
-const topbarNavItems = [
-  { href: "/admin-hub/users", label: "المستخدمين", icon: Users },
-  { href: "/admin-hub/doctors", label: "الأطباء", icon: Stethoscope },
-  { href: "/admin-hub/permissions", label: "الصلاحيات", icon: Shield },
-  {
-    href: "/admin-hub/external-doctors",
-    label: "طبيب خارجي",
-    icon: FileSearch,
-  },
-  { href: "/admin-hub/tests", label: "الخدمات", icon: TestTube2 },
-  { href: "/admin-hub/services", label: "ربط الخدمات", icon: LayoutGrid },
-  {
-    href: "/admin-hub/sheet-designer",
-    label: "نماذج الملفات",
-    icon: Scan,
-  },
-  { href: "/admin-hub/patients", label: "المرضى", icon: Users },
-  { href: "/admin/legacy-patients", label: "سجل المرضى", icon: HeartPulse },
-  {
-    href: "/admin-hub/portal-bookings",
-    label: "الحجز",
-    icon: CalendarDays,
-  },
-  { href: "/admin-hub/status", label: "السيرفر", icon: Terminal },
-  { href: "/admin-hub/migrations", label: "اسكيما", icon: Database },
-  { href: "/admin-hub/notifications", label: "الإشعارات", icon: Bell },
-];
 
 export default function AdminHubShell() {
   const [location] = useLocation();
@@ -473,6 +552,16 @@ export default function AdminHubShell() {
     if (loc === "/admin-hub/sheet-copies") return <AdminSheetCopies />;
     if (loc === "/admin-hub/forms") return <AdminFormsHub />;
     if (loc === "/admin-hub/patients") return <AdminPatients />;
+    if (loc === "/admin-hub/legacy-patients") return <AdminLegacyPatients />;
+    if (loc === "/admin-hub/whatsapp-inbox") return <AdminWhatsAppInbox />;
+    if (loc === "/admin-hub/op-history") return <OpHistory />;
+    if (
+      loc === "/admin-hub/pentacam-linking" ||
+      loc.startsWith("/admin-hub/pentacam-linking/")
+    )
+      return <AdminPentacamLinking />;
+    if (loc === "/admin-hub/pentacam-duplicates")
+      return <AdminPentacamDuplicates />;
     if (loc === "/admin-hub/portal-bookings") return <AdminPortalBookings />;
     if (loc === "/admin-hub/card-visibility") return <AdminCardVisibility />;
     if (loc === "/admin-hub/diagnostics") return <AdminDiagnostics />;
