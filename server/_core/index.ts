@@ -2300,21 +2300,6 @@ async function startServer() {
       createContext,
     }),
   );
-  // Keep the renamed Admin Hub canonical in both development and production.
-  app.use((req, res, next) => {
-    if (
-      req.path === "/booking-triage" ||
-      req.path.startsWith("/booking-triage/")
-    ) {
-      const rest = req.path.slice("/booking-triage".length);
-      const query = req.url.includes("?")
-        ? req.url.slice(req.url.indexOf("?"))
-        : "";
-      return res.redirect(301, `/admin-hub${rest}${query}`);
-    }
-    next();
-  });
-
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
